@@ -1,2 +1,14 @@
-# VS Code
+# ESP-IDF generated files
+firmware/build/
+firmware/managed_components/
+firmware/sdkconfig
+firmware/sdkconfig.old
+
+# Local editor settings
 .vscode/
+firmware/.vscode/
+*.code-workspace
+
+# Editor and operating system files
+.DS_Store
+*.swp
