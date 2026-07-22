@@ -62,6 +62,26 @@ New hardware support should primarily require adding a new driver instead of mod
 
 ---
 
+## Architecture Decision Records (ADR)
+
+SimCore uses Architecture Decision Records (ADRs) to document important architectural decisions.
+
+Rules:
+
+- Before introducing a new architectural concept, check whether an ADR already exists.
+- If an ADR exists, update it instead of creating a duplicate.
+- If a significant architectural decision is made, create a new ADR.
+- ADRs should be short and focused.
+- Every ADR should contain:
+  - Context
+  - Decision
+  - Consequences
+- Do not create ADRs for implementation details, refactoring, formatting, naming, or other low-level changes.
+- Do not invent ADRs that were not actually discussed or decided.
+- Prefer updating existing ADRs over creating new ones whenever appropriate.
+
+---
+
 ## Configuration
 
 Platform behavior should be configuration-driven whenever possible.
