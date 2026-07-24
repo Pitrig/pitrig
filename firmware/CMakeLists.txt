@@ -5,5 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+list(APPEND EXTRA_COMPONENT_DIRS
+     "${CMAKE_CURRENT_LIST_DIR}/core"
+     "${CMAKE_CURRENT_LIST_DIR}/drivers/t_display_s3"
+     "${CMAKE_CURRENT_LIST_DIR}/interfaces"
+     "${CMAKE_CURRENT_LIST_DIR}/modules/lap_timer"
+     "${CMAKE_CURRENT_LIST_DIR}/services/logger")
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(simcore)
