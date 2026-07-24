@@ -4,7 +4,7 @@
 
 SimCore is a modular firmware platform for building sim racing hardware using ESP32.
 
-The architecture is designed around a small, hardware-independent firmware core with interchangeable modules and hardware drivers.
+The architecture is designed around a small, hardware-independent firmware core, reusable components and modules, and interchangeable hardware drivers.
 
 The primary goal is long-term maintainability, modularity, and extensibility. Every architectural decision should make the platform easier to extend without modifying existing components.
 
@@ -16,21 +16,27 @@ The firmware is built around several strict principles.
 
 ## Modularity
 
-The system is composed of independent modules.
+The system is composed of independent layers with explicit responsibilities.
 
-Each module is responsible for a single feature.
+Components expose hardware capabilities.
 
-Modules should be reusable across different devices.
+Modules implement user-visible functionality.
 
-Adding or removing a module should not require changes to unrelated modules.
+Services provide shared infrastructure.
+
+Drivers implement access to specific hardware.
+
+Adding or removing an implementation should not require changes to unrelated layers.
 
 ---
 
 ## Separation of Responsibilities
 
-Business logic and hardware logic are always separated.
+Feature logic and hardware logic are always separated.
 
 Modules implement functionality.
+
+Components expose reusable hardware capabilities.
 
 Drivers implement hardware access.
 
@@ -42,7 +48,7 @@ The firmware core coordinates everything.
 
 The firmware core must never depend on specific hardware.
 
-Displays, LEDs, buttons, encoders, touch panels and future peripherals are accessed only through platform interfaces.
+Displays, LEDs, buttons, encoders, touch panels and future peripherals are accessed through components and their interfaces.
 
 Replacing hardware should primarily require implementing a new driver instead of modifying application logic.
 
@@ -84,22 +90,60 @@ The firmware should avoid device-specific code paths.
 | Service Registry                                          |
 | Module Lifecycle                                          |
 +---------------------------------------------------------------+
-             |                    |                    |
-             |                    |                    |
-      +------+-----+       +------+-----+       +------+------+
-      |   Modules   |       |   Modules   |      |   Modules   |
-      +------+-----+       +------+-----+       +------+------+
-             |                    |                    |
-             +---------+----------+--------------------+
-                       |
-                Platform Interfaces
-                       |
-        +--------------+--------------+
-        |                             |
-   Display Drivers              Input Drivers
-        |                             |
-   ST7789, GC9A01...           Buttons, Encoder...
+              |                    |                    |
+              |                    |                    |
+       +------+-----+       +------+-----+       +------+------+
+       |   Modules   +------>| Components |       |  Services   |
+       +------------+       +------+-----+       +-------------+
+                                   |
+                              Interfaces
+                                   |
+                    +--------------+--------------+
+                    |                             |
+               Display Drivers               Input Drivers
+                    |                             |
+              T-Display-S3...              Buttons, Encoder...
 ```
+
+---
+
+# Firmware Layout
+
+The firmware source is organized by architectural responsibility.
+
+```text
+firmware/
+├── core/          Firmware startup and orchestration
+├── components/    Reusable hardware capabilities
+├── interfaces/    Contracts implemented by drivers
+├── drivers/       Hardware-specific implementations
+├── modules/       User-visible functionality
+├── services/      Shared infrastructure
+├── platform/      Platform-specific support
+├── utils/         Generic utilities
+└── main/          ESP-IDF application entry point
+```
+
+Each implementation is registered as an ESP-IDF component when it needs independent dependencies or public include paths.
+
+Public headers are stored directly under an implementation's `include/` directory. Implementation files are stored under `src/`.
+
+The dependency direction is:
+
+```text
+main
+  |
+  v
+core
+  |----> modules
+  |----> components
+  `----> services
+
+modules ----> components
+components ----> interfaces <---- drivers
+```
+
+Dependencies must not point from interfaces or components to a concrete hardware driver.
 
 ---
 
@@ -122,6 +166,25 @@ The firmware core must not contain feature-specific logic.
 
 ---
 
+# Components
+
+Components expose reusable hardware capabilities to the core and modules.
+
+Examples include:
+
+- Display
+- LED Strip
+- LED Matrix
+- Buttons
+- Encoders
+- Touch Input
+
+Components own capability-level behavior but do not access board-specific hardware directly.
+
+Components depend on interfaces rather than concrete drivers.
+
+---
+
 # Modules
 
 Modules provide user-visible functionality.
@@ -129,16 +192,30 @@ Modules provide user-visible functionality.
 Examples:
 
 - Dashboard
-- Button Matrix
-- RGB Lighting
 - Shift Lights
+- Lap Timer
 - Spotter
 - Race Control
 - Display Pages
 
 Modules communicate through platform services rather than directly with each other whenever possible.
 
-Modules never access hardware directly.
+Modules use components and never access hardware directly.
+
+---
+
+# Services
+
+Services provide shared infrastructure used by the core, components, modules, and drivers when appropriate.
+
+Examples include:
+
+- Logging
+- Scheduling
+- Configuration
+- Communication
+
+Services must remain focused and must not contain hardware-specific application logic.
 
 ---
 
@@ -155,19 +232,21 @@ Examples include:
 - CAN drivers
 - USB drivers
 
-Drivers expose common interfaces used by modules.
+Drivers implement interfaces used by components.
 
 Drivers should not contain application logic.
 
 ---
 
-# Platform Interfaces
+# Interfaces
 
-Interfaces define contracts between modules and drivers.
+Interfaces define contracts between components and drivers.
 
-Modules depend on interfaces rather than implementations.
+Components depend on interfaces rather than concrete implementations.
 
 Every hardware implementation should satisfy the same interface.
+
+Interfaces should remain small and must not contain board-specific pin assignments or device logic.
 
 ---
 
@@ -236,7 +315,7 @@ Large temporary allocations should be avoided.
 
 Rendering should be independent from display hardware.
 
-Rendering code should target abstract drawing interfaces.
+Rendering modules should use the display component rather than a concrete display driver.
 
 Display drivers are responsible for transferring rendered data to hardware.
 
@@ -249,9 +328,10 @@ DMA should be preferred whenever supported.
 Adding a new feature should usually involve:
 
 1. Creating a module.
-2. Reusing existing interfaces.
-3. Reusing existing services.
-4. Implementing a driver only if new hardware is introduced.
+2. Reusing existing components and services.
+3. Adding a component only when a new hardware capability is required.
+4. Reusing an existing interface.
+5. Implementing a driver only when new hardware is introduced.
 
 The firmware core should rarely require modification.
 
@@ -263,6 +343,7 @@ The following rules should always be respected.
 
 - The core must not know specific hardware.
 - Modules must not access hardware directly.
+- Components must not depend on concrete drivers.
 - Drivers must not contain business logic.
 - New hardware should primarily require new drivers.
 - Configuration should replace hardcoded behavior whenever practical.
