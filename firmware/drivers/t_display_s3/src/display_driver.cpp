@@ -14,7 +14,7 @@ namespace {
 constexpr char kTag[] = "t_display_s3";
 constexpr int kHorizontalResolution = 320;
 constexpr int kVerticalResolution = 170;
-constexpr int kBufferLines = 20;
+constexpr int kBufferLines = 80;
 constexpr int kPixelClockHz = 20'000'000;
 
 constexpr gpio_num_t kPowerPin = GPIO_NUM_15;
@@ -80,7 +80,7 @@ Configuration initialize_panel() {
       .flags = {
           .cs_active_high = 0,
           .reverse_color_bits = 0,
-          .swap_color_bytes = 1,
+          .swap_color_bytes = 0,
           .pclk_active_neg = 0,
           .pclk_idle_low = 0,
       },
@@ -99,7 +99,7 @@ Configuration initialize_panel() {
   ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io, &panel_config, &panel));
   ESP_ERROR_CHECK(esp_lcd_panel_reset(panel));
   ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
-  ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, false));
+  ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
   ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, 0, 35));
   ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
 

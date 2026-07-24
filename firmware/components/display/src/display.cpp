@@ -5,11 +5,17 @@
 #include "display_driver.hpp"
 
 namespace simcore::display {
+namespace {
+
+constexpr int kLvglTaskCore = 1;
+
+}  // namespace
 
 lv_display_t* initialize() {
   const driver::Configuration hardware = driver::initialize();
 
-  const lvgl_port_cfg_t lvgl_config = ESP_LVGL_PORT_INIT_CONFIG();
+  lvgl_port_cfg_t lvgl_config = ESP_LVGL_PORT_INIT_CONFIG();
+  lvgl_config.task_affinity = kLvglTaskCore;
   ESP_ERROR_CHECK(lvgl_port_init(&lvgl_config));
 
   const lvgl_port_display_cfg_t display_config = {

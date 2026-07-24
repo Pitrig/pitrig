@@ -137,9 +137,12 @@ main
 core
   |----> modules
   |----> components
-  `----> services
+  |----> services
+  `----> platform
 
 modules ----> components
+platform ----> modules
+platform ----> components
 components ----> interfaces <---- drivers
 ```
 
@@ -191,7 +194,6 @@ Modules provide user-visible functionality.
 
 Examples:
 
-- Dashboard
 - Shift Lights
 - Lap Timer
 - Spotter
@@ -201,6 +203,18 @@ Examples:
 Modules communicate through platform services rather than directly with each other whenever possible.
 
 Modules use components and never access hardware directly.
+
+---
+
+# Platform
+
+Platform code adapts modules and components to framework-specific presentation and runtime facilities.
+
+Dashboard widgets are platform-specific UI. They render module state with LVGL but do not own business state, telemetry processing, extrapolation, or correction logic.
+
+Platform code may depend on modules and components. Modules must not depend on platform code or UI frameworks.
+
+Temporary development sources, such as mock telemetry, must remain isolated under `platform/` so production communication can replace them without changing module APIs.
 
 ---
 

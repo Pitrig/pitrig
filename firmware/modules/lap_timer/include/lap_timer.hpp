@@ -2,14 +2,12 @@
 
 #include <cstdint>
 
-struct _lv_display_t;
-struct _lv_obj_t;
-using lv_display_t = _lv_display_t;
-using lv_obj_t = _lv_obj_t;
-
 namespace simcore::lap_timer {
 
-[[nodiscard]] lv_obj_t* create(lv_display_t* display);
-void set_time(lv_obj_t* label, std::uint32_t milliseconds);
+// Supplies the latest lap time received from telemetry.
+void update(std::uint32_t lap_time_ms);
+
+// Returns the locally extrapolated current lap time.
+[[nodiscard]] std::uint32_t current_time();
 
 }  // namespace simcore::lap_timer
