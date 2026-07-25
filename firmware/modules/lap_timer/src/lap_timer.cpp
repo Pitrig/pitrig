@@ -5,6 +5,10 @@
 #include <limits>
 #include <mutex>
 
+#include "event_bus.hpp"
+#include "telemetry_events.hpp"
+#include "telemetry_state.hpp"
+
 namespace simcore::lap_timer {
 namespace {
 
@@ -22,6 +26,8 @@ struct State {
 
 State state;
 std::mutex state_mutex;
+const telemetry::ITelemetryReader* telemetry_reader;
+events::Subscription telemetry_subscription;
 
 std::int64_t monotonic_time_us() {
   using Microseconds = std::chrono::microseconds;
@@ -54,8 +60,6 @@ void synchronize(const std::uint32_t lap_time_ms, const std::int64_t now_us) {
   state.initialized = true;
 }
 
-}  // namespace
-
 void update(const std::uint32_t lap_time_ms) {
   const std::int64_t now_us = monotonic_time_us();
 
@@ -81,6 +85,32 @@ void update(const std::uint32_t lap_time_ms) {
   } else {
     state.pending_correction_us = error_us;
   }
+}
+
+void on_telemetry_updated(const events::Event& event, void*) {
+  if (event.payload == nullptr || event.payload_size != sizeof(telemetry::TelemetryUpdated) ||
+      telemetry_reader == nullptr) {
+    return;
+  }
+
+  const auto& update = *static_cast<const telemetry::TelemetryUpdated*>(event.payload);
+  if (!telemetry::contains(update.changed_fields, telemetry::Field::lap_time_current)) {
+    return;
+  }
+
+  const telemetry::TelemetrySnapshot snapshot = telemetry_reader->snapshot();
+  if (telemetry::contains(snapshot.valid_fields, telemetry::Field::lap_time_current)) {
+    lap_timer::update(snapshot.values.lap_time_current_ms);
+  }
+}
+
+}  // namespace
+
+bool start(events::EventBus& event_bus, const telemetry::ITelemetryReader& reader) {
+  telemetry_reader = &reader;
+  telemetry_subscription =
+      event_bus.subscribe(telemetry::kTelemetryUpdatedEvent, &on_telemetry_updated, nullptr);
+  return telemetry_subscription.valid;
 }
 
 std::uint32_t current_time() {

@@ -10,12 +10,14 @@ Keep lap-time state, monotonic-clock extrapolation, and telemetry error correcti
 
 Keep the LVGL label, time formatting, font, colors, and 16 ms render timer in a dashboard widget under `platform/dashboard/widgets/lap_timer`.
 
-Until the communication layer exists, provide irregular test samples from an isolated source under `platform/mock_telemetry`. The mock uses the same public module API that production telemetry will use.
+The module subscribes to telemetry update notifications and reads the latest
+immutable telemetry snapshot. Telemetry ingestion does not call the module
+directly.
 
 ## Consequences
 
 - The Lap Timer module has no LVGL, display-driver, dashboard, USB, or protocol dependency.
 - Dashboard rendering can change without changing timing behavior.
-- Communication can replace the temporary mock without changing the module or widget APIs.
-- The core composes the display, widget, and temporary telemetry source during startup.
+- Communication and protocol implementations can change without changing the module or widget APIs.
+- The core composes the telemetry services and module subscriptions during startup.
 - LVGL resources remain owned by platform-specific dashboard code.
