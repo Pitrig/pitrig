@@ -1,13 +1,66 @@
 #include "display.hpp"
 
+#include <cstdint>
+
 #include "esp_err.h"
 #include "esp_lvgl_port.h"
 #include "display_driver.hpp"
+#ifdef SIMCORE_DEBUG
+#include "performance.hpp"
+#endif
 
 namespace simcore::display {
 namespace {
 
 constexpr int kLvglTaskCore = 1;
+#ifdef SIMCORE_DEBUG
+constexpr std::uint32_t kTaskMaxSleepMs = 8;
+constexpr std::uint32_t kTimerPeriodMs = 2;
+#else
+constexpr std::uint32_t kTaskMaxSleepMs = 16;
+constexpr std::uint32_t kTimerPeriodMs = 8;
+#endif
+
+#ifdef SIMCORE_DEBUG
+bool frame_rendered;
+
+void on_refresh_started(lv_event_t*) {
+  frame_rendered = false;
+  performance::frame_started();
+}
+
+void on_render_started(lv_event_t*) {
+  frame_rendered = true;
+  performance::render_started();
+}
+
+void on_render_finished(lv_event_t*) {
+  performance::render_finished();
+}
+
+void on_refresh_finished(lv_event_t*) {
+  if (frame_rendered) {
+    performance::frame_finished();
+  }
+}
+
+void on_flush_started(lv_event_t*) {
+  performance::flush_started();
+}
+
+void on_flush_finished(lv_event_t*) {
+  performance::flush_finished();
+}
+
+void register_performance_events(lv_display_t* display) {
+  lv_display_add_event_cb(display, on_refresh_started, LV_EVENT_REFR_START, nullptr);
+  lv_display_add_event_cb(display, on_render_started, LV_EVENT_RENDER_START, nullptr);
+  lv_display_add_event_cb(display, on_render_finished, LV_EVENT_RENDER_READY, nullptr);
+  lv_display_add_event_cb(display, on_refresh_finished, LV_EVENT_REFR_READY, nullptr);
+  lv_display_add_event_cb(display, on_flush_started, LV_EVENT_FLUSH_START, nullptr);
+  lv_display_add_event_cb(display, on_flush_finished, LV_EVENT_FLUSH_WAIT_FINISH, nullptr);
+}
+#endif
 
 }  // namespace
 
@@ -16,6 +69,8 @@ lv_display_t* initialize() {
 
   lvgl_port_cfg_t lvgl_config = ESP_LVGL_PORT_INIT_CONFIG();
   lvgl_config.task_affinity = kLvglTaskCore;
+  lvgl_config.task_max_sleep_ms = kTaskMaxSleepMs;
+  lvgl_config.timer_period_ms = kTimerPeriodMs;
   ESP_ERROR_CHECK(lvgl_port_init(&lvgl_config));
 
   const lvgl_port_display_cfg_t display_config = {
@@ -47,6 +102,9 @@ lv_display_t* initialize() {
 
   lv_display_t* display = lvgl_port_add_disp(&display_config);
   ESP_ERROR_CHECK(display == nullptr ? ESP_FAIL : ESP_OK);
+#ifdef SIMCORE_DEBUG
+  register_performance_events(display);
+#endif
   driver::on_display_ready();
   return display;
 }

@@ -15,7 +15,11 @@ namespace {
 
 constexpr std::uint32_t kBackgroundColor = 0x0B0B0B;
 constexpr std::uint32_t kTextColor = 0xE8E8E8;
-constexpr std::uint32_t kRenderPeriodMs = 10;
+#ifdef SIMCORE_DEBUG
+constexpr std::uint32_t kRenderPeriodMs = 8;
+#else
+constexpr std::uint32_t kRenderPeriodMs = 16;
+#endif
 constexpr std::int32_t kCharacterWidth = 35;
 constexpr std::int32_t kCharacterCount = 9;
 constexpr std::array<std::size_t, 7> kDigitPositions = {0, 1, 3, 4, 6, 7, 8};
