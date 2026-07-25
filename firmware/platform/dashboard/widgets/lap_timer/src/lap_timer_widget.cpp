@@ -7,15 +7,16 @@
 #include "esp_lvgl_port.h"
 #include "lap_timer.hpp"
 #include "lvgl.h"
+#include "simcore_features.hpp"
 
-LV_FONT_DECLARE(simcore_timer_58_Bold_4);
+LV_FONT_DECLARE(simcore_timer_58_Bold);
 
 namespace simcore::dashboard::lap_timer_widget {
 namespace {
 
 constexpr std::uint32_t kBackgroundColor = 0x0B0B0B;
 constexpr std::uint32_t kTextColor = 0xE8E8E8;
-#ifdef SIMCORE_DEBUG
+#if SIMCORE_DEBUG
 constexpr std::uint32_t kRenderPeriodMs = 8;
 #else
 constexpr std::uint32_t kRenderPeriodMs = 16;
@@ -65,7 +66,7 @@ void create(lv_display_t* display) {
   lv_obj_t* container = lv_obj_create(screen);
   lv_obj_remove_style_all(container);
   lv_obj_set_size(container, kCharacterWidth * kCharacterCount,
-                  lv_font_get_line_height(&simcore_timer_58_Bold_4));
+                  lv_font_get_line_height(&simcore_timer_58_Bold));
 
   constexpr char kInitialText[] = "00:00.000";
   for (std::int32_t position = 0; position < kCharacterCount; ++position) {
@@ -74,7 +75,7 @@ void create(lv_display_t* display) {
     lv_obj_set_width(label, kCharacterWidth);
     lv_obj_set_pos(label, position * kCharacterWidth, 0);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, &simcore_timer_58_Bold_4, LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, &simcore_timer_58_Bold, LV_PART_MAIN);
     lv_obj_set_style_text_color(label, lv_color_hex(kTextColor), LV_PART_MAIN);
 
     const char character[] = {kInitialText[position], '\0'};

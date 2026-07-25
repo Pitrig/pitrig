@@ -4,7 +4,8 @@
 #include "display.hpp"
 #include "logger.hpp"
 #include "mock_telemetry.hpp"
-#ifdef SIMCORE_DEBUG
+#include "simcore_features.hpp"
+#if SIMCORE_DEBUG
 #include "performance.hpp"
 #include "performance_overlay_widget.hpp"
 #endif
@@ -18,12 +19,12 @@ constexpr char kTag[] = "simcore";
 
 void run() {
   log::info(kTag, "SimCore starting");
-#ifdef SIMCORE_DEBUG
+#if SIMCORE_DEBUG
   performance::begin();
 #endif
   lv_display_t* display = display::initialize();
   dashboard::lap_timer_widget::create(display);
-#ifdef SIMCORE_DEBUG
+#if SIMCORE_DEBUG
   dashboard::performance_overlay_widget::create(display);
 #endif
   mock_telemetry::start();

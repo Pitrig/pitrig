@@ -11,9 +11,7 @@ void write(const esp_log_level_t level, const char* tag, const char* format, va_
 #ifdef SIMCORE_LOG_MODE_FULL
   esp_log_va(ESP_LOG_CONFIG_INIT(level | ESP_LOG_CONFIGS_DEFAULT), tag, format, args);
 #else
-  (void)level;
-  (void)args;
-  ESP_LOGI(tag, "%s", format);
+  esp_log_writev(level, tag, format, args);
 #endif
 }
 

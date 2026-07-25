@@ -1,4 +1,5 @@
 idf_component_register(SRCS "src/logger.cpp"
-                       INCLUDE_DIRS "include")
+                       INCLUDE_DIRS "include"
+                       PRIV_REQUIRES log)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

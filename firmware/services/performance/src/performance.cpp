@@ -17,7 +17,7 @@ namespace {
 
 constexpr char kTag[] = "performance";
 constexpr std::uint32_t kUpdatePeriodMs = 1'000;
-constexpr std::uint32_t kTaskStackSizeBytes = 3'072;
+constexpr std::uint32_t kTaskStackDepth = 768;
 constexpr UBaseType_t kTaskPriority = 1;
 constexpr BaseType_t kTaskCore = 0;
 
@@ -41,7 +41,7 @@ configRUN_TIME_COUNTER_TYPE last_idle_core1;
 bool started;
 bool frame_in_progress;
 StaticTask_t task_buffer;
-StackType_t task_stack[kTaskStackSizeBytes];
+StackType_t task_stack[kTaskStackDepth];
 
 std::uint32_t average(std::uint64_t total, std::uint32_t count) {
   if (count == 0) {
@@ -109,7 +109,7 @@ void begin() {
   last_idle_core1 = ulTaskGetIdleRunTimeCounterForCore(1);
 
   const TaskHandle_t task =
-      xTaskCreateStaticPinnedToCore(sampler_task, "performance", kTaskStackSizeBytes,
+      xTaskCreateStaticPinnedToCore(sampler_task, "performance", kTaskStackDepth,
                                     nullptr, kTaskPriority, task_stack, &task_buffer,
                                     kTaskCore);
   configASSERT(task != nullptr);

@@ -1,10 +1,9 @@
 #include "lap_timer.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <limits>
-
-#include "esp_timer.h"
-#include "freertos/FreeRTOS.h"
+#include <mutex>
 
 namespace simcore::lap_timer {
 namespace {
@@ -22,7 +21,14 @@ struct State {
 };
 
 State state;
-portMUX_TYPE state_lock = portMUX_INITIALIZER_UNLOCKED;
+std::mutex state_mutex;
+
+std::int64_t monotonic_time_us() {
+  using Microseconds = std::chrono::microseconds;
+  return std::chrono::duration_cast<Microseconds>(
+             std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
 
 void advance_to(const std::int64_t now_us) {
   if (!state.initialized) {
@@ -51,12 +57,11 @@ void synchronize(const std::uint32_t lap_time_ms, const std::int64_t now_us) {
 }  // namespace
 
 void update(const std::uint32_t lap_time_ms) {
-  const std::int64_t now_us = esp_timer_get_time();
+  const std::int64_t now_us = monotonic_time_us();
 
-  portENTER_CRITICAL(&state_lock);
+  const std::lock_guard lock(state_mutex);
   if (!state.initialized) {
     synchronize(lap_time_ms, now_us);
-    portEXIT_CRITICAL(&state_lock);
     return;
   }
 
@@ -76,18 +81,16 @@ void update(const std::uint32_t lap_time_ms) {
   } else {
     state.pending_correction_us = error_us;
   }
-  portEXIT_CRITICAL(&state_lock);
 }
 
 std::uint32_t current_time() {
-  const std::int64_t now_us = esp_timer_get_time();
+  const std::int64_t now_us = monotonic_time_us();
 
-  portENTER_CRITICAL(&state_lock);
+  const std::lock_guard lock(state_mutex);
   advance_to(now_us);
   const std::int64_t time_ms = state.current_time_us / kMicrosecondsPerMillisecond;
   const auto result = static_cast<std::uint32_t>(
       std::clamp<std::int64_t>(time_ms, 0, std::numeric_limits<std::uint32_t>::max()));
-  portEXIT_CRITICAL(&state_lock);
 
   return result;
 }

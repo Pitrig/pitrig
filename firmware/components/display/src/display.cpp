@@ -5,7 +5,8 @@
 #include "esp_err.h"
 #include "esp_lvgl_port.h"
 #include "display_driver.hpp"
-#ifdef SIMCORE_DEBUG
+#include "simcore_features.hpp"
+#if SIMCORE_DEBUG
 #include "performance.hpp"
 #endif
 
@@ -13,7 +14,7 @@ namespace simcore::display {
 namespace {
 
 constexpr int kLvglTaskCore = 1;
-#ifdef SIMCORE_DEBUG
+#if SIMCORE_DEBUG
 constexpr std::uint32_t kTaskMaxSleepMs = 8;
 constexpr std::uint32_t kTimerPeriodMs = 2;
 #else
@@ -21,7 +22,7 @@ constexpr std::uint32_t kTaskMaxSleepMs = 16;
 constexpr std::uint32_t kTimerPeriodMs = 8;
 #endif
 
-#ifdef SIMCORE_DEBUG
+#if SIMCORE_DEBUG
 bool frame_rendered;
 
 void on_refresh_started(lv_event_t*) {
@@ -102,7 +103,7 @@ lv_display_t* initialize() {
 
   lv_display_t* display = lvgl_port_add_disp(&display_config);
   ESP_ERROR_CHECK(display == nullptr ? ESP_FAIL : ESP_OK);
-#ifdef SIMCORE_DEBUG
+#if SIMCORE_DEBUG
   register_performance_events(display);
 #endif
   driver::on_display_ready();
