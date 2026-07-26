@@ -157,6 +157,7 @@ bool create(lv_display_t* display, const Config& config) {
   lv_obj_remove_style_all(widget_state.container);
   lv_obj_set_size(widget_state.container, config.block.width, container_height);
   lv_obj_remove_flag(widget_state.container, LV_OBJ_FLAG_SCROLLABLE);
+  apply_debug_widget_outline(widget_state.container);
   place_in_block(widget_state.container, config.placement);
 
   widget_state.scale_center_x = content_width / 2;

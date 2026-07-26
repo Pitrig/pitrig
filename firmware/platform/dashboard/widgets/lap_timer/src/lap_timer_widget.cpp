@@ -70,6 +70,7 @@ void create(lv_display_t* display, const Config& config) {
   lv_obj_remove_style_all(container);
   lv_obj_set_size(container, character_width * kCharacterCount,
                   lv_font_get_line_height(font));
+  apply_debug_widget_outline(container);
 
   constexpr char kInitialText[] = "00:00.000";
   for (std::int32_t position = 0; position < kCharacterCount; ++position) {
