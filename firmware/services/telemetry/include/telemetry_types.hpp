@@ -14,6 +14,7 @@ enum class Field : std::uint32_t {
   lap_time_best = 1U << 4,
   fuel = 1U << 5,
   lap_delta = 1U << 6,
+  lap_time_estimated = 1U << 7,
 };
 
 [[nodiscard]] constexpr Field operator|(const Field left, const Field right) {
@@ -43,6 +44,7 @@ struct Values {
   std::uint32_t lap_time_best_ms{};
   float fuel_liters{};
   std::int32_t lap_delta_ms{};
+  std::uint32_t lap_time_estimated_ms{};
 };
 
 struct TelemetryUpdate {

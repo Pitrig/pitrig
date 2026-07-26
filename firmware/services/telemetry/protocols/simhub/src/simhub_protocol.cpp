@@ -137,6 +137,17 @@ void SimHubProtocol::process_line(const std::span<const char> line,
       update.present_fields = telemetry::Field::lap_delta;
       break;
 
+    case 'P':
+      if (value.empty()) {
+        update.invalid_fields = telemetry::Field::lap_time_estimated;
+        break;
+      }
+      if (!parse_integer(value, update.values.lap_time_estimated_ms)) {
+        return;
+      }
+      update.present_fields = telemetry::Field::lap_time_estimated;
+      break;
+
     default:
       return;
   }

@@ -12,8 +12,9 @@ The initial SimHub protocol is an ASCII line protocol. Each newline-terminated
 line contains one field identifier, a semicolon, and one decimal value:
 `R` for RPM, `S` for speed in km/h, `G` for gear, `L` for current lap time in
 milliseconds, `B` for best lap time in milliseconds, and `D` for signed lap
-delta in milliseconds. A negative delta means faster and a positive delta means
-slower. An empty `D` value explicitly marks lap delta as unavailable.
+delta in milliseconds. `P` carries estimated lap time in milliseconds. A
+negative delta means faster and a positive delta means slower. An empty `D` or
+`P` value explicitly marks that field as unavailable.
 
 `SimHubProtocol` incrementally decodes arbitrary transport chunks and emits one
 partial `TelemetryUpdate` per valid line. It owns only bounded parser state and

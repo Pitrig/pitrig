@@ -3,6 +3,8 @@
 #include "application_configuration.hpp"
 #include "delta_time.hpp"
 #include "delta_time_widget.hpp"
+#include "estimated_lap_time.hpp"
+#include "estimated_lap_time_widget.hpp"
 #include "lap_timer_widget.hpp"
 #include "lap_timer.hpp"
 #include "display.hpp"
@@ -65,6 +67,11 @@ void run() {
                          configuration::kApplicationConfiguration.delta_time)) {
     log::error(kTag, "Failed to subscribe Delta Time to telemetry");
   }
+  if (!estimated_lap_time::start(
+          application.event_bus, application.telemetry_state,
+          configuration::kApplicationConfiguration.estimated_lap_time)) {
+    log::error(kTag, "Failed to subscribe Estimated Lap Time to telemetry");
+  }
   if (dashboard_ready &&
       !dashboard::lap_timer_widget::create(
           dashboard_layout,
@@ -76,6 +83,13 @@ void run() {
           dashboard_layout,
           configuration::kApplicationConfiguration.dashboard.delta_time)) {
     log::error(kTag, "Failed to create Delta Time widget");
+  }
+  if (dashboard_ready &&
+      !dashboard::estimated_lap_time_widget::create(
+          dashboard_layout,
+          configuration::kApplicationConfiguration.dashboard
+              .estimated_lap_time)) {
+    log::error(kTag, "Failed to create Estimated Lap Time widget");
   }
 #if SIMCORE_DEBUG
   dashboard::performance_overlay_widget::create(display);

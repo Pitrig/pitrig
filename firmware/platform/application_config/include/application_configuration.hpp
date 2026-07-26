@@ -4,6 +4,8 @@
 
 #include "delta_time.hpp"
 #include "delta_time_widget.hpp"
+#include "estimated_lap_time.hpp"
+#include "estimated_lap_time_widget.hpp"
 #include "lap_timer_widget.hpp"
 
 namespace simcore::configuration {
@@ -14,10 +16,12 @@ struct DashboardConfiguration {
   std::array<dashboard::LayoutRegion, 1> regions{};
   dashboard::lap_timer_widget::Config lap_timer{};
   dashboard::delta_time_widget::Config delta_time{};
+  dashboard::estimated_lap_time_widget::Config estimated_lap_time{};
 };
 
 struct ApplicationConfiguration {
   delta_time::Config delta_time{};
+  estimated_lap_time::Config estimated_lap_time{};
   DashboardConfiguration dashboard{};
 };
 
@@ -33,6 +37,12 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
             .show_sign = true,
             .range_ms = 2'000,
         },
+    },
+    .estimated_lap_time = {
+        .text_color_rgb = 0xE8E8E8,
+        .unavailable_behavior =
+            estimated_lap_time::UnavailableBehavior::placeholder,
+        .placeholder = {'-', '-', ':', '-', '-', '.', '-', '-', '-', '\0'},
     },
     .dashboard = {
         .regions = {{
@@ -79,6 +89,16 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
                 .vertical_padding_px = 6,
                 .border_width_px = 3,
                 .border_radius_px = 10,
+            },
+        },
+        .estimated_lap_time = {
+            .font = {.family = dashboard::FontFamily::lcd, .size_px = 39},
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::bottom_center,
+                .offset_x = 0,
+                .offset_y = 0,
+                .height = 39,
             },
         },
     },

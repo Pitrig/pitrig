@@ -53,6 +53,10 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
               state_.valid_fields, changed_fields);
   apply_field(Field::lap_delta, update, update.values.lap_delta_ms,
               state_.values.lap_delta_ms, state_.valid_fields, changed_fields);
+  apply_field(Field::lap_time_estimated, update,
+              update.values.lap_time_estimated_ms,
+              state_.values.lap_time_estimated_ms, state_.valid_fields,
+              changed_fields);
 
   if (changed_fields != Field::none) {
     ++state_.revision;
