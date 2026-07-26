@@ -11,7 +11,9 @@ that a future Companion protocol or another transport can replace it.
 The initial SimHub protocol is an ASCII line protocol. Each newline-terminated
 line contains one field identifier, a semicolon, and one decimal value:
 `R` for RPM, `S` for speed in km/h, `G` for gear, `L` for current lap time in
-milliseconds, and `B` for best lap time in milliseconds.
+milliseconds, `B` for best lap time in milliseconds, and `D` for signed lap
+delta in milliseconds. A negative delta means faster and a positive delta means
+slower. An empty `D` value explicitly marks lap delta as unavailable.
 
 `SimHubProtocol` incrementally decodes arbitrary transport chunks and emits one
 partial `TelemetryUpdate` per valid line. It owns only bounded parser state and
@@ -24,5 +26,7 @@ does not know the transport, provider, telemetry state, or Event Bus.
 - Parsing uses fixed storage and performs no dynamic allocation.
 - Malformed, overlong, and unknown lines are ignored without affecting later
   newline-delimited messages.
+- Telemetry fields that support an explicit unavailable value can clear their
+  validity without exposing protocol-specific sentinel values to modules.
 - A future binary or Companion protocol can implement the same protocol
   interface without changing the rest of the telemetry pipeline.

@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 58 px
  * Bpp: 4
- * Opts: --bpp 4 --size 58 --no-compress --stride 1 --align 1 --font RobotoMono-SemiBold.ttf --symbols 0123456789:.-+ --format lvgl -o simcore_timer_58_Bold.c
+ * Opts: --bpp 4 --size 58 --no-compress --stride 1 --align 1 --font RobotoMono-SemiBold.ttf --symbols 0123456789:.-+ --format lvgl -o simcore_roboto_mono_58.c
  ******************************************************************************/
 
 #ifdef __has_include
@@ -20,11 +20,11 @@
 
 
 
-#ifndef SIMCORE_TIMER_58_BOLD
-#define SIMCORE_TIMER_58_BOLD 1
+#ifndef SIMCORE_ROBOTO_MONO_58
+#define SIMCORE_ROBOTO_MONO_58 1
 #endif
 
-#if SIMCORE_TIMER_58_BOLD
+#if SIMCORE_ROBOTO_MONO_58
 
 /*-----------------
  *    BITMAPS
@@ -970,9 +970,9 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
 
 /*Initialize a public general font descriptor*/
 #if LVGL_VERSION_MAJOR >= 8
-const lv_font_t simcore_timer_58_Bold = {
+const lv_font_t simcore_roboto_mono_58 = {
 #else
-lv_font_t simcore_timer_58_Bold = {
+lv_font_t simcore_roboto_mono_58 = {
 #endif
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/
@@ -995,4 +995,4 @@ lv_font_t simcore_timer_58_Bold = {
 
 
 
-#endif /*#if SIMCORE_TIMER_58_BOLD*/
+#endif /*#if SIMCORE_ROBOTO_MONO_58*/

@@ -80,7 +80,7 @@ void SimHubProtocol::consume(const std::span<const std::uint8_t> data,
 void SimHubProtocol::process_line(const std::span<const char> line,
                                   const telemetry::UpdateHandler handler,
                                   void* const context) const {
-  if (handler == nullptr || line.size() < 3 || line[1] != ';') {
+  if (handler == nullptr || line.size() < 2 || line[1] != ';') {
     return;
   }
 
@@ -124,6 +124,17 @@ void SimHubProtocol::process_line(const std::span<const char> line,
         return;
       }
       update.present_fields = telemetry::Field::lap_time_best;
+      break;
+
+    case 'D':
+      if (value.empty()) {
+        update.invalid_fields = telemetry::Field::lap_delta;
+        break;
+      }
+      if (!parse_integer(value, update.values.lap_delta_ms)) {
+        return;
+      }
+      update.present_fields = telemetry::Field::lap_delta;
       break;
 
     default:

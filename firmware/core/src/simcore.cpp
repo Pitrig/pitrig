@@ -1,5 +1,8 @@
 #include "simcore.hpp"
 
+#include "application_configuration.hpp"
+#include "delta_time.hpp"
+#include "delta_time_widget.hpp"
 #include "lap_timer_widget.hpp"
 #include "lap_timer.hpp"
 #include "display.hpp"
@@ -50,7 +53,17 @@ void run() {
   if (!lap_timer::start(application.event_bus, application.telemetry_state)) {
     log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
   }
-  dashboard::lap_timer_widget::create(display);
+  if (!delta_time::start(application.event_bus, application.telemetry_state,
+                         configuration::kApplicationConfiguration.delta_time)) {
+    log::error(kTag, "Failed to subscribe Delta Time to telemetry");
+  }
+  dashboard::lap_timer_widget::create(
+      display, configuration::kApplicationConfiguration.dashboard.lap_timer);
+  if (!dashboard::delta_time_widget::create(
+          display,
+          configuration::kApplicationConfiguration.dashboard.delta_time)) {
+    log::error(kTag, "Failed to create Delta Time widget");
+  }
 #if SIMCORE_DEBUG
   dashboard::performance_overlay_widget::create(display);
 #endif

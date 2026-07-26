@@ -4,24 +4,22 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "dashboard_fonts.hpp"
+#include "dashboard_layout_internal.hpp"
 #include "esp_lvgl_port.h"
 #include "lap_timer.hpp"
 #include "lvgl.h"
 #include "simcore_features.hpp"
 
-LV_FONT_DECLARE(simcore_timer_58_Bold);
-
 namespace simcore::dashboard::lap_timer_widget {
 namespace {
 
 constexpr std::uint32_t kBackgroundColor = 0x0B0B0B;
-constexpr std::uint32_t kTextColor = 0xE8E8E8;
 #if SIMCORE_DEBUG
 constexpr std::uint32_t kRenderPeriodMs = 8;
 #else
 constexpr std::uint32_t kRenderPeriodMs = 16;
 #endif
-constexpr std::int32_t kCharacterWidth = 35;
 constexpr std::int32_t kCharacterCount = 9;
 constexpr std::array<std::size_t, 7> kDigitPositions = {0, 1, 3, 4, 6, 7, 8};
 
@@ -57,33 +55,39 @@ void update(lv_timer_t* timer) {
 
 }  // namespace
 
-void create(lv_display_t* display) {
+void create(lv_display_t* display, const Config& config) {
   lvgl_port_lock(0);
-  lv_obj_t* screen = lv_display_get_screen_active(display);
+  lv_obj_t* const screen = lv_display_get_screen_active(display);
   lv_obj_set_style_bg_color(screen, lv_color_hex(kBackgroundColor), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
 
-  lv_obj_t* container = lv_obj_create(screen);
+  lv_obj_t* const block = create_widget_block(screen, config.block);
+  const lv_font_t* const font = fonts::resolve(config.font);
+  const std::int32_t character_width =
+      static_cast<std::int32_t>(lv_font_get_glyph_width(font, '0', '0'));
+
+  lv_obj_t* container = lv_obj_create(block);
   lv_obj_remove_style_all(container);
-  lv_obj_set_size(container, kCharacterWidth * kCharacterCount,
-                  lv_font_get_line_height(&simcore_timer_58_Bold));
+  lv_obj_set_size(container, character_width * kCharacterCount,
+                  lv_font_get_line_height(font));
 
   constexpr char kInitialText[] = "00:00.000";
   for (std::int32_t position = 0; position < kCharacterCount; ++position) {
     lv_obj_t* label = lv_label_create(container);
     lv_obj_remove_style_all(label);
-    lv_obj_set_width(label, kCharacterWidth);
-    lv_obj_set_pos(label, position * kCharacterWidth, 0);
+    lv_obj_set_width(label, character_width);
+    lv_obj_set_pos(label, position * character_width, 0);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
-    lv_obj_set_style_text_font(label, &simcore_timer_58_Bold, LV_PART_MAIN);
-    lv_obj_set_style_text_color(label, lv_color_hex(kTextColor), LV_PART_MAIN);
+    lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
+    lv_obj_set_style_text_color(label, lv_color_hex(config.text_color_rgb),
+                                LV_PART_MAIN);
 
     const char character[] = {kInitialText[position], '\0'};
     lv_label_set_text(label, character);
   }
 
   render(container);
-  lv_obj_center(container);
+  place_in_block(container, config.placement);
   lv_timer_create(update, kRenderPeriodMs, container);
   lvgl_port_unlock();
 }

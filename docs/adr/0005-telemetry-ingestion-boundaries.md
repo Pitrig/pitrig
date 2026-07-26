@@ -17,6 +17,8 @@ decode raw data into partial `TelemetryUpdate` values and do not know the
 transport, state service, or Event Bus. `TelemetryProvider` accepts only
 `TelemetryUpdate`, commits it through the telemetry state service, and publishes
 a `TelemetryUpdated` notification after a successful state change.
+Partial updates may explicitly invalidate fields when a source reports that a
+previously available value is no longer available.
 
 The telemetry state service is the only owner of mutable canonical telemetry
 state. Modules consume update notifications and obtain coherent immutable
