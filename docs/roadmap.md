@@ -1,12 +1,12 @@
 # Phase 1 — Foundation
 
-- [ ] Firmware builds
-- [ ] Boot sequence
-- [ ] Logging
-- [ ] Configuration
-- [ ] Service Registry
-- [ ] Module Manager
-- [ ] Event Bus
+- [*] Firmware builds
+- [*] Boot sequence
+- [*] Logging
+- [*] Configuration
+- [*] Service Registry
+- [*] Module Manager
+- [*] Event Bus
 
 # Phase 2 — Hardware
 
@@ -17,7 +17,7 @@
 
 # Phase 3 — Drivers
 
-- [ ] ST7789
+- [*] ST7789
 - [ ] GC9A01
 - [ ] Buttons
 - [ ] Encoder

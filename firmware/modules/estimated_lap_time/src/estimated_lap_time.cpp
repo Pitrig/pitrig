@@ -20,7 +20,6 @@ void set_unavailable() {
   const std::lock_guard lock(state_mutex);
   presentation_state.text = module_config.placeholder;
   presentation_state.text.back() = '\0';
-  presentation_state.color_rgb = module_config.text_color_rgb;
   presentation_state.visible =
       module_config.unavailable_behavior == UnavailableBehavior::placeholder;
 }
@@ -40,7 +39,6 @@ void set_time(const std::uint32_t milliseconds) {
                 static_cast<unsigned long>(minutes),
                 static_cast<unsigned long>(seconds),
                 static_cast<unsigned long>(remaining_milliseconds));
-  next.color_rgb = module_config.text_color_rgb;
   next.visible = true;
 
   const std::lock_guard lock(state_mutex);

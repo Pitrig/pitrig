@@ -19,14 +19,20 @@ events::Subscription telemetry_subscription;
 
 void set_unavailable() {
   const std::lock_guard lock(state_mutex);
-  presentation_state.color_rgb = module_config.neutral_color_rgb;
-  presentation_state.scale_color_rgb = module_config.neutral_color_rgb;
+  presentation_state.text_tone = Tone::neutral;
+  presentation_state.scale_tone = Tone::neutral;
   presentation_state.scale_fill_per_mille = 0;
   presentation_state.visible =
-      module_config.unavailable_behavior == UnavailableBehavior::placeholder;
+      module_config.unavailable_behavior != UnavailableBehavior::hide;
   presentation_state.scale_enabled = module_config.scale.enabled;
-  presentation_state.text = module_config.placeholder;
-  presentation_state.text.back() = '\0';
+  if (module_config.unavailable_behavior == UnavailableBehavior::zero) {
+    std::snprintf(presentation_state.text.data(),
+                  presentation_state.text.size(),
+                  module_config.scale.show_sign ? "+0.00" : "0.00");
+  } else {
+    presentation_state.text = module_config.placeholder;
+    presentation_state.text.back() = '\0';
+  }
 }
 
 void set_delta(const std::int32_t delta_ms) {
@@ -36,13 +42,11 @@ void set_delta(const std::int32_t delta_ms) {
 
   PresentationState next{};
   next.scale_enabled = module_config.scale.enabled;
-  next.scale_color_rgb =
-      delta_ms < 0 ? module_config.faster_color_rgb
-                   : delta_ms > 0 ? module_config.slower_color_rgb
-                                  : module_config.neutral_color_rgb;
-  next.color_rgb = module_config.scale.enabled
-                       ? module_config.neutral_color_rgb
-                       : next.scale_color_rgb;
+  next.scale_tone =
+      delta_ms < 0 ? Tone::faster
+                   : delta_ms > 0 ? Tone::slower : Tone::neutral;
+  next.text_tone =
+      module_config.scale.enabled ? Tone::neutral : next.scale_tone;
   next.visible = true;
   if (module_config.scale.enabled) {
     if (module_config.scale.show_sign) {

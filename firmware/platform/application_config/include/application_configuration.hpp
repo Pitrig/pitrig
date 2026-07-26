@@ -6,6 +6,7 @@
 #include "delta_time_widget.hpp"
 #include "estimated_lap_time.hpp"
 #include "estimated_lap_time_widget.hpp"
+#include "lap_timer.hpp"
 #include "lap_timer_widget.hpp"
 
 namespace simcore::configuration {
@@ -20,17 +21,19 @@ struct DashboardConfiguration {
 };
 
 struct ApplicationConfiguration {
+  lap_timer::Config lap_timer{};
   delta_time::Config delta_time{};
   estimated_lap_time::Config estimated_lap_time{};
   DashboardConfiguration dashboard{};
 };
 
 inline constexpr ApplicationConfiguration kApplicationConfiguration{
+    .lap_timer = {
+        .telemetry_only = false,
+        .telemetry_timeout_ms = 1'000,
+    },
     .delta_time = {
-        .faster_color_rgb = 0x00C853,
-        .slower_color_rgb = 0xD50000,
-        .neutral_color_rgb = 0xE8E8E8,
-        .unavailable_behavior = delta_time::UnavailableBehavior::placeholder,
+        .unavailable_behavior = delta_time::UnavailableBehavior::zero,
         .placeholder = {'-', '-', '-', '\0'},
         .scale = {
             .enabled = true,
@@ -39,7 +42,6 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
         },
     },
     .estimated_lap_time = {
-        .text_color_rgb = 0xE8E8E8,
         .unavailable_behavior =
             estimated_lap_time::UnavailableBehavior::placeholder,
         .placeholder = {'-', '-', ':', '-', '-', '.', '-', '-', '-', '\0'},
@@ -53,7 +55,7 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
                     .left = 0,
                     .top = 5,
                     .right = 0,
-                    .bottom = 5,
+                    .bottom = 2,
                 },
                 .style = {
                     .background_color_rgb = 0x000000,
@@ -85,6 +87,9 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
                 .offset_y = 58,
                 .height = 61,
             },
+            .faster_color_rgb = 0x00C853,
+            .slower_color_rgb = 0xD50000,
+            .neutral_color_rgb = 0xE8E8E8,
             .scale = {
                 .vertical_padding_px = 6,
                 .border_width_px = 3,
@@ -94,12 +99,13 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
         .estimated_lap_time = {
             .font = {.family = dashboard::FontFamily::lcd, .size_px = 39},
             .placement = {
-                .region_id = dashboard::kScreenRegionId,
+                .region_id = kTimingRegionId,
                 .anchor = dashboard::Anchor::bottom_center,
                 .offset_x = 0,
                 .offset_y = 0,
                 .height = 39,
             },
+            .text_color_rgb = 0xE8E8E8,
         },
     },
 };

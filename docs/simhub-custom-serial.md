@@ -24,13 +24,15 @@ G;<gear>\n
 L;<current-lap-ms>\n
 B;<best-lap-ms>\n
 D;<signed-lap-delta-ms>\n
+P;<estimated-lap-ms>\n
 ```
 
 RPM, speed, and lap times are non-negative decimal integers. Gear is a signed
 decimal integer; `N` is also accepted as neutral (`0`) and `R` as reverse
 (`-1`). Lap delta is a signed integer in milliseconds: negative means faster,
-positive means slower, and `D;` marks the value as unavailable. Unknown line
-identifiers and malformed lines are ignored.
+positive means slower. `D;` marks lap delta as unavailable, and `P;` marks
+estimated lap time as unavailable. Unknown line identifiers and malformed lines
+are ignored.
 
 ## Example update messages
 
@@ -47,12 +49,14 @@ property.
 | Current lap | `'L;' + format(timespantoseconds([DataCorePlugin.GameData.NewData.CurrentLapTime]) * 1000, '0') + '\n'` | 10 Hz |
 | Best lap | `'B;' + format(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) * 1000, '0') + '\n'` | Changes only |
 | Lap delta | Prefix the signed delta property selected in SimHub with `D;`, convert seconds to milliseconds if required, and append `\n` | 10 Hz |
+| Estimated lap | Prefix the estimated lap-time property selected in SimHub with `P;`, convert it to milliseconds if required, and append `\n` | 10 Hz |
 
 SimHub's free mode limits output to 10 Hz, so use 10 Hz for RPM as well when
 that limit applies. If a lap-time property can be absent for a particular game,
 configure the message to return an empty string in that case; SimHub does not
 send empty update messages.
 
-The exact lap-delta property name varies between games and SimHub plugins. Use
-SimHub's property picker and configure the unavailable branch to emit `D;\n`
-instead of omitting the update, so the firmware can clear a stale delta.
+The exact lap-delta and estimated-lap property names vary between games and
+SimHub plugins. Use SimHub's property picker and configure unavailable branches
+to emit `D;\n` or `P;\n` instead of omitting the update, so the firmware can
+clear stale values.

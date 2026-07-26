@@ -20,7 +20,6 @@ struct WidgetState {
   lv_obj_t* container{};
   lv_obj_t* label{};
   std::array<char, estimated_lap_time::kTextCapacity> text{};
-  std::uint32_t color_rgb{};
   bool visible{};
   bool initialized{};
 };
@@ -48,13 +47,6 @@ void render() {
     widget_state.text.back() = '\0';
     lv_label_set_text_static(widget_state.label, widget_state.text.data());
     lv_obj_invalidate(widget_state.label);
-  }
-
-  if (state.visible &&
-      (!widget_state.initialized || widget_state.color_rgb != state.color_rgb)) {
-    lv_obj_set_style_text_color(widget_state.label,
-                                lv_color_hex(state.color_rgb), LV_PART_MAIN);
-    widget_state.color_rgb = state.color_rgb;
   }
 
   widget_state.initialized = true;
@@ -97,6 +89,8 @@ bool create(const Layout& layout, const Config& config) {
   lv_obj_set_style_text_align(widget_state.label, LV_TEXT_ALIGN_CENTER,
                               LV_PART_MAIN);
   lv_obj_set_style_text_font(widget_state.label, font, LV_PART_MAIN);
+  lv_obj_set_style_text_color(widget_state.label,
+                              lv_color_hex(config.text_color_rgb), LV_PART_MAIN);
   lv_obj_center(widget_state.label);
 
   render();

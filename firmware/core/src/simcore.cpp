@@ -60,7 +60,9 @@ void run() {
   if (!dashboard_ready) {
     log::error(kTag, "Failed to initialize dashboard layout");
   }
-  if (!lap_timer::start(application.event_bus, application.telemetry_state)) {
+  if (!lap_timer::start(
+          application.event_bus, application.telemetry_state,
+          configuration::kApplicationConfiguration.lap_timer)) {
     log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
   }
   if (!delta_time::start(application.event_bus, application.telemetry_state,

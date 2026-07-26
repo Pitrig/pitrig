@@ -22,7 +22,6 @@ enum class UnavailableBehavior : std::uint8_t {
 };
 
 struct Config {
-  std::uint32_t text_color_rgb{0xE8E8E8};
   UnavailableBehavior unavailable_behavior{UnavailableBehavior::placeholder};
   std::array<char, kTextCapacity> placeholder{
       '-', '-', ':', '-', '-', '.', '-', '-', '-', '\0'};
@@ -30,7 +29,6 @@ struct Config {
 
 struct PresentationState {
   std::array<char, kTextCapacity> text{};
-  std::uint32_t color_rgb{};
   bool visible{};
 };
 

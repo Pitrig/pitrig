@@ -13,6 +13,9 @@ struct ScaleStyle {
 struct Config {
   FontSpec font{};
   Placement placement{};
+  std::uint32_t faster_color_rgb{0x00C853};
+  std::uint32_t slower_color_rgb{0xD50000};
+  std::uint32_t neutral_color_rgb{0xE8E8E8};
   ScaleStyle scale{};
 };
 

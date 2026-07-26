@@ -25,6 +25,9 @@ struct WidgetState {
   std::array<char, delta_time::kTextCapacity> text{};
   std::uint32_t color_rgb{};
   std::uint32_t scale_color_rgb{};
+  std::uint32_t faster_color_rgb{};
+  std::uint32_t slower_color_rgb{};
+  std::uint32_t neutral_color_rgb{};
   std::int16_t scale_fill_per_mille{};
   std::int32_t scale_center_x{};
   std::int32_t scale_half_width{};
@@ -34,6 +37,19 @@ struct WidgetState {
 };
 
 WidgetState widget_state;
+
+[[nodiscard]] std::uint32_t color_for_tone(const delta_time::Tone tone) {
+  switch (tone) {
+    case delta_time::Tone::faster:
+      return widget_state.faster_color_rgb;
+    case delta_time::Tone::slower:
+      return widget_state.slower_color_rgb;
+    case delta_time::Tone::neutral:
+      return widget_state.neutral_color_rgb;
+  }
+
+  return widget_state.neutral_color_rgb;
+}
 
 void render() {
   const delta_time::PresentationState state = delta_time::presentation();
@@ -74,27 +90,29 @@ void render() {
     lv_obj_invalidate(widget_state.label);
   }
 
-  if (state.visible &&
-      (!widget_state.initialized || widget_state.color_rgb != state.color_rgb)) {
+  const std::uint32_t text_color_rgb = color_for_tone(state.text_tone);
+  if (state.visible && (!widget_state.initialized ||
+                        widget_state.color_rgb != text_color_rgb)) {
     lv_obj_set_style_text_color(widget_state.label,
-                                lv_color_hex(state.color_rgb), LV_PART_MAIN);
-    widget_state.color_rgb = state.color_rgb;
+                                lv_color_hex(text_color_rgb), LV_PART_MAIN);
+    widget_state.color_rgb = text_color_rgb;
     if (state.scale_enabled) {
       lv_obj_set_style_border_color(widget_state.border,
-                                    lv_color_hex(state.color_rgb), LV_PART_MAIN);
+                                    lv_color_hex(text_color_rgb), LV_PART_MAIN);
       for (lv_obj_t* const marker : widget_state.markers) {
-        lv_obj_set_style_bg_color(marker, lv_color_hex(state.color_rgb),
+        lv_obj_set_style_bg_color(marker, lv_color_hex(text_color_rgb),
                                   LV_PART_MAIN);
       }
     }
   }
 
+  const std::uint32_t scale_color_rgb = color_for_tone(state.scale_tone);
   if (state.visible && state.scale_enabled &&
       (!widget_state.initialized ||
-       widget_state.scale_color_rgb != state.scale_color_rgb)) {
+       widget_state.scale_color_rgb != scale_color_rgb)) {
     lv_obj_set_style_bg_color(widget_state.fill,
-                              lv_color_hex(state.scale_color_rgb), LV_PART_MAIN);
-    widget_state.scale_color_rgb = state.scale_color_rgb;
+                              lv_color_hex(scale_color_rgb), LV_PART_MAIN);
+    widget_state.scale_color_rgb = scale_color_rgb;
   }
 
   if (state.visible && state.scale_enabled &&
@@ -144,7 +162,10 @@ bool create(const Layout& layout, const Config& config) {
   constexpr std::int32_t kIntrinsicCharacterCount = 6;
   const std::int32_t intrinsic_width =
       glyph_width * kIntrinsicCharacterCount + 2 * border_width;
-  const std::int32_t marker_height = 2 * border_width;
+  const std::int32_t marker_height =
+      config.scale.vertical_padding_px > 1
+          ? config.scale.vertical_padding_px / 2
+          : 1;
   if (intrinsic_width <= 2 * border_width || content_height <= 0 ||
       marker_height > content_height) {
     return false;
@@ -153,6 +174,9 @@ bool create(const Layout& layout, const Config& config) {
   if (!lvgl_port_lock(0)) {
     return false;
   }
+  widget_state.faster_color_rgb = config.faster_color_rgb;
+  widget_state.slower_color_rgb = config.slower_color_rgb;
+  widget_state.neutral_color_rgb = config.neutral_color_rgb;
   lv_obj_t* parent{};
   Rect bounds{};
   if (!resolve_widget_bounds(layout, config.placement, intrinsic_width,

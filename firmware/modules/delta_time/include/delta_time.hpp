@@ -19,6 +19,7 @@ inline constexpr std::size_t kTextCapacity = 16;
 enum class UnavailableBehavior : std::uint8_t {
   hide,
   placeholder,
+  zero,
 };
 
 struct ScaleConfig {
@@ -30,18 +31,21 @@ struct ScaleConfig {
 };
 
 struct Config {
-  std::uint32_t faster_color_rgb{0x00C853};
-  std::uint32_t slower_color_rgb{0xD50000};
-  std::uint32_t neutral_color_rgb{0xE8E8E8};
   UnavailableBehavior unavailable_behavior{UnavailableBehavior::hide};
   std::array<char, kTextCapacity> placeholder{'-', '-', '-', '\0'};
   ScaleConfig scale{};
 };
 
+enum class Tone : std::uint8_t {
+  neutral,
+  faster,
+  slower,
+};
+
 struct PresentationState {
   std::array<char, kTextCapacity> text{};
-  std::uint32_t color_rgb{};
-  std::uint32_t scale_color_rgb{};
+  Tone text_tone{Tone::neutral};
+  Tone scale_tone{Tone::neutral};
   // Signed fill relative to center: -1000 is full left, +1000 is full right.
   std::int16_t scale_fill_per_mille{};
   bool visible{};
