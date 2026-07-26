@@ -50,6 +50,14 @@ void run() {
   performance::begin();
 #endif
   lv_display_t* display = display::initialize();
+  dashboard::Layout dashboard_layout{
+      .display = display,
+      .regions = configuration::kApplicationConfiguration.dashboard.regions,
+  };
+  const bool dashboard_ready = dashboard::initialize(dashboard_layout);
+  if (!dashboard_ready) {
+    log::error(kTag, "Failed to initialize dashboard layout");
+  }
   if (!lap_timer::start(application.event_bus, application.telemetry_state)) {
     log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
   }
@@ -57,10 +65,15 @@ void run() {
                          configuration::kApplicationConfiguration.delta_time)) {
     log::error(kTag, "Failed to subscribe Delta Time to telemetry");
   }
-  dashboard::lap_timer_widget::create(
-      display, configuration::kApplicationConfiguration.dashboard.lap_timer);
-  if (!dashboard::delta_time_widget::create(
-          display,
+  if (dashboard_ready &&
+      !dashboard::lap_timer_widget::create(
+          dashboard_layout,
+          configuration::kApplicationConfiguration.dashboard.lap_timer)) {
+    log::error(kTag, "Failed to create Lap Timer widget");
+  }
+  if (dashboard_ready &&
+      !dashboard::delta_time_widget::create(
+          dashboard_layout,
           configuration::kApplicationConfiguration.dashboard.delta_time)) {
     log::error(kTag, "Failed to create Delta Time widget");
   }

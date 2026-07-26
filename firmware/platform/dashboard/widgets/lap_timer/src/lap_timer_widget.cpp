@@ -55,29 +55,42 @@ void update(lv_timer_t* timer) {
 
 }  // namespace
 
-void create(lv_display_t* display, const Config& config) {
-  lvgl_port_lock(0);
-  lv_obj_t* const screen = lv_display_get_screen_active(display);
+bool create(const Layout& layout, const Config& config) {
+  if (layout.display == nullptr || !lvgl_port_lock(0)) {
+    return false;
+  }
+  lv_obj_t* const screen = lv_display_get_screen_active(layout.display);
   lv_obj_set_style_bg_color(screen, lv_color_hex(kBackgroundColor), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
 
-  lv_obj_t* const block = create_widget_block(screen, config.block);
   const lv_font_t* const font = fonts::resolve(config.font);
   const std::int32_t character_width =
       static_cast<std::int32_t>(lv_font_get_glyph_width(font, '0', '0'));
+  const std::int32_t content_width = character_width * kCharacterCount;
+  const std::int32_t content_height = lv_font_get_line_height(font);
+  lv_obj_t* parent{};
+  Rect bounds{};
+  if (!resolve_widget_bounds(layout, config.placement, content_width,
+                             content_height, false, parent, bounds)) {
+    lvgl_port_unlock();
+    return false;
+  }
 
-  lv_obj_t* container = lv_obj_create(block);
+  lv_obj_t* container = lv_obj_create(parent);
   lv_obj_remove_style_all(container);
-  lv_obj_set_size(container, character_width * kCharacterCount,
-                  lv_font_get_line_height(font));
+  lv_obj_set_pos(container, bounds.x, bounds.y);
+  lv_obj_set_size(container, bounds.width, bounds.height);
+  lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
   apply_debug_widget_outline(container);
 
+  const std::int32_t content_x = (bounds.width - content_width) / 2;
+  const std::int32_t content_y = (bounds.height - content_height) / 2;
   constexpr char kInitialText[] = "00:00.000";
   for (std::int32_t position = 0; position < kCharacterCount; ++position) {
     lv_obj_t* label = lv_label_create(container);
     lv_obj_remove_style_all(label);
     lv_obj_set_width(label, character_width);
-    lv_obj_set_pos(label, position * character_width, 0);
+    lv_obj_set_pos(label, content_x + position * character_width, content_y);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
     lv_obj_set_style_text_color(label, lv_color_hex(config.text_color_rgb),
@@ -88,9 +101,9 @@ void create(lv_display_t* display, const Config& config) {
   }
 
   render(container);
-  place_in_block(container, config.placement);
   lv_timer_create(update, kRenderPeriodMs, container);
   lvgl_port_unlock();
+  return true;
 }
 
 }  // namespace simcore::dashboard::lap_timer_widget

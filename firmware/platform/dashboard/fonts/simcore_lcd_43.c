@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 64 px
  * Bpp: 4
- * Opts: --bpp 4 --size 64 --no-compress --stride 1 --align 1 --font digital-7 (mono).ttf --symbols 0123456789:.-+ --format lvgl -o simcore_lcd_64.c
+ * Opts: --bpp 4 --size 64 --no-compress --stride 1 --align 1 --font digital-7 (mono).ttf --symbols 0123456789:.-+ --format lvgl -o simcore_lcd_43.c
  ******************************************************************************/
 
 #ifdef __has_include
@@ -796,9 +796,9 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
 
 /*Initialize a public general font descriptor*/
 #if LVGL_VERSION_MAJOR >= 8
-const lv_font_t simcore_lcd_64 = {
+const lv_font_t simcore_lcd_43 = {
 #else
-lv_font_t simcore_lcd_64 = {
+lv_font_t simcore_lcd_43 = {
 #endif
     .get_glyph_dsc = lv_font_get_glyph_dsc_fmt_txt,    /*Function pointer to get glyph's data*/
     .get_glyph_bitmap = lv_font_get_bitmap_fmt_txt,    /*Function pointer to get glyph's bitmap*/

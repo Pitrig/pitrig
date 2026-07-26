@@ -129,8 +129,8 @@ void update(lv_timer_t*) {
 
 }  // namespace
 
-bool create(lv_display_t* display, const Config& config) {
-  if (display == nullptr || config.block.width <= 0 || config.block.height <= 0) {
+bool create(const Layout& layout, const Config& config) {
+  if (layout.display == nullptr) {
     return false;
   }
 
@@ -138,11 +138,14 @@ bool create(lv_display_t* display, const Config& config) {
   const std::int32_t border_width = config.scale.border_width_px;
   const std::int32_t content_height =
       lv_font_get_line_height(font) + 2 * config.scale.vertical_padding_px;
-  const std::int32_t container_height = content_height + 2 * border_width;
-  const std::int32_t content_width = config.block.width - 2 * border_width;
+  const std::int32_t scale_height = content_height + 2 * border_width;
+  const std::int32_t glyph_width =
+      static_cast<std::int32_t>(lv_font_get_glyph_width(font, '0', '0'));
+  constexpr std::int32_t kIntrinsicCharacterCount = 6;
+  const std::int32_t intrinsic_width =
+      glyph_width * kIntrinsicCharacterCount + 2 * border_width;
   const std::int32_t marker_height = 2 * border_width;
-  if (content_width <= 0 || content_height <= 0 ||
-      container_height > config.block.height ||
+  if (intrinsic_width <= 2 * border_width || content_height <= 0 ||
       marker_height > content_height) {
     return false;
   }
@@ -150,22 +153,30 @@ bool create(lv_display_t* display, const Config& config) {
   if (!lvgl_port_lock(0)) {
     return false;
   }
-  lv_obj_t* const screen = lv_display_get_screen_active(display);
-  lv_obj_t* const block = create_widget_block(screen, config.block);
-
-  widget_state.container = lv_obj_create(block);
+  lv_obj_t* parent{};
+  Rect bounds{};
+  if (!resolve_widget_bounds(layout, config.placement, intrinsic_width,
+                             scale_height, true, parent, bounds) ||
+      bounds.width <= 2 * border_width || bounds.height < scale_height) {
+    lvgl_port_unlock();
+    return false;
+  }
+  const std::int32_t content_width = bounds.width - 2 * border_width;
+  const std::int32_t scale_y = (bounds.height - scale_height) / 2;
+  widget_state.container = lv_obj_create(parent);
   lv_obj_remove_style_all(widget_state.container);
-  lv_obj_set_size(widget_state.container, config.block.width, container_height);
+  lv_obj_set_pos(widget_state.container, bounds.x, bounds.y);
+  lv_obj_set_size(widget_state.container, bounds.width, bounds.height);
   lv_obj_remove_flag(widget_state.container, LV_OBJ_FLAG_SCROLLABLE);
   apply_debug_widget_outline(widget_state.container);
-  place_in_block(widget_state.container, config.placement);
 
   widget_state.scale_center_x = content_width / 2;
   widget_state.scale_half_width = content_width / 2;
 
   widget_state.scale_content = lv_obj_create(widget_state.container);
   lv_obj_remove_style_all(widget_state.scale_content);
-  lv_obj_set_pos(widget_state.scale_content, border_width, border_width);
+  lv_obj_set_pos(widget_state.scale_content, border_width,
+                 scale_y + border_width);
   lv_obj_set_size(widget_state.scale_content, content_width, content_height);
   const std::int32_t content_radius =
       config.scale.border_radius_px > border_width
@@ -200,8 +211,8 @@ bool create(lv_display_t* display, const Config& config) {
 
   widget_state.border = lv_obj_create(widget_state.container);
   lv_obj_remove_style_all(widget_state.border);
-  lv_obj_set_pos(widget_state.border, 0, 0);
-  lv_obj_set_size(widget_state.border, config.block.width, container_height);
+  lv_obj_set_pos(widget_state.border, 0, scale_y);
+  lv_obj_set_size(widget_state.border, bounds.width, scale_height);
   lv_obj_set_style_border_width(widget_state.border, border_width, LV_PART_MAIN);
   lv_obj_set_style_radius(widget_state.border, config.scale.border_radius_px,
                           LV_PART_MAIN);
@@ -213,7 +224,7 @@ bool create(lv_display_t* display, const Config& config) {
   lv_obj_set_style_text_align(widget_state.label, LV_TEXT_ALIGN_CENTER,
                               LV_PART_MAIN);
   lv_obj_set_style_text_font(widget_state.label, font, LV_PART_MAIN);
-  lv_obj_center(widget_state.label);
+  lv_obj_align(widget_state.label, LV_ALIGN_CENTER, 0, 0);
 
   render();
   lv_timer_create(update, kRenderPeriodMs, nullptr);

@@ -2,9 +2,6 @@
 
 #include "dashboard_layout.hpp"
 
-struct _lv_display_t;
-using lv_display_t = _lv_display_t;
-
 namespace simcore::dashboard::delta_time_widget {
 
 struct ScaleStyle {
@@ -14,7 +11,6 @@ struct ScaleStyle {
 };
 
 struct Config {
-  WidgetBlock block{};
   FontSpec font{};
   Placement placement{};
   ScaleStyle scale{};
@@ -22,6 +18,6 @@ struct Config {
 
 // Creates the display-independent Delta Time presentation state's LVGL view.
 // Returns false when the display or configured geometry is invalid.
-[[nodiscard]] bool create(lv_display_t* display, const Config& config);
+[[nodiscard]] bool create(const Layout& layout, const Config& config);
 
 }  // namespace simcore::dashboard::delta_time_widget
