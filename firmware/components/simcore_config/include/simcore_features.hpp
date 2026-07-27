@@ -5,3 +5,6 @@
 
 // Draw dashboard block and widget boundaries.
 #define SIMCORE_LAYOUT_DEBUG 0
+
+// Include the full-screen display hardware diagnostic utility.
+#define SIMCORE_DISPLAY_DIAGNOSTICS 0

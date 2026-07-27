@@ -2,15 +2,17 @@
 
 ## Context
 
-SimCore needs to receive telemetry from SimHub over native USB CDC now while
+SimCore needs to receive telemetry from SimHub over a board-appropriate serial
+transport now while
 remaining independent from both the telemetry protocol and transport. Future
 builds may use a Companion protocol and UDP transport. Modules need a coherent
 read-only view of the latest telemetry without owning protocol state.
 
 ## Decision
 
-The application core owns and composes the transport, protocol,
-`TelemetryProvider`, telemetry state service, and Event Bus.
+The application core coordinates the lifecycle of the configured transport,
+protocol, `TelemetryProvider`, telemetry state service, and Event Bus. Concrete
+transport instances are resolved outside the core by the platform registry.
 
 Transports deliver raw data and do not know telemetry semantics. Protocols
 decode raw data into partial `TelemetryUpdate` values and do not know the
@@ -27,6 +29,8 @@ snapshots through its read-only interface.
 ## Consequences
 
 - USB CDC can later be replaced by UDP without changing protocols or modules.
+- The configured board selects its default transport: native USB CDC where the
+  native USB pins are available, or UART through an onboard USB-to-UART bridge.
 - SimHub can later be replaced by a Companion protocol without changing
   transports, the provider, state service, or modules.
 - The provider does not control transport or protocol lifetime.

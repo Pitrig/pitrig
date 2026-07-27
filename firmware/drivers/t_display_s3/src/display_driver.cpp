@@ -6,9 +6,9 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_log.h"
-#include "display_driver.hpp"
+#include "t_display_s3_display_driver.hpp"
 
-namespace simcore::display::driver {
+namespace simcore::display::drivers::t_display_s3 {
 namespace {
 
 constexpr char kTag[] = "t_display_s3";
@@ -45,7 +45,7 @@ void enable_display_power() {
   ESP_ERROR_CHECK(gpio_set_level(kReadPin, 1));
 }
 
-Configuration initialize_panel() {
+driver::Configuration initialize_panel() {
   esp_lcd_i80_bus_handle_t bus = nullptr;
   const esp_lcd_i80_bus_config_t bus_config = {
       .dc_gpio_num = kDataCommandPin,
@@ -112,12 +112,20 @@ Configuration initialize_panel() {
       .swap_xy = true,
       .mirror_x = false,
       .mirror_y = true,
+      .bus_type = driver::BusType::command,
+      .double_buffer = true,
+      .buffer_in_dma_memory = true,
+      .buffer_in_psram = false,
+      .avoid_tearing = false,
+      .direct_mode = false,
   };
 }
 
 }  // namespace
 
-Configuration initialize() {
+namespace {
+
+driver::Configuration initialize() {
   ESP_LOGI(kTag, "Initializing ST7789 display driver");
   enable_display_power();
   return initialize_panel();
@@ -128,4 +136,16 @@ void on_display_ready() {
   ESP_LOGI(kTag, "Display driver ready");
 }
 
-}  // namespace simcore::display::driver
+const driver::Driver kDriver{
+    .name = "t_display_s3",
+    .initialize = initialize,
+    .on_display_ready = on_display_ready,
+};
+
+}  // namespace
+
+const driver::Driver& get() {
+  return kDriver;
+}
+
+}  // namespace simcore::display::drivers::t_display_s3

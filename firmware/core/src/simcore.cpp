@@ -1,6 +1,7 @@
 #include "simcore.hpp"
 
 #include "application_configuration.hpp"
+#include "board_registry.hpp"
 #include "delta_time.hpp"
 #include "delta_time_widget.hpp"
 #include "estimated_lap_time.hpp"
@@ -14,7 +15,9 @@
 #include "simcore_features.hpp"
 #include "telemetry_provider.hpp"
 #include "telemetry_state.hpp"
-#include "usb_cdc_transport.hpp"
+#if SIMCORE_DISPLAY_DIAGNOSTICS
+#include "display_diagnostics.hpp"
+#endif
 #if SIMCORE_DEBUG
 #include "performance.hpp"
 #include "performance_overlay_widget.hpp"
@@ -30,7 +33,6 @@ struct Application {
   telemetry::TelemetryStateService telemetry_state;
   telemetry::TelemetryProvider telemetry_provider{telemetry_state, event_bus};
   protocols::SimHubProtocol protocol;
-  transport::UsbCdcTransport transport;
 };
 
 void submit_update(const telemetry::TelemetryUpdate& update, void* const context) {
@@ -51,7 +53,7 @@ void run() {
 #if SIMCORE_DEBUG
   performance::begin();
 #endif
-  lv_display_t* display = display::initialize();
+  lv_display_t* display = display::initialize(board_registry::display_driver());
   dashboard::Layout dashboard_layout{
       .display = display,
       .regions = configuration::kApplicationConfiguration.dashboard.regions,
@@ -74,19 +76,32 @@ void run() {
           configuration::kApplicationConfiguration.estimated_lap_time)) {
     log::error(kTag, "Failed to subscribe Estimated Lap Time to telemetry");
   }
-  if (dashboard_ready &&
+  bool diagnostics_enabled = false;
+#if SIMCORE_DISPLAY_DIAGNOSTICS
+  diagnostics_enabled =
+      configuration::dashboard_mode() ==
+      configuration::DashboardMode::display_diagnostics;
+  if (dashboard_ready && diagnostics_enabled &&
+      !dashboard::display_diagnostics::create(
+          display,
+          configuration::kApplicationConfiguration.dashboard
+              .display_diagnostics)) {
+    log::error(kTag, "Failed to start display diagnostics");
+  }
+#endif
+  if (dashboard_ready && !diagnostics_enabled &&
       !dashboard::lap_timer_widget::create(
           dashboard_layout,
           configuration::kApplicationConfiguration.dashboard.lap_timer)) {
     log::error(kTag, "Failed to create Lap Timer widget");
   }
-  if (dashboard_ready &&
+  if (dashboard_ready && !diagnostics_enabled &&
       !dashboard::delta_time_widget::create(
           dashboard_layout,
           configuration::kApplicationConfiguration.dashboard.delta_time)) {
     log::error(kTag, "Failed to create Delta Time widget");
   }
-  if (dashboard_ready &&
+  if (dashboard_ready && !diagnostics_enabled &&
       !dashboard::estimated_lap_time_widget::create(
           dashboard_layout,
           configuration::kApplicationConfiguration.dashboard
@@ -96,8 +111,9 @@ void run() {
 #if SIMCORE_DEBUG
   dashboard::performance_overlay_widget::create(display);
 #endif
-  if (!application.transport.start(&receive_transport_data, &application)) {
-    log::error(kTag, "Failed to start native USB CDC telemetry transport");
+  if (!board_registry::telemetry_transport().start(
+          &receive_transport_data, &application)) {
+    log::error(kTag, "Failed to start telemetry transport");
   }
 }
 

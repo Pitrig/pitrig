@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 
 #include "delta_time.hpp"
 #include "delta_time_widget.hpp"
@@ -8,12 +9,55 @@
 #include "estimated_lap_time_widget.hpp"
 #include "lap_timer.hpp"
 #include "lap_timer_widget.hpp"
+#include "simcore_features.hpp"
+#if SIMCORE_DISPLAY_DIAGNOSTICS
+#include "display_diagnostics.hpp"
+#endif
 
 namespace simcore::configuration {
 
 inline constexpr dashboard::RegionId kTimingRegionId = 1;
 
+enum class BoardId {
+  t_display_s3,
+  guition_esp32_4848s040,
+};
+
+struct BoardConfiguration {
+  BoardId id;
+};
+
+enum class TelemetryTransportId {
+  board_default,
+  native_usb_cdc,
+  uart,
+};
+
+struct UartTelemetryConfiguration {
+  int port;
+  int tx_pin;
+  int rx_pin;
+  std::uint32_t baud_rate;
+  bool silence_esp_logs;
+};
+
+struct TelemetryTransportConfiguration {
+  TelemetryTransportId id;
+  UartTelemetryConfiguration uart;
+};
+
+enum class DashboardMode {
+  normal,
+#if SIMCORE_DISPLAY_DIAGNOSTICS
+  display_diagnostics,
+#endif
+};
+
 struct DashboardConfiguration {
+  DashboardMode mode{DashboardMode::normal};
+#if SIMCORE_DISPLAY_DIAGNOSTICS
+  dashboard::display_diagnostics::Config display_diagnostics{};
+#endif
   std::array<dashboard::LayoutRegion, 1> regions{};
   dashboard::lap_timer_widget::Config lap_timer{};
   dashboard::delta_time_widget::Config delta_time{};
@@ -21,6 +65,8 @@ struct DashboardConfiguration {
 };
 
 struct ApplicationConfiguration {
+  BoardConfiguration board;
+  TelemetryTransportConfiguration telemetry_transport;
   lap_timer::Config lap_timer{};
   delta_time::Config delta_time{};
   estimated_lap_time::Config estimated_lap_time{};
@@ -28,6 +74,19 @@ struct ApplicationConfiguration {
 };
 
 inline constexpr ApplicationConfiguration kApplicationConfiguration{
+    .board = {
+        .id = BoardId::guition_esp32_4848s040,
+    },
+    .telemetry_transport = {
+        .id = TelemetryTransportId::board_default,
+        .uart = {
+            .port = 0,
+            .tx_pin = 43,
+            .rx_pin = 44,
+            .baud_rate = 115'200,
+            .silence_esp_logs = true,
+        },
+    },
     .lap_timer = {
         .telemetry_only = false,
         .telemetry_timeout_ms = 1'000,
@@ -47,6 +106,16 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
         .placeholder = {'-', '-', ':', '-', '-', '.', '-', '-', '-', '\0'},
     },
     .dashboard = {
+#if SIMCORE_DISPLAY_DIAGNOSTICS
+        .mode = DashboardMode::display_diagnostics,
+        .display_diagnostics = {
+            .auto_cycle = true,
+            .page_duration_ms = 5'000,
+            .initial_page = 0,
+        },
+#else
+        .mode = DashboardMode::normal,
+#endif
         .regions = {{
             {
                 .id = kTimingRegionId,
@@ -109,5 +178,15 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
         },
     },
 };
+
+// Reads the configured board identifier at runtime so every supported driver
+// remains available in the universal firmware image.
+[[nodiscard]] BoardId board_id();
+
+[[nodiscard]] const TelemetryTransportConfiguration&
+telemetry_transport_configuration();
+
+// Reads the configured dashboard mode at runtime.
+[[nodiscard]] DashboardMode dashboard_mode();
 
 }  // namespace simcore::configuration

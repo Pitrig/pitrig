@@ -65,8 +65,13 @@ void register_performance_events(lv_display_t* display) {
 
 }  // namespace
 
-lv_display_t* initialize() {
-  const driver::Configuration hardware = driver::initialize();
+lv_display_t* initialize(const driver::Driver& selected_driver) {
+  ESP_ERROR_CHECK(selected_driver.initialize == nullptr ? ESP_ERR_INVALID_ARG
+                                                        : ESP_OK);
+  ESP_ERROR_CHECK(selected_driver.on_display_ready == nullptr
+                      ? ESP_ERR_INVALID_ARG
+                      : ESP_OK);
+  const driver::Configuration hardware = selected_driver.initialize();
 
   lvgl_port_cfg_t lvgl_config = ESP_LVGL_PORT_INIT_CONFIG();
   lvgl_config.task_affinity = kLvglTaskCore;
@@ -79,7 +84,7 @@ lv_display_t* initialize() {
       .panel_handle = hardware.panel,
       .control_handle = nullptr,
       .buffer_size = hardware.buffer_size,
-      .double_buffer = true,
+      .double_buffer = hardware.double_buffer,
       .trans_size = 0,
       .hres = hardware.horizontal_resolution,
       .vres = hardware.vertical_resolution,
@@ -92,21 +97,32 @@ lv_display_t* initialize() {
       .rounder_cb = nullptr,
       .color_format = LV_COLOR_FORMAT_RGB565,
       .flags = {
-          .buff_dma = true,
-          .buff_spiram = false,
+          .buff_dma = hardware.buffer_in_dma_memory,
+          .buff_spiram = hardware.buffer_in_psram,
           .sw_rotate = false,
           .swap_bytes = false,
           .full_refresh = false,
-          .direct_mode = false,
+          .direct_mode = hardware.direct_mode,
       },
   };
 
-  lv_display_t* display = lvgl_port_add_disp(&display_config);
+  lv_display_t* display = nullptr;
+  if (hardware.bus_type == driver::BusType::rgb) {
+    const lvgl_port_display_rgb_cfg_t rgb_config = {
+        .flags = {
+            .bb_mode = false,
+            .avoid_tearing = hardware.avoid_tearing,
+        },
+    };
+    display = lvgl_port_add_disp_rgb(&display_config, &rgb_config);
+  } else {
+    display = lvgl_port_add_disp(&display_config);
+  }
   ESP_ERROR_CHECK(display == nullptr ? ESP_FAIL : ESP_OK);
 #if SIMCORE_DEBUG
   register_performance_events(display);
 #endif
-  driver::on_display_ready();
+  selected_driver.on_display_ready();
   return display;
 }
 

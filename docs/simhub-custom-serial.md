@@ -1,19 +1,20 @@
 # SimHub Custom Serial Setup
 
-SimCore currently accepts one ASCII telemetry field per line over native USB
-CDC. This is a SimHub **Custom Serial Device** protocol, not the SimHub Arduino
-protocol.
+SimCore accepts one ASCII telemetry field per line over the transport selected
+by the board configuration. This is a SimHub **Custom Serial Device** protocol,
+not the SimHub Arduino protocol.
 
 ## Serial settings
 
-- Select the serial port exposed by the ESP32-S3 USB CDC device.
+- Select the serial port exposed by the board. T-Display-S3 uses native USB CDC;
+  Guition ESP32-4848S040 uses its onboard USB-to-UART bridge.
 - Use `115200`, 8 data bits, no parity, and 1 stop bit.
 - Enable automatic reconnect.
 - Keep RTS and DTR disabled unless the board's flashing setup requires them.
 - Every update message must include the explicit `\n` terminator.
 
-USB CDC does not use the configured baud rate electrically, but using 115200
-keeps the host configuration conventional and portable.
+Native USB CDC does not use the configured baud rate electrically. Guition's
+UART transport does, so keep SimHub configured for 115200 baud.
 
 ## Line format
 

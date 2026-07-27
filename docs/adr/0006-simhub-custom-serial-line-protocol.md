@@ -3,8 +3,10 @@
 ## Context
 
 SimCore needs a minimal first telemetry source using SimHub Custom Serial over
-native USB CDC. The ingestion architecture must remain independent of SimHub so
-that a future Companion protocol or another transport can replace it.
+the serial transport selected by board configuration. Some boards expose native
+USB CDC, while others expose UART through an onboard USB-to-UART bridge. The
+ingestion architecture must remain independent of SimHub so that a future
+Companion protocol or another transport can replace it.
 
 ## Decision
 
