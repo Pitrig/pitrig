@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
@@ -23,6 +24,7 @@ class UsbCdcTransport final : public ITransport {
 
   bool start(DataHandler handler, void* context) override;
   void stop() override;
+  [[nodiscard]] Diagnostics diagnostics() const override;
 
  private:
   static constexpr std::size_t kChunkSize = 512;
@@ -48,6 +50,13 @@ class UsbCdcTransport final : public ITransport {
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
+  std::atomic<std::uint64_t> received_bytes_{};
+  std::atomic<std::uint64_t> read_events_{};
+  std::atomic<std::uint32_t> queue_overflows_{};
+  std::atomic<std::uint32_t> queued_bytes_{};
+  std::atomic<std::uint32_t> maximum_read_gap_ms_{};
+  std::atomic<std::uint32_t> maximum_handler_time_us_{};
+  std::int64_t last_read_at_us_{};
   bool started_{};
 };
 

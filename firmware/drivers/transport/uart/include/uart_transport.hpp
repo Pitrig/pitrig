@@ -1,12 +1,14 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
 #include "driver/uart.h"
 #include "esp_log_write.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 #include "transport.hpp"
 
@@ -30,11 +32,17 @@ class UartTransport final : public ITransport {
 
   bool start(DataHandler handler, void* context) override;
   void stop() override;
+  [[nodiscard]] Diagnostics diagnostics() const override;
 
  private:
   static constexpr std::size_t kChunkSize = 512;
   static constexpr std::size_t kTaskStackSize = 4096;
-  static constexpr std::size_t kDriverRxBufferSize = 2048;
+  static constexpr std::size_t kEventQueueDepth = 4;
+  static constexpr std::size_t kDriverRxBufferSize =
+      kChunkSize * kEventQueueDepth;
+  static constexpr std::size_t kRxFullThresholdBytes = 8;
+  static constexpr std::uint8_t kRxTimeoutSymbols = 1;
+  static constexpr UBaseType_t kTaskPriority = 5;
 
   static void task_entry(void* context);
   static int discard_log_output(const char* format, va_list args);
@@ -46,9 +54,17 @@ class UartTransport final : public ITransport {
   DataHandler handler_{};
   void* handler_context_{};
   TaskHandle_t task_{};
+  QueueHandle_t event_queue_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
   vprintf_like_t previous_log_output_{};
+  std::atomic<std::uint64_t> received_bytes_{};
+  std::atomic<std::uint64_t> read_events_{};
+  std::atomic<std::uint32_t> fifo_overflows_{};
+  std::atomic<std::uint32_t> buffer_full_events_{};
+  std::atomic<std::uint32_t> maximum_read_gap_ms_{};
+  std::atomic<std::uint32_t> maximum_handler_time_us_{};
+  std::int64_t last_read_at_us_{};
   bool started_{};
 };
 

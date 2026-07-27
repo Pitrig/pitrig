@@ -48,6 +48,8 @@ void receive_transport_data(const std::span<const std::uint8_t> data, void* cons
 
 void run() {
   static Application application;
+  transport::ITransport& telemetry_transport =
+      board_registry::telemetry_transport();
 
   log::info(kTag, "SimCore starting");
 #if SIMCORE_DEBUG
@@ -109,10 +111,9 @@ void run() {
     log::error(kTag, "Failed to create Estimated Lap Time widget");
   }
 #if SIMCORE_DEBUG
-  dashboard::performance_overlay_widget::create(display);
+  dashboard::performance_overlay_widget::create(display, telemetry_transport);
 #endif
-  if (!board_registry::telemetry_transport().start(
-          &receive_transport_data, &application)) {
+  if (!telemetry_transport.start(&receive_transport_data, &application)) {
     log::error(kTag, "Failed to start telemetry transport");
   }
 }

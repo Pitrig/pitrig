@@ -5,11 +5,21 @@
 
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 namespace simcore::transport {
 namespace {
 
 constexpr char kTag[] = "uart_transport";
+
+void update_maximum(std::atomic<std::uint32_t>& maximum,
+                    const std::uint32_t candidate) {
+  std::uint32_t current = maximum.load(std::memory_order_relaxed);
+  while (candidate > current &&
+         !maximum.compare_exchange_weak(current, candidate,
+                                        std::memory_order_relaxed)) {
+  }
+}
 
 }  // namespace
 
@@ -50,21 +60,36 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
       uart_set_pin(configuration_.port, configuration_.tx_pin,
                    configuration_.rx_pin, UART_PIN_NO_CHANGE,
                    UART_PIN_NO_CHANGE) != ESP_OK ||
-      uart_driver_install(configuration_.port, kDriverRxBufferSize, 0, 0,
-                          nullptr, 0) != ESP_OK) {
+      uart_driver_install(configuration_.port, kDriverRxBufferSize, 0,
+                          kEventQueueDepth, &event_queue_, 0) != ESP_OK ||
+      uart_set_rx_full_threshold(configuration_.port,
+                                 kRxFullThresholdBytes) != ESP_OK ||
+      uart_set_rx_timeout(configuration_.port, kRxTimeoutSymbols) != ESP_OK) {
+    if (uart_is_driver_installed(configuration_.port)) {
+      uart_driver_delete(configuration_.port);
+    }
+    event_queue_ = nullptr;
     restore_log_output();
     return false;
   }
 
+  received_bytes_.store(0, std::memory_order_relaxed);
+  read_events_.store(0, std::memory_order_relaxed);
+  fifo_overflows_.store(0, std::memory_order_relaxed);
+  buffer_full_events_.store(0, std::memory_order_relaxed);
+  maximum_read_gap_ms_.store(0, std::memory_order_relaxed);
+  maximum_handler_time_us_.store(0, std::memory_order_relaxed);
+  last_read_at_us_ = 0;
   handler_ = handler;
   handler_context_ = context;
   started_ = true;
   task_ = xTaskCreateStatic(&UartTransport::task_entry, "uart_rx",
-                            kTaskStackSize, this, 5, task_stack_.data(),
-                            &task_state_);
+                            kTaskStackSize, this, kTaskPriority,
+                            task_stack_.data(), &task_state_);
   if (task_ == nullptr) {
     started_ = false;
     uart_driver_delete(configuration_.port);
+    event_queue_ = nullptr;
     handler_ = nullptr;
     handler_context_ = nullptr;
     restore_log_output();
@@ -85,6 +110,7 @@ void UartTransport::stop() {
     task_ = nullptr;
   }
   ESP_ERROR_CHECK_WITHOUT_ABORT(uart_driver_delete(configuration_.port));
+  event_queue_ = nullptr;
   handler_ = nullptr;
   handler_context_ = nullptr;
   restore_log_output();
@@ -103,16 +129,80 @@ int UartTransport::discard_log_output(const char* const format, va_list args) {
 
 void UartTransport::process() {
   std::array<std::uint8_t, kChunkSize> data{};
+  uart_event_t event{};
   while (true) {
-    const int received =
-        uart_read_bytes(configuration_.port, data.data(), data.size(),
-                        portMAX_DELAY);
-    if (received > 0 && handler_ != nullptr) {
-      handler_(std::span<const std::uint8_t>(
-                   data.data(), static_cast<std::size_t>(received)),
-               handler_context_);
+    if (xQueueReceive(event_queue_, &event, portMAX_DELAY) != pdTRUE) {
+      continue;
+    }
+
+    if (event.type == UART_FIFO_OVF || event.type == UART_BUFFER_FULL) {
+      if (event.type == UART_FIFO_OVF) {
+        fifo_overflows_.fetch_add(1, std::memory_order_relaxed);
+      } else {
+        buffer_full_events_.fetch_add(1, std::memory_order_relaxed);
+      }
+      uart_flush_input(configuration_.port);
+      xQueueReset(event_queue_);
+      continue;
+    }
+
+    if (event.type != UART_DATA) {
+      continue;
+    }
+
+    std::size_t remaining = event.size;
+    while (remaining > 0) {
+      const std::size_t requested = std::min(remaining, data.size());
+      const int received =
+          uart_read_bytes(configuration_.port, data.data(), requested, 0);
+      if (received <= 0) {
+        break;
+      }
+
+      const std::int64_t read_at_us = esp_timer_get_time();
+      if (last_read_at_us_ != 0) {
+        update_maximum(
+            maximum_read_gap_ms_,
+            static_cast<std::uint32_t>((read_at_us - last_read_at_us_) / 1'000));
+      }
+      last_read_at_us_ = read_at_us;
+      received_bytes_.fetch_add(static_cast<std::uint64_t>(received),
+                                std::memory_order_relaxed);
+      read_events_.fetch_add(1, std::memory_order_relaxed);
+
+      if (handler_ != nullptr) {
+        const std::int64_t handler_started_at_us = esp_timer_get_time();
+        handler_(std::span<const std::uint8_t>(
+                     data.data(), static_cast<std::size_t>(received)),
+                 handler_context_);
+        update_maximum(
+            maximum_handler_time_us_,
+            static_cast<std::uint32_t>(esp_timer_get_time() -
+                                       handler_started_at_us));
+      }
+      remaining -= static_cast<std::size_t>(received);
     }
   }
+}
+
+Diagnostics UartTransport::diagnostics() const {
+  std::size_t buffered_bytes = 0;
+  if (started_) {
+    ESP_ERROR_CHECK_WITHOUT_ABORT(
+        uart_get_buffered_data_len(configuration_.port, &buffered_bytes));
+  }
+  return {
+      .received_bytes = received_bytes_.load(std::memory_order_relaxed),
+      .read_events = read_events_.load(std::memory_order_relaxed),
+      .fifo_overflows = fifo_overflows_.load(std::memory_order_relaxed),
+      .buffer_full_events =
+          buffer_full_events_.load(std::memory_order_relaxed),
+      .buffered_bytes = static_cast<std::uint32_t>(buffered_bytes),
+      .maximum_read_gap_ms =
+          maximum_read_gap_ms_.load(std::memory_order_relaxed),
+      .maximum_handler_time_us =
+          maximum_handler_time_us_.load(std::memory_order_relaxed),
+  };
 }
 
 void UartTransport::restore_log_output() {

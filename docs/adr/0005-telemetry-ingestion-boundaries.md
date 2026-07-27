@@ -19,6 +19,10 @@ decode raw data into partial `TelemetryUpdate` values and do not know the
 transport, state service, or Event Bus. `TelemetryProvider` accepts only
 `TelemetryUpdate`, commits it through the telemetry state service, and publishes
 a `TelemetryUpdated` notification after a successful state change.
+Transports may expose generic receive-path diagnostics, such as byte counts,
+queue depth, overflow counts, and handler latency. Diagnostics contain no
+protocol or telemetry-field semantics and are safe to consume by optional
+platform debugging UI.
 Partial updates may explicitly invalidate fields when a source reports that a
 previously available value is no longer available.
 
@@ -31,6 +35,8 @@ snapshots through its read-only interface.
 - USB CDC can later be replaced by UDP without changing protocols or modules.
 - The configured board selects its default transport: native USB CDC where the
   native USB pins are available, or UART through an onboard USB-to-UART bridge.
+- UART receive failures and scheduling delays can be inspected without writing
+  diagnostic text into the same UART stream used for telemetry.
 - SimHub can later be replaced by a Companion protocol without changing
   transports, the provider, state service, or modules.
 - The provider does not control transport or protocol lifetime.

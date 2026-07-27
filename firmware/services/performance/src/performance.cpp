@@ -17,7 +17,7 @@ namespace {
 
 constexpr char kTag[] = "performance";
 constexpr std::uint32_t kUpdatePeriodMs = 1'000;
-constexpr std::uint32_t kTaskStackDepth = 768;
+constexpr std::uint32_t kTaskStackDepth = 2'048;
 constexpr UBaseType_t kTaskPriority = 1;
 constexpr BaseType_t kTaskCore = 0;
 

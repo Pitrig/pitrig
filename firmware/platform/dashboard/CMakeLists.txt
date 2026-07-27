@@ -26,6 +26,6 @@ idf_component_register(
     INCLUDE_DIRS ${component_include_dirs}
     REQUIRES lvgl__lvgl
     PRIV_REQUIRES delta_time esp_lvgl_port estimated_lap_time heap lap_timer
-                  performance simcore_config)
+                  performance simcore_config transport)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)
