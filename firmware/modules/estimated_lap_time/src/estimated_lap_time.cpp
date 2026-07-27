@@ -8,23 +8,20 @@
 #include "telemetry_state.hpp"
 
 namespace simcore::estimated_lap_time {
-namespace {
 
-Config module_config;
-PresentationState presentation_state;
-std::mutex state_mutex;
-const telemetry::ITelemetryReader* telemetry_reader;
-events::Subscription telemetry_subscription;
-
-void set_unavailable() {
-  const std::lock_guard lock(state_mutex);
-  presentation_state.text = module_config.placeholder;
-  presentation_state.text.back() = '\0';
-  presentation_state.visible =
-      module_config.unavailable_behavior == UnavailableBehavior::placeholder;
+EstimatedLapTime::~EstimatedLapTime() {
+  stop();
 }
 
-void set_time(const std::uint32_t milliseconds) {
+void EstimatedLapTime::set_unavailable() {
+  const std::lock_guard lock(state_mutex_);
+  presentation_state_.text = config_.placeholder;
+  presentation_state_.text.back() = '\0';
+  presentation_state_.visible =
+      config_.unavailable_behavior == UnavailableBehavior::placeholder;
+}
+
+void EstimatedLapTime::set_time(const std::uint32_t milliseconds) {
   constexpr std::uint32_t kMillisecondsPerSecond = 1'000;
   constexpr std::uint32_t kSecondsPerMinute = 60;
 
@@ -41,14 +38,16 @@ void set_time(const std::uint32_t milliseconds) {
                 static_cast<unsigned long>(remaining_milliseconds));
   next.visible = true;
 
-  const std::lock_guard lock(state_mutex);
-  presentation_state = next;
+  const std::lock_guard lock(state_mutex_);
+  presentation_state_ = next;
 }
 
-void on_telemetry_updated(const events::Event& event, void*) {
+void EstimatedLapTime::on_telemetry_updated(const events::Event& event,
+                                            void* const context) {
+  auto& module = *static_cast<EstimatedLapTime*>(context);
   if (event.payload == nullptr ||
       event.payload_size != sizeof(telemetry::TelemetryUpdated) ||
-      telemetry_reader == nullptr) {
+      module.telemetry_reader_ == nullptr) {
     return;
   }
 
@@ -59,35 +58,51 @@ void on_telemetry_updated(const events::Event& event, void*) {
     return;
   }
 
-  const telemetry::TelemetrySnapshot snapshot = telemetry_reader->snapshot();
+  const telemetry::TelemetrySnapshot snapshot =
+      module.telemetry_reader_->snapshot();
   if (!telemetry::contains(snapshot.valid_fields,
                            telemetry::Field::lap_time_estimated)) {
-    set_unavailable();
+    module.set_unavailable();
     return;
   }
 
-  set_time(snapshot.values.lap_time_estimated_ms);
+  module.set_time(snapshot.values.lap_time_estimated_ms);
 }
 
-}  // namespace
-
-bool start(events::EventBus& event_bus,
-           const telemetry::ITelemetryReader& reader,
-           const Config& config) {
-  module_config = config;
-  module_config.placeholder.back() = '\0';
-  telemetry_reader = &reader;
+bool EstimatedLapTime::start(events::EventBus& event_bus,
+                             const telemetry::ITelemetryReader& reader,
+                             const Config& config) {
+  if (telemetry_subscription_.valid) {
+    return false;
+  }
+  config_ = config;
+  config_.placeholder.back() = '\0';
+  telemetry_reader_ = &reader;
+  event_bus_ = &event_bus;
   set_unavailable();
 
-  telemetry_subscription =
-      event_bus.subscribe(telemetry::kTelemetryUpdatedEvent,
-                          &on_telemetry_updated, nullptr);
-  return telemetry_subscription.valid;
+  telemetry_subscription_ = event_bus.subscribe(
+      telemetry::kTelemetryUpdatedEvent,
+      &EstimatedLapTime::on_telemetry_updated, this);
+  if (!telemetry_subscription_.valid) {
+    telemetry_reader_ = nullptr;
+    event_bus_ = nullptr;
+  }
+  return telemetry_subscription_.valid;
 }
 
-PresentationState presentation() {
-  const std::lock_guard lock(state_mutex);
-  return presentation_state;
+void EstimatedLapTime::stop() {
+  if (event_bus_ != nullptr && telemetry_subscription_.valid) {
+    event_bus_->unsubscribe(telemetry_subscription_);
+  }
+  telemetry_subscription_ = {};
+  telemetry_reader_ = nullptr;
+  event_bus_ = nullptr;
+}
+
+PresentationState EstimatedLapTime::presentation() const {
+  const std::lock_guard lock(state_mutex_);
+  return presentation_state_;
 }
 
 }  // namespace simcore::estimated_lap_time

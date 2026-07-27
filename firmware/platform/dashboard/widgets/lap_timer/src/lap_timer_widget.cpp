@@ -23,11 +23,18 @@ constexpr std::uint32_t kRenderPeriodMs = 16;
 constexpr std::int32_t kCharacterCount = 9;
 constexpr std::array<std::size_t, 7> kDigitPositions = {0, 1, 3, 4, 6, 7, 8};
 
-void render(lv_obj_t* container) {
+struct WidgetContext {
+  lv_obj_t* container{};
+  lap_timer::LapTimer* module{};
+};
+
+WidgetContext widget_context;
+
+void render(WidgetContext& context) {
   constexpr std::uint32_t kMillisecondsPerSecond = 1'000;
   constexpr std::uint32_t kSecondsPerMinute = 60;
 
-  const std::uint32_t milliseconds = simcore::lap_timer::current_time();
+  const std::uint32_t milliseconds = context.module->current_time();
   const std::uint32_t total_seconds = milliseconds / kMillisecondsPerSecond;
   const std::uint32_t minutes = total_seconds / kSecondsPerMinute % 100;
   const std::uint32_t seconds = total_seconds % kSecondsPerMinute;
@@ -39,7 +46,8 @@ void render(lv_obj_t* container) {
                 static_cast<unsigned long>(remaining_milliseconds));
 
   for (const std::size_t position : kDigitPositions) {
-    lv_obj_t* label = lv_obj_get_child(container, static_cast<std::int32_t>(position));
+    lv_obj_t* label = lv_obj_get_child(
+        context.container, static_cast<std::int32_t>(position));
     if (lv_label_get_text(label)[0] == text[position]) {
       continue;
     }
@@ -50,12 +58,13 @@ void render(lv_obj_t* container) {
 }
 
 void update(lv_timer_t* timer) {
-  render(static_cast<lv_obj_t*>(lv_timer_get_user_data(timer)));
+  render(*static_cast<WidgetContext*>(lv_timer_get_user_data(timer)));
 }
 
 }  // namespace
 
-bool create(const Layout& layout, const Config& config) {
+bool create(const Layout& layout, const Config& config,
+            lap_timer::LapTimer& module) {
   if (layout.display == nullptr || !lvgl_port_lock(0)) {
     return false;
   }
@@ -100,8 +109,12 @@ bool create(const Layout& layout, const Config& config) {
     lv_label_set_text(label, character);
   }
 
-  render(container);
-  lv_timer_create(update, kRenderPeriodMs, container);
+  widget_context = {
+      .container = container,
+      .module = &module,
+  };
+  render(widget_context);
+  lv_timer_create(update, kRenderPeriodMs, &widget_context);
   lvgl_port_unlock();
   return true;
 }

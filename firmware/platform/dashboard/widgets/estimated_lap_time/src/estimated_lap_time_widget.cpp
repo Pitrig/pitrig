@@ -17,6 +17,7 @@ constexpr std::uint32_t kRenderPeriodMs = 50;
 constexpr std::int32_t kCharacterCount = 9;
 
 struct WidgetState {
+  const estimated_lap_time::EstimatedLapTime* module{};
   lv_obj_t* container{};
   lv_obj_t* label{};
   std::array<char, estimated_lap_time::kTextCapacity> text{};
@@ -28,7 +29,7 @@ WidgetState widget_state;
 
 void render() {
   const estimated_lap_time::PresentationState state =
-      estimated_lap_time::presentation();
+      widget_state.module->presentation();
 
   if (!widget_state.initialized || widget_state.visible != state.visible) {
     if (state.visible) {
@@ -58,10 +59,12 @@ void update(lv_timer_t*) {
 
 }  // namespace
 
-bool create(const Layout& layout, const Config& config) {
+bool create(const Layout& layout, const Config& config,
+            const estimated_lap_time::EstimatedLapTime& module) {
   if (layout.display == nullptr || !lvgl_port_lock(0)) {
     return false;
   }
+  widget_state.module = &module;
 
   const lv_font_t* const font = fonts::resolve(config.font);
   const std::int32_t character_width =

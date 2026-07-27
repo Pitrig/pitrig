@@ -4,6 +4,10 @@
 
 #include "dashboard_layout.hpp"
 
+namespace simcore::lap_timer {
+class LapTimer;
+}
+
 namespace simcore::dashboard::lap_timer_widget {
 
 struct Config {
@@ -13,6 +17,7 @@ struct Config {
 };
 
 // Creates the lap timer label and its periodic render callback.
-[[nodiscard]] bool create(const Layout& layout, const Config& config);
+[[nodiscard]] bool create(const Layout& layout, const Config& config,
+                          lap_timer::LapTimer& module);
 
 }  // namespace simcore::dashboard::lap_timer_widget

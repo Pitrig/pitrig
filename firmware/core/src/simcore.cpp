@@ -33,6 +33,9 @@ struct Application {
   telemetry::TelemetryStateService telemetry_state;
   telemetry::TelemetryProvider telemetry_provider{telemetry_state, event_bus};
   protocols::SimHubProtocol protocol;
+  lap_timer::LapTimer lap_timer;
+  delta_time::DeltaTime delta_time;
+  estimated_lap_time::EstimatedLapTime estimated_lap_time;
 };
 
 void submit_update(const telemetry::TelemetryUpdate& update, void* const context) {
@@ -64,16 +67,17 @@ void run() {
   if (!dashboard_ready) {
     log::error(kTag, "Failed to initialize dashboard layout");
   }
-  if (!lap_timer::start(
+  if (!application.lap_timer.start(
           application.event_bus, application.telemetry_state,
           configuration::kApplicationConfiguration.lap_timer)) {
     log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
   }
-  if (!delta_time::start(application.event_bus, application.telemetry_state,
-                         configuration::kApplicationConfiguration.delta_time)) {
+  if (!application.delta_time.start(
+          application.event_bus, application.telemetry_state,
+          configuration::kApplicationConfiguration.delta_time)) {
     log::error(kTag, "Failed to subscribe Delta Time to telemetry");
   }
-  if (!estimated_lap_time::start(
+  if (!application.estimated_lap_time.start(
           application.event_bus, application.telemetry_state,
           configuration::kApplicationConfiguration.estimated_lap_time)) {
     log::error(kTag, "Failed to subscribe Estimated Lap Time to telemetry");
@@ -94,20 +98,23 @@ void run() {
   if (dashboard_ready && !diagnostics_enabled &&
       !dashboard::lap_timer_widget::create(
           dashboard_layout,
-          configuration::kApplicationConfiguration.dashboard.lap_timer)) {
+          configuration::kApplicationConfiguration.dashboard.lap_timer,
+          application.lap_timer)) {
     log::error(kTag, "Failed to create Lap Timer widget");
   }
   if (dashboard_ready && !diagnostics_enabled &&
       !dashboard::delta_time_widget::create(
           dashboard_layout,
-          configuration::kApplicationConfiguration.dashboard.delta_time)) {
+          configuration::kApplicationConfiguration.dashboard.delta_time,
+          application.delta_time)) {
     log::error(kTag, "Failed to create Delta Time widget");
   }
   if (dashboard_ready && !diagnostics_enabled &&
       !dashboard::estimated_lap_time_widget::create(
           dashboard_layout,
           configuration::kApplicationConfiguration.dashboard
-              .estimated_lap_time)) {
+              .estimated_lap_time,
+          application.estimated_lap_time)) {
     log::error(kTag, "Failed to create Estimated Lap Time widget");
   }
 #if SIMCORE_DEBUG

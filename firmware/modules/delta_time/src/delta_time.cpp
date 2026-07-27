@@ -9,47 +9,44 @@
 #include "telemetry_state.hpp"
 
 namespace simcore::delta_time {
-namespace {
 
-Config module_config;
-PresentationState presentation_state;
-std::mutex state_mutex;
-const telemetry::ITelemetryReader* telemetry_reader;
-events::Subscription telemetry_subscription;
+DeltaTime::~DeltaTime() {
+  stop();
+}
 
-void set_unavailable() {
-  const std::lock_guard lock(state_mutex);
-  presentation_state.text_tone = Tone::neutral;
-  presentation_state.scale_tone = Tone::neutral;
-  presentation_state.scale_fill_per_mille = 0;
-  presentation_state.visible =
-      module_config.unavailable_behavior != UnavailableBehavior::hide;
-  presentation_state.scale_enabled = module_config.scale.enabled;
-  if (module_config.unavailable_behavior == UnavailableBehavior::zero) {
-    std::snprintf(presentation_state.text.data(),
-                  presentation_state.text.size(),
-                  module_config.scale.show_sign ? "+0.00" : "0.00");
+void DeltaTime::set_unavailable() {
+  const std::lock_guard lock(state_mutex_);
+  presentation_state_.text_tone = Tone::neutral;
+  presentation_state_.scale_tone = Tone::neutral;
+  presentation_state_.scale_fill_per_mille = 0;
+  presentation_state_.visible =
+      config_.unavailable_behavior != UnavailableBehavior::hide;
+  presentation_state_.scale_enabled = config_.scale.enabled;
+  if (config_.unavailable_behavior == UnavailableBehavior::zero) {
+    std::snprintf(presentation_state_.text.data(),
+                  presentation_state_.text.size(),
+                  config_.scale.show_sign ? "+0.00" : "0.00");
   } else {
-    presentation_state.text = module_config.placeholder;
-    presentation_state.text.back() = '\0';
+    presentation_state_.text = config_.placeholder;
+    presentation_state_.text.back() = '\0';
   }
 }
 
-void set_delta(const std::int32_t delta_ms) {
+void DeltaTime::set_delta(const std::int32_t delta_ms) {
   const std::int64_t magnitude_ms =
       delta_ms < 0 ? -static_cast<std::int64_t>(delta_ms) : delta_ms;
   const std::int64_t magnitude_centiseconds = (magnitude_ms + 5) / 10;
 
   PresentationState next{};
-  next.scale_enabled = module_config.scale.enabled;
+  next.scale_enabled = config_.scale.enabled;
   next.scale_tone =
       delta_ms < 0 ? Tone::faster
                    : delta_ms > 0 ? Tone::slower : Tone::neutral;
   next.text_tone =
-      module_config.scale.enabled ? Tone::neutral : next.scale_tone;
+      config_.scale.enabled ? Tone::neutral : next.scale_tone;
   next.visible = true;
-  if (module_config.scale.enabled) {
-    if (module_config.scale.show_sign) {
+  if (config_.scale.enabled) {
+    if (config_.scale.show_sign) {
       const char sign = delta_ms < 0 ? '-' : '+';
       std::snprintf(next.text.data(), next.text.size(), "%c%lld.%02lld", sign,
                     static_cast<long long>(magnitude_centiseconds / 100),
@@ -61,7 +58,7 @@ void set_delta(const std::int32_t delta_ms) {
     }
     const std::int64_t scaled =
         -static_cast<std::int64_t>(delta_ms) * 1'000 /
-        module_config.scale.range_ms;
+        config_.scale.range_ms;
     next.scale_fill_per_mille = static_cast<std::int16_t>(
         std::clamp<std::int64_t>(scaled, -1'000, 1'000));
   } else {
@@ -71,14 +68,16 @@ void set_delta(const std::int32_t delta_ms) {
                   static_cast<long long>(magnitude_centiseconds % 100));
   }
 
-  const std::lock_guard lock(state_mutex);
-  presentation_state = next;
+  const std::lock_guard lock(state_mutex_);
+  presentation_state_ = next;
 }
 
-void on_telemetry_updated(const events::Event& event, void*) {
+void DeltaTime::on_telemetry_updated(const events::Event& event,
+                                     void* const context) {
+  auto& module = *static_cast<DeltaTime*>(context);
   if (event.payload == nullptr ||
       event.payload_size != sizeof(telemetry::TelemetryUpdated) ||
-      telemetry_reader == nullptr) {
+      module.telemetry_reader_ == nullptr) {
     return;
   }
 
@@ -88,37 +87,52 @@ void on_telemetry_updated(const events::Event& event, void*) {
     return;
   }
 
-  const telemetry::TelemetrySnapshot snapshot = telemetry_reader->snapshot();
+  const telemetry::TelemetrySnapshot snapshot =
+      module.telemetry_reader_->snapshot();
   if (!telemetry::contains(snapshot.valid_fields, telemetry::Field::lap_delta)) {
-    set_unavailable();
+    module.set_unavailable();
     return;
   }
 
-  set_delta(snapshot.values.lap_delta_ms);
+  module.set_delta(snapshot.values.lap_delta_ms);
 }
 
-}  // namespace
-
-bool start(events::EventBus& event_bus,
-           const telemetry::ITelemetryReader& reader,
-           const Config& config) {
-  module_config = config;
-  module_config.placeholder.back() = '\0';
-  if (module_config.scale.range_ms <= 0) {
-    module_config.scale.range_ms = 2'000;
+bool DeltaTime::start(events::EventBus& event_bus,
+                      const telemetry::ITelemetryReader& reader,
+                      const Config& config) {
+  if (telemetry_subscription_.valid) {
+    return false;
   }
-  telemetry_reader = &reader;
+  config_ = config;
+  config_.placeholder.back() = '\0';
+  if (config_.scale.range_ms <= 0) {
+    config_.scale.range_ms = 2'000;
+  }
+  telemetry_reader_ = &reader;
+  event_bus_ = &event_bus;
   set_unavailable();
 
-  telemetry_subscription =
-      event_bus.subscribe(telemetry::kTelemetryUpdatedEvent,
-                          &on_telemetry_updated, nullptr);
-  return telemetry_subscription.valid;
+  telemetry_subscription_ = event_bus.subscribe(
+      telemetry::kTelemetryUpdatedEvent, &DeltaTime::on_telemetry_updated, this);
+  if (!telemetry_subscription_.valid) {
+    telemetry_reader_ = nullptr;
+    event_bus_ = nullptr;
+  }
+  return telemetry_subscription_.valid;
 }
 
-PresentationState presentation() {
-  const std::lock_guard lock(state_mutex);
-  return presentation_state;
+void DeltaTime::stop() {
+  if (event_bus_ != nullptr && telemetry_subscription_.valid) {
+    event_bus_->unsubscribe(telemetry_subscription_);
+  }
+  telemetry_subscription_ = {};
+  telemetry_reader_ = nullptr;
+  event_bus_ = nullptr;
+}
+
+PresentationState DeltaTime::presentation() const {
+  const std::lock_guard lock(state_mutex_);
+  return presentation_state_;
 }
 
 }  // namespace simcore::delta_time

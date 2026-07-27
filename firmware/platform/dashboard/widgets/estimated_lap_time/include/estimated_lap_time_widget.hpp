@@ -2,6 +2,10 @@
 
 #include "dashboard_layout.hpp"
 
+namespace simcore::estimated_lap_time {
+class EstimatedLapTime;
+}
+
 namespace simcore::dashboard::estimated_lap_time_widget {
 
 struct Config {
@@ -11,6 +15,8 @@ struct Config {
 };
 
 // Creates the LVGL view for Estimated Lap Time presentation state.
-[[nodiscard]] bool create(const Layout& layout, const Config& config);
+[[nodiscard]] bool create(
+    const Layout& layout, const Config& config,
+    const estimated_lap_time::EstimatedLapTime& module);
 
 }  // namespace simcore::dashboard::estimated_lap_time_widget

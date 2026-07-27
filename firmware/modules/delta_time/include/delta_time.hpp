@@ -3,10 +3,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 
-namespace simcore::events {
-class EventBus;
-}
+#include "event_bus.hpp"
 
 namespace simcore::telemetry {
 class ITelemetryReader;
@@ -52,13 +51,39 @@ struct PresentationState {
   bool scale_enabled{};
 };
 
-// Subscribes the module to telemetry notifications and initializes its
-// presentation state. Configuration is copied into fixed module storage.
-[[nodiscard]] bool start(events::EventBus& event_bus,
-                         const telemetry::ITelemetryReader& telemetry_reader,
-                         const Config& config);
+class DeltaTime {
+ public:
+  DeltaTime() = default;
+  ~DeltaTime();
 
-// Returns a coherent immutable copy of the latest presentation state.
-[[nodiscard]] PresentationState presentation();
+  DeltaTime(const DeltaTime&) = delete;
+  DeltaTime& operator=(const DeltaTime&) = delete;
+  DeltaTime(DeltaTime&&) = delete;
+  DeltaTime& operator=(DeltaTime&&) = delete;
+
+  // Subscribes the module to telemetry notifications and initializes its
+  // presentation state. Configuration is copied into fixed module storage.
+  [[nodiscard]] bool start(
+      events::EventBus& event_bus,
+      const telemetry::ITelemetryReader& telemetry_reader,
+      const Config& config);
+  void stop();
+
+  // Returns a coherent immutable copy of the latest presentation state.
+  [[nodiscard]] PresentationState presentation() const;
+
+ private:
+  static void on_telemetry_updated(const events::Event& event, void* context);
+
+  void set_unavailable();
+  void set_delta(std::int32_t delta_ms);
+
+  Config config_{};
+  PresentationState presentation_state_{};
+  mutable std::mutex state_mutex_;
+  const telemetry::ITelemetryReader* telemetry_reader_{};
+  events::EventBus* event_bus_{};
+  events::Subscription telemetry_subscription_{};
+};
 
 }  // namespace simcore::delta_time

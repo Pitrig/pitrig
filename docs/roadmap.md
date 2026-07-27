@@ -13,7 +13,7 @@
 - [ ] GPIO
 - [ ] SPI
 - [ ] I2C
-- [ ] Display interface
+- [*] Display interface
 
 # Phase 3 — Drivers
 
@@ -24,6 +24,6 @@
 
 # Phase 4 — Modules
 
-- [ ] Dashboard
+- [*] Dashboard
 - [ ] Button Matrix
 - [ ] RGB

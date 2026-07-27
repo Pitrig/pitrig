@@ -16,6 +16,7 @@ namespace {
 constexpr std::uint32_t kRenderPeriodMs = 16;
 
 struct WidgetState {
+  const delta_time::DeltaTime* module{};
   lv_obj_t* container{};
   lv_obj_t* scale_content{};
   lv_obj_t* fill{};
@@ -52,7 +53,8 @@ WidgetState widget_state;
 }
 
 void render() {
-  const delta_time::PresentationState state = delta_time::presentation();
+  const delta_time::PresentationState state =
+      widget_state.module->presentation();
   if (!widget_state.initialized || widget_state.visible != state.visible) {
     if (state.visible) {
       lv_obj_remove_flag(widget_state.container, LV_OBJ_FLAG_HIDDEN);
@@ -147,7 +149,8 @@ void update(lv_timer_t*) {
 
 }  // namespace
 
-bool create(const Layout& layout, const Config& config) {
+bool create(const Layout& layout, const Config& config,
+            const delta_time::DeltaTime& module) {
   if (layout.display == nullptr) {
     return false;
   }
@@ -174,6 +177,7 @@ bool create(const Layout& layout, const Config& config) {
   if (!lvgl_port_lock(0)) {
     return false;
   }
+  widget_state.module = &module;
   widget_state.faster_color_rgb = config.faster_color_rgb;
   widget_state.slower_color_rgb = config.slower_color_rgb;
   widget_state.neutral_color_rgb = config.neutral_color_rgb;
