@@ -13,10 +13,12 @@ from pathlib import Path
 from typing import Any, Optional
 
 OLDEST_SCHEMA_VERSION = 1
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 6
 WIDGET_ENABLE_SCHEMA_VERSION = 2
 GEAR_WIDGET_SCHEMA_VERSION = 3
 SPEED_WIDGET_SCHEMA_VERSION = 4
+DRIVING_AID_WIDGETS_SCHEMA_VERSION = 5
+DRIVING_AID_LABEL_OFFSET_SCHEMA_VERSION = 6
 TEXT_CAPACITY = 16
 
 BOARD_IDS = {
@@ -56,6 +58,9 @@ WIDGET_NAMES = (
     "estimated_lap_time",
     "gear",
     "speed",
+    "traction_control",
+    "abs",
+    "brake_bias",
 )
 
 
@@ -228,6 +233,98 @@ def _decode_region(reader: Reader) -> dict[str, Any]:
     }
 
 
+def _encode_driving_aid_widget(
+    writer: Writer, widget: dict[str, Any], name: str
+) -> None:
+    writer.boolean(widget["enabled"])
+    _encode_font(writer, widget["label_font"])
+    _encode_font(writer, widget["value_font"])
+    _encode_placement(writer, widget["placement"])
+    padding = widget["padding"]
+    for field in ("left", "top", "right", "bottom"):
+        writer.put("H", padding[field])
+    border = widget["border"]
+    writer.rgb(border["color_rgb"], f"{name} border color")
+    writer.put("H", border["width_px"])
+    writer.put("H", border["radius_px"])
+    writer.rgb(widget["label_color_rgb"], f"{name} label color")
+    writer.rgb(widget["value_color_rgb"], f"{name} value color")
+    writer.rgb(widget["background_color_rgb"], f"{name} background color")
+    writer.put("h", widget["label_offset_y_px"])
+
+
+def _decode_driving_aid_widget(
+    reader: Reader, has_label_offset: bool
+) -> dict[str, Any]:
+    widget = {
+        "enabled": reader.boolean(),
+        "label_font": _decode_font(reader),
+        "value_font": _decode_font(reader),
+        "placement": _decode_placement(reader),
+        "padding": {
+            "left": reader.get("H"),
+            "top": reader.get("H"),
+            "right": reader.get("H"),
+            "bottom": reader.get("H"),
+        },
+        "border": {
+            "color_rgb": reader.rgb(),
+            "width_px": reader.get("H"),
+            "radius_px": reader.get("H"),
+        },
+        "label_color_rgb": reader.rgb(),
+        "value_color_rgb": reader.rgb(),
+        "background_color_rgb": reader.rgb(),
+    }
+    widget["label_offset_y_px"] = (
+        reader.get("h") if has_label_offset else 0
+    )
+    return widget
+
+
+def _default_driving_aid_widget(name: str) -> dict[str, Any]:
+    defaults = {
+        "traction_control": {
+            "offset_x": 92,
+            "width": 72,
+            "border_color_rgb": "#00E5FF",
+        },
+        "abs": {
+            "offset_x": 16,
+            "width": 72,
+            "border_color_rgb": "#F5F500",
+        },
+        "brake_bias": {
+            "offset_x": 168,
+            "width": 104,
+            "border_color_rgb": "#F000D0",
+        },
+    }[name]
+    return {
+        "enabled": False,
+        "label_font": {"family": "montserrat", "size_px": 10},
+        "value_font": {"family": "montserrat", "size_px": 48},
+        "label_offset_y_px": 0,
+        "placement": {
+            "region_id": 0,
+            "anchor": "top_left",
+            "offset_x": defaults["offset_x"],
+            "offset_y": 16,
+            "width": defaults["width"],
+            "height": 72,
+        },
+        "padding": {"left": 4, "top": 4, "right": 4, "bottom": 4},
+        "border": {
+            "color_rgb": defaults["border_color_rgb"],
+            "width_px": 3,
+            "radius_px": 8,
+        },
+        "label_color_rgb": "#E8E8E8",
+        "value_color_rgb": "#E8E8E8",
+        "background_color_rgb": "#000000",
+    }
+
+
 def encode_configuration(config: dict[str, Any]) -> bytes:
     writer = Writer()
     writer.put("H", SCHEMA_VERSION)
@@ -317,6 +414,9 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     _encode_font(writer, speed_widget["font"])
     _encode_placement(writer, speed_widget["placement"])
     writer.rgb(speed_widget["text_color_rgb"], "speed text color")
+
+    for name in ("traction_control", "abs", "brake_bias"):
+        _encode_driving_aid_widget(writer, dashboard[name], name)
     return bytes(writer.data)
 
 
@@ -467,6 +567,14 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
             },
             "text_color_rgb": "#E8E8E8",
         }
+    for name in ("traction_control", "abs", "brake_bias"):
+        if schema >= DRIVING_AID_WIDGETS_SCHEMA_VERSION:
+            dashboard[name] = _decode_driving_aid_widget(
+                reader,
+                schema >= DRIVING_AID_LABEL_OFFSET_SCHEMA_VERSION,
+            )
+        else:
+            dashboard[name] = _default_driving_aid_widget(name)
     result["dashboard"] = dashboard
     reader.finish()
     return result

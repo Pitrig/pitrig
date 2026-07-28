@@ -26,14 +26,20 @@ L;<current-lap-ms>\n
 B;<best-lap-ms>\n
 D;<signed-lap-delta-ms>\n
 P;<estimated-lap-ms>\n
+T;<traction-control-level>\n
+A;<abs-level>\n
+BB;<front-brake-bias-percent>\n
 ```
 
 RPM, speed, and lap times are non-negative decimal integers. Gear is a signed
 decimal integer; `N` is also accepted as neutral (`0`) and `R` as reverse
 (`-1`). Lap delta is a signed integer in milliseconds: negative means faster,
 positive means slower. `D;` marks lap delta as unavailable, and `P;` marks
-estimated lap time as unavailable. Unknown line identifiers and malformed lines
-are ignored.
+estimated lap time as unavailable. Traction-control and ABS levels are integers
+from 0 through 255. Front brake bias is a percentage from `0` through `100`
+with zero or one fractional digit, for example `BB;54.0`. Empty `T;`, `A;`, or
+`BB;` messages mark those values as unavailable. Unknown line identifiers and
+malformed lines are ignored.
 
 ## Example update messages
 
@@ -51,6 +57,9 @@ property.
 | Best lap | `'B;' + format(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) * 1000, '0') + '\n'` | Changes only |
 | Lap delta | Prefix the signed delta property selected in SimHub with `D;`, convert seconds to milliseconds if required, and append `\n` | 10 Hz |
 | Estimated lap | Prefix the estimated lap-time property selected in SimHub with `P;`, convert it to milliseconds if required, and append `\n` | 10 Hz |
+| Traction control | Prefix the integer traction-control level selected in SimHub with `T;` and append `\n` | Changes only |
+| ABS | Prefix the integer ABS level selected in SimHub with `A;` and append `\n` | Changes only |
+| Front brake bias | Prefix the front brake-bias percentage selected in SimHub with `BB;`, format it with at most one decimal digit, and append `\n` | Changes only |
 
 SimHub's free mode limits output to 10 Hz, so use 10 Hz for RPM as well when
 that limit applies. If a lap-time property can be absent for a particular game,

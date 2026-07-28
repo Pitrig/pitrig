@@ -6,7 +6,10 @@
       "delta_time": {},
       "estimated_lap_time": {},
       "gear": {},
-      "speed": {}
+      "speed": {},
+      "traction_control": {},
+      "abs": {},
+      "brake_bias": {}
     }
   }
 }

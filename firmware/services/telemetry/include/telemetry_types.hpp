@@ -15,6 +15,9 @@ enum class Field : std::uint32_t {
   fuel = 1U << 5,
   lap_delta = 1U << 6,
   lap_time_estimated = 1U << 7,
+  traction_control = 1U << 8,
+  abs = 1U << 9,
+  brake_bias = 1U << 10,
 };
 
 [[nodiscard]] constexpr Field operator|(const Field left, const Field right) {
@@ -45,6 +48,10 @@ struct Values {
   float fuel_liters{};
   std::int32_t lap_delta_ms{};
   std::uint32_t lap_time_estimated_ms{};
+  std::uint8_t traction_control_level{};
+  std::uint8_t abs_level{};
+  // Percentage in tenths: 540 represents 54.0%.
+  std::uint16_t brake_bias_tenths_percent{};
 };
 
 struct TelemetryUpdate {

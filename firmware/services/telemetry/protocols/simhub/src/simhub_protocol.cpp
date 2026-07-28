@@ -1,5 +1,6 @@
 #include "simhub_protocol.hpp"
 
+#include <algorithm>
 #include <charconv>
 #include <limits>
 #include <system_error>
@@ -44,6 +45,51 @@ template <typename Value>
   return true;
 }
 
+[[nodiscard]] bool parse_level(const std::span<const char> text,
+                               std::uint8_t& level) {
+  unsigned int parsed{};
+  if (!parse_integer(text, parsed) ||
+      parsed > std::numeric_limits<std::uint8_t>::max()) {
+    return false;
+  }
+  level = static_cast<std::uint8_t>(parsed);
+  return true;
+}
+
+[[nodiscard]] bool parse_brake_bias(
+    const std::span<const char> text,
+    std::uint16_t& tenths_percent) {
+  if (text.empty()) {
+    return false;
+  }
+
+  const auto decimal = std::find(text.begin(), text.end(), '.');
+  const std::span<const char> whole{
+      text.begin(), static_cast<std::size_t>(decimal - text.begin())};
+  unsigned int whole_percent{};
+  if (!parse_integer(whole, whole_percent) || whole_percent > 100U) {
+    return false;
+  }
+
+  unsigned int tenth{};
+  if (decimal != text.end()) {
+    const std::span<const char> fraction{
+        decimal + 1, static_cast<std::size_t>(text.end() - decimal - 1)};
+    if (fraction.size() != 1 || fraction.front() < '0' ||
+        fraction.front() > '9') {
+      return false;
+    }
+    tenth = static_cast<unsigned int>(fraction.front() - '0');
+  }
+
+  const unsigned int parsed = whole_percent * 10U + tenth;
+  if (parsed > 1'000U) {
+    return false;
+  }
+  tenths_percent = static_cast<std::uint16_t>(parsed);
+  return true;
+}
+
 }  // namespace
 
 void SimHubProtocol::consume(const std::span<const std::uint8_t> data,
@@ -80,14 +126,40 @@ void SimHubProtocol::consume(const std::span<const std::uint8_t> data,
 void SimHubProtocol::process_line(const std::span<const char> line,
                                   const telemetry::UpdateHandler handler,
                                   void* const context) const {
-  if (handler == nullptr || line.size() < 2 || line[1] != ';') {
+  if (handler == nullptr || line.size() < 2) {
     return;
   }
 
-  const std::span<const char> value = line.subspan(2);
+  std::size_t separator{};
+  if (line[1] == ';') {
+    separator = 1;
+  } else if (line.size() >= 3 && line[2] == ';') {
+    separator = 2;
+  } else {
+    return;
+  }
+
+  const std::span<const char> identifier = line.first(separator);
+  const std::span<const char> value = line.subspan(separator + 1);
   telemetry::TelemetryUpdate update{};
 
-  switch (line.front()) {
+  if (identifier.size() == 2) {
+    if (identifier[0] != 'B' || identifier[1] != 'B') {
+      return;
+    }
+    if (value.empty()) {
+      update.invalid_fields = telemetry::Field::brake_bias;
+    } else if (!parse_brake_bias(
+                   value, update.values.brake_bias_tenths_percent)) {
+      return;
+    } else {
+      update.present_fields = telemetry::Field::brake_bias;
+    }
+    handler(update, context);
+    return;
+  }
+
+  switch (identifier.front()) {
     case 'R':
       if (!parse_integer(value, update.values.rpm)) {
         return;
@@ -146,6 +218,28 @@ void SimHubProtocol::process_line(const std::span<const char> line,
         return;
       }
       update.present_fields = telemetry::Field::lap_time_estimated;
+      break;
+
+    case 'T':
+      if (value.empty()) {
+        update.invalid_fields = telemetry::Field::traction_control;
+        break;
+      }
+      if (!parse_level(value, update.values.traction_control_level)) {
+        return;
+      }
+      update.present_fields = telemetry::Field::traction_control;
+      break;
+
+    case 'A':
+      if (value.empty()) {
+        update.invalid_fields = telemetry::Field::abs;
+        break;
+      }
+      if (!parse_level(value, update.values.abs_level)) {
+        return;
+      }
+      update.present_fields = telemetry::Field::abs;
       break;
 
     default:

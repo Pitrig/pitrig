@@ -44,6 +44,17 @@ Schema 4 adds the speed widget configuration. Earlier records remain readable
 and receive the board defaults: enabled on `guition_esp32_4848s040` and
 disabled on `t_display_s3`.
 
+Schema 5 adds independent traction-control, ABS, and brake-bias widget
+configuration. The three cards share one fixed implementation while retaining
+separate enable, placement, font, padding, border, and color settings. The
+Guition factory profile enables the three cards and moves the gear card to the
+top-right corner so their bounds do not overlap. The T-Display profile keeps
+them disabled. Earlier records remain readable and receive these widgets as
+disabled.
+
+Schema 6 adds an independent signed vertical label offset to each driving-aid
+card. Schema 5 records remain readable and use a zero offset.
+
 Extend transports with bounded response writes. Route newline-delimited frames
 beginning with `@SC:` to the configuration control protocol and route all other
 lines to the configured telemetry protocol. The developer CLI converts JSON
@@ -79,6 +90,9 @@ Reject unknown fields instead of silently ignoring spelling errors.
   hardware-specific rendering code.
 - The speed widget reuses the canonical telemetry snapshot and renders only the
   numeric speed value; it owns no telemetry state or processing.
+- The three driving-aid widgets reuse the canonical telemetry snapshot and one
+  presentation implementation without adding feature modules or duplicated
+  render logic.
 - Configuration and SimHub telemetry can share one serial connection without
   either protocol interpreting the other's messages.
 - Changes that affect drivers, transports, modules, or layout require restart.

@@ -8,6 +8,8 @@ namespace {
 constexpr std::uint16_t kWidgetEnableSchemaVersion = 2;
 constexpr std::uint16_t kGearWidgetSchemaVersion = 3;
 constexpr std::uint16_t kSpeedWidgetSchemaVersion = 4;
+constexpr std::uint16_t kDrivingAidWidgetsSchemaVersion = 5;
+constexpr std::uint16_t kDrivingAidLabelOffsetSchemaVersion = 6;
 
 class Writer {
  public:
@@ -119,6 +121,46 @@ void read_placement(Reader& reader, dashboard::Placement& placement) {
   placement.offset_y = reader.integer<std::int32_t>();
   placement.width = reader.integer<std::int32_t>();
   placement.height = reader.integer<std::int32_t>();
+}
+
+void write_driving_aid_widget(
+    Writer& writer, const dashboard::driving_aid_widget::Config& config) {
+  writer.boolean(config.enabled);
+  write_font(writer, config.label_font);
+  write_font(writer, config.value_font);
+  write_placement(writer, config.placement);
+  writer.integer(config.padding.left);
+  writer.integer(config.padding.top);
+  writer.integer(config.padding.right);
+  writer.integer(config.padding.bottom);
+  writer.integer(config.border.color_rgb);
+  writer.integer(config.border.width_px);
+  writer.integer(config.border.radius_px);
+  writer.integer(config.label_color_rgb);
+  writer.integer(config.value_color_rgb);
+  writer.integer(config.background_color_rgb);
+  writer.integer(config.label_offset_y_px);
+}
+
+void read_driving_aid_widget(
+    Reader& reader, dashboard::driving_aid_widget::Config& config,
+    const bool has_label_offset) {
+  config.enabled = reader.boolean();
+  read_font(reader, config.label_font);
+  read_font(reader, config.value_font);
+  read_placement(reader, config.placement);
+  config.padding.left = reader.integer<std::uint16_t>();
+  config.padding.top = reader.integer<std::uint16_t>();
+  config.padding.right = reader.integer<std::uint16_t>();
+  config.padding.bottom = reader.integer<std::uint16_t>();
+  config.border.color_rgb = reader.integer<std::uint32_t>();
+  config.border.width_px = reader.integer<std::uint16_t>();
+  config.border.radius_px = reader.integer<std::uint16_t>();
+  config.label_color_rgb = reader.integer<std::uint32_t>();
+  config.value_color_rgb = reader.integer<std::uint32_t>();
+  config.background_color_rgb = reader.integer<std::uint32_t>();
+  config.label_offset_y_px =
+      has_label_offset ? reader.integer<std::int16_t>() : 0;
 }
 
 void write_region(Writer& writer, const dashboard::LayoutRegion& region) {
@@ -239,6 +281,11 @@ CodecResult encode_configuration(
   write_font(writer, configuration.dashboard.speed.font);
   write_placement(writer, configuration.dashboard.speed.placement);
   writer.integer(configuration.dashboard.speed.text_color_rgb);
+
+  write_driving_aid_widget(
+      writer, configuration.dashboard.traction_control);
+  write_driving_aid_widget(writer, configuration.dashboard.abs);
+  write_driving_aid_widget(writer, configuration.dashboard.brake_bias);
 
   return {
       .ok = writer.ok(),
@@ -364,6 +411,21 @@ CodecResult decode_configuration(
   } else {
     configuration.dashboard.speed.enabled =
         configuration.board.id == BoardId::guition_esp32_4848s040;
+  }
+
+  if (schema_version >= kDrivingAidWidgetsSchemaVersion) {
+    const bool has_label_offset =
+        schema_version >= kDrivingAidLabelOffsetSchemaVersion;
+    read_driving_aid_widget(
+        reader, configuration.dashboard.traction_control, has_label_offset);
+    read_driving_aid_widget(
+        reader, configuration.dashboard.abs, has_label_offset);
+    read_driving_aid_widget(
+        reader, configuration.dashboard.brake_bias, has_label_offset);
+  } else {
+    configuration.dashboard.traction_control.enabled = false;
+    configuration.dashboard.abs.enabled = false;
+    configuration.dashboard.brake_bias.enabled = false;
   }
 
   if (!reader.complete()) {

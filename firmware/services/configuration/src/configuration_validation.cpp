@@ -28,6 +28,22 @@ bool valid_placement(const dashboard::Placement& placement,
          placement.region_id == region_id;
 }
 
+bool valid_driving_aid_widget(
+    const dashboard::driving_aid_widget::Config& config,
+    const dashboard::RegionId region_id) {
+  return valid_font(config.label_font) && valid_font(config.value_font) &&
+         valid_placement(config.placement, region_id) &&
+         valid_color(config.border.color_rgb) &&
+         valid_color(config.label_color_rgb) &&
+         valid_color(config.value_color_rgb) &&
+         valid_color(config.background_color_rgb) &&
+         config.padding.left <= 480 && config.padding.top <= 480 &&
+         config.padding.right <= 480 && config.padding.bottom <= 480 &&
+         config.border.width_px <= 240 && config.border.radius_px <= 480 &&
+         config.label_offset_y_px >= -480 &&
+         config.label_offset_y_px <= 480;
+}
+
 template <std::size_t N>
 bool contains_pin(const std::array<int, N>& pins, const int pin) {
   return std::find(pins.begin(), pins.end(), pin) != pins.end();
@@ -143,6 +159,10 @@ ValidationError validate_configuration(
   const auto& estimated = configuration.dashboard.estimated_lap_time;
   const auto& gear = configuration.dashboard.gear;
   const auto& speed = configuration.dashboard.speed;
+  const auto& traction_control =
+      configuration.dashboard.traction_control;
+  const auto& abs = configuration.dashboard.abs;
+  const auto& brake_bias = configuration.dashboard.brake_bias;
   if (!valid_font(lap.font) || !valid_font(delta.font) ||
       !valid_font(estimated.font) || !valid_font(gear.font) ||
       !valid_font(speed.font) ||
@@ -163,6 +183,9 @@ ValidationError validate_configuration(
       gear.padding.left > 480 || gear.padding.top > 480 ||
       gear.padding.right > 480 || gear.padding.bottom > 480 ||
       gear.border.width_px > 240 || gear.border.radius_px > 480 ||
+      !valid_driving_aid_widget(traction_control, region.id) ||
+      !valid_driving_aid_widget(abs, region.id) ||
+      !valid_driving_aid_widget(brake_bias, region.id) ||
       (configuration.board.id == BoardId::t_display_s3 && gear.enabled)) {
     return ValidationError::invalid_widget;
   }

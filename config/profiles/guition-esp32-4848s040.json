@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 6,
   "board": {
     "id": "guition_esp32_4848s040"
   },
@@ -119,8 +119,8 @@
       },
       "placement": {
         "region_id": 0,
-        "anchor": "top_center",
-        "offset_x": 0,
+        "anchor": "top_right",
+        "offset_x": -16,
         "offset_y": 16,
         "width": 120,
         "height": 120
@@ -154,6 +154,108 @@
         "height": 64
       },
       "text_color_rgb": "#E8E8E8"
+    },
+    "traction_control": {
+      "enabled": true,
+      "label_font": {
+        "family": "montserrat",
+        "size_px": 10
+      },
+      "value_font": {
+        "family": "montserrat",
+        "size_px": 48
+      },
+      "label_offset_y_px": 0,
+      "placement": {
+        "region_id": 0,
+        "anchor": "top_left",
+        "offset_x": 92,
+        "offset_y": 16,
+        "width": 72,
+        "height": 72
+      },
+      "padding": {
+        "left": 4,
+        "top": 4,
+        "right": 4,
+        "bottom": 4
+      },
+      "border": {
+        "color_rgb": "#00E5FF",
+        "width_px": 3,
+        "radius_px": 8
+      },
+      "label_color_rgb": "#E8E8E8",
+      "value_color_rgb": "#E8E8E8",
+      "background_color_rgb": "#000000"
+    },
+    "abs": {
+      "enabled": true,
+      "label_font": {
+        "family": "montserrat",
+        "size_px": 10
+      },
+      "value_font": {
+        "family": "montserrat",
+        "size_px": 48
+      },
+      "label_offset_y_px": 0,
+      "placement": {
+        "region_id": 0,
+        "anchor": "top_left",
+        "offset_x": 16,
+        "offset_y": 16,
+        "width": 72,
+        "height": 72
+      },
+      "padding": {
+        "left": 4,
+        "top": 4,
+        "right": 4,
+        "bottom": 4
+      },
+      "border": {
+        "color_rgb": "#F5F500",
+        "width_px": 3,
+        "radius_px": 8
+      },
+      "label_color_rgb": "#E8E8E8",
+      "value_color_rgb": "#E8E8E8",
+      "background_color_rgb": "#000000"
+    },
+    "brake_bias": {
+      "enabled": true,
+      "label_font": {
+        "family": "montserrat",
+        "size_px": 10
+      },
+      "value_font": {
+        "family": "montserrat",
+        "size_px": 48
+      },
+      "label_offset_y_px": 0,
+      "placement": {
+        "region_id": 0,
+        "anchor": "top_left",
+        "offset_x": 168,
+        "offset_y": 16,
+        "width": 104,
+        "height": 72
+      },
+      "padding": {
+        "left": 4,
+        "top": 4,
+        "right": 4,
+        "bottom": 4
+      },
+      "border": {
+        "color_rgb": "#F000D0",
+        "width_px": 3,
+        "radius_px": 8
+      },
+      "label_color_rgb": "#E8E8E8",
+      "value_color_rgb": "#E8E8E8",
+      "background_color_rgb": "#000000"
     }
   }
 }

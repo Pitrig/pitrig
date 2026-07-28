@@ -57,6 +57,16 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
               update.values.lap_time_estimated_ms,
               state_.values.lap_time_estimated_ms, state_.valid_fields,
               changed_fields);
+  apply_field(Field::traction_control, update,
+              update.values.traction_control_level,
+              state_.values.traction_control_level, state_.valid_fields,
+              changed_fields);
+  apply_field(Field::abs, update, update.values.abs_level,
+              state_.values.abs_level, state_.valid_fields, changed_fields);
+  apply_field(Field::brake_bias, update,
+              update.values.brake_bias_tenths_percent,
+              state_.values.brake_bias_tenths_percent, state_.valid_fields,
+              changed_fields);
 
   if (changed_fields != Field::none) {
     ++state_.revision;

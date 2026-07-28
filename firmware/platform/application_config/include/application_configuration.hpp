@@ -8,6 +8,7 @@
 #endif
 #include "delta_time.hpp"
 #include "delta_time_widget.hpp"
+#include "driving_aid_widget.hpp"
 #include "estimated_lap_time.hpp"
 #include "estimated_lap_time_widget.hpp"
 #include "gear_widget.hpp"
@@ -69,6 +70,9 @@ struct DashboardConfiguration {
   dashboard::estimated_lap_time_widget::Config estimated_lap_time{};
   dashboard::gear_widget::Config gear{};
   dashboard::speed_widget::Config speed{};
+  dashboard::driving_aid_widget::Config traction_control{};
+  dashboard::driving_aid_widget::Config abs{};
+  dashboard::driving_aid_widget::Config brake_bias{};
 };
 
 struct ApplicationConfiguration {
@@ -202,8 +206,13 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
             },
             .placement = {
                 .region_id = dashboard::kScreenRegionId,
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+                .anchor = dashboard::Anchor::top_right,
+                .offset_x = -16,
+#else
                 .anchor = dashboard::Anchor::top_center,
                 .offset_x = 0,
+#endif
                 .offset_y = 16,
                 .width = 120,
                 .height = 120,
@@ -241,6 +250,105 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 .height = 64,
             },
             .text_color_rgb = 0xE8E8E8,
+        },
+        .traction_control = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+            .enabled = true,
+#else
+            .enabled = false,
+#endif
+            .label_font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 10,
+            },
+            .value_font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 48,
+            },
+            .label_offset_y_px = 0,
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::top_left,
+                .offset_x = 92,
+                .offset_y = 16,
+                .width = 72,
+                .height = 72,
+            },
+            .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
+            .border = {
+                .color_rgb = 0x00E5FF,
+                .width_px = 3,
+                .radius_px = 8,
+            },
+            .label_color_rgb = 0xE8E8E8,
+            .value_color_rgb = 0xE8E8E8,
+            .background_color_rgb = 0x000000,
+        },
+        .abs = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+            .enabled = true,
+#else
+            .enabled = false,
+#endif
+            .label_font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 10,
+            },
+            .value_font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 48,
+            },
+            .label_offset_y_px = 0,
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::top_left,
+                .offset_x = 16,
+                .offset_y = 16,
+                .width = 72,
+                .height = 72,
+            },
+            .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
+            .border = {
+                .color_rgb = 0xF5F500,
+                .width_px = 3,
+                .radius_px = 8,
+            },
+            .label_color_rgb = 0xE8E8E8,
+            .value_color_rgb = 0xE8E8E8,
+            .background_color_rgb = 0x000000,
+        },
+        .brake_bias = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+            .enabled = true,
+#else
+            .enabled = false,
+#endif
+            .label_font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 10,
+            },
+            .value_font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 48,
+            },
+            .label_offset_y_px = 0,
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::top_left,
+                .offset_x = 168,
+                .offset_y = 16,
+                .width = 104,
+                .height = 72,
+            },
+            .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
+            .border = {
+                .color_rgb = 0xF000D0,
+                .width_px = 3,
+                .radius_px = 8,
+            },
+            .label_color_rgb = 0xE8E8E8,
+            .value_color_rgb = 0xE8E8E8,
+            .background_color_rgb = 0x000000,
         },
     },
 };

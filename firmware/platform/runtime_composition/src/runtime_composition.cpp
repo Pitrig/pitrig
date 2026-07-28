@@ -3,6 +3,7 @@
 #include "application_configuration.hpp"
 #include "dashboard_layout.hpp"
 #include "delta_time_widget.hpp"
+#include "driving_aid_widget.hpp"
 #include "estimated_lap_time_widget.hpp"
 #include "event_bus.hpp"
 #include "gear_widget.hpp"
@@ -117,6 +118,28 @@ bool create_dashboard(
         !dashboard::speed_widget::create(
             layout, configuration.dashboard.speed, telemetry)) {
       log::error(kTag, "Failed to create Speed widget");
+      initialized = false;
+    }
+    if (configuration.dashboard.traction_control.enabled &&
+        !dashboard::driving_aid_widget::create(
+            layout, configuration.dashboard.traction_control,
+            dashboard::driving_aid_widget::Kind::traction_control,
+            telemetry)) {
+      log::error(kTag, "Failed to create Traction Control widget");
+      initialized = false;
+    }
+    if (configuration.dashboard.abs.enabled &&
+        !dashboard::driving_aid_widget::create(
+            layout, configuration.dashboard.abs,
+            dashboard::driving_aid_widget::Kind::abs, telemetry)) {
+      log::error(kTag, "Failed to create ABS widget");
+      initialized = false;
+    }
+    if (configuration.dashboard.brake_bias.enabled &&
+        !dashboard::driving_aid_widget::create(
+            layout, configuration.dashboard.brake_bias,
+            dashboard::driving_aid_widget::Kind::brake_bias, telemetry)) {
+      log::error(kTag, "Failed to create Brake Bias widget");
       initialized = false;
     }
   }
