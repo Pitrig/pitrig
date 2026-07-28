@@ -10,6 +10,7 @@ namespace {
 
 constexpr std::uint16_t kWidgetEnableSchemaVersion = 2;
 constexpr std::uint16_t kGearWidgetSchemaVersion = 3;
+constexpr std::uint16_t kSpeedWidgetSchemaVersion = 4;
 
 class Writer {
  public:
@@ -282,6 +283,11 @@ CodecResult encode_configuration(
   writer.integer(configuration.dashboard.gear.text_color_rgb);
   writer.integer(configuration.dashboard.gear.background_color_rgb);
 
+  writer.boolean(configuration.dashboard.speed.enabled);
+  write_font(writer, configuration.dashboard.speed.font);
+  write_placement(writer, configuration.dashboard.speed.placement);
+  writer.integer(configuration.dashboard.speed.text_color_rgb);
+
   return {
       .ok = writer.ok(),
       .error =
@@ -397,6 +403,17 @@ CodecResult decode_configuration(
         configuration.board.id == BoardId::guition_esp32_4848s040;
   }
 
+  if (schema_version >= kSpeedWidgetSchemaVersion) {
+    configuration.dashboard.speed.enabled = reader.boolean();
+    read_font(reader, configuration.dashboard.speed.font);
+    read_placement(reader, configuration.dashboard.speed.placement);
+    configuration.dashboard.speed.text_color_rgb =
+        reader.integer<std::uint32_t>();
+  } else {
+    configuration.dashboard.speed.enabled =
+        configuration.board.id == BoardId::guition_esp32_4848s040;
+  }
+
   if (!reader.complete()) {
     return {.ok = false, .error = ValidationError::malformed};
   }
@@ -497,12 +514,15 @@ ValidationError validate_configuration(
   const auto& delta = configuration.dashboard.delta_time;
   const auto& estimated = configuration.dashboard.estimated_lap_time;
   const auto& gear = configuration.dashboard.gear;
+  const auto& speed = configuration.dashboard.speed;
   if (!valid_font(lap.font) || !valid_font(delta.font) ||
       !valid_font(estimated.font) || !valid_font(gear.font) ||
+      !valid_font(speed.font) ||
       !valid_placement(lap.placement, region.id) ||
       !valid_placement(delta.placement, region.id) ||
       !valid_placement(estimated.placement, region.id) ||
       !valid_placement(gear.placement, region.id) ||
+      !valid_placement(speed.placement, region.id) ||
       !valid_color(lap.text_color_rgb) ||
       !valid_color(delta.faster_color_rgb) ||
       !valid_color(delta.slower_color_rgb) ||
@@ -511,6 +531,7 @@ ValidationError validate_configuration(
       !valid_color(gear.border.color_rgb) ||
       !valid_color(gear.text_color_rgb) ||
       !valid_color(gear.background_color_rgb) ||
+      !valid_color(speed.text_color_rgb) ||
       gear.padding.left > 480 || gear.padding.top > 480 ||
       gear.padding.right > 480 || gear.padding.bottom > 480 ||
       gear.border.width_px > 240 || gear.border.radius_px > 480 ||

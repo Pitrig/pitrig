@@ -13,6 +13,7 @@
 #include "gear_widget.hpp"
 #include "lap_timer.hpp"
 #include "lap_timer_widget.hpp"
+#include "speed_widget.hpp"
 #include "simcore_features.hpp"
 #if SIMCORE_DISPLAY_DIAGNOSTICS
 #include "display_diagnostics.hpp"
@@ -67,6 +68,7 @@ struct DashboardConfiguration {
   dashboard::delta_time_widget::Config delta_time{};
   dashboard::estimated_lap_time_widget::Config estimated_lap_time{};
   dashboard::gear_widget::Config gear{};
+  dashboard::speed_widget::Config speed{};
 };
 
 struct ApplicationConfiguration {
@@ -219,6 +221,26 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
             },
             .text_color_rgb = 0xE8E8E8,
             .background_color_rgb = 0x0B0B0B,
+        },
+        .speed = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+            .enabled = true,
+#else
+            .enabled = false,
+#endif
+            .font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 48,
+            },
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::bottom_center,
+                .offset_x = 0,
+                .offset_y = -24,
+                .width = 180,
+                .height = 64,
+            },
+            .text_color_rgb = 0xE8E8E8,
         },
     },
 };

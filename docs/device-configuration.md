@@ -139,10 +139,12 @@ configuration payloads use uppercase or lowercase hexadecimal encoding.
 Responses begin with `@SC:OK:` or `@SC:ERR:`. Lines without the `@SC:` prefix
 continue to the SimHub telemetry parser.
 
-Schemas 1–3 use exactly one dashboard region because the current application
+Schemas 1–4 use exactly one dashboard region because the current application
 configuration has fixed storage for one region. Schema 2 adds widget `enabled`
 flags. Schema 3 adds the board-limited gear widget, including font, placement,
 padding, border, and colors. Schema 1 and 2 payloads remain readable; the gear
 widget receives board defaults while the older widget behavior remains
-unchanged. Future variable-sized configuration must introduce bounded
-capacities and a new schema.
+unchanged. Schema 4 adds the numeric-only speed widget with enable, font,
+placement, and text color settings. Earlier payloads receive the board default:
+enabled on Guition and disabled on T-Display. Future variable-sized
+configuration must introduce bounded capacities and a new schema.

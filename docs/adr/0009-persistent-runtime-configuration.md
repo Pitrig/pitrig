@@ -38,6 +38,10 @@ readable and receive the gear defaults for their board. The gear widget is
 enabled only for `guition_esp32_4848s040`; configurations for `t_display_s3`
 cannot enable it.
 
+Schema 4 adds the speed widget configuration. Earlier records remain readable
+and receive the board defaults: enabled on `guition_esp32_4848s040` and
+disabled on `t_display_s3`.
+
 Extend transports with bounded response writes. Route newline-delimited frames
 beginning with `@SC:` to the configuration control protocol and route all other
 lines to the configured telemetry protocol. The developer CLI converts JSON
@@ -60,6 +64,8 @@ files to the same binary schema that a future companion application will use.
 - The gear widget reuses the canonical telemetry snapshot and remains
   board-limited through validated application composition rather than
   hardware-specific rendering code.
+- The speed widget reuses the canonical telemetry snapshot and renders only the
+  numeric speed value; it owns no telemetry state or processing.
 - Configuration and SimHub telemetry can share one serial connection without
   either protocol interpreting the other's messages.
 - Changes that affect drivers, transports, modules, or layout require restart.

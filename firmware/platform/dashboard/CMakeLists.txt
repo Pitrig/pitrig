@@ -11,6 +11,7 @@ set(component_sources
     "widgets/estimated_lap_time/src/estimated_lap_time_widget.cpp"
     "widgets/gear/src/gear_widget.cpp"
     "widgets/lap_timer/src/lap_timer_widget.cpp"
+    "widgets/speed/src/speed_widget.cpp"
     "widgets/performance_overlay/src/performance_overlay_widget.cpp")
 set(component_include_dirs
     "include"
@@ -21,6 +22,7 @@ set(component_include_dirs
     "widgets/estimated_lap_time/include"
     "widgets/gear/include"
     "widgets/lap_timer/include"
+    "widgets/speed/include"
     "widgets/performance_overlay/include")
 
 idf_component_register(

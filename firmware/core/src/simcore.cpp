@@ -21,6 +21,7 @@
 #include "nvs_config_storage.hpp"
 #include "simhub_protocol.hpp"
 #include "simcore_features.hpp"
+#include "speed_widget.hpp"
 #include "telemetry_provider.hpp"
 #include "telemetry_state.hpp"
 #if SIMCORE_DISPLAY_DIAGNOSTICS
@@ -157,6 +158,13 @@ void run() {
           dashboard_layout, configuration.dashboard.gear,
           application.telemetry_state)) {
     log::error(kTag, "Failed to create Gear widget");
+  }
+  if (dashboard_ready && !diagnostics_enabled &&
+      configuration.dashboard.speed.enabled &&
+      !dashboard::speed_widget::create(
+          dashboard_layout, configuration.dashboard.speed,
+          application.telemetry_state)) {
+    log::error(kTag, "Failed to create Speed widget");
   }
 #if SIMCORE_DEBUG
   dashboard::performance_overlay_widget::create(display, telemetry_transport);

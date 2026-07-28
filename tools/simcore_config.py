@@ -12,9 +12,10 @@ from pathlib import Path
 from typing import Any, Optional
 
 OLDEST_SCHEMA_VERSION = 1
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 WIDGET_ENABLE_SCHEMA_VERSION = 2
 GEAR_WIDGET_SCHEMA_VERSION = 3
+SPEED_WIDGET_SCHEMA_VERSION = 4
 TEXT_CAPACITY = 16
 
 BOARD_IDS = {
@@ -295,6 +296,12 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     writer.put("H", border["radius_px"])
     writer.rgb(gear_widget["text_color_rgb"], "gear text color")
     writer.rgb(gear_widget["background_color_rgb"], "gear background color")
+
+    speed_widget = dashboard["speed"]
+    writer.boolean(speed_widget["enabled"])
+    _encode_font(writer, speed_widget["font"])
+    _encode_placement(writer, speed_widget["placement"])
+    writer.rgb(speed_widget["text_color_rgb"], "speed text color")
     return bytes(writer.data)
 
 
@@ -423,6 +430,27 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
             },
             "text_color_rgb": "#E8E8E8",
             "background_color_rgb": "#0B0B0B",
+        }
+    if schema >= SPEED_WIDGET_SCHEMA_VERSION:
+        dashboard["speed"] = {
+            "enabled": reader.boolean(),
+            "font": _decode_font(reader),
+            "placement": _decode_placement(reader),
+            "text_color_rgb": reader.rgb(),
+        }
+    else:
+        dashboard["speed"] = {
+            "enabled": result["board"]["id"] == "guition_esp32_4848s040",
+            "font": {"family": "montserrat", "size_px": 48},
+            "placement": {
+                "region_id": 0,
+                "anchor": "bottom_center",
+                "offset_x": 0,
+                "offset_y": -24,
+                "width": 180,
+                "height": 64,
+            },
+            "text_color_rgb": "#E8E8E8",
         }
     result["dashboard"] = dashboard
     reader.finish()

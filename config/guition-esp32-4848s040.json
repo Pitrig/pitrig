@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "board": {
     "id": "guition_esp32_4848s040"
   },
@@ -138,6 +138,22 @@
       },
       "text_color_rgb": "#E8E8E8",
       "background_color_rgb": "#0B0B0B"
+    },
+    "speed": {
+      "enabled": true,
+      "font": {
+        "family": "montserrat",
+        "size_px": 48
+      },
+      "placement": {
+        "region_id": 0,
+        "anchor": "bottom_center",
+        "offset_x": 0,
+        "offset_y": -24,
+        "width": 180,
+        "height": 64
+      },
+      "text_color_rgb": "#E8E8E8"
     }
   }
 }
