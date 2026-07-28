@@ -1,0 +1,159 @@
+{
+  "schema_version": 4,
+  "board": {
+    "id": "t_display_s3"
+  },
+  "telemetry_transport": {
+    "id": "board_default",
+    "uart": {
+      "port": 0,
+      "tx_pin": 43,
+      "rx_pin": 44,
+      "baud_rate": 115200,
+      "silence_esp_logs": true
+    }
+  },
+  "lap_timer": {
+    "telemetry_only": false,
+    "telemetry_timeout_ms": 1000
+  },
+  "delta_time": {
+    "unavailable_behavior": "zero",
+    "placeholder": "---",
+    "scale": {
+      "enabled": true,
+      "show_sign": true,
+      "range_ms": 2000
+    }
+  },
+  "estimated_lap_time": {
+    "unavailable_behavior": "placeholder",
+    "placeholder": "--:--.---"
+  },
+  "dashboard": {
+    "mode": "normal",
+    "regions": [
+      {
+        "id": 1,
+        "bounds": {
+          "x": 0,
+          "y": 0,
+          "width": 320,
+          "height": 170
+        },
+        "padding": {
+          "left": 0,
+          "top": 5,
+          "right": 0,
+          "bottom": 2
+        },
+        "style": {
+          "background_color_rgb": "#000000",
+          "border_color_rgb": "#AEAEAE",
+          "border_width_px": 1,
+          "radius_px": 0,
+          "visible": false
+        }
+      }
+    ],
+    "lap_timer": {
+      "enabled": true,
+      "font": {
+        "family": "lcd",
+        "size_px": 53
+      },
+      "placement": {
+        "region_id": 1,
+        "anchor": "top_center",
+        "offset_x": 2,
+        "offset_y": 0,
+        "width": 320,
+        "height": 53
+      },
+      "text_color_rgb": "#E8E8E8"
+    },
+    "delta_time": {
+      "enabled": true,
+      "font": {
+        "family": "lcd",
+        "size_px": 43
+      },
+      "placement": {
+        "region_id": 1,
+        "anchor": "top_center",
+        "offset_x": 0,
+        "offset_y": 58,
+        "width": 0,
+        "height": 61
+      },
+      "faster_color_rgb": "#00C853",
+      "slower_color_rgb": "#D50000",
+      "neutral_color_rgb": "#E8E8E8",
+      "scale": {
+        "vertical_padding_px": 6,
+        "border_width_px": 3,
+        "border_radius_px": 10
+      }
+    },
+    "estimated_lap_time": {
+      "enabled": true,
+      "font": {
+        "family": "lcd",
+        "size_px": 39
+      },
+      "placement": {
+        "region_id": 1,
+        "anchor": "bottom_center",
+        "offset_x": 0,
+        "offset_y": 0,
+        "width": 0,
+        "height": 39
+      },
+      "text_color_rgb": "#E8E8E8"
+    },
+    "gear": {
+      "enabled": false,
+      "font": {
+        "family": "montserrat",
+        "size_px": 48
+      },
+      "placement": {
+        "region_id": 0,
+        "anchor": "top_center",
+        "offset_x": 0,
+        "offset_y": 16,
+        "width": 120,
+        "height": 120
+      },
+      "padding": {
+        "left": 8,
+        "top": 8,
+        "right": 8,
+        "bottom": 8
+      },
+      "border": {
+        "color_rgb": "#AEAEAE",
+        "width_px": 2,
+        "radius_px": 12
+      },
+      "text_color_rgb": "#E8E8E8",
+      "background_color_rgb": "#0B0B0B"
+    },
+    "speed": {
+      "enabled": false,
+      "font": {
+        "family": "montserrat",
+        "size_px": 48
+      },
+      "placement": {
+        "region_id": 0,
+        "anchor": "bottom_center",
+        "offset_x": 0,
+        "offset_y": -24,
+        "width": 180,
+        "height": 64
+      },
+      "text_color_rgb": "#E8E8E8"
+    }
+  }
+}

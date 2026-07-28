@@ -7,6 +7,7 @@
 namespace simcore::configuration {
 namespace {
 
+constexpr char kPartition[] = "simcore_cfg";
 constexpr char kNamespace[] = "simcore_cfg";
 constexpr char kSlotAKey[] = "slot_a";
 constexpr char kSlotBKey[] = "slot_b";
@@ -19,13 +20,13 @@ const char* key_for(const StorageSlot slot) {
 }  // namespace
 
 bool NvsConfigurationStorage::initialize() {
-  esp_err_t result = nvs_flash_init();
+  esp_err_t result = nvs_flash_init_partition(kPartition);
   if (result == ESP_ERR_NVS_NO_FREE_PAGES ||
       result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    if (nvs_flash_erase() != ESP_OK) {
+    if (nvs_flash_erase_partition(kPartition) != ESP_OK) {
       return false;
     }
-    result = nvs_flash_init();
+    result = nvs_flash_init_partition(kPartition);
   }
   initialized_ = result == ESP_OK;
   return initialized_;
@@ -39,7 +40,8 @@ bool NvsConfigurationStorage::read(
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open(kNamespace, NVS_READONLY, &handle) != ESP_OK) {
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READONLY, &handle) !=
+      ESP_OK) {
     return false;
   }
   std::size_t required{};
@@ -59,7 +61,8 @@ bool NvsConfigurationStorage::write(
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open(kNamespace, NVS_READWRITE, &handle) != ESP_OK) {
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) !=
+      ESP_OK) {
     return false;
   }
   const esp_err_t result = nvs_set_blob(handle, key_for(slot), data.data(),
@@ -74,7 +77,8 @@ bool NvsConfigurationStorage::read_active(StorageSlot& slot) {
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open(kNamespace, NVS_READONLY, &handle) != ESP_OK) {
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READONLY, &handle) !=
+      ESP_OK) {
     return false;
   }
   std::uint8_t value{};
@@ -92,7 +96,8 @@ bool NvsConfigurationStorage::set_active(const StorageSlot slot) {
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open(kNamespace, NVS_READWRITE, &handle) != ESP_OK) {
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) !=
+      ESP_OK) {
     return false;
   }
   const esp_err_t result =
@@ -107,7 +112,8 @@ bool NvsConfigurationStorage::reset() {
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open(kNamespace, NVS_READWRITE, &handle) != ESP_OK) {
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) !=
+      ESP_OK) {
     return false;
   }
   const esp_err_t result = nvs_erase_all(handle);

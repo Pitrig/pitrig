@@ -84,7 +84,7 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   handler_context_ = context;
   started_ = true;
   task_ = xTaskCreateStatic(&UartTransport::task_entry, "uart_rx",
-                            kTaskStackSize, this, kTaskPriority,
+                            task_stack_.size(), this, kTaskPriority,
                             task_stack_.data(), &task_state_);
   if (task_ == nullptr) {
     started_ = false;

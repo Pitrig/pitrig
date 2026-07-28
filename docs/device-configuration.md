@@ -43,37 +43,63 @@ source .venv/bin/activate
 python -m pip install -r tools/requirements.txt
 ```
 
-Board-specific examples are provided in:
+Concise board-specific examples are provided in:
 
 - `config/t-display-s3.json` — 320×170 layout and native USB CDC;
 - `config/guition-esp32-4848s040.json` — centered 320×170 dashboard area on
   the 480×480 display and UART0 on GPIO43/GPIO44.
 
-Copy the matching file and edit the copy. RGB colors are JSON strings in
-`"#RRGGBB"` format, for example `"#00C853"`. The firmware validates the entire
+Copy the matching file and edit the copy. These files are sparse: missing
+general fields inherit the selected board profile. Full canonical profiles used
+by the CLI are stored under `config/profiles/`.
+
+The `board` field selects the profile:
+
+```json
+{
+  "board": "t_display_s3"
+}
+```
+
+RGB colors are JSON strings in `"#RRGGBB"` format, for example `"#00C853"`.
+The firmware validates the entire
 configuration, including board/transport compatibility, UART pins, regions,
 fonts, and widget references, before writing NVS. A configuration whose
-`board.id` does not match the firmware build is rejected with
+board does not match the firmware build is rejected with
 `@SC:ERR:board_mismatch` and is not written.
 
 At startup, an NVS slot containing a configuration for another board is treated
 as invalid. SimCore tries the other slot and then falls back to the factory
 configuration, following the recovery order above.
 
-Each dashboard widget has an `enabled` flag:
+Widgets use presence-driven configuration. Only widgets listed under
+`dashboard.widgets` are enabled:
 
 ```json
-"lap_timer": {
-  "enabled": true
-},
-"delta_time": {
-  "enabled": false
+{
+  "board": "guition_esp32_4848s040",
+  "dashboard": {
+    "widgets": {
+      "lap_timer": {},
+      "gear": {
+        "placement": {
+          "offset_y": 24
+        }
+      }
+    }
+  }
 }
 ```
 
-Disabled widgets are not created and do not allocate their LVGL objects or
-timers. The factory configuration and the tracked board examples keep all
-currently supported widgets enabled.
+Here `lap_timer` and `gear` inherit their board defaults. Other widgets are not
+created, do not allocate LVGL objects or timers, and their dedicated feature
+modules are not started. Missing fields outside `dashboard.widgets`, such as
+`telemetry_transport`, inherit board defaults. Unknown fields and widget names
+are rejected instead of being ignored.
+
+Legacy complete JSON files with an object-valued `board` field remain accepted.
+The CLI normalizes either JSON form into the complete schema 4 binary snapshot
+before validation or storage.
 
 ## Commands
 
@@ -148,3 +174,13 @@ unchanged. Schema 4 adds the numeric-only speed widget with enable, font,
 placement, and text color settings. Earlier payloads receive the board default:
 enabled on Guition and disabled on T-Display. Future variable-sized
 configuration must introduce bounded capacities and a new schema.
+
+## Storage isolation
+
+SimCore records are stored in the dedicated `simcore_cfg` NVS partition.
+Recovery erases only this partition. The default NVS partition and unrelated
+namespaces are never erased by the configuration adapter.
+
+After first installing a firmware build with the new partition table, reapply
+any configuration previously stored in the default NVS partition. The old data
+is left untouched but is no longer used by SimCore.

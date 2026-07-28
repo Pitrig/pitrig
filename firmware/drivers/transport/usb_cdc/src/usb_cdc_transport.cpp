@@ -96,7 +96,8 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
   }
 
   task_ = xTaskCreateStatic(&UsbCdcTransport::task_entry, "usb_cdc_rx",
-                            kTaskStackSize, this, 5, task_stack_.data(), &task_state_);
+                            task_stack_.size(), this, 5, task_stack_.data(),
+                            &task_state_);
   if (task_ == nullptr) {
     tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0);
     tinyusb_driver_uninstall();

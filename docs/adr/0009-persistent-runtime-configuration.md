@@ -18,11 +18,13 @@ identity. Before resolving drivers or starting modules, load a versioned runtime
 configuration through the configuration service.
 
 Persist explicit binary records through `IConfigurationStorage`. The ESP-IDF
-adapter stores records in two NVS slots. Each record contains a magic value,
-record and schema versions, payload size, monotonically increasing generation,
-and CRC32. Write and verify the inactive slot before atomically selecting it.
-At boot, use the active valid slot, then the other valid slot, then factory
-defaults.
+adapter stores records in two NVS slots inside a dedicated `simcore_cfg` NVS
+partition. Recovery may erase only that partition and must never erase the
+default NVS partition used by unrelated services. Each record contains a magic
+value, record and schema versions, payload size, monotonically increasing
+generation, and CRC32. Write and verify the inactive slot before atomically
+selecting it. At boot, use the active valid slot, then the other valid slot,
+then factory defaults.
 
 Use an explicit little-endian codec rather than serializing C++ object memory.
 Validate a complete candidate before saving it and reject a `board.id` that does
@@ -46,11 +48,18 @@ Extend transports with bounded response writes. Route newline-delimited frames
 beginning with `@SC:` to the configuration control protocol and route all other
 lines to the configured telemetry protocol. The developer CLI converts JSON
 files to the same binary schema that a future companion application will use.
+Treat JSON as a sparse authoring format and the binary payload as the complete
+canonical snapshot. Missing general JSON fields inherit the selected board
+profile. A `dashboard.widgets` object is presence-driven: only listed widgets
+are enabled, while missing fields inside a listed widget inherit board defaults.
+Reject unknown fields instead of silently ignoring spelling errors.
 
 ## Consequences
 
 - Configuration changes survive restart and firmware startup does not depend on
   a companion application.
+- Corrupt SimCore configuration recovery cannot erase Wi-Fi credentials or
+  data owned by another default-NVS namespace.
 - An interrupted or corrupt write falls back to the previous slot or factory
   defaults.
 - A configuration for another board cannot be applied, and a mismatched record
@@ -59,8 +68,12 @@ files to the same binary schema that a future companion application will use.
   compiler ABI or struct padding.
 - Modules, widgets, drivers, and the core receive one coherent immutable
   configuration snapshot.
+- Human-authored files remain short while firmware parsing stays bounded,
+  allocation-free, and independent from JSON.
 - Widget visibility is configuration-driven without dynamically allocating a
   variable-size widget registry.
+- Modules used only by omitted dashboard widgets are not started and do not
+  subscribe to telemetry events.
 - The gear widget reuses the canonical telemetry snapshot and remains
   board-limited through validated application composition rather than
   hardware-specific rendering code.

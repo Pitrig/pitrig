@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import struct
 import sys
@@ -42,6 +43,20 @@ ANCHORS = {
     "bottom_center": 7,
     "bottom_right": 8,
 }
+
+PROFILE_PATHS = {
+    "t_display_s3": Path("config/profiles/t-display-s3.json"),
+    "guition_esp32_4848s040": Path(
+        "config/profiles/guition-esp32-4848s040.json"
+    ),
+}
+WIDGET_NAMES = (
+    "lap_timer",
+    "delta_time",
+    "estimated_lap_time",
+    "gear",
+    "speed",
+)
 
 
 def _reverse(mapping: dict[str, int], value: int, field: str) -> str:
@@ -517,13 +532,136 @@ class Device:
         raise TimeoutError("device did not return a SimCore control response")
 
 
-def _load(path: Path) -> dict[str, Any]:
+def _read_json_object(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as source:
         value = json.load(source)
     if not isinstance(value, dict):
         raise ValueError("configuration root must be an object")
-    value.pop("schema_version", None)
     return value
+
+
+def _merge_known(
+    target: dict[str, Any],
+    patch: dict[str, Any],
+    path: str,
+) -> None:
+    for key, value in patch.items():
+        field = f"{path}.{key}" if path else key
+        if key not in target:
+            raise ValueError(f"unknown configuration field: {field}")
+        current = target[key]
+        if isinstance(current, dict):
+            if not isinstance(value, dict):
+                raise ValueError(f"{field} must be an object")
+            _merge_known(current, value, field)
+        else:
+            target[key] = copy.deepcopy(value)
+
+
+def _normalize_sparse(value: dict[str, Any]) -> dict[str, Any]:
+    allowed = {
+        "schema_version",
+        "board",
+        "telemetry_transport",
+        "lap_timer",
+        "delta_time",
+        "estimated_lap_time",
+        "dashboard",
+    }
+    unknown = set(value) - allowed
+    if unknown:
+        raise ValueError(
+            f"unknown configuration field: {sorted(unknown)[0]}"
+        )
+
+    board = value.get("board")
+    if not isinstance(board, str) or board not in PROFILE_PATHS:
+        raise ValueError(
+            "sparse configuration requires a supported string board id"
+        )
+    profile_path = Path(__file__).resolve().parent.parent / PROFILE_PATHS[board]
+    result = _read_json_object(profile_path)
+    value.pop("schema_version", None)
+    result.pop("schema_version", None)
+
+    for section in (
+        "telemetry_transport",
+        "lap_timer",
+        "delta_time",
+        "estimated_lap_time",
+    ):
+        if section not in value:
+            continue
+        patch = value[section]
+        if not isinstance(patch, dict):
+            raise ValueError(f"{section} must be an object")
+        _merge_known(result[section], patch, section)
+
+    dashboard_patch = value.get("dashboard")
+    if dashboard_patch is not None:
+        if not isinstance(dashboard_patch, dict):
+            raise ValueError("dashboard must be an object")
+        unknown_dashboard = set(dashboard_patch) - {
+            "mode",
+            "regions",
+            "widgets",
+        }
+        if unknown_dashboard:
+            field = sorted(unknown_dashboard)[0]
+            raise ValueError(f"unknown configuration field: dashboard.{field}")
+        if "mode" in dashboard_patch:
+            result["dashboard"]["mode"] = dashboard_patch["mode"]
+        if "regions" in dashboard_patch:
+            regions = dashboard_patch["regions"]
+            if (
+                not isinstance(regions, list)
+                or len(regions) != 1
+                or not isinstance(regions[0], dict)
+            ):
+                raise ValueError(
+                    "dashboard.regions must contain exactly one object"
+                )
+            _merge_known(
+                result["dashboard"]["regions"][0],
+                regions[0],
+                "dashboard.regions[0]",
+            )
+
+        if "widgets" in dashboard_patch:
+            widgets = dashboard_patch["widgets"]
+            if not isinstance(widgets, dict):
+                raise ValueError("dashboard.widgets must be an object")
+            unknown_widgets = set(widgets) - set(WIDGET_NAMES)
+            if unknown_widgets:
+                name = sorted(unknown_widgets)[0]
+                raise ValueError(f"unknown dashboard widget: {name}")
+            for name in WIDGET_NAMES:
+                result["dashboard"][name]["enabled"] = False
+            for name, widget_patch in widgets.items():
+                if not isinstance(widget_patch, dict):
+                    raise ValueError(
+                        f"dashboard.widgets.{name} must be an object"
+                    )
+                if "enabled" in widget_patch:
+                    raise ValueError(
+                        f"dashboard.widgets.{name}.enabled is presence-driven"
+                    )
+                result["dashboard"][name]["enabled"] = True
+                _merge_known(
+                    result["dashboard"][name],
+                    widget_patch,
+                    f"dashboard.widgets.{name}",
+                )
+
+    return result
+
+
+def _load(path: Path) -> dict[str, Any]:
+    value = _read_json_object(path)
+    if isinstance(value.get("board"), dict):
+        value.pop("schema_version", None)
+        return value
+    return _normalize_sparse(value)
 
 
 def _payload_response(response: str) -> bytes:
