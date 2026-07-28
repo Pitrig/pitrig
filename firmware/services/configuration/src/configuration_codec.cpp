@@ -10,6 +10,7 @@ constexpr std::uint16_t kGearWidgetSchemaVersion = 3;
 constexpr std::uint16_t kSpeedWidgetSchemaVersion = 4;
 constexpr std::uint16_t kDrivingAidWidgetsSchemaVersion = 5;
 constexpr std::uint16_t kDrivingAidLabelOffsetSchemaVersion = 6;
+constexpr std::uint16_t kRpmWidgetSchemaVersion = 7;
 
 class Writer {
  public:
@@ -287,6 +288,11 @@ CodecResult encode_configuration(
   write_driving_aid_widget(writer, configuration.dashboard.abs);
   write_driving_aid_widget(writer, configuration.dashboard.brake_bias);
 
+  writer.boolean(configuration.dashboard.rpm.enabled);
+  write_font(writer, configuration.dashboard.rpm.font);
+  write_placement(writer, configuration.dashboard.rpm.placement);
+  writer.integer(configuration.dashboard.rpm.text_color_rgb);
+
   return {
       .ok = writer.ok(),
       .error =
@@ -426,6 +432,16 @@ CodecResult decode_configuration(
     configuration.dashboard.traction_control.enabled = false;
     configuration.dashboard.abs.enabled = false;
     configuration.dashboard.brake_bias.enabled = false;
+  }
+
+  if (schema_version >= kRpmWidgetSchemaVersion) {
+    configuration.dashboard.rpm.enabled = reader.boolean();
+    read_font(reader, configuration.dashboard.rpm.font);
+    read_placement(reader, configuration.dashboard.rpm.placement);
+    configuration.dashboard.rpm.text_color_rgb =
+        reader.integer<std::uint32_t>();
+  } else {
+    configuration.dashboard.rpm.enabled = false;
   }
 
   if (!reader.complete()) {

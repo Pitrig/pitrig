@@ -7,6 +7,7 @@
       "estimated_lap_time": {},
       "gear": {},
       "speed": {},
+      "rpm": {},
       "traction_control": {},
       "abs": {},
       "brake_bias": {}

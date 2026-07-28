@@ -13,12 +13,13 @@ from pathlib import Path
 from typing import Any, Optional
 
 OLDEST_SCHEMA_VERSION = 1
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 WIDGET_ENABLE_SCHEMA_VERSION = 2
 GEAR_WIDGET_SCHEMA_VERSION = 3
 SPEED_WIDGET_SCHEMA_VERSION = 4
 DRIVING_AID_WIDGETS_SCHEMA_VERSION = 5
 DRIVING_AID_LABEL_OFFSET_SCHEMA_VERSION = 6
+RPM_WIDGET_SCHEMA_VERSION = 7
 TEXT_CAPACITY = 16
 
 BOARD_IDS = {
@@ -58,6 +59,7 @@ WIDGET_NAMES = (
     "estimated_lap_time",
     "gear",
     "speed",
+    "rpm",
     "traction_control",
     "abs",
     "brake_bias",
@@ -325,6 +327,22 @@ def _default_driving_aid_widget(name: str) -> dict[str, Any]:
     }
 
 
+def _default_rpm_widget() -> dict[str, Any]:
+    return {
+        "enabled": False,
+        "font": {"family": "montserrat", "size_px": 48},
+        "placement": {
+            "region_id": 0,
+            "anchor": "bottom_center",
+            "offset_x": 0,
+            "offset_y": -96,
+            "width": 320,
+            "height": 64,
+        },
+        "text_color_rgb": "#E8E8E8",
+    }
+
+
 def encode_configuration(config: dict[str, Any]) -> bytes:
     writer = Writer()
     writer.put("H", SCHEMA_VERSION)
@@ -417,6 +435,12 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
 
     for name in ("traction_control", "abs", "brake_bias"):
         _encode_driving_aid_widget(writer, dashboard[name], name)
+
+    rpm_widget = dashboard["rpm"]
+    writer.boolean(rpm_widget["enabled"])
+    _encode_font(writer, rpm_widget["font"])
+    _encode_placement(writer, rpm_widget["placement"])
+    writer.rgb(rpm_widget["text_color_rgb"], "RPM text color")
     return bytes(writer.data)
 
 
@@ -575,6 +599,15 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
             )
         else:
             dashboard[name] = _default_driving_aid_widget(name)
+    if schema >= RPM_WIDGET_SCHEMA_VERSION:
+        dashboard["rpm"] = {
+            "enabled": reader.boolean(),
+            "font": _decode_font(reader),
+            "placement": _decode_placement(reader),
+            "text_color_rgb": reader.rgb(),
+        }
+    else:
+        dashboard["rpm"] = _default_rpm_widget()
     result["dashboard"] = dashboard
     reader.finish()
     return result

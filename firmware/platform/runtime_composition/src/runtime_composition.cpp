@@ -9,6 +9,7 @@
 #include "gear_widget.hpp"
 #include "lap_timer_widget.hpp"
 #include "logger.hpp"
+#include "rpm_widget.hpp"
 #include "simcore_features.hpp"
 #include "speed_widget.hpp"
 #include "telemetry_state.hpp"
@@ -118,6 +119,12 @@ bool create_dashboard(
         !dashboard::speed_widget::create(
             layout, configuration.dashboard.speed, telemetry)) {
       log::error(kTag, "Failed to create Speed widget");
+      initialized = false;
+    }
+    if (configuration.dashboard.rpm.enabled &&
+        !dashboard::rpm_widget::create(
+            layout, configuration.dashboard.rpm, telemetry)) {
+      log::error(kTag, "Failed to create RPM widget");
       initialized = false;
     }
     if (configuration.dashboard.traction_control.enabled &&

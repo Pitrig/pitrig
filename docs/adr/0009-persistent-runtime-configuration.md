@@ -55,6 +55,11 @@ disabled.
 Schema 6 adds an independent signed vertical label offset to each driving-aid
 card. Schema 5 records remain readable and use a zero offset.
 
+Schema 7 adds a numeric RPM widget with independent enable, font, placement,
+and text-color settings. The Guition factory profile enables it above the speed
+widget, while the T-Display profile keeps it disabled. Earlier records remain
+readable and receive the RPM widget as disabled.
+
 Extend transports with bounded response writes. Route newline-delimited frames
 beginning with `@SC:` to the configuration control protocol and route all other
 lines to the configured telemetry protocol. The developer CLI converts JSON
@@ -90,6 +95,8 @@ Reject unknown fields instead of silently ignoring spelling errors.
   hardware-specific rendering code.
 - The speed widget reuses the canonical telemetry snapshot and renders only the
   numeric speed value; it owns no telemetry state or processing.
+- The RPM widget reuses the canonical telemetry snapshot and renders only the
+  numeric RPM value; it owns no telemetry state or processing.
 - The three driving-aid widgets reuse the canonical telemetry snapshot and one
   presentation implementation without adding feature modules or duplicated
   render logic.

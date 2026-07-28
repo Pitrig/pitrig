@@ -98,7 +98,7 @@ modules are not started. Missing fields outside `dashboard.widgets`, such as
 are rejected instead of being ignored.
 
 Legacy complete JSON files with an object-valued `board` field remain accepted.
-The CLI normalizes either JSON form into the complete schema 6 binary snapshot
+The CLI normalizes either JSON form into the complete schema 7 binary snapshot
 before validation or storage.
 
 The traction-control, ABS, and brake-bias cards can be enabled and styled
@@ -140,6 +140,24 @@ any other widget. `label_offset_y_px` shifts the fixed label vertically:
 negative values move it up and positive values move it down. The border has a
 solid background-colored gap behind the label. Because the widget object is
 presence-driven, also list every existing widget that should remain enabled.
+
+The numeric RPM widget reads the canonical RPM telemetry value and supports
+independent font, placement, and text color settings. It is enabled by default
+on `guition_esp32_4848s040`, positioned above the numeric speed widget, and
+disabled by default on `t_display_s3`:
+
+```json
+{
+  "board": "guition_esp32_4848s040",
+  "dashboard": {
+    "widgets": {
+      "rpm": {
+        "text_color_rgb": "#E8E8E8"
+      }
+    }
+  }
+}
+```
 
 ## Commands
 
@@ -205,7 +223,7 @@ configuration payloads use uppercase or lowercase hexadecimal encoding.
 Responses begin with `@SC:OK:` or `@SC:ERR:`. Lines without the `@SC:` prefix
 continue to the SimHub telemetry parser.
 
-Schemas 1–6 use exactly one dashboard region because the current application
+Schemas 1–7 use exactly one dashboard region because the current application
 configuration has fixed storage for one region. Schema 2 adds widget `enabled`
 flags. Schema 3 adds the board-limited gear widget, including font, placement,
 padding, border, and colors. Schema 1 and 2 payloads remain readable; the gear
@@ -215,9 +233,10 @@ placement, and text color settings. Earlier payloads receive the board default:
 enabled on Guition and disabled on T-Display. Schema 5 adds the independently
 configured `traction_control`, `abs`, and `brake_bias` cards. Earlier payloads
 receive these three widgets as disabled. Schema 6 adds
-`label_offset_y_px`; schema 5 payloads receive a zero offset. Future
-variable-sized configuration must introduce bounded capacities and a new
-schema.
+`label_offset_y_px`; schema 5 payloads receive a zero offset.
+Schema 7 adds the numeric RPM widget; earlier payloads receive it as disabled.
+Future variable-sized configuration must introduce bounded capacities and a
+new schema.
 
 ## Storage isolation
 

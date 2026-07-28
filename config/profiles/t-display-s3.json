@@ -1,5 +1,5 @@
 {
-  "schema_version": 6,
+  "schema_version": 7,
   "board": {
     "id": "t_display_s3"
   },
@@ -151,6 +151,22 @@
         "offset_x": 0,
         "offset_y": -24,
         "width": 180,
+        "height": 64
+      },
+      "text_color_rgb": "#E8E8E8"
+    },
+    "rpm": {
+      "enabled": false,
+      "font": {
+        "family": "montserrat",
+        "size_px": 48
+      },
+      "placement": {
+        "region_id": 0,
+        "anchor": "bottom_center",
+        "offset_x": 0,
+        "offset_y": -96,
+        "width": 320,
         "height": 64
       },
       "text_color_rgb": "#E8E8E8"
