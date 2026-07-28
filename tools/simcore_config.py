@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 OLDEST_SCHEMA_VERSION = 1
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 WIDGET_ENABLE_SCHEMA_VERSION = 2
 GEAR_WIDGET_SCHEMA_VERSION = 3
 SPEED_WIDGET_SCHEMA_VERSION = 4
@@ -22,6 +22,7 @@ DRIVING_AID_LABEL_OFFSET_SCHEMA_VERSION = 6
 RPM_WIDGET_SCHEMA_VERSION = 7
 FUEL_WIDGETS_SCHEMA_VERSION = 8
 FUEL_WITHOUT_ICON_SCHEMA_VERSION = 9
+RACE_DASHBOARD_SCHEMA_VERSION = 10
 TEXT_CAPACITY = 16
 
 BOARD_IDS = {
@@ -48,6 +49,7 @@ ANCHORS = {
     "bottom_center": 7,
     "bottom_right": 8,
 }
+RACE_DASHBOARD_LAYOUTS = {"compact": 0, "wide": 1}
 
 PROFILE_PATHS = {
     "t_display_s3": Path("config/profiles/t-display-s3.json"),
@@ -68,6 +70,7 @@ WIDGET_NAMES = (
     "traction_control",
     "abs",
     "brake_bias",
+    "race_dashboard",
 )
 
 
@@ -493,6 +496,14 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
         writer.rgb(
             fuel_statistic["text_color_rgb"], f"{name} text color"
         )
+    race_dashboard = dashboard["race_dashboard"]
+    writer.boolean(race_dashboard["enabled"])
+    writer.enum(
+        RACE_DASHBOARD_LAYOUTS,
+        race_dashboard["variant"],
+        "race dashboard layout",
+    )
+    _encode_placement(writer, race_dashboard["placement"])
     return bytes(writer.data)
 
 
@@ -679,6 +690,27 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
     else:
         for name in ("fuel", "fuel_average", "fuel_laps_remaining"):
             dashboard[name] = _default_fuel_widget(name)
+    if schema >= RACE_DASHBOARD_SCHEMA_VERSION:
+        dashboard["race_dashboard"] = {
+            "enabled": reader.boolean(),
+            "variant": reader.enum(
+                RACE_DASHBOARD_LAYOUTS, "race dashboard layout"
+            ),
+            "placement": _decode_placement(reader),
+        }
+    else:
+        dashboard["race_dashboard"] = {
+            "enabled": False,
+            "variant": "compact",
+            "placement": {
+                "region_id": 0,
+                "anchor": "center",
+                "offset_x": 0,
+                "offset_y": 0,
+                "width": 480,
+                "height": 480,
+            },
+        }
     result["dashboard"] = dashboard
     reader.finish()
     return result

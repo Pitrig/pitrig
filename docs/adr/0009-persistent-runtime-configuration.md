@@ -72,6 +72,12 @@ Schema 9 removes the fuel-pump icon and its color setting. Schema 8 records
 remain readable; their former icon-color value is consumed and discarded
 during migration.
 
+Schema 10 adds the optional composite race-dashboard page and its compact or
+wide layout variant. Earlier records keep the page disabled and continue to
+compose the existing independent widgets. The Guition factory profile enables
+the compact page; its individual child values remain sourced from the canonical
+telemetry snapshot.
+
 Extend transports with bounded response writes. Route newline-delimited frames
 beginning with `@SC:` to the configuration control protocol and route all other
 lines to the configured telemetry protocol. The developer CLI converts JSON

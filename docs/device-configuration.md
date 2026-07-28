@@ -98,7 +98,7 @@ modules are not started. Missing fields outside `dashboard.widgets`, such as
 are rejected instead of being ignored.
 
 Legacy complete JSON files with an object-valued `board` field remain accepted.
-The CLI normalizes either JSON form into the complete schema 9 binary snapshot
+The CLI normalizes either JSON form into the complete schema 10 binary snapshot
 before validation or storage.
 
 The traction-control, ABS, and brake-bias cards can be enabled and styled
@@ -153,6 +153,24 @@ disabled by default on `t_display_s3`:
     "widgets": {
       "rpm": {
         "text_color_rgb": "#E8E8E8"
+      }
+    }
+  }
+}
+```
+
+The `race_dashboard` widget creates the complete grouped racing page shown by
+the Guition factory profile. It accepts `compact` and `wide` variants and a
+normal dashboard placement. When enabled, it replaces the independent widgets
+for that page so duplicate LVGL objects and update timers are not created:
+
+```json
+{
+  "board": "guition_esp32_4848s040",
+  "dashboard": {
+    "widgets": {
+      "race_dashboard": {
+        "variant": "compact"
       }
     }
   }
@@ -251,7 +269,7 @@ configuration payloads use uppercase or lowercase hexadecimal encoding.
 Responses begin with `@SC:OK:` or `@SC:ERR:`. Lines without the `@SC:` prefix
 continue to the SimHub telemetry parser.
 
-Schemas 1–9 use exactly one dashboard region because the current application
+Schemas 1–10 use exactly one dashboard region because the current application
 configuration has fixed storage for one region. Schema 2 adds widget `enabled`
 flags. Schema 3 adds the board-limited gear widget, including font, placement,
 padding, border, and colors. Schema 1 and 2 payloads remain readable; the gear
@@ -266,7 +284,8 @@ Schema 7 adds the numeric RPM widget; earlier payloads receive it as disabled.
 Schema 8 adds the fuel-level, average-consumption, and fuel-laps-remaining
 widgets; earlier payloads receive them as disabled. Schema 9 removes the
 fuel-pump icon and its color setting; schema 8 payloads remain readable. The
-bounded maximum payload size is 768 bytes.
+schema 10 race-dashboard page is disabled when an older payload is migrated.
+The bounded maximum payload size is 768 bytes.
 Future variable-sized configuration must introduce bounded capacities and a
 new schema.
 

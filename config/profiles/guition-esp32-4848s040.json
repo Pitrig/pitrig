@@ -1,5 +1,5 @@
 {
-  "schema_version": 9,
+  "schema_version": 10,
   "board": {
     "id": "guition_esp32_4848s040"
   },
@@ -320,6 +320,18 @@
       "label_color_rgb": "#E8E8E8",
       "value_color_rgb": "#E8E8E8",
       "background_color_rgb": "#000000"
+    },
+    "race_dashboard": {
+      "enabled": true,
+      "variant": "compact",
+      "placement": {
+        "region_id": 0,
+        "anchor": "center",
+        "offset_x": 0,
+        "offset_y": 0,
+        "width": 480,
+        "height": 480
+      }
     }
   }
 }

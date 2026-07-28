@@ -9,13 +9,11 @@
 namespace simcore::configuration {
 
 inline constexpr std::uint16_t kOldestConfigurationSchemaVersion = 1;
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 9;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 10;
 inline constexpr std::size_t kMaximumPayloadSize = 768;
 
-[[nodiscard]] constexpr bool is_supported_configuration_schema(
-    const std::uint16_t version) {
-  return version >= kOldestConfigurationSchemaVersion &&
-         version <= kConfigurationSchemaVersion;
+[[nodiscard]] constexpr bool is_supported_configuration_schema(const std::uint16_t version) {
+  return version >= kOldestConfigurationSchemaVersion && version <= kConfigurationSchemaVersion;
 }
 
 enum class ValidationError : std::uint8_t {
@@ -38,14 +36,11 @@ struct CodecResult {
   std::size_t size{};
 };
 
-[[nodiscard]] CodecResult encode_configuration(
-    const ApplicationConfiguration& configuration,
+[[nodiscard]] CodecResult encode_configuration(const ApplicationConfiguration& configuration,
     std::span<std::uint8_t> output);
-[[nodiscard]] CodecResult decode_configuration(
-    std::span<const std::uint8_t> input,
+[[nodiscard]] CodecResult decode_configuration(std::span<const std::uint8_t> input,
     ApplicationConfiguration& configuration);
-[[nodiscard]] ValidationError validate_configuration(
-    const ApplicationConfiguration& configuration);
+[[nodiscard]] ValidationError validate_configuration(const ApplicationConfiguration& configuration);
 [[nodiscard]] const char* validation_error_name(ValidationError error);
 
 }  // namespace simcore::configuration

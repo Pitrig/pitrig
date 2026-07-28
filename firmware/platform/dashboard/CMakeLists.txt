@@ -14,6 +14,7 @@ set(component_sources
     "widgets/gear/src/gear_widget.cpp"
     "widgets/lap_timer/src/lap_timer_widget.cpp"
     "widgets/rpm/src/rpm_widget.cpp"
+    "widgets/race_dashboard/src/race_dashboard_widget.cpp"
     "widgets/speed/src/speed_widget.cpp"
     "widgets/performance_overlay/src/performance_overlay_widget.cpp")
 set(component_include_dirs
@@ -28,6 +29,7 @@ set(component_include_dirs
     "widgets/gear/include"
     "widgets/lap_timer/include"
     "widgets/rpm/include"
+    "widgets/race_dashboard/include"
     "widgets/speed/include"
     "widgets/performance_overlay/include")
 

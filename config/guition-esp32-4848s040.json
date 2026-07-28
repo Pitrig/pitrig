@@ -2,18 +2,7 @@
   "board": "guition_esp32_4848s040",
   "dashboard": {
     "widgets": {
-      "lap_timer": {},
-      "delta_time": {},
-      "estimated_lap_time": {},
-      "gear": {},
-      "speed": {},
-      "rpm": {},
-      "fuel": {},
-      "fuel_average": {},
-      "fuel_laps_remaining": {},
-      "traction_control": {},
-      "abs": {},
-      "brake_bias": {}
+      "race_dashboard": {}
     }
   }
 }

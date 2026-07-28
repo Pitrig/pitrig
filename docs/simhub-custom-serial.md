@@ -32,6 +32,18 @@ BB;<front-brake-bias-percent>\n
 F;<fuel-liters>\n
 FC;<average-liters-per-lap>\n
 FL;<fuel-laps-remaining>\n
+LL;<last-lap-ms>\n
+ST;<session-time-seconds>\n
+SP;<position>,<participant-count>\n
+SL;<completed-laps>,<total-laps>\n
+AT;<air-temperature-tenths-c>\n
+RT;<track-temperature-tenths-c>\n
+CT;<traction-control-cut-level>\n
+EM;<engine-map>\n
+X1;<front-left-pressure-hundredths-bar>,<surface-tenths-c>,<inner-tenths-c>\n
+X2;<front-right-pressure-hundredths-bar>,<surface-tenths-c>,<inner-tenths-c>\n
+X3;<rear-left-pressure-hundredths-bar>,<surface-tenths-c>,<inner-tenths-c>\n
+X4;<rear-right-pressure-hundredths-bar>,<surface-tenths-c>,<inner-tenths-c>\n
 ```
 
 RPM, speed, and lap times are non-negative decimal integers. Gear is a signed
@@ -45,6 +57,12 @@ with zero or one fractional digit, for example `BB;54.0`. Empty `T;`, `A;`, or
 malformed lines are ignored. Fuel values are non-negative decimals with zero
 or one fractional digit. Empty `F;`, `FC;`, or `FL;` messages mark the
 corresponding fuel value as unavailable.
+
+The composite race dashboard additionally accepts session, environment, and
+tire lines. `SP` and `SL` carry two comma-separated unsigned integers. Tire
+lines use scaled integers to avoid locale-dependent decimal parsing: for
+example, `X1;159,643,260` means 1.59 bar, 64.3 °C surface temperature, and
+26.0 °C inner temperature for the front-left tire.
 
 ## Example update messages
 

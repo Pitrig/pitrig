@@ -9,20 +9,16 @@ namespace simcore::protocols {
 namespace {
 
 template <typename Value>
-[[nodiscard]] bool parse_integer(const std::span<const char> text,
-                                 Value& value) {
+[[nodiscard]] bool parse_integer(const std::span<const char> text, Value& value) {
   if (text.empty()) {
     return false;
   }
 
-  const auto result =
-      std::from_chars(text.data(), text.data() + text.size(), value);
-  return result.ec == std::errc{} &&
-         result.ptr == text.data() + text.size();
+  const auto result = std::from_chars(text.data(), text.data() + text.size(), value);
+  return result.ec == std::errc{} && result.ptr == text.data() + text.size();
 }
 
-[[nodiscard]] bool parse_gear(const std::span<const char> text,
-                              std::int8_t& gear) {
+[[nodiscard]] bool parse_gear(const std::span<const char> text, std::int8_t& gear) {
   if (text.size() == 1) {
     if (text.front() == 'N' || text.front() == 'n') {
       gear = 0;
@@ -35,8 +31,7 @@ template <typename Value>
   }
 
   int parsed{};
-  if (!parse_integer(text, parsed) ||
-      parsed < std::numeric_limits<std::int8_t>::min() ||
+  if (!parse_integer(text, parsed) || parsed < std::numeric_limits<std::int8_t>::min() ||
       parsed > std::numeric_limits<std::int8_t>::max()) {
     return false;
   }
@@ -45,26 +40,58 @@ template <typename Value>
   return true;
 }
 
-[[nodiscard]] bool parse_level(const std::span<const char> text,
-                               std::uint8_t& level) {
+[[nodiscard]] bool parse_level(const std::span<const char> text, std::uint8_t& level) {
   unsigned int parsed{};
-  if (!parse_integer(text, parsed) ||
-      parsed > std::numeric_limits<std::uint8_t>::max()) {
+  if (!parse_integer(text, parsed) || parsed > std::numeric_limits<std::uint8_t>::max()) {
     return false;
   }
   level = static_cast<std::uint8_t>(parsed);
   return true;
 }
 
-[[nodiscard]] bool parse_nonnegative_decimal(
-    const std::span<const char> text, float& value) {
+[[nodiscard]] bool parse_pair(const std::span<const char> text, std::uint16_t& first,
+                              std::uint16_t& second) {
+  const auto separator = std::find(text.begin(), text.end(), ',');
+  if (separator == text.end()) return false;
+  unsigned int left{};
+  unsigned int right{};
+  if (!parse_integer(std::span<const char>{text.begin(), separator}, left) ||
+      !parse_integer(std::span<const char>{separator + 1, text.end()}, right) ||
+      left > std::numeric_limits<std::uint16_t>::max() ||
+      right > std::numeric_limits<std::uint16_t>::max())
+    return false;
+  first = static_cast<std::uint16_t>(left);
+  second = static_cast<std::uint16_t>(right);
+  return true;
+}
+
+[[nodiscard]] bool parse_tire(const std::span<const char> text, telemetry::Values::Tire& tire) {
+  const auto first_separator = std::find(text.begin(), text.end(), ',');
+  if (first_separator == text.end()) return false;
+  const auto second_separator = std::find(first_separator + 1, text.end(), ',');
+  if (second_separator == text.end()) return false;
+  unsigned int pressure_hundredths{};
+  unsigned int surface_tenths{};
+  unsigned int inner_tenths{};
+  if (!parse_integer(std::span<const char>{text.begin(), first_separator}, pressure_hundredths) ||
+      !parse_integer(std::span<const char>{first_separator + 1, second_separator},
+                     surface_tenths) ||
+      !parse_integer(std::span<const char>{second_separator + 1, text.end()}, inner_tenths) ||
+      pressure_hundredths > 1000 || surface_tenths > 3000 || inner_tenths > 3000)
+    return false;
+  tire.pressure_bar = static_cast<float>(pressure_hundredths) / 100.0F;
+  tire.surface_temperature_c = static_cast<float>(surface_tenths) / 10.0F;
+  tire.inner_temperature_c = static_cast<float>(inner_tenths) / 10.0F;
+  return true;
+}
+
+[[nodiscard]] bool parse_nonnegative_decimal(const std::span<const char> text, float& value) {
   if (text.empty()) {
     return false;
   }
 
   const auto decimal = std::find(text.begin(), text.end(), '.');
-  const std::span<const char> whole{
-      text.begin(), static_cast<std::size_t>(decimal - text.begin())};
+  const std::span<const char> whole{text.begin(), static_cast<std::size_t>(decimal - text.begin())};
   std::uint32_t whole_value{};
   if (!parse_integer(whole, whole_value) || whole_value > 1'000'000U) {
     return false;
@@ -72,30 +99,26 @@ template <typename Value>
 
   std::uint32_t tenth{};
   if (decimal != text.end()) {
-    const std::span<const char> fraction{
-        decimal + 1, static_cast<std::size_t>(text.end() - decimal - 1)};
-    if (fraction.size() != 1 || fraction.front() < '0' ||
-        fraction.front() > '9') {
+    const std::span<const char> fraction{decimal + 1,
+                                         static_cast<std::size_t>(text.end() - decimal - 1)};
+    if (fraction.size() != 1 || fraction.front() < '0' || fraction.front() > '9') {
       return false;
     }
     tenth = static_cast<std::uint32_t>(fraction.front() - '0');
   }
 
-  value = static_cast<float>(whole_value) +
-          static_cast<float>(tenth) * 0.1F;
+  value = static_cast<float>(whole_value) + static_cast<float>(tenth) * 0.1F;
   return true;
 }
 
-[[nodiscard]] bool parse_brake_bias(
-    const std::span<const char> text,
+[[nodiscard]] bool parse_brake_bias(const std::span<const char> text,
     std::uint16_t& tenths_percent) {
   if (text.empty()) {
     return false;
   }
 
   const auto decimal = std::find(text.begin(), text.end(), '.');
-  const std::span<const char> whole{
-      text.begin(), static_cast<std::size_t>(decimal - text.begin())};
+  const std::span<const char> whole{text.begin(), static_cast<std::size_t>(decimal - text.begin())};
   unsigned int whole_percent{};
   if (!parse_integer(whole, whole_percent) || whole_percent > 100U) {
     return false;
@@ -103,10 +126,9 @@ template <typename Value>
 
   unsigned int tenth{};
   if (decimal != text.end()) {
-    const std::span<const char> fraction{
-        decimal + 1, static_cast<std::size_t>(text.end() - decimal - 1)};
-    if (fraction.size() != 1 || fraction.front() < '0' ||
-        fraction.front() > '9') {
+    const std::span<const char> fraction{decimal + 1,
+                                         static_cast<std::size_t>(text.end() - decimal - 1)};
+    if (fraction.size() != 1 || fraction.front() < '0' || fraction.front() > '9') {
       return false;
     }
     tenth = static_cast<unsigned int>(fraction.front() - '0');
@@ -123,15 +145,11 @@ template <typename Value>
 }  // namespace
 
 void SimHubProtocol::consume(const std::span<const std::uint8_t> data,
-                             const telemetry::UpdateHandler handler,
-                             void* const context) {
+                             const telemetry::UpdateHandler handler, void* const context) {
   for (const std::uint8_t byte : data) {
     if (byte == '\n') {
       if (!discard_until_newline_ && line_length_ > 0) {
-        process_line(
-            std::span<const char>{line_buffer_.data(), line_length_},
-            handler,
-            context);
+        process_line(std::span<const char>{line_buffer_.data(), line_length_}, handler, context);
       }
 
       line_length_ = 0;
@@ -174,13 +192,77 @@ void SimHubProtocol::process_line(const std::span<const char> line,
   telemetry::TelemetryUpdate update{};
 
   if (identifier.size() == 2) {
+    if (identifier[0] == 'L' && identifier[1] == 'L') {
+      if (!parse_integer(value, update.values.lap_time_last_ms)) return;
+      update.present_fields = telemetry::Field::lap_time_last;
+      handler(update, context);
+      return;
+    }
+    if (identifier[0] == 'S' && identifier[1] == 'T') {
+      if (!parse_integer(value, update.values.session_time_seconds)) return;
+      update.present_fields = telemetry::Field::session_time;
+      handler(update, context);
+      return;
+    }
+    if (identifier[0] == 'S' && identifier[1] == 'P') {
+      if (!parse_pair(value, update.values.session_position,
+                      update.values.session_participant_count))
+        return;
+      update.present_fields = telemetry::Field::session_position;
+      handler(update, context);
+      return;
+    }
+    if (identifier[0] == 'S' && identifier[1] == 'L') {
+      if (!parse_pair(value, update.values.session_completed_laps,
+                      update.values.session_total_laps))
+        return;
+      update.present_fields = telemetry::Field::session_laps;
+      handler(update, context);
+      return;
+    }
+    if (identifier[0] == 'A' && identifier[1] == 'T') {
+      if (!parse_integer(value, update.values.air_temperature_tenths_c)) return;
+      update.present_fields = telemetry::Field::air_temperature;
+      handler(update, context);
+      return;
+    }
+    if (identifier[0] == 'R' && identifier[1] == 'T') {
+      if (!parse_integer(value, update.values.track_temperature_tenths_c)) return;
+      update.present_fields = telemetry::Field::track_temperature;
+      handler(update, context);
+      return;
+    }
+    if (identifier[0] == 'C' && identifier[1] == 'T') {
+      if (!parse_level(value, update.values.traction_control_cut_level)) return;
+      update.present_fields = telemetry::Field::traction_control_cut;
+      handler(update, context);
+      return;
+    }
+    if (identifier[0] == 'E' && identifier[1] == 'M') {
+      if (!parse_level(value, update.values.engine_map)) return;
+      update.present_fields = telemetry::Field::engine_map;
+      handler(update, context);
+      return;
+    }
+    if (identifier[0] == 'X' && identifier[1] >= '1' && identifier[1] <= '4') {
+      const unsigned int tire_index = static_cast<unsigned int>(identifier[1] - '1');
+      std::array<telemetry::Values::Tire*, 4> tires{
+          &update.values.tire_front_left, &update.values.tire_front_right,
+          &update.values.tire_rear_left, &update.values.tire_rear_right};
+      constexpr std::array<telemetry::Field, 4> fields{
+          telemetry::Field::tire_front_left, telemetry::Field::tire_front_right,
+          telemetry::Field::tire_rear_left, telemetry::Field::tire_rear_right};
+      if (!parse_tire(value, *tires[tire_index])) return;
+      update.present_fields = fields[tire_index];
+      handler(update, context);
+      return;
+    }
     telemetry::Field field{};
     float* decimal_value{};
     if (identifier[0] == 'B' && identifier[1] == 'B') {
       if (value.empty()) {
         update.invalid_fields = telemetry::Field::brake_bias;
-      } else if (!parse_brake_bias(
-                     value, update.values.brake_bias_tenths_percent)) {
+      } else if (!parse_brake_bias(value, update.values.brake_bias_tenths_percent)) {
         return;
       } else {
         update.present_fields = telemetry::Field::brake_bias;

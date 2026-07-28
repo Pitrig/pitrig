@@ -6,17 +6,13 @@ namespace simcore::telemetry {
 namespace {
 
 template <typename Value>
-void apply_field(const Field field,
-                 const TelemetryUpdate& update,
-                 const Value& incoming,
-                 Value& current,
-                 Field& valid_fields,
-                 Field& changed_fields) {
+void apply_field(const Field field, const TelemetryUpdate& update, const Value& incoming,
+                 Value& current, Field& valid_fields, Field& changed_fields) {
   if (contains(update.invalid_fields, field)) {
     if (contains(valid_fields, field)) {
       using Fields = std::underlying_type_t<Field>;
-      valid_fields = static_cast<Field>(static_cast<Fields>(valid_fields) &
-                                        ~static_cast<Fields>(field));
+      valid_fields =
+          static_cast<Field>(static_cast<Fields>(valid_fields) & ~static_cast<Fields>(field));
       changed_fields |= field;
     }
     return;
@@ -41,40 +37,67 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
 
   apply_field(Field::speed, update, update.values.speed_kph, state_.values.speed_kph,
               state_.valid_fields, changed_fields);
-  apply_field(Field::rpm, update, update.values.rpm, state_.values.rpm,
-              state_.valid_fields, changed_fields);
-  apply_field(Field::gear, update, update.values.gear, state_.values.gear,
-              state_.valid_fields, changed_fields);
+  apply_field(Field::rpm, update, update.values.rpm, state_.values.rpm, state_.valid_fields,
+              changed_fields);
+  apply_field(Field::gear, update, update.values.gear, state_.values.gear, state_.valid_fields,
+              changed_fields);
   apply_field(Field::lap_time_current, update, update.values.lap_time_current_ms,
               state_.values.lap_time_current_ms, state_.valid_fields, changed_fields);
   apply_field(Field::lap_time_best, update, update.values.lap_time_best_ms,
               state_.values.lap_time_best_ms, state_.valid_fields, changed_fields);
   apply_field(Field::fuel, update, update.values.fuel_liters, state_.values.fuel_liters,
               state_.valid_fields, changed_fields);
-  apply_field(Field::lap_delta, update, update.values.lap_delta_ms,
-              state_.values.lap_delta_ms, state_.valid_fields, changed_fields);
-  apply_field(Field::lap_time_estimated, update,
-              update.values.lap_time_estimated_ms,
-              state_.values.lap_time_estimated_ms, state_.valid_fields,
-              changed_fields);
-  apply_field(Field::traction_control, update,
-              update.values.traction_control_level,
-              state_.values.traction_control_level, state_.valid_fields,
-              changed_fields);
-  apply_field(Field::abs, update, update.values.abs_level,
-              state_.values.abs_level, state_.valid_fields, changed_fields);
-  apply_field(Field::brake_bias, update,
-              update.values.brake_bias_tenths_percent,
-              state_.values.brake_bias_tenths_percent, state_.valid_fields,
-              changed_fields);
-  apply_field(Field::fuel_average_consumption, update,
-              update.values.fuel_average_liters_per_lap,
-              state_.values.fuel_average_liters_per_lap,
+  apply_field(Field::lap_delta, update, update.values.lap_delta_ms, state_.values.lap_delta_ms,
               state_.valid_fields, changed_fields);
-  apply_field(Field::fuel_laps_remaining, update,
-              update.values.fuel_laps_remaining,
-              state_.values.fuel_laps_remaining, state_.valid_fields,
-              changed_fields);
+  apply_field(Field::lap_time_estimated, update, update.values.lap_time_estimated_ms,
+              state_.values.lap_time_estimated_ms, state_.valid_fields, changed_fields);
+  apply_field(Field::traction_control, update, update.values.traction_control_level,
+              state_.values.traction_control_level, state_.valid_fields, changed_fields);
+  apply_field(Field::abs, update, update.values.abs_level, state_.values.abs_level,
+              state_.valid_fields, changed_fields);
+  apply_field(Field::brake_bias, update, update.values.brake_bias_tenths_percent,
+              state_.values.brake_bias_tenths_percent, state_.valid_fields, changed_fields);
+  apply_field(Field::fuel_average_consumption, update, update.values.fuel_average_liters_per_lap,
+              state_.values.fuel_average_liters_per_lap, state_.valid_fields, changed_fields);
+  apply_field(Field::fuel_laps_remaining, update, update.values.fuel_laps_remaining,
+              state_.values.fuel_laps_remaining, state_.valid_fields, changed_fields);
+  apply_field(Field::lap_time_last, update, update.values.lap_time_last_ms,
+              state_.values.lap_time_last_ms, state_.valid_fields, changed_fields);
+  apply_field(Field::session_time, update, update.values.session_time_seconds,
+              state_.values.session_time_seconds, state_.valid_fields, changed_fields);
+  apply_field(Field::session_position, update, update.values.session_position,
+              state_.values.session_position, state_.valid_fields, changed_fields);
+  if (contains(update.present_fields, Field::session_position)) {
+    if (state_.values.session_participant_count !=
+        update.values.session_participant_count) {
+      changed_fields |= Field::session_position;
+    }
+    state_.values.session_participant_count = update.values.session_participant_count;
+  }
+  apply_field(Field::session_laps, update, update.values.session_completed_laps,
+              state_.values.session_completed_laps, state_.valid_fields, changed_fields);
+  if (contains(update.present_fields, Field::session_laps)) {
+    if (state_.values.session_total_laps != update.values.session_total_laps) {
+      changed_fields |= Field::session_laps;
+    }
+    state_.values.session_total_laps = update.values.session_total_laps;
+  }
+  apply_field(Field::air_temperature, update, update.values.air_temperature_tenths_c,
+              state_.values.air_temperature_tenths_c, state_.valid_fields, changed_fields);
+  apply_field(Field::track_temperature, update, update.values.track_temperature_tenths_c,
+              state_.values.track_temperature_tenths_c, state_.valid_fields, changed_fields);
+  apply_field(Field::traction_control_cut, update, update.values.traction_control_cut_level,
+              state_.values.traction_control_cut_level, state_.valid_fields, changed_fields);
+  apply_field(Field::engine_map, update, update.values.engine_map, state_.values.engine_map,
+              state_.valid_fields, changed_fields);
+  apply_field(Field::tire_front_left, update, update.values.tire_front_left,
+              state_.values.tire_front_left, state_.valid_fields, changed_fields);
+  apply_field(Field::tire_front_right, update, update.values.tire_front_right,
+              state_.values.tire_front_right, state_.valid_fields, changed_fields);
+  apply_field(Field::tire_rear_left, update, update.values.tire_rear_left,
+              state_.values.tire_rear_left, state_.valid_fields, changed_fields);
+  apply_field(Field::tire_rear_right, update, update.values.tire_rear_right,
+              state_.values.tire_rear_right, state_.valid_fields, changed_fields);
 
   if (changed_fields != Field::none) {
     ++state_.revision;

@@ -25,6 +25,14 @@ liters per lap, and `FL` carries the estimated remaining fuel laps. Fuel values
 are non-negative decimals with at most one fractional digit; an empty fuel
 value explicitly marks that field as unavailable.
 
+The composite race dashboard extends the same line protocol with `LL` for the
+last completed lap, `ST` for session seconds, `SP` for position and participant
+count, `SL` for completed and total laps, `AT` and `RT` for air and track
+temperature in tenths of a degree Celsius, `CT` for traction-control cut, and
+`EM` for engine map. `X1` through `X4` carry front-left, front-right, rear-left,
+and rear-right tire pressure in hundredths of a bar plus surface and inner
+temperatures in tenths of a degree, as three comma-separated integers.
+
 `SimHubProtocol` incrementally decodes arbitrary transport chunks and emits one
 partial `TelemetryUpdate` per valid line. It owns only bounded parser state and
 does not know the transport, provider, telemetry state, or Event Bus.

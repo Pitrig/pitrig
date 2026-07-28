@@ -13,6 +13,7 @@ constexpr std::uint16_t kDrivingAidLabelOffsetSchemaVersion = 6;
 constexpr std::uint16_t kRpmWidgetSchemaVersion = 7;
 constexpr std::uint16_t kFuelWidgetsSchemaVersion = 8;
 constexpr std::uint16_t kFuelWithoutIconSchemaVersion = 9;
+constexpr std::uint16_t kRaceDashboardSchemaVersion = 10;
 
 class Writer {
  public:
@@ -88,9 +89,7 @@ class Reader {
     }
   }
 
-  [[nodiscard]] bool complete() const {
-    return ok_ && position_ == input_.size();
-  }
+  [[nodiscard]] bool complete() const { return ok_ && position_ == input_.size(); }
 
  private:
   std::span<const std::uint8_t> input_;
@@ -126,8 +125,7 @@ void read_placement(Reader& reader, dashboard::Placement& placement) {
   placement.height = reader.integer<std::int32_t>();
 }
 
-void write_driving_aid_widget(
-    Writer& writer, const dashboard::driving_aid_widget::Config& config) {
+void write_driving_aid_widget(Writer& writer, const dashboard::driving_aid_widget::Config& config) {
   writer.boolean(config.enabled);
   write_font(writer, config.label_font);
   write_font(writer, config.value_font);
@@ -145,8 +143,7 @@ void write_driving_aid_widget(
   writer.integer(config.label_offset_y_px);
 }
 
-void read_driving_aid_widget(
-    Reader& reader, dashboard::driving_aid_widget::Config& config,
+void read_driving_aid_widget(Reader& reader, dashboard::driving_aid_widget::Config& config,
     const bool has_label_offset) {
   config.enabled = reader.boolean();
   read_font(reader, config.label_font);
@@ -162,8 +159,7 @@ void read_driving_aid_widget(
   config.label_color_rgb = reader.integer<std::uint32_t>();
   config.value_color_rgb = reader.integer<std::uint32_t>();
   config.background_color_rgb = reader.integer<std::uint32_t>();
-  config.label_offset_y_px =
-      has_label_offset ? reader.integer<std::int16_t>() : 0;
+  config.label_offset_y_px = has_label_offset ? reader.integer<std::int16_t>() : 0;
 }
 
 void write_region(Writer& writer, const dashboard::LayoutRegion& region) {
@@ -202,8 +198,7 @@ void read_region(Reader& reader, dashboard::LayoutRegion& region) {
 
 }  // namespace
 
-CodecResult encode_configuration(
-    const ApplicationConfiguration& configuration,
+CodecResult encode_configuration(const ApplicationConfiguration& configuration,
     const std::span<std::uint8_t> output) {
   const ValidationError validation = validate_configuration(configuration);
   if (validation != ValidationError::none) {
@@ -213,34 +208,26 @@ CodecResult encode_configuration(
   Writer writer(output);
   writer.integer(kConfigurationSchemaVersion);
   writer.byte(static_cast<std::uint8_t>(configuration.board.id));
-  writer.byte(
-      static_cast<std::uint8_t>(configuration.telemetry_transport.id));
-  writer.integer(static_cast<std::int32_t>(
-      configuration.telemetry_transport.uart.port));
-  writer.integer(static_cast<std::int32_t>(
-      configuration.telemetry_transport.uart.tx_pin));
-  writer.integer(static_cast<std::int32_t>(
-      configuration.telemetry_transport.uart.rx_pin));
+  writer.byte(static_cast<std::uint8_t>(configuration.telemetry_transport.id));
+  writer.integer(static_cast<std::int32_t>(configuration.telemetry_transport.uart.port));
+  writer.integer(static_cast<std::int32_t>(configuration.telemetry_transport.uart.tx_pin));
+  writer.integer(static_cast<std::int32_t>(configuration.telemetry_transport.uart.rx_pin));
   writer.integer(configuration.telemetry_transport.uart.baud_rate);
   writer.boolean(configuration.telemetry_transport.uart.silence_esp_logs);
 
   writer.boolean(configuration.lap_timer.telemetry_only);
   writer.integer(configuration.lap_timer.telemetry_timeout_ms);
-  writer.byte(
-      static_cast<std::uint8_t>(configuration.delta_time.unavailable_behavior));
+  writer.byte(static_cast<std::uint8_t>(configuration.delta_time.unavailable_behavior));
   writer.bytes(configuration.delta_time.placeholder);
   writer.boolean(configuration.delta_time.scale.enabled);
   writer.boolean(configuration.delta_time.scale.show_sign);
   writer.integer(configuration.delta_time.scale.range_ms);
-  writer.byte(static_cast<std::uint8_t>(
-      configuration.estimated_lap_time.unavailable_behavior));
+  writer.byte(static_cast<std::uint8_t>(configuration.estimated_lap_time.unavailable_behavior));
   writer.bytes(configuration.estimated_lap_time.placeholder);
 
   writer.byte(static_cast<std::uint8_t>(configuration.dashboard.mode));
-  writer.byte(static_cast<std::uint8_t>(
-      configuration.dashboard.regions.size()));
-  for (const dashboard::LayoutRegion& region :
-       configuration.dashboard.regions) {
+  writer.byte(static_cast<std::uint8_t>(configuration.dashboard.regions.size()));
+  for (const dashboard::LayoutRegion& region : configuration.dashboard.regions) {
     write_region(writer, region);
   }
 
@@ -255,17 +242,14 @@ CodecResult encode_configuration(
   writer.integer(configuration.dashboard.delta_time.faster_color_rgb);
   writer.integer(configuration.dashboard.delta_time.slower_color_rgb);
   writer.integer(configuration.dashboard.delta_time.neutral_color_rgb);
-  writer.integer(
-      configuration.dashboard.delta_time.scale.vertical_padding_px);
+  writer.integer(configuration.dashboard.delta_time.scale.vertical_padding_px);
   writer.integer(configuration.dashboard.delta_time.scale.border_width_px);
   writer.integer(configuration.dashboard.delta_time.scale.border_radius_px);
 
   writer.boolean(configuration.dashboard.estimated_lap_time.enabled);
   write_font(writer, configuration.dashboard.estimated_lap_time.font);
-  write_placement(writer,
-                  configuration.dashboard.estimated_lap_time.placement);
-  writer.integer(
-      configuration.dashboard.estimated_lap_time.text_color_rgb);
+  write_placement(writer, configuration.dashboard.estimated_lap_time.placement);
+  writer.integer(configuration.dashboard.estimated_lap_time.text_color_rgb);
 
   writer.boolean(configuration.dashboard.gear.enabled);
   write_font(writer, configuration.dashboard.gear.font);
@@ -285,8 +269,7 @@ CodecResult encode_configuration(
   write_placement(writer, configuration.dashboard.speed.placement);
   writer.integer(configuration.dashboard.speed.text_color_rgb);
 
-  write_driving_aid_widget(
-      writer, configuration.dashboard.traction_control);
+  write_driving_aid_widget(writer, configuration.dashboard.traction_control);
   write_driving_aid_widget(writer, configuration.dashboard.abs);
   write_driving_aid_widget(writer, configuration.dashboard.brake_bias);
 
@@ -307,47 +290,39 @@ CodecResult encode_configuration(
 
   writer.boolean(configuration.dashboard.fuel_laps_remaining.enabled);
   write_font(writer, configuration.dashboard.fuel_laps_remaining.font);
-  write_placement(
-      writer, configuration.dashboard.fuel_laps_remaining.placement);
-  writer.integer(
-      configuration.dashboard.fuel_laps_remaining.text_color_rgb);
+  write_placement(writer, configuration.dashboard.fuel_laps_remaining.placement);
+  writer.integer(configuration.dashboard.fuel_laps_remaining.text_color_rgb);
+
+  writer.boolean(configuration.dashboard.race_dashboard.enabled);
+  writer.byte(static_cast<std::uint8_t>(configuration.dashboard.race_dashboard.variant));
+  write_placement(writer, configuration.dashboard.race_dashboard.placement);
 
   return {
       .ok = writer.ok(),
-      .error =
-          writer.ok() ? ValidationError::none : ValidationError::malformed,
+      .error = writer.ok() ? ValidationError::none : ValidationError::malformed,
       .size = writer.size(),
   };
 }
 
-CodecResult decode_configuration(
-    const std::span<const std::uint8_t> input,
+CodecResult decode_configuration(const std::span<const std::uint8_t> input,
     ApplicationConfiguration& configuration) {
   Reader reader(input);
-  const std::uint16_t schema_version =
-      reader.integer<std::uint16_t>();
+  const std::uint16_t schema_version = reader.integer<std::uint16_t>();
   if (!is_supported_configuration_schema(schema_version)) {
     return {.ok = false, .error = ValidationError::unsupported_schema};
   }
 
   configuration = {};
   configuration.board.id = static_cast<BoardId>(reader.byte());
-  configuration.telemetry_transport.id =
-      static_cast<TelemetryTransportId>(reader.byte());
-  configuration.telemetry_transport.uart.port =
-      reader.integer<std::int32_t>();
-  configuration.telemetry_transport.uart.tx_pin =
-      reader.integer<std::int32_t>();
-  configuration.telemetry_transport.uart.rx_pin =
-      reader.integer<std::int32_t>();
-  configuration.telemetry_transport.uart.baud_rate =
-      reader.integer<std::uint32_t>();
-  configuration.telemetry_transport.uart.silence_esp_logs =
-      reader.boolean();
+  configuration.telemetry_transport.id = static_cast<TelemetryTransportId>(reader.byte());
+  configuration.telemetry_transport.uart.port = reader.integer<std::int32_t>();
+  configuration.telemetry_transport.uart.tx_pin = reader.integer<std::int32_t>();
+  configuration.telemetry_transport.uart.rx_pin = reader.integer<std::int32_t>();
+  configuration.telemetry_transport.uart.baud_rate = reader.integer<std::uint32_t>();
+  configuration.telemetry_transport.uart.silence_esp_logs = reader.boolean();
 
   configuration.lap_timer.telemetry_only = reader.boolean();
-  configuration.lap_timer.telemetry_timeout_ms =
-      reader.integer<std::uint32_t>();
+  configuration.lap_timer.telemetry_timeout_ms = reader.integer<std::uint32_t>();
   configuration.delta_time.unavailable_behavior =
       static_cast<delta_time::UnavailableBehavior>(reader.byte());
   reader.bytes(configuration.delta_time.placeholder);
@@ -358,8 +333,7 @@ CodecResult decode_configuration(
       static_cast<estimated_lap_time::UnavailableBehavior>(reader.byte());
   reader.bytes(configuration.estimated_lap_time.placeholder);
 
-  configuration.dashboard.mode =
-      static_cast<DashboardMode>(reader.byte());
+  configuration.dashboard.mode = static_cast<DashboardMode>(reader.byte());
   const std::uint8_t region_count = reader.byte();
   if (region_count != configuration.dashboard.regions.size()) {
     return {.ok = false, .error = ValidationError::invalid_region};
@@ -372,56 +346,38 @@ CodecResult decode_configuration(
       schema_version >= kWidgetEnableSchemaVersion ? reader.boolean() : true;
   read_font(reader, configuration.dashboard.lap_timer.font);
   read_placement(reader, configuration.dashboard.lap_timer.placement);
-  configuration.dashboard.lap_timer.text_color_rgb =
-      reader.integer<std::uint32_t>();
+  configuration.dashboard.lap_timer.text_color_rgb = reader.integer<std::uint32_t>();
 
   configuration.dashboard.delta_time.enabled =
       schema_version >= kWidgetEnableSchemaVersion ? reader.boolean() : true;
   read_font(reader, configuration.dashboard.delta_time.font);
   read_placement(reader, configuration.dashboard.delta_time.placement);
-  configuration.dashboard.delta_time.faster_color_rgb =
-      reader.integer<std::uint32_t>();
-  configuration.dashboard.delta_time.slower_color_rgb =
-      reader.integer<std::uint32_t>();
-  configuration.dashboard.delta_time.neutral_color_rgb =
-      reader.integer<std::uint32_t>();
-  configuration.dashboard.delta_time.scale.vertical_padding_px =
-      reader.integer<std::uint16_t>();
-  configuration.dashboard.delta_time.scale.border_width_px =
-      reader.integer<std::uint16_t>();
-  configuration.dashboard.delta_time.scale.border_radius_px =
-      reader.integer<std::uint16_t>();
+  configuration.dashboard.delta_time.faster_color_rgb = reader.integer<std::uint32_t>();
+  configuration.dashboard.delta_time.slower_color_rgb = reader.integer<std::uint32_t>();
+  configuration.dashboard.delta_time.neutral_color_rgb = reader.integer<std::uint32_t>();
+  configuration.dashboard.delta_time.scale.vertical_padding_px = reader.integer<std::uint16_t>();
+  configuration.dashboard.delta_time.scale.border_width_px = reader.integer<std::uint16_t>();
+  configuration.dashboard.delta_time.scale.border_radius_px = reader.integer<std::uint16_t>();
 
   configuration.dashboard.estimated_lap_time.enabled =
       schema_version >= kWidgetEnableSchemaVersion ? reader.boolean() : true;
   read_font(reader, configuration.dashboard.estimated_lap_time.font);
-  read_placement(reader,
-                 configuration.dashboard.estimated_lap_time.placement);
-  configuration.dashboard.estimated_lap_time.text_color_rgb =
-      reader.integer<std::uint32_t>();
+  read_placement(reader, configuration.dashboard.estimated_lap_time.placement);
+  configuration.dashboard.estimated_lap_time.text_color_rgb = reader.integer<std::uint32_t>();
 
   if (schema_version >= kGearWidgetSchemaVersion) {
     configuration.dashboard.gear.enabled = reader.boolean();
     read_font(reader, configuration.dashboard.gear.font);
     read_placement(reader, configuration.dashboard.gear.placement);
-    configuration.dashboard.gear.padding.left =
-        reader.integer<std::uint16_t>();
-    configuration.dashboard.gear.padding.top =
-        reader.integer<std::uint16_t>();
-    configuration.dashboard.gear.padding.right =
-        reader.integer<std::uint16_t>();
-    configuration.dashboard.gear.padding.bottom =
-        reader.integer<std::uint16_t>();
-    configuration.dashboard.gear.border.color_rgb =
-        reader.integer<std::uint32_t>();
-    configuration.dashboard.gear.border.width_px =
-        reader.integer<std::uint16_t>();
-    configuration.dashboard.gear.border.radius_px =
-        reader.integer<std::uint16_t>();
-    configuration.dashboard.gear.text_color_rgb =
-        reader.integer<std::uint32_t>();
-    configuration.dashboard.gear.background_color_rgb =
-        reader.integer<std::uint32_t>();
+    configuration.dashboard.gear.padding.left = reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.padding.top = reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.padding.right = reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.padding.bottom = reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.border.color_rgb = reader.integer<std::uint32_t>();
+    configuration.dashboard.gear.border.width_px = reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.border.radius_px = reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.text_color_rgb = reader.integer<std::uint32_t>();
+    configuration.dashboard.gear.background_color_rgb = reader.integer<std::uint32_t>();
   } else {
     configuration.dashboard.gear.enabled =
         configuration.board.id == BoardId::guition_esp32_4848s040;
@@ -431,22 +387,17 @@ CodecResult decode_configuration(
     configuration.dashboard.speed.enabled = reader.boolean();
     read_font(reader, configuration.dashboard.speed.font);
     read_placement(reader, configuration.dashboard.speed.placement);
-    configuration.dashboard.speed.text_color_rgb =
-        reader.integer<std::uint32_t>();
+    configuration.dashboard.speed.text_color_rgb = reader.integer<std::uint32_t>();
   } else {
     configuration.dashboard.speed.enabled =
         configuration.board.id == BoardId::guition_esp32_4848s040;
   }
 
   if (schema_version >= kDrivingAidWidgetsSchemaVersion) {
-    const bool has_label_offset =
-        schema_version >= kDrivingAidLabelOffsetSchemaVersion;
-    read_driving_aid_widget(
-        reader, configuration.dashboard.traction_control, has_label_offset);
-    read_driving_aid_widget(
-        reader, configuration.dashboard.abs, has_label_offset);
-    read_driving_aid_widget(
-        reader, configuration.dashboard.brake_bias, has_label_offset);
+    const bool has_label_offset = schema_version >= kDrivingAidLabelOffsetSchemaVersion;
+    read_driving_aid_widget(reader, configuration.dashboard.traction_control, has_label_offset);
+    read_driving_aid_widget(reader, configuration.dashboard.abs, has_label_offset);
+    read_driving_aid_widget(reader, configuration.dashboard.brake_bias, has_label_offset);
   } else {
     configuration.dashboard.traction_control.enabled = false;
     configuration.dashboard.abs.enabled = false;
@@ -457,8 +408,7 @@ CodecResult decode_configuration(
     configuration.dashboard.rpm.enabled = reader.boolean();
     read_font(reader, configuration.dashboard.rpm.font);
     read_placement(reader, configuration.dashboard.rpm.placement);
-    configuration.dashboard.rpm.text_color_rgb =
-        reader.integer<std::uint32_t>();
+    configuration.dashboard.rpm.text_color_rgb = reader.integer<std::uint32_t>();
   } else {
     configuration.dashboard.rpm.enabled = false;
   }
@@ -467,8 +417,7 @@ CodecResult decode_configuration(
     configuration.dashboard.fuel.enabled = reader.boolean();
     read_font(reader, configuration.dashboard.fuel.font);
     read_placement(reader, configuration.dashboard.fuel.placement);
-    configuration.dashboard.fuel.text_color_rgb =
-        reader.integer<std::uint32_t>();
+    configuration.dashboard.fuel.text_color_rgb = reader.integer<std::uint32_t>();
     if (schema_version < kFuelWithoutIconSchemaVersion) {
       static_cast<void>(reader.integer<std::uint32_t>());
     }
@@ -476,19 +425,25 @@ CodecResult decode_configuration(
     configuration.dashboard.fuel_average.enabled = reader.boolean();
     read_font(reader, configuration.dashboard.fuel_average.font);
     read_placement(reader, configuration.dashboard.fuel_average.placement);
-    configuration.dashboard.fuel_average.text_color_rgb =
-        reader.integer<std::uint32_t>();
+    configuration.dashboard.fuel_average.text_color_rgb = reader.integer<std::uint32_t>();
 
     configuration.dashboard.fuel_laps_remaining.enabled = reader.boolean();
     read_font(reader, configuration.dashboard.fuel_laps_remaining.font);
-    read_placement(
-        reader, configuration.dashboard.fuel_laps_remaining.placement);
-    configuration.dashboard.fuel_laps_remaining.text_color_rgb =
-        reader.integer<std::uint32_t>();
+    read_placement(reader, configuration.dashboard.fuel_laps_remaining.placement);
+    configuration.dashboard.fuel_laps_remaining.text_color_rgb = reader.integer<std::uint32_t>();
   } else {
     configuration.dashboard.fuel.enabled = false;
     configuration.dashboard.fuel_average.enabled = false;
     configuration.dashboard.fuel_laps_remaining.enabled = false;
+  }
+
+  if (schema_version >= kRaceDashboardSchemaVersion) {
+    configuration.dashboard.race_dashboard.enabled = reader.boolean();
+    configuration.dashboard.race_dashboard.variant =
+        static_cast<dashboard::race_dashboard_widget::LayoutVariant>(reader.byte());
+    read_placement(reader, configuration.dashboard.race_dashboard.placement);
+  } else {
+    configuration.dashboard.race_dashboard.enabled = false;
   }
 
   if (!reader.complete()) {
