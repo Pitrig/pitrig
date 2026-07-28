@@ -1,0 +1,19 @@
+menu "SimCore"
+
+choice SIMCORE_FACTORY_BOARD
+    prompt "Factory board profile"
+    default SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
+    help
+        Selects the immutable hardware identity and the fallback configuration
+        used when neither NVS configuration slot is valid. All supported
+        drivers remain linked.
+
+config SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
+    bool "LilyGO T-Display-S3"
+
+config SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+    bool "Guition ESP32-4848S040"
+
+endchoice
+
+endmenu

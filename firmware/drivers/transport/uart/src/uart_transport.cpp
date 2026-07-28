@@ -117,6 +117,14 @@ void UartTransport::stop() {
   ESP_LOGI(kTag, "UART telemetry transport stopped");
 }
 
+bool UartTransport::write(const std::span<const std::uint8_t> data) {
+  if (!started_ || data.empty()) {
+    return false;
+  }
+  return uart_write_bytes(configuration_.port, data.data(), data.size()) ==
+         static_cast<int>(data.size());
+}
+
 void UartTransport::task_entry(void* const context) {
   static_cast<UartTransport*>(context)->process();
 }

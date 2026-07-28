@@ -19,6 +19,8 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/platform/application_config"
      "${CMAKE_CURRENT_LIST_DIR}/platform/board_registry"
      "${CMAKE_CURRENT_LIST_DIR}/platform/dashboard"
+     "${CMAKE_CURRENT_LIST_DIR}/platform/nvs_config_storage"
+     "${CMAKE_CURRENT_LIST_DIR}/services/configuration"
      "${CMAKE_CURRENT_LIST_DIR}/services/event_bus"
      "${CMAKE_CURRENT_LIST_DIR}/services/logger"
      "${CMAKE_CURRENT_LIST_DIR}/services/performance"

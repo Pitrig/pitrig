@@ -9,6 +9,7 @@ class EstimatedLapTime;
 namespace simcore::dashboard::estimated_lap_time_widget {
 
 struct Config {
+  bool enabled{true};
   FontSpec font{};
   Placement placement{};
   std::uint32_t text_color_rgb{0xE8E8E8};

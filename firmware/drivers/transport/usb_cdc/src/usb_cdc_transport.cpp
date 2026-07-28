@@ -127,6 +127,16 @@ void UsbCdcTransport::stop() {
   ESP_LOGI(kTag, "Native USB CDC transport stopped");
 }
 
+bool UsbCdcTransport::write(const std::span<const std::uint8_t> data) {
+  if (!started_ || data.empty()) {
+    return false;
+  }
+  const std::size_t queued = tinyusb_cdcacm_write_queue(
+      TINYUSB_CDC_ACM_0, data.data(), data.size());
+  return queued == data.size() &&
+         tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0) == ESP_OK;
+}
+
 void UsbCdcTransport::receive_callback(const int interface, cdcacm_event_t* const event) {
   (void)interface;
   (void)event;

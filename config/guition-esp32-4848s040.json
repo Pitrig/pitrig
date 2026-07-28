@@ -1,0 +1,115 @@
+{
+  "schema_version": 2,
+  "board": {
+    "id": "guition_esp32_4848s040"
+  },
+  "telemetry_transport": {
+    "id": "board_default",
+    "uart": {
+      "port": 0,
+      "tx_pin": 43,
+      "rx_pin": 44,
+      "baud_rate": 115200,
+      "silence_esp_logs": true
+    }
+  },
+  "lap_timer": {
+    "telemetry_only": false,
+    "telemetry_timeout_ms": 1000
+  },
+  "delta_time": {
+    "unavailable_behavior": "zero",
+    "placeholder": "---",
+    "scale": {
+      "enabled": true,
+      "show_sign": true,
+      "range_ms": 2000
+    }
+  },
+  "estimated_lap_time": {
+    "unavailable_behavior": "placeholder",
+    "placeholder": "--:--.---"
+  },
+  "dashboard": {
+    "mode": "normal",
+    "regions": [
+      {
+        "id": 1,
+        "bounds": {
+          "x": 80,
+          "y": 155,
+          "width": 320,
+          "height": 170
+        },
+        "padding": {
+          "left": 0,
+          "top": 5,
+          "right": 0,
+          "bottom": 2
+        },
+        "style": {
+          "background_color_rgb": 0,
+          "border_color_rgb": 11447982,
+          "border_width_px": 1,
+          "radius_px": 0,
+          "visible": false
+        }
+      }
+    ],
+    "lap_timer": {
+      "enabled": true,
+      "font": {
+        "family": "lcd",
+        "size_px": 53
+      },
+      "placement": {
+        "region_id": 1,
+        "anchor": "top_center",
+        "offset_x": 2,
+        "offset_y": 0,
+        "width": 320,
+        "height": 53
+      },
+      "text_color_rgb": 15263976
+    },
+    "delta_time": {
+      "enabled": true,
+      "font": {
+        "family": "lcd",
+        "size_px": 43
+      },
+      "placement": {
+        "region_id": 1,
+        "anchor": "top_center",
+        "offset_x": 0,
+        "offset_y": 58,
+        "width": 0,
+        "height": 61
+      },
+      "faster_color_rgb": 51283,
+      "slower_color_rgb": 13959168,
+      "neutral_color_rgb": 15263976,
+      "scale": {
+        "vertical_padding_px": 6,
+        "border_width_px": 3,
+        "border_radius_px": 10
+      }
+    },
+    "estimated_lap_time": {
+      "enabled": true,
+      "font": {
+        "family": "lcd",
+        "size_px": 39
+      },
+      "placement": {
+        "region_id": 1,
+        "anchor": "bottom_center",
+        "offset_x": 0,
+        "offset_y": 0,
+        "width": 0,
+        "height": 39
+      },
+      "text_color_rgb": 15263976
+    }
+  }
+}

@@ -8,10 +8,11 @@
 
 namespace simcore::board_registry {
 
-const display::driver::Driver& display_driver() {
+const display::driver::Driver& display_driver(
+    const configuration::BoardId board) {
   using configuration::BoardId;
 
-  switch (configuration::board_id()) {
+  switch (board) {
     case BoardId::t_display_s3:
       return display::drivers::t_display_s3::get();
     case BoardId::guition_esp32_4848s040:
@@ -21,13 +22,13 @@ const display::driver::Driver& display_driver() {
   return display::drivers::t_display_s3::get();
 }
 
-transport::ITransport& telemetry_transport() {
+transport::ITransport& telemetry_transport(
+    const configuration::ApplicationConfiguration& application_configuration) {
   using configuration::BoardId;
   using configuration::TelemetryTransportId;
 
   static transport::UsbCdcTransport usb_cdc;
-  const auto& configured =
-      configuration::telemetry_transport_configuration();
+  const auto& configured = application_configuration.telemetry_transport;
   static transport::UartTransport uart({
       .port = static_cast<uart_port_t>(configured.uart.port),
       .tx_pin = configured.uart.tx_pin,
@@ -38,7 +39,8 @@ transport::ITransport& telemetry_transport() {
 
   TelemetryTransportId selected = configured.id;
   if (selected == TelemetryTransportId::board_default) {
-    selected = configuration::board_id() == BoardId::guition_esp32_4848s040
+    selected = application_configuration.board.id ==
+                       BoardId::guition_esp32_4848s040
                    ? TelemetryTransportId::uart
                    : TelemetryTransportId::native_usb_cdc;
   }

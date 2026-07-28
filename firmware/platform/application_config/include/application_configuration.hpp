@@ -3,6 +3,9 @@
 #include <array>
 #include <cstdint>
 
+#if __has_include("sdkconfig.h")
+#include "sdkconfig.h"
+#endif
 #include "delta_time.hpp"
 #include "delta_time_widget.hpp"
 #include "estimated_lap_time.hpp"
@@ -73,9 +76,13 @@ struct ApplicationConfiguration {
   DashboardConfiguration dashboard{};
 };
 
-inline constexpr ApplicationConfiguration kApplicationConfiguration{
+inline constexpr ApplicationConfiguration kFactoryConfiguration{
     .board = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
         .id = BoardId::guition_esp32_4848s040,
+#else
+        .id = BoardId::t_display_s3,
+#endif
     },
     .telemetry_transport = {
         .id = TelemetryTransportId::board_default,
@@ -136,6 +143,7 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
             },
         }},
         .lap_timer = {
+            .enabled = true,
             .font = {.family = dashboard::FontFamily::lcd, .size_px = 53},
             .placement = {
                 .region_id = kTimingRegionId,
@@ -148,6 +156,7 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
             .text_color_rgb = 0xE8E8E8,
         },
         .delta_time = {
+            .enabled = true,
             .font = {.family = dashboard::FontFamily::lcd, .size_px = 43},
             .placement = {
                 .region_id = kTimingRegionId,
@@ -166,6 +175,7 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
             },
         },
         .estimated_lap_time = {
+            .enabled = true,
             .font = {.family = dashboard::FontFamily::lcd, .size_px = 39},
             .placement = {
                 .region_id = kTimingRegionId,
@@ -178,15 +188,5 @@ inline constexpr ApplicationConfiguration kApplicationConfiguration{
         },
     },
 };
-
-// Reads the configured board identifier at runtime so every supported driver
-// remains available in the universal firmware image.
-[[nodiscard]] BoardId board_id();
-
-[[nodiscard]] const TelemetryTransportConfiguration&
-telemetry_transport_configuration();
-
-// Reads the configured dashboard mode at runtime.
-[[nodiscard]] DashboardMode dashboard_mode();
 
 }  // namespace simcore::configuration

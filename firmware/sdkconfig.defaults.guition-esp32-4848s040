@@ -1,0 +1,2 @@
+# Factory fallback for fresh Guition ESP32-4848S040 devices.
+CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040=y

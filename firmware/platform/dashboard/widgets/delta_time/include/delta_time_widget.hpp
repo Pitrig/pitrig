@@ -15,6 +15,7 @@ struct ScaleStyle {
 };
 
 struct Config {
+  bool enabled{true};
   FontSpec font{};
   Placement placement{};
   std::uint32_t faster_color_rgb{0x00C853};

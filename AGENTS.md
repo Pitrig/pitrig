@@ -170,6 +170,15 @@ Explain important design decisions in the final response.
 
 ---
 
+## Testing
+
+Do not add automated test files or test suites to this repository.
+
+Validate changes through firmware builds, static checks and manual or hardware
+verification as appropriate.
+
+---
+
 ## Communication
 
 When working on larger tasks:

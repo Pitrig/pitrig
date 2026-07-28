@@ -5,6 +5,15 @@ firmware/sdkconfig
 firmware/sdkconfig.old
 firmware/sdkconfig.*
 !firmware/sdkconfig.defaults
+!firmware/sdkconfig.defaults.*
+
+# Python generated files and local environments
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
 
 # Local editor settings
 .vscode/

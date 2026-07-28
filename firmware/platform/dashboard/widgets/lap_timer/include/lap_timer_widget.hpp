@@ -11,6 +11,7 @@ class LapTimer;
 namespace simcore::dashboard::lap_timer_widget {
 
 struct Config {
+  bool enabled{true};
   FontSpec font{};
   Placement placement{};
   std::uint32_t text_color_rgb{0xE8E8E8};

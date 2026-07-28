@@ -24,6 +24,7 @@ class UsbCdcTransport final : public ITransport {
 
   bool start(DataHandler handler, void* context) override;
   void stop() override;
+  bool write(std::span<const std::uint8_t> data) override;
   [[nodiscard]] Diagnostics diagnostics() const override;
 
  private:

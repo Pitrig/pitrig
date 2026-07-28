@@ -2,6 +2,9 @@
 
 #include "application_configuration.hpp"
 #include "board_registry.hpp"
+#include "configuration_control.hpp"
+#include "configuration_router.hpp"
+#include "configuration_service.hpp"
 #include "delta_time.hpp"
 #include "delta_time_widget.hpp"
 #include "estimated_lap_time.hpp"
@@ -10,7 +13,11 @@
 #include "lap_timer.hpp"
 #include "display.hpp"
 #include "event_bus.hpp"
+#include "esp_system.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "logger.hpp"
+#include "nvs_config_storage.hpp"
 #include "simhub_protocol.hpp"
 #include "simcore_features.hpp"
 #include "telemetry_provider.hpp"
@@ -29,6 +36,10 @@ namespace {
 constexpr char kTag[] = "simcore";
 
 struct Application {
+  configuration::NvsConfigurationStorage configuration_storage;
+  configuration::ConfigurationService configuration_service;
+  configuration::ConfigurationControl configuration_control;
+  configuration::ConfigurationRouter configuration_router;
   events::EventBus event_bus;
   telemetry::TelemetryStateService telemetry_state;
   telemetry::TelemetryProvider telemetry_provider{telemetry_state, event_bus};
@@ -42,26 +53,46 @@ void submit_update(const telemetry::TelemetryUpdate& update, void* const context
   static_cast<Application*>(context)->telemetry_provider.submit(update);
 }
 
-void receive_transport_data(const std::span<const std::uint8_t> data, void* const context) {
+void receive_telemetry_data(const std::span<const std::uint8_t> data,
+                            void* const context) {
   auto& application = *static_cast<Application*>(context);
   application.protocol.consume(data, &submit_update, &application);
+}
+
+void receive_transport_data(const std::span<const std::uint8_t> data,
+                            void* const context) {
+  static_cast<Application*>(context)->configuration_router.consume(data);
+}
+
+void reboot(void*) {
+  vTaskDelay(pdMS_TO_TICKS(100));
+  esp_restart();
 }
 
 }
 
 void run() {
   static Application application;
+  if (!application.configuration_service.initialize(
+          application.configuration_storage,
+          configuration::kFactoryConfiguration)) {
+    log::warn(kTag,
+              "Configuration storage unavailable; using factory defaults");
+  }
+  const configuration::ApplicationConfiguration& configuration =
+      application.configuration_service.current();
   transport::ITransport& telemetry_transport =
-      board_registry::telemetry_transport();
+      board_registry::telemetry_transport(configuration);
 
   log::info(kTag, "SimCore starting");
 #if SIMCORE_DEBUG
   performance::begin();
 #endif
-  lv_display_t* display = display::initialize(board_registry::display_driver());
+  lv_display_t* display =
+      display::initialize(board_registry::display_driver(configuration.board.id));
   dashboard::Layout dashboard_layout{
       .display = display,
-      .regions = configuration::kApplicationConfiguration.dashboard.regions,
+      .regions = configuration.dashboard.regions,
   };
   const bool dashboard_ready = dashboard::initialize(dashboard_layout);
   if (!dashboard_ready) {
@@ -69,57 +100,63 @@ void run() {
   }
   if (!application.lap_timer.start(
           application.event_bus, application.telemetry_state,
-          configuration::kApplicationConfiguration.lap_timer)) {
+          configuration.lap_timer)) {
     log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
   }
   if (!application.delta_time.start(
           application.event_bus, application.telemetry_state,
-          configuration::kApplicationConfiguration.delta_time)) {
+          configuration.delta_time)) {
     log::error(kTag, "Failed to subscribe Delta Time to telemetry");
   }
   if (!application.estimated_lap_time.start(
           application.event_bus, application.telemetry_state,
-          configuration::kApplicationConfiguration.estimated_lap_time)) {
+          configuration.estimated_lap_time)) {
     log::error(kTag, "Failed to subscribe Estimated Lap Time to telemetry");
   }
   bool diagnostics_enabled = false;
 #if SIMCORE_DISPLAY_DIAGNOSTICS
-  diagnostics_enabled =
-      configuration::dashboard_mode() ==
-      configuration::DashboardMode::display_diagnostics;
+  diagnostics_enabled = configuration.dashboard.mode ==
+                        configuration::DashboardMode::display_diagnostics;
   if (dashboard_ready && diagnostics_enabled &&
       !dashboard::display_diagnostics::create(
           display,
-          configuration::kApplicationConfiguration.dashboard
-              .display_diagnostics)) {
+          configuration.dashboard.display_diagnostics)) {
     log::error(kTag, "Failed to start display diagnostics");
   }
 #endif
   if (dashboard_ready && !diagnostics_enabled &&
+      configuration.dashboard.lap_timer.enabled &&
       !dashboard::lap_timer_widget::create(
           dashboard_layout,
-          configuration::kApplicationConfiguration.dashboard.lap_timer,
+          configuration.dashboard.lap_timer,
           application.lap_timer)) {
     log::error(kTag, "Failed to create Lap Timer widget");
   }
   if (dashboard_ready && !diagnostics_enabled &&
+      configuration.dashboard.delta_time.enabled &&
       !dashboard::delta_time_widget::create(
           dashboard_layout,
-          configuration::kApplicationConfiguration.dashboard.delta_time,
+          configuration.dashboard.delta_time,
           application.delta_time)) {
     log::error(kTag, "Failed to create Delta Time widget");
   }
   if (dashboard_ready && !diagnostics_enabled &&
+      configuration.dashboard.estimated_lap_time.enabled &&
       !dashboard::estimated_lap_time_widget::create(
           dashboard_layout,
-          configuration::kApplicationConfiguration.dashboard
-              .estimated_lap_time,
+          configuration.dashboard.estimated_lap_time,
           application.estimated_lap_time)) {
     log::error(kTag, "Failed to create Estimated Lap Time widget");
   }
 #if SIMCORE_DEBUG
   dashboard::performance_overlay_widget::create(display, telemetry_transport);
 #endif
+  application.configuration_control.initialize(
+      application.configuration_service, telemetry_transport, &reboot,
+      nullptr);
+  application.configuration_router.initialize(
+      application.configuration_control, &receive_telemetry_data,
+      &application);
   if (!telemetry_transport.start(&receive_transport_data, &application)) {
     log::error(kTag, "Failed to start telemetry transport");
   }
