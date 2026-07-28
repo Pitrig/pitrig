@@ -12,8 +12,9 @@ from pathlib import Path
 from typing import Any, Optional
 
 OLDEST_SCHEMA_VERSION = 1
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 WIDGET_ENABLE_SCHEMA_VERSION = 2
+GEAR_WIDGET_SCHEMA_VERSION = 3
 TEXT_CAPACITY = 16
 
 BOARD_IDS = {
@@ -28,7 +29,7 @@ TRANSPORT_IDS = {
 DELTA_UNAVAILABLE = {"hide": 0, "placeholder": 1, "zero": 2}
 ESTIMATED_UNAVAILABLE = {"hide": 0, "placeholder": 1}
 DASHBOARD_MODES = {"normal": 0, "display_diagnostics": 1}
-FONT_FAMILIES = {"roboto_mono": 0, "lcd": 1}
+FONT_FAMILIES = {"roboto_mono": 0, "lcd": 1, "montserrat": 2}
 ANCHORS = {
     "top_left": 0,
     "top_center": 1,
@@ -255,6 +256,20 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     _encode_font(writer, estimated_widget["font"])
     _encode_placement(writer, estimated_widget["placement"])
     writer.put("I", estimated_widget["text_color_rgb"])
+
+    gear_widget = dashboard["gear"]
+    writer.boolean(gear_widget["enabled"])
+    _encode_font(writer, gear_widget["font"])
+    _encode_placement(writer, gear_widget["placement"])
+    padding = gear_widget["padding"]
+    for field in ("left", "top", "right", "bottom"):
+        writer.put("H", padding[field])
+    border = gear_widget["border"]
+    writer.put("I", border["color_rgb"])
+    writer.put("H", border["width_px"])
+    writer.put("H", border["radius_px"])
+    writer.put("I", gear_widget["text_color_rgb"])
+    writer.put("I", gear_widget["background_color_rgb"])
     return bytes(writer.data)
 
 
@@ -344,6 +359,46 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
         "placement": _decode_placement(reader),
         "text_color_rgb": reader.get("I"),
     }
+    if schema >= GEAR_WIDGET_SCHEMA_VERSION:
+        dashboard["gear"] = {
+            "enabled": reader.boolean(),
+            "font": _decode_font(reader),
+            "placement": _decode_placement(reader),
+            "padding": {
+                "left": reader.get("H"),
+                "top": reader.get("H"),
+                "right": reader.get("H"),
+                "bottom": reader.get("H"),
+            },
+            "border": {
+                "color_rgb": reader.get("I"),
+                "width_px": reader.get("H"),
+                "radius_px": reader.get("H"),
+            },
+            "text_color_rgb": reader.get("I"),
+            "background_color_rgb": reader.get("I"),
+        }
+    else:
+        dashboard["gear"] = {
+            "enabled": result["board"]["id"] == "guition_esp32_4848s040",
+            "font": {"family": "montserrat", "size_px": 48},
+            "placement": {
+                "region_id": 0,
+                "anchor": "top_center",
+                "offset_x": 0,
+                "offset_y": 16,
+                "width": 120,
+                "height": 120,
+            },
+            "padding": {"left": 8, "top": 8, "right": 8, "bottom": 8},
+            "border": {
+                "color_rgb": 11447982,
+                "width_px": 2,
+                "radius_px": 12,
+            },
+            "text_color_rgb": 15263976,
+            "background_color_rgb": 723723,
+        }
     result["dashboard"] = dashboard
     reader.finish()
     return result

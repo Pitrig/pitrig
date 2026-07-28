@@ -33,6 +33,11 @@ Dashboard widget configuration includes an enable flag so disabled widgets do
 not create runtime UI objects. Schema 2 adds these flags while schema 1 remains
 readable and maps every existing widget to enabled.
 
+Schema 3 adds the gear widget configuration. Schema 1 and 2 records remain
+readable and receive the gear defaults for their board. The gear widget is
+enabled only for `guition_esp32_4848s040`; configurations for `t_display_s3`
+cannot enable it.
+
 Extend transports with bounded response writes. Route newline-delimited frames
 beginning with `@SC:` to the configuration control protocol and route all other
 lines to the configured telemetry protocol. The developer CLI converts JSON
@@ -52,6 +57,9 @@ files to the same binary schema that a future companion application will use.
   configuration snapshot.
 - Widget visibility is configuration-driven without dynamically allocating a
   variable-size widget registry.
+- The gear widget reuses the canonical telemetry snapshot and remains
+  board-limited through validated application composition rather than
+  hardware-specific rendering code.
 - Configuration and SimHub telemetry can share one serial connection without
   either protocol interpreting the other's messages.
 - Changes that affect drivers, transports, modules, or layout require restart.

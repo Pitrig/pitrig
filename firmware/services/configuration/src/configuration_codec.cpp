@@ -9,6 +9,7 @@ namespace simcore::configuration {
 namespace {
 
 constexpr std::uint16_t kWidgetEnableSchemaVersion = 2;
+constexpr std::uint16_t kGearWidgetSchemaVersion = 3;
 
 class Writer {
  public:
@@ -159,6 +160,9 @@ void read_region(Reader& reader, dashboard::LayoutRegion& region) {
 bool valid_color(const std::uint32_t color) { return color <= 0xFFFFFFU; }
 
 bool valid_font(const dashboard::FontSpec& font) {
+  if (font.family == dashboard::FontFamily::montserrat) {
+    return font.size_px == 10 || font.size_px == 48;
+  }
   if (font.family == dashboard::FontFamily::roboto_mono) {
     return font.size_px == 43;
   }
@@ -265,6 +269,19 @@ CodecResult encode_configuration(
   writer.integer(
       configuration.dashboard.estimated_lap_time.text_color_rgb);
 
+  writer.boolean(configuration.dashboard.gear.enabled);
+  write_font(writer, configuration.dashboard.gear.font);
+  write_placement(writer, configuration.dashboard.gear.placement);
+  writer.integer(configuration.dashboard.gear.padding.left);
+  writer.integer(configuration.dashboard.gear.padding.top);
+  writer.integer(configuration.dashboard.gear.padding.right);
+  writer.integer(configuration.dashboard.gear.padding.bottom);
+  writer.integer(configuration.dashboard.gear.border.color_rgb);
+  writer.integer(configuration.dashboard.gear.border.width_px);
+  writer.integer(configuration.dashboard.gear.border.radius_px);
+  writer.integer(configuration.dashboard.gear.text_color_rgb);
+  writer.integer(configuration.dashboard.gear.background_color_rgb);
+
   return {
       .ok = writer.ok(),
       .error =
@@ -352,6 +369,33 @@ CodecResult decode_configuration(
                  configuration.dashboard.estimated_lap_time.placement);
   configuration.dashboard.estimated_lap_time.text_color_rgb =
       reader.integer<std::uint32_t>();
+
+  if (schema_version >= kGearWidgetSchemaVersion) {
+    configuration.dashboard.gear.enabled = reader.boolean();
+    read_font(reader, configuration.dashboard.gear.font);
+    read_placement(reader, configuration.dashboard.gear.placement);
+    configuration.dashboard.gear.padding.left =
+        reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.padding.top =
+        reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.padding.right =
+        reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.padding.bottom =
+        reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.border.color_rgb =
+        reader.integer<std::uint32_t>();
+    configuration.dashboard.gear.border.width_px =
+        reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.border.radius_px =
+        reader.integer<std::uint16_t>();
+    configuration.dashboard.gear.text_color_rgb =
+        reader.integer<std::uint32_t>();
+    configuration.dashboard.gear.background_color_rgb =
+        reader.integer<std::uint32_t>();
+  } else {
+    configuration.dashboard.gear.enabled =
+        configuration.board.id == BoardId::guition_esp32_4848s040;
+  }
 
   if (!reader.complete()) {
     return {.ok = false, .error = ValidationError::malformed};
@@ -452,16 +496,25 @@ ValidationError validate_configuration(
   const auto& lap = configuration.dashboard.lap_timer;
   const auto& delta = configuration.dashboard.delta_time;
   const auto& estimated = configuration.dashboard.estimated_lap_time;
+  const auto& gear = configuration.dashboard.gear;
   if (!valid_font(lap.font) || !valid_font(delta.font) ||
-      !valid_font(estimated.font) ||
+      !valid_font(estimated.font) || !valid_font(gear.font) ||
       !valid_placement(lap.placement, region.id) ||
       !valid_placement(delta.placement, region.id) ||
       !valid_placement(estimated.placement, region.id) ||
+      !valid_placement(gear.placement, region.id) ||
       !valid_color(lap.text_color_rgb) ||
       !valid_color(delta.faster_color_rgb) ||
       !valid_color(delta.slower_color_rgb) ||
       !valid_color(delta.neutral_color_rgb) ||
-      !valid_color(estimated.text_color_rgb)) {
+      !valid_color(estimated.text_color_rgb) ||
+      !valid_color(gear.border.color_rgb) ||
+      !valid_color(gear.text_color_rgb) ||
+      !valid_color(gear.background_color_rgb) ||
+      gear.padding.left > 480 || gear.padding.top > 480 ||
+      gear.padding.right > 480 || gear.padding.bottom > 480 ||
+      gear.border.width_px > 240 || gear.border.radius_px > 480 ||
+      (configuration.board.id == BoardId::t_display_s3 && gear.enabled)) {
     return ValidationError::invalid_widget;
   }
 

@@ -30,6 +30,14 @@ constexpr std::array<FontEntry, 5> kFonts{{
 }  // namespace
 
 const lv_font_t* resolve(const FontSpec spec) {
+  if (spec.family == FontFamily::montserrat) {
+    if (spec.size_px == 10) {
+      return &lv_font_montserrat_10;
+    }
+    if (spec.size_px == 48) {
+      return &lv_font_montserrat_48;
+    }
+  }
   for (const FontEntry& entry : kFonts) {
     if (entry.family == spec.family && entry.size_px == spec.size_px) {
       return entry.font;

@@ -9,6 +9,7 @@
 #include "delta_time_widget.hpp"
 #include "estimated_lap_time.hpp"
 #include "estimated_lap_time_widget.hpp"
+#include "gear_widget.hpp"
 #include "lap_timer_widget.hpp"
 #include "lap_timer.hpp"
 #include "display.hpp"
@@ -147,6 +148,15 @@ void run() {
           configuration.dashboard.estimated_lap_time,
           application.estimated_lap_time)) {
     log::error(kTag, "Failed to create Estimated Lap Time widget");
+  }
+  if (dashboard_ready && !diagnostics_enabled &&
+      configuration.board.id ==
+          configuration::BoardId::guition_esp32_4848s040 &&
+      configuration.dashboard.gear.enabled &&
+      !dashboard::gear_widget::create(
+          dashboard_layout, configuration.dashboard.gear,
+          application.telemetry_state)) {
+    log::error(kTag, "Failed to create Gear widget");
   }
 #if SIMCORE_DEBUG
   dashboard::performance_overlay_widget::create(display, telemetry_transport);

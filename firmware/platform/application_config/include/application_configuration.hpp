@@ -10,6 +10,7 @@
 #include "delta_time_widget.hpp"
 #include "estimated_lap_time.hpp"
 #include "estimated_lap_time_widget.hpp"
+#include "gear_widget.hpp"
 #include "lap_timer.hpp"
 #include "lap_timer_widget.hpp"
 #include "simcore_features.hpp"
@@ -65,6 +66,7 @@ struct DashboardConfiguration {
   dashboard::lap_timer_widget::Config lap_timer{};
   dashboard::delta_time_widget::Config delta_time{};
   dashboard::estimated_lap_time_widget::Config estimated_lap_time{};
+  dashboard::gear_widget::Config gear{};
 };
 
 struct ApplicationConfiguration {
@@ -185,6 +187,38 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 .height = 39,
             },
             .text_color_rgb = 0xE8E8E8,
+        },
+        .gear = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+            .enabled = true,
+#else
+            .enabled = false,
+#endif
+            .font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 48,
+            },
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::top_center,
+                .offset_x = 0,
+                .offset_y = 16,
+                .width = 120,
+                .height = 120,
+            },
+            .padding = {
+                .left = 8,
+                .top = 8,
+                .right = 8,
+                .bottom = 8,
+            },
+            .border = {
+                .color_rgb = 0xAEAEAE,
+                .width_px = 2,
+                .radius_px = 12,
+            },
+            .text_color_rgb = 0xE8E8E8,
+            .background_color_rgb = 0x0B0B0B,
         },
     },
 };

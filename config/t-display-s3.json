@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "board": {
     "id": "t_display_s3"
   },
@@ -110,6 +110,34 @@
         "height": 39
       },
       "text_color_rgb": 15263976
+    },
+    "gear": {
+      "enabled": false,
+      "font": {
+        "family": "montserrat",
+        "size_px": 48
+      },
+      "placement": {
+        "region_id": 0,
+        "anchor": "top_center",
+        "offset_x": 0,
+        "offset_y": 16,
+        "width": 120,
+        "height": 120
+      },
+      "padding": {
+        "left": 8,
+        "top": 8,
+        "right": 8,
+        "bottom": 8
+      },
+      "border": {
+        "color_rgb": 11447982,
+        "width_px": 2,
+        "radius_px": 12
+      },
+      "text_color_rgb": 15263976,
+      "background_color_rgb": 723723
     }
   }
 }

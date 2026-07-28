@@ -18,6 +18,7 @@ inline constexpr RegionId kScreenRegionId = 0;
 enum class FontFamily : std::uint8_t {
   roboto_mono,
   lcd,
+  montserrat,
 };
 
 struct FontSpec {
