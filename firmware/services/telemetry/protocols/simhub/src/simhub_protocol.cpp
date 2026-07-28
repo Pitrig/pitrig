@@ -56,6 +56,36 @@ template <typename Value>
   return true;
 }
 
+[[nodiscard]] bool parse_nonnegative_decimal(
+    const std::span<const char> text, float& value) {
+  if (text.empty()) {
+    return false;
+  }
+
+  const auto decimal = std::find(text.begin(), text.end(), '.');
+  const std::span<const char> whole{
+      text.begin(), static_cast<std::size_t>(decimal - text.begin())};
+  std::uint32_t whole_value{};
+  if (!parse_integer(whole, whole_value) || whole_value > 1'000'000U) {
+    return false;
+  }
+
+  std::uint32_t tenth{};
+  if (decimal != text.end()) {
+    const std::span<const char> fraction{
+        decimal + 1, static_cast<std::size_t>(text.end() - decimal - 1)};
+    if (fraction.size() != 1 || fraction.front() < '0' ||
+        fraction.front() > '9') {
+      return false;
+    }
+    tenth = static_cast<std::uint32_t>(fraction.front() - '0');
+  }
+
+  value = static_cast<float>(whole_value) +
+          static_cast<float>(tenth) * 0.1F;
+  return true;
+}
+
 [[nodiscard]] bool parse_brake_bias(
     const std::span<const char> text,
     std::uint16_t& tenths_percent) {
@@ -144,16 +174,37 @@ void SimHubProtocol::process_line(const std::span<const char> line,
   telemetry::TelemetryUpdate update{};
 
   if (identifier.size() == 2) {
-    if (identifier[0] != 'B' || identifier[1] != 'B') {
+    telemetry::Field field{};
+    float* decimal_value{};
+    if (identifier[0] == 'B' && identifier[1] == 'B') {
+      if (value.empty()) {
+        update.invalid_fields = telemetry::Field::brake_bias;
+      } else if (!parse_brake_bias(
+                     value, update.values.brake_bias_tenths_percent)) {
+        return;
+      } else {
+        update.present_fields = telemetry::Field::brake_bias;
+      }
+      handler(update, context);
       return;
     }
+
+    if (identifier[0] == 'F' && identifier[1] == 'C') {
+      field = telemetry::Field::fuel_average_consumption;
+      decimal_value = &update.values.fuel_average_liters_per_lap;
+    } else if (identifier[0] == 'F' && identifier[1] == 'L') {
+      field = telemetry::Field::fuel_laps_remaining;
+      decimal_value = &update.values.fuel_laps_remaining;
+    } else {
+      return;
+    }
+
     if (value.empty()) {
-      update.invalid_fields = telemetry::Field::brake_bias;
-    } else if (!parse_brake_bias(
-                   value, update.values.brake_bias_tenths_percent)) {
+      update.invalid_fields = field;
+    } else if (!parse_nonnegative_decimal(value, *decimal_value)) {
       return;
     } else {
-      update.present_fields = telemetry::Field::brake_bias;
+      update.present_fields = field;
     }
     handler(update, context);
     return;
@@ -240,6 +291,17 @@ void SimHubProtocol::process_line(const std::span<const char> line,
         return;
       }
       update.present_fields = telemetry::Field::abs;
+      break;
+
+    case 'F':
+      if (value.empty()) {
+        update.invalid_fields = telemetry::Field::fuel;
+        break;
+      }
+      if (!parse_nonnegative_decimal(value, update.values.fuel_liters)) {
+        return;
+      }
+      update.present_fields = telemetry::Field::fuel;
       break;
 
     default:

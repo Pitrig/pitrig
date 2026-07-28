@@ -29,6 +29,9 @@ P;<estimated-lap-ms>\n
 T;<traction-control-level>\n
 A;<abs-level>\n
 BB;<front-brake-bias-percent>\n
+F;<fuel-liters>\n
+FC;<average-liters-per-lap>\n
+FL;<fuel-laps-remaining>\n
 ```
 
 RPM, speed, and lap times are non-negative decimal integers. Gear is a signed
@@ -39,7 +42,9 @@ estimated lap time as unavailable. Traction-control and ABS levels are integers
 from 0 through 255. Front brake bias is a percentage from `0` through `100`
 with zero or one fractional digit, for example `BB;54.0`. Empty `T;`, `A;`, or
 `BB;` messages mark those values as unavailable. Unknown line identifiers and
-malformed lines are ignored.
+malformed lines are ignored. Fuel values are non-negative decimals with zero
+or one fractional digit. Empty `F;`, `FC;`, or `FL;` messages mark the
+corresponding fuel value as unavailable.
 
 ## Example update messages
 
@@ -60,13 +65,18 @@ property.
 | Traction control | Prefix the integer traction-control level selected in SimHub with `T;` and append `\n` | Changes only |
 | ABS | Prefix the integer ABS level selected in SimHub with `A;` and append `\n` | Changes only |
 | Front brake bias | Prefix the front brake-bias percentage selected in SimHub with `BB;`, format it with at most one decimal digit, and append `\n` | Changes only |
+| Fuel remaining | `'F;' + isnull(format([DataCorePlugin.GameData.NewData.Fuel], '0.0'), '') + '\n'` | 5 Hz |
+| Average fuel use | `'FC;' + isnull(format([DataCorePlugin.Computed.Fuel_LitersPerLap], '0.0'), '') + '\n'` | Changes only |
+| Fuel laps remaining | `'FL;' + isnull(format([DataCorePlugin.Computed.Fuel_RemainingLaps], '0.0'), '') + '\n'` | Changes only |
 
 SimHub's free mode limits output to 10 Hz, so use 10 Hz for RPM as well when
 that limit applies. If a lap-time property can be absent for a particular game,
 configure the message to return an empty string in that case; SimHub does not
 send empty update messages.
 
-The exact lap-delta and estimated-lap property names vary between games and
-SimHub plugins. Use SimHub's property picker and configure unavailable branches
-to emit `D;\n` or `P;\n` instead of omitting the update, so the firmware can
-clear stale values.
+The exact lap-delta, estimated-lap, and fuel property availability varies
+between games and SimHub plugins. Use SimHub's property picker and configure
+unavailable branches to emit the identifier plus `;\n` instead of omitting the
+update, so the firmware can clear stale values. SimHub normally needs at least
+one completed valid lap before its computed liters-per-lap and remaining-laps
+properties become available.

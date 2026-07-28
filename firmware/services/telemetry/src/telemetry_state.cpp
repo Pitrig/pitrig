@@ -67,6 +67,14 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
               update.values.brake_bias_tenths_percent,
               state_.values.brake_bias_tenths_percent, state_.valid_fields,
               changed_fields);
+  apply_field(Field::fuel_average_consumption, update,
+              update.values.fuel_average_liters_per_lap,
+              state_.values.fuel_average_liters_per_lap,
+              state_.valid_fields, changed_fields);
+  apply_field(Field::fuel_laps_remaining, update,
+              update.values.fuel_laps_remaining,
+              state_.values.fuel_laps_remaining, state_.valid_fields,
+              changed_fields);
 
   if (changed_fields != Field::none) {
     ++state_.revision;

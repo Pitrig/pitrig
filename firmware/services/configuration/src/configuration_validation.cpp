@@ -10,7 +10,7 @@ bool valid_color(const std::uint32_t color) { return color <= 0xFFFFFFU; }
 
 bool valid_font(const dashboard::FontSpec& font) {
   if (font.family == dashboard::FontFamily::montserrat) {
-    return font.size_px == 10 || font.size_px == 48;
+    return font.size_px == 10 || font.size_px == 24 || font.size_px == 48;
   }
   if (font.family == dashboard::FontFamily::roboto_mono) {
     return font.size_px == 43;
@@ -160,6 +160,10 @@ ValidationError validate_configuration(
   const auto& gear = configuration.dashboard.gear;
   const auto& speed = configuration.dashboard.speed;
   const auto& rpm = configuration.dashboard.rpm;
+  const auto& fuel = configuration.dashboard.fuel;
+  const auto& fuel_average = configuration.dashboard.fuel_average;
+  const auto& fuel_laps_remaining =
+      configuration.dashboard.fuel_laps_remaining;
   const auto& traction_control =
       configuration.dashboard.traction_control;
   const auto& abs = configuration.dashboard.abs;
@@ -167,12 +171,17 @@ ValidationError validate_configuration(
   if (!valid_font(lap.font) || !valid_font(delta.font) ||
       !valid_font(estimated.font) || !valid_font(gear.font) ||
       !valid_font(speed.font) || !valid_font(rpm.font) ||
+      !valid_font(fuel.font) || !valid_font(fuel_average.font) ||
+      !valid_font(fuel_laps_remaining.font) ||
       !valid_placement(lap.placement, region.id) ||
       !valid_placement(delta.placement, region.id) ||
       !valid_placement(estimated.placement, region.id) ||
       !valid_placement(gear.placement, region.id) ||
       !valid_placement(speed.placement, region.id) ||
       !valid_placement(rpm.placement, region.id) ||
+      !valid_placement(fuel.placement, region.id) ||
+      !valid_placement(fuel_average.placement, region.id) ||
+      !valid_placement(fuel_laps_remaining.placement, region.id) ||
       !valid_color(lap.text_color_rgb) ||
       !valid_color(delta.faster_color_rgb) ||
       !valid_color(delta.slower_color_rgb) ||
@@ -183,6 +192,9 @@ ValidationError validate_configuration(
       !valid_color(gear.background_color_rgb) ||
       !valid_color(speed.text_color_rgb) ||
       !valid_color(rpm.text_color_rgb) ||
+      !valid_color(fuel.text_color_rgb) ||
+      !valid_color(fuel_average.text_color_rgb) ||
+      !valid_color(fuel_laps_remaining.text_color_rgb) ||
       gear.padding.left > 480 || gear.padding.top > 480 ||
       gear.padding.right > 480 || gear.padding.bottom > 480 ||
       gear.border.width_px > 240 || gear.border.radius_px > 480 ||

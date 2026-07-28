@@ -34,6 +34,9 @@ const lv_font_t* resolve(const FontSpec spec) {
     if (spec.size_px == 10) {
       return &lv_font_montserrat_10;
     }
+    if (spec.size_px == 24) {
+      return &lv_font_montserrat_24;
+    }
     if (spec.size_px == 48) {
       return &lv_font_montserrat_48;
     }

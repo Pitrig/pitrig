@@ -11,6 +11,7 @@
 #include "driving_aid_widget.hpp"
 #include "estimated_lap_time.hpp"
 #include "estimated_lap_time_widget.hpp"
+#include "fuel_widget.hpp"
 #include "gear_widget.hpp"
 #include "lap_timer.hpp"
 #include "lap_timer_widget.hpp"
@@ -72,6 +73,9 @@ struct DashboardConfiguration {
   dashboard::gear_widget::Config gear{};
   dashboard::speed_widget::Config speed{};
   dashboard::rpm_widget::Config rpm{};
+  dashboard::fuel_widget::LevelConfig fuel{};
+  dashboard::fuel_widget::StatisticConfig fuel_average{};
+  dashboard::fuel_widget::StatisticConfig fuel_laps_remaining{};
   dashboard::driving_aid_widget::Config traction_control{};
   dashboard::driving_aid_widget::Config abs{};
   dashboard::driving_aid_widget::Config brake_bias{};
@@ -270,6 +274,66 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 .offset_y = -96,
                 .width = 320,
                 .height = 64,
+            },
+            .text_color_rgb = 0xE8E8E8,
+        },
+        .fuel = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+            .enabled = true,
+#else
+            .enabled = false,
+#endif
+            .font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 24,
+            },
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::bottom_left,
+                .offset_x = 16,
+                .offset_y = -24,
+                .width = 126,
+                .height = 64,
+            },
+            .text_color_rgb = 0xE8E8E8,
+        },
+        .fuel_average = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+            .enabled = true,
+#else
+            .enabled = false,
+#endif
+            .font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 24,
+            },
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::bottom_right,
+                .offset_x = -16,
+                .offset_y = -62,
+                .width = 126,
+                .height = 30,
+            },
+            .text_color_rgb = 0xE8E8E8,
+        },
+        .fuel_laps_remaining = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+            .enabled = true,
+#else
+            .enabled = false,
+#endif
+            .font = {
+                .family = dashboard::FontFamily::montserrat,
+                .size_px = 24,
+            },
+            .placement = {
+                .region_id = dashboard::kScreenRegionId,
+                .anchor = dashboard::Anchor::bottom_right,
+                .offset_x = -16,
+                .offset_y = -24,
+                .width = 126,
+                .height = 30,
             },
             .text_color_rgb = 0xE8E8E8,
         },

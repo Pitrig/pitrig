@@ -8,6 +8,9 @@
       "gear": {},
       "speed": {},
       "rpm": {},
+      "fuel": {},
+      "fuel_average": {},
+      "fuel_laps_remaining": {},
       "traction_control": {},
       "abs": {},
       "brake_bias": {}

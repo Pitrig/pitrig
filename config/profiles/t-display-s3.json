@@ -1,5 +1,5 @@
 {
-  "schema_version": 7,
+  "schema_version": 9,
   "board": {
     "id": "t_display_s3"
   },
@@ -168,6 +168,54 @@
         "offset_y": -96,
         "width": 320,
         "height": 64
+      },
+      "text_color_rgb": "#E8E8E8"
+    },
+    "fuel": {
+      "enabled": false,
+      "font": {
+        "family": "montserrat",
+        "size_px": 24
+      },
+      "placement": {
+        "region_id": 0,
+        "anchor": "bottom_left",
+        "offset_x": 16,
+        "offset_y": -24,
+        "width": 126,
+        "height": 64
+      },
+      "text_color_rgb": "#E8E8E8"
+    },
+    "fuel_average": {
+      "enabled": false,
+      "font": {
+        "family": "montserrat",
+        "size_px": 24
+      },
+      "placement": {
+        "region_id": 0,
+        "anchor": "bottom_right",
+        "offset_x": -16,
+        "offset_y": -62,
+        "width": 126,
+        "height": 30
+      },
+      "text_color_rgb": "#E8E8E8"
+    },
+    "fuel_laps_remaining": {
+      "enabled": false,
+      "font": {
+        "family": "montserrat",
+        "size_px": 24
+      },
+      "placement": {
+        "region_id": 0,
+        "anchor": "bottom_right",
+        "offset_x": -16,
+        "offset_y": -24,
+        "width": 126,
+        "height": 30
       },
       "text_color_rgb": "#E8E8E8"
     },

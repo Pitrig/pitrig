@@ -13,13 +13,15 @@ from pathlib import Path
 from typing import Any, Optional
 
 OLDEST_SCHEMA_VERSION = 1
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 9
 WIDGET_ENABLE_SCHEMA_VERSION = 2
 GEAR_WIDGET_SCHEMA_VERSION = 3
 SPEED_WIDGET_SCHEMA_VERSION = 4
 DRIVING_AID_WIDGETS_SCHEMA_VERSION = 5
 DRIVING_AID_LABEL_OFFSET_SCHEMA_VERSION = 6
 RPM_WIDGET_SCHEMA_VERSION = 7
+FUEL_WIDGETS_SCHEMA_VERSION = 8
+FUEL_WITHOUT_ICON_SCHEMA_VERSION = 9
 TEXT_CAPACITY = 16
 
 BOARD_IDS = {
@@ -60,6 +62,9 @@ WIDGET_NAMES = (
     "gear",
     "speed",
     "rpm",
+    "fuel",
+    "fuel_average",
+    "fuel_laps_remaining",
     "traction_control",
     "abs",
     "brake_bias",
@@ -343,6 +348,38 @@ def _default_rpm_widget() -> dict[str, Any]:
     }
 
 
+def _default_fuel_widget(name: str) -> dict[str, Any]:
+    placements = {
+        "fuel": {
+            "anchor": "bottom_left",
+            "offset_x": 16,
+            "offset_y": -24,
+            "width": 126,
+            "height": 64,
+        },
+        "fuel_average": {
+            "anchor": "bottom_right",
+            "offset_x": -16,
+            "offset_y": -62,
+            "width": 126,
+            "height": 30,
+        },
+        "fuel_laps_remaining": {
+            "anchor": "bottom_right",
+            "offset_x": -16,
+            "offset_y": -24,
+            "width": 126,
+            "height": 30,
+        },
+    }
+    return {
+        "enabled": False,
+        "font": {"family": "montserrat", "size_px": 24},
+        "placement": {"region_id": 0, **placements[name]},
+        "text_color_rgb": "#E8E8E8",
+    }
+
+
 def encode_configuration(config: dict[str, Any]) -> bytes:
     writer = Writer()
     writer.put("H", SCHEMA_VERSION)
@@ -441,6 +478,21 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     _encode_font(writer, rpm_widget["font"])
     _encode_placement(writer, rpm_widget["placement"])
     writer.rgb(rpm_widget["text_color_rgb"], "RPM text color")
+
+    fuel_widget = dashboard["fuel"]
+    writer.boolean(fuel_widget["enabled"])
+    _encode_font(writer, fuel_widget["font"])
+    _encode_placement(writer, fuel_widget["placement"])
+    writer.rgb(fuel_widget["text_color_rgb"], "fuel text color")
+
+    for name in ("fuel_average", "fuel_laps_remaining"):
+        fuel_statistic = dashboard[name]
+        writer.boolean(fuel_statistic["enabled"])
+        _encode_font(writer, fuel_statistic["font"])
+        _encode_placement(writer, fuel_statistic["placement"])
+        writer.rgb(
+            fuel_statistic["text_color_rgb"], f"{name} text color"
+        )
     return bytes(writer.data)
 
 
@@ -608,6 +660,25 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
         }
     else:
         dashboard["rpm"] = _default_rpm_widget()
+    if schema >= FUEL_WIDGETS_SCHEMA_VERSION:
+        dashboard["fuel"] = {
+            "enabled": reader.boolean(),
+            "font": _decode_font(reader),
+            "placement": _decode_placement(reader),
+            "text_color_rgb": reader.rgb(),
+        }
+        if schema < FUEL_WITHOUT_ICON_SCHEMA_VERSION:
+            reader.rgb()
+        for name in ("fuel_average", "fuel_laps_remaining"):
+            dashboard[name] = {
+                "enabled": reader.boolean(),
+                "font": _decode_font(reader),
+                "placement": _decode_placement(reader),
+                "text_color_rgb": reader.rgb(),
+            }
+    else:
+        for name in ("fuel", "fuel_average", "fuel_laps_remaining"):
+            dashboard[name] = _default_fuel_widget(name)
     result["dashboard"] = dashboard
     reader.finish()
     return result

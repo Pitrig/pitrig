@@ -60,6 +60,18 @@ and text-color settings. The Guition factory profile enables it above the speed
 widget, while the T-Display profile keeps it disabled. Earlier records remain
 readable and receive the RPM widget as disabled.
 
+Schema 8 adds independent fuel-level, average-consumption, and remaining-laps
+widgets. The Guition factory profile enables the three widgets around the
+bottom-center speed value, while the T-Display profile keeps them disabled.
+Earlier records remain readable and receive all three fuel widgets as disabled.
+Increase the bounded configuration payload capacity from 512 to 768 bytes so
+the complete schema 8 snapshot fits without variable-sized runtime
+configuration.
+
+Schema 9 removes the fuel-pump icon and its color setting. Schema 8 records
+remain readable; their former icon-color value is consumed and discarded
+during migration.
+
 Extend transports with bounded response writes. Route newline-delimited frames
 beginning with `@SC:` to the configuration control protocol and route all other
 lines to the configured telemetry protocol. The developer CLI converts JSON
@@ -97,6 +109,9 @@ Reject unknown fields instead of silently ignoring spelling errors.
   numeric speed value; it owns no telemetry state or processing.
 - The RPM widget reuses the canonical telemetry snapshot and renders only the
   numeric RPM value; it owns no telemetry state or processing.
+- Fuel widgets reuse canonical fuel telemetry supplied by the selected
+  protocol. They do not calculate consumption or detect completed laps in UI
+  code.
 - The three driving-aid widgets reuse the canonical telemetry snapshot and one
   presentation implementation without adding feature modules or duplicated
   render logic.

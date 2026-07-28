@@ -9,8 +9,8 @@
 namespace simcore::configuration {
 
 inline constexpr std::uint16_t kOldestConfigurationSchemaVersion = 1;
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 7;
-inline constexpr std::size_t kMaximumPayloadSize = 512;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 9;
+inline constexpr std::size_t kMaximumPayloadSize = 768;
 
 [[nodiscard]] constexpr bool is_supported_configuration_schema(
     const std::uint16_t version) {

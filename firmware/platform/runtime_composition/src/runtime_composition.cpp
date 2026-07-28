@@ -6,6 +6,7 @@
 #include "driving_aid_widget.hpp"
 #include "estimated_lap_time_widget.hpp"
 #include "event_bus.hpp"
+#include "fuel_widget.hpp"
 #include "gear_widget.hpp"
 #include "lap_timer_widget.hpp"
 #include "logger.hpp"
@@ -125,6 +126,27 @@ bool create_dashboard(
         !dashboard::rpm_widget::create(
             layout, configuration.dashboard.rpm, telemetry)) {
       log::error(kTag, "Failed to create RPM widget");
+      initialized = false;
+    }
+    if (configuration.dashboard.fuel.enabled &&
+        !dashboard::fuel_widget::create_level(
+            layout, configuration.dashboard.fuel, telemetry)) {
+      log::error(kTag, "Failed to create Fuel Level widget");
+      initialized = false;
+    }
+    if (configuration.dashboard.fuel_average.enabled &&
+        !dashboard::fuel_widget::create_statistic(
+            layout, configuration.dashboard.fuel_average,
+            dashboard::fuel_widget::Statistic::average_consumption,
+            telemetry)) {
+      log::error(kTag, "Failed to create Average Fuel Consumption widget");
+      initialized = false;
+    }
+    if (configuration.dashboard.fuel_laps_remaining.enabled &&
+        !dashboard::fuel_widget::create_statistic(
+            layout, configuration.dashboard.fuel_laps_remaining,
+            dashboard::fuel_widget::Statistic::laps_remaining, telemetry)) {
+      log::error(kTag, "Failed to create Fuel Laps Remaining widget");
       initialized = false;
     }
     if (configuration.dashboard.traction_control.enabled &&

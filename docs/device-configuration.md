@@ -98,7 +98,7 @@ modules are not started. Missing fields outside `dashboard.widgets`, such as
 are rejected instead of being ignored.
 
 Legacy complete JSON files with an object-valued `board` field remain accepted.
-The CLI normalizes either JSON form into the complete schema 7 binary snapshot
+The CLI normalizes either JSON form into the complete schema 9 binary snapshot
 before validation or storage.
 
 The traction-control, ABS, and brake-bias cards can be enabled and styled
@@ -158,6 +158,34 @@ disabled by default on `t_display_s3`:
   }
 }
 ```
+
+The fuel widgets read three independent canonical telemetry values. `fuel`
+rounds the remaining liters to a whole number followed by `L`. `fuel_average`
+shows average consumption as `AVG x.x`, and `fuel_laps_remaining` shows the
+estimated range as `LAPS x.x`. Placement, font, text color, and enabled state
+are independent:
+
+```json
+{
+  "board": "guition_esp32_4848s040",
+  "dashboard": {
+    "widgets": {
+      "fuel": {
+        "text_color_rgb": "#E8E8E8"
+      },
+      "fuel_average": {
+        "text_color_rgb": "#E8E8E8"
+      },
+      "fuel_laps_remaining": {
+        "text_color_rgb": "#E8E8E8"
+      }
+    }
+  }
+}
+```
+
+All three are enabled in the Guition ESP32-4848S040 factory profile and disabled
+in the T-Display-S3 profile. Unavailable values render as `--`.
 
 ## Commands
 
@@ -223,7 +251,7 @@ configuration payloads use uppercase or lowercase hexadecimal encoding.
 Responses begin with `@SC:OK:` or `@SC:ERR:`. Lines without the `@SC:` prefix
 continue to the SimHub telemetry parser.
 
-Schemas 1–7 use exactly one dashboard region because the current application
+Schemas 1–9 use exactly one dashboard region because the current application
 configuration has fixed storage for one region. Schema 2 adds widget `enabled`
 flags. Schema 3 adds the board-limited gear widget, including font, placement,
 padding, border, and colors. Schema 1 and 2 payloads remain readable; the gear
@@ -235,6 +263,10 @@ configured `traction_control`, `abs`, and `brake_bias` cards. Earlier payloads
 receive these three widgets as disabled. Schema 6 adds
 `label_offset_y_px`; schema 5 payloads receive a zero offset.
 Schema 7 adds the numeric RPM widget; earlier payloads receive it as disabled.
+Schema 8 adds the fuel-level, average-consumption, and fuel-laps-remaining
+widgets; earlier payloads receive them as disabled. Schema 9 removes the
+fuel-pump icon and its color setting; schema 8 payloads remain readable. The
+bounded maximum payload size is 768 bytes.
 Future variable-sized configuration must introduce bounded capacities and a
 new schema.
 

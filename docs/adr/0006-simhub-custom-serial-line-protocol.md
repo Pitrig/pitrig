@@ -19,7 +19,11 @@ delta in milliseconds. `P` carries estimated lap time in milliseconds. `T`
 carries the traction-control level, `A` carries the ABS level, and `BB` carries
 front brake bias as a percentage with at most one fractional digit. A negative
 delta means faster and a positive delta means slower. Empty `D`, `P`, `T`, `A`,
-or `BB` values explicitly mark the corresponding field as unavailable.
+or `BB` values explicitly mark the corresponding field as unavailable. `F`
+carries fuel remaining in liters, `FC` carries average fuel consumption in
+liters per lap, and `FL` carries the estimated remaining fuel laps. Fuel values
+are non-negative decimals with at most one fractional digit; an empty fuel
+value explicitly marks that field as unavailable.
 
 `SimHubProtocol` incrementally decodes arbitrary transport chunks and emits one
 partial `TelemetryUpdate` per valid line. It owns only bounded parser state and

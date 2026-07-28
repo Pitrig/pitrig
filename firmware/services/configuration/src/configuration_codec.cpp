@@ -11,6 +11,8 @@ constexpr std::uint16_t kSpeedWidgetSchemaVersion = 4;
 constexpr std::uint16_t kDrivingAidWidgetsSchemaVersion = 5;
 constexpr std::uint16_t kDrivingAidLabelOffsetSchemaVersion = 6;
 constexpr std::uint16_t kRpmWidgetSchemaVersion = 7;
+constexpr std::uint16_t kFuelWidgetsSchemaVersion = 8;
+constexpr std::uint16_t kFuelWithoutIconSchemaVersion = 9;
 
 class Writer {
  public:
@@ -293,6 +295,23 @@ CodecResult encode_configuration(
   write_placement(writer, configuration.dashboard.rpm.placement);
   writer.integer(configuration.dashboard.rpm.text_color_rgb);
 
+  writer.boolean(configuration.dashboard.fuel.enabled);
+  write_font(writer, configuration.dashboard.fuel.font);
+  write_placement(writer, configuration.dashboard.fuel.placement);
+  writer.integer(configuration.dashboard.fuel.text_color_rgb);
+
+  writer.boolean(configuration.dashboard.fuel_average.enabled);
+  write_font(writer, configuration.dashboard.fuel_average.font);
+  write_placement(writer, configuration.dashboard.fuel_average.placement);
+  writer.integer(configuration.dashboard.fuel_average.text_color_rgb);
+
+  writer.boolean(configuration.dashboard.fuel_laps_remaining.enabled);
+  write_font(writer, configuration.dashboard.fuel_laps_remaining.font);
+  write_placement(
+      writer, configuration.dashboard.fuel_laps_remaining.placement);
+  writer.integer(
+      configuration.dashboard.fuel_laps_remaining.text_color_rgb);
+
   return {
       .ok = writer.ok(),
       .error =
@@ -442,6 +461,34 @@ CodecResult decode_configuration(
         reader.integer<std::uint32_t>();
   } else {
     configuration.dashboard.rpm.enabled = false;
+  }
+
+  if (schema_version >= kFuelWidgetsSchemaVersion) {
+    configuration.dashboard.fuel.enabled = reader.boolean();
+    read_font(reader, configuration.dashboard.fuel.font);
+    read_placement(reader, configuration.dashboard.fuel.placement);
+    configuration.dashboard.fuel.text_color_rgb =
+        reader.integer<std::uint32_t>();
+    if (schema_version < kFuelWithoutIconSchemaVersion) {
+      static_cast<void>(reader.integer<std::uint32_t>());
+    }
+
+    configuration.dashboard.fuel_average.enabled = reader.boolean();
+    read_font(reader, configuration.dashboard.fuel_average.font);
+    read_placement(reader, configuration.dashboard.fuel_average.placement);
+    configuration.dashboard.fuel_average.text_color_rgb =
+        reader.integer<std::uint32_t>();
+
+    configuration.dashboard.fuel_laps_remaining.enabled = reader.boolean();
+    read_font(reader, configuration.dashboard.fuel_laps_remaining.font);
+    read_placement(
+        reader, configuration.dashboard.fuel_laps_remaining.placement);
+    configuration.dashboard.fuel_laps_remaining.text_color_rgb =
+        reader.integer<std::uint32_t>();
+  } else {
+    configuration.dashboard.fuel.enabled = false;
+    configuration.dashboard.fuel_average.enabled = false;
+    configuration.dashboard.fuel_laps_remaining.enabled = false;
   }
 
   if (!reader.complete()) {
