@@ -48,8 +48,8 @@
           "bottom": 2
         },
         "style": {
-          "background_color_rgb": 0,
-          "border_color_rgb": 11447982,
+          "background_color_rgb": "#000000",
+          "border_color_rgb": "#AEAEAE",
           "border_width_px": 1,
           "radius_px": 0,
           "visible": false
@@ -70,7 +70,7 @@
         "width": 320,
         "height": 53
       },
-      "text_color_rgb": 15263976
+      "text_color_rgb": "#E8E8E8"
     },
     "delta_time": {
       "enabled": true,
@@ -86,9 +86,9 @@
         "width": 0,
         "height": 61
       },
-      "faster_color_rgb": 51283,
-      "slower_color_rgb": 13959168,
-      "neutral_color_rgb": 15263976,
+      "faster_color_rgb": "#00C853",
+      "slower_color_rgb": "#D50000",
+      "neutral_color_rgb": "#E8E8E8",
       "scale": {
         "vertical_padding_px": 6,
         "border_width_px": 3,
@@ -109,7 +109,7 @@
         "width": 0,
         "height": 39
       },
-      "text_color_rgb": 15263976
+      "text_color_rgb": "#E8E8E8"
     },
     "gear": {
       "enabled": true,
@@ -132,12 +132,12 @@
         "bottom": 8
       },
       "border": {
-        "color_rgb": 11447982,
+        "color_rgb": "#AEAEAE",
         "width_px": 2,
         "radius_px": 12
       },
-      "text_color_rgb": 15263976,
-      "background_color_rgb": 723723
+      "text_color_rgb": "#E8E8E8",
+      "background_color_rgb": "#0B0B0B"
     }
   }
 }

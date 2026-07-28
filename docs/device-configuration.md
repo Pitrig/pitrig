@@ -49,11 +49,12 @@ Board-specific examples are provided in:
 - `config/guition-esp32-4848s040.json` — centered 320×170 dashboard area on
   the 480×480 display and UART0 on GPIO43/GPIO44.
 
-Copy the matching file and edit the copy. Numeric RGB colors are encoded as
-`0xRRGGBB` decimal values. The firmware validates the entire configuration,
-including board/transport compatibility, UART pins, regions, fonts, and widget
-references, before writing NVS. A configuration whose `board.id` does not match
-the firmware build is rejected with `@SC:ERR:board_mismatch` and is not written.
+Copy the matching file and edit the copy. RGB colors are JSON strings in
+`"#RRGGBB"` format, for example `"#00C853"`. The firmware validates the entire
+configuration, including board/transport compatibility, UART pins, regions,
+fonts, and widget references, before writing NVS. A configuration whose
+`board.id` does not match the firmware build is rejected with
+`@SC:ERR:board_mismatch` and is not written.
 
 At startup, an NVS slot containing a configuration for another board is treated
 as invalid. SimCore tries the other slot and then falls back to the factory

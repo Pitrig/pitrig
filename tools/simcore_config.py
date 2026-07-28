@@ -50,6 +50,23 @@ def _reverse(mapping: dict[str, int], value: int, field: str) -> str:
     raise ValueError(f"unknown {field} value: {value}")
 
 
+def _parse_rgb(value: Any, field: str) -> int:
+    if (
+        not isinstance(value, str)
+        or len(value) != 7
+        or value[0] != "#"
+    ):
+        raise ValueError(f"{field} must use the #RRGGBB format")
+    try:
+        return int(value[1:], 16)
+    except ValueError as error:
+        raise ValueError(f"{field} must use the #RRGGBB format") from error
+
+
+def _format_rgb(value: int) -> str:
+    return f"#{value:06X}"
+
+
 class Writer:
     def __init__(self) -> None:
         self.data = bytearray()
@@ -67,6 +84,9 @@ class Writer:
         if not isinstance(value, bool):
             raise ValueError(f"expected boolean, got {value!r}")
         self.put("B", int(value))
+
+    def rgb(self, value: Any, field: str) -> None:
+        self.put("I", _parse_rgb(value, field))
 
     def text(self, value: str) -> None:
         encoded = value.encode("ascii")
@@ -99,6 +119,9 @@ class Reader:
         if value not in (0, 1):
             raise ValueError(f"invalid boolean value: {value}")
         return bool(value)
+
+    def rgb(self) -> str:
+        return _format_rgb(self.get("I"))
 
     def text(self) -> str:
         raw = self.payload[self.position : self.position + TEXT_CAPACITY]
@@ -157,8 +180,8 @@ def _encode_region(writer: Writer, value: dict[str, Any]) -> None:
         writer.put("i", bounds[field])
     for field in ("left", "top", "right", "bottom"):
         writer.put("H", padding[field])
-    writer.put("I", style["background_color_rgb"])
-    writer.put("I", style["border_color_rgb"])
+    writer.rgb(style["background_color_rgb"], "region background color")
+    writer.rgb(style["border_color_rgb"], "region border color")
     writer.put("H", style["border_width_px"])
     writer.put("H", style["radius_px"])
     writer.boolean(style["visible"])
@@ -180,8 +203,8 @@ def _decode_region(reader: Reader) -> dict[str, Any]:
             "bottom": reader.get("H"),
         },
         "style": {
-            "background_color_rgb": reader.get("I"),
-            "border_color_rgb": reader.get("I"),
+            "background_color_rgb": reader.rgb(),
+            "border_color_rgb": reader.rgb(),
             "border_width_px": reader.get("H"),
             "radius_px": reader.get("H"),
             "visible": reader.boolean(),
@@ -238,15 +261,15 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     writer.boolean(lap_widget.get("enabled", True))
     _encode_font(writer, lap_widget["font"])
     _encode_placement(writer, lap_widget["placement"])
-    writer.put("I", lap_widget["text_color_rgb"])
+    writer.rgb(lap_widget["text_color_rgb"], "lap timer text color")
 
     delta_widget = dashboard["delta_time"]
     writer.boolean(delta_widget.get("enabled", True))
     _encode_font(writer, delta_widget["font"])
     _encode_placement(writer, delta_widget["placement"])
-    writer.put("I", delta_widget["faster_color_rgb"])
-    writer.put("I", delta_widget["slower_color_rgb"])
-    writer.put("I", delta_widget["neutral_color_rgb"])
+    writer.rgb(delta_widget["faster_color_rgb"], "delta faster color")
+    writer.rgb(delta_widget["slower_color_rgb"], "delta slower color")
+    writer.rgb(delta_widget["neutral_color_rgb"], "delta neutral color")
     writer.put("H", delta_widget["scale"]["vertical_padding_px"])
     writer.put("H", delta_widget["scale"]["border_width_px"])
     writer.put("H", delta_widget["scale"]["border_radius_px"])
@@ -255,7 +278,9 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     writer.boolean(estimated_widget.get("enabled", True))
     _encode_font(writer, estimated_widget["font"])
     _encode_placement(writer, estimated_widget["placement"])
-    writer.put("I", estimated_widget["text_color_rgb"])
+    writer.rgb(
+        estimated_widget["text_color_rgb"], "estimated lap time text color"
+    )
 
     gear_widget = dashboard["gear"]
     writer.boolean(gear_widget["enabled"])
@@ -265,11 +290,11 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     for field in ("left", "top", "right", "bottom"):
         writer.put("H", padding[field])
     border = gear_widget["border"]
-    writer.put("I", border["color_rgb"])
+    writer.rgb(border["color_rgb"], "gear border color")
     writer.put("H", border["width_px"])
     writer.put("H", border["radius_px"])
-    writer.put("I", gear_widget["text_color_rgb"])
-    writer.put("I", gear_widget["background_color_rgb"])
+    writer.rgb(gear_widget["text_color_rgb"], "gear text color")
+    writer.rgb(gear_widget["background_color_rgb"], "gear background color")
     return bytes(writer.data)
 
 
@@ -330,7 +355,7 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
         ),
         "font": _decode_font(reader),
         "placement": _decode_placement(reader),
-        "text_color_rgb": reader.get("I"),
+        "text_color_rgb": reader.rgb(),
     }
     dashboard["delta_time"] = {
         "enabled": (
@@ -340,9 +365,9 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
         ),
         "font": _decode_font(reader),
         "placement": _decode_placement(reader),
-        "faster_color_rgb": reader.get("I"),
-        "slower_color_rgb": reader.get("I"),
-        "neutral_color_rgb": reader.get("I"),
+        "faster_color_rgb": reader.rgb(),
+        "slower_color_rgb": reader.rgb(),
+        "neutral_color_rgb": reader.rgb(),
         "scale": {
             "vertical_padding_px": reader.get("H"),
             "border_width_px": reader.get("H"),
@@ -357,7 +382,7 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
         ),
         "font": _decode_font(reader),
         "placement": _decode_placement(reader),
-        "text_color_rgb": reader.get("I"),
+        "text_color_rgb": reader.rgb(),
     }
     if schema >= GEAR_WIDGET_SCHEMA_VERSION:
         dashboard["gear"] = {
@@ -371,12 +396,12 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
                 "bottom": reader.get("H"),
             },
             "border": {
-                "color_rgb": reader.get("I"),
+                "color_rgb": reader.rgb(),
                 "width_px": reader.get("H"),
                 "radius_px": reader.get("H"),
             },
-            "text_color_rgb": reader.get("I"),
-            "background_color_rgb": reader.get("I"),
+            "text_color_rgb": reader.rgb(),
+            "background_color_rgb": reader.rgb(),
         }
     else:
         dashboard["gear"] = {
@@ -392,12 +417,12 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
             },
             "padding": {"left": 8, "top": 8, "right": 8, "bottom": 8},
             "border": {
-                "color_rgb": 11447982,
+                "color_rgb": "#AEAEAE",
                 "width_px": 2,
                 "radius_px": 12,
             },
-            "text_color_rgb": 15263976,
-            "background_color_rgb": 723723,
+            "text_color_rgb": "#E8E8E8",
+            "background_color_rgb": "#0B0B0B",
         }
     result["dashboard"] = dashboard
     reader.finish()
