@@ -1,5 +1,5 @@
 {
-  "schema_version": 9,
+  "schema_version": 0,
   "board": {
     "id": "guition_esp32_4848s040"
   },
@@ -25,10 +25,6 @@
       "show_sign": true,
       "range_ms": 2000
     }
-  },
-  "estimated_lap_time": {
-    "unavailable_behavior": "placeholder",
-    "placeholder": "--:--.---"
   },
   "dashboard": {
     "mode": "normal",
@@ -95,231 +91,417 @@
         "border_radius_px": 10
       }
     },
-    "estimated_lap_time": {
-      "enabled": true,
-      "font": {
-        "family": "lcd",
-        "size_px": 39
+    "text_widgets": [
+      {
+        "binding": "session.lap.estimated_time",
+        "placement": {
+          "region_id": 1,
+          "anchor": "bottom_center",
+          "offset_x": 0,
+          "offset_y": 0,
+          "width": 0,
+          "height": 39
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "border": {
+          "color_rgb": "#AEAEAE",
+          "width_px": 0,
+          "radius_px": 0
+        },
+        "title": {
+          "text": "",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "lcd",
+            "size_px": 39
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--:--.---"
+        },
+        "background_color_rgb": "#000000"
       },
-      "placement": {
-        "region_id": 1,
-        "anchor": "bottom_center",
-        "offset_x": 0,
-        "offset_y": 0,
-        "width": 0,
-        "height": 39
+      {
+        "binding": "transmission.gear",
+        "placement": {
+          "region_id": 0,
+          "anchor": "top_right",
+          "offset_x": -16,
+          "offset_y": 16,
+          "width": 120,
+          "height": 120
+        },
+        "padding": {
+          "left": 8,
+          "top": 8,
+          "right": 8,
+          "bottom": 8
+        },
+        "border": {
+          "color_rgb": "#AEAEAE",
+          "width_px": 2,
+          "radius_px": 12
+        },
+        "title": {
+          "text": "",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 48
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#0B0B0B"
       },
-      "text_color_rgb": "#E8E8E8"
-    },
-    "gear": {
-      "enabled": true,
-      "font": {
-        "family": "montserrat",
-        "size_px": 48
+      {
+        "binding": "vehicle.speed",
+        "placement": {
+          "region_id": 0,
+          "anchor": "bottom_center",
+          "offset_x": 0,
+          "offset_y": -24,
+          "width": 180,
+          "height": 64
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "border": {
+          "color_rgb": "#AEAEAE",
+          "width_px": 0,
+          "radius_px": 0
+        },
+        "title": {
+          "text": "",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 48
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#000000"
       },
-      "placement": {
-        "region_id": 0,
-        "anchor": "top_right",
-        "offset_x": -16,
-        "offset_y": 16,
-        "width": 120,
-        "height": 120
+      {
+        "binding": "engine.rpm",
+        "placement": {
+          "region_id": 0,
+          "anchor": "bottom_center",
+          "offset_x": 0,
+          "offset_y": -96,
+          "width": 320,
+          "height": 64
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "border": {
+          "color_rgb": "#AEAEAE",
+          "width_px": 0,
+          "radius_px": 0
+        },
+        "title": {
+          "text": "",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 48
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#000000"
       },
-      "padding": {
-        "left": 8,
-        "top": 8,
-        "right": 8,
-        "bottom": 8
+      {
+        "binding": "vehicle.fuel.level",
+        "placement": {
+          "region_id": 0,
+          "anchor": "bottom_left",
+          "offset_x": 16,
+          "offset_y": -24,
+          "width": 126,
+          "height": 64
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "border": {
+          "color_rgb": "#AEAEAE",
+          "width_px": 0,
+          "radius_px": 0
+        },
+        "title": {
+          "text": "",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 24
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#000000"
       },
-      "border": {
-        "color_rgb": "#AEAEAE",
-        "width_px": 2,
-        "radius_px": 12
+      {
+        "binding": "vehicle.fuel.average_consumption",
+        "placement": {
+          "region_id": 0,
+          "anchor": "bottom_right",
+          "offset_x": -16,
+          "offset_y": -62,
+          "width": 126,
+          "height": 30
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "border": {
+          "color_rgb": "#AEAEAE",
+          "width_px": 0,
+          "radius_px": 0
+        },
+        "title": {
+          "text": "",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 24
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#000000"
       },
-      "text_color_rgb": "#E8E8E8",
-      "background_color_rgb": "#0B0B0B"
-    },
-    "speed": {
-      "enabled": true,
-      "font": {
-        "family": "montserrat",
-        "size_px": 48
+      {
+        "binding": "vehicle.fuel.laps_remaining",
+        "placement": {
+          "region_id": 0,
+          "anchor": "bottom_right",
+          "offset_x": -16,
+          "offset_y": -24,
+          "width": 126,
+          "height": 30
+        },
+        "padding": {
+          "left": 0,
+          "top": 0,
+          "right": 0,
+          "bottom": 0
+        },
+        "border": {
+          "color_rgb": "#AEAEAE",
+          "width_px": 0,
+          "radius_px": 0
+        },
+        "title": {
+          "text": "",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 24
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#000000"
       },
-      "placement": {
-        "region_id": 0,
-        "anchor": "bottom_center",
-        "offset_x": 0,
-        "offset_y": -24,
-        "width": 180,
-        "height": 64
+      {
+        "binding": "vehicle.aids.traction_control",
+        "placement": {
+          "region_id": 0,
+          "anchor": "top_left",
+          "offset_x": 92,
+          "offset_y": 16,
+          "width": 72,
+          "height": 72
+        },
+        "padding": {
+          "left": 4,
+          "top": 4,
+          "right": 4,
+          "bottom": 4
+        },
+        "border": {
+          "color_rgb": "#00E5FF",
+          "width_px": 3,
+          "radius_px": 8
+        },
+        "title": {
+          "text": "TC",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 48
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#000000"
       },
-      "text_color_rgb": "#E8E8E8"
-    },
-    "rpm": {
-      "enabled": true,
-      "font": {
-        "family": "montserrat",
-        "size_px": 48
+      {
+        "binding": "vehicle.aids.abs",
+        "placement": {
+          "region_id": 0,
+          "anchor": "top_left",
+          "offset_x": 16,
+          "offset_y": 16,
+          "width": 72,
+          "height": 72
+        },
+        "padding": {
+          "left": 4,
+          "top": 4,
+          "right": 4,
+          "bottom": 4
+        },
+        "border": {
+          "color_rgb": "#F5F500",
+          "width_px": 3,
+          "radius_px": 8
+        },
+        "title": {
+          "text": "ABS",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 48
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#000000"
       },
-      "placement": {
-        "region_id": 0,
-        "anchor": "bottom_center",
-        "offset_x": 0,
-        "offset_y": -96,
-        "width": 320,
-        "height": 64
-      },
-      "text_color_rgb": "#E8E8E8"
-    },
-    "fuel": {
-      "enabled": true,
-      "font": {
-        "family": "montserrat",
-        "size_px": 24
-      },
-      "placement": {
-        "region_id": 0,
-        "anchor": "bottom_left",
-        "offset_x": 16,
-        "offset_y": -24,
-        "width": 126,
-        "height": 64
-      },
-      "text_color_rgb": "#E8E8E8"
-    },
-    "fuel_average": {
-      "enabled": true,
-      "font": {
-        "family": "montserrat",
-        "size_px": 24
-      },
-      "placement": {
-        "region_id": 0,
-        "anchor": "bottom_right",
-        "offset_x": -16,
-        "offset_y": -62,
-        "width": 126,
-        "height": 30
-      },
-      "text_color_rgb": "#E8E8E8"
-    },
-    "fuel_laps_remaining": {
-      "enabled": true,
-      "font": {
-        "family": "montserrat",
-        "size_px": 24
-      },
-      "placement": {
-        "region_id": 0,
-        "anchor": "bottom_right",
-        "offset_x": -16,
-        "offset_y": -24,
-        "width": 126,
-        "height": 30
-      },
-      "text_color_rgb": "#E8E8E8"
-    },
-    "traction_control": {
-      "enabled": true,
-      "label_font": {
-        "family": "montserrat",
-        "size_px": 10
-      },
-      "value_font": {
-        "family": "montserrat",
-        "size_px": 48
-      },
-      "label_offset_y_px": 0,
-      "placement": {
-        "region_id": 0,
-        "anchor": "top_left",
-        "offset_x": 92,
-        "offset_y": 16,
-        "width": 72,
-        "height": 72
-      },
-      "padding": {
-        "left": 4,
-        "top": 4,
-        "right": 4,
-        "bottom": 4
-      },
-      "border": {
-        "color_rgb": "#00E5FF",
-        "width_px": 3,
-        "radius_px": 8
-      },
-      "label_color_rgb": "#E8E8E8",
-      "value_color_rgb": "#E8E8E8",
-      "background_color_rgb": "#000000"
-    },
-    "abs": {
-      "enabled": true,
-      "label_font": {
-        "family": "montserrat",
-        "size_px": 10
-      },
-      "value_font": {
-        "family": "montserrat",
-        "size_px": 48
-      },
-      "label_offset_y_px": 0,
-      "placement": {
-        "region_id": 0,
-        "anchor": "top_left",
-        "offset_x": 16,
-        "offset_y": 16,
-        "width": 72,
-        "height": 72
-      },
-      "padding": {
-        "left": 4,
-        "top": 4,
-        "right": 4,
-        "bottom": 4
-      },
-      "border": {
-        "color_rgb": "#F5F500",
-        "width_px": 3,
-        "radius_px": 8
-      },
-      "label_color_rgb": "#E8E8E8",
-      "value_color_rgb": "#E8E8E8",
-      "background_color_rgb": "#000000"
-    },
-    "brake_bias": {
-      "enabled": true,
-      "label_font": {
-        "family": "montserrat",
-        "size_px": 10
-      },
-      "value_font": {
-        "family": "montserrat",
-        "size_px": 48
-      },
-      "label_offset_y_px": 0,
-      "placement": {
-        "region_id": 0,
-        "anchor": "top_left",
-        "offset_x": 168,
-        "offset_y": 16,
-        "width": 104,
-        "height": 72
-      },
-      "padding": {
-        "left": 4,
-        "top": 4,
-        "right": 4,
-        "bottom": 4
-      },
-      "border": {
-        "color_rgb": "#F000D0",
-        "width_px": 3,
-        "radius_px": 8
-      },
-      "label_color_rgb": "#E8E8E8",
-      "value_color_rgb": "#E8E8E8",
-      "background_color_rgb": "#000000"
-    }
+      {
+        "binding": "vehicle.brake_bias",
+        "placement": {
+          "region_id": 0,
+          "anchor": "top_left",
+          "offset_x": 168,
+          "offset_y": 16,
+          "width": 104,
+          "height": 72
+        },
+        "padding": {
+          "left": 4,
+          "top": 4,
+          "right": 4,
+          "bottom": 4
+        },
+        "border": {
+          "color_rgb": "#F000D0",
+          "width_px": 3,
+          "radius_px": 8
+        },
+        "title": {
+          "text": "BIAS",
+          "font": {
+            "family": "montserrat",
+            "size_px": 10
+          },
+          "color_rgb": "#E8E8E8",
+          "offset_y_px": 0
+        },
+        "value": {
+          "font": {
+            "family": "montserrat",
+            "size_px": 48
+          },
+          "color_rgb": "#E8E8E8",
+          "alignment": "center",
+          "unavailable_text": "--"
+        },
+        "background_color_rgb": "#000000"
+      }
+    ]
   }
 }

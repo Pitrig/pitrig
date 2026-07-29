@@ -106,27 +106,31 @@ void LapTimer::update(const std::uint32_t lap_time_ms) {
 void LapTimer::on_telemetry_updated(const events::Event& event,
                                     void* const context) {
   auto& module = *static_cast<LapTimer*>(context);
-  if (event.payload == nullptr || event.payload_size != sizeof(telemetry::TelemetryUpdated) ||
+  if (event.payload == nullptr ||
+      event.payload_size != sizeof(telemetry::TelemetryUpdated) ||
       module.telemetry_reader_ == nullptr) {
     return;
   }
 
-  const auto& update = *static_cast<const telemetry::TelemetryUpdated*>(event.payload);
-  if (!telemetry::contains(update.changed_fields, telemetry::Field::lap_time_current)) {
+  const auto& update =
+      *static_cast<const telemetry::TelemetryUpdated*>(event.payload);
+  if (update.handle != module.telemetry_handle_) {
     return;
   }
 
-  const telemetry::TelemetrySnapshot snapshot =
-      module.telemetry_reader_->snapshot();
-  if (telemetry::contains(snapshot.valid_fields, telemetry::Field::lap_time_current)) {
-    module.update(snapshot.values.lap_time_current_ms);
+  const telemetry::TelemetryRead value =
+      module.telemetry_reader_->read(module.telemetry_handle_);
+  if (value.available) {
+    module.update(value.value.uint32_value);
   }
 }
 
 bool LapTimer::start(events::EventBus& event_bus,
                      const telemetry::ITelemetryReader& reader,
+                     const telemetry::Handle telemetry_handle,
                      const Config& config) {
-  if (telemetry_subscription_.valid) {
+  if (telemetry_subscription_.valid || !telemetry_handle.valid() ||
+      telemetry_handle.type != telemetry::ValueType::uint32) {
     return false;
   }
   {
@@ -140,11 +144,13 @@ bool LapTimer::start(events::EventBus& event_bus,
         kMicrosecondsPerMillisecond;
   }
   telemetry_reader_ = &reader;
+  telemetry_handle_ = telemetry_handle;
   event_bus_ = &event_bus;
   telemetry_subscription_ = event_bus.subscribe(
       telemetry::kTelemetryUpdatedEvent, &LapTimer::on_telemetry_updated, this);
   if (!telemetry_subscription_.valid) {
     telemetry_reader_ = nullptr;
+    telemetry_handle_ = {};
     event_bus_ = nullptr;
   }
   return telemetry_subscription_.valid;
@@ -156,6 +162,7 @@ void LapTimer::stop() {
   }
   telemetry_subscription_ = {};
   telemetry_reader_ = nullptr;
+  telemetry_handle_ = {};
   event_bus_ = nullptr;
 }
 

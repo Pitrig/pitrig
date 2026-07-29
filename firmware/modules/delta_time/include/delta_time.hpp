@@ -6,6 +6,7 @@
 #include <mutex>
 
 #include "event_bus.hpp"
+#include "telemetry_types.hpp"
 
 namespace simcore::telemetry {
 class ITelemetryReader;
@@ -66,6 +67,7 @@ class DeltaTime {
   [[nodiscard]] bool start(
       events::EventBus& event_bus,
       const telemetry::ITelemetryReader& telemetry_reader,
+      telemetry::Handle telemetry_handle,
       const Config& config);
   void stop();
 
@@ -82,6 +84,7 @@ class DeltaTime {
   PresentationState presentation_state_{};
   mutable std::mutex state_mutex_;
   const telemetry::ITelemetryReader* telemetry_reader_{};
+  telemetry::Handle telemetry_handle_{};
   events::EventBus* event_bus_{};
   events::Subscription telemetry_subscription_{};
 };

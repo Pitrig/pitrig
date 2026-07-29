@@ -1,4 +1,5 @@
 idf_component_register(SRCS "src/telemetry_provider.cpp"
+                            "src/telemetry_registry.cpp"
                             "src/telemetry_state.cpp"
                        INCLUDE_DIRS "include"
                        REQUIRES event_bus esp_timer)

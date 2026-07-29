@@ -12,17 +12,13 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-OLDEST_SCHEMA_VERSION = 1
-SCHEMA_VERSION = 9
-WIDGET_ENABLE_SCHEMA_VERSION = 2
-GEAR_WIDGET_SCHEMA_VERSION = 3
-SPEED_WIDGET_SCHEMA_VERSION = 4
-DRIVING_AID_WIDGETS_SCHEMA_VERSION = 5
-DRIVING_AID_LABEL_OFFSET_SCHEMA_VERSION = 6
-RPM_WIDGET_SCHEMA_VERSION = 7
-FUEL_WIDGETS_SCHEMA_VERSION = 8
-FUEL_WITHOUT_ICON_SCHEMA_VERSION = 9
-TEXT_CAPACITY = 16
+SCHEMA_VERSION = 0
+MAXIMUM_TEXT_WIDGETS = 16
+MAXIMUM_PAYLOAD_SIZE = 2560
+DELTA_TEXT_CAPACITY = 16
+TELEMETRY_FIELD_NAME_CAPACITY = 40
+TITLE_CAPACITY = 16
+UNAVAILABLE_TEXT_CAPACITY = 16
 
 BOARD_IDS = {
     "t_display_s3": 0,
@@ -34,7 +30,6 @@ TRANSPORT_IDS = {
     "uart": 2,
 }
 DELTA_UNAVAILABLE = {"hide": 0, "placeholder": 1, "zero": 2}
-ESTIMATED_UNAVAILABLE = {"hide": 0, "placeholder": 1}
 DASHBOARD_MODES = {"normal": 0, "display_diagnostics": 1}
 FONT_FAMILIES = {"roboto_mono": 0, "lcd": 1, "montserrat": 2}
 ANCHORS = {
@@ -48,6 +43,22 @@ ANCHORS = {
     "bottom_center": 7,
     "bottom_right": 8,
 }
+TELEMETRY_FIELDS = {
+    "vehicle.speed",
+    "engine.rpm",
+    "transmission.gear",
+    "session.lap.current_time",
+    "session.lap.best_time",
+    "vehicle.fuel.level",
+    "session.lap.delta",
+    "session.lap.estimated_time",
+    "vehicle.aids.traction_control",
+    "vehicle.aids.abs",
+    "vehicle.brake_bias",
+    "vehicle.fuel.average_consumption",
+    "vehicle.fuel.laps_remaining",
+}
+TEXT_ALIGNMENTS = {"left": 0, "center": 1, "right": 2}
 
 PROFILE_PATHS = {
     "t_display_s3": Path("config/profiles/t-display-s3.json"),
@@ -55,20 +66,37 @@ PROFILE_PATHS = {
         "config/profiles/guition-esp32-4848s040.json"
     ),
 }
-WIDGET_NAMES = (
-    "lap_timer",
-    "delta_time",
-    "estimated_lap_time",
-    "gear",
-    "speed",
-    "rpm",
-    "fuel",
-    "fuel_average",
-    "fuel_laps_remaining",
-    "traction_control",
-    "abs",
-    "brake_bias",
-)
+
+TEXT_WIDGET_DEFAULT: dict[str, Any] = {
+    "binding": "vehicle.speed",
+    "placement": {
+        "region_id": 0,
+        "anchor": "center",
+        "offset_x": 0,
+        "offset_y": 0,
+        "width": 0,
+        "height": 0,
+    },
+    "padding": {"left": 0, "top": 0, "right": 0, "bottom": 0},
+    "border": {
+        "color_rgb": "#AEAEAE",
+        "width_px": 0,
+        "radius_px": 0,
+    },
+    "title": {
+        "text": "",
+        "font": {"family": "montserrat", "size_px": 10},
+        "color_rgb": "#E8E8E8",
+        "offset_y_px": 0,
+    },
+    "value": {
+        "font": {"family": "montserrat", "size_px": 48},
+        "color_rgb": "#E8E8E8",
+        "alignment": "center",
+        "unavailable_text": "--",
+    },
+    "background_color_rgb": "#000000",
+}
 
 
 def _reverse(mapping: dict[str, int], value: int, field: str) -> str:
@@ -116,14 +144,16 @@ class Writer:
     def rgb(self, value: Any, field: str) -> None:
         self.put("I", _parse_rgb(value, field))
 
-    def text(self, value: str) -> None:
-        encoded = value.encode("ascii")
-        if len(encoded) >= TEXT_CAPACITY:
+    def text(self, value: Any, capacity: int, field: str) -> None:
+        if not isinstance(value, str):
+            raise ValueError(f"{field} must be a string")
+        encoded = value.encode("utf-8")
+        if len(encoded) >= capacity:
             raise ValueError(
-                f"text must be at most {TEXT_CAPACITY - 1} ASCII characters"
+                f"{field} must use at most {capacity - 1} UTF-8 bytes"
             )
         self.data.extend(encoded)
-        self.data.extend(b"\0" * (TEXT_CAPACITY - len(encoded)))
+        self.data.extend(b"\0" * (capacity - len(encoded)))
 
 
 class Reader:
@@ -151,16 +181,16 @@ class Reader:
     def rgb(self) -> str:
         return _format_rgb(self.get("I"))
 
-    def text(self) -> str:
-        raw = self.payload[self.position : self.position + TEXT_CAPACITY]
-        if len(raw) != TEXT_CAPACITY:
-            raise ValueError("configuration text is truncated")
-        self.position += TEXT_CAPACITY
+    def text(self, capacity: int, field: str) -> str:
+        raw = self.payload[self.position : self.position + capacity]
+        if len(raw) != capacity:
+            raise ValueError(f"{field} is truncated")
+        self.position += capacity
         try:
             terminator = raw.index(0)
         except ValueError as error:
-            raise ValueError("configuration text has no terminator") from error
-        return raw[:terminator].decode("ascii")
+            raise ValueError(f"{field} has no terminator") from error
+        return raw[:terminator].decode("utf-8")
 
     def finish(self) -> None:
         if self.position != len(self.payload):
@@ -240,33 +270,53 @@ def _decode_region(reader: Reader) -> dict[str, Any]:
     }
 
 
-def _encode_driving_aid_widget(
-    writer: Writer, widget: dict[str, Any], name: str
+def _encode_text_widget(
+    writer: Writer, widget: dict[str, Any], index: int
 ) -> None:
-    writer.boolean(widget["enabled"])
-    _encode_font(writer, widget["label_font"])
-    _encode_font(writer, widget["value_font"])
+    prefix = f"dashboard.text_widgets[{index}]"
+    if widget["binding"] not in TELEMETRY_FIELDS:
+        raise ValueError(
+            f"invalid {prefix}.binding: {widget['binding']}"
+        )
+    writer.text(
+        widget["binding"],
+        TELEMETRY_FIELD_NAME_CAPACITY,
+        f"{prefix}.binding",
+    )
     _encode_placement(writer, widget["placement"])
-    padding = widget["padding"]
     for field in ("left", "top", "right", "bottom"):
-        writer.put("H", padding[field])
-    border = widget["border"]
-    writer.rgb(border["color_rgb"], f"{name} border color")
-    writer.put("H", border["width_px"])
-    writer.put("H", border["radius_px"])
-    writer.rgb(widget["label_color_rgb"], f"{name} label color")
-    writer.rgb(widget["value_color_rgb"], f"{name} value color")
-    writer.rgb(widget["background_color_rgb"], f"{name} background color")
-    writer.put("h", widget["label_offset_y_px"])
+        writer.put("H", widget["padding"][field])
+    writer.rgb(widget["border"]["color_rgb"], f"{prefix}.border.color_rgb")
+    writer.put("H", widget["border"]["width_px"])
+    writer.put("H", widget["border"]["radius_px"])
+    writer.text(
+        widget["title"]["text"],
+        TITLE_CAPACITY,
+        f"{prefix}.title.text",
+    )
+    _encode_font(writer, widget["title"]["font"])
+    writer.rgb(widget["title"]["color_rgb"], f"{prefix}.title.color_rgb")
+    writer.put("h", widget["title"]["offset_y_px"])
+    _encode_font(writer, widget["value"]["font"])
+    writer.rgb(widget["value"]["color_rgb"], f"{prefix}.value.color_rgb")
+    writer.enum(
+        TEXT_ALIGNMENTS,
+        widget["value"]["alignment"],
+        f"{prefix}.value.alignment",
+    )
+    writer.text(
+        widget["value"]["unavailable_text"],
+        UNAVAILABLE_TEXT_CAPACITY,
+        f"{prefix}.value.unavailable_text",
+    )
+    writer.rgb(widget["background_color_rgb"], f"{prefix}.background_color_rgb")
 
 
-def _decode_driving_aid_widget(
-    reader: Reader, has_label_offset: bool
-) -> dict[str, Any]:
-    widget = {
-        "enabled": reader.boolean(),
-        "label_font": _decode_font(reader),
-        "value_font": _decode_font(reader),
+def _decode_text_widget(reader: Reader) -> dict[str, Any]:
+    return {
+        "binding": reader.text(
+            TELEMETRY_FIELD_NAME_CAPACITY, "telemetry binding"
+        ),
         "placement": _decode_placement(reader),
         "padding": {
             "left": reader.get("H"),
@@ -279,104 +329,21 @@ def _decode_driving_aid_widget(
             "width_px": reader.get("H"),
             "radius_px": reader.get("H"),
         },
-        "label_color_rgb": reader.rgb(),
-        "value_color_rgb": reader.rgb(),
+        "title": {
+            "text": reader.text(TITLE_CAPACITY, "widget title"),
+            "font": _decode_font(reader),
+            "color_rgb": reader.rgb(),
+            "offset_y_px": reader.get("h"),
+        },
+        "value": {
+            "font": _decode_font(reader),
+            "color_rgb": reader.rgb(),
+            "alignment": reader.enum(TEXT_ALIGNMENTS, "text alignment"),
+            "unavailable_text": reader.text(
+                UNAVAILABLE_TEXT_CAPACITY, "unavailable text"
+            ),
+        },
         "background_color_rgb": reader.rgb(),
-    }
-    widget["label_offset_y_px"] = (
-        reader.get("h") if has_label_offset else 0
-    )
-    return widget
-
-
-def _default_driving_aid_widget(name: str) -> dict[str, Any]:
-    defaults = {
-        "traction_control": {
-            "offset_x": 92,
-            "width": 72,
-            "border_color_rgb": "#00E5FF",
-        },
-        "abs": {
-            "offset_x": 16,
-            "width": 72,
-            "border_color_rgb": "#F5F500",
-        },
-        "brake_bias": {
-            "offset_x": 168,
-            "width": 104,
-            "border_color_rgb": "#F000D0",
-        },
-    }[name]
-    return {
-        "enabled": False,
-        "label_font": {"family": "montserrat", "size_px": 10},
-        "value_font": {"family": "montserrat", "size_px": 48},
-        "label_offset_y_px": 0,
-        "placement": {
-            "region_id": 0,
-            "anchor": "top_left",
-            "offset_x": defaults["offset_x"],
-            "offset_y": 16,
-            "width": defaults["width"],
-            "height": 72,
-        },
-        "padding": {"left": 4, "top": 4, "right": 4, "bottom": 4},
-        "border": {
-            "color_rgb": defaults["border_color_rgb"],
-            "width_px": 3,
-            "radius_px": 8,
-        },
-        "label_color_rgb": "#E8E8E8",
-        "value_color_rgb": "#E8E8E8",
-        "background_color_rgb": "#000000",
-    }
-
-
-def _default_rpm_widget() -> dict[str, Any]:
-    return {
-        "enabled": False,
-        "font": {"family": "montserrat", "size_px": 48},
-        "placement": {
-            "region_id": 0,
-            "anchor": "bottom_center",
-            "offset_x": 0,
-            "offset_y": -96,
-            "width": 320,
-            "height": 64,
-        },
-        "text_color_rgb": "#E8E8E8",
-    }
-
-
-def _default_fuel_widget(name: str) -> dict[str, Any]:
-    placements = {
-        "fuel": {
-            "anchor": "bottom_left",
-            "offset_x": 16,
-            "offset_y": -24,
-            "width": 126,
-            "height": 64,
-        },
-        "fuel_average": {
-            "anchor": "bottom_right",
-            "offset_x": -16,
-            "offset_y": -62,
-            "width": 126,
-            "height": 30,
-        },
-        "fuel_laps_remaining": {
-            "anchor": "bottom_right",
-            "offset_x": -16,
-            "offset_y": -24,
-            "width": 126,
-            "height": 30,
-        },
-    }
-    return {
-        "enabled": False,
-        "font": {"family": "montserrat", "size_px": 24},
-        "placement": {"region_id": 0, **placements[name]},
-        "text_color_rgb": "#E8E8E8",
     }
 
 
@@ -404,18 +371,14 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
         delta["unavailable_behavior"],
         "delta unavailable behavior",
     )
-    writer.text(delta["placeholder"])
+    writer.text(
+        delta["placeholder"],
+        DELTA_TEXT_CAPACITY,
+        "delta_time.placeholder",
+    )
     writer.boolean(delta["scale"]["enabled"])
     writer.boolean(delta["scale"]["show_sign"])
     writer.put("i", delta["scale"]["range_ms"])
-
-    estimated = config["estimated_lap_time"]
-    writer.enum(
-        ESTIMATED_UNAVAILABLE,
-        estimated["unavailable_behavior"],
-        "estimated lap unavailable behavior",
-    )
-    writer.text(estimated["placeholder"])
 
     dashboard = config["dashboard"]
     writer.enum(DASHBOARD_MODES, dashboard["mode"], "dashboard mode")
@@ -426,13 +389,13 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     _encode_region(writer, regions[0])
 
     lap_widget = dashboard["lap_timer"]
-    writer.boolean(lap_widget.get("enabled", True))
+    writer.boolean(lap_widget["enabled"])
     _encode_font(writer, lap_widget["font"])
     _encode_placement(writer, lap_widget["placement"])
     writer.rgb(lap_widget["text_color_rgb"], "lap timer text color")
 
     delta_widget = dashboard["delta_time"]
-    writer.boolean(delta_widget.get("enabled", True))
+    writer.boolean(delta_widget["enabled"])
     _encode_font(writer, delta_widget["font"])
     _encode_placement(writer, delta_widget["placement"])
     writer.rgb(delta_widget["faster_color_rgb"], "delta faster color")
@@ -442,64 +405,30 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     writer.put("H", delta_widget["scale"]["border_width_px"])
     writer.put("H", delta_widget["scale"]["border_radius_px"])
 
-    estimated_widget = dashboard["estimated_lap_time"]
-    writer.boolean(estimated_widget.get("enabled", True))
-    _encode_font(writer, estimated_widget["font"])
-    _encode_placement(writer, estimated_widget["placement"])
-    writer.rgb(
-        estimated_widget["text_color_rgb"], "estimated lap time text color"
-    )
-
-    gear_widget = dashboard["gear"]
-    writer.boolean(gear_widget["enabled"])
-    _encode_font(writer, gear_widget["font"])
-    _encode_placement(writer, gear_widget["placement"])
-    padding = gear_widget["padding"]
-    for field in ("left", "top", "right", "bottom"):
-        writer.put("H", padding[field])
-    border = gear_widget["border"]
-    writer.rgb(border["color_rgb"], "gear border color")
-    writer.put("H", border["width_px"])
-    writer.put("H", border["radius_px"])
-    writer.rgb(gear_widget["text_color_rgb"], "gear text color")
-    writer.rgb(gear_widget["background_color_rgb"], "gear background color")
-
-    speed_widget = dashboard["speed"]
-    writer.boolean(speed_widget["enabled"])
-    _encode_font(writer, speed_widget["font"])
-    _encode_placement(writer, speed_widget["placement"])
-    writer.rgb(speed_widget["text_color_rgb"], "speed text color")
-
-    for name in ("traction_control", "abs", "brake_bias"):
-        _encode_driving_aid_widget(writer, dashboard[name], name)
-
-    rpm_widget = dashboard["rpm"]
-    writer.boolean(rpm_widget["enabled"])
-    _encode_font(writer, rpm_widget["font"])
-    _encode_placement(writer, rpm_widget["placement"])
-    writer.rgb(rpm_widget["text_color_rgb"], "RPM text color")
-
-    fuel_widget = dashboard["fuel"]
-    writer.boolean(fuel_widget["enabled"])
-    _encode_font(writer, fuel_widget["font"])
-    _encode_placement(writer, fuel_widget["placement"])
-    writer.rgb(fuel_widget["text_color_rgb"], "fuel text color")
-
-    for name in ("fuel_average", "fuel_laps_remaining"):
-        fuel_statistic = dashboard[name]
-        writer.boolean(fuel_statistic["enabled"])
-        _encode_font(writer, fuel_statistic["font"])
-        _encode_placement(writer, fuel_statistic["placement"])
-        writer.rgb(
-            fuel_statistic["text_color_rgb"], f"{name} text color"
+    text_widgets = dashboard["text_widgets"]
+    if (
+        not isinstance(text_widgets, list)
+        or len(text_widgets) > MAXIMUM_TEXT_WIDGETS
+    ):
+        raise ValueError(
+            f"dashboard.text_widgets must contain at most "
+            f"{MAXIMUM_TEXT_WIDGETS} objects"
         )
-    return bytes(writer.data)
+    writer.put("B", len(text_widgets))
+    for index, widget in enumerate(text_widgets):
+        _encode_text_widget(writer, widget, index)
+    payload = bytes(writer.data)
+    if len(payload) > MAXIMUM_PAYLOAD_SIZE:
+        raise ValueError(
+            f"configuration payload exceeds {MAXIMUM_PAYLOAD_SIZE} bytes"
+        )
+    return payload
 
 
 def decode_configuration(payload: bytes) -> dict[str, Any]:
     reader = Reader(payload)
     schema = reader.get("H")
-    if not OLDEST_SCHEMA_VERSION <= schema <= SCHEMA_VERSION:
+    if schema != SCHEMA_VERSION:
         raise ValueError(f"unsupported schema version: {schema}")
 
     result: dict[str, Any] = {
@@ -523,19 +452,14 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
             "unavailable_behavior": reader.enum(
                 DELTA_UNAVAILABLE, "delta unavailable behavior"
             ),
-            "placeholder": reader.text(),
+            "placeholder": reader.text(
+                DELTA_TEXT_CAPACITY, "delta placeholder"
+            ),
             "scale": {
                 "enabled": reader.boolean(),
                 "show_sign": reader.boolean(),
                 "range_ms": reader.get("i"),
             },
-        },
-        "estimated_lap_time": {
-            "unavailable_behavior": reader.enum(
-                ESTIMATED_UNAVAILABLE,
-                "estimated lap unavailable behavior",
-            ),
-            "placeholder": reader.text(),
         },
     }
     dashboard: dict[str, Any] = {
@@ -546,21 +470,13 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
         _decode_region(reader) for _ in range(region_count)
     ]
     dashboard["lap_timer"] = {
-        "enabled": (
-            reader.boolean()
-            if schema >= WIDGET_ENABLE_SCHEMA_VERSION
-            else True
-        ),
+        "enabled": reader.boolean(),
         "font": _decode_font(reader),
         "placement": _decode_placement(reader),
         "text_color_rgb": reader.rgb(),
     }
     dashboard["delta_time"] = {
-        "enabled": (
-            reader.boolean()
-            if schema >= WIDGET_ENABLE_SCHEMA_VERSION
-            else True
-        ),
+        "enabled": reader.boolean(),
         "font": _decode_font(reader),
         "placement": _decode_placement(reader),
         "faster_color_rgb": reader.rgb(),
@@ -572,113 +488,12 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
             "border_radius_px": reader.get("H"),
         },
     }
-    dashboard["estimated_lap_time"] = {
-        "enabled": (
-            reader.boolean()
-            if schema >= WIDGET_ENABLE_SCHEMA_VERSION
-            else True
-        ),
-        "font": _decode_font(reader),
-        "placement": _decode_placement(reader),
-        "text_color_rgb": reader.rgb(),
-    }
-    if schema >= GEAR_WIDGET_SCHEMA_VERSION:
-        dashboard["gear"] = {
-            "enabled": reader.boolean(),
-            "font": _decode_font(reader),
-            "placement": _decode_placement(reader),
-            "padding": {
-                "left": reader.get("H"),
-                "top": reader.get("H"),
-                "right": reader.get("H"),
-                "bottom": reader.get("H"),
-            },
-            "border": {
-                "color_rgb": reader.rgb(),
-                "width_px": reader.get("H"),
-                "radius_px": reader.get("H"),
-            },
-            "text_color_rgb": reader.rgb(),
-            "background_color_rgb": reader.rgb(),
-        }
-    else:
-        dashboard["gear"] = {
-            "enabled": result["board"]["id"] == "guition_esp32_4848s040",
-            "font": {"family": "montserrat", "size_px": 48},
-            "placement": {
-                "region_id": 0,
-                "anchor": "top_center",
-                "offset_x": 0,
-                "offset_y": 16,
-                "width": 120,
-                "height": 120,
-            },
-            "padding": {"left": 8, "top": 8, "right": 8, "bottom": 8},
-            "border": {
-                "color_rgb": "#AEAEAE",
-                "width_px": 2,
-                "radius_px": 12,
-            },
-            "text_color_rgb": "#E8E8E8",
-            "background_color_rgb": "#0B0B0B",
-        }
-    if schema >= SPEED_WIDGET_SCHEMA_VERSION:
-        dashboard["speed"] = {
-            "enabled": reader.boolean(),
-            "font": _decode_font(reader),
-            "placement": _decode_placement(reader),
-            "text_color_rgb": reader.rgb(),
-        }
-    else:
-        dashboard["speed"] = {
-            "enabled": result["board"]["id"] == "guition_esp32_4848s040",
-            "font": {"family": "montserrat", "size_px": 48},
-            "placement": {
-                "region_id": 0,
-                "anchor": "bottom_center",
-                "offset_x": 0,
-                "offset_y": -24,
-                "width": 180,
-                "height": 64,
-            },
-            "text_color_rgb": "#E8E8E8",
-        }
-    for name in ("traction_control", "abs", "brake_bias"):
-        if schema >= DRIVING_AID_WIDGETS_SCHEMA_VERSION:
-            dashboard[name] = _decode_driving_aid_widget(
-                reader,
-                schema >= DRIVING_AID_LABEL_OFFSET_SCHEMA_VERSION,
-            )
-        else:
-            dashboard[name] = _default_driving_aid_widget(name)
-    if schema >= RPM_WIDGET_SCHEMA_VERSION:
-        dashboard["rpm"] = {
-            "enabled": reader.boolean(),
-            "font": _decode_font(reader),
-            "placement": _decode_placement(reader),
-            "text_color_rgb": reader.rgb(),
-        }
-    else:
-        dashboard["rpm"] = _default_rpm_widget()
-    if schema >= FUEL_WIDGETS_SCHEMA_VERSION:
-        dashboard["fuel"] = {
-            "enabled": reader.boolean(),
-            "font": _decode_font(reader),
-            "placement": _decode_placement(reader),
-            "text_color_rgb": reader.rgb(),
-        }
-        if schema < FUEL_WITHOUT_ICON_SCHEMA_VERSION:
-            reader.rgb()
-        for name in ("fuel_average", "fuel_laps_remaining"):
-            dashboard[name] = {
-                "enabled": reader.boolean(),
-                "font": _decode_font(reader),
-                "placement": _decode_placement(reader),
-                "text_color_rgb": reader.rgb(),
-            }
-    else:
-        for name in ("fuel", "fuel_average", "fuel_laps_remaining"):
-            dashboard[name] = _default_fuel_widget(name)
+    text_widget_count = reader.get("B")
+    if text_widget_count > MAXIMUM_TEXT_WIDGETS:
+        raise ValueError("configuration contains too many text widgets")
+    dashboard["text_widgets"] = [
+        _decode_text_widget(reader) for _ in range(text_widget_count)
+    ]
     result["dashboard"] = dashboard
     reader.finish()
     return result
@@ -736,7 +551,11 @@ class Device:
         self.serial.flush()
         deadline = time.monotonic() + self.serial.timeout
         while time.monotonic() < deadline:
-            line = self.serial.readline().decode("ascii", errors="replace").strip()
+            line = (
+                self.serial.readline()
+                .decode("ascii", errors="replace")
+                .strip()
+            )
             if line.startswith("@SC:"):
                 if line.startswith("@SC:ERR:"):
                     raise RuntimeError(line.removeprefix("@SC:ERR:"))
@@ -770,6 +589,19 @@ def _merge_known(
             target[key] = copy.deepcopy(value)
 
 
+def _normalize_text_widget(
+    value: Any,
+    path: str,
+) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{path} must be an object")
+    if "binding" not in value:
+        raise ValueError(f"{path}.binding is required")
+    result = copy.deepcopy(TEXT_WIDGET_DEFAULT)
+    _merge_known(result, value, path)
+    return result
+
+
 def _normalize_sparse(value: dict[str, Any]) -> dict[str, Any]:
     allowed = {
         "schema_version",
@@ -777,7 +609,6 @@ def _normalize_sparse(value: dict[str, Any]) -> dict[str, Any]:
         "telemetry_transport",
         "lap_timer",
         "delta_time",
-        "estimated_lap_time",
         "dashboard",
     }
     unknown = set(value) - allowed
@@ -793,14 +624,11 @@ def _normalize_sparse(value: dict[str, Any]) -> dict[str, Any]:
         )
     profile_path = Path(__file__).resolve().parent.parent / PROFILE_PATHS[board]
     result = _read_json_object(profile_path)
-    value.pop("schema_version", None)
-    result.pop("schema_version", None)
 
     for section in (
         "telemetry_transport",
         "lap_timer",
         "delta_time",
-        "estimated_lap_time",
     ):
         if section not in value:
             continue
@@ -843,27 +671,49 @@ def _normalize_sparse(value: dict[str, Any]) -> dict[str, Any]:
             widgets = dashboard_patch["widgets"]
             if not isinstance(widgets, dict):
                 raise ValueError("dashboard.widgets must be an object")
-            unknown_widgets = set(widgets) - set(WIDGET_NAMES)
+            unknown_widgets = set(widgets) - {
+                "lap_timer",
+                "delta_time",
+                "text",
+            }
             if unknown_widgets:
                 name = sorted(unknown_widgets)[0]
                 raise ValueError(f"unknown dashboard widget: {name}")
-            for name in WIDGET_NAMES:
-                result["dashboard"][name]["enabled"] = False
-            for name, widget_patch in widgets.items():
-                if not isinstance(widget_patch, dict):
+
+            for name in ("lap_timer", "delta_time"):
+                result["dashboard"][name]["enabled"] = name in widgets
+                if name not in widgets:
+                    continue
+                patch = widgets[name]
+                if not isinstance(patch, dict):
                     raise ValueError(
                         f"dashboard.widgets.{name} must be an object"
                     )
-                if "enabled" in widget_patch:
+                if "enabled" in patch:
                     raise ValueError(
                         f"dashboard.widgets.{name}.enabled is presence-driven"
                     )
-                result["dashboard"][name]["enabled"] = True
                 _merge_known(
                     result["dashboard"][name],
-                    widget_patch,
+                    patch,
                     f"dashboard.widgets.{name}",
                 )
+
+            text_widgets = widgets.get("text", [])
+            if (
+                not isinstance(text_widgets, list)
+                or len(text_widgets) > MAXIMUM_TEXT_WIDGETS
+            ):
+                raise ValueError(
+                    f"dashboard.widgets.text must contain at most "
+                    f"{MAXIMUM_TEXT_WIDGETS} objects"
+                )
+            result["dashboard"]["text_widgets"] = [
+                _normalize_text_widget(
+                    item, f"dashboard.widgets.text[{index}]"
+                )
+                for index, item in enumerate(text_widgets)
+            ]
 
     return result
 
@@ -871,7 +721,10 @@ def _normalize_sparse(value: dict[str, Any]) -> dict[str, Any]:
 def _load(path: Path) -> dict[str, Any]:
     value = _read_json_object(path)
     if isinstance(value.get("board"), dict):
-        value.pop("schema_version", None)
+        if value.get("schema_version") != SCHEMA_VERSION:
+            raise ValueError(
+                f"complete configuration must use schema {SCHEMA_VERSION}"
+            )
         return value
     return _normalize_sparse(value)
 
@@ -906,8 +759,6 @@ def _usb_serial_ports() -> list[str]:
         ):
             candidates.append(device)
 
-    # macOS exposes some serial devices through both tty.* and cu.* aliases.
-    # Prefer cu.* and probe each physical-looking path only once.
     candidates.sort(key=lambda value: (not value.startswith("/dev/cu."), value))
     unique: dict[str, str] = {}
     for device in candidates:
@@ -1030,6 +881,7 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except (
         KeyError,
+        UnicodeError,
         ValueError,
         RuntimeError,
         TimeoutError,

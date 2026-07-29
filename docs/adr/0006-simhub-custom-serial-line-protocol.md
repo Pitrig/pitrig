@@ -2,41 +2,35 @@
 
 ## Context
 
-SimCore needs a minimal first telemetry source using SimHub Custom Serial over
-the serial transport selected by board configuration. Some boards expose native
-USB CDC, while others expose UART through an onboard USB-to-UART bridge. The
-ingestion architecture must remain independent of SimHub so that a future
-Companion protocol or another transport can replace it.
+SimCore receives both module inputs and presentation-ready telemetry over a
+board-selected serial transport. Generic text widgets must show the source
+value exactly, while Lap Timer and Delta Time still require numeric
+milliseconds.
 
 ## Decision
 
-The initial SimHub protocol is an ASCII line protocol. Each newline-terminated
-line contains a one- or two-character field identifier, a semicolon, and one
-decimal value:
-`R` for RPM, `S` for speed in km/h, `G` for gear, `L` for current lap time in
-milliseconds, `B` for best lap time in milliseconds, and `D` for signed lap
-delta in milliseconds. `P` carries estimated lap time in milliseconds. `T`
-carries the traction-control level, `A` carries the ABS level, and `BB` carries
-front brake bias as a percentage with at most one fractional digit. A negative
-delta means faster and a positive delta means slower. Empty `D`, `P`, `T`, `A`,
-or `BB` values explicitly mark the corresponding field as unavailable. `F`
-carries fuel remaining in liters, `FC` carries average fuel consumption in
-liters per lap, and `FL` carries the estimated remaining fuel laps. Fuel values
-are non-negative decimals with at most one fractional digit; an empty fuel
-value explicitly marks that field as unavailable.
+Use a newline-delimited ASCII-identifier protocol. Each line contains a one- or
+two-character identifier, a semicolon, and a bounded UTF-8 value.
 
-`SimHubProtocol` incrementally decodes arbitrary transport chunks and emits one
-partial `TelemetryUpdate` per valid line. It owns only bounded parser state and
-does not know the transport, provider, telemetry state, or Event Bus.
+Identifiers are `R`, `S`, `G`, `L`, `B`, `D`, `P`, `T`, `A`, `BB`, `F`, `FC`,
+and `FL`.
+
+Resolve every identifier to a protocol-neutral telemetry handle once when the
+protocol is constructed. Store the exact value string for every recognized
+field. An empty value invalidates that handle. Additionally decode `L` as
+unsigned integer milliseconds and `D` as signed integer milliseconds according
+to registry metadata. Reject a non-empty `L` or `D` line when its numeric value
+is invalid. Do not numerically interpret or reformat the other fields.
+
+Keep parser storage fixed. A telemetry value has 48 bytes including its null
+terminator, and a complete line has a 63-byte bound.
 
 ## Consequences
 
-- The first SimHub integration is easy to configure, inspect, and troubleshoot.
-- Partial field rates can be configured independently in SimHub.
-- Parsing uses fixed storage and performs no dynamic allocation.
-- Malformed, overlong, and unknown lines are ignored without affecting later
-  newline-delimited messages.
-- Telemetry fields that support an explicit unavailable value can clear their
-  validity without exposing protocol-specific sentinel values to modules.
-- A future binary or Companion protocol can implement the same protocol
-  interface without changing the rest of the telemetry pipeline.
+- SimHub controls units, precision, prefixes, suffixes, and presentation text.
+- Every text-widget instance renders the same canonical source string.
+- Lap Timer and Delta Time retain numeric behavior without coupling widgets to
+  protocol parsing.
+- Parsing and state updates use fixed storage and no runtime allocation.
+- SimHub identifiers do not escape the protocol implementation.
+- Empty, malformed, unknown, and overlong lines cannot corrupt later frames.

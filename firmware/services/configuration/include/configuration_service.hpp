@@ -49,12 +49,12 @@ class ConfigurationService {
       kRecordHeaderSize + kMaximumPayloadSize;
 
   struct LoadedRecord {
-    ApplicationConfiguration configuration{};
     std::uint32_t generation{};
     bool valid{};
   };
 
-  [[nodiscard]] LoadedRecord load_slot(StorageSlot slot);
+  [[nodiscard]] LoadedRecord load_slot(
+      StorageSlot slot, ApplicationConfiguration& configuration);
   [[nodiscard]] bool build_record(std::span<const std::uint8_t> payload,
                                   std::uint32_t generation,
                                   std::span<std::uint8_t> output,
@@ -63,6 +63,7 @@ class ConfigurationService {
   IConfigurationStorage* storage_{};
   BoardId hardware_board_{BoardId::t_display_s3};
   ApplicationConfiguration current_{};
+  mutable ApplicationConfiguration scratch_configuration_{};
   ConfigurationStatus status_{};
   std::array<std::uint8_t, kMaximumRecordSize> record_buffer_{};
 };

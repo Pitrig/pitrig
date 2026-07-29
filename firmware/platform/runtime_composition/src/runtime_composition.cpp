@@ -3,17 +3,13 @@
 #include "application_configuration.hpp"
 #include "dashboard_layout.hpp"
 #include "delta_time_widget.hpp"
-#include "driving_aid_widget.hpp"
-#include "estimated_lap_time_widget.hpp"
 #include "event_bus.hpp"
-#include "fuel_widget.hpp"
-#include "gear_widget.hpp"
 #include "lap_timer_widget.hpp"
 #include "logger.hpp"
-#include "rpm_widget.hpp"
 #include "simcore_features.hpp"
-#include "speed_widget.hpp"
+#include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
+#include "text_widget.hpp"
 #include "transport.hpp"
 #if SIMCORE_DISPLAY_DIAGNOSTICS
 #include "display_diagnostics.hpp"
@@ -31,6 +27,7 @@ constexpr char kTag[] = "runtime";
 
 bool start_modules(
     Modules& modules, events::EventBus& event_bus,
+    const telemetry::ITelemetryRegistry& telemetry_registry,
     const telemetry::ITelemetryReader& telemetry,
     const configuration::ApplicationConfiguration& configuration) {
   bool widgets_enabled = true;
@@ -39,23 +36,20 @@ bool start_modules(
                     configuration::DashboardMode::normal;
 #endif
   bool started = true;
+  const telemetry::Handle lap_time_handle =
+      telemetry_registry.resolve(telemetry::fields::kCurrentLapTime);
+  const telemetry::Handle lap_delta_handle =
+      telemetry_registry.resolve(telemetry::fields::kLapDelta);
   if (widgets_enabled && configuration.dashboard.lap_timer.enabled &&
       !modules.lap_timer.start(
-          event_bus, telemetry, configuration.lap_timer)) {
+          event_bus, telemetry, lap_time_handle, configuration.lap_timer)) {
     log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
     started = false;
   }
   if (widgets_enabled && configuration.dashboard.delta_time.enabled &&
       !modules.delta_time.start(
-          event_bus, telemetry, configuration.delta_time)) {
+          event_bus, telemetry, lap_delta_handle, configuration.delta_time)) {
     log::error(kTag, "Failed to subscribe Delta Time to telemetry");
-    started = false;
-  }
-  if (widgets_enabled &&
-      configuration.dashboard.estimated_lap_time.enabled &&
-      !modules.estimated_lap_time.start(
-          event_bus, telemetry, configuration.estimated_lap_time)) {
-    log::error(kTag, "Failed to subscribe Estimated Lap Time to telemetry");
     started = false;
   }
   return started;
@@ -64,7 +58,9 @@ bool start_modules(
 bool create_dashboard(
     lv_display_t* const display,
     const configuration::ApplicationConfiguration& configuration,
-    Modules& modules, const telemetry::ITelemetryReader& telemetry,
+    Modules& modules, Dashboard& dashboard_state,
+    const telemetry::ITelemetryRegistry& telemetry_registry,
+    const telemetry::ITelemetryReader& telemetry,
     const transport::ITransport& telemetry_transport) {
   dashboard::Layout layout{
       .display = display,
@@ -101,74 +97,18 @@ bool create_dashboard(
       log::error(kTag, "Failed to create Delta Time widget");
       initialized = false;
     }
-    if (configuration.dashboard.estimated_lap_time.enabled &&
-        !dashboard::estimated_lap_time_widget::create(
-            layout, configuration.dashboard.estimated_lap_time,
-            modules.estimated_lap_time)) {
-      log::error(kTag, "Failed to create Estimated Lap Time widget");
+    const std::span text_widgets{
+        configuration.dashboard.text_widgets.data(),
+        static_cast<std::size_t>(
+            configuration.dashboard.text_widget_count)};
+    if (!dashboard_state.text_widget_binder.bind(
+            text_widgets, telemetry_registry)) {
+      log::error(kTag, "Failed to bind Text widgets to telemetry");
       initialized = false;
-    }
-    if (configuration.board.id ==
-            configuration::BoardId::guition_esp32_4848s040 &&
-        configuration.dashboard.gear.enabled &&
-        !dashboard::gear_widget::create(
-            layout, configuration.dashboard.gear, telemetry)) {
-      log::error(kTag, "Failed to create Gear widget");
-      initialized = false;
-    }
-    if (configuration.dashboard.speed.enabled &&
-        !dashboard::speed_widget::create(
-            layout, configuration.dashboard.speed, telemetry)) {
-      log::error(kTag, "Failed to create Speed widget");
-      initialized = false;
-    }
-    if (configuration.dashboard.rpm.enabled &&
-        !dashboard::rpm_widget::create(
-            layout, configuration.dashboard.rpm, telemetry)) {
-      log::error(kTag, "Failed to create RPM widget");
-      initialized = false;
-    }
-    if (configuration.dashboard.fuel.enabled &&
-        !dashboard::fuel_widget::create_level(
-            layout, configuration.dashboard.fuel, telemetry)) {
-      log::error(kTag, "Failed to create Fuel Level widget");
-      initialized = false;
-    }
-    if (configuration.dashboard.fuel_average.enabled &&
-        !dashboard::fuel_widget::create_statistic(
-            layout, configuration.dashboard.fuel_average,
-            dashboard::fuel_widget::Statistic::average_consumption,
-            telemetry)) {
-      log::error(kTag, "Failed to create Average Fuel Consumption widget");
-      initialized = false;
-    }
-    if (configuration.dashboard.fuel_laps_remaining.enabled &&
-        !dashboard::fuel_widget::create_statistic(
-            layout, configuration.dashboard.fuel_laps_remaining,
-            dashboard::fuel_widget::Statistic::laps_remaining, telemetry)) {
-      log::error(kTag, "Failed to create Fuel Laps Remaining widget");
-      initialized = false;
-    }
-    if (configuration.dashboard.traction_control.enabled &&
-        !dashboard::driving_aid_widget::create(
-            layout, configuration.dashboard.traction_control,
-            dashboard::driving_aid_widget::Kind::traction_control,
-            telemetry)) {
-      log::error(kTag, "Failed to create Traction Control widget");
-      initialized = false;
-    }
-    if (configuration.dashboard.abs.enabled &&
-        !dashboard::driving_aid_widget::create(
-            layout, configuration.dashboard.abs,
-            dashboard::driving_aid_widget::Kind::abs, telemetry)) {
-      log::error(kTag, "Failed to create ABS widget");
-      initialized = false;
-    }
-    if (configuration.dashboard.brake_bias.enabled &&
-        !dashboard::driving_aid_widget::create(
-            layout, configuration.dashboard.brake_bias,
-            dashboard::driving_aid_widget::Kind::brake_bias, telemetry)) {
-      log::error(kTag, "Failed to create Brake Bias widget");
+    } else if (!dashboard_state.text_widgets.create(
+                   layout, dashboard_state.text_widget_binder.bindings(),
+                   telemetry)) {
+      log::error(kTag, "Failed to create Text widgets");
       initialized = false;
     }
   }

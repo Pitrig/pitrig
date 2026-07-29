@@ -16,6 +16,7 @@
 #include "simhub_protocol.hpp"
 #include "simcore_features.hpp"
 #include "telemetry_provider.hpp"
+#include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
 #if SIMCORE_DEBUG
 #include "performance.hpp"
@@ -32,10 +33,12 @@ struct Application {
   configuration::ConfigurationControl configuration_control;
   configuration::ConfigurationRouter configuration_router;
   events::EventBus event_bus;
-  telemetry::TelemetryStateService telemetry_state;
+  telemetry::TelemetryRegistry telemetry_registry;
+  telemetry::TelemetryStateService telemetry_state{telemetry_registry};
   telemetry::TelemetryProvider telemetry_provider{telemetry_state, event_bus};
-  protocols::SimHubProtocol protocol;
+  protocols::SimHubProtocol protocol{telemetry_registry};
   runtime_composition::Modules modules;
+  runtime_composition::Dashboard dashboard;
 };
 
 void submit_update(const telemetry::TelemetryUpdate& update, void* const context) {
@@ -80,10 +83,12 @@ void run() {
   lv_display_t* display =
       display::initialize(board_registry::display_driver(configuration.board.id));
   (void)runtime_composition::start_modules(
-      application.modules, application.event_bus, application.telemetry_state,
+      application.modules, application.event_bus,
+      application.telemetry_registry, application.telemetry_state,
       configuration);
   (void)runtime_composition::create_dashboard(
-      display, configuration, application.modules, application.telemetry_state,
+      display, configuration, application.modules, application.dashboard,
+      application.telemetry_registry, application.telemetry_state,
       telemetry_transport);
   application.configuration_control.initialize(
       application.configuration_service, telemetry_transport, &reboot,
@@ -91,7 +96,10 @@ void run() {
   application.configuration_router.initialize(
       application.configuration_control, &receive_telemetry_data,
       &application);
-  if (!telemetry_transport.start(&receive_transport_data, &application)) {
+  if (!application.protocol.initialized()) {
+    log::error(kTag, "Failed to bind SimHub protocol fields");
+  } else if (!telemetry_transport.start(&receive_transport_data,
+                                        &application)) {
     log::error(kTag, "Failed to start telemetry transport");
   }
 }

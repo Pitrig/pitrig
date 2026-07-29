@@ -14,7 +14,7 @@ void TelemetryProvider::submit(const TelemetryUpdate& update) {
   }
 
   const TelemetryUpdated payload{
-      .changed_fields = result.changed_fields,
+      .handle = result.handle,
       .revision = result.revision,
   };
   event_bus_.publish({

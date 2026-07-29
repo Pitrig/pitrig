@@ -8,7 +8,7 @@ namespace simcore::telemetry {
 inline constexpr events::EventId kTelemetryUpdatedEvent = 0x54454C45U;
 
 struct TelemetryUpdated {
-  Field changed_fields{Field::none};
+  Handle handle{};
   std::uint64_t revision{};
 };
 

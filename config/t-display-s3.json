@@ -3,8 +3,7 @@
   "dashboard": {
     "widgets": {
       "lap_timer": {},
-      "delta_time": {},
-      "estimated_lap_time": {}
+      "delta_time": {}
     }
   }
 }

@@ -8,16 +8,10 @@
 #endif
 #include "delta_time.hpp"
 #include "delta_time_widget.hpp"
-#include "driving_aid_widget.hpp"
-#include "estimated_lap_time.hpp"
-#include "estimated_lap_time_widget.hpp"
-#include "fuel_widget.hpp"
-#include "gear_widget.hpp"
 #include "lap_timer.hpp"
 #include "lap_timer_widget.hpp"
-#include "rpm_widget.hpp"
-#include "speed_widget.hpp"
 #include "simcore_features.hpp"
+#include "text_widget.hpp"
 #if SIMCORE_DISPLAY_DIAGNOSTICS
 #include "display_diagnostics.hpp"
 #endif
@@ -69,16 +63,10 @@ struct DashboardConfiguration {
   std::array<dashboard::LayoutRegion, 1> regions{};
   dashboard::lap_timer_widget::Config lap_timer{};
   dashboard::delta_time_widget::Config delta_time{};
-  dashboard::estimated_lap_time_widget::Config estimated_lap_time{};
-  dashboard::gear_widget::Config gear{};
-  dashboard::speed_widget::Config speed{};
-  dashboard::rpm_widget::Config rpm{};
-  dashboard::fuel_widget::LevelConfig fuel{};
-  dashboard::fuel_widget::StatisticConfig fuel_average{};
-  dashboard::fuel_widget::StatisticConfig fuel_laps_remaining{};
-  dashboard::driving_aid_widget::Config traction_control{};
-  dashboard::driving_aid_widget::Config abs{};
-  dashboard::driving_aid_widget::Config brake_bias{};
+  std::uint8_t text_widget_count{};
+  std::array<dashboard::text_widget::Config,
+             dashboard::text_widget::kMaximumInstances>
+      text_widgets{};
 };
 
 struct ApplicationConfiguration {
@@ -86,7 +74,6 @@ struct ApplicationConfiguration {
   TelemetryTransportConfiguration telemetry_transport;
   lap_timer::Config lap_timer{};
   delta_time::Config delta_time{};
-  estimated_lap_time::Config estimated_lap_time{};
   DashboardConfiguration dashboard{};
 };
 
@@ -121,11 +108,6 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
             .range_ms = 2'000,
         },
     },
-    .estimated_lap_time = {
-        .unavailable_behavior =
-            estimated_lap_time::UnavailableBehavior::placeholder,
-        .placeholder = {'-', '-', ':', '-', '-', '.', '-', '-', '-', '\0'},
-    },
     .dashboard = {
 #if SIMCORE_DISPLAY_DIAGNOSTICS
         .mode = DashboardMode::display_diagnostics,
@@ -140,7 +122,17 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
         .regions = {{
             {
                 .id = kTimingRegionId,
-                .bounds = {.x = 0, .y = 0, .width = 320, .height = 170},
+                .bounds = {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+                    .x = 80,
+                    .y = 155,
+#else
+                    .x = 0,
+                    .y = 0,
+#endif
+                    .width = 320,
+                    .height = 170,
+                },
                 .padding = {
                     .left = 0,
                     .top = 5,
@@ -188,254 +180,189 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 .border_radius_px = 10,
             },
         },
-        .estimated_lap_time = {
-            .enabled = true,
-            .font = {.family = dashboard::FontFamily::lcd, .size_px = 39},
-            .placement = {
-                .region_id = kTimingRegionId,
-                .anchor = dashboard::Anchor::bottom_center,
-                .offset_x = 0,
-                .offset_y = 0,
-                .height = 39,
-            },
-            .text_color_rgb = 0xE8E8E8,
-        },
-        .gear = {
 #if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
+        .text_widget_count = 10,
+        .text_widgets = {{
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kEstimatedLapTime),
+                .placement = {
+                    .region_id = kTimingRegionId,
+                    .anchor = dashboard::Anchor::bottom_center,
+                    .height = 39,
+                },
+                .value = {
+                    .font = {
+                        .family = dashboard::FontFamily::lcd,
+                        .size_px = 39,
+                    },
+                    .unavailable_text = {
+                        '-', '-', ':', '-', '-', '.', '-', '-', '-', '\0'},
+                },
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kGear),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::top_right,
+                    .offset_x = -16,
+                    .offset_y = 16,
+                    .width = 120,
+                    .height = 120,
+                },
+                .padding = {.left = 8, .top = 8, .right = 8, .bottom = 8},
+                .border = {
+                    .color_rgb = 0xAEAEAE,
+                    .width_px = 2,
+                    .radius_px = 12,
+                },
+                .background_color_rgb = 0x0B0B0B,
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kSpeed),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::bottom_center,
+                    .offset_y = -24,
+                    .width = 180,
+                    .height = 64,
+                },
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kRpm),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::bottom_center,
+                    .offset_y = -96,
+                    .width = 320,
+                    .height = 64,
+                },
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kFuelLevel),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::bottom_left,
+                    .offset_x = 16,
+                    .offset_y = -24,
+                    .width = 126,
+                    .height = 64,
+                },
+                .value = {
+                    .font = {
+                        .family = dashboard::FontFamily::montserrat,
+                        .size_px = 24,
+                    },
+                },
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kFuelAverageConsumption),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::bottom_right,
+                    .offset_x = -16,
+                    .offset_y = -62,
+                    .width = 126,
+                    .height = 30,
+                },
+                .value = {
+                    .font = {
+                        .family = dashboard::FontFamily::montserrat,
+                        .size_px = 24,
+                    },
+                },
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kFuelLapsRemaining),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::bottom_right,
+                    .offset_x = -16,
+                    .offset_y = -24,
+                    .width = 126,
+                    .height = 30,
+                },
+                .value = {
+                    .font = {
+                        .family = dashboard::FontFamily::montserrat,
+                        .size_px = 24,
+                    },
+                },
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kTractionControl),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::top_left,
+                    .offset_x = 92,
+                    .offset_y = 16,
+                    .width = 72,
+                    .height = 72,
+                },
+                .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
+                .border = {
+                    .color_rgb = 0x00E5FF,
+                    .width_px = 3,
+                    .radius_px = 8,
+                },
+                .title = {
+                    .text = {'T', 'C', '\0'},
+                },
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kAbs),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::top_left,
+                    .offset_x = 16,
+                    .offset_y = 16,
+                    .width = 72,
+                    .height = 72,
+                },
+                .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
+                .border = {
+                    .color_rgb = 0xF5F500,
+                    .width_px = 3,
+                    .radius_px = 8,
+                },
+                .title = {
+                    .text = {'A', 'B', 'S', '\0'},
+                },
+            },
+            {
+                .binding = telemetry::make_field_name(
+                    telemetry::fields::kBrakeBias),
+                .placement = {
+                    .region_id = dashboard::kScreenRegionId,
+                    .anchor = dashboard::Anchor::top_left,
+                    .offset_x = 168,
+                    .offset_y = 16,
+                    .width = 104,
+                    .height = 72,
+                },
+                .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
+                .border = {
+                    .color_rgb = 0xF000D0,
+                    .width_px = 3,
+                    .radius_px = 8,
+                },
+                .title = {
+                    .text = {'B', 'I', 'A', 'S', '\0'},
+                },
+            },
+        }},
 #else
-            .enabled = false,
+        .text_widget_count = 0,
+        .text_widgets = {},
 #endif
-            .font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 48,
-            },
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-                .anchor = dashboard::Anchor::top_right,
-                .offset_x = -16,
-#else
-                .anchor = dashboard::Anchor::top_center,
-                .offset_x = 0,
-#endif
-                .offset_y = 16,
-                .width = 120,
-                .height = 120,
-            },
-            .padding = {
-                .left = 8,
-                .top = 8,
-                .right = 8,
-                .bottom = 8,
-            },
-            .border = {
-                .color_rgb = 0xAEAEAE,
-                .width_px = 2,
-                .radius_px = 12,
-            },
-            .text_color_rgb = 0xE8E8E8,
-            .background_color_rgb = 0x0B0B0B,
-        },
-        .speed = {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
-#else
-            .enabled = false,
-#endif
-            .font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 48,
-            },
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-                .anchor = dashboard::Anchor::bottom_center,
-                .offset_x = 0,
-                .offset_y = -24,
-                .width = 180,
-                .height = 64,
-            },
-            .text_color_rgb = 0xE8E8E8,
-        },
-        .rpm = {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
-#else
-            .enabled = false,
-#endif
-            .font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 48,
-            },
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-                .anchor = dashboard::Anchor::bottom_center,
-                .offset_x = 0,
-                .offset_y = -96,
-                .width = 320,
-                .height = 64,
-            },
-            .text_color_rgb = 0xE8E8E8,
-        },
-        .fuel = {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
-#else
-            .enabled = false,
-#endif
-            .font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 24,
-            },
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-                .anchor = dashboard::Anchor::bottom_left,
-                .offset_x = 16,
-                .offset_y = -24,
-                .width = 126,
-                .height = 64,
-            },
-            .text_color_rgb = 0xE8E8E8,
-        },
-        .fuel_average = {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
-#else
-            .enabled = false,
-#endif
-            .font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 24,
-            },
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-                .anchor = dashboard::Anchor::bottom_right,
-                .offset_x = -16,
-                .offset_y = -62,
-                .width = 126,
-                .height = 30,
-            },
-            .text_color_rgb = 0xE8E8E8,
-        },
-        .fuel_laps_remaining = {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
-#else
-            .enabled = false,
-#endif
-            .font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 24,
-            },
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-                .anchor = dashboard::Anchor::bottom_right,
-                .offset_x = -16,
-                .offset_y = -24,
-                .width = 126,
-                .height = 30,
-            },
-            .text_color_rgb = 0xE8E8E8,
-        },
-        .traction_control = {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
-#else
-            .enabled = false,
-#endif
-            .label_font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 10,
-            },
-            .value_font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 48,
-            },
-            .label_offset_y_px = 0,
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-                .anchor = dashboard::Anchor::top_left,
-                .offset_x = 92,
-                .offset_y = 16,
-                .width = 72,
-                .height = 72,
-            },
-            .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
-            .border = {
-                .color_rgb = 0x00E5FF,
-                .width_px = 3,
-                .radius_px = 8,
-            },
-            .label_color_rgb = 0xE8E8E8,
-            .value_color_rgb = 0xE8E8E8,
-            .background_color_rgb = 0x000000,
-        },
-        .abs = {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
-#else
-            .enabled = false,
-#endif
-            .label_font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 10,
-            },
-            .value_font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 48,
-            },
-            .label_offset_y_px = 0,
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-                .anchor = dashboard::Anchor::top_left,
-                .offset_x = 16,
-                .offset_y = 16,
-                .width = 72,
-                .height = 72,
-            },
-            .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
-            .border = {
-                .color_rgb = 0xF5F500,
-                .width_px = 3,
-                .radius_px = 8,
-            },
-            .label_color_rgb = 0xE8E8E8,
-            .value_color_rgb = 0xE8E8E8,
-            .background_color_rgb = 0x000000,
-        },
-        .brake_bias = {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-            .enabled = true,
-#else
-            .enabled = false,
-#endif
-            .label_font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 10,
-            },
-            .value_font = {
-                .family = dashboard::FontFamily::montserrat,
-                .size_px = 48,
-            },
-            .label_offset_y_px = 0,
-            .placement = {
-                .region_id = dashboard::kScreenRegionId,
-                .anchor = dashboard::Anchor::top_left,
-                .offset_x = 168,
-                .offset_y = 16,
-                .width = 104,
-                .height = 72,
-            },
-            .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
-            .border = {
-                .color_rgb = 0xF000D0,
-                .width_px = 3,
-                .radius_px = 8,
-            },
-            .label_color_rgb = 0xE8E8E8,
-            .value_color_rgb = 0xE8E8E8,
-            .background_color_rgb = 0x000000,
-        },
     },
 };
 

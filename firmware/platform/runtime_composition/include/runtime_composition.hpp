@@ -1,8 +1,9 @@
 #pragma once
 
 #include "delta_time.hpp"
-#include "estimated_lap_time.hpp"
 #include "lap_timer.hpp"
+#include "text_widget.hpp"
+#include "widget_binding.hpp"
 
 struct _lv_display_t;
 using lv_display_t = _lv_display_t;
@@ -17,6 +18,7 @@ class EventBus;
 
 namespace simcore::telemetry {
 class ITelemetryReader;
+class ITelemetryRegistry;
 }
 
 namespace simcore::transport {
@@ -29,12 +31,17 @@ namespace simcore::runtime_composition {
 struct Modules {
   lap_timer::LapTimer lap_timer;
   delta_time::DeltaTime delta_time;
-  estimated_lap_time::EstimatedLapTime estimated_lap_time;
+};
+
+struct Dashboard {
+  dashboard::text_widget::Binder text_widget_binder;
+  dashboard::text_widget::Collection text_widgets;
 };
 
 // Starts every configured feature module against shared platform services.
 [[nodiscard]] bool start_modules(
     Modules& modules, events::EventBus& event_bus,
+    const telemetry::ITelemetryRegistry& telemetry_registry,
     const telemetry::ITelemetryReader& telemetry,
     const configuration::ApplicationConfiguration& configuration);
 
@@ -42,7 +49,9 @@ struct Modules {
 [[nodiscard]] bool create_dashboard(
     lv_display_t* display,
     const configuration::ApplicationConfiguration& configuration,
-    Modules& modules, const telemetry::ITelemetryReader& telemetry,
+    Modules& modules, Dashboard& dashboard_state,
+    const telemetry::ITelemetryRegistry& telemetry_registry,
+    const telemetry::ITelemetryReader& telemetry,
     const transport::ITransport& telemetry_transport);
 
 }  // namespace simcore::runtime_composition

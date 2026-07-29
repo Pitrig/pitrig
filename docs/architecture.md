@@ -210,7 +210,11 @@ Modules use components and never access hardware directly.
 
 Platform code adapts modules and components to framework-specific presentation and runtime facilities.
 
-Dashboard widgets are platform-specific UI. They render module state with LVGL but do not own business state, telemetry processing, extrapolation, or correction logic.
+Dashboard widgets are platform-specific UI. Lap Timer and Delta Time widgets
+render their module state. Reusable text widgets receive telemetry handles from
+a startup-only widget binder and own only bounded LVGL presentation state.
+Widgets do not know protocol identifiers or telemetry field names and do not
+own telemetry processing, extrapolation, or correction logic.
 
 Platform code may depend on modules and components. Modules must not depend on platform code or UI frameworks.
 
@@ -279,6 +283,12 @@ Possible transports include:
 - BLE
 - Wi-Fi
 - Future protocols
+
+Telemetry ingestion is split into an immutable registry and mutable state. The
+registry defines protocol-neutral field names and types. Protocols bind source
+identifiers to registry handles once during startup. The state stores current
+typed values in fixed slots indexed by those handles. Modules and widgets read
+only pre-bound handles; periodic paths perform no name lookup.
 
 ---
 

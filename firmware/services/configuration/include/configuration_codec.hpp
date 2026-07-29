@@ -8,14 +8,12 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kOldestConfigurationSchemaVersion = 1;
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 9;
-inline constexpr std::size_t kMaximumPayloadSize = 768;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 0;
+inline constexpr std::size_t kMaximumPayloadSize = 2'560;
 
 [[nodiscard]] constexpr bool is_supported_configuration_schema(
     const std::uint16_t version) {
-  return version >= kOldestConfigurationSchemaVersion &&
-         version <= kConfigurationSchemaVersion;
+  return version == kConfigurationSchemaVersion;
 }
 
 enum class ValidationError : std::uint8_t {

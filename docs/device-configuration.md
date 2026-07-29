@@ -6,54 +6,22 @@ SimCore loads device configuration in this order:
 2. Backup valid NVS slot.
 3. Factory defaults compiled into firmware.
 
-The loaded configuration is immutable for the lifetime of the firmware. Saving
-a replacement therefore requires a restart before it becomes active.
+The configuration is immutable while the firmware is running. A saved
+replacement takes effect after restart.
 
-The T-Display and Guition build configurations select matching factory
-profiles through `CONFIG_SIMCORE_FACTORY_BOARD_*`. The selected profile defines
-the immutable hardware identity of that firmware build:
+The T-Display and Guition builds select their immutable hardware identity with
+`CONFIG_SIMCORE_FACTORY_BOARD_*`. A configuration for another board is rejected.
 
-- T-Display builds accept only `t_display_s3`;
-- Guition builds accept only `guition_esp32_4848s040`.
+## Configuration files
 
-Every supported driver remains linked in the firmware image, but `board.id`
-cannot be used to switch a build to different hardware.
+Board examples:
 
-For a reproducible clean build, combine the common and board defaults:
+- `config/t-display-s3.json`
+- `config/guition-esp32-4848s040.json`
 
-```bash
-idf.py -B build-t-display \
-  -DSDKCONFIG=/tmp/simcore-sdkconfig-t-display \
-  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.t-display-s3" \
-  build
-
-idf.py -B build-guition \
-  -DSDKCONFIG=/tmp/simcore-sdkconfig-guition \
-  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.guition-esp32-4848s040" \
-  build
-```
-
-## Requirements
-
-The command-line tool uses Python 3 and `pyserial`:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r tools/requirements.txt
-```
-
-Concise board-specific examples are provided in:
-
-- `config/t-display-s3.json` — 320×170 layout and native USB CDC;
-- `config/guition-esp32-4848s040.json` — centered 320×170 dashboard area on
-  the 480×480 display and UART0 on GPIO43/GPIO44.
-
-Copy the matching file and edit the copy. These files are sparse: missing
-general fields inherit the selected board profile. Full canonical profiles used
-by the CLI are stored under `config/profiles/`.
-
-The `board` field selects the profile:
+Canonical board profiles are stored under `config/profiles/`. Sparse files use
+a string `board` identifier and inherit omitted values from the matching
+profile:
 
 ```json
 {
@@ -61,19 +29,21 @@ The `board` field selects the profile:
 }
 ```
 
-RGB colors are JSON strings in `"#RRGGBB"` format, for example `"#00C853"`.
-The firmware validates the entire
-configuration, including board/transport compatibility, UART pins, regions,
-fonts, and widget references, before writing NVS. A configuration whose
-board does not match the firmware build is rejected with
-`@SC:ERR:board_mismatch` and is not written.
+RGB colors use `"#RRGGBB"`. Unknown fields are rejected.
 
-At startup, an NVS slot containing a configuration for another board is treated
-as invalid. SimCore tries the other slot and then falls back to the factory
-configuration, following the recovery order above.
+## Dashboard widgets
 
-Widgets use presence-driven configuration. Only widgets listed under
-`dashboard.widgets` are enabled:
+The production dashboard contains three widget implementations:
+
+- `lap_timer`
+- `delta_time`
+- `text`
+
+Debug builds may additionally create the performance overlay or display
+diagnostics.
+
+`lap_timer` and `delta_time` are presence-driven. Text widgets are an ordered
+array with a maximum of 16 instances:
 
 ```json
 {
@@ -81,201 +51,133 @@ Widgets use presence-driven configuration. Only widgets listed under
   "dashboard": {
     "widgets": {
       "lap_timer": {},
-      "gear": {
-        "placement": {
-          "offset_y": 24
+      "delta_time": {},
+      "text": [
+        {
+          "binding": "vehicle.aids.traction_control",
+          "placement": {
+            "region_id": 0,
+            "anchor": "top_left",
+            "offset_x": 16,
+            "offset_y": 16,
+            "width": 72,
+            "height": 72
+          },
+          "padding": {
+            "left": 4,
+            "top": 4,
+            "right": 4,
+            "bottom": 4
+          },
+          "border": {
+            "color_rgb": "#00E5FF",
+            "width_px": 3,
+            "radius_px": 8
+          },
+          "title": {
+            "text": "TC",
+            "font": {
+              "family": "montserrat",
+              "size_px": 10
+            },
+            "color_rgb": "#E8E8E8",
+            "offset_y_px": 0
+          },
+          "value": {
+            "font": {
+              "family": "montserrat",
+              "size_px": 48
+            },
+            "color_rgb": "#E8E8E8",
+            "alignment": "center",
+            "unavailable_text": "--"
+          },
+          "background_color_rgb": "#000000"
         }
-      }
+      ]
     }
   }
 }
 ```
 
-Here `lap_timer` and `gear` inherit their board defaults. Other widgets are not
-created, do not allocate LVGL objects or timers, and their dedicated feature
-modules are not started. Missing fields outside `dashboard.widgets`, such as
-`telemetry_transport`, inherit board defaults. Unknown fields and widget names
-are rejected instead of being ignored.
+The title is static. A non-empty title is centered over the top border and
+creates a background-colored gap in that border. An empty title disables both
+the label and the gap.
 
-Legacy complete JSON files with an object-valued `board` field remain accepted.
-The CLI normalizes either JSON form into the complete schema 9 binary snapshot
-before validation or storage.
+The value is never formatted by the widget. It displays the exact string
+received for its telemetry binding. Units, prefixes, suffixes, decimal places,
+and other presentation belong to the telemetry source.
 
-The traction-control, ABS, and brake-bias cards can be enabled and styled
-independently. Their labels are fixed to `TC`, `ABS`, and `BIAS`; placement,
-fonts, padding, rounded border, label/value colors, and background are
-configuration-driven:
+Supported bindings:
 
-```json
-{
-  "board": "guition_esp32_4848s040",
-  "dashboard": {
-    "widgets": {
-      "traction_control": {
-        "label_offset_y_px": 0,
-        "border": {
-          "color_rgb": "#00E5FF"
-        }
-      },
-      "abs": {
-        "border": {
-          "color_rgb": "#F5F500"
-        }
-      },
-      "brake_bias": {
-        "border": {
-          "color_rgb": "#F000D0"
-        }
-      }
-    }
-  }
-}
-```
+- `vehicle.speed`
+- `engine.rpm`
+- `transmission.gear`
+- `session.lap.current_time`
+- `session.lap.best_time`
+- `vehicle.fuel.level`
+- `session.lap.delta`
+- `session.lap.estimated_time`
+- `vehicle.aids.traction_control`
+- `vehicle.aids.abs`
+- `vehicle.brake_bias`
+- `vehicle.fuel.average_consumption`
+- `vehicle.fuel.laps_remaining`
 
-These widgets are enabled by default on `guition_esp32_4848s040` and disabled
-on `t_display_s3`. The Guition profile groups them at the top-left and places
-the gear card at the top-right to avoid overlap. Listing a widget under
-`dashboard.widgets` enables it; its inherited placement can be overridden like
-any other widget. `label_offset_y_px` shifts the fixed label vertically:
-negative values move it up and positive values move it down. The border has a
-solid background-colored gap behind the label. Because the widget object is
-presence-driven, also list every existing widget that should remain enabled.
+Supported compiled fonts:
 
-The numeric RPM widget reads the canonical RPM telemetry value and supports
-independent font, placement, and text color settings. It is enabled by default
-on `guition_esp32_4848s040`, positioned above the numeric speed widget, and
-disabled by default on `t_display_s3`:
-
-```json
-{
-  "board": "guition_esp32_4848s040",
-  "dashboard": {
-    "widgets": {
-      "rpm": {
-        "text_color_rgb": "#E8E8E8"
-      }
-    }
-  }
-}
-```
-
-The fuel widgets read three independent canonical telemetry values. `fuel`
-rounds the remaining liters to a whole number followed by `L`. `fuel_average`
-shows average consumption as `AVG x.x`, and `fuel_laps_remaining` shows the
-estimated range as `LAPS x.x`. Placement, font, text color, and enabled state
-are independent:
-
-```json
-{
-  "board": "guition_esp32_4848s040",
-  "dashboard": {
-    "widgets": {
-      "fuel": {
-        "text_color_rgb": "#E8E8E8"
-      },
-      "fuel_average": {
-        "text_color_rgb": "#E8E8E8"
-      },
-      "fuel_laps_remaining": {
-        "text_color_rgb": "#E8E8E8"
-      }
-    }
-  }
-}
-```
-
-All three are enabled in the Guition ESP32-4848S040 factory profile and disabled
-in the T-Display-S3 profile. Unavailable values render as `--`.
+- `montserrat`: 10, 24, 48 px
+- `lcd`: 39, 43, 47, 53 px
+- `roboto_mono`: 43 px
 
 ## Commands
 
-Inspect the running device:
+Install the CLI dependency:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r tools/requirements.txt
+```
+
+Inspect a device:
 
 ```bash
 python3 tools/simcore_config.py info
 python3 tools/simcore_config.py show
 ```
 
-When `--port` is omitted, the CLI probes attached USB serial ports with
-`@SC:INFO` and selects the one that identifies itself as SimCore. If multiple
-SimCore devices are connected, select one explicitly with
-`--port /dev/ttyUSB0`.
-
-The safest starting point for a particular board is its running factory
-configuration:
-
-```bash
-python3 tools/simcore_config.py show > device-config.json
-```
-
-Edit that file and use it with `validate` or `apply`.
-
-Validate without writing:
+Validate or apply a file:
 
 ```bash
 python3 tools/simcore_config.py validate config/t-display-s3.json
-```
-
-Save, verify, select, and restart into the new configuration:
-
-```bash
 python3 tools/simcore_config.py apply config/t-display-s3.json
 ```
 
-Use `--no-reboot` after `apply` to defer activation. Restore factory defaults:
+Restore factory defaults:
 
 ```bash
 python3 tools/simcore_config.py reset
 ```
 
-For native USB CDC boards use the `/dev/ttyACM*` device where appropriate when
-selecting a port manually. The baud argument is electrically relevant for UART
-boards; it defaults to 115200. Stop SimHub or any serial monitor before running
-the CLI because a serial port normally cannot be opened by two applications at
-the same time.
+Use `--port` when more than one SimCore device is connected. SimHub and serial
+monitors must release the selected serial port before the CLI opens it.
 
-## Control protocol
+## Wire format and compatibility
 
-Control frames are newline-terminated ASCII and start with `@SC:`. Binary
-configuration payloads use uppercase or lowercase hexadecimal encoding.
+Configuration schema versioning starts at 0. The active binary format supports
+schema 0 only. Records with another schema version fall back to factory
+defaults.
 
-```text
-@SC:INFO
-@SC:GET
-@SC:VALIDATE:<hex payload>
-@SC:SET:<hex payload>
-@SC:RESET
-@SC:REBOOT
-```
+Schema 0 has fixed capacities:
 
-Responses begin with `@SC:OK:` or `@SC:ERR:`. Lines without the `@SC:` prefix
-continue to the SimHub telemetry parser.
+- one dashboard region;
+- up to 16 text widgets;
+- 39 UTF-8 bytes for a canonical telemetry binding;
+- 15 UTF-8 bytes for a title;
+- 15 UTF-8 bytes for unavailable text;
+- 2560 bytes for the complete binary payload.
 
-Schemas 1–9 use exactly one dashboard region because the current application
-configuration has fixed storage for one region. Schema 2 adds widget `enabled`
-flags. Schema 3 adds the board-limited gear widget, including font, placement,
-padding, border, and colors. Schema 1 and 2 payloads remain readable; the gear
-widget receives board defaults while the older widget behavior remains
-unchanged. Schema 4 adds the numeric-only speed widget with enable, font,
-placement, and text color settings. Earlier payloads receive the board default:
-enabled on Guition and disabled on T-Display. Schema 5 adds the independently
-configured `traction_control`, `abs`, and `brake_bias` cards. Earlier payloads
-receive these three widgets as disabled. Schema 6 adds
-`label_offset_y_px`; schema 5 payloads receive a zero offset.
-Schema 7 adds the numeric RPM widget; earlier payloads receive it as disabled.
-Schema 8 adds the fuel-level, average-consumption, and fuel-laps-remaining
-widgets; earlier payloads receive them as disabled. Schema 9 removes the
-fuel-pump icon and its color setting; schema 8 payloads remain readable. The
-bounded maximum payload size is 768 bytes.
-Future variable-sized configuration must introduce bounded capacities and a
-new schema.
-
-## Storage isolation
-
-SimCore records are stored in the dedicated `simcore_cfg` NVS partition.
-Recovery erases only this partition. The default NVS partition and unrelated
-namespaces are never erased by the configuration adapter.
-
-After first installing a firmware build with the new partition table, reapply
-any configuration previously stored in the default NVS partition. The old data
-is left untouched but is no longer used by SimCore.
+Records are stored in two slots inside the dedicated `simcore_cfg` NVS
+partition. Writes verify the inactive slot before selecting it, and recovery
+never erases the default NVS partition.

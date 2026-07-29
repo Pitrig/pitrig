@@ -83,24 +83,26 @@ void DeltaTime::on_telemetry_updated(const events::Event& event,
 
   const auto& update =
       *static_cast<const telemetry::TelemetryUpdated*>(event.payload);
-  if (!telemetry::contains(update.changed_fields, telemetry::Field::lap_delta)) {
+  if (update.handle != module.telemetry_handle_) {
     return;
   }
 
-  const telemetry::TelemetrySnapshot snapshot =
-      module.telemetry_reader_->snapshot();
-  if (!telemetry::contains(snapshot.valid_fields, telemetry::Field::lap_delta)) {
+  const telemetry::TelemetryRead value =
+      module.telemetry_reader_->read(module.telemetry_handle_);
+  if (!value.available) {
     module.set_unavailable();
     return;
   }
 
-  module.set_delta(snapshot.values.lap_delta_ms);
+  module.set_delta(value.value.int32_value);
 }
 
 bool DeltaTime::start(events::EventBus& event_bus,
                       const telemetry::ITelemetryReader& reader,
+                      const telemetry::Handle telemetry_handle,
                       const Config& config) {
-  if (telemetry_subscription_.valid) {
+  if (telemetry_subscription_.valid || !telemetry_handle.valid() ||
+      telemetry_handle.type != telemetry::ValueType::int32) {
     return false;
   }
   config_ = config;
@@ -109,6 +111,7 @@ bool DeltaTime::start(events::EventBus& event_bus,
     config_.scale.range_ms = 2'000;
   }
   telemetry_reader_ = &reader;
+  telemetry_handle_ = telemetry_handle;
   event_bus_ = &event_bus;
   set_unavailable();
 
@@ -116,6 +119,7 @@ bool DeltaTime::start(events::EventBus& event_bus,
       telemetry::kTelemetryUpdatedEvent, &DeltaTime::on_telemetry_updated, this);
   if (!telemetry_subscription_.valid) {
     telemetry_reader_ = nullptr;
+    telemetry_handle_ = {};
     event_bus_ = nullptr;
   }
   return telemetry_subscription_.valid;
@@ -127,6 +131,7 @@ void DeltaTime::stop() {
   }
   telemetry_subscription_ = {};
   telemetry_reader_ = nullptr;
+  telemetry_handle_ = {};
   event_bus_ = nullptr;
 }
 

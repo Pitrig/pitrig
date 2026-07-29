@@ -71,40 +71,38 @@ bool ConfigurationService::initialize(
     return false;
   }
 
-  const LoadedRecord slot_a = load_slot(StorageSlot::a);
-  const LoadedRecord slot_b = load_slot(StorageSlot::b);
   StorageSlot active{};
   const bool has_active = storage.read_active(active);
 
-  const LoadedRecord* selected = nullptr;
   StorageSlot selected_slot = StorageSlot::a;
+  LoadedRecord selected{};
   if (has_active) {
-    const LoadedRecord& preferred =
-        active == StorageSlot::a ? slot_a : slot_b;
-    const LoadedRecord& fallback =
-        active == StorageSlot::a ? slot_b : slot_a;
-    if (preferred.valid) {
-      selected = &preferred;
+    selected = load_slot(active, scratch_configuration_);
+    if (selected.valid) {
       selected_slot = active;
-    } else if (fallback.valid) {
-      selected = &fallback;
+    } else {
       selected_slot = other(active);
+      selected = load_slot(selected_slot, scratch_configuration_);
     }
-  } else if (slot_a.valid || slot_b.valid) {
+  } else {
+    const LoadedRecord slot_a =
+        load_slot(StorageSlot::a, scratch_configuration_);
+    const LoadedRecord slot_b =
+        load_slot(StorageSlot::b, scratch_configuration_);
     if (slot_a.valid &&
         (!slot_b.valid || slot_a.generation >= slot_b.generation)) {
-      selected = &slot_a;
       selected_slot = StorageSlot::a;
-    } else {
-      selected = &slot_b;
+      selected = load_slot(selected_slot, scratch_configuration_);
+    } else if (slot_b.valid) {
       selected_slot = StorageSlot::b;
+      selected = load_slot(selected_slot, scratch_configuration_);
     }
   }
 
-  if (selected != nullptr) {
-    current_ = selected->configuration;
+  if (selected.valid) {
+    current_ = scratch_configuration_;
     status_.source = source_for(selected_slot);
-    status_.generation = selected->generation;
+    status_.generation = selected.generation;
     if (!has_active || selected_slot != active) {
       storage.set_active(selected_slot);
     }
@@ -119,12 +117,12 @@ CodecResult ConfigurationService::encode_current(
 
 ValidationError ConfigurationService::validate_payload(
     const std::span<const std::uint8_t> payload) const {
-  ApplicationConfiguration candidate;
-  const CodecResult decoded = decode_configuration(payload, candidate);
+  const CodecResult decoded =
+      decode_configuration(payload, scratch_configuration_);
   if (!decoded.ok) {
     return decoded.error;
   }
-  return candidate.board.id == hardware_board_
+  return scratch_configuration_.board.id == hardware_board_
              ? ValidationError::none
              : ValidationError::board_mismatch;
 }
@@ -134,12 +132,12 @@ ValidationError ConfigurationService::save(
   if (storage_ == nullptr || !status_.storage_available) {
     return ValidationError::malformed;
   }
-  ApplicationConfiguration candidate;
-  const CodecResult decoded = decode_configuration(payload, candidate);
+  const CodecResult decoded =
+      decode_configuration(payload, scratch_configuration_);
   if (!decoded.ok) {
     return decoded.error;
   }
-  if (candidate.board.id != hardware_board_) {
+  if (scratch_configuration_.board.id != hardware_board_) {
     return ValidationError::board_mismatch;
   }
 
@@ -155,7 +153,8 @@ ValidationError ConfigurationService::save(
     return ValidationError::malformed;
   }
 
-  const LoadedRecord verified = load_slot(target);
+  const LoadedRecord verified =
+      load_slot(target, scratch_configuration_);
   if (!verified.valid || verified.generation != generation ||
       !storage_->set_active(target)) {
     return ValidationError::malformed;
@@ -175,7 +174,7 @@ bool ConfigurationService::reset() {
 }
 
 ConfigurationService::LoadedRecord ConfigurationService::load_slot(
-    const StorageSlot slot) {
+    const StorageSlot slot, ApplicationConfiguration& configuration) {
   LoadedRecord loaded;
   if (storage_ == nullptr) {
     return loaded;
@@ -202,12 +201,11 @@ ConfigurationService::LoadedRecord ConfigurationService::load_slot(
       crc32(payload) != get_u32(record, 16)) {
     return loaded;
   }
-  const CodecResult decoded =
-      decode_configuration(payload, loaded.configuration);
+  const CodecResult decoded = decode_configuration(payload, configuration);
   if (!decoded.ok) {
     return loaded;
   }
-  if (loaded.configuration.board.id != hardware_board_) {
+  if (configuration.board.id != hardware_board_) {
     return loaded;
   }
   loaded.generation = get_u32(record, 12);

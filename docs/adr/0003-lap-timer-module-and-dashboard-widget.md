@@ -25,9 +25,10 @@ without adding the stale interval to the displayed lap time.
 
 Keep the LVGL label, time formatting, font, colors, and 16 ms render timer in a dashboard widget under `platform/dashboard/widgets/lap_timer`.
 
-The module subscribes to telemetry update notifications and reads the latest
-immutable telemetry snapshot. Telemetry ingestion does not call the module
-directly.
+At startup, composition resolves the canonical current-lap field through the
+telemetry registry and passes its typed handle to the module. The module
+subscribes to telemetry update notifications and reads only that handle from
+the telemetry state. Telemetry ingestion does not call the module directly.
 
 ## Consequences
 
@@ -39,4 +40,5 @@ directly.
 - A telemetry outage cannot make the locally extrapolated timer run
   indefinitely.
 - The core composes the telemetry services and module subscriptions during startup.
+- Protocol identifiers and field names do not enter the module.
 - LVGL resources remain owned by platform-specific dashboard code.

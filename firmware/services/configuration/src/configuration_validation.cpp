@@ -1,94 +1,90 @@
 #include "configuration_codec.hpp"
 
 #include <algorithm>
-#include <array>
 
 namespace simcore::configuration {
 namespace {
 
-bool valid_color(const std::uint32_t color) { return color <= 0xFFFFFFU; }
+[[nodiscard]] bool valid_color(const std::uint32_t color) {
+  return color <= 0x00FF'FFFFU;
+}
 
-bool valid_font(const dashboard::FontSpec& font) {
+[[nodiscard]] bool valid_font(const dashboard::FontSpec& font) {
   if (font.family == dashboard::FontFamily::montserrat) {
-    return font.size_px == 10 || font.size_px == 24 || font.size_px == 48;
+    return font.size_px == 10 || font.size_px == 24 ||
+           font.size_px == 48;
   }
-  if (font.family == dashboard::FontFamily::roboto_mono) {
-    return font.size_px == 43;
+  if (font.family == dashboard::FontFamily::lcd) {
+    return font.size_px == 39 || font.size_px == 43 ||
+           font.size_px == 47 || font.size_px == 53;
   }
-  if (font.family != dashboard::FontFamily::lcd) {
-    return false;
-  }
-  return font.size_px == 39 || font.size_px == 43 ||
-         font.size_px == 47 || font.size_px == 53;
+  return font.family == dashboard::FontFamily::roboto_mono &&
+         font.size_px == 43;
 }
 
-bool valid_placement(const dashboard::Placement& placement,
-                     const dashboard::RegionId region_id) {
-  return placement.region_id == dashboard::kScreenRegionId ||
-         placement.region_id == region_id;
+[[nodiscard]] bool valid_placement(
+    const dashboard::Placement& placement,
+    const dashboard::RegionId configured_region) {
+  return (placement.region_id == dashboard::kScreenRegionId ||
+          placement.region_id == configured_region) &&
+         placement.anchor >= dashboard::Anchor::top_left &&
+         placement.anchor <= dashboard::Anchor::bottom_right &&
+         placement.width >= 0 && placement.height >= 0 &&
+         placement.width <= 480 && placement.height <= 480;
 }
 
-bool valid_driving_aid_widget(
-    const dashboard::driving_aid_widget::Config& config,
-    const dashboard::RegionId region_id) {
-  return valid_font(config.label_font) && valid_font(config.value_font) &&
-         valid_placement(config.placement, region_id) &&
+template <std::size_t Size>
+[[nodiscard]] bool terminated(const std::array<char, Size>& text) {
+  return std::find(text.begin(), text.end(), '\0') != text.end();
+}
+
+[[nodiscard]] bool valid_text_widget(
+    const dashboard::text_widget::Config& config,
+    const dashboard::RegionId configured_region) {
+  const telemetry::TelemetryRegistry registry;
+  return registry.resolve(telemetry::field_name_view(config.binding)).valid() &&
+         valid_placement(config.placement, configured_region) &&
+         valid_font(config.title.font) && valid_font(config.value.font) &&
          valid_color(config.border.color_rgb) &&
-         valid_color(config.label_color_rgb) &&
-         valid_color(config.value_color_rgb) &&
+         valid_color(config.title.color_rgb) &&
+         valid_color(config.value.color_rgb) &&
          valid_color(config.background_color_rgb) &&
+         config.value.alignment >= dashboard::text_widget::Alignment::left &&
+         config.value.alignment <= dashboard::text_widget::Alignment::right &&
          config.padding.left <= 480 && config.padding.top <= 480 &&
          config.padding.right <= 480 && config.padding.bottom <= 480 &&
          config.border.width_px <= 240 && config.border.radius_px <= 480 &&
-         config.label_offset_y_px >= -480 &&
-         config.label_offset_y_px <= 480;
+         terminated(config.title.text) &&
+         terminated(config.value.unavailable_text);
 }
 
-template <std::size_t N>
-bool contains_pin(const std::array<int, N>& pins, const int pin) {
-  return std::find(pins.begin(), pins.end(), pin) != pins.end();
-}
-
-bool uart_pins_available(const BoardId board, const int tx_pin,
-                         const int rx_pin) {
-  constexpr std::array<int, 15> kTDisplayPins{
-      5, 6, 7, 8, 9, 15, 38, 39, 40, 41, 42, 45, 46, 47, 48};
-  constexpr std::array<int, 24> kGuitionPins{
-      0,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13,
-      14, 15, 16, 17, 18, 20, 21, 38, 39, 46, 47, 48};
-  const bool tx_reserved =
-      board == BoardId::t_display_s3
-          ? contains_pin(kTDisplayPins, tx_pin)
-          : contains_pin(kGuitionPins, tx_pin);
-  const bool rx_reserved =
-      board == BoardId::t_display_s3
-          ? contains_pin(kTDisplayPins, rx_pin)
-          : contains_pin(kGuitionPins, rx_pin);
-  return !tx_reserved && !rx_reserved;
+[[nodiscard]] bool uart_pins_available(const BoardId board,
+                                       const int tx_pin,
+                                       const int rx_pin) {
+  if (board == BoardId::guition_esp32_4848s040) {
+    return tx_pin == 43 && rx_pin == 44;
+  }
+  return tx_pin >= -1 && tx_pin <= 48 && rx_pin >= -1 && rx_pin <= 48;
 }
 
 }  // namespace
 
 ValidationError validate_configuration(
     const ApplicationConfiguration& configuration) {
-  if (configuration.board.id != BoardId::t_display_s3 &&
-      configuration.board.id != BoardId::guition_esp32_4848s040) {
+  if (configuration.board.id < BoardId::t_display_s3 ||
+      configuration.board.id > BoardId::guition_esp32_4848s040) {
     return ValidationError::invalid_board;
   }
 
-  const TelemetryTransportId transport = configuration.telemetry_transport.id;
-  if (transport != TelemetryTransportId::board_default &&
-      transport != TelemetryTransportId::native_usb_cdc &&
-      transport != TelemetryTransportId::uart) {
+  const TelemetryTransportId transport =
+      configuration.telemetry_transport.id;
+  if (transport < TelemetryTransportId::board_default ||
+      transport > TelemetryTransportId::uart) {
     return ValidationError::invalid_transport;
   }
-  if (configuration.board.id == BoardId::guition_esp32_4848s040 &&
-      transport == TelemetryTransportId::native_usb_cdc) {
-    return ValidationError::invalid_transport;
-  }
-  const auto& uart = configuration.telemetry_transport.uart;
-  if (uart.port < 0 || uart.port > 2 || uart.tx_pin < 0 || uart.tx_pin > 48 ||
-      uart.rx_pin < 0 || uart.rx_pin > 48 || uart.tx_pin == uart.rx_pin ||
+  const UartTelemetryConfiguration& uart =
+      configuration.telemetry_transport.uart;
+  if (uart.port < 0 || uart.port > 2 || uart.tx_pin == uart.rx_pin ||
       uart.baud_rate < 9'600 || uart.baud_rate > 2'000'000) {
     return ValidationError::invalid_uart;
   }
@@ -105,22 +101,13 @@ ValidationError validate_configuration(
       configuration.lap_timer.telemetry_timeout_ms > 60'000 ||
       configuration.delta_time.scale.range_ms <= 0 ||
       configuration.delta_time.scale.range_ms > 60'000 ||
-      std::find(configuration.delta_time.placeholder.begin(),
-                configuration.delta_time.placeholder.end(), '\0') ==
-          configuration.delta_time.placeholder.end() ||
-      std::find(configuration.estimated_lap_time.placeholder.begin(),
-                configuration.estimated_lap_time.placeholder.end(), '\0') ==
-          configuration.estimated_lap_time.placeholder.end()) {
+      !terminated(configuration.delta_time.placeholder)) {
     return ValidationError::invalid_module;
   }
   if (configuration.delta_time.unavailable_behavior <
           delta_time::UnavailableBehavior::hide ||
       configuration.delta_time.unavailable_behavior >
-          delta_time::UnavailableBehavior::zero ||
-      configuration.estimated_lap_time.unavailable_behavior <
-          estimated_lap_time::UnavailableBehavior::hide ||
-      configuration.estimated_lap_time.unavailable_behavior >
-          estimated_lap_time::UnavailableBehavior::placeholder) {
+          delta_time::UnavailableBehavior::zero) {
     return ValidationError::invalid_module;
   }
 
@@ -156,53 +143,24 @@ ValidationError validate_configuration(
 
   const auto& lap = configuration.dashboard.lap_timer;
   const auto& delta = configuration.dashboard.delta_time;
-  const auto& estimated = configuration.dashboard.estimated_lap_time;
-  const auto& gear = configuration.dashboard.gear;
-  const auto& speed = configuration.dashboard.speed;
-  const auto& rpm = configuration.dashboard.rpm;
-  const auto& fuel = configuration.dashboard.fuel;
-  const auto& fuel_average = configuration.dashboard.fuel_average;
-  const auto& fuel_laps_remaining =
-      configuration.dashboard.fuel_laps_remaining;
-  const auto& traction_control =
-      configuration.dashboard.traction_control;
-  const auto& abs = configuration.dashboard.abs;
-  const auto& brake_bias = configuration.dashboard.brake_bias;
   if (!valid_font(lap.font) || !valid_font(delta.font) ||
-      !valid_font(estimated.font) || !valid_font(gear.font) ||
-      !valid_font(speed.font) || !valid_font(rpm.font) ||
-      !valid_font(fuel.font) || !valid_font(fuel_average.font) ||
-      !valid_font(fuel_laps_remaining.font) ||
       !valid_placement(lap.placement, region.id) ||
       !valid_placement(delta.placement, region.id) ||
-      !valid_placement(estimated.placement, region.id) ||
-      !valid_placement(gear.placement, region.id) ||
-      !valid_placement(speed.placement, region.id) ||
-      !valid_placement(rpm.placement, region.id) ||
-      !valid_placement(fuel.placement, region.id) ||
-      !valid_placement(fuel_average.placement, region.id) ||
-      !valid_placement(fuel_laps_remaining.placement, region.id) ||
       !valid_color(lap.text_color_rgb) ||
       !valid_color(delta.faster_color_rgb) ||
       !valid_color(delta.slower_color_rgb) ||
       !valid_color(delta.neutral_color_rgb) ||
-      !valid_color(estimated.text_color_rgb) ||
-      !valid_color(gear.border.color_rgb) ||
-      !valid_color(gear.text_color_rgb) ||
-      !valid_color(gear.background_color_rgb) ||
-      !valid_color(speed.text_color_rgb) ||
-      !valid_color(rpm.text_color_rgb) ||
-      !valid_color(fuel.text_color_rgb) ||
-      !valid_color(fuel_average.text_color_rgb) ||
-      !valid_color(fuel_laps_remaining.text_color_rgb) ||
-      gear.padding.left > 480 || gear.padding.top > 480 ||
-      gear.padding.right > 480 || gear.padding.bottom > 480 ||
-      gear.border.width_px > 240 || gear.border.radius_px > 480 ||
-      !valid_driving_aid_widget(traction_control, region.id) ||
-      !valid_driving_aid_widget(abs, region.id) ||
-      !valid_driving_aid_widget(brake_bias, region.id) ||
-      (configuration.board.id == BoardId::t_display_s3 && gear.enabled)) {
+      configuration.dashboard.text_widget_count >
+          configuration.dashboard.text_widgets.size()) {
     return ValidationError::invalid_widget;
+  }
+
+  for (std::size_t index = 0;
+       index < configuration.dashboard.text_widget_count; ++index) {
+    if (!valid_text_widget(configuration.dashboard.text_widgets[index],
+                           region.id)) {
+      return ValidationError::invalid_widget;
+    }
   }
 
   return ValidationError::none;

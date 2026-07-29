@@ -2,44 +2,57 @@
 
 ## Context
 
-SimCore needs to receive telemetry from SimHub over a board-appropriate serial
-transport now while
-remaining independent from both the telemetry protocol and transport. Future
-builds may use a Companion protocol and UDP transport. Modules need a coherent
-read-only view of the latest telemetry without owning protocol state.
+SimCore needs to receive telemetry from SimHub over a board-appropriate
+transport while remaining independent from both that protocol and transport.
+Future sources may use a Companion protocol and UDP. Widgets and modules need
+stable, typed access without depending on SimHub identifiers or performing
+field-name searches in periodic paths.
 
 ## Decision
 
-The application core coordinates the lifecycle of the configured transport,
-protocol, `TelemetryProvider`, telemetry state service, and Event Bus. Concrete
-transport instances are resolved outside the core by the platform registry.
+Use the following ingestion and consumption boundaries:
 
-Transports deliver raw data and do not know telemetry semantics. Protocols
-decode raw data into partial `TelemetryUpdate` values and do not know the
-transport, state service, or Event Bus. `TelemetryProvider` accepts only
-`TelemetryUpdate`, commits it through the telemetry state service, and publishes
-a `TelemetryUpdated` notification after a successful state change.
-Transports may expose generic receive-path diagnostics, such as byte counts,
-queue depth, overflow counts, and handler latency. Diagnostics contain no
-protocol or telemetry-field semantics and are safe to consume by optional
-platform debugging UI.
-Partial updates may explicitly invalidate fields when a source reports that a
-previously available value is no longer available.
+```text
+Transport -> Protocol -> TelemetryProvider -> TelemetryState
+                        TelemetryRegistry
+                                |
+                     startup binding to handles
+                                |
+                     Modules and platform widgets
+```
 
-The telemetry state service is the only owner of mutable canonical telemetry
-state. Modules consume update notifications and obtain coherent immutable
-snapshots through its read-only interface.
+The immutable telemetry registry owns canonical field metadata: protocol-neutral
+name, value type, and runtime slot. Resolving a name returns a handle containing
+the slot and type. Names are resolved only during startup; handles remain valid
+for the firmware lifetime and are never persisted.
+
+Transports deliver raw bytes and know no telemetry semantics. A protocol binds
+its source identifiers to canonical handles during construction, then decodes
+raw data into one-field typed `TelemetryUpdate` values. It does not know the
+state service or Event Bus.
+
+`TelemetryProvider` commits updates through the telemetry state service and
+publishes a `TelemetryUpdated` event containing the changed handle and
+revision. An unavailable update invalidates only that slot.
+
+The state service is the only owner of mutable canonical values. Storage is a
+fixed array indexed by handle. Each slot retains availability, typed value,
+bounded source text, revision, and last-change timestamp. Consumers read only
+the handles they own instead of copying a complete global snapshot.
+
+Modules receive typed handles from startup composition. Widget binding resolves
+configured canonical names to handles before creating LVGL objects. Widgets
+store handles and never know source identifiers, SimHub, or canonical names.
 
 ## Consequences
 
-- USB CDC can later be replaced by UDP without changing protocols or modules.
-- The configured board selects its default transport: native USB CDC where the
-  native USB pins are available, or UART through an onboard USB-to-UART bridge.
-- UART receive failures and scheduling delays can be inspected without writing
-  diagnostic text into the same UART stream used for telemetry.
-- SimHub can later be replaced by a Companion protocol without changing
-  transports, the provider, state service, or modules.
-- The provider does not control transport or protocol lifetime.
-- Snapshot storage and synchronization can change without changing modules.
-- The Event Bus carries telemetry notification metadata but does not interpret
-  telemetry fields.
+- Transports and protocols remain replaceable independently.
+- Adding a new source requires identifier-to-canonical-handle bindings, not
+  changes to widgets or domain modules.
+- Name lookup, binding validation, and type validation happen during startup.
+- Update and rendering paths use fixed storage without runtime allocation.
+- Events are not limited by a 32-bit field mask.
+- Generic widgets can retain source formatting while modules consume numeric
+  canonical values.
+- Multi-field coherent reads would require an explicit read transaction if a
+  future module needs them; the current modules consume one handle each.

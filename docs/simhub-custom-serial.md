@@ -1,82 +1,64 @@
-# SimHub Custom Serial Setup
+# SimHub Custom Serial telemetry
 
-SimCore accepts one ASCII telemetry field per line over the transport selected
-by the board configuration. This is a SimHub **Custom Serial Device** protocol,
-not the SimHub Arduino protocol.
+SimCore accepts newline-delimited telemetry over the board-selected serial
+transport.
 
-## Serial settings
-
-- Select the serial port exposed by the board. T-Display-S3 uses native USB CDC;
-  Guition ESP32-4848S040 uses its onboard USB-to-UART bridge.
-- Use `115200`, 8 data bits, no parity, and 1 stop bit.
-- Enable automatic reconnect.
-- Keep RTS and DTR disabled unless the board's flashing setup requires them.
-- Every update message must include the explicit `\n` terminator.
-
-Native USB CDC does not use the configured baud rate electrically. Guition's
-UART transport does, so keep SimHub configured for 115200 baud.
-
-## Line format
+Each line contains a field identifier, a semicolon, and a value:
 
 ```text
-R;<rpm>\n
-S;<speed-kph>\n
-G;<gear>\n
-L;<current-lap-ms>\n
-B;<best-lap-ms>\n
-D;<signed-lap-delta-ms>\n
-P;<estimated-lap-ms>\n
-T;<traction-control-level>\n
-A;<abs-level>\n
-BB;<front-brake-bias-percent>\n
-F;<fuel-liters>\n
-FC;<average-liters-per-lap>\n
-FL;<fuel-laps-remaining>\n
+R;<rpm text>
+S;<speed text>
+G;<gear text>
+L;<current lap milliseconds>
+B;<best lap text>
+D;<signed delta milliseconds>
+P;<estimated lap text>
+T;<traction-control text>
+A;<ABS text>
+BB;<brake-bias text>
+F;<fuel text>
+FC;<average-consumption text>
+FL;<remaining-laps text>
 ```
 
-RPM, speed, and lap times are non-negative decimal integers. Gear is a signed
-decimal integer; `N` is also accepted as neutral (`0`) and `R` as reverse
-(`-1`). Lap delta is a signed integer in milliseconds: negative means faster,
-positive means slower. `D;` marks lap delta as unavailable, and `P;` marks
-estimated lap time as unavailable. Traction-control and ABS levels are integers
-from 0 through 255. Front brake bias is a percentage from `0` through `100`
-with zero or one fractional digit, for example `BB;54.0`. Empty `T;`, `A;`, or
-`BB;` messages mark those values as unavailable. Unknown line identifiers and
-malformed lines are ignored. Fuel values are non-negative decimals with zero
-or one fractional digit. Empty `F;`, `FC;`, or `FL;` messages mark the
-corresponding fuel value as unavailable.
+The value after the first semicolon is stored as an exact bounded UTF-8 string.
+The firmware does not add units, prefixes, suffixes, or decimal formatting for
+text widgets. Configure the desired presentation in SimHub:
 
-## Example update messages
+```text
+R;7342
+S;182 km/h
+G;4
+P;01:42.615
+T;3
+A;2
+BB;54.0%
+F;38 L
+FC;AVG 2.6
+FL;LAPS 14.7
+```
 
-Add each row as a separate update message in SimHub Custom Serial. The formulas
-below use NCalc. Use SimHub's **Insert property** picker to confirm the property
-name for the installed game/plugin, because not every game exposes every lap
-property.
+`L` and `D` are the only fields with an additional numeric contract. They must
+contain base-10 integer milliseconds because the Lap Timer and Delta Time
+modules use their numeric values. Their original strings are still retained for
+optional text bindings.
 
-| Telemetry | NCalc message template | Recommended maximum rate |
-| --- | --- | --- |
-| RPM | `'R;' + format([DataCorePlugin.GameData.NewData.Rpms], '0') + '\n'` | 20 Hz |
-| Speed | `'S;' + format([DataCorePlugin.GameData.NewData.SpeedKmh], '0') + '\n'` | 10 Hz |
-| Gear | `'G;' + isnull([DataCorePlugin.GameData.NewData.Gear], 'N') + '\n'` | Changes only |
-| Current lap | `'L;' + format(timespantoseconds([DataCorePlugin.GameData.NewData.CurrentLapTime]) * 1000, '0') + '\n'` | 10 Hz |
-| Best lap | `'B;' + format(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) * 1000, '0') + '\n'` | Changes only |
-| Lap delta | Prefix the signed delta property selected in SimHub with `D;`, convert seconds to milliseconds if required, and append `\n` | 10 Hz |
-| Estimated lap | Prefix the estimated lap-time property selected in SimHub with `P;`, convert it to milliseconds if required, and append `\n` | 10 Hz |
-| Traction control | Prefix the integer traction-control level selected in SimHub with `T;` and append `\n` | Changes only |
-| ABS | Prefix the integer ABS level selected in SimHub with `A;` and append `\n` | Changes only |
-| Front brake bias | Prefix the front brake-bias percentage selected in SimHub with `BB;`, format it with at most one decimal digit, and append `\n` | Changes only |
-| Fuel remaining | `'F;' + isnull(format([DataCorePlugin.GameData.NewData.Fuel], '0.0'), '') + '\n'` | 5 Hz |
-| Average fuel use | `'FC;' + isnull(format([DataCorePlugin.Computed.Fuel_LitersPerLap], '0.0'), '') + '\n'` | Changes only |
-| Fuel laps remaining | `'FL;' + isnull(format([DataCorePlugin.Computed.Fuel_RemainingLaps], '0.0'), '') + '\n'` | Changes only |
+The identifier-to-field mapping remains private to the SimHub protocol. During
+startup, every identifier is resolved to a protocol-neutral telemetry handle,
+such as `engine.rpm` or `session.lap.delta`. Modules and widgets never consume
+SimHub identifiers directly.
 
-SimHub's free mode limits output to 10 Hz, so use 10 Hz for RPM as well when
-that limit applies. If a lap-time property can be absent for a particular game,
-configure the message to return an empty string in that case; SimHub does not
-send empty update messages.
+An empty value invalidates the field:
 
-The exact lap-delta, estimated-lap, and fuel property availability varies
-between games and SimHub plugins. Use SimHub's property picker and configure
-unavailable branches to emit the identifier plus `;\n` instead of omitting the
-update, so the firmware can clear stale values. SimHub normally needs at least
-one completed valid lap before its computed liters-per-lap and remaining-laps
-properties become available.
+```text
+P;
+F;
+```
+
+Unknown identifiers, invalid `L`/`D` numbers, overlong values, and overlong
+lines are ignored. A stored value may use at most 47 UTF-8 bytes; a complete
+line may use at most 63 bytes before the newline.
+
+Configuration control frames begin with `@SC:` and share the same serial
+connection. The configuration router consumes those frames before telemetry,
+so they are never interpreted as telemetry values.
