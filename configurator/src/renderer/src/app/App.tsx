@@ -7,11 +7,15 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
+import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import type { AppInfo } from '../../../shared/ipc'
 
 export function App(): React.JSX.Element {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
+  const [deviceStatusText, setDeviceStatusText] = useState<string>()
+  const [developmentLogHeight, setDevelopmentLogHeight] = useState(192)
+  const [developmentLogOpen, setDevelopmentLogOpen] = useState(false)
 
   useEffect(() => {
     void window.simcore.getAppInfo().then(setAppInfo)
@@ -24,7 +28,7 @@ export function App(): React.JSX.Element {
           <h1 className="text-sm font-semibold">SimCore Configurator</h1>
           <p className="text-xs text-muted-foreground">Desktop configuration workspace</p>
         </div>
-        <DeviceConnection />
+        <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 
       <main className="grid min-h-0 grid-cols-[14rem_minmax(0,1fr)_18rem]">
@@ -61,9 +65,20 @@ export function App(): React.JSX.Element {
         </aside>
       </main>
 
-      <footer className="flex items-center justify-between border-t px-5 text-xs text-muted-foreground">
-        <span>Application ready</span>
-        <span>{appInfo ? `${appInfo.name} ${appInfo.version}` : 'Loading application info…'}</span>
+      {import.meta.env.DEV ? (
+        <DevelopmentLog
+          height={developmentLogHeight}
+          open={developmentLogOpen}
+          onHeightChange={setDevelopmentLogHeight}
+          onOpenChange={setDevelopmentLogOpen}
+        />
+      ) : null}
+
+      <footer className="flex min-w-0 items-center justify-between gap-4 border-t px-5 text-xs text-muted-foreground">
+        <span className="min-w-0 truncate">{deviceStatusText ?? 'Application ready'}</span>
+        <span className="flex-none">
+          {appInfo ? `${appInfo.name} ${appInfo.version}` : 'Loading application info…'}
+        </span>
       </footer>
     </div>
   )

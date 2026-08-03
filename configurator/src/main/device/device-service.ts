@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { SerialPort } from 'serialport'
 
+import type { SerialTrafficLog } from '../../shared/development'
 import {
   AUTOMATIC_BAUD_RATES,
   type DeviceConnection,
@@ -43,7 +44,10 @@ export class DeviceService {
   private pendingPort: SerialPort | undefined
   private operationToken = 0
 
-  constructor(private readonly onStateChanged: (state: DeviceState) => void) {}
+  constructor(
+    private readonly onStateChanged: (state: DeviceState) => void,
+    private readonly onSerialTraffic?: (log: SerialTrafficLog) => void
+  ) {}
 
   getState(): DeviceState {
     return this.state
@@ -267,7 +271,9 @@ export class DeviceService {
     try {
       await openPort(port)
       this.ensureCurrent(token)
-      await probeSimCore(port)
+      await probeSimCore(port, (direction, data) => {
+        this.onSerialTraffic?.({ direction, path: record.path, baudRate, data })
+      })
       this.ensureCurrent(token)
       this.pendingPort = undefined
       return port
@@ -282,7 +288,14 @@ export class DeviceService {
 
   private attachActivePort(port: SerialPort, record: PortRecord, baudRate: number): void {
     this.activePort = port
-    port.on('data', discardData)
+    port.on('data', (chunk: Buffer) => {
+      this.onSerialTraffic?.({
+        direction: 'rx',
+        path: record.path,
+        baudRate,
+        data: chunk.toString('utf8')
+      })
+    })
     port.once('close', () => {
       if (this.activePort !== port) {
         return
@@ -350,7 +363,10 @@ function closePort(port: SerialPort | undefined): Promise<void> {
   })
 }
 
-function probeSimCore(port: SerialPort): Promise<void> {
+function probeSimCore(
+  port: SerialPort,
+  onTraffic: (direction: SerialTrafficLog['direction'], data: string) => void
+): Promise<void> {
   return new Promise((resolve, reject) => {
     let buffer = ''
     let settled = false
@@ -383,6 +399,7 @@ function probeSimCore(port: SerialPort): Promise<void> {
       }
     }
     const onData = (chunk: Buffer): void => {
+      onTraffic('rx', chunk.toString('utf8'))
       buffer = (buffer + chunk.toString('utf8')).slice(-8_192)
       const lines = buffer.replaceAll('\r', '').split('\n')
       buffer = lines.pop() ?? ''
@@ -399,6 +416,8 @@ function probeSimCore(port: SerialPort): Promise<void> {
         port.write(INFO_REQUEST, (error) => {
           if (error) {
             finish(error)
+          } else {
+            onTraffic('tx', INFO_REQUEST)
           }
         })
       }
@@ -414,8 +433,6 @@ function probeSimCore(port: SerialPort): Promise<void> {
     port.flush(() => sendProbe())
   })
 }
-
-function discardData(): void {}
 
 function serialIdentity(path: string): string {
   return path

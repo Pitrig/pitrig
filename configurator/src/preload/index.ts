@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 import {
+  DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL,
+  type SerialTrafficLog
+} from '../shared/development'
+import {
   DEVICE_AUTO_CONNECT_CHANNEL,
   DEVICE_CANCEL_AUTO_CONNECT_CHANNEL,
   DEVICE_CONNECT_CHANNEL,
@@ -27,7 +31,16 @@ const api: SimCoreApi = {
     const handler = (_event: IpcRendererEvent, state: DeviceState): void => listener(state)
     ipcRenderer.on(DEVICE_STATE_CHANGED_CHANNEL, handler)
     return () => ipcRenderer.removeListener(DEVICE_STATE_CHANGED_CHANNEL, handler)
-  }
+  },
+  ...(import.meta.env.DEV
+    ? {
+        onDevelopmentSerialTraffic: (listener: (log: SerialTrafficLog) => void) => {
+          const handler = (_event: IpcRendererEvent, log: SerialTrafficLog): void => listener(log)
+          ipcRenderer.on(DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL, handler)
+          return () => ipcRenderer.removeListener(DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL, handler)
+        }
+      }
+    : {})
 }
 
 contextBridge.exposeInMainWorld('simcore', api)

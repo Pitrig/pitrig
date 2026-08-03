@@ -4,6 +4,7 @@ import type {
   DeviceState,
   SerialPortSummary
 } from './device'
+import type { SerialTrafficLog } from './development'
 
 export const APP_GET_INFO_CHANNEL = 'app:get-info' as const
 
@@ -24,4 +25,5 @@ export interface SimCoreApi {
   cancelAutoConnect: () => Promise<DeviceResult<DeviceState>>
   disconnectDevice: () => Promise<DeviceResult<DeviceState>>
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
+  onDevelopmentSerialTraffic?: (listener: (log: SerialTrafficLog) => void) => () => void
 }

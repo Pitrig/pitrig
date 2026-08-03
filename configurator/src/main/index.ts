@@ -2,9 +2,17 @@ import { app, BrowserWindow } from 'electron'
 import { join } from 'node:path'
 
 import { DeviceService } from './device/device-service'
-import { broadcastDeviceState, registerIpcHandlers } from './ipc/register-ipc-handlers'
+import {
+  broadcastDevelopmentSerialTraffic,
+  broadcastDeviceState,
+  registerIpcHandlers
+} from './ipc/register-ipc-handlers'
 
-const deviceService = new DeviceService(broadcastDeviceState)
+const isDevelopment = import.meta.env.DEV
+const deviceService = new DeviceService(
+  broadcastDeviceState,
+  isDevelopment ? broadcastDevelopmentSerialTraffic : undefined
+)
 let quitAfterDeviceCleanup = false
 
 function createWindow(): void {
@@ -19,13 +27,14 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      devTools: isDevelopment
     }
   })
 
   window.once('ready-to-show', () => window.show())
 
-  if (process.env.ELECTRON_RENDERER_URL) {
+  if (isDevelopment && process.env.ELECTRON_RENDERER_URL) {
     void window.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
     void window.loadFile(join(__dirname, '../renderer/index.html'))

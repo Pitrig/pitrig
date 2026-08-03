@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { writeDevelopmentLog } from '@/features/development/development-log'
 import type {
   DeviceResult,
   DeviceState,
@@ -48,7 +49,13 @@ const STATUS_BADGE_STYLES: Record<DeviceStatus, { badge: string; indicator: stri
   }
 }
 
-export function DeviceConnection(): React.JSX.Element {
+interface DeviceConnectionProps {
+  onDetailedStatusChange: (status: string | undefined) => void
+}
+
+export function DeviceConnection({
+  onDetailedStatusChange
+}: DeviceConnectionProps): React.JSX.Element {
   const [ports, setPorts] = useState<SerialPortSummary[]>([])
   const [selectedPortId, setSelectedPortId] = useState(AUTO_PORT_ID)
   const [selectedBaudRate, setSelectedBaudRate] = useState(String(DEFAULT_BAUD_RATE))
@@ -56,6 +63,7 @@ export function DeviceConnection(): React.JSX.Element {
   const [listError, setListError] = useState<string>()
 
   const applyPortResult = useCallback((result: DeviceResult<SerialPortSummary[]>): void => {
+    writeDevelopmentLog('Serial ports listed', result)
     if (!result.ok) {
       setListError(result.error.message)
       return
@@ -74,9 +82,15 @@ export function DeviceConnection(): React.JSX.Element {
   }, [applyPortResult])
 
   useEffect(() => {
-    void window.simcore.getDeviceState().then(setState)
+    void window.simcore.getDeviceState().then((initialState) => {
+      writeDevelopmentLog('Initial device state', initialState)
+      setState(initialState)
+    })
     void window.simcore.listSerialPorts().then(applyPortResult)
-    return window.simcore.onDeviceStateChanged(setState)
+    return window.simcore.onDeviceStateChanged((nextState) => {
+      writeDevelopmentLog('Device state changed', nextState)
+      setState(nextState)
+    })
   }, [applyPortResult])
 
   const isWorking = ['scanning', 'connecting', 'disconnecting'].includes(state.status)
@@ -85,22 +99,39 @@ export function DeviceConnection(): React.JSX.Element {
   const showDetailedStatus =
     selectedPortId === AUTO_PORT_ID && (state.status === 'connected' || state.status === 'error')
 
+  useEffect(() => {
+    onDetailedStatusChange(showDetailedStatus ? statusText : undefined)
+  }, [onDetailedStatusChange, showDetailedStatus, statusText])
+
   const connect = async (): Promise<void> => {
     if (selectedPortId === AUTO_PORT_ID) {
-      await window.simcore.autoConnectDevice()
+      writeDevelopmentLog('Auto-connect requested')
+      const result = await window.simcore.autoConnectDevice()
+      writeDevelopmentLog('Auto-connect completed', result)
       return
     }
-    await window.simcore.connectDevice({
+    const request = {
       portId: selectedPortId,
       baudRate: Number(selectedBaudRate)
-    })
+    }
+    writeDevelopmentLog('Manual connection requested', request)
+    const result = await window.simcore.connectDevice(request)
+    writeDevelopmentLog('Manual connection completed', result)
   }
 
   const primaryAction = async (): Promise<void> => {
-    if (state.status === 'connected' || state.status === 'error') {
+    if (state.status === 'connected') {
+      writeDevelopmentLog('Disconnect requested')
+      const result = await window.simcore.disconnectDevice()
+      writeDevelopmentLog('Disconnect completed', result)
+    } else if (state.status === 'error') {
+      writeDevelopmentLog('Clearing failed device session before retry')
       await window.simcore.disconnectDevice()
+      await connect()
     } else if (state.status === 'scanning' || state.status === 'connecting') {
-      await window.simcore.cancelAutoConnect()
+      writeDevelopmentLog('Connection cancellation requested')
+      const result = await window.simcore.cancelAutoConnect()
+      writeDevelopmentLog('Connection cancellation completed', result)
     } else {
       await connect()
     }
@@ -109,8 +140,6 @@ export function DeviceConnection(): React.JSX.Element {
   const actionLabel =
     state.status === 'connected'
       ? 'Disconnect'
-      : state.status === 'error'
-        ? 'Reset'
       : state.status === 'scanning' || state.status === 'connecting'
         ? 'Cancel'
         : state.status === 'disconnecting'
@@ -119,15 +148,6 @@ export function DeviceConnection(): React.JSX.Element {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="hidden w-72 flex-none justify-end xl:flex">
-        <span
-          aria-hidden={!showDetailedStatus}
-          className={`truncate text-xs ${showDetailedStatus ? 'visible' : 'invisible'}`}
-        >
-          {statusText}
-        </span>
-      </div>
-
       <select
         aria-label="Serial port"
         className="h-8 w-64 flex-none rounded-md border bg-background px-2 text-xs"

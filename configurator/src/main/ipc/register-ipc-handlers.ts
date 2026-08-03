@@ -1,6 +1,10 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 
 import {
+  DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL,
+  type SerialTrafficLog
+} from '../../shared/development'
+import {
   DEVICE_AUTO_CONNECT_CHANNEL,
   DEVICE_CANCEL_AUTO_CONNECT_CHANNEL,
   DEVICE_CONNECT_CHANNEL,
@@ -42,6 +46,14 @@ export function broadcastDeviceState(state: DeviceState): void {
   for (const window of BrowserWindow.getAllWindows()) {
     if (!window.isDestroyed()) {
       window.webContents.send(DEVICE_STATE_CHANGED_CHANNEL, state)
+    }
+  }
+}
+
+export function broadcastDevelopmentSerialTraffic(log: SerialTrafficLog): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send(DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL, log)
     }
   }
 }
