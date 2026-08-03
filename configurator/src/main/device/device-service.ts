@@ -72,10 +72,12 @@ export class DeviceService {
 
     const record = this.ports.get(portId)
     if (!record) {
-      return failure({
+      const error: DeviceError = {
         code: 'port_missing',
         message: 'The selected serial port is no longer available. Refresh the port list.'
-      })
+      }
+      this.setState({ status: 'error', error })
+      return failure(error)
     }
 
     const token = ++this.operationToken
@@ -103,11 +105,11 @@ export class DeviceService {
     try {
       const records = await this.refreshPortRegistry()
       this.ensureCurrent(token)
-      const usable = records.filter(({ path }) => !isBluetoothPort(path))
-      const usb = usable.filter(({ likelyUsb }) => likelyUsb)
-      const candidates = usb.length > 0 ? usb : usable
+      const candidates = records.filter(
+        ({ likelyUsb, path }) => likelyUsb && !isBluetoothPort(path)
+      )
       if (candidates.length === 0) {
-        throw new DeviceServiceError('no_device', 'No serial ports were found.')
+        throw new DeviceServiceError('no_device', 'No USB serial ports were found.')
       }
 
       const totalAttempts = candidates.length * AUTOMATIC_BAUD_RATES.length

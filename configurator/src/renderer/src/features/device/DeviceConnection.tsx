@@ -1,27 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { writeDevelopmentLog } from '@/features/development/development-log'
-import type {
-  DeviceResult,
-  DeviceState,
-  DeviceStatus,
-  SerialPortSummary
+import {
+  DEFAULT_BAUD_RATE,
+  SUPPORTED_BAUD_RATES,
+  type DeviceResult,
+  type DeviceState,
+  type DeviceStatus,
+  type SerialPortSummary
 } from '../../../../shared/device'
 
 const AUTO_PORT_ID = 'auto'
-const DEFAULT_BAUD_RATE = 115_200
-const MANUAL_BAUD_RATES = [
-  9_600,
-  19_200,
-  38_400,
-  57_600,
-  115_200,
-  230_400,
-  460_800,
-  921_600
-] as const
 const STATUS_BADGE_STYLES: Record<DeviceStatus, { badge: string; indicator: string }> = {
   disconnected: {
     badge: 'border-zinc-500/40 bg-zinc-500/10 text-zinc-300',
@@ -60,15 +51,12 @@ export function DeviceConnection({
   const [selectedPortId, setSelectedPortId] = useState(AUTO_PORT_ID)
   const [selectedBaudRate, setSelectedBaudRate] = useState(String(DEFAULT_BAUD_RATE))
   const [state, setState] = useState<DeviceState>({ status: 'disconnected' })
-  const [listError, setListError] = useState<string>()
 
   const applyPortResult = useCallback((result: DeviceResult<SerialPortSummary[]>): void => {
     writeDevelopmentLog('Serial ports listed', result)
     if (!result.ok) {
-      setListError(result.error.message)
       return
     }
-    setListError(undefined)
     setPorts(result.value)
     setSelectedPortId((current) =>
       current !== AUTO_PORT_ID && !result.value.some(({ id }) => id === current)
@@ -94,7 +82,7 @@ export function DeviceConnection({
   }, [applyPortResult])
 
   const isWorking = ['scanning', 'connecting', 'disconnecting'].includes(state.status)
-  const statusText = useMemo(() => formatStatus(state, listError), [state, listError])
+  const statusText = formatStatus(state)
   const statusBadgeStyle = STATUS_BADGE_STYLES[state.status]
   const showDetailedStatus =
     selectedPortId === AUTO_PORT_ID && (state.status === 'connected' || state.status === 'error')
@@ -172,7 +160,7 @@ export function DeviceConnection({
             disabled={isWorking || state.status === 'connected'}
             onChange={(event) => setSelectedBaudRate(event.target.value)}
           >
-            {MANUAL_BAUD_RATES.map((rate) => (
+            {SUPPORTED_BAUD_RATES.map((rate) => (
               <option key={rate} value={rate}>
                 {rate}
               </option>
@@ -210,10 +198,7 @@ export function DeviceConnection({
   )
 }
 
-function formatStatus(state: DeviceState, listError?: string): string {
-  if (listError) {
-    return listError
-  }
+function formatStatus(state: DeviceState): string {
   if (state.connection) {
     return `${state.connection.displayName} at ${state.connection.baudRate}`
   }

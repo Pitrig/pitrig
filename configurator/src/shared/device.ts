@@ -6,15 +6,23 @@ export const DEVICE_CANCEL_AUTO_CONNECT_CHANNEL = 'device:cancel-auto-connect' a
 export const DEVICE_DISCONNECT_CHANNEL = 'device:disconnect' as const
 export const DEVICE_STATE_CHANGED_CHANNEL = 'device:state-changed' as const
 
-export const AUTOMATIC_BAUD_RATES = [
-  115_200,
+export const DEFAULT_BAUD_RATE = 115_200
+
+export const SUPPORTED_BAUD_RATES = [
+  9_600,
+  19_200,
+  38_400,
+  57_600,
+  DEFAULT_BAUD_RATE,
   230_400,
   460_800,
-  921_600,
-  57_600,
-  38_400,
-  19_200,
-  9_600
+  921_600
+] as const
+
+export const AUTOMATIC_BAUD_RATES = [
+  DEFAULT_BAUD_RATE,
+  ...SUPPORTED_BAUD_RATES.filter((rate) => rate > DEFAULT_BAUD_RATE),
+  ...SUPPORTED_BAUD_RATES.filter((rate) => rate < DEFAULT_BAUD_RATE).reverse()
 ] as const
 
 export interface SerialPortSummary {

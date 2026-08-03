@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   clearDevelopmentLog,
-  getDevelopmentLog,
+  getDevelopmentLogSnapshot,
   subscribeToDevelopmentLog,
   writeDevelopmentLog
 } from './development-log'
@@ -12,27 +12,17 @@ const MIN_LOG_HEIGHT = 80
 const MIN_VISIBLE_APP_HEIGHT = 32
 const KEYBOARD_RESIZE_STEP = 16
 
-interface DevelopmentLogProps {
-  height: number
-  open: boolean
-  onHeightChange: (height: number) => void
-  onOpenChange: (open: boolean) => void
-}
-
-export function DevelopmentLog({
-  height,
-  open,
-  onHeightChange,
-  onOpenChange
-}: DevelopmentLogProps): React.JSX.Element {
-  const entries = useSyncExternalStore(
+export function DevelopmentLog(): React.JSX.Element {
+  const { entries, omittedEntryCount } = useSyncExternalStore(
     subscribeToDevelopmentLog,
-    getDevelopmentLog,
-    getDevelopmentLog
+    getDevelopmentLogSnapshot,
+    getDevelopmentLogSnapshot
   )
   const outputRef = useRef<HTMLDivElement>(null)
-  const resizeStartRef = useRef({ pointerY: 0, height })
+  const [height, setHeight] = useState(192)
+  const [open, setOpen] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
+  const resizeStartRef = useRef({ pointerY: 0, height })
 
   useEffect(() => {
     if (!isResizing) {
@@ -46,7 +36,7 @@ export function DevelopmentLog({
 
     const handlePointerMove = (event: PointerEvent): void => {
       const delta = resizeStartRef.current.pointerY - event.clientY
-      onHeightChange(clampLogHeight(resizeStartRef.current.height + delta))
+      setHeight(clampLogHeight(resizeStartRef.current.height + delta))
     }
     const stopResizing = (): void => setIsResizing(false)
 
@@ -60,7 +50,7 @@ export function DevelopmentLog({
       document.body.style.cursor = previousCursor
       document.body.style.userSelect = previousUserSelect
     }
-  }, [isResizing, onHeightChange])
+  }, [isResizing])
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -76,7 +66,7 @@ export function DevelopmentLog({
 
   useEffect(() => {
     outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight })
-  }, [entries])
+  }, [entries, open])
 
   if (!open) {
     return (
@@ -85,7 +75,7 @@ export function DevelopmentLog({
         className="fixed right-4 bottom-4 z-50 size-11 rounded-full border-zinc-600/60 bg-zinc-900/70 p-0 text-zinc-300 shadow-lg backdrop-blur-sm hover:bg-zinc-800/90 hover:text-sky-300"
         title="Open development log"
         variant="outline"
-        onClick={() => onOpenChange(true)}
+        onClick={() => setOpen(true)}
       >
         <BugIcon />
       </Button>
@@ -110,7 +100,7 @@ export function DevelopmentLog({
           const nextHeight = keyboardResizeHeight(event.key, height)
           if (nextHeight !== undefined) {
             event.preventDefault()
-            onHeightChange(nextHeight)
+            setHeight(nextHeight)
           }
         }}
         onPointerDown={(event) => {
@@ -132,13 +122,18 @@ export function DevelopmentLog({
             className="size-6 p-0"
             title="Close development log"
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => setOpen(false)}
           >
             <CloseIcon />
           </Button>
         </div>
       </div>
       <div ref={outputRef} className="min-h-0 flex-1 overflow-auto px-3 py-2" role="log">
+        {omittedEntryCount > 0 ? (
+          <div className="pb-1 text-amber-400">
+            {omittedEntryCount} older log entries omitted.
+          </div>
+        ) : null}
         {entries.length > 0 ? (
           entries.map((entry) => (
             <div key={entry.id} className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-0.5">

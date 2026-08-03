@@ -14,8 +14,6 @@ import type { AppInfo } from '../../../shared/ipc'
 export function App(): React.JSX.Element {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [deviceStatusText, setDeviceStatusText] = useState<string>()
-  const [developmentLogHeight, setDevelopmentLogHeight] = useState(192)
-  const [developmentLogOpen, setDevelopmentLogOpen] = useState(false)
 
   useEffect(() => {
     void window.simcore.getAppInfo().then(setAppInfo)
@@ -65,14 +63,7 @@ export function App(): React.JSX.Element {
         </aside>
       </main>
 
-      {import.meta.env.DEV ? (
-        <DevelopmentLog
-          height={developmentLogHeight}
-          open={developmentLogOpen}
-          onHeightChange={setDevelopmentLogHeight}
-          onOpenChange={setDevelopmentLogOpen}
-        />
-      ) : null}
+      {import.meta.env.DEV ? <DevelopmentLog /> : null}
 
       <footer className="flex min-w-0 items-center justify-between gap-4 border-t px-5 text-xs text-muted-foreground">
         <span className="min-w-0 truncate">{deviceStatusText ?? 'Application ready'}</span>
