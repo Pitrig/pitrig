@@ -178,9 +178,9 @@ bool create(const Layout& layout, const Config& config,
     return false;
   }
   widget_state.module = &module;
-  widget_state.faster_color_rgb = config.faster_color_rgb;
-  widget_state.slower_color_rgb = config.slower_color_rgb;
-  widget_state.neutral_color_rgb = config.neutral_color_rgb;
+  widget_state.faster_color_rgb = config.faster_color;
+  widget_state.slower_color_rgb = config.slower_color;
+  widget_state.neutral_color_rgb = config.neutral_color;
   lv_obj_t* parent{};
   Rect bounds{};
   if (!resolve_widget_bounds(layout, config.placement, intrinsic_width,

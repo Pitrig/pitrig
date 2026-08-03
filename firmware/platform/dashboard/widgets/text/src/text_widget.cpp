@@ -36,6 +36,16 @@ constexpr std::uint32_t kRenderPeriodMs = 50;
   return LV_TEXT_ALIGN_CENTER;
 }
 
+[[nodiscard]] lv_color_t background_behind(const lv_obj_t* object) {
+  while (object != nullptr) {
+    if (lv_obj_get_style_bg_opa(object, LV_PART_MAIN) > LV_OPA_TRANSP) {
+      return lv_obj_get_style_bg_color(object, LV_PART_MAIN);
+    }
+    object = lv_obj_get_parent(object);
+  }
+  return lv_color_black();
+}
+
 template <std::size_t DestinationSize, std::size_t SourceSize>
 void copy_text(std::array<char, DestinationSize>& destination,
                const std::array<char, SourceSize>& source) {
@@ -110,12 +120,19 @@ bool Collection::create(
     lv_obj_remove_style_all(state.container);
     lv_obj_set_pos(state.container, bounds.x, bounds.y);
     lv_obj_set_size(state.container, bounds.width, bounds.height);
-    lv_obj_set_style_bg_color(
-        state.container, lv_color_hex(config.background_color_rgb),
+    const bool has_background =
+        config.background_color != kTransparentColor;
+    if (has_background) {
+      lv_obj_set_style_bg_color(
+          state.container, lv_color_hex(config.background_color),
+          LV_PART_MAIN);
+    }
+    lv_obj_set_style_bg_opa(
+        state.container,
+        has_background ? LV_OPA_COVER : LV_OPA_TRANSP,
         LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(state.container, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_color(
-        state.container, lv_color_hex(config.border.color_rgb), LV_PART_MAIN);
+        state.container, lv_color_hex(config.border.color), LV_PART_MAIN);
     lv_obj_set_style_border_width(state.container, config.border.width_px,
                                   LV_PART_MAIN);
     lv_obj_set_style_border_opa(
@@ -145,7 +162,9 @@ bool Collection::create(
                        bounds.x + (bounds.width - title_width - 8) / 2,
                        bounds.y);
         lv_obj_set_style_bg_color(
-            state.caption_gap, lv_color_hex(config.background_color_rgb),
+            state.caption_gap,
+            has_background ? lv_color_hex(config.background_color)
+                           : background_behind(parent),
             LV_PART_MAIN);
         lv_obj_set_style_bg_opa(state.caption_gap, LV_OPA_COVER, LV_PART_MAIN);
         lv_obj_remove_flag(state.caption_gap, LV_OBJ_FLAG_SCROLLABLE);
@@ -157,7 +176,7 @@ bool Collection::create(
       lv_label_set_text_static(state.caption, config.title.text.data());
       lv_obj_set_style_text_font(state.caption, title_font, LV_PART_MAIN);
       lv_obj_set_style_text_color(
-          state.caption, lv_color_hex(config.title.color_rgb), LV_PART_MAIN);
+          state.caption, lv_color_hex(config.title.color), LV_PART_MAIN);
       lv_obj_set_pos(state.caption,
                      bounds.x + (bounds.width - title_width) / 2,
                      bounds.y - title_height / 2 +
@@ -172,7 +191,7 @@ bool Collection::create(
         state.value_label, lv_alignment(config.value.alignment), LV_PART_MAIN);
     lv_obj_set_style_text_font(state.value_label, value_font, LV_PART_MAIN);
     lv_obj_set_style_text_color(
-        state.value_label, lv_color_hex(config.value.color_rgb), LV_PART_MAIN);
+        state.value_label, lv_color_hex(config.value.color), LV_PART_MAIN);
     lv_obj_align(state.value_label, LV_ALIGN_CENTER, 0,
                  has_title ? title_height / 4 : 0);
     ++count_;

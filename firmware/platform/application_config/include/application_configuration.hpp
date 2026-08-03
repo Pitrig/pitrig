@@ -140,8 +140,8 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                     .bottom = 2,
                 },
                 .style = {
-                    .background_color_rgb = 0x000000,
-                    .border_color_rgb = 0xAEAEAE,
+                    .background_color = 0x000000,
+                    .border_color = 0xAEAEAE,
                     .border_width_px = 1,
                     .radius_px = 0,
                     .visible = false,
@@ -159,7 +159,7 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 .width = 320,
                 .height = 53,
             },
-            .text_color_rgb = 0xE8E8E8,
+            .text_color = 0xE8E8E8,
         },
         .delta_time = {
             .enabled = true,
@@ -171,9 +171,9 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 .offset_y = 58,
                 .height = 61,
             },
-            .faster_color_rgb = 0x00C853,
-            .slower_color_rgb = 0xD50000,
-            .neutral_color_rgb = 0xE8E8E8,
+            .faster_color = 0x00C853,
+            .slower_color = 0xD50000,
+            .neutral_color = 0xE8E8E8,
             .scale = {
                 .vertical_padding_px = 6,
                 .border_width_px = 3,
@@ -213,11 +213,11 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 },
                 .padding = {.left = 8, .top = 8, .right = 8, .bottom = 8},
                 .border = {
-                    .color_rgb = 0xAEAEAE,
+                    .color = 0xAEAEAE,
                     .width_px = 2,
                     .radius_px = 12,
                 },
-                .background_color_rgb = 0x0B0B0B,
+                .background_color = 0x0B0B0B,
             },
             {
                 .binding = telemetry::make_field_name(
@@ -308,7 +308,7 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 },
                 .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
                 .border = {
-                    .color_rgb = 0x00E5FF,
+                    .color = 0x00E5FF,
                     .width_px = 3,
                     .radius_px = 8,
                 },
@@ -329,7 +329,7 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 },
                 .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
                 .border = {
-                    .color_rgb = 0xF5F500,
+                    .color = 0xF5F500,
                     .width_px = 3,
                     .radius_px = 8,
                 },
@@ -350,7 +350,7 @@ inline constexpr ApplicationConfiguration kFactoryConfiguration{
                 },
                 .padding = {.left = 4, .top = 4, .right = 4, .bottom = 4},
                 .border = {
-                    .color_rgb = 0xF000D0,
+                    .color = 0xF000D0,
                     .width_px = 3,
                     .radius_px = 8,
                 },

@@ -14,7 +14,7 @@ struct Config {
   bool enabled{true};
   FontSpec font{};
   Placement placement{};
-  std::uint32_t text_color_rgb{0xE8E8E8};
+  std::uint32_t text_color{0xE8E8E8};
 };
 
 // Creates the lap timer label and its periodic render callback.

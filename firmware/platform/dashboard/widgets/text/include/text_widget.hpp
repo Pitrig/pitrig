@@ -32,7 +32,7 @@ enum class Alignment : std::uint8_t {
 };
 
 struct Border {
-  std::uint32_t color_rgb{0xAEAEAE};
+  std::uint32_t color{0xAEAEAE};
   std::uint16_t width_px{};
   std::uint16_t radius_px{};
 };
@@ -40,13 +40,13 @@ struct Border {
 struct TitleStyle {
   std::array<char, kTitleCapacity> text{};
   FontSpec font{.family = FontFamily::montserrat, .size_px = 10};
-  std::uint32_t color_rgb{0xE8E8E8};
+  std::uint32_t color{0xE8E8E8};
   std::int16_t offset_y_px{};
 };
 
 struct ValueStyle {
   FontSpec font{.family = FontFamily::montserrat, .size_px = 48};
-  std::uint32_t color_rgb{0xE8E8E8};
+  std::uint32_t color{0xE8E8E8};
   Alignment alignment{Alignment::center};
   std::array<char, kUnavailableTextCapacity> unavailable_text{
       '-', '-', '\0'};
@@ -60,7 +60,7 @@ struct Config {
   Border border{};
   TitleStyle title{};
   ValueStyle value{};
-  std::uint32_t background_color_rgb{};
+  std::uint32_t background_color{kTransparentColor};
 };
 
 // Owns the fixed runtime state for every configured text widget. All instances

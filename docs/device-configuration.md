@@ -29,7 +29,7 @@ profile:
 }
 ```
 
-RGB colors use `"#RRGGBB"`. Unknown fields are rejected.
+Colors use `"#RRGGBB"`. Unknown fields are rejected.
 
 ## Dashboard widgets
 
@@ -70,7 +70,7 @@ array with a maximum of 16 instances:
             "bottom": 4
           },
           "border": {
-            "color_rgb": "#00E5FF",
+            "color": "#00E5FF",
             "width_px": 3,
             "radius_px": 8
           },
@@ -80,7 +80,7 @@ array with a maximum of 16 instances:
               "family": "montserrat",
               "size_px": 10
             },
-            "color_rgb": "#E8E8E8",
+            "color": "#E8E8E8",
             "offset_y_px": 0
           },
           "value": {
@@ -88,11 +88,10 @@ array with a maximum of 16 instances:
               "family": "montserrat",
               "size_px": 48
             },
-            "color_rgb": "#E8E8E8",
+            "color": "#E8E8E8",
             "alignment": "center",
             "unavailable_text": "--"
-          },
-          "background_color_rgb": "#000000"
+          }
         }
       ]
     }
@@ -103,6 +102,10 @@ array with a maximum of 16 instances:
 The title is static. A non-empty title is centered over the top border and
 creates a background-colored gap in that border. An empty title disables both
 the label and the gap.
+
+`background_color` is optional for text widgets. When omitted or set to
+`null`, the widget background is transparent. A configured `"#RRGGBB"` value
+creates an opaque background.
 
 The value is never formatted by the widget. It displays the exact string
 received for its telemetry binding. Units, prefixes, suffixes, decimal places,

@@ -44,8 +44,8 @@
           "bottom": 2
         },
         "style": {
-          "background_color_rgb": "#000000",
-          "border_color_rgb": "#AEAEAE",
+          "background_color": "#000000",
+          "border_color": "#AEAEAE",
           "border_width_px": 1,
           "radius_px": 0,
           "visible": false
@@ -66,7 +66,7 @@
         "width": 320,
         "height": 53
       },
-      "text_color_rgb": "#E8E8E8"
+      "text_color": "#E8E8E8"
     },
     "delta_time": {
       "enabled": true,
@@ -82,9 +82,9 @@
         "width": 0,
         "height": 61
       },
-      "faster_color_rgb": "#00C853",
-      "slower_color_rgb": "#D50000",
-      "neutral_color_rgb": "#E8E8E8",
+      "faster_color": "#00C853",
+      "slower_color": "#D50000",
+      "neutral_color": "#E8E8E8",
       "scale": {
         "vertical_padding_px": 6,
         "border_width_px": 3,
@@ -109,7 +109,7 @@
           "bottom": 0
         },
         "border": {
-          "color_rgb": "#AEAEAE",
+          "color": "#AEAEAE",
           "width_px": 0,
           "radius_px": 0
         },
@@ -119,7 +119,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -127,11 +127,11 @@
             "family": "lcd",
             "size_px": 39
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--:--.---"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       },
       {
         "binding": "transmission.gear",
@@ -150,7 +150,7 @@
           "bottom": 8
         },
         "border": {
-          "color_rgb": "#AEAEAE",
+          "color": "#AEAEAE",
           "width_px": 2,
           "radius_px": 12
         },
@@ -160,7 +160,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -168,11 +168,11 @@
             "family": "montserrat",
             "size_px": 48
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#0B0B0B"
+        "background_color": "#0B0B0B"
       },
       {
         "binding": "vehicle.speed",
@@ -191,7 +191,7 @@
           "bottom": 0
         },
         "border": {
-          "color_rgb": "#AEAEAE",
+          "color": "#AEAEAE",
           "width_px": 0,
           "radius_px": 0
         },
@@ -201,7 +201,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -209,11 +209,11 @@
             "family": "montserrat",
             "size_px": 48
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       },
       {
         "binding": "engine.rpm",
@@ -232,7 +232,7 @@
           "bottom": 0
         },
         "border": {
-          "color_rgb": "#AEAEAE",
+          "color": "#AEAEAE",
           "width_px": 0,
           "radius_px": 0
         },
@@ -242,7 +242,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -250,11 +250,11 @@
             "family": "montserrat",
             "size_px": 48
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       },
       {
         "binding": "vehicle.fuel.level",
@@ -273,7 +273,7 @@
           "bottom": 0
         },
         "border": {
-          "color_rgb": "#AEAEAE",
+          "color": "#AEAEAE",
           "width_px": 0,
           "radius_px": 0
         },
@@ -283,7 +283,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -291,11 +291,11 @@
             "family": "montserrat",
             "size_px": 24
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       },
       {
         "binding": "vehicle.fuel.average_consumption",
@@ -314,7 +314,7 @@
           "bottom": 0
         },
         "border": {
-          "color_rgb": "#AEAEAE",
+          "color": "#AEAEAE",
           "width_px": 0,
           "radius_px": 0
         },
@@ -324,7 +324,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -332,11 +332,11 @@
             "family": "montserrat",
             "size_px": 24
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       },
       {
         "binding": "vehicle.fuel.laps_remaining",
@@ -355,7 +355,7 @@
           "bottom": 0
         },
         "border": {
-          "color_rgb": "#AEAEAE",
+          "color": "#AEAEAE",
           "width_px": 0,
           "radius_px": 0
         },
@@ -365,7 +365,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -373,11 +373,11 @@
             "family": "montserrat",
             "size_px": 24
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       },
       {
         "binding": "vehicle.aids.traction_control",
@@ -396,7 +396,7 @@
           "bottom": 4
         },
         "border": {
-          "color_rgb": "#00E5FF",
+          "color": "#00E5FF",
           "width_px": 3,
           "radius_px": 8
         },
@@ -406,7 +406,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -414,11 +414,11 @@
             "family": "montserrat",
             "size_px": 48
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       },
       {
         "binding": "vehicle.aids.abs",
@@ -437,7 +437,7 @@
           "bottom": 4
         },
         "border": {
-          "color_rgb": "#F5F500",
+          "color": "#F5F500",
           "width_px": 3,
           "radius_px": 8
         },
@@ -447,7 +447,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -455,11 +455,11 @@
             "family": "montserrat",
             "size_px": 48
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       },
       {
         "binding": "vehicle.brake_bias",
@@ -478,7 +478,7 @@
           "bottom": 4
         },
         "border": {
-          "color_rgb": "#F000D0",
+          "color": "#F000D0",
           "width_px": 3,
           "radius_px": 8
         },
@@ -488,7 +488,7 @@
             "family": "montserrat",
             "size_px": 10
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "offset_y_px": 0
         },
         "value": {
@@ -496,11 +496,11 @@
             "family": "montserrat",
             "size_px": 48
           },
-          "color_rgb": "#E8E8E8",
+          "color": "#E8E8E8",
           "alignment": "center",
           "unavailable_text": "--"
         },
-        "background_color_rgb": "#000000"
+        "background_color": null
       }
     ]
   }

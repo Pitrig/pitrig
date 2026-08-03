@@ -79,23 +79,23 @@ TEXT_WIDGET_DEFAULT: dict[str, Any] = {
     },
     "padding": {"left": 0, "top": 0, "right": 0, "bottom": 0},
     "border": {
-        "color_rgb": "#AEAEAE",
+        "color": "#AEAEAE",
         "width_px": 0,
         "radius_px": 0,
     },
     "title": {
         "text": "",
         "font": {"family": "montserrat", "size_px": 10},
-        "color_rgb": "#E8E8E8",
+        "color": "#E8E8E8",
         "offset_y_px": 0,
     },
     "value": {
         "font": {"family": "montserrat", "size_px": 48},
-        "color_rgb": "#E8E8E8",
+        "color": "#E8E8E8",
         "alignment": "center",
         "unavailable_text": "--",
     },
-    "background_color_rgb": "#000000",
+    "background_color": None,
 }
 
 
@@ -144,6 +144,12 @@ class Writer:
     def rgb(self, value: Any, field: str) -> None:
         self.put("I", _parse_rgb(value, field))
 
+    def optional_rgb(self, value: Any, field: str) -> None:
+        if value is None:
+            self.put("I", 0xFFFFFFFF)
+            return
+        self.rgb(value, field)
+
     def text(self, value: Any, capacity: int, field: str) -> None:
         if not isinstance(value, str):
             raise ValueError(f"{field} must be a string")
@@ -180,6 +186,10 @@ class Reader:
 
     def rgb(self) -> str:
         return _format_rgb(self.get("I"))
+
+    def optional_rgb(self) -> Optional[str]:
+        value = self.get("I")
+        return None if value == 0xFFFFFFFF else _format_rgb(value)
 
     def text(self, capacity: int, field: str) -> str:
         raw = self.payload[self.position : self.position + capacity]
@@ -238,8 +248,8 @@ def _encode_region(writer: Writer, value: dict[str, Any]) -> None:
         writer.put("i", bounds[field])
     for field in ("left", "top", "right", "bottom"):
         writer.put("H", padding[field])
-    writer.rgb(style["background_color_rgb"], "region background color")
-    writer.rgb(style["border_color_rgb"], "region border color")
+    writer.rgb(style["background_color"], "region background color")
+    writer.rgb(style["border_color"], "region border color")
     writer.put("H", style["border_width_px"])
     writer.put("H", style["radius_px"])
     writer.boolean(style["visible"])
@@ -261,8 +271,8 @@ def _decode_region(reader: Reader) -> dict[str, Any]:
             "bottom": reader.get("H"),
         },
         "style": {
-            "background_color_rgb": reader.rgb(),
-            "border_color_rgb": reader.rgb(),
+            "background_color": reader.rgb(),
+            "border_color": reader.rgb(),
             "border_width_px": reader.get("H"),
             "radius_px": reader.get("H"),
             "visible": reader.boolean(),
@@ -286,7 +296,7 @@ def _encode_text_widget(
     _encode_placement(writer, widget["placement"])
     for field in ("left", "top", "right", "bottom"):
         writer.put("H", widget["padding"][field])
-    writer.rgb(widget["border"]["color_rgb"], f"{prefix}.border.color_rgb")
+    writer.rgb(widget["border"]["color"], f"{prefix}.border.color")
     writer.put("H", widget["border"]["width_px"])
     writer.put("H", widget["border"]["radius_px"])
     writer.text(
@@ -295,10 +305,10 @@ def _encode_text_widget(
         f"{prefix}.title.text",
     )
     _encode_font(writer, widget["title"]["font"])
-    writer.rgb(widget["title"]["color_rgb"], f"{prefix}.title.color_rgb")
+    writer.rgb(widget["title"]["color"], f"{prefix}.title.color")
     writer.put("h", widget["title"]["offset_y_px"])
     _encode_font(writer, widget["value"]["font"])
-    writer.rgb(widget["value"]["color_rgb"], f"{prefix}.value.color_rgb")
+    writer.rgb(widget["value"]["color"], f"{prefix}.value.color")
     writer.enum(
         TEXT_ALIGNMENTS,
         widget["value"]["alignment"],
@@ -309,7 +319,9 @@ def _encode_text_widget(
         UNAVAILABLE_TEXT_CAPACITY,
         f"{prefix}.value.unavailable_text",
     )
-    writer.rgb(widget["background_color_rgb"], f"{prefix}.background_color_rgb")
+    writer.optional_rgb(
+        widget["background_color"], f"{prefix}.background_color"
+    )
 
 
 def _decode_text_widget(reader: Reader) -> dict[str, Any]:
@@ -325,25 +337,25 @@ def _decode_text_widget(reader: Reader) -> dict[str, Any]:
             "bottom": reader.get("H"),
         },
         "border": {
-            "color_rgb": reader.rgb(),
+            "color": reader.rgb(),
             "width_px": reader.get("H"),
             "radius_px": reader.get("H"),
         },
         "title": {
             "text": reader.text(TITLE_CAPACITY, "widget title"),
             "font": _decode_font(reader),
-            "color_rgb": reader.rgb(),
+            "color": reader.rgb(),
             "offset_y_px": reader.get("h"),
         },
         "value": {
             "font": _decode_font(reader),
-            "color_rgb": reader.rgb(),
+            "color": reader.rgb(),
             "alignment": reader.enum(TEXT_ALIGNMENTS, "text alignment"),
             "unavailable_text": reader.text(
                 UNAVAILABLE_TEXT_CAPACITY, "unavailable text"
             ),
         },
-        "background_color_rgb": reader.rgb(),
+        "background_color": reader.optional_rgb(),
     }
 
 
@@ -392,15 +404,15 @@ def encode_configuration(config: dict[str, Any]) -> bytes:
     writer.boolean(lap_widget["enabled"])
     _encode_font(writer, lap_widget["font"])
     _encode_placement(writer, lap_widget["placement"])
-    writer.rgb(lap_widget["text_color_rgb"], "lap timer text color")
+    writer.rgb(lap_widget["text_color"], "lap timer text color")
 
     delta_widget = dashboard["delta_time"]
     writer.boolean(delta_widget["enabled"])
     _encode_font(writer, delta_widget["font"])
     _encode_placement(writer, delta_widget["placement"])
-    writer.rgb(delta_widget["faster_color_rgb"], "delta faster color")
-    writer.rgb(delta_widget["slower_color_rgb"], "delta slower color")
-    writer.rgb(delta_widget["neutral_color_rgb"], "delta neutral color")
+    writer.rgb(delta_widget["faster_color"], "delta faster color")
+    writer.rgb(delta_widget["slower_color"], "delta slower color")
+    writer.rgb(delta_widget["neutral_color"], "delta neutral color")
     writer.put("H", delta_widget["scale"]["vertical_padding_px"])
     writer.put("H", delta_widget["scale"]["border_width_px"])
     writer.put("H", delta_widget["scale"]["border_radius_px"])
@@ -473,15 +485,15 @@ def decode_configuration(payload: bytes) -> dict[str, Any]:
         "enabled": reader.boolean(),
         "font": _decode_font(reader),
         "placement": _decode_placement(reader),
-        "text_color_rgb": reader.rgb(),
+        "text_color": reader.rgb(),
     }
     dashboard["delta_time"] = {
         "enabled": reader.boolean(),
         "font": _decode_font(reader),
         "placement": _decode_placement(reader),
-        "faster_color_rgb": reader.rgb(),
-        "slower_color_rgb": reader.rgb(),
-        "neutral_color_rgb": reader.rgb(),
+        "faster_color": reader.rgb(),
+        "slower_color": reader.rgb(),
+        "neutral_color": reader.rgb(),
         "scale": {
             "vertical_padding_px": reader.get("H"),
             "border_width_px": reader.get("H"),

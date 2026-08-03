@@ -14,6 +14,7 @@ namespace simcore::dashboard {
 
 using RegionId = std::uint16_t;
 inline constexpr RegionId kScreenRegionId = 0;
+inline constexpr std::uint32_t kTransparentColor = 0xFFFF'FFFFU;
 
 enum class FontFamily : std::uint8_t {
   roboto_mono,
@@ -41,8 +42,8 @@ struct Insets {
 };
 
 struct RegionStyle {
-  std::uint32_t background_color_rgb{};
-  std::uint32_t border_color_rgb{};
+  std::uint32_t background_color{};
+  std::uint32_t border_color{};
   std::uint16_t border_width_px{};
   std::uint16_t radius_px{};
   bool visible{};

@@ -9,6 +9,10 @@ namespace {
   return color <= 0x00FF'FFFFU;
 }
 
+[[nodiscard]] bool valid_optional_color(const std::uint32_t color) {
+  return color == dashboard::kTransparentColor || valid_color(color);
+}
+
 [[nodiscard]] bool valid_font(const dashboard::FontSpec& font) {
   if (font.family == dashboard::FontFamily::montserrat) {
     return font.size_px == 10 || font.size_px == 24 ||
@@ -45,10 +49,10 @@ template <std::size_t Size>
   return registry.resolve(telemetry::field_name_view(config.binding)).valid() &&
          valid_placement(config.placement, configured_region) &&
          valid_font(config.title.font) && valid_font(config.value.font) &&
-         valid_color(config.border.color_rgb) &&
-         valid_color(config.title.color_rgb) &&
-         valid_color(config.value.color_rgb) &&
-         valid_color(config.background_color_rgb) &&
+         valid_color(config.border.color) &&
+         valid_color(config.title.color) &&
+         valid_color(config.value.color) &&
+         valid_optional_color(config.background_color) &&
          config.value.alignment >= dashboard::text_widget::Alignment::left &&
          config.value.alignment <= dashboard::text_widget::Alignment::right &&
          config.padding.left <= 480 && config.padding.top <= 480 &&
@@ -136,8 +140,8 @@ ValidationError validate_configuration(
       static_cast<std::uint32_t>(region.padding.top) +
               region.padding.bottom >=
           static_cast<std::uint32_t>(region.bounds.height) ||
-      !valid_color(region.style.background_color_rgb) ||
-      !valid_color(region.style.border_color_rgb)) {
+      !valid_color(region.style.background_color) ||
+      !valid_color(region.style.border_color)) {
     return ValidationError::invalid_region;
   }
 
@@ -146,10 +150,10 @@ ValidationError validate_configuration(
   if (!valid_font(lap.font) || !valid_font(delta.font) ||
       !valid_placement(lap.placement, region.id) ||
       !valid_placement(delta.placement, region.id) ||
-      !valid_color(lap.text_color_rgb) ||
-      !valid_color(delta.faster_color_rgb) ||
-      !valid_color(delta.slower_color_rgb) ||
-      !valid_color(delta.neutral_color_rgb) ||
+      !valid_color(lap.text_color) ||
+      !valid_color(delta.faster_color) ||
+      !valid_color(delta.slower_color) ||
+      !valid_color(delta.neutral_color) ||
       configuration.dashboard.text_widget_count >
           configuration.dashboard.text_widgets.size()) {
     return ValidationError::invalid_widget;

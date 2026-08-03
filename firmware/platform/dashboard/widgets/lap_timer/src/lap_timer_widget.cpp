@@ -102,7 +102,7 @@ bool create(const Layout& layout, const Config& config,
     lv_obj_set_pos(label, content_x + position * character_width, content_y);
     lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_style_text_font(label, font, LV_PART_MAIN);
-    lv_obj_set_style_text_color(label, lv_color_hex(config.text_color_rgb),
+    lv_obj_set_style_text_color(label, lv_color_hex(config.text_color),
                                 LV_PART_MAIN);
 
     const char character[] = {kInitialText[position], '\0'};

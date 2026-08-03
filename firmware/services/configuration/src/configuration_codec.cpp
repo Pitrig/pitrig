@@ -127,8 +127,8 @@ void write_region(Writer& writer, const dashboard::LayoutRegion& region) {
   writer.integer(region.padding.top);
   writer.integer(region.padding.right);
   writer.integer(region.padding.bottom);
-  writer.integer(region.style.background_color_rgb);
-  writer.integer(region.style.border_color_rgb);
+  writer.integer(region.style.background_color);
+  writer.integer(region.style.border_color);
   writer.integer(region.style.border_width_px);
   writer.integer(region.style.radius_px);
   writer.boolean(region.style.visible);
@@ -144,8 +144,8 @@ void read_region(Reader& reader, dashboard::LayoutRegion& region) {
   region.padding.top = reader.integer<std::uint16_t>();
   region.padding.right = reader.integer<std::uint16_t>();
   region.padding.bottom = reader.integer<std::uint16_t>();
-  region.style.background_color_rgb = reader.integer<std::uint32_t>();
-  region.style.border_color_rgb = reader.integer<std::uint32_t>();
+  region.style.background_color = reader.integer<std::uint32_t>();
+  region.style.border_color = reader.integer<std::uint32_t>();
   region.style.border_width_px = reader.integer<std::uint16_t>();
   region.style.radius_px = reader.integer<std::uint16_t>();
   region.style.visible = reader.boolean();
@@ -159,18 +159,18 @@ void write_text_widget(Writer& writer,
   writer.integer(config.padding.top);
   writer.integer(config.padding.right);
   writer.integer(config.padding.bottom);
-  writer.integer(config.border.color_rgb);
+  writer.integer(config.border.color);
   writer.integer(config.border.width_px);
   writer.integer(config.border.radius_px);
   writer.bytes(config.title.text);
   write_font(writer, config.title.font);
-  writer.integer(config.title.color_rgb);
+  writer.integer(config.title.color);
   writer.integer(config.title.offset_y_px);
   write_font(writer, config.value.font);
-  writer.integer(config.value.color_rgb);
+  writer.integer(config.value.color);
   writer.byte(static_cast<std::uint8_t>(config.value.alignment));
   writer.bytes(config.value.unavailable_text);
-  writer.integer(config.background_color_rgb);
+  writer.integer(config.background_color);
 }
 
 void read_text_widget(Reader& reader,
@@ -181,19 +181,19 @@ void read_text_widget(Reader& reader,
   config.padding.top = reader.integer<std::uint16_t>();
   config.padding.right = reader.integer<std::uint16_t>();
   config.padding.bottom = reader.integer<std::uint16_t>();
-  config.border.color_rgb = reader.integer<std::uint32_t>();
+  config.border.color = reader.integer<std::uint32_t>();
   config.border.width_px = reader.integer<std::uint16_t>();
   config.border.radius_px = reader.integer<std::uint16_t>();
   reader.bytes(config.title.text);
   read_font(reader, config.title.font);
-  config.title.color_rgb = reader.integer<std::uint32_t>();
+  config.title.color = reader.integer<std::uint32_t>();
   config.title.offset_y_px = reader.integer<std::int16_t>();
   read_font(reader, config.value.font);
-  config.value.color_rgb = reader.integer<std::uint32_t>();
+  config.value.color = reader.integer<std::uint32_t>();
   config.value.alignment =
       static_cast<dashboard::text_widget::Alignment>(reader.byte());
   reader.bytes(config.value.unavailable_text);
-  config.background_color_rgb = reader.integer<std::uint32_t>();
+  config.background_color = reader.integer<std::uint32_t>();
 }
 
 }  // namespace
@@ -240,14 +240,14 @@ CodecResult encode_configuration(
   writer.boolean(configuration.dashboard.lap_timer.enabled);
   write_font(writer, configuration.dashboard.lap_timer.font);
   write_placement(writer, configuration.dashboard.lap_timer.placement);
-  writer.integer(configuration.dashboard.lap_timer.text_color_rgb);
+  writer.integer(configuration.dashboard.lap_timer.text_color);
 
   writer.boolean(configuration.dashboard.delta_time.enabled);
   write_font(writer, configuration.dashboard.delta_time.font);
   write_placement(writer, configuration.dashboard.delta_time.placement);
-  writer.integer(configuration.dashboard.delta_time.faster_color_rgb);
-  writer.integer(configuration.dashboard.delta_time.slower_color_rgb);
-  writer.integer(configuration.dashboard.delta_time.neutral_color_rgb);
+  writer.integer(configuration.dashboard.delta_time.faster_color);
+  writer.integer(configuration.dashboard.delta_time.slower_color);
+  writer.integer(configuration.dashboard.delta_time.neutral_color);
   writer.integer(
       configuration.dashboard.delta_time.scale.vertical_padding_px);
   writer.integer(configuration.dashboard.delta_time.scale.border_width_px);
@@ -316,17 +316,17 @@ CodecResult decode_configuration(
   configuration.dashboard.lap_timer.enabled = reader.boolean();
   read_font(reader, configuration.dashboard.lap_timer.font);
   read_placement(reader, configuration.dashboard.lap_timer.placement);
-  configuration.dashboard.lap_timer.text_color_rgb =
+  configuration.dashboard.lap_timer.text_color =
       reader.integer<std::uint32_t>();
 
   configuration.dashboard.delta_time.enabled = reader.boolean();
   read_font(reader, configuration.dashboard.delta_time.font);
   read_placement(reader, configuration.dashboard.delta_time.placement);
-  configuration.dashboard.delta_time.faster_color_rgb =
+  configuration.dashboard.delta_time.faster_color =
       reader.integer<std::uint32_t>();
-  configuration.dashboard.delta_time.slower_color_rgb =
+  configuration.dashboard.delta_time.slower_color =
       reader.integer<std::uint32_t>();
-  configuration.dashboard.delta_time.neutral_color_rgb =
+  configuration.dashboard.delta_time.neutral_color =
       reader.integer<std::uint32_t>();
   configuration.dashboard.delta_time.scale.vertical_padding_px =
       reader.integer<std::uint16_t>();

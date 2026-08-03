@@ -44,8 +44,8 @@
           "bottom": 2
         },
         "style": {
-          "background_color_rgb": "#000000",
-          "border_color_rgb": "#AEAEAE",
+          "background_color": "#000000",
+          "border_color": "#AEAEAE",
           "border_width_px": 1,
           "radius_px": 0,
           "visible": false
@@ -66,7 +66,7 @@
         "width": 320,
         "height": 53
       },
-      "text_color_rgb": "#E8E8E8"
+      "text_color": "#E8E8E8"
     },
     "delta_time": {
       "enabled": true,
@@ -82,9 +82,9 @@
         "width": 0,
         "height": 61
       },
-      "faster_color_rgb": "#00C853",
-      "slower_color_rgb": "#D50000",
-      "neutral_color_rgb": "#E8E8E8",
+      "faster_color": "#00C853",
+      "slower_color": "#D50000",
+      "neutral_color": "#E8E8E8",
       "scale": {
         "vertical_padding_px": 6,
         "border_width_px": 3,

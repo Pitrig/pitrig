@@ -139,14 +139,13 @@ bool initialize(Layout& layout) {
     lv_obj_set_style_pad_right(panel, region.padding.right, LV_PART_MAIN);
     lv_obj_set_style_pad_bottom(panel, region.padding.bottom, LV_PART_MAIN);
     if (region.style.visible) {
-      lv_obj_set_style_bg_color(panel,
-                                lv_color_hex(region.style.background_color_rgb),
-                                LV_PART_MAIN);
+      lv_obj_set_style_bg_color(
+          panel, lv_color_hex(region.style.background_color), LV_PART_MAIN);
       lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, LV_PART_MAIN);
       lv_obj_set_style_border_width(panel, region.style.border_width_px,
                                     LV_PART_MAIN);
       lv_obj_set_style_border_color(
-          panel, lv_color_hex(region.style.border_color_rgb), LV_PART_MAIN);
+          panel, lv_color_hex(region.style.border_color), LV_PART_MAIN);
       lv_obj_set_style_border_opa(panel, LV_OPA_COVER, LV_PART_MAIN);
     }
     layout.region_objects[index] = panel;
