@@ -15,6 +15,11 @@ __pycache__/
 .venv/
 venv/
 
+# Node.js and Electron generated files
+node_modules/
+.pnpm-store/
+configurator/out/
+
 # Local editor settings
 .vscode/
 firmware/.vscode/
