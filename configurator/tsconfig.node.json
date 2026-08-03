@@ -7,6 +7,7 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
+    "tsBuildInfoFile": "./out/.tsbuildinfo/node",
     "noEmit": true,
     "types": ["electron-vite/node", "node"]
   },

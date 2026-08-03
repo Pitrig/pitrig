@@ -14,6 +14,7 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
+    "tsBuildInfoFile": "./out/.tsbuildinfo/web",
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {

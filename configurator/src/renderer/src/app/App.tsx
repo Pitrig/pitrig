@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 
-import { Badge } from '@/components/ui/badge'
 import {
   Card,
   CardContent,
@@ -8,6 +7,7 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
+import { DeviceConnection } from '@/features/device/DeviceConnection'
 import type { AppInfo } from '../../../shared/ipc'
 
 export function App(): React.JSX.Element {
@@ -24,7 +24,7 @@ export function App(): React.JSX.Element {
           <h1 className="text-sm font-semibold">SimCore Configurator</h1>
           <p className="text-xs text-muted-foreground">Desktop configuration workspace</p>
         </div>
-        <Badge variant="outline">Device disconnected</Badge>
+        <DeviceConnection />
       </header>
 
       <main className="grid min-h-0 grid-cols-[14rem_minmax(0,1fr)_18rem]">

@@ -1,18 +1,11 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import { join } from 'node:path'
 
-import {
-  APP_GET_INFO_CHANNEL,
-  type AppInfo
-} from '../shared/ipc'
+import { DeviceService } from './device/device-service'
+import { broadcastDeviceState, registerIpcHandlers } from './ipc/register-ipc-handlers'
 
-function registerIpcHandlers(): void {
-  ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
-    name: app.getName(),
-    version: app.getVersion(),
-    platform: process.platform
-  }))
-}
+const deviceService = new DeviceService(broadcastDeviceState)
+let quitAfterDeviceCleanup = false
 
 function createWindow(): void {
   const window = new BrowserWindow({
@@ -40,13 +33,24 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  registerIpcHandlers()
+  registerIpcHandlers(deviceService)
   createWindow()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow()
     }
+  })
+})
+
+app.on('before-quit', (event) => {
+  if (quitAfterDeviceCleanup) {
+    return
+  }
+  event.preventDefault()
+  void deviceService.dispose().finally(() => {
+    quitAfterDeviceCleanup = true
+    app.quit()
   })
 })
 
