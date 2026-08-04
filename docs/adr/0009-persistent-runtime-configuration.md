@@ -2,51 +2,77 @@
 
 ## Context
 
-SimCore needs configuration that survives restart, can be replaced by the CLI
-or a future companion, and cannot make a device permanently unbootable after an
+SimCore needs configuration that survives restart, can be managed by the
+desktop configurator, and cannot make a device permanently unbootable after an
 interrupted write. Runtime storage must remain bounded and isolated from
 unrelated NVS users.
 
+The original schema stored a complete expanded snapshot. Sparse JSON was
+expanded through a board profile by the CLI, so a board-only file silently
+enabled modules, regions, and widgets. That behavior is incompatible with a
+configurator-first workflow where omitted components must remain absent and a
+freshly flashed device must show an empty screen.
+
 ## Decision
 
-Keep immutable factory defaults in the application configuration component.
-Select the factory board profile at build time and reject runtime
-configurations for another board.
+Keep the immutable hardware board identity in the firmware build. The factory
+user configuration contains only the matching board identifier. It enables no
+user-configured hardware devices, modules, or widgets. Hardware declared as
+built into the board remains enabled according to the immutable board-registry
+mapping; in particular, a board-provided display is initialized by default.
 
-Persist explicit little-endian binary records through
-`IConfigurationStorage`. Store two records in the dedicated `simcore_cfg` NVS
-partition. Each record contains a magic value, record and schema versions,
-payload size, generation, and CRC32. Write and verify the inactive slot before
-selecting it.
+Replace schema 0 with schema 1. Schema 1 is a bounded sparse JSON document:
 
-Start configuration schema versioning at 0 and support schema 0 only. An
-unsupported stored record is ignored and startup falls back to another valid
-slot or factory defaults.
+- the public authoring document is also the public transport payload;
+- property names and nesting are defined by the schema 1 JSON contract;
+- the board identifier is mandatory;
+- the configurable hardware-device list is optional and may be empty;
+- optional sections and fields remain absent when omitted;
+- unknown or duplicate properties, malformed JSON, excessive payloads, and
+  invalid values are rejected by firmware.
 
-Schema 0 contains:
+The line-oriented control protocol transfers compact JSON directly, without a
+secondary TLV or hexadecimal representation. Missing properties remain
+missing instead of being expanded through a board profile.
 
-- board and transport configuration;
-- Lap Timer and Delta Time module configuration;
-- one dashboard region;
-- Lap Timer and Delta Time widget configuration;
-- an ordered bounded array of up to 16 generic text-widget configurations.
+Persist the exact validated sparse payload through `IConfigurationStorage`.
+Keep the existing two-slot `simcore_cfg` NVS strategy: every internal record
+contains magic, record and schema versions, payload size, generation, and
+CRC32. Write and verify the inactive slot before selecting it. These record
+headers and slot mechanics remain private firmware details.
 
-Text-widget bindings are stored as bounded canonical telemetry names. Runtime
-handles are never persisted because they are valid only for one registry
-instance. The maximum binary payload is 2560 bytes. Binding names, text titles,
-and unavailable values use fixed null-terminated UTF-8 storage.
+Parse the sparse JSON into a concrete bounded runtime configuration during
+startup and before accepting a replacement. JSON parsing is confined to the
+configuration control/startup path; periodic runtime paths continue to use
+fixed-size typed structures. Missing properties of a present component use
+defaults owned by that component. A missing user-configured hardware device,
+module, or widget is not created. Board-provided hardware is composed from the
+immutable board-registry mapping independently of this optional list. A missing
+telemetry transport uses the immutable board default.
 
-Treat sparse JSON as an authoring format and the binary payload as the complete
-canonical snapshot. Unknown JSON fields are rejected. Saving a configuration
-takes effect after restart.
+Schema 0 records are not migrated. They are treated as unsupported and startup
+falls back to a valid schema 1 slot or the board-only factory configuration.
+Saving still takes effect after restart.
+
+The schema 0 configuration CLI is legacy tooling and is not extended to encode
+schema 1. Remove it only after the configurator supports `INFO`, `GET`,
+`VALIDATE`, `SET`, `RESET`, and `REBOOT`. During the migration, firmware keeps
+the public control operations available even while the desktop write flow is
+not yet exposed.
 
 ## Consequences
 
-- Interrupted or corrupt writes fall back safely.
-- SimCore recovery cannot erase Wi-Fi credentials or unrelated NVS data.
-- Configuration storage, routing, and response buffers have deterministic
-  bounds.
-- Multiple text-widget instances do not require variable-sized firmware
-  containers.
-- Unsupported configuration records fall back to factory defaults.
-- Adding fields requires an explicit schema change in firmware and CLI.
+- A clean flash or reset initializes the board-provided display with no
+  configured dashboard content and no additional configured hardware devices.
+- Board compatibility remains enforceable even when every optional section is
+  absent.
+- Hardware composition remains configuration-driven for supported peripherals;
+  an empty hardware list is valid and does not disable immutable board
+  capabilities.
+- Omitted components do not reappear through hidden profile inheritance.
+- Public JSON and private NVS record framing remain separate contracts.
+- Interrupted or corrupt writes retain the existing verified-slot recovery.
+- Storage, protocol, and runtime containers remain bounded and deterministic.
+- Schema 0 configurations are intentionally discarded after the upgrade.
+- Adding or changing public fields requires a documented schema change shared
+  by firmware and configurator.

@@ -67,6 +67,118 @@ export interface DeviceConnection {
   baudRate: number
 }
 
+export type SimCoreBoardId = 't_display_s3' | 'guition_esp32_4848s040'
+
+export interface DisplayDescriptor {
+  width: number
+  height: number
+  configurable: false
+}
+
+export interface BoardProfile {
+  display: DisplayDescriptor
+}
+
+export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
+  t_display_s3: {
+    display: { width: 320, height: 170, configurable: false }
+  },
+  guition_esp32_4848s040: {
+    display: { width: 480, height: 480, configurable: false }
+  }
+}
+
+export interface DeviceInfo {
+  boardId: SimCoreBoardId
+  firmwareVersion: string
+  schemaVersion: 1
+  display: DisplayDescriptor
+  configurationSource: 'factory' | 'slot_a' | 'slot_b'
+  generation: number
+  storageAvailable: boolean
+}
+
+export interface Placement {
+  x?: number
+  y?: number
+  width?: number
+  height?: number
+}
+
+export interface FontSpec {
+  family?: 'roboto_mono' | 'lcd' | 'montserrat'
+  size_px?: number
+}
+
+export interface TelemetryTransportConfiguration {
+  id?: 'board_default' | 'native_usb_cdc' | 'uart'
+  uart?: {
+    port?: number
+    tx_pin?: number
+    rx_pin?: number
+    baud_rate?: number
+    silence_esp_logs?: boolean
+  }
+}
+
+export type RgbColor = `#${string}`
+
+export interface DeviceConfiguration {
+  board: SimCoreBoardId
+  hardware?: []
+  telemetry_transport?: TelemetryTransportConfiguration
+  lap_timer?: {
+    telemetry_only?: boolean
+    telemetry_timeout_ms?: number
+  }
+  delta_time?: {
+    unavailable_behavior?: 'hide' | 'placeholder' | 'zero'
+    placeholder?: string
+    scale?: { enabled?: boolean; show_sign?: boolean; range_ms?: number }
+  }
+  dashboard?: {
+    widgets?: {
+      lap_timer?: { placement?: Placement; font?: FontSpec; text_color?: RgbColor }
+      delta_time?: {
+        placement?: Placement
+        font?: FontSpec
+        faster_color?: RgbColor
+        slower_color?: RgbColor
+        neutral_color?: RgbColor
+        scale?: {
+          vertical_padding_px?: number
+          border_width_px?: number
+          border_radius_px?: number
+        }
+      }
+      text?: Array<{
+        binding?: string
+        placement?: Placement
+        padding?: { left?: number; top?: number; right?: number; bottom?: number }
+        border?: { color?: RgbColor; width_px?: number; radius_px?: number }
+        title?: {
+          text?: string
+          font?: FontSpec
+          color?: RgbColor
+          offset_y_px?: number
+        }
+        value?: {
+          font?: FontSpec
+          color?: RgbColor
+          alignment?: 'left' | 'center' | 'right'
+          unavailable_text?: string
+        }
+        background_color?: RgbColor
+      }>
+    }
+  }
+}
+
+export interface DeviceSession {
+  info: DeviceInfo
+  configuration: DeviceConfiguration
+}
+
 export interface DeviceScanProgress {
   displayName: string
   baudRate: number
@@ -77,6 +189,7 @@ export interface DeviceScanProgress {
 export interface DeviceState {
   status: DeviceStatus
   connection?: DeviceConnection
+  session?: DeviceSession
   scan?: DeviceScanProgress
   error?: DeviceError
 }

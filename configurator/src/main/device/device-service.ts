@@ -5,13 +5,17 @@ import { SerialPort } from 'serialport'
 import type { SerialTrafficLog } from '../../shared/development'
 import {
   AUTOMATIC_BAUD_RATES,
+  BOARD_PROFILES,
   type DeviceConnection,
   type DeviceError,
   type DeviceErrorCode,
   type DeviceResult,
+  type DeviceSession,
   type DeviceState,
+  type DeviceInfo,
   type SerialPortSummary
 } from '../../shared/device'
+import { parseDeviceConfigurationJson } from './configuration-json'
 
 interface PortRecord {
   path: string
@@ -22,6 +26,11 @@ interface PortRecord {
 interface Match {
   record: PortRecord
   baudRate: number
+}
+
+interface OpenedDevice {
+  port: SerialPort
+  session: DeviceSession
 }
 
 class DeviceServiceError extends Error {
@@ -35,6 +44,7 @@ class DeviceServiceError extends Error {
 
 const PROBE_TIMEOUT_MS = 1_000
 const INFO_REQUEST = '@SC:INFO\n'
+const GET_REQUEST = '@SC:GET\n'
 
 export class DeviceService {
   private readonly ports = new Map<string, PortRecord>()
@@ -83,8 +93,8 @@ export class DeviceService {
     const token = ++this.operationToken
     this.setState({ status: 'connecting' })
     try {
-      const port = await this.openAndProbe(record, baudRate, token)
-      this.attachActivePort(port, record, baudRate)
+      const opened = await this.openAndProbe(record, baudRate, token)
+      this.attachActivePort(opened, record, baudRate)
       return success(this.state)
     } catch (error) {
       return this.finishFailedOperation(error, token)
@@ -132,8 +142,8 @@ export class DeviceService {
           })
 
           try {
-            const port = await this.openAndProbe(record, baudRate, token)
-            await closePort(port)
+            const opened = await this.openAndProbe(record, baudRate, token)
+            await closePort(opened.port)
             matches.push({ record, baudRate })
             break
           } catch (error) {
@@ -176,8 +186,8 @@ export class DeviceService {
         throw new DeviceServiceError('no_device', 'No SimCore device was found.')
       }
       this.setState({ status: 'connecting' })
-      const port = await this.openAndProbe(match.record, match.baudRate, token)
-      this.attachActivePort(port, match.record, match.baudRate)
+      const opened = await this.openAndProbe(match.record, match.baudRate, token)
+      this.attachActivePort(opened, match.record, match.baudRate)
       return success(this.state)
     } catch (error) {
       return this.finishFailedOperation(error, token)
@@ -260,7 +270,7 @@ export class DeviceService {
     record: PortRecord,
     baudRate: number,
     token: number
-  ): Promise<SerialPort> {
+  ): Promise<OpenedDevice> {
     this.ensureCurrent(token)
     const port = new SerialPort({
       path: record.path,
@@ -273,12 +283,12 @@ export class DeviceService {
     try {
       await openPort(port)
       this.ensureCurrent(token)
-      await probeSimCore(port, (direction, data) => {
+      const session = await probeSimCore(port, (direction, data) => {
         this.onSerialTraffic?.({ direction, path: record.path, baudRate, data })
       })
       this.ensureCurrent(token)
       this.pendingPort = undefined
-      return port
+      return { port, session }
     } catch (error) {
       if (this.pendingPort === port) {
         this.pendingPort = undefined
@@ -288,7 +298,8 @@ export class DeviceService {
     }
   }
 
-  private attachActivePort(port: SerialPort, record: PortRecord, baudRate: number): void {
+  private attachActivePort(opened: OpenedDevice, record: PortRecord, baudRate: number): void {
+    const { port, session } = opened
     this.activePort = port
     port.on('data', (chunk: Buffer) => {
       this.onSerialTraffic?.({
@@ -323,7 +334,7 @@ export class DeviceService {
       displayName: record.summary.displayName,
       baudRate
     }
-    this.setState({ status: 'connected', connection })
+    this.setState({ status: 'connected', connection, session })
   }
 
   private finishFailedOperation(error: unknown, token: number): DeviceResult<DeviceState> {
@@ -365,10 +376,50 @@ function closePort(port: SerialPort | undefined): Promise<void> {
   })
 }
 
-function probeSimCore(
+async function probeSimCore(
   port: SerialPort,
   onTraffic: (direction: SerialTrafficLog['direction'], data: string) => void
-): Promise<void> {
+): Promise<DeviceSession> {
+  const infoLine = await requestResponse(
+    port,
+    INFO_REQUEST,
+    '@SC:OK:INFO:',
+    PROBE_TIMEOUT_MS,
+    onTraffic
+  )
+  const info = parseDeviceInfo(infoLine)
+  const configurationLine = await requestResponse(
+    port,
+    GET_REQUEST,
+    '@SC:OK:CONFIG:',
+    1_500,
+    onTraffic
+  )
+  let configuration: DeviceSession['configuration']
+  try {
+    configuration = parseDeviceConfigurationJson(
+      configurationLine.slice('@SC:OK:CONFIG:'.length)
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown configuration error.'
+    throw new DeviceServiceError('not_simcore', message)
+  }
+  if (configuration.board !== info.boardId) {
+    throw new DeviceServiceError(
+      'not_simcore',
+      'The device configuration board does not match the connected hardware.'
+    )
+  }
+  return { info, configuration }
+}
+
+function requestResponse(
+  port: SerialPort,
+  request: string,
+  responsePrefix: string,
+  timeoutMs: number,
+  onTraffic: (direction: SerialTrafficLog['direction'], data: string) => void
+): Promise<string> {
   return new Promise((resolve, reject) => {
     let buffer = ''
     let settled = false
@@ -388,7 +439,7 @@ function probeSimCore(
       port.off('error', onError)
       port.off('close', onClose)
     }
-    const finish = (error?: Error): void => {
+    const finish = (error?: Error, response?: string): void => {
       if (settled) {
         return
       }
@@ -397,7 +448,7 @@ function probeSimCore(
       if (error) {
         reject(error)
       } else {
-        resolve()
+        resolve(response ?? '')
       }
     }
     const onData = (chunk: Buffer): void => {
@@ -405,21 +456,27 @@ function probeSimCore(
       buffer = (buffer + chunk.toString('utf8')).slice(-8_192)
       const lines = buffer.replaceAll('\r', '').split('\n')
       buffer = lines.pop() ?? ''
-      if (lines.some((line) => line.startsWith('@SC:OK:INFO:'))) {
-        finish()
+      const response = lines.find((line) => line.startsWith(responsePrefix))
+      if (response) {
+        finish(undefined, response)
+        return
+      }
+      const deviceError = lines.find((line) => line.startsWith('@SC:ERR:'))
+      if (deviceError) {
+        finish(new DeviceServiceError('not_simcore', `SimCore rejected the request: ${deviceError}`))
       }
     }
     const onError = (error: Error): void => finish(error)
     const onClose = (): void => {
       finish(new DeviceServiceError('serial_error', 'Serial port closed during probe.'))
     }
-    const sendProbe = (): void => {
+    const sendRequest = (): void => {
       if (port.isOpen) {
-        port.write(INFO_REQUEST, (error) => {
+        port.write(request, (error) => {
           if (error) {
             finish(error)
           } else {
-            onTraffic('tx', INFO_REQUEST)
+            onTraffic('tx', request)
           }
         })
       }
@@ -428,12 +485,54 @@ function probeSimCore(
     port.on('data', onData)
     port.once('error', onError)
     port.once('close', onClose)
-    timers.retry = setInterval(sendProbe, 350)
+    timers.retry = setInterval(sendRequest, 350)
     timers.timeout = setTimeout(() => {
-      finish(new DeviceServiceError('not_simcore', 'The device did not answer the SimCore INFO probe.'))
-    }, PROBE_TIMEOUT_MS)
-    port.flush(() => sendProbe())
+      finish(new DeviceServiceError('not_simcore', `The device did not answer ${request.trim()}.`))
+    }, timeoutMs)
+    port.flush(() => sendRequest())
   })
+}
+
+function parseDeviceInfo(line: string): DeviceInfo {
+  const fields = new Map<string, string>()
+  for (const entry of line.slice('@SC:OK:INFO:'.length).split(',')) {
+    const separator = entry.indexOf('=')
+    if (separator <= 0) {
+      throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+    }
+    fields.set(entry.slice(0, separator), entry.slice(separator + 1))
+  }
+  const board = fields.get('board')
+  if (board !== 't_display_s3' && board !== 'guition_esp32_4848s040') {
+    throw new DeviceServiceError('not_simcore', `Unsupported SimCore board: ${board ?? 'unknown'}.`)
+  }
+  if (fields.get('schema') !== '1') {
+    throw new DeviceServiceError(
+      'not_simcore',
+      `Unsupported configuration schema: ${fields.get('schema') ?? 'unknown'}.`
+    )
+  }
+  const source = fields.get('source')
+  const generation = Number(fields.get('generation'))
+  const firmwareVersion = fields.get('firmware')
+  if (
+    !firmwareVersion ||
+    (source !== 'factory' && source !== 'slot_a' && source !== 'slot_b') ||
+    !Number.isSafeInteger(generation) ||
+    generation < 0 ||
+    (fields.get('storage') !== '0' && fields.get('storage') !== '1')
+  ) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+  }
+  return {
+    boardId: board,
+    firmwareVersion,
+    schemaVersion: 1,
+    display: BOARD_PROFILES[board].display,
+    configurationSource: source,
+    generation,
+    storageAvailable: fields.get('storage') === '1'
+  }
 }
 
 function serialIdentity(path: string): string {

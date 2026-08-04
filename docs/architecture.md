@@ -61,10 +61,14 @@ The platform should be configured instead of hardcoded whenever practical.
 Configuration determines:
 
 - enabled modules
-- hardware drivers
 - communication settings
+- supported configurable hardware devices and driver settings
 - layouts
-- device capabilities
+
+Immutable board identity determines hardware physically built into the board
+and its fixed capabilities. User configuration must match that identity but
+cannot change it. Additional supported hardware remains configuration-driven;
+its device list may be empty.
 
 The firmware should avoid device-specific code paths.
 
@@ -292,6 +296,42 @@ only pre-bound handles; periodic paths perform no name lookup.
 
 ---
 
+# Device Configuration
+
+The desktop configurator is the primary authoring and device-management tool.
+Project JSON and the public device payload are sparse: omitted components stay
+absent instead of being expanded through board profiles.
+
+Firmware builds own an immutable board identity. The board registry maps that
+identity directly to drivers for hardware physically built into the board and
+keeps private validation metadata for immutable constraints such as logical
+display bounds and supported communication pins. This metadata is not part of
+the public configuration or device-information protocol.
+Firmware reports only the stable board identifier; the configurator maps it to
+a local supported board profile containing read-only authoring metadata such as
+logical display dimensions. Every user configuration includes a matching board
+identifier for compatibility validation. A separate optional bounded list
+controls supported configurable hardware devices and may be empty.
+
+The factory user configuration contains only that board identifier. Hardware
+declared as built into the board remains enabled; currently, a board-provided
+display is initialized by default and exposed to the configurator as a
+read-only capability. Additional hardware devices, modules, and widgets are
+created only when present in the validated configuration, so a freshly flashed
+or reset production device has an enabled display with an empty dashboard.
+
+Public configuration schema 1 uses a bounded sparse JSON document directly for
+authoring and device transport. Widget geometry uses absolute logical display
+coordinates; regions, region identifiers, and anchors are not part of the
+contract. Firmware parses and validates JSON on the configuration/startup path,
+then runtime code uses bounded typed structures.
+
+Persistent NVS slot headers, generations, CRC validation, and recovery remain
+private to the configuration service. External tools communicate only through
+the public configuration control protocol.
+
+---
+
 # Event System
 
 The firmware distributes information through an event-driven architecture whenever appropriate.
@@ -386,8 +426,7 @@ The architecture is intentionally designed for future expansion.
 
 Examples include:
 
-- desktop companion application
-- dashboard builder
+- additional configurator editors and device operations
 - plugin system
 - scripting
 - additional communication protocols

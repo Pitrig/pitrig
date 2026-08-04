@@ -6,7 +6,7 @@
 #include <span>
 
 #include "application_configuration.hpp"
-#include "configuration_codec.hpp"
+#include "configuration_json.hpp"
 #include "configuration_storage.hpp"
 
 namespace simcore::configuration {
@@ -26,15 +26,20 @@ struct ConfigurationStatus {
 class ConfigurationService {
  public:
   bool initialize(IConfigurationStorage& storage,
-                  const ApplicationConfiguration& factory_configuration);
+                  const BoardValidationProfile& validation_profile,
+                  std::span<const std::uint8_t> factory_payload);
 
   [[nodiscard]] const ApplicationConfiguration& current() const {
     return current_;
   }
   [[nodiscard]] ConfigurationStatus status() const { return status_; }
+  [[nodiscard]] BoardId hardware_board() const {
+    return validation_profile_.board;
+  }
 
-  [[nodiscard]] CodecResult encode_current(
-      std::span<std::uint8_t> output) const;
+  [[nodiscard]] std::span<const std::uint8_t> current_payload() const {
+    return {current_payload_.data(), current_payload_size_};
+  }
   [[nodiscard]] ValidationError validate_payload(
       std::span<const std::uint8_t> payload) const;
   [[nodiscard]] ValidationError save(
@@ -61,11 +66,16 @@ class ConfigurationService {
                                   std::size_t& size) const;
 
   IConfigurationStorage* storage_{};
-  BoardId hardware_board_{BoardId::t_display_s3};
+  BoardValidationProfile validation_profile_{};
   ApplicationConfiguration current_{};
   mutable ApplicationConfiguration scratch_configuration_{};
   ConfigurationStatus status_{};
+  StorageSlot persisted_slot_{StorageSlot::a};
+  std::uint32_t persisted_generation_{};
+  bool has_persisted_slot_{};
   std::array<std::uint8_t, kMaximumRecordSize> record_buffer_{};
+  std::array<std::uint8_t, kMaximumPayloadSize> current_payload_{};
+  std::size_t current_payload_size_{};
 };
 
 }  // namespace simcore::configuration

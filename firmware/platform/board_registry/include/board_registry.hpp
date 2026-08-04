@@ -6,6 +6,9 @@
 
 namespace simcore::board_registry {
 
+[[nodiscard]] configuration::BoardValidationProfile validation_profile(
+    configuration::BoardId board);
+
 // Resolves the selected board to its display driver.
 [[nodiscard]] const display::driver::Driver& display_driver(
     configuration::BoardId board);

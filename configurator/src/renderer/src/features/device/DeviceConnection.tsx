@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { writeDevelopmentLog } from '@/features/development/development-log'
+import { useDeviceStore } from '@/features/device/device-store'
 import {
   DEFAULT_BAUD_RATE,
   SUPPORTED_BAUD_RATES,
@@ -51,6 +52,7 @@ export function DeviceConnection({
   const [selectedPortId, setSelectedPortId] = useState(AUTO_PORT_ID)
   const [selectedBaudRate, setSelectedBaudRate] = useState(String(DEFAULT_BAUD_RATE))
   const [state, setState] = useState<DeviceState>({ status: 'disconnected' })
+  const applyDeviceState = useDeviceStore((store) => store.applyDeviceState)
 
   const applyPortResult = useCallback((result: DeviceResult<SerialPortSummary[]>): void => {
     writeDevelopmentLog('Serial ports listed', result)
@@ -73,13 +75,15 @@ export function DeviceConnection({
     void window.simcore.getDeviceState().then((initialState) => {
       writeDevelopmentLog('Initial device state', initialState)
       setState(initialState)
+      applyDeviceState(initialState.status, initialState.session)
     })
     void window.simcore.listSerialPorts().then(applyPortResult)
     return window.simcore.onDeviceStateChanged((nextState) => {
       writeDevelopmentLog('Device state changed', nextState)
       setState(nextState)
+      applyDeviceState(nextState.status, nextState.session)
     })
-  }, [applyPortResult])
+  }, [applyDeviceState, applyPortResult])
 
   const isWorking = ['scanning', 'connecting', 'disconnecting'].includes(state.status)
   const statusText = formatStatus(state)

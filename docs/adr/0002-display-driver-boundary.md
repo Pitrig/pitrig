@@ -7,33 +7,64 @@ including the LilyGO T-Display-S3 i80/ST7789 display and the Guition
 ESP32-4848S040 RGB/ST7701(S) display, while keeping the firmware core and
 dashboard modules independent from board-specific hardware.
 
+The desktop configurator must identify connected hardware before any user
+configuration exists. The stable board identifier is sufficient for the
+configurator to resolve its own supported board profile, including logical
+display size.
+
 ## Decision
 
 Keep board initialization in dedicated drivers. Every supported display driver
-is linked into the firmware and exposes an immutable descriptor containing its
-initialization callbacks. Application board configuration identifies the
-descriptor to select during startup.
+is linked into the firmware and exposes only its stable name, initialization
+callback, and display-ready callback. Panel initialization resolution remains
+internal to the concrete driver. The board registry keeps separate private
+logical display bounds only for configuration validation; they are not added
+to the driver descriptor, device configuration, or control protocol.
 
-The display component owns LVGL initialization and creates the logical display
-during `simcore::run()`. SimCore loads application configuration and asks the
-platform board registry to resolve the configured identifier. The registry
-contains concrete-driver composition; the core and display component depend
-only on the generic display interface. The display component adapts
-command-driven and RGB panels to the corresponding `esp_lvgl_port` registration
-path without knowing a concrete board or controller.
+Select drivers and immutable validation capabilities through the board registry
+using the factory board identity chosen by the firmware build. A user
+configuration must contain the same board identifier, but it does not select
+or change the physical board. A mismatch is rejected.
+
+Board-provided hardware and user-configured hardware are separate concerns.
+The board registry declares immutable capabilities physically built into the
+selected board. The sparse user configuration may additionally contain a
+bounded list of supported hardware devices and their driver settings. That list
+may be empty. Driver creation from this list remains configuration-driven and
+is not limited to displays; the same boundary applies to buttons, encoders,
+LEDs, touch controllers, and future peripherals.
+
+For the current configurator contract, a display built into the selected board
+is enabled by firmware by default. Its driver, transport, and pin assignments
+are firmware-owned and are not user-editable. The configurator maps the board
+identifier to a local immutable board profile and reports the known display
+dimensions as a read-only capability. A later decision is required before
+built-in display settings can become editable.
+
+The configuration control protocol reports the immutable board identity but
+does not transmit display dimensions. The display component remains the sole
+owner of LVGL and panel initialization.
+
+The display component adapts command-driven and RGB panels to the corresponding
+`esp_lvgl_port` registration path without knowing a concrete board or
+controller.
 
 ## Consequences
 
-- Board pin assignments and ST7789 initialization remain outside the firmware core.
-- ST7701(S) commands, RGB timing, framebuffer allocation, and Guition pin
-  assignments remain inside the Guition driver.
-- The ESP-IDF application entry point only calls `simcore::run()`.
+- Board identity remains available when storage is empty, corrupt, or reset.
+- The configurator resolves the correct display canvas from the `board` field
+  in `INFO` and its local supported-board registry.
+- Board pin assignments and controller initialization remain outside the
+  firmware core.
+- An empty user-configured hardware list does not disable hardware mapped by
+  the board registry.
+- The current configurator cannot disable, replace, or edit a board-provided
+  display driver.
 - Modules use the display component and do not depend on the selected driver.
-- Rendering code can be reused with another LVGL-compatible display.
-- Supporting another board requires a driver descriptor and one composition
-  mapping rather than changes to SimCore or rendering modules.
-- LVGL is owned by the display component and is not initialized by the hardware driver.
-- All supported drivers remain available in one firmware image.
-- Exactly one configured driver is initialized during startup.
-- Board and driver selection use the same application configuration source as
-  modules and dashboard widgets.
+- Supporting another board requires a firmware driver/board mapping and a
+  matching configurator board profile.
+- LVGL is owned by the display component and is not initialized by the hardware
+  driver.
+- All supported drivers may remain linked into one firmware image. Supported
+  configurable devices may select drivers without changing the immutable board
+  identity or overriding read-only board capabilities.

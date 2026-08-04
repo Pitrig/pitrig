@@ -8,8 +8,8 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 0;
-inline constexpr std::size_t kMaximumPayloadSize = 2'560;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 1;
+inline constexpr std::size_t kMaximumPayloadSize = 4'096;
 
 [[nodiscard]] constexpr bool is_supported_configuration_schema(
     const std::uint16_t version) {
@@ -22,28 +22,21 @@ enum class ValidationError : std::uint8_t {
   unsupported_schema,
   invalid_board,
   board_mismatch,
+  invalid_hardware,
   invalid_transport,
   invalid_uart,
   invalid_module,
   invalid_dashboard,
-  invalid_region,
   invalid_widget,
 };
 
-struct CodecResult {
-  bool ok{};
-  ValidationError error{ValidationError::none};
-  std::size_t size{};
-};
-
-[[nodiscard]] CodecResult encode_configuration(
-    const ApplicationConfiguration& configuration,
-    std::span<std::uint8_t> output);
-[[nodiscard]] CodecResult decode_configuration(
+[[nodiscard]] ValidationError parse_configuration_json(
     std::span<const std::uint8_t> input,
+    const BoardValidationProfile& profile,
     ApplicationConfiguration& configuration);
 [[nodiscard]] ValidationError validate_configuration(
-    const ApplicationConfiguration& configuration);
+    const ApplicationConfiguration& configuration,
+    const BoardValidationProfile& profile);
 [[nodiscard]] const char* validation_error_name(ValidationError error);
 
 }  // namespace simcore::configuration

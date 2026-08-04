@@ -9,11 +9,13 @@ import {
 } from '@/components/ui/card'
 import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
+import { useDeviceStore } from '@/features/device/device-store'
 import type { AppInfo } from '../../../shared/ipc'
 
 export function App(): React.JSX.Element {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [deviceStatusText, setDeviceStatusText] = useState<string>()
+  const deviceSession = useDeviceStore((state) => state.session)
 
   useEffect(() => {
     void window.simcore.getAppInfo().then(setAppInfo)
@@ -48,7 +50,14 @@ export function App(): React.JSX.Element {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="aspect-video rounded-md border bg-black" />
+              <div
+                className="mx-auto w-full rounded-md border bg-black"
+                style={{
+                  aspectRatio: deviceSession
+                    ? `${deviceSession.info.display.width} / ${deviceSession.info.display.height}`
+                    : '16 / 9'
+                }}
+              />
             </CardContent>
           </Card>
         </section>
@@ -56,9 +65,28 @@ export function App(): React.JSX.Element {
         <aside className="border-l p-3">
           <Card>
             <CardHeader>
-              <CardTitle>Properties</CardTitle>
-              <CardDescription>Select an editor element to inspect it.</CardDescription>
+              <CardTitle>Device</CardTitle>
+              <CardDescription>
+                {deviceSession
+                  ? 'Detected board capabilities are read-only.'
+                  : 'Connect a SimCore device to load its configuration.'}
+              </CardDescription>
             </CardHeader>
+            {deviceSession ? (
+              <CardContent className="space-y-3 text-xs">
+                <ReadOnlyField label="Board" value={deviceSession.info.boardId} />
+                <ReadOnlyField
+                  label="Display"
+                  value={`${deviceSession.info.display.width} × ${deviceSession.info.display.height}`}
+                />
+                <ReadOnlyField label="Firmware" value={deviceSession.info.firmwareVersion} />
+                <ReadOnlyField label="Schema" value={String(deviceSession.info.schemaVersion)} />
+                <ReadOnlyField
+                  label="Configuration"
+                  value={deviceSession.info.configurationSource}
+                />
+              </CardContent>
+            ) : null}
           </Card>
         </aside>
       </main>
@@ -71,6 +99,15 @@ export function App(): React.JSX.Element {
           {appInfo ? `${appInfo.name} ${appInfo.version}` : 'Loading application info…'}
         </span>
       </footer>
+    </div>
+  )
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string }): React.JSX.Element {
+  return (
+    <div className="grid gap-1">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="truncate rounded-md border bg-muted/40 px-2 py-1.5">{value}</span>
     </div>
   )
 }

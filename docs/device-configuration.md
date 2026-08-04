@@ -1,27 +1,67 @@
 # Device configuration
 
-SimCore loads device configuration in this order:
+This document defines the schema 1 configuration contract implemented by the
+firmware and read by the desktop configurator. Schema 0 is intentionally not
+part of the contract.
 
-1. Active valid NVS slot.
-2. Backup valid NVS slot.
-3. Factory defaults compiled into firmware.
+## Hardware identity and user configuration
 
-The configuration is immutable while the firmware is running. A saved
-replacement takes effect after restart.
+Every firmware build selects one immutable hardware board identity with
+`CONFIG_SIMCORE_FACTORY_BOARD_*`. The board registry resolves that identity to
+the firmware drivers for hardware physically built into that board. Firmware
+reports the stable board identifier; the configurator maps it to its local
+supported board profile.
 
-The T-Display and Guition builds select their immutable hardware identity with
-`CONFIG_SIMCORE_FACTORY_BOARD_*`. A configuration for another board is rejected.
+User configuration cannot change the physical board. Every configuration must
+contain the same board identifier, and a mismatch is rejected before saving.
 
-## Configuration files
+Configurator board profiles:
 
-Board examples:
+| Board identifier | Logical display |
+| --- | --- |
+| `t_display_s3` | 320 × 170 |
+| `guition_esp32_4848s040` | 480 × 480 |
 
-- `config/t-display-s3.json`
-- `config/guition-esp32-4848s040.json`
+Hardware is composed from two sources:
 
-Canonical board profiles are stored under `config/profiles/`. Sparse files use
-a string `board` identifier and inherit omitted values from the matching
-profile:
+1. **Board-provided hardware** is physically built into the selected board and
+   declared by its immutable board-registry mapping.
+2. **User-configured hardware** is an optional bounded list of supported
+   devices and driver settings in the sparse device configuration.
+
+The user-configured hardware list may be empty. It is not limited to displays:
+supported entries may represent buttons, encoders, LEDs, touch controllers, or
+other peripherals. Only hardware types and drivers implemented by the current
+firmware may appear in the list.
+
+For the current configurator contract, a display provided by the board is
+enabled by default. Its driver, transport, pin assignments, logical dimensions,
+and other board-owned settings are read-only. The configurator displays this
+information but does not allow the user to disable, replace, or edit the
+built-in display. The optional hardware list therefore does not duplicate that
+display. Logical dimensions are held by the configurator board profile rather
+than transmitted by firmware or stored in device configuration.
+
+SimCore loads user configuration in this order:
+
+1. Active valid schema 1 NVS slot.
+2. Backup valid schema 1 NVS slot.
+3. Board-only factory configuration compiled into firmware.
+
+The factory configuration enables no additional hardware devices, modules, or
+widgets. A clean flash or reset still initializes a board-provided display, but
+the screen has no dashboard content.
+
+Configuration is immutable while firmware is running. A saved replacement
+takes effect after restart.
+
+## Sparse authoring format
+
+JSON is the human-readable format for configurator projects and presets. It is
+sparse: omitted sections and properties are not expanded through a board
+profile.
+
+The smallest valid configuration is:
 
 ```json
 {
@@ -29,45 +69,72 @@ profile:
 }
 ```
 
-Colors use `"#RRGGBB"`. Unknown fields are rejected.
+This configuration produces an empty dashboard on the board-provided display
+and creates no additional user-configured hardware devices.
 
-## Dashboard widgets
+Presence rules:
 
-The production dashboard contains three widget implementations:
+- `board` is always required.
+- The optional user-configured hardware list may be absent or empty.
+- A missing user-configured hardware device, module, or widget is disabled and
+  is not created.
+- Missing user-configured hardware does not disable capabilities declared as
+  built into the board.
+- A missing property inside a present component uses that component's bounded
+  firmware default.
+- A missing telemetry transport uses the immutable board default.
+- Unknown properties are rejected.
+- Loading a preset inserts only the properties explicitly present in that
+  preset.
 
-- `lap_timer`
-- `delta_time`
-- `text`
+Board presets are examples, not inheritance profiles. Applying one preset must
+not silently add unrelated modules, widgets, or transport settings.
 
-Debug builds may additionally create the performance overlay or display
-diagnostics.
+Colors use `"#RRGGBB"`.
 
-`lap_timer` and `delta_time` are presence-driven. Text widgets are an ordered
-array with a maximum of 16 instances:
+## Modules and widgets
+
+The production firmware supports these dashboard widget types:
+
+- `lap_timer`;
+- `delta_time`;
+- `text`, with at most 16 ordered instances.
+
+Module configuration remains separate from widget presentation. A module may
+exist without a widget when its supported behavior requires it. A configured
+Lap Timer or Delta Time widget requires its corresponding module to be present;
+otherwise validation fails. An empty module object creates that module using
+its bounded firmware defaults.
+
+The display screen is the only layout coordinate space. Every widget placement
+uses absolute logical pixels:
+
+```json
+{
+  "x": 16,
+  "y": 16,
+  "width": 72,
+  "height": 72
+}
+```
+
+Schema 1 has no regions, region identifiers, anchors, or anchor offsets.
+
+Example sparse configuration:
 
 ```json
 {
   "board": "guition_esp32_4848s040",
   "dashboard": {
     "widgets": {
-      "lap_timer": {},
-      "delta_time": {},
       "text": [
         {
           "binding": "vehicle.aids.traction_control",
           "placement": {
-            "region_id": 0,
-            "anchor": "top_left",
-            "offset_x": 16,
-            "offset_y": 16,
+            "x": 16,
+            "y": 16,
             "width": 72,
             "height": 72
-          },
-          "padding": {
-            "left": 4,
-            "top": 4,
-            "right": 4,
-            "bottom": 4
           },
           "border": {
             "color": "#00E5FF",
@@ -75,22 +142,7 @@ array with a maximum of 16 instances:
             "radius_px": 8
           },
           "title": {
-            "text": "TC",
-            "font": {
-              "family": "montserrat",
-              "size_px": 10
-            },
-            "color": "#E8E8E8",
-            "offset_y_px": 0
-          },
-          "value": {
-            "font": {
-              "family": "montserrat",
-              "size_px": 48
-            },
-            "color": "#E8E8E8",
-            "alignment": "center",
-            "unavailable_text": "--"
+            "text": "TC"
           }
         }
       ]
@@ -99,88 +151,152 @@ array with a maximum of 16 instances:
 }
 ```
 
-The title is static. A non-empty title is centered over the top border and
-creates a background-colored gap in that border. An empty title disables both
-the label and the gap.
+Only the properties shown above are present in the project and public payload.
+The text widget supplies its documented defaults for omitted padding, fonts,
+colors, alignment, background, title offset, and unavailable text.
 
-`background_color` is optional for text widgets. When omitted or set to
-`null`, the widget background is transparent. A configured `"#RRGGBB"` value
-creates an opaque background.
-
-The value is never formatted by the widget. It displays the exact string
-received for its telemetry binding. Units, prefixes, suffixes, decimal places,
-and other presentation belong to the telemetry source.
+The text-widget value displays the exact string received for its telemetry
+binding. Units, prefixes, suffixes, decimal places, and other presentation
+belong to the telemetry source.
 
 Supported bindings:
 
-- `vehicle.speed`
-- `engine.rpm`
-- `transmission.gear`
-- `session.lap.current_time`
-- `session.lap.best_time`
-- `vehicle.fuel.level`
-- `session.lap.delta`
-- `session.lap.estimated_time`
-- `vehicle.aids.traction_control`
-- `vehicle.aids.abs`
-- `vehicle.brake_bias`
-- `vehicle.fuel.average_consumption`
-- `vehicle.fuel.laps_remaining`
+- `vehicle.speed`;
+- `engine.rpm`;
+- `transmission.gear`;
+- `session.lap.current_time`;
+- `session.lap.best_time`;
+- `vehicle.fuel.level`;
+- `session.lap.delta`;
+- `session.lap.estimated_time`;
+- `vehicle.aids.traction_control`;
+- `vehicle.aids.abs`;
+- `vehicle.brake_bias`;
+- `vehicle.fuel.average_consumption`;
+- `vehicle.fuel.laps_remaining`.
 
 Supported compiled fonts:
 
-- `montserrat`: 10, 24, 48 px
-- `lcd`: 39, 43, 47, 53 px
-- `roboto_mono`: 43 px
+- `montserrat`: 10, 24, 48 px;
+- `lcd`: 39, 43, 47, 53 px;
+- `roboto_mono`: 43 px.
 
-## Commands
+## Device information
 
-Install the CLI dependency:
+`INFO` reports immutable device metadata and configuration storage status:
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r tools/requirements.txt
+```text
+@SC:INFO
+@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=1,source=factory,generation=0,storage=1
 ```
 
-Inspect a device:
+Fields:
 
-```bash
-python3 tools/simcore_config.py info
-python3 tools/simcore_config.py show
-```
+- `board` is the immutable factory board identifier;
+- `firmware` comes from the ESP-IDF application description;
+- `schema` is the supported public configuration schema;
+- `source` is the configuration source active in the current runtime and is
+  `factory`, `slot_a`, or `slot_b`;
+- `generation` is the stored-record generation active in the current runtime;
+- `storage` is `1` when persistent configuration storage is available.
 
-Validate or apply a file:
+The configurator must resolve display information from the `board` field and
+its local supported-board registry, present it as read-only device information,
+and must not infer physical hardware from a saved user configuration. An
+unknown board is incompatible until the configurator adds an explicit board
+profile. Boards without a built-in display require a separately documented
+profile before they are supported.
 
-```bash
-python3 tools/simcore_config.py validate config/t-display-s3.json
-python3 tools/simcore_config.py apply config/t-display-s3.json
-```
+`SET` and `RESET` update persistent state but do not change `INFO` or `GET`
+until reboot. This keeps both operations consistent with the configuration
+currently used by modules and widgets.
 
-Restore factory defaults:
+## Control commands
 
-```bash
-python3 tools/simcore_config.py reset
-```
+The configuration protocol remains line-oriented and shares the selected
+telemetry serial transport.
 
-Use `--port` when more than one SimCore device is connected. SimHub and serial
-monitors must release the selected serial port before the CLI opens it.
+| Request | Successful response | Purpose |
+| --- | --- | --- |
+| `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata. |
+| `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse schema 1 JSON payload. |
+| `@SC:VALIDATE:<JSON>` | `@SC:OK:VALID` | Validate without saving. |
+| `@SC:SET:<JSON>` | `@SC:OK:SAVED:reboot_required=1` | Validate and save. |
+| `@SC:RESET` | `@SC:OK:RESET:reboot_required=1` | Remove saved configuration. |
+| `@SC:REBOOT` | `@SC:OK:REBOOTING` | Restart the device. |
 
-## Wire format and compatibility
+Errors use `@SC:ERR:<reason>`.
 
-Configuration schema versioning starts at 0. The active binary format supports
-schema 0 only. Records with another schema version fall back to factory
-defaults.
+After reset and reboot, `GET` returns the board-only factory configuration and
+the board-provided display remains enabled with an empty dashboard.
 
-Schema 0 has fixed capacities:
+## Public schema 1 payload
 
-- one dashboard region;
-- up to 16 text widgets;
-- 39 UTF-8 bytes for a canonical telemetry binding;
-- 15 UTF-8 bytes for a title;
-- 15 UTF-8 bytes for unavailable text;
-- 2560 bytes for the complete binary payload.
+The public payload is the bounded sparse JSON document described above. The
+configurator sends it directly; there is no binary codec or hexadecimal wrapper.
+The serial protocol is line-oriented, so payloads must be compact single-line
+JSON without literal CR or LF bytes. Whitespace inside that one line is valid,
+but the configurator should use `JSON.stringify` output.
 
-Records are stored in two slots inside the dedicated `simcore_cfg` NVS
-partition. Writes verify the inactive slot before selecting it, and recovery
-never erases the default NVS partition.
+Schema 1 top-level properties:
+
+| Property | Shape | Meaning |
+| --- | --- | --- |
+| `board` | string, required | Immutable compatible board identifier. |
+| `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
+| `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
+| `lap_timer` | object, optional | Lap Timer module configuration. |
+| `delta_time` | object, optional | Delta Time module configuration. |
+| `dashboard.widgets` | object, optional | Optional `lap_timer`, `delta_time`, and ordered `text` widgets. |
+
+Nested property names use snake case. Placement uses `x`, `y`, `width`, and
+`height`; font uses `family` and `size_px`. UART settings use `port`, `tx_pin`,
+`rx_pin`, `baud_rate`, and `silence_esp_logs`. Style properties follow the
+names used in the sparse example, including `text_color`, `faster_color`,
+`slower_color`, `neutral_color`, `background_color`, `width_px`, `radius_px`,
+and `offset_y_px`.
+
+The current board mappings expose GPIO 43 for UART TX and GPIO 44 for UART RX;
+other pairs are rejected to prevent collisions with display, flash, PSRAM,
+strapping, or USB pins. Native USB CDC is supported by `t_display_s3`; the
+Guition display mapping occupies a native USB pin and therefore uses its board
+default UART transport.
+
+Firmware parses every received or persisted document and rejects malformed
+JSON, unknown or duplicate properties, unsupported component shapes, board
+mismatches, values outside bounded ranges, invalid bindings, and invalid widget
+geometry. Validation in the configurator improves feedback but does not replace
+this firmware boundary check.
+
+The configurable `hardware` array currently accepts only an empty array because
+no user-configurable peripheral driver has a complete production contract yet.
+Non-empty entries are rejected rather than guessed. Adding or changing public
+properties requires a later documented schema version.
+
+Schema 1 retains deterministic limits:
+
+- maximum compact JSON payload size: 4096 bytes;
+- maximum text widgets: 16;
+- maximum canonical telemetry binding: 39 UTF-8 bytes;
+- maximum title: 15 UTF-8 bytes;
+- maximum unavailable text: 15 UTF-8 bytes.
+
+## Internal persistence
+
+Firmware wraps the exact validated JSON bytes in a private NVS record containing
+magic, record version, schema version, payload size, generation, and CRC32.
+Two records are stored in the dedicated `simcore_cfg` partition. Firmware
+writes and verifies the inactive slot before selecting it.
+
+Configurator code must not reproduce or depend on this NVS record format.
+
+Schema 0 records are unsupported and are not migrated. They fall back to
+another valid schema 1 slot or the board-only factory configuration.
+
+## CLI retirement
+
+The Python configuration CLI is retained temporarily for legacy schema 0
+firmware and is not compatible with schema 1. It must be removed, together with
+its requirements and CLI-specific profiles, after the desktop configurator
+implements the complete `INFO`, `GET`, `VALIDATE`, `SET`, `RESET`, and `REBOOT`
+round trip.

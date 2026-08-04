@@ -67,7 +67,11 @@ void run() {
   static Application application;
   if (!application.configuration_service.initialize(
           application.configuration_storage,
-          configuration::kFactoryConfiguration)) {
+          board_registry::validation_profile(configuration::kFactoryBoard),
+          std::span<const std::uint8_t>(
+              reinterpret_cast<const std::uint8_t*>(
+                  configuration::kFactoryConfigurationJson.data()),
+              configuration::kFactoryConfigurationJson.size()))) {
     log::warn(kTag,
               "Configuration storage unavailable; using factory defaults");
   }
@@ -81,18 +85,27 @@ void run() {
   performance::begin();
 #endif
   lv_display_t* display =
-      display::initialize(board_registry::display_driver(configuration.board.id));
-  (void)runtime_composition::start_modules(
-      application.modules, application.event_bus,
-      application.telemetry_registry, application.telemetry_state,
-      configuration);
-  (void)runtime_composition::create_dashboard(
-      display, configuration, application.modules, application.dashboard,
-      application.telemetry_registry, application.telemetry_state,
-      telemetry_transport);
-  application.configuration_control.initialize(
-      application.configuration_service, telemetry_transport, &reboot,
-      nullptr);
+      display::initialize(board_registry::display_driver(
+          configuration::kFactoryBoard));
+  if (!runtime_composition::start_modules(
+          application.modules, application.event_bus,
+          application.telemetry_registry, application.telemetry_state,
+          configuration)) {
+    log::error(kTag, "One or more configured modules failed to start");
+  }
+  if (!runtime_composition::create_dashboard(
+          display, configuration, application.modules, application.dashboard,
+          application.telemetry_registry, application.telemetry_state,
+          telemetry_transport)) {
+    log::error(kTag, "Dashboard composition is incomplete");
+  }
+  const bool configuration_control_started =
+      application.configuration_control.initialize(
+          application.configuration_service, telemetry_transport, &reboot,
+          nullptr);
+  if (!configuration_control_started) {
+    log::error(kTag, "Failed to start configuration control task");
+  }
   application.configuration_router.initialize(
       application.configuration_control, &receive_telemetry_data,
       &application);

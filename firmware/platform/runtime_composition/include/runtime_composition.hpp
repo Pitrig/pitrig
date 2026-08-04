@@ -31,6 +31,8 @@ namespace simcore::runtime_composition {
 struct Modules {
   lap_timer::LapTimer lap_timer;
   delta_time::DeltaTime delta_time;
+  bool lap_timer_started{};
+  bool delta_time_started{};
 };
 
 struct Dashboard {

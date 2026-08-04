@@ -8,6 +8,31 @@
 
 namespace simcore::board_registry {
 
+configuration::BoardValidationProfile validation_profile(
+    const configuration::BoardId board) {
+  using configuration::BoardId;
+
+  switch (board) {
+    case BoardId::t_display_s3:
+      return {
+          .board = board,
+          .display = {.width = 320, .height = 170},
+          .uart_tx_pin = 43,
+          .uart_rx_pin = 44,
+          .native_usb_cdc_supported = true,
+      };
+    case BoardId::guition_esp32_4848s040:
+      return {
+          .board = board,
+          .display = {.width = 480, .height = 480},
+          .uart_tx_pin = 43,
+          .uart_rx_pin = 44,
+          .native_usb_cdc_supported = false,
+      };
+  }
+  return {};
+}
+
 const display::driver::Driver& display_driver(
     const configuration::BoardId board) {
   using configuration::BoardId;
@@ -18,7 +43,6 @@ const display::driver::Driver& display_driver(
     case BoardId::guition_esp32_4848s040:
       return display::drivers::guition_esp32_4848s040::get();
   }
-
   return display::drivers::t_display_s3::get();
 }
 
@@ -37,7 +61,10 @@ transport::ITransport& telemetry_transport(
       .silence_esp_logs = configured.uart.silence_esp_logs,
   });
 
-  TelemetryTransportId selected = configured.id;
+  TelemetryTransportId selected =
+      application_configuration.telemetry_transport_present
+          ? configured.id
+          : TelemetryTransportId::board_default;
   if (selected == TelemetryTransportId::board_default) {
     selected = application_configuration.board.id ==
                        BoardId::guition_esp32_4848s040

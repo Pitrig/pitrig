@@ -13,7 +13,7 @@ namespace simcore::transport {
 namespace {
 
 constexpr char kTag[] = "usb_cdc_transport";
-UsbCdcTransport* active_transport;
+std::atomic<UsbCdcTransport*> active_transport;
 
 void update_maximum(std::atomic<std::uint32_t>& maximum,
                     const std::uint32_t candidate) {
@@ -31,12 +31,16 @@ UsbCdcTransport::~UsbCdcTransport() {
 }
 
 bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
-  if (started_ || handler == nullptr || active_transport != nullptr) {
+  if (started_ || handler == nullptr ||
+      active_transport.load(std::memory_order_acquire) != nullptr) {
     return false;
   }
 
-  queue_ = xQueueCreateStatic(kQueueDepth, sizeof(Chunk), queue_storage_.data(), &queue_state_);
-  if (queue_ == nullptr) {
+  queue_ = xQueueCreateStatic(kQueueDepth, sizeof(Chunk),
+                              queue_storage_.data(), &queue_state_);
+  write_mutex_ = xSemaphoreCreateMutexStatic(&write_mutex_state_);
+  if (queue_ == nullptr || write_mutex_ == nullptr) {
+    release_rtos_objects();
     return false;
   }
 
@@ -49,7 +53,7 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
   maximum_read_gap_ms_.store(0, std::memory_order_relaxed);
   maximum_handler_time_us_.store(0, std::memory_order_relaxed);
   last_read_at_us_ = 0;
-  active_transport = this;
+  active_transport.store(this, std::memory_order_release);
 
   const tinyusb_config_t usb_config{
       .port = TINYUSB_PORT_FULL_SPEED_0,
@@ -78,7 +82,8 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
       .event_arg = nullptr,
   };
   if (tinyusb_driver_install(&usb_config) != ESP_OK) {
-    active_transport = nullptr;
+    active_transport.store(nullptr, std::memory_order_release);
+    release_rtos_objects();
     return false;
   }
 
@@ -91,7 +96,8 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
   };
   if (tinyusb_cdcacm_init(&cdc_config) != ESP_OK) {
     tinyusb_driver_uninstall();
-    active_transport = nullptr;
+    active_transport.store(nullptr, std::memory_order_release);
+    release_rtos_objects();
     return false;
   }
 
@@ -101,7 +107,8 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
   if (task_ == nullptr) {
     tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0);
     tinyusb_driver_uninstall();
-    active_transport = nullptr;
+    active_transport.store(nullptr, std::memory_order_release);
+    release_rtos_objects();
     return false;
   }
 
@@ -116,7 +123,7 @@ void UsbCdcTransport::stop() {
   }
 
   started_ = false;
-  active_transport = nullptr;
+  active_transport.store(nullptr, std::memory_order_release);
   if (task_ != nullptr) {
     vTaskDelete(task_);
     task_ = nullptr;
@@ -125,24 +132,54 @@ void UsbCdcTransport::stop() {
   ESP_ERROR_CHECK_WITHOUT_ABORT(tinyusb_driver_uninstall());
   handler_ = nullptr;
   handler_context_ = nullptr;
+  release_rtos_objects();
   ESP_LOGI(kTag, "Native USB CDC transport stopped");
 }
 
 bool UsbCdcTransport::write(const std::span<const std::uint8_t> data) {
-  if (!started_ || data.empty()) {
+  if (!started_ || data.empty() || write_mutex_ == nullptr ||
+      xSemaphoreTake(write_mutex_, kWriteTimeout) != pdTRUE) {
     return false;
   }
-  const std::size_t queued = tinyusb_cdcacm_write_queue(
-      TINYUSB_CDC_ACM_0, data.data(), data.size());
-  return queued == data.size() &&
-         tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0) == ESP_OK;
+
+  const TickType_t started_at = xTaskGetTickCount();
+  std::size_t position = 0;
+  bool complete = true;
+  while (position < data.size()) {
+    position += tinyusb_cdcacm_write_queue(
+        TINYUSB_CDC_ACM_0, data.data() + position, data.size() - position);
+    const TickType_t elapsed = xTaskGetTickCount() - started_at;
+    if (elapsed >= kWriteTimeout ||
+        tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0,
+                                   kWriteTimeout - elapsed) != ESP_OK) {
+      complete = false;
+      break;
+    }
+  }
+
+  xSemaphoreGive(write_mutex_);
+  return complete && position == data.size();
 }
 
-void UsbCdcTransport::receive_callback(const int interface, cdcacm_event_t* const event) {
+void UsbCdcTransport::receive_callback(const int interface,
+                                       cdcacm_event_t* const event) {
   (void)interface;
   (void)event;
-  if (active_transport != nullptr) {
-    active_transport->receive();
+  if (UsbCdcTransport* const transport =
+          active_transport.load(std::memory_order_acquire);
+      transport != nullptr) {
+    transport->receive();
+  }
+}
+
+void UsbCdcTransport::release_rtos_objects() {
+  if (write_mutex_ != nullptr) {
+    vSemaphoreDelete(write_mutex_);
+    write_mutex_ = nullptr;
+  }
+  if (queue_ != nullptr) {
+    vQueueDelete(queue_);
+    queue_ = nullptr;
   }
 }
 
@@ -154,7 +191,8 @@ void UsbCdcTransport::receive() {
   Chunk chunk;
   std::size_t received = 0;
   const esp_err_t result =
-      tinyusb_cdcacm_read(TINYUSB_CDC_ACM_0, chunk.data.data(), chunk.data.size(), &received);
+      tinyusb_cdcacm_read(TINYUSB_CDC_ACM_0, chunk.data.data(),
+                          chunk.data.size(), &received);
   if (result != ESP_OK || received == 0) {
     return;
   }
@@ -162,7 +200,8 @@ void UsbCdcTransport::receive() {
   chunk.size = received;
   if (xQueueSend(queue_, &chunk, 0) != pdTRUE) {
     queue_overflows_.fetch_add(1, std::memory_order_relaxed);
-    ESP_LOGW(kTag, "RX queue full, dropping %u bytes", static_cast<unsigned>(received));
+    ESP_LOGW(kTag, "RX queue full, dropping %u bytes",
+             static_cast<unsigned>(received));
     return;
   }
   queued_bytes_.fetch_add(static_cast<std::uint32_t>(received),
@@ -183,11 +222,13 @@ void UsbCdcTransport::receive() {
 void UsbCdcTransport::process() {
   Chunk chunk;
   while (true) {
-    if (xQueueReceive(queue_, &chunk, portMAX_DELAY) == pdTRUE && handler_ != nullptr) {
+    if (xQueueReceive(queue_, &chunk, portMAX_DELAY) == pdTRUE &&
+        handler_ != nullptr) {
       queued_bytes_.fetch_sub(static_cast<std::uint32_t>(chunk.size),
                               std::memory_order_relaxed);
       const std::int64_t handler_started_at_us = esp_timer_get_time();
-      handler_(std::span<const std::uint8_t>(chunk.data.data(), chunk.size), handler_context_);
+      handler_(std::span<const std::uint8_t>(chunk.data.data(), chunk.size),
+               handler_context_);
       update_maximum(
           maximum_handler_time_us_,
           static_cast<std::uint32_t>(esp_timer_get_time() -

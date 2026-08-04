@@ -1,50 +1,45 @@
 # ADR 0007: Dashboard Layout Regions
 
+Status: Accepted; supersedes the original region-based decision
+
 ## Context
 
-Dashboard widgets need configurable position and size, and multiple widgets may
-share a visually grouped area. Creating the same parent block independently
-inside every widget duplicates LVGL objects and makes shared layout ambiguous.
-Widgets must also remain usable without an additional container.
+The original dashboard model introduced shared layout regions, anchors, and
+offsets so several widgets could be positioned relative to a common LVGL
+parent. That model predates the desktop configurator.
+
+The configurator uses a direct-manipulation display canvas. Persisting both
+region-relative placement and editor geometry creates two competing coordinate
+systems, requires hidden profile expansion, and prevents a configuration from
+being sparse and self-explanatory.
 
 ## Decision
 
-Keep the display screen as the default dashboard coordinate space. Define
-optional, centrally configured layout regions with bounds, padding, background,
-border, and corner radius. Widgets select a region by identifier or use the
-screen identifier by default.
+Remove dashboard regions from the persisted configuration and runtime
+composition. Do not persist region identifiers, anchors, or anchor-relative
+offsets.
 
-Resolve each widget's anchor, offset, and optional explicit size against the
-selected region's content bounds. Region border and padding reduce those content
-bounds. Create one shared LVGL panel for each region before creating widgets and
-parent its widgets to that panel. Invisible regions use a transparent panel so
-their bounds still clip child rendering.
+Every configured widget uses absolute `x`, `y`, `width`, and `height` values in
+the logical display coordinate space reported by the immutable board
+descriptor. The display screen is the only configuration coordinate space.
 
-Keep Lap Timer and Delta Time as dedicated widgets. Represent all direct
-telemetry labels with one reusable text-widget implementation and a bounded
-ordered configuration array. Each text instance independently selects a
-telemetry binding, placement, padding, border, optional border-breaking title,
-value style, and background. All text instances share one render timer and one
-collection.
+Keep Lap Timer and Delta Time as dedicated widget types. Represent direct
+telemetry labels with the bounded reusable text-widget type. Widget presence in
+the sparse configuration controls whether a widget is created.
 
-Persist each telemetry binding as a bounded canonical field name. During
-dashboard startup, a widget binder resolves every name through the telemetry
-registry and validates it before LVGL objects are created. Runtime widget state
-stores only the resulting handle. Each refresh reads the required state slots
-directly; it does not search the registry or copy the complete telemetry state.
+Telemetry bindings remain bounded canonical field names. A startup-only binder
+resolves configured names to registry handles before LVGL objects are created;
+periodic update paths keep using only resolved handles.
 
 ## Consequences
 
-- Multiple widgets can share one configured and clipping parent.
-- Widgets without a region are positioned relative to the screen.
-- Decorative panels and logical grouping use the same layout concept.
-- Widget implementations receive resolved geometry and do not own region
-  lookup, padding, or border calculations.
-- Every configured region owns one LVGL object, including invisible regions.
-- Layout lookup and validation happen during initialization; widget update paths
-  do not allocate or perform region searches.
-- Adding another telemetry label requires configuration rather than another
-  widget implementation.
-- Multiple instances of the same binding do not require duplicated runtime
-  logic or timers.
-- Invalid or unknown bindings fail during dashboard startup.
+- The configurator and firmware use one coordinate system.
+- An empty widget collection produces an empty display.
+- Runtime composition no longer creates region panels or performs region
+  lookup, clipping, padding, or anchor resolution.
+- Shared visual grouping must be represented by an explicit widget or another
+  future composition primitive, not by an implicit layout container.
+- Existing schema 0 configurations are not compatible because their geometry
+  depends on regions and anchors.
+- Invalid bounds or telemetry bindings still fail validation before widget
+  creation.

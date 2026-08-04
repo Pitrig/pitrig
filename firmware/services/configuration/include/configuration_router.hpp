@@ -19,7 +19,7 @@ class ConfigurationRouter {
 
  private:
   static constexpr std::size_t kMaximumLineSize =
-      16 + (kMaximumPayloadSize * 2);
+      16 + kMaximumPayloadSize;
 
   void dispatch();
 

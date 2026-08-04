@@ -7,6 +7,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "tinyusb_cdc_acm.h"
 #include "transport.hpp"
@@ -31,6 +32,7 @@ class UsbCdcTransport final : public ITransport {
   static constexpr std::size_t kChunkSize = 512;
   static constexpr std::size_t kQueueDepth = 4;
   static constexpr std::size_t kTaskStackSize = 4096;
+  static constexpr TickType_t kWriteTimeout = pdMS_TO_TICKS(1'000);
 
   struct Chunk {
     std::array<std::uint8_t, kChunkSize> data{};
@@ -42,12 +44,15 @@ class UsbCdcTransport final : public ITransport {
 
   void receive();
   void process();
+  void release_rtos_objects();
 
   DataHandler handler_{};
   void* handler_context_{};
   QueueHandle_t queue_{};
   StaticQueue_t queue_state_{};
   std::array<std::uint8_t, kQueueDepth * sizeof(Chunk)> queue_storage_{};
+  SemaphoreHandle_t write_mutex_{};
+  StaticSemaphore_t write_mutex_state_{};
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};

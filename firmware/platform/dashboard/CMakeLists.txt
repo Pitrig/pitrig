@@ -25,8 +25,8 @@ set(component_include_dirs
 idf_component_register(
     SRCS ${component_sources}
     INCLUDE_DIRS ${component_include_dirs}
-    REQUIRES lvgl__lvgl
+    REQUIRES lvgl__lvgl telemetry
     PRIV_REQUIRES delta_time esp_lvgl_port heap lap_timer performance
-                  simcore_config telemetry transport)
+                  simcore_config transport)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)
