@@ -97,6 +97,9 @@ void run() {
   lv_display_t* display =
       display::initialize(board_registry::display_driver(
           configuration::kFactoryBoard));
+  if (!runtime_composition::show_startup_screen(display, configuration)) {
+    log::warn(kTag, "Startup screen is unavailable for this display");
+  }
   if (!runtime_composition::start_modules(
           application.modules, application.event_bus,
           application.telemetry_registry, application.telemetry_state,

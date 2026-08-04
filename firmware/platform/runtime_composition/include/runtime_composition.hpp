@@ -46,6 +46,11 @@ struct Dashboard {
   dashboard::text_widget::Collection text_widgets;
 };
 
+// Shows the native startup asset selected by logical display resolution.
+[[nodiscard]] bool show_startup_screen(
+    lv_display_t* display,
+    const configuration::ApplicationConfiguration& configuration);
+
 // Starts every configured feature module against shared platform services.
 [[nodiscard]] bool start_modules(
     Modules& modules, events::EventBus& event_bus,

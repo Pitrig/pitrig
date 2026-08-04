@@ -1,6 +1,7 @@
 #include "runtime_composition.hpp"
 
 #include "application_configuration.hpp"
+#include "boot_splash.hpp"
 #include "dashboard_layout.hpp"
 #include "delta_time_widget.hpp"
 #include "event_bus.hpp"
@@ -23,8 +24,29 @@ namespace simcore::runtime_composition {
 namespace {
 
 constexpr char kTag[] = "runtime";
+constexpr std::uint32_t kMinimumStartupScreenDurationMs = 1'000;
+
+bool dashboard_will_render_content(
+    const configuration::ApplicationConfiguration& configuration) {
+#if SIMCORE_DISPLAY_DIAGNOSTICS || SIMCORE_DEBUG
+  (void)configuration;
+  return true;
+#else
+  return configuration.dashboard.lap_timer_present ||
+         configuration.dashboard.delta_time_present ||
+         configuration.dashboard.text_widget_count > 0;
+#endif
+}
 
 }  // namespace
+
+bool show_startup_screen(
+    lv_display_t* const display,
+    const configuration::ApplicationConfiguration& configuration) {
+  const bool retain = !dashboard_will_render_content(configuration);
+  return dashboard::boot_splash::show(display,
+                                      kMinimumStartupScreenDurationMs, retain);
+}
 
 bool start_modules(
     Modules& modules, events::EventBus& event_bus,

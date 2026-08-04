@@ -5,6 +5,8 @@
 #include "esp_err.h"
 #include "esp_lvgl_port.h"
 #include "display_driver.hpp"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "simcore_features.hpp"
 #if SIMCORE_DEBUG
 #include "performance.hpp"
@@ -14,6 +16,7 @@ namespace simcore::display {
 namespace {
 
 constexpr int kLvglTaskCore = 1;
+constexpr std::uint32_t kInitialFrameTimeoutMs = 1'000;
 #if SIMCORE_DEBUG
 constexpr std::uint32_t kTaskMaxSleepMs = 8;
 constexpr std::uint32_t kTimerPeriodMs = 2;
@@ -21,6 +24,27 @@ constexpr std::uint32_t kTimerPeriodMs = 2;
 constexpr std::uint32_t kTaskMaxSleepMs = 16;
 constexpr std::uint32_t kTimerPeriodMs = 8;
 #endif
+
+StaticSemaphore_t refresh_signal_storage;
+SemaphoreHandle_t refresh_signal;
+
+void on_refresh_ready(lv_event_t* const event) {
+  const auto signal =
+      static_cast<SemaphoreHandle_t>(lv_event_get_user_data(event));
+  xSemaphoreGive(signal);
+}
+
+void configure_initial_black_screen(lv_display_t* const display) {
+  ESP_ERROR_CHECK(lvgl_port_lock(0) ? ESP_OK : ESP_FAIL);
+  lv_obj_t* const screen = lv_display_get_screen_active(display);
+  ESP_ERROR_CHECK(screen == nullptr ? ESP_FAIL : ESP_OK);
+  lv_obj_set_style_bg_color(screen, lv_color_black(), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
+  lvgl_port_unlock();
+  ESP_ERROR_CHECK(refresh_and_wait(display, kInitialFrameTimeoutMs)
+                      ? ESP_OK
+                      : ESP_ERR_TIMEOUT);
+}
 
 #if SIMCORE_DEBUG
 bool frame_rendered;
@@ -64,6 +88,46 @@ void register_performance_events(lv_display_t* display) {
 #endif
 
 }  // namespace
+
+bool refresh_and_wait(lv_display_t* const display,
+                      const std::uint32_t timeout_ms) {
+  if (display == nullptr) {
+    return false;
+  }
+  if (refresh_signal == nullptr) {
+    refresh_signal = xSemaphoreCreateBinaryStatic(&refresh_signal_storage);
+  }
+  if (refresh_signal == nullptr) {
+    return false;
+  }
+  (void)xSemaphoreTake(refresh_signal, 0);
+
+  if (!lvgl_port_lock(0)) {
+    return false;
+  }
+  lv_display_add_event_cb(display, on_refresh_ready, LV_EVENT_REFR_READY,
+                          refresh_signal);
+  lv_obj_t* const screen = lv_display_get_screen_active(display);
+  if (screen == nullptr) {
+    lv_display_remove_event_cb_with_user_data(display, on_refresh_ready,
+                                              refresh_signal);
+    lvgl_port_unlock();
+    return false;
+  }
+  lv_obj_invalidate(screen);
+  ESP_ERROR_CHECK(lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, display));
+  lvgl_port_unlock();
+
+  const bool refreshed =
+      xSemaphoreTake(refresh_signal, pdMS_TO_TICKS(timeout_ms)) == pdTRUE;
+  if (!lvgl_port_lock(0)) {
+    return false;
+  }
+  lv_display_remove_event_cb_with_user_data(display, on_refresh_ready,
+                                            refresh_signal);
+  lvgl_port_unlock();
+  return refreshed;
+}
 
 lv_display_t* initialize(const driver::Driver& selected_driver) {
   ESP_ERROR_CHECK(selected_driver.initialize == nullptr ? ESP_ERR_INVALID_ARG
@@ -122,6 +186,7 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
 #if SIMCORE_DEBUG
   register_performance_events(display);
 #endif
+  configure_initial_black_screen(display);
   selected_driver.on_display_ready();
   return display;
 }
