@@ -10,6 +10,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "simcore_features.hpp"
 #include "transport.hpp"
 
 namespace simcore::transport {
@@ -59,6 +60,7 @@ class UartTransport final : public ITransport {
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
   vprintf_like_t previous_log_output_{};
+#if SIMCORE_DEBUG
   std::atomic<std::uint64_t> received_bytes_{};
   std::atomic<std::uint64_t> read_events_{};
   std::atomic<std::uint32_t> fifo_overflows_{};
@@ -66,6 +68,7 @@ class UartTransport final : public ITransport {
   std::atomic<std::uint32_t> maximum_read_gap_ms_{};
   std::atomic<std::uint32_t> maximum_handler_time_us_{};
   std::int64_t last_read_at_us_{};
+#endif
   bool started_{};
 };
 

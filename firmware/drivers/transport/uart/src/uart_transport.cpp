@@ -1,17 +1,21 @@
 #include "uart_transport.hpp"
 
+#include <algorithm>
 #include <cstdarg>
 #include <span>
 
 #include "esp_err.h"
 #include "esp_log.h"
+#if SIMCORE_DEBUG
 #include "esp_timer.h"
+#endif
 
 namespace simcore::transport {
 namespace {
 
 constexpr char kTag[] = "uart_transport";
 
+#if SIMCORE_DEBUG
 void update_maximum(std::atomic<std::uint32_t>& maximum,
                     const std::uint32_t candidate) {
   std::uint32_t current = maximum.load(std::memory_order_relaxed);
@@ -20,6 +24,7 @@ void update_maximum(std::atomic<std::uint32_t>& maximum,
                                         std::memory_order_relaxed)) {
   }
 }
+#endif
 
 }  // namespace
 
@@ -73,6 +78,7 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
     return false;
   }
 
+#if SIMCORE_DEBUG
   received_bytes_.store(0, std::memory_order_relaxed);
   read_events_.store(0, std::memory_order_relaxed);
   fifo_overflows_.store(0, std::memory_order_relaxed);
@@ -80,6 +86,7 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   maximum_read_gap_ms_.store(0, std::memory_order_relaxed);
   maximum_handler_time_us_.store(0, std::memory_order_relaxed);
   last_read_at_us_ = 0;
+#endif
   handler_ = handler;
   handler_context_ = context;
   started_ = true;
@@ -145,9 +152,13 @@ void UartTransport::process() {
 
     if (event.type == UART_FIFO_OVF || event.type == UART_BUFFER_FULL) {
       if (event.type == UART_FIFO_OVF) {
+#if SIMCORE_DEBUG
         fifo_overflows_.fetch_add(1, std::memory_order_relaxed);
+#endif
       } else {
+#if SIMCORE_DEBUG
         buffer_full_events_.fetch_add(1, std::memory_order_relaxed);
+#endif
       }
       uart_flush_input(configuration_.port);
       xQueueReset(event_queue_);
@@ -167,6 +178,7 @@ void UartTransport::process() {
         break;
       }
 
+#if SIMCORE_DEBUG
       const std::int64_t read_at_us = esp_timer_get_time();
       if (last_read_at_us_ != 0) {
         update_maximum(
@@ -177,16 +189,21 @@ void UartTransport::process() {
       received_bytes_.fetch_add(static_cast<std::uint64_t>(received),
                                 std::memory_order_relaxed);
       read_events_.fetch_add(1, std::memory_order_relaxed);
+#endif
 
       if (handler_ != nullptr) {
+#if SIMCORE_DEBUG
         const std::int64_t handler_started_at_us = esp_timer_get_time();
+#endif
         handler_(std::span<const std::uint8_t>(
                      data.data(), static_cast<std::size_t>(received)),
                  handler_context_);
+#if SIMCORE_DEBUG
         update_maximum(
             maximum_handler_time_us_,
             static_cast<std::uint32_t>(esp_timer_get_time() -
                                        handler_started_at_us));
+#endif
       }
       remaining -= static_cast<std::size_t>(received);
     }
@@ -194,6 +211,7 @@ void UartTransport::process() {
 }
 
 Diagnostics UartTransport::diagnostics() const {
+#if SIMCORE_DEBUG
   std::size_t buffered_bytes = 0;
   if (started_) {
     ESP_ERROR_CHECK_WITHOUT_ABORT(
@@ -211,6 +229,9 @@ Diagnostics UartTransport::diagnostics() const {
       .maximum_handler_time_us =
           maximum_handler_time_us_.load(std::memory_order_relaxed),
   };
+#else
+  return {};
+#endif
 }
 
 void UartTransport::restore_log_output() {

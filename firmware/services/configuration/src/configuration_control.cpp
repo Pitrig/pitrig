@@ -34,7 +34,7 @@ bool ConfigurationControl::initialize(
 void ConfigurationControl::consume(
     const std::span<const std::uint8_t> line) {
   if (service_ == nullptr || transport_ == nullptr ||
-      task_ == nullptr || line.size() > request_.size() ||
+      task_ == nullptr || line.size() > io_buffer_.size() ||
       line.size() < kPrefix.size() ||
       !std::equal(kPrefix.begin(), kPrefix.end(), line.begin())) {
     return;
@@ -45,7 +45,7 @@ void ConfigurationControl::consume(
           std::memory_order_relaxed)) {
     return;
   }
-  std::copy(line.begin(), line.end(), request_.begin());
+  std::copy(line.begin(), line.end(), io_buffer_.begin());
   request_size_ = line.size();
   request_state_.store(RequestState::ready, std::memory_order_release);
   xTaskNotifyGive(task_);
@@ -62,7 +62,7 @@ void ConfigurationControl::process() {
         RequestState::ready) {
       continue;
     }
-    handle(std::span<const std::uint8_t>(request_.data(), request_size_));
+    handle(std::span<const std::uint8_t>(io_buffer_.data(), request_size_));
     request_state_.store(RequestState::idle, std::memory_order_release);
   }
 }
@@ -83,15 +83,15 @@ void ConfigurationControl::handle(
       source = "slot_b";
     }
     const int written = std::snprintf(
-        reinterpret_cast<char*>(response_.data()), response_.size(),
+        reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
         "@SC:OK:INFO:board=%s,firmware=%s,schema=%u,source=%s,generation=%lu,storage=%u\n",
         board, esp_app_get_description()->version,
         static_cast<unsigned>(kConfigurationSchemaVersion), source,
         static_cast<unsigned long>(status.generation),
         status.storage_available ? 1U : 0U);
-    if (written > 0 && static_cast<std::size_t>(written) < response_.size()) {
+    if (written > 0 && static_cast<std::size_t>(written) < io_buffer_.size()) {
       transport_->write(
-          std::span<const std::uint8_t>(response_.data(), written));
+          std::span<const std::uint8_t>(io_buffer_.data(), written));
     }
     return;
   }
@@ -156,11 +156,11 @@ void ConfigurationControl::send_text(const char* const text) {
 
 void ConfigurationControl::send_error(const ValidationError error) {
   const int written = std::snprintf(
-      reinterpret_cast<char*>(response_.data()), response_.size(),
+      reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
       "@SC:ERR:%s\n", validation_error_name(error));
-  if (written > 0 && static_cast<std::size_t>(written) < response_.size()) {
+  if (written > 0 && static_cast<std::size_t>(written) < io_buffer_.size()) {
     transport_->write(
-        std::span<const std::uint8_t>(response_.data(), written));
+        std::span<const std::uint8_t>(io_buffer_.data(), written));
   }
 }
 
@@ -168,18 +168,18 @@ void ConfigurationControl::send_payload(
     const std::span<const std::uint8_t> payload) {
   constexpr char prefix[] = "@SC:OK:CONFIG:";
   constexpr std::size_t prefix_size = sizeof(prefix) - 1;
-  if (prefix_size + payload.size() + 1U > response_.size()) {
+  if (prefix_size + payload.size() + 1U > io_buffer_.size()) {
     send_error(ValidationError::malformed);
     return;
   }
   std::copy_n(reinterpret_cast<const std::uint8_t*>(prefix), prefix_size,
-              response_.begin());
+              io_buffer_.begin());
   std::size_t position = prefix_size;
-  std::copy(payload.begin(), payload.end(), response_.begin() + position);
+  std::copy(payload.begin(), payload.end(), io_buffer_.begin() + position);
   position += payload.size();
-  response_[position++] = '\n';
+  io_buffer_[position++] = '\n';
   transport_->write(
-      std::span<const std::uint8_t>(response_.data(), position));
+      std::span<const std::uint8_t>(io_buffer_.data(), position));
 }
 
 }  // namespace simcore::configuration

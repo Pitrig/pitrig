@@ -63,7 +63,7 @@ class Service final {
   [[nodiscard]] bool initialize(IStorage& storage);
   [[nodiscard]] const Status& status() const { return status_; }
   [[nodiscard]] std::span<const AssetView> assets() const {
-    return {assets_.data(), loaded_asset_count_};
+    return {package_.assets.data(), package_.asset_count};
   }
   [[nodiscard]] const AssetView* find(const FontSpec& font) const;
 
@@ -89,10 +89,10 @@ class Service final {
 
   IStorage* storage_{};
   Status status_{};
-  std::array<AssetView, kMaximumAssets> assets_{};
-  std::size_t loaded_asset_count_{};
   std::span<const std::uint8_t> package_mapping_{};
-  ParsedPackage parse_buffer_{};
+  // Indexes the active mapping at boot and acts as update-validation scratch
+  // after that mapping has been released.
+  ParsedPackage package_{};
 
   bool update_in_progress_{};
   std::size_t update_size_{};

@@ -1,0 +1,235 @@
+import type { SerialPort } from 'serialport'
+
+import {
+  BOARD_PROFILES,
+  CONFIGURATION_SCHEMA_VERSION,
+  type DeviceInfo,
+  type DeviceSession,
+  type FontAssetDeviceInfo
+} from '../../shared/device'
+import { parseDeviceConfigurationJson } from './configuration-json'
+import { DeviceServiceError } from './device-errors'
+
+const PROBE_TIMEOUT_MS = 1_000
+const MAXIMUM_RESPONSE_BUFFER_SIZE = 8_192
+const INFO_REQUEST = '@SC:INFO\n'
+const GET_REQUEST = '@SC:GET\n'
+const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
+
+type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
+
+export async function probeSimCore(
+  port: SerialPort,
+  onTraffic: TrafficCallback
+): Promise<DeviceSession> {
+  const infoLine = await requestResponse(
+    port,
+    INFO_REQUEST,
+    '@SC:OK:INFO:',
+    PROBE_TIMEOUT_MS,
+    onTraffic
+  )
+  const info = parseDeviceInfo(infoLine)
+  const configurationLine = await requestResponse(
+    port,
+    GET_REQUEST,
+    '@SC:OK:CONFIG:',
+    1_500,
+    onTraffic
+  )
+  let configuration: DeviceSession['configuration']
+  try {
+    configuration = parseDeviceConfigurationJson(
+      configurationLine.slice('@SC:OK:CONFIG:'.length)
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown configuration error.'
+    throw new DeviceServiceError('not_simcore', message)
+  }
+  if (configuration.board !== info.boardId) {
+    throw new DeviceServiceError(
+      'not_simcore',
+      'The device configuration board does not match the connected hardware.'
+    )
+  }
+  const fontAssets = await probeFontAssets(port, onTraffic)
+  return { info, configuration, ...(fontAssets ? { fontAssets } : {}) }
+}
+
+export function requestResponse(
+  port: SerialPort,
+  request: string,
+  responsePrefix: string,
+  timeoutMs: number,
+  onTraffic: TrafficCallback
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let buffer = ''
+    let settled = false
+
+    const cleanup = (): void => {
+      clearTimeout(timeoutTimer)
+      clearInterval(retryTimer)
+      port.off('data', onData)
+      port.off('error', onError)
+      port.off('close', onClose)
+      buffer = ''
+    }
+    const finish = (error?: Error, response?: string): void => {
+      if (settled) return
+      settled = true
+      cleanup()
+      if (error) reject(error)
+      else resolve(response ?? '')
+    }
+    const onData = (chunk: Buffer): void => {
+      const text = chunk.toString('utf8')
+      onTraffic('rx', text)
+      buffer = (buffer + text).slice(-MAXIMUM_RESPONSE_BUFFER_SIZE)
+      const lines = buffer.replaceAll('\r', '').split('\n')
+      buffer = lines.pop() ?? ''
+      const response = lines.find((line) => line.startsWith(responsePrefix))
+      if (response) {
+        finish(undefined, response)
+        return
+      }
+      const deviceError = lines.find((line) => line.startsWith('@SC:ERR:'))
+      if (deviceError) {
+        finish(
+          new DeviceServiceError(
+            'not_simcore',
+            `SimCore rejected the request: ${deviceError}`
+          )
+        )
+      }
+    }
+    const onError = (error: Error): void => finish(error)
+    const onClose = (): void => {
+      finish(new DeviceServiceError('serial_error', 'Serial port closed during probe.'))
+    }
+    const sendRequest = (): void => {
+      if (!port.isOpen || settled) return
+      port.write(request, (error) => {
+        if (error) finish(error)
+        else onTraffic('tx', request)
+      })
+    }
+
+    port.on('data', onData)
+    port.once('error', onError)
+    port.once('close', onClose)
+    const retryTimer = setInterval(sendRequest, 350)
+    const timeoutTimer = setTimeout(() => {
+      finish(new DeviceServiceError('not_simcore', `The device did not answer ${request.trim()}.`))
+    }, timeoutMs)
+    port.flush(() => sendRequest())
+  })
+}
+
+async function probeFontAssets(
+  port: SerialPort,
+  onTraffic: TrafficCallback
+): Promise<FontAssetDeviceInfo | undefined> {
+  try {
+    const line = await requestResponse(
+      port,
+      FONT_INFO_REQUEST,
+      '@SC:OK:FONT:INFO:',
+      PROBE_TIMEOUT_MS,
+      onTraffic
+    )
+    return parseFontAssetInfo(line)
+  } catch (error) {
+    if (
+      error instanceof DeviceServiceError &&
+      error.code === 'not_simcore' &&
+      error.message.includes('unknown_command')
+    ) {
+      return undefined
+    }
+    throw error
+  }
+}
+
+function parseDeviceInfo(line: string): DeviceInfo {
+  const fields = parseFields(line, '@SC:OK:INFO:', 'INFO data')
+  const board = fields.get('board')
+  if (board !== 't_display_s3' && board !== 'guition_esp32_4848s040') {
+    throw new DeviceServiceError('not_simcore', `Unsupported SimCore board: ${board ?? 'unknown'}.`)
+  }
+  if (fields.get('schema') !== String(CONFIGURATION_SCHEMA_VERSION)) {
+    throw new DeviceServiceError(
+      'not_simcore',
+      `Unsupported configuration schema: ${fields.get('schema') ?? 'unknown'}.`
+    )
+  }
+  const source = fields.get('source')
+  const generation = Number(fields.get('generation'))
+  const firmwareVersion = fields.get('firmware')
+  if (
+    !firmwareVersion ||
+    (source !== 'factory' && source !== 'slot_a' && source !== 'slot_b') ||
+    !Number.isSafeInteger(generation) ||
+    generation < 0 ||
+    !isBooleanField(fields.get('storage'))
+  ) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+  }
+  return {
+    boardId: board,
+    firmwareVersion,
+    schemaVersion: CONFIGURATION_SCHEMA_VERSION,
+    display: BOARD_PROFILES[board].display,
+    configurationSource: source,
+    generation,
+    storageAvailable: fields.get('storage') === '1'
+  }
+}
+
+function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
+  const fields = parseFields(line, '@SC:OK:FONT:INFO:', 'font status')
+  const formatVersion = Number(fields.get('format'))
+  const assetCount = Number(fields.get('assets'))
+  const packageSize = Number(fields.get('size'))
+  const packageAvailable = fields.get('package') === '1'
+  if (
+    !isBooleanField(fields.get('storage')) ||
+    !isBooleanField(fields.get('package')) ||
+    !Number.isSafeInteger(formatVersion) || formatVersion < 0 || formatVersion > 0xffff ||
+    !Number.isSafeInteger(assetCount) || assetCount < 0 || assetCount > 32 ||
+    !Number.isSafeInteger(packageSize) || packageSize < 0 || packageSize > 2 * 1024 * 1024 ||
+    (packageAvailable
+      ? formatVersion !== 2 || packageSize < 4096
+      : formatVersion !== 0 || assetCount !== 0 || packageSize !== 0) ||
+    !isBooleanField(fields.get('reboot_required'))
+  ) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
+  }
+  return {
+    storageAvailable: fields.get('storage') === '1',
+    packageAvailable,
+    formatVersion,
+    assetCount,
+    packageSize,
+    rebootRequired: fields.get('reboot_required') === '1'
+  }
+}
+
+function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {
+  const fields = new Map<string, string>()
+  for (const entry of line.slice(prefix.length).split(',')) {
+    const separator = entry.indexOf('=')
+    if (separator <= 0) {
+      throw new DeviceServiceError(
+        'not_simcore',
+        `The device returned malformed ${fieldName}.`
+      )
+    }
+    fields.set(entry.slice(0, separator), entry.slice(separator + 1))
+  }
+  return fields
+}
+
+function isBooleanField(value: string | undefined): boolean {
+  return value === '0' || value === '1'
+}

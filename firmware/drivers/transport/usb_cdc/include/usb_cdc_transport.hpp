@@ -9,6 +9,7 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+#include "simcore_features.hpp"
 #include "tinyusb_cdc_acm.h"
 #include "transport.hpp"
 
@@ -56,6 +57,7 @@ class UsbCdcTransport final : public ITransport {
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
+#if SIMCORE_DEBUG
   std::atomic<std::uint64_t> received_bytes_{};
   std::atomic<std::uint64_t> read_events_{};
   std::atomic<std::uint32_t> queue_overflows_{};
@@ -63,6 +65,7 @@ class UsbCdcTransport final : public ITransport {
   std::atomic<std::uint32_t> maximum_read_gap_ms_{};
   std::atomic<std::uint32_t> maximum_handler_time_us_{};
   std::int64_t last_read_at_us_{};
+#endif
   bool started_{};
 };
 

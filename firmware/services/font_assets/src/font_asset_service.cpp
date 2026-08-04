@@ -84,10 +84,8 @@ bool Service::initialize(IStorage& storage) {
   }
   storage_ = &storage;
   status_ = {};
-  assets_ = {};
-  loaded_asset_count_ = 0;
   package_mapping_ = {};
-  parse_buffer_ = {};
+  package_ = {};
   reset_update();
   status_.storage_available = storage.initialize();
   if (!status_.storage_available) {
@@ -97,21 +95,17 @@ bool Service::initialize(IStorage& storage) {
   if (!storage.map(package_mapping_)) {
     return false;
   }
-  if (!validate_package(package_mapping_, {}, parse_buffer_)) {
+  if (!validate_package(package_mapping_, {}, package_)) {
     storage.unmap();
     package_mapping_ = {};
-    parse_buffer_ = {};
+    package_ = {};
     return true;
   }
 
   status_.package_available = true;
   status_.format_version = kFormatVersion;
-  status_.asset_count = parse_buffer_.asset_count;
-  status_.package_size = parse_buffer_.package_size;
-  loaded_asset_count_ = parse_buffer_.asset_count;
-  std::copy_n(parse_buffer_.assets.begin(), parse_buffer_.asset_count,
-              assets_.begin());
-  parse_buffer_ = {};
+  status_.asset_count = package_.asset_count;
+  status_.package_size = package_.package_size;
   return true;
 }
 
@@ -138,8 +132,7 @@ UpdateError Service::begin_update(const std::size_t package_size) {
   }
   storage_->unmap();
   package_mapping_ = {};
-  assets_ = {};
-  loaded_asset_count_ = 0;
+  package_ = {};
   clear_package_status();
   if (!storage_->erase()) {
     return UpdateError::storage_failure;
@@ -185,40 +178,40 @@ UpdateError Service::commit_update() {
     return UpdateError::invalid_state;
   }
 
-  parse_buffer_ = {};
+  package_ = {};
   std::span<const std::uint8_t> candidate_mapping;
   if (!storage_->map(candidate_mapping)) {
     return UpdateError::storage_failure;
   }
   const bool valid =
-      validate_package(candidate_mapping, update_header_, parse_buffer_);
+      validate_package(candidate_mapping, update_header_, package_);
   storage_->unmap();
   if (!valid ||
       get_u32(update_header_, kHeaderPayloadSizeOffset) != update_size_) {
-    parse_buffer_ = {};
+    package_ = {};
     reset_update();
     return UpdateError::invalid_package;
   }
   if (!storage_->write(0, update_header_)) {
-    parse_buffer_ = {};
+    package_ = {};
     reset_update();
     return UpdateError::storage_failure;
   }
 
   candidate_mapping = {};
   if (!storage_->map(candidate_mapping) ||
-      !validate_package(candidate_mapping, {}, parse_buffer_)) {
+      !validate_package(candidate_mapping, {}, package_)) {
     storage_->unmap();
-    parse_buffer_ = {};
+    package_ = {};
     reset_update();
     return UpdateError::storage_failure;
   }
   storage_->unmap();
   status_.package_available = true;
   status_.format_version = kFormatVersion;
-  status_.asset_count = parse_buffer_.asset_count;
-  status_.package_size = parse_buffer_.package_size;
-  parse_buffer_ = {};
+  status_.asset_count = package_.asset_count;
+  status_.package_size = package_.package_size;
+  package_ = {};
   reset_update();
   status_.reboot_required = true;
   return UpdateError::none;

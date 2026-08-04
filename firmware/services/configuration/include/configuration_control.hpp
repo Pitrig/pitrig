@@ -33,8 +33,7 @@ class ConfigurationControl {
     ready,
   };
 
-  static constexpr std::size_t kMaximumResponseSize =
-      16 + kMaximumPayloadSize;
+  static constexpr std::size_t kIoBufferSize = 16 + kMaximumPayloadSize;
   static constexpr std::size_t kTaskStackSize = 4096;
   static constexpr UBaseType_t kTaskPriority = 4;
 
@@ -52,10 +51,11 @@ class ConfigurationControl {
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
-  std::array<std::uint8_t, kMaximumResponseSize> request_{};
+  // The control task reuses this storage for a response only after it has
+  // finished consuming the queued request bytes.
+  std::array<std::uint8_t, kIoBufferSize> io_buffer_{};
   std::size_t request_size_{};
   std::atomic<RequestState> request_state_{RequestState::idle};
-  std::array<std::uint8_t, kMaximumResponseSize> response_{};
 };
 
 }  // namespace simcore::configuration

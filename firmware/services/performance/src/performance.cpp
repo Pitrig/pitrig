@@ -1,5 +1,7 @@
 #include "performance.hpp"
 
+#include "simcore_features.hpp"
+#if SIMCORE_DEBUG
 #include <algorithm>
 #include <cinttypes>
 #include <cstdint>
@@ -11,8 +13,10 @@
 #include "freertos/idf_additions.h"
 #include "freertos/task.h"
 #include "logger.hpp"
+#endif
 
 namespace simcore::performance {
+#if SIMCORE_DEBUG
 namespace {
 
 constexpr char kTag[] = "performance";
@@ -223,5 +227,6 @@ PerformanceStats get_stats() {
   taskEXIT_CRITICAL(&state_lock);
   return snapshot;
 }
+#endif
 
 }  // namespace simcore::performance

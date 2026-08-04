@@ -4,30 +4,29 @@
 per core, LVGL render time, display flush time, internal heap information,
 available PSRAM, and uptime.
 
-## Build options
+## Build profile
 
-The service requires these ESP-IDF options:
+Runtime diagnostics are disabled in production. Enable them by changing the
+source-level feature in `firmware/components/simcore_config/include/simcore_features.hpp`:
 
-```text
-CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS=y
-CONFIG_FREERTOS_RUN_TIME_COUNTER_TYPE_U64=y
-CONFIG_FREERTOS_RUN_TIME_STATS_USING_ESP_TIMER=y
+```cpp
+#define SIMCORE_DEBUG 1
 ```
 
-The 64-bit ESP Timer counter avoids the short wrap interval of the default
-32-bit runtime counter. Runtime diagnostics are disabled by default. Select
-the build contents in the root firmware `CMakeLists.txt`:
+Build with the debug ESP-IDF defaults appended after the board profile:
 
-```cmake
-set(SIMCORE_DEBUG ON)
+```sh
+idf.py -B build-debug \
+  -DSDKCONFIG=/tmp/simcore-sdkconfig-debug \
+  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.t-display-s3;sdkconfig.defaults.debug" \
+  build
 ```
 
-Set it to `OFF` for a production build. Without `SIMCORE_DEBUG`, the performance
-service, display instrumentation, and dashboard overlay are not compiled into
-the firmware. The production profile also restores the normal dashboard
-cadence: a 16 ms Lap Timer update, 16 ms maximum LVGL task sleep, and a 5 ms
-LVGL tick. Debug builds use the more aggressive 8 ms update/sleep and 2 ms tick
-needed for performance measurements.
+Use the required board defaults file in place of `sdkconfig.defaults.t-display-s3`.
+The debug defaults enable the 64-bit ESP Timer runtime counter required for CPU
+load measurement. Without `SIMCORE_DEBUG`, transport diagnostics, display
+instrumentation, and the dashboard overlay are removed from the production hot
+path, and FreeRTOS runtime statistics remain disabled.
 
 ## Measurements
 

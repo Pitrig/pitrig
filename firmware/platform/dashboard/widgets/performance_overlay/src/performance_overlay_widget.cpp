@@ -1,5 +1,7 @@
 #include "performance_overlay_widget.hpp"
 
+#include "simcore_features.hpp"
+#if SIMCORE_DEBUG
 #include <cstdint>
 #include <cstdio>
 
@@ -7,8 +9,10 @@
 #include "lvgl.h"
 #include "performance.hpp"
 #include "transport.hpp"
+#endif
 
 namespace simcore::dashboard::performance_overlay_widget {
+#if SIMCORE_DEBUG
 namespace {
 
 constexpr std::uint32_t kBackgroundColor = 0x0B0B0B;
@@ -80,5 +84,6 @@ void create(lv_display_t* display, const transport::ITransport& transport) {
   lv_timer_create(update, kUpdatePeriodMs, label);
   lvgl_port_unlock();
 }
+#endif
 
 }  // namespace simcore::dashboard::performance_overlay_widget
