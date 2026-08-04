@@ -245,6 +245,10 @@ lifecycle. Its ESP partition adapter lives under `platform/`, while dashboard
 code owns the LVGL-specific runtime font registry. This keeps raw flash access
 and UI-framework integration out of the service. See
 [Font asset storage](font-assets.md) for the persisted format and update rules.
+The separate font asset control service owns the bounded serial upload session
+and delegates erase, write, validation, and commit operations to the asset
+service from a static worker task. The configuration router only switches the
+shared transport between normal line routing and the active binary session.
 
 ---
 

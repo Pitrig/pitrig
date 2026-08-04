@@ -189,10 +189,11 @@ font bytes are not part of this JSON document or configuration NVS.
 
 Uploaded fonts are stored as an independently recoverable A/B asset package.
 The package format and firmware validation rules are defined in
-[Font asset storage](font-assets.md). Installing a new package requires a
-reboot before its fonts can be selected; the sparse device configuration may
-be saved before or after the asset package because unavailable fonts render
-with the Montserrat fallback.
+[Font asset storage](font-assets.md), including its separate bounded serial
+upload protocol. Installing a new package requires a reboot before its fonts
+can be selected; the sparse device configuration may be saved before or after
+the asset package because unavailable fonts render with the Montserrat
+fallback.
 
 ## Device information
 
@@ -227,7 +228,10 @@ currently used by modules and widgets.
 ## Control commands
 
 The configuration protocol remains line-oriented and shares the selected
-telemetry serial transport.
+telemetry serial transport. Font package upload temporarily switches that same
+transport into the binary stop-and-wait mode defined in
+[Font asset storage](font-assets.md); it is not a configuration command and its
+bytes are never stored in configuration NVS.
 
 | Request | Successful response | Purpose |
 | --- | --- | --- |

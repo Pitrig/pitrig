@@ -45,11 +45,16 @@ CRC32. Slot-level validation covers the complete committed asset set.
 Uploads target the inactive slot. Firmware erases and writes that slot,
 validates every bound and checksum, then marks the new generation active. An
 interrupted or invalid upload leaves the previous slot active. The active slot
-will be memory-mapped read-only and exposed to LVGL's binary font loader; font
-bytes are not copied into DRAM or PSRAM as a complete asset.
+is memory-mapped read-only and exposed to LVGL's binary font loader. The
+current LVGL loader materializes the opened font's glyph metadata and bitmap
+data in the LVGL heap; moving that bounded runtime allocation to a
+PSRAM-backed pool remains a later performance improvement.
 
-Asset upload is a dedicated bounded protocol, separate from configuration
-`SET`. Configuration may reference a syntactically valid font that is not
+Asset upload uses a dedicated bounded, stop-and-wait protocol over the selected
+serial transport, separate from configuration `SET`. Binary frames carry an
+explicit type, sequence, bounded payload length, and CRC32. Flash erase and
+write operations run in a dedicated static task rather than the transport RX
+task. Configuration may reference a syntactically valid font that is not
 installed; the renderer uses the Montserrat fallback until the matching asset
 is available. This keeps configuration and asset updates independently
 recoverable.
@@ -62,8 +67,9 @@ back to a valid schema 2 slot or the board-only factory configuration.
 
 - Adding a custom font will not require rebuilding or reflashing firmware.
 - Firmware keeps only Montserrat in its application image.
-- Large font bytes consume dedicated flash rather than configuration NVS,
-  internal DRAM, or PSRAM.
+- Persisted font bytes consume dedicated flash rather than configuration NVS or
+  the application image. The current LVGL loader still allocates runtime font
+  data when an uploaded font is opened.
 - The configurator must retain source fonts in its local project and upload a
   complete converted asset set before expecting custom rendering.
 - Firmware still validates identifier syntax, sizes, manifest bounds, and
@@ -72,5 +78,5 @@ back to a valid schema 2 slot or the board-only factory configuration.
 - The physical A/B partitions, bounded asset service, read-only flash mapping,
   and LVGL font registry are implemented. The exact package contract is
   documented in [Font asset storage](../font-assets.md).
-- Binary upload commands and configurator-side conversion remain separate
-  approved phases.
+- The firmware binary upload protocol is implemented. Configurator-side
+  conversion and upload orchestration remain a separate phase.

@@ -23,6 +23,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/platform/runtime_composition"
      "${CMAKE_CURRENT_LIST_DIR}/services/configuration"
      "${CMAKE_CURRENT_LIST_DIR}/services/event_bus"
+     "${CMAKE_CURRENT_LIST_DIR}/services/font_asset_control"
      "${CMAKE_CURRENT_LIST_DIR}/services/font_assets"
      "${CMAKE_CURRENT_LIST_DIR}/services/logger"
      "${CMAKE_CURRENT_LIST_DIR}/services/performance"

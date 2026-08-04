@@ -22,10 +22,12 @@ After a successful commit, the service rejects another update until reboot.
 This prevents a second request from erasing the newly committed inactive slot
 before it has become the runtime's selected active slot.
 
-The active slot is mapped read-only from flash. Font byte ranges are passed
-directly to the LVGL binary font loader; firmware does not copy a complete font
-asset into DRAM or PSRAM. LVGL may allocate its own bounded runtime metadata
-when a font is opened.
+The active slot is mapped read-only from flash and font byte ranges are passed
+to the LVGL binary font loader. The current `lv_binfont_create_from_buffer`
+implementation materializes the opened font's glyph metadata and bitmap data
+in the LVGL heap. A dedicated PSRAM-backed runtime pool is intentionally
+deferred; the persisted package remains memory-mapped and independently
+recoverable regardless of that runtime allocation policy.
 
 ## Integer and checksum encoding
 
@@ -89,6 +91,61 @@ startup, a structurally valid slot can still contain a font that the LVGL
 loader rejects. That individual asset is skipped and matching widgets use the
 nearest compiled Montserrat size (10, 24, or 48 px).
 
-The storage and runtime registry are implemented. Transport commands for
-uploading a package and configurator-side TTF/OTF conversion are intentionally
+## Serial upload protocol
+
+The upload protocol shares the selected telemetry serial transport. The host
+starts a session with one line-oriented command containing the complete package
+size:
+
+```text
+@SC:FONT:BEGIN:size=<bytes>
+```
+
+Firmware validates the size and erases the inactive slot in a dedicated static
+FreeRTOS task. When it is ready for binary data, it replies:
+
+```text
+@SC:OK:FONT:READY:max_chunk=1024
+```
+
+After this response, every host request is a binary frame. The host sends only
+one frame at a time and waits for its response before sending the next one.
+
+| Offset | Size | Field | Rule |
+| ---: | ---: | --- | --- |
+| 0 | 4 | magic | ASCII `SCF1` |
+| 4 | 1 | type | `1` data, `2` commit, `3` cancel |
+| 5 | 1 | reserved | zero |
+| 6 | 4 | sequence | unsigned little-endian, starting at zero |
+| 10 | 2 | payload length | unsigned little-endian, 1–1024 for data, zero otherwise |
+| 12 | 2 | reserved | zero |
+| 14 | variable | payload | package bytes for a data frame |
+| following | 4 | frame CRC | CRC32 of the 14-byte header and payload |
+
+The maximum frame size is 1042 bytes. The commit and cancel frames use the next
+expected sequence number. Each accepted data frame receives:
+
+```text
+@SC:OK:FONT:ACK:sequence=<sequence>,received=<total_bytes>
+```
+
+A frame with a bad CRC or unexpected sequence cancels the session, as do other
+structural or storage errors. Errors use `@SC:ERR:FONT:<reason>` and return the
+transport to normal line mode. Sending data before the previous response is a
+protocol overrun and also cancels the session.
+
+Commit is accepted only after exactly the declared package size has arrived.
+Firmware then validates and atomically commits the inactive slot and replies:
+
+```text
+@SC:OK:FONT:COMMITTED:reboot_required=1
+```
+
+Cancel replies with `@SC:OK:FONT:CANCELLED`. Ten seconds without a complete
+request cancels an active session with `@SC:ERR:FONT:timeout`. During a session,
+all received bytes are owned by the font protocol; normal line commands and
+telemetry input resume after commit, cancel, timeout, or error.
+
+The storage service, runtime registry, and firmware upload protocol are
+implemented. Configurator-side TTF/OTF conversion and upload orchestration are
 outside this phase.

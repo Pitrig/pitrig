@@ -1,19 +1,23 @@
 #include "configuration_router.hpp"
 
 #include <algorithm>
+#include <string_view>
 
 namespace simcore::configuration {
 namespace {
 
 constexpr std::array<std::uint8_t, 4> kControlPrefix{'@', 'S', 'C', ':'};
+constexpr std::string_view kFontBeginPrefix = "@SC:FONT:BEGIN";
 
 }  // namespace
 
 void ConfigurationRouter::initialize(
     ConfigurationControl& control,
+    font_assets::FontAssetControl& font_asset_control,
     const transport::DataHandler telemetry_handler,
     void* const telemetry_context) {
   control_ = &control;
+  font_asset_control_ = &font_asset_control;
   telemetry_handler_ = telemetry_handler;
   telemetry_context_ = telemetry_context;
   line_size_ = 0;
@@ -22,7 +26,12 @@ void ConfigurationRouter::initialize(
 
 void ConfigurationRouter::consume(
     const std::span<const std::uint8_t> data) {
-  for (const std::uint8_t value : data) {
+  for (std::size_t index = 0; index < data.size(); ++index) {
+    if (font_asset_control_ != nullptr && font_asset_control_->active()) {
+      font_asset_control_->consume(data.subspan(index));
+      return;
+    }
+    const std::uint8_t value = data[index];
     if (discarding_) {
       if (value == '\n') {
         discarding_ = false;
@@ -55,6 +64,13 @@ void ConfigurationRouter::dispatch() {
   if (line.size() >= kControlPrefix.size() &&
       std::equal(kControlPrefix.begin(), kControlPrefix.end(),
                  line.begin())) {
+    if (font_asset_control_ != nullptr &&
+        line.size() >= kFontBeginPrefix.size() &&
+        std::equal(kFontBeginPrefix.begin(), kFontBeginPrefix.end(),
+                   line.begin())) {
+      font_asset_control_->begin(line);
+      return;
+    }
     if (control_ != nullptr) {
       control_->consume(line);
     }

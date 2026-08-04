@@ -8,6 +8,7 @@
 #include "display.hpp"
 #include "event_bus.hpp"
 #include "font_asset_service.hpp"
+#include "font_asset_control.hpp"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -34,6 +35,7 @@ struct Application {
   configuration::ConfigurationService configuration_service;
   font_assets::PartitionStorage font_asset_storage;
   font_assets::Service font_asset_service;
+  font_assets::FontAssetControl font_asset_control;
   configuration::ConfigurationControl configuration_control;
   configuration::ConfigurationRouter configuration_router;
   events::EventBus event_bus;
@@ -116,9 +118,15 @@ void run() {
   if (!configuration_control_started) {
     log::error(kTag, "Failed to start configuration control task");
   }
+  const bool font_asset_control_started =
+      application.font_asset_control.initialize(
+          application.font_asset_service, telemetry_transport);
+  if (!font_asset_control_started) {
+    log::error(kTag, "Failed to start font asset control task");
+  }
   application.configuration_router.initialize(
-      application.configuration_control, &receive_telemetry_data,
-      &application);
+      application.configuration_control, application.font_asset_control,
+      &receive_telemetry_data, &application);
   if (!application.protocol.initialized()) {
     log::error(kTag, "Failed to bind SimHub protocol fields");
   } else if (!telemetry_transport.start(&receive_transport_data,
