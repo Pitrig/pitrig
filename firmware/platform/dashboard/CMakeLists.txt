@@ -20,7 +20,7 @@ set(component_include_dirs
 idf_component_register(
     SRCS ${component_sources}
     INCLUDE_DIRS ${component_include_dirs}
-    REQUIRES lvgl__lvgl telemetry
+    REQUIRES font_assets lvgl__lvgl telemetry
     PRIV_REQUIRES delta_time esp_lvgl_port heap lap_timer performance
                   simcore_config transport)
 

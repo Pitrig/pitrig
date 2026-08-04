@@ -150,12 +150,13 @@ void update(lv_timer_t*) {
 }  // namespace
 
 bool create(const Layout& layout, const Config& config,
-            const delta_time::DeltaTime& module) {
+            const delta_time::DeltaTime& module,
+            const fonts::Registry& fonts) {
   if (layout.display == nullptr) {
     return false;
   }
 
-  const lv_font_t* const font = fonts::resolve(config.font);
+  const lv_font_t* const font = fonts.resolve(config.font);
   const std::int32_t border_width = config.scale.border_width_px;
   const std::int32_t content_height =
       lv_font_get_line_height(font) + 2 * config.scale.vertical_padding_px;

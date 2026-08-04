@@ -7,11 +7,13 @@
 #include "configuration_service.hpp"
 #include "display.hpp"
 #include "event_bus.hpp"
+#include "font_asset_service.hpp"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "logger.hpp"
 #include "nvs_config_storage.hpp"
+#include "partition_font_asset_storage.hpp"
 #include "runtime_composition.hpp"
 #include "simhub_protocol.hpp"
 #include "simcore_features.hpp"
@@ -30,6 +32,8 @@ constexpr char kTag[] = "simcore";
 struct Application {
   configuration::NvsConfigurationStorage configuration_storage;
   configuration::ConfigurationService configuration_service;
+  font_assets::PartitionStorage font_asset_storage;
+  font_assets::Service font_asset_service;
   configuration::ConfigurationControl configuration_control;
   configuration::ConfigurationRouter configuration_router;
   events::EventBus event_bus;
@@ -77,6 +81,11 @@ void run() {
   }
   const configuration::ApplicationConfiguration& configuration =
       application.configuration_service.current();
+  if (!application.font_asset_service.initialize(
+          application.font_asset_storage)) {
+    log::warn(kTag,
+              "Font asset storage unavailable; using compiled Montserrat");
+  }
   transport::ITransport& telemetry_transport =
       board_registry::telemetry_transport(configuration);
 
@@ -95,6 +104,7 @@ void run() {
   }
   if (!runtime_composition::create_dashboard(
           display, configuration, application.modules, application.dashboard,
+          application.font_asset_service,
           application.telemetry_registry, application.telemetry_state,
           telemetry_transport)) {
     log::error(kTag, "Dashboard composition is incomplete");

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dashboard_fonts.hpp"
 #include "delta_time.hpp"
 #include "lap_timer.hpp"
 #include "text_widget.hpp"
@@ -14,6 +15,10 @@ struct ApplicationConfiguration;
 
 namespace simcore::events {
 class EventBus;
+}
+
+namespace simcore::font_assets {
+class Service;
 }
 
 namespace simcore::telemetry {
@@ -36,6 +41,7 @@ struct Modules {
 };
 
 struct Dashboard {
+  dashboard::fonts::Registry fonts;
   dashboard::text_widget::Binder text_widget_binder;
   dashboard::text_widget::Collection text_widgets;
 };
@@ -52,6 +58,7 @@ struct Dashboard {
     lv_display_t* display,
     const configuration::ApplicationConfiguration& configuration,
     Modules& modules, Dashboard& dashboard_state,
+    const font_assets::Service& font_assets,
     const telemetry::ITelemetryRegistry& telemetry_registry,
     const telemetry::ITelemetryReader& telemetry,
     const transport::ITransport& telemetry_transport);

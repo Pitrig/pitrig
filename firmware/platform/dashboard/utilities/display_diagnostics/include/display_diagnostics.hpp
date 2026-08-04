@@ -4,6 +4,10 @@
 
 #include "lvgl.h"
 
+namespace simcore::dashboard::fonts {
+class Registry;
+}
+
 namespace simcore::dashboard::display_diagnostics {
 
 struct Config {
@@ -14,6 +18,7 @@ struct Config {
 
 // Runs the full-screen display hardware diagnostic. Its pages exercise
 // geometry, color channels, pixel transitions, font rendering, and refresh.
-[[nodiscard]] bool create(lv_display_t* display, const Config& config);
+[[nodiscard]] bool create(lv_display_t* display, const Config& config,
+                          const fonts::Registry& fonts);
 
 }  // namespace simcore::dashboard::display_diagnostics

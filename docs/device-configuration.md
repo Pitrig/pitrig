@@ -187,6 +187,13 @@ Font family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`,
 or `-`. `size_px` is an integer from 1 through 255. Font files and converted
 font bytes are not part of this JSON document or configuration NVS.
 
+Uploaded fonts are stored as an independently recoverable A/B asset package.
+The package format and firmware validation rules are defined in
+[Font asset storage](font-assets.md). Installing a new package requires a
+reboot before its fonts can be selected; the sparse device configuration may
+be saved before or after the asset package because unavailable fonts render
+with the Montserrat fallback.
+
 ## Device information
 
 `INFO` reports immutable device metadata and configuration storage status:

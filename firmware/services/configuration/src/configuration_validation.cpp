@@ -15,11 +15,11 @@ namespace {
 }
 
 [[nodiscard]] bool valid_font(const dashboard::FontSpec& font) {
-  const std::string_view family = dashboard::font_family_id_view(font.family);
+  const std::string_view family = font_assets::family_id_view(font.family);
   if (family.empty() ||
-      family.size() > dashboard::kMaximumFontFamilyIdLength ||
+      family.size() > font_assets::kMaximumFamilyIdLength ||
       font.size_px == 0 ||
-      font.size_px > dashboard::kMaximumFontSizePx) {
+      font.size_px > font_assets::kMaximumFontSizePx) {
     return false;
   }
   for (const char character : family) {

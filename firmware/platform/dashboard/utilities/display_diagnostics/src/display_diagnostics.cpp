@@ -313,7 +313,8 @@ lv_obj_t* create_label(lv_obj_t* parent, const std::int32_t y,
 
 }  // namespace
 
-bool create(lv_display_t* const display, const Config& config) {
+bool create(lv_display_t* const display, const Config& config,
+            const fonts::Registry& fonts) {
   if (display == nullptr || !lvgl_port_lock(0)) {
     return false;
   }
@@ -360,14 +361,14 @@ bool create(lv_display_t* const display, const Config& config) {
   state.font_large = create_label(screen, state.height / 5, 0xFFFFFF);
   lv_obj_set_style_text_font(
       state.font_large,
-      fonts::resolve({.family = kMontserratFontFamily, .size_px = 48}),
+      fonts.resolve({.family = kMontserratFontFamily, .size_px = 48}),
       LV_PART_MAIN);
   lv_label_set_text(state.font_large, "00:11.88");
 
   state.font_small = create_label(screen, state.height * 3 / 5, 0xE8E8E8);
   lv_obj_set_style_text_font(
       state.font_small,
-      fonts::resolve({.family = kMontserratFontFamily, .size_px = 24}),
+      fonts.resolve({.family = kMontserratFontFamily, .size_px = 24}),
       LV_PART_MAIN);
   lv_label_set_text(state.font_small, "RGB 565 Aa 0123");
 

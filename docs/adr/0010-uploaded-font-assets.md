@@ -69,5 +69,8 @@ back to a valid schema 2 slot or the board-only factory configuration.
 - Firmware still validates identifier syntax, sizes, manifest bounds, and
   checksums; configurator validation does not replace the device trust
   boundary.
-- Physical partitions, the asset registry, binary upload commands, and
-  configurator conversion are implemented in later approved phases.
+- The physical A/B partitions, bounded asset service, read-only flash mapping,
+  and LVGL font registry are implemented. The exact package contract is
+  documented in [Font asset storage](../font-assets.md).
+- Binary upload commands and configurator-side conversion remain separate
+  approved phases.

@@ -4,6 +4,7 @@
 #include "dashboard_layout.hpp"
 #include "delta_time_widget.hpp"
 #include "event_bus.hpp"
+#include "font_asset_service.hpp"
 #include "lap_timer_widget.hpp"
 #include "logger.hpp"
 #include "simcore_features.hpp"
@@ -64,6 +65,7 @@ bool create_dashboard(
     lv_display_t* const display,
     const configuration::ApplicationConfiguration& configuration,
     Modules& modules, Dashboard& dashboard_state,
+    const font_assets::Service& font_assets,
     const telemetry::ITelemetryRegistry& telemetry_registry,
     const telemetry::ITelemetryReader& telemetry,
     const transport::ITransport& telemetry_transport) {
@@ -74,13 +76,18 @@ bool create_dashboard(
     log::error(kTag, "Failed to initialize dashboard layout");
     return false;
   }
+  if (!dashboard_state.fonts.initialize(font_assets)) {
+    log::warn(kTag,
+              "One or more font assets are invalid; using Montserrat fallback");
+  }
 
   bool initialized = true;
   bool diagnostics_enabled = false;
 #if SIMCORE_DISPLAY_DIAGNOSTICS
   diagnostics_enabled = true;
   if (!dashboard::display_diagnostics::create(
-          display, dashboard::display_diagnostics::Config{})) {
+          display, dashboard::display_diagnostics::Config{},
+          dashboard_state.fonts)) {
     log::error(kTag, "Failed to start display diagnostics");
     initialized = false;
   }
@@ -93,7 +100,7 @@ bool create_dashboard(
         initialized = false;
       } else if (!dashboard::lap_timer_widget::create(
                      layout, configuration.dashboard.lap_timer,
-                     modules.lap_timer)) {
+                     modules.lap_timer, dashboard_state.fonts)) {
         log::error(kTag, "Failed to create Lap Timer widget");
         initialized = false;
       }
@@ -104,7 +111,7 @@ bool create_dashboard(
         initialized = false;
       } else if (!dashboard::delta_time_widget::create(
                      layout, configuration.dashboard.delta_time,
-                     modules.delta_time)) {
+                     modules.delta_time, dashboard_state.fonts)) {
         log::error(kTag, "Failed to create Delta Time widget");
         initialized = false;
       }
@@ -119,7 +126,7 @@ bool create_dashboard(
       initialized = false;
     } else if (!dashboard_state.text_widgets.create(
                    layout, dashboard_state.text_widget_binder.bindings(),
-                   telemetry)) {
+                   telemetry, dashboard_state.fonts)) {
       log::error(kTag, "Failed to create Text widgets");
       initialized = false;
     }

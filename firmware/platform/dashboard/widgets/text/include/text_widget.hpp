@@ -17,6 +17,10 @@ namespace simcore::telemetry {
 class ITelemetryReader;
 }
 
+namespace simcore::dashboard::fonts {
+class Registry;
+}
+
 namespace simcore::dashboard::text_widget {
 
 inline constexpr std::size_t kMaximumInstances = 16;
@@ -73,7 +77,8 @@ class Collection final {
 
   [[nodiscard]] bool create(
       const Layout& layout, std::span<const BoundConfig> configurations,
-      const telemetry::ITelemetryReader& telemetry);
+      const telemetry::ITelemetryReader& telemetry,
+      const fonts::Registry& fonts);
 
  private:
   struct State {

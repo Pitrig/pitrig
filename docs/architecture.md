@@ -236,8 +236,15 @@ Examples include:
 - Scheduling
 - Configuration
 - Communication
+- Font asset catalog and atomic update validation
 
 Services must remain focused and must not contain hardware-specific application logic.
+
+The font asset service owns the bounded, platform-independent A/B package
+lifecycle. Its ESP partition adapter lives under `platform/`, while dashboard
+code owns the LVGL-specific runtime font registry. This keeps raw flash access
+and UI-framework integration out of the service. See
+[Font asset storage](font-assets.md) for the persisted format and update rules.
 
 ---
 

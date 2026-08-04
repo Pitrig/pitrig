@@ -62,7 +62,8 @@ void copy_text(std::array<char, DestinationSize>& destination,
 bool Collection::create(
     const Layout& layout,
     const std::span<const BoundConfig> configurations,
-    const telemetry::ITelemetryReader& telemetry) {
+    const telemetry::ITelemetryReader& telemetry,
+    const fonts::Registry& fonts) {
   if (layout.display == nullptr ||
       configurations.size() > states_.size() || telemetry_ != nullptr ||
       !lvgl_port_lock(0)) {
@@ -78,8 +79,8 @@ bool Collection::create(
       return false;
     }
     const Config& config = *binding.configuration;
-    const lv_font_t* const title_font = fonts::resolve(config.title.font);
-    const lv_font_t* const value_font = fonts::resolve(config.value.font);
+    const lv_font_t* const title_font = fonts.resolve(config.title.font);
+    const lv_font_t* const value_font = fonts.resolve(config.value.font);
     const bool has_title = config.title.text.front() != '\0';
     const std::int32_t title_width =
         has_title ? text_width(title_font, config.title.text.data()) : 0;
