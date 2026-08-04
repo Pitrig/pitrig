@@ -146,23 +146,7 @@ template <std::size_t Size>
     return false;
   }
   const cJSON* const family = member(object, "family");
-  if (family == nullptr) {
-    return true;
-  }
-  if (!cJSON_IsString(family) || family->valuestring == nullptr) {
-    return false;
-  }
-  const std::string_view value{family->valuestring};
-  if (value == "roboto_mono") {
-    font.family = dashboard::FontFamily::roboto_mono;
-  } else if (value == "lcd") {
-    font.family = dashboard::FontFamily::lcd;
-  } else if (value == "montserrat") {
-    font.family = dashboard::FontFamily::montserrat;
-  } else {
-    return false;
-  }
-  return true;
+  return family == nullptr || copy_text(family, font.family);
 }
 
 [[nodiscard]] bool parse_optional_placement(

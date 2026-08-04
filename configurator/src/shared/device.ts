@@ -68,6 +68,7 @@ export interface DeviceConnection {
 }
 
 export type SimCoreBoardId = 't_display_s3' | 'guition_esp32_4848s040'
+export const CONFIGURATION_SCHEMA_VERSION = 2 as const
 
 export interface DisplayDescriptor {
   width: number
@@ -91,7 +92,7 @@ export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
 export interface DeviceInfo {
   boardId: SimCoreBoardId
   firmwareVersion: string
-  schemaVersion: 1
+  schemaVersion: typeof CONFIGURATION_SCHEMA_VERSION
   display: DisplayDescriptor
   configurationSource: 'factory' | 'slot_a' | 'slot_b'
   generation: number
@@ -106,7 +107,7 @@ export interface Placement {
 }
 
 export interface FontSpec {
-  family?: 'roboto_mono' | 'lcd' | 'montserrat'
+  family?: string
   size_px?: number
 }
 

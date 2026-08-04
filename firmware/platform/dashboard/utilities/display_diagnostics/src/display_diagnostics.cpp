@@ -360,13 +360,14 @@ bool create(lv_display_t* const display, const Config& config) {
   state.font_large = create_label(screen, state.height / 5, 0xFFFFFF);
   lv_obj_set_style_text_font(
       state.font_large,
-      fonts::resolve({.family = FontFamily::lcd, .size_px = 53}), LV_PART_MAIN);
+      fonts::resolve({.family = kMontserratFontFamily, .size_px = 48}),
+      LV_PART_MAIN);
   lv_label_set_text(state.font_large, "00:11.88");
 
   state.font_small = create_label(screen, state.height * 3 / 5, 0xE8E8E8);
   lv_obj_set_style_text_font(
       state.font_small,
-      fonts::resolve({.family = FontFamily::roboto_mono, .size_px = 43}),
+      fonts::resolve({.family = kMontserratFontFamily, .size_px = 24}),
       LV_PART_MAIN);
   lv_label_set_text(state.font_small, "RGB 565 Aa 0123");
 

@@ -1,6 +1,9 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 struct _lv_display_t;
 using lv_display_t = _lv_display_t;
@@ -11,15 +14,27 @@ namespace simcore::dashboard {
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFF'FFFFU;
 
-enum class FontFamily : std::uint8_t {
-  roboto_mono,
-  lcd,
-  montserrat,
-};
+inline constexpr std::size_t kFontFamilyIdCapacity = 32;
+inline constexpr std::size_t kMaximumFontFamilyIdLength =
+    kFontFamilyIdCapacity - 1;
+inline constexpr std::uint16_t kMaximumFontSizePx = 255;
+using FontFamilyId = std::array<char, kFontFamilyIdCapacity>;
+
+inline constexpr FontFamilyId kMontserratFontFamily{
+    'm', 'o', 'n', 't', 's', 'e', 'r', 'r', 'a', 't', '\0'};
+
+[[nodiscard]] constexpr std::string_view font_family_id_view(
+    const FontFamilyId& family) {
+  std::size_t size{};
+  while (size < family.size() && family[size] != '\0') {
+    ++size;
+  }
+  return {family.data(), size};
+}
 
 struct FontSpec {
-  FontFamily family{FontFamily::lcd};
-  std::uint16_t size_px{39};
+  FontFamilyId family{kMontserratFontFamily};
+  std::uint16_t size_px{48};
 };
 
 struct Rect {

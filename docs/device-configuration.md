@@ -1,8 +1,8 @@
 # Device configuration
 
-This document defines the schema 1 configuration contract implemented by the
-firmware and read by the desktop configurator. Schema 0 is intentionally not
-part of the contract.
+This document defines the schema 2 configuration contract implemented by the
+firmware and read by the desktop configurator. Earlier schemas are
+intentionally not part of the current contract.
 
 ## Hardware identity and user configuration
 
@@ -44,8 +44,8 @@ than transmitted by firmware or stored in device configuration.
 
 SimCore loads user configuration in this order:
 
-1. Active valid schema 1 NVS slot.
-2. Backup valid schema 1 NVS slot.
+1. Active valid schema 2 NVS slot.
+2. Backup valid schema 2 NVS slot.
 3. Board-only factory configuration compiled into firmware.
 
 The factory configuration enables no additional hardware devices, modules, or
@@ -118,7 +118,7 @@ uses absolute logical pixels:
 }
 ```
 
-Schema 1 has no regions, region identifiers, anchors, or anchor offsets.
+Schema 2 has no regions, region identifiers, anchors, or anchor offsets.
 
 Example sparse configuration:
 
@@ -175,11 +175,17 @@ Supported bindings:
 - `vehicle.fuel.average_consumption`;
 - `vehicle.fuel.laps_remaining`.
 
-Supported compiled fonts:
+The only compiled font family is `montserrat`. The public font resolver exposes
+the LVGL 10, 24, and 48 px variants; LVGL also retains Montserrat 14 px as its
+framework default. Other font references use a stable family identifier plus
+`size_px` and will resolve to separately uploaded LVGL binary assets in the
+completed font asset flow. Until that asset is installed, or when a requested
+built-in size is not available, firmware renders with the nearest public
+Montserrat size.
 
-- `montserrat`: 10, 24, 48 px;
-- `lcd`: 39, 43, 47, 53 px;
-- `roboto_mono`: 43 px.
+Font family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`,
+or `-`. `size_px` is an integer from 1 through 255. Font files and converted
+font bytes are not part of this JSON document or configuration NVS.
 
 ## Device information
 
@@ -187,7 +193,7 @@ Supported compiled fonts:
 
 ```text
 @SC:INFO
-@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=1,source=factory,generation=0,storage=1
+@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=2,source=factory,generation=0,storage=1
 ```
 
 Fields:
@@ -219,7 +225,7 @@ telemetry serial transport.
 | Request | Successful response | Purpose |
 | --- | --- | --- |
 | `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata. |
-| `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse schema 1 JSON payload. |
+| `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse schema 2 JSON payload. |
 | `@SC:VALIDATE:<JSON>` | `@SC:OK:VALID` | Validate without saving. |
 | `@SC:SET:<JSON>` | `@SC:OK:SAVED:reboot_required=1` | Validate and save. |
 | `@SC:RESET` | `@SC:OK:RESET:reboot_required=1` | Remove saved configuration. |
@@ -230,7 +236,7 @@ Errors use `@SC:ERR:<reason>`.
 After reset and reboot, `GET` returns the board-only factory configuration and
 the board-provided display remains enabled with an empty dashboard.
 
-## Public schema 1 payload
+## Public schema 2 payload
 
 The public payload is the bounded sparse JSON document described above. The
 configurator sends it directly; there is no binary codec or hexadecimal wrapper.
@@ -238,7 +244,7 @@ The serial protocol is line-oriented, so payloads must be compact single-line
 JSON without literal CR or LF bytes. Whitespace inside that one line is valid,
 but the configurator should use `JSON.stringify` output.
 
-Schema 1 top-level properties:
+Schema 2 top-level properties:
 
 | Property | Shape | Meaning |
 | --- | --- | --- |
@@ -273,13 +279,15 @@ no user-configurable peripheral driver has a complete production contract yet.
 Non-empty entries are rejected rather than guessed. Adding or changing public
 properties requires a later documented schema version.
 
-Schema 1 retains deterministic limits:
+Schema 2 retains deterministic limits:
 
 - maximum compact JSON payload size: 4096 bytes;
 - maximum text widgets: 16;
 - maximum canonical telemetry binding: 39 UTF-8 bytes;
 - maximum title: 15 UTF-8 bytes;
-- maximum unavailable text: 15 UTF-8 bytes.
+- maximum unavailable text: 15 UTF-8 bytes;
+- maximum font family identifier: 31 ASCII bytes;
+- font size range: 1 through 255 pixels.
 
 ## Internal persistence
 
@@ -290,13 +298,13 @@ writes and verifies the inactive slot before selecting it.
 
 Configurator code must not reproduce or depend on this NVS record format.
 
-Schema 0 records are unsupported and are not migrated. They fall back to
-another valid schema 1 slot or the board-only factory configuration.
+Schema 0 and schema 1 records are unsupported and are not migrated. They fall
+back to another valid schema 2 slot or the board-only factory configuration.
 
 ## CLI retirement
 
 The Python configuration CLI is retained temporarily for legacy schema 0
-firmware and is not compatible with schema 1. It must be removed, together with
+firmware and is not compatible with schema 2. It must be removed, together with
 its requirements and CLI-specific profiles, after the desktop configurator
 implements the complete `INFO`, `GET`, `VALIDATE`, `SET`, `RESET`, and `REBOOT`
 round trip.

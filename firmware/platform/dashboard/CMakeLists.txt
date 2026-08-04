@@ -1,16 +1,11 @@
 set(component_sources
     "fonts/src/dashboard_fonts.cpp"
-    "fonts/simcore_lcd_39.c"
-    "fonts/simcore_lcd_43.c"
-    "fonts/simcore_lcd_47.c"
-    "fonts/simcore_lcd_53.c"
-    "fonts/simcore_roboto_mono_43.c"
     "layout/src/dashboard_layout.cpp"
     "utilities/display_diagnostics/src/display_diagnostics.cpp"
     "widgets/delta_time/src/delta_time_widget.cpp"
     "widgets/lap_timer/src/lap_timer_widget.cpp"
-                            "widgets/text/src/text_widget.cpp"
-                            "widgets/text/src/widget_binding.cpp"
+    "widgets/text/src/text_widget.cpp"
+    "widgets/text/src/widget_binding.cpp"
     "widgets/performance_overlay/src/performance_overlay_widget.cpp")
 set(component_include_dirs
     "include"

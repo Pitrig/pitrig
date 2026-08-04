@@ -1,6 +1,7 @@
 #include "configuration_json.hpp"
 
 #include <algorithm>
+#include <string_view>
 
 namespace simcore::configuration {
 namespace {
@@ -14,15 +15,23 @@ namespace {
 }
 
 [[nodiscard]] bool valid_font(const dashboard::FontSpec& font) {
-  if (font.family == dashboard::FontFamily::montserrat) {
-    return font.size_px == 10 || font.size_px == 24 || font.size_px == 48;
+  const std::string_view family = dashboard::font_family_id_view(font.family);
+  if (family.empty() ||
+      family.size() > dashboard::kMaximumFontFamilyIdLength ||
+      font.size_px == 0 ||
+      font.size_px > dashboard::kMaximumFontSizePx) {
+    return false;
   }
-  if (font.family == dashboard::FontFamily::lcd) {
-    return font.size_px == 39 || font.size_px == 43 ||
-           font.size_px == 47 || font.size_px == 53;
+  for (const char character : family) {
+    const bool valid_character =
+        (character >= 'a' && character <= 'z') ||
+        (character >= '0' && character <= '9') || character == '_' ||
+        character == '-';
+    if (!valid_character) {
+      return false;
+    }
   }
-  return font.family == dashboard::FontFamily::roboto_mono &&
-         font.size_px == 43;
+  return true;
 }
 
 [[nodiscard]] bool valid_placement(const dashboard::Placement& placement,

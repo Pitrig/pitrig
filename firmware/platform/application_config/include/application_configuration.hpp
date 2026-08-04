@@ -43,7 +43,7 @@ struct BoardValidationProfile {
   bool native_usb_cdc_supported{};
 };
 
-// Schema 1 reserves a bounded hardware-device section. No user-configurable
+// Schema 2 reserves a bounded hardware-device section. No user-configurable
 // peripheral driver is exposed until firmware implements its complete type,
 // validation, and runtime composition path.
 struct HardwareConfiguration {

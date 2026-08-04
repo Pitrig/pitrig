@@ -39,13 +39,13 @@ struct Border {
 
 struct TitleStyle {
   std::array<char, kTitleCapacity> text{};
-  FontSpec font{.family = FontFamily::montserrat, .size_px = 10};
+  FontSpec font{.family = kMontserratFontFamily, .size_px = 10};
   std::uint32_t color{0xE8E8E8};
   std::int16_t offset_y_px{};
 };
 
 struct ValueStyle {
-  FontSpec font{.family = FontFamily::montserrat, .size_px = 48};
+  FontSpec font{.family = kMontserratFontFamily, .size_px = 48};
   std::uint32_t color{0xE8E8E8};
   Alignment alignment{Alignment::center};
   std::array<char, kUnavailableTextCapacity> unavailable_text{

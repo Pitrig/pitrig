@@ -1,4 +1,8 @@
-import type { DeviceConfiguration, SimCoreBoardId } from '../../shared/device'
+import {
+  CONFIGURATION_SCHEMA_VERSION,
+  type DeviceConfiguration,
+  type SimCoreBoardId
+} from '../../shared/device'
 
 const SUPPORTED_BOARDS = new Set<SimCoreBoardId>([
   't_display_s3',
@@ -23,7 +27,9 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
     !optionalRecord(value.delta_time) ||
     !optionalDashboard(value.dashboard)
   ) {
-    throw new Error('The device returned an invalid schema 1 configuration.')
+    throw new Error(
+      `The device returned an invalid schema ${CONFIGURATION_SCHEMA_VERSION} configuration.`
+    )
   }
   return value as unknown as DeviceConfiguration
 }

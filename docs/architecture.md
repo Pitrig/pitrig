@@ -320,11 +320,18 @@ read-only capability. Additional hardware devices, modules, and widgets are
 created only when present in the validated configuration, so a freshly flashed
 or reset production device has an enabled display with an empty dashboard.
 
-Public configuration schema 1 uses a bounded sparse JSON document directly for
+Public configuration schema 2 uses a bounded sparse JSON document directly for
 authoring and device transport. Widget geometry uses absolute logical display
 coordinates; regions, region identifiers, and anchors are not part of the
 contract. Firmware parses and validates JSON on the configuration/startup path,
 then runtime code uses bounded typed structures.
+
+Fonts use a bounded family identifier and pixel size. Only LVGL Montserrat is
+compiled into firmware. Configurator-imported fonts are converted to LVGL
+binary assets and stored in a separately versioned, checksummed, recoverable
+flash asset set; they are not embedded in configuration JSON, configuration
+NVS, or the application image. Missing optional assets render through a
+compiled Montserrat fallback.
 
 Persistent NVS slot headers, generations, CRC validation, and recovery remain
 private to the configuration service. External tools communicate only through

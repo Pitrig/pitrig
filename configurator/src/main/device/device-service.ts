@@ -6,6 +6,7 @@ import type { SerialTrafficLog } from '../../shared/development'
 import {
   AUTOMATIC_BAUD_RATES,
   BOARD_PROFILES,
+  CONFIGURATION_SCHEMA_VERSION,
   type DeviceConnection,
   type DeviceError,
   type DeviceErrorCode,
@@ -506,7 +507,7 @@ function parseDeviceInfo(line: string): DeviceInfo {
   if (board !== 't_display_s3' && board !== 'guition_esp32_4848s040') {
     throw new DeviceServiceError('not_simcore', `Unsupported SimCore board: ${board ?? 'unknown'}.`)
   }
-  if (fields.get('schema') !== '1') {
+  if (fields.get('schema') !== String(CONFIGURATION_SCHEMA_VERSION)) {
     throw new DeviceServiceError(
       'not_simcore',
       `Unsupported configuration schema: ${fields.get('schema') ?? 'unknown'}.`
@@ -527,7 +528,7 @@ function parseDeviceInfo(line: string): DeviceInfo {
   return {
     boardId: board,
     firmwareVersion,
-    schemaVersion: 1,
+    schemaVersion: CONFIGURATION_SCHEMA_VERSION,
     display: BOARD_PROFILES[board].display,
     configurationSource: source,
     generation,
