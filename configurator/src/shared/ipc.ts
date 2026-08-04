@@ -1,5 +1,9 @@
 import type {
   ConnectDeviceRequest,
+  DeviceConfigurationRequest,
+  DeviceConfigurationResetResult,
+  DeviceConfigurationSaveResult,
+  DeviceConfiguration,
   DeviceResult,
   DeviceState,
   SerialPortSummary
@@ -30,6 +34,14 @@ export interface SimCoreApi {
   autoConnectDevice: () => Promise<DeviceResult<DeviceState>>
   cancelAutoConnect: () => Promise<DeviceResult<DeviceState>>
   disconnectDevice: () => Promise<DeviceResult<DeviceState>>
+  readDeviceConfiguration: () => Promise<DeviceResult<DeviceState>>
+  validateDeviceConfiguration: (
+    request: DeviceConfigurationRequest
+  ) => Promise<DeviceResult<DeviceConfiguration>>
+  saveDeviceConfiguration: (
+    request: DeviceConfigurationRequest
+  ) => Promise<DeviceResult<DeviceConfigurationSaveResult>>
+  resetDeviceConfiguration: () => Promise<DeviceResult<DeviceConfigurationResetResult>>
   rebootDevice: () => Promise<DeviceResult<DeviceState>>
   selectFontSource: () => Promise<FontAssetResult<FontSourceSelection | null>>
   uploadFontAssets: (request: FontUploadRequest) => Promise<FontAssetResult<void>>

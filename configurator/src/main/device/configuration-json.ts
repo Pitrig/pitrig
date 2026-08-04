@@ -1,5 +1,6 @@
 import {
   CONFIGURATION_SCHEMA_VERSION,
+  MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
   type DeviceConfiguration,
   type SimCoreBoardId
 } from '../../shared/device'
@@ -32,6 +33,23 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
     )
   }
   return value as unknown as DeviceConfiguration
+}
+
+export function prepareDeviceConfigurationJson(
+  json: string,
+  expectedBoard: SimCoreBoardId
+): { configuration: DeviceConfiguration; payload: string } {
+  const configuration = parseDeviceConfigurationJson(json)
+  if (configuration.board !== expectedBoard) {
+    throw new Error(`Configuration board must remain ${expectedBoard}.`)
+  }
+  const payload = JSON.stringify(configuration)
+  if (Buffer.byteLength(payload, 'utf8') > MAXIMUM_CONFIGURATION_PAYLOAD_SIZE) {
+    throw new Error(
+      `Configuration exceeds the ${MAXIMUM_CONFIGURATION_PAYLOAD_SIZE}-byte device limit.`
+    )
+  }
+  return { configuration, payload }
 }
 
 function optionalDashboard(value: unknown): boolean {

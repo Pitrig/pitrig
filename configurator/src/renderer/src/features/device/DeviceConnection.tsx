@@ -75,13 +75,13 @@ export function DeviceConnection({
     void window.simcore.getDeviceState().then((initialState) => {
       writeDevelopmentLog('Initial device state', initialState)
       setState(initialState)
-      applyDeviceState(initialState.status, initialState.session)
+      applyDeviceState(initialState)
     })
     void window.simcore.listSerialPorts().then(applyPortResult)
     return window.simcore.onDeviceStateChanged((nextState) => {
       writeDevelopmentLog('Device state changed', nextState)
       setState(nextState)
-      applyDeviceState(nextState.status, nextState.session)
+      applyDeviceState(nextState)
     })
   }, [applyDeviceState, applyPortResult])
 

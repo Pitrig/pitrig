@@ -8,12 +8,17 @@ import {
   DEVICE_AUTO_CONNECT_CHANNEL,
   DEVICE_CANCEL_AUTO_CONNECT_CHANNEL,
   DEVICE_CONNECT_CHANNEL,
+  DEVICE_CONFIGURATION_READ_CHANNEL,
+  DEVICE_CONFIGURATION_RESET_CHANNEL,
+  DEVICE_CONFIGURATION_SAVE_CHANNEL,
+  DEVICE_CONFIGURATION_VALIDATE_CHANNEL,
   DEVICE_DISCONNECT_CHANNEL,
   DEVICE_GET_STATE_CHANNEL,
   DEVICE_LIST_PORTS_CHANNEL,
   DEVICE_REBOOT_CHANNEL,
   DEVICE_STATE_CHANGED_CHANNEL,
   type ConnectDeviceRequest,
+  type DeviceConfigurationRequest,
   type DeviceResult,
   type DeviceState
 } from '../../shared/device'
@@ -48,6 +53,20 @@ export function registerIpcHandlers(
   ipcMain.handle(DEVICE_AUTO_CONNECT_CHANNEL, () => deviceService.autoConnect())
   ipcMain.handle(DEVICE_CANCEL_AUTO_CONNECT_CHANNEL, () => deviceService.cancelAutoConnect())
   ipcMain.handle(DEVICE_DISCONNECT_CHANNEL, () => deviceService.disconnect())
+  ipcMain.handle(DEVICE_CONFIGURATION_READ_CHANNEL, () => deviceService.readConfiguration())
+  ipcMain.handle(DEVICE_CONFIGURATION_RESET_CHANNEL, () => deviceService.resetConfiguration())
+  ipcMain.handle(DEVICE_CONFIGURATION_VALIDATE_CHANNEL, (_event, request: unknown) => {
+    if (!isConfigurationRequest(request)) {
+      return invalidConfigurationRequest()
+    }
+    return deviceService.validateConfiguration(request.json)
+  })
+  ipcMain.handle(DEVICE_CONFIGURATION_SAVE_CHANNEL, (_event, request: unknown) => {
+    if (!isConfigurationRequest(request)) {
+      return invalidConfigurationRequest()
+    }
+    return deviceService.saveConfiguration(request.json)
+  })
   ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.reboot())
   ipcMain.handle(FONT_SELECT_SOURCE_CHANNEL, (event) =>
     fontAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
@@ -113,6 +132,19 @@ function isConnectRequest(value: unknown): value is ConnectDeviceRequest {
     request.baudRate >= 9_600 &&
     request.baudRate <= 2_000_000
   )
+}
+
+function isConfigurationRequest(value: unknown): value is DeviceConfigurationRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<DeviceConfigurationRequest>
+  return typeof request.json === 'string' && request.json.length <= 64 * 1024
+}
+
+function invalidConfigurationRequest(): DeviceResult<never> {
+  return {
+    ok: false,
+    error: { code: 'invalid_request', message: 'Invalid device configuration request.' }
+  }
 }
 
 function isFontUploadRequest(value: unknown): value is FontUploadRequest {

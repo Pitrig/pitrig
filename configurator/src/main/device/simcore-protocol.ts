@@ -3,9 +3,12 @@ import type { SerialPort } from 'serialport'
 import {
   BOARD_PROFILES,
   CONFIGURATION_SCHEMA_VERSION,
+  type DeviceConfiguration,
+  type DeviceErrorCode,
   type DeviceInfo,
   type DeviceSession,
-  type FontAssetDeviceInfo
+  type FontAssetDeviceInfo,
+  type SimCoreBoardId
 } from '../../shared/device'
 import { parseDeviceConfigurationJson } from './configuration-json'
 import { DeviceServiceError } from './device-errors'
@@ -15,6 +18,7 @@ const MAXIMUM_RESPONSE_BUFFER_SIZE = 8_192
 const INFO_REQUEST = '@SC:INFO\n'
 const GET_REQUEST = '@SC:GET\n'
 const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
+const CONFIGURATION_TIMEOUT_MS = 2_000
 
 type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
 
@@ -30,22 +34,7 @@ export async function probeSimCore(
     onTraffic
   )
   const info = parseDeviceInfo(infoLine)
-  const configurationLine = await requestResponse(
-    port,
-    GET_REQUEST,
-    '@SC:OK:CONFIG:',
-    1_500,
-    onTraffic
-  )
-  let configuration: DeviceSession['configuration']
-  try {
-    configuration = parseDeviceConfigurationJson(
-      configurationLine.slice('@SC:OK:CONFIG:'.length)
-    )
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown configuration error.'
-    throw new DeviceServiceError('not_simcore', message)
-  }
+  const configuration = await readConfiguration(port, info.boardId, onTraffic, 'not_simcore')
   if (configuration.board !== info.boardId) {
     throw new DeviceServiceError(
       'not_simcore',
@@ -56,20 +45,96 @@ export async function probeSimCore(
   return { info, configuration, ...(fontAssets ? { fontAssets } : {}) }
 }
 
+export async function readConfiguration(
+  port: SerialPort,
+  expectedBoard: SimCoreBoardId,
+  onTraffic: TrafficCallback,
+  rejectionCode: DeviceErrorCode = 'configuration_rejected'
+): Promise<DeviceConfiguration> {
+  const line = await requestResponse(
+    port,
+    GET_REQUEST,
+    '@SC:OK:CONFIG:',
+    CONFIGURATION_TIMEOUT_MS,
+    onTraffic,
+    rejectionCode
+  )
+  try {
+    const configuration = parseDeviceConfigurationJson(line.slice('@SC:OK:CONFIG:'.length))
+    if (configuration.board !== expectedBoard) {
+      throw new Error('The device configuration board does not match the connected hardware.')
+    }
+    return configuration
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown configuration error.'
+    throw new DeviceServiceError(rejectionCode, message)
+  }
+}
+
+export async function validateConfiguration(
+  port: SerialPort,
+  payload: string,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    `@SC:VALIDATE:${payload}\n`,
+    '@SC:OK:VALID',
+    CONFIGURATION_TIMEOUT_MS,
+    onTraffic,
+    'configuration_rejected',
+    false
+  )
+}
+
+export async function saveConfiguration(
+  port: SerialPort,
+  payload: string,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    `@SC:SET:${payload}\n`,
+    '@SC:OK:SAVED:reboot_required=1',
+    CONFIGURATION_TIMEOUT_MS,
+    onTraffic,
+    'configuration_rejected',
+    false
+  )
+}
+
+export async function resetConfiguration(
+  port: SerialPort,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    '@SC:RESET\n',
+    '@SC:OK:RESET:reboot_required=1',
+    CONFIGURATION_TIMEOUT_MS,
+    onTraffic,
+    'configuration_rejected',
+    false
+  )
+}
+
 export function requestResponse(
   port: SerialPort,
   request: string,
   responsePrefix: string,
   timeoutMs: number,
-  onTraffic: TrafficCallback
+  onTraffic: TrafficCallback,
+  rejectionCode: DeviceErrorCode = 'not_simcore',
+  retryRequest = true
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     let buffer = ''
     let settled = false
+    let retryTimer: ReturnType<typeof setInterval> | undefined
 
     const cleanup = (): void => {
       clearTimeout(timeoutTimer)
-      clearInterval(retryTimer)
+      if (retryTimer) clearInterval(retryTimer)
       port.off('data', onData)
       port.off('error', onError)
       port.off('close', onClose)
@@ -97,15 +162,15 @@ export function requestResponse(
       if (deviceError) {
         finish(
           new DeviceServiceError(
-            'not_simcore',
-            `SimCore rejected the request: ${deviceError}`
+            rejectionCode,
+            `SimCore rejected the request: ${deviceError.slice('@SC:ERR:'.length)}`
           )
         )
       }
     }
     const onError = (error: Error): void => finish(error)
     const onClose = (): void => {
-      finish(new DeviceServiceError('serial_error', 'Serial port closed during probe.'))
+      finish(new DeviceServiceError('serial_error', 'Serial port closed during request.'))
     }
     const sendRequest = (): void => {
       if (!port.isOpen || settled) return
@@ -118,9 +183,9 @@ export function requestResponse(
     port.on('data', onData)
     port.once('error', onError)
     port.once('close', onClose)
-    const retryTimer = setInterval(sendRequest, 350)
+    if (retryRequest) retryTimer = setInterval(sendRequest, 350)
     const timeoutTimer = setTimeout(() => {
-      finish(new DeviceServiceError('not_simcore', `The device did not answer ${request.trim()}.`))
+      finish(new DeviceServiceError(rejectionCode, `The device did not answer ${request.trim()}.`))
     }, timeoutMs)
     port.flush(() => sendRequest())
   })

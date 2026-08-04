@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react'
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ConfigurationPanel } from '@/features/configuration/ConfigurationPanel'
+import { DisplayPreview } from '@/features/configuration/DisplayPreview'
 import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -23,7 +19,7 @@ export function App(): React.JSX.Element {
   }, [])
 
   return (
-    <div className="grid min-h-screen grid-rows-[3.5rem_1fr_2.5rem] bg-background text-foreground">
+    <div className="grid h-screen overflow-hidden grid-rows-[3.5rem_minmax(0,1fr)_2.5rem] bg-background text-foreground">
       <header className="flex items-center justify-between border-b px-5">
         <div>
           <h1 className="text-sm font-semibold">SimCore Configurator</h1>
@@ -32,41 +28,19 @@ export function App(): React.JSX.Element {
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 
-      <main className="grid min-h-0 grid-cols-[18rem_minmax(0,1fr)_18rem]">
-        <aside className="min-h-0 overflow-auto border-r p-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Components</CardTitle>
-              <CardDescription>Available widgets will appear here.</CardDescription>
-            </CardHeader>
-          </Card>
+      <main className="grid min-h-0 overflow-hidden grid-cols-[24rem_minmax(0,1fr)_18rem]">
+        <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-r p-3">
+          <ConfigurationPanel />
           <div className="mt-3">
             <FontAssetsPanel />
           </div>
         </aside>
 
-        <section className="flex min-w-0 items-center justify-center bg-muted/30 p-6">
-          <Card className="w-full max-w-2xl border-dashed bg-background/70">
-            <CardHeader className="text-center">
-              <CardTitle>Display editor</CardTitle>
-              <CardDescription>
-                The application foundation is ready. Editor behavior is intentionally not part of this phase.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div
-                className="mx-auto w-full rounded-md border bg-black"
-                style={{
-                  aspectRatio: deviceSession
-                    ? `${deviceSession.info.display.width} / ${deviceSession.info.display.height}`
-                    : '16 / 9'
-                }}
-              />
-            </CardContent>
-          </Card>
+        <section className="flex min-h-0 min-w-0 items-start justify-center overflow-hidden bg-muted/30 p-6">
+          <DisplayPreview />
         </section>
 
-        <aside className="border-l p-3">
+        <aside className="min-h-0 overflow-hidden border-l p-3">
           <Card>
             <CardHeader>
               <CardTitle>Device</CardTitle>
@@ -88,6 +62,11 @@ export function App(): React.JSX.Element {
                 <ReadOnlyField
                   label="Configuration"
                   value={deviceSession.info.configurationSource}
+                />
+                <ReadOnlyField label="Generation" value={String(deviceSession.info.generation)} />
+                <ReadOnlyField
+                  label="Persistent storage"
+                  value={deviceSession.info.storageAvailable ? 'Available' : 'Unavailable'}
                 />
               </CardContent>
             ) : null}

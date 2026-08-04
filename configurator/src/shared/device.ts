@@ -5,6 +5,10 @@ export const DEVICE_AUTO_CONNECT_CHANNEL = 'device:auto-connect' as const
 export const DEVICE_CANCEL_AUTO_CONNECT_CHANNEL = 'device:cancel-auto-connect' as const
 export const DEVICE_DISCONNECT_CHANNEL = 'device:disconnect' as const
 export const DEVICE_REBOOT_CHANNEL = 'device:reboot' as const
+export const DEVICE_CONFIGURATION_READ_CHANNEL = 'device:configuration:read' as const
+export const DEVICE_CONFIGURATION_VALIDATE_CHANNEL = 'device:configuration:validate' as const
+export const DEVICE_CONFIGURATION_SAVE_CHANNEL = 'device:configuration:save' as const
+export const DEVICE_CONFIGURATION_RESET_CHANNEL = 'device:configuration:reset' as const
 export const DEVICE_STATE_CHANGED_CHANNEL = 'device:state-changed' as const
 
 export const DEFAULT_BAUD_RATE = 115_200
@@ -47,6 +51,7 @@ export type DeviceStatus =
 export type DeviceErrorCode =
   | 'busy'
   | 'cancelled'
+  | 'configuration_rejected'
   | 'invalid_request'
   | 'multiple_devices'
   | 'no_device'
@@ -70,6 +75,7 @@ export interface DeviceConnection {
 
 export type SimCoreBoardId = 't_display_s3' | 'guition_esp32_4848s040'
 export const CONFIGURATION_SCHEMA_VERSION = 2 as const
+export const MAXIMUM_CONFIGURATION_PAYLOAD_SIZE = 4_096
 
 export interface DisplayDescriptor {
   width: number
@@ -209,6 +215,20 @@ export interface DeviceState {
 export interface ConnectDeviceRequest {
   portId: string
   baudRate: number
+}
+
+export interface DeviceConfigurationRequest {
+  json: string
+}
+
+export interface DeviceConfigurationSaveResult {
+  configuration: DeviceConfiguration
+  rebootRequired: true
+}
+
+export interface DeviceConfigurationResetResult {
+  configuration: DeviceConfiguration
+  rebootRequired: true
 }
 
 export type DeviceResult<T> =

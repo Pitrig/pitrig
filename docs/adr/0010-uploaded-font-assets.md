@@ -50,7 +50,11 @@ The new package becomes active only after reboot. At startup the package is
 memory-mapped read-only and exposed to LVGL's binary font loader. The current
 LVGL loader materializes the opened font's glyph metadata and bitmap data in
 the LVGL heap, so the mapping can be released before a later upload without
-invalidating active LVGL font objects.
+invalidating active LVGL font objects. LVGL uses the system C allocator rather
+than its fixed 64 KiB built-in pool. ESP-IDF routes allocations of at least
+16 KiB to PSRAM while reserving internal memory for DMA and other constrained
+users; this lets bounded large font bitmaps load without consuming the internal
+heap or entering LVGL's allocation assertion.
 
 Asset upload uses a dedicated bounded, stop-and-wait protocol over the selected
 serial transport, separate from configuration `SET`. Binary frames carry an
@@ -72,7 +76,8 @@ back to a valid schema 2 slot or the board-only factory configuration.
 - Firmware keeps only Montserrat in its application image.
 - Persisted font bytes consume dedicated flash rather than configuration NVS or
   the application image. The current LVGL loader still allocates runtime font
-  data when an uploaded font is opened.
+  data when an uploaded font is opened; large allocations use PSRAM through the
+  ESP-IDF system allocator.
 - Replacing a package requires a reboot before the new assets are used.
 - An interrupted update can remove the previous package; there is no second
   slot or rollback generation.

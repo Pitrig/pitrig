@@ -1,0 +1,78 @@
+{
+  "board": "t_display_s3",
+  "lap_timer": {
+    "telemetry_only": false,
+    "telemetry_timeout_ms": 1000
+  },
+  "delta_time": {
+    "unavailable_behavior": "placeholder",
+    "placeholder": "--",
+    "scale": {
+      "enabled": true,
+      "show_sign": true,
+      "range_ms": 5000
+    }
+  },
+  "dashboard": {
+    "widgets": {
+      "lap_timer": {
+        "placement": {
+          "x": 8,
+          "y": 8,
+          "width": 304,
+          "height": 42
+        },
+        "font": {
+          "family": "roboto-black",
+          "size_px": 32
+        },
+        "text_color": "#FFFFFF"
+      },
+      "delta_time": {
+        "placement": {
+          "x": 32,
+          "y": 56,
+          "width": 256,
+          "height": 58
+        },
+        "font": {
+          "family": "roboto-black",
+          "size_px": 32
+        },
+        "faster_color": "#00F020",
+        "slower_color": "#FF4040",
+        "neutral_color": "#FFE04A",
+        "scale": {
+          "vertical_padding_px": 4,
+          "border_width_px": 2,
+          "border_radius_px": 10
+        }
+      },
+      "text": [
+        {
+          "binding": "session.lap.estimated_time",
+          "placement": {
+            "x": 8,
+            "y": 122,
+            "width": 304,
+            "height": 40
+          },
+          "border": {
+            "color": "#FFE04A",
+            "width_px": 2,
+            "radius_px": 10
+          },
+          "value": {
+            "font": {
+              "family": "roboto-black",
+              "size_px": 32
+            },
+            "color": "#FFFFFF",
+            "alignment": "center",
+            "unavailable_text": "--"
+          }
+        }
+      ]
+    }
+  }
+}

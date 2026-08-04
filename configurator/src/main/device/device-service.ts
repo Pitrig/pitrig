@@ -3,6 +3,9 @@ import { SerialPort } from 'serialport'
 import type { SerialTrafficLog } from '../../shared/development'
 import {
   AUTOMATIC_BAUD_RATES,
+  type DeviceConfiguration,
+  type DeviceConfigurationResetResult,
+  type DeviceConfigurationSaveResult,
   type DeviceConnection,
   type DeviceError,
   type DeviceResult,
@@ -18,10 +21,18 @@ import {
   toDeviceError
 } from './device-errors'
 import { uploadFontPackage } from './font-upload'
+import { prepareDeviceConfigurationJson } from './configuration-json'
 import { isBluetoothPort, PortRegistry, type PortRecord } from './port-registry'
 import { closePort, openPort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
-import { probeSimCore, requestResponse } from './simcore-protocol'
+import {
+  probeSimCore,
+  readConfiguration,
+  requestResponse,
+  resetConfiguration,
+  saveConfiguration,
+  validateConfiguration
+} from './simcore-protocol'
 
 interface Match {
   record: PortRecord
@@ -208,6 +219,96 @@ export class DeviceService {
     return success(this.state)
   }
 
+  async readConfiguration(): Promise<DeviceResult<DeviceState>> {
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    const { port, session, traffic } = active.value
+    this.deviceOperationActive = true
+    try {
+      const configuration = await readConfiguration(
+        port,
+        session.info.boardId,
+        this.operationTraffic(traffic)
+      )
+      if (this.activePort !== port || this.state.session !== session) {
+        throw new DeviceServiceError('serial_error', 'The connected device changed during read.')
+      }
+      this.setState({
+        ...this.state,
+        session: { ...session, configuration }
+      })
+      return success(this.state)
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
+
+  async validateConfiguration(
+    json: string
+  ): Promise<DeviceResult<DeviceConfiguration>> {
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    const prepared = this.prepareConfiguration(json, active.value.session)
+    if (!prepared.ok) return prepared
+    this.deviceOperationActive = true
+    try {
+      await validateConfiguration(
+        active.value.port,
+        prepared.value.payload,
+        this.operationTraffic(active.value.traffic)
+      )
+      return success(prepared.value.configuration)
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
+
+  async saveConfiguration(
+    json: string
+  ): Promise<DeviceResult<DeviceConfigurationSaveResult>> {
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    const prepared = this.prepareConfiguration(json, active.value.session)
+    if (!prepared.ok) return prepared
+    this.deviceOperationActive = true
+    try {
+      await saveConfiguration(
+        active.value.port,
+        prepared.value.payload,
+        this.operationTraffic(active.value.traffic)
+      )
+      return success({
+        configuration: prepared.value.configuration,
+        rebootRequired: true
+      })
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
+
+  async resetConfiguration(): Promise<DeviceResult<DeviceConfigurationResetResult>> {
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    this.deviceOperationActive = true
+    try {
+      await resetConfiguration(active.value.port, this.operationTraffic(active.value.traffic))
+      return success({
+        configuration: { board: active.value.session.info.boardId },
+        rebootRequired: true
+      })
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
+
   private async closeDevicePorts(): Promise<void> {
     ++this.operationToken
     this.setState({ status: 'disconnecting' })
@@ -242,7 +343,9 @@ export class DeviceService {
         (direction, data) => {
           // RX is already observed by the active port listener.
           if (direction === 'tx') traffic?.write(direction, data)
-        }
+        },
+        'serial_error',
+        false
       )
       this.activePort = undefined
       this.activeTraffic = undefined
@@ -317,6 +420,43 @@ export class DeviceService {
 
   private async refreshPortRegistry(): Promise<PortRecord[]> {
     return this.portRegistry.refresh()
+  }
+
+  private getActiveDevice(): DeviceResult<OpenedDevice> {
+    const port = this.activePort
+    const session = this.state.session
+    const traffic = this.activeTraffic
+    if (!port?.isOpen || !session || !traffic) {
+      return failure({ code: 'serial_error', message: 'No SimCore device is connected.' })
+    }
+    if (this.deviceOperationActive) {
+      return failure({ code: 'busy', message: 'Another device operation is already running.' })
+    }
+    return success({ port, session, traffic })
+  }
+
+  private prepareConfiguration(
+    json: string,
+    session: DeviceSession
+  ): DeviceResult<{ configuration: DeviceConfiguration; payload: string }> {
+    try {
+      return success(prepareDeviceConfigurationJson(json, session.info.boardId))
+    } catch (error) {
+      return failure({
+        code: 'configuration_rejected',
+        message: error instanceof Error ? error.message : 'Invalid device configuration.'
+      })
+    }
+  }
+
+  private operationTraffic(traffic: SerialTrafficReporter): (
+    direction: 'rx' | 'tx',
+    data: string
+  ) => void {
+    return (direction, data) => {
+      // RX is observed by the listener attached for the active connection.
+      if (direction === 'tx') traffic.write(direction, data)
+    }
   }
 
   private async openAndProbe(
