@@ -236,11 +236,11 @@ Examples include:
 - Scheduling
 - Configuration
 - Communication
-- Font asset catalog and atomic update validation
+- Font asset catalog and package validation
 
 Services must remain focused and must not contain hardware-specific application logic.
 
-The font asset service owns the bounded, platform-independent A/B package
+The font asset service owns the bounded, platform-independent single-package
 lifecycle. Its ESP partition adapter lives under `platform/`, while dashboard
 code owns the LVGL-specific runtime font registry. This keeps raw flash access
 and UI-framework integration out of the service. See
@@ -339,10 +339,10 @@ then runtime code uses bounded typed structures.
 
 Fonts use a bounded family identifier and pixel size. Only LVGL Montserrat is
 compiled into firmware. Configurator-imported fonts are converted to LVGL
-binary assets and stored in a separately versioned, checksummed, recoverable
-flash asset set; they are not embedded in configuration JSON, configuration
-NVS, or the application image. Missing optional assets render through a
-compiled Montserrat fallback.
+binary assets and stored in a separately versioned, checksummed flash package;
+they are not embedded in configuration JSON, configuration NVS, or the
+application image. Font resolution is exact, so a missing uploaded asset is a
+dashboard composition error rather than an implicit Montserrat substitution.
 
 Persistent NVS slot headers, generations, CRC validation, and recovery remain
 private to the configuration service. External tools communicate only through

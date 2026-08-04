@@ -58,7 +58,9 @@ export function DevelopmentLog(): React.JSX.Element {
     }
     return window.simcore.onDevelopmentSerialTraffic?.((log) => {
       writeDevelopmentLog(
-        `Serial ${log.direction.toUpperCase()} · ${log.path} @ ${log.baudRate}`,
+        `Serial ${log.direction.toUpperCase()} · ${log.path} @ ${log.baudRate}${
+          log.encoding === 'hex' ? ' · hex' : ''
+        }`,
         log.data
       )
     })

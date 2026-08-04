@@ -15,14 +15,13 @@ class Registry final {
   Registry(const Registry&) = delete;
   Registry& operator=(const Registry&) = delete;
 
-  // Loads every valid binary font from the active memory-mapped asset slot.
+  // Loads every valid binary font from the memory-mapped asset package.
   // Returns false when at least one binary asset cannot be decoded; usable
-  // assets remain registered and unresolved fonts use Montserrat.
+  // assets remain registered.
   [[nodiscard]] bool initialize(const font_assets::Service& assets);
 
-  // Resolves a font by its stable family identifier and pixel size. Missing
-  // assets and unsupported built-in sizes fall back to the nearest compiled
-  // Montserrat size.
+  // Resolves an exact font family and pixel size. Returns nullptr when the
+  // requested built-in or uploaded font is unavailable.
   [[nodiscard]] const lv_font_t* resolve(const FontSpec& spec) const;
 
  private:

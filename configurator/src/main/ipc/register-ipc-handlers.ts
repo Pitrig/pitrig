@@ -11,15 +11,33 @@ import {
   DEVICE_DISCONNECT_CHANNEL,
   DEVICE_GET_STATE_CHANNEL,
   DEVICE_LIST_PORTS_CHANNEL,
+  DEVICE_REBOOT_CHANNEL,
   DEVICE_STATE_CHANGED_CHANNEL,
   type ConnectDeviceRequest,
   type DeviceResult,
   type DeviceState
 } from '../../shared/device'
+import {
+  FONT_CANCEL_UPLOAD_CHANNEL,
+  FONT_FAMILY_PATTERN,
+  MAXIMUM_FONT_ASSETS,
+  MAXIMUM_FONT_SIZE_PX,
+  FONT_SELECT_SOURCE_CHANNEL,
+  FONT_UPLOAD_CHANNEL,
+  FONT_UPLOAD_PROGRESS_CHANNEL,
+  type FontAssetInput,
+  type FontAssetResult,
+  type FontUploadProgress,
+  type FontUploadRequest
+} from '../../shared/font-assets'
 import { APP_GET_INFO_CHANNEL, type AppInfo } from '../../shared/ipc'
 import { DeviceService } from '../device/device-service'
+import { FontAssetService } from '../font-assets/font-asset-service'
 
-export function registerIpcHandlers(deviceService: DeviceService): void {
+export function registerIpcHandlers(
+  deviceService: DeviceService,
+  fontAssetService: FontAssetService
+): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
     version: app.getVersion(),
@@ -30,6 +48,21 @@ export function registerIpcHandlers(deviceService: DeviceService): void {
   ipcMain.handle(DEVICE_AUTO_CONNECT_CHANNEL, () => deviceService.autoConnect())
   ipcMain.handle(DEVICE_CANCEL_AUTO_CONNECT_CHANNEL, () => deviceService.cancelAutoConnect())
   ipcMain.handle(DEVICE_DISCONNECT_CHANNEL, () => deviceService.disconnect())
+  ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.reboot())
+  ipcMain.handle(FONT_SELECT_SOURCE_CHANNEL, (event) =>
+    fontAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
+  )
+  ipcMain.handle(FONT_CANCEL_UPLOAD_CHANNEL, () => fontAssetService.cancel())
+  ipcMain.handle(FONT_UPLOAD_CHANNEL, (_event, request: unknown) => {
+    if (!isFontUploadRequest(request)) {
+      const result: FontAssetResult<void> = {
+        ok: false,
+        error: { code: 'invalid_request', message: 'Invalid font upload request.' }
+      }
+      return result
+    }
+    return fontAssetService.upload(request)
+  })
   ipcMain.handle(DEVICE_CONNECT_CHANNEL, (_event, request: unknown) => {
     if (!isConnectRequest(request)) {
       const result: DeviceResult<DeviceState> = {
@@ -40,6 +73,14 @@ export function registerIpcHandlers(deviceService: DeviceService): void {
     }
     return deviceService.connect(request.portId, request.baudRate)
   })
+}
+
+export function broadcastFontUploadProgress(progress: FontUploadProgress): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send(FONT_UPLOAD_PROGRESS_CHANNEL, progress)
+    }
+  }
 }
 
 export function broadcastDeviceState(state: DeviceState): void {
@@ -71,5 +112,26 @@ function isConnectRequest(value: unknown): value is ConnectDeviceRequest {
     Number.isInteger(request.baudRate) &&
     request.baudRate >= 9_600 &&
     request.baudRate <= 2_000_000
+  )
+}
+
+function isFontUploadRequest(value: unknown): value is FontUploadRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<FontUploadRequest>
+  return (
+    Array.isArray(request.assets) &&
+    request.assets.length <= MAXIMUM_FONT_ASSETS &&
+    request.assets.every(isFontAssetInput)
+  )
+}
+
+function isFontAssetInput(value: unknown): value is FontAssetInput {
+  if (!value || typeof value !== 'object') return false
+  const asset = value as Partial<FontAssetInput>
+  return (
+    typeof asset.sourceId === 'string' && asset.sourceId.length > 0 && asset.sourceId.length <= 128 &&
+    typeof asset.family === 'string' && FONT_FAMILY_PATTERN.test(asset.family) &&
+    typeof asset.sizePx === 'number' && Number.isInteger(asset.sizePx) &&
+    asset.sizePx >= 1 && asset.sizePx <= MAXIMUM_FONT_SIZE_PX
   )
 }

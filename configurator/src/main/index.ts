@@ -5,14 +5,17 @@ import { DeviceService } from './device/device-service'
 import {
   broadcastDevelopmentSerialTraffic,
   broadcastDeviceState,
+  broadcastFontUploadProgress,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
+import { FontAssetService } from './font-assets/font-asset-service'
 
 const isDevelopment = import.meta.env.DEV
 const deviceService = new DeviceService(
   broadcastDeviceState,
   isDevelopment ? broadcastDevelopmentSerialTraffic : undefined
 )
+const fontAssetService = new FontAssetService(deviceService, broadcastFontUploadProgress)
 let quitAfterDeviceCleanup = false
 
 function createWindow(): void {
@@ -42,7 +45,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  registerIpcHandlers(deviceService)
+  registerIpcHandlers(deviceService, fontAssetService)
   createWindow()
 
   app.on('activate', () => {
@@ -57,6 +60,7 @@ app.on('before-quit', (event) => {
     return
   }
   event.preventDefault()
+  fontAssetService.cancel()
   void deviceService.dispose().finally(() => {
     quitAfterDeviceCleanup = true
     app.quit()

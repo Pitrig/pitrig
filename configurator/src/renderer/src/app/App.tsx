@@ -10,6 +10,7 @@ import {
 import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { useDeviceStore } from '@/features/device/device-store'
+import { FontAssetsPanel } from '@/features/font-assets/FontAssetsPanel'
 import type { AppInfo } from '../../../shared/ipc'
 
 export function App(): React.JSX.Element {
@@ -31,14 +32,17 @@ export function App(): React.JSX.Element {
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 
-      <main className="grid min-h-0 grid-cols-[14rem_minmax(0,1fr)_18rem]">
-        <aside className="border-r p-3">
+      <main className="grid min-h-0 grid-cols-[18rem_minmax(0,1fr)_18rem]">
+        <aside className="min-h-0 overflow-auto border-r p-3">
           <Card>
             <CardHeader>
               <CardTitle>Components</CardTitle>
               <CardDescription>Available widgets will appear here.</CardDescription>
             </CardHeader>
           </Card>
+          <div className="mt-3">
+            <FontAssetsPanel />
+          </div>
         </aside>
 
         <section className="flex min-w-0 items-center justify-center bg-muted/30 p-6">

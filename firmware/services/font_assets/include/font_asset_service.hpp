@@ -9,30 +9,23 @@
 
 namespace simcore::font_assets {
 
-inline constexpr std::size_t kSlotSize = 2U * 1024U * 1024U;
+inline constexpr std::size_t kStorageSize = 2U * 1024U * 1024U;
 inline constexpr std::size_t kHeaderSize = 32;
 inline constexpr std::size_t kManifestEntrySize = 48;
 inline constexpr std::size_t kAssetDataOffset = 4096;
 inline constexpr std::size_t kMaximumAssets = 32;
-inline constexpr std::uint16_t kFormatVersion = 1;
-
-enum class Slot : std::uint8_t {
-  a,
-  b,
-};
+inline constexpr std::uint16_t kFormatVersion = 2;
 
 class IStorage {
  public:
   virtual ~IStorage() = default;
 
   [[nodiscard]] virtual bool initialize() = 0;
-  [[nodiscard]] virtual bool map(
-      Slot slot, std::span<const std::uint8_t>& bytes) = 0;
-  virtual void unmap(Slot slot) = 0;
-  [[nodiscard]] virtual bool erase(Slot slot) = 0;
+  [[nodiscard]] virtual bool map(std::span<const std::uint8_t>& bytes) = 0;
+  virtual void unmap() = 0;
+  [[nodiscard]] virtual bool erase() = 0;
   [[nodiscard]] virtual bool write(
-      Slot slot, std::size_t offset,
-      std::span<const std::uint8_t> bytes) = 0;
+      std::size_t offset, std::span<const std::uint8_t> bytes) = 0;
 };
 
 struct AssetView {
@@ -42,11 +35,11 @@ struct AssetView {
 
 struct Status {
   bool storage_available{};
-  bool has_active_slot{};
+  bool package_available{};
   bool reboot_required{};
-  Slot active_slot{Slot::a};
-  std::uint32_t generation{};
+  std::uint16_t format_version{};
   std::uint16_t asset_count{};
+  std::uint32_t package_size{};
 };
 
 enum class UpdateError : std::uint8_t {
@@ -56,7 +49,6 @@ enum class UpdateError : std::uint8_t {
   invalid_size,
   invalid_state,
   invalid_package,
-  stale_generation,
   reboot_required,
   storage_failure,
 };
@@ -71,7 +63,7 @@ class Service final {
   [[nodiscard]] bool initialize(IStorage& storage);
   [[nodiscard]] const Status& status() const { return status_; }
   [[nodiscard]] std::span<const AssetView> assets() const {
-    return {assets_.data(), status_.asset_count};
+    return {assets_.data(), loaded_asset_count_};
   }
   [[nodiscard]] const AssetView* find(const FontSpec& font) const;
 
@@ -82,27 +74,27 @@ class Service final {
   void cancel_update();
 
  private:
-  struct ParsedSlot {
-    std::uint32_t generation{};
+  struct ParsedPackage {
     std::uint16_t asset_count{};
+    std::uint32_t package_size{};
     std::array<AssetView, kMaximumAssets> assets{};
   };
 
-  [[nodiscard]] bool inspect_slot(Slot slot, ParsedSlot& parsed);
-  [[nodiscard]] bool validate_slot(
-      std::span<const std::uint8_t> slot_bytes,
+  [[nodiscard]] bool validate_package(
+      std::span<const std::uint8_t> storage_bytes,
       std::span<const std::uint8_t> header_override,
-      ParsedSlot& parsed) const;
-  [[nodiscard]] Slot inactive_slot() const;
+      ParsedPackage& parsed) const;
+  void clear_package_status();
   void reset_update();
 
   IStorage* storage_{};
   Status status_{};
   std::array<AssetView, kMaximumAssets> assets_{};
-  std::span<const std::uint8_t> active_mapping_{};
+  std::size_t loaded_asset_count_{};
+  std::span<const std::uint8_t> package_mapping_{};
+  ParsedPackage parse_buffer_{};
 
   bool update_in_progress_{};
-  Slot update_slot_{Slot::a};
   std::size_t update_size_{};
   std::size_t update_received_{};
   std::array<std::uint8_t, kHeaderSize> update_header_{};

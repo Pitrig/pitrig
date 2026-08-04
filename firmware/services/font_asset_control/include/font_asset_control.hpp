@@ -20,8 +20,8 @@ class FontAssetControl final {
   [[nodiscard]] bool initialize(Service& service,
                                 transport::ITransport& transport);
 
-  // Queues an ASCII FONT:BEGIN command without its line terminator.
-  void begin(std::span<const std::uint8_t> line);
+  // Queues an ASCII @SC:FONT command without its line terminator.
+  void consume_command(std::span<const std::uint8_t> line);
 
   // Consumes binary upload frames while active() is true.
   void consume(std::span<const std::uint8_t> bytes);
@@ -39,6 +39,8 @@ class FontAssetControl final {
 
   enum class RequestType : std::uint8_t {
     begin,
+    info,
+    invalid_command,
     frame,
     invalid_frame,
   };
@@ -54,6 +56,7 @@ class FontAssetControl final {
   static void task_entry(void* context);
   void process();
   void handle_begin();
+  void handle_info();
   void handle_frame();
   void queue_request(RequestType type);
   void release_request();

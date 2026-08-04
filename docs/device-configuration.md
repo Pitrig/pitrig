@@ -178,22 +178,22 @@ Supported bindings:
 The only compiled font family is `montserrat`. The public font resolver exposes
 the LVGL 10, 24, and 48 px variants; LVGL also retains Montserrat 14 px as its
 framework default. Other font references use a stable family identifier plus
-`size_px` and will resolve to separately uploaded LVGL binary assets in the
-completed font asset flow. Until that asset is installed, or when a requested
-built-in size is not available, firmware renders with the nearest public
-Montserrat size.
+`size_px` and resolve to separately uploaded LVGL binary assets. Resolution is
+exact: an unavailable family/size causes dashboard composition to report an
+error instead of silently selecting another font.
 
 Font family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`,
 or `-`. `size_px` is an integer from 1 through 255. Font files and converted
 font bytes are not part of this JSON document or configuration NVS.
 
-Uploaded fonts are stored as an independently recoverable A/B asset package.
+Uploaded fonts are stored as one checksummed asset package in a dedicated
+partition.
 The package format and firmware validation rules are defined in
 [Font asset storage](font-assets.md), including its separate bounded serial
 upload protocol. Installing a new package requires a reboot before its fonts
-can be selected; the sparse device configuration may be saved before or after
-the asset package because unavailable fonts render with the Montserrat
-fallback.
+can be selected. The configurator must ensure every non-built-in font reference
+is present in the uploaded package before applying the corresponding device
+configuration.
 
 ## Device information
 

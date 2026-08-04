@@ -4,6 +4,7 @@ export const DEVICE_CONNECT_CHANNEL = 'device:connect' as const
 export const DEVICE_AUTO_CONNECT_CHANNEL = 'device:auto-connect' as const
 export const DEVICE_CANCEL_AUTO_CONNECT_CHANNEL = 'device:cancel-auto-connect' as const
 export const DEVICE_DISCONNECT_CHANNEL = 'device:disconnect' as const
+export const DEVICE_REBOOT_CHANNEL = 'device:reboot' as const
 export const DEVICE_STATE_CHANGED_CHANNEL = 'device:state-changed' as const
 
 export const DEFAULT_BAUD_RATE = 115_200
@@ -99,6 +100,15 @@ export interface DeviceInfo {
   storageAvailable: boolean
 }
 
+export interface FontAssetDeviceInfo {
+  storageAvailable: boolean
+  packageAvailable: boolean
+  formatVersion: number
+  assetCount: number
+  packageSize: number
+  rebootRequired: boolean
+}
+
 export interface Placement {
   x?: number
   y?: number
@@ -178,6 +188,7 @@ export interface DeviceConfiguration {
 export interface DeviceSession {
   info: DeviceInfo
   configuration: DeviceConfiguration
+  fontAssets?: FontAssetDeviceInfo
 }
 
 export interface DeviceScanProgress {

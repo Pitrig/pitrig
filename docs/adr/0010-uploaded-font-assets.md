@@ -9,8 +9,8 @@ where fonts are project assets selected by the user.
 
 Font data can be much larger than runtime configuration. It must not be placed
 inside the sparse JSON payload or the configuration NVS records. The upload
-path also has to tolerate interruption without destroying the last usable asset
-set.
+path must detect incomplete or corrupt packages even though the MVP does not
+retain a second copy for rollback.
 
 ## Decision
 
@@ -26,38 +26,41 @@ identifier and pixel size. Public configuration schema 2 stores a font as:
 
 Family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`, or
 `-`. Font sizes are integers from 1 through 255 pixels. The only firmware-built
-family is LVGL Montserrat. Its public resolver exposes 10, 24, and 48 pixels;
-LVGL retains Montserrat 14 as its framework default. A missing family/size uses
-the nearest public Montserrat size so an unavailable optional asset cannot
-prevent the device from rendering.
+family is LVGL Montserrat. Its public resolver exposes exact 10, 24, and 48
+pixel variants; LVGL retains Montserrat 14 as its framework default. Resolution
+is exact: a missing family/size is an explicit dashboard composition error and
+is not silently replaced with another font.
 
 The configurator will convert imported TTF or OTF sources into LVGL binary font
 assets. Original font files never reach the device. Each device asset is keyed
 by `family + size_px`; editor display names and original source metadata remain
 project-only data.
 
-Font assets will live outside the application image and configuration NVS in
-two raw 2 MiB slots. Each complete slot contains a bounded manifest followed by
-font data. The manifest owns a format version, generation, bounded entry count,
-and for every entry its family identifier, pixel size, offset, length, and
-CRC32. Slot-level validation covers the complete committed asset set.
+Font assets live outside the application image and configuration NVS in one raw
+2 MiB `font_assets` partition. The package contains a bounded manifest followed
+by font data. The manifest owns a format version, bounded entry count, and for
+every entry its family identifier, pixel size, offset, length, and CRC32.
+Package-level validation covers the complete stored asset set.
 
-Uploads target the inactive slot. Firmware erases and writes that slot,
-validates every bound and checksum, then marks the new generation active. An
-interrupted or invalid upload leaves the previous slot active. The active slot
-is memory-mapped read-only and exposed to LVGL's binary font loader. The
-current LVGL loader materializes the opened font's glyph metadata and bitmap
-data in the LVGL heap; moving that bounded runtime allocation to a
-PSRAM-backed pool remains a later performance improvement.
+An upload erases and replaces the single partition. Bytes after the header are
+written first; firmware validates every bound and checksum before writing the
+header last. An interrupted upload therefore leaves an invalid package rather
+than a partially committed one, but the previous package is not recoverable.
+The new package becomes active only after reboot. At startup the package is
+memory-mapped read-only and exposed to LVGL's binary font loader. The current
+LVGL loader materializes the opened font's glyph metadata and bitmap data in
+the LVGL heap, so the mapping can be released before a later upload without
+invalidating active LVGL font objects.
 
 Asset upload uses a dedicated bounded, stop-and-wait protocol over the selected
 serial transport, separate from configuration `SET`. Binary frames carry an
 explicit type, sequence, bounded payload length, and CRC32. Flash erase and
 write operations run in a dedicated static task rather than the transport RX
-task. Configuration may reference a syntactically valid font that is not
-installed; the renderer uses the Montserrat fallback until the matching asset
-is available. This keeps configuration and asset updates independently
-recoverable.
+task. A separate `FONT:INFO` query exposes storage and package availability,
+format version, asset count, package size, and pending-reboot state.
+Configuration may reference a syntactically valid font that is not installed,
+but dashboard composition reports that unresolved dependency instead of
+substituting Montserrat.
 
 Schema 1 persisted configuration is not migrated because its closed `lcd` and
 `roboto_mono` identifiers refer to fonts that no longer exist. Firmware falls
@@ -70,13 +73,17 @@ back to a valid schema 2 slot or the board-only factory configuration.
 - Persisted font bytes consume dedicated flash rather than configuration NVS or
   the application image. The current LVGL loader still allocates runtime font
   data when an uploaded font is opened.
+- Replacing a package requires a reboot before the new assets are used.
+- An interrupted update can remove the previous package; there is no second
+  slot or rollback generation.
 - The configurator must retain source fonts in its local project and upload a
   complete converted asset set before expecting custom rendering.
 - Firmware still validates identifier syntax, sizes, manifest bounds, and
   checksums; configurator validation does not replace the device trust
   boundary.
-- The physical A/B partitions, bounded asset service, read-only flash mapping,
-  and LVGL font registry are implemented. The exact package contract is
+- The single partition, bounded asset service, read-only flash mapping, and
+  LVGL font registry are implemented. The exact package contract is
   documented in [Font asset storage](../font-assets.md).
-- The firmware binary upload protocol is implemented. Configurator-side
-  conversion and upload orchestration remain a separate phase.
+- The firmware binary upload protocol and the configurator-side MVP conversion
+  and upload orchestration are implemented. Project persistence, broader glyph
+  selection, and editor integration remain separate phases.

@@ -12,8 +12,16 @@ import {
   DEVICE_GET_STATE_CHANNEL,
   DEVICE_LIST_PORTS_CHANNEL,
   DEVICE_STATE_CHANGED_CHANNEL,
+  DEVICE_REBOOT_CHANNEL,
   type DeviceState
 } from '../shared/device'
+import {
+  FONT_CANCEL_UPLOAD_CHANNEL,
+  FONT_SELECT_SOURCE_CHANNEL,
+  FONT_UPLOAD_CHANNEL,
+  FONT_UPLOAD_PROGRESS_CHANNEL,
+  type FontUploadProgress
+} from '../shared/font-assets'
 import {
   APP_GET_INFO_CHANNEL,
   type SimCoreApi
@@ -27,6 +35,16 @@ const api: SimCoreApi = {
   autoConnectDevice: () => ipcRenderer.invoke(DEVICE_AUTO_CONNECT_CHANNEL),
   cancelAutoConnect: () => ipcRenderer.invoke(DEVICE_CANCEL_AUTO_CONNECT_CHANNEL),
   disconnectDevice: () => ipcRenderer.invoke(DEVICE_DISCONNECT_CHANNEL),
+  rebootDevice: () => ipcRenderer.invoke(DEVICE_REBOOT_CHANNEL),
+  selectFontSource: () => ipcRenderer.invoke(FONT_SELECT_SOURCE_CHANNEL),
+  uploadFontAssets: (request) => ipcRenderer.invoke(FONT_UPLOAD_CHANNEL, request),
+  cancelFontUpload: () => ipcRenderer.invoke(FONT_CANCEL_UPLOAD_CHANNEL),
+  onFontUploadProgress: (listener) => {
+    const handler = (_event: IpcRendererEvent, progress: FontUploadProgress): void =>
+      listener(progress)
+    ipcRenderer.on(FONT_UPLOAD_PROGRESS_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(FONT_UPLOAD_PROGRESS_CHANNEL, handler)
+  },
   onDeviceStateChanged: (listener) => {
     const handler = (_event: IpcRendererEvent, state: DeviceState): void => listener(state)
     ipcRenderer.on(DEVICE_STATE_CHANGED_CHANNEL, handler)

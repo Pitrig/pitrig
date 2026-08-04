@@ -7,7 +7,7 @@ namespace simcore::configuration {
 namespace {
 
 constexpr std::array<std::uint8_t, 4> kControlPrefix{'@', 'S', 'C', ':'};
-constexpr std::string_view kFontBeginPrefix = "@SC:FONT:BEGIN";
+constexpr std::string_view kFontControlPrefix = "@SC:FONT:";
 
 }  // namespace
 
@@ -65,10 +65,10 @@ void ConfigurationRouter::dispatch() {
       std::equal(kControlPrefix.begin(), kControlPrefix.end(),
                  line.begin())) {
     if (font_asset_control_ != nullptr &&
-        line.size() >= kFontBeginPrefix.size() &&
-        std::equal(kFontBeginPrefix.begin(), kFontBeginPrefix.end(),
+        line.size() >= kFontControlPrefix.size() &&
+        std::equal(kFontControlPrefix.begin(), kFontControlPrefix.end(),
                    line.begin())) {
-      font_asset_control_->begin(line);
+      font_asset_control_->consume_command(line);
       return;
     }
     if (control_ != nullptr) {

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <limits>
 #include <string_view>
 
 #include "font_asset_crc.hpp"
@@ -15,7 +14,7 @@ constexpr std::size_t kManifestOffset = kHeaderSize;
 constexpr std::size_t kHeaderMagicOffset = 0;
 constexpr std::size_t kHeaderFormatVersionOffset = 4;
 constexpr std::size_t kHeaderSizeOffset = 6;
-constexpr std::size_t kHeaderGenerationOffset = 8;
+constexpr std::size_t kHeaderReservedWordOffset = 8;
 constexpr std::size_t kHeaderEntryCountOffset = 12;
 constexpr std::size_t kHeaderReservedOffset = 14;
 constexpr std::size_t kHeaderPayloadSizeOffset = 16;
@@ -71,60 +70,48 @@ constexpr std::size_t kEntryCrcOffset = 44;
   return lhs_begin < rhs_end && rhs_begin < lhs_end;
 }
 
-[[nodiscard]] std::uint32_t next_generation(const Status& status) {
-  if (!status.has_active_slot) {
-    return 1;
-  }
-  return status.generation == std::numeric_limits<std::uint32_t>::max()
-             ? 0
-             : status.generation + 1;
-}
-
 }  // namespace
 
 Service::~Service() {
-  if (storage_ != nullptr && status_.has_active_slot) {
-    storage_->unmap(status_.active_slot);
+  if (storage_ != nullptr) {
+    storage_->unmap();
   }
 }
 
 bool Service::initialize(IStorage& storage) {
-  if (storage_ != nullptr && status_.has_active_slot) {
-    storage_->unmap(status_.active_slot);
+  if (storage_ != nullptr) {
+    storage_->unmap();
   }
   storage_ = &storage;
   status_ = {};
   assets_ = {};
-  active_mapping_ = {};
+  loaded_asset_count_ = 0;
+  package_mapping_ = {};
+  parse_buffer_ = {};
   reset_update();
   status_.storage_available = storage.initialize();
   if (!status_.storage_available) {
     return false;
   }
 
-  ParsedSlot slot_a{};
-  ParsedSlot slot_b{};
-  const bool valid_a = inspect_slot(Slot::a, slot_a);
-  const bool valid_b = inspect_slot(Slot::b, slot_b);
-  if (!valid_a && !valid_b) {
+  if (!storage.map(package_mapping_)) {
+    return false;
+  }
+  if (!validate_package(package_mapping_, {}, parse_buffer_)) {
+    storage.unmap();
+    package_mapping_ = {};
+    parse_buffer_ = {};
     return true;
   }
 
-  status_.active_slot =
-      valid_b && (!valid_a || slot_b.generation > slot_a.generation)
-          ? Slot::b
-          : Slot::a;
-  ParsedSlot active{};
-  if (!storage.map(status_.active_slot, active_mapping_) ||
-      !validate_slot(active_mapping_, {}, active)) {
-    storage.unmap(status_.active_slot);
-    active_mapping_ = {};
-    return false;
-  }
-  status_.has_active_slot = true;
-  status_.generation = active.generation;
-  status_.asset_count = active.asset_count;
-  std::copy_n(active.assets.begin(), active.asset_count, assets_.begin());
+  status_.package_available = true;
+  status_.format_version = kFormatVersion;
+  status_.asset_count = parse_buffer_.asset_count;
+  status_.package_size = parse_buffer_.package_size;
+  loaded_asset_count_ = parse_buffer_.asset_count;
+  std::copy_n(parse_buffer_.assets.begin(), parse_buffer_.asset_count,
+              assets_.begin());
+  parse_buffer_ = {};
   return true;
 }
 
@@ -146,12 +133,15 @@ UpdateError Service::begin_update(const std::size_t package_size) {
   if (status_.reboot_required) {
     return UpdateError::reboot_required;
   }
-  if (package_size < kAssetDataOffset || package_size > kSlotSize) {
+  if (package_size < kAssetDataOffset || package_size > kStorageSize) {
     return UpdateError::invalid_size;
   }
-  update_slot_ = inactive_slot();
-  storage_->unmap(update_slot_);
-  if (!storage_->erase(update_slot_)) {
+  storage_->unmap();
+  package_mapping_ = {};
+  assets_ = {};
+  loaded_asset_count_ = 0;
+  clear_package_status();
+  if (!storage_->erase()) {
     return UpdateError::storage_failure;
   }
   update_in_progress_ = true;
@@ -181,7 +171,7 @@ UpdateError Service::write_update(
   }
   if (source_offset < bytes.size()) {
     const auto body = bytes.subspan(source_offset);
-    if (!storage_->write(update_slot_, update_received_, body)) {
+    if (!storage_->write(update_received_, body)) {
       reset_update();
       return UpdateError::storage_failure;
     }
@@ -195,36 +185,40 @@ UpdateError Service::commit_update() {
     return UpdateError::invalid_state;
   }
 
+  parse_buffer_ = {};
   std::span<const std::uint8_t> candidate_mapping;
-  ParsedSlot candidate{};
-  if (!storage_->map(update_slot_, candidate_mapping)) {
+  if (!storage_->map(candidate_mapping)) {
     return UpdateError::storage_failure;
   }
-  const bool valid = validate_slot(candidate_mapping, update_header_, candidate);
-  storage_->unmap(update_slot_);
+  const bool valid =
+      validate_package(candidate_mapping, update_header_, parse_buffer_);
+  storage_->unmap();
   if (!valid ||
       get_u32(update_header_, kHeaderPayloadSizeOffset) != update_size_) {
+    parse_buffer_ = {};
     reset_update();
     return UpdateError::invalid_package;
   }
-  if (candidate.generation != next_generation(status_)) {
-    reset_update();
-    return UpdateError::stale_generation;
-  }
-  if (!storage_->write(update_slot_, 0, update_header_)) {
+  if (!storage_->write(0, update_header_)) {
+    parse_buffer_ = {};
     reset_update();
     return UpdateError::storage_failure;
   }
 
   candidate_mapping = {};
-  candidate = {};
-  if (!storage_->map(update_slot_, candidate_mapping) ||
-      !validate_slot(candidate_mapping, {}, candidate)) {
-    storage_->unmap(update_slot_);
+  if (!storage_->map(candidate_mapping) ||
+      !validate_package(candidate_mapping, {}, parse_buffer_)) {
+    storage_->unmap();
+    parse_buffer_ = {};
     reset_update();
     return UpdateError::storage_failure;
   }
-  storage_->unmap(update_slot_);
+  storage_->unmap();
+  status_.package_available = true;
+  status_.format_version = kFormatVersion;
+  status_.asset_count = parse_buffer_.asset_count;
+  status_.package_size = parse_buffer_.package_size;
+  parse_buffer_ = {};
   reset_update();
   status_.reboot_required = true;
   return UpdateError::none;
@@ -232,31 +226,22 @@ UpdateError Service::commit_update() {
 
 void Service::cancel_update() {
   if (storage_ != nullptr && update_in_progress_) {
-    storage_->unmap(update_slot_);
+    storage_->unmap();
   }
   reset_update();
 }
 
-bool Service::inspect_slot(const Slot slot, ParsedSlot& parsed) {
-  std::span<const std::uint8_t> mapping;
-  if (!storage_->map(slot, mapping)) {
-    return false;
-  }
-  const bool valid = validate_slot(mapping, {}, parsed);
-  storage_->unmap(slot);
-  return valid;
-}
-
-bool Service::validate_slot(
-    const std::span<const std::uint8_t> slot_bytes,
+bool Service::validate_package(
+    const std::span<const std::uint8_t> storage_bytes,
     const std::span<const std::uint8_t> header_override,
-    ParsedSlot& parsed) const {
-  if (slot_bytes.size() != kSlotSize ||
+    ParsedPackage& parsed) const {
+  parsed = {};
+  if (storage_bytes.size() != kStorageSize ||
       (!header_override.empty() && header_override.size() != kHeaderSize)) {
     return false;
   }
   const auto header = header_override.empty()
-                          ? slot_bytes.first(kHeaderSize)
+                          ? storage_bytes.first(kHeaderSize)
                           : header_override;
   const std::uint16_t entry_count =
       get_u16(header, kHeaderEntryCountOffset);
@@ -267,27 +252,25 @@ bool Service::validate_slot(
   if (get_u32(header, kHeaderMagicOffset) != kMagic ||
       get_u16(header, kHeaderFormatVersionOffset) != kFormatVersion ||
       get_u16(header, kHeaderSizeOffset) != kHeaderSize ||
-      get_u32(header, kHeaderGenerationOffset) == 0 ||
+      get_u32(header, kHeaderReservedWordOffset) != 0 ||
       entry_count > kMaximumAssets ||
       get_u16(header, kHeaderReservedOffset) != 0 ||
       kManifestOffset + manifest_size > kAssetDataOffset ||
-      payload_size < kAssetDataOffset || payload_size > slot_bytes.size() ||
+      payload_size < kAssetDataOffset || payload_size > storage_bytes.size() ||
       get_u32(header, kHeaderCrcOffset) !=
           crc32(header.first(kHeaderCrcOffset))) {
     return false;
   }
 
-  const auto manifest = slot_bytes.subspan(kManifestOffset, manifest_size);
+  const auto manifest = storage_bytes.subspan(kManifestOffset, manifest_size);
   if (get_u32(header, kHeaderManifestCrcOffset) != crc32(manifest) ||
       get_u32(header, kHeaderPayloadCrcOffset) !=
-          crc32(slot_bytes.subspan(kAssetDataOffset,
-                                   payload_size - kAssetDataOffset))) {
+          crc32(storage_bytes.subspan(kAssetDataOffset,
+                                      payload_size - kAssetDataOffset))) {
     return false;
   }
-
-  parsed = {};
-  parsed.generation = get_u32(header, kHeaderGenerationOffset);
   parsed.asset_count = entry_count;
+  parsed.package_size = payload_size;
   for (std::size_t index = 0; index < entry_count; ++index) {
     const auto entry = manifest.subspan(index * kManifestEntrySize,
                                         kManifestEntrySize);
@@ -305,7 +288,7 @@ bool Service::validate_slot(
         length > payload_size - offset) {
       return false;
     }
-    asset.bytes = slot_bytes.subspan(offset, length);
+    asset.bytes = storage_bytes.subspan(offset, length);
     if (get_u32(entry, kEntryCrcOffset) != crc32(asset.bytes)) {
       return false;
     }
@@ -319,16 +302,16 @@ bool Service::validate_slot(
   return true;
 }
 
-Slot Service::inactive_slot() const {
-  if (!status_.has_active_slot) {
-    return Slot::a;
-  }
-  return status_.active_slot == Slot::a ? Slot::b : Slot::a;
+void Service::clear_package_status() {
+  status_.package_available = false;
+  status_.reboot_required = false;
+  status_.format_version = 0;
+  status_.asset_count = 0;
+  status_.package_size = 0;
 }
 
 void Service::reset_update() {
   update_in_progress_ = false;
-  update_slot_ = Slot::a;
   update_size_ = 0;
   update_received_ = 0;
   update_header_.fill(0xFFU);
@@ -348,8 +331,6 @@ const char* update_error_name(const UpdateError error) {
       return "invalid_state";
     case UpdateError::invalid_package:
       return "invalid_package";
-    case UpdateError::stale_generation:
-      return "stale_generation";
     case UpdateError::reboot_required:
       return "reboot_required";
     case UpdateError::storage_failure:

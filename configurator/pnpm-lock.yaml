@@ -14,6 +14,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      lv_font_conv:
+        specifier: 1.5.3
+        version: 1.5.3
       react:
         specifier: ^19.2.8
         version: 19.2.8
@@ -1344,6 +1347,18 @@ packages:
 
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
+
+  lv_font_conv@1.5.3:
+    resolution: {integrity: sha512-0xJQThBOw2iptFccSXrKDIUTQAwr/2zhKjCI1lATIRgZo8uvYRTmenKafW9yTw6G0y5AyW00tqGpUtYuTuBIbQ==}
+    hasBin: true
+    bundledDependencies:
+      - argparse
+      - bit-buffer
+      - debug
+      - make-error
+      - mkdirp
+      - opentype.js
+      - pngjs
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -2684,6 +2699,8 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  lv_font_conv@1.5.3: {}
 
   magic-string@0.30.21:
     dependencies:

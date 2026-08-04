@@ -157,6 +157,9 @@ bool create(const Layout& layout, const Config& config,
   }
 
   const lv_font_t* const font = fonts.resolve(config.font);
+  if (font == nullptr) {
+    return false;
+  }
   const std::int32_t border_width = config.scale.border_width_px;
   const std::int32_t content_height =
       lv_font_get_line_height(font) + 2 * config.scale.vertical_padding_px;

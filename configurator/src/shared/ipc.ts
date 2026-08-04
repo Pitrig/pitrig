@@ -4,6 +4,12 @@ import type {
   DeviceState,
   SerialPortSummary
 } from './device'
+import type {
+  FontAssetResult,
+  FontSourceSelection,
+  FontUploadProgress,
+  FontUploadRequest
+} from './font-assets'
 import type { SerialTrafficLog } from './development'
 
 export const APP_GET_INFO_CHANNEL = 'app:get-info' as const
@@ -24,6 +30,11 @@ export interface SimCoreApi {
   autoConnectDevice: () => Promise<DeviceResult<DeviceState>>
   cancelAutoConnect: () => Promise<DeviceResult<DeviceState>>
   disconnectDevice: () => Promise<DeviceResult<DeviceState>>
+  rebootDevice: () => Promise<DeviceResult<DeviceState>>
+  selectFontSource: () => Promise<FontAssetResult<FontSourceSelection | null>>
+  uploadFontAssets: (request: FontUploadRequest) => Promise<FontAssetResult<void>>
+  cancelFontUpload: () => Promise<FontAssetResult<void>>
+  onFontUploadProgress: (listener: (progress: FontUploadProgress) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
   onDevelopmentSerialTraffic?: (listener: (log: SerialTrafficLog) => void) => () => void
 }

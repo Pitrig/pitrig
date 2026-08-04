@@ -73,6 +73,10 @@ bool create(const Layout& layout, const Config& config,
   lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
 
   const lv_font_t* const font = fonts.resolve(config.font);
+  if (font == nullptr) {
+    lvgl_port_unlock();
+    return false;
+  }
   const std::int32_t character_width =
       static_cast<std::int32_t>(lv_font_get_glyph_width(font, '0', '0'));
   const std::int32_t content_width = character_width * kCharacterCount;

@@ -14,9 +14,12 @@ import {
   type DeviceSession,
   type DeviceState,
   type DeviceInfo,
+  type FontAssetDeviceInfo,
   type SerialPortSummary
 } from '../../shared/device'
+import type { FontUploadProgress } from '../../shared/font-assets'
 import { parseDeviceConfigurationJson } from './configuration-json'
+import { uploadFontPackage } from './font-upload'
 
 interface PortRecord {
   path: string
@@ -32,6 +35,7 @@ interface Match {
 interface OpenedDevice {
   port: SerialPort
   session: DeviceSession
+  traffic: SerialTrafficReporter
 }
 
 class DeviceServiceError extends Error {
@@ -46,14 +50,17 @@ class DeviceServiceError extends Error {
 const PROBE_TIMEOUT_MS = 1_000
 const INFO_REQUEST = '@SC:INFO\n'
 const GET_REQUEST = '@SC:GET\n'
+const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
 
 export class DeviceService {
   private readonly ports = new Map<string, PortRecord>()
   private readonly portIds = new Map<string, string>()
   private state: DeviceState = { status: 'disconnected' }
   private activePort: SerialPort | undefined
+  private activeTraffic: SerialTrafficReporter | undefined
   private pendingPort: SerialPort | undefined
   private operationToken = 0
+  private deviceOperationActive = false
 
   constructor(
     private readonly onStateChanged: (state: DeviceState) => void,
@@ -145,6 +152,7 @@ export class DeviceService {
           try {
             const opened = await this.openAndProbe(record, baudRate, token)
             await closePort(opened.port)
+            opened.traffic.flush()
             matches.push({ record, baudRate })
             break
           } catch (error) {
@@ -208,20 +216,117 @@ export class DeviceService {
   }
 
   async disconnect(): Promise<DeviceResult<DeviceState>> {
+    if (this.deviceOperationActive) {
+      return failure({
+        code: 'busy',
+        message: 'Cancel the active device operation before disconnecting.'
+      })
+    }
+    await this.closeDevicePorts()
+    return success(this.state)
+  }
+
+  private async closeDevicePorts(): Promise<void> {
     ++this.operationToken
     this.setState({ status: 'disconnecting' })
 
     const pending = this.pendingPort
     const active = this.activePort
+    const traffic = this.activeTraffic
     this.pendingPort = undefined
     this.activePort = undefined
+    this.activeTraffic = undefined
     await Promise.all([closePort(pending), closePort(active)])
+    traffic?.flush()
     this.setState({ status: 'disconnected' })
-    return success(this.state)
+  }
+
+  async reboot(): Promise<DeviceResult<DeviceState>> {
+    const port = this.activePort
+    const connection = this.state.connection
+    const traffic = this.activeTraffic
+    if (!port?.isOpen || !connection || this.deviceOperationActive) {
+      return failure({ code: 'busy', message: 'The connected device is busy or unavailable.' })
+    }
+    this.deviceOperationActive = true
+    try {
+      await requestResponse(
+        port,
+        '@SC:REBOOT\n',
+        '@SC:OK:REBOOTING',
+        2_000,
+        (direction, data) => {
+          // RX is already observed by the active port listener.
+          if (direction === 'tx') traffic?.write(direction, data)
+        }
+      )
+      this.activePort = undefined
+      this.activeTraffic = undefined
+      await closePort(port)
+      traffic?.flush()
+      this.setState({ status: 'disconnected' })
+      return success(this.state)
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
+
+  async uploadFonts(
+    packageBytes: Uint8Array,
+    onProgress: (progress: FontUploadProgress) => void,
+    signal: AbortSignal
+  ): Promise<void> {
+    const port = this.activePort
+    const connection = this.state.connection
+    const session = this.state.session
+    const traffic = this.activeTraffic
+    if (!port?.isOpen || !connection || !session) {
+      throw new DeviceServiceError('serial_error', 'No SimCore device is connected.')
+    }
+    if (this.deviceOperationActive) {
+      throw new DeviceServiceError('busy', 'Another device operation is already running.')
+    }
+    this.deviceOperationActive = true
+    try {
+      await uploadFontPackage(
+        port,
+        packageBytes,
+        {
+          onProgress,
+          onTransmit: (data, encoding) => traffic?.write('tx', data, encoding)
+        },
+        signal
+      )
+      if (this.state.session === session && session.fontAssets) {
+        const packageView = new DataView(
+          packageBytes.buffer,
+          packageBytes.byteOffset,
+          packageBytes.byteLength
+        )
+        this.setState({
+          ...this.state,
+          session: {
+            ...session,
+            fontAssets: {
+              ...session.fontAssets,
+              packageAvailable: true,
+              formatVersion: packageView.getUint16(4, true),
+              assetCount: packageView.getUint16(12, true),
+              packageSize: packageBytes.byteLength,
+              rebootRequired: true
+            }
+          }
+        })
+      }
+    } finally {
+      this.deviceOperationActive = false
+    }
   }
 
   async dispose(): Promise<void> {
-    await this.disconnect()
+    await this.closeDevicePorts()
   }
 
   private async refreshPortRegistry(): Promise<PortRecord[]> {
@@ -280,41 +385,39 @@ export class DeviceService {
       lock: true
     })
     this.pendingPort = port
+    const traffic = new SerialTrafficReporter(this.onSerialTraffic, record.path, baudRate)
 
     try {
       await openPort(port)
       this.ensureCurrent(token)
-      const session = await probeSimCore(port, (direction, data) => {
-        this.onSerialTraffic?.({ direction, path: record.path, baudRate, data })
-      })
+      const session = await probeSimCore(port, (direction, data) => traffic.write(direction, data))
       this.ensureCurrent(token)
       this.pendingPort = undefined
-      return { port, session }
+      return { port, session, traffic }
     } catch (error) {
       if (this.pendingPort === port) {
         this.pendingPort = undefined
       }
       await closePort(port)
+      traffic.flush()
       throw error
     }
   }
 
   private attachActivePort(opened: OpenedDevice, record: PortRecord, baudRate: number): void {
-    const { port, session } = opened
+    const { port, session, traffic } = opened
     this.activePort = port
+    this.activeTraffic = traffic
     port.on('data', (chunk: Buffer) => {
-      this.onSerialTraffic?.({
-        direction: 'rx',
-        path: record.path,
-        baudRate,
-        data: chunk.toString('utf8')
-      })
+      traffic.write('rx', chunk.toString('utf8'))
     })
     port.once('close', () => {
       if (this.activePort !== port) {
         return
       }
       this.activePort = undefined
+      this.activeTraffic = undefined
+      traffic.flush()
       this.setState({
         status: 'error',
         error: {
@@ -353,12 +456,54 @@ export class DeviceService {
   }
 
   private isBusy(): boolean {
-    return ['scanning', 'connecting', 'disconnecting'].includes(this.state.status)
+    return this.deviceOperationActive ||
+      ['scanning', 'connecting', 'disconnecting'].includes(this.state.status)
   }
 
   private setState(state: DeviceState): void {
     this.state = state
     this.onStateChanged(state)
+  }
+}
+
+class SerialTrafficReporter {
+  private receiveBuffer = ''
+
+  constructor(
+    private readonly emit: ((log: SerialTrafficLog) => void) | undefined,
+    private readonly path: string,
+    private readonly baudRate: number
+  ) {}
+
+  write(
+    direction: SerialTrafficLog['direction'],
+    data: string,
+    encoding: SerialTrafficLog['encoding'] = 'utf8'
+  ): void {
+    if (!this.emit) return
+    if (direction === 'tx' || encoding === 'hex') {
+      this.emit({ direction, path: this.path, baudRate: this.baudRate, data, encoding })
+      return
+    }
+
+    this.receiveBuffer += data
+    const lines = this.receiveBuffer.replaceAll('\r', '').split('\n')
+    this.receiveBuffer = lines.pop() ?? ''
+    for (const line of lines) {
+      this.emit({ direction, path: this.path, baudRate: this.baudRate, data: line, encoding })
+    }
+  }
+
+  flush(): void {
+    if (!this.emit || this.receiveBuffer.length === 0) return
+    this.emit({
+      direction: 'rx',
+      path: this.path,
+      baudRate: this.baudRate,
+      data: this.receiveBuffer,
+      encoding: 'utf8'
+    })
+    this.receiveBuffer = ''
   }
 }
 
@@ -411,7 +556,33 @@ async function probeSimCore(
       'The device configuration board does not match the connected hardware.'
     )
   }
-  return { info, configuration }
+  const fontAssets = await probeFontAssets(port, onTraffic)
+  return { info, configuration, ...(fontAssets ? { fontAssets } : {}) }
+}
+
+async function probeFontAssets(
+  port: SerialPort,
+  onTraffic: (direction: SerialTrafficLog['direction'], data: string) => void
+): Promise<FontAssetDeviceInfo | undefined> {
+  try {
+    const line = await requestResponse(
+      port,
+      FONT_INFO_REQUEST,
+      '@SC:OK:FONT:INFO:',
+      PROBE_TIMEOUT_MS,
+      onTraffic
+    )
+    return parseFontAssetInfo(line)
+  } catch (error) {
+    if (
+      error instanceof DeviceServiceError &&
+      error.code === 'not_simcore' &&
+      error.message.includes('unknown_command')
+    ) {
+      return undefined
+    }
+    throw error
+  }
 }
 
 function requestResponse(
@@ -533,6 +704,42 @@ function parseDeviceInfo(line: string): DeviceInfo {
     configurationSource: source,
     generation,
     storageAvailable: fields.get('storage') === '1'
+  }
+}
+
+function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
+  const fields = new Map<string, string>()
+  for (const entry of line.slice('@SC:OK:FONT:INFO:'.length).split(',')) {
+    const separator = entry.indexOf('=')
+    if (separator <= 0) {
+      throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
+    }
+    fields.set(entry.slice(0, separator), entry.slice(separator + 1))
+  }
+  const formatVersion = Number(fields.get('format'))
+  const assetCount = Number(fields.get('assets'))
+  const packageSize = Number(fields.get('size'))
+  const packageAvailable = fields.get('package') === '1'
+  if (
+    (fields.get('storage') !== '0' && fields.get('storage') !== '1') ||
+    (fields.get('package') !== '0' && fields.get('package') !== '1') ||
+    !Number.isSafeInteger(formatVersion) || formatVersion < 0 || formatVersion > 0xffff ||
+    !Number.isSafeInteger(assetCount) || assetCount < 0 || assetCount > 32 ||
+    !Number.isSafeInteger(packageSize) || packageSize < 0 || packageSize > 2 * 1024 * 1024 ||
+    (packageAvailable
+      ? formatVersion !== 2 || packageSize < 4096
+      : formatVersion !== 0 || assetCount !== 0 || packageSize !== 0) ||
+    (fields.get('reboot_required') !== '0' && fields.get('reboot_required') !== '1')
+  ) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
+  }
+  return {
+    storageAvailable: fields.get('storage') === '1',
+    packageAvailable,
+    formatVersion,
+    assetCount,
+    packageSize,
+    rebootRequired: fields.get('reboot_required') === '1'
   }
 }
 

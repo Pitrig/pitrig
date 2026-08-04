@@ -5,4 +5,5 @@ export interface SerialTrafficLog {
   path: string
   baudRate: number
   data: string
+  encoding?: 'utf8' | 'hex'
 }

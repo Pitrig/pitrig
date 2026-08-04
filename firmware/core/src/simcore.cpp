@@ -85,8 +85,7 @@ void run() {
       application.configuration_service.current();
   if (!application.font_asset_service.initialize(
           application.font_asset_storage)) {
-    log::warn(kTag,
-              "Font asset storage unavailable; using compiled Montserrat");
+    log::warn(kTag, "Font asset storage unavailable");
   }
   transport::ITransport& telemetry_transport =
       board_registry::telemetry_transport(configuration);

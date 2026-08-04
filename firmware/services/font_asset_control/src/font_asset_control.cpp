@@ -12,6 +12,7 @@ namespace simcore::font_assets {
 namespace {
 
 constexpr std::string_view kBeginPrefix = "@SC:FONT:BEGIN:size=";
+constexpr std::string_view kInfoCommand = "@SC:FONT:INFO";
 constexpr std::array<std::uint8_t, 4> kFrameMagic{'S', 'C', 'F', '1'};
 constexpr std::size_t kFrameTypeOffset = 4;
 constexpr std::size_t kFrameReservedByteOffset = 5;
@@ -76,7 +77,8 @@ bool FontAssetControl::initialize(Service& service,
   return task_ != nullptr;
 }
 
-void FontAssetControl::begin(const std::span<const std::uint8_t> line) {
+void FontAssetControl::consume_command(
+    const std::span<const std::uint8_t> line) {
   if (service_ == nullptr || transport_ == nullptr || task_ == nullptr ||
       active()) {
     return;
@@ -90,7 +92,10 @@ void FontAssetControl::begin(const std::span<const std::uint8_t> line) {
   }
 
   requested_package_size_ = 0;
-  if (line.size() >= kBeginPrefix.size() &&
+  if (line.size() == kInfoCommand.size() &&
+      std::equal(kInfoCommand.begin(), kInfoCommand.end(), line.begin())) {
+    request_type_ = RequestType::info;
+  } else if (line.size() >= kBeginPrefix.size() &&
       std::equal(kBeginPrefix.begin(), kBeginPrefix.end(), line.begin())) {
     const auto value = line.subspan(kBeginPrefix.size());
     const auto* const begin = reinterpret_cast<const char*>(value.data());
@@ -100,13 +105,15 @@ void FontAssetControl::begin(const std::span<const std::uint8_t> line) {
     if (result.ec != std::errc{} || result.ptr != end) {
       requested_package_size_ = 0;
     }
+    session_active_.store(true, std::memory_order_release);
+    request_type_ = RequestType::begin;
+  } else {
+    request_type_ = RequestType::invalid_command;
   }
 
   frame_size_ = 0;
   expected_frame_size_ = 0;
   overrun_.store(false, std::memory_order_relaxed);
-  session_active_.store(true, std::memory_order_release);
-  request_type_ = RequestType::begin;
   request_state_.store(RequestState::ready, std::memory_order_release);
   xTaskNotifyGive(task_);
 }
@@ -171,11 +178,33 @@ void FontAssetControl::process() {
     }
     if (request_type_ == RequestType::begin) {
       handle_begin();
+    } else if (request_type_ == RequestType::info) {
+      handle_info();
     } else if (request_type_ == RequestType::frame) {
       handle_frame();
+    } else if (request_type_ == RequestType::invalid_command) {
+      release_request();
+      (void)send_text("@SC:ERR:FONT:unknown_command\n");
     } else {
       finish_with_error("invalid_frame");
     }
+  }
+}
+
+void FontAssetControl::handle_info() {
+  const Status& status = service_->status();
+  release_request();
+  const int written = std::snprintf(
+      response_.data(), response_.size(),
+      "@SC:OK:FONT:INFO:storage=%u,package=%u,format=%u,assets=%u,size=%lu,reboot_required=%u\n",
+      status.storage_available ? 1U : 0U,
+      status.package_available ? 1U : 0U,
+      static_cast<unsigned>(status.format_version),
+      static_cast<unsigned>(status.asset_count),
+      static_cast<unsigned long>(status.package_size),
+      status.reboot_required ? 1U : 0U);
+  if (written > 0 && static_cast<std::size_t>(written) < response_.size()) {
+    (void)send_text(response_.data());
   }
 }
 

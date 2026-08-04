@@ -77,8 +77,7 @@ bool create_dashboard(
     return false;
   }
   if (!dashboard_state.fonts.initialize(font_assets)) {
-    log::warn(kTag,
-              "One or more font assets are invalid; using Montserrat fallback");
+    log::warn(kTag, "One or more font assets could not be loaded");
   }
 
   bool initialized = true;

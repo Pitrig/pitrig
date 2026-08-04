@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -18,13 +17,11 @@ class PartitionStorage final : public IStorage {
   PartitionStorage& operator=(const PartitionStorage&) = delete;
 
   [[nodiscard]] bool initialize() override;
-  [[nodiscard]] bool map(
-      Slot slot, std::span<const std::uint8_t>& bytes) override;
-  void unmap(Slot slot) override;
-  [[nodiscard]] bool erase(Slot slot) override;
+  [[nodiscard]] bool map(std::span<const std::uint8_t>& bytes) override;
+  void unmap() override;
+  [[nodiscard]] bool erase() override;
   [[nodiscard]] bool write(
-      Slot slot, std::size_t offset,
-      std::span<const std::uint8_t> bytes) override;
+      std::size_t offset, std::span<const std::uint8_t> bytes) override;
 
  private:
   struct Mapping {
@@ -32,10 +29,8 @@ class PartitionStorage final : public IStorage {
     esp_partition_mmap_handle_t handle{};
   };
 
-  [[nodiscard]] static std::size_t index(Slot slot);
-
-  std::array<const esp_partition_t*, 2> partitions_{};
-  std::array<Mapping, 2> mappings_{};
+  const esp_partition_t* partition_{};
+  Mapping mapping_{};
 };
 
 }  // namespace simcore::font_assets

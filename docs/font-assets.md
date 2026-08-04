@@ -1,33 +1,29 @@
 # Font asset storage
 
-This document defines font asset package format version 1. It is the contract
-between the future configurator converter and the firmware font asset service.
-It is separate from device configuration schema 2 and from configuration NVS.
+This document defines font asset package format version 2. It is the contract
+between the configurator converter and the firmware font asset service. It is
+separate from device configuration schema 2 and from configuration NVS.
 
 ## Storage model
 
-Firmware reserves two raw 2 MiB data partitions named `font_a` and `font_b`.
-At startup it validates both slots and selects the valid slot with the greatest
-generation. If neither slot is valid, the dashboard uses only compiled LVGL
-Montserrat.
+Firmware reserves one raw 2 MiB data partition named `font_assets`. At startup
+it validates the stored package. If the package is absent or invalid, only the
+exact compiled LVGL Montserrat variants remain available.
 
-An update always erases and writes the inactive slot. Bytes after the 32-byte
-header are written first; the header is kept in RAM, and is written only after
-the complete candidate package passes validation. The previous active slot is
-never modified. A successfully committed slot becomes active after reboot so
-that existing LVGL font objects and memory mappings remain valid for the whole
-runtime.
+An update erases and replaces the complete partition. Bytes after the 32-byte
+header are written first. The header stays in RAM and is written only after the
+complete candidate package passes validation. An interrupted upload therefore
+leaves an invalid package, but there is no second slot or previous generation
+to recover.
+
+A successfully committed package becomes active after reboot. The package is
+mapped read-only at startup and its font byte ranges are passed to the LVGL
+binary font loader. The current `lv_binfont_create_from_buffer` implementation
+materializes glyph metadata and bitmap data in the LVGL heap, so the flash
+mapping can be released before a later upload without invalidating the active
+runtime font objects.
 
 After a successful commit, the service rejects another update until reboot.
-This prevents a second request from erasing the newly committed inactive slot
-before it has become the runtime's selected active slot.
-
-The active slot is mapped read-only from flash and font byte ranges are passed
-to the LVGL binary font loader. The current `lv_binfont_create_from_buffer`
-implementation materializes the opened font's glyph metadata and bitmap data
-in the LVGL heap. A dedicated PSRAM-backed runtime pool is intentionally
-deferred; the persisted package remains memory-mapped and independently
-recoverable regardless of that runtime allocation policy.
 
 ## Integer and checksum encoding
 
@@ -41,21 +37,21 @@ polynomial, initial value `0xFFFFFFFF`, final XOR `0xFFFFFFFF`).
 | ---: | ---: | --- |
 | `0x0000` | 32 | Header |
 | `0x0020` | `entry_count * 48` | Manifest entries |
-| following | until `0x1000` | Reserved; ignored by version 1 |
+| following | until `0x1000` | Reserved; ignored by version 2 |
 | `0x1000` | variable | Aligned LVGL binary font data |
 
 `payload_size` is the exact package size and may not exceed 2 MiB. Every asset
 range must be fully contained in `[0x1000, payload_size)`. Asset offsets are
-four-byte aligned. Asset ranges must not overlap.
+four-byte aligned and must not overlap.
 
 ### Header
 
 | Offset | Type | Field | Rule |
 | ---: | --- | --- | --- |
 | 0 | `u32` | magic | bytes `SCFA` |
-| 4 | `u16` | format version | `1` |
+| 4 | `u16` | format version | `2` |
 | 6 | `u16` | header size | `32` |
-| 8 | `u32` | generation | non-zero, exactly previous generation + 1 for an update |
+| 8 | `u32` | reserved | zero |
 | 12 | `u16` | entry count | 0 through 32 |
 | 14 | `u16` | reserved | zero |
 | 16 | `u32` | payload size | `0x1000` through `0x200000` |
@@ -72,7 +68,7 @@ Each entry is exactly 48 bytes.
 
 | Offset | Type | Field | Rule |
 | ---: | --- | --- | --- |
-| 0 | `char[32]` | family identifier | zero-terminated or fills all 31 usable bytes followed by zero |
+| 0 | `char[32]` | family identifier | zero-terminated; at most 31 usable bytes |
 | 32 | `u16` | pixel size | 1 through 255 |
 | 34 | `u16` | reserved | zero |
 | 36 | `u32` | data offset | at least `0x1000`, four-byte aligned |
@@ -83,26 +79,37 @@ Family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`, or
 `-`. The pair `family + pixel size` must be unique within a package. Each asset
 must be an LVGL binary font accepted by the firmware's LVGL version.
 
-## Validation and fallback
+## Validation and resolution
 
 Firmware validates package structure, identifier syntax, size limits,
-uniqueness, non-overlap, and all CRC values before committing a new header. At
-startup, a structurally valid slot can still contain a font that the LVGL
-loader rejects. That individual asset is skipped and matching widgets use the
-nearest compiled Montserrat size (10, 24, or 48 px).
+uniqueness, non-overlap, and every CRC before committing the header. At startup
+LVGL may still reject an individual structurally bounded asset. That asset is
+not registered. Font resolution requires an exact built-in or uploaded
+family/size match; unresolved fonts are not replaced with Montserrat.
 
 ## Serial upload protocol
 
 The upload protocol shares the selected telemetry serial transport. The host
-starts a session with one line-oriented command containing the complete package
-size:
+can query persisted asset state without starting an upload:
+
+```text
+@SC:FONT:INFO
+@SC:OK:FONT:INFO:storage=1,package=1,format=2,assets=3,size=24576,reboot_required=0
+```
+
+`storage` reports whether the partition is available. `package` reports
+whether a valid package is stored. `format`, `assets`, and `size` describe that
+package and are zero when none is valid. `reboot_required` is set after a
+successful commit until restart.
+
+The host starts a session with the complete package size:
 
 ```text
 @SC:FONT:BEGIN:size=<bytes>
 ```
 
-Firmware validates the size and erases the inactive slot in a dedicated static
-FreeRTOS task. When it is ready for binary data, it replies:
+Firmware validates the size and erases the font partition in a dedicated
+static FreeRTOS task. When ready for binary data, it replies:
 
 ```text
 @SC:OK:FONT:READY:max_chunk=1024
@@ -120,7 +127,7 @@ one frame at a time and waits for its response before sending the next one.
 | 10 | 2 | payload length | unsigned little-endian, 1–1024 for data, zero otherwise |
 | 12 | 2 | reserved | zero |
 | 14 | variable | payload | package bytes for a data frame |
-| following | 4 | frame CRC | CRC32 of the 14-byte header and payload |
+| following | 4 | frame CRC | CRC32 of the header and payload |
 
 The maximum frame size is 1042 bytes. The commit and cancel frames use the next
 expected sequence number. Each accepted data frame receives:
@@ -135,7 +142,8 @@ transport to normal line mode. Sending data before the previous response is a
 protocol overrun and also cancels the session.
 
 Commit is accepted only after exactly the declared package size has arrived.
-Firmware then validates and atomically commits the inactive slot and replies:
+Firmware validates the candidate, writes its header last, verifies the stored
+package, and replies:
 
 ```text
 @SC:OK:FONT:COMMITTED:reboot_required=1
@@ -143,9 +151,10 @@ Firmware then validates and atomically commits the inactive slot and replies:
 
 Cancel replies with `@SC:OK:FONT:CANCELLED`. Ten seconds without a complete
 request cancels an active session with `@SC:ERR:FONT:timeout`. During a session,
-all received bytes are owned by the font protocol; normal line commands and
+all received bytes belong to the font protocol; normal line commands and
 telemetry input resume after commit, cancel, timeout, or error.
 
-The storage service, runtime registry, and firmware upload protocol are
-implemented. Configurator-side TTF/OTF conversion and upload orchestration are
-outside this phase.
+The configurator converts TTF/OTF sources with the official `lv_font_conv`
+binary output, four bits per pixel, compression disabled, and printable ASCII
+range `0x20` through `0x7E`. Broader glyph-range selection and compressed
+assets remain later improvements.
