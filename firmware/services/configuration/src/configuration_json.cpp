@@ -131,7 +131,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool parse_placement(const cJSON* const object,
-                                   dashboard::Placement& placement) {
+                                   WidgetPlacement& placement) {
   return valid_object(object, {"x", "y", "width", "height"}) &&
          read_integer(object, "x", placement.x) &&
          read_integer(object, "y", placement.y) &&
@@ -140,7 +140,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool parse_font(const cJSON* const object,
-                              dashboard::FontSpec& font) {
+                              font_assets::FontSpec& font) {
   if (!valid_object(object, {"family", "size_px"}) ||
       !read_integer(object, "size_px", font.size_px)) {
     return false;
@@ -150,13 +150,13 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool parse_optional_placement(
-    const cJSON* const object, dashboard::Placement& placement) {
+    const cJSON* const object, WidgetPlacement& placement) {
   const cJSON* const value = member(object, "placement");
   return value == nullptr || parse_placement(value, placement);
 }
 
 [[nodiscard]] bool parse_optional_font(const cJSON* const object,
-                                       dashboard::FontSpec& font) {
+                                       font_assets::FontSpec& font) {
   const cJSON* const value = member(object, "font");
   return value == nullptr || parse_font(value, font);
 }
@@ -198,7 +198,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool parse_lap_timer_module(const cJSON* const object,
-                                          lap_timer::Config& config) {
+                                          LapTimerConfiguration& config) {
   return valid_object(object, {"telemetry_only", "telemetry_timeout_ms"}) &&
          read_boolean(object, "telemetry_only", config.telemetry_only) &&
          read_integer(object, "telemetry_timeout_ms",
@@ -206,7 +206,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool parse_delta_time_module(const cJSON* const object,
-                                            delta_time::Config& config) {
+                                            DeltaTimeConfiguration& config) {
   if (!valid_object(object,
                     {"unavailable_behavior", "placeholder", "scale"}) ||
       !read_text(object, "placeholder", config.placeholder)) {
@@ -219,12 +219,12 @@ template <std::size_t Size>
     }
     const std::string_view value{behavior->valuestring};
     if (value == "hide") {
-      config.unavailable_behavior = delta_time::UnavailableBehavior::hide;
+      config.unavailable_behavior = DeltaTimeUnavailableBehavior::hide;
     } else if (value == "placeholder") {
       config.unavailable_behavior =
-          delta_time::UnavailableBehavior::placeholder;
+          DeltaTimeUnavailableBehavior::placeholder;
     } else if (value == "zero") {
-      config.unavailable_behavior = delta_time::UnavailableBehavior::zero;
+      config.unavailable_behavior = DeltaTimeUnavailableBehavior::zero;
     } else {
       return false;
     }
@@ -238,7 +238,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool parse_lap_timer_widget(
-    const cJSON* const object, dashboard::lap_timer_widget::Config& config) {
+    const cJSON* const object, LapTimerWidgetConfiguration& config) {
   return valid_object(object, {"placement", "font", "text_color"}) &&
          parse_optional_placement(object, config.placement) &&
          parse_optional_font(object, config.font) &&
@@ -246,7 +246,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool parse_delta_time_widget(
-    const cJSON* const object, dashboard::delta_time_widget::Config& config) {
+    const cJSON* const object, DeltaTimeWidgetConfiguration& config) {
   if (!valid_object(object, {"placement", "font", "faster_color",
                              "slower_color", "neutral_color", "scale"}) ||
       !parse_optional_placement(object, config.placement) ||
@@ -268,7 +268,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool parse_text_widget(
-    const cJSON* const object, dashboard::text_widget::Config& config) {
+    const cJSON* const object, TextWidgetConfiguration& config) {
   if (!valid_object(object, {"binding", "placement", "padding", "border",
                              "title", "value", "background_color"}) ||
       !read_text(object, "binding", config.binding) ||
@@ -322,11 +322,11 @@ template <std::size_t Size>
   }
   const std::string_view alignment_value{alignment->valuestring};
   if (alignment_value == "left") {
-    config.value.alignment = dashboard::text_widget::Alignment::left;
+    config.value.alignment = TextAlignment::left;
   } else if (alignment_value == "center") {
-    config.value.alignment = dashboard::text_widget::Alignment::center;
+    config.value.alignment = TextAlignment::center;
   } else if (alignment_value == "right") {
-    config.value.alignment = dashboard::text_widget::Alignment::right;
+    config.value.alignment = TextAlignment::right;
   } else {
     return false;
   }

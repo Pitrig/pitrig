@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <mutex>
 
+#include "application_configuration.hpp"
 #include "event_bus.hpp"
 #include "telemetry_types.hpp"
 
@@ -14,27 +15,11 @@ class ITelemetryReader;
 
 namespace simcore::delta_time {
 
-inline constexpr std::size_t kTextCapacity = 16;
-
-enum class UnavailableBehavior : std::uint8_t {
-  hide,
-  placeholder,
-  zero,
-};
-
-struct ScaleConfig {
-  // Enables a signed center-origin scale.
-  bool enabled{false};
-  bool show_sign{false};
-  // Absolute delta represented by either edge of the scale.
-  std::int32_t range_ms{2'000};
-};
-
-struct Config {
-  UnavailableBehavior unavailable_behavior{UnavailableBehavior::hide};
-  std::array<char, kTextCapacity> placeholder{'-', '-', '-', '\0'};
-  ScaleConfig scale{};
-};
+inline constexpr std::size_t kTextCapacity =
+    configuration::kDeltaTimeTextCapacity;
+using UnavailableBehavior = configuration::DeltaTimeUnavailableBehavior;
+using ScaleConfig = configuration::DeltaTimeScaleConfiguration;
+using Config = configuration::DeltaTimeConfiguration;
 
 enum class Tone : std::uint8_t {
   neutral,

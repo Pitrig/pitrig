@@ -19,13 +19,17 @@ set(component_include_dirs
     "widgets/text/include"
     "widgets/performance_overlay/include")
 
+if(CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040)
+    set(boot_splash_asset "assets/boot_splash/logo_480x480.rgb565")
+else()
+    set(boot_splash_asset "assets/boot_splash/logo_320x170.rgb565")
+endif()
+
 idf_component_register(
     SRCS ${component_sources}
     INCLUDE_DIRS ${component_include_dirs}
-    EMBED_FILES
-        "assets/boot_splash/logo_320x170.rgb565"
-        "assets/boot_splash/logo_480x480.rgb565"
-    REQUIRES font_assets lvgl__lvgl telemetry
+    EMBED_FILES ${boot_splash_asset}
+    REQUIRES configuration font_assets lvgl__lvgl telemetry
     PRIV_REQUIRES delta_time display esp_lvgl_port heap lap_timer performance
                   simcore_config transport)
 

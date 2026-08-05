@@ -13,6 +13,7 @@ import { useDeviceStore } from '@/features/device/device-store'
 import {
   FONT_FAMILY_PATTERN,
   MAXIMUM_FONT_ASSETS,
+  MAXIMUM_FONT_SIZE_PX,
   type FontSourceSelection,
   type FontUploadProgress
 } from '../../../../shared/font-assets'
@@ -226,7 +227,8 @@ function updateDraft(
 
 function validDraft(draft: FontDraft): boolean {
   const size = Number(draft.sizePx)
-  return FONT_FAMILY_PATTERN.test(draft.family) && Number.isInteger(size) && size >= 1 && size <= 255
+  return FONT_FAMILY_PATTERN.test(draft.family) && Number.isInteger(size) &&
+    size >= 1 && size <= MAXIMUM_FONT_SIZE_PX
 }
 
 function uniqueAssets(drafts: FontDraft[]): boolean {

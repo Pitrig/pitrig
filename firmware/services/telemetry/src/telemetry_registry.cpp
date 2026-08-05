@@ -22,8 +22,4 @@ const FieldDescriptor* TelemetryRegistry::describe(const Handle handle) const {
   return descriptor.type == handle.type ? &descriptor : nullptr;
 }
 
-std::size_t TelemetryRegistry::size() const {
-  return kDescriptors.size();
-}
-
 }  // namespace simcore::telemetry

@@ -312,10 +312,9 @@ Configurator code must not reproduce or depend on this NVS record format.
 Schema 0 and schema 1 records are unsupported and are not migrated. They fall
 back to another valid schema 2 slot or the board-only factory configuration.
 
-## CLI retirement
+## Legacy tooling
 
-The Python configuration CLI is retained temporarily for legacy schema 0
-firmware and is not compatible with schema 2. It must be removed, together with
-its requirements and CLI-specific profiles, after the desktop configurator
-implements the complete `INFO`, `GET`, `VALIDATE`, `SET`, `RESET`, and `REBOOT`
-round trip.
+The schema 0 Python configuration CLI and its inheritance profiles were removed
+after the desktop configurator implemented the complete `INFO`, `GET`,
+`VALIDATE`, `SET`, `RESET`, and `REBOOT` round trip. Current tooling authors and
+transfers only the sparse schema 2 JSON document described here.

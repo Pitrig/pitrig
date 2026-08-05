@@ -47,20 +47,27 @@ void EventBus::unsubscribe(const Subscription subscription) {
 }
 
 void EventBus::publish(const Event& event) {
-  std::array<Slot, kMaximumSubscriptions> subscribers{};
+  struct Invocation {
+    Handler handler{};
+    void* context{};
+  };
+  std::array<Invocation, kMaximumSubscriptions> subscribers{};
   std::size_t subscriber_count = 0;
 
   {
     const std::lock_guard lock(mutex_);
     for (const Slot& slot : slots_) {
       if (slot.active && slot.id == event.id) {
-        subscribers[subscriber_count++] = slot;
+        subscribers[subscriber_count++] = {
+            .handler = slot.handler,
+            .context = slot.context,
+        };
       }
     }
   }
 
   for (std::size_t index = 0; index < subscriber_count; ++index) {
-    const Slot& subscriber = subscribers[index];
+    const Invocation& subscriber = subscribers[index];
     subscriber.handler(event, subscriber.context);
   }
 }

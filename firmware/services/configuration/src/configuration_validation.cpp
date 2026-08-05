@@ -11,10 +11,10 @@ namespace {
 }
 
 [[nodiscard]] bool valid_optional_color(const std::uint32_t color) {
-  return color == dashboard::kTransparentColor || valid_color(color);
+  return color == kTransparentColor || valid_color(color);
 }
 
-[[nodiscard]] bool valid_font(const dashboard::FontSpec& font) {
+[[nodiscard]] bool valid_font(const font_assets::FontSpec& font) {
   const std::string_view family = font_assets::family_id_view(font.family);
   if (family.empty() ||
       family.size() > font_assets::kMaximumFamilyIdLength ||
@@ -34,7 +34,7 @@ namespace {
   return true;
 }
 
-[[nodiscard]] bool valid_placement(const dashboard::Placement& placement,
+[[nodiscard]] bool valid_placement(const WidgetPlacement& placement,
                                    const std::int32_t display_width,
                                    const std::int32_t display_height) {
   return placement.x >= 0 && placement.y >= 0 && placement.width >= 0 &&
@@ -50,7 +50,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] bool valid_text_widget(
-    const dashboard::text_widget::Config& config,
+    const TextWidgetConfiguration& config,
     const std::int32_t display_width, const std::int32_t display_height) {
   const telemetry::TelemetryRegistry registry;
   return registry.resolve(telemetry::field_name_view(config.binding)).valid() &&
@@ -59,8 +59,8 @@ template <std::size_t Size>
          valid_color(config.border.color) && valid_color(config.title.color) &&
          valid_color(config.value.color) &&
          valid_optional_color(config.background_color) &&
-         config.value.alignment >= dashboard::text_widget::Alignment::left &&
-         config.value.alignment <= dashboard::text_widget::Alignment::right &&
+         config.value.alignment >= TextAlignment::left &&
+         config.value.alignment <= TextAlignment::right &&
          config.padding.left <= display_width &&
          config.padding.top <= display_height &&
          config.padding.right <= display_width &&
@@ -119,9 +119,9 @@ ValidationError validate_configuration(
        configuration.delta_time.scale.range_ms > 60'000 ||
        !terminated(configuration.delta_time.placeholder) ||
        configuration.delta_time.unavailable_behavior <
-           delta_time::UnavailableBehavior::hide ||
+           DeltaTimeUnavailableBehavior::hide ||
        configuration.delta_time.unavailable_behavior >
-           delta_time::UnavailableBehavior::zero)) {
+           DeltaTimeUnavailableBehavior::zero)) {
     return ValidationError::invalid_module;
   }
 

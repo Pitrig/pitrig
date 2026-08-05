@@ -1,6 +1,6 @@
 idf_component_register(SRCS "src/board_registry.cpp"
                        INCLUDE_DIRS "include"
-                       REQUIRES application_config interfaces transport
+                       REQUIRES configuration interfaces transport
                        PRIV_REQUIRES guition_esp32_4848s040 t_display_s3
                                      uart usb_cdc)
 

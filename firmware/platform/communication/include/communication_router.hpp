@@ -6,14 +6,15 @@
 #include <span>
 
 #include "configuration_control.hpp"
+#include "configuration_json.hpp"
 #include "font_asset_control.hpp"
 #include "transport.hpp"
 
-namespace simcore::configuration {
+namespace simcore::communication {
 
-class ConfigurationRouter {
+class Router final {
  public:
-  void initialize(ConfigurationControl& control,
+  void initialize(configuration::ConfigurationControl& control,
                   font_assets::FontAssetControl& font_asset_control,
                   transport::DataHandler telemetry_handler,
                   void* telemetry_context);
@@ -21,11 +22,11 @@ class ConfigurationRouter {
 
  private:
   static constexpr std::size_t kMaximumLineSize =
-      16 + kMaximumPayloadSize;
+      16 + configuration::kMaximumPayloadSize;
 
   void dispatch();
 
-  ConfigurationControl* control_{};
+  configuration::ConfigurationControl* control_{};
   font_assets::FontAssetControl* font_asset_control_{};
   transport::DataHandler telemetry_handler_{};
   void* telemetry_context_{};
@@ -34,4 +35,4 @@ class ConfigurationRouter {
   bool discarding_{};
 };
 
-}  // namespace simcore::configuration
+}  // namespace simcore::communication

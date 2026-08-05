@@ -89,10 +89,10 @@ The firmware should avoid device-specific code paths.
 |---------------------------------------------------------------|
 | Startup                                                   |
 | Configuration                                             |
-| Scheduler                                                 |
+| Scheduling Ownership                                     |
 | Event System                                              |
-| Service Registry                                          |
-| Module Lifecycle                                          |
+| Static Service Composition                                |
+| Bounded Module Manager                                    |
 +---------------------------------------------------------------+
               |                    |                    |
               |                    |                    |
@@ -117,7 +117,7 @@ The firmware source is organized by architectural responsibility.
 
 ```text
 firmware/
-├── core/          Firmware startup and orchestration
+├── core/          Firmware startup, orchestration and module lifecycle
 ├── components/    Reusable hardware capabilities
 ├── interfaces/    Contracts implemented by drivers
 ├── drivers/       Hardware-specific implementations
@@ -138,16 +138,17 @@ The dependency direction is:
 main
   |
   v
-core
-  |----> modules
+core ----> core/module_manager
   |----> components
   |----> services
-  `----> platform
+  `----> platform composition
 
-modules ----> components
-platform ----> modules
-platform ----> components
-components ----> interfaces <---- drivers
+platform composition ----> modules
+platform composition ----> components
+platform composition ----> services
+board registry -----------> drivers
+modules ------------------> services and components
+components ---------------> interfaces <--------------- drivers
 ```
 
 Dependencies must not point from interfaces or components to a concrete hardware driver.
@@ -156,20 +157,28 @@ Dependencies must not point from interfaces or components to a concrete hardware
 
 # Firmware Core
 
-The firmware core is responsible only for platform infrastructure.
+The firmware core is the static application composition root. It owns
+firmware-lifetime platform adapters and services and coordinates startup
+through explicit references. SimCore does not use a runtime Service Registry
+or service locator.
 
 Responsibilities include:
 
 - startup
 - initialization
 - configuration loading
-- module lifecycle
-- scheduling
+- bounded module lifecycle
+- scheduling ownership
 - communication
 - shared services
 - event dispatching
 
 The firmware core must not contain feature-specific logic.
+
+The bounded Module Manager stores compile-time descriptors with function
+pointers and explicit contexts. Platform composition registers the available
+module implementations and configuration controls which descriptors are
+enabled. The manager performs no allocation or name-based lookup.
 
 ---
 
@@ -238,6 +247,10 @@ Examples include:
 - Communication
 - Font asset catalog and package validation
 
+The configuration service owns the bounded schema 2 application value
+contract. Module and dashboard implementations consume those value types; the
+contract does not include module implementation or LVGL widget headers.
+
 Services must remain focused and must not contain hardware-specific application logic.
 
 The font asset service owns the bounded, platform-independent single-package
@@ -285,11 +298,17 @@ Interfaces should remain small and must not contain board-specific pin assignmen
 
 # Communication
 
-Communication with external software is handled through dedicated communication layers.
+Communication with external software is handled through a dedicated platform
+communication composition.
 
 The communication protocol should be isolated from business logic.
 
 Changing the transport should not require rewriting modules.
+
+The communication composition owns the configuration control endpoint, font
+asset control endpoint, line/binary router, and concrete telemetry protocol.
+The core supplies the board-selected transport and shared services but does not
+depend on SimHub identifiers or protocol classes.
 
 Possible transports include:
 
@@ -368,7 +387,15 @@ The event system reduces coupling between modules.
 
 # Scheduling
 
-SimCore runs on FreeRTOS.
+SimCore runs on FreeRTOS, but it does not add a central application scheduler.
+Each subsystem owns the mechanism appropriate to its work:
+
+- FreeRTOS tasks for blocking or long-running service operations;
+- LVGL timers for periodic rendering;
+- Event Bus callbacks for short module updates.
+
+A central scheduler requires a separate architectural decision if a future
+cross-subsystem timing requirement cannot be represented by these mechanisms.
 
 Long-running work must execute in dedicated tasks.
 

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <span>
 
+#include "application_configuration.hpp"
 #include "dashboard_layout.hpp"
 #include "telemetry_registry.hpp"
 
@@ -23,49 +24,20 @@ class Registry;
 
 namespace simcore::dashboard::text_widget {
 
-inline constexpr std::size_t kMaximumInstances = 16;
-inline constexpr std::size_t kTitleCapacity = 16;
-inline constexpr std::size_t kUnavailableTextCapacity = 16;
+inline constexpr std::size_t kMaximumInstances =
+    configuration::kMaximumTextWidgets;
+inline constexpr std::size_t kTitleCapacity =
+    configuration::kWidgetTitleCapacity;
+inline constexpr std::size_t kUnavailableTextCapacity =
+    configuration::kUnavailableTextCapacity;
 
 struct BoundConfig;
 
-enum class Alignment : std::uint8_t {
-  left,
-  center,
-  right,
-};
-
-struct Border {
-  std::uint32_t color{0xAEAEAE};
-  std::uint16_t width_px{};
-  std::uint16_t radius_px{};
-};
-
-struct TitleStyle {
-  std::array<char, kTitleCapacity> text{};
-  FontSpec font{.family = kMontserratFontFamily, .size_px = 10};
-  std::uint32_t color{0xE8E8E8};
-  std::int16_t offset_y_px{};
-};
-
-struct ValueStyle {
-  FontSpec font{.family = kMontserratFontFamily, .size_px = 48};
-  std::uint32_t color{0xE8E8E8};
-  Alignment alignment{Alignment::center};
-  std::array<char, kUnavailableTextCapacity> unavailable_text{
-      '-', '-', '\0'};
-};
-
-struct Config {
-  telemetry::FieldName binding{
-      telemetry::make_field_name(telemetry::fields::kSpeed)};
-  Placement placement{};
-  Insets padding{};
-  Border border{};
-  TitleStyle title{};
-  ValueStyle value{};
-  std::uint32_t background_color{kTransparentColor};
-};
+using Alignment = configuration::TextAlignment;
+using Border = configuration::WidgetBorder;
+using TitleStyle = configuration::WidgetTitleStyle;
+using ValueStyle = configuration::WidgetValueStyle;
+using Config = configuration::TextWidgetConfiguration;
 
 // Owns the fixed runtime state for every configured text widget. All instances
 // share one render timer and read only their pre-bound telemetry handles.

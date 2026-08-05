@@ -1,9 +1,9 @@
 idf_component_register(
-  SRCS "src/configuration_json.cpp" "src/configuration_validation.cpp"
-       "src/configuration_control.cpp" "src/configuration_router.cpp"
-       "src/configuration_service.cpp"
+  SRCS "src/application_configuration.cpp" "src/configuration_json.cpp"
+       "src/configuration_validation.cpp"
+       "src/configuration_control.cpp" "src/configuration_service.cpp"
   INCLUDE_DIRS "include"
-  REQUIRES application_config font_asset_control transport
+  REQUIRES font_assets telemetry transport
   PRIV_REQUIRES cjson esp_app_format)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

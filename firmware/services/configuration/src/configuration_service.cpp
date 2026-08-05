@@ -71,8 +71,7 @@ bool ConfigurationService::initialize(
       factory_payload.size() > current_payload_.size() ||
       parse_configuration_json(factory_payload, validation_profile_,
                                scratch_configuration_) !=
-          ValidationError::none ||
-      scratch_configuration_.board.id != validation_profile_.board) {
+          ValidationError::none) {
     return false;
   }
   current_ = scratch_configuration_;
@@ -142,9 +141,7 @@ ValidationError ConfigurationService::validate_payload(
   if (parsed != ValidationError::none) {
     return parsed;
   }
-  return scratch_configuration_.board.id == validation_profile_.board
-             ? ValidationError::none
-             : ValidationError::board_mismatch;
+  return ValidationError::none;
 }
 
 ValidationError ConfigurationService::save(
@@ -158,10 +155,6 @@ ValidationError ConfigurationService::save(
   if (parsed != ValidationError::none) {
     return parsed;
   }
-  if (scratch_configuration_.board.id != validation_profile_.board) {
-    return ValidationError::board_mismatch;
-  }
-
   const StorageSlot target =
       has_persisted_slot_ ? other(persisted_slot_) : StorageSlot::a;
   const std::uint32_t generation = persisted_generation_ + 1U;
@@ -224,9 +217,6 @@ ConfigurationService::LoadedRecord ConfigurationService::load_slot(
   }
   if (parse_configuration_json(payload, validation_profile_, configuration) !=
       ValidationError::none) {
-    return loaded;
-  }
-  if (configuration.board.id != validation_profile_.board) {
     return loaded;
   }
   loaded.generation = get_u32(record, 12);

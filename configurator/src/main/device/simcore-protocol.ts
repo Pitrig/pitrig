@@ -82,8 +82,7 @@ export async function validateConfiguration(
     '@SC:OK:VALID',
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
-    'configuration_rejected',
-    false
+    'configuration_rejected'
   )
 }
 
@@ -98,8 +97,7 @@ export async function saveConfiguration(
     '@SC:OK:SAVED:reboot_required=1',
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
-    'configuration_rejected',
-    false
+    'configuration_rejected'
   )
 }
 
@@ -113,8 +111,7 @@ export async function resetConfiguration(
     '@SC:OK:RESET:reboot_required=1',
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
-    'configuration_rejected',
-    false
+    'configuration_rejected'
   )
 }
 
@@ -124,17 +121,14 @@ export function requestResponse(
   responsePrefix: string,
   timeoutMs: number,
   onTraffic: TrafficCallback,
-  rejectionCode: DeviceErrorCode = 'not_simcore',
-  retryRequest = true
+  rejectionCode: DeviceErrorCode = 'not_simcore'
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     let buffer = ''
     let settled = false
-    let retryTimer: ReturnType<typeof setInterval> | undefined
 
     const cleanup = (): void => {
       clearTimeout(timeoutTimer)
-      if (retryTimer) clearInterval(retryTimer)
       port.off('data', onData)
       port.off('error', onError)
       port.off('close', onClose)
@@ -183,7 +177,6 @@ export function requestResponse(
     port.on('data', onData)
     port.once('error', onError)
     port.once('close', onClose)
-    if (retryRequest) retryTimer = setInterval(sendRequest, 350)
     const timeoutTimer = setTimeout(() => {
       finish(new DeviceServiceError(rejectionCode, `The device did not answer ${request.trim()}.`))
     }, timeoutMs)

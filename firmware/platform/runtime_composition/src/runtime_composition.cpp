@@ -38,6 +38,58 @@ bool dashboard_will_render_content(
 #endif
 }
 
+bool start_lap_timer(void* const context) {
+  auto& binding = *static_cast<Modules::LapTimerBinding*>(context);
+  if (binding.module == nullptr || binding.event_bus == nullptr ||
+      binding.telemetry == nullptr || binding.configuration == nullptr ||
+      binding.started == nullptr) {
+    return false;
+  }
+  *binding.started = binding.module->start(
+      *binding.event_bus, *binding.telemetry, binding.handle,
+      *binding.configuration);
+  if (!*binding.started) {
+    log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
+  }
+  return *binding.started;
+}
+
+void stop_lap_timer(void* const context) {
+  auto& binding = *static_cast<Modules::LapTimerBinding*>(context);
+  if (binding.module != nullptr) {
+    binding.module->stop();
+  }
+  if (binding.started != nullptr) {
+    *binding.started = false;
+  }
+}
+
+bool start_delta_time(void* const context) {
+  auto& binding = *static_cast<Modules::DeltaTimeBinding*>(context);
+  if (binding.module == nullptr || binding.event_bus == nullptr ||
+      binding.telemetry == nullptr || binding.configuration == nullptr ||
+      binding.started == nullptr) {
+    return false;
+  }
+  *binding.started = binding.module->start(
+      *binding.event_bus, *binding.telemetry, binding.handle,
+      *binding.configuration);
+  if (!*binding.started) {
+    log::error(kTag, "Failed to subscribe Delta Time to telemetry");
+  }
+  return *binding.started;
+}
+
+void stop_delta_time(void* const context) {
+  auto& binding = *static_cast<Modules::DeltaTimeBinding*>(context);
+  if (binding.module != nullptr) {
+    binding.module->stop();
+  }
+  if (binding.started != nullptr) {
+    *binding.started = false;
+  }
+}
+
 }  // namespace
 
 bool show_startup_screen(
@@ -57,30 +109,48 @@ bool start_modules(
 #if SIMCORE_DISPLAY_DIAGNOSTICS
   widgets_enabled = false;
 #endif
-  bool started = true;
+  modules.manager.clear();
   modules.lap_timer_started = false;
   modules.delta_time_started = false;
   const telemetry::Handle lap_time_handle =
       telemetry_registry.resolve(telemetry::fields::kCurrentLapTime);
   const telemetry::Handle lap_delta_handle =
       telemetry_registry.resolve(telemetry::fields::kLapDelta);
-  if (widgets_enabled && configuration.lap_timer_present) {
-    modules.lap_timer_started = modules.lap_timer.start(
-        event_bus, telemetry, lap_time_handle, configuration.lap_timer);
-    if (!modules.lap_timer_started) {
-      log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
-      started = false;
-    }
+  modules.lap_timer_binding = {
+      .module = &modules.lap_timer,
+      .event_bus = &event_bus,
+      .telemetry = &telemetry,
+      .handle = lap_time_handle,
+      .configuration = &configuration.lap_timer,
+      .started = &modules.lap_timer_started,
+  };
+  modules.delta_time_binding = {
+      .module = &modules.delta_time,
+      .event_bus = &event_bus,
+      .telemetry = &telemetry,
+      .handle = lap_delta_handle,
+      .configuration = &configuration.delta_time,
+      .started = &modules.delta_time_started,
+  };
+  const bool registered =
+      modules.manager.add({
+          .enabled = widgets_enabled && configuration.lap_timer_present,
+          .start = &start_lap_timer,
+          .stop = &stop_lap_timer,
+          .context = &modules.lap_timer_binding,
+      }) &&
+      modules.manager.add({
+          .enabled = widgets_enabled && configuration.delta_time_present,
+          .start = &start_delta_time,
+          .stop = &stop_delta_time,
+          .context = &modules.delta_time_binding,
+      });
+  if (!registered) {
+    modules.manager.clear();
+    log::error(kTag, "Failed to register configured modules");
+    return false;
   }
-  if (widgets_enabled && configuration.delta_time_present) {
-    modules.delta_time_started = modules.delta_time.start(
-        event_bus, telemetry, lap_delta_handle, configuration.delta_time);
-    if (!modules.delta_time_started) {
-      log::error(kTag, "Failed to subscribe Delta Time to telemetry");
-      started = false;
-    }
-  }
-  return started;
+  return modules.manager.start_all();
 }
 
 bool create_dashboard(
@@ -94,8 +164,8 @@ bool create_dashboard(
   dashboard::Layout layout{
       .display = display,
   };
-  if (!dashboard::initialize(layout)) {
-    log::error(kTag, "Failed to initialize dashboard layout");
+  if (display == nullptr) {
+    log::error(kTag, "Dashboard display is unavailable");
     return false;
   }
   if (!dashboard_state.fonts.initialize(font_assets)) {

@@ -344,8 +344,7 @@ export class DeviceService {
           // RX is already observed by the active port listener.
           if (direction === 'tx') traffic?.write(direction, data)
         },
-        'serial_error',
-        false
+        'serial_error'
       )
       this.activePort = undefined
       this.activeTraffic = undefined

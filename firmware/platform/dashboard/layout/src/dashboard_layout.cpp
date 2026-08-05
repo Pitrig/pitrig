@@ -20,10 +20,6 @@ void apply_outline(lv_obj_t* const object, const std::uint32_t color_rgb) {
 
 }  // namespace
 
-bool initialize(Layout& layout) {
-  return layout.display != nullptr;
-}
-
 bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
                            const std::int32_t intrinsic_width,
                            const std::int32_t intrinsic_height,

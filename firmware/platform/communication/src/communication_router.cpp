@@ -1,9 +1,9 @@
-#include "configuration_router.hpp"
+#include "communication_router.hpp"
 
 #include <algorithm>
 #include <string_view>
 
-namespace simcore::configuration {
+namespace simcore::communication {
 namespace {
 
 constexpr std::array<std::uint8_t, 4> kControlPrefix{'@', 'S', 'C', ':'};
@@ -11,8 +11,8 @@ constexpr std::string_view kFontControlPrefix = "@SC:FONT:";
 
 }  // namespace
 
-void ConfigurationRouter::initialize(
-    ConfigurationControl& control,
+void Router::initialize(
+    configuration::ConfigurationControl& control,
     font_assets::FontAssetControl& font_asset_control,
     const transport::DataHandler telemetry_handler,
     void* const telemetry_context) {
@@ -24,8 +24,7 @@ void ConfigurationRouter::initialize(
   discarding_ = false;
 }
 
-void ConfigurationRouter::consume(
-    const std::span<const std::uint8_t> data) {
+void Router::consume(const std::span<const std::uint8_t> data) {
   for (std::size_t index = 0; index < data.size(); ++index) {
     if (font_asset_control_ != nullptr && font_asset_control_->active()) {
       font_asset_control_->consume(data.subspan(index));
@@ -56,14 +55,13 @@ void ConfigurationRouter::consume(
   }
 }
 
-void ConfigurationRouter::dispatch() {
+void Router::dispatch() {
   const std::span<const std::uint8_t> line(line_.data(), line_size_);
   if (line.empty()) {
     return;
   }
   if (line.size() >= kControlPrefix.size() &&
-      std::equal(kControlPrefix.begin(), kControlPrefix.end(),
-                 line.begin())) {
+      std::equal(kControlPrefix.begin(), kControlPrefix.end(), line.begin())) {
     if (font_asset_control_ != nullptr &&
         line.size() >= kFontControlPrefix.size() &&
         std::equal(kFontControlPrefix.begin(), kFontControlPrefix.end(),
@@ -85,4 +83,4 @@ void ConfigurationRouter::dispatch() {
                      telemetry_context_);
 }
 
-}  // namespace simcore::configuration
+}  // namespace simcore::communication

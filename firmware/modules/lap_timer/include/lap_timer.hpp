@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <mutex>
 
+#include "application_configuration.hpp"
 #include "event_bus.hpp"
 #include "telemetry_types.hpp"
 
@@ -16,12 +17,7 @@ class ITelemetryReader;
 
 namespace simcore::lap_timer {
 
-struct Config {
-  // Display only the last received telemetry value without local extrapolation.
-  bool telemetry_only{false};
-  // Stop local extrapolation when current-lap telemetry is stale for this long.
-  std::uint32_t telemetry_timeout_ms{1'000};
-};
+using Config = configuration::LapTimerConfiguration;
 
 class LapTimer {
  public:

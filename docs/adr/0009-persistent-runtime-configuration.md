@@ -1,5 +1,9 @@
 # ADR 0009: Persistent Runtime Configuration
 
+Implementation status: the desktop configurator now supports the complete
+control round trip, and the legacy schema 0 CLI and inheritance profiles have
+been removed. Schema 2 font references are defined by ADR 0010.
+
 ## Context
 
 SimCore needs configuration that survives restart, can be managed by the
@@ -21,10 +25,11 @@ user-configured hardware devices, modules, or widgets. Hardware declared as
 built into the board remains enabled according to the immutable board-registry
 mapping; in particular, a board-provided display is initialized by default.
 
-Replace schema 0 with schema 1. Schema 1 is a bounded sparse JSON document:
+Replace the legacy schemas with schema 2. Schema 2 is a bounded sparse JSON
+document:
 
 - the public authoring document is also the public transport payload;
-- property names and nesting are defined by the schema 1 JSON contract;
+- property names and nesting are defined by the schema 2 JSON contract;
 - the board identifier is mandatory;
 - the configurable hardware-device list is optional and may be empty;
 - optional sections and fields remain absent when omitted;
@@ -50,15 +55,13 @@ module, or widget is not created. Board-provided hardware is composed from the
 immutable board-registry mapping independently of this optional list. A missing
 telemetry transport uses the immutable board default.
 
-Schema 0 records are not migrated. They are treated as unsupported and startup
-falls back to a valid schema 1 slot or the board-only factory configuration.
-Saving still takes effect after restart.
+Schema 0 and schema 1 records are not migrated. They are treated as unsupported
+and startup falls back to a valid schema 2 slot or the board-only factory
+configuration. Saving still takes effect after restart.
 
-The schema 0 configuration CLI is legacy tooling and is not extended to encode
-schema 1. Remove it only after the configurator supports `INFO`, `GET`,
-`VALIDATE`, `SET`, `RESET`, and `REBOOT`. During the migration, firmware keeps
-the public control operations available even while the desktop write flow is
-not yet exposed.
+The schema 0 configuration CLI was not extended to encode schema 2. It was
+removed after the configurator implemented `INFO`, `GET`, `VALIDATE`, `SET`,
+`RESET`, and `REBOOT`, together with its inheritance profiles.
 
 ## Consequences
 
@@ -73,6 +76,7 @@ not yet exposed.
 - Public JSON and private NVS record framing remain separate contracts.
 - Interrupted or corrupt writes retain the existing verified-slot recovery.
 - Storage, protocol, and runtime containers remain bounded and deterministic.
-- Schema 0 configurations are intentionally discarded after the upgrade.
+- Schema 0 and schema 1 configurations are intentionally discarded after the
+  upgrade.
 - Adding or changing public fields requires a documented schema change shared
   by firmware and configurator.

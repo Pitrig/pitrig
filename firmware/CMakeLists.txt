@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/core"
+     "${CMAKE_CURRENT_LIST_DIR}/core/module_manager"
      "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_esp32_4848s040"
      "${CMAKE_CURRENT_LIST_DIR}/drivers/t_display_s3"
      "${CMAKE_CURRENT_LIST_DIR}/drivers/transport/uart"
@@ -15,8 +16,8 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/interfaces/transport"
      "${CMAKE_CURRENT_LIST_DIR}/modules/delta_time"
      "${CMAKE_CURRENT_LIST_DIR}/modules/lap_timer"
-     "${CMAKE_CURRENT_LIST_DIR}/platform/application_config"
      "${CMAKE_CURRENT_LIST_DIR}/platform/board_registry"
+     "${CMAKE_CURRENT_LIST_DIR}/platform/communication"
      "${CMAKE_CURRENT_LIST_DIR}/platform/dashboard"
      "${CMAKE_CURRENT_LIST_DIR}/platform/nvs_config_storage"
      "${CMAKE_CURRENT_LIST_DIR}/platform/partition_font_asset_storage"

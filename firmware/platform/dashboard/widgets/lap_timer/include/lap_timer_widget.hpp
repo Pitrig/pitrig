@@ -1,7 +1,6 @@
 #pragma once
 
-#include <cstdint>
-
+#include "application_configuration.hpp"
 #include "dashboard_layout.hpp"
 
 namespace simcore::lap_timer {
@@ -14,12 +13,7 @@ class Registry;
 
 namespace simcore::dashboard::lap_timer_widget {
 
-struct Config {
-  bool enabled{true};
-  FontSpec font{};
-  Placement placement{};
-  std::uint32_t text_color{0xE8E8E8};
-};
+using Config = configuration::LapTimerWidgetConfiguration;
 
 // Creates the lap timer label and its periodic render callback.
 [[nodiscard]] bool create(const Layout& layout, const Config& config,

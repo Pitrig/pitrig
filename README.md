@@ -30,10 +30,9 @@ pnpm run dev
 ```
 
 The configurator identifies the connected board, reports its read-only display
-descriptor, and loads its sparse schema 2 configuration. Configuration editing
-and apply operations are added in subsequent configurator phases.
+descriptor, loads and previews its sparse schema 2 configuration, validates and
+saves configuration changes, manages uploaded font assets, and can reset or
+reboot the device.
 
 See [docs/device-configuration.md](docs/device-configuration.md) for the public
-schema, validation behavior, and recovery order. The Python CLI is retained
-only as legacy schema 0 tooling during the migration and must not be used with
-schema 2 firmware.
+schema, validation behavior, control protocol, and recovery order.

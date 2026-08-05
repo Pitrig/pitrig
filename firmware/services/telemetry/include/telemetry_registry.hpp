@@ -41,14 +41,12 @@ class ITelemetryRegistry {
 
   [[nodiscard]] virtual Handle resolve(std::string_view name) const = 0;
   [[nodiscard]] virtual const FieldDescriptor* describe(Handle handle) const = 0;
-  [[nodiscard]] virtual std::size_t size() const = 0;
 };
 
 class TelemetryRegistry final : public ITelemetryRegistry {
  public:
   [[nodiscard]] Handle resolve(std::string_view name) const override;
   [[nodiscard]] const FieldDescriptor* describe(Handle handle) const override;
-  [[nodiscard]] std::size_t size() const override;
 
  private:
   static constexpr std::array<FieldDescriptor, 13> kDescriptors{{
