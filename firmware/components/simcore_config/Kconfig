@@ -1,5 +1,25 @@
 menu "SimCore"
 
+config SIMCORE_DEBUG
+    bool "Runtime performance diagnostics"
+    default n
+    select FREERTOS_GENERATE_RUN_TIME_STATS
+    help
+        Enables performance collection, transport diagnostics, and the
+        on-screen performance overlay.
+
+config SIMCORE_LAYOUT_DEBUG
+    bool "Dashboard layout outlines"
+    default n
+    help
+        Draws dashboard block and widget boundaries.
+
+config SIMCORE_DISPLAY_DIAGNOSTICS
+    bool "Full-screen display diagnostics"
+    default n
+    help
+        Replaces configured widgets with the display hardware diagnostic UI.
+
 choice SIMCORE_FACTORY_BOARD
     prompt "Factory board profile"
     default SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C if IDF_TARGET_ESP32P4
@@ -7,7 +27,9 @@ choice SIMCORE_FACTORY_BOARD
     help
         Selects the immutable hardware identity and the fallback configuration
         used when neither NVS configuration slot is valid. All supported
-        drivers remain linked.
+        The P4 build links only its board drivers. ESP32-S3 keeps both board
+        alternatives discoverable because ESP-IDF resolves component
+        requirements before loading this choice on a fresh configure.
 
 config SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
     bool "LilyGO T-Display-S3"

@@ -1,9 +1,9 @@
 idf_component_register(
-  SRCS "src/application_configuration.cpp" "src/configuration_json.cpp"
+  SRCS "src/configuration_json.cpp"
        "src/configuration_validation.cpp"
-       "src/configuration_control.cpp" "src/configuration_service.cpp"
+       "src/configuration_service.cpp"
   INCLUDE_DIRS "include"
-  REQUIRES font_assets telemetry time_transform transport
-  PRIV_REQUIRES cjson esp_app_format)
+  REQUIRES configuration_contract
+  PRIV_REQUIRES binary cjson telemetry)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

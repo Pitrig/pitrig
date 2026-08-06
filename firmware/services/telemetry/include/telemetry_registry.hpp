@@ -35,39 +35,6 @@ struct FieldDescriptor {
   ValueType type;
 };
 
-class ITelemetryRegistry {
- public:
-  virtual ~ITelemetryRegistry() = default;
-
-  [[nodiscard]] virtual Handle resolve(std::string_view name) const = 0;
-  [[nodiscard]] virtual const FieldDescriptor* describe(Handle handle) const = 0;
-};
-
-class TelemetryRegistry final : public ITelemetryRegistry {
- public:
-  [[nodiscard]] Handle resolve(std::string_view name) const override;
-  [[nodiscard]] const FieldDescriptor* describe(Handle handle) const override;
-
- private:
-  static constexpr std::array<FieldDescriptor, 13> kDescriptors{{
-      {"vehicle.speed", ValueType::text},
-      {"engine.rpm", ValueType::text},
-      {"transmission.gear", ValueType::text},
-      {"session.lap.current_time", ValueType::uint32},
-      {"session.lap.best_time", ValueType::uint32},
-      {"vehicle.fuel.level", ValueType::text},
-      {"session.lap.delta", ValueType::int32},
-      {"session.lap.estimated_time", ValueType::uint32},
-      {"vehicle.aids.traction_control", ValueType::text},
-      {"vehicle.aids.abs", ValueType::text},
-      {"vehicle.brake_bias", ValueType::text},
-      {"vehicle.fuel.average_consumption", ValueType::text},
-      {"vehicle.fuel.laps_remaining", ValueType::text},
-  }};
-
-  static_assert(kDescriptors.size() <= kMaximumFields);
-};
-
 namespace fields {
 
 inline constexpr std::string_view kSpeed = "vehicle.speed";
@@ -89,5 +56,38 @@ inline constexpr std::string_view kFuelLapsRemaining =
     "vehicle.fuel.laps_remaining";
 
 }  // namespace fields
+
+class ITelemetryRegistry {
+ public:
+  virtual ~ITelemetryRegistry() = default;
+
+  [[nodiscard]] virtual Handle resolve(std::string_view name) const = 0;
+  [[nodiscard]] virtual const FieldDescriptor* describe(Handle handle) const = 0;
+};
+
+class TelemetryRegistry final : public ITelemetryRegistry {
+ public:
+  [[nodiscard]] Handle resolve(std::string_view name) const override;
+  [[nodiscard]] const FieldDescriptor* describe(Handle handle) const override;
+
+ private:
+  static constexpr std::array<FieldDescriptor, 13> kDescriptors{{
+      {fields::kSpeed, ValueType::text},
+      {fields::kRpm, ValueType::text},
+      {fields::kGear, ValueType::text},
+      {fields::kCurrentLapTime, ValueType::uint32},
+      {fields::kBestLapTime, ValueType::uint32},
+      {fields::kFuelLevel, ValueType::text},
+      {fields::kLapDelta, ValueType::int32},
+      {fields::kEstimatedLapTime, ValueType::uint32},
+      {fields::kTractionControl, ValueType::text},
+      {fields::kAbs, ValueType::text},
+      {fields::kBrakeBias, ValueType::text},
+      {fields::kFuelAverageConsumption, ValueType::text},
+      {fields::kFuelLapsRemaining, ValueType::text},
+  }};
+
+  static_assert(kDescriptors.size() <= kMaximumFields);
+};
 
 }  // namespace simcore::telemetry

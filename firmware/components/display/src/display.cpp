@@ -7,6 +7,7 @@
 #include "display_driver.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "freertos/task.h"
 #include "simcore_features.hpp"
 #if SIMCORE_DEBUG
 #include "performance.hpp"
@@ -158,6 +159,10 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
   lvgl_config.task_max_sleep_ms = kTaskMaxSleepMs;
   lvgl_config.timer_period_ms = kTimerPeriodMs;
   ESP_ERROR_CHECK(lvgl_port_init(&lvgl_config));
+#if SIMCORE_DEBUG
+  performance::register_task(performance::TaskMetric::lvgl,
+                             xTaskGetHandle("taskLVGL"));
+#endif
 
   const lvgl_port_display_cfg_t display_config = {
       .io_handle = hardware.io,

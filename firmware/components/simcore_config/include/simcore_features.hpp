@@ -1,10 +1,9 @@
 #pragma once
 
-// Compile-time feature selection. Change to 1 to include runtime diagnostics.
-#define SIMCORE_DEBUG 0
+#include "sdkconfig.h"
 
-// Draw dashboard block and widget boundaries.
-#define SIMCORE_LAYOUT_DEBUG 0
-
-// Include the full-screen display hardware diagnostic utility.
-#define SIMCORE_DISPLAY_DIAGNOSTICS 0
+// Compile-time aliases keep debug-only code removable while checked-in board
+// profiles and IDE tasks remain the single source of feature selection.
+#define SIMCORE_DEBUG CONFIG_SIMCORE_DEBUG
+#define SIMCORE_LAYOUT_DEBUG CONFIG_SIMCORE_LAYOUT_DEBUG
+#define SIMCORE_DISPLAY_DIAGNOSTICS CONFIG_SIMCORE_DISPLAY_DIAGNOSTICS

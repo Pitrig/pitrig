@@ -4,7 +4,8 @@
 #include <array>
 #include <string_view>
 
-#include "font_asset_crc.hpp"
+#include "binary_codec.hpp"
+#include "crc32.hpp"
 
 namespace simcore::font_assets {
 namespace {
@@ -27,22 +28,6 @@ constexpr std::size_t kEntryReservedOffset = 34;
 constexpr std::size_t kEntryDataOffset = 36;
 constexpr std::size_t kEntryLengthOffset = 40;
 constexpr std::size_t kEntryCrcOffset = 44;
-
-[[nodiscard]] std::uint16_t get_u16(
-    const std::span<const std::uint8_t> input, const std::size_t offset) {
-  return static_cast<std::uint16_t>(input[offset]) |
-         static_cast<std::uint16_t>(input[offset + 1]) << 8U;
-}
-
-[[nodiscard]] std::uint32_t get_u32(
-    const std::span<const std::uint8_t> input, const std::size_t offset) {
-  std::uint32_t value{};
-  for (std::size_t index = 0; index < 4; ++index) {
-    value |= static_cast<std::uint32_t>(input[offset + index])
-             << (index * 8U);
-  }
-  return value;
-}
 
 [[nodiscard]] bool valid_family(const FamilyId& family) {
   const std::string_view value = family_id_view(family);
@@ -187,7 +172,8 @@ UpdateError Service::commit_update() {
       validate_package(candidate_mapping, update_header_, package_);
   storage_->unmap();
   if (!valid ||
-      get_u32(update_header_, kHeaderPayloadSizeOffset) != update_size_) {
+      binary::read_u32_le(update_header_, kHeaderPayloadSizeOffset) !=
+          update_size_) {
     package_ = {};
     reset_update();
     return UpdateError::invalid_package;
@@ -237,29 +223,31 @@ bool Service::validate_package(
                           ? storage_bytes.first(kHeaderSize)
                           : header_override;
   const std::uint16_t entry_count =
-      get_u16(header, kHeaderEntryCountOffset);
+      binary::read_u16_le(header, kHeaderEntryCountOffset);
   const std::uint32_t payload_size =
-      get_u32(header, kHeaderPayloadSizeOffset);
+      binary::read_u32_le(header, kHeaderPayloadSizeOffset);
   const std::size_t manifest_size =
       static_cast<std::size_t>(entry_count) * kManifestEntrySize;
-  if (get_u32(header, kHeaderMagicOffset) != kMagic ||
-      get_u16(header, kHeaderFormatVersionOffset) != kFormatVersion ||
-      get_u16(header, kHeaderSizeOffset) != kHeaderSize ||
-      get_u32(header, kHeaderReservedWordOffset) != 0 ||
+  if (binary::read_u32_le(header, kHeaderMagicOffset) != kMagic ||
+      binary::read_u16_le(header, kHeaderFormatVersionOffset) !=
+          kFormatVersion ||
+      binary::read_u16_le(header, kHeaderSizeOffset) != kHeaderSize ||
+      binary::read_u32_le(header, kHeaderReservedWordOffset) != 0 ||
       entry_count > kMaximumAssets ||
-      get_u16(header, kHeaderReservedOffset) != 0 ||
+      binary::read_u16_le(header, kHeaderReservedOffset) != 0 ||
       kManifestOffset + manifest_size > kAssetDataOffset ||
       payload_size < kAssetDataOffset || payload_size > storage_bytes.size() ||
-      get_u32(header, kHeaderCrcOffset) !=
-          crc32(header.first(kHeaderCrcOffset))) {
+      binary::read_u32_le(header, kHeaderCrcOffset) !=
+          binary::crc32(header.first(kHeaderCrcOffset))) {
     return false;
   }
 
   const auto manifest = storage_bytes.subspan(kManifestOffset, manifest_size);
-  if (get_u32(header, kHeaderManifestCrcOffset) != crc32(manifest) ||
-      get_u32(header, kHeaderPayloadCrcOffset) !=
-          crc32(storage_bytes.subspan(kAssetDataOffset,
-                                      payload_size - kAssetDataOffset))) {
+  if (binary::read_u32_le(header, kHeaderManifestCrcOffset) !=
+          binary::crc32(manifest) ||
+      binary::read_u32_le(header, kHeaderPayloadCrcOffset) !=
+          binary::crc32(storage_bytes.subspan(
+              kAssetDataOffset, payload_size - kAssetDataOffset))) {
     return false;
   }
   parsed.asset_count = entry_count;
@@ -270,19 +258,22 @@ bool Service::validate_package(
     AssetView& asset = parsed.assets[index];
     std::copy_n(entry.begin() + kEntryFamilyOffset, asset.font.family.size(),
                 asset.font.family.begin());
-    asset.font.size_px = get_u16(entry, kEntrySizeOffset);
-    const std::uint32_t offset = get_u32(entry, kEntryDataOffset);
-    const std::uint32_t length = get_u32(entry, kEntryLengthOffset);
+    asset.font.size_px = binary::read_u16_le(entry, kEntrySizeOffset);
+    const std::uint32_t offset =
+        binary::read_u32_le(entry, kEntryDataOffset);
+    const std::uint32_t length =
+        binary::read_u32_le(entry, kEntryLengthOffset);
     if (!valid_family(asset.font.family) || asset.font.size_px == 0 ||
         asset.font.size_px > kMaximumFontSizePx ||
-        get_u16(entry, kEntryReservedOffset) != 0 ||
+        binary::read_u16_le(entry, kEntryReservedOffset) != 0 ||
         offset < kAssetDataOffset || offset > payload_size ||
         (offset & 0x3U) != 0 || length == 0 ||
         length > payload_size - offset) {
       return false;
     }
     asset.bytes = storage_bytes.subspan(offset, length);
-    if (get_u32(entry, kEntryCrcOffset) != crc32(asset.bytes)) {
+    if (binary::read_u32_le(entry, kEntryCrcOffset) !=
+        binary::crc32(asset.bytes)) {
       return false;
     }
     for (std::size_t previous = 0; previous < index; ++previous) {

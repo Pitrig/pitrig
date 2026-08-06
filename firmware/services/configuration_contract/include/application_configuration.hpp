@@ -5,11 +5,7 @@
 #include <cstdint>
 #include <string_view>
 
-#if __has_include("sdkconfig.h")
-#include "sdkconfig.h"
-#endif
 #include "font_asset_types.hpp"
-#include "telemetry_registry.hpp"
 #include "time_transform.hpp"
 
 namespace simcore::configuration {
@@ -42,7 +38,7 @@ struct DisplayValidationProfile {
 
 // Private firmware metadata used to validate a public configuration against
 // immutable hardware. It is not serialized or exposed by the control protocol.
-struct BoardValidationProfile {
+struct ValidationContext {
   BoardId board{BoardId::t_display_s3};
   DisplayValidationProfile display{};
   int uart_tx_pin{};
@@ -53,7 +49,7 @@ struct BoardValidationProfile {
 
 // Schema 2 reserves a bounded hardware-device section. No user-configurable
 // peripheral driver is exposed until firmware implements its complete type,
-// validation, and runtime composition path.
+// validation, and application composition path.
 struct HardwareConfiguration {
   static constexpr std::size_t kMaximumDevices = 8;
   std::uint8_t device_count{};
@@ -201,7 +197,7 @@ struct ValueModifier {
 };
 
 struct TextWidgetConfiguration {
-  ValueBinding binding{make_value_binding(telemetry::fields::kSpeed)};
+  ValueBinding binding{make_value_binding("vehicle.speed")};
   std::uint8_t modifier_count{};
   std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
   ValueTransform transform{};
@@ -228,26 +224,6 @@ struct ApplicationConfiguration {
   bool delta_time_present{};
   DeltaTimeConfiguration delta_time{};
   DashboardConfiguration dashboard{};
-};
-
-inline constexpr BoardId kFactoryBoard{
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
-    BoardId::guition_jc1060p470c
-#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-    BoardId::guition_esp32_4848s040
-#else
-    BoardId::t_display_s3
-#endif
-};
-
-inline constexpr std::string_view kFactoryConfigurationJson{
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
-    R"({"board":"guition_jc1060p470c"})"
-#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-    R"({"board":"guition_esp32_4848s040"})"
-#else
-    R"({"board":"t_display_s3"})"
-#endif
 };
 
 }  // namespace simcore::configuration

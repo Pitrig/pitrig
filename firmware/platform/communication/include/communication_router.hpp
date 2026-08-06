@@ -18,6 +18,7 @@ class Router final {
                   font_assets::FontAssetControl& font_asset_control,
                   transport::DataHandler telemetry_handler,
                   void* telemetry_context);
+  void reset();
   void consume(std::span<const std::uint8_t> data);
 
  private:

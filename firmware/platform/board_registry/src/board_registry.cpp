@@ -1,121 +1,86 @@
 #include "board_registry.hpp"
 
-#include "application_configuration.hpp"
 #include "sdkconfig.h"
-#if CONFIG_IDF_TARGET_ESP32P4
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
 #include "guition_jc1060p470c_display_driver.hpp"
-#else
+#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
 #include "guition_display_driver.hpp"
+#else
 #include "t_display_s3_display_driver.hpp"
 #endif
-#include "uart_transport.hpp"
-#include "usb_cdc_transport.hpp"
 
 namespace simcore::board_registry {
 
-configuration::BoardValidationProfile validation_profile(
-    const configuration::BoardId board) {
-  using configuration::BoardId;
-
-  switch (board) {
-    case BoardId::t_display_s3:
-      return {
-          .board = board,
-          .display = {.width = 320, .height = 170},
-          .uart_tx_pin = 43,
-          .uart_rx_pin = 44,
-          .uart_supported = true,
-          .native_usb_cdc_supported = true,
-      };
-    case BoardId::guition_esp32_4848s040:
-      return {
-          .board = board,
-          .display = {.width = 480, .height = 480},
-          .uart_tx_pin = 43,
-          .uart_rx_pin = 44,
-          .uart_supported = true,
-          .native_usb_cdc_supported = false,
-      };
-    case BoardId::guition_jc1060p470c:
-      return {
-          .board = board,
+const BoardDefinition& factory_board() {
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+  static const BoardDefinition board{
+      .id = configuration::BoardId::guition_jc1060p470c,
+      .validation = {
+          .board = configuration::BoardId::guition_jc1060p470c,
           .display = {.width = 1'024, .height = 600},
           .uart_tx_pin = 0,
           .uart_rx_pin = 0,
           .uart_supported = false,
           .native_usb_cdc_supported = true,
-      };
-  }
-  return {};
+      },
+      .display = display::drivers::guition_jc1060p470c::get(),
+      .default_telemetry_transport =
+          configuration::TelemetryTransportId::native_usb_cdc,
+      .factory_configuration_json =
+          R"({"board":"guition_jc1060p470c"})",
+  };
+#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+  static const BoardDefinition board{
+      .id = configuration::BoardId::guition_esp32_4848s040,
+      .validation = {
+          .board = configuration::BoardId::guition_esp32_4848s040,
+          .display = {.width = 480, .height = 480},
+          .uart_tx_pin = 43,
+          .uart_rx_pin = 44,
+          .uart_supported = true,
+          .native_usb_cdc_supported = false,
+      },
+      .display = display::drivers::guition_esp32_4848s040::get(),
+      .default_telemetry_transport =
+          configuration::TelemetryTransportId::uart,
+      .factory_configuration_json =
+          R"({"board":"guition_esp32_4848s040"})",
+  };
+#else
+  static const BoardDefinition board{
+      .id = configuration::BoardId::t_display_s3,
+      .validation = {
+          .board = configuration::BoardId::t_display_s3,
+          .display = {.width = 320, .height = 170},
+          .uart_tx_pin = 43,
+          .uart_rx_pin = 44,
+          .uart_supported = true,
+          .native_usb_cdc_supported = true,
+      },
+      .display = display::drivers::t_display_s3::get(),
+      .default_telemetry_transport =
+          configuration::TelemetryTransportId::native_usb_cdc,
+      .factory_configuration_json = R"({"board":"t_display_s3"})",
+  };
+#endif
+  return board;
 }
 
-const display::driver::Driver& display_driver(
-    const configuration::BoardId board) {
-  using configuration::BoardId;
-
-  switch (board) {
-    case BoardId::t_display_s3:
-#if !CONFIG_IDF_TARGET_ESP32P4
-      return display::drivers::t_display_s3::get();
-#else
-      break;
-#endif
-    case BoardId::guition_esp32_4848s040:
-#if !CONFIG_IDF_TARGET_ESP32P4
-      return display::drivers::guition_esp32_4848s040::get();
-#else
-      break;
-#endif
-    case BoardId::guition_jc1060p470c:
-#if CONFIG_IDF_TARGET_ESP32P4
-      return display::drivers::guition_jc1060p470c::get();
-#else
-      break;
-#endif
-  }
-#if CONFIG_IDF_TARGET_ESP32P4
-  return display::drivers::guition_jc1060p470c::get();
-#else
-  return display::drivers::t_display_s3::get();
-#endif
-}
-
-transport::ITransport& telemetry_transport(
+configuration::TelemetryTransportId telemetry_transport_id(
+    const BoardDefinition& board,
     const configuration::ApplicationConfiguration& application_configuration) {
-  using configuration::BoardId;
   using configuration::TelemetryTransportId;
 
-  static transport::UsbCdcTransport usb_cdc;
   const auto& configured = application_configuration.telemetry_transport;
-  static transport::UartTransport uart({
-      .port = static_cast<uart_port_t>(configured.uart.port),
-      .tx_pin = configured.uart.tx_pin,
-      .rx_pin = configured.uart.rx_pin,
-      .baud_rate = configured.uart.baud_rate,
-      .silence_esp_logs = configured.uart.silence_esp_logs,
-  });
-
   TelemetryTransportId selected =
       application_configuration.telemetry_transport_present
           ? configured.id
           : TelemetryTransportId::board_default;
   if (selected == TelemetryTransportId::board_default) {
-    selected = application_configuration.board.id ==
-                       BoardId::guition_esp32_4848s040
-                   ? TelemetryTransportId::uart
-                   : TelemetryTransportId::native_usb_cdc;
+    selected = board.default_telemetry_transport;
   }
 
-  switch (selected) {
-    case TelemetryTransportId::board_default:
-      break;
-    case TelemetryTransportId::native_usb_cdc:
-      return usb_cdc;
-    case TelemetryTransportId::uart:
-      return uart;
-  }
-
-  return usb_cdc;
+  return selected;
 }
 
 }  // namespace simcore::board_registry

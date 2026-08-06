@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <new>
 
 #include "dashboard_fonts.hpp"
 #include "esp_heap_caps.h"
@@ -18,21 +19,7 @@
 #endif
 
 namespace simcore::dashboard::display_diagnostics {
-namespace {
-
-constexpr std::uint8_t kPageCount = 6;
-constexpr std::uint8_t kPatternPage = 3;
-constexpr std::uint8_t kFpsStressPage = 5;
-constexpr std::uint32_t kAnimationPeriodMs = 8;
-constexpr std::uint32_t kCounterPeriodMs = 100;
-constexpr std::uint32_t kFpsWarmupMs = 2'000;
-constexpr std::size_t kBufferAlignment = 64;
-constexpr std::size_t kRgb888BytesPerPixel = 3;
-constexpr std::array<const char*, kPageCount> kPageNames = {
-    "GEOMETRY", "RGB888 GRADIENT", "D23..D0", "PCLK/TEARING",
-    "FONT FRINGING", "FPS STRESS"};
-
-struct State {
+struct ViewImplementation {
   Config config{};
   lv_obj_t* canvas{};
   lv_obj_t* fps_surface{};
@@ -50,9 +37,22 @@ struct State {
   std::uint32_t page_started_ms{};
   std::uint32_t last_counter_ms{};
   std::uint32_t frame_counter{};
+  lv_timer_t* timer{};
 };
 
-State state;
+namespace {
+
+constexpr std::uint8_t kPageCount = 6;
+constexpr std::uint8_t kPatternPage = 3;
+constexpr std::uint8_t kFpsStressPage = 5;
+constexpr std::uint32_t kAnimationPeriodMs = 8;
+constexpr std::uint32_t kCounterPeriodMs = 100;
+constexpr std::uint32_t kFpsWarmupMs = 2'000;
+constexpr std::size_t kBufferAlignment = 64;
+constexpr std::size_t kRgb888BytesPerPixel = 3;
+constexpr std::array<const char*, kPageCount> kPageNames = {
+    "GEOMETRY", "RGB888 GRADIENT", "D23..D0", "PCLK/TEARING",
+    "FONT FRINGING", "FPS STRESS"};
 
 void write_rgb888(std::uint8_t* const pixel, const std::uint32_t color) {
   pixel[0] = static_cast<std::uint8_t>(color);
@@ -60,7 +60,8 @@ void write_rgb888(std::uint8_t* const pixel, const std::uint32_t color) {
   pixel[2] = static_cast<std::uint8_t>(color >> 16);
 }
 
-void set_pixel(const std::int32_t x, const std::int32_t y,
+void set_pixel(ViewImplementation& state, const std::int32_t x,
+               const std::int32_t y,
                const std::uint32_t color) {
   if (x < 0 || y < 0 || x >= state.width || y >= state.height) {
     return;
@@ -71,7 +72,7 @@ void set_pixel(const std::int32_t x, const std::int32_t y,
   write_rgb888(pixel, color);
 }
 
-void fill(const std::uint32_t color) {
+void fill(ViewImplementation& state, const std::uint32_t color) {
   for (std::int32_t y = 0; y < state.height; ++y) {
     std::uint8_t* pixel =
         state.pixels + static_cast<std::size_t>(y) * state.stride;
@@ -82,7 +83,8 @@ void fill(const std::uint32_t color) {
   }
 }
 
-void fill_rect(std::int32_t x, std::int32_t y, std::int32_t width,
+void fill_rect(ViewImplementation& state, std::int32_t x, std::int32_t y,
+               std::int32_t width,
                std::int32_t height, const std::uint32_t color) {
   const std::int32_t x0 = std::clamp<std::int32_t>(x, 0, state.width);
   const std::int32_t y0 = std::clamp<std::int32_t>(y, 0, state.height);
@@ -101,13 +103,14 @@ void fill_rect(std::int32_t x, std::int32_t y, std::int32_t width,
   }
 }
 
-void outline_rect(const std::int32_t x, const std::int32_t y,
+void outline_rect(ViewImplementation& state, const std::int32_t x,
+                  const std::int32_t y,
                   const std::int32_t width, const std::int32_t height,
                   const std::uint32_t color) {
-  fill_rect(x, y, width, 1, color);
-  fill_rect(x, y + height - 1, width, 1, color);
-  fill_rect(x, y, 1, height, color);
-  fill_rect(x + width - 1, y, 1, height, color);
+  fill_rect(state, x, y, width, 1, color);
+  fill_rect(state, x, y + height - 1, width, 1, color);
+  fill_rect(state, x, y, 1, height, color);
+  fill_rect(state, x + width - 1, y, 1, height, color);
 }
 
 void show(lv_obj_t* object, const bool visible) {
@@ -118,7 +121,7 @@ void show(lv_obj_t* object, const bool visible) {
   }
 }
 
-void hide_page_overlays() {
+void hide_page_overlays(ViewImplementation& state) {
   show(state.fps_surface, false);
   show(state.detail, false);
   show(state.font_large, false);
@@ -127,7 +130,7 @@ void hide_page_overlays() {
   show(state.moving_horizontal, false);
 }
 
-void render_geometry() {
+void render_geometry(ViewImplementation& state) {
   constexpr std::uint32_t black = 0x000000;
   constexpr std::uint32_t white = 0xFFFFFF;
   constexpr std::uint32_t red = 0xFF0000;
@@ -135,25 +138,25 @@ void render_geometry() {
   constexpr std::uint32_t blue = 0x0000FF;
   constexpr std::uint32_t gray = 0x404040;
 
-  fill(black);
-  outline_rect(0, 0, state.width, state.height, white);
-  outline_rect(2, 2, state.width - 4, state.height - 4, gray);
+  fill(state, black);
+  outline_rect(state, 0, 0, state.width, state.height, white);
+  outline_rect(state, 2, 2, state.width - 4, state.height - 4, gray);
 
   const std::int32_t spacing =
       std::max<std::int32_t>(16, std::min(state.width, state.height) / 8);
   for (std::int32_t x = spacing; x < state.width; x += spacing) {
-    fill_rect(x, 0, 1, state.height, gray);
+    fill_rect(state, x, 0, 1, state.height, gray);
   }
   for (std::int32_t y = spacing; y < state.height; y += spacing) {
-    fill_rect(0, y, state.width, 1, gray);
+    fill_rect(state, 0, y, state.width, 1, gray);
   }
 
-  fill_rect(state.width / 2, 0, 1, state.height, white);
-  fill_rect(0, state.height / 2, state.width, 1, white);
-  fill_rect(0, 0, 16, 16, red);
-  fill_rect(state.width - 16, 0, 16, 16, green);
-  fill_rect(0, state.height - 16, 16, 16, blue);
-  fill_rect(state.width - 16, state.height - 16, 16, 16, white);
+  fill_rect(state, state.width / 2, 0, 1, state.height, white);
+  fill_rect(state, 0, state.height / 2, state.width, 1, white);
+  fill_rect(state, 0, 0, 16, 16, red);
+  fill_rect(state, state.width - 16, 0, 16, 16, green);
+  fill_rect(state, 0, state.height - 16, 16, 16, blue);
+  fill_rect(state, state.width - 16, state.height - 16, 16, 16, white);
 
   char text[64];
   std::snprintf(text, sizeof(text), "%ld x %ld | 1px borders/grid",
@@ -163,12 +166,12 @@ void render_geometry() {
   show(state.detail, true);
 }
 
-void render_colors() {
+void render_colors(ViewImplementation& state) {
   constexpr std::array<std::uint32_t, 8> bars = {
       0x000000, 0xFFFFFF, 0xFF0000, 0x00FF00,
       0x0000FF, 0xFFFF00, 0x00FFFF, 0xFF00FF,
   };
-  fill(0x000000);
+  fill(state, 0x000000);
 
   const std::int32_t bar_height =
       std::max<std::int32_t>(24, state.height / 6);
@@ -177,7 +180,7 @@ void render_colors() {
         static_cast<std::int32_t>(index) * state.width / bars.size();
     const std::int32_t x1 =
         static_cast<std::int32_t>(index + 1) * state.width / bars.size();
-    fill_rect(x0, 0, x1 - x0, bar_height, bars[index]);
+    fill_rect(state, x0, 0, x1 - x0, bar_height, bars[index]);
   }
 
   const std::int32_t gradient_y = bar_height;
@@ -187,7 +190,7 @@ void render_colors() {
     const std::uint32_t level =
         static_cast<std::uint32_t>(x) * 255 /
         std::max<std::int32_t>(1, state.width - 1);
-    fill_rect(x, gradient_y, 1, gradient_height,
+    fill_rect(state, x, gradient_y, 1, gradient_height,
               (level << 16) | (level << 8) | level);
   }
 
@@ -203,12 +206,12 @@ void render_colors() {
           std::max<std::int32_t>(1, state.width - 1);
       const std::uint32_t color =
           channel == 0 ? level << 16 : channel == 1 ? level << 8 : level;
-      fill_rect(x, y, 1, channel_height, color);
+      fill_rect(state, x, y, 1, channel_height, color);
     }
   }
 }
 
-void render_patterns() {
+void render_patterns(ViewImplementation& state) {
   constexpr std::uint32_t black = 0x000000;
   constexpr std::uint32_t white = 0xFFFFFF;
   const std::int32_t half_width = state.width / 2;
@@ -226,41 +229,42 @@ void render_patterns() {
       } else {
         on = (((x / 2) + (y / 2)) & 1) == 0;
       }
-      set_pixel(x, y, on ? white : black);
+      set_pixel(state, x, y, on ? white : black);
     }
   }
-  outline_rect(0, 0, state.width, state.height, 0xFF0000);
-  fill_rect(half_width, 0, 1, state.height, 0x00FF00);
-  fill_rect(0, half_height, state.width, 1, 0x0000FF);
+  outline_rect(state, 0, 0, state.width, state.height, 0xFF0000);
+  fill_rect(state, half_width, 0, 1, state.height, 0x00FF00);
+  fill_rect(state, 0, half_height, state.width, 1, 0x0000FF);
   show(state.moving_vertical, true);
   show(state.moving_horizontal, true);
 }
 
-void render_data_bits() {
-  fill(0x000000);
+void render_data_bits(ViewImplementation& state) {
+  fill(state, 0x000000);
   constexpr std::int32_t bit_count = 24;
   const std::int32_t half_height = state.height / 2;
   for (std::int32_t column = 0; column < bit_count; ++column) {
     const std::int32_t x0 = column * state.width / bit_count;
     const std::int32_t x1 = (column + 1) * state.width / bit_count;
     const std::uint32_t bit = 1U << (bit_count - 1 - column);
-    fill_rect(x0, 0, x1 - x0, half_height, bit);
-    fill_rect(x0, half_height, x1 - x0, state.height - half_height,
+    fill_rect(state, x0, 0, x1 - x0, half_height, bit);
+    fill_rect(state, x0, half_height, x1 - x0,
+              state.height - half_height,
               0xFFFFFFU ^ bit);
-    fill_rect(x0, 0, 1, state.height, 0x000000);
+    fill_rect(state, x0, 0, 1, state.height, 0x000000);
   }
-  fill_rect(0, half_height, state.width, 1, 0x000000);
-  outline_rect(0, 0, state.width, state.height, 0xFFFFFF);
+  fill_rect(state, 0, half_height, state.width, 1, 0x000000);
+  outline_rect(state, 0, 0, state.width, state.height, 0xFFFFFF);
 }
 
-void render_fonts() {
+void render_fonts(ViewImplementation& state) {
   constexpr std::array<std::uint32_t, 4> backgrounds = {
       0x000000, 0x202020, 0x000080, 0x780078};
   const std::int32_t block_height =
       std::max<std::int32_t>(1, state.height / 4);
   for (std::size_t index = 0; index < backgrounds.size(); ++index) {
     const auto y = static_cast<std::int32_t>(index) * block_height;
-    fill_rect(0, y, state.width,
+    fill_rect(state, 0, y, state.width,
               index + 1 == backgrounds.size() ? state.height - y
                                               : block_height,
               backgrounds[index]);
@@ -269,7 +273,7 @@ void render_fonts() {
   show(state.font_small, true);
 }
 
-void render_fps_stress() {
+void render_fps_stress(ViewImplementation& state) {
   show(state.fps_surface, true);
   show(state.detail, true);
   show(state.moving_vertical, true);
@@ -283,29 +287,29 @@ void render_fps_stress() {
 #endif
 }
 
-void render_page(const std::uint8_t page) {
+void render_page(ViewImplementation& state, const std::uint8_t page) {
   state.page = page % kPageCount;
   state.page_started_ms = lv_tick_get();
-  hide_page_overlays();
+  hide_page_overlays(state);
 
   switch (state.page) {
     case 0:
-      render_geometry();
+      render_geometry(state);
       break;
     case 1:
-      render_colors();
+      render_colors(state);
       break;
     case 2:
-      render_data_bits();
+      render_data_bits(state);
       break;
     case 3:
-      render_patterns();
+      render_patterns(state);
       break;
     case 4:
-      render_fonts();
+      render_fonts(state);
       break;
     case kFpsStressPage:
-      render_fps_stress();
+      render_fps_stress(state);
       break;
     default:
       break;
@@ -313,7 +317,13 @@ void render_page(const std::uint8_t page) {
   lv_obj_invalidate(state.canvas);
 }
 
-void update(lv_timer_t*) {
+void update(lv_timer_t* const timer) {
+  auto* const implementation =
+      static_cast<ViewImplementation*>(lv_timer_get_user_data(timer));
+  if (implementation == nullptr) {
+    return;
+  }
+  ViewImplementation& state = *implementation;
   const std::uint32_t now = lv_tick_get();
   ++state.frame_counter;
 
@@ -322,7 +332,7 @@ void update(lv_timer_t*) {
                                    : state.config.page_duration_ms;
   if (state.config.auto_cycle && page_duration_ms > 0 &&
       lv_tick_elaps(state.page_started_ms) >= page_duration_ms) {
-    render_page((state.page + 1) % kPageCount);
+    render_page(state, (state.page + 1) % kPageCount);
   }
 
   if (state.page == kPatternPage || state.page == kFpsStressPage) {
@@ -372,7 +382,8 @@ void update(lv_timer_t*) {
   }
 }
 
-lv_obj_t* create_label(lv_obj_t* parent, const std::int32_t y,
+lv_obj_t* create_label(const ViewImplementation& state, lv_obj_t* parent,
+                       const std::int32_t y,
                        const std::uint32_t color) {
   lv_obj_t* const label = lv_label_create(parent);
   lv_obj_remove_style_all(label);
@@ -385,13 +396,23 @@ lv_obj_t* create_label(lv_obj_t* parent, const std::int32_t y,
 
 }  // namespace
 
-bool create(lv_display_t* const display, const Config& config,
-            const fonts::Registry& fonts) {
-  if (display == nullptr || !lvgl_port_lock(0)) {
+View::~View() { destroy(); }
+
+bool View::create(lv_display_t* const display, const Config& config,
+                  const fonts::Registry& fonts) {
+  if (display == nullptr || implementation_ != nullptr) {
+    return false;
+  }
+  auto* const implementation = new (std::nothrow) ViewImplementation{};
+  if (implementation == nullptr) {
+    return false;
+  }
+  if (!lvgl_port_lock(0)) {
+    delete implementation;
     return false;
   }
 
-  state = {};
+  ViewImplementation& state = *implementation;
   state.config = config;
   state.width = lv_display_get_horizontal_resolution(display);
   state.height = lv_display_get_vertical_resolution(display);
@@ -406,6 +427,7 @@ bool create(lv_display_t* const display, const Config& config,
   }
   if (state.pixels == nullptr) {
     lvgl_port_unlock();
+    delete implementation;
     return false;
   }
 
@@ -430,22 +452,25 @@ bool create(lv_display_t* const display, const Config& config,
   lv_obj_set_style_bg_opa(state.fps_surface, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_remove_flag(state.fps_surface, LV_OBJ_FLAG_SCROLLABLE);
 
-  state.title = create_label(screen, 4, 0xFFFFFF);
+  state.title = create_label(state, screen, 4, 0xFFFFFF);
   lv_obj_set_style_bg_color(state.title, lv_color_hex(0x000000), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(state.title, LV_OPA_70, LV_PART_MAIN);
 
-  state.detail = create_label(screen, state.height / 2 + 8, 0xFFFFFF);
+  state.detail =
+      create_label(state, screen, state.height / 2 + 8, 0xFFFFFF);
   lv_obj_set_style_bg_color(state.detail, lv_color_hex(0x000000), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(state.detail, LV_OPA_70, LV_PART_MAIN);
 
-  state.font_large = create_label(screen, state.height / 5, 0xFFFFFF);
+  state.font_large =
+      create_label(state, screen, state.height / 5, 0xFFFFFF);
   lv_obj_set_style_text_font(
       state.font_large,
       fonts.resolve({.family = kMontserratFontFamily, .size_px = 48}),
       LV_PART_MAIN);
   lv_label_set_text(state.font_large, "00:11.88");
 
-  state.font_small = create_label(screen, state.height * 3 / 5, 0xE8E8E8);
+  state.font_small =
+      create_label(state, screen, state.height * 3 / 5, 0xE8E8E8);
   lv_obj_set_style_text_font(
       state.font_small,
       fonts.resolve({.family = kMontserratFontFamily, .size_px = 24}),
@@ -466,12 +491,62 @@ bool create(lv_display_t* const display, const Config& config,
                             LV_PART_MAIN);
   lv_obj_set_style_bg_opa(state.moving_horizontal, LV_OPA_COVER, LV_PART_MAIN);
 
-  render_page(config.initial_page);
+  render_page(state, config.initial_page);
   state.last_counter_ms = lv_tick_get();
-  lv_timer_create(update, kAnimationPeriodMs, nullptr);
+  state.timer = lv_timer_create(update, kAnimationPeriodMs, &state);
+  implementation_ = implementation;
   lvgl_port_unlock();
+  if (state.timer == nullptr) {
+    destroy();
+    return false;
+  }
   return true;
 }
+
+void View::destroy() {
+  if (implementation_ == nullptr || !lvgl_port_lock(0)) {
+    return;
+  }
+  ViewImplementation* const implementation = implementation_;
+  implementation_ = nullptr;
+
+  if (implementation->timer != nullptr) {
+    lv_timer_delete(implementation->timer);
+    implementation->timer = nullptr;
+  }
+  const auto delete_object = [](lv_obj_t*& object) {
+    if (object != nullptr) {
+      lv_obj_delete(object);
+      object = nullptr;
+    }
+  };
+  delete_object(implementation->moving_horizontal);
+  delete_object(implementation->moving_vertical);
+  delete_object(implementation->font_small);
+  delete_object(implementation->font_large);
+  delete_object(implementation->detail);
+  delete_object(implementation->title);
+  delete_object(implementation->fps_surface);
+  delete_object(implementation->canvas);
+  if (implementation->pixels != nullptr) {
+    heap_caps_free(implementation->pixels);
+    implementation->pixels = nullptr;
+  }
+  lvgl_port_unlock();
+  delete implementation;
+}
+
+}  // namespace simcore::dashboard::display_diagnostics
+
+#else
+
+namespace simcore::dashboard::display_diagnostics {
+
+View::~View() = default;
+bool View::create(lv_display_t*, const Config&, const fonts::Registry&) {
+  return false;
+}
+void View::destroy() {}
 
 }  // namespace simcore::dashboard::display_diagnostics
 

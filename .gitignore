@@ -21,7 +21,8 @@ node_modules/
 configurator/out/
 
 # Local editor settings
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 firmware/.vscode/
 *.code-workspace
 

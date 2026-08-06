@@ -6,6 +6,9 @@
 #include <string_view>
 
 #include "esp_app_desc.h"
+#include "performance.hpp"
+#include "simcore_features.hpp"
+#include "transport.hpp"
 
 namespace simcore::configuration {
 namespace {
@@ -13,6 +16,8 @@ namespace {
 constexpr std::string_view kPrefix = "@SC:";
 
 }  // namespace
+
+ConfigurationControl::~ConfigurationControl() { stop(); }
 
 bool ConfigurationControl::initialize(
     ConfigurationService& service, transport::ITransport& transport,
@@ -28,7 +33,32 @@ bool ConfigurationControl::initialize(
   task_ = xTaskCreateStatic(&ConfigurationControl::task_entry,
                             "configuration_control", task_stack_.size(), this,
                             kTaskPriority, task_stack_.data(), &task_state_);
+  if (task_ != nullptr) {
+#if SIMCORE_DEBUG
+    performance::register_task(performance::TaskMetric::configuration_control,
+                               task_);
+#endif
+  } else {
+    stop();
+  }
   return task_ != nullptr;
+}
+
+void ConfigurationControl::stop() {
+  if (task_ != nullptr) {
+#if SIMCORE_DEBUG
+    performance::unregister_task(
+        performance::TaskMetric::configuration_control);
+#endif
+    vTaskDelete(task_);
+    task_ = nullptr;
+  }
+  request_state_.store(RequestState::idle, std::memory_order_release);
+  request_size_ = 0;
+  service_ = nullptr;
+  transport_ = nullptr;
+  reboot_handler_ = nullptr;
+  reboot_context_ = nullptr;
 }
 
 void ConfigurationControl::consume(

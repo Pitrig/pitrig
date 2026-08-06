@@ -15,7 +15,18 @@ or hardware drivers.
 Render the latest immutable statistics snapshot in a platform dashboard widget
 under `platform/dashboard/widgets/performance_overlay`. The performance service,
 display instrumentation, and overlay are enabled together only when the
-source-level `SIMCORE_DEBUG` feature define is set to `1`.
+compile-time `CONFIG_SIMCORE_DEBUG` Kconfig option is enabled. Production and
+debug IDE tasks select this option through checked-in defaults profiles.
+
+The dashboard composition owns the overlay view instance, including its LVGL
+label, timer, transport observer, and rate-counter state. The overlay does not
+use namespace-global presentation state.
+
+The collector is the single debug-only process-wide instrumentation sink.
+Rendering, transport, and control callbacks publish measurements through its
+small namespace API so production objects do not acquire a performance-service
+dependency in their constructors. This exception contains metrics only; module,
+configuration, transport, and presentation state remain instance-owned.
 
 ## Consequences
 
@@ -24,6 +35,6 @@ source-level `SIMCORE_DEBUG` feature define is set to `1`.
 - UI changes cannot alter how metrics are measured.
 - The display component contains only the LVGL-to-service event adaptation.
 - Debug-only integration points are removed by the preprocessor. Feature
-  selection remains centralized in the source tree and does not depend on CMake
-  command-line flags.
+  selection remains centralized in checked-in Kconfig defaults and does not
+  require editing source headers or passing ad-hoc CMake definitions.
 - Accurate per-core CPU load requires FreeRTOS runtime statistics.

@@ -28,8 +28,8 @@ idf_component_register(
     SRCS ${component_sources}
     INCLUDE_DIRS ${component_include_dirs}
     EMBED_FILES ${boot_splash_asset}
-    REQUIRES configuration font_assets lvgl__lvgl telemetry
-    PRIV_REQUIRES delta_time display esp_lvgl_port heap performance
+    REQUIRES configuration_contract delta_time font_assets lvgl__lvgl telemetry
+    PRIV_REQUIRES display esp_lvgl_port heap performance
                   simcore_config time_transform transport)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)

@@ -9,7 +9,10 @@
 #include "configuration_service.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "transport.hpp"
+
+namespace simcore::transport {
+class ITransport;
+}
 
 namespace simcore::configuration {
 
@@ -17,10 +20,13 @@ using RebootHandler = void (*)(void* context);
 
 class ConfigurationControl {
  public:
+  ~ConfigurationControl();
+
   [[nodiscard]] bool initialize(ConfigurationService& service,
                                 transport::ITransport& transport,
                                 RebootHandler reboot_handler,
                                 void* reboot_context);
+  void stop();
 
   // Queues a line that starts with "@SC:" and has no line terminator. Parsing,
   // validation, and NVS operations run in the dedicated control task.

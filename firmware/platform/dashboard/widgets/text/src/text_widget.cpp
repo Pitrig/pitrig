@@ -109,6 +109,16 @@ void copy_text(std::array<char, DestinationSize>& destination,
 
 }  // namespace
 
+Collection::~Collection() { destroy(); }
+
+void Collection::destroy() {
+  if (!created_ || !lvgl_port_lock(0)) {
+    return;
+  }
+  clear_objects();
+  lvgl_port_unlock();
+}
+
 bool Collection::create(
     const Layout& layout,
     const std::span<const BoundConfig> configurations,

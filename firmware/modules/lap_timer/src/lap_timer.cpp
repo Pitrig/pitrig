@@ -151,15 +151,18 @@ void LapTimer::stop() {
   event_bus_ = nullptr;
 }
 
-std::uint32_t LapTimer::current_time() {
+LapTimer::Snapshot LapTimer::snapshot() {
   const std::lock_guard lock(state_mutex_);
+  if (!state_.initialized) {
+    return {};
+  }
   advance_to(monotonic_time_us());
   const std::int64_t time_ms =
       state_.current_time_us / kMicrosecondsPerMillisecond;
   const auto result = static_cast<std::uint32_t>(
       std::clamp<std::int64_t>(time_ms, 0, std::numeric_limits<std::uint32_t>::max()));
 
-  return result;
+  return {.time_ms = result, .available = true};
 }
 
 }  // namespace simcore::lap_timer

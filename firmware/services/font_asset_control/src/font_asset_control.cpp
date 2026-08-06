@@ -6,7 +6,10 @@
 #include <cstring>
 #include <string_view>
 
-#include "font_asset_crc.hpp"
+#include "binary_codec.hpp"
+#include "crc32.hpp"
+#include "performance.hpp"
+#include "simcore_features.hpp"
 
 namespace simcore::font_assets {
 namespace {
@@ -26,33 +29,17 @@ enum class FrameType : std::uint8_t {
   cancel = 3,
 };
 
-[[nodiscard]] std::uint16_t get_u16(
-    const std::span<const std::uint8_t> bytes, const std::size_t offset) {
-  return static_cast<std::uint16_t>(bytes[offset]) |
-         static_cast<std::uint16_t>(bytes[offset + 1]) << 8U;
-}
-
-[[nodiscard]] std::uint32_t get_u32(
-    const std::span<const std::uint8_t> bytes, const std::size_t offset) {
-  std::uint32_t value{};
-  for (std::size_t index = 0; index < 4; ++index) {
-    value |= static_cast<std::uint32_t>(bytes[offset + index])
-             << (index * 8U);
-  }
-  return value;
-}
-
 [[nodiscard]] bool valid_header(
     const std::span<const std::uint8_t> header) {
   if (header.size() != 14 ||
       !std::equal(kFrameMagic.begin(), kFrameMagic.end(), header.begin()) ||
       header[kFrameReservedByteOffset] != 0 ||
-      get_u16(header, kFrameReservedWordOffset) != 0) {
+      binary::read_u16_le(header, kFrameReservedWordOffset) != 0) {
     return false;
   }
   const auto type = static_cast<FrameType>(header[kFrameTypeOffset]);
   const std::size_t payload_size =
-      get_u16(header, kFramePayloadLengthOffset);
+      binary::read_u16_le(header, kFramePayloadLengthOffset);
   if (type == FrameType::data) {
     return payload_size > 0 && payload_size <= kUploadMaximumChunkSize;
   }
@@ -61,6 +48,8 @@ enum class FrameType : std::uint8_t {
 }
 
 }  // namespace
+
+FontAssetControl::~FontAssetControl() { stop(); }
 
 bool FontAssetControl::initialize(Service& service,
                                   transport::ITransport& transport) {
@@ -74,7 +63,35 @@ bool FontAssetControl::initialize(Service& service,
   task_ = xTaskCreateStatic(&FontAssetControl::task_entry,
                             "font_asset_control", task_stack_.size(), this,
                             kTaskPriority, task_stack_.data(), &task_state_);
+  if (task_ != nullptr) {
+#if SIMCORE_DEBUG
+    performance::register_task(performance::TaskMetric::font_asset_control,
+                               task_);
+#endif
+  } else {
+    stop();
+  }
   return task_ != nullptr;
+}
+
+void FontAssetControl::stop() {
+  if (task_ != nullptr) {
+#if SIMCORE_DEBUG
+    performance::unregister_task(performance::TaskMetric::font_asset_control);
+#endif
+    vTaskDelete(task_);
+    task_ = nullptr;
+  }
+  if (service_ != nullptr && active()) {
+    service_->cancel_update();
+  }
+  reset_session();
+  request_state_.store(RequestState::idle, std::memory_order_release);
+  frame_size_ = 0;
+  expected_frame_size_ = 0;
+  request_frame_size_ = 0;
+  service_ = nullptr;
+  transport_ = nullptr;
 }
 
 void FontAssetControl::consume_command(
@@ -142,7 +159,8 @@ void FontAssetControl::consume(const std::span<const std::uint8_t> bytes) {
         return;
       }
       expected_frame_size_ = kFrameHeaderSize +
-                             get_u16(header, kFramePayloadLengthOffset) +
+                             binary::read_u16_le(
+                                 header, kFramePayloadLengthOffset) +
                              kFrameCrcSize;
     }
     if (expected_frame_size_ != 0 && frame_size_ == expected_frame_size_) {
@@ -232,9 +250,11 @@ void FontAssetControl::handle_frame() {
   const auto frame =
       std::span<const std::uint8_t>(frame_.data(), request_frame_size_);
   const std::size_t content_size = frame.size() - kFrameCrcSize;
-  const std::uint32_t sequence = get_u32(frame, kFrameSequenceOffset);
-  const std::uint32_t supplied_crc = get_u32(frame, content_size);
-  if (supplied_crc != crc32(frame.first(content_size))) {
+  const std::uint32_t sequence =
+      binary::read_u32_le(frame, kFrameSequenceOffset);
+  const std::uint32_t supplied_crc =
+      binary::read_u32_le(frame, content_size);
+  if (supplied_crc != binary::crc32(frame.first(content_size))) {
     finish_with_error("frame_crc");
     return;
   }
@@ -268,7 +288,7 @@ void FontAssetControl::handle_frame() {
   }
 
   const std::size_t payload_size =
-      get_u16(frame, kFramePayloadLengthOffset);
+      binary::read_u16_le(frame, kFramePayloadLengthOffset);
   if (payload_size > package_size_ - received_size_) {
     finish_with_error("invalid_size");
     return;

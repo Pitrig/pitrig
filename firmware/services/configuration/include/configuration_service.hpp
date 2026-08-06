@@ -26,7 +26,7 @@ struct ConfigurationStatus {
 class ConfigurationService {
  public:
   bool initialize(IConfigurationStorage& storage,
-                  const BoardValidationProfile& validation_profile,
+                  const ValidationContext& validation_profile,
                   std::span<const std::uint8_t> factory_payload);
 
   [[nodiscard]] const ApplicationConfiguration& current() const {
@@ -66,7 +66,7 @@ class ConfigurationService {
                                   std::size_t& size) const;
 
   IConfigurationStorage* storage_{};
-  BoardValidationProfile validation_profile_{};
+  ValidationContext validation_profile_{};
   ApplicationConfiguration current_{};
   mutable ApplicationConfiguration scratch_configuration_{};
   ConfigurationStatus status_{};

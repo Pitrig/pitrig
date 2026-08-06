@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #if SIMCORE_DEBUG
 #include "esp_timer.h"
+#include "performance.hpp"
 #endif
 #include "sdkconfig.h"
 #include "tinyusb.h"
@@ -134,6 +135,9 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
     release_rtos_objects();
     return false;
   }
+#if SIMCORE_DEBUG
+  performance::register_task(performance::TaskMetric::transport, task_);
+#endif
 
   started_ = true;
   ESP_LOGI(kTag, "Native USB CDC transport started");
@@ -148,6 +152,9 @@ void UsbCdcTransport::stop() {
   started_ = false;
   active_transport.store(nullptr, std::memory_order_release);
   if (task_ != nullptr) {
+#if SIMCORE_DEBUG
+    performance::unregister_task(performance::TaskMetric::transport);
+#endif
     vTaskDelete(task_);
     task_ = nullptr;
   }

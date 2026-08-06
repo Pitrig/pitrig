@@ -17,8 +17,11 @@ inline constexpr std::size_t kUploadMaximumChunkSize = 1024;
 
 class FontAssetControl final {
  public:
+  ~FontAssetControl();
+
   [[nodiscard]] bool initialize(Service& service,
                                 transport::ITransport& transport);
+  void stop();
 
   // Queues an ASCII @SC:FONT command without its line terminator.
   void consume_command(std::span<const std::uint8_t> line);

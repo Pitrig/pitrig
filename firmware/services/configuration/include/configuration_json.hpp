@@ -32,11 +32,11 @@ enum class ValidationError : std::uint8_t {
 
 [[nodiscard]] ValidationError parse_configuration_json(
     std::span<const std::uint8_t> input,
-    const BoardValidationProfile& profile,
+    const ValidationContext& profile,
     ApplicationConfiguration& configuration);
 [[nodiscard]] ValidationError validate_configuration(
     const ApplicationConfiguration& configuration,
-    const BoardValidationProfile& profile);
+    const ValidationContext& profile);
 [[nodiscard]] const char* validation_error_name(ValidationError error);
 
 }  // namespace simcore::configuration

@@ -17,6 +17,10 @@ Platform composition provides module instances to the adapters that consume
 them, either a dedicated widget or a pre-bound value-pipeline callback. Module
 instances use fixed object storage and do not require dynamic allocation.
 
+Apply the same ownership rule to dashboard views: timers, LVGL objects, cached
+presentation values, and transport observers belong to the view instance and
+are released by its lifecycle API.
+
 ## Consequences
 
 - Module ownership and lifetime are explicit in application composition.

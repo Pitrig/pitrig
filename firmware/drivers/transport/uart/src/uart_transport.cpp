@@ -8,6 +8,7 @@
 #include "esp_log.h"
 #if SIMCORE_DEBUG
 #include "esp_timer.h"
+#include "performance.hpp"
 #endif
 
 namespace simcore::transport {
@@ -30,6 +31,14 @@ void update_maximum(std::atomic<std::uint32_t>& maximum,
 
 UartTransport::UartTransport(const UartConfiguration configuration)
     : configuration_(configuration) {}
+
+bool UartTransport::configure(const UartConfiguration configuration) {
+  if (started_) {
+    return false;
+  }
+  configuration_ = configuration;
+  return true;
+}
 
 UartTransport::~UartTransport() {
   stop();
@@ -102,6 +111,9 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
     restore_log_output();
     return false;
   }
+#if SIMCORE_DEBUG
+  performance::register_task(performance::TaskMetric::transport, task_);
+#endif
 
   return true;
 }
@@ -113,6 +125,9 @@ void UartTransport::stop() {
 
   started_ = false;
   if (task_ != nullptr) {
+#if SIMCORE_DEBUG
+    performance::unregister_task(performance::TaskMetric::transport);
+#endif
     vTaskDelete(task_);
     task_ = nullptr;
   }

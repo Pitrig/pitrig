@@ -33,6 +33,7 @@ namespace simcore::communication {
 class Composition final {
  public:
   explicit Composition(const telemetry::ITelemetryRegistry& registry);
+  ~Composition();
 
   Composition(const Composition&) = delete;
   Composition& operator=(const Composition&) = delete;
@@ -42,6 +43,7 @@ class Composition final {
       font_assets::Service& font_assets,
       telemetry::TelemetryProvider& telemetry,
       transport::ITransport& transport);
+  void stop();
 
  private:
   static void submit_update(const telemetry::TelemetryUpdate& update,
@@ -57,6 +59,8 @@ class Composition final {
   Router router_;
   protocols::SimHubProtocol protocol_;
   telemetry::TelemetryProvider* telemetry_{};
+  transport::ITransport* transport_{};
+  bool started_{};
 };
 
 }  // namespace simcore::communication

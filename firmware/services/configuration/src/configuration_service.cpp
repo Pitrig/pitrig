@@ -2,51 +2,11 @@
 
 #include <algorithm>
 
+#include "binary_codec.hpp"
+#include "crc32.hpp"
+
 namespace simcore::configuration {
 namespace {
-
-void put_u16(std::span<std::uint8_t> output, const std::size_t offset,
-             const std::uint16_t value) {
-  output[offset] = static_cast<std::uint8_t>(value);
-  output[offset + 1] = static_cast<std::uint8_t>(value >> 8U);
-}
-
-void put_u32(std::span<std::uint8_t> output, const std::size_t offset,
-             const std::uint32_t value) {
-  for (std::size_t index = 0; index < 4; ++index) {
-    output[offset + index] =
-        static_cast<std::uint8_t>(value >> (index * 8U));
-  }
-}
-
-std::uint16_t get_u16(const std::span<const std::uint8_t> input,
-                      const std::size_t offset) {
-  return static_cast<std::uint16_t>(input[offset]) |
-         static_cast<std::uint16_t>(input[offset + 1]) << 8U;
-}
-
-std::uint32_t get_u32(const std::span<const std::uint8_t> input,
-                      const std::size_t offset) {
-  std::uint32_t value{};
-  for (std::size_t index = 0; index < 4; ++index) {
-    value |= static_cast<std::uint32_t>(input[offset + index])
-             << (index * 8U);
-  }
-  return value;
-}
-
-std::uint32_t crc32(const std::span<const std::uint8_t> data) {
-  std::uint32_t crc = 0xFFFFFFFFU;
-  for (const std::uint8_t value : data) {
-    crc ^= value;
-    for (std::uint8_t bit = 0; bit < 8; ++bit) {
-      const std::uint32_t mask =
-          0U - static_cast<std::uint32_t>(crc & 1U);
-      crc = (crc >> 1U) ^ (0xEDB88320U & mask);
-    }
-  }
-  return ~crc;
-}
 
 ConfigurationSource source_for(const StorageSlot slot) {
   return slot == StorageSlot::a ? ConfigurationSource::slot_a
@@ -61,7 +21,7 @@ StorageSlot other(const StorageSlot slot) {
 
 bool ConfigurationService::initialize(
     IConfigurationStorage& storage,
-    const BoardValidationProfile& validation_profile,
+    const ValidationContext& validation_profile,
     const std::span<const std::uint8_t> factory_payload) {
   storage_ = &storage;
   validation_profile_ = validation_profile;
@@ -114,7 +74,7 @@ bool ConfigurationService::initialize(
 
   if (selected.valid) {
     current_ = scratch_configuration_;
-    const std::uint32_t payload_size = get_u32(record_buffer_, 8);
+    const std::uint32_t payload_size = binary::read_u32_le(record_buffer_, 8);
     std::copy_n(record_buffer_.begin() + kRecordHeaderSize, payload_size,
                 current_payload_.begin());
     current_payload_size_ = payload_size;
@@ -200,10 +160,10 @@ ConfigurationService::LoadedRecord ConfigurationService::load_slot(
     return loaded;
   }
   const std::span<const std::uint8_t> record(record_buffer_.data(), size);
-  const std::uint16_t schema_version = get_u16(record, 6);
-  const std::uint32_t payload_size = get_u32(record, 8);
-  if (get_u32(record, 0) != kRecordMagic ||
-      get_u16(record, 4) != kRecordVersion ||
+  const std::uint16_t schema_version = binary::read_u16_le(record, 6);
+  const std::uint32_t payload_size = binary::read_u32_le(record, 8);
+  if (binary::read_u32_le(record, 0) != kRecordMagic ||
+      binary::read_u16_le(record, 4) != kRecordVersion ||
       !is_supported_configuration_schema(schema_version) ||
       payload_size == 0 ||
       payload_size > kMaximumPayloadSize ||
@@ -212,14 +172,14 @@ ConfigurationService::LoadedRecord ConfigurationService::load_slot(
   }
   const std::span<const std::uint8_t> payload =
       record.subspan(kRecordHeaderSize, payload_size);
-  if (crc32(payload) != get_u32(record, 16)) {
+  if (binary::crc32(payload) != binary::read_u32_le(record, 16)) {
     return loaded;
   }
   if (parse_configuration_json(payload, validation_profile_, configuration) !=
       ValidationError::none) {
     return loaded;
   }
-  loaded.generation = get_u32(record, 12);
+  loaded.generation = binary::read_u32_le(record, 12);
   loaded.valid = true;
   return loaded;
 }
@@ -233,12 +193,13 @@ bool ConfigurationService::build_record(
       output.size() < kRecordHeaderSize + payload.size()) {
     return false;
   }
-  put_u32(output, 0, kRecordMagic);
-  put_u16(output, 4, kRecordVersion);
-  put_u16(output, 6, kConfigurationSchemaVersion);
-  put_u32(output, 8, static_cast<std::uint32_t>(payload.size()));
-  put_u32(output, 12, generation);
-  put_u32(output, 16, crc32(payload));
+  binary::write_u32_le(output, 0, kRecordMagic);
+  binary::write_u16_le(output, 4, kRecordVersion);
+  binary::write_u16_le(output, 6, kConfigurationSchemaVersion);
+  binary::write_u32_le(output, 8,
+                       static_cast<std::uint32_t>(payload.size()));
+  binary::write_u32_le(output, 12, generation);
+  binary::write_u32_le(output, 16, binary::crc32(payload));
   std::copy(payload.begin(), payload.end(),
             output.begin() + kRecordHeaderSize);
   size = kRecordHeaderSize + payload.size();

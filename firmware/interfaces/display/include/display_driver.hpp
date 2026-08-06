@@ -8,6 +8,10 @@
 
 namespace simcore::display::driver {
 
+// ESP-IDF display-adapter contract shared by the generic LVGL display
+// component and board drivers. It intentionally exposes esp_lcd handles; UI,
+// modules, and application configuration must not depend on this interface.
+
 enum class BusType : std::uint8_t {
   command,
   dsi,

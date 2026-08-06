@@ -19,33 +19,54 @@ constexpr char kTag[] = "communication";
 Composition::Composition(const telemetry::ITelemetryRegistry& registry)
     : protocol_(registry) {}
 
+Composition::~Composition() { stop(); }
+
 bool Composition::start(
     configuration::ConfigurationService& configuration,
     font_assets::Service& font_assets,
     telemetry::TelemetryProvider& telemetry,
     transport::ITransport& transport) {
-  telemetry_ = &telemetry;
-  bool started = true;
+  if (started_ || !protocol_.initialized()) {
+    log::error(kTag, started_ ? "Communication is already running"
+                              : "Failed to bind telemetry protocol fields");
+    return false;
+  }
   if (!configuration_control_.initialize(configuration, transport, &reboot,
                                          nullptr)) {
     log::error(kTag, "Failed to start configuration control task");
-    started = false;
+    return false;
   }
   if (!font_asset_control_.initialize(font_assets, transport)) {
     log::error(kTag, "Failed to start font asset control task");
-    started = false;
+    configuration_control_.stop();
+    return false;
   }
   router_.initialize(configuration_control_, font_asset_control_,
                      &receive_telemetry_data, this);
-  if (!protocol_.initialized()) {
-    log::error(kTag, "Failed to bind telemetry protocol fields");
-    return false;
-  }
+  telemetry_ = &telemetry;
   if (!transport.start(&receive_transport_data, this)) {
     log::error(kTag, "Failed to start telemetry transport");
+    router_.reset();
+    font_asset_control_.stop();
+    configuration_control_.stop();
+    telemetry_ = nullptr;
     return false;
   }
-  return started;
+  transport_ = &transport;
+  started_ = true;
+  return true;
+}
+
+void Composition::stop() {
+  if (transport_ != nullptr) {
+    transport_->stop();
+  }
+  router_.reset();
+  font_asset_control_.stop();
+  configuration_control_.stop();
+  telemetry_ = nullptr;
+  transport_ = nullptr;
+  started_ = false;
 }
 
 void Composition::submit_update(const telemetry::TelemetryUpdate& update,

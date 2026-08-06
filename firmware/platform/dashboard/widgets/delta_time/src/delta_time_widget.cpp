@@ -15,44 +15,39 @@ namespace {
 
 constexpr std::uint32_t kRenderPeriodMs = 16;
 
-struct WidgetState {
-  const delta_time::DeltaTime* module{};
-  lv_obj_t* container{};
-  lv_obj_t* scale_content{};
-  lv_obj_t* fill{};
-  std::array<lv_obj_t*, 2> markers{};
-  lv_obj_t* border{};
-  lv_obj_t* label{};
-  std::array<char, delta_time::kTextCapacity> text{};
-  std::uint32_t color_rgb{};
-  std::uint32_t scale_color_rgb{};
-  std::uint32_t faster_color_rgb{};
-  std::uint32_t slower_color_rgb{};
-  std::uint32_t neutral_color_rgb{};
-  std::int16_t scale_fill_per_mille{};
-  std::int32_t scale_center_x{};
-  std::int32_t scale_half_width{};
-  bool visible{};
-  bool scale_enabled{};
-  bool initialized{};
-};
+}  // namespace
 
-WidgetState widget_state;
+View::~View() { destroy(); }
 
-[[nodiscard]] std::uint32_t color_for_tone(const delta_time::Tone tone) {
-  switch (tone) {
-    case delta_time::Tone::faster:
-      return widget_state.faster_color_rgb;
-    case delta_time::Tone::slower:
-      return widget_state.slower_color_rgb;
-    case delta_time::Tone::neutral:
-      return widget_state.neutral_color_rgb;
+void View::destroy() {
+  if (!created_ || !lvgl_port_lock(0)) {
+    return;
   }
-
-  return widget_state.neutral_color_rgb;
+  if (timer_ != nullptr) {
+    lv_timer_delete(timer_);
+    timer_ = nullptr;
+  }
+  if (state_.container != nullptr) {
+    lv_obj_delete(state_.container);
+  }
+  state_ = {};
+  created_ = false;
+  lvgl_port_unlock();
 }
 
-void render() {
+void View::render() {
+  State& widget_state = state_;
+  const auto color_for_tone = [&widget_state](const delta_time::Tone tone) {
+    switch (tone) {
+      case delta_time::Tone::faster:
+        return widget_state.faster_color_rgb;
+      case delta_time::Tone::slower:
+        return widget_state.slower_color_rgb;
+      case delta_time::Tone::neutral:
+        return widget_state.neutral_color_rgb;
+    }
+    return widget_state.neutral_color_rgb;
+  };
   const delta_time::PresentationState state =
       widget_state.module->presentation();
   if (!widget_state.initialized || widget_state.visible != state.visible) {
@@ -143,18 +138,20 @@ void render() {
   widget_state.initialized = true;
 }
 
-void update(lv_timer_t*) {
-  render();
+void View::update(lv_timer_t* const timer) {
+  auto* const view = static_cast<View*>(lv_timer_get_user_data(timer));
+  if (view != nullptr) {
+    view->render();
+  }
 }
 
-}  // namespace
-
-bool create(const Layout& layout, const Config& config,
-            const delta_time::DeltaTime& module,
-            const fonts::Registry& fonts) {
-  if (layout.display == nullptr) {
+bool View::create(const Layout& layout, const Config& config,
+                  const delta_time::DeltaTime& module,
+                  const fonts::Registry& fonts) {
+  if (layout.display == nullptr || created_) {
     return false;
   }
+  State& widget_state = state_;
 
   const lv_font_t* const font = fonts.resolve(config.font);
   if (font == nullptr) {
@@ -259,7 +256,14 @@ bool create(const Layout& layout, const Config& config,
   lv_obj_align(widget_state.label, LV_ALIGN_CENTER, 0, 0);
 
   render();
-  lv_timer_create(update, kRenderPeriodMs, nullptr);
+  timer_ = lv_timer_create(&View::update, kRenderPeriodMs, this);
+  if (timer_ == nullptr) {
+    lv_obj_delete(widget_state.container);
+    state_ = {};
+    lvgl_port_unlock();
+    return false;
+  }
+  created_ = true;
   lvgl_port_unlock();
   return true;
 }

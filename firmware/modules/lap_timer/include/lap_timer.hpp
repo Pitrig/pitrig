@@ -18,6 +18,11 @@ namespace simcore::lap_timer {
 
 class LapTimer {
  public:
+  struct Snapshot {
+    std::uint32_t time_ms{};
+    bool available{};
+  };
+
   LapTimer() = default;
   ~LapTimer();
 
@@ -33,8 +38,8 @@ class LapTimer {
       telemetry::Handle telemetry_handle);
   void stop();
 
-  // Returns the latest telemetry value or the locally extrapolated time.
-  [[nodiscard]] std::uint32_t current_time();
+  // Returns one coherent reading of availability and extrapolated time.
+  [[nodiscard]] Snapshot snapshot();
 
  private:
   struct State {

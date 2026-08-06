@@ -408,7 +408,7 @@ template <std::size_t Size>
 }
 
 [[nodiscard]] ValidationError parse_root(
-    const cJSON* const root, const BoardValidationProfile& profile,
+    const cJSON* const root, const ValidationContext& profile,
     ApplicationConfiguration& configuration) {
   if (!valid_object(root, {"board", "hardware", "telemetry_transport",
                            "delta_time", "dashboard"})) {
@@ -456,7 +456,7 @@ template <std::size_t Size>
 
 ValidationError parse_configuration_json(
     const std::span<const std::uint8_t> input,
-    const BoardValidationProfile& profile,
+    const ValidationContext& profile,
     ApplicationConfiguration& configuration) {
   if (input.empty() || input.size() > kMaximumPayloadSize) {
     return ValidationError::malformed;

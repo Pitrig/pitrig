@@ -1,13 +1,16 @@
-set(board_driver_dependencies uart usb_cdc)
+set(board_driver_dependencies)
 if(IDF_TARGET STREQUAL "esp32p4")
     list(APPEND board_driver_dependencies guition_jc1060p470c)
 else()
+    # ESP-IDF resolves component requirements before project Kconfig choices
+    # are available on a fresh configure. Both S3 alternatives must therefore
+    # be discoverable; board_registry.cpp references only the selected one.
     list(APPEND board_driver_dependencies guition_esp32_4848s040 t_display_s3)
 endif()
 
 idf_component_register(SRCS "src/board_registry.cpp"
                        INCLUDE_DIRS "include"
-                       REQUIRES configuration interfaces transport
+                       REQUIRES configuration_contract interfaces
                        PRIV_REQUIRES ${board_driver_dependencies})
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

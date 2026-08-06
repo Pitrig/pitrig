@@ -26,9 +26,22 @@ telemetry protocol in a platform communication composition. The core supplies
 the selected transport and shared services but does not depend on SimHub or
 protocol routing details.
 
-The configuration service owns the bounded schema 2 value contract. Modules
-and dashboard widgets consume those neutral values instead of making the
-configuration service depend on feature or LVGL implementation headers.
+Keep immutable board capabilities in one `BoardDefinition`. A dedicated
+platform telemetry transport composition owns and configures only the concrete
+UART and/or USB CDC adapters supported by that board. The core sees only the
+neutral transport interface. Split feature-module lifecycle and LVGL dashboard
+creation into separate module and dashboard composition components.
+
+Keep the bounded schema 2 value contract in its own `configuration_contract`
+service component. The configuration service consumes that contract for
+parsing, validation, persistence, and control operations. Modules and dashboard
+widgets consume the neutral contract directly instead of depending on the
+configuration service or making it depend on feature or LVGL implementation
+headers.
+
+Keep transport-facing configuration commands in a separate
+`configuration_control` service. The configuration service itself owns only
+schema parsing, validation, persistence, and current configuration state.
 
 Delegate scheduling to the owning subsystem: FreeRTOS tasks for blocking or
 long-running service work, LVGL timers for rendering, and event callbacks for
@@ -43,7 +56,11 @@ scheduling requirement is identified and recorded by another ADR.
 - Module shutdown order is deterministic.
 - Replacing SimHub or adding another protocol does not require protocol code in
   the firmware core.
+- Adding a board changes one immutable board definition and its platform
+  adapters without adding hardware switches to the core.
 - Configuration schema types no longer live under `platform/` or import widget
   and module implementations.
+- Feature modules and dashboard code do not inherit the configuration
+  service's storage, JSON, control-protocol, or ESP application dependencies.
 - The architecture documents service composition rather than claiming a
   runtime Service Registry or central Scheduler exists.

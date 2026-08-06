@@ -25,12 +25,14 @@ struct UartConfiguration {
 
 class UartTransport final : public ITransport {
  public:
+  UartTransport() = default;
   explicit UartTransport(UartConfiguration configuration);
   ~UartTransport() override;
 
   UartTransport(const UartTransport&) = delete;
   UartTransport& operator=(const UartTransport&) = delete;
 
+  [[nodiscard]] bool configure(UartConfiguration configuration);
   bool start(DataHandler handler, void* context) override;
   void stop() override;
   bool write(std::span<const std::uint8_t> data) override;

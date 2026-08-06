@@ -1,4 +1,5 @@
 #include "configuration_json.hpp"
+#include "telemetry_registry.hpp"
 
 #include <algorithm>
 #include <string_view>
@@ -105,7 +106,7 @@ template <std::size_t Size>
 
 ValidationError validate_configuration(
     const ApplicationConfiguration& configuration,
-    const BoardValidationProfile& profile) {
+    const ValidationContext& profile) {
   if (configuration.board.id < BoardId::t_display_s3 ||
       configuration.board.id > BoardId::guition_jc1060p470c) {
     return ValidationError::invalid_board;

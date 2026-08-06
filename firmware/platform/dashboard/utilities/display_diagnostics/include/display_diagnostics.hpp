@@ -10,6 +10,8 @@ class Registry;
 
 namespace simcore::dashboard::display_diagnostics {
 
+struct ViewImplementation;
+
 struct Config {
   bool auto_cycle{true};
   std::uint32_t page_duration_ms{2'000};
@@ -17,9 +19,21 @@ struct Config {
   std::uint8_t initial_page{0};
 };
 
-// Runs the full-screen display hardware diagnostic. Its pages exercise
-// geometry, color channels, pixel transitions, font rendering, and refresh.
-[[nodiscard]] bool create(lv_display_t* display, const Config& config,
-                          const fonts::Registry& fonts);
+// Owns the full-screen display hardware diagnostic, including its LVGL timer,
+// objects, and RGB888 stress buffer.
+class View final {
+ public:
+  View() = default;
+  ~View();
+  View(const View&) = delete;
+  View& operator=(const View&) = delete;
+
+  [[nodiscard]] bool create(lv_display_t* display, const Config& config,
+                            const fonts::Registry& fonts);
+  void destroy();
+
+ private:
+  ViewImplementation* implementation_{};
+};
 
 }  // namespace simcore::dashboard::display_diagnostics

@@ -24,6 +24,15 @@ void Router::initialize(
   discarding_ = false;
 }
 
+void Router::reset() {
+  control_ = nullptr;
+  font_asset_control_ = nullptr;
+  telemetry_handler_ = nullptr;
+  telemetry_context_ = nullptr;
+  line_size_ = 0;
+  discarding_ = false;
+}
+
 void Router::consume(const std::span<const std::uint8_t> data) {
   for (std::size_t index = 0; index < data.size(); ++index) {
     if (font_asset_control_ != nullptr && font_asset_control_->active()) {

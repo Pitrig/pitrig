@@ -147,6 +147,7 @@ platform composition ----> modules
 platform composition ----> components
 platform composition ----> services
 board registry -----------> drivers
+transport composition ----> transport drivers
 modules ------------------> services and components
 components ---------------> interfaces <--------------- drivers
 ```
@@ -159,8 +160,9 @@ Dependencies must not point from interfaces or components to a concrete hardware
 
 The firmware core is the static application composition root. It owns
 firmware-lifetime platform adapters and services and coordinates startup
-through explicit references. SimCore does not use a runtime Service Registry
-or service locator.
+through explicit references. Concrete display and telemetry transport
+selection stays in platform composition. SimCore does not use a runtime
+Service Registry or service locator.
 
 Responsibilities include:
 
@@ -176,9 +178,11 @@ Responsibilities include:
 The firmware core must not contain feature-specific logic.
 
 The bounded Module Manager stores compile-time descriptors with function
-pointers and explicit contexts. Platform composition registers the available
-module implementations and configuration controls which descriptors are
-enabled. The manager performs no allocation or name-based lookup.
+pointers and explicit contexts. A dedicated module composition registers the
+available module implementations and configuration controls which descriptors
+are enabled. A separate dashboard composition owns LVGL views and binds them to
+module and telemetry readers. The manager performs no allocation or name-based
+lookup.
 
 ---
 
@@ -250,9 +254,12 @@ Examples include:
 - Communication
 - Font asset catalog and package validation
 
-The configuration service owns the bounded schema 2 application value
-contract. Module and dashboard implementations consume those value types; the
-contract does not include module implementation or LVGL widget headers.
+The `configuration_contract` service component owns the bounded schema 2
+application value contract. The configuration service parses, validates, and
+persists that contract. Module and dashboard implementations depend only on the
+contract component, which contains no storage, control protocol, module
+implementation, ESP-IDF build configuration, or LVGL widget headers. Shared
+font value types live in the leaf `font_contract` component.
 
 Services must remain focused and must not contain hardware-specific application logic.
 
@@ -310,8 +317,10 @@ Changing the transport should not require rewriting modules.
 
 The communication composition owns the configuration control endpoint, font
 asset control endpoint, line/binary router, and concrete telemetry protocol.
-The core supplies the board-selected transport and shared services but does not
-depend on SimHub identifiers or protocol classes.
+A dedicated platform composition owns and configures the concrete transport
+adapters supported by the selected board. The core receives only `ITransport`
+and does not depend on UART, USB CDC, ESP-IDF UART types, SimHub identifiers, or
+protocol classes.
 
 Possible transports include:
 
@@ -335,11 +344,11 @@ The desktop configurator is the primary authoring and device-management tool.
 Project JSON and the public device payload are sparse: omitted components stay
 absent instead of being expanded through board profiles.
 
-Firmware builds own an immutable board identity. The board registry maps that
-identity directly to drivers for hardware physically built into the board and
-keeps private validation metadata for immutable constraints such as logical
-display bounds and supported communication pins. This metadata is not part of
-the public configuration or device-information protocol.
+Firmware builds own one immutable `BoardDefinition`. It binds the board
+identifier, display driver, default telemetry transport, factory payload, and
+private validation metadata for constraints such as logical display bounds and
+supported communication pins. This metadata is not part of the public
+configuration or device-information protocol.
 Firmware reports only the stable board identifier; the configurator maps it to
 a local supported board profile containing read-only authoring metadata such as
 logical display dimensions. Every user configuration includes a matching board

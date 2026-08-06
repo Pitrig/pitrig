@@ -42,12 +42,14 @@ using Config = configuration::TextWidgetConfiguration;
 class Collection final {
  public:
   Collection() = default;
+  ~Collection();
   Collection(const Collection&) = delete;
   Collection& operator=(const Collection&) = delete;
 
   [[nodiscard]] bool create(
       const Layout& layout, std::span<const BoundConfig> configurations,
       const fonts::Registry& fonts);
+  void destroy();
 
  private:
   struct State {

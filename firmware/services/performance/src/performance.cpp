@@ -3,6 +3,7 @@
 #include "simcore_features.hpp"
 #if SIMCORE_DEBUG
 #include <algorithm>
+#include <array>
 #include <cinttypes>
 #include <cstdint>
 #include <cstdio>
@@ -46,6 +47,15 @@ bool started;
 bool frame_in_progress;
 StaticTask_t task_buffer;
 StackType_t task_stack[kTaskStackDepth];
+std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)>
+    monitored_tasks{};
+
+std::uint32_t stack_free_bytes(const TaskHandle_t task) {
+  return task == nullptr
+             ? 0
+             : static_cast<std::uint32_t>(
+                   uxTaskGetStackHighWaterMark(task) * sizeof(StackType_t));
+}
 
 std::uint32_t average(std::uint64_t total, std::uint32_t count) {
   if (count == 0) {
@@ -117,6 +127,18 @@ void begin() {
                                     nullptr, kTaskPriority, task_stack, &task_buffer,
                                     kTaskCore);
   configASSERT(task != nullptr);
+  register_task(TaskMetric::sampler, task);
+}
+
+void register_task(const TaskMetric metric, void* const task_handle) {
+  taskENTER_CRITICAL(&state_lock);
+  monitored_tasks[static_cast<std::size_t>(metric)] =
+      static_cast<TaskHandle_t>(task_handle);
+  taskEXIT_CRITICAL(&state_lock);
+}
+
+void unregister_task(const TaskMetric metric) {
+  register_task(metric, nullptr);
 }
 
 void frame_started() {
@@ -182,6 +204,8 @@ void update() {
   configRUN_TIME_COUNTER_TYPE runtime_delta = 0;
   configRUN_TIME_COUNTER_TYPE idle_core0_delta = 0;
   configRUN_TIME_COUNTER_TYPE idle_core1_delta = 0;
+  std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)>
+      task_handles{};
 
   taskENTER_CRITICAL(&state_lock);
   interval = measurements;
@@ -194,6 +218,7 @@ void update() {
   last_runtime = runtime;
   last_idle_core0 = idle_core0;
   last_idle_core1 = idle_core1;
+  task_handles = monitored_tasks;
   taskEXIT_CRITICAL(&state_lock);
 
   PerformanceStats next{};
@@ -211,6 +236,19 @@ void update() {
       heap_caps_get_largest_free_block(kInternalHeapCapabilities);
   next.free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
   next.uptime_ms = static_cast<std::uint64_t>(now_us / 1'000);
+  next.task_stacks = {
+      .lvgl_free_bytes =
+          stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::lvgl)]),
+      .transport_free_bytes = stack_free_bytes(
+          task_handles[static_cast<std::size_t>(TaskMetric::transport)]),
+      .configuration_free_bytes =
+          stack_free_bytes(task_handles[static_cast<std::size_t>(
+              TaskMetric::configuration_control)]),
+      .font_assets_free_bytes = stack_free_bytes(
+          task_handles[static_cast<std::size_t>(TaskMetric::font_asset_control)]),
+      .sampler_free_bytes = stack_free_bytes(
+          task_handles[static_cast<std::size_t>(TaskMetric::sampler)]),
+  };
 
   taskENTER_CRITICAL(&state_lock);
   stats = next;
