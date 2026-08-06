@@ -17,6 +17,68 @@ namespace simcore::transport {
 namespace {
 
 constexpr char kTag[] = "usb_cdc_transport";
+static_assert(CFG_TUD_CDC == 1,
+              "The SimCore USB descriptor defines exactly one CDC function");
+
+constexpr std::uint16_t kUsbVendorId = TINYUSB_ESPRESSIF_VID;
+constexpr std::uint16_t kUsbProductId = 0x4001;
+constexpr std::uint16_t kUsbDeviceVersion = 0x0100;
+constexpr std::uint8_t kUsbInterfaceCount = 2;
+constexpr std::uint8_t kUsbCdcInterface = 0;
+constexpr std::uint8_t kUsbCdcStringIndex = 4;
+constexpr std::uint8_t kUsbCdcNotificationEndpoint = 0x81;
+constexpr std::uint8_t kUsbCdcOutputEndpoint = 0x02;
+constexpr std::uint8_t kUsbCdcInputEndpoint = 0x82;
+constexpr std::uint16_t kUsbConfigurationLength =
+    TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN;
+
+const tusb_desc_device_t kUsbDeviceDescriptor{
+    .bLength = sizeof(tusb_desc_device_t),
+    .bDescriptorType = TUSB_DESC_DEVICE,
+    .bcdUSB = 0x0200,
+    .bDeviceClass = TUSB_CLASS_MISC,
+    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol = MISC_PROTOCOL_IAD,
+    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor = kUsbVendorId,
+    .idProduct = kUsbProductId,
+    .bcdDevice = kUsbDeviceVersion,
+    .iManufacturer = 1,
+    .iProduct = 2,
+    .iSerialNumber = 3,
+    .bNumConfigurations = 1,
+};
+
+const std::uint8_t kUsbFullSpeedConfiguration[] = {
+    TUD_CONFIG_DESCRIPTOR(1, kUsbInterfaceCount, 0, kUsbConfigurationLength,
+                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    TUD_CDC_DESCRIPTOR(kUsbCdcInterface, kUsbCdcStringIndex,
+                       kUsbCdcNotificationEndpoint, 8,
+                       kUsbCdcOutputEndpoint, kUsbCdcInputEndpoint, 64),
+};
+
+#if TUD_OPT_HIGH_SPEED
+const tusb_desc_device_qualifier_t kUsbDeviceQualifier{
+    .bLength = sizeof(tusb_desc_device_qualifier_t),
+    .bDescriptorType = TUSB_DESC_DEVICE_QUALIFIER,
+    .bcdUSB = 0x0200,
+    .bDeviceClass = TUSB_CLASS_MISC,
+    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol = MISC_PROTOCOL_IAD,
+    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
+    .bNumConfigurations = 1,
+    .bReserved = 0,
+};
+
+const std::uint8_t kUsbHighSpeedConfiguration[] = {
+    TUD_CONFIG_DESCRIPTOR(1, kUsbInterfaceCount, 0, kUsbConfigurationLength,
+                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    TUD_CDC_DESCRIPTOR(kUsbCdcInterface, kUsbCdcStringIndex,
+                       kUsbCdcNotificationEndpoint, 8,
+                       kUsbCdcOutputEndpoint, kUsbCdcInputEndpoint, 512),
+};
+#endif
+
 constexpr char kUsbLanguageEnglish[] = {'\x09', '\x04'};
 const char* kUsbStringDescriptors[] = {
     kUsbLanguageEnglish,
@@ -95,12 +157,20 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
           },
       .descriptor =
           {
-              .device = nullptr,
+              .device = &kUsbDeviceDescriptor,
+#if TUD_OPT_HIGH_SPEED
+              .qualifier = &kUsbDeviceQualifier,
+#else
               .qualifier = nullptr,
+#endif
               .string = kUsbStringDescriptors,
               .string_count = kUsbStringDescriptorCount,
-              .full_speed_config = nullptr,
+              .full_speed_config = kUsbFullSpeedConfiguration,
+#if TUD_OPT_HIGH_SPEED
+              .high_speed_config = kUsbHighSpeedConfiguration,
+#else
               .high_speed_config = nullptr,
+#endif
           },
       .event_cb = nullptr,
       .event_arg = nullptr,

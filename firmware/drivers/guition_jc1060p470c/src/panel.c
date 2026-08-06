@@ -14,6 +14,7 @@
 #include "driver/gpio.h"
 #include "esp_lcd_jd9165.h"
 #include "esp_lcd_mipi_dsi.h"
+#include "esp_lcd_panel_interface.h"
 #include "esp_ldo_regulator.h"
 
 #define LCD_BACKLIGHT GPIO_NUM_23
@@ -26,6 +27,17 @@
 
 static esp_ldo_channel_handle_t mipi_phy_power;
 static esp_lcd_dsi_bus_handle_t mipi_dsi_bus;
+
+// esp_lvgl_port applies the configured orientation once when it registers a
+// display, including an explicit swap_xy(false). The DPI panel has a fixed
+// scan direction and cannot swap its axes, but accepting the disabled state is
+// both correct and prevents esp_lcd from reporting a false initialization
+// error.
+static esp_err_t fixed_orientation_swap_xy(esp_lcd_panel_t* panel,
+                                            bool swap_axes) {
+  (void)panel;
+  return swap_axes ? ESP_ERR_NOT_SUPPORTED : ESP_OK;
+}
 
 static const jd9165_lcd_init_cmd_t panel_init_commands[] = {
     {0x30, (uint8_t[]){0x00}, 1, 0},
@@ -171,6 +183,7 @@ esp_err_t simcore_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   if (result != ESP_OK) {
     return result;
   }
+  (*panel)->swap_xy = fixed_orientation_swap_xy;
   result = esp_lcd_panel_reset(*panel);
   if (result == ESP_OK) {
     result = esp_lcd_panel_init(*panel);

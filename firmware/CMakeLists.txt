@@ -51,3 +51,7 @@ if(IDF_TARGET STREQUAL "esp32p4")
 endif()
 idf_build_set_property(MINIMAL_BUILD ON)
 project(simcore)
+
+if(IDF_TARGET STREQUAL "esp32p4")
+    include("${CMAKE_CURRENT_LIST_DIR}/cmake/apply_lvgl_ppa_patch.cmake")
+endif()
