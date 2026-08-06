@@ -12,7 +12,8 @@ namespace simcore::dashboard::display_diagnostics {
 
 struct Config {
   bool auto_cycle{true};
-  std::uint32_t page_duration_ms{5'000};
+  std::uint32_t page_duration_ms{2'000};
+  std::uint32_t fps_page_duration_ms{60'000};
   std::uint8_t initial_page{0};
 };
 

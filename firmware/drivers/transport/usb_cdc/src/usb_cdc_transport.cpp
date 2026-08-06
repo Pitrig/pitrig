@@ -7,6 +7,7 @@
 #if SIMCORE_DEBUG
 #include "esp_timer.h"
 #endif
+#include "sdkconfig.h"
 #include "tinyusb.h"
 #include "tinyusb_cdc_acm.h"
 #include "tinyusb_default_config.h"
@@ -15,6 +16,22 @@ namespace simcore::transport {
 namespace {
 
 constexpr char kTag[] = "usb_cdc_transport";
+constexpr char kUsbLanguageEnglish[] = {'\x09', '\x04'};
+const char* kUsbStringDescriptors[] = {
+    kUsbLanguageEnglish,
+    CONFIG_TINYUSB_DESC_MANUFACTURER_STRING,
+    CONFIG_TINYUSB_DESC_PRODUCT_STRING,
+    CONFIG_TINYUSB_DESC_SERIAL_STRING,
+    CONFIG_TINYUSB_DESC_CDC_STRING,
+};
+constexpr int kUsbStringDescriptorCount =
+    static_cast<int>(sizeof(kUsbStringDescriptors) /
+                     sizeof(kUsbStringDescriptors[0]));
+#if CONFIG_IDF_TARGET_ESP32P4
+constexpr tinyusb_port_t kUsbPort = TINYUSB_PORT_HIGH_SPEED_0;
+#else
+constexpr tinyusb_port_t kUsbPort = TINYUSB_PORT_FULL_SPEED_0;
+#endif
 std::atomic<UsbCdcTransport*> active_transport;
 
 #if SIMCORE_DEBUG
@@ -62,7 +79,7 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
   active_transport.store(this, std::memory_order_release);
 
   const tinyusb_config_t usb_config{
-      .port = TINYUSB_PORT_FULL_SPEED_0,
+      .port = kUsbPort,
       .phy =
           {
               .skip_setup = false,
@@ -79,8 +96,8 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
           {
               .device = nullptr,
               .qualifier = nullptr,
-              .string = nullptr,
-              .string_count = 0,
+              .string = kUsbStringDescriptors,
+              .string_count = kUsbStringDescriptorCount,
               .full_speed_config = nullptr,
               .high_speed_config = nullptr,
           },

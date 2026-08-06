@@ -113,6 +113,7 @@ driver::Configuration initialize_panel() {
       .mirror_x = false,
       .mirror_y = true,
       .bus_type = driver::BusType::command,
+      .color_format = driver::ColorFormat::rgb565,
       .double_buffer = true,
       .buffer_in_dma_memory = true,
       .buffer_in_psram = false,

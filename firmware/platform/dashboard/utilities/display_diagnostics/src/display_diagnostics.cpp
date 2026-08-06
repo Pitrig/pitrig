@@ -13,27 +13,37 @@
 #include "esp_heap_caps.h"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
+#if SIMCORE_DEBUG
+#include "performance.hpp"
+#endif
 
 namespace simcore::dashboard::display_diagnostics {
 namespace {
 
-constexpr std::uint8_t kPageCount = 5;
-constexpr std::uint32_t kAnimationPeriodMs = 16;
+constexpr std::uint8_t kPageCount = 6;
+constexpr std::uint8_t kPatternPage = 3;
+constexpr std::uint8_t kFpsStressPage = 5;
+constexpr std::uint32_t kAnimationPeriodMs = 8;
 constexpr std::uint32_t kCounterPeriodMs = 100;
+constexpr std::uint32_t kFpsWarmupMs = 2'000;
 constexpr std::size_t kBufferAlignment = 64;
+constexpr std::size_t kRgb888BytesPerPixel = 3;
 constexpr std::array<const char*, kPageCount> kPageNames = {
-    "GEOMETRY", "RGB565", "D15..D0", "PCLK/TEARING", "FONT FRINGING"};
+    "GEOMETRY", "RGB888 GRADIENT", "D23..D0", "PCLK/TEARING",
+    "FONT FRINGING", "FPS STRESS"};
 
 struct State {
   Config config{};
   lv_obj_t* canvas{};
+  lv_obj_t* fps_surface{};
   lv_obj_t* title{};
   lv_obj_t* detail{};
   lv_obj_t* font_large{};
   lv_obj_t* font_small{};
   lv_obj_t* moving_vertical{};
   lv_obj_t* moving_horizontal{};
-  std::uint16_t* pixels{};
+  std::uint8_t* pixels{};
+  std::size_t stride{};
   std::int32_t width{};
   std::int32_t height{};
   std::uint8_t page{};
@@ -44,25 +54,36 @@ struct State {
 
 State state;
 
-[[nodiscard]] std::uint16_t rgb565(const std::uint32_t rgb) {
-  return lv_color_to_u16(lv_color_hex(rgb));
+void write_rgb888(std::uint8_t* const pixel, const std::uint32_t color) {
+  pixel[0] = static_cast<std::uint8_t>(color);
+  pixel[1] = static_cast<std::uint8_t>(color >> 8);
+  pixel[2] = static_cast<std::uint8_t>(color >> 16);
 }
 
 void set_pixel(const std::int32_t x, const std::int32_t y,
-               const std::uint16_t color) {
+               const std::uint32_t color) {
   if (x < 0 || y < 0 || x >= state.width || y >= state.height) {
     return;
   }
-  state.pixels[static_cast<std::size_t>(y) * state.width + x] = color;
+  std::uint8_t* const pixel =
+      state.pixels + static_cast<std::size_t>(y) * state.stride +
+      static_cast<std::size_t>(x) * kRgb888BytesPerPixel;
+  write_rgb888(pixel, color);
 }
 
-void fill(const std::uint16_t color) {
-  std::fill_n(state.pixels,
-              static_cast<std::size_t>(state.width) * state.height, color);
+void fill(const std::uint32_t color) {
+  for (std::int32_t y = 0; y < state.height; ++y) {
+    std::uint8_t* pixel =
+        state.pixels + static_cast<std::size_t>(y) * state.stride;
+    for (std::int32_t x = 0; x < state.width; ++x) {
+      write_rgb888(pixel, color);
+      pixel += kRgb888BytesPerPixel;
+    }
+  }
 }
 
 void fill_rect(std::int32_t x, std::int32_t y, std::int32_t width,
-               std::int32_t height, const std::uint16_t color) {
+               std::int32_t height, const std::uint32_t color) {
   const std::int32_t x0 = std::clamp<std::int32_t>(x, 0, state.width);
   const std::int32_t y0 = std::clamp<std::int32_t>(y, 0, state.height);
   const std::int32_t x1 =
@@ -70,14 +91,19 @@ void fill_rect(std::int32_t x, std::int32_t y, std::int32_t width,
   const std::int32_t y1 =
       std::clamp<std::int32_t>(y + height, 0, state.height);
   for (std::int32_t row = y0; row < y1; ++row) {
-    std::fill_n(state.pixels + static_cast<std::size_t>(row) * state.width + x0,
-                x1 - x0, color);
+    std::uint8_t* pixel =
+        state.pixels + static_cast<std::size_t>(row) * state.stride +
+        static_cast<std::size_t>(x0) * kRgb888BytesPerPixel;
+    for (std::int32_t column = x0; column < x1; ++column) {
+      write_rgb888(pixel, color);
+      pixel += kRgb888BytesPerPixel;
+    }
   }
 }
 
 void outline_rect(const std::int32_t x, const std::int32_t y,
                   const std::int32_t width, const std::int32_t height,
-                  const std::uint16_t color) {
+                  const std::uint32_t color) {
   fill_rect(x, y, width, 1, color);
   fill_rect(x, y + height - 1, width, 1, color);
   fill_rect(x, y, 1, height, color);
@@ -93,6 +119,7 @@ void show(lv_obj_t* object, const bool visible) {
 }
 
 void hide_page_overlays() {
+  show(state.fps_surface, false);
   show(state.detail, false);
   show(state.font_large, false);
   show(state.font_small, false);
@@ -101,12 +128,12 @@ void hide_page_overlays() {
 }
 
 void render_geometry() {
-  constexpr std::uint16_t black = 0x0000;
-  constexpr std::uint16_t white = 0xFFFF;
-  constexpr std::uint16_t red = 0xF800;
-  constexpr std::uint16_t green = 0x07E0;
-  constexpr std::uint16_t blue = 0x001F;
-  constexpr std::uint16_t gray = 0x4208;
+  constexpr std::uint32_t black = 0x000000;
+  constexpr std::uint32_t white = 0xFFFFFF;
+  constexpr std::uint32_t red = 0xFF0000;
+  constexpr std::uint32_t green = 0x00FF00;
+  constexpr std::uint32_t blue = 0x0000FF;
+  constexpr std::uint32_t gray = 0x404040;
 
   fill(black);
   outline_rect(0, 0, state.width, state.height, white);
@@ -137,10 +164,11 @@ void render_geometry() {
 }
 
 void render_colors() {
-  constexpr std::array<std::uint16_t, 8> bars = {
-      0x0000, 0xFFFF, 0xF800, 0x07E0, 0x001F, 0xFFE0, 0x07FF, 0xF81F,
+  constexpr std::array<std::uint32_t, 8> bars = {
+      0x000000, 0xFFFFFF, 0xFF0000, 0x00FF00,
+      0x0000FF, 0xFFFF00, 0x00FFFF, 0xFF00FF,
   };
-  fill(0x0000);
+  fill(0x000000);
 
   const std::int32_t bar_height =
       std::max<std::int32_t>(24, state.height / 6);
@@ -160,7 +188,7 @@ void render_colors() {
         static_cast<std::uint32_t>(x) * 255 /
         std::max<std::int32_t>(1, state.width - 1);
     fill_rect(x, gradient_y, 1, gradient_height,
-              rgb565((level << 16) | (level << 8) | level));
+              (level << 16) | (level << 8) | level);
   }
 
   const std::int32_t channel_height =
@@ -175,14 +203,14 @@ void render_colors() {
           std::max<std::int32_t>(1, state.width - 1);
       const std::uint32_t color =
           channel == 0 ? level << 16 : channel == 1 ? level << 8 : level;
-      fill_rect(x, y, 1, channel_height, rgb565(color));
+      fill_rect(x, y, 1, channel_height, color);
     }
   }
 }
 
 void render_patterns() {
-  constexpr std::uint16_t black = 0x0000;
-  constexpr std::uint16_t white = 0xFFFF;
+  constexpr std::uint32_t black = 0x000000;
+  constexpr std::uint32_t white = 0xFFFFFF;
   const std::int32_t half_width = state.width / 2;
   const std::int32_t half_height = state.height / 2;
 
@@ -201,34 +229,33 @@ void render_patterns() {
       set_pixel(x, y, on ? white : black);
     }
   }
-  outline_rect(0, 0, state.width, state.height, 0xF800);
-  fill_rect(half_width, 0, 1, state.height, 0x07E0);
-  fill_rect(0, half_height, state.width, 1, 0x001F);
+  outline_rect(0, 0, state.width, state.height, 0xFF0000);
+  fill_rect(half_width, 0, 1, state.height, 0x00FF00);
+  fill_rect(0, half_height, state.width, 1, 0x0000FF);
   show(state.moving_vertical, true);
   show(state.moving_horizontal, true);
 }
 
 void render_data_bits() {
-  fill(0x0000);
-  constexpr std::int32_t bit_count = 16;
+  fill(0x000000);
+  constexpr std::int32_t bit_count = 24;
   const std::int32_t half_height = state.height / 2;
   for (std::int32_t column = 0; column < bit_count; ++column) {
     const std::int32_t x0 = column * state.width / bit_count;
     const std::int32_t x1 = (column + 1) * state.width / bit_count;
-    const std::uint16_t bit =
-        static_cast<std::uint16_t>(1U << (bit_count - 1 - column));
+    const std::uint32_t bit = 1U << (bit_count - 1 - column);
     fill_rect(x0, 0, x1 - x0, half_height, bit);
     fill_rect(x0, half_height, x1 - x0, state.height - half_height,
-              static_cast<std::uint16_t>(0xFFFFU ^ bit));
-    fill_rect(x0, 0, 1, state.height, 0x0000);
+              0xFFFFFFU ^ bit);
+    fill_rect(x0, 0, 1, state.height, 0x000000);
   }
-  fill_rect(0, half_height, state.width, 1, 0x0000);
-  outline_rect(0, 0, state.width, state.height, 0xFFFF);
+  fill_rect(0, half_height, state.width, 1, 0x000000);
+  outline_rect(0, 0, state.width, state.height, 0xFFFFFF);
 }
 
 void render_fonts() {
-  constexpr std::array<std::uint16_t, 4> backgrounds = {
-      0x0000, 0x2104, 0x0010, 0x780F};
+  constexpr std::array<std::uint32_t, 4> backgrounds = {
+      0x000000, 0x202020, 0x000080, 0x780078};
   const std::int32_t block_height =
       std::max<std::int32_t>(1, state.height / 4);
   for (std::size_t index = 0; index < backgrounds.size(); ++index) {
@@ -240,6 +267,20 @@ void render_fonts() {
   }
   show(state.font_large, true);
   show(state.font_small, true);
+}
+
+void render_fps_stress() {
+  show(state.fps_surface, true);
+  show(state.detail, true);
+  show(state.moving_vertical, true);
+  show(state.moving_horizontal, true);
+#if SIMCORE_DEBUG
+  lv_label_set_text(state.detail,
+                    "Warming up for 2s...\nFull-screen RGB888 + PPA");
+#else
+  lv_label_set_text(state.detail,
+                    "Full-screen RGB888 + PPA\nEnable SIMCORE_DEBUG for FPS");
+#endif
 }
 
 void render_page(const std::uint8_t page) {
@@ -263,6 +304,9 @@ void render_page(const std::uint8_t page) {
     case 4:
       render_fonts();
       break;
+    case kFpsStressPage:
+      render_fps_stress();
+      break;
     default:
       break;
   }
@@ -273,12 +317,15 @@ void update(lv_timer_t*) {
   const std::uint32_t now = lv_tick_get();
   ++state.frame_counter;
 
-  if (state.config.auto_cycle && state.config.page_duration_ms > 0 &&
-      lv_tick_elaps(state.page_started_ms) >= state.config.page_duration_ms) {
+  const std::uint32_t page_duration_ms =
+      state.page == kFpsStressPage ? state.config.fps_page_duration_ms
+                                   : state.config.page_duration_ms;
+  if (state.config.auto_cycle && page_duration_ms > 0 &&
+      lv_tick_elaps(state.page_started_ms) >= page_duration_ms) {
     render_page((state.page + 1) % kPageCount);
   }
 
-  if (state.page == 3) {
+  if (state.page == kPatternPage || state.page == kFpsStressPage) {
     lv_obj_set_x(
         state.moving_vertical,
         static_cast<std::int32_t>(
@@ -289,14 +336,39 @@ void update(lv_timer_t*) {
             (now / 7) % std::max<std::int32_t>(1, state.height)));
   }
 
+  if (state.page == kFpsStressPage) {
+    const std::uint16_t hue = static_cast<std::uint16_t>((now / 8) % 360);
+    lv_obj_set_style_bg_color(state.fps_surface,
+                              lv_color_hsv_to_rgb(hue, 100, 100),
+                              LV_PART_MAIN);
+  }
+
   if (lv_tick_elaps(state.last_counter_ms) >= kCounterPeriodMs) {
     state.last_counter_ms = now;
     char title[64];
-    std::snprintf(title, sizeof(title), "%u/%u %s frame=%lu",
+    std::snprintf(title, sizeof(title), "%u/%u %s tick=%lu",
                   static_cast<unsigned>(state.page + 1),
                   static_cast<unsigned>(kPageCount), kPageNames[state.page],
                   static_cast<unsigned long>(state.frame_counter));
     lv_label_set_text(state.title, title);
+#if SIMCORE_DEBUG
+    if (state.page == kFpsStressPage &&
+        lv_tick_elaps(state.page_started_ms) >= kFpsWarmupMs) {
+      const performance::PerformanceStats stats = performance::get_stats();
+      char detail[160];
+      std::snprintf(
+          detail, sizeof(detail),
+          "FULL-SCREEN RGB888 + PPA\n"
+          "FPS %.1f | render %.2fms | flush %.2fms\n"
+          "CPU %.0f%% / %.0f%%",
+          static_cast<double>(stats.fps),
+          static_cast<double>(stats.render_time_us) / 1'000.0,
+          static_cast<double>(stats.flush_time_us) / 1'000.0,
+          static_cast<double>(stats.cpu_core0),
+          static_cast<double>(stats.cpu_core1));
+      lv_label_set_text(state.detail, detail);
+    }
+#endif
   }
 }
 
@@ -323,13 +395,13 @@ bool create(lv_display_t* const display, const Config& config,
   state.config = config;
   state.width = lv_display_get_horizontal_resolution(display);
   state.height = lv_display_get_vertical_resolution(display);
-  const std::size_t pixel_count =
-      static_cast<std::size_t>(state.width) * state.height;
-  const std::size_t buffer_bytes = pixel_count * sizeof(std::uint16_t);
-  state.pixels = static_cast<std::uint16_t*>(heap_caps_aligned_alloc(
+  state.stride =
+      lv_draw_buf_width_to_stride(state.width, LV_COLOR_FORMAT_RGB888);
+  const std::size_t buffer_bytes = state.stride * state.height;
+  state.pixels = static_cast<std::uint8_t*>(heap_caps_aligned_alloc(
       kBufferAlignment, buffer_bytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
   if (state.pixels == nullptr) {
-    state.pixels = static_cast<std::uint16_t*>(heap_caps_aligned_alloc(
+    state.pixels = static_cast<std::uint8_t*>(heap_caps_aligned_alloc(
         kBufferAlignment, buffer_bytes, MALLOC_CAP_8BIT));
   }
   if (state.pixels == nullptr) {
@@ -347,8 +419,16 @@ bool create(lv_display_t* const display, const Config& config,
   state.canvas = lv_canvas_create(screen);
   lv_obj_remove_style_all(state.canvas);
   lv_canvas_set_buffer(state.canvas, state.pixels, state.width, state.height,
-                       LV_COLOR_FORMAT_RGB565);
+                       LV_COLOR_FORMAT_RGB888);
   lv_obj_set_pos(state.canvas, 0, 0);
+
+  state.fps_surface = lv_obj_create(screen);
+  lv_obj_remove_style_all(state.fps_surface);
+  lv_obj_set_pos(state.fps_surface, 0, 0);
+  lv_obj_set_size(state.fps_surface, state.width, state.height);
+  lv_obj_set_style_bg_color(state.fps_surface, lv_color_black(), LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(state.fps_surface, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_remove_flag(state.fps_surface, LV_OBJ_FLAG_SCROLLABLE);
 
   state.title = create_label(screen, 4, 0xFFFFFF);
   lv_obj_set_style_bg_color(state.title, lv_color_hex(0x000000), LV_PART_MAIN);
@@ -370,7 +450,7 @@ bool create(lv_display_t* const display, const Config& config,
       state.font_small,
       fonts.resolve({.family = kMontserratFontFamily, .size_px = 24}),
       LV_PART_MAIN);
-  lv_label_set_text(state.font_small, "RGB 565 Aa 0123");
+  lv_label_set_text(state.font_small, "RGB 888 Aa 0123");
 
   state.moving_vertical = lv_obj_create(screen);
   lv_obj_remove_style_all(state.moving_vertical);

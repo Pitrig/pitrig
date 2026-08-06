@@ -16,7 +16,7 @@ constexpr std::uint32_t kHorizontalResolution = 1'024;
 constexpr std::uint32_t kVerticalResolution = 600;
 
 driver::Configuration initialize() {
-  ESP_LOGI(kTag, "Initializing 1024x600 JD9165 MIPI-DSI display");
+  ESP_LOGI(kTag, "Initializing 1024x600 JD9165 MIPI-DSI RGB888 display");
   esp_lcd_panel_io_handle_t io = nullptr;
   esp_lcd_panel_handle_t panel = nullptr;
   ESP_ERROR_CHECK(simcore_jc1060p470c_panel_initialize(&io, &panel));
@@ -31,6 +31,7 @@ driver::Configuration initialize() {
       .mirror_x = false,
       .mirror_y = false,
       .bus_type = driver::BusType::dsi,
+      .color_format = driver::ColorFormat::rgb888,
       .double_buffer = false,
       .buffer_in_dma_memory = false,
       .buffer_in_psram = false,

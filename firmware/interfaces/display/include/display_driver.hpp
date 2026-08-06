@@ -14,6 +14,11 @@ enum class BusType : std::uint8_t {
   rgb,
 };
 
+enum class ColorFormat : std::uint8_t {
+  rgb565,
+  rgb888,
+};
+
 struct Configuration {
   esp_lcd_panel_io_handle_t io;
   esp_lcd_panel_handle_t panel;
@@ -24,6 +29,7 @@ struct Configuration {
   bool mirror_x;
   bool mirror_y;
   BusType bus_type;
+  ColorFormat color_format;
   bool double_buffer;
   bool buffer_in_dma_memory;
   bool buffer_in_psram;

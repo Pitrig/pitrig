@@ -28,6 +28,17 @@ constexpr std::uint32_t kTimerPeriodMs = 8;
 StaticSemaphore_t refresh_signal_storage;
 SemaphoreHandle_t refresh_signal;
 
+lv_color_format_t to_lvgl_color_format(
+    const driver::ColorFormat color_format) {
+  switch (color_format) {
+    case driver::ColorFormat::rgb565:
+      return LV_COLOR_FORMAT_RGB565;
+    case driver::ColorFormat::rgb888:
+      return LV_COLOR_FORMAT_RGB888;
+  }
+  return LV_COLOR_FORMAT_UNKNOWN;
+}
+
 void on_refresh_ready(lv_event_t* const event) {
   const auto signal =
       static_cast<SemaphoreHandle_t>(lv_event_get_user_data(event));
@@ -136,6 +147,11 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
                       ? ESP_ERR_INVALID_ARG
                       : ESP_OK);
   const driver::Configuration hardware = selected_driver.initialize();
+  const lv_color_format_t color_format =
+      to_lvgl_color_format(hardware.color_format);
+  ESP_ERROR_CHECK(color_format == LV_COLOR_FORMAT_UNKNOWN
+                      ? ESP_ERR_NOT_SUPPORTED
+                      : ESP_OK);
 
   lvgl_port_cfg_t lvgl_config = ESP_LVGL_PORT_INIT_CONFIG();
   lvgl_config.task_affinity = kLvglTaskCore;
@@ -159,7 +175,7 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
           .mirror_y = hardware.mirror_y,
       },
       .rounder_cb = nullptr,
-      .color_format = LV_COLOR_FORMAT_RGB565,
+      .color_format = color_format,
       .flags = {
           .buff_dma = hardware.buffer_in_dma_memory,
           .buff_spiram = hardware.buffer_in_psram,

@@ -19,7 +19,7 @@
 #define LCD_BACKLIGHT GPIO_NUM_23
 #define LCD_RESET GPIO_NUM_27
 #define MIPI_DSI_LANE_COUNT 2
-#define MIPI_DSI_LANE_BIT_RATE_MBPS 550
+#define MIPI_DSI_LANE_BIT_RATE_MBPS 750
 #define MIPI_DSI_PHY_LDO_CHANNEL 3
 #define MIPI_DSI_PHY_LDO_VOLTAGE_MV 2500
 #define LCD_FRAME_BUFFER_COUNT 2
@@ -149,7 +149,7 @@ esp_err_t simcore_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   }
 
   esp_lcd_dpi_panel_config_t dpi_config =
-      JD9165_1024_600_PANEL_60HZ_DPI_CONFIG_CF(LCD_COLOR_FMT_RGB565);
+      JD9165_1024_600_PANEL_60HZ_DPI_CONFIG_CF(LCD_COLOR_FMT_RGB888);
   dpi_config.num_fbs = LCD_FRAME_BUFFER_COUNT;
 
   const jd9165_vendor_config_t vendor_config = {
@@ -164,7 +164,7 @@ esp_err_t simcore_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   const esp_lcd_panel_dev_config_t panel_config = {
       .reset_gpio_num = LCD_RESET,
       .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
-      .bits_per_pixel = 16,
+      .bits_per_pixel = 24,
       .vendor_config = (void*)&vendor_config,
   };
   result = esp_lcd_new_panel_jd9165(*io, &panel_config, panel);

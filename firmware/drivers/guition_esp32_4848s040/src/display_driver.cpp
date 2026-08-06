@@ -255,6 +255,7 @@ driver::Configuration initialize() {
       .mirror_x = false,
       .mirror_y = false,
       .bus_type = driver::BusType::rgb,
+      .color_format = driver::ColorFormat::rgb565,
       .double_buffer = false,
       .buffer_in_dma_memory = false,
       .buffer_in_psram = false,

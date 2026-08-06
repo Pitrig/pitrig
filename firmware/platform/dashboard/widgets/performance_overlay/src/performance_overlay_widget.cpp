@@ -25,39 +25,44 @@ std::uint64_t previous_read_events;
 
 void render(lv_obj_t* label) {
   const performance::PerformanceStats stats = performance::get_stats();
-  const transport::Diagnostics uart =
+  const transport::Diagnostics transport_stats =
       telemetry_transport != nullptr ? telemetry_transport->diagnostics()
                                      : transport::Diagnostics{};
   const std::uint64_t bytes_per_second =
-      uart.received_bytes - previous_received_bytes;
+      transport_stats.received_bytes - previous_received_bytes;
   const std::uint64_t reads_per_second =
-      uart.read_events - previous_read_events;
-  previous_received_bytes = uart.received_bytes;
-  previous_read_events = uart.read_events;
+      transport_stats.read_events - previous_read_events;
+  previous_received_bytes = transport_stats.received_bytes;
+  previous_read_events = transport_stats.read_events;
 
-  char text[192];
+  char text[320];
   std::snprintf(text, sizeof(text),
                 "FPS %.0f\n"
-                "C0 %.0f%%\n"
-                "C1 %.0f%%\n"
-                "R %.1fms\n"
-                "F %.1fms\n"
-                "H %luK\n"
-                "U %lluB/s %lluR/s\n"
-                "Q %lu O %lu/%lu\n"
-                "G %lums P %luus",
+                "CPU %.0f%% / %.0f%%\n"
+                "Render %.1fms\n"
+                "Flush %.1fms\n"
+                "Heap %luK / %luK\n"
+                "PSRAM %luK\n"
+                "Uptime %llus\n"
+                "USB %lluB/s %lluR/s\n"
+                "Queue %luB\n"
+                "Overflow %lu/%lu\n"
+                "Gap %lums Handler %luus",
                 static_cast<double>(stats.fps), static_cast<double>(stats.cpu_core0),
                 static_cast<double>(stats.cpu_core1),
                 static_cast<double>(stats.render_time_us) / 1'000.0,
                 static_cast<double>(stats.flush_time_us) / 1'000.0,
                 static_cast<unsigned long>(stats.free_heap / 1'024),
+                static_cast<unsigned long>(stats.largest_heap_block / 1'024),
+                static_cast<unsigned long>(stats.free_psram / 1'024),
+                static_cast<unsigned long long>(stats.uptime_ms / 1'000),
                 static_cast<unsigned long long>(bytes_per_second),
                 static_cast<unsigned long long>(reads_per_second),
-                static_cast<unsigned long>(uart.buffered_bytes),
-                static_cast<unsigned long>(uart.fifo_overflows),
-                static_cast<unsigned long>(uart.buffer_full_events),
-                static_cast<unsigned long>(uart.maximum_read_gap_ms),
-                static_cast<unsigned long>(uart.maximum_handler_time_us));
+                static_cast<unsigned long>(transport_stats.buffered_bytes),
+                static_cast<unsigned long>(transport_stats.fifo_overflows),
+                static_cast<unsigned long>(transport_stats.buffer_full_events),
+                static_cast<unsigned long>(transport_stats.maximum_read_gap_ms),
+                static_cast<unsigned long>(transport_stats.maximum_handler_time_us));
   lv_label_set_text(label, text);
 }
 
