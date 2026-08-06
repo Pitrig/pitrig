@@ -21,6 +21,7 @@ Configurator board profiles:
 | --- | --- |
 | `t_display_s3` | 320 × 170 |
 | `guition_esp32_4848s040` | 480 × 480 |
+| `guition_jc1060p470c` | 1024 × 600 |
 
 Hardware is composed from two sources:
 
@@ -308,9 +309,11 @@ and `offset_y_px`.
 
 The current board mappings expose GPIO 43 for UART TX and GPIO 44 for UART RX;
 other pairs are rejected to prevent collisions with display, flash, PSRAM,
-strapping, or USB pins. Native USB CDC is supported by `t_display_s3`; the
-Guition display mapping occupies a native USB pin and therefore uses its board
-default UART transport.
+strapping, or USB pins. Native USB CDC is supported by `t_display_s3` and
+`guition_jc1060p470c`. The `guition_esp32_4848s040` display mapping occupies a
+native USB pin and therefore uses its board-default UART transport. Explicit
+UART configuration is not exposed for `guition_jc1060p470c` until a safe board
+connector pin mapping is part of the public hardware contract.
 
 Firmware parses every received or persisted document and rejects malformed
 JSON, unknown or duplicate properties, unsupported component shapes, board

@@ -7,7 +7,8 @@ import {
 
 const SUPPORTED_BOARDS = new Set<SimCoreBoardId>([
   't_display_s3',
-  'guition_esp32_4848s040'
+  'guition_esp32_4848s040',
+  'guition_jc1060p470c'
 ])
 
 export function parseDeviceConfigurationJson(json: string): DeviceConfiguration {

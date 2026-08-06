@@ -179,6 +179,13 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
         },
     };
     display = lvgl_port_add_disp_rgb(&display_config, &rgb_config);
+  } else if (hardware.bus_type == driver::BusType::dsi) {
+    const lvgl_port_display_dsi_cfg_t dsi_config = {
+        .flags = {
+            .avoid_tearing = hardware.avoid_tearing,
+        },
+    };
+    display = lvgl_port_add_disp_dsi(&display_config, &dsi_config);
   } else {
     display = lvgl_port_add_disp(&display_config);
   }

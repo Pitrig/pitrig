@@ -107,7 +107,7 @@ ValidationError validate_configuration(
     const ApplicationConfiguration& configuration,
     const BoardValidationProfile& profile) {
   if (configuration.board.id < BoardId::t_display_s3 ||
-      configuration.board.id > BoardId::guition_esp32_4848s040) {
+      configuration.board.id > BoardId::guition_jc1060p470c) {
     return ValidationError::invalid_board;
   }
   if (configuration.board.id != profile.board) {
@@ -132,7 +132,8 @@ ValidationError validate_configuration(
       return ValidationError::invalid_transport;
     }
     if (transport == TelemetryTransportId::uart &&
-        (uart.port < 0 || uart.port > 2 || uart.tx_pin == uart.rx_pin ||
+        (!profile.uart_supported || uart.port < 0 || uart.port > 2 ||
+         uart.tx_pin == uart.rx_pin ||
          uart.baud_rate < 9'600 || uart.baud_rate > 2'000'000 ||
          uart.tx_pin != profile.uart_tx_pin ||
          uart.rx_pin != profile.uart_rx_pin)) {

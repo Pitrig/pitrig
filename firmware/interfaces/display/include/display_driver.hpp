@@ -10,6 +10,7 @@ namespace simcore::display::driver {
 
 enum class BusType : std::uint8_t {
   command,
+  dsi,
   rgb,
 };
 

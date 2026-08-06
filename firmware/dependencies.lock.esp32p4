@@ -19,36 +19,8 @@ dependencies:
       registry_url: https://components.espressif.com
       type: service
     version: 0.5.3
-  espressif/esp_io_expander:
-    component_hash: 7b7f91270172e46ca4597e3874f48d8412e280e8c295559f5922ec38656e3e5f
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=4.4.2'
-    source:
-      registry_url: https://components.espressif.com
-      type: service
-    version: 1.2.1
-  espressif/esp_lcd_panel_io_additions:
-    component_hash: 1856c8b2c11aaa8a9fd67481582162bcad25f7064661a995f35c2ee8dd10ebcc
-    dependencies:
-    - name: espressif/cmake_utilities
-      registry_url: https://components.espressif.com
-      require: private
-      version: 0.*
-    - name: espressif/esp_io_expander
-      registry_url: https://components.espressif.com
-      require: public
-      version: ^1
-    - name: idf
-      require: private
-      version: '>=4.4.2'
-    source:
-      registry_url: https://components.espressif.com/
-      type: service
-    version: 1.0.1~1
-  espressif/esp_lcd_st7701:
-    component_hash: 0b11e8733e51e12da83003b9d475777eaf47bfbdce01379879bd2504d14f4f83
+  espressif/esp_lcd_jd9165:
+    component_hash: 1eaeedd3fef31f7a48e932b17833216efe0b87238212cd7468c2e60f7236598c
     dependencies:
     - name: espressif/cmake_utilities
       registry_url: https://components.espressif.com
@@ -56,14 +28,13 @@ dependencies:
       version: 0.*
     - name: idf
       require: private
-      version: '>5.0.4,!=5.1.1'
+      version: '>=5.3'
     source:
       registry_url: https://components.espressif.com/
       type: service
     targets:
-    - esp32s3
     - esp32p4
-    version: 1.1.5
+    version: 2.0.2
   espressif/esp_lvgl_port:
     component_hash: fb6c1fdfe70d4ca39a035d63ca394a35f17ec84ce16ff98ecb13a54155d75da4
     dependencies:
@@ -127,11 +98,11 @@ dependencies:
     version: 9.5.0
 direct_dependencies:
 - espressif/cjson
-- espressif/esp_lcd_panel_io_additions
-- espressif/esp_lcd_st7701
+- espressif/esp_lcd_jd9165
 - espressif/esp_lvgl_port
 - espressif/esp_tinyusb
+- idf
 - lvgl/lvgl
-manifest_hash: c0e05c13d5cf577e61b9e4bceea1bc168443fad0c6b69543d30f8ef194cc1b67
-target: esp32s3
+manifest_hash: ff5025ae4ff580cbeebad9684bdeecdcdd96659f1754cf19bc919a5f582ff54a
+target: esp32p4
 version: 3.0.0

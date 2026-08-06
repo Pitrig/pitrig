@@ -17,7 +17,8 @@ set(component_include_dirs
     "widgets/text/include"
     "widgets/performance_overlay/include")
 
-if(CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040)
+if(CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040 OR
+   CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C)
     set(boot_splash_asset "assets/boot_splash/logo_480x480.rgb565")
 else()
     set(boot_splash_asset "assets/boot_splash/logo_320x170.rgb565")

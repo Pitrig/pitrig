@@ -1,8 +1,13 @@
 #include "board_registry.hpp"
 
 #include "application_configuration.hpp"
+#include "sdkconfig.h"
+#if CONFIG_IDF_TARGET_ESP32P4
+#include "guition_jc1060p470c_display_driver.hpp"
+#else
 #include "guition_display_driver.hpp"
 #include "t_display_s3_display_driver.hpp"
+#endif
 #include "uart_transport.hpp"
 #include "usb_cdc_transport.hpp"
 
@@ -19,6 +24,7 @@ configuration::BoardValidationProfile validation_profile(
           .display = {.width = 320, .height = 170},
           .uart_tx_pin = 43,
           .uart_rx_pin = 44,
+          .uart_supported = true,
           .native_usb_cdc_supported = true,
       };
     case BoardId::guition_esp32_4848s040:
@@ -27,7 +33,17 @@ configuration::BoardValidationProfile validation_profile(
           .display = {.width = 480, .height = 480},
           .uart_tx_pin = 43,
           .uart_rx_pin = 44,
+          .uart_supported = true,
           .native_usb_cdc_supported = false,
+      };
+    case BoardId::guition_jc1060p470c:
+      return {
+          .board = board,
+          .display = {.width = 1'024, .height = 600},
+          .uart_tx_pin = 0,
+          .uart_rx_pin = 0,
+          .uart_supported = false,
+          .native_usb_cdc_supported = true,
       };
   }
   return {};
@@ -39,11 +55,29 @@ const display::driver::Driver& display_driver(
 
   switch (board) {
     case BoardId::t_display_s3:
+#if !CONFIG_IDF_TARGET_ESP32P4
       return display::drivers::t_display_s3::get();
+#else
+      break;
+#endif
     case BoardId::guition_esp32_4848s040:
+#if !CONFIG_IDF_TARGET_ESP32P4
       return display::drivers::guition_esp32_4848s040::get();
+#else
+      break;
+#endif
+    case BoardId::guition_jc1060p470c:
+#if CONFIG_IDF_TARGET_ESP32P4
+      return display::drivers::guition_jc1060p470c::get();
+#else
+      break;
+#endif
   }
+#if CONFIG_IDF_TARGET_ESP32P4
+  return display::drivers::guition_jc1060p470c::get();
+#else
   return display::drivers::t_display_s3::get();
+#endif
 }
 
 transport::ITransport& telemetry_transport(

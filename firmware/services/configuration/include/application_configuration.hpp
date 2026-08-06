@@ -25,6 +25,7 @@ inline constexpr std::size_t kValueBindingCapacity = 40;
 enum class BoardId : std::uint8_t {
   t_display_s3,
   guition_esp32_4848s040,
+  guition_jc1060p470c,
 };
 
 struct BoardConfiguration {
@@ -46,6 +47,7 @@ struct BoardValidationProfile {
   DisplayValidationProfile display{};
   int uart_tx_pin{};
   int uart_rx_pin{};
+  bool uart_supported{};
   bool native_usb_cdc_supported{};
 };
 
@@ -229,7 +231,9 @@ struct ApplicationConfiguration {
 };
 
 inline constexpr BoardId kFactoryBoard{
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    BoardId::guition_jc1060p470c
+#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
     BoardId::guition_esp32_4848s040
 #else
     BoardId::t_display_s3
@@ -237,7 +241,9 @@ inline constexpr BoardId kFactoryBoard{
 };
 
 inline constexpr std::string_view kFactoryConfigurationJson{
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    R"({"board":"guition_jc1060p470c"})"
+#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
     R"({"board":"guition_esp32_4848s040"})"
 #else
     R"({"board":"t_display_s3"})"

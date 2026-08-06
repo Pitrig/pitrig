@@ -73,7 +73,10 @@ export interface DeviceConnection {
   baudRate: number
 }
 
-export type SimCoreBoardId = 't_display_s3' | 'guition_esp32_4848s040'
+export type SimCoreBoardId =
+  | 't_display_s3'
+  | 'guition_esp32_4848s040'
+  | 'guition_jc1060p470c'
 export const CONFIGURATION_SCHEMA_VERSION = 2 as const
 export const MAXIMUM_CONFIGURATION_PAYLOAD_SIZE = 4_096
 
@@ -93,6 +96,9 @@ export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
   },
   guition_esp32_4848s040: {
     display: { width: 480, height: 480, configurable: false }
+  },
+  guition_jc1060p470c: {
+    display: { width: 1024, height: 600, configurable: false }
   }
 }
 

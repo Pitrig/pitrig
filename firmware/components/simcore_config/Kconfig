@@ -2,6 +2,7 @@ menu "SimCore"
 
 choice SIMCORE_FACTORY_BOARD
     prompt "Factory board profile"
+    default SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C if IDF_TARGET_ESP32P4
     default SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
     help
         Selects the immutable hardware identity and the fallback configuration
@@ -10,9 +11,15 @@ choice SIMCORE_FACTORY_BOARD
 
 config SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
     bool "LilyGO T-Display-S3"
+    depends on IDF_TARGET_ESP32S3
 
 config SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
     bool "Guition ESP32-4848S040"
+    depends on IDF_TARGET_ESP32S3
+
+config SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    bool "Guition JC1060P470C"
+    depends on IDF_TARGET_ESP32P4
 
 endchoice
 

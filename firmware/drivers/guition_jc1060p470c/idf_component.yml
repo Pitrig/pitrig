@@ -1,0 +1,5 @@
+dependencies:
+  espressif/esp_lcd_jd9165: ">=2.0.2,<3.0.0"
+  idf: ">=5.4"
+targets:
+  - esp32p4

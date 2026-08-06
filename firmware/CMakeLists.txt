@@ -8,8 +8,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/core"
      "${CMAKE_CURRENT_LIST_DIR}/core/module_manager"
-     "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_esp32_4848s040"
-     "${CMAKE_CURRENT_LIST_DIR}/drivers/t_display_s3"
      "${CMAKE_CURRENT_LIST_DIR}/drivers/transport/uart"
      "${CMAKE_CURRENT_LIST_DIR}/drivers/transport/usb_cdc"
      "${CMAKE_CURRENT_LIST_DIR}/interfaces"
@@ -32,6 +30,18 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/telemetry/protocols/simhub"
      "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/time_transform")
 
+if(IDF_TARGET STREQUAL "esp32p4")
+    list(APPEND EXTRA_COMPONENT_DIRS
+         "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_jc1060p470c")
+else()
+    list(APPEND EXTRA_COMPONENT_DIRS
+         "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_esp32_4848s040"
+         "${CMAKE_CURRENT_LIST_DIR}/drivers/t_display_s3")
+endif()
+
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+if(IDF_TARGET STREQUAL "esp32p4")
+    idf_build_set_property(DEPENDENCIES_LOCK dependencies.lock.esp32p4)
+endif()
 idf_build_set_property(MINIMAL_BUILD ON)
 project(simcore)

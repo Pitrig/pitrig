@@ -13,7 +13,13 @@ namespace {
 
 constexpr std::uint32_t kRefreshTimeoutMs = 1'000;
 
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+constexpr std::int32_t kDisplayWidth = 1'024;
+constexpr std::int32_t kDisplayHeight = 600;
+constexpr std::int32_t kLogoSize = 240;
+extern const std::uint8_t kLogoData[]
+    asm("_binary_logo_480x480_rgb565_start");
+#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
 constexpr std::int32_t kDisplayWidth = 480;
 constexpr std::int32_t kDisplayHeight = 480;
 constexpr std::int32_t kLogoSize = 240;
