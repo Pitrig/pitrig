@@ -65,6 +65,9 @@ class Service final {
   [[nodiscard]] std::span<const AssetView> assets() const {
     return {package_.assets.data(), package_.asset_count};
   }
+  [[nodiscard]] std::span<const FontSpec> asset_catalog() const {
+    return {asset_catalog_.data(), status_.asset_count};
+  }
   [[nodiscard]] const AssetView* find(const FontSpec& font) const;
 
   [[nodiscard]] UpdateError begin_update(std::size_t package_size);
@@ -93,6 +96,7 @@ class Service final {
   // Indexes the active mapping at boot and acts as update-validation scratch
   // after that mapping has been released.
   ParsedPackage package_{};
+  std::array<FontSpec, kMaximumAssets> asset_catalog_{};
 
   bool update_in_progress_{};
   std::size_t update_size_{};

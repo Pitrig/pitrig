@@ -17,6 +17,8 @@ config SIMCORE_LAYOUT_DEBUG
 config SIMCORE_DISPLAY_DIAGNOSTICS
     bool "Full-screen display diagnostics"
     default n
+    select LV_FONT_MONTSERRAT_24
+    select LV_FONT_MONTSERRAT_48
     help
         Replaces configured widgets with the display hardware diagnostic UI.
 

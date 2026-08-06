@@ -19,17 +19,18 @@ identifier and pixel size. Public configuration schema 2 stores a font as:
 
 ```json
 {
-  "family": "montserrat",
+  "family": "roboto-black",
   "size_px": 48
 }
 ```
 
 Family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`, or
-`-`. Font sizes are integers from 1 through 255 pixels. The only firmware-built
-family is LVGL Montserrat. Its public resolver exposes exact 10, 24, and 48
-pixel variants; LVGL retains Montserrat 14 as its framework default. Resolution
-is exact: a missing family/size is an explicit dashboard composition error and
-is not silently replaced with another font.
+`-`. Font sizes are integers from 1 through 255 pixels. Production firmware
+exposes no built-in dashboard font family. Resolution is exact: a missing
+family/size is an explicit dashboard composition error and is not silently
+replaced with another font. Debug or display-diagnostics builds may retain
+private framework fonts for service UI, but the dashboard registry never
+resolves them by public family identifier.
 
 The configurator will convert imported TTF or OTF sources into LVGL binary font
 assets. Original font files never reach the device. Each device asset is keyed
@@ -61,10 +62,11 @@ serial transport, separate from configuration `SET`. Binary frames carry an
 explicit type, sequence, bounded payload length, and CRC32. Flash erase and
 write operations run in a dedicated static task rather than the transport RX
 task. A separate `FONT:INFO` query exposes storage and package availability,
-format version, asset count, package size, and pending-reboot state.
+format version, the exact `family + size_px` asset catalog, package size, and
+pending-reboot state.
 Configuration may reference a syntactically valid font that is not installed,
 but dashboard composition reports that unresolved dependency instead of
-substituting Montserrat.
+substituting another font.
 
 Schema 1 persisted configuration is not migrated because its closed `lcd` and
 `roboto_mono` identifiers refer to fonts that no longer exist. Firmware falls
@@ -73,7 +75,8 @@ back to a valid schema 2 slot or the board-only factory configuration.
 ## Consequences
 
 - Adding a custom font will not require rebuilding or reflashing firmware.
-- Firmware keeps only Montserrat in its application image.
+- Production firmware keeps no dashboard font family in its application image.
+  Diagnostic-only framework fonts are not part of the public resolver.
 - Persisted font bytes consume dedicated flash rather than configuration NVS or
   the application image. The current LVGL loader still allocates runtime font
   data when an uploaded font is opened; large allocations use PSRAM through the
@@ -83,6 +86,9 @@ back to a valid schema 2 slot or the board-only factory configuration.
   slot or rollback generation.
 - The configurator must retain source fonts in its local project and upload a
   complete converted asset set before expecting custom rendering.
+- The configurator derives the target package from configuration dependencies,
+  asks for one source per family, generates every required size, uploads the
+  complete package, and only then saves the configuration.
 - Firmware still validates identifier syntax, sizes, manifest bounds, and
   checksums; configurator validation does not replace the device trust
   boundary.

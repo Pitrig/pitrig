@@ -17,8 +17,6 @@ inline constexpr std::uint32_t kTransparentColor =
 
 using font_assets::FamilyId;
 using font_assets::FontSpec;
-inline constexpr const FamilyId& kMontserratFontFamily =
-    font_assets::kMontserratFamily;
 
 struct Rect {
   std::int32_t x{};

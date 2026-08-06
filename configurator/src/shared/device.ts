@@ -1,3 +1,5 @@
+import type { FontAssetKey } from './font-assets'
+
 export const DEVICE_LIST_PORTS_CHANNEL = 'device:list-ports' as const
 export const DEVICE_GET_STATE_CHANNEL = 'device:get-state' as const
 export const DEVICE_CONNECT_CHANNEL = 'device:connect' as const
@@ -117,6 +119,7 @@ export interface FontAssetDeviceInfo {
   packageAvailable: boolean
   formatVersion: number
   assetCount: number
+  assets: FontAssetKey[]
   packageSize: number
   rebootRequired: boolean
 }

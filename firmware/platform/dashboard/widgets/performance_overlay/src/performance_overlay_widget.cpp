@@ -93,7 +93,7 @@ bool View::create(lv_display_t* const display,
   lv_obj_set_style_bg_opa(label_, LV_OPA_70, LV_PART_MAIN);
   lv_obj_set_style_pad_all(label_, kPadding, LV_PART_MAIN);
   lv_obj_set_style_text_color(label_, lv_color_hex(kTextColor), LV_PART_MAIN);
-  lv_obj_set_style_text_font(label_, &lv_font_montserrat_10, LV_PART_MAIN);
+  lv_obj_set_style_text_font(label_, LV_FONT_DEFAULT, LV_PART_MAIN);
   lv_obj_set_style_text_line_space(label_, 0, LV_PART_MAIN);
   lv_obj_align(label_, LV_ALIGN_TOP_RIGHT, -kPadding, kPadding);
 

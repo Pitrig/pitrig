@@ -71,6 +71,7 @@ bool Service::initialize(IStorage& storage) {
   status_ = {};
   package_mapping_ = {};
   package_ = {};
+  asset_catalog_ = {};
   reset_update();
   status_.storage_available = storage.initialize();
   if (!status_.storage_available) {
@@ -91,6 +92,9 @@ bool Service::initialize(IStorage& storage) {
   status_.format_version = kFormatVersion;
   status_.asset_count = package_.asset_count;
   status_.package_size = package_.package_size;
+  for (std::size_t index = 0; index < package_.asset_count; ++index) {
+    asset_catalog_[index] = package_.assets[index].font;
+  }
   return true;
 }
 
@@ -197,6 +201,10 @@ UpdateError Service::commit_update() {
   status_.format_version = kFormatVersion;
   status_.asset_count = package_.asset_count;
   status_.package_size = package_.package_size;
+  asset_catalog_ = {};
+  for (std::size_t index = 0; index < package_.asset_count; ++index) {
+    asset_catalog_[index] = package_.assets[index].font;
+  }
   package_ = {};
   reset_update();
   status_.reboot_required = true;
@@ -292,6 +300,7 @@ void Service::clear_package_status() {
   status_.format_version = 0;
   status_.asset_count = 0;
   status_.package_size = 0;
+  asset_catalog_ = {};
 }
 
 void Service::reset_update() {

@@ -254,11 +254,13 @@ function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   const assetCount = Number(fields.get('assets'))
   const packageSize = Number(fields.get('size'))
   const packageAvailable = fields.get('package') === '1'
+  const assets = parseFontAssetEntries(fields.get('entries'))
   if (
     !isBooleanField(fields.get('storage')) ||
     !isBooleanField(fields.get('package')) ||
     !Number.isSafeInteger(formatVersion) || formatVersion < 0 || formatVersion > 0xffff ||
     !Number.isSafeInteger(assetCount) || assetCount < 0 || assetCount > 32 ||
+    (fields.has('entries') && assets.length !== assetCount) ||
     !Number.isSafeInteger(packageSize) || packageSize < 0 || packageSize > 2 * 1024 * 1024 ||
     (packageAvailable
       ? formatVersion !== 2 || packageSize < 4096
@@ -272,9 +274,31 @@ function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
     packageAvailable,
     formatVersion,
     assetCount,
+    assets,
     packageSize,
     rebootRequired: fields.get('reboot_required') === '1'
   }
+}
+
+function parseFontAssetEntries(value: string | undefined): FontAssetDeviceInfo['assets'] {
+  if (value === undefined || value === '') return []
+  const assets: FontAssetDeviceInfo['assets'] = []
+  const keys = new Set<string>()
+  for (const entry of value.split(';')) {
+    const separator = entry.lastIndexOf(':')
+    const family = entry.slice(0, separator)
+    const sizePx = Number(entry.slice(separator + 1))
+    const key = `${family}:${sizePx}`
+    if (
+      separator <= 0 || !/^[a-z0-9_-]{1,31}$/.test(family) ||
+      !Number.isInteger(sizePx) || sizePx < 1 || sizePx > 255 || keys.has(key)
+    ) {
+      throw new DeviceServiceError('not_simcore', 'The device returned malformed font entries.')
+    }
+    keys.add(key)
+    assets.push({ family, sizePx })
+  }
+  return assets
 }
 
 function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {

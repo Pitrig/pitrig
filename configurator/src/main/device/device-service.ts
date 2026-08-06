@@ -402,6 +402,7 @@ export class DeviceService {
               packageAvailable: true,
               formatVersion: packageView.getUint16(4, true),
               assetCount: packageView.getUint16(12, true),
+              assets: readPackageFontEntries(packageBytes),
               packageSize: packageBytes.byteLength,
               rebootRequired: true
             }
@@ -560,4 +561,19 @@ export class DeviceService {
     this.state = state
     this.onStateChanged(state)
   }
+}
+
+function readPackageFontEntries(packageBytes: Uint8Array): Array<{ family: string; sizePx: number }> {
+  const view = new DataView(packageBytes.buffer, packageBytes.byteOffset, packageBytes.byteLength)
+  const count = view.getUint16(12, true)
+  const decoder = new TextDecoder('ascii')
+  return Array.from({ length: count }, (_, index) => {
+    const offset = 32 + index * 48
+    const familyBytes = packageBytes.subarray(offset, offset + 32)
+    const terminator = familyBytes.indexOf(0)
+    return {
+      family: decoder.decode(familyBytes.subarray(0, terminator < 0 ? 32 : terminator)),
+      sizePx: view.getUint16(offset + 32, true)
+    }
+  })
 }

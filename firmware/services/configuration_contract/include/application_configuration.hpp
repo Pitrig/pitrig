@@ -136,19 +136,13 @@ struct WidgetBorder {
 
 struct WidgetTitleStyle {
   std::array<char, kWidgetTitleCapacity> text{};
-  font_assets::FontSpec font{
-      .family = font_assets::kMontserratFamily,
-      .size_px = 10,
-  };
+  font_assets::FontSpec font{};
   std::uint32_t color{0xE8E8E8};
   std::int16_t offset_y_px{};
 };
 
 struct WidgetValueStyle {
-  font_assets::FontSpec font{
-      .family = font_assets::kMontserratFamily,
-      .size_px = 48,
-  };
+  font_assets::FontSpec font{};
   std::uint32_t color{0xE8E8E8};
   TextAlignment alignment{TextAlignment::center};
   std::array<char, kUnavailableTextCapacity> unavailable_text{

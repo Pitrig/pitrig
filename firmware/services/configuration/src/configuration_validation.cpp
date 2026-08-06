@@ -85,7 +85,8 @@ template <std::size_t Size>
          source_type == telemetry::ValueType::int32)));
   return compatible_transform &&
          valid_placement(config.placement, display_width, display_height) &&
-         valid_font(config.title.font) && valid_font(config.value.font) &&
+         (config.title.text.front() == '\0' || valid_font(config.title.font)) &&
+         valid_font(config.value.font) &&
          valid_color(config.border.color) && valid_color(config.title.color) &&
          valid_color(config.value.color) &&
          valid_optional_color(config.background_color) &&

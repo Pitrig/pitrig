@@ -210,10 +210,10 @@ Supported bindings:
 - `vehicle.fuel.average_consumption`;
 - `vehicle.fuel.laps_remaining`.
 
-The only compiled font family is `montserrat`. The public font resolver exposes
-the LVGL 10, 24, and 48 px variants; LVGL also retains Montserrat 14 px as its
-framework default. Other font references use a stable family identifier plus
-`size_px` and resolve to separately uploaded LVGL binary assets. Resolution is
+Production firmware exposes no compiled dashboard font families. Every widget
+font reference uses a stable family identifier plus `size_px` and resolves to
+a separately uploaded LVGL binary asset. Widget fonts must be explicit; a text
+widget without a title does not require a title font. Resolution is
 exact: an unavailable family/size causes dashboard composition to report an
 error instead of silently selecting another font.
 
@@ -226,9 +226,10 @@ partition.
 The package format and firmware validation rules are defined in
 [Font asset storage](font-assets.md), including its separate bounded serial
 upload protocol. Installing a new package requires a reboot before its fonts
-can be selected. The configurator must ensure every non-built-in font reference
-is present in the uploaded package before applying the corresponding device
-configuration.
+can be selected. Before applying a configuration, the configurator compares its
+requirements with the exact device asset catalog. When assets are missing it
+collects one TTF/OTF source per family, converts every required size, replaces
+the complete font package, and then saves the configuration.
 
 ## Device information
 

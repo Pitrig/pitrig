@@ -12,9 +12,6 @@ inline constexpr std::size_t kMaximumFamilyIdLength = kFamilyIdCapacity - 1;
 inline constexpr std::uint16_t kMaximumFontSizePx = 255;
 using FamilyId = std::array<char, kFamilyIdCapacity>;
 
-inline constexpr FamilyId kMontserratFamily{
-    'm', 'o', 'n', 't', 's', 'e', 'r', 'r', 'a', 't', '\0'};
-
 [[nodiscard]] constexpr std::string_view family_id_view(
     const FamilyId& family) {
   std::size_t size{};
@@ -25,8 +22,8 @@ inline constexpr FamilyId kMontserratFamily{
 }
 
 struct FontSpec {
-  FamilyId family{kMontserratFamily};
-  std::uint16_t size_px{48};
+  FamilyId family{};
+  std::uint16_t size_px{};
 };
 
 [[nodiscard]] constexpr bool operator==(const FontSpec& lhs,

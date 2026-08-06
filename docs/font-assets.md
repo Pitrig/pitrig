@@ -7,8 +7,8 @@ separate from device configuration schema 2 and from configuration NVS.
 ## Storage model
 
 Firmware reserves one raw 2 MiB data partition named `font_assets`. At startup
-it validates the stored package. If the package is absent or invalid, only the
-exact compiled LVGL Montserrat variants remain available.
+it validates the stored package. If the package is absent or invalid, no
+dashboard fonts are available.
 
 An update erases and replaces the complete partition. Bytes after the 32-byte
 header are written first. The header stays in RAM and is written only after the
@@ -84,8 +84,8 @@ must be an LVGL binary font accepted by the firmware's LVGL version.
 Firmware validates package structure, identifier syntax, size limits,
 uniqueness, non-overlap, and every CRC before committing the header. At startup
 LVGL may still reject an individual structurally bounded asset. That asset is
-not registered. Font resolution requires an exact built-in or uploaded
-family/size match; unresolved fonts are not replaced with Montserrat.
+not registered. Font resolution requires an exact uploaded family/size match;
+unresolved fonts are not replaced with another font.
 
 ## Serial upload protocol
 
@@ -94,13 +94,14 @@ can query persisted asset state without starting an upload:
 
 ```text
 @SC:FONT:INFO
-@SC:OK:FONT:INFO:storage=1,package=1,format=2,assets=3,size=24576,reboot_required=0
+@SC:OK:FONT:INFO:storage=1,package=1,format=2,assets=3,size=24576,reboot_required=0,entries=roboto-black:14;roboto-black:32;inter:24
 ```
 
 `storage` reports whether the partition is available. `package` reports
 whether a valid package is stored. `format`, `assets`, and `size` describe that
 package and are zero when none is valid. `reboot_required` is set after a
-successful commit until restart.
+successful commit until restart. `entries` contains the exact semicolon-separated
+manifest keys in `family:size_px` form and is empty for an asset-free package.
 
 The host starts a session with the complete package size:
 

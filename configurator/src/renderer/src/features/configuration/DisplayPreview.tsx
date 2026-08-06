@@ -301,14 +301,12 @@ function resolvedFont(
   font: FontSpec | undefined,
   defaultSizePx: number
 ): { family: string; sizePx: number; weight: number } {
-  const identifier = font?.family ?? 'montserrat'
+  const identifier = font?.family ?? 'custom_font'
   const black = identifier.includes('black')
   return {
     family: identifier.startsWith('roboto')
       ? 'Roboto, Arial, sans-serif'
-      : identifier === 'montserrat'
-        ? 'Montserrat, Arial, sans-serif'
-        : 'Arial, sans-serif',
+      : 'Arial, sans-serif',
     sizePx: font?.size_px ?? defaultSizePx,
     weight: black ? 900 : 600
   }

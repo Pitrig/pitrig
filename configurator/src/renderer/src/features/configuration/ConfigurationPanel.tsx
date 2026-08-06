@@ -5,11 +5,18 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { writeDevelopmentLog } from '@/features/development/development-log'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
+import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
+import {
+  collectFontRequirements,
+  groupFontRequirements,
+  missingFontRequirements
+} from '@/features/font-assets/font-requirements'
 import {
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
   type DeviceConfiguration,
   type DeviceResult
 } from '../../../../shared/device'
+import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_ASSETS } from '../../../../shared/font-assets'
 
 type Operation = 'idle' | 'read' | 'validate' | 'save' | 'reset' | 'reboot'
 type Feedback = { kind: 'success' | 'error'; message: string }
@@ -43,6 +50,11 @@ export function ConfigurationPanel(): React.JSX.Element {
     ? parsed.configuration.dashboard?.widgets?.text ?? []
     : []
   const selectedWidget = textWidgets[selectedTextWidget]
+  const requiredFonts = parsed.ok ? collectFontRequirements(parsed.configuration) : []
+  const missingFonts = missingFontRequirements(
+    requiredFonts,
+    session?.fontAssets?.assets ?? []
+  )
 
   const updateSelectedWidget = (
     update: (widget: NonNullable<NonNullable<NonNullable<DeviceConfiguration['dashboard']>['widgets']>['text']>[number]) => void
@@ -59,7 +71,7 @@ export function ConfigurationPanel(): React.JSX.Element {
     ? 'Connect a SimCore board before saving.'
     : !session?.info.storageAvailable
       ? 'Persistent configuration storage is unavailable on this board.'
-      : !dirty
+      : !dirty && missingFonts.length === 0
         ? 'The draft already matches the active or pending configuration.'
         : undefined
 
@@ -117,14 +129,82 @@ export function ConfigurationPanel(): React.JSX.Element {
       setFeedback({ kind: 'error', message: parsed.error })
       return
     }
-    await run(
-      'save',
-      () => window.simcore.saveDeviceConfiguration({ json: draftJson }),
-      (result) => {
-        markSaved(result.configuration)
-        return 'Configuration saved. Reboot the board to activate it.'
+    if (missingFonts.length > 0) {
+      const fontInfo = session?.fontAssets
+      if (!fontInfo) {
+        setFeedback({ kind: 'error', message: 'The connected firmware cannot report installed font assets.' })
+        return
       }
-    )
+      if (!fontInfo.storageAvailable) {
+        setFeedback({ kind: 'error', message: 'Font asset storage is unavailable on this board.' })
+        return
+      }
+      if (fontInfo.rebootRequired) {
+        setFeedback({ kind: 'error', message: 'Restart the board before replacing its font package.' })
+        return
+      }
+      if (!window.confirm(
+        `${missingFonts.length} required font asset${missingFonts.length === 1 ? ' is' : 's are'} missing. Upload the complete font set before saving the configuration?`
+      )) return
+
+      const fontStore = useFontAssetsStore.getState()
+      const missingSources = [...groupFontRequirements(requiredFonts).keys()].filter(
+        (family) => !fontStore.sources[family]
+      )
+      if (missingSources.length > 0) {
+        const message = `Choose a TTF or OTF source for: ${missingSources.join(', ')}.`
+        fontStore.setError(message)
+        setFeedback({ kind: 'error', message })
+        return
+      }
+
+      setOperation('save')
+      setFeedback(undefined)
+      fontStore.beginOperation()
+      const fontRequest = {
+        assets: requiredFonts.map((font) => ({
+          sourceId: fontStore.sources[font.family]!.id,
+          family: font.family,
+          sizePx: font.sizePx
+        }))
+      }
+      writeDevelopmentLog('Automatic font upload requested', fontRequest)
+      let fontResult: Awaited<ReturnType<typeof window.simcore.uploadFontAssets>>
+      try {
+        fontResult = await window.simcore.uploadFontAssets(fontRequest)
+      } catch (error) {
+        const message = operationErrorMessage(error)
+        fontStore.setError(message)
+        setFeedback({ kind: 'error', message })
+        setOperation('idle')
+        return
+      }
+      writeDevelopmentLog('Automatic font upload completed', fontResult)
+      if (!fontResult.ok) {
+        fontStore.setError(fontResult.error.message)
+        setFeedback({ kind: 'error', message: fontResult.error.message })
+        setOperation('idle')
+        return
+      }
+    } else {
+      setOperation('save')
+      setFeedback(undefined)
+    }
+
+    try {
+      const result = await window.simcore.saveDeviceConfiguration({ json: draftJson })
+      writeDevelopmentLog('Configuration save completed', result)
+      if (!result.ok) {
+        setFeedback({ kind: 'error', message: result.error.message })
+        return
+      }
+      markSaved(result.value.configuration)
+      setFeedback({ kind: 'success', message: 'Fonts and configuration saved. Reboot the board to activate them.' })
+    } catch (error) {
+      setFeedback({ kind: 'error', message: operationErrorMessage(error) })
+    } finally {
+      setOperation('idle')
+    }
   }
 
   const reset = async (): Promise<void> => {
@@ -315,6 +395,8 @@ function parseDraft(
     if (configuration.board !== expectedBoard) {
       return { ok: false, error: `Configuration board must remain ${expectedBoard}.` }
     }
+    const fontError = configurationFontError(configuration)
+    if (fontError) return { ok: false, error: fontError }
     const payloadBytes = new TextEncoder().encode(JSON.stringify(configuration)).byteLength
     if (payloadBytes > MAXIMUM_CONFIGURATION_PAYLOAD_SIZE) {
       return {
@@ -326,4 +408,26 @@ function parseDraft(
   } catch {
     return { ok: false, error: 'Configuration is not valid JSON.' }
   }
+}
+
+function configurationFontError(configuration: DeviceConfiguration): string | undefined {
+  const widgets = configuration.dashboard?.widgets
+  const fonts = [] as Array<{ family?: string; size_px?: number } | undefined>
+  if (widgets?.delta_time) fonts.push(widgets.delta_time.font)
+  for (const widget of widgets?.text ?? []) {
+    if (widget.title?.text) fonts.push(widget.title.font)
+    fonts.push(widget.value?.font)
+  }
+  for (const font of fonts) {
+    if (
+      !font || typeof font.family !== 'string' || !FONT_FAMILY_PATTERN.test(font.family) ||
+      !Number.isInteger(font.size_px) || (font.size_px ?? 0) < 1 || (font.size_px ?? 0) > 255
+    ) {
+      return 'Every dashboard font must explicitly define a valid family and size_px.'
+    }
+  }
+  if (collectFontRequirements(configuration).length > MAXIMUM_FONT_ASSETS) {
+    return `Configuration requires more than ${MAXIMUM_FONT_ASSETS} unique font assets.`
+  }
+  return undefined
 }

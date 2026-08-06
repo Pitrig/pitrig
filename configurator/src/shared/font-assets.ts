@@ -19,6 +19,11 @@ export interface FontAssetInput {
   sizePx: number
 }
 
+export interface FontAssetKey {
+  family: string
+  sizePx: number
+}
+
 export interface FontUploadRequest {
   assets: FontAssetInput[]
 }

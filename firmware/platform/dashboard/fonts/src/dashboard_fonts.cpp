@@ -29,17 +29,6 @@ bool Registry::initialize(const font_assets::Service& assets) {
 }
 
 const lv_font_t* Registry::resolve(const FontSpec& spec) const {
-  if (font_assets::family_id_view(spec.family) == "montserrat") {
-    if (spec.size_px == 10) {
-      return &lv_font_montserrat_10;
-    }
-    if (spec.size_px == 24) {
-      return &lv_font_montserrat_24;
-    }
-    if (spec.size_px == 48) {
-      return &lv_font_montserrat_48;
-    }
-  }
   for (std::size_t index = 0; index < count_; ++index) {
     if (entries_[index].font == spec) {
       return entries_[index].lv_font;

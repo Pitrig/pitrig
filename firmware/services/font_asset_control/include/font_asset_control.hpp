@@ -87,7 +87,7 @@ class FontAssetControl final {
   std::size_t package_size_{};
   std::size_t received_size_{};
   std::uint32_t expected_sequence_{};
-  std::array<char, 160> response_{};
+  std::array<char, 1'280> response_{};
 };
 
 }  // namespace simcore::font_assets

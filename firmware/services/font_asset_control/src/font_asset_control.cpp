@@ -212,16 +212,35 @@ void FontAssetControl::process() {
 void FontAssetControl::handle_info() {
   const Status& status = service_->status();
   release_request();
-  const int written = std::snprintf(
+  int written = std::snprintf(
       response_.data(), response_.size(),
-      "@SC:OK:FONT:INFO:storage=%u,package=%u,format=%u,assets=%u,size=%lu,reboot_required=%u\n",
+      "@SC:OK:FONT:INFO:storage=%u,package=%u,format=%u,assets=%u,size=%lu,reboot_required=%u,entries=",
       status.storage_available ? 1U : 0U,
       status.package_available ? 1U : 0U,
       static_cast<unsigned>(status.format_version),
       static_cast<unsigned>(status.asset_count),
       static_cast<unsigned long>(status.package_size),
       status.reboot_required ? 1U : 0U);
-  if (written > 0 && static_cast<std::size_t>(written) < response_.size()) {
+  if (written <= 0 || static_cast<std::size_t>(written) >= response_.size()) {
+    return;
+  }
+  std::size_t offset = static_cast<std::size_t>(written);
+  const auto assets = service_->asset_catalog();
+  for (std::size_t index = 0; index < assets.size(); ++index) {
+    const auto family = family_id_view(assets[index].family);
+    written = std::snprintf(
+        response_.data() + offset, response_.size() - offset, "%s%.*s:%u",
+        index == 0 ? "" : ";", static_cast<int>(family.size()), family.data(),
+        static_cast<unsigned>(assets[index].size_px));
+    if (written <= 0 ||
+        static_cast<std::size_t>(written) >= response_.size() - offset) {
+      return;
+    }
+    offset += static_cast<std::size_t>(written);
+  }
+  if (offset + 1 < response_.size()) {
+    response_[offset++] = '\n';
+    response_[offset] = '\0';
     (void)send_text(response_.data());
   }
 }

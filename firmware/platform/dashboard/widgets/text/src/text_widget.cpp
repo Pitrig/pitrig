@@ -140,15 +140,16 @@ bool Collection::create(
       return false;
     }
     const Config& config = *binding.configuration;
-    const lv_font_t* const title_font = fonts.resolve(config.title.font);
+    const bool has_title = config.title.text.front() != '\0';
+    const lv_font_t* const title_font =
+        has_title ? fonts.resolve(config.title.font) : nullptr;
     const lv_font_t* const value_font = fonts.resolve(config.value.font);
-    if (title_font == nullptr || value_font == nullptr) {
+    if ((has_title && title_font == nullptr) || value_font == nullptr) {
       clear_objects();
       created_ = false;
       lvgl_port_unlock();
       return false;
     }
-    const bool has_title = config.title.text.front() != '\0';
     const std::int32_t title_width =
         has_title ? text_width(title_font, config.title.text.data()) : 0;
     const std::int32_t title_height =

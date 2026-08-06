@@ -400,6 +400,7 @@ View::~View() { destroy(); }
 
 bool View::create(lv_display_t* const display, const Config& config,
                   const fonts::Registry& fonts) {
+  (void)fonts;
   if (display == nullptr || implementation_ != nullptr) {
     return false;
   }
@@ -464,17 +465,13 @@ bool View::create(lv_display_t* const display, const Config& config,
   state.font_large =
       create_label(state, screen, state.height / 5, 0xFFFFFF);
   lv_obj_set_style_text_font(
-      state.font_large,
-      fonts.resolve({.family = kMontserratFontFamily, .size_px = 48}),
-      LV_PART_MAIN);
+      state.font_large, &lv_font_montserrat_48, LV_PART_MAIN);
   lv_label_set_text(state.font_large, "00:11.88");
 
   state.font_small =
       create_label(state, screen, state.height * 3 / 5, 0xE8E8E8);
   lv_obj_set_style_text_font(
-      state.font_small,
-      fonts.resolve({.family = kMontserratFontFamily, .size_px = 24}),
-      LV_PART_MAIN);
+      state.font_small, &lv_font_montserrat_24, LV_PART_MAIN);
   lv_label_set_text(state.font_small, "RGB 888 Aa 0123");
 
   state.moving_vertical = lv_obj_create(screen);
