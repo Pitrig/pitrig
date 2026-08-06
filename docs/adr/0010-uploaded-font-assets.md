@@ -64,6 +64,8 @@ write operations run in a dedicated static task rather than the transport RX
 task. A separate `FONT:INFO` query exposes storage and package availability,
 format version, the exact `family + size_px` asset catalog, package size, and
 pending-reboot state.
+The bounded `FONT:CLEAR` command erases the complete package and requires a
+reboot; individual assets are not deleted independently.
 Configuration may reference a syntactically valid font that is not installed,
 but dashboard composition reports that unresolved dependency instead of
 substituting another font.

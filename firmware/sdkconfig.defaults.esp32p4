@@ -6,6 +6,9 @@ CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_360=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=360
 CONFIG_SPIRAM_MODE_HEX=y
 CONFIG_SPIRAM_SPEED_200M=y
+# Keep MIPI-DSI scanout running while configuration and font assets are written
+# to flash and the external memory cache is temporarily unavailable.
+CONFIG_LCD_DSI_ISR_CACHE_SAFE=y
 CONFIG_LV_DRAW_BUF_ALIGN=64
 CONFIG_LV_USE_PPA=y
 CONFIG_LV_USE_PPA_IMG=y

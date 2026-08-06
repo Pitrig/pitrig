@@ -46,6 +46,7 @@ export interface SimCoreApi {
   selectFontSource: () => Promise<FontAssetResult<FontSourceSelection | null>>
   uploadFontAssets: (request: FontUploadRequest) => Promise<FontAssetResult<void>>
   cancelFontUpload: () => Promise<FontAssetResult<void>>
+  clearFontAssets: () => Promise<DeviceResult<DeviceState>>
   onFontUploadProgress: (listener: (progress: FontUploadProgress) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
   onDevelopmentSerialTraffic?: (listener: (log: SerialTrafficLog) => void) => () => void

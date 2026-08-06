@@ -1,6 +1,7 @@
 export const FONT_SELECT_SOURCE_CHANNEL = 'font-assets:select-source' as const
 export const FONT_UPLOAD_CHANNEL = 'font-assets:upload' as const
 export const FONT_CANCEL_UPLOAD_CHANNEL = 'font-assets:cancel-upload' as const
+export const FONT_CLEAR_CHANNEL = 'font-assets:clear' as const
 export const FONT_UPLOAD_PROGRESS_CHANNEL = 'font-assets:upload-progress' as const
 
 export const MAXIMUM_FONT_ASSETS = 32

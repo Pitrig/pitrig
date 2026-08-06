@@ -16,6 +16,7 @@ namespace {
 
 constexpr std::string_view kBeginPrefix = "@SC:FONT:BEGIN:size=";
 constexpr std::string_view kInfoCommand = "@SC:FONT:INFO";
+constexpr std::string_view kClearCommand = "@SC:FONT:CLEAR";
 constexpr std::array<std::uint8_t, 4> kFrameMagic{'S', 'C', 'F', '1'};
 constexpr std::size_t kFrameTypeOffset = 4;
 constexpr std::size_t kFrameReservedByteOffset = 5;
@@ -112,6 +113,10 @@ void FontAssetControl::consume_command(
   if (line.size() == kInfoCommand.size() &&
       std::equal(kInfoCommand.begin(), kInfoCommand.end(), line.begin())) {
     request_type_ = RequestType::info;
+  } else if (line.size() == kClearCommand.size() &&
+             std::equal(kClearCommand.begin(), kClearCommand.end(),
+                        line.begin())) {
+    request_type_ = RequestType::clear;
   } else if (line.size() >= kBeginPrefix.size() &&
       std::equal(kBeginPrefix.begin(), kBeginPrefix.end(), line.begin())) {
     const auto value = line.subspan(kBeginPrefix.size());
@@ -198,6 +203,8 @@ void FontAssetControl::process() {
       handle_begin();
     } else if (request_type_ == RequestType::info) {
       handle_info();
+    } else if (request_type_ == RequestType::clear) {
+      handle_clear();
     } else if (request_type_ == RequestType::frame) {
       handle_frame();
     } else if (request_type_ == RequestType::invalid_command) {
@@ -207,6 +214,18 @@ void FontAssetControl::process() {
       finish_with_error("invalid_frame");
     }
   }
+}
+
+void FontAssetControl::handle_clear() {
+  const UpdateError error = service_->clear();
+  release_request();
+  if (error == UpdateError::none) {
+    (void)send_text("@SC:OK:FONT:CLEARED:reboot_required=1\n");
+    return;
+  }
+  (void)std::snprintf(response_.data(), response_.size(),
+                      "@SC:ERR:FONT:%s\n", update_error_name(error));
+  (void)send_text(response_.data());
 }
 
 void FontAssetControl::handle_info() {

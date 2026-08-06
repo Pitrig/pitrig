@@ -69,9 +69,7 @@ export function FontAssetsPanel(): React.JSX.Element {
     <Card>
       <CardHeader>
         <CardTitle>Font assets</CardTitle>
-        <CardDescription>
-          Required by the configuration. Family names and sizes are assigned automatically.
-        </CardDescription>
+        <CardDescription>Required by the configuration.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-[11px] text-muted-foreground">

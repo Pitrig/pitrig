@@ -1,0 +1,57 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+index 92d1f38..a8c8ff1 100644
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -43,7 +43,7 @@
+ #define CONFIG_LV_DRAW_BUF_ALIGN 1
+ #endif
+ 
+-#if CONFIG_LCD_RGB_ISR_IRAM_SAFE
++#if CONFIG_LCD_RGB_ISR_IRAM_SAFE || CONFIG_LCD_DSI_ISR_CACHE_SAFE
+ #define LVGL_PORT_IRAM IRAM_ATTR
+ #else
+ #define LVGL_PORT_IRAM
+@@ -153,13 +153,16 @@ lv_display_t *lvgl_port_add_disp_dsi(const lvgl_port_display_cfg_t *disp_cfg,
+ 
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+         esp_lcd_dpi_panel_event_callbacks_t cbs = {0};
++        void *callback_ctx = disp;
+         if (dsi_cfg->flags.avoid_tearing) {
+             cbs.on_refresh_done = lvgl_port_flush_dpi_vsync_ready_callback;
++            callback_ctx = disp_ctx;
+         } else {
+             cbs.on_color_trans_done = lvgl_port_flush_dpi_panel_ready_callback;
+         }
+         /* Register done callback */
+-        esp_lcd_dpi_panel_register_event_callbacks(disp_ctx->panel_handle, &cbs, disp);
++        ESP_ERROR_CHECK(esp_lcd_dpi_panel_register_event_callbacks(
++                            disp_ctx->panel_handle, &cbs, callback_ctx));
+ 
+         /* Apply rotation from initial display configuration */
+         lvgl_port_disp_rotation_update(disp_ctx);
+@@ -319,3 +322,3 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp_cfg,
+     /* Display context */
+-#if CONFIG_LCD_RGB_ISR_IRAM_SAFE
++#if CONFIG_LCD_RGB_ISR_IRAM_SAFE || CONFIG_LCD_DSI_ISR_CACHE_SAFE
+     /* When ISR IRAM safety is enabled, the display context is passed directly
+@@ -516,15 +519,15 @@ static bool lvgl_port_flush_dpi_panel_ready_callback(esp_lcd_panel_handle_t panel
+     return false;
+ }
+ 
+-static bool lvgl_port_flush_dpi_vsync_ready_callback(esp_lcd_panel_handle_t panel_io,
++static LVGL_PORT_IRAM bool lvgl_port_flush_dpi_vsync_ready_callback(esp_lcd_panel_handle_t panel_io,
+         esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
+ {
+     BaseType_t need_yield = pdFALSE;
+ 
+-    lv_display_t *disp_drv = (lv_display_t *)user_ctx;
+-    assert(disp_drv != NULL);
+-    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp_drv);
+-    assert(disp_ctx != NULL);
++    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)user_ctx;
++    if (disp_ctx == NULL) {
++        return false;
++    }
+ 
+     if (disp_ctx->trans_sem) {
+         xSemaphoreGiveFromISR(disp_ctx->trans_sem, &need_yield);

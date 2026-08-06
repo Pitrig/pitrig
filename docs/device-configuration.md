@@ -210,6 +210,28 @@ Supported bindings:
 - `vehicle.fuel.average_consumption`;
 - `vehicle.fuel.laps_remaining`.
 
+The configurator provides direct manipulation for configured dashboard
+widgets. Selecting a widget on the display preview exposes its schema-backed
+properties in the inspector. Dragging and resizing write absolute logical
+`x`, `y`, `width`, and `height` values and keep the widget within the immutable
+display bounds. Selecting empty canvas space exposes the screen-level opaque
+`background_color`. The advanced JSON editor remains available and edits the
+same draft used by the canvas, validation, font dependency check, and save
+flow.
+
+Every widget may define `z_index` from `-32768` through `32767`. Larger values
+render above smaller values. Missing values default to zero; equal values use
+stable configuration order so the configurator preview and firmware display
+remain identical.
+
+The preview toolbar exposes only `Add` and `Delete`. `Add` opens a widget-type
+picker; the current editor creates a Text widget with only a centered 120 × 64
+logical-pixel placement (clamped for smaller displays), leaving its content and
+style fields unset for explicit configuration in the inspector. `Delete`
+requires confirmation and removes the selected widget. Delta Time remains
+loadable and editable when present in an existing configuration, but is not
+offered by the add picker.
+
 Production firmware exposes no compiled dashboard font families. Every widget
 font reference uses a stable family identifier plus `size_px` and resolves to
 a separately uploaded LVGL binary asset. Widget fonts must be explicit; a text
@@ -299,10 +321,11 @@ Schema 2 top-level properties:
 | `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
 | `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
 | `delta_time` | object, optional | Delta Time module configuration. |
+| `dashboard.background_color` | `#RRGGBB`, optional | Opaque display background; defaults to `#000000`. |
 | `dashboard.widgets` | object, optional | Optional `delta_time` and ordered `text` widgets. |
 
 Nested property names use snake case. Placement uses `x`, `y`, `width`, and
-`height`; font uses `family` and `size_px`. UART settings use `port`, `tx_pin`,
+`height`; widget stacking uses `z_index`; font uses `family` and `size_px`. UART settings use `port`, `tx_pin`,
 `rx_pin`, `baud_rate`, and `silence_esp_logs`. Style properties follow the
 names used in the sparse example, including `faster_color`,
 `slower_color`, `neutral_color`, `background_color`, `width_px`, `radius_px`,

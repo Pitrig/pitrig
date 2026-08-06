@@ -161,6 +161,9 @@ ValidationError validate_configuration(
 
   const std::int32_t display_width = profile.display.width;
   const std::int32_t display_height = profile.display.height;
+  if (!valid_color(configuration.dashboard.background_color)) {
+    return ValidationError::invalid_dashboard;
+  }
   if (configuration.dashboard.delta_time_present) {
     const auto& widget = configuration.dashboard.delta_time;
     if (!valid_font(widget.font) ||

@@ -16,6 +16,7 @@
 #include "esp_lcd_mipi_dsi.h"
 #include "esp_lcd_panel_interface.h"
 #include "esp_ldo_regulator.h"
+#include "esp_system.h"
 
 #define LCD_BACKLIGHT GPIO_NUM_23
 #define LCD_RESET GPIO_NUM_27
@@ -27,6 +28,10 @@
 
 static esp_ldo_channel_handle_t mipi_phy_power;
 static esp_lcd_dsi_bus_handle_t mipi_dsi_bus;
+
+static void disable_backlight_on_shutdown(void) {
+  (void)gpio_set_level(LCD_BACKLIGHT, 0);
+}
 
 // esp_lvgl_port applies the configured orientation once when it registers a
 // display, including an explicit swap_xy(false). The DPI panel has a fixed
@@ -131,6 +136,10 @@ esp_err_t simcore_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   }
 
   esp_err_t result = initialize_backlight();
+  if (result != ESP_OK) {
+    return result;
+  }
+  result = esp_register_shutdown_handler(disable_backlight_on_shutdown);
   if (result != ESP_OK) {
     return result;
   }

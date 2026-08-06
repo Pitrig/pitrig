@@ -54,4 +54,5 @@ project(simcore)
 
 if(IDF_TARGET STREQUAL "esp32p4")
     include("${CMAKE_CURRENT_LIST_DIR}/cmake/apply_lvgl_ppa_patch.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/cmake/apply_esp_lvgl_port_dsi_patch.cmake")
 endif()

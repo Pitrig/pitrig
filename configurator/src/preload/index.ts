@@ -21,6 +21,7 @@ import {
 } from '../shared/device'
 import {
   FONT_CANCEL_UPLOAD_CHANNEL,
+  FONT_CLEAR_CHANNEL,
   FONT_SELECT_SOURCE_CHANNEL,
   FONT_UPLOAD_CHANNEL,
   FONT_UPLOAD_PROGRESS_CHANNEL,
@@ -49,6 +50,7 @@ const api: SimCoreApi = {
   selectFontSource: () => ipcRenderer.invoke(FONT_SELECT_SOURCE_CHANNEL),
   uploadFontAssets: (request) => ipcRenderer.invoke(FONT_UPLOAD_CHANNEL, request),
   cancelFontUpload: () => ipcRenderer.invoke(FONT_CANCEL_UPLOAD_CHANNEL),
+  clearFontAssets: () => ipcRenderer.invoke(FONT_CLEAR_CHANNEL),
   onFontUploadProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: FontUploadProgress): void =>
       listener(progress)

@@ -103,6 +103,18 @@ package and are zero when none is valid. `reboot_required` is set after a
 successful commit until restart. `entries` contains the exact semicolon-separated
 manifest keys in `family:size_px` form and is empty for an asset-free package.
 
+The host can erase the complete installed package outside an upload session:
+
+```text
+@SC:FONT:CLEAR
+@SC:OK:FONT:CLEARED:reboot_required=1
+```
+
+Clear is rejected while an update is active or another font change is pending
+a reboot. The active dashboard may keep already materialized font data until
+the required reboot; after restart, configurations referencing cleared fonts
+report unresolved dependencies.
+
 The host starts a session with the complete package size:
 
 ```text

@@ -115,6 +115,20 @@ export async function resetConfiguration(
   )
 }
 
+export async function clearFontAssets(
+  port: SerialPort,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    '@SC:FONT:CLEAR\n',
+    '@SC:OK:FONT:CLEARED:reboot_required=1',
+    CONFIGURATION_TIMEOUT_MS,
+    onTraffic,
+    'serial_error'
+  )
+}
+
 export function requestResponse(
   port: SerialPort,
   request: string,

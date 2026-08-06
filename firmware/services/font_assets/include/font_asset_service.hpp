@@ -74,6 +74,7 @@ class Service final {
   [[nodiscard]] UpdateError write_update(
       std::span<const std::uint8_t> bytes);
   [[nodiscard]] UpdateError commit_update();
+  [[nodiscard]] UpdateError clear();
   void cancel_update();
 
  private:

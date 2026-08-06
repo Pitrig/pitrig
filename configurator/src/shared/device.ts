@@ -166,9 +166,11 @@ export interface DeviceConfiguration {
     scale?: { enabled?: boolean; show_sign?: boolean; range_ms?: number }
   }
   dashboard?: {
+    background_color?: RgbColor
     widgets?: {
       delta_time?: {
         placement?: Placement
+        z_index?: number
         font?: FontSpec
         faster_color?: RgbColor
         slower_color?: RgbColor
@@ -184,6 +186,7 @@ export interface DeviceConfiguration {
         modifiers?: Array<{ type: 'lap_timer' }>
         transform?: TimeTransform
         placement?: Placement
+        z_index?: number
         padding?: { left?: number; top?: number; right?: number; bottom?: number }
         border?: { color?: RgbColor; width_px?: number; radius_px?: number }
         title?: {

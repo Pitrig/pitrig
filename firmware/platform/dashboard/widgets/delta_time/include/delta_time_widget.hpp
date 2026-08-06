@@ -32,6 +32,7 @@ class View final {
   [[nodiscard]] bool create(const Layout& layout, const Config& config,
                             const delta_time::DeltaTime& module,
                             const fonts::Registry& fonts);
+  [[nodiscard]] lv_obj_t* root_object() const { return state_.container; }
   void destroy();
 
  private:

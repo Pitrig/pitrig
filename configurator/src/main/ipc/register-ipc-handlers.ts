@@ -24,6 +24,7 @@ import {
 } from '../../shared/device'
 import {
   FONT_CANCEL_UPLOAD_CHANNEL,
+  FONT_CLEAR_CHANNEL,
   FONT_FAMILY_PATTERN,
   MAXIMUM_FONT_ASSETS,
   MAXIMUM_FONT_SIZE_PX,
@@ -72,6 +73,7 @@ export function registerIpcHandlers(
     fontAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
   )
   ipcMain.handle(FONT_CANCEL_UPLOAD_CHANNEL, () => fontAssetService.cancel())
+  ipcMain.handle(FONT_CLEAR_CHANNEL, () => deviceService.clearFonts())
   ipcMain.handle(FONT_UPLOAD_CHANNEL, (_event, request: unknown) => {
     if (!isFontUploadRequest(request)) {
       const result: FontAssetResult<void> = {

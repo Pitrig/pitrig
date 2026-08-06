@@ -22,6 +22,13 @@ offsets.
 Every configured widget uses absolute `x`, `y`, `width`, and `height` values in
 the logical display coordinate space reported by the immutable board
 descriptor. The display screen is the only configuration coordinate space.
+The dashboard may additionally define one opaque `background_color`; when it
+is absent the screen remains black.
+
+Each widget may define a signed 16-bit `z_index`; larger values render above
+smaller values. The default is zero. Equal values retain stable configuration
+order: the dedicated Delta Time widget first, followed by Text widgets in
+array order. The configurator preview uses the same ordering rule as LVGL.
 
 Keep Delta Time as a dedicated widget because it renders module-specific scale
 state. Represent Lap Timer and direct telemetry labels with the bounded reusable
@@ -35,6 +42,10 @@ created; periodic update paths keep using only bound read callbacks.
 ## Consequences
 
 - The configurator and firmware use one coordinate system.
+- Selecting empty canvas space edits the dashboard screen background rather
+  than a second synthetic layout object.
+- Overlapping widgets have deterministic ordering without introducing nested
+  layout containers or an unbounded scene graph.
 - An empty widget collection produces an empty display.
 - Runtime composition no longer creates region panels or performs region
   lookup, clipping, padding, or anchor resolution.

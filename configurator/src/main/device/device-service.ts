@@ -26,6 +26,7 @@ import { isBluetoothPort, PortRegistry, type PortRecord } from './port-registry'
 import { closePort, openPort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
 import {
+  clearFontAssets,
   probeSimCore,
   readConfiguration,
   requestResponse,
@@ -302,6 +303,45 @@ export class DeviceService {
         configuration: { board: active.value.session.info.boardId },
         rebootRequired: true
       })
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
+
+  async clearFonts(): Promise<DeviceResult<DeviceState>> {
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    const { port, session, traffic } = active.value
+    if (!session.fontAssets) {
+      return failure({
+        code: 'not_simcore',
+        message: 'The connected firmware does not support font asset management.'
+      })
+    }
+    this.deviceOperationActive = true
+    try {
+      await clearFontAssets(port, this.operationTraffic(traffic))
+      if (this.activePort !== port || this.state.session !== session) {
+        throw new DeviceServiceError('serial_error', 'The connected device changed during font cleanup.')
+      }
+      this.setState({
+        ...this.state,
+        session: {
+          ...session,
+          fontAssets: {
+            ...session.fontAssets,
+            packageAvailable: false,
+            formatVersion: 0,
+            assetCount: 0,
+            assets: [],
+            packageSize: 0,
+            rebootRequired: true
+          }
+        }
+      })
+      return success(this.state)
     } catch (error) {
       return failure(toDeviceError(error))
     } finally {

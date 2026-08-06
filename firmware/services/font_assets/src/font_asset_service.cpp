@@ -211,6 +211,27 @@ UpdateError Service::commit_update() {
   return UpdateError::none;
 }
 
+UpdateError Service::clear() {
+  if (storage_ == nullptr || !status_.storage_available) {
+    return UpdateError::unavailable;
+  }
+  if (update_in_progress_) {
+    return UpdateError::busy;
+  }
+  if (status_.reboot_required) {
+    return UpdateError::reboot_required;
+  }
+  storage_->unmap();
+  package_mapping_ = {};
+  package_ = {};
+  clear_package_status();
+  if (!storage_->erase()) {
+    return UpdateError::storage_failure;
+  }
+  status_.reboot_required = true;
+  return UpdateError::none;
+}
+
 void Service::cancel_update() {
   if (storage_ != nullptr && update_in_progress_) {
     storage_->unmap();

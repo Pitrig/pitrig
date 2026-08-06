@@ -231,9 +231,10 @@ template <std::size_t Size>
 
 [[nodiscard]] bool parse_delta_time_widget(
     const cJSON* const object, DeltaTimeWidgetConfiguration& config) {
-  if (!valid_object(object, {"placement", "font", "faster_color",
+  if (!valid_object(object, {"placement", "z_index", "font", "faster_color",
                              "slower_color", "neutral_color", "scale"}) ||
       !parse_optional_placement(object, config.placement) ||
+      !read_integer(object, "z_index", config.z_index) ||
       !parse_optional_font(object, config.font) ||
       !read_color(object, "faster_color", config.faster_color) ||
       !read_color(object, "slower_color", config.slower_color) ||
@@ -253,11 +254,12 @@ template <std::size_t Size>
 
 [[nodiscard]] bool parse_text_widget(
     const cJSON* const object, TextWidgetConfiguration& config) {
-  if (!valid_object(object, {"binding", "modifiers", "transform", "placement",
+  if (!valid_object(object, {"binding", "modifiers", "transform", "placement", "z_index",
                              "padding", "border", "title", "value",
                              "background_color"}) ||
       !read_text(object, "binding", config.binding) ||
       !parse_optional_placement(object, config.placement) ||
+      !read_integer(object, "z_index", config.z_index) ||
       !read_color(object, "background_color", config.background_color)) {
     return false;
   }
@@ -400,7 +402,8 @@ template <std::size_t Size>
 
 [[nodiscard]] bool parse_dashboard(const cJSON* const object,
                                    DashboardConfiguration& dashboard) {
-  if (!valid_object(object, {"widgets"})) {
+  if (!valid_object(object, {"background_color", "widgets"}) ||
+      !read_color(object, "background_color", dashboard.background_color)) {
     return false;
   }
   const cJSON* const widgets = member(object, "widgets");

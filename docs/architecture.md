@@ -273,11 +273,22 @@ and delegates erase, write, validation, and commit operations to the asset
 service from a static worker task. The configuration router only switches the
 shared transport between normal line routing and the active binary session.
 
+The desktop configurator edits dashboard widgets directly in the logical
+display coordinate space. Canvas selection, dragging, resizing, property
+inspection, and the advanced JSON editor all mutate the same sparse schema 2
+draft; there is no second editor-only layout model to reconcile.
+
 ---
 
 # Drivers
 
 Drivers implement hardware-specific functionality.
+
+Display drivers also own board-specific display continuity measures. The
+ESP32-P4 MIPI-DSI configuration keeps display interrupts cache-safe during
+flash writes, and the Guition JC1060P470C driver blanks its backlight from an
+ESP-IDF shutdown handler before a software reset. These measures do not leak
+into the generic display interface.
 
 Examples include:
 

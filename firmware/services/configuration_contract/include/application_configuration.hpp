@@ -116,6 +116,7 @@ struct DeltaTimeScaleStyle {
 struct DeltaTimeWidgetConfiguration {
   font_assets::FontSpec font{};
   WidgetPlacement placement{};
+  std::int16_t z_index{};
   std::uint32_t faster_color{0x00C853};
   std::uint32_t slower_color{0xD50000};
   std::uint32_t neutral_color{0xE8E8E8};
@@ -196,6 +197,7 @@ struct TextWidgetConfiguration {
   std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
   ValueTransform transform{};
   WidgetPlacement placement{};
+  std::int16_t z_index{};
   WidgetInsets padding{};
   WidgetBorder border{};
   WidgetTitleStyle title{};
@@ -204,6 +206,7 @@ struct TextWidgetConfiguration {
 };
 
 struct DashboardConfiguration {
+  std::uint32_t background_color{};
   bool delta_time_present{};
   DeltaTimeWidgetConfiguration delta_time{};
   std::uint8_t text_widget_count{};

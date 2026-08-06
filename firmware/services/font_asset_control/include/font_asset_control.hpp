@@ -43,6 +43,7 @@ class FontAssetControl final {
   enum class RequestType : std::uint8_t {
     begin,
     info,
+    clear,
     invalid_command,
     frame,
     invalid_frame,
@@ -60,6 +61,7 @@ class FontAssetControl final {
   void process();
   void handle_begin();
   void handle_info();
+  void handle_clear();
   void handle_frame();
   void queue_request(RequestType type);
   void release_request();
