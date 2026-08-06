@@ -27,6 +27,7 @@ export function ConfigurationPanel(): React.JSX.Element {
   const markReset = useDeviceStore((state) => state.markConfigurationReset)
   const [operation, setOperation] = useState<Operation>('idle')
   const [feedback, setFeedback] = useState<Feedback>()
+  const [selectedTextWidget, setSelectedTextWidget] = useState(0)
 
   const parsed = useMemo(
     () => parseDraft(draftJson, session?.info.boardId),
@@ -38,6 +39,22 @@ export function ConfigurationPanel(): React.JSX.Element {
   const dirty = Boolean(session) && draftJson !== comparisonJson
   const connected = status === 'connected' && Boolean(session)
   const busy = operation !== 'idle'
+  const textWidgets = parsed.ok
+    ? parsed.configuration.dashboard?.widgets?.text ?? []
+    : []
+  const selectedWidget = textWidgets[selectedTextWidget]
+
+  const updateSelectedWidget = (
+    update: (widget: NonNullable<NonNullable<NonNullable<DeviceConfiguration['dashboard']>['widgets']>['text']>[number]) => void
+  ): void => {
+    if (!parsed.ok || !selectedWidget) return
+    const configuration = structuredClone(parsed.configuration)
+    const widget = configuration.dashboard?.widgets?.text?.[selectedTextWidget]
+    if (!widget) return
+    update(widget)
+    setDraftJson(formatConfiguration(configuration))
+    setFeedback(undefined)
+  }
   const saveBlockedReason = !connected
     ? 'Connect a SimCore board before saving.'
     : !session?.info.storageAvailable
@@ -157,6 +174,69 @@ export function ConfigurationPanel(): React.JSX.Element {
             setFeedback(undefined)
           }}
         />
+
+        {selectedWidget ? (
+          <div className="grid grid-cols-3 gap-2 rounded-md border p-2">
+            <label className="space-y-1 text-[11px] text-muted-foreground">
+              <span>Text widget</span>
+              <select
+                className="h-8 w-full rounded-md border bg-background px-2 text-foreground"
+                disabled={busy}
+                value={selectedTextWidget}
+                onChange={(event) => setSelectedTextWidget(Number(event.target.value))}
+              >
+                {textWidgets.map((widget, index) => (
+                  <option key={index} value={index}>
+                    {index + 1}: {widget.title?.text || widget.binding || 'Text'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-[11px] text-muted-foreground">
+              <span>Modifier</span>
+              <select
+                className="h-8 w-full rounded-md border bg-background px-2 text-foreground"
+                disabled={busy}
+                value={selectedWidget.modifiers?.some(
+                  (modifier) => modifier.type === 'lap_timer'
+                ) ? 'lap_timer' : 'none'}
+                onChange={(event) => updateSelectedWidget((widget) => {
+                  if (event.target.value === 'lap_timer') {
+                    widget.binding = 'session.lap.current_time'
+                    widget.modifiers = [{ type: 'lap_timer' }]
+                  } else {
+                    delete widget.modifiers
+                  }
+                })}
+              >
+                <option value="none">None</option>
+                <option value="lap_timer">Lap Timer</option>
+              </select>
+            </label>
+            <label className="space-y-1 text-[11px] text-muted-foreground">
+              <span>Transform</span>
+              <select
+                className="h-8 w-full rounded-md border bg-background px-2 text-foreground"
+                disabled={busy}
+                value={selectedWidget.transform?.format ?? 'source_text'}
+                onChange={(event) => updateSelectedWidget((widget) => {
+                  if (event.target.value === 'source_text') {
+                    delete widget.transform
+                    return
+                  }
+                  widget.transform = {
+                    type: 'time',
+                    format: event.target.value as 'duration_ms' | 'signed_duration_ms'
+                  }
+                })}
+              >
+                <option value="source_text">Source text</option>
+                <option value="duration_ms">Duration (MM:SS.mmm)</option>
+                <option value="signed_duration_ms">Signed duration (+S.mmm)</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
 
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
           <span>{parsed.ok ? `${parsed.payloadBytes} bytes` : 'Invalid JSON'}</span>

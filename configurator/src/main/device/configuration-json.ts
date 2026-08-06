@@ -24,7 +24,6 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
     (value.hardware !== undefined &&
       (!Array.isArray(value.hardware) || value.hardware.length !== 0)) ||
     !optionalRecord(value.telemetry_transport) ||
-    !optionalRecord(value.lap_timer) ||
     !optionalRecord(value.delta_time) ||
     !optionalDashboard(value.dashboard)
   ) {
@@ -58,10 +57,40 @@ function optionalDashboard(value: unknown): boolean {
   if (value.widgets === undefined) return true
   if (!isRecord(value.widgets)) return false
   return (
-    optionalRecord(value.widgets.lap_timer) &&
     optionalRecord(value.widgets.delta_time) &&
     (value.widgets.text === undefined ||
-      (Array.isArray(value.widgets.text) && value.widgets.text.every(isRecord)))
+      (Array.isArray(value.widgets.text) && value.widgets.text.every(validTextWidget)))
+  )
+}
+
+function validTextWidget(value: unknown): boolean {
+  if (!isRecord(value)) return false
+  if (value.binding !== undefined && typeof value.binding !== 'string') return false
+  if (
+    value.modifiers !== undefined &&
+    (!Array.isArray(value.modifiers) || !value.modifiers.every(validValueModifier))
+  ) {
+    return false
+  }
+  if (value.transform !== undefined && !validValueTransform(value.transform)) return false
+  return true
+}
+
+function validValueModifier(value: unknown): boolean {
+  return isRecord(value) && value.type === 'lap_timer'
+}
+
+function validValueTransform(value: unknown): boolean {
+  if (!isRecord(value)) return false
+  if (
+    value.type !== 'time' ||
+    !['duration_ms', 'signed_duration_ms'].includes(String(value.format))
+  ) {
+    return false
+  }
+  return (
+    (value.prefix === undefined || typeof value.prefix === 'string') &&
+    (value.suffix === undefined || typeof value.suffix === 'string')
   )
 }
 

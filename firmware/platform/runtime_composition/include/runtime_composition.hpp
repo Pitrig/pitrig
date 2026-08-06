@@ -40,7 +40,6 @@ struct Modules {
     events::EventBus* event_bus{};
     const telemetry::ITelemetryReader* telemetry{};
     telemetry::Handle handle{};
-    const lap_timer::Config* configuration{};
     bool* started{};
   };
 

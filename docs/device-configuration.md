@@ -96,15 +96,13 @@ Colors use `"#RRGGBB"`.
 
 The production firmware supports these dashboard widget types:
 
-- `lap_timer`;
 - `delta_time`;
 - `text`, with at most 16 ordered instances.
 
-Module configuration remains separate from widget presentation. A module may
-exist without a widget when its supported behavior requires it. A configured
-Lap Timer or Delta Time widget requires its corresponding module to be present;
-otherwise validation fails. An empty module object creates that module using
-its bounded firmware defaults.
+Module lifecycle is derived from configured consumers. A `lap_timer` modifier
+activates the Lap Timer module automatically; there is no separate root Lap
+Timer object or dedicated Lap Timer widget. A configured Delta Time widget
+still requires its root Delta Time module object.
 
 The display screen is the only layout coordinate space. Every widget placement
 uses absolute logical pixels:
@@ -155,9 +153,45 @@ Only the properties shown above are present in the project and public payload.
 The text widget supplies its documented defaults for omitted padding, fonts,
 colors, alignment, background, title offset, and unavailable text.
 
-The text-widget value displays the exact string received for its telemetry
-binding. Units, prefixes, suffixes, decimal places, and other presentation
-belong to the telemetry source.
+The `binding` property always identifies the canonical telemetry source. An
+ordered modifier pipeline may change the typed value before its presentation
+transform:
+
+```json
+{
+  "binding": "session.lap.current_time",
+  "modifiers": [
+    {
+      "type": "lap_timer"
+    }
+  ],
+  "transform": {
+    "type": "time",
+    "format": "duration_ms",
+    "prefix": "LAP ",
+    "suffix": ""
+  }
+}
+```
+
+The `lap_timer` modifier accepts only the unsigned
+`session.lap.current_time` binding. It preserves the numeric millisecond type
+while applying smooth local progression, correction, lap restart detection,
+and a fixed one-second stale-telemetry timeout. Its presence activates the
+module automatically. The current implementation allows at most one Lap Timer
+modifier across the dashboard.
+
+Text widgets support the optional `time` transform:
+
+- `duration_ms` accepts unsigned milliseconds and renders `MM:SS.mmm`;
+- `signed_duration_ms` accepts signed milliseconds and renders `+S.mmm` or
+  `-S.mmm`.
+
+Without `transform`, source text is preserved; a modifier-produced numeric
+value is rendered as a base-10 integer. Optional `prefix` and `suffix` strings
+are applied by the time transform and are each limited to 15 UTF-8 bytes. Incompatible
+binding, modifier, and transform types are rejected before the dashboard is
+created.
 
 Supported bindings:
 
@@ -262,14 +296,13 @@ Schema 2 top-level properties:
 | `board` | string, required | Immutable compatible board identifier. |
 | `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
 | `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
-| `lap_timer` | object, optional | Lap Timer module configuration. |
 | `delta_time` | object, optional | Delta Time module configuration. |
-| `dashboard.widgets` | object, optional | Optional `lap_timer`, `delta_time`, and ordered `text` widgets. |
+| `dashboard.widgets` | object, optional | Optional `delta_time` and ordered `text` widgets. |
 
 Nested property names use snake case. Placement uses `x`, `y`, `width`, and
 `height`; font uses `family` and `size_px`. UART settings use `port`, `tx_pin`,
 `rx_pin`, `baud_rate`, and `silence_esp_logs`. Style properties follow the
-names used in the sparse example, including `text_color`, `faster_color`,
+names used in the sparse example, including `faster_color`,
 `slower_color`, `neutral_color`, `background_color`, `width_px`, `radius_px`,
 and `offset_y_px`.
 
@@ -281,22 +314,26 @@ default UART transport.
 
 Firmware parses every received or persisted document and rejects malformed
 JSON, unknown or duplicate properties, unsupported component shapes, board
-mismatches, values outside bounded ranges, invalid bindings, and invalid widget
-geometry. Validation in the configurator improves feedback but does not replace
-this firmware boundary check.
+mismatches, values outside bounded ranges, invalid or incompatible bindings,
+modifiers, and transforms, and invalid widget geometry. Validation in the
+configurator improves feedback but does not replace this firmware boundary
+check.
 
 The configurable `hardware` array currently accepts only an empty array because
 no user-configurable peripheral driver has a complete production contract yet.
-Non-empty entries are rejected rather than guessed. Adding or changing public
-properties requires a later documented schema version.
+Non-empty entries are rejected rather than guessed. Breaking changes to public
+properties require a later documented schema version; compatible bounded
+extensions must be recorded in an ADR.
 
 Schema 2 retains deterministic limits:
 
 - maximum compact JSON payload size: 4096 bytes;
 - maximum text widgets: 16;
+- maximum modifiers per text widget: 4;
 - maximum canonical telemetry binding: 39 UTF-8 bytes;
 - maximum title: 15 UTF-8 bytes;
 - maximum unavailable text: 15 UTF-8 bytes;
+- maximum transform prefix or suffix: 15 UTF-8 bytes;
 - maximum font family identifier: 31 ASCII bytes;
 - font size range: 1 through 255 pixels.
 

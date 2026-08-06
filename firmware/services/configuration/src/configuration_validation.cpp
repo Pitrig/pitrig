@@ -53,7 +53,36 @@ template <std::size_t Size>
     const TextWidgetConfiguration& config,
     const std::int32_t display_width, const std::int32_t display_height) {
   const telemetry::TelemetryRegistry registry;
-  return registry.resolve(telemetry::field_name_view(config.binding)).valid() &&
+  const std::string_view binding = value_binding_view(config.binding);
+  const telemetry::Handle telemetry_handle = registry.resolve(binding);
+  if (!telemetry_handle.valid() ||
+      config.modifier_count > config.modifiers.size()) {
+    return false;
+  }
+  bool lap_timer_modifier{};
+  for (std::size_t index = 0; index < config.modifier_count; ++index) {
+    if (config.modifiers[index].type != ValueModifierType::lap_timer ||
+        lap_timer_modifier) {
+      return false;
+    }
+    lap_timer_modifier = true;
+  }
+  if (lap_timer_modifier &&
+      (binding != telemetry::fields::kCurrentLapTime ||
+       telemetry_handle.type != telemetry::ValueType::uint32)) {
+    return false;
+  }
+  const telemetry::ValueType source_type = telemetry_handle.type;
+  const bool compatible_transform =
+      config.transform.type == ValueTransformType::none ||
+      (config.transform.type == ValueTransformType::time &&
+       ((config.transform.time.format ==
+             transformers::time_transform::Format::duration_ms &&
+         source_type == telemetry::ValueType::uint32) ||
+        (config.transform.time.format ==
+             transformers::time_transform::Format::signed_duration_ms &&
+         source_type == telemetry::ValueType::int32)));
+  return compatible_transform &&
          valid_placement(config.placement, display_width, display_height) &&
          valid_font(config.title.font) && valid_font(config.value.font) &&
          valid_color(config.border.color) && valid_color(config.title.color) &&
@@ -67,7 +96,9 @@ template <std::size_t Size>
          config.padding.bottom <= display_height &&
          config.border.width_px <= 240 &&
          config.border.radius_px <= 480 && terminated(config.title.text) &&
-         terminated(config.value.unavailable_text);
+         terminated(config.value.unavailable_text) &&
+         terminated(config.transform.time.prefix) &&
+         terminated(config.transform.time.suffix);
 }
 
 }  // namespace
@@ -109,11 +140,6 @@ ValidationError validate_configuration(
     }
   }
 
-  if (configuration.lap_timer_present &&
-      (configuration.lap_timer.telemetry_timeout_ms == 0 ||
-       configuration.lap_timer.telemetry_timeout_ms > 60'000)) {
-    return ValidationError::invalid_module;
-  }
   if (configuration.delta_time_present &&
       (configuration.delta_time.scale.range_ms <= 0 ||
        configuration.delta_time.scale.range_ms > 60'000 ||
@@ -125,23 +151,13 @@ ValidationError validate_configuration(
     return ValidationError::invalid_module;
   }
 
-  if ((configuration.dashboard.lap_timer_present &&
-       !configuration.lap_timer_present) ||
-      (configuration.dashboard.delta_time_present &&
-       !configuration.delta_time_present)) {
+  if (configuration.dashboard.delta_time_present &&
+      !configuration.delta_time_present) {
     return ValidationError::invalid_dashboard;
   }
 
   const std::int32_t display_width = profile.display.width;
   const std::int32_t display_height = profile.display.height;
-  if (configuration.dashboard.lap_timer_present) {
-    const auto& widget = configuration.dashboard.lap_timer;
-    if (!valid_font(widget.font) ||
-        !valid_placement(widget.placement, display_width, display_height) ||
-        !valid_color(widget.text_color)) {
-      return ValidationError::invalid_widget;
-    }
-  }
   if (configuration.dashboard.delta_time_present) {
     const auto& widget = configuration.dashboard.delta_time;
     if (!valid_font(widget.font) ||
@@ -156,12 +172,24 @@ ValidationError validate_configuration(
       configuration.dashboard.text_widgets.size()) {
     return ValidationError::invalid_widget;
   }
+  std::size_t lap_timer_modifier_count{};
   for (std::size_t index = 0;
        index < configuration.dashboard.text_widget_count; ++index) {
     if (!valid_text_widget(configuration.dashboard.text_widgets[index],
                            display_width, display_height)) {
       return ValidationError::invalid_widget;
     }
+    const auto& text_widget = configuration.dashboard.text_widgets[index];
+    for (std::size_t modifier_index = 0;
+         modifier_index < text_widget.modifier_count; ++modifier_index) {
+      if (text_widget.modifiers[modifier_index].type ==
+          ValueModifierType::lap_timer) {
+        ++lap_timer_modifier_count;
+      }
+    }
+  }
+  if (lap_timer_modifier_count > 1) {
+    return ValidationError::invalid_widget;
   }
   return ValidationError::none;
 }

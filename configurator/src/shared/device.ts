@@ -127,6 +127,13 @@ export interface FontSpec {
   size_px?: number
 }
 
+export interface TimeTransform {
+  type: 'time'
+  format: 'duration_ms' | 'signed_duration_ms'
+  prefix?: string
+  suffix?: string
+}
+
 export interface TelemetryTransportConfiguration {
   id?: 'board_default' | 'native_usb_cdc' | 'uart'
   uart?: {
@@ -144,10 +151,6 @@ export interface DeviceConfiguration {
   board: SimCoreBoardId
   hardware?: []
   telemetry_transport?: TelemetryTransportConfiguration
-  lap_timer?: {
-    telemetry_only?: boolean
-    telemetry_timeout_ms?: number
-  }
   delta_time?: {
     unavailable_behavior?: 'hide' | 'placeholder' | 'zero'
     placeholder?: string
@@ -155,7 +158,6 @@ export interface DeviceConfiguration {
   }
   dashboard?: {
     widgets?: {
-      lap_timer?: { placement?: Placement; font?: FontSpec; text_color?: RgbColor }
       delta_time?: {
         placement?: Placement
         font?: FontSpec
@@ -170,6 +172,8 @@ export interface DeviceConfiguration {
       }
       text?: Array<{
         binding?: string
+        modifiers?: Array<{ type: 'lap_timer' }>
+        transform?: TimeTransform
         placement?: Placement
         padding?: { left?: number; top?: number; right?: number; bottom?: number }
         border?: { color?: RgbColor; width_px?: number; radius_px?: number }

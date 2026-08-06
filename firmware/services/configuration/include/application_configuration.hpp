@@ -10,14 +10,17 @@
 #endif
 #include "font_asset_types.hpp"
 #include "telemetry_registry.hpp"
+#include "time_transform.hpp"
 
 namespace simcore::configuration {
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFF'FFFFU;
 inline constexpr std::size_t kMaximumTextWidgets = 16;
+inline constexpr std::size_t kMaximumValueModifiers = 4;
 inline constexpr std::size_t kWidgetTitleCapacity = 16;
 inline constexpr std::size_t kUnavailableTextCapacity = 16;
 inline constexpr std::size_t kDeltaTimeTextCapacity = 16;
+inline constexpr std::size_t kValueBindingCapacity = 40;
 
 enum class BoardId : std::uint8_t {
   t_display_s3,
@@ -73,11 +76,6 @@ struct TelemetryTransportConfiguration {
   UartTelemetryConfiguration uart{};
 };
 
-struct LapTimerConfiguration {
-  bool telemetry_only{false};
-  std::uint32_t telemetry_timeout_ms{1'000};
-};
-
 enum class DeltaTimeUnavailableBehavior : std::uint8_t {
   hide,
   placeholder,
@@ -109,12 +107,6 @@ struct WidgetInsets {
   std::uint16_t top{};
   std::uint16_t right{};
   std::uint16_t bottom{};
-};
-
-struct LapTimerWidgetConfiguration {
-  font_assets::FontSpec font{};
-  WidgetPlacement placement{};
-  std::uint32_t text_color{0xE8E8E8};
 };
 
 struct DeltaTimeScaleStyle {
@@ -165,9 +157,52 @@ struct WidgetValueStyle {
       '-', '-', '\0'};
 };
 
+using ValueBinding = std::array<char, kValueBindingCapacity>;
+
+[[nodiscard]] constexpr ValueBinding make_value_binding(
+    const std::string_view name) {
+  ValueBinding result{};
+  if (name.size() >= result.size()) {
+    return result;
+  }
+  for (std::size_t index = 0; index < name.size(); ++index) {
+    result[index] = name[index];
+  }
+  return result;
+}
+
+[[nodiscard]] inline std::string_view value_binding_view(
+    const ValueBinding& binding) {
+  std::size_t length{};
+  while (length < binding.size() && binding[length] != '\0') {
+    ++length;
+  }
+  return {binding.data(), length};
+}
+
+enum class ValueTransformType : std::uint8_t {
+  none,
+  time,
+};
+
+struct ValueTransform {
+  ValueTransformType type{ValueTransformType::none};
+  transformers::time_transform::Config time{};
+};
+
+enum class ValueModifierType : std::uint8_t {
+  lap_timer,
+};
+
+struct ValueModifier {
+  ValueModifierType type{ValueModifierType::lap_timer};
+};
+
 struct TextWidgetConfiguration {
-  telemetry::FieldName binding{
-      telemetry::make_field_name(telemetry::fields::kSpeed)};
+  ValueBinding binding{make_value_binding(telemetry::fields::kSpeed)};
+  std::uint8_t modifier_count{};
+  std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
+  ValueTransform transform{};
   WidgetPlacement placement{};
   WidgetInsets padding{};
   WidgetBorder border{};
@@ -177,8 +212,6 @@ struct TextWidgetConfiguration {
 };
 
 struct DashboardConfiguration {
-  bool lap_timer_present{};
-  LapTimerWidgetConfiguration lap_timer{};
   bool delta_time_present{};
   DeltaTimeWidgetConfiguration delta_time{};
   std::uint8_t text_widget_count{};
@@ -190,8 +223,6 @@ struct ApplicationConfiguration {
   HardwareConfiguration hardware{};
   bool telemetry_transport_present{};
   TelemetryTransportConfiguration telemetry_transport{};
-  bool lap_timer_present{};
-  LapTimerConfiguration lap_timer{};
   bool delta_time_present{};
   DeltaTimeConfiguration delta_time{};
   DashboardConfiguration dashboard{};

@@ -23,13 +23,14 @@ Every configured widget uses absolute `x`, `y`, `width`, and `height` values in
 the logical display coordinate space reported by the immutable board
 descriptor. The display screen is the only configuration coordinate space.
 
-Keep Lap Timer and Delta Time as dedicated widget types. Represent direct
-telemetry labels with the bounded reusable text-widget type. Widget presence in
-the sparse configuration controls whether a widget is created.
+Keep Delta Time as a dedicated widget because it renders module-specific scale
+state. Represent Lap Timer and direct telemetry labels with the bounded reusable
+text-widget type. Widget presence in the sparse configuration controls whether
+a widget is created.
 
-Telemetry bindings remain bounded canonical field names. A startup-only binder
-resolves configured names to registry handles before LVGL objects are created;
-periodic update paths keep using only resolved handles.
+Value bindings remain bounded canonical telemetry fields. A startup-only binder
+resolves and type-checks bindings and modifier pipelines before LVGL objects are
+created; periodic update paths keep using only bound read callbacks.
 
 ## Consequences
 

@@ -30,8 +30,7 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#FFFFFF",
-            "alignment": "center"
+            "color": "#FFFFFF"
           }
         },
         {
@@ -45,8 +44,7 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#FFFFFF",
-            "alignment": "center"
+            "color": "#FFFFFF"
           }
         },
         {
@@ -60,8 +58,7 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#FFFFFF",
-            "alignment": "center"
+            "color": "#FFFFFF"
           }
         },
         {
@@ -75,8 +72,7 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#FFFFFF",
-            "alignment": "center"
+            "color": "#FFFFFF"
           }
         },
         {
@@ -90,13 +86,13 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 144 },
-            "color": "#FFFFFF",
-            "alignment": "center"
+            "color": "#FFFFFF"
           },
           "background_color": "#202020"
         },
         {
           "binding": "session.lap.estimated_time",
+          "transform": { "type": "time", "format": "duration_ms" },
           "placement": { "x": 340, "y": 68, "width": 132, "height": 96 },
           "border": { "color": "#FFFFFF", "width_px": 2, "radius_px": 10 },
           "title": {
@@ -106,12 +102,13 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#FFE04A",
-            "alignment": "center"
+            "color": "#FFE04A"
           }
         },
         {
           "binding": "session.lap.current_time",
+          "modifiers": [{ "type": "lap_timer" }],
+          "transform": { "type": "time", "format": "duration_ms" },
           "placement": { "x": 340, "y": 172, "width": 132, "height": 100 },
           "border": { "color": "#FFFFFF", "width_px": 2, "radius_px": 10 },
           "title": {
@@ -121,12 +118,12 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#E000E8",
-            "alignment": "center"
+            "color": "#E000E8"
           }
         },
         {
           "binding": "session.lap.best_time",
+          "transform": { "type": "time", "format": "duration_ms" },
           "placement": { "x": 340, "y": 280, "width": 132, "height": 102 },
           "border": { "color": "#FFFFFF", "width_px": 2, "radius_px": 10 },
           "title": {
@@ -136,8 +133,7 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#00F020",
-            "alignment": "center"
+            "color": "#00F020"
           }
         },
         {
@@ -151,8 +147,7 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#00CFFF",
-            "alignment": "center"
+            "color": "#00CFFF"
           }
         },
         {
@@ -166,8 +161,7 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#FFE04A",
-            "alignment": "center"
+            "color": "#FFE04A"
           }
         },
         {
@@ -181,8 +175,7 @@
           },
           "value": {
             "font": { "family": "roboto-black", "size_px": 32 },
-            "color": "#FF3030",
-            "alignment": "center"
+            "color": "#FF3030"
           }
         }
       ]

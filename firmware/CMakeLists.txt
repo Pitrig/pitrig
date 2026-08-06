@@ -29,7 +29,8 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/logger"
      "${CMAKE_CURRENT_LIST_DIR}/services/performance"
      "${CMAKE_CURRENT_LIST_DIR}/services/telemetry"
-     "${CMAKE_CURRENT_LIST_DIR}/services/telemetry/protocols/simhub")
+     "${CMAKE_CURRENT_LIST_DIR}/services/telemetry/protocols/simhub"
+     "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/time_transform")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 idf_build_set_property(MINIMAL_BUILD ON)

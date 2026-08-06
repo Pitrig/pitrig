@@ -12,7 +12,6 @@ import type {
 type DashboardWidgets = NonNullable<NonNullable<DeviceConfiguration['dashboard']>['widgets']>
 type TextWidgetConfiguration = NonNullable<DashboardWidgets['text']>[number]
 type DeltaTimeWidgetConfiguration = NonNullable<DashboardWidgets['delta_time']>
-type LapTimerWidgetConfiguration = NonNullable<DashboardWidgets['lap_timer']>
 
 const SCREEN_BACKGROUND = '#000000'
 const DEFAULT_TEXT_COLOR = '#E8E8E8'
@@ -89,7 +88,6 @@ function Widgets({
       viewBox={`0 0 ${display.width} ${display.height}`}
     >
       <rect width={display.width} height={display.height} fill={SCREEN_BACKGROUND} />
-      {widgets?.lap_timer ? <LapTimerPreview configuration={widgets.lap_timer} /> : null}
       {widgets?.delta_time ? (
         <DeltaTimePreview
           configuration={widgets.delta_time}
@@ -97,7 +95,10 @@ function Widgets({
         />
       ) : null}
       {textWidgets.map((widget, index) => (
-        <TextWidgetPreview key={`${widget.binding ?? 'text'}-${index}`} configuration={widget} />
+        <TextWidgetPreview
+          key={`${widget.binding ?? 'text'}-${index}`}
+          configuration={widget}
+        />
       ))}
     </svg>
   )
@@ -136,6 +137,7 @@ function TextWidgetPreview({
   const valueAnchor = alignment === 'left' ? 'start' : alignment === 'right' ? 'end' : 'middle'
   const valueY = (contentTop + contentBottom) / 2 + (title ? titleFont.sizePx / 4 : 0)
   const titleWidth = estimateTextWidth(title, titleFont.sizePx)
+  const previewValue = formattedPreviewValue(configuration)
 
   return (
     <g>
@@ -194,10 +196,23 @@ function TextWidgetPreview({
         textAnchor={valueAnchor}
         dominantBaseline="middle"
       >
-        {configuration.value?.unavailable_text ?? '--'}
+        {previewValue}
       </text>
     </g>
   )
+}
+
+function formattedPreviewValue(configuration: TextWidgetConfiguration): string {
+  const prefix = configuration.transform?.prefix ?? ''
+  const suffix = configuration.transform?.suffix ?? ''
+  switch (configuration.transform?.format ?? 'source_text') {
+    case 'duration_ms':
+      return `${prefix}00:00.000${suffix}`
+    case 'signed_duration_ms':
+      return `${prefix}+0.000${suffix}`
+    case 'source_text':
+      return configuration.value?.unavailable_text ?? '--'
+  }
 }
 
 function DeltaTimePreview({
@@ -264,30 +279,6 @@ function DeltaTimePreview({
         {label}
       </text>
     </g>
-  )
-}
-
-function LapTimerPreview({
-  configuration
-}: {
-  configuration: LapTimerWidgetConfiguration
-}): React.JSX.Element | null {
-  const placement = completePlacement(configuration.placement)
-  if (!placement) return null
-  const font = resolvedFont(configuration.font, 48)
-  return (
-    <text
-      x={placement.x + placement.width / 2}
-      y={placement.y + placement.height / 2}
-      fill={configuration.text_color ?? DEFAULT_TEXT_COLOR}
-      fontFamily={font.family}
-      fontSize={font.sizePx}
-      fontWeight={font.weight}
-      textAnchor="middle"
-      dominantBaseline="middle"
-    >
-      00:00.000
-    </text>
   )
 }
 

@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <mutex>
 
-#include "application_configuration.hpp"
 #include "event_bus.hpp"
 #include "telemetry_types.hpp"
 
@@ -16,8 +15,6 @@ class ITelemetryReader;
 }
 
 namespace simcore::lap_timer {
-
-using Config = configuration::LapTimerConfiguration;
 
 class LapTimer {
  public:
@@ -33,12 +30,10 @@ class LapTimer {
   [[nodiscard]] bool start(
       events::EventBus& event_bus,
       const telemetry::ITelemetryReader& telemetry_reader,
-      telemetry::Handle telemetry_handle,
-      const Config& config);
+      telemetry::Handle telemetry_handle);
   void stop();
 
-  // Returns the latest telemetry value or locally extrapolated time, according
-  // to configuration.
+  // Returns the latest telemetry value or the locally extrapolated time.
   [[nodiscard]] std::uint32_t current_time();
 
  private:
@@ -50,7 +45,6 @@ class LapTimer {
     std::int64_t telemetry_timeout_us{};
     std::uint32_t last_telemetry_ms{};
     bool initialized{};
-    bool telemetry_only{};
   };
 
   static void on_telemetry_updated(const events::Event& event, void* context);

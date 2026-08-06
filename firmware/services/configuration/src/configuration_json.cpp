@@ -197,14 +197,6 @@ template <std::size_t Size>
   return uart == nullptr || parse_uart(uart, transport.uart);
 }
 
-[[nodiscard]] bool parse_lap_timer_module(const cJSON* const object,
-                                          LapTimerConfiguration& config) {
-  return valid_object(object, {"telemetry_only", "telemetry_timeout_ms"}) &&
-         read_boolean(object, "telemetry_only", config.telemetry_only) &&
-         read_integer(object, "telemetry_timeout_ms",
-                      config.telemetry_timeout_ms);
-}
-
 [[nodiscard]] bool parse_delta_time_module(const cJSON* const object,
                                             DeltaTimeConfiguration& config) {
   if (!valid_object(object,
@@ -237,14 +229,6 @@ template <std::size_t Size>
           read_integer(scale, "range_ms", config.scale.range_ms));
 }
 
-[[nodiscard]] bool parse_lap_timer_widget(
-    const cJSON* const object, LapTimerWidgetConfiguration& config) {
-  return valid_object(object, {"placement", "font", "text_color"}) &&
-         parse_optional_placement(object, config.placement) &&
-         parse_optional_font(object, config.font) &&
-         read_color(object, "text_color", config.text_color);
-}
-
 [[nodiscard]] bool parse_delta_time_widget(
     const cJSON* const object, DeltaTimeWidgetConfiguration& config) {
   if (!valid_object(object, {"placement", "font", "faster_color",
@@ -269,12 +253,61 @@ template <std::size_t Size>
 
 [[nodiscard]] bool parse_text_widget(
     const cJSON* const object, TextWidgetConfiguration& config) {
-  if (!valid_object(object, {"binding", "placement", "padding", "border",
-                             "title", "value", "background_color"}) ||
+  if (!valid_object(object, {"binding", "modifiers", "transform", "placement",
+                             "padding", "border", "title", "value",
+                             "background_color"}) ||
       !read_text(object, "binding", config.binding) ||
       !parse_optional_placement(object, config.placement) ||
       !read_color(object, "background_color", config.background_color)) {
     return false;
+  }
+  const cJSON* const transform = member(object, "transform");
+  if (transform != nullptr) {
+    if (!valid_object(transform, {"type", "format", "prefix", "suffix"}) ||
+        !read_text(transform, "prefix", config.transform.time.prefix) ||
+        !read_text(transform, "suffix", config.transform.time.suffix)) {
+      return false;
+    }
+    const cJSON* const type = member(transform, "type");
+    const cJSON* const format = member(transform, "format");
+    if (!cJSON_IsString(type) || type->valuestring == nullptr ||
+        std::string_view{type->valuestring} != "time" ||
+        !cJSON_IsString(format) || format->valuestring == nullptr) {
+      return false;
+    }
+    const std::string_view format_value{format->valuestring};
+    if (format_value == "duration_ms") {
+      config.transform.time.format =
+          transformers::time_transform::Format::duration_ms;
+    } else if (format_value == "signed_duration_ms") {
+      config.transform.time.format =
+          transformers::time_transform::Format::signed_duration_ms;
+    } else {
+      return false;
+    }
+    config.transform.type = ValueTransformType::time;
+  }
+  const cJSON* const modifiers = member(object, "modifiers");
+  if (modifiers != nullptr) {
+    if (!cJSON_IsArray(modifiers) ||
+        cJSON_GetArraySize(modifiers) >
+            static_cast<int>(config.modifiers.size())) {
+      return false;
+    }
+    const int count = cJSON_GetArraySize(modifiers);
+    for (int index = 0; index < count; ++index) {
+      const cJSON* const modifier = cJSON_GetArrayItem(modifiers, index);
+      if (!valid_object(modifier, {"type"})) {
+        return false;
+      }
+      const cJSON* const type = member(modifier, "type");
+      if (!cJSON_IsString(type) || type->valuestring == nullptr ||
+          std::string_view{type->valuestring} != "lap_timer") {
+        return false;
+      }
+      config.modifiers[index].type = ValueModifierType::lap_timer;
+    }
+    config.modifier_count = static_cast<std::uint8_t>(count);
   }
   const cJSON* const padding = member(object, "padding");
   if (padding != nullptr &&
@@ -335,15 +368,8 @@ template <std::size_t Size>
 
 [[nodiscard]] bool parse_widgets(const cJSON* const object,
                                  DashboardConfiguration& dashboard) {
-  if (!valid_object(object, {"lap_timer", "delta_time", "text"})) {
+  if (!valid_object(object, {"delta_time", "text"})) {
     return false;
-  }
-  const cJSON* const lap_timer_widget = member(object, "lap_timer");
-  if (lap_timer_widget != nullptr) {
-    dashboard.lap_timer_present = true;
-    if (!parse_lap_timer_widget(lap_timer_widget, dashboard.lap_timer)) {
-      return false;
-    }
   }
   const cJSON* const delta_time_widget = member(object, "delta_time");
   if (delta_time_widget != nullptr) {
@@ -385,7 +411,7 @@ template <std::size_t Size>
     const cJSON* const root, const BoardValidationProfile& profile,
     ApplicationConfiguration& configuration) {
   if (!valid_object(root, {"board", "hardware", "telemetry_transport",
-                           "lap_timer", "delta_time", "dashboard"})) {
+                           "delta_time", "dashboard"})) {
     return ValidationError::malformed;
   }
   const cJSON* const board = member(root, "board");
@@ -410,14 +436,6 @@ template <std::size_t Size>
     }
   }
 
-  const cJSON* const lap_timer_module = member(root, "lap_timer");
-  if (lap_timer_module != nullptr) {
-    configuration.lap_timer_present = true;
-    if (!parse_lap_timer_module(lap_timer_module,
-                                configuration.lap_timer)) {
-      return ValidationError::invalid_module;
-    }
-  }
   const cJSON* const delta_time_module = member(root, "delta_time");
   if (delta_time_module != nullptr) {
     configuration.delta_time_present = true;

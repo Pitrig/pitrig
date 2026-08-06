@@ -13,15 +13,15 @@ Bus subscription inside a non-copyable module instance. The application core
 owns module instances for the firmware lifetime and explicitly starts them.
 Stopping or destroying a started module removes its subscription.
 
-Platform widgets receive the module instance they render as an explicit
-dependency. Module instances use fixed object storage and do not require dynamic
-allocation.
+Platform composition provides module instances to the adapters that consume
+them, either a dedicated widget or a pre-bound value-pipeline callback. Module
+instances use fixed object storage and do not require dynamic allocation.
 
 ## Consequences
 
 - Module ownership and lifetime are explicit in application composition.
 - Repeated `start()` cannot silently add another subscription.
 - Modules can be instantiated independently in tests or future configurations.
-- Widgets no longer depend on hidden namespace-global module state.
-- The application must keep module instances alive for as long as their widgets
-  and Event Bus subscriptions can access them.
+- Platform adapters no longer depend on hidden namespace-global module state.
+- The application must keep module instances alive for as long as their
+  adapters and Event Bus subscriptions can access them.

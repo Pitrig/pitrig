@@ -13,6 +13,7 @@ namespace simcore::lap_timer {
 namespace {
 
 constexpr std::int64_t kMicrosecondsPerMillisecond = 1'000;
+constexpr std::int64_t kTelemetryTimeoutUs = 1'000'000;
 constexpr std::int64_t kImmediateCorrectionThresholdUs = 250'000;
 constexpr std::int64_t kCorrectionRateDivisor = 4;
 
@@ -62,16 +63,6 @@ void LapTimer::synchronize(const std::uint32_t lap_time_ms,
 
 void LapTimer::update(const std::uint32_t lap_time_ms) {
   const std::lock_guard lock(state_mutex_);
-  if (state_.telemetry_only) {
-    state_.current_time_us =
-        static_cast<std::int64_t>(lap_time_ms) *
-        kMicrosecondsPerMillisecond;
-    state_.pending_correction_us = 0;
-    state_.last_telemetry_ms = lap_time_ms;
-    state_.initialized = true;
-    return;
-  }
-
   const std::int64_t now_us = monotonic_time_us();
   if (!state_.initialized) {
     synchronize(lap_time_ms, now_us);
@@ -127,8 +118,7 @@ void LapTimer::on_telemetry_updated(const events::Event& event,
 
 bool LapTimer::start(events::EventBus& event_bus,
                      const telemetry::ITelemetryReader& reader,
-                     const telemetry::Handle telemetry_handle,
-                     const Config& config) {
+                     const telemetry::Handle telemetry_handle) {
   if (telemetry_subscription_.valid || !telemetry_handle.valid() ||
       telemetry_handle.type != telemetry::ValueType::uint32) {
     return false;
@@ -136,12 +126,7 @@ bool LapTimer::start(events::EventBus& event_bus,
   {
     const std::lock_guard lock(state_mutex_);
     state_ = {};
-    state_.telemetry_only = config.telemetry_only;
-    const std::uint32_t timeout_ms =
-        config.telemetry_timeout_ms > 0 ? config.telemetry_timeout_ms : 1'000;
-    state_.telemetry_timeout_us =
-        static_cast<std::int64_t>(timeout_ms) *
-        kMicrosecondsPerMillisecond;
+    state_.telemetry_timeout_us = kTelemetryTimeoutUs;
   }
   telemetry_reader_ = &reader;
   telemetry_handle_ = telemetry_handle;
@@ -168,9 +153,7 @@ void LapTimer::stop() {
 
 std::uint32_t LapTimer::current_time() {
   const std::lock_guard lock(state_mutex_);
-  if (!state_.telemetry_only) {
-    advance_to(monotonic_time_us());
-  }
+  advance_to(monotonic_time_us());
   const std::int64_t time_ms =
       state_.current_time_us / kMicrosecondsPerMillisecond;
   const auto result = static_cast<std::uint32_t>(

@@ -6,7 +6,6 @@
 #include "delta_time_widget.hpp"
 #include "event_bus.hpp"
 #include "font_asset_service.hpp"
-#include "lap_timer_widget.hpp"
 #include "logger.hpp"
 #include "simcore_features.hpp"
 #include "telemetry_registry.hpp"
@@ -32,8 +31,7 @@ bool dashboard_will_render_content(
   (void)configuration;
   return true;
 #else
-  return configuration.dashboard.lap_timer_present ||
-         configuration.dashboard.delta_time_present ||
+  return configuration.dashboard.delta_time_present ||
          configuration.dashboard.text_widget_count > 0;
 #endif
 }
@@ -41,13 +39,11 @@ bool dashboard_will_render_content(
 bool start_lap_timer(void* const context) {
   auto& binding = *static_cast<Modules::LapTimerBinding*>(context);
   if (binding.module == nullptr || binding.event_bus == nullptr ||
-      binding.telemetry == nullptr || binding.configuration == nullptr ||
-      binding.started == nullptr) {
+      binding.telemetry == nullptr || binding.started == nullptr) {
     return false;
   }
   *binding.started = binding.module->start(
-      *binding.event_bus, *binding.telemetry, binding.handle,
-      *binding.configuration);
+      *binding.event_bus, *binding.telemetry, binding.handle);
   if (!*binding.started) {
     log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
   }
@@ -90,6 +86,36 @@ void stop_delta_time(void* const context) {
   }
 }
 
+[[nodiscard]] bool has_lap_timer_modifier(
+    const configuration::ApplicationConfiguration& configuration) {
+  for (std::size_t widget_index = 0;
+       widget_index < configuration.dashboard.text_widget_count;
+       ++widget_index) {
+    const auto& widget = configuration.dashboard.text_widgets[widget_index];
+    for (std::size_t modifier_index = 0;
+         modifier_index < widget.modifier_count; ++modifier_index) {
+      if (widget.modifiers[modifier_index].type ==
+          configuration::ValueModifierType::lap_timer) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+[[nodiscard]] telemetry::TelemetryRead read_lap_timer_modifier(
+    void* const context) {
+  telemetry::TelemetryRead value{};
+  if (context == nullptr) {
+    return value;
+  }
+  value.handle.type = telemetry::ValueType::uint32;
+  value.value.uint32_value =
+      static_cast<lap_timer::LapTimer*>(context)->current_time();
+  value.available = true;
+  return value;
+}
+
 }  // namespace
 
 bool show_startup_screen(
@@ -121,7 +147,6 @@ bool start_modules(
       .event_bus = &event_bus,
       .telemetry = &telemetry,
       .handle = lap_time_handle,
-      .configuration = &configuration.lap_timer,
       .started = &modules.lap_timer_started,
   };
   modules.delta_time_binding = {
@@ -134,7 +159,7 @@ bool start_modules(
   };
   const bool registered =
       modules.manager.add({
-          .enabled = widgets_enabled && configuration.lap_timer_present,
+          .enabled = widgets_enabled && has_lap_timer_modifier(configuration),
           .start = &start_lap_timer,
           .stop = &stop_lap_timer,
           .context = &modules.lap_timer_binding,
@@ -185,17 +210,6 @@ bool create_dashboard(
 #endif
 
   if (!diagnostics_enabled) {
-    if (configuration.dashboard.lap_timer_present) {
-      if (!modules.lap_timer_started) {
-        log::error(kTag, "Lap Timer widget dependency is unavailable");
-        initialized = false;
-      } else if (!dashboard::lap_timer_widget::create(
-                     layout, configuration.dashboard.lap_timer,
-                     modules.lap_timer, dashboard_state.fonts)) {
-        log::error(kTag, "Failed to create Lap Timer widget");
-        initialized = false;
-      }
-    }
     if (configuration.dashboard.delta_time_present) {
       if (!modules.delta_time_started) {
         log::error(kTag, "Delta Time widget dependency is unavailable");
@@ -212,12 +226,20 @@ bool create_dashboard(
         static_cast<std::size_t>(
             configuration.dashboard.text_widget_count)};
     if (!dashboard_state.text_widget_binder.bind(
-            text_widgets, telemetry_registry)) {
-      log::error(kTag, "Failed to bind Text widgets to telemetry");
+            text_widgets, telemetry_registry, telemetry,
+            {
+                .read = modules.lap_timer_started
+                            ? &read_lap_timer_modifier
+                            : nullptr,
+                .context = modules.lap_timer_started
+                               ? static_cast<void*>(&modules.lap_timer)
+                               : nullptr,
+            })) {
+      log::error(kTag, "Failed to resolve Text widget bindings");
       initialized = false;
     } else if (!dashboard_state.text_widgets.create(
                    layout, dashboard_state.text_widget_binder.bindings(),
-                   telemetry, dashboard_state.fonts)) {
+                   dashboard_state.fonts)) {
       log::error(kTag, "Failed to create Text widgets");
       initialized = false;
     }

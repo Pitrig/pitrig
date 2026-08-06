@@ -1,9 +1,3 @@
 {
-  "board": "t_display_s3",
-  "dashboard": {
-    "widgets": {
-      "lap_timer": {},
-      "delta_time": {}
-    }
-  }
+  "board": "t_display_s3"
 }

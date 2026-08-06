@@ -223,9 +223,12 @@ Modules use components and never access hardware directly.
 
 Platform code adapts modules and components to framework-specific presentation and runtime facilities.
 
-Dashboard widgets are platform-specific UI. Lap Timer and Delta Time widgets
-render their module state. Reusable text widgets receive telemetry handles from
-a startup-only widget binder and own only bounded LVGL presentation state.
+Dashboard widgets are platform-specific UI. The Delta Time widget renders its
+module state directly. Reusable text widgets receive a pre-bound typed value
+pipeline from a startup-only widget binder and own only bounded transform
+configuration and LVGL presentation state. Stateful modifiers, including Lap
+Timer, are implemented by modules and hidden behind the pipeline callback. Pure
+transforms live under `utils/transformers` and do not depend on dashboard or LVGL.
 Widgets do not know protocol identifiers or telemetry field names and do not
 own telemetry processing, extrapolation, or correction logic.
 

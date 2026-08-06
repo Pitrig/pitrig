@@ -2,10 +2,10 @@
 
 ## Context
 
-SimCore receives both module inputs and presentation-ready telemetry over a
-board-selected serial transport. Generic text widgets must show the source
-value exactly, while Lap Timer and Delta Time still require numeric
-milliseconds.
+SimCore receives both module inputs and telemetry over a board-selected serial
+transport. Generic text widgets may show the source value exactly or apply a
+typed presentation transform. Lap Timer, Delta Time, best lap, and estimated
+lap therefore require numeric milliseconds.
 
 ## Decision
 
@@ -17,9 +17,9 @@ and `FL`.
 
 Resolve every identifier to a protocol-neutral telemetry handle once when the
 protocol is constructed. Store the exact value string for every recognized
-field. An empty value invalidates that handle. Additionally decode `L` as
-unsigned integer milliseconds and `D` as signed integer milliseconds according
-to registry metadata. Reject a non-empty `L` or `D` line when its numeric value
+field. An empty value invalidates that handle. Additionally decode `L`, `B`,
+and `P` as unsigned integer milliseconds and `D` as signed integer milliseconds
+according to registry metadata. Reject a non-empty numeric line when its value
 is invalid. Do not numerically interpret or reformat the other fields.
 
 Keep parser storage fixed. A telemetry value has 48 bytes including its null
@@ -27,8 +27,9 @@ terminator, and a complete line has a 63-byte bound.
 
 ## Consequences
 
-- SimHub controls units, precision, prefixes, suffixes, and presentation text.
-- Every text-widget instance renders the same canonical source string.
+- SimHub controls source text for text-valued fields; firmware configuration
+  controls typed formatting, prefixes, and suffixes.
+- Text-widget instances can independently format the same canonical value.
 - Lap Timer and Delta Time retain numeric behavior without coupling widgets to
   protocol parsing.
 - Parsing and state updates use fixed storage and no runtime allocation.

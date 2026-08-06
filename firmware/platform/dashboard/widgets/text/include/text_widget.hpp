@@ -14,10 +14,6 @@ using lv_obj_t = _lv_obj_t;
 struct _lv_timer_t;
 using lv_timer_t = _lv_timer_t;
 
-namespace simcore::telemetry {
-class ITelemetryReader;
-}
-
 namespace simcore::dashboard::fonts {
 class Registry;
 }
@@ -33,6 +29,8 @@ inline constexpr std::size_t kUnavailableTextCapacity =
 
 struct BoundConfig;
 
+using ValueReadCallback = telemetry::TelemetryRead (*)(void* context);
+
 using Alignment = configuration::TextAlignment;
 using Border = configuration::WidgetBorder;
 using TitleStyle = configuration::WidgetTitleStyle;
@@ -40,7 +38,7 @@ using ValueStyle = configuration::WidgetValueStyle;
 using Config = configuration::TextWidgetConfiguration;
 
 // Owns the fixed runtime state for every configured text widget. All instances
-// share one render timer and read only their pre-bound telemetry handles.
+// share one render timer and consume only pre-bound value-pipeline callbacks.
 class Collection final {
  public:
   Collection() = default;
@@ -49,12 +47,13 @@ class Collection final {
 
   [[nodiscard]] bool create(
       const Layout& layout, std::span<const BoundConfig> configurations,
-      const telemetry::ITelemetryReader& telemetry,
       const fonts::Registry& fonts);
 
  private:
   struct State {
-    telemetry::Handle binding{};
+    ValueReadCallback read{};
+    void* read_context{};
+    configuration::ValueTransform transform{};
     lv_obj_t* container{};
     lv_obj_t* caption_gap{};
     lv_obj_t* caption{};
@@ -68,10 +67,10 @@ class Collection final {
   void render();
   void clear_objects();
 
-  const telemetry::ITelemetryReader* telemetry_{};
   std::array<State, kMaximumInstances> states_{};
   std::size_t count_{};
   lv_timer_t* timer_{};
+  bool created_{};
 };
 
 }  // namespace simcore::dashboard::text_widget

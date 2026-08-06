@@ -10,9 +10,9 @@ R;<rpm text>
 S;<speed text>
 G;<gear text>
 L;<current lap milliseconds>
-B;<best lap text>
+B;<best lap milliseconds>
 D;<signed delta milliseconds>
-P;<estimated lap text>
+P;<estimated lap milliseconds>
 T;<traction-control text>
 A;<ABS text>
 BB;<brake-bias text>
@@ -21,15 +21,18 @@ FC;<average-consumption text>
 FL;<remaining-laps text>
 ```
 
-The value after the first semicolon is stored as an exact bounded UTF-8 string.
-The firmware does not add units, prefixes, suffixes, or decimal formatting for
-text widgets. Configure the desired presentation in SimHub:
+The value after the first semicolon is stored as bounded source text and, for
+typed fields, also decoded to its numeric value. Text widgets may preserve the
+source text or apply a configured transform:
 
 ```text
 R;7342
 S;182 km/h
 G;4
-P;01:42.615
+L;63231
+B;61923
+D;-237
+P;62615
 T;3
 A;2
 BB;54.0%
@@ -38,10 +41,11 @@ FC;AVG 2.6
 FL;LAPS 14.7
 ```
 
-`L` and `D` are the only fields with an additional numeric contract. They must
-contain base-10 integer milliseconds because the Lap Timer and Delta Time
-modules use their numeric values. Their original strings are still retained for
-optional text bindings.
+`L`, `B`, and `P` must contain unsigned base-10 integer milliseconds. `D` must
+contain signed base-10 integer milliseconds. Their original strings are still
+retained, while `duration_ms` and `signed_duration_ms` time transforms use the typed
+numeric values. The Lap Timer module consumes `L` and exposes its smoothly
+extrapolated `current_time` output separately from the raw telemetry slot.
 
 The identifier-to-field mapping remains private to the SimHub protocol. During
 startup, every identifier is resolved to a protocol-neutral telemetry handle,
@@ -55,9 +59,9 @@ P;
 F;
 ```
 
-Unknown identifiers, invalid `L`/`D` numbers, overlong values, and overlong
-lines are ignored. A stored value may use at most 47 UTF-8 bytes; a complete
-line may use at most 63 bytes before the newline.
+Unknown identifiers, invalid `L`/`B`/`D`/`P` numbers, overlong values, and
+overlong lines are ignored. A stored value may use at most 47 UTF-8 bytes; a
+complete line may use at most 63 bytes before the newline.
 
 Configuration control frames begin with `@SC:` and share the same serial
 connection. The configuration router consumes those frames before telemetry,

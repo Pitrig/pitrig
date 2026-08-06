@@ -2,19 +2,22 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <cstdint>
+#include <system_error>
 
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout_internal.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
-#include "telemetry_state.hpp"
+#include "time_transform.hpp"
 #include "widget_binding.hpp"
 
 namespace simcore::dashboard::text_widget {
 namespace {
 
-constexpr std::uint32_t kRenderPeriodMs = 50;
+constexpr std::uint32_t kTelemetryRenderPeriodMs = 50;
+constexpr std::uint32_t kModuleRenderPeriodMs = 16;
 
 [[nodiscard]] std::int32_t text_width(const lv_font_t* const font,
                                       const char* const text) {
@@ -57,24 +60,72 @@ void copy_text(std::array<char, DestinationSize>& destination,
   std::copy_n(source.begin(), length, destination.begin());
 }
 
+[[nodiscard]] bool source_text(
+    const telemetry::TelemetryRead& value,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  if (!value.available) {
+    return false;
+  }
+  if (value.value.source_text.front() != '\0' ||
+      value.handle.type == telemetry::ValueType::text) {
+    output = value.value.source_text;
+    return true;
+  }
+  auto result = value.handle.type == telemetry::ValueType::uint32
+                    ? std::to_chars(output.data(), output.data() + output.size() - 1,
+                                    value.value.uint32_value)
+                    : std::to_chars(output.data(), output.data() + output.size() - 1,
+                                    value.value.int32_value);
+  if (result.ec != std::errc{}) {
+    return false;
+  }
+  *result.ptr = '\0';
+  return true;
+}
+
+[[nodiscard]] bool transform_value(
+    const configuration::ValueTransform& transform,
+    const telemetry::TelemetryRead& value,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  if (!value.available) {
+    return false;
+  }
+  if (transform.type == configuration::ValueTransformType::none) {
+    return source_text(value, output);
+  }
+  if (transform.type != configuration::ValueTransformType::time) {
+    return false;
+  }
+  if (value.handle.type == telemetry::ValueType::uint32) {
+    return transformers::time_transform::apply(
+        transform.time, value.value.uint32_value, output);
+  }
+  if (value.handle.type == telemetry::ValueType::int32) {
+    return transformers::time_transform::apply(
+        transform.time, value.value.int32_value, output);
+  }
+  return false;
+}
+
 }  // namespace
 
 bool Collection::create(
     const Layout& layout,
     const std::span<const BoundConfig> configurations,
-    const telemetry::ITelemetryReader& telemetry,
     const fonts::Registry& fonts) {
   if (layout.display == nullptr ||
-      configurations.size() > states_.size() || telemetry_ != nullptr ||
+      configurations.size() > states_.size() || created_ ||
       !lvgl_port_lock(0)) {
     return false;
   }
 
-  telemetry_ = &telemetry;
+  created_ = true;
+  bool fast_updates_present{};
   for (const BoundConfig& binding : configurations) {
-    if (binding.configuration == nullptr || !binding.handle.valid()) {
+    if (binding.configuration == nullptr || binding.read == nullptr ||
+        binding.read_context == nullptr) {
       clear_objects();
-      telemetry_ = nullptr;
+      created_ = false;
       lvgl_port_unlock();
       return false;
     }
@@ -83,7 +134,7 @@ bool Collection::create(
     const lv_font_t* const value_font = fonts.resolve(config.value.font);
     if (title_font == nullptr || value_font == nullptr) {
       clear_objects();
-      telemetry_ = nullptr;
+      created_ = false;
       lvgl_port_unlock();
       return false;
     }
@@ -121,7 +172,10 @@ bool Collection::create(
     }
 
     State& state = states_[count_];
-    state.binding = binding.handle;
+    state.read = binding.read;
+    state.read_context = binding.read_context;
+    state.transform = config.transform;
+    fast_updates_present = fast_updates_present || binding.fast_updates;
     copy_text(state.unavailable_text, config.value.unavailable_text);
     state.container = lv_obj_create(parent);
     lv_obj_remove_style_all(state.container);
@@ -206,10 +260,14 @@ bool Collection::create(
 
   render();
   if (count_ > 0) {
-    timer_ = lv_timer_create(update, kRenderPeriodMs, this);
+    timer_ = lv_timer_create(
+        update,
+        fast_updates_present ? kModuleRenderPeriodMs
+                             : kTelemetryRenderPeriodMs,
+        this);
     if (timer_ == nullptr) {
       clear_objects();
-      telemetry_ = nullptr;
+      created_ = false;
       lvgl_port_unlock();
       return false;
     }
@@ -228,16 +286,14 @@ void Collection::update(lv_timer_t* const timer) {
 }
 
 void Collection::render() {
-  if (telemetry_ == nullptr) {
+  if (!created_) {
     return;
   }
   for (std::size_t index = 0; index < count_; ++index) {
     State& state = states_[index];
     std::array<char, telemetry::kTelemetryTextCapacity> next{};
-    const telemetry::TelemetryRead value = telemetry_->read(state.binding);
-    if (value.available) {
-      next = value.value.source_text;
-    } else {
+    const telemetry::TelemetryRead value = state.read(state.read_context);
+    if (!transform_value(state.transform, value, next)) {
       next = state.unavailable_text;
     }
 
@@ -271,6 +327,7 @@ void Collection::clear_objects() {
     state = {};
   }
   count_ = 0;
+  created_ = false;
 }
 
 }  // namespace simcore::dashboard::text_widget

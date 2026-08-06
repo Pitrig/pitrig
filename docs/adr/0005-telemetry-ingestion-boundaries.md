@@ -52,7 +52,7 @@ store handles and never know source identifiers, SimHub, or canonical names.
 - Name lookup, binding validation, and type validation happen during startup.
 - Update and rendering paths use fixed storage without runtime allocation.
 - Events are not limited by a 32-bit field mask.
-- Generic widgets can retain source formatting while modules consume numeric
-  canonical values.
+- Generic widgets can retain bounded source text or apply a compatible typed
+  transform while modules consume numeric canonical values.
 - Multi-field coherent reads would require an explicit read transaction if a
   future module needs them; the current modules consume one handle each.
