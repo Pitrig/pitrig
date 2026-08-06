@@ -10,6 +10,7 @@ import type {
 interface DeviceStore {
   status: DeviceStatus
   session?: DeviceSession
+  connectionRevision: number
   activeConfigurationJson: string
   draftConfigurationJson: string
   pendingConfiguration?: DeviceConfiguration
@@ -23,6 +24,7 @@ interface DeviceStore {
 
 export const useDeviceStore = create<DeviceStore>((set) => ({
   status: 'disconnected',
+  connectionRevision: 0,
   activeConfigurationJson: '',
   draftConfigurationJson: '',
   rebootRequired: false,
@@ -57,6 +59,8 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       return {
         status: state.status,
         session: state.session,
+        connectionRevision:
+          current.connectionRevision + (current.status === 'connected' ? 0 : 1),
         activeConfigurationJson,
         draftConfigurationJson: activeConfigurationJson,
         pendingConfiguration: undefined,

@@ -11,6 +11,7 @@ interface FontAssetsStore {
   setProgress: (progress: FontUploadProgress) => void
   setError: (error?: string) => void
   beginOperation: () => void
+  resetOperation: () => void
 }
 
 export const useFontAssetsStore = create<FontAssetsStore>((set) => ({
@@ -24,5 +25,6 @@ export const useFontAssetsStore = create<FontAssetsStore>((set) => ({
     ...(progress.stage === 'error' ? {} : { error: undefined })
   }),
   setError: (error) => set({ error }),
-  beginOperation: () => set({ progress: undefined, error: undefined, operationStartedAt: Date.now() })
+  beginOperation: () => set({ progress: undefined, error: undefined, operationStartedAt: Date.now() }),
+  resetOperation: () => set({ progress: undefined, error: undefined, operationStartedAt: undefined })
 }))

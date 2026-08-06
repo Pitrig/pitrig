@@ -89,6 +89,9 @@ back to a valid schema 2 slot or the board-only factory configuration.
 - The configurator derives the target package from configuration dependencies,
   asks for one source per family, generates every required size, uploads the
   complete package, and only then saves the configuration.
+- Every device connection performs a fresh configuration and font manifest
+  probe. Reconnecting clears transient validation and upload feedback before
+  the configurator evaluates the newly reported device state.
 - Firmware still validates identifier syntax, sizes, manifest bounds, and
   checksums; configurator validation does not replace the device trust
   boundary.

@@ -13,6 +13,7 @@ export function App(): React.JSX.Element {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [deviceStatusText, setDeviceStatusText] = useState<string>()
   const deviceSession = useDeviceStore((state) => state.session)
+  const connectionRevision = useDeviceStore((state) => state.connectionRevision)
 
   useEffect(() => {
     void window.simcore.getAppInfo().then(setAppInfo)
@@ -30,9 +31,9 @@ export function App(): React.JSX.Element {
 
       <main className="grid min-h-0 overflow-hidden grid-cols-[24rem_minmax(0,1fr)_18rem]">
         <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-r p-3">
-          <ConfigurationPanel />
+          <ConfigurationPanel key={`configuration-${connectionRevision}`} />
           <div className="mt-3">
-            <FontAssetsPanel />
+            <FontAssetsPanel key={`fonts-${connectionRevision}`} />
           </div>
         </aside>
 
