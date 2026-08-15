@@ -57,6 +57,15 @@ class Collection final {
   }
   void destroy();
 
+  // Rebuilds one widget in place, leaving its siblings and the shared render
+  // timer untouched. Used when a configuration replacement changed only this
+  // widget. Returns false if the widget cannot be built, in which case its slot
+  // is left empty rather than half-built.
+  [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
+                              const Config& configuration,
+                              const BoundConfig& binding,
+                              const fonts::Registry& fonts);
+
  private:
   struct State {
     ValueReadCallback read{};
@@ -66,6 +75,10 @@ class Collection final {
     lv_obj_t* caption_gap{};
     lv_obj_t* caption{};
     lv_obj_t* value_label{};
+    // LVGL keeps the pointer a static label is given, so the view owns the
+    // caption bytes. Pointing at the configuration document would leave the
+    // label reading a buffer that a later replacement overwrites.
+    std::array<char, kTitleCapacity> title_text{};
     std::array<char, telemetry::kTelemetryTextCapacity> unavailable_text{};
     std::array<char, telemetry::kTelemetryTextCapacity> displayed_text{};
     // Telemetry revision and availability last turned into displayed text.
@@ -79,7 +92,13 @@ class Collection final {
 
   static void update(lv_timer_t* timer);
   void render();
+  void render_state(State& state);
   void clear_objects();
+  void release(State& state);
+  [[nodiscard]] bool build(State& state, const Layout& layout,
+                           const Config& configuration,
+                           const BoundConfig& binding,
+                           const fonts::Registry& fonts);
 
   std::array<State, kMaximumInstances> states_{};
   std::size_t count_{};

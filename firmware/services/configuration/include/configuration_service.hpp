@@ -58,6 +58,19 @@ class ConfigurationService {
       std::span<const std::uint8_t> payload);
   [[nodiscard]] bool reset();
 
+  // Runtime application without persistence. `stage` parses and validates a
+  // replacement into the inactive document, leaving the active one and flash
+  // untouched, so a caller can inspect the candidate before committing to it.
+  // `promote` then makes it active; `revert` undoes a promotion. Both are a
+  // pointer swap, so no consumer can observe a partially written document.
+  [[nodiscard]] ValidationFailure stage(
+      std::span<const std::uint8_t> payload);
+  [[nodiscard]] const ApplicationConfiguration& staged() const {
+    return *scratch_;
+  }
+  void promote();
+  void revert();
+
  private:
   static constexpr std::uint32_t kRecordMagic = 0x53434647;
   static constexpr std::uint16_t kRecordVersion = 1;

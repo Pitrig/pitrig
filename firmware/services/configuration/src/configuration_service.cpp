@@ -216,6 +216,19 @@ bool ConfigurationService::build_record(
   return true;
 }
 
+ValidationFailure ConfigurationService::stage(
+    const std::span<const std::uint8_t> payload) {
+  return parse_configuration_json(payload, validation_profile_, (*scratch_));
+}
+
+void ConfigurationService::promote() {
+  promote_scratch();
+}
+
+void ConfigurationService::revert() {
+  promote_scratch();
+}
+
 void ConfigurationService::promote_scratch() {
   std::swap(active_, scratch_);
 }

@@ -24,10 +24,18 @@ class ConfigurationControl {
 
   ~ConfigurationControl();
 
+  // Applies a validated replacement to the running composition. It owns the
+  // whole sequence — stage, check composability, promote, recompose, revert on
+  // failure — because only the application composition can see every piece.
+  using ApplyHandler = ValidationFailure (*)(
+      std::span<const std::uint8_t> payload, void* context);
+
   [[nodiscard]] bool initialize(ConfigurationService& service,
                                 transport::ITransport& transport,
                                 RebootHandler reboot_handler,
                                 void* reboot_context,
+                                ApplyHandler apply_handler,
+                                void* apply_context,
                                 std::span<std::uint8_t> io_buffer);
   void stop();
 
@@ -55,6 +63,8 @@ class ConfigurationControl {
   ConfigurationService* service_{};
   transport::ITransport* transport_{};
   RebootHandler reboot_handler_{};
+  ApplyHandler apply_handler_{};
+  void* apply_context_{};
   void* reboot_context_{};
   TaskHandle_t task_{};
   StaticTask_t task_state_{};

@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 #include "application_configuration.hpp"
 #include "boot_splash.hpp"
@@ -96,6 +97,26 @@ lv_obj_t* text_widget_root(void* const context, const std::uint8_t index) {
   return static_cast<TextWidgets*>(context)->collection.root_object(index);
 }
 
+bool update_text_widget(void* const context, const std::uint8_t index) {
+  auto& widgets = *static_cast<TextWidgets*>(context);
+  const std::span configurations{
+      widgets.screen->text_widgets.data(),
+      static_cast<std::size_t>(widgets.screen->text_widget_count)};
+  if (index >= configurations.size()) {
+    return false;
+  }
+  // Re-resolving every binding is pure computation over a bounded array and no
+  // LVGL work, so it is cheaper than tracking which binding changed.
+  if (!widgets.binder.bind(configurations, *widgets.registry, *widgets.telemetry,
+                           widgets.lap_timer_modifier)) {
+    return false;
+  }
+  return widgets.collection.recreate(index, widgets.layout,
+                                     configurations[index],
+                                     widgets.binder.bindings()[index],
+                                     *widgets.fonts);
+}
+
 bool create_delta_time_widget(void* const context) {
   auto& widgets = *static_cast<DeltaTimeWidgets*>(context);
   if (widgets.module == nullptr) {
@@ -118,6 +139,14 @@ void destroy_delta_time_widget(void* const context) {
 lv_obj_t* delta_time_widget_root(void* const context, const std::uint8_t index) {
   return index == 0 ? static_cast<DeltaTimeWidgets*>(context)->view.root_object()
                     : nullptr;
+}
+
+bool update_delta_time_widget(void* const context, const std::uint8_t index) {
+  if (index != 0) {
+    return false;
+  }
+  static_cast<DeltaTimeWidgets*>(context)->view.destroy();
+  return create_delta_time_widget(context);
 }
 
 struct WidgetLayer {
@@ -256,6 +285,7 @@ bool create(lv_display_t* const display,
             .create = &create_text_widgets,
             .destroy = &destroy_text_widgets,
             .root_object = &text_widget_root,
+            .update_instance = &update_text_widget,
             .context = &dashboard_state.text,
         }) &&
         dashboard_state.widgets.add({
@@ -264,6 +294,7 @@ bool create(lv_display_t* const display,
             .create = &create_delta_time_widget,
             .destroy = &destroy_delta_time_widget,
             .root_object = &delta_time_widget_root,
+            .update_instance = &update_delta_time_widget,
             .context = &dashboard_state.delta_time,
         });
     if (!registered) {
@@ -287,6 +318,99 @@ bool create(lv_display_t* const display,
   (void)telemetry_transport;
 #endif
   return initialized;
+}
+
+// Widget configurations are trivially copyable aggregates, so a byte compare is
+// an exact change test. Padding can only produce a false "changed", which costs
+// one extra rebuild; it can never produce a false "unchanged".
+template <typename Widget>
+bool widget_changed(const Widget& left, const Widget& right) {
+  return std::memcmp(&left, &right, sizeof(Widget)) != 0;
+}
+
+bool fonts_available(
+    const configuration::ApplicationConfiguration& configuration,
+    const dashboard::fonts::Registry& fonts) {
+  const configuration::ScreenConfiguration& screen =
+      active_screen(configuration);
+  for (std::size_t index = 0; index < screen.widget_count; ++index) {
+    const configuration::WidgetReference& reference = screen.widgets[index];
+    switch (reference.type) {
+      case configuration::WidgetType::text: {
+        const auto& widget = screen.text_widgets[reference.index];
+        if (fonts.resolve(widget.value.font) == nullptr) {
+          return false;
+        }
+        if (widget.title.text.front() != '\0' &&
+            fonts.resolve(widget.title.font) == nullptr) {
+          return false;
+        }
+        break;
+      }
+      case configuration::WidgetType::delta_time:
+        if (fonts.resolve(screen.delta_time_widgets[reference.index].font) ==
+            nullptr) {
+          return false;
+        }
+        break;
+    }
+  }
+  return true;
+}
+
+bool apply_incremental(
+    const configuration::ApplicationConfiguration& previous,
+    const configuration::ApplicationConfiguration& next, Dashboard& dashboard) {
+  const configuration::ScreenConfiguration& before = active_screen(previous);
+  const configuration::ScreenConfiguration& after = active_screen(next);
+
+  // A different widget set, order, or storage layout is structural: the
+  // reference table carries type, storage index, and the z_index ordering key,
+  // so an equal table means compositing cannot have changed either.
+  if (previous.dashboard.screen_count != next.dashboard.screen_count ||
+      before.widget_count != after.widget_count ||
+      before.text_widget_count != after.text_widget_count ||
+      before.delta_time_widget_count != after.delta_time_widget_count ||
+      std::memcmp(before.widgets.data(), after.widgets.data(),
+                  after.widget_count *
+                      sizeof(configuration::WidgetReference)) != 0) {
+    return false;
+  }
+
+  // Widget contexts point into the document that was active when they were
+  // built. Promotion swapped that out, so repoint them before rebuilding.
+  dashboard.text.screen = &after;
+  dashboard.delta_time.screen = &after;
+
+  if (before.background_color != after.background_color) {
+    if (!lvgl_port_lock(0)) {
+      return false;
+    }
+    lv_obj_set_style_bg_color(dashboard.text.layout.screen,
+                              lv_color_hex(after.background_color),
+                              LV_PART_MAIN);
+    lvgl_port_unlock();
+  }
+
+  for (std::size_t index = 0; index < after.widget_count; ++index) {
+    const configuration::WidgetReference& reference = after.widgets[index];
+    const bool changed =
+        reference.type == configuration::WidgetType::text
+            ? widget_changed(before.text_widgets[reference.index],
+                             after.text_widgets[reference.index])
+            : widget_changed(before.delta_time_widgets[reference.index],
+                             after.delta_time_widgets[reference.index]);
+    if (!changed) {
+      continue;
+    }
+    if (!dashboard.widgets.update_instance(reference.type, reference.index)) {
+      return false;
+    }
+  }
+
+  // Rebuilt widgets are new LVGL children, so they sit on top until the
+  // configured order is applied again.
+  return apply_widget_z_order(next, dashboard);
 }
 
 void destroy(Dashboard& dashboard) {

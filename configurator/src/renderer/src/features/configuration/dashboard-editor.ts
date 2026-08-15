@@ -11,6 +11,7 @@ import {
 } from '../../../../shared/configuration-schema'
 import type {
   DeltaTimeWidgetConfiguration,
+  FontSpec,
   ScreenConfiguration,
   TextWidgetConfiguration,
   WidgetConfiguration,
@@ -119,10 +120,13 @@ function ensureScreen(configuration: DeviceConfiguration): ScreenConfiguration {
   return created
 }
 
-export function addTextWidget(display: {
-  width: number
-  height: number
-}): WidgetSelection | undefined {
+// A widget with no font is rejected by the device as a whole-document error,
+// so a newly added one adopts an installed font when the board has any. Without
+// fonts installed it is created bare and the validator explains why.
+export function addTextWidget(
+  display: { width: number; height: number },
+  font?: FontSpec
+): WidgetSelection | undefined {
   let added: WidgetSelection | undefined
   mutateDraftConfiguration((configuration) => {
     const screen = ensureScreen(configuration)
@@ -136,6 +140,7 @@ export function addTextWidget(display: {
     const widget: TextWidgetConfiguration = {
       type: 'text',
       id: createWidgetId(),
+      ...(font ? { value: { font } } : {}),
       placement: {
         x: Math.floor((display.width - width) / 2),
         y: Math.floor((display.height - height) / 2),
@@ -149,10 +154,10 @@ export function addTextWidget(display: {
   return added
 }
 
-export function addDeltaTimeWidget(display: {
-  width: number
-  height: number
-}): WidgetSelection | undefined {
+export function addDeltaTimeWidget(
+  display: { width: number; height: number },
+  font?: FontSpec
+): WidgetSelection | undefined {
   let added: WidgetSelection | undefined
   mutateDraftConfiguration((configuration) => {
     const screen = ensureScreen(configuration)
@@ -164,6 +169,7 @@ export function addDeltaTimeWidget(display: {
     const widget: DeltaTimeWidgetConfiguration = {
       type: 'delta_time',
       id: createWidgetId(),
+      ...(font ? { font } : {}),
       placement: {
         x: Math.floor((display.width - width) / 2),
         y: Math.floor((display.height - height) / 2),

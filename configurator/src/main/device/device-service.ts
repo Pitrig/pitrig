@@ -5,6 +5,7 @@ import {
   AUTOMATIC_BAUD_RATES,
   type DeviceConfiguration,
   type DeviceConfigurationResetResult,
+  type DeviceConfigurationApplyResult,
   type DeviceConfigurationSaveResult,
   type DeviceConnection,
   type DeviceError,
@@ -31,6 +32,7 @@ import {
   readConfiguration,
   requestResponse,
   resetConfiguration,
+  applyConfiguration,
   saveConfiguration,
   validateConfiguration
 } from './simcore-protocol'
@@ -261,6 +263,31 @@ export class DeviceService {
         this.operationTraffic(active.value.traffic)
       )
       return success(prepared.value.configuration)
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
+
+  // Live apply competes with nothing: it is rejected while another device
+  // operation holds the lock rather than queued, because the caller sends a
+  // fresh document moments later anyway.
+  async applyConfiguration(
+    json: string
+  ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    const prepared = this.prepareConfiguration(json, active.value.session)
+    if (!prepared.ok) return prepared
+    this.deviceOperationActive = true
+    try {
+      await applyConfiguration(
+        active.value.port,
+        prepared.value.payload,
+        this.operationTraffic(active.value.traffic)
+      )
+      return success({ configuration: prepared.value.configuration })
     } catch (error) {
       return failure(toDeviceError(error))
     } finally {

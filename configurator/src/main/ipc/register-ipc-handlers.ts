@@ -16,6 +16,7 @@ import {
   DEVICE_CONNECT_CHANNEL,
   DEVICE_CONFIGURATION_READ_CHANNEL,
   DEVICE_CONFIGURATION_RESET_CHANNEL,
+  DEVICE_CONFIGURATION_APPLY_CHANNEL,
   DEVICE_CONFIGURATION_SAVE_CHANNEL,
   DEVICE_CONFIGURATION_VALIDATE_CHANNEL,
   DEVICE_DISCONNECT_CHANNEL,
@@ -94,6 +95,12 @@ export function registerIpcHandlers(
       return invalidConfigurationRequest()
     }
     return deviceService.validateConfiguration(request.json)
+  })
+  ipcMain.handle(DEVICE_CONFIGURATION_APPLY_CHANNEL, async (_event, request: unknown) => {
+    if (!isConfigurationRequest(request)) {
+      return invalidConfigurationRequest()
+    }
+    return deviceService.applyConfiguration(request.json)
   })
   ipcMain.handle(DEVICE_CONFIGURATION_SAVE_CHANNEL, (_event, request: unknown) => {
     if (!isConfigurationRequest(request)) {

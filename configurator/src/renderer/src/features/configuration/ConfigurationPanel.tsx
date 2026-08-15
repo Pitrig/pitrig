@@ -15,6 +15,7 @@ import {
   type ValidationResult
 } from '../../../../shared/configuration-validate'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
+import { useLiveApply, type LiveApplyState } from '@/features/device/use-live-apply'
 import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
 import {
   collectFontRequirements,
@@ -34,7 +35,6 @@ type Operation =
   | 'load_file'
   | 'save_file'
   | 'read'
-  | 'validate'
   | 'save'
   | 'reset'
   | 'reboot'
@@ -57,11 +57,11 @@ export function ConfigurationPanel(): React.JSX.Element {
   const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
   const rebootRequired = useDeviceStore((state) => state.rebootRequired)
   const setRawDraft = useDeviceStore((state) => state.setRawDraft)
-  const setDraft = useDeviceStore((state) => state.setDraft)
   const replaceLocalDraft = useDeviceStore((state) => state.replaceLocalDraft)
   const reloadDraft = useDeviceStore((state) => state.reloadDraft)
   const markSaved = useDeviceStore((state) => state.markConfigurationSaved)
   const markReset = useDeviceStore((state) => state.markConfigurationReset)
+  const [liveApply, setLiveApply] = useState<LiveApplyState>({ pending: false })
   const [operation, setOperation] = useState<Operation>('idle')
   const [feedback, setFeedback] = useState<Feedback>()
   const [offlineBoard, setOfflineBoard] = useState<SimCoreBoardId | ''>('')
@@ -88,6 +88,13 @@ export function ConfigurationPanel(): React.JSX.Element {
   const boardMismatch = parsed.ok && session
     ? parsed.configuration.board !== session.info.boardId
     : false
+  // Live apply runs only when the device could accept the document anyway:
+  // connected, matching board, valid draft, and no other operation in flight.
+  useLiveApply(
+    connected && !busy && parsed.ok && !boardMismatch,
+    setLiveApply
+  )
+
   const saveBlockedReason = !connected
     ? 'Connect a SimCore board before saving.'
     : boardMismatch
@@ -196,21 +203,6 @@ export function ConfigurationPanel(): React.JSX.Element {
       }
       return 'Active configuration read from the board.'
     })
-  }
-
-  const validate = async (): Promise<void> => {
-    if (!parsed.ok) {
-      setFeedback({ kind: 'error', message: parsed.error })
-      return
-    }
-    await run(
-      'validate',
-      () => window.simcore.validateDeviceConfiguration({ json: draftJson }),
-      (configuration) => {
-        setDraft(configuration)
-        return 'Firmware accepted the configuration.'
-      }
-    )
   }
 
   const save = async (): Promise<void> => {
@@ -391,6 +383,20 @@ export function ConfigurationPanel(): React.JSX.Element {
           <span>{MAXIMUM_CONFIGURATION_PAYLOAD_SIZE} bytes maximum</span>
         </div>
 
+        {connected && (liveApply.pending || liveApply.error) ? (
+          <p
+            className={
+              liveApply.error
+                ? 'rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-300'
+                : 'rounded-md border p-2 text-xs text-muted-foreground'
+            }
+          >
+            {liveApply.error
+              ? `Live preview failed: ${liveApply.error}`
+              : 'Applying to the board…'}
+          </p>
+        ) : null}
+
         {feedback ? (
           <p
             className={
@@ -406,9 +412,6 @@ export function ConfigurationPanel(): React.JSX.Element {
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" disabled={!connected || busy} onClick={() => void read()}>
             {operation === 'read' ? 'Reading…' : 'Reload board'}
-          </Button>
-          <Button variant="outline" disabled={!connected || busy} onClick={() => void validate()}>
-            {operation === 'validate' ? 'Validating…' : 'Validate'}
           </Button>
           <Button
             disabled={busy || saveBlockedReason !== undefined}

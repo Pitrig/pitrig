@@ -15,6 +15,7 @@ export const DEVICE_DISCONNECT_CHANNEL = 'device:disconnect' as const
 export const DEVICE_REBOOT_CHANNEL = 'device:reboot' as const
 export const DEVICE_CONFIGURATION_READ_CHANNEL = 'device:configuration:read' as const
 export const DEVICE_CONFIGURATION_VALIDATE_CHANNEL = 'device:configuration:validate' as const
+export const DEVICE_CONFIGURATION_APPLY_CHANNEL = 'device:configuration:apply' as const
 export const DEVICE_CONFIGURATION_SAVE_CHANNEL = 'device:configuration:save' as const
 export const DEVICE_CONFIGURATION_RESET_CHANNEL = 'device:configuration:reset' as const
 export const DEVICE_STATE_CHANGED_CHANNEL = 'device:state-changed' as const
@@ -162,6 +163,12 @@ export interface ConnectDeviceRequest {
 
 export interface DeviceConfigurationRequest {
   json: string
+}
+
+// Applying changes only what the device is rendering. Flash is untouched, so a
+// restart returns to the last saved configuration.
+export interface DeviceConfigurationApplyResult {
+  configuration: DeviceConfiguration
 }
 
 export interface DeviceConfigurationSaveResult {

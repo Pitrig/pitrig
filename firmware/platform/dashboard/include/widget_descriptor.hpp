@@ -17,6 +17,10 @@ using WidgetDestroy = void (*)(void* context);
 // in the typed storage the screen owns. Returns nullptr when that instance does
 // not exist.
 using WidgetRootObject = lv_obj_t* (*)(void* context, std::uint8_t index);
+// Rebuilds one instance in place after its configuration changed, leaving the
+// other instances of this type untouched. Returns false when the type cannot
+// update that instance, and the caller falls back to a full recomposition.
+using WidgetUpdateInstance = bool (*)(void* context, std::uint8_t index);
 
 // One descriptor per widget type, mirroring the compile-time module descriptors
 // in core/module_manager: function pointers plus an explicit context, no
@@ -29,6 +33,7 @@ struct WidgetDescriptor {
   WidgetCreate create{};
   WidgetDestroy destroy{};
   WidgetRootObject root_object{};
+  WidgetUpdateInstance update_instance{};
   void* context{};
 };
 
@@ -51,6 +56,8 @@ class WidgetManager final {
 
   [[nodiscard]] lv_obj_t* root_object(configuration::WidgetType type,
                                       std::uint8_t index) const;
+  [[nodiscard]] bool update_instance(configuration::WidgetType type,
+                                     std::uint8_t index) const;
 
  private:
   struct Entry {

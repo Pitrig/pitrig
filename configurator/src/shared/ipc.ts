@@ -1,5 +1,6 @@
 import type {
   ConnectDeviceRequest,
+  DeviceConfigurationApplyResult,
   DeviceConfigurationRequest,
   DeviceConfigurationResetResult,
   DeviceConfigurationSaveResult,
@@ -53,6 +54,9 @@ export interface SimCoreApi {
   validateDeviceConfiguration: (
     request: DeviceConfigurationRequest
   ) => Promise<DeviceResult<DeviceConfiguration>>
+  applyDeviceConfiguration: (
+    request: DeviceConfigurationRequest
+  ) => Promise<DeviceResult<DeviceConfigurationApplyResult>>
   saveDeviceConfiguration: (
     request: DeviceConfigurationRequest
   ) => Promise<DeviceResult<DeviceConfigurationSaveResult>>

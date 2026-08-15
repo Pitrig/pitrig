@@ -9,7 +9,7 @@ WidgetManager::~WidgetManager() {
 bool WidgetManager::add(const WidgetDescriptor& descriptor) {
   if (count_ == entries_.size() || descriptor.create == nullptr ||
       descriptor.destroy == nullptr || descriptor.root_object == nullptr ||
-      descriptor.context == nullptr) {
+      descriptor.update_instance == nullptr || descriptor.context == nullptr) {
     return false;
   }
   entries_[count_++].descriptor = descriptor;
@@ -56,6 +56,18 @@ lv_obj_t* WidgetManager::root_object(const configuration::WidgetType type,
     }
   }
   return nullptr;
+}
+
+bool WidgetManager::update_instance(const configuration::WidgetType type,
+                                    const std::uint8_t index) const {
+  for (std::size_t entry = 0; entry < count_; ++entry) {
+    const Entry& candidate = entries_[entry];
+    if (candidate.created && candidate.descriptor.type == type) {
+      return candidate.descriptor.update_instance(candidate.descriptor.context,
+                                                  index);
+    }
+  }
+  return false;
 }
 
 }  // namespace simcore::dashboard

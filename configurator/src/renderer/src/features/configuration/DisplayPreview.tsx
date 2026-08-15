@@ -39,7 +39,10 @@ export function DisplayPreview(): React.JSX.Element {
     : session?.info.display
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
-  const [addOpen, setAddOpen] = useState(false)
+  const installedFont = session?.fontAssets?.assets[0]
+  const defaultFont = installedFont
+    ? { family: installedFont.family, size_px: installedFont.sizePx }
+    : undefined
   const screenWidgets = widgetsOf(activeScreen(configuration))
   const textWidgetCount = screenWidgets.filter((widget) => widget.type === 'text').length
   const hasDeltaTimeWidget = screenWidgets.some((widget) => widget.type === 'delta_time')
@@ -59,7 +62,16 @@ export function DisplayPreview(): React.JSX.Element {
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Display preview</CardTitle>
           <div className="flex gap-2">
-            <Button className="h-8 w-20" variant="outline" disabled={!configuration} onClick={() => setAddOpen(true)}>Add</Button>
+            <Button className="h-8 w-20" variant="outline" disabled={!configuration || textWidgetCount >= MAXIMUM_TEXT_WIDGETS} title={textWidgetCount >= MAXIMUM_TEXT_WIDGETS ? `Maximum of ${MAXIMUM_TEXT_WIDGETS} text widgets reached.` : undefined} onClick={() => {
+              if (!display) return
+              const added = addTextWidget(display, defaultFont)
+              if (added) select(added)
+            }}>+ Text</Button>
+            <Button className="h-8 w-20" variant="outline" disabled={!configuration || hasDeltaTimeWidget} onClick={() => {
+              if (!display) return
+              const added = addDeltaTimeWidget(display, defaultFont)
+              if (added) select(added)
+            }}>+ Delta</Button>
             <Button className="h-8 w-20" variant="outline" disabled={!selectedExists} onClick={() => {
               if (!selection || !window.confirm('Are you sure you want to delete the selected widget?')) return
               if (deleteWidget(selection)) select(undefined)
@@ -91,30 +103,6 @@ export function DisplayPreview(): React.JSX.Element {
           )}
         </div>
       </CardContent>
-      {addOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onPointerDown={() => setAddOpen(false)}>
-          <div className="w-full max-w-sm rounded-xl border bg-card p-5 shadow-2xl" onPointerDown={(event) => event.stopPropagation()}>
-            <h2 className="text-sm font-semibold">Add widget</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Choose the widget type to add.</p>
-            <div className="mt-4 space-y-2">
-              <Button className="w-full justify-start" variant="outline" disabled={textWidgetCount >= MAXIMUM_TEXT_WIDGETS} onClick={() => {
-                if (!display) return
-                const added = addTextWidget(display)
-                if (added) select(added)
-                setAddOpen(false)
-              }}>Text</Button>
-              <Button className="w-full justify-start" variant="outline" disabled={hasDeltaTimeWidget} onClick={() => {
-                if (!display) return
-                const added = addDeltaTimeWidget(display)
-                if (added) select(added)
-                setAddOpen(false)
-              }}>Delta time</Button>
-              {textWidgetCount >= MAXIMUM_TEXT_WIDGETS ? <p className="text-[11px] text-amber-400">Maximum of {MAXIMUM_TEXT_WIDGETS} text widgets reached.</p> : null}
-            </div>
-            <Button className="mt-4 w-full" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
-          </div>
-        </div>
-      ) : null}
     </Card>
   )
 }
@@ -389,17 +377,14 @@ function TextWidgetPreview({
   )
 }
 
+// The configurator has no telemetry stream, so the honest preview is what the
+// device renders while a value is unavailable: the placeholder, never a
+// zero-formatted value. Firmware applies a transform only to an available
+// value, so showing `00:00.000` here made the preview disagree with the board.
 function formattedPreviewValue(configuration: TextWidgetConfiguration): string {
-  const prefix = configuration.transform?.prefix ?? ''
-  const suffix = configuration.transform?.suffix ?? ''
-  switch (configuration.transform?.format ?? 'source_text') {
-    case 'duration_ms':
-      return `${prefix}00:00.000${suffix}`
-    case 'signed_duration_ms':
-      return `${prefix}+0.000${suffix}`
-    case 'source_text':
-      return configuration.value?.unavailable_text ?? '--'
-  }
+  // Nullish, not falsy: an absent property takes the contract default, while an
+  // explicitly empty one renders empty, exactly as the device does.
+  return configuration.value?.unavailable_text ?? '--'
 }
 
 function DeltaTimePreview({

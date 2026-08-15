@@ -1,5 +1,8 @@
 #include "simcore.hpp"
 
+#include <cstring>
+#include <span>
+
 #include "application_configuration.hpp"
 #include "board_registry.hpp"
 #include "communication_composition.hpp"
@@ -50,7 +53,85 @@ struct Application {
   module_composition::Modules modules;
   communication::Composition communication{services.telemetry_registry};
   dashboard_composition::Dashboard dashboard;
+  lv_display_t* display{};
+  transport::ITransport* telemetry_transport{};
 };
+
+// Rebuilds module lifecycle and the dashboard from the active configuration.
+bool recompose(Application& application) {
+  const configuration::ApplicationConfiguration& configuration =
+      application.services.configuration.current();
+  // Widgets read module state, so the dashboard goes away before modules are
+  // restarted and is built again afterwards.
+  dashboard_composition::destroy(application.dashboard);
+  const bool modules_started = module_composition::start(
+      application.modules, application.services.event_bus,
+      application.services.telemetry_registry,
+      application.services.telemetry_state, configuration);
+  const bool dashboard_created = dashboard_composition::create(
+      application.display, configuration, application.modules,
+      application.dashboard, application.services.font_assets,
+      application.services.telemetry_registry,
+      application.services.telemetry_state,
+      *application.telemetry_transport);
+  return modules_started && dashboard_created;
+}
+
+// Applies a replacement to the running composition. Runs on the configuration
+// control task, which may take the LVGL lock.
+//
+// The order is the one ADR 0016 requires: stage into the inactive document,
+// establish that it can actually be composed, promote, then recompose. Font
+// availability is checked before anything is torn down, because font assets are
+// installed once per boot and a rejected replacement must leave the running
+// dashboard alone.
+configuration::ValidationFailure apply_configuration(
+    const std::span<const std::uint8_t> payload, void* const context) {
+  auto& application = *static_cast<Application*>(context);
+  configuration::ConfigurationService& service =
+      application.services.configuration;
+
+  const configuration::ValidationFailure staged = service.stage(payload);
+  if (!staged.ok()) {
+    return staged;
+  }
+  if (!dashboard_composition::fonts_available(service.staged(),
+                                              application.dashboard.fonts)) {
+    return {.error = configuration::ValidationError::invalid_widget,
+            .path = {'f', 'o', 'n', 't', '\0'}};
+  }
+
+  // Anything outside the dashboard changes module lifecycle or transport, so
+  // only a dashboard-local difference can take the incremental path.
+  const configuration::ApplicationConfiguration& previous = service.current();
+  const configuration::ApplicationConfiguration& candidate = service.staged();
+  const bool dashboard_only =
+      previous.delta_time_present == candidate.delta_time_present &&
+      std::memcmp(&previous.delta_time, &candidate.delta_time,
+                  sizeof(previous.delta_time)) == 0 &&
+      previous.telemetry_transport_present ==
+          candidate.telemetry_transport_present &&
+      std::memcmp(&previous.telemetry_transport,
+                  &candidate.telemetry_transport,
+                  sizeof(previous.telemetry_transport)) == 0;
+
+  service.promote();
+  if (dashboard_only &&
+      dashboard_composition::apply_incremental(previous, candidate,
+                                               application.dashboard)) {
+    return {};
+  }
+  if (recompose(application)) {
+    return {};
+  }
+
+  // Composition failed on the new document. Put the previous one back and
+  // rebuild from it so the device is never left with a broken dashboard.
+  log::error(kTag, "Applying configuration failed; restoring the previous one");
+  service.revert();
+  (void)recompose(application);
+  return {.error = configuration::ValidationError::invalid_dashboard};
+}
 
 }
 
@@ -113,7 +194,9 @@ void run() {
 #if SIMCORE_DEBUG
   performance::begin();
 #endif
+  application.telemetry_transport = telemetry_transport;
   lv_display_t* display = display::initialize(board.display);
+  application.display = display;
   if (!dashboard_composition::show_startup_screen(display, configuration)) {
     log::warn(kTag, "Startup screen is unavailable for this display");
   }
@@ -136,7 +219,8 @@ void run() {
           application.services.configuration,
           application.services.font_assets,
           application.services.telemetry_provider, *telemetry_transport,
-          control_io_buffer, control_line_buffer)) {
+          &apply_configuration, &application, control_io_buffer,
+          control_line_buffer)) {
     log::error(kTag, "Communication composition is incomplete");
   }
 }

@@ -14,6 +14,7 @@ import {
   DEVICE_CONNECT_CHANNEL,
   DEVICE_CONFIGURATION_READ_CHANNEL,
   DEVICE_CONFIGURATION_RESET_CHANNEL,
+  DEVICE_CONFIGURATION_APPLY_CHANNEL,
   DEVICE_CONFIGURATION_SAVE_CHANNEL,
   DEVICE_CONFIGURATION_VALIDATE_CHANNEL,
   DEVICE_DISCONNECT_CHANNEL,
@@ -51,6 +52,8 @@ const api: SimCoreApi = {
   readDeviceConfiguration: () => ipcRenderer.invoke(DEVICE_CONFIGURATION_READ_CHANNEL),
   validateDeviceConfiguration: (request) =>
     ipcRenderer.invoke(DEVICE_CONFIGURATION_VALIDATE_CHANNEL, request),
+  applyDeviceConfiguration: (request) =>
+    ipcRenderer.invoke(DEVICE_CONFIGURATION_APPLY_CHANNEL, request),
   saveDeviceConfiguration: (request) =>
     ipcRenderer.invoke(DEVICE_CONFIGURATION_SAVE_CHANNEL, request),
   resetDeviceConfiguration: () => ipcRenderer.invoke(DEVICE_CONFIGURATION_RESET_CHANNEL),

@@ -87,6 +87,21 @@ export async function validateConfiguration(
   )
 }
 
+export async function applyConfiguration(
+  port: SerialPort,
+  payload: string,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    `@SC:APPLY:${payload}\n`,
+    '@SC:OK:APPLIED',
+    CONFIGURATION_TIMEOUT_MS,
+    onTraffic,
+    'configuration_rejected'
+  )
+}
+
 export async function saveConfiguration(
   port: SerialPort,
   payload: string,

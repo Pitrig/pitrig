@@ -80,6 +80,27 @@ struct Dashboard {
     const telemetry::ITelemetryReader& telemetry,
     const transport::ITransport& telemetry_transport);
 
+// Reports whether every font the configuration references is present in the
+// loaded package. Font assets are installed once per boot, so a configuration
+// needing a new family or size cannot be composed until the device restarts.
+// Checking before tearing the dashboard down keeps a rejected replacement from
+// leaving a blank screen.
+[[nodiscard]] bool fonts_available(
+    const configuration::ApplicationConfiguration& configuration,
+    const dashboard::fonts::Registry& fonts);
+
+// Applies a replacement that differs from the running document only in widget
+// properties or the screen background, rebuilding just the widgets that
+// changed. Returns false when the difference is structural — a different widget
+// set, order, or screen count — and the caller must recompose fully.
+//
+// `previous` is the document the dashboard was built from and `next` the one now
+// active, so this runs after promotion.
+[[nodiscard]] bool apply_incremental(
+    const configuration::ApplicationConfiguration& previous,
+    const configuration::ApplicationConfiguration& next,
+    Dashboard& dashboard);
+
 // Releases every LVGL object and timer the dashboard owns. The loaded font
 // registry is kept: font assets are installed once per boot.
 void destroy(Dashboard& dashboard);

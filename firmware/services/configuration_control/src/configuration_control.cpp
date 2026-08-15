@@ -22,6 +22,7 @@ ConfigurationControl::~ConfigurationControl() { stop(); }
 bool ConfigurationControl::initialize(
     ConfigurationService& service, transport::ITransport& transport,
     const RebootHandler reboot_handler, void* const reboot_context,
+    const ApplyHandler apply_handler, void* const apply_context,
     const std::span<std::uint8_t> io_buffer) {
   if (task_ != nullptr || io_buffer.size() < kIoBufferSize) {
     return false;
@@ -31,6 +32,8 @@ bool ConfigurationControl::initialize(
   transport_ = &transport;
   reboot_handler_ = reboot_handler;
   reboot_context_ = reboot_context;
+  apply_handler_ = apply_handler;
+  apply_context_ = apply_context;
   request_state_.store(RequestState::idle, std::memory_order_relaxed);
   task_ = xTaskCreateStatic(&ConfigurationControl::task_entry,
                             "configuration_control", task_stack_.size(), this,
@@ -61,6 +64,8 @@ void ConfigurationControl::stop() {
   transport_ = nullptr;
   reboot_handler_ = nullptr;
   reboot_context_ = nullptr;
+  apply_handler_ = nullptr;
+  apply_context_ = nullptr;
   io_buffer_ = {};
 }
 
@@ -133,6 +138,23 @@ void ConfigurationControl::handle(
   if (command.size() == 3 &&
       std::equal(command.begin(), command.end(), "GET")) {
     send_payload(service_->current_payload());
+    return;
+  }
+
+  constexpr std::string_view kApply = "APPLY:";
+  if (command.size() >= kApply.size() &&
+      std::equal(kApply.begin(), kApply.end(), command.begin())) {
+    if (apply_handler_ == nullptr) {
+      send_text("@SC:ERR:unsupported\n");
+      return;
+    }
+    const ValidationFailure failure =
+        apply_handler_(command.subspan(kApply.size()), apply_context_);
+    if (!failure.ok()) {
+      send_error(failure);
+      return;
+    }
+    send_text("@SC:OK:APPLIED\n");
     return;
   }
 

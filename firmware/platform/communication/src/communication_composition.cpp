@@ -26,6 +26,8 @@ bool Composition::start(
     font_assets::Service& font_assets,
     telemetry::TelemetryProvider& telemetry,
     transport::ITransport& transport,
+    const configuration::ConfigurationControl::ApplyHandler apply_handler,
+    void* const apply_context,
     const std::span<std::uint8_t> control_io_buffer,
     const std::span<std::uint8_t> control_line_buffer) {
   if (started_ || !protocol_.initialized()) {
@@ -34,7 +36,8 @@ bool Composition::start(
     return false;
   }
   if (!configuration_control_.initialize(configuration, transport, &reboot,
-                                         nullptr, control_io_buffer)) {
+                                         nullptr, apply_handler, apply_context,
+                                         control_io_buffer)) {
     log::error(kTag, "Failed to start configuration control task");
     return false;
   }
