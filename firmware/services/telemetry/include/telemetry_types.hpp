@@ -7,14 +7,16 @@
 
 namespace simcore::telemetry {
 
-inline constexpr std::size_t kMaximumFields = 16;
-inline constexpr std::size_t kTelemetryTextCapacity = 48;
+inline constexpr std::size_t kMaximumFields = 256;
+inline constexpr std::size_t kTelemetryTextCapacity = 64;
 using TextValue = std::array<char, kTelemetryTextCapacity>;
 
 enum class ValueType : std::uint8_t {
   text,
   uint32,
   int32,
+  float32,
+  boolean,
 };
 
 struct Handle {
@@ -33,10 +35,16 @@ struct Handle {
   return left.index == right.index && left.type == right.type;
 }
 
+union TypedValue {
+  std::uint32_t uint32_value{};
+  std::int32_t int32_value;
+  float float32_value;
+  bool boolean_value;
+};
+
 struct Value {
   TextValue source_text{};
-  std::uint32_t uint32_value{};
-  std::int32_t int32_value{};
+  TypedValue typed{};
 };
 
 [[nodiscard]] inline bool copy_text_value(

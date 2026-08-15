@@ -5,6 +5,12 @@ import {
   type SerialTrafficLog
 } from '../../shared/development'
 import {
+  CONFIGURATION_FILE_LOAD_CHANNEL,
+  CONFIGURATION_FILE_SAVE_CHANNEL,
+  type ConfigurationFileResult,
+  type ConfigurationFileSaveRequest
+} from '../../shared/configuration-files'
+import {
   DEVICE_AUTO_CONNECT_CHANNEL,
   DEVICE_CANCEL_AUTO_CONNECT_CHANNEL,
   DEVICE_CONNECT_CHANNEL,
@@ -37,18 +43,45 @@ import {
   type FontUploadRequest
 } from '../../shared/font-assets'
 import { APP_GET_INFO_CHANNEL, type AppInfo } from '../../shared/ipc'
+import {
+  SIMHUB_PROFILE_EXPORT_CHANNEL,
+  type SimHubProfileExportRequest,
+  type SimHubProfileResult
+} from '../../shared/simhub-profile'
 import { DeviceService } from '../device/device-service'
+import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
 import { FontAssetService } from '../font-assets/font-asset-service'
+import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 
 export function registerIpcHandlers(
   deviceService: DeviceService,
-  fontAssetService: FontAssetService
+  fontAssetService: FontAssetService,
+  simHubProfileService: SimHubProfileService,
+  configurationFileService: ConfigurationFileService
 ): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
     version: app.getVersion(),
     platform: process.platform
   }))
+  ipcMain.handle(CONFIGURATION_FILE_LOAD_CHANNEL, (event) =>
+    configurationFileService.load(
+      BrowserWindow.fromWebContents(event.sender) ?? undefined
+    )
+  )
+  ipcMain.handle(CONFIGURATION_FILE_SAVE_CHANNEL, (event, request: unknown) => {
+    if (!isConfigurationFileSaveRequest(request)) {
+      const result: ConfigurationFileResult<never> = {
+        ok: false,
+        error: { code: 'invalid_configuration', message: 'Invalid configuration file request.' }
+      }
+      return result
+    }
+    return configurationFileService.save(
+      request.json,
+      BrowserWindow.fromWebContents(event.sender) ?? undefined
+    )
+  })
   ipcMain.handle(DEVICE_LIST_PORTS_CHANNEL, () => deviceService.listPorts())
   ipcMain.handle(DEVICE_GET_STATE_CHANNEL, () => deviceService.getState())
   ipcMain.handle(DEVICE_AUTO_CONNECT_CHANNEL, () => deviceService.autoConnect())
@@ -83,6 +116,19 @@ export function registerIpcHandlers(
       return result
     }
     return fontAssetService.upload(request)
+  })
+  ipcMain.handle(SIMHUB_PROFILE_EXPORT_CHANNEL, (event, request: unknown) => {
+    if (!isSimHubProfileExportRequest(request)) {
+      const result: SimHubProfileResult<never> = {
+        ok: false,
+        error: { code: 'invalid_request', message: 'Invalid SimHub profile request.' }
+      }
+      return result
+    }
+    return simHubProfileService.export(
+      request,
+      BrowserWindow.fromWebContents(event.sender) ?? undefined
+    )
   })
   ipcMain.handle(DEVICE_CONNECT_CHANNEL, (_event, request: unknown) => {
     if (!isConnectRequest(request)) {
@@ -142,6 +188,14 @@ function isConfigurationRequest(value: unknown): value is DeviceConfigurationReq
   return typeof request.json === 'string' && request.json.length <= 64 * 1024
 }
 
+function isConfigurationFileSaveRequest(
+  value: unknown
+): value is ConfigurationFileSaveRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<ConfigurationFileSaveRequest>
+  return typeof request.json === 'string' && request.json.length <= 64 * 1024
+}
+
 function invalidConfigurationRequest(): DeviceResult<never> {
   return {
     ok: false,
@@ -167,5 +221,22 @@ function isFontAssetInput(value: unknown): value is FontAssetInput {
     typeof asset.family === 'string' && FONT_FAMILY_PATTERN.test(asset.family) &&
     typeof asset.sizePx === 'number' && Number.isInteger(asset.sizePx) &&
     asset.sizePx >= 1 && asset.sizePx <= MAXIMUM_FONT_SIZE_PX
+  )
+}
+
+function isSimHubProfileExportRequest(value: unknown): value is SimHubProfileExportRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<SimHubProfileExportRequest>
+  return (
+    Array.isArray(request.fieldNames) &&
+    request.fieldNames.length > 0 &&
+    request.fieldNames.length <= 256 &&
+    request.fieldNames.every(
+      (name) => typeof name === 'string' && name.length > 0 && name.length <= 39
+    ) &&
+    typeof request.baudRate === 'number' &&
+    Number.isInteger(request.baudRate) &&
+    request.baudRate >= 9_600 &&
+    request.baudRate <= 2_000_000
   )
 }

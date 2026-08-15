@@ -22,9 +22,18 @@ Transport -> Protocol -> TelemetryProvider -> TelemetryState
 ```
 
 The immutable telemetry registry owns canonical field metadata: protocol-neutral
-name, value type, and runtime slot. Resolving a name returns a handle containing
-the slot and type. Names are resolved only during startup; handles remain valid
-for the firmware lifetime and are never persisted.
+name, value type, and runtime slot. The checked-in
+`telemetry/telemetry_catalog.json` manifest is the source of truth for this
+bounded catalog. Generated firmware, SimHub protocol, checked-in complete
+SimHub import profile, configurator profile data, and documentation artifacts
+must agree with that manifest. The catalog contains 227 fields and reserves at
+most 256 runtime slots. Generic SimHub property mappings live in the separate
+source-specific `telemetry/simhub_generic_mappings.json` manifest.
+
+Resolving a name returns a handle containing the slot and type. Names are
+resolved only during startup; handles remain valid for the firmware lifetime
+and are never persisted. Supported value types are bounded source text,
+unsigned and signed 32-bit integers, 32-bit floating point, and boolean.
 
 Transports deliver raw bytes and know no telemetry semantics. A protocol binds
 its source identifiers to canonical handles during construction, then decodes
@@ -51,6 +60,10 @@ store handles and never know source identifiers, SimHub, or canonical names.
   changes to widgets or domain modules.
 - Name lookup, binding validation, and type validation happen during startup.
 - Update and rendering paths use fixed storage without runtime allocation.
+- The field catalog can grow only within its explicit static limit; changing
+  the limit requires an intentional RAM-budget review.
+- Catalog edits are generated and validated with
+  `python3 tools/generate_telemetry_catalog.py --check`.
 - Events are not limited by a 32-bit field mask.
 - Generic widgets can retain bounded source text or apply a compatible typed
   transform while modules consume numeric canonical values.

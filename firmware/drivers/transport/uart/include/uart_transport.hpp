@@ -19,7 +19,7 @@ struct UartConfiguration {
   uart_port_t port{UART_NUM_0};
   int tx_pin{UART_PIN_NO_CHANGE};
   int rx_pin{UART_PIN_NO_CHANGE};
-  std::uint32_t baud_rate{115'200};
+  std::uint32_t baud_rate{921'600};
   bool silence_esp_logs{};
 };
 

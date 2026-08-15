@@ -8,6 +8,7 @@ import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FontAssetsPanel } from '@/features/font-assets/FontAssetsPanel'
+import { SimHubProfilePanel } from '@/features/simhub/SimHubProfilePanel'
 import type { DeviceSession } from '../../../shared/device'
 import type { AppInfo } from '../../../shared/ipc'
 
@@ -34,6 +35,7 @@ export function App(): React.JSX.Element {
       <main className="grid min-h-0 overflow-hidden grid-cols-[21rem_minmax(0,1fr)_20rem]">
         <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-r p-3">
           <ConfigurationPanel key={`configuration-${connectionRevision}`} />
+          <SimHubProfilePanel key={`simhub-${connectionRevision}`} />
           <div className="mt-3">
             <FontAssetsPanel key={`fonts-${connectionRevision}`} />
           </div>

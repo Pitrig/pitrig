@@ -68,14 +68,14 @@
           "value": { "font": { "family": "roboto-black", "size_px": 56 }, "color": "#00F020" }
         },
         {
-          "binding": "vehicle.aids.traction_control",
+          "binding": "vehicle.aids.traction_control_level",
           "placement": { "x": 8, "y": 450, "width": 126, "height": 142 },
           "border": { "color": "#00CFFF", "width_px": 3, "radius_px": 14 },
           "title": { "text": "TC", "font": { "family": "roboto-black", "size_px": 18 }, "color": "#00CFFF" },
           "value": { "font": { "family": "roboto-black", "size_px": 56 }, "color": "#00CFFF" }
         },
         {
-          "binding": "vehicle.aids.abs",
+          "binding": "vehicle.aids.abs_level",
           "placement": { "x": 144, "y": 450, "width": 126, "height": 142 },
           "border": { "color": "#FFE04A", "width_px": 3, "radius_px": 14 },
           "title": { "text": "ABS", "font": { "family": "roboto-black", "size_px": 18 }, "color": "#FFE04A" },

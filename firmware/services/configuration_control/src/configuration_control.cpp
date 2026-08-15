@@ -21,10 +21,12 @@ ConfigurationControl::~ConfigurationControl() { stop(); }
 
 bool ConfigurationControl::initialize(
     ConfigurationService& service, transport::ITransport& transport,
-    const RebootHandler reboot_handler, void* const reboot_context) {
-  if (task_ != nullptr) {
+    const RebootHandler reboot_handler, void* const reboot_context,
+    const std::span<std::uint8_t> io_buffer) {
+  if (task_ != nullptr || io_buffer.size() < kIoBufferSize) {
     return false;
   }
+  io_buffer_ = io_buffer.first(kIoBufferSize);
   service_ = &service;
   transport_ = &transport;
   reboot_handler_ = reboot_handler;
@@ -59,6 +61,7 @@ void ConfigurationControl::stop() {
   transport_ = nullptr;
   reboot_handler_ = nullptr;
   reboot_context_ = nullptr;
+  io_buffer_ = {};
 }
 
 void ConfigurationControl::consume(

@@ -15,6 +15,17 @@ import type {
   FontUploadRequest
 } from './font-assets'
 import type { SerialTrafficLog } from './development'
+import type {
+  ConfigurationFileLoadValue,
+  ConfigurationFileResult,
+  ConfigurationFileSaveRequest,
+  ConfigurationFileSaveValue
+} from './configuration-files'
+import type {
+  SimHubProfileExportRequest,
+  SimHubProfileExportValue,
+  SimHubProfileResult
+} from './simhub-profile'
 
 export const APP_GET_INFO_CHANNEL = 'app:get-info' as const
 
@@ -26,6 +37,10 @@ export interface AppInfo {
 
 export interface SimCoreApi {
   getAppInfo: () => Promise<AppInfo>
+  loadConfigurationFile: () => Promise<ConfigurationFileResult<ConfigurationFileLoadValue | null>>
+  saveConfigurationFile: (
+    request: ConfigurationFileSaveRequest
+  ) => Promise<ConfigurationFileResult<ConfigurationFileSaveValue>>
   listSerialPorts: () => Promise<DeviceResult<SerialPortSummary[]>>
   getDeviceState: () => Promise<DeviceState>
   connectDevice: (
@@ -47,6 +62,9 @@ export interface SimCoreApi {
   uploadFontAssets: (request: FontUploadRequest) => Promise<FontAssetResult<void>>
   cancelFontUpload: () => Promise<FontAssetResult<void>>
   clearFontAssets: () => Promise<DeviceResult<DeviceState>>
+  exportSimHubProfile: (
+    request: SimHubProfileExportRequest
+  ) => Promise<SimHubProfileResult<SimHubProfileExportValue>>
   onFontUploadProgress: (listener: (progress: FontUploadProgress) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
   onDevelopmentSerialTraffic?: (listener: (log: SerialTrafficLog) => void) => () => void

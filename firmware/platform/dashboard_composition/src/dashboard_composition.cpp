@@ -45,7 +45,7 @@ telemetry::TelemetryRead read_lap_timer_modifier(void* const context) {
   const lap_timer::LapTimer::Snapshot snapshot =
       static_cast<lap_timer::LapTimer*>(context)->snapshot();
   value.handle.type = telemetry::ValueType::uint32;
-  value.value.uint32_value = snapshot.time_ms;
+  value.value.typed.uint32_value = snapshot.time_ms;
   value.available = snapshot.available;
   return value;
 }

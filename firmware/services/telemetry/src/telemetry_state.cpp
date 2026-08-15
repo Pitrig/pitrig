@@ -24,12 +24,26 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
         break;
       case ValueType::uint32:
         changed = changed ||
-                  slot.value.uint32_value != update.value.uint32_value ||
+                  slot.value.typed.uint32_value !=
+                      update.value.typed.uint32_value ||
                   slot.value.source_text != update.value.source_text;
         break;
       case ValueType::int32:
         changed = changed ||
-                  slot.value.int32_value != update.value.int32_value ||
+                  slot.value.typed.int32_value !=
+                      update.value.typed.int32_value ||
+                  slot.value.source_text != update.value.source_text;
+        break;
+      case ValueType::float32:
+        changed = changed ||
+                  slot.value.typed.float32_value !=
+                      update.value.typed.float32_value ||
+                  slot.value.source_text != update.value.source_text;
+        break;
+      case ValueType::boolean:
+        changed = changed ||
+                  slot.value.typed.boolean_value !=
+                      update.value.typed.boolean_value ||
                   slot.value.source_text != update.value.source_text;
         break;
     }

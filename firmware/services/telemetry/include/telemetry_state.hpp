@@ -33,7 +33,7 @@ class TelemetryStateService final : public ITelemetryReader {
 
   const ITelemetryRegistry& registry_;
   mutable std::mutex mutex_;
-  std::array<Slot, kMaximumFields> slots_{};
+  std::array<Slot, catalog::kFieldCount> slots_{};
   std::uint64_t revision_{};
 };
 

@@ -6,6 +6,7 @@
 #include "configuration_service.hpp"
 #include "display.hpp"
 #include "event_bus.hpp"
+#include "external_memory_buffer.hpp"
 #include "font_asset_service.hpp"
 #include "logger.hpp"
 #include "nvs_config_storage.hpp"
@@ -31,6 +32,7 @@ struct PlatformAdapters {
   configuration::NvsConfigurationStorage configuration_storage;
   font_assets::PartitionStorage font_asset_storage;
   transport::TelemetryComposition telemetry_transport;
+  platform::ExternalMemoryBuffer configuration_memory;
 };
 
 struct ApplicationServices {
@@ -54,6 +56,30 @@ struct Application {
 
 void run() {
   static Application application;
+  constexpr std::size_t kConfigurationMemorySize =
+      configuration::ConfigurationService::kRecordBufferSize +
+      configuration::ConfigurationService::kPayloadBufferSize +
+      configuration::ConfigurationControl::kIoBufferSize +
+      communication::Router::kControlLineBufferSize;
+  ESP_ERROR_CHECK(application.platform.configuration_memory.initialize(
+                      kConfigurationMemorySize)
+                      ? ESP_OK
+                      : ESP_ERR_NO_MEM);
+  std::span<std::uint8_t> configuration_memory =
+      application.platform.configuration_memory.bytes();
+  const auto take_buffer = [&configuration_memory](const std::size_t size) {
+    const std::span<std::uint8_t> buffer = configuration_memory.first(size);
+    configuration_memory = configuration_memory.subspan(size);
+    return buffer;
+  };
+  const std::span<std::uint8_t> record_buffer = take_buffer(
+      configuration::ConfigurationService::kRecordBufferSize);
+  const std::span<std::uint8_t> current_payload_buffer = take_buffer(
+      configuration::ConfigurationService::kPayloadBufferSize);
+  const std::span<std::uint8_t> control_io_buffer = take_buffer(
+      configuration::ConfigurationControl::kIoBufferSize);
+  const std::span<std::uint8_t> control_line_buffer = take_buffer(
+      communication::Router::kControlLineBufferSize);
   const board_registry::BoardDefinition& board =
       board_registry::factory_board();
   const std::string_view factory_json = board.factory_configuration_json;
@@ -62,7 +88,8 @@ void run() {
           board.validation,
           std::span<const std::uint8_t>(
               reinterpret_cast<const std::uint8_t*>(factory_json.data()),
-              factory_json.size()))) {
+              factory_json.size()),
+          record_buffer, current_payload_buffer)) {
     log::warn(kTag,
               "Configuration storage unavailable; using factory defaults");
   }
@@ -103,7 +130,8 @@ void run() {
   if (!application.communication.start(
           application.services.configuration,
           application.services.font_assets,
-          application.services.telemetry_provider, *telemetry_transport)) {
+          application.services.telemetry_provider, *telemetry_transport,
+          control_io_buffer, control_line_buffer)) {
     log::error(kTag, "Communication composition is incomplete");
   }
 }

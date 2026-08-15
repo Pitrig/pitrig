@@ -71,11 +71,31 @@ void copy_text(std::array<char, DestinationSize>& destination,
     output = value.value.source_text;
     return true;
   }
-  auto result = value.handle.type == telemetry::ValueType::uint32
-                    ? std::to_chars(output.data(), output.data() + output.size() - 1,
-                                    value.value.uint32_value)
-                    : std::to_chars(output.data(), output.data() + output.size() - 1,
-                                    value.value.int32_value);
+  if (value.handle.type == telemetry::ValueType::boolean) {
+    constexpr std::array<char, 6> kTrue{'t', 'r', 'u', 'e', '\0', '\0'};
+    constexpr std::array<char, 6> kFalse{'f', 'a', 'l', 's', 'e', '\0'};
+    copy_text(output,
+              value.value.typed.boolean_value ? kTrue : kFalse);
+    return true;
+  }
+  std::to_chars_result result{};
+  switch (value.handle.type) {
+    case telemetry::ValueType::uint32:
+      result = std::to_chars(output.data(), output.data() + output.size() - 1,
+                             value.value.typed.uint32_value);
+      break;
+    case telemetry::ValueType::int32:
+      result = std::to_chars(output.data(), output.data() + output.size() - 1,
+                             value.value.typed.int32_value);
+      break;
+    case telemetry::ValueType::float32:
+      result = std::to_chars(output.data(), output.data() + output.size() - 1,
+                             value.value.typed.float32_value);
+      break;
+    case telemetry::ValueType::text:
+    case telemetry::ValueType::boolean:
+      return false;
+  }
   if (result.ec != std::errc{}) {
     return false;
   }
@@ -98,11 +118,11 @@ void copy_text(std::array<char, DestinationSize>& destination,
   }
   if (value.handle.type == telemetry::ValueType::uint32) {
     return transformers::time_transform::apply(
-        transform.time, value.value.uint32_value, output);
+        transform.time, value.value.typed.uint32_value, output);
   }
   if (value.handle.type == telemetry::ValueType::int32) {
     return transformers::time_transform::apply(
-        transform.time, value.value.int32_value, output);
+        transform.time, value.value.typed.int32_value, output);
   }
   return false;
 }

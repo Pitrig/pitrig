@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -25,9 +24,15 @@ struct ConfigurationStatus {
 
 class ConfigurationService {
  public:
+  static constexpr std::size_t kRecordBufferSize =
+      20 + kMaximumPayloadSize;
+  static constexpr std::size_t kPayloadBufferSize = kMaximumPayloadSize;
+
   bool initialize(IConfigurationStorage& storage,
                   const ValidationContext& validation_profile,
-                  std::span<const std::uint8_t> factory_payload);
+                  std::span<const std::uint8_t> factory_payload,
+                  std::span<std::uint8_t> record_buffer,
+                  std::span<std::uint8_t> current_payload_buffer);
 
   [[nodiscard]] const ApplicationConfiguration& current() const {
     return current_;
@@ -50,8 +55,6 @@ class ConfigurationService {
   static constexpr std::uint32_t kRecordMagic = 0x53434647;
   static constexpr std::uint16_t kRecordVersion = 1;
   static constexpr std::size_t kRecordHeaderSize = 20;
-  static constexpr std::size_t kMaximumRecordSize =
-      kRecordHeaderSize + kMaximumPayloadSize;
 
   struct LoadedRecord {
     std::uint32_t generation{};
@@ -73,8 +76,8 @@ class ConfigurationService {
   StorageSlot persisted_slot_{StorageSlot::a};
   std::uint32_t persisted_generation_{};
   bool has_persisted_slot_{};
-  std::array<std::uint8_t, kMaximumRecordSize> record_buffer_{};
-  std::array<std::uint8_t, kMaximumPayloadSize> current_payload_{};
+  std::span<std::uint8_t> record_buffer_{};
+  std::span<std::uint8_t> current_payload_{};
   std::size_t current_payload_size_{};
 };
 

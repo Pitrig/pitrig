@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { join } from 'node:path'
 
 import { DeviceService } from './device/device-service'
+import { ConfigurationFileService } from './configuration-files/configuration-file-service'
 import {
   broadcastDevelopmentSerialTraffic,
   broadcastDeviceState,
@@ -9,6 +10,7 @@ import {
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
 import { FontAssetService } from './font-assets/font-asset-service'
+import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
 
 const isDevelopment = import.meta.env.DEV
 const deviceService = new DeviceService(
@@ -16,6 +18,8 @@ const deviceService = new DeviceService(
   isDevelopment ? broadcastDevelopmentSerialTraffic : undefined
 )
 const fontAssetService = new FontAssetService(deviceService, broadcastFontUploadProgress)
+const simHubProfileService = new SimHubProfileService()
+const configurationFileService = new ConfigurationFileService()
 let quitAfterDeviceCleanup = false
 
 function createWindow(): void {
@@ -45,7 +49,12 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  registerIpcHandlers(deviceService, fontAssetService)
+  registerIpcHandlers(
+    deviceService,
+    fontAssetService,
+    simHubProfileService,
+    configurationFileService
+  )
   createWindow()
 
   app.on('activate', () => {

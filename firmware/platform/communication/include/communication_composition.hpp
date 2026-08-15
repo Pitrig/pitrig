@@ -42,7 +42,9 @@ class Composition final {
       configuration::ConfigurationService& configuration,
       font_assets::Service& font_assets,
       telemetry::TelemetryProvider& telemetry,
-      transport::ITransport& transport);
+      transport::ITransport& transport,
+      std::span<std::uint8_t> control_io_buffer,
+      std::span<std::uint8_t> control_line_buffer);
   void stop();
 
  private:

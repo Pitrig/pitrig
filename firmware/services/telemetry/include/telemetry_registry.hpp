@@ -46,9 +46,6 @@ inline constexpr std::string_view kFuelLevel = "vehicle.fuel.level";
 inline constexpr std::string_view kLapDelta = "session.lap.delta";
 inline constexpr std::string_view kEstimatedLapTime =
     "session.lap.estimated_time";
-inline constexpr std::string_view kTractionControl =
-    "vehicle.aids.traction_control";
-inline constexpr std::string_view kAbs = "vehicle.aids.abs";
 inline constexpr std::string_view kBrakeBias = "vehicle.brake_bias";
 inline constexpr std::string_view kFuelAverageConsumption =
     "vehicle.fuel.average_consumption";
@@ -56,6 +53,14 @@ inline constexpr std::string_view kFuelLapsRemaining =
     "vehicle.fuel.laps_remaining";
 
 }  // namespace fields
+
+}  // namespace simcore::telemetry
+
+#include "telemetry_catalog_generated.hpp"
+
+namespace simcore::telemetry {
+
+static_assert(catalog::kMaximumFieldCount == kMaximumFields);
 
 class ITelemetryRegistry {
  public:
@@ -69,25 +74,6 @@ class TelemetryRegistry final : public ITelemetryRegistry {
  public:
   [[nodiscard]] Handle resolve(std::string_view name) const override;
   [[nodiscard]] const FieldDescriptor* describe(Handle handle) const override;
-
- private:
-  static constexpr std::array<FieldDescriptor, 13> kDescriptors{{
-      {fields::kSpeed, ValueType::text},
-      {fields::kRpm, ValueType::text},
-      {fields::kGear, ValueType::text},
-      {fields::kCurrentLapTime, ValueType::uint32},
-      {fields::kBestLapTime, ValueType::uint32},
-      {fields::kFuelLevel, ValueType::text},
-      {fields::kLapDelta, ValueType::int32},
-      {fields::kEstimatedLapTime, ValueType::uint32},
-      {fields::kTractionControl, ValueType::text},
-      {fields::kAbs, ValueType::text},
-      {fields::kBrakeBias, ValueType::text},
-      {fields::kFuelAverageConsumption, ValueType::text},
-      {fields::kFuelLapsRemaining, ValueType::text},
-  }};
-
-  static_assert(kDescriptors.size() <= kMaximumFields);
 };
 
 }  // namespace simcore::telemetry

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { writeDevelopmentLog } from '@/features/development/development-log'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
+import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
 import {
   collectFontRequirements,
@@ -12,37 +13,59 @@ import {
   missingFontRequirements
 } from '@/features/font-assets/font-requirements'
 import {
+  BOARD_PROFILES,
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
   type DeviceConfiguration,
-  type DeviceResult
+  type DeviceResult,
+  type SimCoreBoardId
 } from '../../../../shared/device'
 import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_ASSETS } from '../../../../shared/font-assets'
 
-type Operation = 'idle' | 'read' | 'validate' | 'save' | 'reset' | 'reboot'
+type Operation =
+  | 'idle'
+  | 'load_file'
+  | 'save_file'
+  | 'read'
+  | 'validate'
+  | 'save'
+  | 'reset'
+  | 'reboot'
 type Feedback = { kind: 'success' | 'error'; message: string }
+
+const BOARD_OPTIONS: Array<{ id: SimCoreBoardId; label: string }> = [
+  { id: 't_display_s3', label: 'T-Display S3 · 320 × 170' },
+  { id: 'guition_esp32_4848s040', label: 'Guition 4848S040 · 480 × 480' },
+  { id: 'guition_jc1060p470c', label: 'Guition JC1060P470C · 1024 × 600' }
+]
 
 export function ConfigurationPanel(): React.JSX.Element {
   const status = useDeviceStore((state) => state.status)
   const session = useDeviceStore((state) => state.session)
   const activeJson = useDeviceStore((state) => state.activeConfigurationJson)
   const draftJson = useDeviceStore((state) => state.draftConfigurationJson)
+  const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
+  const draftFileName = useDeviceStore((state) => state.draftFileName)
   const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
   const rebootRequired = useDeviceStore((state) => state.rebootRequired)
   const setDraftJson = useDeviceStore((state) => state.setDraftConfigurationJson)
+  const replaceLocalDraft = useDeviceStore((state) => state.replaceLocalDraft)
   const reloadDraft = useDeviceStore((state) => state.reloadDraft)
   const markSaved = useDeviceStore((state) => state.markConfigurationSaved)
   const markReset = useDeviceStore((state) => state.markConfigurationReset)
   const [operation, setOperation] = useState<Operation>('idle')
   const [feedback, setFeedback] = useState<Feedback>()
+  const [offlineBoard, setOfflineBoard] = useState<SimCoreBoardId | ''>('')
+  const selectWidget = useDashboardEditorStore((state) => state.select)
+  const selectedNewBoard = session?.info.boardId ?? offlineBoard
 
   const parsed = useMemo(
-    () => parseDraft(draftJson, session?.info.boardId),
-    [draftJson, session?.info.boardId]
+    () => parseDraft(draftJson, hasLocalDraft),
+    [draftJson, hasLocalDraft]
   )
   const comparisonJson = pendingConfiguration
     ? formatConfiguration(pendingConfiguration)
     : activeJson
-  const dirty = Boolean(session) && draftJson !== comparisonJson
+  const dirty = hasLocalDraft && (!session || draftJson !== comparisonJson)
   const connected = status === 'connected' && Boolean(session)
   const busy = operation !== 'idle'
   const requiredFonts = parsed.ok ? collectFontRequirements(parsed.configuration) : []
@@ -51,13 +74,20 @@ export function ConfigurationPanel(): React.JSX.Element {
     session?.fontAssets?.assets ?? []
   )
 
+  const boardMismatch = parsed.ok && session
+    ? parsed.configuration.board !== session.info.boardId
+    : false
   const saveBlockedReason = !connected
     ? 'Connect a SimCore board before saving.'
-    : !session?.info.storageAvailable
-      ? 'Persistent configuration storage is unavailable on this board.'
-      : !dirty && missingFonts.length === 0
-        ? 'The draft already matches the active or pending configuration.'
-        : undefined
+    : boardMismatch
+      ? `Local configuration targets ${parsed.ok ? parsed.configuration.board : 'another board'}, but the connected board is ${session?.info.boardId}.`
+      : !parsed.ok
+        ? parsed.error
+        : !session?.info.storageAvailable
+          ? 'Persistent configuration storage is unavailable on this board.'
+          : !dirty && missingFonts.length === 0
+            ? 'The draft already matches the active or pending configuration.'
+            : undefined
 
   const run = async <T,>(
     nextOperation: Operation,
@@ -83,12 +113,76 @@ export function ConfigurationPanel(): React.JSX.Element {
     }
   }
 
+  const newConfiguration = (): void => {
+    if (!selectedNewBoard) {
+      setFeedback({ kind: 'error', message: 'Select a board before creating a configuration.' })
+      return
+    }
+    if (hasLocalDraft && !window.confirm('Discard the current local draft and create a new configuration?')) {
+      return
+    }
+    replaceLocalDraft({ board: selectedNewBoard })
+    selectWidget(undefined)
+    setFeedback({ kind: 'success', message: `New ${selectedNewBoard} configuration created locally.` })
+  }
+
+  const loadFile = async (): Promise<void> => {
+    if (hasLocalDraft && !window.confirm('Discard the current local draft and load a JSON file?')) {
+      return
+    }
+    setOperation('load_file')
+    setFeedback(undefined)
+    try {
+      const result = await window.simcore.loadConfigurationFile()
+      writeDevelopmentLog('Configuration file load completed', result)
+      if (!result.ok) {
+        setFeedback({ kind: 'error', message: result.error.message })
+      } else if (result.value) {
+        replaceLocalDraft(result.value.configuration, result.value.fileName)
+        selectWidget(undefined)
+        setFeedback({ kind: 'success', message: `${result.value.fileName} loaded.` })
+      }
+    } catch (error) {
+      setFeedback({ kind: 'error', message: bridgeErrorMessage(error) })
+    } finally {
+      setOperation('idle')
+    }
+  }
+
+  const saveFile = async (): Promise<void> => {
+    if (!parsed.ok) {
+      setFeedback({ kind: 'error', message: parsed.error })
+      return
+    }
+    setOperation('save_file')
+    setFeedback(undefined)
+    try {
+      const result = await window.simcore.saveConfigurationFile({ json: draftJson })
+      writeDevelopmentLog('Configuration file save completed', result)
+      if (!result.ok) {
+        setFeedback({ kind: 'error', message: result.error.message })
+      } else if (result.value.saved) {
+        replaceLocalDraft(parsed.configuration, result.value.fileName)
+        setFeedback({
+          kind: 'success',
+          message: `${result.value.fileName ?? 'Configuration'} saved.`
+        })
+      }
+    } catch (error) {
+      setFeedback({ kind: 'error', message: bridgeErrorMessage(error) })
+    } finally {
+      setOperation('idle')
+    }
+  }
+
   const read = async (): Promise<void> => {
     if (dirty && !window.confirm('Discard local configuration changes and read from the board?')) {
       return
     }
     await run('read', () => window.simcore.readDeviceConfiguration(), (state) => {
-      if (state.session) reloadDraft(state.session)
+      if (state.session) {
+        reloadDraft(state.session)
+      }
       return 'Active configuration read from the board.'
     })
   }
@@ -224,14 +318,53 @@ export function ConfigurationPanel(): React.JSX.Element {
         <CardDescription>Visual edits and advanced JSON share the same schema 2 draft.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="space-y-2 rounded-md border p-2">
+          <label className="block space-y-1 text-[11px] text-muted-foreground">
+            <span>New configuration board</span>
+            <select
+              className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
+              disabled={busy || connected}
+              value={selectedNewBoard}
+              onChange={(event) => setOfflineBoard(event.target.value as SimCoreBoardId | '')}
+            >
+              <option value="">Select board</option>
+              {BOARD_OPTIONS.map(({ id, label }) => (
+                <option key={id} value={id}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant="outline"
+              disabled={busy || !selectedNewBoard}
+              onClick={newConfiguration}
+            >
+              New
+            </Button>
+            <Button variant="outline" disabled={busy} onClick={() => void loadFile()}>
+              {operation === 'load_file' ? 'Loading…' : 'Load'}
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy || !parsed.ok}
+              onClick={() => void saveFile()}
+            >
+              {operation === 'save_file' ? 'Saving…' : 'Save'}
+            </Button>
+          </div>
+          <p className="truncate text-[11px] text-muted-foreground">
+            {draftFileName ?? (hasLocalDraft ? 'Unsaved local draft' : 'No local configuration')}
+          </p>
+        </div>
+
         <details className="rounded-md border">
           <summary className="cursor-pointer px-3 py-2 text-xs font-medium">Advanced JSON editor</summary>
           <div className="space-y-2 border-t p-2">
             <textarea
               aria-label="Device configuration JSON"
               className="h-80 w-full resize-y rounded-md border bg-black/40 p-2 font-mono text-[11px] leading-4 outline-none focus:border-zinc-500 disabled:opacity-50"
-              disabled={!connected || busy}
-              placeholder="Connect a SimCore device to read its configuration."
+              disabled={!hasLocalDraft || busy}
+              placeholder="Create, load, or connect a configuration to begin editing."
               spellCheck={false}
               value={draftJson}
               onChange={(event) => {
@@ -261,7 +394,7 @@ export function ConfigurationPanel(): React.JSX.Element {
 
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" disabled={!connected || busy} onClick={() => void read()}>
-            {operation === 'read' ? 'Reading…' : 'Reload'}
+            {operation === 'read' ? 'Reading…' : 'Reload board'}
           </Button>
           <Button variant="outline" disabled={!connected || busy} onClick={() => void validate()}>
             {operation === 'validate' ? 'Validating…' : 'Validate'}
@@ -305,19 +438,33 @@ function operationErrorMessage(error: unknown): string {
   return message || 'The configuration operation failed.'
 }
 
+function bridgeErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  if (
+    message.includes('not a function') ||
+    message.includes('No handler registered')
+  ) {
+    return 'The Electron bridge is outdated. Fully restart SimCore Configurator.'
+  }
+  return message || 'The configuration file operation failed.'
+}
+
 function parseDraft(
   json: string,
-  expectedBoard: DeviceConfiguration['board'] | undefined
+  hasLocalDraft: boolean
 ): { ok: true; configuration: DeviceConfiguration; payloadBytes: number } | { ok: false; error: string } {
-  if (!expectedBoard) return { ok: false, error: 'No SimCore device is connected.' }
+  if (!hasLocalDraft) return { ok: false, error: 'No local configuration.' }
   try {
     const value: unknown = JSON.parse(json)
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return { ok: false, error: 'Configuration must be a JSON object.' }
     }
     const configuration = value as DeviceConfiguration
-    if (configuration.board !== expectedBoard) {
-      return { ok: false, error: `Configuration board must remain ${expectedBoard}.` }
+    if (!Object.hasOwn(BOARD_PROFILES, configuration.board)) {
+      return { ok: false, error: 'Configuration must target a supported board.' }
+    }
+    if (!validLocalShape(configuration)) {
+      return { ok: false, error: 'Configuration is not a valid schema 2 document.' }
     }
     const fontError = configurationFontError(configuration)
     if (fontError) return { ok: false, error: fontError }
@@ -334,11 +481,27 @@ function parseDraft(
   }
 }
 
+function validLocalShape(configuration: DeviceConfiguration): boolean {
+  if (
+    configuration.hardware !== undefined &&
+    (!Array.isArray(configuration.hardware) || configuration.hardware.length !== 0)
+  ) return false
+  const dashboard = configuration.dashboard
+  if (dashboard !== undefined && (!dashboard || typeof dashboard !== 'object')) return false
+  const widgets = dashboard?.widgets
+  if (widgets !== undefined && (!widgets || typeof widgets !== 'object')) return false
+  if (widgets?.text !== undefined) {
+    if (!Array.isArray(widgets.text)) return false
+    if (widgets.text.some((widget) => !widget || typeof widget !== 'object')) return false
+  }
+  return true
+}
+
 function configurationFontError(configuration: DeviceConfiguration): string | undefined {
   const widgets = configuration.dashboard?.widgets
   const fonts = [] as Array<{ family?: string; size_px?: number } | undefined>
   if (widgets?.delta_time) fonts.push(widgets.delta_time.font)
-  for (const widget of widgets?.text ?? []) {
+  for (const widget of Array.isArray(widgets?.text) ? widgets.text : []) {
     if (widget.title?.text) fonts.push(widget.title.font)
     fonts.push(widget.value?.font)
   }

@@ -65,7 +65,7 @@ struct UartTelemetryConfiguration {
   int port{};
   int tx_pin{43};
   int rx_pin{44};
-  std::uint32_t baud_rate{115'200};
+  std::uint32_t baud_rate{921'600};
   bool silence_esp_logs{true};
 };
 

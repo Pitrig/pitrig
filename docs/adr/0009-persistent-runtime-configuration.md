@@ -40,11 +40,29 @@ The line-oriented control protocol transfers compact JSON directly, without a
 secondary TLV or hexadecimal representation. Missing properties remain
 missing instead of being expanded through a board profile.
 
+Keep the desktop configurator's sparse schema 2 authoring draft independent
+from a device session. A disconnect does not clear it, and connecting a board
+does not replace an existing local draft. The draft's `board` selects the
+configurator's immutable local board profile for offline preview and editing.
+Loading from the connected board is an explicit replacement operation. Saving
+to a board requires matching board identities.
+
+Allow the configurator to create a board-only local draft and import or export
+the same public schema 2 JSON through desktop file dialogs. File import checks
+the supported board, bounded schema shape, and compact firmware payload limit.
+Local files introduce no project-only properties into the device payload.
+
 Persist the exact validated sparse payload through `IConfigurationStorage`.
 Keep the existing two-slot `simcore_cfg` NVS strategy: every internal record
 contains magic, record and schema versions, payload size, generation, and
 CRC32. Write and verify the inactive slot before selecting it. These record
 headers and slot mechanics remain private firmware details.
+
+Bound the compact schema 2 JSON payload at 16384 bytes. Size the dedicated
+`simcore_cfg` NVS partition at 64 KiB so both rollback records and NVS metadata
+fit within the partition. The partition keeps its original start offset; the
+following font-assets partition moves and therefore requires font assets to be
+uploaded again after installing the updated partition table.
 
 Parse the sparse JSON into a concrete bounded runtime configuration during
 startup and before accepting a replacement. JSON parsing is confined to the
@@ -54,6 +72,13 @@ defaults owned by that component. A missing user-configured hardware device,
 module, or widget is not created. Board-provided hardware is composed from the
 immutable board-registry mapping independently of this optional list. A missing
 telemetry transport uses the immutable board default.
+
+Place the firmware-lifetime payload, NVS record, asynchronous control, and
+control-line workspaces in one platform-owned external-RAM allocation. Allocate
+that bounded arena once during startup and pass non-owning spans into the
+platform-independent services. Keep the bounded telemetry line buffer in
+internal RAM; the communication router switches to the external control-line
+workspace only after recognizing the `@SC:` prefix.
 
 Schema 0 and schema 1 records are not migrated. They are treated as unsupported
 and startup falls back to a valid schema 2 slot or the board-only factory
@@ -74,8 +99,14 @@ removed after the configurator implemented `INFO`, `GET`, `VALIDATE`, `SET`,
   capabilities.
 - Omitted components do not reappear through hidden profile inheritance.
 - Public JSON and private NVS record framing remain separate contracts.
+- Offline authoring, JSON file exchange, and device persistence use the same
+  sparse schema 2 document.
+- Connecting or disconnecting hardware cannot silently discard a local draft.
+- A local draft for one board cannot be written to a different board.
 - Interrupted or corrupt writes retain the existing verified-slot recovery.
 - Storage, protocol, and runtime containers remain bounded and deterministic.
+- Large configuration workspaces do not consume internal RAM, while normal
+  telemetry ingestion remains on the internal-memory hot path.
 - Schema 0 and schema 1 configurations are intentionally discarded after the
   upgrade.
 - Adding or changing public fields requires a documented schema change shared

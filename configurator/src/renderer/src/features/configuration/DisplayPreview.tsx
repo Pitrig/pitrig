@@ -8,6 +8,7 @@ import type {
   DisplayDescriptor,
   FontSpec
 } from '../../../../shared/device'
+import { BOARD_PROFILES } from '../../../../shared/device'
 import {
   completePlacement,
   addEmptyTextWidget,
@@ -32,6 +33,9 @@ export function DisplayPreview(): React.JSX.Element {
     () => parsePreviewConfiguration(draftJson) ?? pendingConfiguration ?? session?.configuration,
     [draftJson, pendingConfiguration, session?.configuration]
   )
+  const display = configuration
+    ? BOARD_PROFILES[configuration.board]?.display
+    : session?.info.display
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
   const [addOpen, setAddOpen] = useState(false)
@@ -41,8 +45,8 @@ export function DisplayPreview(): React.JSX.Element {
     : selection?.type === 'text'
       ? Boolean(configuration?.dashboard?.widgets?.text?.[selection.index])
       : false
-  const displayRatio = session
-    ? session.info.display.width / session.info.display.height
+  const displayRatio = display
+    ? display.width / display.height
     : 16 / 9
   const surfaceMaximumWidth = `max(8rem, calc((100vh - 13rem) * ${displayRatio}))`
 
@@ -63,9 +67,9 @@ export function DisplayPreview(): React.JSX.Element {
           </div>
         </div>
         <CardDescription>
-          {session
-            ? `${session.info.display.width} × ${session.info.display.height} logical pixels`
-            : 'Connect a board to preview its dashboard configuration.'}
+          {display
+            ? `${display.width} × ${display.height} logical pixels · ${configuration?.board ?? 'connected board'}`
+            : 'Create, load, or connect a configuration to start editing.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 px-4 pb-4">
@@ -73,16 +77,16 @@ export function DisplayPreview(): React.JSX.Element {
           className="relative mx-auto w-full max-w-full overflow-hidden rounded-md border bg-black shadow-2xl"
           style={{
             maxWidth: surfaceMaximumWidth,
-            aspectRatio: session
-              ? `${session.info.display.width} / ${session.info.display.height}`
+            aspectRatio: display
+              ? `${display.width} / ${display.height}`
               : '16 / 9'
           }}
         >
-          {session && configuration ? (
-            <Widgets configuration={configuration} display={session.info.display} />
+          {display && configuration ? (
+            <Widgets configuration={configuration} display={display} />
           ) : (
             <div className="flex size-full items-center justify-center text-sm text-zinc-600">
-              No device connected
+              No local configuration
             </div>
           )}
         </div>
@@ -94,8 +98,8 @@ export function DisplayPreview(): React.JSX.Element {
             <p className="mt-1 text-xs text-muted-foreground">Choose the widget type to add.</p>
             <div className="mt-4 space-y-2">
               <Button className="w-full justify-start" variant="outline" disabled={textWidgetCount >= MAXIMUM_TEXT_WIDGETS} onClick={() => {
-                if (!session) return
-                const added = addEmptyTextWidget(session.info.display)
+                if (!display) return
+                const added = addEmptyTextWidget(display)
                 if (added) select(added)
                 setAddOpen(false)
               }}>Text</Button>

@@ -25,14 +25,16 @@ bool Composition::start(
     configuration::ConfigurationService& configuration,
     font_assets::Service& font_assets,
     telemetry::TelemetryProvider& telemetry,
-    transport::ITransport& transport) {
+    transport::ITransport& transport,
+    const std::span<std::uint8_t> control_io_buffer,
+    const std::span<std::uint8_t> control_line_buffer) {
   if (started_ || !protocol_.initialized()) {
     log::error(kTag, started_ ? "Communication is already running"
                               : "Failed to bind telemetry protocol fields");
     return false;
   }
   if (!configuration_control_.initialize(configuration, transport, &reboot,
-                                         nullptr)) {
+                                         nullptr, control_io_buffer)) {
     log::error(kTag, "Failed to start configuration control task");
     return false;
   }
@@ -42,7 +44,7 @@ bool Composition::start(
     return false;
   }
   router_.initialize(configuration_control_, font_asset_control_,
-                     &receive_telemetry_data, this);
+                     &receive_telemetry_data, this, control_line_buffer);
   telemetry_ = &telemetry;
   if (!transport.start(&receive_transport_data, this)) {
     log::error(kTag, "Failed to start telemetry transport");

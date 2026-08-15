@@ -112,7 +112,7 @@ void LapTimer::on_telemetry_updated(const events::Event& event,
   const telemetry::TelemetryRead value =
       module.telemetry_reader_->read(module.telemetry_handle_);
   if (value.available) {
-    module.update(value.value.uint32_value);
+    module.update(value.value.typed.uint32_value);
   }
 }
 

@@ -3,7 +3,56 @@
 SimCore accepts newline-delimited telemetry over the board-selected serial
 transport.
 
-Each line contains a field identifier, a semicolon, and a value:
+## Generating or downloading a SimHub profile
+
+The desktop configurator's **SimHub profile** panel provides two export modes:
+
+- **Dashboard only** includes each Text widget binding, the Delta Time module
+  input when its widget is present, and the Lap Timer input when its modifier
+  is present. Duplicate bindings are emitted once.
+- **All telemetry** includes the complete 227-field catalog.
+
+The export uses the current configuration draft. Its explicit
+`telemetry_transport.uart.baud_rate` is used when present; otherwise the baud
+rate is 921600. A dashboard-only export is blocked when the draft contains an
+unknown telemetry binding or requires no telemetry.
+
+As an alternative, download the checked-in complete
+[`simhub/SimCore-telemetry.shsds`](../simhub/SimCore-telemetry.shsds). It uses
+921600 baud and enables all 227 fields. Both forms enable automatic reconnect
+and disable RTS and DTR.
+
+Import the resulting file from the Custom Serial Devices plugin's **Import
+settings** action, then select the SimCore serial port.
+
+Devices that already have a saved UART configuration may retain the previous
+115200 baud value. Set `telemetry_transport.uart.baud_rate` to `921600` in the
+device configuration before connecting the generated profile.
+
+Update frequencies follow the catalog metadata:
+
+- `fast`: 60 Hz;
+- `normal`: 20 Hz;
+- `slow`: 5 Hz;
+- `changes`: changes only.
+
+The checked-in complete profile and the configurator's profile data are
+regenerated together with the catalog:
+
+```bash
+python3 tools/generate_telemetry_catalog.py
+```
+
+Generic property expressions are maintained in
+`telemetry/simhub_generic_mappings.json`. An unsupported SimHub property sends
+an empty value, which marks only that canonical field unavailable. The profile
+does not contain game-specific raw-data mappings. SimHub Free limits update
+messages to 10 Hz, regardless of higher values stored in the profile.
+
+Each line contains a one- or two-character field identifier, a semicolon, and
+a value. The complete generated ID table is in the
+[telemetry catalog](telemetry-catalog.md). The original identifiers remain
+compatible:
 
 ```text
 R;<rpm text>
@@ -13,8 +62,8 @@ L;<current lap milliseconds>
 B;<best lap milliseconds>
 D;<signed delta milliseconds>
 P;<estimated lap milliseconds>
-T;<traction-control text>
-A;<ABS text>
+T;<traction-control level text>
+A;<ABS level text>
 BB;<brake-bias text>
 F;<fuel text>
 FC;<average-consumption text>
@@ -41,11 +90,12 @@ FC;AVG 2.6
 FL;LAPS 14.7
 ```
 
-`L`, `B`, and `P` must contain unsigned base-10 integer milliseconds. `D` must
-contain signed base-10 integer milliseconds. Their original strings are still
-retained, while `duration_ms` and `signed_duration_ms` time transforms use the typed
-numeric values. The Lap Timer module consumes `L` and exposes its smoothly
-extrapolated `current_time` output separately from the raw telemetry slot.
+Typed catalog fields accept unsigned base-10 integers, signed base-10 integers,
+decimal floats, or booleans (`0`, `1`, `false`, or `true`) according to their
+declared type. Their original strings are still retained, while `duration_ms`
+and `signed_duration_ms` time transforms use typed millisecond values. The Lap
+Timer module consumes `L` and exposes its smoothly extrapolated `current_time`
+output separately from the raw telemetry slot.
 
 The identifier-to-field mapping remains private to the SimHub protocol. During
 startup, every identifier is resolved to a protocol-neutral telemetry handle,
@@ -59,9 +109,17 @@ P;
 F;
 ```
 
-Unknown identifiers, invalid `L`/`B`/`D`/`P` numbers, overlong values, and
-overlong lines are ignored. A stored value may use at most 47 UTF-8 bytes; a
-complete line may use at most 63 bytes before the newline.
+Unknown identifiers, invalid typed values, overlong values, and overlong lines
+are ignored. A stored value may use at most 63 UTF-8 bytes; a complete line may
+use at most 127 bytes before the newline.
+
+The catalog's rate column is a transmission recommendation, not a requirement
+to send every field. Send only fields used by the active dashboard or modules,
+at a rate appropriate for that field, to keep serial bandwidth bounded.
+
+SimCore provides generic SimHub property expressions but no game-specific
+source mappings. The `game_specific` availability label warns that a canonical
+field is not exposed by every simulation.
 
 Configuration control frames begin with `@SC:` and share the same serial
 connection. The configuration router consumes those frames before telemetry,

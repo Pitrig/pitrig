@@ -276,7 +276,10 @@ shared transport between normal line routing and the active binary session.
 The desktop configurator edits dashboard widgets directly in the logical
 display coordinate space. Canvas selection, dragging, resizing, property
 inspection, and the advanced JSON editor all mutate the same sparse schema 2
-draft; there is no second editor-only layout model to reconcile.
+local draft; there is no second editor-only layout model to reconcile. The
+draft owns its target board identity and therefore resolves the immutable local
+board profile and display geometry even while no device is connected. Device
+connection state and the local authoring draft have independent lifetimes.
 
 ---
 

@@ -137,7 +137,7 @@
           }
         },
         {
-          "binding": "vehicle.aids.traction_control",
+          "binding": "vehicle.aids.traction_control_level",
           "placement": { "x": 8, "y": 390, "width": 148, "height": 82 },
           "border": { "color": "#00CFFF", "width_px": 2, "radius_px": 10 },
           "title": {
@@ -151,7 +151,7 @@
           }
         },
         {
-          "binding": "vehicle.aids.abs",
+          "binding": "vehicle.aids.abs_level",
           "placement": { "x": 166, "y": 390, "width": 148, "height": 82 },
           "border": { "color": "#FFE04A", "width_px": 2, "radius_px": 10 },
           "title": {

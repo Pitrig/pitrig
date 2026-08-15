@@ -20,12 +20,15 @@ using RebootHandler = void (*)(void* context);
 
 class ConfigurationControl {
  public:
+  static constexpr std::size_t kIoBufferSize = 16 + kMaximumPayloadSize;
+
   ~ConfigurationControl();
 
   [[nodiscard]] bool initialize(ConfigurationService& service,
                                 transport::ITransport& transport,
                                 RebootHandler reboot_handler,
-                                void* reboot_context);
+                                void* reboot_context,
+                                std::span<std::uint8_t> io_buffer);
   void stop();
 
   // Queues a line that starts with "@SC:" and has no line terminator. Parsing,
@@ -39,7 +42,6 @@ class ConfigurationControl {
     ready,
   };
 
-  static constexpr std::size_t kIoBufferSize = 16 + kMaximumPayloadSize;
   static constexpr std::size_t kTaskStackSize = 4096;
   static constexpr UBaseType_t kTaskPriority = 4;
 
@@ -59,7 +61,7 @@ class ConfigurationControl {
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
   // The control task reuses this storage for a response only after it has
   // finished consuming the queued request bytes.
-  std::array<std::uint8_t, kIoBufferSize> io_buffer_{};
+  std::span<std::uint8_t> io_buffer_{};
   std::size_t request_size_{};
   std::atomic<RequestState> request_state_{RequestState::idle};
 };

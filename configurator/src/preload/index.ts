@@ -5,6 +5,10 @@ import {
   type SerialTrafficLog
 } from '../shared/development'
 import {
+  CONFIGURATION_FILE_LOAD_CHANNEL,
+  CONFIGURATION_FILE_SAVE_CHANNEL
+} from '../shared/configuration-files'
+import {
   DEVICE_AUTO_CONNECT_CHANNEL,
   DEVICE_CANCEL_AUTO_CONNECT_CHANNEL,
   DEVICE_CONNECT_CHANNEL,
@@ -31,9 +35,13 @@ import {
   APP_GET_INFO_CHANNEL,
   type SimCoreApi
 } from '../shared/ipc'
+import { SIMHUB_PROFILE_EXPORT_CHANNEL } from '../shared/simhub-profile'
 
 const api: SimCoreApi = {
   getAppInfo: () => ipcRenderer.invoke(APP_GET_INFO_CHANNEL),
+  loadConfigurationFile: () => ipcRenderer.invoke(CONFIGURATION_FILE_LOAD_CHANNEL),
+  saveConfigurationFile: (request) =>
+    ipcRenderer.invoke(CONFIGURATION_FILE_SAVE_CHANNEL, request),
   listSerialPorts: () => ipcRenderer.invoke(DEVICE_LIST_PORTS_CHANNEL),
   getDeviceState: () => ipcRenderer.invoke(DEVICE_GET_STATE_CHANNEL),
   connectDevice: (request) => ipcRenderer.invoke(DEVICE_CONNECT_CHANNEL, request),
@@ -51,6 +59,8 @@ const api: SimCoreApi = {
   uploadFontAssets: (request) => ipcRenderer.invoke(FONT_UPLOAD_CHANNEL, request),
   cancelFontUpload: () => ipcRenderer.invoke(FONT_CANCEL_UPLOAD_CHANNEL),
   clearFontAssets: () => ipcRenderer.invoke(FONT_CLEAR_CHANNEL),
+  exportSimHubProfile: (request) =>
+    ipcRenderer.invoke(SIMHUB_PROFILE_EXPORT_CHANNEL, request),
   onFontUploadProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: FontUploadProgress): void =>
       listener(progress)

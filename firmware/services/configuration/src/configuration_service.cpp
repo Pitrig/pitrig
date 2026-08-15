@@ -22,7 +22,15 @@ StorageSlot other(const StorageSlot slot) {
 bool ConfigurationService::initialize(
     IConfigurationStorage& storage,
     const ValidationContext& validation_profile,
-    const std::span<const std::uint8_t> factory_payload) {
+    const std::span<const std::uint8_t> factory_payload,
+    const std::span<std::uint8_t> record_buffer,
+    const std::span<std::uint8_t> current_payload_buffer) {
+  if (record_buffer.size() < kRecordBufferSize ||
+      current_payload_buffer.size() < kPayloadBufferSize) {
+    return false;
+  }
+  record_buffer_ = record_buffer.first(kRecordBufferSize);
+  current_payload_ = current_payload_buffer.first(kPayloadBufferSize);
   storage_ = &storage;
   validation_profile_ = validation_profile;
   has_persisted_slot_ = false;

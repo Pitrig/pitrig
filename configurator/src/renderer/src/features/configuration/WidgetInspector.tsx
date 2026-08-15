@@ -1,8 +1,12 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
 import type { DeviceConfiguration, FontSpec, Placement, RgbColor } from '../../../../shared/device'
+import {
+  TELEMETRY_CATALOG,
+  type TelemetryCatalogEntry
+} from '../../../../shared/telemetry-catalog'
 import {
   completePlacement,
   mutateDraftConfiguration,
@@ -14,13 +18,6 @@ import {
   useDashboardEditorStore,
   type WidgetSelection
 } from './dashboard-editor'
-
-const BINDINGS = [
-  'vehicle.speed', 'engine.rpm', 'transmission.gear', 'session.lap.current_time',
-  'session.lap.best_time', 'vehicle.fuel.level', 'session.lap.delta',
-  'session.lap.estimated_time', 'vehicle.aids.traction_control', 'vehicle.aids.abs',
-  'vehicle.brake_bias', 'vehicle.fuel.average_consumption', 'vehicle.fuel.laps_remaining'
-] as const
 
 export function WidgetInspector(): React.JSX.Element {
   const draftJson = useDeviceStore((state) => state.draftConfigurationJson)
@@ -113,15 +110,21 @@ function GeometryEditor({ selection, placement, zIndex }: { selection: WidgetSel
 
 function TextEditor({ selection, widget }: { selection: WidgetSelection; widget: TextWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: TextWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as TextWidgetConfiguration))
+  const binding = TELEMETRY_CATALOG.find(({ name }) => name === widget.binding)
+  const transforms = transformOptions(binding)
   return (
     <>
       <Section title="Data">
-        <SelectField label="Binding" value={widget.binding ?? ''} options={BINDINGS} onChange={(value) => update((next) => { next.binding = value })} />
+        <TelemetryBindingField value={widget.binding ?? ''} onChange={(value) => update((next) => {
+          next.binding = value
+          const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
+          if (next.transform && !transformOptions(selected).includes(next.transform.format)) delete next.transform
+        })} />
         <SelectField label="Modifier" value={widget.modifiers?.some(({ type }) => type === 'lap_timer') ? 'lap_timer' : 'none'} options={['none', 'lap_timer']} onChange={(value) => update((next) => {
           if (value === 'lap_timer') { next.binding = 'session.lap.current_time'; next.modifiers = [{ type: 'lap_timer' }] }
           else delete next.modifiers
         })} />
-        <SelectField label="Transform" value={widget.transform?.format ?? 'source_text'} options={['source_text', 'duration_ms', 'signed_duration_ms']} onChange={(value) => update((next) => {
+        <SelectField label="Transform" value={widget.transform?.format ?? 'source_text'} options={transforms} onChange={(value) => update((next) => {
           if (value === 'source_text') delete next.transform
           else next.transform = { type: 'time', format: value as 'duration_ms' | 'signed_duration_ms' }
         })} />
@@ -145,6 +148,43 @@ function TextEditor({ selection, widget }: { selection: WidgetSelection; widget:
       </Section>
     </>
   )
+}
+
+function TelemetryBindingField({ value, onChange }: { value: string; onChange: (value: string) => void }): React.JSX.Element {
+  const listId = useId()
+  const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
+  return (
+    <label className="block space-y-1 text-muted-foreground">
+      <span>Binding</span>
+      <input
+        type="search"
+        list={listId}
+        className="h-8 w-full rounded-md border bg-background px-2 text-foreground"
+        placeholder="Search telemetry fields"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <datalist id={listId}>
+        {TELEMETRY_CATALOG.map((entry) => (
+          <option key={entry.name} value={entry.name} label={`${entry.categoryLabel} — ${entry.description}`} />
+        ))}
+      </datalist>
+      {selected ? (
+        <span className="block text-[11px] leading-4">
+          {selected.categoryLabel} · {selected.type} · {selected.unit} · {selected.rate} · ID {selected.wireId}
+        </span>
+      ) : value ? (
+        <span className="block text-[11px] leading-4 text-destructive">Unknown telemetry binding</span>
+      ) : null}
+    </label>
+  )
+}
+
+function transformOptions(binding: TelemetryCatalogEntry | undefined): readonly string[] {
+  if (binding?.unit !== 'millisecond') return ['source_text']
+  if (binding.type === 'uint32') return ['source_text', 'duration_ms']
+  if (binding.type === 'int32') return ['source_text', 'signed_duration_ms']
+  return ['source_text']
 }
 
 function DeltaTimeEditor({ selection, widget, configuration }: { selection: WidgetSelection; widget: DeltaTimeWidgetConfiguration; configuration: DeviceConfiguration }): React.JSX.Element {

@@ -15,12 +15,16 @@ void Router::initialize(
     configuration::ConfigurationControl& control,
     font_assets::FontAssetControl& font_asset_control,
     const transport::DataHandler telemetry_handler,
-    void* const telemetry_context) {
+    void* const telemetry_context,
+    const std::span<std::uint8_t> control_line_buffer) {
   control_ = &control;
   font_asset_control_ = &font_asset_control;
   telemetry_handler_ = telemetry_handler;
   telemetry_context_ = telemetry_context;
+  control_line_ = control_line_buffer.first(
+      std::min(control_line_buffer.size(), kControlLineBufferSize));
   line_size_ = 0;
+  control_line_active_ = false;
   discarding_ = false;
 }
 
@@ -29,7 +33,9 @@ void Router::reset() {
   font_asset_control_ = nullptr;
   telemetry_handler_ = nullptr;
   telemetry_context_ = nullptr;
+  control_line_ = {};
   line_size_ = 0;
+  control_line_active_ = false;
   discarding_ = false;
 }
 
@@ -44,6 +50,7 @@ void Router::consume(const std::span<const std::uint8_t> data) {
       if (value == '\n') {
         discarding_ = false;
         line_size_ = 0;
+        control_line_active_ = false;
       }
       continue;
     }
@@ -53,19 +60,35 @@ void Router::consume(const std::span<const std::uint8_t> data) {
     if (value == '\n') {
       dispatch();
       line_size_ = 0;
+      control_line_active_ = false;
       continue;
     }
-    if (line_size_ == line_.size()) {
+    std::span<std::uint8_t> line = control_line_active_
+                                       ? control_line_
+                                       : std::span<std::uint8_t>(telemetry_line_);
+    if (line_size_ == line.size()) {
       discarding_ = true;
       line_size_ = 0;
+      control_line_active_ = false;
       continue;
     }
-    line_[line_size_++] = value;
+    line[line_size_++] = value;
+    if (!control_line_active_ && line_size_ == kControlPrefix.size() &&
+        std::equal(kControlPrefix.begin(), kControlPrefix.end(),
+                   telemetry_line_.begin()) &&
+        control_line_.size() >= kControlPrefix.size()) {
+      std::copy(kControlPrefix.begin(), kControlPrefix.end(),
+                control_line_.begin());
+      control_line_active_ = true;
+    }
   }
 }
 
 void Router::dispatch() {
-  const std::span<const std::uint8_t> line(line_.data(), line_size_);
+  const std::span<const std::uint8_t> line =
+      control_line_active_
+          ? std::span<const std::uint8_t>(control_line_.data(), line_size_)
+          : std::span<const std::uint8_t>(telemetry_line_.data(), line_size_);
   if (line.empty()) {
     return;
   }

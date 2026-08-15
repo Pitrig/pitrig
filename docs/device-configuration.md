@@ -62,6 +62,14 @@ JSON is the human-readable format for configurator projects and presets. It is
 sparse: omitted sections and properties are not expanded through a board
 profile.
 
+The configurator can create, load, save, and edit this JSON without a connected
+device. The root `board` selects the local immutable board profile used for
+display dimensions and preview. A local draft remains available after a
+disconnect and is not replaced when another device connects. **Reload board**
+is the explicit operation that discards the local draft in favor of the
+connected device configuration. **Save to board** requires the draft and
+connected device to have the same board identifier.
+
 The smallest valid configuration is:
 
 ```json
@@ -84,6 +92,8 @@ Presence rules:
 - A missing property inside a present component uses that component's bounded
   firmware default.
 - A missing telemetry transport uses the immutable board default.
+- The default telemetry UART baud rate is `921600` and matches the checked-in
+  complete SimHub profile and the configurator profile generator's fallback.
 - Unknown properties are rejected.
 - Loading a preset inserts only the properties explicitly present in that
   preset.
@@ -128,7 +138,7 @@ Example sparse configuration:
     "widgets": {
       "text": [
         {
-          "binding": "vehicle.aids.traction_control",
+          "binding": "vehicle.aids.traction_control_level",
           "placement": {
             "x": 16,
             "y": 16,
@@ -194,21 +204,10 @@ are applied by the time transform and are each limited to 15 UTF-8 bytes. Incomp
 binding, modifier, and transform types are rejected before the dashboard is
 created.
 
-Supported bindings:
-
-- `vehicle.speed`;
-- `engine.rpm`;
-- `transmission.gear`;
-- `session.lap.current_time`;
-- `session.lap.best_time`;
-- `vehicle.fuel.level`;
-- `session.lap.delta`;
-- `session.lap.estimated_time`;
-- `vehicle.aids.traction_control`;
-- `vehicle.aids.abs`;
-- `vehicle.brake_bias`;
-- `vehicle.fuel.average_consumption`;
-- `vehicle.fuel.laps_remaining`.
+Supported bindings are listed in the generated
+[telemetry catalog](telemetry-catalog.md). The configurator exposes these fields
+through a searchable binding input and shows the selected field's category,
+type, unit, recommended update rate, and wire ID.
 
 The configurator provides direct manipulation for configured dashboard
 widgets. Selecting a widget on the display preview exposes its schema-backed
@@ -354,7 +353,7 @@ extensions must be recorded in an ADR.
 
 Schema 2 retains deterministic limits:
 
-- maximum compact JSON payload size: 4096 bytes;
+- maximum compact JSON payload size: 16384 bytes;
 - maximum text widgets: 16;
 - maximum modifiers per text widget: 4;
 - maximum canonical telemetry binding: 39 UTF-8 bytes;

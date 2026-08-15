@@ -13,17 +13,17 @@ export const DEVICE_CONFIGURATION_SAVE_CHANNEL = 'device:configuration:save' as 
 export const DEVICE_CONFIGURATION_RESET_CHANNEL = 'device:configuration:reset' as const
 export const DEVICE_STATE_CHANGED_CHANNEL = 'device:state-changed' as const
 
-export const DEFAULT_BAUD_RATE = 115_200
+export const DEFAULT_BAUD_RATE = 921_600
 
 export const SUPPORTED_BAUD_RATES = [
   9_600,
   19_200,
   38_400,
   57_600,
-  DEFAULT_BAUD_RATE,
+  115_200,
   230_400,
   460_800,
-  921_600
+  DEFAULT_BAUD_RATE
 ] as const
 
 export const AUTOMATIC_BAUD_RATES = [
@@ -80,7 +80,7 @@ export type SimCoreBoardId =
   | 'guition_esp32_4848s040'
   | 'guition_jc1060p470c'
 export const CONFIGURATION_SCHEMA_VERSION = 2 as const
-export const MAXIMUM_CONFIGURATION_PAYLOAD_SIZE = 4_096
+export const MAXIMUM_CONFIGURATION_PAYLOAD_SIZE = 16_384
 
 export interface DisplayDescriptor {
   width: number

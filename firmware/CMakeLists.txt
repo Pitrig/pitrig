@@ -18,6 +18,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/platform/communication"
      "${CMAKE_CURRENT_LIST_DIR}/platform/dashboard"
      "${CMAKE_CURRENT_LIST_DIR}/platform/dashboard_composition"
+     "${CMAKE_CURRENT_LIST_DIR}/platform/external_memory"
      "${CMAKE_CURRENT_LIST_DIR}/platform/module_composition"
      "${CMAKE_CURRENT_LIST_DIR}/platform/nvs_config_storage"
      "${CMAKE_CURRENT_LIST_DIR}/platform/partition_font_asset_storage"

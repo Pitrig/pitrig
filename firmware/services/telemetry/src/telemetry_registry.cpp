@@ -3,11 +3,12 @@
 namespace simcore::telemetry {
 
 Handle TelemetryRegistry::resolve(const std::string_view name) const {
-  for (std::size_t index = 0; index < kDescriptors.size(); ++index) {
-    if (kDescriptors[index].name == name) {
+  for (std::size_t index = 0; index < catalog::kFieldDescriptors.size();
+       ++index) {
+    if (catalog::kFieldDescriptors[index].name == name) {
       return {
           .index = static_cast<std::uint16_t>(index),
-          .type = kDescriptors[index].type,
+          .type = catalog::kFieldDescriptors[index].type,
       };
     }
   }
@@ -15,10 +16,10 @@ Handle TelemetryRegistry::resolve(const std::string_view name) const {
 }
 
 const FieldDescriptor* TelemetryRegistry::describe(const Handle handle) const {
-  if (!handle.valid() || handle.index >= kDescriptors.size()) {
+  if (!handle.valid() || handle.index >= catalog::kFieldDescriptors.size()) {
     return nullptr;
   }
-  const FieldDescriptor& descriptor = kDescriptors[handle.index];
+  const FieldDescriptor& descriptor = catalog::kFieldDescriptors[handle.index];
   return descriptor.type == handle.type ? &descriptor : nullptr;
 }
 

@@ -16,10 +16,10 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
   try {
     value = JSON.parse(json)
   } catch {
-    throw new Error('The device returned malformed configuration JSON.')
+    throw new Error('Configuration JSON is malformed.')
   }
   if (!isRecord(value) || !SUPPORTED_BOARDS.has(value.board as SimCoreBoardId)) {
-    throw new Error('The device configuration does not contain a supported board.')
+    throw new Error('Configuration does not contain a supported board.')
   }
   if (
     (value.hardware !== undefined &&
@@ -29,7 +29,7 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
     !optionalDashboard(value.dashboard)
   ) {
     throw new Error(
-      `The device returned an invalid schema ${CONFIGURATION_SCHEMA_VERSION} configuration.`
+      `Configuration is not a valid schema ${CONFIGURATION_SCHEMA_VERSION} document.`
     )
   }
   return value as unknown as DeviceConfiguration

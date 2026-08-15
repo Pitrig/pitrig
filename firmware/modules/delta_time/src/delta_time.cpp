@@ -94,7 +94,7 @@ void DeltaTime::on_telemetry_updated(const events::Event& event,
     return;
   }
 
-  module.set_delta(value.value.int32_value);
+  module.set_delta(value.value.typed.int32_value);
 }
 
 bool DeltaTime::start(events::EventBus& event_bus,
