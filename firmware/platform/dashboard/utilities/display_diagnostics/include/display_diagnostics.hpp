@@ -28,7 +28,8 @@ class View final {
   View(const View&) = delete;
   View& operator=(const View&) = delete;
 
-  [[nodiscard]] bool create(lv_display_t* display, const Config& config,
+  [[nodiscard]] bool create(lv_display_t* display, lv_obj_t* screen,
+                            const Config& config,
                             const fonts::Registry& fonts);
   void destroy();
 

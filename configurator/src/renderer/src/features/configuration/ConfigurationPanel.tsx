@@ -4,7 +4,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { writeDevelopmentLog } from '@/features/development/development-log'
-import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
+import {
+  draftText,
+  parseConfiguration,
+  useDeviceStore
+} from '@/features/device/device-store'
+import { configurationsEqual } from '../../../../shared/configuration-access'
+import {
+  validateConfigurationDocument,
+  type ValidationResult
+} from '../../../../shared/configuration-validate'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
 import {
@@ -13,13 +22,12 @@ import {
   missingFontRequirements
 } from '@/features/font-assets/font-requirements'
 import {
-  BOARD_PROFILES,
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
+  SIMCORE_BOARD_IDS,
   type DeviceConfiguration,
   type DeviceResult,
   type SimCoreBoardId
 } from '../../../../shared/device'
-import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_ASSETS } from '../../../../shared/font-assets'
 
 type Operation =
   | 'idle'
@@ -41,13 +49,15 @@ const BOARD_OPTIONS: Array<{ id: SimCoreBoardId; label: string }> = [
 export function ConfigurationPanel(): React.JSX.Element {
   const status = useDeviceStore((state) => state.status)
   const session = useDeviceStore((state) => state.session)
-  const activeJson = useDeviceStore((state) => state.activeConfigurationJson)
-  const draftJson = useDeviceStore((state) => state.draftConfigurationJson)
+  const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
+  const draft = useDeviceStore((state) => state.draft)
+  const rawDraft = useDeviceStore((state) => state.rawDraft)
   const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
   const draftFileName = useDeviceStore((state) => state.draftFileName)
   const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
   const rebootRequired = useDeviceStore((state) => state.rebootRequired)
-  const setDraftJson = useDeviceStore((state) => state.setDraftConfigurationJson)
+  const setRawDraft = useDeviceStore((state) => state.setRawDraft)
+  const setDraft = useDeviceStore((state) => state.setDraft)
   const replaceLocalDraft = useDeviceStore((state) => state.replaceLocalDraft)
   const reloadDraft = useDeviceStore((state) => state.reloadDraft)
   const markSaved = useDeviceStore((state) => state.markConfigurationSaved)
@@ -58,14 +68,15 @@ export function ConfigurationPanel(): React.JSX.Element {
   const selectWidget = useDashboardEditorStore((state) => state.select)
   const selectedNewBoard = session?.info.boardId ?? offlineBoard
 
+  const draftJson = draftText({ rawDraft, draft })
   const parsed = useMemo(
-    () => parseDraft(draftJson, hasLocalDraft),
-    [draftJson, hasLocalDraft]
+    () => parseDraft(draft, rawDraft, hasLocalDraft),
+    [draft, rawDraft, hasLocalDraft]
   )
-  const comparisonJson = pendingConfiguration
-    ? formatConfiguration(pendingConfiguration)
-    : activeJson
-  const dirty = hasLocalDraft && (!session || draftJson !== comparisonJson)
+  // Structural comparison: reordering or reformatting properties no longer
+  // makes an identical configuration look modified.
+  const comparison = pendingConfiguration ?? activeConfiguration
+  const dirty = hasLocalDraft && (!session || !configurationsEqual(draft, comparison))
   const connected = status === 'connected' && Boolean(session)
   const busy = operation !== 'idle'
   const requiredFonts = parsed.ok ? collectFontRequirements(parsed.configuration) : []
@@ -196,7 +207,7 @@ export function ConfigurationPanel(): React.JSX.Element {
       'validate',
       () => window.simcore.validateDeviceConfiguration({ json: draftJson }),
       (configuration) => {
-        setDraftJson(formatConfiguration(configuration))
+        setDraft(configuration)
         return 'Firmware accepted the configuration.'
       }
     )
@@ -368,7 +379,7 @@ export function ConfigurationPanel(): React.JSX.Element {
               spellCheck={false}
               value={draftJson}
               onChange={(event) => {
-                setDraftJson(event.target.value)
+                setRawDraft(event.target.value)
                 setFeedback(undefined)
               }}
             />
@@ -450,71 +461,16 @@ function bridgeErrorMessage(error: unknown): string {
 }
 
 function parseDraft(
-  json: string,
+  draft: DeviceConfiguration | undefined,
+  rawDraft: string | undefined,
   hasLocalDraft: boolean
-): { ok: true; configuration: DeviceConfiguration; payloadBytes: number } | { ok: false; error: string } {
+): ValidationResult {
   if (!hasLocalDraft) return { ok: false, error: 'No local configuration.' }
-  try {
-    const value: unknown = JSON.parse(json)
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return { ok: false, error: 'Configuration must be a JSON object.' }
-    }
-    const configuration = value as DeviceConfiguration
-    if (!Object.hasOwn(BOARD_PROFILES, configuration.board)) {
-      return { ok: false, error: 'Configuration must target a supported board.' }
-    }
-    if (!validLocalShape(configuration)) {
-      return { ok: false, error: 'Configuration is not a valid schema 2 document.' }
-    }
-    const fontError = configurationFontError(configuration)
-    if (fontError) return { ok: false, error: fontError }
-    const payloadBytes = new TextEncoder().encode(JSON.stringify(configuration)).byteLength
-    if (payloadBytes > MAXIMUM_CONFIGURATION_PAYLOAD_SIZE) {
-      return {
-        ok: false,
-        error: `Configuration exceeds the ${MAXIMUM_CONFIGURATION_PAYLOAD_SIZE}-byte device limit.`
-      }
-    }
-    return { ok: true, configuration, payloadBytes }
-  } catch {
+  // A raw draft that never parsed leaves `draft` at the last good document, so
+  // report the text problem rather than validating a stale structure.
+  if (rawDraft !== undefined && parseConfiguration(rawDraft) === undefined) {
     return { ok: false, error: 'Configuration is not valid JSON.' }
   }
-}
-
-function validLocalShape(configuration: DeviceConfiguration): boolean {
-  if (
-    configuration.hardware !== undefined &&
-    (!Array.isArray(configuration.hardware) || configuration.hardware.length !== 0)
-  ) return false
-  const dashboard = configuration.dashboard
-  if (dashboard !== undefined && (!dashboard || typeof dashboard !== 'object')) return false
-  const widgets = dashboard?.widgets
-  if (widgets !== undefined && (!widgets || typeof widgets !== 'object')) return false
-  if (widgets?.text !== undefined) {
-    if (!Array.isArray(widgets.text)) return false
-    if (widgets.text.some((widget) => !widget || typeof widget !== 'object')) return false
-  }
-  return true
-}
-
-function configurationFontError(configuration: DeviceConfiguration): string | undefined {
-  const widgets = configuration.dashboard?.widgets
-  const fonts = [] as Array<{ family?: string; size_px?: number } | undefined>
-  if (widgets?.delta_time) fonts.push(widgets.delta_time.font)
-  for (const widget of Array.isArray(widgets?.text) ? widgets.text : []) {
-    if (widget.title?.text) fonts.push(widget.title.font)
-    fonts.push(widget.value?.font)
-  }
-  for (const font of fonts) {
-    if (
-      !font || typeof font.family !== 'string' || !FONT_FAMILY_PATTERN.test(font.family) ||
-      !Number.isInteger(font.size_px) || (font.size_px ?? 0) < 1 || (font.size_px ?? 0) > 255
-    ) {
-      return 'Every dashboard font must explicitly define a valid family and size_px.'
-    }
-  }
-  if (collectFontRequirements(configuration).length > MAXIMUM_FONT_ASSETS) {
-    return `Configuration requires more than ${MAXIMUM_FONT_ASSETS} unique font assets.`
-  }
-  return undefined
+  if (!draft) return { ok: false, error: 'No local configuration.' }
+  return validateConfigurationDocument(draft, { supportedBoards: SIMCORE_BOARD_IDS })
 }

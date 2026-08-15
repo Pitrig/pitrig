@@ -398,10 +398,10 @@ lv_obj_t* create_label(const ViewImplementation& state, lv_obj_t* parent,
 
 View::~View() { destroy(); }
 
-bool View::create(lv_display_t* const display, const Config& config,
-                  const fonts::Registry& fonts) {
+bool View::create(lv_display_t* const display, lv_obj_t* const screen,
+                  const Config& config, const fonts::Registry& fonts) {
   (void)fonts;
-  if (display == nullptr || implementation_ != nullptr) {
+  if (display == nullptr || screen == nullptr || implementation_ != nullptr) {
     return false;
   }
   auto* const implementation = new (std::nothrow) ViewImplementation{};
@@ -432,7 +432,6 @@ bool View::create(lv_display_t* const display, const Config& config,
     return false;
   }
 
-  lv_obj_t* const screen = lv_display_get_screen_active(display);
   lv_obj_clean(screen);
   lv_obj_remove_style_all(screen);
   lv_obj_set_style_bg_color(screen, lv_color_black(), LV_PART_MAIN);
@@ -540,7 +539,8 @@ void View::destroy() {
 namespace simcore::dashboard::display_diagnostics {
 
 View::~View() = default;
-bool View::create(lv_display_t*, const Config&, const fonts::Registry&) {
+bool View::create(lv_display_t*, lv_obj_t*, const Config&,
+                  const fonts::Registry&) {
   return false;
 }
 void View::destroy() {}

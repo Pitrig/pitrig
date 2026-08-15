@@ -25,13 +25,13 @@ bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
                            const std::int32_t intrinsic_height,
                            const bool fill_available_width, lv_obj_t*& parent,
                            Rect& bounds) {
-  if (layout.display == nullptr || intrinsic_width <= 0 ||
-      intrinsic_height <= 0 || placement.x < 0 || placement.y < 0 ||
-      placement.width < 0 || placement.height < 0) {
+  if (layout.display == nullptr || layout.screen == nullptr ||
+      intrinsic_width <= 0 || intrinsic_height <= 0 || placement.x < 0 ||
+      placement.y < 0 || placement.width < 0 || placement.height < 0) {
     return false;
   }
 
-  parent = lv_display_get_screen_active(layout.display);
+  parent = layout.screen;
   const std::int32_t display_width =
       lv_display_get_horizontal_resolution(layout.display);
   const std::int32_t display_height =

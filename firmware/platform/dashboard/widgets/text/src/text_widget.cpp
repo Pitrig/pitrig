@@ -143,25 +143,25 @@ void Collection::destroy() {
 }
 
 bool Collection::create(
-    const Layout& layout,
-    const std::span<const BoundConfig> configurations,
+    const Layout& layout, const std::span<const Config> configurations,
+    const std::span<const BoundConfig> bindings,
     const fonts::Registry& fonts) {
-  if (layout.display == nullptr ||
-      configurations.size() > states_.size() || created_ ||
+  if (layout.display == nullptr || bindings.size() > states_.size() ||
+      configurations.size() != bindings.size() || created_ ||
       !lvgl_port_lock(0)) {
     return false;
   }
 
   created_ = true;
-  for (const BoundConfig& binding : configurations) {
-    if (binding.configuration == nullptr || binding.read == nullptr ||
-        binding.read_context == nullptr) {
+  for (std::size_t widget = 0; widget < bindings.size(); ++widget) {
+    const BoundConfig& binding = bindings[widget];
+    if (binding.read == nullptr || binding.read_context == nullptr) {
       clear_objects();
       created_ = false;
       lvgl_port_unlock();
       return false;
     }
-    const Config& config = *binding.configuration;
+    const Config& config = configurations[widget];
     const bool has_title = config.title.text.front() != '\0';
     const lv_font_t* const title_font =
         has_title ? fonts.resolve(config.title.font) : nullptr;

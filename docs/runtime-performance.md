@@ -6,14 +6,14 @@ available PSRAM, and uptime.
 
 ## Build profile
 
-Runtime diagnostics are disabled in production. Enable them by changing the
-source-level feature in `firmware/components/simcore_config/include/simcore_features.hpp`:
+Runtime diagnostics are disabled in production. They are selected by the
+`CONFIG_SIMCORE_DEBUG` Kconfig option, which
+`firmware/components/simcore_config/include/simcore_features.hpp` aliases to
+`SIMCORE_DEBUG`. Checked-in board profiles and IDE tasks are the single source of
+feature selection; no source header is edited.
 
-```cpp
-#define SIMCORE_DEBUG 1
-```
-
-Build with the debug ESP-IDF defaults appended after the board profile:
+Build with the debug ESP-IDF defaults appended after the board profile, which
+enables the option together with the FreeRTOS runtime counters it needs:
 
 ```sh
 idf.py -B build-debug \

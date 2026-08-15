@@ -13,103 +13,381 @@
     }
   },
   "dashboard": {
-    "widgets": {
-      "delta_time": {
-        "placement": { "x": 406, "y": 8, "width": 204, "height": 68 },
-        "font": { "family": "roboto-black", "size_px": 56 },
-        "neutral_color": "#FFE04A"
-      },
-      "text": [
-        {
-          "binding": "vehicle.speed",
-          "placement": { "x": 8, "y": 16, "width": 380, "height": 190 },
-          "border": { "width_px": 2, "radius_px": 14 },
-          "title": { "text": "SPEED", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 96 } }
-        },
-        {
-          "binding": "engine.rpm",
-          "placement": { "x": 8, "y": 224, "width": 380, "height": 202 },
-          "border": { "width_px": 2, "radius_px": 14 },
-          "title": { "text": "RPM", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 96 } }
-        },
-        {
-          "binding": "transmission.gear",
-          "placement": { "x": 406, "y": 92, "width": 204, "height": 334 },
-          "border": { "color": "#404040", "width_px": 2, "radius_px": 14 },
-          "title": { "text": "GEAR", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 192 }, "unavailable_text": "N" },
-          "background_color": "#202020"
-        },
-        {
-          "binding": "session.lap.estimated_time",
-          "transform": { "type": "time", "format": "duration_ms" },
-          "placement": { "x": 628, "y": 16, "width": 388, "height": 122 },
-          "border": { "width_px": 2, "radius_px": 14 },
-          "title": { "text": "ESTIMATED LAP", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 }, "color": "#FFE04A" }
-        },
-        {
-          "binding": "session.lap.current_time",
-          "modifiers": [{ "type": "lap_timer" }],
-          "transform": { "type": "time", "format": "duration_ms" },
-          "placement": { "x": 628, "y": 160, "width": 388, "height": 122 },
-          "border": { "width_px": 2, "radius_px": 14 },
-          "title": { "text": "CURRENT LAP", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 }, "color": "#E000E8" }
-        },
-        {
-          "binding": "session.lap.best_time",
-          "transform": { "type": "time", "format": "duration_ms" },
-          "placement": { "x": 628, "y": 304, "width": 388, "height": 122 },
-          "border": { "width_px": 2, "radius_px": 14 },
-          "title": { "text": "BEST LAP", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 }, "color": "#00F020" }
-        },
-        {
-          "binding": "vehicle.aids.traction_control_level",
-          "placement": { "x": 8, "y": 450, "width": 126, "height": 142 },
-          "border": { "color": "#00CFFF", "width_px": 3, "radius_px": 14 },
-          "title": { "text": "TC", "font": { "family": "roboto-black", "size_px": 18 }, "color": "#00CFFF" },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 }, "color": "#00CFFF" }
-        },
-        {
-          "binding": "vehicle.aids.abs_level",
-          "placement": { "x": 144, "y": 450, "width": 126, "height": 142 },
-          "border": { "color": "#FFE04A", "width_px": 3, "radius_px": 14 },
-          "title": { "text": "ABS", "font": { "family": "roboto-black", "size_px": 18 }, "color": "#FFE04A" },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 }, "color": "#FFE04A" }
-        },
-        {
-          "binding": "vehicle.brake_bias",
-          "placement": { "x": 280, "y": 450, "width": 158, "height": 142 },
-          "border": { "color": "#FF3030", "width_px": 3, "radius_px": 14 },
-          "title": { "text": "BB", "font": { "family": "roboto-black", "size_px": 18 }, "color": "#FF3030" },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 }, "color": "#FF3030" }
-        },
-        {
-          "binding": "vehicle.fuel.level",
-          "placement": { "x": 448, "y": 450, "width": 184, "height": 142 },
-          "border": { "width_px": 2, "radius_px": 14 },
-          "title": { "text": "FUEL", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 } }
-        },
-        {
-          "binding": "vehicle.fuel.average_consumption",
-          "placement": { "x": 642, "y": 450, "width": 174, "height": 142 },
-          "border": { "width_px": 2, "radius_px": 14 },
-          "title": { "text": "FUEL / LAP", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 } }
-        },
-        {
-          "binding": "vehicle.fuel.laps_remaining",
-          "placement": { "x": 826, "y": 450, "width": 190, "height": 142 },
-          "border": { "width_px": 2, "radius_px": 14 },
-          "title": { "text": "FUEL LAPS", "font": { "family": "roboto-black", "size_px": 18 } },
-          "value": { "font": { "family": "roboto-black", "size_px": 56 } }
-        }
-      ]
-    }
+    "screens": [
+      {
+        "widgets": [
+          {
+            "type": "delta_time",
+            "placement": {
+              "x": 406,
+              "y": 8,
+              "width": 204,
+              "height": 68
+            },
+            "font": {
+              "family": "roboto-black",
+              "size_px": 56
+            },
+            "neutral_color": "#FFE04A"
+          },
+          {
+            "type": "text",
+            "binding": "vehicle.speed",
+            "placement": {
+              "x": 8,
+              "y": 16,
+              "width": 380,
+              "height": 190
+            },
+            "border": {
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "SPEED",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 96
+              }
+            }
+          },
+          {
+            "type": "text",
+            "binding": "engine.rpm",
+            "placement": {
+              "x": 8,
+              "y": 224,
+              "width": 380,
+              "height": 202
+            },
+            "border": {
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "RPM",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 96
+              }
+            }
+          },
+          {
+            "type": "text",
+            "binding": "transmission.gear",
+            "placement": {
+              "x": 406,
+              "y": 92,
+              "width": 204,
+              "height": 334
+            },
+            "border": {
+              "color": "#404040",
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "GEAR",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 192
+              },
+              "unavailable_text": "N"
+            },
+            "background_color": "#202020"
+          },
+          {
+            "type": "text",
+            "binding": "session.lap.estimated_time",
+            "transform": {
+              "type": "time",
+              "format": "duration_ms"
+            },
+            "placement": {
+              "x": 628,
+              "y": 16,
+              "width": 388,
+              "height": 122
+            },
+            "border": {
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "ESTIMATED LAP",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              },
+              "color": "#FFE04A"
+            }
+          },
+          {
+            "type": "text",
+            "binding": "session.lap.current_time",
+            "modifiers": [
+              {
+                "type": "lap_timer"
+              }
+            ],
+            "transform": {
+              "type": "time",
+              "format": "duration_ms"
+            },
+            "placement": {
+              "x": 628,
+              "y": 160,
+              "width": 388,
+              "height": 122
+            },
+            "border": {
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "CURRENT LAP",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              },
+              "color": "#E000E8"
+            }
+          },
+          {
+            "type": "text",
+            "binding": "session.lap.best_time",
+            "transform": {
+              "type": "time",
+              "format": "duration_ms"
+            },
+            "placement": {
+              "x": 628,
+              "y": 304,
+              "width": 388,
+              "height": 122
+            },
+            "border": {
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "BEST LAP",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              },
+              "color": "#00F020"
+            }
+          },
+          {
+            "type": "text",
+            "binding": "vehicle.aids.traction_control_level",
+            "placement": {
+              "x": 8,
+              "y": 450,
+              "width": 126,
+              "height": 142
+            },
+            "border": {
+              "color": "#00CFFF",
+              "width_px": 3,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "TC",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#00CFFF"
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              },
+              "color": "#00CFFF"
+            }
+          },
+          {
+            "type": "text",
+            "binding": "vehicle.aids.abs_level",
+            "placement": {
+              "x": 144,
+              "y": 450,
+              "width": 126,
+              "height": 142
+            },
+            "border": {
+              "color": "#FFE04A",
+              "width_px": 3,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "ABS",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#FFE04A"
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              },
+              "color": "#FFE04A"
+            }
+          },
+          {
+            "type": "text",
+            "binding": "vehicle.brake_bias",
+            "placement": {
+              "x": 280,
+              "y": 450,
+              "width": 158,
+              "height": 142
+            },
+            "border": {
+              "color": "#FF3030",
+              "width_px": 3,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "BB",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#FF3030"
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              },
+              "color": "#FF3030"
+            }
+          },
+          {
+            "type": "text",
+            "binding": "vehicle.fuel.level",
+            "placement": {
+              "x": 448,
+              "y": 450,
+              "width": 184,
+              "height": 142
+            },
+            "border": {
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "FUEL",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              }
+            }
+          },
+          {
+            "type": "text",
+            "binding": "vehicle.fuel.average_consumption",
+            "placement": {
+              "x": 642,
+              "y": 450,
+              "width": 174,
+              "height": 142
+            },
+            "border": {
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "FUEL / LAP",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              }
+            }
+          },
+          {
+            "type": "text",
+            "binding": "vehicle.fuel.laps_remaining",
+            "placement": {
+              "x": 826,
+              "y": 450,
+              "width": 190,
+              "height": 142
+            },
+            "border": {
+              "width_px": 2,
+              "radius_px": 14
+            },
+            "title": {
+              "text": "FUEL LAPS",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              }
+            },
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 56
+              }
+            }
+          }
+        ]
+      }
+    ]
   }
 }

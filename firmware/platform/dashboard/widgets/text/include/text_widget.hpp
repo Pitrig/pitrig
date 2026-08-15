@@ -46,9 +46,11 @@ class Collection final {
   Collection(const Collection&) = delete;
   Collection& operator=(const Collection&) = delete;
 
+  // `configurations` and `bindings` are parallel: element N of one describes
+  // the widget element N of the other resolves values for.
   [[nodiscard]] bool create(
-      const Layout& layout, std::span<const BoundConfig> configurations,
-      const fonts::Registry& fonts);
+      const Layout& layout, std::span<const Config> configurations,
+      std::span<const BoundConfig> bindings, const fonts::Registry& fonts);
   [[nodiscard]] std::size_t size() const { return count_; }
   [[nodiscard]] lv_obj_t* root_object(const std::size_t index) const {
     return index < count_ ? states_[index].container : nullptr;

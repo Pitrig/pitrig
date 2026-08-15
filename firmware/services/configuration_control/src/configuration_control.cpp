@@ -108,7 +108,7 @@ void ConfigurationControl::handle(
   if (command.size() == 4 &&
       std::equal(command.begin(), command.end(), "INFO")) {
     const ConfigurationStatus status = service_->status();
-    const char* const board = board_id_name(service_->hardware_board());
+    const std::string_view board = board_id_name(service_->hardware_board());
     const char* source = "factory";
     if (status.source == ConfigurationSource::slot_a) {
       source = "slot_a";
@@ -117,8 +117,9 @@ void ConfigurationControl::handle(
     }
     const int written = std::snprintf(
         reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
-        "@SC:OK:INFO:board=%s,firmware=%s,schema=%u,source=%s,generation=%lu,storage=%u\n",
-        board, esp_app_get_description()->version,
+        "@SC:OK:INFO:board=%.*s,firmware=%s,schema=%u,source=%s,generation=%lu,storage=%u\n",
+        static_cast<int>(board.size()), board.data(),
+        esp_app_get_description()->version,
         static_cast<unsigned>(kConfigurationSchemaVersion), source,
         static_cast<unsigned long>(status.generation),
         status.storage_available ? 1U : 0U);
@@ -148,11 +149,11 @@ void ConfigurationControl::handle(
         validate ? kValidate.size() : kSet.size();
     const std::span<const std::uint8_t> payload =
         command.subspan(prefix_size);
-    const ValidationError error =
+    const ValidationFailure failure =
         validate ? service_->validate_payload(payload)
                  : service_->save(payload);
-    if (error != ValidationError::none) {
-      send_error(error);
+    if (!failure.ok()) {
+      send_error(failure);
       return;
     }
     send_text(validate ? "@SC:OK:VALID\n"
@@ -187,10 +188,18 @@ void ConfigurationControl::send_text(const char* const text) {
       reinterpret_cast<const std::uint8_t*>(text), std::strlen(text)));
 }
 
-void ConfigurationControl::send_error(const ValidationError error) {
+void ConfigurationControl::send_error(const ValidationFailure& failure) {
+  // The reason token keeps its position so existing hosts still parse it.
+  // Location details follow only when the failure has them.
+  const std::string_view reason = validation_error_name(failure.error);
+  const std::string_view path = text_view(failure.path);
   const int written = std::snprintf(
       reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
-      "@SC:ERR:%s\n", validation_error_name(error));
+      "@SC:ERR:%.*s:screen=%d,widget=%d,path=%.*s\n",
+      static_cast<int>(reason.size()), reason.data(),
+      static_cast<int>(failure.screen_index),
+      static_cast<int>(failure.widget_index),
+      static_cast<int>(path.size()), path.data());
   if (written > 0 && static_cast<std::size_t>(written) < io_buffer_.size()) {
     transport_->write(
         std::span<const std::uint8_t>(io_buffer_.data(), written));
@@ -202,7 +211,7 @@ void ConfigurationControl::send_payload(
   constexpr char prefix[] = "@SC:OK:CONFIG:";
   constexpr std::size_t prefix_size = sizeof(prefix) - 1;
   if (prefix_size + payload.size() + 1U > io_buffer_.size()) {
-    send_error(ValidationError::malformed);
+    send_error({.error = ValidationError::malformed});
     return;
   }
   std::copy_n(reinterpret_cast<const std::uint8_t*>(prefix), prefix_size,

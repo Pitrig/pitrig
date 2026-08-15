@@ -1,6 +1,8 @@
 # ADR 0007: Dashboard Layout Regions
 
-Status: Accepted; supersedes the original region-based decision
+Status: Accepted; supersedes the original region-based decision. The
+single-coordinate-space rule is superseded by ADR 0014 and the fixed widget-type
+list by ADR 0015. Absolute placement and z_index ordering remain in force.
 
 ## Context
 

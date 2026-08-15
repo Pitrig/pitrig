@@ -49,7 +49,7 @@ class ConfigurationControl {
   void process();
   void handle(std::span<const std::uint8_t> line);
   void send_text(const char* text);
-  void send_error(ValidationError error);
+  void send_error(const ValidationFailure& failure);
   void send_payload(std::span<const std::uint8_t> payload);
 
   ConfigurationService* service_{};

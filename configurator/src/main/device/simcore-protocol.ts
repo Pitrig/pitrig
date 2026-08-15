@@ -3,6 +3,7 @@ import type { SerialPort } from 'serialport'
 import {
   BOARD_PROFILES,
   CONFIGURATION_SCHEMA_VERSION,
+  SIMCORE_BOARD_IDS,
   type DeviceConfiguration,
   type DeviceErrorCode,
   type DeviceInfo,
@@ -225,12 +226,8 @@ async function probeFontAssets(
 
 function parseDeviceInfo(line: string): DeviceInfo {
   const fields = parseFields(line, '@SC:OK:INFO:', 'INFO data')
-  const board = fields.get('board')
-  if (
-    board !== 't_display_s3' &&
-    board !== 'guition_esp32_4848s040' &&
-    board !== 'guition_jc1060p470c'
-  ) {
+  const board = fields.get('board') as SimCoreBoardId | undefined
+  if (board === undefined || !SIMCORE_BOARD_IDS.includes(board)) {
     throw new DeviceServiceError('not_simcore', `Unsupported SimCore board: ${board ?? 'unknown'}.`)
   }
   if (fields.get('schema') !== String(CONFIGURATION_SCHEMA_VERSION)) {

@@ -1,11 +1,31 @@
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <string_view>
+
 #include "configuration_json.hpp"
 #include "telemetry_registry.hpp"
 
-#include <algorithm>
-#include <string_view>
-
 namespace simcore::configuration {
 namespace {
+
+// Records a rejection with the property that caused it. The first cause wins so
+// an inner reason is not replaced by the generic error its caller would return.
+bool reject(ValidationFailure& failure, const ValidationError error,
+            const std::string_view path) {
+  if (!failure.ok()) {
+    return false;
+  }
+  failure.error = error;
+  std::size_t length = 0;
+  for (const char character : path) {
+    if (length + 1 >= failure.path.size()) {
+      break;
+    }
+    failure.path[length++] = character;
+  }
+  return false;
+}
 
 [[nodiscard]] bool valid_color(const std::uint32_t color) {
   return color <= 0x00FF'FFFFU;
@@ -50,97 +70,170 @@ template <std::size_t Size>
   return std::find(value.begin(), value.end(), '\0') != value.end();
 }
 
-[[nodiscard]] bool valid_text_widget(
-    const TextWidgetConfiguration& config,
-    const std::int32_t display_width, const std::int32_t display_height) {
-  const telemetry::TelemetryRegistry registry;
-  const std::string_view binding = value_binding_view(config.binding);
-  const telemetry::Handle telemetry_handle = registry.resolve(binding);
-  if (!telemetry_handle.valid() ||
-      config.modifier_count > config.modifiers.size()) {
-    return false;
+// Owns the one immutable telemetry registry every widget resolves against. It
+// used to be constructed per widget on the validating task's stack.
+class Validator final {
+ public:
+  Validator(const ValidationContext& profile, ValidationFailure& failure)
+      : profile_(profile), failure_(failure) {}
+
+  [[nodiscard]] bool text_widget(const TextWidgetConfiguration& config);
+  [[nodiscard]] bool delta_time_widget(
+      const DeltaTimeWidgetConfiguration& config);
+
+ private:
+  [[nodiscard]] std::int32_t width() const { return profile_.display.width; }
+  [[nodiscard]] std::int32_t height() const { return profile_.display.height; }
+
+  const telemetry::TelemetryRegistry registry_{};
+  const ValidationContext& profile_;
+  ValidationFailure& failure_;
+};
+
+bool Validator::delta_time_widget(const DeltaTimeWidgetConfiguration& config) {
+  if (!valid_font(config.font)) {
+    return reject(failure_, ValidationError::invalid_widget, "font");
   }
+  if (!valid_placement(config.placement, width(), height())) {
+    return reject(failure_, ValidationError::invalid_widget, "placement");
+  }
+  if (!valid_color(config.faster_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "faster_color");
+  }
+  if (!valid_color(config.slower_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "slower_color");
+  }
+  if (!valid_color(config.neutral_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "neutral_color");
+  }
+  if (!terminated(config.id)) {
+    return reject(failure_, ValidationError::invalid_widget, "id");
+  }
+  return true;
+}
+
+bool Validator::text_widget(const TextWidgetConfiguration& config) {
+  const std::string_view binding = value_binding_view(config.binding);
+  const telemetry::Handle handle = registry_.resolve(binding);
+  if (!handle.valid()) {
+    return reject(failure_, ValidationError::invalid_widget, "binding");
+  }
+  if (config.modifier_count > config.modifiers.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "modifiers");
+  }
+
   bool lap_timer_modifier{};
   for (std::size_t index = 0; index < config.modifier_count; ++index) {
     if (config.modifiers[index].type != ValueModifierType::lap_timer ||
         lap_timer_modifier) {
-      return false;
+      return reject(failure_, ValidationError::invalid_widget, "modifiers");
     }
     lap_timer_modifier = true;
   }
   if (lap_timer_modifier &&
       (binding != telemetry::fields::kCurrentLapTime ||
-       telemetry_handle.type != telemetry::ValueType::uint32)) {
-    return false;
+       handle.type != telemetry::ValueType::uint32)) {
+    return reject(failure_, ValidationError::invalid_widget, "modifiers");
   }
-  const telemetry::ValueType source_type = telemetry_handle.type;
+
+  using transformers::time_transform::Format;
   const bool compatible_transform =
       config.transform.type == ValueTransformType::none ||
       (config.transform.type == ValueTransformType::time &&
-       ((config.transform.time.format ==
-             transformers::time_transform::Format::duration_ms &&
-         source_type == telemetry::ValueType::uint32) ||
-        (config.transform.time.format ==
-             transformers::time_transform::Format::signed_duration_ms &&
-         source_type == telemetry::ValueType::int32)));
-  return compatible_transform &&
-         valid_placement(config.placement, display_width, display_height) &&
-         (config.title.text.front() == '\0' || valid_font(config.title.font)) &&
-         valid_font(config.value.font) &&
-         valid_color(config.border.color) && valid_color(config.title.color) &&
-         valid_color(config.value.color) &&
-         valid_optional_color(config.background_color) &&
-         config.value.alignment >= TextAlignment::left &&
-         config.value.alignment <= TextAlignment::right &&
-         config.padding.left <= display_width &&
-         config.padding.top <= display_height &&
-         config.padding.right <= display_width &&
-         config.padding.bottom <= display_height &&
-         config.border.width_px <= 240 &&
-         config.border.radius_px <= 480 && terminated(config.title.text) &&
-         terminated(config.value.unavailable_text) &&
-         terminated(config.transform.time.prefix) &&
-         terminated(config.transform.time.suffix);
+       ((config.transform.time.format == Format::duration_ms &&
+         handle.type == telemetry::ValueType::uint32) ||
+        (config.transform.time.format == Format::signed_duration_ms &&
+         handle.type == telemetry::ValueType::int32)));
+  if (!compatible_transform) {
+    return reject(failure_, ValidationError::invalid_widget, "transform");
+  }
+  if (!terminated(config.transform.time.prefix) ||
+      !terminated(config.transform.time.suffix)) {
+    return reject(failure_, ValidationError::invalid_widget, "transform");
+  }
+  if (!valid_placement(config.placement, width(), height())) {
+    return reject(failure_, ValidationError::invalid_widget, "placement");
+  }
+  if (config.padding.left > width() || config.padding.right > width() ||
+      config.padding.top > height() || config.padding.bottom > height()) {
+    return reject(failure_, ValidationError::invalid_widget, "padding");
+  }
+  if (!valid_color(config.border.color) || config.border.width_px > 240 ||
+      config.border.radius_px > 480) {
+    return reject(failure_, ValidationError::invalid_widget, "border");
+  }
+  if (!terminated(config.title.text) || !valid_color(config.title.color) ||
+      (config.title.text.front() != '\0' && !valid_font(config.title.font))) {
+    return reject(failure_, ValidationError::invalid_widget, "title");
+  }
+  if (!valid_font(config.value.font) || !valid_color(config.value.color) ||
+      !terminated(config.value.unavailable_text) ||
+      config.value.alignment < TextAlignment::left ||
+      config.value.alignment > TextAlignment::right) {
+    return reject(failure_, ValidationError::invalid_widget, "value");
+  }
+  if (!valid_optional_color(config.background_color)) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "background_color");
+  }
+  if (!terminated(config.id)) {
+    return reject(failure_, ValidationError::invalid_widget, "id");
+  }
+  return true;
+}
+
+[[nodiscard]] bool validate_transport(
+    const ApplicationConfiguration& configuration,
+    const ValidationContext& profile, ValidationFailure& failure) {
+  if (!configuration.telemetry_transport_present) {
+    return true;
+  }
+  const TelemetryTransportId transport = configuration.telemetry_transport.id;
+  if (transport < TelemetryTransportId::board_default ||
+      transport > TelemetryTransportId::uart) {
+    return reject(failure, ValidationError::invalid_transport,
+                  "telemetry_transport.id");
+  }
+  if (transport == TelemetryTransportId::native_usb_cdc &&
+      !profile.native_usb_cdc_supported) {
+    return reject(failure, ValidationError::invalid_transport,
+                  "telemetry_transport.id");
+  }
+  const UartTelemetryConfiguration& uart = configuration.telemetry_transport.uart;
+  if (transport == TelemetryTransportId::uart &&
+      (!profile.uart_supported || uart.port < 0 || uart.port > 2 ||
+       uart.tx_pin == uart.rx_pin || uart.baud_rate < 9'600 ||
+       uart.baud_rate > 2'000'000 || uart.tx_pin != profile.uart_tx_pin ||
+       uart.rx_pin != profile.uart_rx_pin)) {
+    return reject(failure, ValidationError::invalid_uart,
+                  "telemetry_transport.uart");
+  }
+  return true;
 }
 
 }  // namespace
 
-ValidationError validate_configuration(
+ValidationFailure validate_configuration(
     const ApplicationConfiguration& configuration,
     const ValidationContext& profile) {
+  ValidationFailure failure{};
+
   if (configuration.board.id < BoardId::t_display_s3 ||
       configuration.board.id > BoardId::guition_jc1060p470c) {
-    return ValidationError::invalid_board;
+    (void)reject(failure, ValidationError::invalid_board, "board");
+    return failure;
   }
   if (configuration.board.id != profile.board) {
-    return ValidationError::board_mismatch;
+    (void)reject(failure, ValidationError::board_mismatch, "board");
+    return failure;
   }
   if (profile.display.width <= 0 || profile.display.height <= 0 ||
       configuration.hardware.device_count != 0) {
-    return ValidationError::invalid_hardware;
+    (void)reject(failure, ValidationError::invalid_hardware, "hardware");
+    return failure;
   }
-
-  if (configuration.telemetry_transport_present) {
-    const TelemetryTransportId transport =
-        configuration.telemetry_transport.id;
-    if (transport < TelemetryTransportId::board_default ||
-        transport > TelemetryTransportId::uart) {
-      return ValidationError::invalid_transport;
-    }
-    const UartTelemetryConfiguration& uart =
-        configuration.telemetry_transport.uart;
-    if (transport == TelemetryTransportId::native_usb_cdc &&
-        !profile.native_usb_cdc_supported) {
-      return ValidationError::invalid_transport;
-    }
-    if (transport == TelemetryTransportId::uart &&
-        (!profile.uart_supported || uart.port < 0 || uart.port > 2 ||
-         uart.tx_pin == uart.rx_pin ||
-         uart.baud_rate < 9'600 || uart.baud_rate > 2'000'000 ||
-         uart.tx_pin != profile.uart_tx_pin ||
-         uart.rx_pin != profile.uart_rx_pin)) {
-      return ValidationError::invalid_uart;
-    }
+  if (!validate_transport(configuration, profile, failure)) {
+    return failure;
   }
 
   if (configuration.delta_time_present &&
@@ -151,70 +244,84 @@ ValidationError validate_configuration(
            DeltaTimeUnavailableBehavior::hide ||
        configuration.delta_time.unavailable_behavior >
            DeltaTimeUnavailableBehavior::zero)) {
-    return ValidationError::invalid_module;
+    (void)reject(failure, ValidationError::invalid_module, "delta_time");
+    return failure;
   }
 
-  if (configuration.dashboard.delta_time_present &&
-      !configuration.delta_time_present) {
-    return ValidationError::invalid_dashboard;
+  const DashboardConfiguration& dashboard = configuration.dashboard;
+  if (dashboard.screen_count > dashboard.screens.size()) {
+    (void)reject(failure, ValidationError::invalid_screen, "dashboard.screens");
+    return failure;
   }
 
-  const std::int32_t display_width = profile.display.width;
-  const std::int32_t display_height = profile.display.height;
-  if (!valid_color(configuration.dashboard.background_color)) {
-    return ValidationError::invalid_dashboard;
-  }
-  if (configuration.dashboard.delta_time_present) {
-    const auto& widget = configuration.dashboard.delta_time;
-    if (!valid_font(widget.font) ||
-        !valid_placement(widget.placement, display_width, display_height) ||
-        !valid_color(widget.faster_color) ||
-        !valid_color(widget.slower_color) ||
-        !valid_color(widget.neutral_color)) {
-      return ValidationError::invalid_widget;
-    }
-  }
-  if (configuration.dashboard.text_widget_count >
-      configuration.dashboard.text_widgets.size()) {
-    return ValidationError::invalid_widget;
-  }
+  Validator validator(profile, failure);
   std::size_t lap_timer_modifier_count{};
-  for (std::size_t index = 0;
-       index < configuration.dashboard.text_widget_count; ++index) {
-    if (!valid_text_widget(configuration.dashboard.text_widgets[index],
-                           display_width, display_height)) {
-      return ValidationError::invalid_widget;
+
+  for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
+       ++screen_index) {
+    const ScreenConfiguration& screen = dashboard.screens[screen_index];
+    if (!valid_color(screen.background_color) || !terminated(screen.id)) {
+      (void)reject(failure, ValidationError::invalid_screen, "background_color");
+      failure.screen_index = static_cast<std::int16_t>(screen_index);
+      return failure;
     }
-    const auto& text_widget = configuration.dashboard.text_widgets[index];
-    for (std::size_t modifier_index = 0;
-         modifier_index < text_widget.modifier_count; ++modifier_index) {
-      if (text_widget.modifiers[modifier_index].type ==
-          ValueModifierType::lap_timer) {
-        ++lap_timer_modifier_count;
+    if (screen.widget_count > screen.widgets.size() ||
+        screen.text_widget_count > screen.text_widgets.size() ||
+        screen.delta_time_widget_count > screen.delta_time_widgets.size()) {
+      (void)reject(failure, ValidationError::invalid_screen, "widgets");
+      failure.screen_index = static_cast<std::int16_t>(screen_index);
+      return failure;
+    }
+    // A Delta Time widget renders module state, so the module section must be
+    // present for the widget to have anything to show.
+    if (screen.delta_time_widget_count > 0 &&
+        !configuration.delta_time_present) {
+      (void)reject(failure, ValidationError::invalid_dashboard, "delta_time");
+      failure.screen_index = static_cast<std::int16_t>(screen_index);
+      return failure;
+    }
+
+    for (std::size_t index = 0; index < screen.widget_count; ++index) {
+      const WidgetReference& reference = screen.widgets[index];
+      bool valid = false;
+      switch (reference.type) {
+        case WidgetType::text:
+          valid = reference.index < screen.text_widget_count &&
+                  validator.text_widget(screen.text_widgets[reference.index]);
+          break;
+        case WidgetType::delta_time:
+          valid =
+              reference.index < screen.delta_time_widget_count &&
+              validator.delta_time_widget(
+                  screen.delta_time_widgets[reference.index]);
+          break;
+      }
+      if (!valid) {
+        (void)reject(failure, ValidationError::invalid_widget, "widgets");
+        failure.screen_index = static_cast<std::int16_t>(screen_index);
+        failure.widget_index = static_cast<std::int16_t>(index);
+        return failure;
+      }
+    }
+
+    for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
+      const TextWidgetConfiguration& widget = screen.text_widgets[index];
+      for (std::size_t modifier = 0; modifier < widget.modifier_count;
+           ++modifier) {
+        if (widget.modifiers[modifier].type == ValueModifierType::lap_timer) {
+          ++lap_timer_modifier_count;
+        }
       }
     }
   }
-  if (lap_timer_modifier_count > 1) {
-    return ValidationError::invalid_widget;
-  }
-  return ValidationError::none;
-}
 
-const char* validation_error_name(const ValidationError error) {
-  switch (error) {
-    case ValidationError::none: return "none";
-    case ValidationError::malformed: return "malformed";
-    case ValidationError::unsupported_schema: return "unsupported_schema";
-    case ValidationError::invalid_board: return "invalid_board";
-    case ValidationError::board_mismatch: return "board_mismatch";
-    case ValidationError::invalid_hardware: return "invalid_hardware";
-    case ValidationError::invalid_transport: return "invalid_transport";
-    case ValidationError::invalid_uart: return "invalid_uart";
-    case ValidationError::invalid_module: return "invalid_module";
-    case ValidationError::invalid_dashboard: return "invalid_dashboard";
-    case ValidationError::invalid_widget: return "invalid_widget";
+  // One Lap Timer module instance backs every lap_timer modifier, so only one
+  // widget may claim it across the whole dashboard.
+  if (lap_timer_modifier_count > 1) {
+    (void)reject(failure, ValidationError::invalid_widget, "modifiers");
+    return failure;
   }
-  return "unknown";
+  return failure;
 }
 
 }  // namespace simcore::configuration

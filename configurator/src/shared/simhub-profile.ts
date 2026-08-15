@@ -1,3 +1,4 @@
+import { allWidgetsOf, isDeltaTimeWidget } from './configuration-access'
 import type { DeviceConfiguration } from './device'
 import {
   SIMHUB_PROFILE_DEFAULTS,
@@ -46,18 +47,19 @@ export function collectDashboardTelemetry(
 ): DashboardTelemetrySelection {
   const requested = new Set<string>()
   const unknownBindings = new Set<string>()
-  const widgets = configuration.dashboard?.widgets
-  const textWidgets = Array.isArray(widgets?.text) ? widgets.text : []
-
-  if (widgets?.delta_time) requested.add('session.lap.delta')
-  for (const widget of textWidgets) {
-    if (!widget || typeof widget !== 'object') continue
+  for (const widget of allWidgetsOf(configuration)) {
+    if (isDeltaTimeWidget(widget)) {
+      requested.add('session.lap.delta')
+      continue
+    }
     if (widget.binding) {
       if (PROFILE_FIELD_NAMES.has(widget.binding)) requested.add(widget.binding)
       else unknownBindings.add(widget.binding)
     }
-    if (Array.isArray(widget.modifiers) &&
-      widget.modifiers.some((modifier) => modifier?.type === 'lap_timer')) {
+    if (
+      Array.isArray(widget.modifiers) &&
+      widget.modifiers.some((modifier) => modifier?.type === 'lap_timer')
+    ) {
       requested.add('session.lap.current_time')
     }
   }

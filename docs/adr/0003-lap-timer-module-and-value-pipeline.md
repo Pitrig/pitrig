@@ -1,5 +1,8 @@
 # ADR 0003: Lap Timer Module and Value-Pipeline Boundary
 
+Status: Accepted; the prohibition on a dedicated Lap Timer widget is
+superseded by ADR 0015, which makes widget types descriptor-driven. The
+value-pipeline boundary remains in force.
 ## Context
 
 The lap timer must support smooth local progression between irregular telemetry

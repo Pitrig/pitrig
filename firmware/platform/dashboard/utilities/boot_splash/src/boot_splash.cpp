@@ -58,16 +58,15 @@ const lv_image_dsc_t* find_asset(const lv_display_t* const display) {
 
 }  // namespace
 
-bool show(lv_display_t* const display,
+bool show(lv_display_t* const display, lv_obj_t* const screen,
           const std::uint32_t minimum_duration_ms,
           const bool retain_after_minimum_duration) {
-  if (display == nullptr || !lvgl_port_lock(0)) {
+  if (display == nullptr || screen == nullptr || !lvgl_port_lock(0)) {
     return false;
   }
 
   const lv_image_dsc_t* const image_asset = find_asset(display);
-  lv_obj_t* const screen = lv_display_get_screen_active(display);
-  if (image_asset == nullptr || screen == nullptr) {
+  if (image_asset == nullptr) {
     lvgl_port_unlock();
     return false;
   }

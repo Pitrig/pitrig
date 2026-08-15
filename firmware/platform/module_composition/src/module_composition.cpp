@@ -63,15 +63,19 @@ void stop_delta_time(void* const context) {
 
 bool has_lap_timer_modifier(
     const configuration::ApplicationConfiguration& configuration) {
-  for (std::size_t widget_index = 0;
-       widget_index < configuration.dashboard.text_widget_count;
-       ++widget_index) {
-    const auto& widget = configuration.dashboard.text_widgets[widget_index];
-    for (std::size_t modifier_index = 0;
-         modifier_index < widget.modifier_count; ++modifier_index) {
-      if (widget.modifiers[modifier_index].type ==
-          configuration::ValueModifierType::lap_timer) {
-        return true;
+  const auto& dashboard = configuration.dashboard;
+  for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
+       ++screen_index) {
+    const auto& screen = dashboard.screens[screen_index];
+    for (std::size_t widget_index = 0;
+         widget_index < screen.text_widget_count; ++widget_index) {
+      const auto& widget = screen.text_widgets[widget_index];
+      for (std::size_t modifier_index = 0;
+           modifier_index < widget.modifier_count; ++modifier_index) {
+        if (widget.modifiers[modifier_index].type ==
+            configuration::ValueModifierType::lap_timer) {
+          return true;
+        }
       }
     }
   }

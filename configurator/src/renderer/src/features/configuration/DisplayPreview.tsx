@@ -1,22 +1,26 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useDeviceStore } from '@/features/device/device-store'
+import { screensOf, widgetsOf } from '../../../../shared/configuration-access'
 import type {
-  DeviceConfiguration,
-  DisplayDescriptor,
-  FontSpec
-} from '../../../../shared/device'
+  DeltaTimeWidgetConfiguration,
+  FontSpec,
+  TextWidgetConfiguration,
+  WidgetConfiguration
+} from '../../../../shared/configuration-schema'
+import type { DeviceConfiguration, DisplayDescriptor } from '../../../../shared/device'
 import { BOARD_PROFILES } from '../../../../shared/device'
 import {
+  activeScreen,
+  addDeltaTimeWidget,
+  addTextWidget,
   completePlacement,
-  addEmptyTextWidget,
   deleteWidget,
+  findWidget,
   MAXIMUM_TEXT_WIDGETS,
   mutateSelectedWidget,
-  type DeltaTimeWidgetConfiguration,
-  type TextWidgetConfiguration,
   useDashboardEditorStore,
   type WidgetSelection
 } from './dashboard-editor'
@@ -27,24 +31,20 @@ const DEFAULT_BORDER_COLOR = '#AEAEAE'
 
 export function DisplayPreview(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
-  const draftJson = useDeviceStore((state) => state.draftConfigurationJson)
+  const draft = useDeviceStore((state) => state.draft)
   const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
-  const configuration = useMemo(
-    () => parsePreviewConfiguration(draftJson) ?? pendingConfiguration ?? session?.configuration,
-    [draftJson, pendingConfiguration, session?.configuration]
-  )
+  const configuration = draft ?? pendingConfiguration ?? session?.configuration
   const display = configuration
     ? BOARD_PROFILES[configuration.board]?.display
     : session?.info.display
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
   const [addOpen, setAddOpen] = useState(false)
-  const textWidgetCount = configuration?.dashboard?.widgets?.text?.length ?? 0
-  const selectedExists = selection?.type === 'delta_time'
-    ? Boolean(configuration?.dashboard?.widgets?.delta_time)
-    : selection?.type === 'text'
-      ? Boolean(configuration?.dashboard?.widgets?.text?.[selection.index])
-      : false
+  const screenWidgets = widgetsOf(activeScreen(configuration))
+  const textWidgetCount = screenWidgets.filter((widget) => widget.type === 'text').length
+  const hasDeltaTimeWidget = screenWidgets.some((widget) => widget.type === 'delta_time')
+  const selectedExists =
+    selection?.type === 'widget' && Boolean(findWidget(configuration, selection.id))
   const displayRatio = display
     ? display.width / display.height
     : 16 / 9
@@ -99,10 +99,16 @@ export function DisplayPreview(): React.JSX.Element {
             <div className="mt-4 space-y-2">
               <Button className="w-full justify-start" variant="outline" disabled={textWidgetCount >= MAXIMUM_TEXT_WIDGETS} onClick={() => {
                 if (!display) return
-                const added = addEmptyTextWidget(display)
+                const added = addTextWidget(display)
                 if (added) select(added)
                 setAddOpen(false)
               }}>Text</Button>
+              <Button className="w-full justify-start" variant="outline" disabled={hasDeltaTimeWidget} onClick={() => {
+                if (!display) return
+                const added = addDeltaTimeWidget(display)
+                if (added) select(added)
+                setAddOpen(false)
+              }}>Delta time</Button>
               {textWidgetCount >= MAXIMUM_TEXT_WIDGETS ? <p className="text-[11px] text-amber-400">Maximum of {MAXIMUM_TEXT_WIDGETS} text widgets reached.</p> : null}
             </div>
             <Button className="mt-4 w-full" variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
@@ -124,16 +130,13 @@ function Widgets({
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
   const [interaction, setInteraction] = useState<Interaction>()
-  const widgets = configuration.dashboard?.widgets
-  const screenBackground = configuration.dashboard?.background_color ?? SCREEN_BACKGROUND
-  const textWidgets = (Array.isArray(widgets?.text) ? widgets.text : []).filter(
-    (widget): widget is TextWidgetConfiguration => isRecord(widget)
-  )
+  const screen = screensOf(configuration)[0]
+  const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
+  const widgets = widgetsOf(screen)
 
-  const selectedPlacement = selection?.type === 'delta_time'
-    ? completePlacement(widgets?.delta_time?.placement)
-    : selection?.type === 'text'
-      ? completePlacement(textWidgets[selection.index]?.placement)
+  const selectedPlacement =
+    selection?.type === 'widget'
+      ? completePlacement(findWidget(configuration, selection.id)?.widget.placement)
       : undefined
 
   const beginInteraction = (
@@ -151,14 +154,25 @@ function Widgets({
     setInteraction({ pointerId: event.pointerId, target, mode, start: point, placement })
   }
 
+  // A pointer stream can outpace the frame rate, and each commit rewrites the
+  // whole document. Coalescing to one commit per frame keeps dragging smooth.
+  const pendingFrame = useRef<number | undefined>(undefined)
+  useEffect(() => () => {
+    if (pendingFrame.current !== undefined) cancelAnimationFrame(pendingFrame.current)
+  }, [])
+
   const moveInteraction = (event: React.PointerEvent<SVGSVGElement>): void => {
     if (!interaction || event.pointerId !== interaction.pointerId) return
     const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
     if (!point) return
     const dx = point.x - interaction.start.x
     const dy = point.y - interaction.start.y
-    const placement = transformedPlacement(interaction, dx, dy, display)
-    mutateSelectedWidget(interaction.target, (widget) => { widget.placement = placement })
+    if (pendingFrame.current !== undefined) cancelAnimationFrame(pendingFrame.current)
+    pendingFrame.current = requestAnimationFrame(() => {
+      pendingFrame.current = undefined
+      const placement = transformedPlacement(interaction, dx, dy, display)
+      mutateSelectedWidget(interaction.target, (widget) => { widget.placement = placement })
+    })
   }
 
   const finishInteraction = (event: React.PointerEvent<SVGSVGElement>): void => {
@@ -167,21 +181,12 @@ function Widgets({
     setInteraction(undefined)
   }
 
-  const layers: PreviewLayer[] = []
-  if (widgets?.delta_time) {
-    layers.push({
-      type: 'delta_time',
-      configuration: widgets.delta_time,
-      zIndex: widgets.delta_time.z_index ?? 0,
-      configurationOrder: 0
-    })
-  }
-  textWidgets.forEach((widget, index) => layers.push({
-    type: 'text',
+  // Same rule the firmware applies: z_index ascending, authored array order
+  // breaking ties.
+  const layers: PreviewLayer[] = widgets.map((widget, index) => ({
     configuration: widget,
-    index,
     zIndex: widget.z_index ?? 0,
-    configurationOrder: index + 1
+    configurationOrder: index
   }))
   layers.sort((left, right) =>
     left.zIndex - right.zIndex || left.configurationOrder - right.configurationOrder
@@ -200,20 +205,17 @@ function Widgets({
       onPointerDown={() => select({ type: 'screen' })}
     >
       <rect width={display.width} height={display.height} fill={screenBackground} />
-      {layers.map((layer) => layer.type === 'delta_time' ? (
-        <g key="delta_time" onPointerDown={(event) => {
+      {layers.map((layer) => (
+        <g key={layer.configuration.id ?? layer.configurationOrder} onPointerDown={(event) => {
           const placement = completePlacement(layer.configuration.placement)
-          if (placement) beginInteraction(event, { type: 'delta_time' }, 'move', placement)
+          const id = layer.configuration.id
+          if (placement && id) beginInteraction(event, { type: 'widget', id }, 'move', placement)
         }}>
-          <DeltaTimePreview configuration={layer.configuration} module={configuration.delta_time} />
-          <HitArea placement={completePlacement(layer.configuration.placement)} />
-        </g>
-      ) : (
-        <g key={`text-${layer.index}`} onPointerDown={(event) => {
-          const placement = completePlacement(layer.configuration.placement)
-          if (placement) beginInteraction(event, { type: 'text', index: layer.index }, 'move', placement)
-        }}>
-          <TextWidgetPreview configuration={layer.configuration} />
+          {layer.configuration.type === 'delta_time' ? (
+            <DeltaTimePreview configuration={layer.configuration} module={configuration.delta_time} />
+          ) : (
+            <TextWidgetPreview configuration={layer.configuration} />
+          )}
           <HitArea placement={completePlacement(layer.configuration.placement)} />
         </g>
       ))}
@@ -227,9 +229,11 @@ function Widgets({
   )
 }
 
-type PreviewLayer =
-  | { type: 'delta_time'; configuration: DeltaTimeWidgetConfiguration; zIndex: number; configurationOrder: number }
-  | { type: 'text'; configuration: TextWidgetConfiguration; index: number; zIndex: number; configurationOrder: number }
+interface PreviewLayer {
+  configuration: WidgetConfiguration
+  zIndex: number
+  configurationOrder: number
+}
 
 type ResizeMode = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 type InteractionMode = 'move' | ResizeMode
@@ -488,17 +492,4 @@ function normalizeColor(color: string | undefined): string | undefined {
   return color === '#00000000' ? 'transparent' : color
 }
 
-function parsePreviewConfiguration(json: string): DeviceConfiguration | undefined {
-  try {
-    const value: unknown = JSON.parse(json)
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as DeviceConfiguration)
-      : undefined
-  } catch {
-    return undefined
-  }
-}
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}

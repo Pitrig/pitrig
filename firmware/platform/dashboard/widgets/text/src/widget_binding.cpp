@@ -45,7 +45,6 @@ bool Binder::bind(
       return false;
     }
     bindings_[count_++] = {
-        .configuration = &configuration,
         .read = read,
         .read_context = read_context,
         .fast_updates = lap_timer_modified,

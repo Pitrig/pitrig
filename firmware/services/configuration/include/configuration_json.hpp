@@ -5,38 +5,25 @@
 #include <span>
 
 #include "application_configuration.hpp"
+#include "configuration_schema_generated.hpp"
 
 namespace simcore::configuration {
-
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 2;
-inline constexpr std::size_t kMaximumPayloadSize = 16'384;
 
 [[nodiscard]] constexpr bool is_supported_configuration_schema(
     const std::uint16_t version) {
   return version == kConfigurationSchemaVersion;
 }
 
-enum class ValidationError : std::uint8_t {
-  none,
-  malformed,
-  unsupported_schema,
-  invalid_board,
-  board_mismatch,
-  invalid_hardware,
-  invalid_transport,
-  invalid_uart,
-  invalid_module,
-  invalid_dashboard,
-  invalid_widget,
-};
-
-[[nodiscard]] ValidationError parse_configuration_json(
+// Parses a sparse schema document into bounded runtime storage and validates it
+// against immutable hardware. On rejection the failure carries the offending
+// widget index and property path so the configurator can point at the cause.
+[[nodiscard]] ValidationFailure parse_configuration_json(
     std::span<const std::uint8_t> input,
     const ValidationContext& profile,
     ApplicationConfiguration& configuration);
-[[nodiscard]] ValidationError validate_configuration(
+
+[[nodiscard]] ValidationFailure validate_configuration(
     const ApplicationConfiguration& configuration,
     const ValidationContext& profile);
-[[nodiscard]] const char* validation_error_name(ValidationError error);
 
 }  // namespace simcore::configuration

@@ -1,17 +1,32 @@
 import { create } from 'zustand'
 
-import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
-import type { DeviceConfiguration, Placement } from '../../../../shared/device'
+import {
+  createWidgetId,
+  screensOf,
+  widgetsOf
+} from '../../../../shared/configuration-access'
+import {
+  MAXIMUM_TEXT_WIDGETS,
+  MAXIMUM_WIDGETS_PER_SCREEN
+} from '../../../../shared/configuration-schema'
+import type {
+  DeltaTimeWidgetConfiguration,
+  ScreenConfiguration,
+  TextWidgetConfiguration,
+  WidgetConfiguration,
+  WidgetPlacement
+} from '../../../../shared/configuration-schema'
+import type { DeviceConfiguration } from '../../../../shared/device'
+import { useDeviceStore } from '@/features/device/device-store'
 
+export type { WidgetPlacement as Placement }
+export { MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_SCREEN }
+
+// Selection addresses a widget by its stable id. Index-based selection silently
+// retargeted to a different widget whenever a sibling was deleted or reordered.
 export type WidgetSelection =
   | { type: 'screen' }
-  | { type: 'delta_time' }
-  | { type: 'text'; index: number }
-
-export type DashboardWidgets = NonNullable<NonNullable<DeviceConfiguration['dashboard']>['widgets']>
-export type TextWidgetConfiguration = NonNullable<DashboardWidgets['text']>[number]
-export type DeltaTimeWidgetConfiguration = NonNullable<DashboardWidgets['delta_time']>
-export const MAXIMUM_TEXT_WIDGETS = 16
+  | { type: 'widget'; id: string }
 
 interface DashboardEditorStore {
   selection?: WidgetSelection
@@ -22,108 +37,167 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   select: (selection) => set({ selection })
 }))
 
-export function parseDraftConfiguration(json: string): DeviceConfiguration | undefined {
-  try {
-    const value: unknown = JSON.parse(json)
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? value as DeviceConfiguration
-      : undefined
-  } catch {
-    return undefined
+export interface WidgetLocation {
+  screenIndex: number
+  widgetIndex: number
+  widget: WidgetConfiguration
+}
+
+export function activeScreen(
+  configuration: DeviceConfiguration | undefined
+): ScreenConfiguration | undefined {
+  return screensOf(configuration)[0]
+}
+
+export function findWidget(
+  configuration: DeviceConfiguration | undefined,
+  id: string
+): WidgetLocation | undefined {
+  const screens = screensOf(configuration)
+  for (let screenIndex = 0; screenIndex < screens.length; ++screenIndex) {
+    const widgets = widgetsOf(screens[screenIndex])
+    const widgetIndex = widgets.findIndex((widget) => widget.id === id)
+    const widget = widgets[widgetIndex]
+    if (widgetIndex >= 0 && widget) {
+      return { screenIndex, widgetIndex, widget }
+    }
   }
+  return undefined
 }
 
 export function selectedWidget(
-  configuration: DeviceConfiguration,
+  configuration: DeviceConfiguration | undefined,
   selection: WidgetSelection | undefined
-): DeltaTimeWidgetConfiguration | TextWidgetConfiguration | undefined {
-  if (!selection) return undefined
-  const widgets = configuration.dashboard?.widgets
-  return selection.type === 'screen'
-    ? undefined
-    : selection.type === 'delta_time'
-    ? widgets?.delta_time
-    : widgets?.text?.[selection.index]
+): WidgetConfiguration | undefined {
+  if (!selection || selection.type === 'screen') return undefined
+  return findWidget(configuration, selection.id)?.widget
 }
 
+/**
+ * The single funnel for every structured edit. The mutation runs against a
+ * clone so the store always receives a new document, which keeps React updates
+ * and any future history snapshot honest.
+ */
 export function mutateDraftConfiguration(
   mutation: (configuration: DeviceConfiguration) => void
 ): void {
   const store = useDeviceStore.getState()
-  const configuration = parseDraftConfiguration(store.draftConfigurationJson)
-  if (!configuration) return
-  const next = structuredClone(configuration)
+  if (!store.draft) return
+  const next = structuredClone(store.draft)
   mutation(next)
-  store.setDraftConfigurationJson(formatConfiguration(next))
+  store.setDraft(next)
 }
 
 export function mutateSelectedWidget(
   selection: WidgetSelection,
-  mutation: (
-    widget: DeltaTimeWidgetConfiguration | TextWidgetConfiguration,
-    configuration: DeviceConfiguration
-  ) => void
+  mutation: (widget: WidgetConfiguration, configuration: DeviceConfiguration) => void
 ): void {
+  if (selection.type !== 'widget') return
   mutateDraftConfiguration((configuration) => {
-    const widget = selectedWidget(configuration, selection)
-    if (widget) mutation(widget, configuration)
+    const location = findWidget(configuration, selection.id)
+    if (location) mutation(location.widget, configuration)
   })
 }
 
-export function addEmptyTextWidget(
-  display: { width: number; height: number }
-): WidgetSelection | undefined {
+export function mutateActiveScreen(
+  mutation: (screen: ScreenConfiguration, configuration: DeviceConfiguration) => void
+): void {
+  mutateDraftConfiguration((configuration) => {
+    const screen = ensureScreen(configuration)
+    mutation(screen, configuration)
+  })
+}
+
+/** Returns the first screen, creating the dashboard section if it is absent. */
+function ensureScreen(configuration: DeviceConfiguration): ScreenConfiguration {
+  const dashboard = (configuration.dashboard ??= {})
+  const screens = (dashboard.screens ??= [])
+  const existing = screens[0]
+  if (existing) return existing
+  const created: ScreenConfiguration = { id: 'screen1' }
+  screens.push(created)
+  return created
+}
+
+export function addTextWidget(display: {
+  width: number
+  height: number
+}): WidgetSelection | undefined {
   let added: WidgetSelection | undefined
   mutateDraftConfiguration((configuration) => {
-    const text = configuration.dashboard?.widgets?.text ?? []
-    if (text.length >= MAXIMUM_TEXT_WIDGETS) return
+    const screen = ensureScreen(configuration)
+    const widgets = (screen.widgets ??= [])
+    const textCount = widgets.filter((widget) => widget.type === 'text').length
+    if (textCount >= MAXIMUM_TEXT_WIDGETS || widgets.length >= MAXIMUM_WIDGETS_PER_SCREEN) {
+      return
+    }
     const width = Math.min(120, display.width)
     const height = Math.min(64, display.height)
-    configuration.dashboard = {
-      ...configuration.dashboard,
-      widgets: {
-        ...configuration.dashboard?.widgets,
-        text: [...text, {
-          placement: {
-            x: Math.floor((display.width - width) / 2),
-            y: Math.floor((display.height - height) / 2),
-            width,
-            height
-          }
-        }]
+    const widget: TextWidgetConfiguration = {
+      type: 'text',
+      id: createWidgetId(),
+      placement: {
+        x: Math.floor((display.width - width) / 2),
+        y: Math.floor((display.height - height) / 2),
+        width,
+        height
       }
     }
-    added = { type: 'text', index: text.length }
+    widgets.push(widget)
+    added = { type: 'widget', id: widget.id as string }
+  })
+  return added
+}
+
+export function addDeltaTimeWidget(display: {
+  width: number
+  height: number
+}): WidgetSelection | undefined {
+  let added: WidgetSelection | undefined
+  mutateDraftConfiguration((configuration) => {
+    const screen = ensureScreen(configuration)
+    const widgets = (screen.widgets ??= [])
+    if (widgets.some((widget) => widget.type === 'delta_time')) return
+    if (widgets.length >= MAXIMUM_WIDGETS_PER_SCREEN) return
+    const width = Math.min(184, display.width)
+    const height = Math.min(52, display.height)
+    const widget: DeltaTimeWidgetConfiguration = {
+      type: 'delta_time',
+      id: createWidgetId(),
+      placement: {
+        x: Math.floor((display.width - width) / 2),
+        y: Math.floor((display.height - height) / 2),
+        width,
+        height
+      }
+    }
+    widgets.push(widget)
+    // The widget renders module state, so the module section must exist.
+    configuration.delta_time ??= {}
+    added = { type: 'widget', id: widget.id as string }
   })
   return added
 }
 
 export function deleteWidget(selection: WidgetSelection): boolean {
-  if (selection.type === 'screen') return false
+  if (selection.type !== 'widget') return false
   let deleted = false
   mutateDraftConfiguration((configuration) => {
-    const widgets = configuration.dashboard?.widgets
-    if (!widgets) return
-    if (selection.type === 'delta_time') {
-      if (!widgets.delta_time) return
-      delete widgets.delta_time
-      delete configuration.delta_time
-      deleted = true
-    } else {
-      if (!widgets.text?.[selection.index]) return
-      widgets.text.splice(selection.index, 1)
-      if (widgets.text.length === 0) delete widgets.text
-      deleted = true
-    }
-    if (!widgets.delta_time && !widgets.text) delete configuration.dashboard?.widgets
-    if (configuration.dashboard && Object.keys(configuration.dashboard).length === 0) {
-      delete configuration.dashboard
-    }
+    const location = findWidget(configuration, selection.id)
+    if (!location) return
+    const screen = configuration.dashboard?.screens?.[location.screenIndex]
+    if (!screen?.widgets) return
+    const [removed] = screen.widgets.splice(location.widgetIndex, 1)
+    deleted = true
+    if (removed?.type === 'delta_time') delete configuration.delta_time
+    if (screen.widgets.length === 0) delete screen.widgets
   })
   return deleted
 }
 
-export function completePlacement(placement: Placement | undefined): Required<Placement> | undefined {
+export function completePlacement(
+  placement: WidgetPlacement | undefined
+): Required<WidgetPlacement> | undefined {
   if (
     !placement ||
     !Number.isFinite(placement.x) ||
@@ -132,6 +206,8 @@ export function completePlacement(placement: Placement | undefined): Required<Pl
     !Number.isFinite(placement.height) ||
     (placement.width ?? 0) <= 0 ||
     (placement.height ?? 0) <= 0
-  ) return undefined
-  return placement as Required<Placement>
+  ) {
+    return undefined
+  }
+  return placement as Required<WidgetPlacement>
 }

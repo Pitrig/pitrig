@@ -1,5 +1,8 @@
 # ADR 0012: Value Bindings, Modifiers, and Time Transforms
 
+Status: Accepted; the startup-only binding wording is superseded by ADR 0016,
+which allows rebinding during a rebuild. The binding, modifier, and transform
+boundaries remain in force.
 ## Context
 
 Telemetry transports provide canonical typed values, while dashboard text

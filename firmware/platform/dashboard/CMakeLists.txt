@@ -6,7 +6,8 @@ set(component_sources
     "widgets/delta_time/src/delta_time_widget.cpp"
     "widgets/text/src/text_widget.cpp"
     "widgets/text/src/widget_binding.cpp"
-    "widgets/performance_overlay/src/performance_overlay_widget.cpp")
+    "widgets/performance_overlay/src/performance_overlay_widget.cpp"
+    "src/widget_descriptor.cpp")
 set(component_include_dirs
     "include"
     "fonts/include"

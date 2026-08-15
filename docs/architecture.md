@@ -150,9 +150,18 @@ board registry -----------> drivers
 transport composition ----> transport drivers
 modules ------------------> services and components
 components ---------------> interfaces <--------------- drivers
+components / drivers -----> services   (diagnostics instrumentation only)
+services -----------------> interfaces (transport-facing control services)
 ```
 
 Dependencies must not point from interfaces or components to a concrete hardware driver.
+
+The last two edges are narrow and deliberate. The display component and the
+transport drivers depend on the performance service so they can report frame and
+transport instrumentation, and that dependency compiles away entirely when
+`CONFIG_SIMCORE_DEBUG` is off. The configuration-control and font-asset-control
+services depend on the `transport` interface because they answer over it; they
+depend on no concrete driver.
 
 ---
 

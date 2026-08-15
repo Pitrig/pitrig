@@ -59,6 +59,7 @@ void run() {
   constexpr std::size_t kConfigurationMemorySize =
       configuration::ConfigurationService::kRecordBufferSize +
       configuration::ConfigurationService::kPayloadBufferSize +
+      configuration::ConfigurationService::kConfigurationBufferSize +
       configuration::ConfigurationControl::kIoBufferSize +
       communication::Router::kControlLineBufferSize;
   ESP_ERROR_CHECK(application.platform.configuration_memory.initialize(
@@ -80,6 +81,10 @@ void run() {
       configuration::ConfigurationControl::kIoBufferSize);
   const std::span<std::uint8_t> control_line_buffer = take_buffer(
       communication::Router::kControlLineBufferSize);
+  // The two bounded runtime documents live in external memory with the rest of
+  // the configuration workspaces, keeping ~8.5 KiB off the internal heap.
+  const std::span<std::uint8_t> configuration_buffer = take_buffer(
+      configuration::ConfigurationService::kConfigurationBufferSize);
   const board_registry::BoardDefinition& board =
       board_registry::factory_board();
   const std::string_view factory_json = board.factory_configuration_json;
@@ -89,7 +94,7 @@ void run() {
           std::span<const std::uint8_t>(
               reinterpret_cast<const std::uint8_t*>(factory_json.data()),
               factory_json.size()),
-          record_buffer, current_payload_buffer)) {
+          record_buffer, current_payload_buffer, configuration_buffer)) {
     log::warn(kTag,
               "Configuration storage unavailable; using factory defaults");
   }

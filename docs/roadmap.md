@@ -10,6 +10,12 @@
 - [*] Static service composition
 - [*] Bounded Module Manager
 - [*] FreeRTOS and LVGL scheduler ownership decision
+- [*] Telemetry catalog, registry and handle-based ingestion
+- [*] Performance service and debug overlay
+- [*] Generated configuration contract (schema 3)
+- [*] Screen as an explicit composition primitive
+- [*] Compile-time widget type descriptors
+- [*] Double-buffered runtime configuration ownership
 
 # Phase 2 — Hardware
 
@@ -17,11 +23,15 @@
 - [ ] SPI
 - [ ] I2C
 - [*] Display interface
+- [ ] Input interface
 
 # Phase 3 — Drivers
 
-- [*] ST7789
+- [*] ST7789 (LilyGO T-Display-S3)
+- [*] ST7701(S) RGB (Guition ESP32-4848S040)
+- [*] JD9165 MIPI-DSI (Guition JC1060P470C, ESP32-P4)
 - [ ] GC9A01
+- [ ] Touch controller
 - [ ] Buttons
 - [ ] Encoder
 
@@ -31,5 +41,22 @@
 - [*] Lap Timer
 - [*] Delta Time
 - [*] Reusable telemetry text widgets
+- [*] Value modifiers and time transforms
+- [ ] Additional widget types (bar, arc, indicator strip)
+- [ ] Conditional and animated widget styling
 - [ ] Button Matrix
 - [ ] RGB
+
+# Phase 5 — Interaction
+
+Nothing here is started. Each item needs its own architectural decision before
+implementation; the foundation for them landed in Phase 1.
+
+- [ ] Touch input subsystem
+- [ ] Multiple dashboard screens with navigation
+- [ ] Applying a configuration without restarting
+- [ ] Configurator undo and redo
+
+# Phase 6 — Field maintenance
+
+- [ ] OTA partition layout and update path

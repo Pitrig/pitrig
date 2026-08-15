@@ -1,5 +1,8 @@
 # ADR 0009: Persistent Runtime Configuration
 
+Status: Accepted; the schema 2 document shape is superseded by ADR 0013 and
+the reboot-only application rule by ADR 0016. The two-slot NVS record
+strategy and the bounded payload remain in force.
 Implementation status: the desktop configurator now supports the complete
 control round trip, and the legacy schema 0 CLI and inheritance profiles have
 been removed. Schema 2 font references are defined by ADR 0010.

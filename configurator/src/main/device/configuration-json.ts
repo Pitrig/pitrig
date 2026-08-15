@@ -1,15 +1,15 @@
+import { validateConfigurationDocument } from '../../shared/configuration-validate'
 import {
-  CONFIGURATION_SCHEMA_VERSION,
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
+  SIMCORE_BOARD_IDS,
   type DeviceConfiguration,
   type SimCoreBoardId
 } from '../../shared/device'
 
-const SUPPORTED_BOARDS = new Set<SimCoreBoardId>([
-  't_display_s3',
-  'guition_esp32_4848s040',
-  'guition_jc1060p470c'
-])
+// Validation is the shared implementation driven by the generated schema, so
+// the main process rejects exactly what the firmware rejects. It previously
+// checked only a few node shapes and happily shipped payloads the device then
+// answered with an error.
 
 export function parseDeviceConfigurationJson(json: string): DeviceConfiguration {
   let value: unknown
@@ -18,21 +18,13 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
   } catch {
     throw new Error('Configuration JSON is malformed.')
   }
-  if (!isRecord(value) || !SUPPORTED_BOARDS.has(value.board as SimCoreBoardId)) {
-    throw new Error('Configuration does not contain a supported board.')
+  const result = validateConfigurationDocument(value, {
+    supportedBoards: SIMCORE_BOARD_IDS
+  })
+  if (!result.ok) {
+    throw new Error(result.error)
   }
-  if (
-    (value.hardware !== undefined &&
-      (!Array.isArray(value.hardware) || value.hardware.length !== 0)) ||
-    !optionalRecord(value.telemetry_transport) ||
-    !optionalRecord(value.delta_time) ||
-    !optionalDashboard(value.dashboard)
-  ) {
-    throw new Error(
-      `Configuration is not a valid schema ${CONFIGURATION_SCHEMA_VERSION} document.`
-    )
-  }
-  return value as unknown as DeviceConfiguration
+  return result.configuration
 }
 
 export function prepareDeviceConfigurationJson(
@@ -50,55 +42,4 @@ export function prepareDeviceConfigurationJson(
     )
   }
   return { configuration, payload }
-}
-
-function optionalDashboard(value: unknown): boolean {
-  if (value === undefined) return true
-  if (!isRecord(value)) return false
-  if (value.widgets === undefined) return true
-  if (!isRecord(value.widgets)) return false
-  return (
-    optionalRecord(value.widgets.delta_time) &&
-    (value.widgets.text === undefined ||
-      (Array.isArray(value.widgets.text) && value.widgets.text.every(validTextWidget)))
-  )
-}
-
-function validTextWidget(value: unknown): boolean {
-  if (!isRecord(value)) return false
-  if (value.binding !== undefined && typeof value.binding !== 'string') return false
-  if (
-    value.modifiers !== undefined &&
-    (!Array.isArray(value.modifiers) || !value.modifiers.every(validValueModifier))
-  ) {
-    return false
-  }
-  if (value.transform !== undefined && !validValueTransform(value.transform)) return false
-  return true
-}
-
-function validValueModifier(value: unknown): boolean {
-  return isRecord(value) && value.type === 'lap_timer'
-}
-
-function validValueTransform(value: unknown): boolean {
-  if (!isRecord(value)) return false
-  if (
-    value.type !== 'time' ||
-    !['duration_ms', 'signed_duration_ms'].includes(String(value.format))
-  ) {
-    return false
-  }
-  return (
-    (value.prefix === undefined || typeof value.prefix === 'string') &&
-    (value.suffix === undefined || typeof value.suffix === 'string')
-  )
-}
-
-function optionalRecord(value: unknown): boolean {
-  return value === undefined || isRecord(value)
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

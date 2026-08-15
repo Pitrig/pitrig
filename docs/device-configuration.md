@@ -1,6 +1,6 @@
 # Device configuration
 
-This document defines the schema 2 configuration contract implemented by the
+This document defines the schema 3 configuration contract implemented by the
 firmware and read by the desktop configurator. Earlier schemas are
 intentionally not part of the current contract.
 
@@ -45,8 +45,8 @@ than transmitted by firmware or stored in device configuration.
 
 SimCore loads user configuration in this order:
 
-1. Active valid schema 2 NVS slot.
-2. Backup valid schema 2 NVS slot.
+1. Active valid schema 3 NVS slot.
+2. Backup valid schema 3 NVS slot.
 3. Board-only factory configuration compiled into firmware.
 
 The factory configuration enables no additional hardware devices, modules, or
@@ -105,18 +105,23 @@ Colors use `"#RRGGBB"`.
 
 ## Modules and widgets
 
-The production firmware supports these dashboard widget types:
+A dashboard owns a bounded `screens` array; `dashboard.screens[0]` is the only
+screen composed today. Each screen carries its own `id`, `background_color`, and
+one ordered `widgets` array discriminated by a `type` property. Every widget also
+carries a stable `id`.
 
-- `delta_time`;
-- `text`, with at most 16 ordered instances.
+The production firmware supports these widget types:
+
+- `text`, with at most 16 instances per screen;
+- `delta_time`, with at most one instance per screen.
 
 Module lifecycle is derived from configured consumers. A `lap_timer` modifier
 activates the Lap Timer module automatically; there is no separate root Lap
 Timer object or dedicated Lap Timer widget. A configured Delta Time widget
 still requires its root Delta Time module object.
 
-The display screen is the only layout coordinate space. Every widget placement
-uses absolute logical pixels:
+A screen is the layout coordinate space for the widgets it owns. Every widget
+placement uses absolute logical pixels:
 
 ```json
 {
@@ -127,7 +132,7 @@ uses absolute logical pixels:
 }
 ```
 
-Schema 2 has no regions, region identifiers, anchors, or anchor offsets.
+The schema has no regions, region identifiers, anchors, or anchor offsets.
 
 Example sparse configuration:
 
@@ -135,27 +140,32 @@ Example sparse configuration:
 {
   "board": "guition_esp32_4848s040",
   "dashboard": {
-    "widgets": {
-      "text": [
-        {
-          "binding": "vehicle.aids.traction_control_level",
-          "placement": {
-            "x": 16,
-            "y": 16,
-            "width": 72,
-            "height": 72
-          },
-          "border": {
-            "color": "#00E5FF",
-            "width_px": 3,
-            "radius_px": 8
-          },
-          "title": {
-            "text": "TC"
+    "screens": [
+      {
+        "id": "main",
+        "widgets": [
+          {
+            "type": "text",
+            "id": "tc",
+            "binding": "vehicle.aids.traction_control_level",
+            "placement": {
+              "x": 16,
+              "y": 16,
+              "width": 72,
+              "height": 72
+            },
+            "border": {
+              "color": "#00E5FF",
+              "width_px": 3,
+              "radius_px": 8
+            },
+            "title": {
+              "text": "TC"
+            }
           }
-        }
-      ]
-    }
+        ]
+      }
+    ]
   }
 }
 ```
@@ -293,18 +303,22 @@ bytes are never stored in configuration NVS.
 | Request | Successful response | Purpose |
 | --- | --- | --- |
 | `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata. |
-| `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse schema 2 JSON payload. |
+| `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse schema 3 JSON payload. |
 | `@SC:VALIDATE:<JSON>` | `@SC:OK:VALID` | Validate without saving. |
 | `@SC:SET:<JSON>` | `@SC:OK:SAVED:reboot_required=1` | Validate and save. |
 | `@SC:RESET` | `@SC:OK:RESET:reboot_required=1` | Remove saved configuration. |
 | `@SC:REBOOT` | `@SC:OK:REBOOTING` | Restart the device. |
 
-Errors use `@SC:ERR:<reason>`.
+Errors use `@SC:ERR:<reason>:screen=<n>,widget=<n>,path=<property>`. The reason
+token keeps its position, so a host that only reads the reason is unaffected.
+`screen` and `widget` are `-1` when the failure is not inside a widget, and
+`path` names the property that caused it. The reason tokens are listed in
+[configuration-schema.md](configuration-schema.md).
 
 After reset and reboot, `GET` returns the board-only factory configuration and
 the board-provided display remains enabled with an empty dashboard.
 
-## Public schema 2 payload
+## Public schema 3 payload
 
 The public payload is the bounded sparse JSON document described above. The
 configurator sends it directly; there is no binary codec or hexadecimal wrapper.
@@ -312,7 +326,7 @@ The serial protocol is line-oriented, so payloads must be compact single-line
 JSON without literal CR or LF bytes. Whitespace inside that one line is valid,
 but the configurator should use `JSON.stringify` output.
 
-Schema 2 top-level properties:
+Schema 3 top-level properties:
 
 | Property | Shape | Meaning |
 | --- | --- | --- |
@@ -320,8 +334,7 @@ Schema 2 top-level properties:
 | `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
 | `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
 | `delta_time` | object, optional | Delta Time module configuration. |
-| `dashboard.background_color` | `#RRGGBB`, optional | Opaque display background; defaults to `#000000`. |
-| `dashboard.widgets` | object, optional | Optional `delta_time` and ordered `text` widgets. |
+| `dashboard.screens` | array, optional | Bounded screen list; currently at most one entry. |
 
 Nested property names use snake case. Placement uses `x`, `y`, `width`, and
 `height`; widget stacking uses `z_index`; font uses `family` and `size_px`. UART settings use `port`, `tx_pin`,
@@ -351,17 +364,15 @@ Non-empty entries are rejected rather than guessed. Breaking changes to public
 properties require a later documented schema version; compatible bounded
 extensions must be recorded in an ADR.
 
-Schema 2 retains deterministic limits:
+The schema retains deterministic limits. They are generated from
+`configuration/configuration_schema.json` together with the firmware structures
+and the configurator types, and the current values are listed in
+[configuration-schema.md](configuration-schema.md). The payload bound is 16384
+bytes of compact JSON.
 
-- maximum compact JSON payload size: 16384 bytes;
-- maximum text widgets: 16;
-- maximum modifiers per text widget: 4;
-- maximum canonical telemetry binding: 39 UTF-8 bytes;
-- maximum title: 15 UTF-8 bytes;
-- maximum unavailable text: 15 UTF-8 bytes;
-- maximum transform prefix or suffix: 15 UTF-8 bytes;
-- maximum font family identifier: 31 ASCII bytes;
-- font size range: 1 through 255 pixels.
+The property table, object shapes, enumerations, and rejection reasons in that
+generated reference are authoritative; this document describes the rules around
+them.
 
 ## Internal persistence
 
@@ -373,11 +384,11 @@ writes and verifies the inactive slot before selecting it.
 Configurator code must not reproduce or depend on this NVS record format.
 
 Schema 0 and schema 1 records are unsupported and are not migrated. They fall
-back to another valid schema 2 slot or the board-only factory configuration.
+back to another valid schema 3 slot or the board-only factory configuration.
 
 ## Legacy tooling
 
 The schema 0 Python configuration CLI and its inheritance profiles were removed
 after the desktop configurator implemented the complete `INFO`, `GET`,
 `VALIDATE`, `SET`, `RESET`, and `REBOOT` round trip. Current tooling authors and
-transfers only the sparse schema 2 JSON document described here.
+transfers only the sparse schema 3 JSON document described here.

@@ -1,14 +1,28 @@
-import type { DeviceConfiguration, FontSpec } from '../../../../shared/device'
+import { allWidgetsOf } from '../../../../shared/configuration-access'
+import type { FontSpec, WidgetConfiguration } from '../../../../shared/configuration-schema'
+import type { DeviceConfiguration } from '../../../../shared/device'
 import type { FontAssetKey } from '../../../../shared/font-assets'
 
-export function collectFontRequirements(configuration: DeviceConfiguration): FontAssetKey[] {
-  const fonts: FontSpec[] = []
-  const widgets = configuration.dashboard?.widgets
-  if (widgets?.delta_time?.font) fonts.push(widgets.delta_time.font)
-  for (const widget of widgets?.text ?? []) {
-    if (widget.title?.text && widget.title.font) fonts.push(widget.title.font)
-    if (widget.value?.font) fonts.push(widget.value.font)
+// Every font a widget can reference, in one exhaustive place. A new widget
+// type fails to compile here until its fonts are declared, so the upload flow
+// cannot silently ship a package that is missing them.
+function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
+  switch (widget.type) {
+    case 'delta_time':
+      return [widget.font]
+    case 'text':
+      return [widget.title?.text ? widget.title.font : undefined, widget.value?.font]
+    default: {
+      const exhaustive: never = widget
+      return [exhaustive]
+    }
   }
+}
+
+export function collectFontRequirements(configuration: DeviceConfiguration): FontAssetKey[] {
+  const fonts = allWidgetsOf(configuration)
+    .flatMap(widgetFonts)
+    .filter((font): font is FontSpec => font !== undefined)
 
   const unique = new Map<string, FontAssetKey>()
   for (const font of fonts) {

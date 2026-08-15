@@ -18,8 +18,11 @@ struct ModifierReader {
   void* context{};
 };
 
+// A resolved value pipeline for one widget. It deliberately holds no pointer
+// into the configuration document: the binder owns everything here, and the
+// matching Config is passed alongside as a parallel span, so a configuration
+// buffer can be replaced without leaving the binder pointing at stale storage.
 struct BoundConfig {
-  const Config* configuration{};
   ValueReadCallback read{};
   void* read_context{};
   bool fast_updates{};

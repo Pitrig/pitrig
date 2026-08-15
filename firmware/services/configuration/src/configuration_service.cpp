@@ -1,6 +1,8 @@
 #include "configuration_service.hpp"
 
 #include <algorithm>
+#include <new>
+#include <utility>
 
 #include "binary_codec.hpp"
 #include "crc32.hpp"
@@ -24,11 +26,16 @@ bool ConfigurationService::initialize(
     const ValidationContext& validation_profile,
     const std::span<const std::uint8_t> factory_payload,
     const std::span<std::uint8_t> record_buffer,
-    const std::span<std::uint8_t> current_payload_buffer) {
+    const std::span<std::uint8_t> current_payload_buffer,
+    const std::span<std::uint8_t> configuration_buffer) {
   if (record_buffer.size() < kRecordBufferSize ||
-      current_payload_buffer.size() < kPayloadBufferSize) {
+      current_payload_buffer.size() < kPayloadBufferSize ||
+      configuration_buffer.size() < kConfigurationBufferSize) {
     return false;
   }
+  active_ = new (configuration_buffer.data()) ApplicationConfiguration{};
+  scratch_ = new (configuration_buffer.data() +
+                  sizeof(ApplicationConfiguration)) ApplicationConfiguration{};
   record_buffer_ = record_buffer.first(kRecordBufferSize);
   current_payload_ = current_payload_buffer.first(kPayloadBufferSize);
   storage_ = &storage;
@@ -37,12 +44,12 @@ bool ConfigurationService::initialize(
   persisted_generation_ = 0;
   if (factory_payload.empty() ||
       factory_payload.size() > current_payload_.size() ||
-      parse_configuration_json(factory_payload, validation_profile_,
-                               scratch_configuration_) !=
-          ValidationError::none) {
+      !parse_configuration_json(factory_payload, validation_profile_,
+                                (*scratch_))
+           .ok()) {
     return false;
   }
-  current_ = scratch_configuration_;
+  promote_scratch();
   std::copy(factory_payload.begin(), factory_payload.end(),
             current_payload_.begin());
   current_payload_size_ = factory_payload.size();
@@ -58,30 +65,30 @@ bool ConfigurationService::initialize(
   StorageSlot selected_slot = StorageSlot::a;
   LoadedRecord selected{};
   if (has_active) {
-    selected = load_slot(active, scratch_configuration_);
+    selected = load_slot(active, (*scratch_));
     if (selected.valid) {
       selected_slot = active;
     } else {
       selected_slot = other(active);
-      selected = load_slot(selected_slot, scratch_configuration_);
+      selected = load_slot(selected_slot, (*scratch_));
     }
   } else {
     const LoadedRecord slot_a =
-        load_slot(StorageSlot::a, scratch_configuration_);
+        load_slot(StorageSlot::a, (*scratch_));
     const LoadedRecord slot_b =
-        load_slot(StorageSlot::b, scratch_configuration_);
+        load_slot(StorageSlot::b, (*scratch_));
     if (slot_a.valid &&
         (!slot_b.valid || slot_a.generation >= slot_b.generation)) {
       selected_slot = StorageSlot::a;
-      selected = load_slot(selected_slot, scratch_configuration_);
+      selected = load_slot(selected_slot, (*scratch_));
     } else if (slot_b.valid) {
       selected_slot = StorageSlot::b;
-      selected = load_slot(selected_slot, scratch_configuration_);
+      selected = load_slot(selected_slot, (*scratch_));
     }
   }
 
   if (selected.valid) {
-    current_ = scratch_configuration_;
+    promote_scratch();
     const std::uint32_t payload_size = binary::read_u32_le(record_buffer_, 8);
     std::copy_n(record_buffer_.begin() + kRecordHeaderSize, payload_size,
                 current_payload_.begin());
@@ -101,26 +108,21 @@ bool ConfigurationService::initialize(
   return true;
 }
 
-ValidationError ConfigurationService::validate_payload(
+ValidationFailure ConfigurationService::validate_payload(
     const std::span<const std::uint8_t> payload) const {
-  const ValidationError parsed =
-      parse_configuration_json(payload, validation_profile_,
-                               scratch_configuration_);
-  if (parsed != ValidationError::none) {
-    return parsed;
-  }
-  return ValidationError::none;
+  return parse_configuration_json(payload, validation_profile_,
+                                  (*scratch_));
 }
 
-ValidationError ConfigurationService::save(
+ValidationFailure ConfigurationService::save(
     const std::span<const std::uint8_t> payload) {
   if (storage_ == nullptr || !status_.storage_available) {
-    return ValidationError::malformed;
+    return {.error = ValidationError::malformed};
   }
-  const ValidationError parsed =
+  const ValidationFailure parsed =
       parse_configuration_json(payload, validation_profile_,
-                               scratch_configuration_);
-  if (parsed != ValidationError::none) {
+                               (*scratch_));
+  if (!parsed.ok()) {
     return parsed;
   }
   const StorageSlot target =
@@ -131,19 +133,19 @@ ValidationError ConfigurationService::save(
       !storage_->write(
           target,
           std::span<const std::uint8_t>(record_buffer_.data(), record_size))) {
-    return ValidationError::malformed;
+    return {.error = ValidationError::malformed};
   }
 
   const LoadedRecord verified =
-      load_slot(target, scratch_configuration_);
+      load_slot(target, (*scratch_));
   if (!verified.valid || verified.generation != generation ||
       !storage_->set_active(target)) {
-    return ValidationError::malformed;
+    return {.error = ValidationError::malformed};
   }
   persisted_slot_ = target;
   persisted_generation_ = generation;
   has_persisted_slot_ = true;
-  return ValidationError::none;
+  return {};
 }
 
 bool ConfigurationService::reset() {
@@ -183,8 +185,8 @@ ConfigurationService::LoadedRecord ConfigurationService::load_slot(
   if (binary::crc32(payload) != binary::read_u32_le(record, 16)) {
     return loaded;
   }
-  if (parse_configuration_json(payload, validation_profile_, configuration) !=
-      ValidationError::none) {
+  if (!parse_configuration_json(payload, validation_profile_, configuration)
+           .ok()) {
     return loaded;
   }
   loaded.generation = binary::read_u32_le(record, 12);
@@ -212,6 +214,10 @@ bool ConfigurationService::build_record(
             output.begin() + kRecordHeaderSize);
   size = kRecordHeaderSize + payload.size();
   return true;
+}
+
+void ConfigurationService::promote_scratch() {
+  std::swap(active_, scratch_);
 }
 
 }  // namespace simcore::configuration

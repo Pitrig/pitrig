@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { writeDevelopmentLog } from '@/features/development/development-log'
 import { useDeviceStore } from '@/features/device/device-store'
-import type { DeviceConfiguration } from '../../../../shared/device'
 import {
   allTelemetryFieldNames,
   collectDashboardTelemetry,
@@ -15,21 +14,19 @@ import {
 type Feedback = { kind: 'success' | 'error'; message: string }
 
 export function SimHubProfilePanel(): React.JSX.Element {
-  const draftJson = useDeviceStore((state) => state.draftConfigurationJson)
+  const draft = useDeviceStore((state) => state.draft)
   const [mode, setMode] = useState<SimHubProfileMode>('dashboard')
   const [exporting, setExporting] = useState(false)
   const [feedback, setFeedback] = useState<Feedback>()
-  const parsed = useMemo(() => parseConfiguration(draftJson), [draftJson])
-
   const selection = useMemo(() => {
-    if (!parsed.ok) return undefined
+    if (!draft) return undefined
     return mode === 'all'
       ? { fieldNames: allTelemetryFieldNames(), unknownBindings: [] }
-      : collectDashboardTelemetry(parsed.configuration)
-  }, [mode, parsed])
-  const baudRate = parsed.ok ? effectiveSimHubBaudRate(parsed.configuration) : undefined
-  const blockedReason = !parsed.ok
-    ? parsed.error
+      : collectDashboardTelemetry(draft)
+  }, [mode, draft])
+  const baudRate = draft ? effectiveSimHubBaudRate(draft) : undefined
+  const blockedReason = !draft
+    ? 'The configuration draft is not valid JSON.'
     : selection && selection.unknownBindings.length > 0
       ? `Unknown dashboard bindings: ${selection.unknownBindings.join(', ')}`
       : !selection || selection.fieldNames.length === 0
@@ -154,19 +151,6 @@ function ProfileModeOption({
   )
 }
 
-function parseConfiguration(
-  json: string
-): { ok: true; configuration: DeviceConfiguration } | { ok: false; error: string } {
-  try {
-    const value: unknown = JSON.parse(json)
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      return { ok: false, error: 'The current configuration draft must be a JSON object.' }
-    }
-    return { ok: true, configuration: value as DeviceConfiguration }
-  } catch {
-    return { ok: false, error: 'Fix the configuration JSON before generating a profile.' }
-  }
-}
 
 function bridgeErrorMessage(error: unknown, fallback: string): string {
   const message = error instanceof Error ? error.message : String(error)

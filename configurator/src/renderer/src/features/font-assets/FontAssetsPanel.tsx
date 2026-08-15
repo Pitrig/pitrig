@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { writeDevelopmentLog } from '@/features/development/development-log'
 import { useDeviceStore } from '@/features/device/device-store'
-import type { DeviceConfiguration } from '../../../../shared/device'
 import type { FontUploadProgress } from '../../../../shared/font-assets'
 import { useFontAssetsStore } from './font-assets-store'
 import {
@@ -15,7 +14,7 @@ import {
 
 export function FontAssetsPanel(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
-  const draftJson = useDeviceStore((state) => state.draftConfigurationJson)
+  const draft = useDeviceStore((state) => state.draft)
   const sources = useFontAssetsStore((state) => state.sources)
   const progress = useFontAssetsStore((state) => state.progress)
   const error = useFontAssetsStore((state) => state.error)
@@ -43,13 +42,10 @@ export function FontAssetsPanel(): React.JSX.Element {
     return () => window.clearInterval(timer)
   }, [operationStartedAt, progress?.stage])
 
-  const required = useMemo(() => {
-    try {
-      return collectFontRequirements(JSON.parse(draftJson) as DeviceConfiguration)
-    } catch {
-      return []
-    }
-  }, [draftJson])
+  const required = useMemo(
+    () => (draft ? collectFontRequirements(draft) : []),
+    [draft]
+  )
   const missing = missingFontRequirements(required, session?.fontAssets?.assets ?? [])
   const groups = groupFontRequirements(required)
   const packageReplacementNeeded = missing.length > 0

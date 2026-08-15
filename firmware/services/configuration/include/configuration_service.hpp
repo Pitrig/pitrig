@@ -27,15 +27,22 @@ class ConfigurationService {
   static constexpr std::size_t kRecordBufferSize =
       20 + kMaximumPayloadSize;
   static constexpr std::size_t kPayloadBufferSize = kMaximumPayloadSize;
+  // Two runtime documents: the active one every consumer reads, and the scratch
+  // one a replacement is parsed and validated into. Promotion swaps the two
+  // pointers, so the previous document stays intact and no consumer ever reads
+  // a half-written structure.
+  static constexpr std::size_t kConfigurationBufferSize =
+      2 * sizeof(ApplicationConfiguration);
 
   bool initialize(IConfigurationStorage& storage,
                   const ValidationContext& validation_profile,
                   std::span<const std::uint8_t> factory_payload,
                   std::span<std::uint8_t> record_buffer,
-                  std::span<std::uint8_t> current_payload_buffer);
+                  std::span<std::uint8_t> current_payload_buffer,
+                  std::span<std::uint8_t> configuration_buffer);
 
   [[nodiscard]] const ApplicationConfiguration& current() const {
-    return current_;
+    return *active_;
   }
   [[nodiscard]] ConfigurationStatus status() const { return status_; }
   [[nodiscard]] BoardId hardware_board() const {
@@ -45,9 +52,9 @@ class ConfigurationService {
   [[nodiscard]] std::span<const std::uint8_t> current_payload() const {
     return {current_payload_.data(), current_payload_size_};
   }
-  [[nodiscard]] ValidationError validate_payload(
+  [[nodiscard]] ValidationFailure validate_payload(
       std::span<const std::uint8_t> payload) const;
-  [[nodiscard]] ValidationError save(
+  [[nodiscard]] ValidationFailure save(
       std::span<const std::uint8_t> payload);
   [[nodiscard]] bool reset();
 
@@ -68,10 +75,13 @@ class ConfigurationService {
                                   std::span<std::uint8_t> output,
                                   std::size_t& size) const;
 
+  // Promotes the freshly parsed scratch document to active.
+  void promote_scratch();
+
   IConfigurationStorage* storage_{};
   ValidationContext validation_profile_{};
-  ApplicationConfiguration current_{};
-  mutable ApplicationConfiguration scratch_configuration_{};
+  ApplicationConfiguration* active_{};
+  ApplicationConfiguration* scratch_{};
   ConfigurationStatus status_{};
   StorageSlot persisted_slot_{StorageSlot::a};
   std::uint32_t persisted_generation_{};

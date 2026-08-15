@@ -1,3 +1,9 @@
+import {
+  BOARD_ID_VALUES,
+  CONFIGURATION_SCHEMA_VERSION,
+  MAXIMUM_PAYLOAD_SIZE
+} from './configuration-schema'
+import type { ApplicationConfiguration, BoardId } from './configuration-schema'
 import type { FontAssetKey } from './font-assets'
 
 export const DEVICE_LIST_PORTS_CHANNEL = 'device:list-ports' as const
@@ -75,12 +81,14 @@ export interface DeviceConnection {
   baudRate: number
 }
 
-export type SimCoreBoardId =
-  | 't_display_s3'
-  | 'guition_esp32_4848s040'
-  | 'guition_jc1060p470c'
-export const CONFIGURATION_SCHEMA_VERSION = 2 as const
-export const MAXIMUM_CONFIGURATION_PAYLOAD_SIZE = 16_384
+// The configuration contract itself is generated from
+// configuration/configuration_schema.json. This module re-exports the parts the
+// device layer speaks in so call sites keep one import, and adds only what the
+// contract cannot know: the logical display size behind each board identifier.
+export type SimCoreBoardId = BoardId
+export const SIMCORE_BOARD_IDS = BOARD_ID_VALUES
+export { CONFIGURATION_SCHEMA_VERSION }
+export const MAXIMUM_CONFIGURATION_PAYLOAD_SIZE = MAXIMUM_PAYLOAD_SIZE
 
 export interface DisplayDescriptor {
   width: number
@@ -124,88 +132,7 @@ export interface FontAssetDeviceInfo {
   rebootRequired: boolean
 }
 
-export interface Placement {
-  x?: number
-  y?: number
-  width?: number
-  height?: number
-}
-
-export interface FontSpec {
-  family?: string
-  size_px?: number
-}
-
-export interface TimeTransform {
-  type: 'time'
-  format: 'duration_ms' | 'signed_duration_ms'
-  prefix?: string
-  suffix?: string
-}
-
-export interface TelemetryTransportConfiguration {
-  id?: 'board_default' | 'native_usb_cdc' | 'uart'
-  uart?: {
-    port?: number
-    tx_pin?: number
-    rx_pin?: number
-    baud_rate?: number
-    silence_esp_logs?: boolean
-  }
-}
-
-export type RgbColor = `#${string}`
-
-export interface DeviceConfiguration {
-  board: SimCoreBoardId
-  hardware?: []
-  telemetry_transport?: TelemetryTransportConfiguration
-  delta_time?: {
-    unavailable_behavior?: 'hide' | 'placeholder' | 'zero'
-    placeholder?: string
-    scale?: { enabled?: boolean; show_sign?: boolean; range_ms?: number }
-  }
-  dashboard?: {
-    background_color?: RgbColor
-    widgets?: {
-      delta_time?: {
-        placement?: Placement
-        z_index?: number
-        font?: FontSpec
-        faster_color?: RgbColor
-        slower_color?: RgbColor
-        neutral_color?: RgbColor
-        scale?: {
-          vertical_padding_px?: number
-          border_width_px?: number
-          border_radius_px?: number
-        }
-      }
-      text?: Array<{
-        binding?: string
-        modifiers?: Array<{ type: 'lap_timer' }>
-        transform?: TimeTransform
-        placement?: Placement
-        z_index?: number
-        padding?: { left?: number; top?: number; right?: number; bottom?: number }
-        border?: { color?: RgbColor; width_px?: number; radius_px?: number }
-        title?: {
-          text?: string
-          font?: FontSpec
-          color?: RgbColor
-          offset_y_px?: number
-        }
-        value?: {
-          font?: FontSpec
-          color?: RgbColor
-          alignment?: 'left' | 'center' | 'right'
-          unavailable_text?: string
-        }
-        background_color?: RgbColor
-      }>
-    }
-  }
-}
+export type DeviceConfiguration = ApplicationConfiguration
 
 export interface DeviceSession {
   info: DeviceInfo

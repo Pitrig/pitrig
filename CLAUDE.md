@@ -37,8 +37,8 @@ cd firmware && idf.py -B build-guition -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfi
 cd firmware && idf.py -B build-jc1060p470c -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c" build
 ```
 
-Debug/diagnostics builds append `;sdkconfig.defaults.debug` to `SDKCONFIG_DEFAULTS` **and** require
-`#define SIMCORE_DEBUG 1` in `firmware/components/simcore_config/include/simcore_features.hpp` (see
+Debug/diagnostics builds append `;sdkconfig.defaults.debug` to `SDKCONFIG_DEFAULTS`, which selects
+`CONFIG_SIMCORE_DEBUG`. Feature selection is Kconfig-driven; no source header is edited (see
 [docs/runtime-performance.md](docs/runtime-performance.md)). The same VS Code tasks exist in
 [.vscode/tasks.json](.vscode/tasks.json) ("SimCore: Build …").
 

@@ -1,0 +1,341 @@
+{
+  "schema_version": 3,
+  "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
+
+  "limits": {
+    "kMaximumPayloadSize": {
+      "value": 16384,
+      "doc": "Maximum compact JSON payload in bytes, for both the wire and NVS."
+    },
+    "kMaximumScreens": {
+      "value": 1,
+      "doc": "Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review."
+    },
+    "kMaximumWidgetsPerScreen": {
+      "value": 17,
+      "doc": "Ordered widget references per screen. Bounds the sum of every widget variant on one screen."
+    },
+    "kMaximumTextWidgets": {
+      "value": 16,
+      "doc": "Text widget storage per screen."
+    },
+    "kMaximumDeltaTimeWidgets": {
+      "value": 1,
+      "doc": "Delta Time widget storage per screen."
+    },
+    "kMaximumValueModifiers": {
+      "value": 4,
+      "doc": "Value modifiers per text widget."
+    },
+    "kWidgetIdCapacity": {
+      "value": 16,
+      "doc": "Widget identifier storage including the terminator (15 usable bytes)."
+    },
+    "kWidgetTitleCapacity": {
+      "value": 16,
+      "doc": "Widget title text storage including the terminator (15 usable bytes)."
+    },
+    "kUnavailableTextCapacity": {
+      "value": 16,
+      "doc": "Placeholder text storage including the terminator (15 usable bytes)."
+    },
+    "kDeltaTimeTextCapacity": {
+      "value": 16,
+      "doc": "Delta Time placeholder storage including the terminator (15 usable bytes)."
+    },
+    "kValidationPathCapacity": {
+      "value": 48,
+      "doc": "Storage for the dotted property path reported with a rejection, including the terminator."
+    },
+    "kValueBindingCapacity": {
+      "value": 40,
+      "doc": "Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py."
+    }
+  },
+
+  "constants": {
+    "kTransparentColor": {
+      "value": "0xFFFFFFFF",
+      "cpp_type": "std::uint32_t",
+      "doc": "Sentinel meaning no background is painted. Not representable in JSON; omit the property instead."
+    }
+  },
+
+  "external_types": {
+    "FontSpec": {
+      "cpp": "font_assets::FontSpec",
+      "cpp_header": "font_asset_types.hpp",
+      "typescript": "FontSpec",
+      "keys": ["family", "size_px"],
+      "doc": "Uploaded font asset reference. Resolution is exact; a missing family/size is a composition error."
+    },
+    "TimeTransformConfig": {
+      "cpp": "transformers::time_transform::Config",
+      "cpp_header": "time_transform.hpp",
+      "typescript": "TimeTransform",
+      "keys": ["format", "prefix", "suffix"],
+      "doc": "Stateless time formatting configuration owned by utils/transformers/time_transform."
+    }
+  },
+
+  "enums": {
+    "BoardId": {
+      "json_values": ["t_display_s3", "guition_esp32_4848s040", "guition_jc1060p470c"],
+      "default": "t_display_s3",
+      "doc": "Immutable hardware identity. Must match the firmware build or the configuration is rejected."
+    },
+    "TelemetryTransportId": {
+      "json_values": ["board_default", "native_usb_cdc", "uart"],
+      "default": "board_default",
+      "doc": "Telemetry transport selection. board_default defers to the immutable board descriptor."
+    },
+    "DeltaTimeUnavailableBehavior": {
+      "json_values": ["hide", "placeholder", "zero"],
+      "default": "hide",
+      "doc": "What the Delta Time widget shows while its telemetry is unavailable."
+    },
+    "TextAlignment": {
+      "json_values": ["left", "center", "right"],
+      "default": "center",
+      "doc": "Horizontal alignment of a text widget value."
+    },
+    "ValueTransformType": {
+      "json_values": ["none", "time"],
+      "default": "none",
+      "doc": "Presentation transform applied after the modifier pipeline."
+    },
+    "ValueModifierType": {
+      "json_values": ["lap_timer"],
+      "default": "lap_timer",
+      "doc": "Stateful value processing implemented by a module behind the pipeline callback."
+    },
+    "WidgetType": {
+      "json_values": ["text", "delta_time"],
+      "default": "text",
+      "doc": "Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget."
+    }
+  },
+
+  "structs": {
+    "BoardConfiguration": {
+      "fields": [
+        { "name": "id", "kind": "enum", "enum": "BoardId", "json": "board", "required": true }
+      ]
+    },
+
+    "HardwareConfiguration": {
+      "doc": "Reserved bounded peripheral section. No user-configurable peripheral driver has a complete production contract yet, so a non-empty list is rejected rather than guessed.",
+      "json_kind": "empty_array",
+      "fields": [
+        { "name": "device_count", "kind": "uint8", "default": 0, "serialized": false }
+      ]
+    },
+
+    "UartTelemetryConfiguration": {
+      "fields": [
+        { "name": "port", "kind": "int", "default": 0 },
+        { "name": "tx_pin", "kind": "int", "default": 43 },
+        { "name": "rx_pin", "kind": "int", "default": 44 },
+        { "name": "baud_rate", "kind": "uint32", "default": 921600 },
+        { "name": "silence_esp_logs", "kind": "bool", "default": true }
+      ]
+    },
+
+    "TelemetryTransportConfiguration": {
+      "fields": [
+        { "name": "id", "kind": "enum", "enum": "TelemetryTransportId" },
+        { "name": "uart", "kind": "struct", "struct": "UartTelemetryConfiguration" }
+      ]
+    },
+
+    "DeltaTimeScaleConfiguration": {
+      "fields": [
+        { "name": "enabled", "kind": "bool", "default": false },
+        { "name": "show_sign", "kind": "bool", "default": false },
+        { "name": "range_ms", "kind": "int32", "default": 2000 }
+      ]
+    },
+
+    "DeltaTimeConfiguration": {
+      "doc": "Delta Time module configuration. Distinct from the Delta Time widget, which owns presentation only.",
+      "fields": [
+        { "name": "unavailable_behavior", "kind": "enum", "enum": "DeltaTimeUnavailableBehavior" },
+        { "name": "placeholder", "kind": "text", "capacity": "kDeltaTimeTextCapacity", "default": "---" },
+        { "name": "scale", "kind": "struct", "struct": "DeltaTimeScaleConfiguration" }
+      ]
+    },
+
+    "WidgetPlacement": {
+      "doc": "Absolute geometry in logical screen pixels.",
+      "fields": [
+        { "name": "x", "kind": "int32", "default": 0 },
+        { "name": "y", "kind": "int32", "default": 0 },
+        { "name": "width", "kind": "int32", "default": 0 },
+        { "name": "height", "kind": "int32", "default": 0 }
+      ]
+    },
+
+    "WidgetInsets": {
+      "fields": [
+        { "name": "left", "kind": "uint16", "default": 0 },
+        { "name": "top", "kind": "uint16", "default": 0 },
+        { "name": "right", "kind": "uint16", "default": 0 },
+        { "name": "bottom", "kind": "uint16", "default": 0 }
+      ]
+    },
+
+    "WidgetBorder": {
+      "fields": [
+        { "name": "color", "kind": "color", "default": "0xAEAEAE" },
+        { "name": "width_px", "kind": "uint16", "default": 0 },
+        { "name": "radius_px", "kind": "uint16", "default": 0 }
+      ]
+    },
+
+    "WidgetTitleStyle": {
+      "fields": [
+        { "name": "text", "kind": "text", "capacity": "kWidgetTitleCapacity", "default": "" },
+        { "name": "font", "kind": "external", "external": "FontSpec" },
+        { "name": "color", "kind": "color", "default": "0xE8E8E8" },
+        { "name": "offset_y_px", "kind": "int16", "default": 0 }
+      ]
+    },
+
+    "WidgetValueStyle": {
+      "fields": [
+        { "name": "font", "kind": "external", "external": "FontSpec" },
+        { "name": "color", "kind": "color", "default": "0xE8E8E8" },
+        { "name": "alignment", "kind": "enum", "enum": "TextAlignment" },
+        { "name": "unavailable_text", "kind": "text", "capacity": "kUnavailableTextCapacity", "default": "--" }
+      ]
+    },
+
+    "ValueTransform": {
+      "doc": "Stateless presentation transform. Absent means no transform is applied.",
+      "fields": [
+        { "name": "type", "kind": "enum", "enum": "ValueTransformType" },
+        { "name": "time", "kind": "external", "external": "TimeTransformConfig", "inline": true }
+      ]
+    },
+
+    "ValueModifier": {
+      "fields": [
+        { "name": "type", "kind": "enum", "enum": "ValueModifierType" }
+      ]
+    },
+
+    "DeltaTimeScaleStyle": {
+      "fields": [
+        { "name": "vertical_padding_px", "kind": "uint16", "default": 2 },
+        { "name": "border_width_px", "kind": "uint16", "default": 2 },
+        { "name": "border_radius_px", "kind": "uint16", "default": 8 }
+      ]
+    },
+
+    "DeltaTimeWidgetConfiguration": {
+      "widget_type": "delta_time",
+      "doc": "Renders Delta Time module state. Requires the delta_time module section to be present.",
+      "fields": [
+        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "font", "kind": "external", "external": "FontSpec" },
+        { "name": "placement", "kind": "struct", "struct": "WidgetPlacement" },
+        { "name": "z_index", "kind": "int16", "default": 0 },
+        { "name": "faster_color", "kind": "color", "default": "0x00C853" },
+        { "name": "slower_color", "kind": "color", "default": "0xD50000" },
+        { "name": "neutral_color", "kind": "color", "default": "0xE8E8E8" },
+        { "name": "scale", "kind": "struct", "struct": "DeltaTimeScaleStyle" }
+      ]
+    },
+
+    "TextWidgetConfiguration": {
+      "widget_type": "text",
+      "doc": "Reusable telemetry text widget. Consumes one canonical binding through a pre-bound typed callback.",
+      "fields": [
+        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "binding", "kind": "text", "capacity": "kValueBindingCapacity", "default": "vehicle.speed" },
+        { "name": "modifier_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "modifiers", "kind": "array", "struct": "ValueModifier", "capacity": "kMaximumValueModifiers", "count_field": "modifier_count" },
+        { "name": "transform", "kind": "struct", "struct": "ValueTransform" },
+        { "name": "placement", "kind": "struct", "struct": "WidgetPlacement" },
+        { "name": "z_index", "kind": "int16", "default": 0 },
+        { "name": "padding", "kind": "struct", "struct": "WidgetInsets" },
+        { "name": "border", "kind": "struct", "struct": "WidgetBorder" },
+        { "name": "title", "kind": "struct", "struct": "WidgetTitleStyle" },
+        { "name": "value", "kind": "struct", "struct": "WidgetValueStyle" },
+        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" }
+      ]
+    },
+
+    "WidgetReference": {
+      "doc": "Declaration-order reference into the typed widget storage of one screen. Carries the ordering keys so compositing needs no widget-type knowledge: z_index ascending, authored array order breaking ties.",
+      "serialized": false,
+      "fields": [
+        { "name": "type", "kind": "enum", "enum": "WidgetType" },
+        { "name": "index", "kind": "uint8", "default": 0 },
+        { "name": "z_index", "kind": "int16", "default": 0 }
+      ]
+    },
+
+    "ScreenConfiguration": {
+      "doc": "One dashboard screen. A screen is the coordinate space for the widgets it owns.",
+      "fields": [
+        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "background_color", "kind": "color", "default": "0x000000" },
+        { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        {
+          "name": "widgets",
+          "kind": "array",
+          "struct": "WidgetReference",
+          "capacity": "kMaximumWidgetsPerScreen",
+          "count_field": "widget_count",
+          "json_variants": {
+            "text": "TextWidgetConfiguration",
+            "delta_time": "DeltaTimeWidgetConfiguration"
+          },
+          "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the typed storage for its variant."
+        },
+        { "name": "text_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "text_widgets", "kind": "array", "struct": "TextWidgetConfiguration", "capacity": "kMaximumTextWidgets", "count_field": "text_widget_count", "serialized": false },
+        { "name": "delta_time_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "delta_time_widgets", "kind": "array", "struct": "DeltaTimeWidgetConfiguration", "capacity": "kMaximumDeltaTimeWidgets", "count_field": "delta_time_widget_count", "serialized": false }
+      ]
+    },
+
+    "DashboardConfiguration": {
+      "fields": [
+        { "name": "screen_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "screens", "kind": "array", "struct": "ScreenConfiguration", "capacity": "kMaximumScreens", "count_field": "screen_count" }
+      ]
+    },
+
+    "ApplicationConfiguration": {
+      "root": true,
+      "fields": [
+        { "name": "board", "kind": "struct", "struct": "BoardConfiguration", "flatten": true },
+        { "name": "hardware", "kind": "struct", "struct": "HardwareConfiguration" },
+        { "name": "telemetry_transport_present", "kind": "bool", "default": false, "serialized": false },
+        { "name": "telemetry_transport", "kind": "struct", "struct": "TelemetryTransportConfiguration" },
+        { "name": "delta_time_present", "kind": "bool", "default": false, "serialized": false },
+        { "name": "delta_time", "kind": "struct", "struct": "DeltaTimeConfiguration" },
+        { "name": "dashboard", "kind": "struct", "struct": "DashboardConfiguration" }
+      ]
+    }
+  },
+
+  "validation_errors": [
+    { "name": "none", "doc": "No error." },
+    { "name": "malformed", "doc": "Not parseable JSON, oversized payload, or trailing content." },
+    { "name": "unsupported_schema", "doc": "Stored record uses a schema version this firmware does not accept." },
+    { "name": "invalid_board", "doc": "Missing or unknown board identifier." },
+    { "name": "board_mismatch", "doc": "Board identifier does not match the firmware build." },
+    { "name": "invalid_hardware", "doc": "Hardware list is not an empty array." },
+    { "name": "invalid_transport", "doc": "Unknown transport or one the board does not support." },
+    { "name": "invalid_uart", "doc": "UART pins do not match the board or baud rate is out of range." },
+    { "name": "invalid_module", "doc": "Module section value out of range." },
+    { "name": "invalid_screen", "doc": "Screen section is malformed or the screen count is out of range." },
+    { "name": "invalid_dashboard", "doc": "Dashboard section is malformed or references an absent module." },
+    { "name": "invalid_widget", "doc": "Widget property is malformed, out of range, or outside the screen bounds." },
+    { "name": "unknown_property", "doc": "Property name is not part of this schema version." },
+    { "name": "duplicate_property", "doc": "Property appears more than once in the same object." }
+  ]
+}
