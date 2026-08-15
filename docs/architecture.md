@@ -434,6 +434,16 @@ Each subsystem owns the mechanism appropriate to its work:
 A central scheduler requires a separate architectural decision if a future
 cross-subsystem timing requirement cannot be represented by these mechanisms.
 
+Dashboard rendering combines the three so a telemetry change is not delayed by
+a widget timer period. The dashboard composition subscribes to telemetry update
+events; the handler signals a small render-trigger task, which takes the LVGL
+lock, marks the widget render timers ready, releases the lock, and wakes the
+LVGL task. The next LVGL pass therefore reads the changed values and refreshes
+immediately. The periodic widget timers remain as the fallback and as the clock
+for free-running module sources; the trigger adds no polling and makes no LVGL
+call outside the LVGL lock, and the task that committed the telemetry never
+waits on the UI.
+
 Long-running work must execute in dedicated tasks.
 
 Blocking operations should be avoided.

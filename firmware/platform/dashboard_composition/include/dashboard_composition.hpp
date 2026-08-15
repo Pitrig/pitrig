@@ -4,7 +4,9 @@
 #include "dashboard_layout.hpp"
 #include "delta_time_widget.hpp"
 #include "display_diagnostics.hpp"
+#include "event_bus.hpp"
 #include "performance_overlay_widget.hpp"
+#include "render_trigger.hpp"
 #include "text_widget.hpp"
 #include "widget_binding.hpp"
 #include "widget_descriptor.hpp"
@@ -65,11 +67,22 @@ struct Dashboard {
   dashboard::WidgetManager widgets;
   TextWidgets text;
   DeltaTimeWidgets delta_time;
+  // Firmware-lifetime: survives destroy()/create() cycles, which only replace
+  // the widgets it wakes.
+  dashboard::render_trigger::Trigger render_trigger;
+  events::Subscription telemetry_subscription{};
 };
 
 [[nodiscard]] bool show_startup_screen(
     lv_display_t* display,
     const configuration::ApplicationConfiguration& configuration);
+
+// Starts event-driven rendering: every telemetry update wakes the widget render
+// timers through the render trigger, so a changed value is drawn on the next
+// LVGL pass instead of the next timer period. Call once after the first
+// create(); the periodic timers keep working as a fallback if this fails.
+[[nodiscard]] bool start_render_trigger(Dashboard& dashboard,
+                                        events::EventBus& event_bus);
 
 [[nodiscard]] bool create(
     lv_display_t* display,

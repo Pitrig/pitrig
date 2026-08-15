@@ -13,6 +13,8 @@
 namespace simcore::dashboard::delta_time_widget {
 namespace {
 
+// Fallback poll only: a telemetry change wakes the timer early through the
+// dashboard's render trigger.
 constexpr std::uint32_t kRenderPeriodMs = 16;
 
 }  // namespace
@@ -142,6 +144,14 @@ void View::update(lv_timer_t* const timer) {
   auto* const view = static_cast<View*>(lv_timer_get_user_data(timer));
   if (view != nullptr) {
     view->render();
+  }
+}
+
+void View::wake() {
+  // timer_ is created, deleted, and read only under the LVGL lock, which the
+  // caller holds.
+  if (timer_ != nullptr) {
+    lv_timer_ready(timer_);
   }
 }
 

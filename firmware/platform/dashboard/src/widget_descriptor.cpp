@@ -70,4 +70,13 @@ bool WidgetManager::update_instance(const configuration::WidgetType type,
   return false;
 }
 
+void WidgetManager::wake_all() const {
+  for (std::size_t entry = 0; entry < count_; ++entry) {
+    const Entry& candidate = entries_[entry];
+    if (candidate.created && candidate.descriptor.wake != nullptr) {
+      candidate.descriptor.wake(candidate.descriptor.context);
+    }
+  }
+}
+
 }  // namespace simcore::dashboard

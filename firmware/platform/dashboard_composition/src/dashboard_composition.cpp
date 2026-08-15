@@ -12,6 +12,7 @@
 #include "logger.hpp"
 #include "module_composition.hpp"
 #include "simcore_features.hpp"
+#include "telemetry_events.hpp"
 #include "telemetry_registry.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
@@ -117,6 +118,10 @@ bool update_text_widget(void* const context, const std::uint8_t index) {
                                      *widgets.fonts);
 }
 
+void wake_text_widgets(void* const context) {
+  static_cast<TextWidgets*>(context)->collection.wake();
+}
+
 bool create_delta_time_widget(void* const context) {
   auto& widgets = *static_cast<DeltaTimeWidgets*>(context);
   if (widgets.module == nullptr) {
@@ -147,6 +152,20 @@ bool update_delta_time_widget(void* const context, const std::uint8_t index) {
   }
   static_cast<DeltaTimeWidgets*>(context)->view.destroy();
   return create_delta_time_widget(context);
+}
+
+void wake_delta_time_widget(void* const context) {
+  static_cast<DeltaTimeWidgets*>(context)->view.wake();
+}
+
+// Runs on the render-trigger task with the LVGL lock held.
+void wake_widgets(void* const context) {
+  static_cast<Dashboard*>(context)->widgets.wake_all();
+}
+
+// Runs on the task that committed the telemetry update; must stay cheap.
+void on_telemetry_updated(const events::Event&, void* const context) {
+  static_cast<Dashboard*>(context)->render_trigger.request();
 }
 
 struct WidgetLayer {
@@ -276,7 +295,13 @@ bool create(lv_display_t* const display,
         modules.delta_time_started ? &modules.delta_time : nullptr;
 
     // Widget presence in the configuration decides which descriptors run. The
-    // manager itself knows nothing about either widget type.
+    // manager itself knows nothing about either widget type. The table is
+    // assembled under the LVGL lock because the render trigger walks it under
+    // that lock from its own task.
+    if (!lvgl_port_lock(0)) {
+      log::error(kTag, "Failed to lock LVGL for the widget table");
+      return false;
+    }
     dashboard_state.widgets.clear();
     const bool registered =
         dashboard_state.widgets.add({
@@ -286,6 +311,7 @@ bool create(lv_display_t* const display,
             .destroy = &destroy_text_widgets,
             .root_object = &text_widget_root,
             .update_instance = &update_text_widget,
+            .wake = &wake_text_widgets,
             .context = &dashboard_state.text,
         }) &&
         dashboard_state.widgets.add({
@@ -295,8 +321,10 @@ bool create(lv_display_t* const display,
             .destroy = &destroy_delta_time_widget,
             .root_object = &delta_time_widget_root,
             .update_instance = &update_delta_time_widget,
+            .wake = &wake_delta_time_widget,
             .context = &dashboard_state.delta_time,
         });
+    lvgl_port_unlock();
     if (!registered) {
       log::error(kTag, "Failed to register dashboard widget types");
       initialized = false;
@@ -414,9 +442,31 @@ bool apply_incremental(
 }
 
 void destroy(Dashboard& dashboard) {
-  dashboard.widgets.clear();
+  // Cleared under the LVGL lock for the same reason create() assembles the
+  // table under it: the render trigger may be walking it.
+  if (lvgl_port_lock(0)) {
+    dashboard.widgets.clear();
+    lvgl_port_unlock();
+  }
   dashboard.display_diagnostics.destroy();
   dashboard.performance_overlay.destroy();
+}
+
+bool start_render_trigger(Dashboard& dashboard, events::EventBus& event_bus) {
+  if (dashboard.render_trigger.started()) {
+    return false;
+  }
+  if (!dashboard.render_trigger.start(&wake_widgets, &dashboard)) {
+    log::error(kTag, "Failed to start the render trigger task");
+    return false;
+  }
+  dashboard.telemetry_subscription = event_bus.subscribe(
+      telemetry::kTelemetryUpdatedEvent, &on_telemetry_updated, &dashboard);
+  if (!dashboard.telemetry_subscription.valid) {
+    log::error(kTag, "Failed to subscribe the render trigger to telemetry");
+    return false;
+  }
+  return true;
 }
 
 bool rebuild(lv_display_t* const display,

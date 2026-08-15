@@ -41,9 +41,15 @@ class UartTransport final : public ITransport {
  private:
   static constexpr std::size_t kChunkSize = 512;
   static constexpr std::size_t kTaskStackSize = 4096;
-  static constexpr std::size_t kEventQueueDepth = 4;
-  static constexpr std::size_t kDriverRxBufferSize =
-      kChunkSize * kEventQueueDepth;
+  // The RX threshold below makes the driver post one event per 8 received
+  // bytes, so a burst posts events far faster than a scheduling hiccup lets the
+  // task drain them; the queue is deep enough that such a hiccup does not drop
+  // events. Each entry is a few bytes.
+  static constexpr std::size_t kEventQueueDepth = 16;
+  // About 22 ms of continuous data at 921600 baud.
+  static constexpr std::size_t kDriverRxBufferSize = 2048;
+  // Small threshold + one-symbol timeout: the task is woken within a few byte
+  // times of the end of a line, and mid-burst every 8 bytes.
   static constexpr std::size_t kRxFullThresholdBytes = 8;
   static constexpr std::uint8_t kRxTimeoutSymbols = 1;
   static constexpr UBaseType_t kTaskPriority = 5;

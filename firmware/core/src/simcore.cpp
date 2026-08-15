@@ -215,6 +215,12 @@ void run() {
           *telemetry_transport)) {
     log::error(kTag, "Dashboard composition is incomplete");
   }
+  if (!dashboard_composition::start_render_trigger(
+          application.dashboard, application.services.event_bus)) {
+    log::error(kTag,
+               "Render trigger is unavailable; widgets fall back to "
+               "periodic polling");
+  }
   if (!application.communication.start(
           application.services.configuration,
           application.services.font_assets,

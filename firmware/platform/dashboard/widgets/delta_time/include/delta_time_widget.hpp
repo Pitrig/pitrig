@@ -35,6 +35,11 @@ class View final {
   [[nodiscard]] lv_obj_t* root_object() const { return state_.container; }
   void destroy();
 
+  // Marks the render timer ready so the next LVGL pass re-reads the module
+  // state instead of waiting for the period to elapse. Caller holds the LVGL
+  // lock. A no-op while the widget does not exist.
+  void wake();
+
  private:
   struct State {
     const delta_time::DeltaTime* module{};

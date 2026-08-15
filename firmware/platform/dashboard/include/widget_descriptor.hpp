@@ -21,6 +21,9 @@ using WidgetRootObject = lv_obj_t* (*)(void* context, std::uint8_t index);
 // other instances of this type untouched. Returns false when the type cannot
 // update that instance, and the caller falls back to a full recomposition.
 using WidgetUpdateInstance = bool (*)(void* context, std::uint8_t index);
+// Marks the type's render timers ready because a source value changed. Called
+// with the LVGL lock held; must not block. Optional.
+using WidgetWake = void (*)(void* context);
 
 // One descriptor per widget type, mirroring the compile-time module descriptors
 // in core/module_manager: function pointers plus an explicit context, no
@@ -34,11 +37,17 @@ struct WidgetDescriptor {
   WidgetDestroy destroy{};
   WidgetRootObject root_object{};
   WidgetUpdateInstance update_instance{};
+  WidgetWake wake{};
   void* context{};
 };
 
 // Owns bounded widget-type lifecycle. Widget storage and dependencies stay in
 // the dashboard composition and are supplied through descriptors.
+//
+// wake_all() may run on the render-trigger task while the composition rebuilds
+// the table on another task, so add(), clear(), and wake_all() are serialised
+// by the LVGL lock: the composition holds it while assembling or clearing the
+// table, and the trigger holds it while waking.
 class WidgetManager final {
  public:
   static constexpr std::size_t kMaximumWidgetTypes = 8;
@@ -58,6 +67,8 @@ class WidgetManager final {
                                       std::uint8_t index) const;
   [[nodiscard]] bool update_instance(configuration::WidgetType type,
                                      std::uint8_t index) const;
+  // Wakes every created type that provides a wake entry. LVGL lock held.
+  void wake_all() const;
 
  private:
   struct Entry {

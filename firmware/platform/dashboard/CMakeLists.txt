@@ -3,6 +3,7 @@ set(component_sources
     "layout/src/dashboard_layout.cpp"
     "utilities/boot_splash/src/boot_splash.cpp"
     "utilities/display_diagnostics/src/display_diagnostics.cpp"
+    "utilities/render_trigger/src/render_trigger.cpp"
     "widgets/delta_time/src/delta_time_widget.cpp"
     "widgets/text/src/text_widget.cpp"
     "widgets/text/src/widget_binding.cpp"
@@ -14,6 +15,7 @@ set(component_include_dirs
     "layout/include"
     "utilities/boot_splash/include"
     "utilities/display_diagnostics/include"
+    "utilities/render_trigger/include"
     "widgets/delta_time/include"
     "widgets/text/include"
     "widgets/performance_overlay/include")

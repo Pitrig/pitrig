@@ -1,0 +1,1619 @@
+{
+  "AutomaticReconnect": true,
+  "SerialPortName": "",
+  "StartupDelayMs": 0,
+  "IsConnecting": false,
+  "IsEnabled": true,
+  "LogIncomingData": false,
+  "IsConnected": false,
+  "BaudRate": 921600,
+  "DtrEnable": false,
+  "RtsEnable": false,
+  "EditorExpanded": true,
+  "Name": "SimCore telemetry",
+  "Description": "Generic SimHub telemetry output for SimCore devices",
+  "LastErrorDate": "0001-01-01T00:00:00+00:00",
+  "LastErrorMessage": null,
+  "IsFreezed": false,
+  "SettingsBuilder": {
+    "Settings": [],
+    "IsEditMode": false
+  },
+  "OnConnectMessage": {
+    "Expression": ""
+  },
+  "OnDisconnectMessage": {
+    "Expression": ""
+  },
+  "UpdateMessages": [
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SpeedKmh], [DataCorePlugin.GameData.SpeedKmh]), '') = '', 'S;\\n', 'S;' + format(isnull([DataCorePlugin.GameData.NewData.SpeedKmh], [DataCorePlugin.GameData.SpeedKmh]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Throttle], [DataCorePlugin.GameData.Throttle]), '') = '', '00;\\n', '00;' + format(isnull([DataCorePlugin.GameData.NewData.Throttle], [DataCorePlugin.GameData.Throttle]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Brake], [DataCorePlugin.GameData.Brake]), '') = '', '01;\\n', '01;' + format(isnull([DataCorePlugin.GameData.NewData.Brake], [DataCorePlugin.GameData.Brake]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Clutch], [DataCorePlugin.GameData.Clutch]), '') = '', '02;\\n', '02;' + format(isnull([DataCorePlugin.GameData.NewData.Clutch], [DataCorePlugin.GameData.Clutch]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Handbrake], [DataCorePlugin.GameData.Handbrake]), '') = '', '03;\\n', '03;' + format(isnull([DataCorePlugin.GameData.NewData.Handbrake], [DataCorePlugin.GameData.Handbrake]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SteeringInput], [DataCorePlugin.GameData.SteeringInput]), '') = '', '04;\\n', '04;' + format(isnull([DataCorePlugin.GameData.NewData.SteeringInput], [DataCorePlugin.GameData.SteeringInput]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SteeringWheelAngle], [DataCorePlugin.GameData.SteeringWheelAngle]), '') = '', '05;\\n', '05;' + format(isnull([DataCorePlugin.GameData.NewData.SteeringWheelAngle], [DataCorePlugin.GameData.SteeringWheelAngle]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.GameData.BrakeBias], '') = '', 'BB;\\n', 'BB;' + format([DataCorePlugin.GameData.BrakeBias], '0.0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Rpms], [DataCorePlugin.GameData.Rpms]), '') = '', 'R;\\n', 'R;' + format(isnull([DataCorePlugin.GameData.NewData.Rpms], [DataCorePlugin.GameData.Rpms]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.MaxRpm], [DataCorePlugin.GameData.MaxRpm]), '') = '', '06;\\n', '06;' + format(isnull([DataCorePlugin.GameData.NewData.MaxRpm], [DataCorePlugin.GameData.MaxRpm]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.GameData.ShiftLightRpm], '') = '', '07;\\n', '07;' + format([DataCorePlugin.GameData.ShiftLightRpm], '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(if(isnull([DataCorePlugin.GameData.NewData.MaxRpm], 0) = 0, '', [DataCorePlugin.GameData.NewData.Rpms] / [DataCorePlugin.GameData.NewData.MaxRpm] * 100), '') = '', '08;\\n', '08;' + format(if(isnull([DataCorePlugin.GameData.NewData.MaxRpm], 0) = 0, '', [DataCorePlugin.GameData.NewData.Rpms] / [DataCorePlugin.GameData.NewData.MaxRpm] * 100), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EngineStarted], [DataCorePlugin.GameData.EngineStarted]), '') = '', '09;\\n', '09;' + if(isnull([DataCorePlugin.GameData.NewData.EngineStarted], [DataCorePlugin.GameData.EngineStarted]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IgnitionOn], [DataCorePlugin.GameData.IgnitionOn]), '') = '', '0a;\\n', '0a;' + if(isnull([DataCorePlugin.GameData.NewData.IgnitionOn], [DataCorePlugin.GameData.IgnitionOn]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.StarterOn], [DataCorePlugin.GameData.StarterOn]), '') = '', '0b;\\n', '0b;' + if(isnull([DataCorePlugin.GameData.NewData.StarterOn], [DataCorePlugin.GameData.StarterOn]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WaterTemperature], [DataCorePlugin.GameData.WaterTemperature]), '') = '', '0c;\\n', '0c;' + format(isnull([DataCorePlugin.GameData.NewData.WaterTemperature], [DataCorePlugin.GameData.WaterTemperature]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.OilTemperature], [DataCorePlugin.GameData.OilTemperature]), '') = '', '0d;\\n', '0d;' + format(isnull([DataCorePlugin.GameData.NewData.OilTemperature], [DataCorePlugin.GameData.OilTemperature]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.OilPressure], [DataCorePlugin.GameData.OilPressure]), '') = '', '0e;\\n', '0e;' + format(isnull([DataCorePlugin.GameData.NewData.OilPressure], [DataCorePlugin.GameData.OilPressure]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TurboPressure], [DataCorePlugin.GameData.TurboPressure]), '') = '', '0f;\\n', '0f;' + format(isnull([DataCorePlugin.GameData.NewData.TurboPressure], [DataCorePlugin.GameData.TurboPressure]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TurboLevel], [DataCorePlugin.GameData.TurboLevel]), '') = '', '0g;\\n', '0g;' + format(isnull([DataCorePlugin.GameData.NewData.TurboLevel], [DataCorePlugin.GameData.TurboLevel]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EngineTorque], [DataCorePlugin.GameData.EngineTorque]), '') = '', '0h;\\n', '0h;' + format(isnull([DataCorePlugin.GameData.NewData.EngineTorque], [DataCorePlugin.GameData.EngineTorque]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EnginePower], [DataCorePlugin.GameData.EnginePower]), '') = '', '0i;\\n', '0i;' + format(isnull([DataCorePlugin.GameData.NewData.EnginePower], [DataCorePlugin.GameData.EnginePower]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EngineMap], [DataCorePlugin.GameData.EngineMap]), '') = '', '0j;\\n', '0j;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.EngineMap], [DataCorePlugin.GameData.EngineMap]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EngineDamage], [DataCorePlugin.GameData.EngineDamage]), '') = '', '0k;\\n', '0k;' + format(isnull([DataCorePlugin.GameData.NewData.EngineDamage], [DataCorePlugin.GameData.EngineDamage]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "'G;' + if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Gear], [DataCorePlugin.GameData.Gear]), '') = '', 'N', replace(replace('' + isnull([DataCorePlugin.GameData.NewData.Gear], [DataCorePlugin.GameData.Gear]), '\\r', ' '), '\\n', ' ')) + '\\n'"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Gear], [DataCorePlugin.GameData.Gear]), '') = '', '0l;\\n', '0l;' + format(isnull([DataCorePlugin.GameData.NewData.Gear], [DataCorePlugin.GameData.Gear]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IsShifting], [DataCorePlugin.GameData.IsShifting]), '') = '', '0m;\\n', '0m;' + if(isnull([DataCorePlugin.GameData.NewData.IsShifting], [DataCorePlugin.GameData.IsShifting]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TransmissionDamage], [DataCorePlugin.GameData.TransmissionDamage]), '') = '', '0n;\\n', '0n;' + format(isnull([DataCorePlugin.GameData.NewData.TransmissionDamage], [DataCorePlugin.GameData.TransmissionDamage]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLap], [DataCorePlugin.GameData.CurrentLap]), '') = '', '0o;\\n', '0o;' + format(isnull([DataCorePlugin.GameData.NewData.CurrentLap], [DataCorePlugin.GameData.CurrentLap]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TotalLaps], [DataCorePlugin.GameData.TotalLaps]), '') = '', '0p;\\n', '0p;' + format(isnull([DataCorePlugin.GameData.NewData.TotalLaps], [DataCorePlugin.GameData.TotalLaps]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CompletedLaps], [DataCorePlugin.GameData.CompletedLaps]), '') = '', '0q;\\n', '0q;' + format(isnull([DataCorePlugin.GameData.NewData.CompletedLaps], [DataCorePlugin.GameData.CompletedLaps]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime]), '') = '', 'L;\\n', 'L;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapTime], [DataCorePlugin.GameData.CurrentLapTime])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime]), '') = '', '0r;\\n', '0r;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.LastLapTime], [DataCorePlugin.GameData.LastLapTime])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime]), '') = '', 'B;\\n', 'B;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestLapTime], [DataCorePlugin.GameData.BestLapTime])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionBestLapTime], [DataCorePlugin.GameData.SessionBestLapTime]), '') = '', '0s;\\n', '0s;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.SessionBestLapTime], [DataCorePlugin.GameData.SessionBestLapTime])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull((timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], 0)) * 1000, '') = '', 'P;\\n', 'P;' + format((timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], 0)) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', 'D;\\n', 'D;' + format(([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds]) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', '0t;\\n', '0t;' + format(([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds]) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', '0u;\\n', '0u;' + format(([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds]) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLapInvalid], [DataCorePlugin.GameData.CurrentLapInvalid]), '') = '', '0v;\\n', '0v;' + if(isnull([DataCorePlugin.GameData.NewData.CurrentLapInvalid], [DataCorePlugin.GameData.CurrentLapInvalid]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(if('' + isnull([DataCorePlugin.GameData.NewData.CurrentLapInvalid], '') = '', '', if([DataCorePlugin.GameData.NewData.CurrentLapInvalid], false, true)), '') = '', '0w;\\n', '0w;' + if(if('' + isnull([DataCorePlugin.GameData.NewData.CurrentLapInvalid], '') = '', '', if([DataCorePlugin.GameData.NewData.CurrentLapInvalid], false, true)), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentSectorIndex], [DataCorePlugin.GameData.CurrentSectorIndex]), '') = '', '0x;\\n', '0x;' + format(isnull([DataCorePlugin.GameData.NewData.CurrentSectorIndex], [DataCorePlugin.GameData.CurrentSectorIndex]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentSectorTime], [DataCorePlugin.GameData.CurrentSectorTime]), '') = '', '0y;\\n', '0y;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentSectorTime], [DataCorePlugin.GameData.CurrentSectorTime])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLapSector1Time], [DataCorePlugin.GameData.CurrentLapSector1Time]), '') = '', '0z;\\n', '0z;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapSector1Time], [DataCorePlugin.GameData.CurrentLapSector1Time])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLapSector2Time], [DataCorePlugin.GameData.CurrentLapSector2Time]), '') = '', '10;\\n', '10;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapSector2Time], [DataCorePlugin.GameData.CurrentLapSector2Time])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLapSector3Time], [DataCorePlugin.GameData.CurrentLapSector3Time]), '') = '', '11;\\n', '11;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.CurrentLapSector3Time], [DataCorePlugin.GameData.CurrentLapSector3Time])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BestSector1Time], [DataCorePlugin.GameData.BestSector1Time]), '') = '', '12;\\n', '12;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestSector1Time], [DataCorePlugin.GameData.BestSector1Time])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BestSector2Time], [DataCorePlugin.GameData.BestSector2Time]), '') = '', '13;\\n', '13;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestSector2Time], [DataCorePlugin.GameData.BestSector2Time])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BestSector3Time], [DataCorePlugin.GameData.BestSector3Time]), '') = '', '14;\\n', '14;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.BestSector3Time], [DataCorePlugin.GameData.BestSector3Time])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([PersistantTrackerPlugin.SessionBestLiveSectorDeltaSeconds], '') = '', '15;\\n', '15;' + format(([PersistantTrackerPlugin.SessionBestLiveSectorDeltaSeconds]) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TrackPositionPercent], [DataCorePlugin.GameData.TrackPositionPercent]), '') = '', '16;\\n', '16;' + format(isnull([DataCorePlugin.GameData.NewData.TrackPositionPercent], [DataCorePlugin.GameData.TrackPositionPercent]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionTypeName], [DataCorePlugin.GameData.SessionTypeName]), '') = '', '17;\\n', '17;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.SessionTypeName], [DataCorePlugin.GameData.SessionTypeName]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionName], [DataCorePlugin.GameData.SessionName]), '') = '', '18;\\n', '18;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.SessionName], [DataCorePlugin.GameData.SessionName]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionPhase], [DataCorePlugin.GameData.SessionPhase]), '') = '', '19;\\n', '19;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.SessionPhase], [DataCorePlugin.GameData.SessionPhase]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Position], [DataCorePlugin.GameData.Position]), '') = '', '1a;\\n', '1a;' + format(isnull([DataCorePlugin.GameData.NewData.Position], [DataCorePlugin.GameData.Position]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CarClassPosition], [DataCorePlugin.GameData.CarClassPosition]), '') = '', '1b;\\n', '1b;' + format(isnull([DataCorePlugin.GameData.NewData.CarClassPosition], [DataCorePlugin.GameData.CarClassPosition]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.OpponentsCount], [DataCorePlugin.GameData.OpponentsCount]), '') = '', '1c;\\n', '1c;' + format(isnull([DataCorePlugin.GameData.NewData.OpponentsCount], [DataCorePlugin.GameData.OpponentsCount]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CarClassParticipantsCount], [DataCorePlugin.GameData.CarClassParticipantsCount]), '') = '', '1d;\\n', '1d;' + format(isnull([DataCorePlugin.GameData.NewData.CarClassParticipantsCount], [DataCorePlugin.GameData.CarClassParticipantsCount]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionTime], [DataCorePlugin.GameData.SessionTime]), '') = '', '1e;\\n', '1e;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.SessionTime], [DataCorePlugin.GameData.SessionTime])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft]), '') = '', '1f;\\n', '1f;' + format(timespantoseconds(isnull([DataCorePlugin.GameData.NewData.SessionTimeLeft], [DataCorePlugin.GameData.SessionTimeLeft])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.RemainingLaps], [DataCorePlugin.GameData.RemainingLaps]), '') = '', '1g;\\n', '1g;' + format(isnull([DataCorePlugin.GameData.NewData.RemainingLaps], [DataCorePlugin.GameData.RemainingLaps]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IsTimedRace], [DataCorePlugin.GameData.IsTimedRace]), '') = '', '1h;\\n', '1h;' + if(isnull([DataCorePlugin.GameData.NewData.IsTimedRace], [DataCorePlugin.GameData.IsTimedRace]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IsPlayerFinished], [DataCorePlugin.GameData.IsPlayerFinished]), '') = '', '1i;\\n', '1i;' + if(isnull([DataCorePlugin.GameData.NewData.IsPlayerFinished], [DataCorePlugin.GameData.IsPlayerFinished]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IsCheckered], [DataCorePlugin.GameData.IsCheckered]), '') = '', '1j;\\n', '1j;' + if(isnull([DataCorePlugin.GameData.NewData.IsCheckered], [DataCorePlugin.GameData.IsCheckered]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.StartingPosition], [DataCorePlugin.GameData.StartingPosition]), '') = '', '1k;\\n', '1k;' + format(isnull([DataCorePlugin.GameData.NewData.StartingPosition], [DataCorePlugin.GameData.StartingPosition]), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.GapAhead], [DataCorePlugin.GameData.GapAhead]), '') = '', '1l;\\n', '1l;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.GapAhead], [DataCorePlugin.GameData.GapAhead]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.GapBehind], [DataCorePlugin.GameData.GapBehind]), '') = '', '1m;\\n', '1m;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.GapBehind], [DataCorePlugin.GameData.GapBehind]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.GapToLeader], [DataCorePlugin.GameData.GapToLeader]), '') = '', '1n;\\n', '1n;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.GapToLeader], [DataCorePlugin.GameData.GapToLeader]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Fuel], [DataCorePlugin.GameData.Fuel]), '') = '', 'F;\\n', 'F;' + format(isnull([DataCorePlugin.GameData.NewData.Fuel], [DataCorePlugin.GameData.Fuel]), '0.0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(if(isnull([DataCorePlugin.GameData.NewData.FuelCapacity], 0) = 0, '', [DataCorePlugin.GameData.NewData.Fuel] / [DataCorePlugin.GameData.NewData.FuelCapacity] * 100), '') = '', '1o;\\n', '1o;' + format(if(isnull([DataCorePlugin.GameData.NewData.FuelCapacity], 0) = 0, '', [DataCorePlugin.GameData.NewData.Fuel] / [DataCorePlugin.GameData.NewData.FuelCapacity] * 100), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.FuelCapacity], [DataCorePlugin.GameData.FuelCapacity]), '') = '', '1p;\\n', '1p;' + format(isnull([DataCorePlugin.GameData.NewData.FuelCapacity], [DataCorePlugin.GameData.FuelCapacity]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_LitersPerLap], '') = '', 'FC;\\n', 'FC;' + format([DataCorePlugin.Computed.Fuel_LitersPerLap], '0.0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_CurrentConsumption], '') = '', '1q;\\n', '1q;' + format([DataCorePlugin.Computed.Fuel_CurrentConsumption], '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_RemainingLaps], '') = '', 'FL;\\n', 'FL;' + format([DataCorePlugin.Computed.Fuel_RemainingLaps], '0.0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_RemainingTime], '') = '', '1r;\\n', '1r;' + format(([DataCorePlugin.Computed.Fuel_RemainingTime]) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_RequiredToFinish], '') = '', '1s;\\n', '1s;' + format([DataCorePlugin.Computed.Fuel_RequiredToFinish], '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_ToAdd], '') = '', '1t;\\n', '1t;' + format([DataCorePlugin.Computed.Fuel_ToAdd], '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.Computed.Fuel_LastLapConsumption], '') = '', '1u;\\n', '1u;' + format([DataCorePlugin.Computed.Fuel_LastLapConsumption], '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BatteryLevel], [DataCorePlugin.GameData.BatteryLevel]), '') = '', '1v;\\n', '1v;' + format(isnull([DataCorePlugin.GameData.NewData.BatteryLevel], [DataCorePlugin.GameData.BatteryLevel]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BatteryPercent], [DataCorePlugin.GameData.BatteryPercent]), '') = '', '1w;\\n', '1w;' + format(isnull([DataCorePlugin.GameData.NewData.BatteryPercent], [DataCorePlugin.GameData.BatteryPercent]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EnergyDeploymentMode], [DataCorePlugin.GameData.EnergyDeploymentMode]), '') = '', '1x;\\n', '1x;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.EnergyDeploymentMode], [DataCorePlugin.GameData.EnergyDeploymentMode]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.EnergyRecoveryMode], [DataCorePlugin.GameData.EnergyRecoveryMode]), '') = '', '1y;\\n', '1y;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.EnergyRecoveryMode], [DataCorePlugin.GameData.EnergyRecoveryMode]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BatteryLapsRemaining], [DataCorePlugin.GameData.BatteryLapsRemaining]), '') = '', '1z;\\n', '1z;' + format(isnull([DataCorePlugin.GameData.NewData.BatteryLapsRemaining], [DataCorePlugin.GameData.BatteryLapsRemaining]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.GameData.TCLevel], '') = '', 'T;\\n', 'T;' + format([DataCorePlugin.GameData.TCLevel], '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TCActive], [DataCorePlugin.GameData.TCActive]), '') = '', '20;\\n', '20;' + if(isnull([DataCorePlugin.GameData.NewData.TCActive], [DataCorePlugin.GameData.TCActive]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull([DataCorePlugin.GameData.ABSLevel], '') = '', 'A;\\n', 'A;' + format([DataCorePlugin.GameData.ABSLevel], '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActive], [DataCorePlugin.GameData.ABSActive]), '') = '', '21;\\n', '21;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActive], [DataCorePlugin.GameData.ABSActive]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.StabilityControlLevel], [DataCorePlugin.GameData.StabilityControlLevel]), '') = '', '22;\\n', '22;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.StabilityControlLevel], [DataCorePlugin.GameData.StabilityControlLevel]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PitLimiterOn], [DataCorePlugin.GameData.PitLimiterOn]), '') = '', '23;\\n', '23;' + if(isnull([DataCorePlugin.GameData.NewData.PitLimiterOn], [DataCorePlugin.GameData.PitLimiterOn]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IsInPitLane], [DataCorePlugin.GameData.IsInPitLane]), '') = '', '24;\\n', '24;' + if(isnull([DataCorePlugin.GameData.NewData.IsInPitLane], [DataCorePlugin.GameData.IsInPitLane]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.IsInPitBox], [DataCorePlugin.GameData.IsInPitBox]), '') = '', '25;\\n', '25;' + if(isnull([DataCorePlugin.GameData.NewData.IsInPitBox], [DataCorePlugin.GameData.IsInPitBox]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PitRequested], [DataCorePlugin.GameData.PitRequested]), '') = '', '26;\\n', '26;' + if(isnull([DataCorePlugin.GameData.NewData.PitRequested], [DataCorePlugin.GameData.PitRequested]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.DRSAvailable], [DataCorePlugin.GameData.DRSAvailable]), '') = '', '27;\\n', '27;' + if(isnull([DataCorePlugin.GameData.NewData.DRSAvailable], [DataCorePlugin.GameData.DRSAvailable]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.DRSEnabled], [DataCorePlugin.GameData.DRSEnabled]), '') = '', '28;\\n', '28;' + if(isnull([DataCorePlugin.GameData.NewData.DRSEnabled], [DataCorePlugin.GameData.DRSEnabled]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PushToPassAvailable], [DataCorePlugin.GameData.PushToPassAvailable]), '') = '', '29;\\n', '29;' + if(isnull([DataCorePlugin.GameData.NewData.PushToPassAvailable], [DataCorePlugin.GameData.PushToPassAvailable]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PushToPassActive], [DataCorePlugin.GameData.PushToPassActive]), '') = '', '2a;\\n', '2a;' + if(isnull([DataCorePlugin.GameData.NewData.PushToPassActive], [DataCorePlugin.GameData.PushToPassActive]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Headlights], [DataCorePlugin.GameData.Headlights]), '') = '', '2b;\\n', '2b;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.Headlights], [DataCorePlugin.GameData.Headlights]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Wipers], [DataCorePlugin.GameData.Wipers]), '') = '', '2c;\\n', '2c;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.Wipers], [DataCorePlugin.GameData.Wipers]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Horn], [DataCorePlugin.GameData.Horn]), '') = '', '2d;\\n', '2d;' + if(isnull([DataCorePlugin.GameData.NewData.Horn], [DataCorePlugin.GameData.Horn]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SpeedLimiterOn], [DataCorePlugin.GameData.SpeedLimiterOn]), '') = '', '2e;\\n', '2e;' + if(isnull([DataCorePlugin.GameData.NewData.SpeedLimiterOn], [DataCorePlugin.GameData.SpeedLimiterOn]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AeroDamage], [DataCorePlugin.GameData.AeroDamage]), '') = '', '2f;\\n', '2f;' + format(isnull([DataCorePlugin.GameData.NewData.AeroDamage], [DataCorePlugin.GameData.AeroDamage]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamage], [DataCorePlugin.GameData.SuspensionDamage]), '') = '', '2g;\\n', '2g;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamage], [DataCorePlugin.GameData.SuspensionDamage]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TransmissionDamage], [DataCorePlugin.GameData.TransmissionDamage]), '') = '', '2h;\\n', '2h;' + format(isnull([DataCorePlugin.GameData.NewData.TransmissionDamage], [DataCorePlugin.GameData.TransmissionDamage]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag], [DataCorePlugin.GameData.Flag]), '') = '', '2i;\\n', '2i;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.Flag], [DataCorePlugin.GameData.Flag]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_Green], [DataCorePlugin.GameData.Flag_Green]), '') = '', '2j;\\n', '2j;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_Green], [DataCorePlugin.GameData.Flag_Green]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_Yellow], [DataCorePlugin.GameData.Flag_Yellow]), '') = '', '2k;\\n', '2k;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_Yellow], [DataCorePlugin.GameData.Flag_Yellow]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_Blue], [DataCorePlugin.GameData.Flag_Blue]), '') = '', '2l;\\n', '2l;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_Blue], [DataCorePlugin.GameData.Flag_Blue]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_White], [DataCorePlugin.GameData.Flag_White]), '') = '', '2m;\\n', '2m;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_White], [DataCorePlugin.GameData.Flag_White]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_Red], [DataCorePlugin.GameData.Flag_Red]), '') = '', '2n;\\n', '2n;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_Red], [DataCorePlugin.GameData.Flag_Red]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_Black], [DataCorePlugin.GameData.Flag_Black]), '') = '', '2o;\\n', '2o;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_Black], [DataCorePlugin.GameData.Flag_Black]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_Checkered], [DataCorePlugin.GameData.Flag_Checkered]), '') = '', '2p;\\n', '2p;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_Checkered], [DataCorePlugin.GameData.Flag_Checkered]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_BlackWhite], [DataCorePlugin.GameData.Flag_BlackWhite]), '') = '', '2q;\\n', '2q;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_BlackWhite], [DataCorePlugin.GameData.Flag_BlackWhite]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Flag_BlackOrange], [DataCorePlugin.GameData.Flag_BlackOrange]), '') = '', '2r;\\n', '2r;' + if(isnull([DataCorePlugin.GameData.NewData.Flag_BlackOrange], [DataCorePlugin.GameData.Flag_BlackOrange]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.LocalYellow], [DataCorePlugin.GameData.LocalYellow]), '') = '', '2s;\\n', '2s;' + if(isnull([DataCorePlugin.GameData.NewData.LocalYellow], [DataCorePlugin.GameData.LocalYellow]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SafetyCarActive], [DataCorePlugin.GameData.SafetyCarActive]), '') = '', '2t;\\n', '2t;' + if(isnull([DataCorePlugin.GameData.NewData.SafetyCarActive], [DataCorePlugin.GameData.SafetyCarActive]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.VirtualSafetyCarActive], [DataCorePlugin.GameData.VirtualSafetyCarActive]), '') = '', '2u;\\n', '2u;' + if(isnull([DataCorePlugin.GameData.NewData.VirtualSafetyCarActive], [DataCorePlugin.GameData.VirtualSafetyCarActive]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PenaltyActive], [DataCorePlugin.GameData.PenaltyActive]), '') = '', '2v;\\n', '2v;' + if(isnull([DataCorePlugin.GameData.NewData.PenaltyActive], [DataCorePlugin.GameData.PenaltyActive]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PenaltyType], [DataCorePlugin.GameData.PenaltyType]), '') = '', '2w;\\n', '2w;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.PenaltyType], [DataCorePlugin.GameData.PenaltyType]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PenaltyTime], [DataCorePlugin.GameData.PenaltyTime]), '') = '', '2x;\\n', '2x;' + format((isnull([DataCorePlugin.GameData.NewData.PenaltyTime], [DataCorePlugin.GameData.PenaltyTime])) * 1000, '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.PenaltyMessage], [DataCorePlugin.GameData.PenaltyMessage]), '') = '', '2y;\\n', '2y;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.PenaltyMessage], [DataCorePlugin.GameData.PenaltyMessage]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TrackName], [DataCorePlugin.GameData.TrackName]), '') = '', '2z;\\n', '2z;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.TrackName], [DataCorePlugin.GameData.TrackName]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TrackConfiguration], [DataCorePlugin.GameData.TrackConfiguration]), '') = '', '30;\\n', '30;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.TrackConfiguration], [DataCorePlugin.GameData.TrackConfiguration]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TrackLength], [DataCorePlugin.GameData.TrackLength]), '') = '', '31;\\n', '31;' + format(isnull([DataCorePlugin.GameData.NewData.TrackLength], [DataCorePlugin.GameData.TrackLength]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.RoadTemperature], [DataCorePlugin.GameData.RoadTemperature]), '') = '', '32;\\n', '32;' + format(isnull([DataCorePlugin.GameData.NewData.RoadTemperature], [DataCorePlugin.GameData.RoadTemperature]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TrackWetness], [DataCorePlugin.GameData.TrackWetness]), '') = '', '33;\\n', '33;' + format(isnull([DataCorePlugin.GameData.NewData.TrackWetness], [DataCorePlugin.GameData.TrackWetness]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AirTemperature], [DataCorePlugin.GameData.AirTemperature]), '') = '', '34;\\n', '34;' + format(isnull([DataCorePlugin.GameData.NewData.AirTemperature], [DataCorePlugin.GameData.AirTemperature]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.RainIntensity], [DataCorePlugin.GameData.RainIntensity]), '') = '', '35;\\n', '35;' + format(isnull([DataCorePlugin.GameData.NewData.RainIntensity], [DataCorePlugin.GameData.RainIntensity]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WindSpeed], [DataCorePlugin.GameData.WindSpeed]), '') = '', '36;\\n', '36;' + format(isnull([DataCorePlugin.GameData.NewData.WindSpeed], [DataCorePlugin.GameData.WindSpeed]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WindDirection], [DataCorePlugin.GameData.WindDirection]), '') = '', '37;\\n', '37;' + format(isnull([DataCorePlugin.GameData.NewData.WindDirection], [DataCorePlugin.GameData.WindDirection]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TimeOfDay], [DataCorePlugin.GameData.TimeOfDay]), '') = '', '38;\\n', '38;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.TimeOfDay], [DataCorePlugin.GameData.TimeOfDay]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CloudLevel], [DataCorePlugin.GameData.CloudLevel]), '') = '', '39;\\n', '39;' + format(isnull([DataCorePlugin.GameData.NewData.CloudLevel], [DataCorePlugin.GameData.CloudLevel]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WeatherForecast], [DataCorePlugin.GameData.WeatherForecast]), '') = '', '3a;\\n', '3a;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.WeatherForecast], [DataCorePlugin.GameData.WeatherForecast]), '\\r', ' '), '\\n', ' ') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AccelerationSurge], [DataCorePlugin.GameData.AccelerationSurge]), '') = '', '3b;\\n', '3b;' + format(isnull([DataCorePlugin.GameData.NewData.AccelerationSurge], [DataCorePlugin.GameData.AccelerationSurge]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AccelerationSway], [DataCorePlugin.GameData.AccelerationSway]), '') = '', '3c;\\n', '3c;' + format(isnull([DataCorePlugin.GameData.NewData.AccelerationSway], [DataCorePlugin.GameData.AccelerationSway]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AccelerationHeave], [DataCorePlugin.GameData.AccelerationHeave]), '') = '', '3d;\\n', '3d;' + format(isnull([DataCorePlugin.GameData.NewData.AccelerationHeave], [DataCorePlugin.GameData.AccelerationHeave]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AccelerationSurge], [DataCorePlugin.GameData.AccelerationSurge]) / 9.80665, '') = '', '3e;\\n', '3e;' + format(isnull([DataCorePlugin.GameData.NewData.AccelerationSurge], [DataCorePlugin.GameData.AccelerationSurge]) / 9.80665, '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AccelerationSway], [DataCorePlugin.GameData.AccelerationSway]) / 9.80665, '') = '', '3f;\\n', '3f;' + format(isnull([DataCorePlugin.GameData.NewData.AccelerationSway], [DataCorePlugin.GameData.AccelerationSway]) / 9.80665, '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.AccelerationHeave], [DataCorePlugin.GameData.AccelerationHeave]) / 9.80665, '') = '', '3g;\\n', '3g;' + format(isnull([DataCorePlugin.GameData.NewData.AccelerationHeave], [DataCorePlugin.GameData.AccelerationHeave]) / 9.80665, '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Pitch], [DataCorePlugin.GameData.Pitch]), '') = '', '3h;\\n', '3h;' + format(isnull([DataCorePlugin.GameData.NewData.Pitch], [DataCorePlugin.GameData.Pitch]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Roll], [DataCorePlugin.GameData.Roll]), '') = '', '3i;\\n', '3i;' + format(isnull([DataCorePlugin.GameData.NewData.Roll], [DataCorePlugin.GameData.Roll]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Yaw], [DataCorePlugin.GameData.Yaw]), '') = '', '3j;\\n', '3j;' + format(isnull([DataCorePlugin.GameData.NewData.Yaw], [DataCorePlugin.GameData.Yaw]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SlipAngle], [DataCorePlugin.GameData.SlipAngle]), '') = '', '3k;\\n', '3k;' + format(isnull([DataCorePlugin.GameData.NewData.SlipAngle], [DataCorePlugin.GameData.SlipAngle]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ForceFeedback], [DataCorePlugin.GameData.ForceFeedback]), '') = '', '3l;\\n', '3l;' + format(isnull([DataCorePlugin.GameData.NewData.ForceFeedback], [DataCorePlugin.GameData.ForceFeedback]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePressureFrontLeft], [DataCorePlugin.GameData.TyrePressureFrontLeft]), '') = '', '3m;\\n', '3m;' + format(isnull([DataCorePlugin.GameData.NewData.TyrePressureFrontLeft], [DataCorePlugin.GameData.TyrePressureFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePressureFrontRight], [DataCorePlugin.GameData.TyrePressureFrontRight]), '') = '', '3n;\\n', '3n;' + format(isnull([DataCorePlugin.GameData.NewData.TyrePressureFrontRight], [DataCorePlugin.GameData.TyrePressureFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePressureRearLeft], [DataCorePlugin.GameData.TyrePressureRearLeft]), '') = '', '3o;\\n', '3o;' + format(isnull([DataCorePlugin.GameData.NewData.TyrePressureRearLeft], [DataCorePlugin.GameData.TyrePressureRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePressureRearRight], [DataCorePlugin.GameData.TyrePressureRearRight]), '') = '', '3p;\\n', '3p;' + format(isnull([DataCorePlugin.GameData.NewData.TyrePressureRearRight], [DataCorePlugin.GameData.TyrePressureRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureFrontLeft], [DataCorePlugin.GameData.TyreTemperatureFrontLeft]), '') = '', '3q;\\n', '3q;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureFrontLeft], [DataCorePlugin.GameData.TyreTemperatureFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureFrontRight], [DataCorePlugin.GameData.TyreTemperatureFrontRight]), '') = '', '3r;\\n', '3r;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureFrontRight], [DataCorePlugin.GameData.TyreTemperatureFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureRearLeft], [DataCorePlugin.GameData.TyreTemperatureRearLeft]), '') = '', '3s;\\n', '3s;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureRearLeft], [DataCorePlugin.GameData.TyreTemperatureRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureRearRight], [DataCorePlugin.GameData.TyreTemperatureRearRight]), '') = '', '3t;\\n', '3t;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureRearRight], [DataCorePlugin.GameData.TyreTemperatureRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureInnerFrontLeft], [DataCorePlugin.GameData.TyreTemperatureInnerFrontLeft]), '') = '', '3u;\\n', '3u;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureInnerFrontLeft], [DataCorePlugin.GameData.TyreTemperatureInnerFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureInnerFrontRight], [DataCorePlugin.GameData.TyreTemperatureInnerFrontRight]), '') = '', '3v;\\n', '3v;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureInnerFrontRight], [DataCorePlugin.GameData.TyreTemperatureInnerFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureInnerRearLeft], [DataCorePlugin.GameData.TyreTemperatureInnerRearLeft]), '') = '', '3w;\\n', '3w;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureInnerRearLeft], [DataCorePlugin.GameData.TyreTemperatureInnerRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureInnerRearRight], [DataCorePlugin.GameData.TyreTemperatureInnerRearRight]), '') = '', '3x;\\n', '3x;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureInnerRearRight], [DataCorePlugin.GameData.TyreTemperatureInnerRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureMiddleFrontLeft], [DataCorePlugin.GameData.TyreTemperatureMiddleFrontLeft]), '') = '', '3y;\\n', '3y;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureMiddleFrontLeft], [DataCorePlugin.GameData.TyreTemperatureMiddleFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureMiddleFrontRight], [DataCorePlugin.GameData.TyreTemperatureMiddleFrontRight]), '') = '', '3z;\\n', '3z;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureMiddleFrontRight], [DataCorePlugin.GameData.TyreTemperatureMiddleFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureMiddleRearLeft], [DataCorePlugin.GameData.TyreTemperatureMiddleRearLeft]), '') = '', '40;\\n', '40;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureMiddleRearLeft], [DataCorePlugin.GameData.TyreTemperatureMiddleRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureMiddleRearRight], [DataCorePlugin.GameData.TyreTemperatureMiddleRearRight]), '') = '', '41;\\n', '41;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureMiddleRearRight], [DataCorePlugin.GameData.TyreTemperatureMiddleRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureOuterFrontLeft], [DataCorePlugin.GameData.TyreTemperatureOuterFrontLeft]), '') = '', '42;\\n', '42;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureOuterFrontLeft], [DataCorePlugin.GameData.TyreTemperatureOuterFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureOuterFrontRight], [DataCorePlugin.GameData.TyreTemperatureOuterFrontRight]), '') = '', '43;\\n', '43;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureOuterFrontRight], [DataCorePlugin.GameData.TyreTemperatureOuterFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureOuterRearLeft], [DataCorePlugin.GameData.TyreTemperatureOuterRearLeft]), '') = '', '44;\\n', '44;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureOuterRearLeft], [DataCorePlugin.GameData.TyreTemperatureOuterRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureOuterRearRight], [DataCorePlugin.GameData.TyreTemperatureOuterRearRight]), '') = '', '45;\\n', '45;' + format(isnull([DataCorePlugin.GameData.NewData.TyreTemperatureOuterRearRight], [DataCorePlugin.GameData.TyreTemperatureOuterRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureFrontLeft], [DataCorePlugin.GameData.TyreCarcassTemperatureFrontLeft]), '') = '', '46;\\n', '46;' + format(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureFrontLeft], [DataCorePlugin.GameData.TyreCarcassTemperatureFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureFrontRight], [DataCorePlugin.GameData.TyreCarcassTemperatureFrontRight]), '') = '', '47;\\n', '47;' + format(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureFrontRight], [DataCorePlugin.GameData.TyreCarcassTemperatureFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureRearLeft], [DataCorePlugin.GameData.TyreCarcassTemperatureRearLeft]), '') = '', '48;\\n', '48;' + format(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureRearLeft], [DataCorePlugin.GameData.TyreCarcassTemperatureRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureRearRight], [DataCorePlugin.GameData.TyreCarcassTemperatureRearRight]), '') = '', '49;\\n', '49;' + format(isnull([DataCorePlugin.GameData.NewData.TyreCarcassTemperatureRearRight], [DataCorePlugin.GameData.TyreCarcassTemperatureRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureFrontLeft], [DataCorePlugin.GameData.TyreSurfaceTemperatureFrontLeft]), '') = '', '4a;\\n', '4a;' + format(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureFrontLeft], [DataCorePlugin.GameData.TyreSurfaceTemperatureFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureFrontRight], [DataCorePlugin.GameData.TyreSurfaceTemperatureFrontRight]), '') = '', '4b;\\n', '4b;' + format(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureFrontRight], [DataCorePlugin.GameData.TyreSurfaceTemperatureFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureRearLeft], [DataCorePlugin.GameData.TyreSurfaceTemperatureRearLeft]), '') = '', '4c;\\n', '4c;' + format(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureRearLeft], [DataCorePlugin.GameData.TyreSurfaceTemperatureRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureRearRight], [DataCorePlugin.GameData.TyreSurfaceTemperatureRearRight]), '') = '', '4d;\\n', '4d;' + format(isnull([DataCorePlugin.GameData.NewData.TyreSurfaceTemperatureRearRight], [DataCorePlugin.GameData.TyreSurfaceTemperatureRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreWearFrontLeft], [DataCorePlugin.GameData.TyreWearFrontLeft]), '') = '', '4e;\\n', '4e;' + format(isnull([DataCorePlugin.GameData.NewData.TyreWearFrontLeft], [DataCorePlugin.GameData.TyreWearFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreWearFrontRight], [DataCorePlugin.GameData.TyreWearFrontRight]), '') = '', '4f;\\n', '4f;' + format(isnull([DataCorePlugin.GameData.NewData.TyreWearFrontRight], [DataCorePlugin.GameData.TyreWearFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreWearRearLeft], [DataCorePlugin.GameData.TyreWearRearLeft]), '') = '', '4g;\\n', '4g;' + format(isnull([DataCorePlugin.GameData.NewData.TyreWearRearLeft], [DataCorePlugin.GameData.TyreWearRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreWearRearRight], [DataCorePlugin.GameData.TyreWearRearRight]), '') = '', '4h;\\n', '4h;' + format(isnull([DataCorePlugin.GameData.NewData.TyreWearRearRight], [DataCorePlugin.GameData.TyreWearRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelDetachedFrontLeft], [DataCorePlugin.GameData.WheelDetachedFrontLeft]), '') = '', '4i;\\n', '4i;' + if(isnull([DataCorePlugin.GameData.NewData.WheelDetachedFrontLeft], [DataCorePlugin.GameData.WheelDetachedFrontLeft]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelDetachedFrontRight], [DataCorePlugin.GameData.WheelDetachedFrontRight]), '') = '', '4j;\\n', '4j;' + if(isnull([DataCorePlugin.GameData.NewData.WheelDetachedFrontRight], [DataCorePlugin.GameData.WheelDetachedFrontRight]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelDetachedRearLeft], [DataCorePlugin.GameData.WheelDetachedRearLeft]), '') = '', '4k;\\n', '4k;' + if(isnull([DataCorePlugin.GameData.NewData.WheelDetachedRearLeft], [DataCorePlugin.GameData.WheelDetachedRearLeft]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelDetachedRearRight], [DataCorePlugin.GameData.WheelDetachedRearRight]), '') = '', '4l;\\n', '4l;' + if(isnull([DataCorePlugin.GameData.NewData.WheelDetachedRearRight], [DataCorePlugin.GameData.WheelDetachedRearRight]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedFrontLeft], [DataCorePlugin.GameData.TyrePuncturedFrontLeft]), '') = '', '4m;\\n', '4m;' + if(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedFrontLeft], [DataCorePlugin.GameData.TyrePuncturedFrontLeft]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedFrontRight], [DataCorePlugin.GameData.TyrePuncturedFrontRight]), '') = '', '4n;\\n', '4n;' + if(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedFrontRight], [DataCorePlugin.GameData.TyrePuncturedFrontRight]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedRearLeft], [DataCorePlugin.GameData.TyrePuncturedRearLeft]), '') = '', '4o;\\n', '4o;' + if(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedRearLeft], [DataCorePlugin.GameData.TyrePuncturedRearLeft]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedRearRight], [DataCorePlugin.GameData.TyrePuncturedRearRight]), '') = '', '4p;\\n', '4p;' + if(isnull([DataCorePlugin.GameData.NewData.TyrePuncturedRearRight], [DataCorePlugin.GameData.TyrePuncturedRearRight]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotFrontLeft], [DataCorePlugin.GameData.TyreFlatSpotFrontLeft]), '') = '', '4q;\\n', '4q;' + format(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotFrontLeft], [DataCorePlugin.GameData.TyreFlatSpotFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotFrontRight], [DataCorePlugin.GameData.TyreFlatSpotFrontRight]), '') = '', '4r;\\n', '4r;' + format(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotFrontRight], [DataCorePlugin.GameData.TyreFlatSpotFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotRearLeft], [DataCorePlugin.GameData.TyreFlatSpotRearLeft]), '') = '', '4s;\\n', '4s;' + format(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotRearLeft], [DataCorePlugin.GameData.TyreFlatSpotRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotRearRight], [DataCorePlugin.GameData.TyreFlatSpotRearRight]), '') = '', '4t;\\n', '4t;' + format(isnull([DataCorePlugin.GameData.NewData.TyreFlatSpotRearRight], [DataCorePlugin.GameData.TyreFlatSpotRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 20
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelSlipFrontLeft], [DataCorePlugin.GameData.WheelSlipFrontLeft]), '') = '', '4u;\\n', '4u;' + format(isnull([DataCorePlugin.GameData.NewData.WheelSlipFrontLeft], [DataCorePlugin.GameData.WheelSlipFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelSlipFrontRight], [DataCorePlugin.GameData.WheelSlipFrontRight]), '') = '', '4v;\\n', '4v;' + format(isnull([DataCorePlugin.GameData.NewData.WheelSlipFrontRight], [DataCorePlugin.GameData.WheelSlipFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelSlipRearLeft], [DataCorePlugin.GameData.WheelSlipRearLeft]), '') = '', '4w;\\n', '4w;' + format(isnull([DataCorePlugin.GameData.NewData.WheelSlipRearLeft], [DataCorePlugin.GameData.WheelSlipRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelSlipRearRight], [DataCorePlugin.GameData.WheelSlipRearRight]), '') = '', '4x;\\n', '4x;' + format(isnull([DataCorePlugin.GameData.NewData.WheelSlipRearRight], [DataCorePlugin.GameData.WheelSlipRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreLoadFrontLeft], [DataCorePlugin.GameData.TyreLoadFrontLeft]), '') = '', '4y;\\n', '4y;' + format(isnull([DataCorePlugin.GameData.NewData.TyreLoadFrontLeft], [DataCorePlugin.GameData.TyreLoadFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreLoadFrontRight], [DataCorePlugin.GameData.TyreLoadFrontRight]), '') = '', '4z;\\n', '4z;' + format(isnull([DataCorePlugin.GameData.NewData.TyreLoadFrontRight], [DataCorePlugin.GameData.TyreLoadFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreLoadRearLeft], [DataCorePlugin.GameData.TyreLoadRearLeft]), '') = '', '50;\\n', '50;' + format(isnull([DataCorePlugin.GameData.NewData.TyreLoadRearLeft], [DataCorePlugin.GameData.TyreLoadRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.TyreLoadRearRight], [DataCorePlugin.GameData.TyreLoadRearRight]), '') = '', '51;\\n', '51;' + format(isnull([DataCorePlugin.GameData.NewData.TyreLoadRearRight], [DataCorePlugin.GameData.TyreLoadRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedFrontLeft], [DataCorePlugin.GameData.WheelRotationSpeedFrontLeft]), '') = '', '52;\\n', '52;' + format(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedFrontLeft], [DataCorePlugin.GameData.WheelRotationSpeedFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedFrontRight], [DataCorePlugin.GameData.WheelRotationSpeedFrontRight]), '') = '', '53;\\n', '53;' + format(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedFrontRight], [DataCorePlugin.GameData.WheelRotationSpeedFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedRearLeft], [DataCorePlugin.GameData.WheelRotationSpeedRearLeft]), '') = '', '54;\\n', '54;' + format(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedRearLeft], [DataCorePlugin.GameData.WheelRotationSpeedRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedRearRight], [DataCorePlugin.GameData.WheelRotationSpeedRearRight]), '') = '', '55;\\n', '55;' + format(isnull([DataCorePlugin.GameData.NewData.WheelRotationSpeedRearRight], [DataCorePlugin.GameData.WheelRotationSpeedRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeTemperatureFrontLeft], [DataCorePlugin.GameData.BrakeTemperatureFrontLeft]), '') = '', '56;\\n', '56;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeTemperatureFrontLeft], [DataCorePlugin.GameData.BrakeTemperatureFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeTemperatureFrontRight], [DataCorePlugin.GameData.BrakeTemperatureFrontRight]), '') = '', '57;\\n', '57;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeTemperatureFrontRight], [DataCorePlugin.GameData.BrakeTemperatureFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeTemperatureRearLeft], [DataCorePlugin.GameData.BrakeTemperatureRearLeft]), '') = '', '58;\\n', '58;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeTemperatureRearLeft], [DataCorePlugin.GameData.BrakeTemperatureRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeTemperatureRearRight], [DataCorePlugin.GameData.BrakeTemperatureRearRight]), '') = '', '59;\\n', '59;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeTemperatureRearRight], [DataCorePlugin.GameData.BrakeTemperatureRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakePressureFrontLeft], [DataCorePlugin.GameData.BrakePressureFrontLeft]), '') = '', '5a;\\n', '5a;' + format(isnull([DataCorePlugin.GameData.NewData.BrakePressureFrontLeft], [DataCorePlugin.GameData.BrakePressureFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakePressureFrontRight], [DataCorePlugin.GameData.BrakePressureFrontRight]), '') = '', '5b;\\n', '5b;' + format(isnull([DataCorePlugin.GameData.NewData.BrakePressureFrontRight], [DataCorePlugin.GameData.BrakePressureFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakePressureRearLeft], [DataCorePlugin.GameData.BrakePressureRearLeft]), '') = '', '5c;\\n', '5c;' + format(isnull([DataCorePlugin.GameData.NewData.BrakePressureRearLeft], [DataCorePlugin.GameData.BrakePressureRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakePressureRearRight], [DataCorePlugin.GameData.BrakePressureRearRight]), '') = '', '5d;\\n', '5d;' + format(isnull([DataCorePlugin.GameData.NewData.BrakePressureRearRight], [DataCorePlugin.GameData.BrakePressureRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeWearFrontLeft], [DataCorePlugin.GameData.BrakeWearFrontLeft]), '') = '', '5e;\\n', '5e;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeWearFrontLeft], [DataCorePlugin.GameData.BrakeWearFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeWearFrontRight], [DataCorePlugin.GameData.BrakeWearFrontRight]), '') = '', '5f;\\n', '5f;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeWearFrontRight], [DataCorePlugin.GameData.BrakeWearFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeWearRearLeft], [DataCorePlugin.GameData.BrakeWearRearLeft]), '') = '', '5g;\\n', '5g;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeWearRearLeft], [DataCorePlugin.GameData.BrakeWearRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.BrakeWearRearRight], [DataCorePlugin.GameData.BrakeWearRearRight]), '') = '', '5h;\\n', '5h;' + format(isnull([DataCorePlugin.GameData.NewData.BrakeWearRearRight], [DataCorePlugin.GameData.BrakeWearRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActiveFrontLeft], [DataCorePlugin.GameData.ABSActiveFrontLeft]), '') = '', '5i;\\n', '5i;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActiveFrontLeft], [DataCorePlugin.GameData.ABSActiveFrontLeft]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActiveFrontRight], [DataCorePlugin.GameData.ABSActiveFrontRight]), '') = '', '5j;\\n', '5j;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActiveFrontRight], [DataCorePlugin.GameData.ABSActiveFrontRight]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActiveRearLeft], [DataCorePlugin.GameData.ABSActiveRearLeft]), '') = '', '5k;\\n', '5k;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActiveRearLeft], [DataCorePlugin.GameData.ABSActiveRearLeft]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.ABSActiveRearRight], [DataCorePlugin.GameData.ABSActiveRearRight]), '') = '', '5l;\\n', '5l;' + if(isnull([DataCorePlugin.GameData.NewData.ABSActiveRearRight], [DataCorePlugin.GameData.ABSActiveRearRight]), '1', '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelFrontLeft], [DataCorePlugin.GameData.SuspensionTravelFrontLeft]), '') = '', '5m;\\n', '5m;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelFrontLeft], [DataCorePlugin.GameData.SuspensionTravelFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelFrontRight], [DataCorePlugin.GameData.SuspensionTravelFrontRight]), '') = '', '5n;\\n', '5n;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelFrontRight], [DataCorePlugin.GameData.SuspensionTravelFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelRearLeft], [DataCorePlugin.GameData.SuspensionTravelRearLeft]), '') = '', '5o;\\n', '5o;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelRearLeft], [DataCorePlugin.GameData.SuspensionTravelRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelRearRight], [DataCorePlugin.GameData.SuspensionTravelRearRight]), '') = '', '5p;\\n', '5p;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionTravelRearRight], [DataCorePlugin.GameData.SuspensionTravelRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityFrontLeft], [DataCorePlugin.GameData.SuspensionVelocityFrontLeft]), '') = '', '5q;\\n', '5q;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityFrontLeft], [DataCorePlugin.GameData.SuspensionVelocityFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityFrontRight], [DataCorePlugin.GameData.SuspensionVelocityFrontRight]), '') = '', '5r;\\n', '5r;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityFrontRight], [DataCorePlugin.GameData.SuspensionVelocityFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityRearLeft], [DataCorePlugin.GameData.SuspensionVelocityRearLeft]), '') = '', '5s;\\n', '5s;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityRearLeft], [DataCorePlugin.GameData.SuspensionVelocityRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityRearRight], [DataCorePlugin.GameData.SuspensionVelocityRearRight]), '') = '', '5t;\\n', '5t;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionVelocityRearRight], [DataCorePlugin.GameData.SuspensionVelocityRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 60
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageFrontLeft], [DataCorePlugin.GameData.SuspensionDamageFrontLeft]), '') = '', '5u;\\n', '5u;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageFrontLeft], [DataCorePlugin.GameData.SuspensionDamageFrontLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageFrontRight], [DataCorePlugin.GameData.SuspensionDamageFrontRight]), '') = '', '5v;\\n', '5v;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageFrontRight], [DataCorePlugin.GameData.SuspensionDamageFrontRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageRearLeft], [DataCorePlugin.GameData.SuspensionDamageRearLeft]), '') = '', '5w;\\n', '5w;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageRearLeft], [DataCorePlugin.GameData.SuspensionDamageRearLeft]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    },
+    {
+      "Message": {
+        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageRearRight], [DataCorePlugin.GameData.SuspensionDamageRearRight]), '') = '', '5x;\\n', '5x;' + format(isnull([DataCorePlugin.GameData.NewData.SuspensionDamageRearRight], [DataCorePlugin.GameData.SuspensionDamageRearRight]), '0.###') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 5
+    }
+  ]
+}

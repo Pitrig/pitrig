@@ -401,11 +401,16 @@ def generate_simhub_expression(
             scaled = f"({source}) * {mapping['scale']}"
         converted = f"format({scaled}, '{mapping['format']}')"
 
+    # NCalc compares a number with '' by converting '' to a number, which throws
+    # and silently disables the message once the game supplies a value. Prefixing
+    # the source with '' turns the null test into a string comparison for every
+    # property type (numbers, booleans, timespans, text).
+    unavailable = f"'' + isnull({source}, '') = ''"
     if fallback is not None:
-        converted = f"if(isnull({source}, '') = '', '{fallback}', {converted})"
+        converted = f"if({unavailable}, '{fallback}', {converted})"
         return f"'{identifier};' + {converted} + '\\n'"
     return (
-        f"if(isnull({source}, '') = '', '{identifier};\\n', "
+        f"if({unavailable}, '{identifier};\\n', "
         f"'{identifier};' + {converted} + '\\n')"
     )
 

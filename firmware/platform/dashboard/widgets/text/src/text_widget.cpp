@@ -16,8 +16,10 @@
 namespace simcore::dashboard::text_widget {
 namespace {
 
-// Widgets follow the display refresh cadence instead of a slower dedicated
-// period: a telemetry-backed widget whose source slot did not advance skips the
+// Telemetry changes wake the render timer early through the dashboard's render
+// trigger, so this period is the fallback poll and the cadence of free-running
+// module sources. It follows the display refresh cadence: a telemetry-backed
+// widget whose source slot did not advance skips the
 // read-transform-format-compare work entirely, so an idle dashboard costs one
 // revision comparison per widget per period.
 constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
@@ -316,6 +318,14 @@ void Collection::update(lv_timer_t* const timer) {
       static_cast<Collection*>(lv_timer_get_user_data(timer));
   if (collection != nullptr) {
     collection->render();
+  }
+}
+
+void Collection::wake() {
+  // timer_ is created, deleted, and read only under the LVGL lock, which the
+  // caller holds, so this cannot observe a timer mid-teardown.
+  if (timer_ != nullptr) {
+    lv_timer_ready(timer_);
   }
 }
 

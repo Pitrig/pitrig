@@ -57,6 +57,11 @@ class Collection final {
   }
   void destroy();
 
+  // Marks the shared render timer ready so the next LVGL pass re-reads every
+  // source instead of waiting for the period to elapse. Caller holds the LVGL
+  // lock. A no-op while no widgets exist.
+  void wake();
+
   // Rebuilds one widget in place, leaving its siblings and the shared render
   // timer untouched. Used when a configuration replacement changed only this
   // widget. Returns false if the widget cannot be built, in which case its slot

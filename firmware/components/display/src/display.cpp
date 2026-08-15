@@ -20,11 +20,14 @@ constexpr int kLvglTaskCore = 1;
 constexpr std::uint32_t kInitialFrameTimeoutMs = 1'000;
 #if SIMCORE_DEBUG
 constexpr std::uint32_t kTaskMaxSleepMs = 8;
-constexpr std::uint32_t kTimerPeriodMs = 2;
 #else
 constexpr std::uint32_t kTaskMaxSleepMs = 16;
-constexpr std::uint32_t kTimerPeriodMs = 8;
 #endif
+// LVGL timers become due in tick units, so the tick period bounds how late a
+// widget timer runs after its period elapsed and how soon a wake-triggered
+// refresh may follow the previous one. 2 ms keeps that error small; the
+// esp_timer callback that advances the tick costs microseconds.
+constexpr std::uint32_t kTimerPeriodMs = 2;
 
 StaticSemaphore_t refresh_signal_storage;
 SemaphoreHandle_t refresh_signal;

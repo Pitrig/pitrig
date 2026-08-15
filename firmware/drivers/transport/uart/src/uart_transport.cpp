@@ -1,6 +1,5 @@
 #include "uart_transport.hpp"
 
-#include <algorithm>
 #include <cstdarg>
 #include <span>
 
@@ -70,12 +69,21 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
       .source_clk = UART_SCLK_DEFAULT,
       .flags = {},
   };
+  // With CONFIG_UART_ISR_IN_IRAM the receive interrupt keeps draining the FIFO
+  // while flash is being written (configuration save), so a telemetry burst
+  // during that window is buffered instead of overflowing the 128-byte FIFO.
+#if CONFIG_UART_ISR_IN_IRAM
+  constexpr int kInterruptFlags = ESP_INTR_FLAG_IRAM;
+#else
+  constexpr int kInterruptFlags = 0;
+#endif
   if (uart_param_config(configuration_.port, &uart_configuration) != ESP_OK ||
       uart_set_pin(configuration_.port, configuration_.tx_pin,
                    configuration_.rx_pin, UART_PIN_NO_CHANGE,
                    UART_PIN_NO_CHANGE) != ESP_OK ||
       uart_driver_install(configuration_.port, kDriverRxBufferSize, 0,
-                          kEventQueueDepth, &event_queue_, 0) != ESP_OK ||
+                          kEventQueueDepth, &event_queue_,
+                          kInterruptFlags) != ESP_OK ||
       uart_set_rx_full_threshold(configuration_.port,
                                  kRxFullThresholdBytes) != ESP_OK ||
       uart_set_rx_timeout(configuration_.port, kRxTimeoutSymbols) != ESP_OK) {
@@ -184,11 +192,14 @@ void UartTransport::process() {
       continue;
     }
 
-    std::size_t remaining = event.size;
-    while (remaining > 0) {
-      const std::size_t requested = std::min(remaining, data.size());
+    // Drain everything the driver has buffered rather than only `event.size`
+    // bytes. When the event queue is full the ESP-IDF driver drops the event
+    // but keeps the bytes in its ring buffer, so a size-bound read would leave
+    // them behind until a later event and every following line would be
+    // delivered late. A zero timeout returns whatever is available.
+    while (true) {
       const int received =
-          uart_read_bytes(configuration_.port, data.data(), requested, 0);
+          uart_read_bytes(configuration_.port, data.data(), data.size(), 0);
       if (received <= 0) {
         break;
       }
@@ -220,7 +231,6 @@ void UartTransport::process() {
                                        handler_started_at_us));
 #endif
       }
-      remaining -= static_cast<std::size_t>(received);
     }
   }
 }

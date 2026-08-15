@@ -47,7 +47,7 @@
     "session.lap.delta_best": { "property": "PersistantTrackerPlugin.SessionBestLiveDeltaSeconds", "scale": 1000, "format": "0" },
     "session.lap.delta_session_best": { "property": "PersistantTrackerPlugin.SessionBestLiveDeltaSeconds", "scale": 1000, "format": "0" },
     "session.lap.invalid": { "property": "DataCorePlugin.GameData.NewData.CurrentLapInvalid", "conversion": "boolean" },
-    "session.lap.valid": { "expression": "if(isnull([DataCorePlugin.GameData.NewData.CurrentLapInvalid], '') = '', '', if([DataCorePlugin.GameData.NewData.CurrentLapInvalid], false, true))", "conversion": "boolean" },
+    "session.lap.valid": { "expression": "if('' + isnull([DataCorePlugin.GameData.NewData.CurrentLapInvalid], '') = '', '', if([DataCorePlugin.GameData.NewData.CurrentLapInvalid], false, true))", "conversion": "boolean" },
     "session.sector.current": { "property": "DataCorePlugin.GameData.NewData.CurrentSectorIndex", "format": "0" },
     "session.sector.current_time": { "property": "DataCorePlugin.GameData.NewData.CurrentSectorTime", "conversion": "timespan_ms" },
     "session.sector.1_time": { "property": "DataCorePlugin.GameData.NewData.CurrentLapSector1Time", "conversion": "timespan_ms" },
