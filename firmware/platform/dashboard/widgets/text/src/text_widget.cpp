@@ -16,8 +16,11 @@
 namespace simcore::dashboard::text_widget {
 namespace {
 
-constexpr std::uint32_t kTelemetryRenderPeriodMs = 50;
-constexpr std::uint32_t kModuleRenderPeriodMs = 16;
+// Widgets follow the display refresh cadence instead of a slower dedicated
+// period: a telemetry-backed widget whose source slot did not advance skips the
+// read-transform-format-compare work entirely, so an idle dashboard costs one
+// revision comparison per widget per period.
+constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
 
 [[nodiscard]] std::int32_t text_width(const lv_font_t* const font,
                                       const char* const text) {
@@ -150,7 +153,6 @@ bool Collection::create(
   }
 
   created_ = true;
-  bool fast_updates_present{};
   for (const BoundConfig& binding : configurations) {
     if (binding.configuration == nullptr || binding.read == nullptr ||
         binding.read_context == nullptr) {
@@ -206,7 +208,7 @@ bool Collection::create(
     state.read = binding.read;
     state.read_context = binding.read_context;
     state.transform = config.transform;
-    fast_updates_present = fast_updates_present || binding.fast_updates;
+    state.free_running = binding.fast_updates;
     copy_text(state.unavailable_text, config.value.unavailable_text);
     state.container = lv_obj_create(parent);
     lv_obj_remove_style_all(state.container);
@@ -291,11 +293,7 @@ bool Collection::create(
 
   render();
   if (count_ > 0) {
-    timer_ = lv_timer_create(
-        update,
-        fast_updates_present ? kModuleRenderPeriodMs
-                             : kTelemetryRenderPeriodMs,
-        this);
+    timer_ = lv_timer_create(update, kRenderPeriodMs, this);
     if (timer_ == nullptr) {
       clear_objects();
       created_ = false;
@@ -322,20 +320,32 @@ void Collection::render() {
   }
   for (std::size_t index = 0; index < count_; ++index) {
     State& state = states_[index];
-    std::array<char, telemetry::kTelemetryTextCapacity> next{};
     const telemetry::TelemetryRead value = state.read(state.read_context);
+    // A telemetry slot advances its revision only when the stored value really
+    // changed, so an unchanged slot needs no transform, formatting, or compare.
+    // Free-running module sources report no revision and always re-render.
+    const bool first_render = !state.initialized;
+    if (!first_render && !state.free_running &&
+        value.revision == state.rendered_revision &&
+        value.available == state.rendered_available) {
+      continue;
+    }
+    state.rendered_revision = value.revision;
+    state.rendered_available = value.available;
+    state.initialized = true;
+
+    std::array<char, telemetry::kTelemetryTextCapacity> next{};
     if (!transform_value(state.transform, value, next)) {
       next = state.unavailable_text;
     }
-
-    if (state.initialized && state.displayed_text == next) {
+    // A changed source can still transform to the same text, so keep the
+    // comparison before touching LVGL.
+    if (!first_render && state.displayed_text == next) {
       continue;
     }
     state.displayed_text = next;
-    lv_label_set_text_static(state.value_label,
-                             state.displayed_text.data());
-    lv_obj_invalidate(state.value_label);
-    state.initialized = true;
+    // lv_label_set_text_static() marks the label for refresh and invalidates it.
+    lv_label_set_text_static(state.value_label, state.displayed_text.data());
   }
 }
 

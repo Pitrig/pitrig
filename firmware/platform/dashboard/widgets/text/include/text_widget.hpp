@@ -66,6 +66,12 @@ class Collection final {
     lv_obj_t* value_label{};
     std::array<char, telemetry::kTelemetryTextCapacity> unavailable_text{};
     std::array<char, telemetry::kTelemetryTextCapacity> displayed_text{};
+    // Telemetry revision and availability last turned into displayed text.
+    std::uint64_t rendered_revision{};
+    bool rendered_available{};
+    // Set for module modifiers, whose value derives from a free-running clock
+    // and therefore carries no telemetry revision to compare against.
+    bool free_running{};
     bool initialized{};
   };
 
