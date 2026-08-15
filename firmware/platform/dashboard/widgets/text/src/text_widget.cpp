@@ -32,16 +32,20 @@ constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
   return size.x;
 }
 
-[[nodiscard]] lv_text_align_t lv_alignment(const Alignment alignment) {
+// The value label is sized to its text, so the configured alignment positions
+// the label inside the container instead of the text inside a fixed box. LVGL
+// aligns against the parent's content area, so the result matches a full-width
+// label with the same text alignment.
+[[nodiscard]] lv_align_t lv_alignment(const Alignment alignment) {
   switch (alignment) {
     case Alignment::left:
-      return LV_TEXT_ALIGN_LEFT;
+      return LV_ALIGN_LEFT_MID;
     case Alignment::center:
-      return LV_TEXT_ALIGN_CENTER;
+      return LV_ALIGN_CENTER;
     case Alignment::right:
-      return LV_TEXT_ALIGN_RIGHT;
+      return LV_ALIGN_RIGHT_MID;
   }
-  return LV_TEXT_ALIGN_CENTER;
+  return LV_ALIGN_CENTER;
 }
 
 [[nodiscard]] lv_color_t background_behind(const lv_obj_t* object) {
@@ -262,14 +266,15 @@ bool Collection::build(State& state, const Layout& layout,
 
   state.value_label = lv_label_create(state.container);
   lv_obj_remove_style_all(state.value_label);
-  lv_obj_set_size(state.value_label,
-                  bounds.width - horizontal_insets, value_height);
-  lv_obj_set_style_text_align(
-      state.value_label, lv_alignment(config.value.alignment), LV_PART_MAIN);
+  // Width follows the text: changing a value invalidates the glyphs it covers
+  // plus what it uncovers, not the full inner width of the widget. A 192 px
+  // digit costs its own box instead of the whole GEAR widget. The height stays
+  // the line height so the baseline cannot shift between values.
+  lv_obj_set_size(state.value_label, LV_SIZE_CONTENT, value_height);
   lv_obj_set_style_text_font(state.value_label, value_font, LV_PART_MAIN);
   lv_obj_set_style_text_color(
       state.value_label, lv_color_hex(config.value.color), LV_PART_MAIN);
-  lv_obj_align(state.value_label, LV_ALIGN_CENTER, 0,
+  lv_obj_align(state.value_label, lv_alignment(config.value.alignment), 0,
                has_title ? title_height / 4 : 0);
   return true;
 }

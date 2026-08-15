@@ -444,6 +444,15 @@ for free-running module sources; the trigger adds no polling and makes no LVGL
 call outside the LVGL lock, and the task that committed the telemetry never
 waits on the UI.
 
+While a refresh is already drawing, the handler skips the trigger. A driver
+that waits for the display before reusing a frame buffer keeps the LVGL lock
+for most of a display period, and both the refresh timer and the widget timers
+are overdue when it returns, so the pass that follows reads the update without
+being woken. Waking anyway would only place the trigger task in the lock queue
+ahead of the next frame. The display component owns that state because it owns
+the LVGL lifecycle; rendering pace stays a property of the display, not of the
+telemetry rate.
+
 Long-running work must execute in dedicated tasks.
 
 Blocking operations should be avoided.

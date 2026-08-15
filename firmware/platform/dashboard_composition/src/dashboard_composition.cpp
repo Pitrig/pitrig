@@ -8,6 +8,7 @@
 #include "application_configuration.hpp"
 #include "boot_splash.hpp"
 #include "dashboard_layout.hpp"
+#include "display.hpp"
 #include "font_asset_service.hpp"
 #include "logger.hpp"
 #include "module_composition.hpp"
@@ -165,6 +166,13 @@ void wake_widgets(void* const context) {
 
 // Runs on the task that committed the telemetry update; must stay cheap.
 void on_telemetry_updated(const events::Event&, void* const context) {
+  // A refresh that is already drawing holds the LVGL lock until the display
+  // accepts the frame, and its widget timers are overdue by then, so the pass
+  // that follows reads this update without any wake. Asking anyway would only
+  // put the trigger task in the lock queue ahead of the next refresh.
+  if (display::rendering_in_progress()) {
+    return;
+  }
   static_cast<Dashboard*>(context)->render_trigger.request();
 }
 

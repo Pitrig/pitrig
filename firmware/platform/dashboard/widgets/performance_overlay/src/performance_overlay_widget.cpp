@@ -35,12 +35,14 @@ void View::render() {
   previous_received_bytes_ = transport_stats.received_bytes;
   previous_read_events_ = transport_stats.read_events;
 
-  char text[420];
+  char text[512];
   std::snprintf(text, sizeof(text),
                 "FPS %.0f\n"
                 "CPU %.0f%% / %.0f%%\n"
                 "Render %.1fms\n"
                 "Flush %.1fms\n"
+                "Sync %.1fms Max %.1fms\n"
+                "Work %.1fms Idle %.1fms\n"
                 "Heap %luK / %luK\n"
                 "PSRAM %luK\n"
                 "Uptime %llus\n"
@@ -53,6 +55,10 @@ void View::render() {
                 static_cast<double>(stats.cpu_core1),
                 static_cast<double>(stats.render_time_us) / 1'000.0,
                 static_cast<double>(stats.flush_time_us) / 1'000.0,
+                static_cast<double>(stats.sync_time_us) / 1'000.0,
+                static_cast<double>(stats.longest_frame_us) / 1'000.0,
+                static_cast<double>(stats.longest_work_us) / 1'000.0,
+                static_cast<double>(stats.longest_gap_us) / 1'000.0,
                 static_cast<unsigned long>(stats.free_heap / 1'024),
                 static_cast<unsigned long>(stats.largest_heap_block / 1'024),
                 static_cast<unsigned long>(stats.free_psram / 1'024),
@@ -90,7 +96,9 @@ bool View::create(lv_display_t* const display,
   label_ = lv_label_create(lv_display_get_layer_top(display));
   lv_obj_remove_style_all(label_);
   lv_obj_set_style_bg_color(label_, lv_color_hex(kBackgroundColor), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(label_, LV_OPA_70, LV_PART_MAIN);
+  // Opaque so the widgets it covers are skipped instead of blended into it
+  // once a second, which would otherwise show up as a slow frame.
+  lv_obj_set_style_bg_opa(label_, LV_OPA_COVER, LV_PART_MAIN);
   lv_obj_set_style_pad_all(label_, kPadding, LV_PART_MAIN);
   lv_obj_set_style_text_color(label_, lv_color_hex(kTextColor), LV_PART_MAIN);
   lv_obj_set_style_text_font(label_, LV_FONT_DEFAULT, LV_PART_MAIN);

@@ -31,13 +31,31 @@ path, and FreeRTOS runtime statistics remain disabled.
 ## Measurements
 
 - **FPS:** number of LVGL refreshes that performed rendering, divided by the
-  actual sampling interval. Idle refresh callbacks are not counted.
+  actual sampling interval. Idle refresh callbacks are not counted, so a
+  dashboard whose values change more slowly than the display refreshes reports
+  fewer frames without being late. A board that waits for the panel before
+  reusing a frame buffer also cannot exceed the panel refresh rate; the Guition
+  JC1060P470C scans at 60.0 Hz.
 - **CPU0 / CPU1:** `100%` minus the idle task runtime percentage for each core,
   calculated from consecutive FreeRTOS runtime-counter samples.
-- **Render time:** average duration between LVGL render-start and render-ready
-  events during the sampling interval.
-- **Flush time:** average duration from LVGL flush-start until LVGL finishes
-  waiting for the asynchronous display transfer.
+- **Render time:** average drawing time per rendered frame, measured between
+  the LVGL render-start and render-ready events with the time spent inside
+  the flush callback or waiting for a flush subtracted. LVGL flushes from
+  inside its render pass, so without that subtraction a blocking flush would
+  be reported as drawing.
+- **Flush time:** average time per rendered frame spent inside the flush
+  callback plus waiting for a previous flush to complete. On boards that
+  render directly into the panel frame buffers this is the frame-buffer
+  cache write-back plus the wait for the panel to finish scanning out the
+  previous frame.
+- **Sync time:** average time per rendered frame between refresh start and
+  render start: layout and, in direct mode with two frame buffers, the copy
+  of the previous frame's changed areas into the buffer about to be drawn.
+- **Longest frame:** the slowest single frame in the interval, measured from
+  refresh start to refresh ready. It settles near one display period while
+  every frame reaches the display in time; a multiple of that period means
+  frames missed their scan-out and the reported FPS is a fraction of the
+  panel refresh rate.
 - **Heap:** current free internal 8-bit heap and its largest free block.
 - **PSRAM:** current free SPIRAM heap, or zero when SPIRAM is unavailable.
 

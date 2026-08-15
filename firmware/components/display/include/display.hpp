@@ -16,4 +16,10 @@ namespace simcore::display {
 [[nodiscard]] bool refresh_and_wait(lv_display_t* display,
                                     std::uint32_t timeout_ms);
 
+// Reports whether the LVGL task is inside a refresh that is drawing. Readable
+// from any task. A driver that waits for the panel before reusing a frame
+// buffer holds the LVGL lock for most of a panel period, so callers that would
+// only ask for another refresh can skip the request while this is true.
+[[nodiscard]] bool rendering_in_progress();
+
 }  // namespace simcore::display

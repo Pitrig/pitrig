@@ -1,5 +1,6 @@
 #include "display.hpp"
 
+#include <atomic>
 #include <cstdint>
 
 #include "esp_err.h"
@@ -31,6 +32,15 @@ constexpr std::uint32_t kTimerPeriodMs = 2;
 
 StaticSemaphore_t refresh_signal_storage;
 SemaphoreHandle_t refresh_signal;
+std::atomic<bool> rendering{false};
+
+void on_rendering_started(lv_event_t*) {
+  rendering.store(true, std::memory_order_release);
+}
+
+void on_rendering_finished(lv_event_t*) {
+  rendering.store(false, std::memory_order_release);
+}
 
 lv_color_format_t to_lvgl_color_format(
     const driver::ColorFormat color_format) {
@@ -92,17 +102,36 @@ void on_flush_finished(lv_event_t*) {
   performance::flush_finished();
 }
 
+void on_flush_wait_started(lv_event_t*) {
+  performance::flush_wait_started();
+}
+
+void on_flush_wait_finished(lv_event_t*) {
+  performance::flush_wait_finished();
+}
+
+// LVGL runs the flush callback and any wait for a previous flush from inside
+// its render pass, so both intervals are reported separately and the service
+// subtracts them from the render time.
 void register_performance_events(lv_display_t* display) {
   lv_display_add_event_cb(display, on_refresh_started, LV_EVENT_REFR_START, nullptr);
   lv_display_add_event_cb(display, on_render_started, LV_EVENT_RENDER_START, nullptr);
   lv_display_add_event_cb(display, on_render_finished, LV_EVENT_RENDER_READY, nullptr);
   lv_display_add_event_cb(display, on_refresh_finished, LV_EVENT_REFR_READY, nullptr);
   lv_display_add_event_cb(display, on_flush_started, LV_EVENT_FLUSH_START, nullptr);
-  lv_display_add_event_cb(display, on_flush_finished, LV_EVENT_FLUSH_WAIT_FINISH, nullptr);
+  lv_display_add_event_cb(display, on_flush_finished, LV_EVENT_FLUSH_FINISH, nullptr);
+  lv_display_add_event_cb(display, on_flush_wait_started, LV_EVENT_FLUSH_WAIT_START,
+                          nullptr);
+  lv_display_add_event_cb(display, on_flush_wait_finished, LV_EVENT_FLUSH_WAIT_FINISH,
+                          nullptr);
 }
 #endif
 
 }  // namespace
+
+bool rendering_in_progress() {
+  return rendering.load(std::memory_order_acquire);
+}
 
 bool refresh_and_wait(lv_display_t* const display,
                       const std::uint32_t timeout_ms) {
@@ -214,6 +243,10 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
     display = lvgl_port_add_disp(&display_config);
   }
   ESP_ERROR_CHECK(display == nullptr ? ESP_FAIL : ESP_OK);
+  lv_display_add_event_cb(display, on_rendering_started, LV_EVENT_RENDER_START,
+                          nullptr);
+  lv_display_add_event_cb(display, on_rendering_finished, LV_EVENT_REFR_READY,
+                          nullptr);
 #if SIMCORE_DEBUG
   register_performance_events(display);
 #endif

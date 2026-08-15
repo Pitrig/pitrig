@@ -31,14 +31,27 @@ struct Measurements {
   std::uint64_t render_time_us;
   std::uint32_t render_samples;
   std::uint64_t flush_time_us;
-  std::uint32_t flush_samples;
+  std::uint64_t sync_time_us;
+  std::uint32_t longest_frame_us;
+  std::uint32_t longest_work_us;
+  std::uint32_t longest_gap_us;
 };
 
 portMUX_TYPE state_lock = portMUX_INITIALIZER_UNLOCKED;
 PerformanceStats stats{};
 Measurements measurements{};
+std::int64_t frame_started_at_us;
+std::int64_t frame_finished_at_us;
+std::int64_t sync_started_at_us;
 std::int64_t render_started_at_us;
+// Sync plus render of the frame being measured, excluding every wait.
+std::uint64_t frame_work_us;
 std::int64_t flush_started_at_us;
+std::int64_t flush_wait_started_at_us;
+// Flush time that elapsed while a render was in progress. LVGL calls the flush
+// callback from inside its render pass, so a blocking flush would otherwise be
+// counted as drawing.
+std::uint64_t render_blocked_us;
 std::int64_t last_update_us;
 configRUN_TIME_COUNTER_TYPE last_runtime;
 configRUN_TIME_COUNTER_TYPE last_idle_core0;
@@ -64,6 +77,21 @@ std::uint32_t average(std::uint64_t total, std::uint32_t count) {
   return static_cast<std::uint32_t>(total / count);
 }
 
+// Attributes a completed flush interval to the flush total and, when a render
+// is in progress, removes it from that render. Called under state_lock.
+void account_flush_interval(std::int64_t& started_at_us,
+                            const std::int64_t now_us) {
+  if (started_at_us == 0) {
+    return;
+  }
+  const auto elapsed_us = static_cast<std::uint64_t>(now_us - started_at_us);
+  measurements.flush_time_us += elapsed_us;
+  if (render_started_at_us != 0) {
+    render_blocked_us += elapsed_us;
+  }
+  started_at_us = 0;
+}
+
 float cpu_usage(configRUN_TIME_COUNTER_TYPE idle_delta,
                 configRUN_TIME_COUNTER_TYPE runtime_delta) {
   if (runtime_delta == 0) {
@@ -85,13 +113,14 @@ void print_stats(const PerformanceStats& snapshot) {
                 "CPU1       : %.1f%%\n"
                 "Render     : %" PRIu32 " us\n"
                 "Flush      : %" PRIu32 " us\n"
+                "Sync       : %" PRIu32 " us\n"
                 "Heap       : %" PRIu32 " KB\n"
                 "Largest    : %" PRIu32 " KB\n"
                 "PSRAM      : %" PRIu32 " KB\n"
                 "================================",
                 static_cast<double>(snapshot.fps), static_cast<double>(snapshot.cpu_core0),
                 static_cast<double>(snapshot.cpu_core1), snapshot.render_time_us,
-                snapshot.flush_time_us, snapshot.free_heap / 1'024,
+                snapshot.flush_time_us, snapshot.sync_time_us, snapshot.free_heap / 1'024,
                 snapshot.largest_heap_block / 1'024, snapshot.free_psram / 1'024);
   log::info(kTag, output);
 }
@@ -142,16 +171,37 @@ void unregister_task(const TaskMetric metric) {
 }
 
 void frame_started() {
+  const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
   frame_in_progress = true;
+  frame_started_at_us = now_us;
+  sync_started_at_us = now_us;
+  frame_work_us = 0;
+  if (frame_finished_at_us != 0) {
+    const auto gap_us = static_cast<std::uint32_t>(now_us - frame_finished_at_us);
+    if (gap_us > measurements.longest_gap_us) {
+      measurements.longest_gap_us = gap_us;
+    }
+  }
   taskEXIT_CRITICAL(&state_lock);
 }
 
 void frame_finished() {
+  const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
   if (frame_in_progress) {
     ++measurements.frames;
     frame_in_progress = false;
+    frame_finished_at_us = now_us;
+    const auto elapsed_us =
+        static_cast<std::uint32_t>(now_us - frame_started_at_us);
+    if (elapsed_us > measurements.longest_frame_us) {
+      measurements.longest_frame_us = elapsed_us;
+    }
+    const auto work_us = static_cast<std::uint32_t>(frame_work_us);
+    if (work_us > measurements.longest_work_us) {
+      measurements.longest_work_us = work_us;
+    }
   }
   taskEXIT_CRITICAL(&state_lock);
 }
@@ -159,7 +209,14 @@ void frame_finished() {
 void render_started() {
   const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
+  if (sync_started_at_us != 0) {
+    const auto sync_us = static_cast<std::uint64_t>(now_us - sync_started_at_us);
+    measurements.sync_time_us += sync_us;
+    frame_work_us += sync_us;
+    sync_started_at_us = 0;
+  }
   render_started_at_us = now_us;
+  render_blocked_us = 0;
   taskEXIT_CRITICAL(&state_lock);
 }
 
@@ -167,10 +224,15 @@ void render_finished() {
   const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
   if (render_started_at_us != 0) {
-    measurements.render_time_us +=
+    const auto elapsed_us =
         static_cast<std::uint64_t>(now_us - render_started_at_us);
+    const std::uint64_t drawing_us =
+        elapsed_us > render_blocked_us ? elapsed_us - render_blocked_us : 0;
+    measurements.render_time_us += drawing_us;
+    frame_work_us += drawing_us;
     ++measurements.render_samples;
     render_started_at_us = 0;
+    render_blocked_us = 0;
   }
   taskEXIT_CRITICAL(&state_lock);
 }
@@ -185,11 +247,21 @@ void flush_started() {
 void flush_finished() {
   const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
-  if (flush_started_at_us != 0) {
-    measurements.flush_time_us += static_cast<std::uint64_t>(now_us - flush_started_at_us);
-    ++measurements.flush_samples;
-    flush_started_at_us = 0;
-  }
+  account_flush_interval(flush_started_at_us, now_us);
+  taskEXIT_CRITICAL(&state_lock);
+}
+
+void flush_wait_started() {
+  const std::int64_t now_us = esp_timer_get_time();
+  taskENTER_CRITICAL(&state_lock);
+  flush_wait_started_at_us = now_us;
+  taskEXIT_CRITICAL(&state_lock);
+}
+
+void flush_wait_finished() {
+  const std::int64_t now_us = esp_timer_get_time();
+  taskENTER_CRITICAL(&state_lock);
+  account_flush_interval(flush_wait_started_at_us, now_us);
   taskEXIT_CRITICAL(&state_lock);
 }
 
@@ -229,7 +301,11 @@ void update() {
   next.cpu_core0 = cpu_usage(idle_core0_delta, runtime_delta);
   next.cpu_core1 = cpu_usage(idle_core1_delta, runtime_delta);
   next.render_time_us = average(interval.render_time_us, interval.render_samples);
-  next.flush_time_us = average(interval.flush_time_us, interval.flush_samples);
+  next.flush_time_us = average(interval.flush_time_us, interval.render_samples);
+  next.sync_time_us = average(interval.sync_time_us, interval.render_samples);
+  next.longest_frame_us = interval.longest_frame_us;
+  next.longest_work_us = interval.longest_work_us;
+  next.longest_gap_us = interval.longest_gap_us;
   constexpr std::uint32_t kInternalHeapCapabilities = MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL;
   next.free_heap = heap_caps_get_free_size(kInternalHeapCapabilities);
   next.largest_heap_block =
