@@ -96,6 +96,58 @@
       "problemMatcher": ["$gcc"],
       "group": "build",
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "SimCore: Flash",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${config:idf.currentSetup}/export.sh\" >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && ESPBAUD=921600 idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION flash"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "SimCore: Monitor",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${config:idf.currentSetup}/export.sh\" >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION monitor"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "SimCore: Flash and Monitor",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${config:idf.currentSetup}/export.sh\" >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && ESPBAUD=921600 idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION flash monitor"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "buildDirectory",
+      "type": "pickString",
+      "description": "Build directory to flash or monitor",
+      "options": [
+        "build-t-display",
+        "build-t-display-debug",
+        "build-guition",
+        "build-guition-debug",
+        "build-jc1060p470c",
+        "build-jc1060p470c-debug"
+      ],
+      "default": "build-jc1060p470c-debug"
     }
   ]
 }

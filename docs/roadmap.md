@@ -1,3 +1,6 @@
+The dashboard authoring items in Phases 4 and 5 come from the SimHub comparison
+in [dashboard-editor-parity.md](dashboard-editor-parity.md).
+
 # Phase 1 — Foundation
 
 - [*] Firmware builds
@@ -42,8 +45,11 @@
 - [*] Delta Time
 - [*] Reusable telemetry text widgets
 - [*] Value modifiers and time transforms
+- [ ] Value formatting transforms (decimal precision, scale and offset, units)
+- [ ] Multi-field text composition
 - [ ] Additional widget types (bar, arc, indicator strip)
 - [ ] Conditional and animated widget styling
+- [ ] Uploaded image asset pipeline and image widgets
 - [ ] Button Matrix
 - [ ] RGB
 
@@ -56,6 +62,11 @@ implementation; the foundation for them landed in Phase 1.
 - [ ] Multiple dashboard screens with navigation
 - [ ] Applying a configuration without restarting
 - [ ] Configurator undo and redo
+- [ ] Configurator copy, paste and duplicate
+- [ ] Configurator multi-select, alignment and grid snapping
+- [ ] Configurator layer panel with reordering, lock and hide
+- [ ] Dashboard preview with live or mock telemetry values
+- [ ] Dashboard templates and cross-board layout transfer
 
 # Phase 6 — Field maintenance
 
