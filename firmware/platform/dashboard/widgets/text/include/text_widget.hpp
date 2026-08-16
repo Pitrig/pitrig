@@ -24,17 +24,12 @@ inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumTextWidgets;
 inline constexpr std::size_t kTitleCapacity =
     configuration::kWidgetTitleCapacity;
-inline constexpr std::size_t kUnavailableTextCapacity =
-    configuration::kUnavailableTextCapacity;
 
 struct BoundConfig;
 
 using ValueReadCallback = telemetry::TelemetryRead (*)(void* context);
 
 using Alignment = configuration::TextAlignment;
-using Border = configuration::WidgetBorder;
-using TitleStyle = configuration::WidgetTitleStyle;
-using ValueStyle = configuration::WidgetValueStyle;
 using Config = configuration::TextWidgetConfiguration;
 
 // Owns the fixed runtime state for every configured text widget. All instances
@@ -51,7 +46,6 @@ class Collection final {
   [[nodiscard]] bool create(
       const Layout& layout, std::span<const Config> configurations,
       std::span<const BoundConfig> bindings, const fonts::Registry& fonts);
-  [[nodiscard]] std::size_t size() const { return count_; }
   [[nodiscard]] lv_obj_t* root_object(const std::size_t index) const {
     return index < count_ ? states_[index].container : nullptr;
   }

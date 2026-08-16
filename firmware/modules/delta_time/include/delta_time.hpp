@@ -18,7 +18,6 @@ namespace simcore::delta_time {
 inline constexpr std::size_t kTextCapacity =
     configuration::kDeltaTimeTextCapacity;
 using UnavailableBehavior = configuration::DeltaTimeUnavailableBehavior;
-using ScaleConfig = configuration::DeltaTimeScaleConfiguration;
 using Config = configuration::DeltaTimeConfiguration;
 
 enum class Tone : std::uint8_t {

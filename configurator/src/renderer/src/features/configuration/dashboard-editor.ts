@@ -20,8 +20,7 @@ import type {
 import type { DeviceConfiguration } from '../../../../shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
 
-export type { WidgetPlacement as Placement }
-export { MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_SCREEN }
+export { MAXIMUM_TEXT_WIDGETS }
 
 // Selection addresses a widget by its stable id. Index-based selection silently
 // retargeted to a different widget whenever a sibling was deleted or reordered.

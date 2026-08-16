@@ -60,6 +60,3 @@ export function groupFontRequirements(required: FontAssetKey[]): Map<string, num
   return groups
 }
 
-export function fontKey(font: FontAssetKey): string {
-  return `${font.family}:${font.sizePx}`
-}

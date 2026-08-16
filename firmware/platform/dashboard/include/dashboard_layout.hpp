@@ -15,7 +15,6 @@ namespace simcore::dashboard {
 inline constexpr std::uint32_t kTransparentColor =
     configuration::kTransparentColor;
 
-using font_assets::FamilyId;
 using font_assets::FontSpec;
 
 struct Rect {
@@ -25,7 +24,6 @@ struct Rect {
   std::int32_t height{};
 };
 
-using Insets = configuration::WidgetInsets;
 using Placement = configuration::WidgetPlacement;
 
 // The screen a widget is placed on, and the display that screen belongs to.

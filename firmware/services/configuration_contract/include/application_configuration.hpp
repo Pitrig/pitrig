@@ -16,29 +16,6 @@
 
 namespace simcore::configuration {
 
-using ValueBinding = std::array<char, kValueBindingCapacity>;
-
-[[nodiscard]] constexpr ValueBinding make_value_binding(
-    const std::string_view name) {
-  ValueBinding result{};
-  if (name.size() >= result.size()) {
-    return result;
-  }
-  for (std::size_t index = 0; index < name.size(); ++index) {
-    result[index] = name[index];
-  }
-  return result;
-}
-
-[[nodiscard]] inline std::string_view value_binding_view(
-    const ValueBinding& binding) {
-  std::size_t length{};
-  while (length < binding.size() && binding[length] != '\0') {
-    ++length;
-  }
-  return {binding.data(), length};
-}
-
 template <std::size_t Capacity>
 [[nodiscard]] constexpr std::string_view text_view(
     const std::array<char, Capacity>& text) {
@@ -47,6 +24,11 @@ template <std::size_t Capacity>
     ++length;
   }
   return {text.data(), length};
+}
+
+[[nodiscard]] constexpr std::string_view value_binding_view(
+    const std::array<char, kValueBindingCapacity>& binding) {
+  return text_view(binding);
 }
 
 struct DisplayValidationProfile {

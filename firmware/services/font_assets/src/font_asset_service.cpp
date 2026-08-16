@@ -27,7 +27,6 @@ constexpr std::size_t kEntryReservedOffset = 32;
 constexpr std::size_t kEntryDataOffset = 36;
 constexpr std::size_t kEntryLengthOffset = 40;
 constexpr std::size_t kEntryCrcOffset = 44;
-constexpr std::size_t kFaceAlignment = 4;
 // A face is parsed lazily on the render path, so a payload that is not an sfnt
 // container is rejected at commit instead of failing inside a frame. The four
 // accepted signatures are TrueType, OpenType/CFF, the legacy Apple tag, and a
@@ -101,14 +100,6 @@ bool Service::initialize(IStorage& storage) {
     family_catalog_[index] = package_.families[index].family;
   }
   return true;
-}
-
-const FamilyAsset* Service::find(const FamilyId& family) const {
-  const auto available = families();
-  const auto match = std::find_if(
-      available.begin(), available.end(),
-      [&family](const FamilyAsset& asset) { return asset.family == family; });
-  return match == available.end() ? nullptr : &*match;
 }
 
 std::size_t Service::face_bytes_total() const {

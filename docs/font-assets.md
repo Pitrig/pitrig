@@ -41,7 +41,7 @@ polynomial, initial value `0xFFFFFFFF`, final XOR `0xFFFFFFFF`).
 | ---: | ---: | --- |
 | `0x0000` | 32 | Header |
 | `0x0020` | `entry_count * 48` | Manifest entries |
-| following | until `0x1000` | Reserved; ignored by version 2 |
+| following | until `0x1000` | Reserved; ignored by version 3 |
 | `0x1000` | variable | Aligned font face data |
 
 `payload_size` is the exact package size and may not exceed 2 MiB. Every asset

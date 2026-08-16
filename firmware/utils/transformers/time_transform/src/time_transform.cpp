@@ -92,18 +92,6 @@ template <typename Value, typename Transform>
 
 }  // namespace
 
-bool duration_ms(const std::uint32_t milliseconds,
-                 const std::span<char> output) {
-  Writer writer(output);
-  return write_duration(writer, milliseconds);
-}
-
-bool signed_duration_ms(const std::int32_t milliseconds,
-                        const std::span<char> output) {
-  Writer writer(output);
-  return write_signed_duration(writer, milliseconds);
-}
-
 bool apply(const Config& config, const std::uint32_t value,
            const std::span<char> output) {
   return config.format == Format::duration_ms &&

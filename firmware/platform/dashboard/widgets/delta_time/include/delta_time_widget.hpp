@@ -18,7 +18,6 @@ class Registry;
 
 namespace simcore::dashboard::delta_time_widget {
 
-using ScaleStyle = configuration::DeltaTimeScaleStyle;
 using Config = configuration::DeltaTimeWidgetConfiguration;
 
 // Owns the LVGL objects, timer, and cached presentation state for one widget.

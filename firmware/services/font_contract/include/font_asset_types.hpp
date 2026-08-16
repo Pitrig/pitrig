@@ -14,6 +14,9 @@ inline constexpr std::uint16_t kMaximumFontSizePx = 255;
 // rasterized from it, so this bounds both the package and the number of
 // families one configuration may name.
 inline constexpr std::size_t kMaximumFamilies = 8;
+// Package manifest offsets and the runtime copy of a face must agree on this,
+// or the reservation computed from the manifest under-serves the copy.
+inline constexpr std::size_t kFaceAlignment = 4;
 using FamilyId = std::array<char, kFamilyIdCapacity>;
 
 [[nodiscard]] constexpr std::string_view family_id_view(

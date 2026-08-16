@@ -55,12 +55,12 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 
 # Phase 5 — Interaction
 
-Nothing here is started. Each item needs its own architectural decision before
-implementation; the foundation for them landed in Phase 1.
+Each item needs its own architectural decision before implementation; the
+foundation for them landed in Phase 1.
 
 - [ ] Touch input subsystem
 - [ ] Multiple dashboard screens with navigation
-- [ ] Applying a configuration without restarting
+- [*] Applying a configuration without restarting
 - [ ] Configurator undo and redo
 - [ ] Configurator copy, paste and duplicate
 - [ ] Configurator multi-select, alignment and grid snapping

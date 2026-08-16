@@ -63,10 +63,12 @@ cannot be applied without one. Revisiting that belongs to ADR 0010.
   about 8.5 KiB of internal RAM moves to external memory.
 - The binder holds no foreign pointers, so its lifetime no longer depends on the
   configuration document's.
-- `rebuild()` exists and is covered by the startup path, but nothing calls it:
-  the control command that would, and its interaction with the single-slot
-  device operation lock, are a separate decision.
+- The `APPLY` control command drives this path. It stages, validates, promotes,
+  and recomposes without writing storage, and it is rejected rather than queued
+  while another device operation holds the single-slot lock. `rebuild()` remains
+  the unused full-teardown variant; the incremental path is what `APPLY` uses.
 - The parse-validate-promote-rebuild order is a real constraint on future code
   and is not enforced by the type system.
-- New font sizes still require an upload and a restart, so a live apply is
-  complete only for documents whose fonts are already installed.
+- A live apply is complete for any document whose font families are installed.
+  Pixel sizes are rasterized on demand (ADR 0010), so only a new family needs an
+  upload and a restart.

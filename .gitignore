@@ -1,8 +1,8 @@
 # ESP-IDF generated files
+build/
 firmware/build*/
 firmware/managed_components/
 firmware/sdkconfig
-firmware/sdkconfig.old
 firmware/sdkconfig.*
 !firmware/sdkconfig.defaults
 !firmware/sdkconfig.defaults.*

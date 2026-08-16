@@ -11,7 +11,6 @@ namespace simcore::dashboard::fonts {
 namespace {
 
 constexpr char kTag[] = "dashboard_fonts";
-constexpr std::size_t kFaceAlignment = 4;
 // Caps both the metrics and the bitmap cache of one font. A warm set larger
 // than this would evict its own entries, so pre-warming checks against it.
 constexpr std::size_t kGlyphCacheEntries = 128;
@@ -134,7 +133,8 @@ bool Registry::load(const std::span<const font_assets::FamilyAsset> families,
     };
     ++family_count_;
     const std::size_t consumed =
-        (asset.bytes.size() + kFaceAlignment - 1) & ~(kFaceAlignment - 1);
+        (asset.bytes.size() + font_assets::kFaceAlignment - 1) &
+        ~(font_assets::kFaceAlignment - 1);
     remaining = remaining.subspan(std::min(consumed, remaining.size()));
   }
   log::info(kTag, "Loaded %u font families",

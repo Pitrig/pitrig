@@ -178,7 +178,7 @@ function TelemetryBindingField({ value, onChange }: { value: string; onChange: (
           {selected.categoryLabel} · {selected.type} · {selected.unit} · {selected.rate} · ID {selected.wireId}
         </span>
       ) : value ? (
-        <span className="block text-[11px] leading-4 text-destructive">Unknown telemetry binding</span>
+        <span className="block text-[11px] leading-4 text-amber-400">Unknown telemetry binding</span>
       ) : null}
     </label>
   )

@@ -37,7 +37,7 @@ cd firmware && idf.py -B build-guition -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfi
 cd firmware && idf.py -B build-jc1060p470c -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c" build
 ```
 
-Debug/diagnostics builds append `;sdkconfig.defaults.debug` to `SDKCONFIG_DEFAULTS`, which selects
+Debug builds append `;sdkconfig.defaults.debug` to `SDKCONFIG_DEFAULTS`, which selects
 `CONFIG_SIMCORE_DEBUG`. Feature selection is Kconfig-driven; no source header is edited (see
 [docs/runtime-performance.md](docs/runtime-performance.md)). The same VS Code tasks exist in
 [.vscode/tasks.json](.vscode/tasks.json) ("SimCore: Build …").
@@ -64,7 +64,22 @@ cd configurator && pnpm run lint
 
 `pnpm run build` runs typecheck then `electron-vite build`. There is no test runner.
 
-### Telemetry catalog (generated code — never hand-edit outputs)
+### Generated contracts (never hand-edit outputs)
+
+Two generators own checked-in code. Both accept `--check`, which reports staleness without
+writing.
+
+`configuration/configuration_schema.json` is the configuration contract:
+
+```bash
+python3 tools/generate_configuration_schema.py
+```
+
+Outputs: `firmware/services/configuration_contract/include/application_configuration_generated.hpp`,
+`firmware/services/configuration/include/configuration_schema_generated.hpp`,
+`configurator/src/shared/configuration-schema.ts`, `docs/configuration-schema.md`.
+
+### Telemetry catalog
 
 `telemetry/telemetry_catalog.json` and `telemetry/simhub_generic_mappings.json` are the sources.
 Regenerate all consumers together:
@@ -127,14 +142,15 @@ A firmware build owns exactly one immutable `BoardDefinition` selected by
 display driver, default telemetry transport, factory payload, and private validation metadata
 (display bounds, allowed UART pins). Firmware reports only the stable board identifier; the
 configurator maps it to a local board profile for logical display dimensions. User configuration must
-carry a matching `board` or it is rejected. Config is immutable at runtime — saving requires reboot.
+carry a matching `board` or it is rejected. Saving requires a reboot; `APPLY` rebuilds the running dashboard from a document without writing
+storage, which is what the configurator's live preview uses.
 
 Config load order: valid NVS slot A → valid NVS slot B → compiled factory config (board id only,
 which yields an enabled display with an empty dashboard). NVS record format (magic, generation,
 CRC32, dual slot in the `simcore_cfg` partition) is private to the configuration service; the
 configurator must not depend on it.
 
-### Configuration schema 2
+### Configuration schema 3
 
 Sparse JSON, used unchanged for both configurator projects and the device wire payload — omitted
 properties are *not* expanded through board profiles. Widget geometry is absolute logical display
@@ -157,7 +173,7 @@ ADRs 0003, 0005, 0012.
 
 One serial transport is shared by three concerns, arbitrated by the router in
 `platform/communication`: line-oriented SimHub telemetry, the line-oriented `@SC:` configuration
-control protocol (`INFO`, `GET`, `VALIDATE`, `SET`, `RESET`, `REBOOT`), and a temporary binary
+control protocol (`INFO`, `GET`, `VALIDATE`, `APPLY`, `SET`, `RESET`, `REBOOT`), and a temporary binary
 stop-and-wait mode for font package upload. `core` receives only `ITransport` and knows nothing about
 UART, USB CDC, or SimHub. See [docs/simhub-custom-serial.md](docs/simhub-custom-serial.md) and
 [docs/font-assets.md](docs/font-assets.md).
@@ -183,7 +199,7 @@ Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `font-ass
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 
-The editor mutates one sparse schema-2 draft; canvas drag/resize, the inspector, and the advanced
+The editor mutates one sparse schema-3 draft; canvas drag/resize, the inspector, and the advanced
 JSON editor all write the same document — there is no separate editor-only layout model. The draft
 owns its board identity, so it works fully disconnected; device connection and draft have independent
 lifetimes ("Reload board" is the explicit discard).

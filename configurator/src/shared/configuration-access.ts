@@ -2,7 +2,6 @@ import type {
   ApplicationConfiguration,
   DeltaTimeWidgetConfiguration,
   ScreenConfiguration,
-  TextWidgetConfiguration,
   WidgetConfiguration
 } from './configuration-schema'
 
@@ -27,12 +26,6 @@ export function allWidgetsOf(
   configuration: ApplicationConfiguration | undefined
 ): WidgetConfiguration[] {
   return screensOf(configuration).flatMap(widgetsOf)
-}
-
-export function isTextWidget(
-  widget: WidgetConfiguration
-): widget is TextWidgetConfiguration {
-  return widget.type === 'text'
 }
 
 export function isDeltaTimeWidget(

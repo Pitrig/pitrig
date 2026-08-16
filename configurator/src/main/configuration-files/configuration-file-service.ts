@@ -3,10 +3,6 @@ import { readFile, stat, writeFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 
 import {
-  CONFIGURATION_SCHEMA_VERSION,
-  MAXIMUM_CONFIGURATION_PAYLOAD_SIZE
-} from '../../shared/device'
-import {
   DEFAULT_CONFIGURATION_FILE_NAME,
   type ConfigurationFileLoadValue,
   type ConfigurationFileResult,
@@ -40,8 +36,8 @@ export class ConfigurationFileService {
         )
       }
       const json = await readFile(path, 'utf8')
+      // parseDeviceConfigurationJson already enforces the payload limit.
       const configuration = parseDeviceConfigurationJson(json)
-      validatePayloadSize(configuration)
       return { ok: true, value: { configuration, fileName: basename(path) } }
     } catch (error) {
       return failure(
@@ -58,7 +54,6 @@ export class ConfigurationFileService {
     let content: string
     try {
       const configuration = parseDeviceConfigurationJson(json)
-      validatePayloadSize(configuration)
       content = `${JSON.stringify(configuration, null, 2)}\n`
     } catch (error) {
       return failure(
@@ -91,15 +86,6 @@ export class ConfigurationFileService {
         error instanceof Error ? error.message : 'Failed to save the configuration file.'
       )
     }
-  }
-}
-
-function validatePayloadSize(configuration: object): void {
-  const payloadSize = Buffer.byteLength(JSON.stringify(configuration), 'utf8')
-  if (payloadSize > MAXIMUM_CONFIGURATION_PAYLOAD_SIZE) {
-    throw new Error(
-      `Configuration exceeds the ${MAXIMUM_CONFIGURATION_PAYLOAD_SIZE}-byte schema ${CONFIGURATION_SCHEMA_VERSION} limit.`
-    )
   }
 }
 

@@ -319,7 +319,7 @@ export function ConfigurationPanel(): React.JSX.Element {
             </Badge>
           ) : null}
         </div>
-        <CardDescription>Visual edits and advanced JSON share the same schema 2 draft.</CardDescription>
+        <CardDescription>Visual edits and advanced JSON share the same schema 3 draft.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2 rounded-md border p-2">

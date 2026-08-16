@@ -64,9 +64,6 @@ void flush_finished();
 void flush_wait_started();
 void flush_wait_finished();
 
-// Produces the next statistics snapshot from collected measurements.
-void update();
-
 // Returns a consistent copy of the most recent statistics.
 [[nodiscard]] PerformanceStats get_stats();
 

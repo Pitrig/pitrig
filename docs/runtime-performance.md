@@ -1,8 +1,10 @@
 # Runtime Performance Diagnostics
 
 `PerformanceService` publishes a one-second snapshot containing FPS, CPU usage
-per core, LVGL render time, display flush time, internal heap information,
-available PSRAM, and uptime.
+per core, the render/flush/sync split of a frame, the slowest frame and its
+processing and idle parts, internal heap information, available PSRAM, uptime,
+and the free stack of each monitored task. The debug overlay adds transport
+counters read straight from the active transport.
 
 ## Build profile
 
@@ -17,7 +19,7 @@ enables the option together with the FreeRTOS runtime counters it needs:
 
 ```sh
 idf.py -B build-debug \
-  -DSDKCONFIG=/tmp/simcore-sdkconfig-debug \
+  -DSDKCONFIG=sdkconfig.generated.t-display-debug \
   -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.t-display-s3;sdkconfig.defaults.debug" \
   build
 ```
@@ -51,13 +53,21 @@ path, and FreeRTOS runtime statistics remain disabled.
 - **Sync time:** average time per rendered frame between refresh start and
   render start: layout and, in direct mode with two frame buffers, the copy
   of the previous frame's changed areas into the buffer about to be drawn.
-- **Longest frame:** the slowest single frame in the interval, measured from
+- **Max:** the slowest single frame in the interval, measured from
   refresh start to refresh ready. It settles near one display period while
   every frame reaches the display in time; a multiple of that period means
   frames missed their scan-out and the reported FPS is a fraction of the
   panel refresh rate.
+- **Work:** the largest render plus sync of a single frame, with every wait
+  removed. A `Max` of several display periods with a normal `Work` means the
+  frame was not slow to draw — it was late or blocked.
+- **Idle:** the longest gap between one frame finishing and the next starting.
 - **Heap:** current free internal 8-bit heap and its largest free block.
 - **PSRAM:** current free SPIRAM heap, or zero when SPIRAM is unavailable.
+- **Uptime**, and the transport counters **Link** (bytes and reads per second),
+  **Queue**, **Overflow**, **Gap**/**Handler** (worst read gap and handler time
+  since boot), and **Stack** (free bytes of the LVGL, transport, configuration,
+  font-asset and sampler tasks).
 
 The service owns measurement and aggregation. The dashboard widget only reads
 the latest statistics snapshot and formats it for display.
@@ -65,4 +75,4 @@ the latest statistics snapshot and formats it for display.
 Dashboard glyphs are rasterized from the uploaded font faces and cached per
 font in external RAM. Composition pre-warms the characters a dashboard draws,
 so a steady-state frame performs no rasterization; a character outside the warm
-set shows up as one longer frame in **Longest frame** and is cached afterwards.
+set shows up as one longer frame in **Max** and is cached afterwards.

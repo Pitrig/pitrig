@@ -13,7 +13,6 @@ export const DEVICE_CANCEL_AUTO_CONNECT_CHANNEL = 'device:cancel-auto-connect' a
 export const DEVICE_DISCONNECT_CHANNEL = 'device:disconnect' as const
 export const DEVICE_REBOOT_CHANNEL = 'device:reboot' as const
 export const DEVICE_CONFIGURATION_READ_CHANNEL = 'device:configuration:read' as const
-export const DEVICE_CONFIGURATION_VALIDATE_CHANNEL = 'device:configuration:validate' as const
 export const DEVICE_CONFIGURATION_APPLY_CHANNEL = 'device:configuration:apply' as const
 export const DEVICE_CONFIGURATION_SAVE_CHANNEL = 'device:configuration:save' as const
 export const DEVICE_CONFIGURATION_RESET_CHANNEL = 'device:configuration:reset' as const

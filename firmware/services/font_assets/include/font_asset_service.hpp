@@ -69,7 +69,6 @@ class Service final {
   [[nodiscard]] std::span<const FamilyId> family_catalog() const {
     return {family_catalog_.data(), status_.family_count};
   }
-  [[nodiscard]] const FamilyAsset* find(const FamilyId& family) const;
   // Bytes a consumer must reserve to copy every face out of the mapping, each
   // face aligned to four bytes.
   [[nodiscard]] std::size_t face_bytes_total() const;

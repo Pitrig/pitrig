@@ -4,7 +4,6 @@ import type {
   DeviceConfigurationRequest,
   DeviceConfigurationResetResult,
   DeviceConfigurationSaveResult,
-  DeviceConfiguration,
   DeviceResult,
   DeviceState,
   SerialPortSummary
@@ -51,9 +50,6 @@ export interface SimCoreApi {
   cancelAutoConnect: () => Promise<DeviceResult<DeviceState>>
   disconnectDevice: () => Promise<DeviceResult<DeviceState>>
   readDeviceConfiguration: () => Promise<DeviceResult<DeviceState>>
-  validateDeviceConfiguration: (
-    request: DeviceConfigurationRequest
-  ) => Promise<DeviceResult<DeviceConfiguration>>
   applyDeviceConfiguration: (
     request: DeviceConfigurationRequest
   ) => Promise<DeviceResult<DeviceConfigurationApplyResult>>

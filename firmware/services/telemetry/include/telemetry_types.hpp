@@ -30,6 +30,8 @@ struct Handle {
   }
 };
 
+// C++20 synthesizes != from this, which is how both modules compare a bound
+// handle against the one an update carries.
 [[nodiscard]] constexpr bool operator==(const Handle left,
                                         const Handle right) {
   return left.index == right.index && left.type == right.type;

@@ -14,14 +14,6 @@ config SIMCORE_LAYOUT_DEBUG
     help
         Draws dashboard block and widget boundaries.
 
-config SIMCORE_DISPLAY_DIAGNOSTICS
-    bool "Full-screen display diagnostics"
-    default n
-    select LV_FONT_MONTSERRAT_24
-    select LV_FONT_MONTSERRAT_48
-    help
-        Replaces configured widgets with the display hardware diagnostic UI.
-
 choice SIMCORE_FACTORY_BOARD
     prompt "Factory board profile"
     default SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C if IDF_TARGET_ESP32P4

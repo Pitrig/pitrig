@@ -88,10 +88,7 @@ bool start(Modules& modules, events::EventBus& event_bus,
            const telemetry::ITelemetryRegistry& telemetry_registry,
            const telemetry::ITelemetryReader& telemetry,
            const configuration::ApplicationConfiguration& configuration) {
-  bool widgets_enabled = true;
-#if SIMCORE_DISPLAY_DIAGNOSTICS
-  widgets_enabled = false;
-#endif
+  const bool widgets_enabled = true;
   modules.manager.clear();
   modules.lap_timer_started = false;
   modules.delta_time_started = false;

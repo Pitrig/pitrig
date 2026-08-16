@@ -34,7 +34,6 @@ import {
   resetConfiguration,
   applyConfiguration,
   saveConfiguration,
-  validateConfiguration
 } from './simcore-protocol'
 
 interface Match {
@@ -241,28 +240,6 @@ export class DeviceService {
         session: { ...session, configuration }
       })
       return success(this.state)
-    } catch (error) {
-      return failure(toDeviceError(error))
-    } finally {
-      this.deviceOperationActive = false
-    }
-  }
-
-  async validateConfiguration(
-    json: string
-  ): Promise<DeviceResult<DeviceConfiguration>> {
-    const active = this.getActiveDevice()
-    if (!active.ok) return failure(active.error)
-    const prepared = this.prepareConfiguration(json, active.value.session)
-    if (!prepared.ok) return prepared
-    this.deviceOperationActive = true
-    try {
-      await validateConfiguration(
-        active.value.port,
-        prepared.value.payload,
-        this.operationTraffic(active.value.traffic)
-      )
-      return success(prepared.value.configuration)
     } catch (error) {
       return failure(toDeviceError(error))
     } finally {

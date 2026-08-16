@@ -18,6 +18,10 @@
 
 namespace simcore::performance {
 #if SIMCORE_DEBUG
+
+// Internal to the service: the sampler task is its only caller.
+void update();
+
 namespace {
 
 constexpr char kTag[] = "performance";

@@ -17,7 +17,7 @@ retain a second copy for rollback.
 ## Decision
 
 Replace the closed compiled-font enumeration with a stable bounded font family
-identifier and pixel size. Public configuration schema 2 stores a font as:
+identifier and pixel size. The public configuration schema stores a font as:
 
 ```json
 {
@@ -30,9 +30,9 @@ Family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`, or
 `-`. Font sizes are integers from 1 through 255 pixels. Production firmware
 exposes no built-in dashboard font family. Family resolution is exact: a
 missing family is an explicit dashboard composition error and is not silently
-replaced with another font. Debug or display-diagnostics builds may retain
-private framework fonts for service UI, but the dashboard registry never
-resolves them by public family identifier.
+replaced with another font. Debug builds may retain private framework fonts for
+service UI, but the dashboard registry never resolves them by public family
+identifier.
 
 The configurator uploads the imported TTF or OTF face unchanged, one per
 family, and the device rasterizes every pixel size a configuration asks for.

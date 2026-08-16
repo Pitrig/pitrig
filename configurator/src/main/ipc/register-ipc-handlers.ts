@@ -18,7 +18,6 @@ import {
   DEVICE_CONFIGURATION_RESET_CHANNEL,
   DEVICE_CONFIGURATION_APPLY_CHANNEL,
   DEVICE_CONFIGURATION_SAVE_CHANNEL,
-  DEVICE_CONFIGURATION_VALIDATE_CHANNEL,
   DEVICE_DISCONNECT_CHANNEL,
   DEVICE_GET_STATE_CHANNEL,
   DEVICE_LIST_PORTS_CHANNEL,
@@ -32,7 +31,6 @@ import {
 import {
   FONT_CANCEL_UPLOAD_CHANNEL,
   FONT_CLEAR_CHANNEL,
-  FONT_FAMILY_PATTERN,
   MAXIMUM_FONT_FAMILIES,
   FONT_SELECT_SOURCE_CHANNEL,
   FONT_UPLOAD_CHANNEL,
@@ -70,7 +68,7 @@ export function registerIpcHandlers(
     )
   )
   ipcMain.handle(CONFIGURATION_FILE_SAVE_CHANNEL, (event, request: unknown) => {
-    if (!isConfigurationFileSaveRequest(request)) {
+    if (!isJsonDocumentRequest(request)) {
       const result: ConfigurationFileResult<never> = {
         ok: false,
         error: { code: 'invalid_configuration', message: 'Invalid configuration file request.' }
@@ -89,20 +87,14 @@ export function registerIpcHandlers(
   ipcMain.handle(DEVICE_DISCONNECT_CHANNEL, () => deviceService.disconnect())
   ipcMain.handle(DEVICE_CONFIGURATION_READ_CHANNEL, () => deviceService.readConfiguration())
   ipcMain.handle(DEVICE_CONFIGURATION_RESET_CHANNEL, () => deviceService.resetConfiguration())
-  ipcMain.handle(DEVICE_CONFIGURATION_VALIDATE_CHANNEL, (_event, request: unknown) => {
-    if (!isConfigurationRequest(request)) {
-      return invalidConfigurationRequest()
-    }
-    return deviceService.validateConfiguration(request.json)
-  })
   ipcMain.handle(DEVICE_CONFIGURATION_APPLY_CHANNEL, async (_event, request: unknown) => {
-    if (!isConfigurationRequest(request)) {
+    if (!isJsonDocumentRequest(request)) {
       return invalidConfigurationRequest()
     }
     return deviceService.applyConfiguration(request.json)
   })
   ipcMain.handle(DEVICE_CONFIGURATION_SAVE_CHANNEL, (_event, request: unknown) => {
-    if (!isConfigurationRequest(request)) {
+    if (!isJsonDocumentRequest(request)) {
       return invalidConfigurationRequest()
     }
     return deviceService.saveConfiguration(request.json)
@@ -188,17 +180,13 @@ function isConnectRequest(value: unknown): value is ConnectDeviceRequest {
   )
 }
 
-function isConfigurationRequest(value: unknown): value is DeviceConfigurationRequest {
+// Both the device and the file request are `{ json: string }`; the bound is the
+// source-document limit, not the payload limit, which the parser enforces.
+function isJsonDocumentRequest(
+  value: unknown
+): value is DeviceConfigurationRequest & ConfigurationFileSaveRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<DeviceConfigurationRequest>
-  return typeof request.json === 'string' && request.json.length <= 64 * 1024
-}
-
-function isConfigurationFileSaveRequest(
-  value: unknown
-): value is ConfigurationFileSaveRequest {
-  if (!value || typeof value !== 'object') return false
-  const request = value as Partial<ConfigurationFileSaveRequest>
   return typeof request.json === 'string' && request.json.length <= 64 * 1024
 }
 
@@ -219,12 +207,14 @@ function isFontUploadRequest(value: unknown): value is FontUploadRequest {
   )
 }
 
+// Shape only: the family rules and the source lookup belong to the service,
+// which re-validates every request before it touches a device.
 function isFontAssetInput(value: unknown): value is FontAssetInput {
   if (!value || typeof value !== 'object') return false
   const asset = value as Partial<FontAssetInput>
   return (
-    typeof asset.sourceId === 'string' && asset.sourceId.length > 0 && asset.sourceId.length <= 128 &&
-    typeof asset.family === 'string' && FONT_FAMILY_PATTERN.test(asset.family)
+    typeof asset.sourceId === 'string' && asset.sourceId.length > 0 &&
+    asset.sourceId.length <= 128 && typeof asset.family === 'string'
   )
 }
 

@@ -16,7 +16,7 @@ Build the universal firmware normally:
 ```sh
 cd firmware
 idf.py -B build-t-display \
-  -DSDKCONFIG=/tmp/simcore-sdkconfig-t-display \
+  -DSDKCONFIG=sdkconfig.generated.t-display \
   -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.t-display-s3" \
   build
 ```
@@ -30,7 +30,7 @@ pnpm run dev
 ```
 
 The configurator identifies the connected board, reports its read-only display
-descriptor, loads and previews its sparse schema 2 configuration, validates and
+descriptor, loads and previews its sparse schema 3 configuration, validates and
 saves configuration changes, manages uploaded font assets, and can reset or
 reboot the device.
 

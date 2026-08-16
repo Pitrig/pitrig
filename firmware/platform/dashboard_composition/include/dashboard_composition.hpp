@@ -6,7 +6,6 @@
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
 #include "delta_time_widget.hpp"
-#include "display_diagnostics.hpp"
 #include "event_bus.hpp"
 #include "performance_overlay_widget.hpp"
 #include "render_trigger.hpp"
@@ -65,7 +64,6 @@ struct DeltaTimeWidgets {
 
 struct Dashboard {
   dashboard::fonts::Registry fonts;
-  dashboard::display_diagnostics::View display_diagnostics;
   dashboard::performance_overlay_widget::View performance_overlay;
   dashboard::WidgetManager widgets;
   TextWidgets text;

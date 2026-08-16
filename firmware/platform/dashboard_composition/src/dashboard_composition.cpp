@@ -17,9 +17,6 @@
 #include "telemetry_registry.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
-#if SIMCORE_DISPLAY_DIAGNOSTICS
-#include "display_diagnostics.hpp"
-#endif
 
 namespace simcore::dashboard_composition {
 namespace {
@@ -49,7 +46,7 @@ const configuration::ScreenConfiguration& active_screen(
 
 bool will_render_content(
     const configuration::ApplicationConfiguration& configuration) {
-#if SIMCORE_DISPLAY_DIAGNOSTICS || SIMCORE_DEBUG
+#if SIMCORE_DEBUG
   (void)configuration;
   return true;
 #else
@@ -329,18 +326,7 @@ bool create(lv_display_t* const display,
   }
 
   bool initialized = true;
-  bool diagnostics_enabled = false;
-#if SIMCORE_DISPLAY_DIAGNOSTICS
-  diagnostics_enabled = true;
-  if (!dashboard_state.display_diagnostics.create(
-          display, screen, dashboard::display_diagnostics::Config{},
-          dashboard_state.fonts)) {
-    log::error(kTag, "Failed to start display diagnostics");
-    initialized = false;
-  }
-#endif
-
-  if (!diagnostics_enabled) {
+  {
     dashboard_state.text.layout = layout;
     dashboard_state.text.screen = &screen_configuration;
     dashboard_state.text.fonts = &dashboard_state.fonts;
@@ -515,7 +501,6 @@ void destroy(Dashboard& dashboard) {
     dashboard.widgets.clear();
     lvgl_port_unlock();
   }
-  dashboard.display_diagnostics.destroy();
   dashboard.performance_overlay.destroy();
 }
 

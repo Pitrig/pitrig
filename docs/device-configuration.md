@@ -53,8 +53,10 @@ The factory configuration enables no additional hardware devices, modules, or
 widgets. A clean flash or reset still initializes a board-provided display, but
 the screen has no dashboard content.
 
-Configuration is immutable while firmware is running. A saved replacement
-takes effect after restart.
+A saved replacement takes effect after restart. `APPLY` is the exception: it
+validates a document and rebuilds the running dashboard from it without writing
+storage, so an editor can preview a change live. The stored configuration is
+unchanged, and a restart returns to it.
 
 ## Sparse authoring format
 
@@ -315,6 +317,7 @@ bytes are never stored in configuration NVS.
 | `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata. |
 | `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse schema 3 JSON payload. |
 | `@SC:VALIDATE:<JSON>` | `@SC:OK:VALID` | Validate without saving. |
+| `@SC:APPLY:<JSON>` | `@SC:OK:APPLIED` | Validate and apply to the running dashboard without saving. |
 | `@SC:SET:<JSON>` | `@SC:OK:SAVED:reboot_required=1` | Validate and save. |
 | `@SC:RESET` | `@SC:OK:RESET:reboot_required=1` | Remove saved configuration. |
 | `@SC:REBOOT` | `@SC:OK:REBOOTING` | Restart the device. |
