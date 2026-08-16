@@ -92,13 +92,7 @@ class Collection final {
     // shared frame; what stays here is what makes this widget a text widget.
     frame::Painter painter{};
     lv_obj_t* container{};
-    lv_obj_t* caption_gap{};
-    lv_obj_t* caption{};
     lv_obj_t* value_label{};
-    // LVGL keeps the pointer a static label is given, so the view owns the
-    // caption bytes. Pointing at the configuration document would leave the
-    // label reading a buffer that a later replacement overwrites.
-    std::array<char, kTitleCapacity> title_text{};
     std::array<char, telemetry::kTelemetryTextCapacity> unavailable_text{};
     std::array<char, telemetry::kTelemetryTextCapacity> displayed_text{};
     bool initialized{};

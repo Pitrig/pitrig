@@ -34,13 +34,14 @@ void Collection::destroy() {
 }
 
 bool Collection::build(State& state, const Layout& layout, const Config& config,
-                       const frame::ValueBinding& binding) {
+                       const frame::ValueBinding& binding,
+                       const fonts::Registry& fonts) {
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
   // A bar has no intrinsic size: the placement is the whole of it.
-  if (!frame::build(layout, config.frame, kTag, 0, 0, false, parent, bounds,
-                    box)) {
+  if (!frame::build(layout, config.frame, kTag, 0, 0, false, fonts, parent,
+                    bounds, box)) {
     return false;
   }
   state.container = box.container;
@@ -80,7 +81,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_set_size(state.fill, 0, 0);
   state.drawn_length = -1;
 
-  state.painter.configure(config.frame, box, {}, config.fill_color,
+  state.painter.configure(config.frame, box, config.fill_color,
                           &apply_fill_color, state.fill);
   state.painter.bind(binding.condition_read, binding.condition_context);
   return true;
@@ -88,7 +89,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
 
 bool Collection::create(const Layout& layout,
                         const std::span<const Config> configurations,
-                        const std::span<const frame::ValueBinding> bindings) {
+                        const std::span<const frame::ValueBinding> bindings,
+                        const fonts::Registry& fonts) {
   if (layout.display == nullptr || bindings.size() > states_.size() ||
       configurations.size() != bindings.size() || created_ ||
       !lvgl_port_lock(0)) {
@@ -100,7 +102,7 @@ bool Collection::create(const Layout& layout,
     if (bindings[widget].read == nullptr ||
         bindings[widget].read_context == nullptr ||
         !build(states_[count_], layout, configurations[widget],
-               bindings[widget])) {
+               bindings[widget], fonts)) {
       clear_objects();
       created_ = false;
       lvgl_port_unlock();
@@ -195,6 +197,7 @@ void Collection::render() {
 }
 
 void Collection::release(State& state) {
+  state.painter.release();
   if (state.container != nullptr) {
     lv_obj_delete(state.container);
   }
@@ -215,14 +218,15 @@ void Collection::clear_objects() {
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
                           const Config& configuration,
-                          const frame::ValueBinding& binding) {
+                          const frame::ValueBinding& binding,
+                       const fonts::Registry& fonts) {
   if (!created_ || index >= count_ || binding.read == nullptr ||
       binding.read_context == nullptr || !lvgl_port_lock(0)) {
     return false;
   }
   State& state = states_[index];
   release(state);
-  const bool built = build(state, layout, configuration, binding);
+  const bool built = build(state, layout, configuration, binding, fonts);
   if (built) {
     render_state(state);
   } else {

@@ -30,11 +30,10 @@ constexpr char kTag[] = "text_widget";
 // revision comparison per widget per period.
 constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
 
-[[nodiscard]] std::int32_t text_width(const lv_font_t* const font,
-                                      const char* const text) {
+[[nodiscard]] std::int32_t text_width_of(const lv_font_t* const font,
+                                         const char* const text) {
   lv_point_t size{};
-  lv_text_get_size(&size, text, font, 0, 0, LV_COORD_MAX,
-                   LV_TEXT_FLAG_NONE);
+  lv_text_get_size(&size, text, font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
   return size.x;
 }
 
@@ -59,16 +58,6 @@ constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
 void apply_value_color(void* const context, const std::uint32_t rgb) {
   lv_obj_set_style_text_color(static_cast<lv_obj_t*>(context),
                               lv_color_hex(rgb), LV_PART_MAIN);
-}
-
-[[nodiscard]] lv_color_t background_behind(const lv_obj_t* object) {
-  while (object != nullptr) {
-    if (lv_obj_get_style_bg_opa(object, LV_PART_MAIN) > LV_OPA_TRANSP) {
-      return lv_obj_get_style_bg_color(object, LV_PART_MAIN);
-    }
-    object = lv_obj_get_parent(object);
-  }
-  return lv_color_black();
 }
 
 template <std::size_t DestinationSize, std::size_t SourceSize>
@@ -301,36 +290,26 @@ bool Collection::build(State& state, const Layout& layout,
   // Geometry, box and styling rules are the shared frame every widget type
   // carries; only the title, the value style and the sources are text's own.
   const configuration::WidgetFrame& frame = config.frame;
-  const bool has_title = config.title.text.front() != '\0';
-  const lv_font_t* const title_font =
-      has_title ? fonts.resolve(config.title.font) : nullptr;
   const lv_font_t* const value_font = fonts.resolve(config.value.font);
-  if ((has_title && title_font == nullptr) || value_font == nullptr) {
+  if (value_font == nullptr) {
     return false;
   }
-  const std::int32_t title_width =
-      has_title ? text_width(title_font, config.title.text.data()) : 0;
-  const std::int32_t title_height =
-      has_title ? lv_font_get_line_height(title_font) : 0;
   std::array<char, telemetry::kTelemetryTextCapacity> unavailable{};
   unavailable_text(config, unavailable);
-  const std::int32_t value_width =
-      std::max<std::int32_t>(
-          text_width(value_font, unavailable.data()),
-          lv_font_get_glyph_width(value_font, '8', '\0'));
+  const std::int32_t value_width = std::max<std::int32_t>(
+      text_width_of(value_font, unavailable.data()),
+      lv_font_get_glyph_width(value_font, '8', '\0'));
   const std::int32_t value_height = lv_font_get_line_height(value_font);
-  const std::int32_t content_width =
-      std::max(value_width, title_width + (has_title ? 8 : 0));
-  const std::int32_t content_height =
-      value_height + (has_title ? title_height / 2 : 0);
 
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
-  if (!frame::build(layout, frame, kTag, content_width, content_height, false,
+  if (!frame::build(layout, frame, kTag, value_width, value_height, false, fonts,
                     parent, bounds, box)) {
     return false;
   }
+  const std::int32_t title_height = box.caption_height;
+  const bool has_title = title_height > 0;
 
   state.source_count = binding.count;
   for (std::size_t index = 0; index < binding.count; ++index) {
@@ -342,47 +321,7 @@ bool Collection::build(State& state, const Layout& layout,
     };
   }
   state.unavailable_text = unavailable;
-  copy_text(state.title_text, config.title.text);
   state.container = box.container;
-  const bool has_background =
-      frame.background_color != kTransparentColor;
-  const bool paints_container = frame.background_inset_px == 0;
-
-  if (has_title) {
-    if (frame.border.width_px > 0) {
-      state.caption_gap = lv_obj_create(parent);
-      lv_obj_remove_style_all(state.caption_gap);
-      lv_obj_set_size(state.caption_gap, title_width + 8,
-                      frame.border.width_px + 2);
-      lv_obj_set_pos(state.caption_gap,
-                     bounds.x + (bounds.width - title_width - 8) / 2,
-                     bounds.y);
-      // The gap masks the border where the caption crosses it, so it matches
-      // whatever is painted there. An inset background leaves the frame line
-      // over the parent, not over the widget's fill.
-      const lv_color_t gap_color =
-          has_background && paints_container
-              ? lv_color_hex(frame.background_color)
-              : background_behind(parent);
-      state.painter.set_background_mask(
-          state.caption_gap, lv_color_to_u32(gap_color) & 0x00FF'FFFFU);
-      lv_obj_set_style_bg_color(state.caption_gap, gap_color, LV_PART_MAIN);
-      lv_obj_set_style_bg_opa(state.caption_gap, LV_OPA_COVER, LV_PART_MAIN);
-      lv_obj_remove_flag(state.caption_gap, LV_OBJ_FLAG_SCROLLABLE);
-      lv_obj_remove_flag(state.caption_gap, LV_OBJ_FLAG_CLICKABLE);
-    }
-
-    state.caption = lv_label_create(parent);
-    lv_obj_remove_style_all(state.caption);
-    lv_label_set_text_static(state.caption, state.title_text.data());
-    lv_obj_set_style_text_font(state.caption, title_font, LV_PART_MAIN);
-    lv_obj_set_style_text_color(
-        state.caption, lv_color_hex(config.title.color), LV_PART_MAIN);
-    lv_obj_set_pos(state.caption,
-                   bounds.x + (bounds.width - title_width) / 2,
-                   bounds.y - title_height / 2 +
-                       config.title.offset_y_px);
-  }
 
   state.value_label = lv_label_create(state.container);
   lv_obj_remove_style_all(state.value_label);
@@ -397,11 +336,8 @@ bool Collection::build(State& state, const Layout& layout,
   lv_obj_align(state.value_label, lv_alignment(config.value.alignment), 0,
                has_title ? title_height / 4 : 0);
 
-  // The caption and its gap live on the parent so the border can pass behind
-  // them, so the frame has to be told to hide them with the widget.
-  const std::array<lv_obj_t*, 2> attachments{state.caption_gap, state.caption};
-  state.painter.configure(frame, box, attachments, config.value.color,
-                          &apply_value_color, state.value_label);
+  state.painter.configure(frame, box, config.value.color, &apply_value_color,
+                          state.value_label);
   state.painter.bind(binding.condition.read, binding.condition.read_context);
   return true;
 }
@@ -526,12 +462,7 @@ void Collection::render() {
 }
 
 void Collection::release(State& state) {
-  if (state.caption != nullptr) {
-    lv_obj_delete(state.caption);
-  }
-  if (state.caption_gap != nullptr) {
-    lv_obj_delete(state.caption_gap);
-  }
+  state.painter.release();
   if (state.container != nullptr) {
     lv_obj_delete(state.container);
   }

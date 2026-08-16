@@ -27,14 +27,14 @@ void Collection::destroy() {
 bool Collection::build(State& state, const Layout& layout,
                        const Config& config,
                        const frame::ValueReadCallback read,
-                       void* const read_context) {
+                       void* const read_context, const fonts::Registry& fonts) {
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
   // A shape asks for no content of its own, so the placement decides its size
   // outright.
-  if (!frame::build(layout, config.frame, kTag, 0, 0, false, parent, bounds,
-                    box)) {
+  if (!frame::build(layout, config.frame, kTag, 0, 0, false, fonts, parent,
+                    bounds, box)) {
     return false;
   }
   state.container = box.container;
@@ -49,7 +49,7 @@ bool Collection::build(State& state, const Layout& layout,
   }
   // The frame is the whole widget, so it also carries the value colour a rule
   // may set: there is no separate content to paint.
-  state.painter.configure(config.frame, box, {}, config.frame.border.color,
+  state.painter.configure(config.frame, box, config.frame.border.color,
                           nullptr, nullptr);
   state.painter.bind(read, read_context);
   return true;
@@ -58,7 +58,8 @@ bool Collection::build(State& state, const Layout& layout,
 bool Collection::create(const Layout& layout,
                         const std::span<const Config> configurations,
                         const std::span<const frame::ValueReadCallback> reads,
-                        const std::span<void* const> read_contexts) {
+                        const std::span<void* const> read_contexts,
+                        const fonts::Registry& fonts) {
   if (layout.display == nullptr || configurations.size() > states_.size() ||
       reads.size() != configurations.size() ||
       read_contexts.size() != configurations.size() || created_ ||
@@ -69,7 +70,7 @@ bool Collection::create(const Layout& layout,
   created_ = true;
   for (std::size_t widget = 0; widget < configurations.size(); ++widget) {
     if (!build(states_[count_], layout, configurations[widget], reads[widget],
-               read_contexts[widget])) {
+               read_contexts[widget], fonts)) {
       clear_objects();
       created_ = false;
       lvgl_port_unlock();
@@ -117,6 +118,7 @@ void Collection::render() {
 }
 
 void Collection::release(State& state) {
+  state.painter.release();
   if (state.container != nullptr) {
     lv_obj_delete(state.container);
   }
@@ -138,13 +140,15 @@ void Collection::clear_objects() {
 bool Collection::recreate(const std::size_t index, const Layout& layout,
                           const Config& configuration,
                           const frame::ValueReadCallback read,
-                          void* const read_context) {
+                          void* const read_context,
+                          const fonts::Registry& fonts) {
   if (!created_ || index >= count_ || !lvgl_port_lock(0)) {
     return false;
   }
   State& state = states_[index];
   release(state);
-  const bool built = build(state, layout, configuration, read, read_context);
+  const bool built =
+      build(state, layout, configuration, read, read_context, fonts);
   if (built) {
     state.painter.render();
   } else {

@@ -3,6 +3,7 @@ import {
   SCHEMA_CHILD_TYPES,
   SCHEMA_OBJECT_KEYS,
   SCHEMA_WIDGET_STRUCTS,
+  TEXT_CAPACITIES,
   WIDGET_TYPES
 } from './configuration-schema'
 import type { ApplicationConfiguration } from './configuration-schema'
@@ -74,6 +75,16 @@ function findUnknownProperty(
     const here = path ? `${path}.${key}` : key
     if (allowed && !allowed.includes(key)) {
       return `Unknown property "${here}" is not part of the configuration schema.`
+    }
+    // Bounded strings are stored with a terminator, so the device rejects one
+    // byte before the capacity. Catching it here names the property instead of
+    // leaving the board to answer with a path.
+    const capacity = TEXT_CAPACITIES[`${structName}.${key}`]
+    if (capacity !== undefined && typeof child === 'string') {
+      const bytes = new TextEncoder().encode(child).byteLength
+      if (bytes >= capacity) {
+        return `"${here}" is ${bytes} bytes; the device stores at most ${capacity - 1}.`
+      }
     }
     if (structName === 'ScreenConfiguration' && key === 'widgets') {
       const error = checkWidgets(child, here)

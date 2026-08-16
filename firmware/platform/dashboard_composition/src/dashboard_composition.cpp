@@ -131,7 +131,7 @@ bool create_bar_widgets(void* const context) {
     return false;
   }
   if (!widgets.collection.create(widgets.layout, configurations,
-                                 widgets.binder.bindings())) {
+                                 widgets.binder.bindings(), *widgets.fonts)) {
     log::error(kTag, "Failed to create Bar widgets");
     return false;
   }
@@ -160,7 +160,8 @@ bool update_bar_widget(void* const context, const std::uint8_t index) {
   }
   return widgets.collection.recreate(index, widgets.layout,
                                      configurations[index],
-                                     widgets.binder.bindings()[index]);
+                                     widgets.binder.bindings()[index],
+                                     *widgets.fonts);
 }
 
 void wake_bar_widgets(void* const context) {
@@ -180,7 +181,7 @@ bool create_shape_widgets(void* const context) {
   }
   if (!widgets.collection.create(widgets.layout, configurations,
                                  widgets.binder.reads(),
-                                 widgets.binder.contexts())) {
+                                 widgets.binder.contexts(), *widgets.fonts)) {
     log::error(kTag, "Failed to create Shape widgets");
     return false;
   }
@@ -210,7 +211,8 @@ bool update_shape_widget(void* const context, const std::uint8_t index) {
   return widgets.collection.recreate(index, widgets.layout,
                                      configurations[index],
                                      widgets.binder.reads()[index],
-                                     widgets.binder.contexts()[index]);
+                                     widgets.binder.contexts()[index],
+                                     *widgets.fonts);
 }
 
 void wake_shape_widgets(void* const context) {
@@ -351,9 +353,21 @@ void for_each_configured_font(
       visit(widget.value.font, widget.sources[source].transform.prefix);
       visit(widget.value.font, widget.sources[source].transform.suffix);
     }
-    if (widget.title.text.front() != '\0') {
-      visit(widget.title.font, widget.title.text);
+  }
+  // A caption belongs to the frame, so every framed type can carry one.
+  const auto visit_caption = [&visit](const configuration::WidgetFrame& frame) {
+    if (frame.title.text.front() != '\0') {
+      visit(frame.title.font, frame.title.text);
     }
+  };
+  for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
+    visit_caption(screen.text_widgets[index].frame);
+  }
+  for (std::size_t index = 0; index < screen.shape_widget_count; ++index) {
+    visit_caption(screen.shape_widgets[index].frame);
+  }
+  for (std::size_t index = 0; index < screen.bar_widget_count; ++index) {
+    visit_caption(screen.bar_widgets[index].frame);
   }
   for (std::size_t index = 0; index < screen.delta_time_widget_count; ++index) {
     visit(screen.delta_time_widgets[index].font,
@@ -435,10 +449,12 @@ bool create(lv_display_t* const display,
     dashboard_state.bar.screen = &screen_configuration;
     dashboard_state.bar.registry = &telemetry_registry;
     dashboard_state.bar.telemetry = &telemetry;
+    dashboard_state.bar.fonts = &dashboard_state.fonts;
     dashboard_state.shape.layout = layout;
     dashboard_state.shape.screen = &screen_configuration;
     dashboard_state.shape.registry = &telemetry_registry;
     dashboard_state.shape.telemetry = &telemetry;
+    dashboard_state.shape.fonts = &dashboard_state.fonts;
     dashboard_state.text.lap_timer_modifier = {
         .read = modules.lap_timer_started ? &read_lap_timer_modifier : nullptr,
         .context = modules.lap_timer_started
@@ -536,6 +552,13 @@ bool widget_changed(const Widget& left, const Widget& right) {
 // Only the face has to be installed: every pixel size is rasterized from it, so
 // a configuration that asks for a size the device has never rendered composes
 // without an upload.
+// A caption needs its family installed like any other text.
+[[nodiscard]] bool captioned(const configuration::WidgetFrame& frame,
+                             const dashboard::fonts::Registry& fonts) {
+  return frame.title.text.front() == '\0' ||
+         fonts.has_family(frame.title.font.family);
+}
+
 bool fonts_available(
     const configuration::ApplicationConfiguration& configuration,
     const dashboard::fonts::Registry& fonts) {
@@ -546,18 +569,21 @@ bool fonts_available(
     switch (reference.type) {
       case configuration::WidgetType::text: {
         const auto& widget = screen.text_widgets[reference.index];
-        if (!fonts.has_family(widget.value.font.family)) {
-          return false;
-        }
-        if (widget.title.text.front() != '\0' &&
-            !fonts.has_family(widget.title.font.family)) {
+        if (!fonts.has_family(widget.value.font.family) ||
+            !captioned(widget.frame, fonts)) {
           return false;
         }
         break;
       }
       case configuration::WidgetType::shape:
+        if (!captioned(screen.shape_widgets[reference.index].frame, fonts)) {
+          return false;
+        }
+        break;
       case configuration::WidgetType::bar:
-        // Neither draws text, so neither needs a font installed.
+        if (!captioned(screen.bar_widgets[reference.index].frame, fonts)) {
+          return false;
+        }
         break;
       case configuration::WidgetType::delta_time:
         if (!fonts.has_family(

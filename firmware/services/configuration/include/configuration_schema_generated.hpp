@@ -201,12 +201,13 @@ inline constexpr std::array<std::string_view, 3> kTextSourceConfigurationKeys{{
     "transform",
 }};
 
-inline constexpr std::array<std::string_view, 9> kWidgetFrameKeys{{
+inline constexpr std::array<std::string_view, 10> kWidgetFrameKeys{{
     "id",
     "placement",
     "z_index",
     "padding",
     "border",
+    "title",
     "background_color",
     "background_inset_px",
     "condition_source",
@@ -220,12 +221,12 @@ inline constexpr std::array<std::string_view, 13> kTextWidgetConfigurationKeys{{
     "z_index",
     "padding",
     "border",
+    "title",
     "background_color",
     "background_inset_px",
     "condition_source",
     "conditions",
     "sources",
-    "title",
     "value",
 }};
 
@@ -234,13 +235,14 @@ inline constexpr std::array<std::string_view, 2> kValueRangeKeys{{
     "maximum",
 }};
 
-inline constexpr std::array<std::string_view, 16> kBarWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 17> kBarWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
     "z_index",
     "padding",
     "border",
+    "title",
     "background_color",
     "background_inset_px",
     "condition_source",
@@ -253,13 +255,14 @@ inline constexpr std::array<std::string_view, 16> kBarWidgetConfigurationKeys{{
     "fill_color",
 }};
 
-inline constexpr std::array<std::string_view, 11> kShapeWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 12> kShapeWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
     "z_index",
     "padding",
     "border",
+    "title",
     "background_color",
     "background_inset_px",
     "condition_source",

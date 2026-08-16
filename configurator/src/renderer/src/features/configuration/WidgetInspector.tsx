@@ -149,6 +149,7 @@ function BarEditor({ selection, widget }: { selection: WidgetSelection; widget: 
         <ColorField label="Fill color" value={widget.fill_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.fill_color = value })} />
         <p className="text-muted-foreground">The box background below is the track the fill runs over.</p>
       </Section>
+      <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
     </>
@@ -165,6 +166,7 @@ function ShapeEditor({ selection, widget }: { selection: WidgetSelection; widget
         <SelectField label="Kind" value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} onChange={(value) => update((next) => { next.kind = value as ShapeKind })} />
         <p className="text-muted-foreground">A line is a thin rectangle: give it a small height or width.</p>
       </Section>
+      <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
     </>
@@ -250,12 +252,21 @@ function TextEditor({ selection, widget }: { selection: WidgetSelection; widget:
         <TextField label="Unavailable text" value={widget.value?.unavailable_text ?? ''} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
         <ColorField label="Color" value={widget.value?.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
       </Section>
-      <Section title="Title">
-        <TextField label="Text" value={widget.title?.text ?? ''} onChange={(value) => update((next) => { next.title = { ...next.title, text: value } })} />
-        {widget.title?.text ? <><FontEditor font={widget.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} /><ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} /><NumberField label="Y offset" value={widget.title.offset_y_px ?? 0} onChange={(value) => update((next) => { next.title = { ...next.title, offset_y_px: value } })} /></> : null}
-      </Section>
       <BoxEditor widget={widget} update={update} />
     </>
+  )
+}
+
+function TitleEditor({ widget, update }: {
+  widget: FramedWidget
+  update: (mutation: (next: FramedWidget) => void) => void
+}): React.JSX.Element {
+  return (
+    <Section title="Title">
+      <p className="text-muted-foreground">The caption breaks the top border, which is what gives a panel its label.</p>
+      <TextField label="Text" value={widget.title?.text ?? ''} onChange={(value) => update((next) => { next.title = { ...next.title, text: value } })} />
+      {widget.title?.text ? <><FontEditor font={widget.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} /><ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} /><NumberField label="Y offset" value={widget.title.offset_y_px ?? 0} onChange={(value) => update((next) => { next.title = { ...next.title, offset_y_px: value } })} /></> : null}
+    </Section>
   )
 }
 

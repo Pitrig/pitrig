@@ -9,9 +9,9 @@ export const MAXIMUM_PAYLOAD_SIZE = 65536
 /** Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review. */
 export const MAXIMUM_SCREENS = 1
 /** Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize. */
-export const MAXIMUM_WIDGETS_PER_SCREEN = 71
-/** Text widget storage per screen. */
-export const MAXIMUM_TEXT_WIDGETS = 16
+export const MAXIMUM_WIDGETS_PER_SCREEN = 87
+/** Text widget storage per screen. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. */
+export const MAXIMUM_TEXT_WIDGETS = 32
 /** Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap. */
 export const MAXIMUM_SHAPE_WIDGETS = 24
 /** Bar widget storage per screen. */
@@ -234,6 +234,7 @@ export interface WidgetFrame {
   z_index?: number
   padding?: WidgetInsets
   border?: WidgetBorder
+  title?: WidgetTitleStyle
   background_color?: RgbColor
   background_inset_px?: number
   condition_source?: ValueSourceConfiguration
@@ -248,12 +249,12 @@ export interface TextWidgetConfiguration {
   z_index?: number
   padding?: WidgetInsets
   border?: WidgetBorder
+  title?: WidgetTitleStyle
   background_color?: RgbColor
   background_inset_px?: number
   condition_source?: ValueSourceConfiguration
   conditions?: WidgetCondition[]
   sources?: TextSourceConfiguration[]
-  title?: WidgetTitleStyle
   value?: WidgetValueStyle
 }
 
@@ -271,6 +272,7 @@ export interface BarWidgetConfiguration {
   z_index?: number
   padding?: WidgetInsets
   border?: WidgetBorder
+  title?: WidgetTitleStyle
   background_color?: RgbColor
   background_inset_px?: number
   condition_source?: ValueSourceConfiguration
@@ -291,6 +293,7 @@ export interface ShapeWidgetConfiguration {
   z_index?: number
   padding?: WidgetInsets
   border?: WidgetBorder
+  title?: WidgetTitleStyle
   background_color?: RgbColor
   background_inset_px?: number
   condition_source?: ValueSourceConfiguration
@@ -341,11 +344,11 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ValueSourceConfiguration: ['binding', 'modifiers'],
   WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'hidden', 'blink_ms', 'hold_ms'],
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
-  WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions'],
-  TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'sources', 'title', 'value'],
+  WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_inset_px', 'condition_source', 'conditions'],
+  TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'sources', 'value'],
   ValueRange: ['minimum', 'maximum'],
-  BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'inverted', 'fill_color'],
-  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'kind'],
+  BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'inverted', 'fill_color'],
+  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'kind'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'delta_time', 'dashboard'],
@@ -366,10 +369,10 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   DeltaTimeWidgetConfiguration: { font: 'FontSpec', placement: 'WidgetPlacement', scale: 'DeltaTimeScaleStyle' },
   ValueSourceConfiguration: { modifiers: 'ValueModifier' },
   TextSourceConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform' },
-  WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
-  TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', title: 'WidgetTitleStyle', value: 'WidgetValueStyle' },
-  BarWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
-  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
+  WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
+  TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', value: 'WidgetValueStyle' },
+  BarWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
   ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', delta_time: 'DeltaTimeConfiguration', dashboard: 'DashboardConfiguration' },
 }
@@ -385,5 +388,8 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ValueSourceConfiguration.binding': 40,
   'TextSourceConfiguration.binding': 40,
   'WidgetFrame.id': 16,
+  'TextWidgetConfiguration.id': 16,
+  'BarWidgetConfiguration.id': 16,
+  'ShapeWidgetConfiguration.id': 16,
   'ScreenConfiguration.id': 16,
 }

@@ -6,6 +6,7 @@
 #include <span>
 
 #include "application_configuration.hpp"
+#include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
 #include "telemetry_registry.hpp"
 #include "telemetry_types.hpp"
@@ -160,16 +161,21 @@ class ConditionBinder final {
   std::size_t count_{};
 };
 
-// Objects that belong to a widget without living inside its container. The text
-// widget's caption sits on the parent so the border can pass behind it, and it
-// still has to appear and disappear with the widget.
+// The caption and its mask sit on the parent rather than inside the container,
+// so the border can pass behind them; they still appear and disappear with the
+// widget, which is what these slots are for.
 inline constexpr std::size_t kMaximumAttachments = 2;
 
-// The container a widget draws inside, plus the child that carries the
-// background when the frame keeps its border clear.
+// The container a widget draws inside, the child that carries the background
+// when the frame keeps its border clear, and the caption that breaks the border.
 struct Box {
   lv_obj_t* container{};
   lv_obj_t* background_fill{};
+  lv_obj_t* caption{};
+  lv_obj_t* caption_gap{};
+  // Line height of the caption, so a widget can leave room for it. Zero when
+  // the frame carries no title.
+  std::int32_t caption_height{};
 };
 
 // Creates the box for one widget: placement, border, radius, padding and the
@@ -180,8 +186,8 @@ struct Box {
 [[nodiscard]] bool build(const Layout& layout, const Config& config,
                          const char* tag, std::int32_t content_width,
                          std::int32_t content_height,
-                         bool fill_available_width, lv_obj_t*& parent,
-                         Rect& bounds, Box& box);
+                         bool fill_available_width, const fonts::Registry& fonts,
+                         lv_obj_t*& parent, Rect& bounds, Box& box);
 
 // Owns the conditional appearance of one widget: which rule applies, how long
 // it outlives the match that raised it, and the blink phase. LVGL is touched
@@ -194,16 +200,13 @@ using ApplyContentColor = void (*)(void* context, std::uint32_t rgb);
 
 class Painter {
  public:
-  // `attachments` follow the widget's visibility. `content_color` is the
-  // authored colour a rule falls back to, and `apply_color` puts a resolved one
-  // wherever this widget type shows it.
+  // The caption and its mask follow the widget's visibility, and the mask also
+  // follows a rule that repaints the background, so the box supplies both.
+  // `content_color` is the authored colour a rule falls back to, and
+  // `apply_color` puts a resolved one wherever this widget type shows it.
   void configure(const Config& config, const Box& box,
-                 std::span<lv_obj_t* const> attachments,
                  std::uint32_t content_color, ApplyContentColor apply_color,
                  void* color_context);
-  // An object painted with the widget's background so it can mask something
-  // behind it; it follows a rule that repaints the background.
-  void set_background_mask(lv_obj_t* object, std::uint32_t fallback_rgb);
   void bind(ValueReadCallback read, void* context);
   void render();
   void release();

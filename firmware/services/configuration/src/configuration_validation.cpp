@@ -99,12 +99,22 @@ constexpr std::uint16_t kMaximumHoldMs = 10'000;
   for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
        ++screen_index) {
     const ScreenConfiguration& screen = dashboard.screens[screen_index];
+    const auto record_caption = [&record](const WidgetFrame& frame) {
+      return frame.title.text.front() == '\0' || record(frame.title.font);
+    };
     for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
       const TextWidgetConfiguration& widget = screen.text_widgets[index];
-      if (!record(widget.value.font)) {
+      if (!record(widget.value.font) || !record_caption(widget.frame)) {
         return false;
       }
-      if (widget.title.text.front() != '\0' && !record(widget.title.font)) {
+    }
+    for (std::size_t index = 0; index < screen.shape_widget_count; ++index) {
+      if (!record_caption(screen.shape_widgets[index].frame)) {
+        return false;
+      }
+    }
+    for (std::size_t index = 0; index < screen.bar_widget_count; ++index) {
+      if (!record_caption(screen.bar_widgets[index].frame)) {
         return false;
       }
     }
@@ -283,6 +293,10 @@ bool Validator::frame(const WidgetFrame& config) {
   if (!terminated(config.id)) {
     return reject(failure_, ValidationError::invalid_widget, "id");
   }
+  if (!terminated(config.title.text) || !valid_color(config.title.color) ||
+      (config.title.text.front() != '\0' && !valid_font(config.title.font))) {
+    return reject(failure_, ValidationError::invalid_widget, "title");
+  }
   return conditions(config);
 }
 
@@ -340,10 +354,6 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
   }
   if (!frame(config.frame)) {
     return false;
-  }
-  if (!terminated(config.title.text) || !valid_color(config.title.color) ||
-      (config.title.text.front() != '\0' && !valid_font(config.title.font))) {
-    return reject(failure_, ValidationError::invalid_widget, "title");
   }
   if (!valid_font(config.value.font) || !valid_color(config.value.color) ||
       !terminated(config.value.unavailable_text) ||

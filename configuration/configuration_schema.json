@@ -12,12 +12,12 @@
       "doc": "Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review."
     },
     "kMaximumWidgetsPerScreen": {
-      "value": 71,
+      "value": 87,
       "doc": "Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize."
     },
     "kMaximumTextWidgets": {
-      "value": 16,
-      "doc": "Text widget storage per screen."
+      "value": 32,
+      "doc": "Text widget storage per screen. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts."
     },
     "kMaximumShapeWidgets": {
       "value": 24,
@@ -353,6 +353,7 @@
         { "name": "z_index", "kind": "int16", "default": 0 },
         { "name": "padding", "kind": "struct", "struct": "WidgetInsets" },
         { "name": "border", "kind": "struct", "struct": "WidgetBorder" },
+        { "name": "title", "kind": "struct", "struct": "WidgetTitleStyle" },
         { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" },
         { "name": "background_inset_px", "kind": "uint16", "default": 0, "doc": "Gap between the border and the painted background, so a filled widget keeps its frame visible. Applies to the authored background and to one a rule paints." },
         { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration" },
@@ -368,7 +369,6 @@
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "source_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "sources", "kind": "array", "struct": "TextSourceConfiguration", "capacity": "kMaximumTextSources", "count_field": "source_count" },
-        { "name": "title", "kind": "struct", "struct": "WidgetTitleStyle" },
         { "name": "value", "kind": "struct", "struct": "WidgetValueStyle" }
       ]
     },

@@ -1,131 +1,839 @@
 {
   "board": "guition_jc1060p470c",
-  "telemetry_transport": {
-    "id": "native_usb_cdc"
-  },
   "delta_time": {
+    "unavailable_behavior": "zero",
     "scale": {
       "enabled": true,
       "show_sign": true,
-      "range_ms": 5000
+      "range_ms": 2000
     }
   },
   "dashboard": {
     "screens": [
       {
+        "id": "race",
+        "background_color": "#000000",
         "widgets": [
           {
-            "type": "delta_time",
+            "type": "shape",
+            "id": "panel_switches",
+            "z_index": -10,
             "placement": {
-              "x": 406,
+              "x": 8,
               "y": 8,
-              "width": 204,
-              "height": 80
+              "width": 372,
+              "height": 96
+            },
+            "background_color": "#101010",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 16
+            }
+          },
+          {
+            "type": "shape",
+            "id": "sw_pit",
+            "z_index": 0,
+            "placement": {
+              "x": 22,
+              "y": 22,
+              "width": 78,
+              "height": 68
+            },
+            "background_color": "#1C1C1C",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 10
+            },
+            "condition_source": {
+              "binding": "vehicle.pit_limiter.enabled"
+            },
+            "conditions": [
+              {
+                "op": "equal",
+                "value": 1,
+                "background_color": "#0A3A0A",
+                "border_color": "#00C8FF"
+              }
+            ]
+          },
+          {
+            "type": "shape",
+            "id": "sw_light",
+            "z_index": 0,
+            "placement": {
+              "x": 110,
+              "y": 22,
+              "width": 78,
+              "height": 68
+            },
+            "background_color": "#1C1C1C",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 10
+            },
+            "condition_source": {
+              "binding": "vehicle.headlights"
+            },
+            "conditions": [
+              {
+                "op": "equal",
+                "value": 1,
+                "background_color": "#0A3A0A",
+                "border_color": "#FFFFFF"
+              }
+            ]
+          },
+          {
+            "type": "shape",
+            "id": "sw_wipe",
+            "z_index": 0,
+            "placement": {
+              "x": 198,
+              "y": 22,
+              "width": 78,
+              "height": 68
+            },
+            "background_color": "#1C1C1C",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 10
+            },
+            "condition_source": {
+              "binding": "vehicle.wipers"
+            },
+            "conditions": [
+              {
+                "op": "equal",
+                "value": 1,
+                "background_color": "#0A3A0A",
+                "border_color": "#FFFFFF"
+              }
+            ]
+          },
+          {
+            "type": "shape",
+            "id": "sw_ign",
+            "z_index": 0,
+            "placement": {
+              "x": 286,
+              "y": 22,
+              "width": 78,
+              "height": 68
+            },
+            "background_color": "#1C1C1C",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 10
+            },
+            "condition_source": {
+              "binding": "engine.ignition"
+            },
+            "conditions": [
+              {
+                "op": "equal",
+                "value": 1,
+                "background_color": "#0A3A0A",
+                "border_color": "#00E000"
+              }
+            ]
+          },
+          {
+            "type": "delta_time",
+            "id": "delta",
+            "z_index": 10,
+            "placement": {
+              "x": 404,
+              "y": 8,
+              "width": 216,
+              "height": 86
             },
             "font": {
               "family": "roboto-black",
-              "size_px": 56
+              "size_px": 44
             },
-            "neutral_color": "#FFE04A"
+            "faster_color": "#00E000",
+            "slower_color": "#FF0000",
+            "neutral_color": "#FFD200",
+            "scale": {
+              "vertical_padding_px": 3,
+              "border_width_px": 2,
+              "border_radius_px": 8
+            }
           },
           {
-            "type": "text",
-            "sources": [
-              {
-                "binding": "vehicle.speed"
-              }
-            ],
+            "type": "shape",
+            "id": "panel_session",
+            "z_index": -10,
             "placement": {
-              "x": 8,
-              "y": 16,
-              "width": 380,
-              "height": 190
+              "x": 644,
+              "y": 8,
+              "width": 372,
+              "height": 96
             },
+            "background_color": "#101010",
             "border": {
+              "color": "#2A2A2A",
               "width_px": 2,
-              "radius_px": 14
-            },
-            "title": {
-              "text": "SPEED",
-              "font": {
-                "family": "roboto-black",
-                "size_px": 18
-              }
-            },
-            "value": {
-              "font": {
-                "family": "roboto-black",
-                "size_px": 96
-              }
+              "radius_px": 16
             }
           },
           {
             "type": "text",
+            "id": "session_time",
+            "z_index": 10,
+            "placement": {
+              "x": 656,
+              "y": 20,
+              "width": 118,
+              "height": 56
+            },
             "sources": [
               {
-                "binding": "engine.rpm"
+                "binding": "session.time_remaining",
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
               }
             ],
-            "placement": {
-              "x": 8,
-              "y": 224,
-              "width": 380,
-              "height": 202
-            },
-            "border": {
-              "width_px": 2,
-              "radius_px": 14
-            },
-            "title": {
-              "text": "RPM",
-              "font": {
-                "family": "roboto-black",
-                "size_px": 18
-              }
-            },
             "value": {
               "font": {
                 "family": "roboto-black",
-                "size_px": 96
-              }
+                "size_px": 34
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            },
+            "title": {
+              "text": "SESSION",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#8A8A8A",
+              "offset_y_px": 60
             }
           },
           {
             "type": "text",
+            "id": "pos",
+            "z_index": 10,
+            "placement": {
+              "x": 782,
+              "y": 20,
+              "width": 110,
+              "height": 56
+            },
+            "sources": [
+              {
+                "binding": "session.position"
+              },
+              {
+                "binding": "session.participants",
+                "transform": {
+                  "prefix": "/"
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 34
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            },
+            "title": {
+              "text": "POS",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#8A8A8A",
+              "offset_y_px": 60
+            }
+          },
+          {
+            "type": "text",
+            "id": "laps",
+            "z_index": 10,
+            "placement": {
+              "x": 900,
+              "y": 20,
+              "width": 104,
+              "height": 56
+            },
+            "sources": [
+              {
+                "binding": "session.lap.current"
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 34
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            },
+            "title": {
+              "text": "LAPS",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#8A8A8A",
+              "offset_y_px": 60
+            }
+          },
+          {
+            "type": "shape",
+            "id": "panel_tires",
+            "z_index": -10,
+            "placement": {
+              "x": 8,
+              "y": 120,
+              "width": 372,
+              "height": 336
+            },
+            "background_color": "#101010",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 16
+            },
+            "title": {
+              "text": "TIRES",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 20
+              },
+              "color": "#FFFFFF"
+            }
+          },
+          {
+            "type": "text",
+            "id": "press_fl",
+            "z_index": 10,
+            "placement": {
+              "x": 30,
+              "y": 140,
+              "width": 158,
+              "height": 74
+            },
+            "sources": [
+              {
+                "binding": "tyre.front_left.pressure",
+                "transform": {
+                  "type": "number",
+                  "decimals": 2
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 46
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            }
+          },
+          {
+            "type": "text",
+            "id": "temp_fl",
+            "z_index": 10,
+            "placement": {
+              "x": 30,
+              "y": 220,
+              "width": 158,
+              "height": 46
+            },
+            "sources": [
+              {
+                "binding": "tyre.front_left.temperature",
+                "transform": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "\u00b0"
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 26
+              },
+              "color": "#00C8FF",
+              "alignment": "center"
+            },
+            "condition_source": {
+              "binding": "tyre.front_left.temperature"
+            },
+            "conditions": [
+              {
+                "op": "at_or_above",
+                "value": 100,
+                "color": "#FF0000"
+              },
+              {
+                "op": "at_or_above",
+                "value": 80,
+                "color": "#FFD200"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "id": "press_fr",
+            "z_index": 10,
+            "placement": {
+              "x": 200,
+              "y": 140,
+              "width": 158,
+              "height": 74
+            },
+            "sources": [
+              {
+                "binding": "tyre.front_right.pressure",
+                "transform": {
+                  "type": "number",
+                  "decimals": 2
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 46
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            }
+          },
+          {
+            "type": "text",
+            "id": "temp_fr",
+            "z_index": 10,
+            "placement": {
+              "x": 200,
+              "y": 220,
+              "width": 158,
+              "height": 46
+            },
+            "sources": [
+              {
+                "binding": "tyre.front_right.temperature",
+                "transform": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "\u00b0"
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 26
+              },
+              "color": "#00C8FF",
+              "alignment": "center"
+            },
+            "condition_source": {
+              "binding": "tyre.front_right.temperature"
+            },
+            "conditions": [
+              {
+                "op": "at_or_above",
+                "value": 100,
+                "color": "#FF0000"
+              },
+              {
+                "op": "at_or_above",
+                "value": 80,
+                "color": "#FFD200"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "id": "press_rl",
+            "z_index": 10,
+            "placement": {
+              "x": 30,
+              "y": 300,
+              "width": 158,
+              "height": 74
+            },
+            "sources": [
+              {
+                "binding": "tyre.rear_left.pressure",
+                "transform": {
+                  "type": "number",
+                  "decimals": 2
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 46
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            }
+          },
+          {
+            "type": "text",
+            "id": "temp_rl",
+            "z_index": 10,
+            "placement": {
+              "x": 30,
+              "y": 380,
+              "width": 158,
+              "height": 46
+            },
+            "sources": [
+              {
+                "binding": "tyre.rear_left.temperature",
+                "transform": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "\u00b0"
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 26
+              },
+              "color": "#00C8FF",
+              "alignment": "center"
+            },
+            "condition_source": {
+              "binding": "tyre.rear_left.temperature"
+            },
+            "conditions": [
+              {
+                "op": "at_or_above",
+                "value": 100,
+                "color": "#FF0000"
+              },
+              {
+                "op": "at_or_above",
+                "value": 80,
+                "color": "#FFD200"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "id": "press_rr",
+            "z_index": 10,
+            "placement": {
+              "x": 200,
+              "y": 300,
+              "width": 158,
+              "height": 74
+            },
+            "sources": [
+              {
+                "binding": "tyre.rear_right.pressure",
+                "transform": {
+                  "type": "number",
+                  "decimals": 2
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 46
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            }
+          },
+          {
+            "type": "text",
+            "id": "temp_rr",
+            "z_index": 10,
+            "placement": {
+              "x": 200,
+              "y": 380,
+              "width": 158,
+              "height": 46
+            },
+            "sources": [
+              {
+                "binding": "tyre.rear_right.temperature",
+                "transform": {
+                  "type": "number",
+                  "decimals": 1,
+                  "suffix": "\u00b0"
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 26
+              },
+              "color": "#00C8FF",
+              "alignment": "center"
+            },
+            "condition_source": {
+              "binding": "tyre.rear_right.temperature"
+            },
+            "conditions": [
+              {
+                "op": "at_or_above",
+                "value": 100,
+                "color": "#FF0000"
+              },
+              {
+                "op": "at_or_above",
+                "value": 80,
+                "color": "#FFD200"
+              }
+            ]
+          },
+          {
+            "type": "shape",
+            "id": "panel_gear",
+            "z_index": -10,
+            "placement": {
+              "x": 404,
+              "y": 104,
+              "width": 216,
+              "height": 270
+            },
+            "background_color": "#101010",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 16
+            }
+          },
+          {
+            "type": "text",
+            "id": "gear",
+            "z_index": 10,
+            "placement": {
+              "x": 412,
+              "y": 112,
+              "width": 200,
+              "height": 196
+            },
             "sources": [
               {
                 "binding": "transmission.gear"
               }
             ],
-            "placement": {
-              "x": 406,
-              "y": 92,
-              "width": 204,
-              "height": 334
-            },
-            "border": {
-              "color": "#404040",
-              "width_px": 2,
-              "radius_px": 14
-            },
-            "title": {
-              "text": "GEAR",
-              "font": {
-                "family": "roboto-black",
-                "size_px": 18
-              }
-            },
             "value": {
               "font": {
                 "family": "roboto-black",
-                "size_px": 192
+                "size_px": 160
               },
-              "unavailable_text": "N"
+              "color": "#FFFFFF",
+              "alignment": "center"
             },
-            "background_color": "#202020"
+            "condition_source": {
+              "binding": "engine.rpm_percent"
+            },
+            "conditions": [
+              {
+                "op": "at_or_above",
+                "value": 0.97,
+                "color": "#FF0000",
+                "blink_ms": 140,
+                "hold_ms": 200
+              },
+              {
+                "op": "at_or_above",
+                "value": 0.9,
+                "color": "#FFD200"
+              }
+            ]
           },
           {
             "type": "text",
+            "id": "rpm",
+            "z_index": 10,
+            "placement": {
+              "x": 412,
+              "y": 314,
+              "width": 200,
+              "height": 52
+            },
+            "sources": [
+              {
+                "binding": "engine.rpm"
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 36
+              },
+              "color": "#8A8A8A",
+              "alignment": "center"
+            }
+          },
+          {
+            "type": "bar",
+            "id": "rpm_bar",
+            "z_index": 10,
+            "placement": {
+              "x": 404,
+              "y": 382,
+              "width": 216,
+              "height": 14
+            },
+            "source": {
+              "binding": "engine.rpm_percent"
+            },
+            "minimum": 0,
+            "maximum": 1,
+            "fill_color": "#00E000",
+            "background_color": "#1C1C1C",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 1,
+              "radius_px": 4
+            },
+            "condition_source": {
+              "binding": "engine.rpm_percent"
+            },
+            "conditions": [
+              {
+                "op": "at_or_above",
+                "value": 0.97,
+                "color": "#FF0000",
+                "blink_ms": 140,
+                "hold_ms": 200
+              },
+              {
+                "op": "at_or_above",
+                "value": 0.9,
+                "color": "#FFD200"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "id": "speed",
+            "z_index": 10,
+            "placement": {
+              "x": 404,
+              "y": 402,
+              "width": 216,
+              "height": 62
+            },
+            "sources": [
+              {
+                "binding": "vehicle.speed",
+                "transform": {
+                  "type": "number",
+                  "decimals": 0
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 44
+              },
+              "color": "#000000",
+              "alignment": "center"
+            },
+            "background_color": "#FFFFFF",
+            "border": {
+              "color": "#FFFFFF",
+              "width_px": 2,
+              "radius_px": 10
+            }
+          },
+          {
+            "type": "text",
+            "id": "air_track",
+            "z_index": 10,
+            "placement": {
+              "x": 404,
+              "y": 468,
+              "width": 216,
+              "height": 30
+            },
+            "sources": [
+              {
+                "binding": "environment.air_temperature",
+                "transform": {
+                  "type": "number",
+                  "decimals": 0,
+                  "suffix": "\u00b0 air"
+                }
+              },
+              {
+                "binding": "track.temperature",
+                "transform": {
+                  "type": "number",
+                  "decimals": 0,
+                  "prefix": "  ",
+                  "suffix": "\u00b0 trk"
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 22
+              },
+              "color": "#8A8A8A",
+              "alignment": "center"
+            }
+          },
+          {
+            "type": "shape",
+            "id": "panel_laps",
+            "z_index": -10,
+            "placement": {
+              "x": 644,
+              "y": 120,
+              "width": 372,
+              "height": 336
+            },
+            "background_color": "#101010",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 16
+            },
+            "title": {
+              "text": "LAP TIMES",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 20
+              },
+              "color": "#FFFFFF"
+            }
+          },
+          {
+            "type": "text",
+            "id": "lap_estimated",
+            "z_index": 10,
+            "placement": {
+              "x": 656,
+              "y": 138,
+              "width": 348,
+              "height": 76
+            },
             "sources": [
               {
                 "binding": "session.lap.estimated_time",
@@ -135,74 +843,71 @@
                 }
               }
             ],
-            "placement": {
-              "x": 628,
-              "y": 16,
-              "width": 388,
-              "height": 122
-            },
-            "border": {
-              "width_px": 2,
-              "radius_px": 14
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 58
+              },
+              "color": "#FFD200",
+              "alignment": "center"
             },
             "title": {
               "text": "ESTIMATED LAP",
               "font": {
                 "family": "roboto-black",
                 "size_px": 18
-              }
-            },
-            "value": {
-              "font": {
-                "family": "roboto-black",
-                "size_px": 56
               },
-              "color": "#FFE04A"
+              "color": "#8A8A8A",
+              "offset_y_px": 80
             }
           },
           {
             "type": "text",
+            "id": "lap_last",
+            "z_index": 10,
+            "placement": {
+              "x": 656,
+              "y": 244,
+              "width": 348,
+              "height": 76
+            },
             "sources": [
               {
-                "binding": "session.lap.current_time",
-                "modifiers": [
-                  {
-                    "type": "lap_timer"
-                  }
-                ],
+                "binding": "session.lap.last_time",
                 "transform": {
                   "type": "time",
                   "format": "duration_ms"
                 }
               }
             ],
-            "placement": {
-              "x": 628,
-              "y": 160,
-              "width": 388,
-              "height": 122
-            },
-            "border": {
-              "width_px": 2,
-              "radius_px": 14
-            },
-            "title": {
-              "text": "CURRENT LAP",
-              "font": {
-                "family": "roboto-black",
-                "size_px": 18
-              }
-            },
             "value": {
               "font": {
                 "family": "roboto-black",
-                "size_px": 56
+                "size_px": 58
               },
-              "color": "#E000E8"
+              "color": "#FF00E0",
+              "alignment": "center"
+            },
+            "title": {
+              "text": "LAST LAP",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#8A8A8A",
+              "offset_y_px": 80
             }
           },
           {
             "type": "text",
+            "id": "lap_best",
+            "z_index": 10,
+            "placement": {
+              "x": 656,
+              "y": 350,
+              "width": 348,
+              "height": 76
+            },
             "sources": [
               {
                 "binding": "session.lap.best_time",
@@ -212,224 +917,344 @@
                 }
               }
             ],
-            "placement": {
-              "x": 628,
-              "y": 304,
-              "width": 388,
-              "height": 122
-            },
-            "border": {
-              "width_px": 2,
-              "radius_px": 14
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 58
+              },
+              "color": "#00E000",
+              "alignment": "center"
             },
             "title": {
               "text": "BEST LAP",
               "font": {
                 "family": "roboto-black",
                 "size_px": 18
-              }
-            },
-            "value": {
-              "font": {
-                "family": "roboto-black",
-                "size_px": 56
               },
-              "color": "#00F020"
+              "color": "#8A8A8A",
+              "offset_y_px": 80
             }
           },
           {
             "type": "text",
+            "id": "tc",
+            "z_index": 10,
+            "placement": {
+              "x": 8,
+              "y": 502,
+              "width": 120,
+              "height": 92
+            },
             "sources": [
               {
                 "binding": "vehicle.aids.traction_control_level"
               }
             ],
-            "placement": {
-              "x": 8,
-              "y": 450,
-              "width": 126,
-              "height": 142
-            },
-            "border": {
-              "color": "#00CFFF",
-              "width_px": 3,
-              "radius_px": 14
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 50
+              },
+              "color": "#00C8FF",
+              "alignment": "center"
             },
             "title": {
               "text": "TC",
               "font": {
                 "family": "roboto-black",
-                "size_px": 18
+                "size_px": 20
               },
-              "color": "#00CFFF"
+              "color": "#00C8FF"
             },
-            "value": {
-              "font": {
-                "family": "roboto-black",
-                "size_px": 56
-              },
-              "color": "#00CFFF"
+            "background_color": "#101010",
+            "border": {
+              "color": "#00C8FF",
+              "width_px": 2,
+              "radius_px": 12
             }
           },
           {
             "type": "text",
+            "id": "tc_cut",
+            "z_index": 10,
+            "placement": {
+              "x": 136,
+              "y": 502,
+              "width": 120,
+              "height": 92
+            },
+            "sources": [
+              {
+                "binding": "vehicle.aids.stability_control"
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 50
+              },
+              "color": "#00C8FF",
+              "alignment": "center"
+            },
+            "title": {
+              "text": "TC CUT",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 20
+              },
+              "color": "#00C8FF"
+            },
+            "background_color": "#101010",
+            "border": {
+              "color": "#00C8FF",
+              "width_px": 2,
+              "radius_px": 12
+            }
+          },
+          {
+            "type": "text",
+            "id": "abs",
+            "z_index": 10,
+            "placement": {
+              "x": 264,
+              "y": 502,
+              "width": 116,
+              "height": 92
+            },
             "sources": [
               {
                 "binding": "vehicle.aids.abs_level"
               }
             ],
-            "placement": {
-              "x": 144,
-              "y": 450,
-              "width": 126,
-              "height": 142
-            },
-            "border": {
-              "color": "#FFE04A",
-              "width_px": 3,
-              "radius_px": 14
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 50
+              },
+              "color": "#FFD200",
+              "alignment": "center"
             },
             "title": {
               "text": "ABS",
               "font": {
                 "family": "roboto-black",
-                "size_px": 18
+                "size_px": 20
               },
-              "color": "#FFE04A"
+              "color": "#FFD200"
             },
-            "value": {
-              "font": {
-                "family": "roboto-black",
-                "size_px": 56
-              },
-              "color": "#FFE04A"
+            "background_color": "#101010",
+            "border": {
+              "color": "#FFD200",
+              "width_px": 2,
+              "radius_px": 12
             }
           },
           {
             "type": "text",
+            "id": "bb",
+            "z_index": 10,
+            "placement": {
+              "x": 388,
+              "y": 502,
+              "width": 132,
+              "height": 92
+            },
             "sources": [
               {
                 "binding": "vehicle.brake_bias"
               }
             ],
-            "placement": {
-              "x": 280,
-              "y": 450,
-              "width": 158,
-              "height": 142
-            },
-            "border": {
-              "color": "#FF3030",
-              "width_px": 3,
-              "radius_px": 14
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 50
+              },
+              "color": "#FF0000",
+              "alignment": "center"
             },
             "title": {
               "text": "BB",
               "font": {
                 "family": "roboto-black",
-                "size_px": 18
+                "size_px": 20
               },
-              "color": "#FF3030"
+              "color": "#FF0000"
             },
-            "value": {
-              "font": {
-                "family": "roboto-black",
-                "size_px": 56
-              },
-              "color": "#FF3030"
+            "background_color": "#101010",
+            "border": {
+              "color": "#FF0000",
+              "width_px": 2,
+              "radius_px": 12
             }
           },
           {
             "type": "text",
+            "id": "map",
+            "z_index": 10,
+            "placement": {
+              "x": 528,
+              "y": 502,
+              "width": 132,
+              "height": 92
+            },
             "sources": [
               {
-                "binding": "vehicle.fuel.level"
+                "binding": "engine.map"
               }
             ],
-            "placement": {
-              "x": 448,
-              "y": 450,
-              "width": 184,
-              "height": 142
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 50
+              },
+              "color": "#00E000",
+              "alignment": "center"
             },
+            "title": {
+              "text": "MAP",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 20
+              },
+              "color": "#00E000"
+            },
+            "background_color": "#101010",
             "border": {
+              "color": "#00E000",
               "width_px": 2,
-              "radius_px": 14
+              "radius_px": 12
+            }
+          },
+          {
+            "type": "shape",
+            "id": "panel_fuel",
+            "z_index": -10,
+            "placement": {
+              "x": 668,
+              "y": 502,
+              "width": 348,
+              "height": 92
+            },
+            "background_color": "#101010",
+            "border": {
+              "color": "#2A2A2A",
+              "width_px": 2,
+              "radius_px": 16
             },
             "title": {
               "text": "FUEL",
               "font": {
                 "family": "roboto-black",
-                "size_px": 18
-              }
-            },
-            "value": {
-              "font": {
-                "family": "roboto-black",
-                "size_px": 56
-              }
+                "size_px": 20
+              },
+              "color": "#FFFFFF"
             }
           },
           {
             "type": "text",
+            "id": "fuel_litres",
+            "z_index": 10,
+            "placement": {
+              "x": 680,
+              "y": 512,
+              "width": 106,
+              "height": 48
+            },
+            "sources": [
+              {
+                "binding": "vehicle.fuel.level",
+                "transform": {
+                  "type": "number",
+                  "decimals": 0
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 36
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            },
+            "title": {
+              "text": "LITERS",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#8A8A8A",
+              "offset_y_px": 52
+            }
+          },
+          {
+            "type": "text",
+            "id": "fuel_avg",
+            "z_index": 10,
+            "placement": {
+              "x": 794,
+              "y": 512,
+              "width": 106,
+              "height": 48
+            },
             "sources": [
               {
                 "binding": "vehicle.fuel.average_consumption"
               }
             ],
-            "placement": {
-              "x": 642,
-              "y": 450,
-              "width": 174,
-              "height": 142
-            },
-            "border": {
-              "width_px": 2,
-              "radius_px": 14
-            },
-            "title": {
-              "text": "FUEL / LAP",
-              "font": {
-                "family": "roboto-black",
-                "size_px": 18
-              }
-            },
             "value": {
               "font": {
                 "family": "roboto-black",
-                "size_px": 56
-              }
+                "size_px": 36
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            },
+            "title": {
+              "text": "AVG",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#8A8A8A",
+              "offset_y_px": 52
             }
           },
           {
             "type": "text",
+            "id": "fuel_laps",
+            "z_index": 10,
+            "placement": {
+              "x": 908,
+              "y": 512,
+              "width": 96,
+              "height": 48
+            },
             "sources": [
               {
-                "binding": "vehicle.fuel.laps_remaining"
+                "binding": "vehicle.fuel.laps_remaining",
+                "transform": {
+                  "type": "number",
+                  "decimals": 0
+                }
               }
             ],
-            "placement": {
-              "x": 826,
-              "y": 450,
-              "width": 190,
-              "height": 142
-            },
-            "border": {
-              "width_px": 2,
-              "radius_px": 14
-            },
-            "title": {
-              "text": "FUEL LAPS",
-              "font": {
-                "family": "roboto-black",
-                "size_px": 18
-              }
-            },
             "value": {
               "font": {
                 "family": "roboto-black",
-                "size_px": 56
-              }
+                "size_px": 36
+              },
+              "color": "#FFFFFF",
+              "alignment": "center"
+            },
+            "title": {
+              "text": "LAPS",
+              "font": {
+                "family": "roboto-black",
+                "size_px": 18
+              },
+              "color": "#8A8A8A",
+              "offset_y_px": 52
             }
           }
         ]

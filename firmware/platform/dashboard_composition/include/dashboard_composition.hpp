@@ -63,6 +63,7 @@ struct BarWidgets {
   dashboard::bar_widget::Collection collection;
   dashboard::Layout layout{};
   const configuration::ScreenConfiguration* screen{};
+  const dashboard::fonts::Registry* fonts{};
   const telemetry::ITelemetryRegistry* registry{};
   const telemetry::ITelemetryReader* telemetry{};
   dashboard::frame::ModifierReader lap_timer_modifier{};
@@ -75,6 +76,7 @@ struct ShapeWidgets {
   dashboard::shape_widget::Collection collection;
   dashboard::Layout layout{};
   const configuration::ScreenConfiguration* screen{};
+  const dashboard::fonts::Registry* fonts{};
   const telemetry::ITelemetryRegistry* registry{};
   const telemetry::ITelemetryReader* telemetry{};
   dashboard::frame::ModifierReader lap_timer_modifier{};

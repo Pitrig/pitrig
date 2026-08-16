@@ -5,6 +5,7 @@
 #include <span>
 
 #include "application_configuration.hpp"
+#include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
 #include "widget_frame.hpp"
 
@@ -33,7 +34,8 @@ class Collection final {
   [[nodiscard]] bool create(const Layout& layout,
                             std::span<const Config> configurations,
                             std::span<const frame::ValueReadCallback> reads,
-                            std::span<void* const> read_contexts);
+                            std::span<void* const> read_contexts,
+                            const fonts::Registry& fonts);
   [[nodiscard]] lv_obj_t* root_object(std::size_t index) const {
     return index < count_ ? states_[index].container : nullptr;
   }
@@ -41,8 +43,8 @@ class Collection final {
   void wake();
   [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
                               const Config& configuration,
-                              frame::ValueReadCallback read,
-                              void* read_context);
+                              frame::ValueReadCallback read, void* read_context,
+                              const fonts::Registry& fonts);
 
  private:
   struct State {
@@ -56,7 +58,8 @@ class Collection final {
   void release(State& state);
   [[nodiscard]] bool build(State& state, const Layout& layout,
                            const Config& configuration,
-                           frame::ValueReadCallback read, void* read_context);
+                           frame::ValueReadCallback read, void* read_context,
+                           const fonts::Registry& fonts);
 
   std::array<State, kMaximumInstances> states_{};
   std::size_t count_{};

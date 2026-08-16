@@ -31,6 +31,11 @@ import {
   type WidgetSelection
 } from './dashboard-editor'
 
+type FramedWidgetConfiguration =
+  | TextWidgetConfiguration
+  | ShapeWidgetConfiguration
+  | BarWidgetConfiguration
+
 const SCREEN_BACKGROUND = '#000000'
 const DEFAULT_TEXT_COLOR = '#E8E8E8'
 const DEFAULT_BORDER_COLOR = '#AEAEAE'
@@ -226,6 +231,9 @@ function Widgets({
           ) : (
             <TextWidgetPreview configuration={layer.configuration} />
           )}
+          {layer.configuration.type !== 'delta_time' ? (
+            <CaptionPreview configuration={layer.configuration} />
+          ) : null}
           <HitArea placement={completePlacement(layer.configuration.placement)} />
         </g>
       ))}
@@ -336,7 +344,6 @@ function TextWidgetPreview({
       : (contentLeft + contentRight) / 2
   const valueAnchor = alignment === 'left' ? 'start' : alignment === 'right' ? 'end' : 'middle'
   const valueY = (contentTop + contentBottom) / 2 + (title ? titleFont.sizePx / 4 : 0)
-  const titleWidth = estimateTextWidth(title, titleFont.sizePx)
   const previewValue = formattedPreviewValue(configuration)
 
   return (
@@ -362,29 +369,6 @@ function TextWidgetPreview({
           stroke={configuration.border?.color ?? DEFAULT_BORDER_COLOR}
           strokeWidth={borderWidth}
         />
-      ) : null}
-      {title && borderWidth > 0 ? (
-        <rect
-          x={placement.x + (placement.width - titleWidth - 8) / 2}
-          y={placement.y}
-          width={titleWidth + 8}
-          height={borderWidth + 2}
-          fill={backgroundColor === 'transparent' || backgroundInset > 0 ? SCREEN_BACKGROUND : backgroundColor}
-        />
-      ) : null}
-      {title ? (
-        <text
-          x={placement.x + placement.width / 2}
-          y={placement.y + (configuration.title?.offset_y_px ?? 0)}
-          fill={configuration.title?.color ?? DEFAULT_TEXT_COLOR}
-          fontFamily={titleFont.family}
-          fontSize={titleFont.sizePx}
-          fontWeight={titleFont.weight}
-          textAnchor="middle"
-          dominantBaseline="middle"
-        >
-          {title}
-        </text>
       ) : null}
       <text
         x={valueX}
@@ -463,6 +447,48 @@ function BarPreview({
           strokeWidth={borderWidth}
         />
       ) : null}
+    </g>
+  )
+}
+
+// A caption belongs to the frame, so it is drawn the same way for every type
+// that has one: over a gap in the top border.
+function CaptionPreview({
+  configuration
+}: {
+  configuration: FramedWidgetConfiguration
+}): React.JSX.Element | null {
+  const placement = completePlacement(configuration.placement)
+  const title = configuration.title?.text
+  if (!placement || !title) return null
+  const font = resolvedFont(configuration.title?.font, 12)
+  const borderWidth = configuration.border?.width_px ?? 0
+  const width = estimateTextWidth(title, font.sizePx)
+  const background = normalizeColor(configuration.background_color)
+  const inset = configuration.background_inset_px ?? 0
+  return (
+    <g>
+      {borderWidth > 0 ? (
+        <rect
+          x={placement.x + (placement.width - width - 8) / 2}
+          y={placement.y}
+          width={width + 8}
+          height={borderWidth + 2}
+          fill={background && inset === 0 ? background : SCREEN_BACKGROUND}
+        />
+      ) : null}
+      <text
+        x={placement.x + placement.width / 2}
+        y={placement.y + (configuration.title?.offset_y_px ?? 0)}
+        fill={configuration.title?.color ?? DEFAULT_TEXT_COLOR}
+        fontFamily={font.family}
+        fontSize={font.sizePx}
+        fontWeight={font.weight}
+        textAnchor="middle"
+        dominantBaseline="middle"
+      >
+        {title}
+      </text>
     </g>
   )
 }

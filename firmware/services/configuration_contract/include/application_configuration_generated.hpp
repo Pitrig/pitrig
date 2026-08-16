@@ -22,9 +22,9 @@ inline constexpr std::size_t kMaximumPayloadSize = 65536;
 // Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review.
 inline constexpr std::size_t kMaximumScreens = 1;
 // Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize.
-inline constexpr std::size_t kMaximumWidgetsPerScreen = 71;
-// Text widget storage per screen.
-inline constexpr std::size_t kMaximumTextWidgets = 16;
+inline constexpr std::size_t kMaximumWidgetsPerScreen = 87;
+// Text widget storage per screen. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts.
+inline constexpr std::size_t kMaximumTextWidgets = 32;
 // Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap.
 inline constexpr std::size_t kMaximumShapeWidgets = 24;
 // Bar widget storage per screen.
@@ -281,6 +281,7 @@ struct WidgetFrame {
   std::int16_t z_index{};
   WidgetInsets padding{};
   WidgetBorder border{};
+  WidgetTitleStyle title{};
   std::uint32_t background_color{kTransparentColor};
   std::uint16_t background_inset_px{};
   ValueSourceConfiguration condition_source{};
@@ -294,7 +295,6 @@ struct TextWidgetConfiguration {
   WidgetFrame frame{};
   std::uint8_t source_count{};
   std::array<TextSourceConfiguration, kMaximumTextSources> sources{};
-  WidgetTitleStyle title{};
   WidgetValueStyle value{};
 };
 

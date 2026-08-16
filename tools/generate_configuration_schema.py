@@ -209,6 +209,23 @@ def object_keys(document: dict[str, Any], struct_name: str) -> list[str]:
     return keys
 
 
+def text_fields(
+    document: dict[str, Any], body: dict[str, Any]
+) -> list[tuple[str, dict[str, Any]]]:
+    """Bounded strings a validator sees at this level, following flattened structs.
+
+    A flattened struct contributes its properties here, so its capacities have to
+    be reported under this name too or a check would look them up and miss.
+    """
+    found: list[tuple[str, dict[str, Any]]] = []
+    for field in serialized_fields(body):
+        if field.get("flatten"):
+            found.extend(text_fields(document, document["structs"][field["struct"]]))
+        elif field["kind"] == "text":
+            found.append((field["name"], field))
+    return found
+
+
 def child_types(document: dict[str, Any], body: dict[str, Any]) -> dict[str, str]:
     """Nested object type per public property, following flattened structs.
 
@@ -681,10 +698,10 @@ def generate_typescript(document: dict[str, Any]) -> str:
         ]
     )
     for struct_name in document["structs"]:
-        for field in document["structs"][struct_name].get("fields", []):
-            if field["kind"] == "text":
-                limit = document["limits"][field["capacity"]]["value"]
-                lines.append(f"  '{struct_name}.{json_key(field)}': {limit},")
+        for owner, field in text_fields(document, document["structs"][struct_name]):
+            limit = document["limits"][field["capacity"]]["value"]
+            lines.append(f"  '{struct_name}.{json_key(field)}': {limit},")
+            del owner
     lines.append("}")
     lines.append("")
     return "\n".join(lines)

@@ -545,6 +545,19 @@ template <typename Source>
     }
   }
 
+  if (const cJSON* const title = member(object, "title"); title != nullptr) {
+    constexpr std::string_view kTitleName = "widget.title";
+    if (!valid_object(title, schema::kWidgetTitleStyleKeys, kTitleName,
+                      failure) ||
+        !read_text(title, "text", frame.title.text, kTitleName, failure) ||
+        !parse_optional_font(title, frame.title.font, failure) ||
+        !read_color(title, "color", frame.title.color, kTitleName, failure) ||
+        !read_integer(title, "offset_y_px", frame.title.offset_y_px, kTitleName,
+                      failure)) {
+      return false;
+    }
+  }
+
   if (const cJSON* const border = member(object, "border"); border != nullptr) {
     constexpr std::string_view kBorderName = "widget.border";
     if (!valid_object(border, schema::kWidgetBorderKeys, kBorderName,
@@ -611,19 +624,6 @@ template <typename Source>
       !parse_frame(object, config.frame, kName, failure) ||
       !parse_sources(object, config, failure)) {
     return false;
-  }
-
-  if (const cJSON* const title = member(object, "title"); title != nullptr) {
-    constexpr std::string_view kTitleName = "widget.text.title";
-    if (!valid_object(title, schema::kWidgetTitleStyleKeys, kTitleName,
-                      failure) ||
-        !read_text(title, "text", config.title.text, kTitleName, failure) ||
-        !parse_optional_font(title, config.title.font, failure) ||
-        !read_color(title, "color", config.title.color, kTitleName, failure) ||
-        !read_integer(title, "offset_y_px", config.title.offset_y_px,
-                      kTitleName, failure)) {
-      return false;
-    }
   }
 
   const cJSON* const value = member(object, "value");

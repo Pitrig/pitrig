@@ -10,6 +10,72 @@
 namespace simcore::dashboard::frame {
 namespace {
 
+[[nodiscard]] std::int32_t text_width(const lv_font_t* const font,
+                                      const char* const text) {
+  lv_point_t size{};
+  lv_text_get_size(&size, text, font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+  return size.x;
+}
+
+// The colour showing behind the widget, so the caption mask can hide the border
+// line without knowing what it is standing on.
+[[nodiscard]] lv_color_t background_behind(const lv_obj_t* object) {
+  while (object != nullptr) {
+    if (lv_obj_get_style_bg_opa(object, LV_PART_MAIN) > LV_OPA_TRANSP) {
+      return lv_obj_get_style_bg_color(object, LV_PART_MAIN);
+    }
+    object = lv_obj_get_parent(object);
+  }
+  return lv_color_black();
+}
+
+// Creates the caption that breaks the top border, plus the mask that hides the
+// border line behind it. Both sit on the parent so the border can pass behind.
+void build_caption(const Config& config, const fonts::Registry& fonts,
+                   lv_obj_t* const parent, const Rect& bounds,
+                   const bool paints_container, Box& box) {
+  if (config.title.text.front() == '\0') {
+    return;
+  }
+  const lv_font_t* const title_font = fonts.resolve(config.title.font);
+  if (title_font == nullptr) {
+    return;
+  }
+  const std::int32_t title_width =
+      text_width(title_font, config.title.text.data());
+  const std::int32_t title_height = lv_font_get_line_height(title_font);
+  const bool has_background =
+      config.background_color != configuration::kTransparentColor;
+
+  if (config.border.width_px > 0) {
+    box.caption_gap = lv_obj_create(parent);
+    lv_obj_remove_style_all(box.caption_gap);
+    lv_obj_set_size(box.caption_gap, title_width + 8, config.border.width_px + 2);
+    lv_obj_set_pos(box.caption_gap,
+                   bounds.x + (bounds.width - title_width - 8) / 2, bounds.y);
+    // An inset background leaves the frame line over the parent, not over the
+    // widget's own fill, so the mask matches whatever is painted there.
+    const lv_color_t gap_color = has_background && paints_container
+                                     ? lv_color_hex(config.background_color)
+                                     : background_behind(parent);
+    lv_obj_set_style_bg_color(box.caption_gap, gap_color, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(box.caption_gap, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_remove_flag(box.caption_gap, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(box.caption_gap, LV_OBJ_FLAG_CLICKABLE);
+  }
+
+  box.caption = lv_label_create(parent);
+  lv_obj_remove_style_all(box.caption);
+  // Copied rather than kept by pointer: the caption text is set once at build
+  // time, so LVGL owning it costs one allocation and no lifetime question.
+  lv_label_set_text(box.caption, config.title.text.data());
+  lv_obj_set_style_text_font(box.caption, title_font, LV_PART_MAIN);
+  lv_obj_set_style_text_color(box.caption, lv_color_hex(config.title.color),
+                              LV_PART_MAIN);
+  lv_obj_set_pos(box.caption, bounds.x + (bounds.width - title_width) / 2,
+                 bounds.y - title_height / 2 + config.title.offset_y_px);
+}
+
 telemetry::TelemetryRead read_telemetry(void* const context) {
   if (context == nullptr) {
     return {};
@@ -53,22 +119,39 @@ bool bind_source(const std::string_view name,
 
 bool build(const Layout& layout, const Config& config, const char* const tag,
            const std::int32_t content_width, const std::int32_t content_height,
-           const bool fill_available_width, lv_obj_t*& parent, Rect& bounds,
-           Box& box) {
+           const bool fill_available_width, const fonts::Registry& fonts,
+           lv_obj_t*& parent, Rect& bounds, Box& box) {
+  const bool has_title = config.title.text.front() != '\0';
+  const lv_font_t* const title_font =
+      has_title ? fonts.resolve(config.title.font) : nullptr;
+  if (has_title && title_font == nullptr) {
+    log::error(tag, "Widget title font is unavailable");
+    return false;
+  }
+  const std::int32_t title_width =
+      has_title ? text_width(title_font, config.title.text.data()) : 0;
+  const std::int32_t title_height =
+      has_title ? lv_font_get_line_height(title_font) : 0;
+  box.caption_height = title_height;
+  // The caption straddles the top border, so half of it is the widget's own
+  // business and the rest overhangs.
+  const std::int32_t caption_width = has_title ? title_width + 8 : 0;
+  const std::int32_t framed_width = std::max(content_width, caption_width);
+  const std::int32_t framed_height = content_height + title_height / 2;
   const std::int32_t horizontal_insets =
       2 * config.border.width_px + config.padding.left + config.padding.right;
   const std::int32_t vertical_insets =
       2 * config.border.width_px + config.padding.top + config.padding.bottom;
   if (!resolve_widget_bounds(layout, config.placement,
-                             content_width + horizontal_insets,
-                             content_height + vertical_insets,
+                             framed_width + horizontal_insets,
+                             framed_height + vertical_insets,
                              fill_available_width, parent, bounds) ||
       bounds.width <= horizontal_insets || bounds.height <= vertical_insets) {
     // Font metrics come from the uploaded face, so a placement authored against
     // different metrics can be too small. Report what it would have taken.
     log::error(tag, "Widget needs %dx%d but is placed at %dx%d",
-               static_cast<int>(content_width + horizontal_insets),
-               static_cast<int>(content_height + vertical_insets),
+               static_cast<int>(framed_width + horizontal_insets),
+               static_cast<int>(framed_height + vertical_insets),
                static_cast<int>(config.placement.width),
                static_cast<int>(config.placement.height));
     return false;
@@ -111,6 +194,7 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
   apply_debug_widget_outline(box.container);
 
   if (paints_container) {
+    build_caption(config, fonts, parent, bounds, paints_container, box);
     return true;
   }
   // Created before any content so it stays behind it. LVGL places a child
@@ -139,17 +223,28 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
                           LV_PART_MAIN);
   lv_obj_remove_flag(box.background_fill, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(box.background_fill, LV_OBJ_FLAG_CLICKABLE);
+  build_caption(config, fonts, parent, bounds, paints_container, box);
   return true;
 }
 
 void Painter::configure(const Config& config, const Box& box,
-                        const std::span<lv_obj_t* const> attachments,
                         const std::uint32_t content_color,
                         const ApplyContentColor apply_color,
                         void* const color_context) {
   box_ = box;
-  attachment_count_ = std::min(attachments.size(), attachments_.size());
-  std::copy_n(attachments.begin(), attachment_count_, attachments_.begin());
+  attachment_count_ = 0;
+  for (lv_obj_t* const object : {box.caption_gap, box.caption}) {
+    if (object != nullptr && attachment_count_ < attachments_.size()) {
+      attachments_[attachment_count_++] = object;
+    }
+  }
+  if (box.caption_gap != nullptr) {
+    background_mask_ = box.caption_gap;
+    background_mask_rgb_ =
+        lv_color_to_u32(lv_obj_get_style_bg_color(box.caption_gap,
+                                                  LV_PART_MAIN)) &
+        0x00FF'FFFFU;
+  }
   apply_color_ = apply_color;
   color_context_ = color_context;
   condition_count_ =
@@ -171,18 +266,21 @@ void Painter::configure(const Config& config, const Box& box,
   visible_ = true;
 }
 
-void Painter::set_background_mask(lv_obj_t* const object,
-                                  const std::uint32_t fallback_rgb) {
-  background_mask_ = object;
-  background_mask_rgb_ = fallback_rgb;
-}
-
 void Painter::bind(const ValueReadCallback read, void* const context) {
   read_ = read;
   read_context_ = context;
 }
 
-void Painter::release() { *this = Painter{}; }
+void Painter::release() {
+  // The caption and its mask sit on the parent, so deleting the container would
+  // leave them behind.
+  for (lv_obj_t* const object : {box_.caption, box_.caption_gap}) {
+    if (object != nullptr) {
+      lv_obj_delete(object);
+    }
+  }
+  *this = Painter{};
+}
 
 void Painter::render() {
   const telemetry::TelemetryRead value =
