@@ -28,6 +28,14 @@ bool reject(ValidationFailure& failure, const ValidationError error,
   return false;
 }
 
+// Blink bounds: faster than this is a strobe rather than an indicator, slower
+// reads as a widget that failed to update.
+constexpr std::uint16_t kMinimumBlinkMs = 100;
+constexpr std::uint16_t kMaximumBlinkMs = 5'000;
+// A rule that outlives its match by more than this stops reading as a reaction
+// to the car and starts reading as a stuck widget.
+constexpr std::uint16_t kMaximumHoldMs = 10'000;
+
 [[nodiscard]] bool valid_color(const std::uint32_t color) {
   return color <= 0x00FF'FFFFU;
 }
@@ -138,6 +146,7 @@ class Validator final {
 
  private:
   [[nodiscard]] bool text_source(const TextSourceConfiguration& config);
+  [[nodiscard]] bool conditions(const TextWidgetConfiguration& config);
 
   [[nodiscard]] std::int32_t width() const { return profile_.display.width; }
   [[nodiscard]] std::int32_t height() const { return profile_.display.height; }
@@ -203,6 +212,42 @@ bool Validator::text_source(const TextSourceConfiguration& config) {
   return true;
 }
 
+// Styling rules read one telemetry source and may not blink faster than the eye
+// can follow or so slowly that the widget looks broken.
+bool Validator::conditions(const TextWidgetConfiguration& config) {
+  if (config.condition_count > config.conditions.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "conditions");
+  }
+  if (config.condition_count == 0) {
+    return true;
+  }
+  const std::string_view binding =
+      value_binding_view(config.condition_source.binding);
+  if (!registry_.resolve(binding).valid()) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "condition_source");
+  }
+  if (config.condition_source.modifier_count >
+      config.condition_source.modifiers.size()) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "condition_source");
+  }
+  for (std::size_t index = 0; index < config.condition_count; ++index) {
+    const WidgetCondition& rule = config.conditions[index];
+    if (rule.op < ConditionOperator::above ||
+        rule.op > ConditionOperator::not_equal ||
+        !std::isfinite(rule.value) || !valid_optional_color(rule.color) ||
+        !valid_optional_color(rule.background_color) ||
+        !valid_optional_color(rule.border_color) ||
+        (rule.blink_ms != 0 &&
+         (rule.blink_ms < kMinimumBlinkMs || rule.blink_ms > kMaximumBlinkMs)) ||
+        rule.hold_ms > kMaximumHoldMs) {
+      return reject(failure_, ValidationError::invalid_widget, "conditions");
+    }
+  }
+  return true;
+}
+
 bool Validator::text_widget(const TextWidgetConfiguration& config) {
   // A widget with no source has nothing to render, and its LVGL label would be
   // sized from an empty placeholder.
@@ -215,6 +260,9 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
       return false;
     }
   }
+  if (!conditions(config)) {
+    return false;
+  }
   if (!valid_placement(config.placement, width(), height())) {
     return reject(failure_, ValidationError::invalid_widget, "placement");
   }
@@ -225,6 +273,15 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
   if (!valid_color(config.border.color) || config.border.width_px > 240 ||
       config.border.radius_px > 480) {
     return reject(failure_, ValidationError::invalid_widget, "border");
+  }
+  // The inset eats into the widget from both sides, so it cannot claim more
+  // than the box has to give.
+  if (2 * config.background_inset_px + 2 * config.border.width_px >=
+          config.placement.width ||
+      2 * config.background_inset_px + 2 * config.border.width_px >=
+          config.placement.height) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "background_inset_px");
   }
   if (!terminated(config.title.text) || !valid_color(config.title.color) ||
       (config.title.text.front() != '\0' && !valid_font(config.title.font))) {

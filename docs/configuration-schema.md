@@ -15,6 +15,7 @@ Schema version: 4.
 | `kMaximumDeltaTimeWidgets` | 1 | Delta Time widget storage per screen. |
 | `kMaximumTextSources` | 3 | Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. |
 | `kMaximumValueModifiers` | 4 | Value modifiers per text widget source. |
+| `kMaximumWidgetConditions` | 4 | Conditional styling rules per widget. Four covers a normal, caution, warning and limit band. |
 | `kWidgetIdCapacity` | 16 | Widget identifier storage including the terminator (15 usable bytes). |
 | `kWidgetTitleCapacity` | 16 | Widget title text storage including the terminator (15 usable bytes). |
 | `kUnavailableTextCapacity` | 16 | Placeholder text storage including the terminator (15 usable bytes). |
@@ -32,6 +33,7 @@ Schema version: 4.
 | `DeltaTimeUnavailableBehavior` | `hide`, `placeholder`, `zero` | What the Delta Time widget shows while its telemetry is unavailable. |
 | `TextAlignment` | `left`, `center`, `right` | Horizontal alignment of a text widget value. |
 | `ValueTransformType` | `none`, `time`, `number` | Presentation transform applied after the modifier pipeline. |
+| `ConditionOperator` | `above`, `at_or_above`, `below`, `at_or_below`, `equal`, `not_equal` | Comparison a styling rule applies to the numeric value of its condition source. |
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
 | `WidgetType` | `text`, `delta_time` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
 
@@ -168,6 +170,30 @@ Renders Delta Time module state. Requires the delta_time module section to be pr
 | `neutral_color` | string `#RRGGBB` | `#E8E8E8` |
 | `scale` | [`DeltaTimeScaleStyle`](#deltatimescalestyle) | absent |
 
+### ConditionSourceConfiguration
+
+Telemetry a widget watches to style itself, independent of what it displays: a gear readout can turn red on engine speed. It carries no transform because a condition consumes the typed value rather than its presentation.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `binding` | string, max 39 bytes | empty |
+| `modifiers` | array of [`ValueModifier`](#valuemodifier), max 4 | absent |
+
+### WidgetCondition
+
+One styling rule. The first rule whose comparison holds describes the widget; whatever it leaves unset stays as the widget's static style, and a transparent colour means unset rather than see-through.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `op` | `ConditionOperator` | `at_or_above` |
+| `value` | number | `0` |
+| `color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `border_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `hidden` | boolean | `false` |
+| `blink_ms` | integer, 0..65535 | `0` |
+| `hold_ms` | integer, 0..65535 | `0` |
+
 ### TextSourceConfiguration
 
 One canonical telemetry source of a text widget, consumed through a pre-bound typed callback. Its transform affixes are what separate it from the next source, so composing several needs no format string.
@@ -187,6 +213,8 @@ Reusable telemetry text widget. Renders its ordered sources as one string.
 | `type` | `WidgetType`, fixed `text` | required |
 | `id` | string, max 15 bytes | empty |
 | `sources` | array of [`TextSourceConfiguration`](#textsourceconfiguration), max 3 | absent |
+| `condition_source` | [`ConditionSourceConfiguration`](#conditionsourceconfiguration) | absent |
+| `conditions` | array of [`WidgetCondition`](#widgetcondition), max 4 | absent |
 | `placement` | [`WidgetPlacement`](#widgetplacement) | absent |
 | `z_index` | integer, -32768..32767 | `0` |
 | `padding` | [`WidgetInsets`](#widgetinsets) | absent |
@@ -194,6 +222,7 @@ Reusable telemetry text widget. Renders its ordered sources as one string.
 | `title` | [`WidgetTitleStyle`](#widgettitlestyle) | absent |
 | `value` | [`WidgetValueStyle`](#widgetvaluestyle) | absent |
 | `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `background_inset_px` | integer, 0..65535 | `0` |
 
 ### ScreenConfiguration
 

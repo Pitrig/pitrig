@@ -276,6 +276,71 @@ to an untransformed value too; each is limited to 15 UTF-8 bytes, and a value
 long enough to crowd them out keeps its own text. Incompatible binding,
 modifier, and transform types are rejected before the dashboard is created.
 
+## Conditional styling
+
+A text widget may watch one telemetry field and restyle itself from it. The
+watched field is independent of what the widget displays, which is what makes a
+shift indicator possible:
+
+```json
+{
+  "type": "text",
+  "sources": [{ "binding": "transmission.gear" }],
+  "condition_source": { "binding": "engine.rpm_percent" },
+  "conditions": [
+    {
+      "op": "at_or_above",
+      "value": 0.97,
+      "color": "#FFFFFF",
+      "background_color": "#D50000",
+      "blink_ms": 150
+    },
+    { "op": "at_or_above", "value": 0.9, "color": "#FF4040" }
+  ]
+}
+```
+
+The first rule whose comparison holds describes the widget, and whatever it
+leaves unset stays as authored — rules do not accumulate, so order is the
+priority. `op` is `above`, `at_or_above`, `below`, `at_or_below`, `equal`, or
+`not_equal`, compared against `value`. A rule may set `color`,
+`background_color`, `border_color`, `hidden`, and `blink_ms`; up to four rules
+per widget.
+
+A colour left out of a rule keeps the widget's static colour, which also means a
+rule cannot clear a background it did not paint. A widget that needs to switch
+its background on and off should be authored without one and let a rule paint
+it.
+
+`blink_ms` is a full period between 100 and 5000 milliseconds, or 0 for steady.
+The whole widget flashes — background, frame, caption and value together — so a
+warning reads as one pulsing box rather than as parts changing at different
+moments. The phase starts when the rule begins, so a widget is always visible on
+the frame that first applies it.
+
+A rule applies while it matches, so a widget flashes for exactly as long as
+traction control is engaged. `hold_ms` keeps it applied for that long after it
+stops matching, up to 10000, which is what makes a trigger shorter than a blink
+period visible at all:
+
+```json
+{ "op": "equal", "value": 1, "color": "#FFD400", "blink_ms": 200, "hold_ms": 1500 }
+```
+
+Re-triggering restarts the hold, so a rule that keeps matching never lapses.
+
+The watched value is read as a number from any source type, with booleans as 0
+and 1 and a text-formatted source parsed the way the `number` transform parses
+one. A boolean field therefore takes `equal` or `not_equal` against `1` or `0`,
+which is what the configurator offers once the watched field is a boolean.
+While that value is unavailable, or while it does not hold a number, no rule
+matches and the widget renders exactly as authored.
+
+`background_inset_px` on the widget puts a gap between the border and whatever
+paints the background, so a widget that turns red keeps its frame visible
+instead of flooding to the edge. It applies to the authored background and to
+one a rule paints, and the inset area shows whatever is behind the widget.
+
 Supported bindings are listed in the generated
 [telemetry catalog](telemetry-catalog.md). The configurator exposes these fields
 through a searchable binding input and shows the selected field's category,

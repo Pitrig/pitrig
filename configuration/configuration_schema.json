@@ -31,6 +31,10 @@
       "value": 4,
       "doc": "Value modifiers per text widget source."
     },
+    "kMaximumWidgetConditions": {
+      "value": 4,
+      "doc": "Conditional styling rules per widget. Four covers a normal, caution, warning and limit band."
+    },
     "kWidgetIdCapacity": {
       "value": 16,
       "doc": "Widget identifier storage including the terminator (15 usable bytes)."
@@ -118,6 +122,11 @@
       "json_values": ["none", "time", "number"],
       "default": "none",
       "doc": "Presentation transform applied after the modifier pipeline."
+    },
+    "ConditionOperator": {
+      "json_values": ["above", "at_or_above", "below", "at_or_below", "equal", "not_equal"],
+      "default": "at_or_above",
+      "doc": "Comparison a styling rule applies to the numeric value of its condition source."
     },
     "ValueModifierType": {
       "json_values": ["lap_timer"],
@@ -265,6 +274,29 @@
       ]
     },
 
+    "ConditionSourceConfiguration": {
+      "doc": "Telemetry a widget watches to style itself, independent of what it displays: a gear readout can turn red on engine speed. It carries no transform because a condition consumes the typed value rather than its presentation.",
+      "fields": [
+        { "name": "binding", "kind": "text", "capacity": "kValueBindingCapacity", "default": "" },
+        { "name": "modifier_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "modifiers", "kind": "array", "struct": "ValueModifier", "capacity": "kMaximumValueModifiers", "count_field": "modifier_count" }
+      ]
+    },
+
+    "WidgetCondition": {
+      "doc": "One styling rule. The first rule whose comparison holds describes the widget; whatever it leaves unset stays as the widget's static style, and a transparent colour means unset rather than see-through.",
+      "fields": [
+        { "name": "op", "kind": "enum", "enum": "ConditionOperator" },
+        { "name": "value", "kind": "float", "default": 0 },
+        { "name": "color", "kind": "optional_color", "default": "kTransparentColor" },
+        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" },
+        { "name": "border_color", "kind": "optional_color", "default": "kTransparentColor" },
+        { "name": "hidden", "kind": "bool", "default": false },
+        { "name": "blink_ms", "kind": "uint16", "default": 0, "doc": "Full blink period of the widget value. 0 renders steady." },
+        { "name": "hold_ms", "kind": "uint16", "default": 0, "doc": "Keeps this rule applied for this long after it stops matching, so a momentary trigger such as traction control still produces a visible flash. 0 applies the rule only while it matches." }
+      ]
+    },
+
     "TextSourceConfiguration": {
       "doc": "One canonical telemetry source of a text widget, consumed through a pre-bound typed callback. Its transform affixes are what separate it from the next source, so composing several needs no format string.",
       "fields": [
@@ -282,13 +314,17 @@
         { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
         { "name": "source_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "sources", "kind": "array", "struct": "TextSourceConfiguration", "capacity": "kMaximumTextSources", "count_field": "source_count" },
+        { "name": "condition_source", "kind": "struct", "struct": "ConditionSourceConfiguration" },
+        { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "conditions", "kind": "array", "struct": "WidgetCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
         { "name": "placement", "kind": "struct", "struct": "WidgetPlacement" },
         { "name": "z_index", "kind": "int16", "default": 0 },
         { "name": "padding", "kind": "struct", "struct": "WidgetInsets" },
         { "name": "border", "kind": "struct", "struct": "WidgetBorder" },
         { "name": "title", "kind": "struct", "struct": "WidgetTitleStyle" },
         { "name": "value", "kind": "struct", "struct": "WidgetValueStyle" },
-        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" }
+        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" },
+        { "name": "background_inset_px", "kind": "uint16", "default": 0, "doc": "Gap between the border and the painted background, so a filled widget keeps its frame visible. Applies to the authored background and to one a rule paints." }
       ]
     },
 

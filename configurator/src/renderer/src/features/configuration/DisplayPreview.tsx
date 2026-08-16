@@ -294,6 +294,9 @@ function TextWidgetPreview({
   const borderWidth = configuration.border?.width_px ?? 0
   const borderRadius = configuration.border?.radius_px ?? 0
   const backgroundColor = normalizeColor(configuration.background_color) ?? 'transparent'
+  // An inset background leaves the frame clear, so it starts inside the border.
+  const backgroundInset = configuration.background_inset_px ?? 0
+  const backgroundEdge = backgroundInset > 0 ? borderWidth + backgroundInset : 0
   const title = configuration.title?.text ?? ''
   const titleFont = resolvedFont(configuration.title?.font, 10)
   const valueFont = resolvedFont(configuration.value?.font, 48)
@@ -322,11 +325,11 @@ function TextWidgetPreview({
     <g>
       {backgroundColor !== 'transparent' ? (
         <rect
-          x={placement.x}
-          y={placement.y}
-          width={placement.width}
-          height={placement.height}
-          rx={borderRadius}
+          x={placement.x + backgroundEdge}
+          y={placement.y + backgroundEdge}
+          width={Math.max(0, placement.width - 2 * backgroundEdge)}
+          height={Math.max(0, placement.height - 2 * backgroundEdge)}
+          rx={Math.max(0, borderRadius - backgroundInset)}
           fill={backgroundColor}
         />
       ) : null}
@@ -348,7 +351,7 @@ function TextWidgetPreview({
           y={placement.y}
           width={titleWidth + 8}
           height={borderWidth + 2}
-          fill={backgroundColor === 'transparent' ? SCREEN_BACKGROUND : backgroundColor}
+          fill={backgroundColor === 'transparent' || backgroundInset > 0 ? SCREEN_BACKGROUND : backgroundColor}
         />
       ) : null}
       {title ? (

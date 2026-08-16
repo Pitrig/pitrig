@@ -18,6 +18,8 @@ export const MAXIMUM_DELTA_TIME_WIDGETS = 1
 export const MAXIMUM_TEXT_SOURCES = 3
 /** Value modifiers per text widget source. */
 export const MAXIMUM_VALUE_MODIFIERS = 4
+/** Conditional styling rules per widget. Four covers a normal, caution, warning and limit band. */
+export const MAXIMUM_WIDGET_CONDITIONS = 4
 /** Widget identifier storage including the terminator (15 usable bytes). */
 export const WIDGET_ID_CAPACITY = 16
 /** Widget title text storage including the terminator (15 usable bytes). */
@@ -52,6 +54,10 @@ export const TEXT_ALIGNMENT_VALUES: readonly TextAlignment[] = ['left', 'center'
 /** Presentation transform applied after the modifier pipeline. */
 export type ValueTransformType = 'none' | 'time' | 'number'
 export const VALUE_TRANSFORM_TYPE_VALUES: readonly ValueTransformType[] = ['none', 'time', 'number']
+
+/** Comparison a styling rule applies to the numeric value of its condition source. */
+export type ConditionOperator = 'above' | 'at_or_above' | 'below' | 'at_or_below' | 'equal' | 'not_equal'
+export const CONDITION_OPERATOR_VALUES: readonly ConditionOperator[] = ['above', 'at_or_above', 'below', 'at_or_below', 'equal', 'not_equal']
 
 /** Stateful value processing implemented by a module behind the pipeline callback. */
 export type ValueModifierType = 'lap_timer'
@@ -174,6 +180,24 @@ export interface DeltaTimeWidgetConfiguration {
   scale?: DeltaTimeScaleStyle
 }
 
+/** Telemetry a widget watches to style itself, independent of what it displays: a gear readout can turn red on engine speed. It carries no transform because a condition consumes the typed value rather than its presentation. */
+export interface ConditionSourceConfiguration {
+  binding?: string
+  modifiers?: ValueModifier[]
+}
+
+/** One styling rule. The first rule whose comparison holds describes the widget; whatever it leaves unset stays as the widget's static style, and a transparent colour means unset rather than see-through. */
+export interface WidgetCondition {
+  op?: ConditionOperator
+  value?: number
+  color?: RgbColor
+  background_color?: RgbColor
+  border_color?: RgbColor
+  hidden?: boolean
+  blink_ms?: number
+  hold_ms?: number
+}
+
 /** One canonical telemetry source of a text widget, consumed through a pre-bound typed callback. Its transform affixes are what separate it from the next source, so composing several needs no format string. */
 export interface TextSourceConfiguration {
   binding?: string
@@ -186,6 +210,8 @@ export interface TextWidgetConfiguration {
   type: 'text'
   id?: string
   sources?: TextSourceConfiguration[]
+  condition_source?: ConditionSourceConfiguration
+  conditions?: WidgetCondition[]
   placement?: WidgetPlacement
   z_index?: number
   padding?: WidgetInsets
@@ -193,6 +219,7 @@ export interface TextWidgetConfiguration {
   title?: WidgetTitleStyle
   value?: WidgetValueStyle
   background_color?: RgbColor
+  background_inset_px?: number
 }
 
 /** One dashboard screen. A screen is the coordinate space for the widgets it owns. */
@@ -235,8 +262,10 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ValueModifier: ['type'],
   DeltaTimeScaleStyle: ['vertical_padding_px', 'border_width_px', 'border_radius_px'],
   DeltaTimeWidgetConfiguration: ['type', 'id', 'font', 'placement', 'z_index', 'faster_color', 'slower_color', 'neutral_color', 'scale'],
+  ConditionSourceConfiguration: ['binding', 'modifiers'],
+  WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'hidden', 'blink_ms', 'hold_ms'],
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
-  TextWidgetConfiguration: ['type', 'id', 'sources', 'placement', 'z_index', 'padding', 'border', 'title', 'value', 'background_color'],
+  TextWidgetConfiguration: ['type', 'id', 'sources', 'condition_source', 'conditions', 'placement', 'z_index', 'padding', 'border', 'title', 'value', 'background_color', 'background_inset_px'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'delta_time', 'dashboard'],
@@ -252,8 +281,9 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   WidgetTitleStyle: { font: 'FontSpec' },
   WidgetValueStyle: { font: 'FontSpec' },
   DeltaTimeWidgetConfiguration: { font: 'FontSpec', placement: 'WidgetPlacement', scale: 'DeltaTimeScaleStyle' },
+  ConditionSourceConfiguration: { modifiers: 'ValueModifier' },
   TextSourceConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform' },
-  TextWidgetConfiguration: { sources: 'TextSourceConfiguration', placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', value: 'WidgetValueStyle' },
+  TextWidgetConfiguration: { sources: 'TextSourceConfiguration', condition_source: 'ConditionSourceConfiguration', conditions: 'WidgetCondition', placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', value: 'WidgetValueStyle' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
   ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', delta_time: 'DeltaTimeConfiguration', dashboard: 'DashboardConfiguration' },
 }
@@ -266,6 +296,7 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ValueTransform.prefix': 16,
   'ValueTransform.suffix': 16,
   'DeltaTimeWidgetConfiguration.id': 16,
+  'ConditionSourceConfiguration.binding': 40,
   'TextSourceConfiguration.binding': 40,
   'TextWidgetConfiguration.id': 16,
   'ScreenConfiguration.id': 16,

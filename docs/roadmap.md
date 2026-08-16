@@ -48,7 +48,8 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] Value formatting transforms (decimal precision, scale and offset, units)
 - [*] Multi-field text composition
 - [ ] Additional widget types (bar, arc, indicator strip)
-- [ ] Conditional and animated widget styling
+- [*] Conditional and animated widget styling (colour, visibility and blink;
+      gradients, rotation and animation curves are not included)
 - [ ] Uploaded image asset pipeline and image widgets
 - [ ] Button Matrix
 - [ ] RGB

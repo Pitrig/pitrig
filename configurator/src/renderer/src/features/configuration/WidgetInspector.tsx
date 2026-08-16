@@ -4,13 +4,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useDeviceStore } from '@/features/device/device-store'
 import { widgetsOf } from '../../../../shared/configuration-access'
 import {
+  CONDITION_OPERATOR_VALUES,
   MAXIMUM_TEXT_SOURCES,
+  MAXIMUM_WIDGET_CONDITIONS,
+  type ConditionOperator,
   type DeltaTimeWidgetConfiguration,
   type FontSpec,
   type RgbColor,
   type TextSourceConfiguration,
   type TextWidgetConfiguration,
   type ValueTransform,
+  type WidgetCondition,
   type WidgetPlacement
 } from '../../../../shared/configuration-schema'
 import type { DeviceConfiguration } from '../../../../shared/device'
@@ -22,6 +26,12 @@ import {
   MAXIMUM_TRANSFORM_DECIMALS,
   unitPresetsFor
 } from '../../../../shared/value-transform'
+import {
+  BOOLEAN_OPERATORS,
+  MAXIMUM_BLINK_MS,
+  MAXIMUM_HOLD_MS,
+  MINIMUM_BLINK_MS
+} from '../../../../shared/widget-conditions'
 import {
   activeScreen,
   completePlacement,
@@ -157,6 +167,7 @@ function TextEditor({ selection, widget }: { selection: WidgetSelection; widget:
           </button>
         ) : null}
       </Section>
+      <ConditionsEditor widget={widget} update={update} />
       <Section title="Value">
         <FontEditor font={widget.value?.font} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
         <SelectField label="Alignment" value={widget.value?.alignment ?? 'center'} options={['left', 'center', 'right']} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value as 'left' | 'center' | 'right' } })} />
@@ -171,9 +182,105 @@ function TextEditor({ selection, widget }: { selection: WidgetSelection; widget:
         <OptionalColorField label="Background" value={widget.background_color} onChange={(value) => update((next) => { if (value) next.background_color = value; else delete next.background_color })} />
         <div className="grid grid-cols-2 gap-2">{(['left', 'top', 'right', 'bottom'] as const).map((key) => <NumberField key={key} label={`Padding ${key}`} value={widget.padding?.[key] ?? 0} min={0} onChange={(value) => update((next) => { next.padding = { ...next.padding, [key]: value } })} />)}</div>
         <div className="grid grid-cols-2 gap-2"><NumberField label="Border width" value={widget.border?.width_px ?? 0} min={0} onChange={(value) => update((next) => { next.border = { ...next.border, width_px: value } })} /><NumberField label="Radius" value={widget.border?.radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.border = { ...next.border, radius_px: value } })} /></div>
+        <NumberField label="Background inset" value={widget.background_inset_px ?? 0} min={0} onChange={(value) => update((next) => {
+          const inset = Math.max(0, Math.round(value))
+          if (inset === 0) delete next.background_inset_px
+          else next.background_inset_px = inset
+        })} />
         <ColorField label="Border color" value={widget.border?.color ?? '#AEAEAE'} onChange={(value) => update((next) => { next.border = { ...next.border, color: value } })} />
       </Section>
     </>
+  )
+}
+
+function ConditionsEditor({ widget, update }: {
+  widget: TextWidgetConfiguration
+  update: (mutation: (next: TextWidgetConfiguration) => void) => void
+}): React.JSX.Element {
+  const watched = widget.condition_source?.binding ?? ''
+  const field = TELEMETRY_CATALOG.find(({ name }) => name === watched)
+  // A boolean field has nothing to be above or below, so the editor offers the
+  // two states it can actually take.
+  const boolean = field?.type === 'boolean'
+  const operators = boolean ? BOOLEAN_OPERATORS : CONDITION_OPERATOR_VALUES
+  const rules = widget.conditions ?? []
+  const changeRule = (index: number, mutation: (rule: WidgetCondition) => void): void => update((next) => {
+    const list = next.conditions ?? []
+    if (list[index]) mutation(list[index])
+  })
+  return (
+    <Section title="Conditions">
+      <p className="text-muted-foreground">
+        The first rule that holds restyles the widget; anything it leaves unset stays as
+        authored. The watched field is independent of what the widget shows, so a gear
+        readout can turn red on engine speed. The preview always draws the unconditional
+        style.
+      </p>
+      <TelemetryBindingField value={watched} onChange={(value) => update((next) => {
+        if (!value) {
+          delete next.condition_source
+          delete next.conditions
+          return
+        }
+        next.condition_source = { ...next.condition_source, binding: value }
+        // Thresholds follow the data: switching to a boolean field leaves no
+        // meaning in "above 0.9", so the rules move to the states it has.
+        const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
+        if (selected?.type !== 'boolean') return
+        for (const rule of next.conditions ?? []) {
+          if (!BOOLEAN_OPERATORS.includes(rule.op ?? 'at_or_above')) rule.op = 'equal'
+          rule.value = (rule.value ?? 0) >= 1 ? 1 : 0
+        }
+      })} />
+      {watched ? (
+        <>
+          {rules.map((rule, index) => (
+            <div key={index} className="space-y-2 rounded-md border p-2">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Rule {index + 1}</span>
+                <button type="button" className="rounded-md border px-2 py-0.5 text-foreground" onClick={() => update((next) => {
+                  next.conditions = (next.conditions ?? []).filter((_, position) => position !== index)
+                  if (next.conditions.length === 0) delete next.conditions
+                })}>
+                  Remove
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <SelectField label="When value is" value={rule.op ?? 'at_or_above'} options={operators} onChange={(value) => changeRule(index, (next) => { next.op = value as ConditionOperator })} />
+                {boolean ? (
+                  <SelectField label="State" value={(rule.value ?? 0) >= 1 ? 'true' : 'false'} options={['true', 'false']} onChange={(value) => changeRule(index, (next) => { next.value = value === 'true' ? 1 : 0 })} />
+                ) : (
+                  <NumberField label={field?.unit && field.unit !== 'source' ? `Threshold (${field.unit})` : 'Threshold'} value={rule.value ?? 0} step="any" onChange={(value) => changeRule(index, (next) => { next.value = value })} />
+                )}
+              </div>
+              <OptionalColorField label="Value color" value={rule.color} onChange={(value) => changeRule(index, (next) => { if (value) next.color = value; else delete next.color })} />
+              <OptionalColorField label="Background" value={rule.background_color} onChange={(value) => changeRule(index, (next) => { if (value) next.background_color = value; else delete next.background_color })} />
+              <OptionalColorField label="Border color" value={rule.border_color} onChange={(value) => changeRule(index, (next) => { if (value) next.border_color = value; else delete next.border_color })} />
+              <CheckboxField label="Hide the widget" checked={rule.hidden ?? false} onChange={(checked) => changeRule(index, (next) => { if (checked) next.hidden = true; else delete next.hidden })} />
+              <div className="grid grid-cols-2 gap-2">
+                <NumberField label="Blink period (ms, 0 = steady)" value={rule.blink_ms ?? 0} min={0} max={MAXIMUM_BLINK_MS} onChange={(value) => changeRule(index, (next) => {
+                  const period = Math.round(value)
+                  if (period <= 0) delete next.blink_ms
+                  else next.blink_ms = Math.min(MAXIMUM_BLINK_MS, Math.max(MINIMUM_BLINK_MS, period))
+                })} />
+                <NumberField label="Hold after (ms, 0 = while true)" value={rule.hold_ms ?? 0} min={0} max={MAXIMUM_HOLD_MS} onChange={(value) => changeRule(index, (next) => {
+                  const hold = Math.round(value)
+                  if (hold <= 0) delete next.hold_ms
+                  else next.hold_ms = Math.min(MAXIMUM_HOLD_MS, hold)
+                })} />
+              </div>
+            </div>
+          ))}
+          {rules.length < MAXIMUM_WIDGET_CONDITIONS ? (
+            <button type="button" className="h-8 w-full rounded-md border text-foreground" onClick={() => update((next) => {
+              next.conditions = [...(next.conditions ?? []), { op: 'at_or_above', value: 0 }]
+            })}>
+              Add rule
+            </button>
+          ) : null}
+        </>
+      ) : null}
+    </Section>
   )
 }
 

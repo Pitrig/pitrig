@@ -179,16 +179,34 @@ inline constexpr std::array<std::string_view, 9> kDeltaTimeWidgetConfigurationKe
     "scale",
 }};
 
+inline constexpr std::array<std::string_view, 2> kConditionSourceConfigurationKeys{{
+    "binding",
+    "modifiers",
+}};
+
+inline constexpr std::array<std::string_view, 8> kWidgetConditionKeys{{
+    "op",
+    "value",
+    "color",
+    "background_color",
+    "border_color",
+    "hidden",
+    "blink_ms",
+    "hold_ms",
+}};
+
 inline constexpr std::array<std::string_view, 3> kTextSourceConfigurationKeys{{
     "binding",
     "modifiers",
     "transform",
 }};
 
-inline constexpr std::array<std::string_view, 10> kTextWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 13> kTextWidgetConfigurationKeys{{
     "type",
     "id",
     "sources",
+    "condition_source",
+    "conditions",
     "placement",
     "z_index",
     "padding",
@@ -196,6 +214,7 @@ inline constexpr std::array<std::string_view, 10> kTextWidgetConfigurationKeys{{
     "title",
     "value",
     "background_color",
+    "background_inset_px",
 }};
 
 inline constexpr std::array<std::string_view, 3> kScreenConfigurationKeys{{

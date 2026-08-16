@@ -169,8 +169,11 @@ handles, and mutable state in fixed slots. A startup-only widget binder hands ea
 pre-bound typed callback per `sources` entry (up to `kMaximumTextSources`), and the widget renders
 them in order into one string; stateful modifiers (e.g. `lap_timer`) are module code behind that
 callback, and pure transforms live in `utils/transformers`. Transform `prefix`/`suffix` supply the
-literal text between sources, so composition needs no format string. Periodic paths perform no name
-lookup and no allocation. See ADRs 0003, 0005, 0012.
+literal text between sources, so composition needs no format string. A widget may also bind one
+`condition_source` it does not display and carry bounded styling rules over it; the first match wins
+and the LVGL-free resolver in `platform/dashboard/conditions` returns the appearance, with the
+authored style as the fallback. Periodic paths perform no name lookup and no allocation. See ADRs
+0003, 0005, 0012, 0017.
 
 ### Communication
 

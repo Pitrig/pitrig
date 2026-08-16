@@ -378,8 +378,10 @@ template <typename Enum, typename FromName>
   return true;
 }
 
-[[nodiscard]] bool parse_modifiers(const cJSON* const object,
-                                   TextSourceConfiguration& config,
+// Shared by a widget source and by the source its styling rules watch: the two
+// carry the same bounded modifier list.
+template <typename Source>
+[[nodiscard]] bool parse_modifiers(const cJSON* const object, Source& config,
                                    ValidationFailure& failure) {
   constexpr std::string_view kName = "widget.text.source.modifiers";
   const cJSON* const modifiers = member(object, "modifiers");
@@ -437,6 +439,55 @@ template <typename Enum, typename FromName>
   return true;
 }
 
+// Styling rules and the source they watch. Both are optional; a widget with
+// neither renders its authored colours and nothing evaluates at render time.
+[[nodiscard]] bool parse_conditions(const cJSON* const object,
+                                    TextWidgetConfiguration& config,
+                                    ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.text.conditions";
+  if (const cJSON* const source = member(object, "condition_source");
+      source != nullptr) {
+    constexpr std::string_view kSourceName = "widget.text.condition_source";
+    if (!valid_object(source, schema::kConditionSourceConfigurationKeys,
+                      kSourceName, failure) ||
+        !read_text(source, "binding", config.condition_source.binding,
+                   kSourceName, failure) ||
+        !parse_modifiers(source, config.condition_source, failure)) {
+      return false;
+    }
+  }
+
+  const cJSON* const conditions = member(object, "conditions");
+  if (conditions == nullptr) {
+    return true;
+  }
+  const int count =
+      cJSON_IsArray(conditions) ? cJSON_GetArraySize(conditions) : -1;
+  if (count < 0 || count > static_cast<int>(config.conditions.size())) {
+    return reject(failure, ValidationError::malformed, kName);
+  }
+  for (int index = 0; index < count; ++index) {
+    const cJSON* const rule = cJSON_GetArrayItem(conditions, index);
+    WidgetCondition& parsed = config.conditions[index];
+    if (!valid_object(rule, schema::kWidgetConditionKeys, kName, failure) ||
+        !read_enum(rule, "op", parsed.op, condition_operator_from_name, kName,
+                   failure) ||
+        !read_float(rule, "value", parsed.value, kName, failure) ||
+        !read_color(rule, "color", parsed.color, kName, failure) ||
+        !read_color(rule, "background_color", parsed.background_color, kName,
+                    failure) ||
+        !read_color(rule, "border_color", parsed.border_color, kName,
+                    failure) ||
+        !read_boolean(rule, "hidden", parsed.hidden, kName, failure) ||
+        !read_integer(rule, "blink_ms", parsed.blink_ms, kName, failure) ||
+        !read_integer(rule, "hold_ms", parsed.hold_ms, kName, failure)) {
+      return false;
+    }
+  }
+  config.condition_count = static_cast<std::uint8_t>(count);
+  return true;
+}
+
 [[nodiscard]] bool parse_text_widget(const cJSON* const object,
                                      TextWidgetConfiguration& config,
                                      ValidationFailure& failure) {
@@ -448,7 +499,10 @@ template <typename Enum, typename FromName>
       !read_integer(object, "z_index", config.z_index, kName, failure) ||
       !read_color(object, "background_color", config.background_color, kName,
                   failure) ||
-      !parse_sources(object, config, failure)) {
+      !read_integer(object, "background_inset_px", config.background_inset_px,
+                    kName, failure) ||
+      !parse_sources(object, config, failure) ||
+      !parse_conditions(object, config, failure)) {
     return false;
   }
 

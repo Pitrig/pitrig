@@ -31,6 +31,8 @@ inline constexpr std::size_t kMaximumDeltaTimeWidgets = 1;
 inline constexpr std::size_t kMaximumTextSources = 3;
 // Value modifiers per text widget source.
 inline constexpr std::size_t kMaximumValueModifiers = 4;
+// Conditional styling rules per widget. Four covers a normal, caution, warning and limit band.
+inline constexpr std::size_t kMaximumWidgetConditions = 4;
 // Widget identifier storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kWidgetIdCapacity = 16;
 // Widget title text storage including the terminator (15 usable bytes).
@@ -79,6 +81,16 @@ enum class ValueTransformType : std::uint8_t {
   none,
   time,
   number,
+};
+
+// Comparison a styling rule applies to the numeric value of its condition source.
+enum class ConditionOperator : std::uint8_t {
+  above,
+  at_or_above,
+  below,
+  at_or_below,
+  equal,
+  not_equal,
 };
 
 // Stateful value processing implemented by a module behind the pipeline callback.
@@ -199,6 +211,30 @@ struct DeltaTimeWidgetConfiguration {
   DeltaTimeScaleStyle scale{};
 };
 
+// Telemetry a widget watches to style itself, independent of what it
+// displays: a gear readout can turn red on engine speed. It carries no
+// transform because a condition consumes the typed value rather than its
+// presentation.
+struct ConditionSourceConfiguration {
+  std::array<char, kValueBindingCapacity> binding{};
+  std::uint8_t modifier_count{};
+  std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
+};
+
+// One styling rule. The first rule whose comparison holds describes the
+// widget; whatever it leaves unset stays as the widget's static style, and
+// a transparent colour means unset rather than see-through.
+struct WidgetCondition {
+  ConditionOperator op{ConditionOperator::at_or_above};
+  float value{};
+  std::uint32_t color{kTransparentColor};
+  std::uint32_t background_color{kTransparentColor};
+  std::uint32_t border_color{kTransparentColor};
+  bool hidden{false};
+  std::uint16_t blink_ms{};
+  std::uint16_t hold_ms{};
+};
+
 // One canonical telemetry source of a text widget, consumed through a
 // pre-bound typed callback. Its transform affixes are what separate it from
 // the next source, so composing several needs no format string.
@@ -215,6 +251,9 @@ struct TextWidgetConfiguration {
   std::array<char, kWidgetIdCapacity> id{};
   std::uint8_t source_count{};
   std::array<TextSourceConfiguration, kMaximumTextSources> sources{};
+  ConditionSourceConfiguration condition_source{};
+  std::uint8_t condition_count{};
+  std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
   WidgetPlacement placement{};
   std::int16_t z_index{};
   WidgetInsets padding{};
@@ -222,6 +261,7 @@ struct TextWidgetConfiguration {
   WidgetTitleStyle title{};
   WidgetValueStyle value{};
   std::uint32_t background_color{kTransparentColor};
+  std::uint16_t background_inset_px{};
 };
 
 // Declaration-order reference into the typed widget storage of one screen.
@@ -369,6 +409,31 @@ inline constexpr std::array<std::string_view, 3> kValueTransformTypeNames{{
   for (std::size_t index = 0; index < kValueTransformTypeNames.size(); ++index) {
     if (kValueTransformTypeNames[index] == name) {
       value = static_cast<ValueTransformType>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 6> kConditionOperatorNames{{
+    "above",
+    "at_or_above",
+    "below",
+    "at_or_below",
+    "equal",
+    "not_equal",
+}};
+
+[[nodiscard]] inline std::string_view condition_operator_name(const ConditionOperator value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kConditionOperatorNames.size() ? kConditionOperatorNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool condition_operator_from_name(const std::string_view name,
+                                                  ConditionOperator& value) {
+  for (std::size_t index = 0; index < kConditionOperatorNames.size(); ++index) {
+    if (kConditionOperatorNames[index] == name) {
+      value = static_cast<ConditionOperator>(index);
       return true;
     }
   }

@@ -4,6 +4,47 @@
 
 namespace simcore::dashboard::text_widget {
 
+bool Binder::bind_one(
+    const std::string_view name, const std::uint8_t modifier_count,
+    const std::span<const configuration::ValueModifier> modifiers,
+    const telemetry::ITelemetryRegistry& registry,
+    const telemetry::ITelemetryReader& telemetry,
+    const ModifierReader lap_timer_modifier, BoundConfig& bound) {
+  const telemetry::Handle handle = registry.resolve(name);
+  if (!handle.valid()) {
+    return false;
+  }
+  const bool lap_timer_modified =
+      modifier_count == 1 &&
+      modifiers.front().type == configuration::ValueModifierType::lap_timer;
+  ValueReadCallback read{};
+  void* read_context{};
+  if (lap_timer_modified) {
+    read = lap_timer_modifier.read;
+    read_context = lap_timer_modifier.context;
+  } else {
+    if (context_count_ >= source_contexts_.size()) {
+      return false;
+    }
+    SourceContext& context = source_contexts_[context_count_++];
+    context = {
+        .telemetry = &telemetry,
+        .handle = handle,
+    };
+    read = &read_telemetry;
+    read_context = &context;
+  }
+  if (read == nullptr || read_context == nullptr) {
+    return false;
+  }
+  bound = {
+      .read = read,
+      .read_context = read_context,
+      .fast_updates = lap_timer_modified,
+  };
+  return true;
+}
+
 bool Binder::bind_sources(
     const Config& configuration,
     const telemetry::ITelemetryRegistry& registry,
@@ -16,44 +57,22 @@ bool Binder::bind_sources(
   for (std::size_t index = 0; index < configuration.source_count; ++index) {
     const configuration::TextSourceConfiguration& source =
         configuration.sources[index];
-    const std::string_view name =
-        configuration::value_binding_view(source.binding);
-    const telemetry::Handle handle = registry.resolve(name);
-    if (!handle.valid()) {
+    if (!bind_one(configuration::value_binding_view(source.binding),
+                  source.modifier_count, source.modifiers, registry, telemetry,
+                  lap_timer_modifier, binding.sources[index])) {
       return false;
     }
-    const bool lap_timer_modified =
-        source.modifier_count == 1 &&
-        source.modifiers.front().type ==
-            configuration::ValueModifierType::lap_timer;
-    ValueReadCallback read{};
-    void* read_context{};
-    if (lap_timer_modified) {
-      read = lap_timer_modifier.read;
-      read_context = lap_timer_modifier.context;
-    } else {
-      if (context_count_ >= source_contexts_.size()) {
-        return false;
-      }
-      SourceContext& context = source_contexts_[context_count_++];
-      context = {
-          .telemetry = &telemetry,
-          .handle = handle,
-      };
-      read = &read_telemetry;
-      read_context = &context;
-    }
-    if (read == nullptr || read_context == nullptr) {
-      return false;
-    }
-    binding.sources[index] = {
-        .read = read,
-        .read_context = read_context,
-        .fast_updates = lap_timer_modified,
-    };
   }
   binding.count = configuration.source_count;
-  return true;
+
+  if (configuration.condition_count == 0) {
+    return true;
+  }
+  const configuration::ConditionSourceConfiguration& source =
+      configuration.condition_source;
+  return bind_one(configuration::value_binding_view(source.binding),
+                  source.modifier_count, source.modifiers, registry, telemetry,
+                  lap_timer_modifier, binding.condition);
 }
 
 bool Binder::bind(

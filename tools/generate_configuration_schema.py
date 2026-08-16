@@ -30,6 +30,7 @@ SCALAR_CPP = {
     "uint8": "std::uint8_t",
     "uint16": "std::uint16_t",
     "uint32": "std::uint32_t",
+    "float": "float",
     "bool": "bool",
     "color": "std::uint32_t",
     "optional_color": "std::uint32_t",
@@ -42,6 +43,7 @@ SCALAR_TS = {
     "uint8": "number",
     "uint16": "number",
     "uint32": "number",
+    "float": "number",
     "bool": "boolean",
     "color": "RgbColor",
     "optional_color": "RgbColor",
@@ -63,6 +65,7 @@ SCALAR_DOC = {
     "uint8": "integer, 0..255",
     "uint16": "integer, 0..65535",
     "uint32": "integer, 0 or greater",
+    "float": "number",
     "bool": "boolean",
     "color": "string `#RRGGBB`",
     "optional_color": "string `#RRGGBB`",
@@ -238,6 +241,11 @@ def cpp_default(field: dict[str, Any], document: dict[str, Any]) -> str:
         return "{}" if default is None else f"{{{default}}}"
     if kind == "bool":
         return "{true}" if field.get("default") else "{false}"
+    if kind == "float":
+        default = field.get("default", 0)
+        # Suffixed so a braced initialiser takes a float rather than narrowing
+        # a double constant.
+        return "{}" if not default else f"{{{float(default)}F}}"
     if kind in SCALAR_CPP:
         default = field.get("default", 0)
         return "{}" if default in (0, None) else f"{{{default}}}"

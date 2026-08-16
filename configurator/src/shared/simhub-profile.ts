@@ -52,7 +52,10 @@ export function collectDashboardTelemetry(
       requested.add('session.lap.delta')
       continue
     }
-    for (const source of widget.sources ?? []) {
+    // A styling rule watches telemetry the widget never displays, so the field
+    // it needs has to reach the profile too.
+    const sources = [...(widget.sources ?? []), ...(widget.condition_source ? [widget.condition_source] : [])]
+    for (const source of sources) {
       if (source.binding) {
         if (PROFILE_FIELD_NAMES.has(source.binding)) requested.add(source.binding)
         else unknownBindings.add(source.binding)
