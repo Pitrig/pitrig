@@ -52,10 +52,14 @@ export function collectDashboardTelemetry(
       requested.add('session.lap.delta')
       continue
     }
-    // A styling rule watches telemetry the widget never displays, so the field
-    // it needs has to reach the profile too.
+    // Everything a widget reads has to reach the profile: the several sources a
+    // text widget composes, the single source a gauge maps, and the source a
+    // styling rule watches even though the widget never displays it. Probing
+    // for the property rather than switching on the type keeps a new widget
+    // type from silently losing its telemetry.
     const sources = [
       ...(isTextWidget(widget) ? widget.sources ?? [] : []),
+      ...('source' in widget && widget.source ? [widget.source] : []),
       ...(widget.condition_source ? [widget.condition_source] : [])
     ]
     for (const source of sources) {

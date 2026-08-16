@@ -120,6 +120,53 @@ void wake_text_widgets(void* const context) {
   static_cast<TextWidgets*>(context)->collection.wake();
 }
 
+bool create_bar_widgets(void* const context) {
+  auto& widgets = *static_cast<BarWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.screen->bar_widget_count);
+  const std::span configurations{widgets.screen->bar_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    log::error(kTag, "Failed to resolve Bar widget bindings");
+    return false;
+  }
+  if (!widgets.collection.create(widgets.layout, configurations,
+                                 widgets.binder.bindings())) {
+    log::error(kTag, "Failed to create Bar widgets");
+    return false;
+  }
+  return true;
+}
+
+void destroy_bar_widgets(void* const context) {
+  static_cast<BarWidgets*>(context)->collection.destroy();
+}
+
+lv_obj_t* bar_widget_root(void* const context, const std::uint8_t index) {
+  return static_cast<BarWidgets*>(context)->collection.root_object(index);
+}
+
+bool update_bar_widget(void* const context, const std::uint8_t index) {
+  auto& widgets = *static_cast<BarWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.screen->bar_widget_count);
+  if (index >= count) {
+    return false;
+  }
+  const std::span configurations{widgets.screen->bar_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    return false;
+  }
+  return widgets.collection.recreate(index, widgets.layout,
+                                     configurations[index],
+                                     widgets.binder.bindings()[index]);
+}
+
+void wake_bar_widgets(void* const context) {
+  static_cast<BarWidgets*>(context)->collection.wake();
+}
+
 bool create_shape_widgets(void* const context) {
   auto& widgets = *static_cast<ShapeWidgets*>(context);
   const std::size_t count =
@@ -384,6 +431,10 @@ bool create(lv_display_t* const display,
     dashboard_state.text.fonts = &dashboard_state.fonts;
     dashboard_state.text.registry = &telemetry_registry;
     dashboard_state.text.telemetry = &telemetry;
+    dashboard_state.bar.layout = layout;
+    dashboard_state.bar.screen = &screen_configuration;
+    dashboard_state.bar.registry = &telemetry_registry;
+    dashboard_state.bar.telemetry = &telemetry;
     dashboard_state.shape.layout = layout;
     dashboard_state.shape.screen = &screen_configuration;
     dashboard_state.shape.registry = &telemetry_registry;
@@ -429,6 +480,16 @@ bool create(lv_display_t* const display,
             .update_instance = &update_shape_widget,
             .wake = &wake_shape_widgets,
             .context = &dashboard_state.shape,
+        }) &&
+        dashboard_state.widgets.add({
+            .type = configuration::WidgetType::bar,
+            .enabled = screen_configuration.bar_widget_count > 0,
+            .create = &create_bar_widgets,
+            .destroy = &destroy_bar_widgets,
+            .root_object = &bar_widget_root,
+            .update_instance = &update_bar_widget,
+            .wake = &wake_bar_widgets,
+            .context = &dashboard_state.bar,
         }) &&
         dashboard_state.widgets.add({
             .type = configuration::WidgetType::delta_time,
@@ -495,7 +556,8 @@ bool fonts_available(
         break;
       }
       case configuration::WidgetType::shape:
-        // A shape draws no text, so it needs no font installed.
+      case configuration::WidgetType::bar:
+        // Neither draws text, so neither needs a font installed.
         break;
       case configuration::WidgetType::delta_time:
         if (!fonts.has_family(
@@ -521,6 +583,7 @@ bool apply_incremental(
       before.widget_count != after.widget_count ||
       before.text_widget_count != after.text_widget_count ||
       before.shape_widget_count != after.shape_widget_count ||
+      before.bar_widget_count != after.bar_widget_count ||
       before.delta_time_widget_count != after.delta_time_widget_count ||
       std::memcmp(before.widgets.data(), after.widgets.data(),
                   after.widget_count *
@@ -532,6 +595,7 @@ bool apply_incremental(
   // built. Promotion swapped that out, so repoint them before rebuilding.
   dashboard.text.screen = &after;
   dashboard.shape.screen = &after;
+  dashboard.bar.screen = &after;
   dashboard.delta_time.screen = &after;
 
   if (before.background_color != after.background_color) {

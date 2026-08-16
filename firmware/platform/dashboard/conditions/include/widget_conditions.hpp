@@ -38,6 +38,12 @@ struct Resolution {
   bool matched{};
 };
 
+// Where a value sits in its configured window, clamped to 0..1. An empty or
+// reversed window reads as empty rather than as an infinity, so a widget with
+// an unusable range draws nothing instead of drawing nonsense.
+[[nodiscard]] float range_fraction(double value,
+                                   const configuration::ValueRange& range);
+
 // The first rule whose comparison holds describes the widget. Without a value
 // no rule can match, so an unavailable condition source resolves to the
 // fallback rather than latching the last match.

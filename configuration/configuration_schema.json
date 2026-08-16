@@ -161,13 +161,18 @@
       "default": "lap_timer",
       "doc": "Stateful value processing implemented by a module behind the pipeline callback."
     },
+    "BarOrientation": {
+      "json_values": ["horizontal", "vertical"],
+      "default": "horizontal",
+      "doc": "Axis a bar fills along. A vertical bar grows upwards unless it is inverted."
+    },
     "ShapeKind": {
       "json_values": ["rectangle", "ellipse"],
       "default": "rectangle",
       "doc": "Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own."
     },
     "WidgetType": {
-      "json_values": ["text", "shape", "delta_time"],
+      "json_values": ["text", "shape", "bar", "delta_time"],
       "default": "text",
       "doc": "Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget."
     }
@@ -368,6 +373,27 @@
       ]
     },
 
+    "ValueRange": {
+      "doc": "Input window a widget maps its source through. The fraction is clamped, so a value outside the window reads as full or empty rather than overflowing.",
+      "fields": [
+        { "name": "minimum", "kind": "float", "default": 0 },
+        { "name": "maximum", "kind": "float", "default": 1 }
+      ]
+    },
+
+    "BarWidgetConfiguration": {
+      "widget_type": "bar",
+      "doc": "One telemetry source drawn as a filled proportion of the widget. The frame background is the track the fill runs over, so a bar needs no track colour of its own.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
+        { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
+        { "name": "orientation", "kind": "enum", "enum": "BarOrientation" },
+        { "name": "inverted", "kind": "bool", "default": false, "doc": "Fills from the opposite end: right instead of left, or top instead of bottom." },
+        { "name": "fill_color", "kind": "color", "default": "0x38BDF8" }
+      ]
+    },
+
     "ShapeWidgetConfiguration": {
       "widget_type": "shape",
       "doc": "Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle.",
@@ -402,6 +428,7 @@
           "json_variants": {
             "text": "TextWidgetConfiguration",
             "shape": "ShapeWidgetConfiguration",
+            "bar": "BarWidgetConfiguration",
             "delta_time": "DeltaTimeWidgetConfiguration"
           },
           "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the typed storage for its variant."
@@ -410,6 +437,8 @@
         { "name": "text_widgets", "kind": "array", "struct": "TextWidgetConfiguration", "capacity": "kMaximumTextWidgets", "count_field": "text_widget_count", "serialized": false },
         { "name": "shape_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "shape_widgets", "kind": "array", "struct": "ShapeWidgetConfiguration", "capacity": "kMaximumShapeWidgets", "count_field": "shape_widget_count", "serialized": false },
+        { "name": "bar_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "bar_widgets", "kind": "array", "struct": "BarWidgetConfiguration", "capacity": "kMaximumBarWidgets", "count_field": "bar_widget_count", "serialized": false },
         { "name": "delta_time_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "delta_time_widgets", "kind": "array", "struct": "DeltaTimeWidgetConfiguration", "capacity": "kMaximumDeltaTimeWidgets", "count_field": "delta_time_widget_count", "serialized": false }
       ]

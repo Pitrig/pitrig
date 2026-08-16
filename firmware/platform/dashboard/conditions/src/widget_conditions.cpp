@@ -30,6 +30,17 @@ namespace {
 
 }  // namespace
 
+float range_fraction(const double value,
+                     const configuration::ValueRange& range) {
+  const double span =
+      static_cast<double>(range.maximum) - static_cast<double>(range.minimum);
+  if (!(span > 0.0)) {
+    return 0.0F;
+  }
+  const double fraction = (value - static_cast<double>(range.minimum)) / span;
+  return static_cast<float>(std::clamp(fraction, 0.0, 1.0));
+}
+
 std::optional<double> condition_value(const telemetry::TelemetryRead& value) {
   if (!value.available) {
     return std::nullopt;

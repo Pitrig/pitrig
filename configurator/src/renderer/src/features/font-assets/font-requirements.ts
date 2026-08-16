@@ -13,7 +13,8 @@ function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
     case 'text':
       return [widget.title?.text ? widget.title.font : undefined, widget.value?.font]
     case 'shape':
-      // A shape draws no text, so it requires no font.
+    case 'bar':
+      // Neither draws text, so neither requires a font.
       return []
     default: {
       const exhaustive: never = widget

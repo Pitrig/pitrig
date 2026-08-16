@@ -112,6 +112,12 @@ enum class ValueModifierType : std::uint8_t {
   lap_timer,
 };
 
+// Axis a bar fills along. A vertical bar grows upwards unless it is inverted.
+enum class BarOrientation : std::uint8_t {
+  horizontal,
+  vertical,
+};
+
 // Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own.
 enum class ShapeKind : std::uint8_t {
   rectangle,
@@ -122,6 +128,7 @@ enum class ShapeKind : std::uint8_t {
 enum class WidgetType : std::uint8_t {
   text,
   shape,
+  bar,
   delta_time,
 };
 
@@ -291,6 +298,26 @@ struct TextWidgetConfiguration {
   WidgetValueStyle value{};
 };
 
+// Input window a widget maps its source through. The fraction is clamped,
+// so a value outside the window reads as full or empty rather than
+// overflowing.
+struct ValueRange {
+  float minimum{};
+  float maximum{1.0F};
+};
+
+// One telemetry source drawn as a filled proportion of the widget. The
+// frame background is the track the fill runs over, so a bar needs no track
+// colour of its own.
+struct BarWidgetConfiguration {
+  WidgetFrame frame{};
+  ValueSourceConfiguration source{};
+  ValueRange range{};
+  BarOrientation orientation{BarOrientation::horizontal};
+  bool inverted{false};
+  std::uint32_t fill_color{0x38BDF8};
+};
+
 // Panels, dividers and backing plates: the frame is the whole widget. It
 // binds no telemetry of its own, but its styling rules can still hide it or
 // flash it. A line is a thin rectangle.
@@ -319,6 +346,8 @@ struct ScreenConfiguration {
   std::array<TextWidgetConfiguration, kMaximumTextWidgets> text_widgets{};
   std::uint8_t shape_widget_count{};
   std::array<ShapeWidgetConfiguration, kMaximumShapeWidgets> shape_widgets{};
+  std::uint8_t bar_widget_count{};
+  std::array<BarWidgetConfiguration, kMaximumBarWidgets> bar_widgets{};
   std::uint8_t delta_time_widget_count{};
   std::array<DeltaTimeWidgetConfiguration, kMaximumDeltaTimeWidgets> delta_time_widgets{};
 };
@@ -497,6 +526,27 @@ inline constexpr std::array<std::string_view, 1> kValueModifierTypeNames{{
   return false;
 }
 
+inline constexpr std::array<std::string_view, 2> kBarOrientationNames{{
+    "horizontal",
+    "vertical",
+}};
+
+[[nodiscard]] inline std::string_view bar_orientation_name(const BarOrientation value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kBarOrientationNames.size() ? kBarOrientationNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool bar_orientation_from_name(const std::string_view name,
+                                                  BarOrientation& value) {
+  for (std::size_t index = 0; index < kBarOrientationNames.size(); ++index) {
+    if (kBarOrientationNames[index] == name) {
+      value = static_cast<BarOrientation>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
 inline constexpr std::array<std::string_view, 2> kShapeKindNames{{
     "rectangle",
     "ellipse",
@@ -518,9 +568,10 @@ inline constexpr std::array<std::string_view, 2> kShapeKindNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 3> kWidgetTypeNames{{
+inline constexpr std::array<std::string_view, 4> kWidgetTypeNames{{
     "text",
     "shape",
+    "bar",
     "delta_time",
 }};
 

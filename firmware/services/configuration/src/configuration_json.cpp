@@ -561,6 +561,36 @@ template <typename Source>
   return true;
 }
 
+[[nodiscard]] bool parse_value_source(const cJSON* const object,
+                                     ValueSourceConfiguration& config,
+                                     const std::string_view name,
+                                     ValidationFailure& failure) {
+  const cJSON* const source = member(object, "source");
+  if (source == nullptr) {
+    return true;
+  }
+  return valid_object(source, schema::kValueSourceConfigurationKeys, name,
+                      failure) &&
+         read_text(source, "binding", config.binding, name, failure) &&
+         parse_modifiers(source, config, failure);
+}
+
+[[nodiscard]] bool parse_bar_widget(const cJSON* const object,
+                                    BarWidgetConfiguration& config,
+                                    ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.bar";
+  return valid_object(object, schema::kBarWidgetConfigurationKeys, kName,
+                      failure) &&
+         parse_frame(object, config.frame, kName, failure) &&
+         parse_value_source(object, config.source, kName, failure) &&
+         read_float(object, "minimum", config.range.minimum, kName, failure) &&
+         read_float(object, "maximum", config.range.maximum, kName, failure) &&
+         read_enum(object, "orientation", config.orientation,
+                   bar_orientation_from_name, kName, failure) &&
+         read_boolean(object, "inverted", config.inverted, kName, failure) &&
+         read_color(object, "fill_color", config.fill_color, kName, failure);
+}
+
 [[nodiscard]] bool parse_shape_widget(const cJSON* const object,
                                       ShapeWidgetConfiguration& config,
                                       ValidationFailure& failure) {
@@ -662,6 +692,19 @@ template <typename Source>
       }
       z_index = screen.shape_widgets[storage_index].frame.z_index;
       ++screen.shape_widget_count;
+      break;
+    case WidgetType::bar:
+      if (screen.bar_widget_count >= screen.bar_widgets.size()) {
+        return reject(failure, ValidationError::invalid_screen, "screen",
+                      "widgets");
+      }
+      storage_index = screen.bar_widget_count;
+      if (!parse_bar_widget(object, screen.bar_widgets[storage_index],
+                            failure)) {
+        return false;
+      }
+      z_index = screen.bar_widgets[storage_index].frame.z_index;
+      ++screen.bar_widget_count;
       break;
     case WidgetType::delta_time:
       if (screen.delta_time_widget_count >= screen.delta_time_widgets.size()) {

@@ -77,13 +77,17 @@ export const CONDITION_OPERATOR_VALUES: readonly ConditionOperator[] = ['above',
 export type ValueModifierType = 'lap_timer'
 export const VALUE_MODIFIER_TYPE_VALUES: readonly ValueModifierType[] = ['lap_timer']
 
+/** Axis a bar fills along. A vertical bar grows upwards unless it is inverted. */
+export type BarOrientation = 'horizontal' | 'vertical'
+export const BAR_ORIENTATION_VALUES: readonly BarOrientation[] = ['horizontal', 'vertical']
+
 /** Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. */
 export type ShapeKind = 'rectangle' | 'ellipse'
 export const SHAPE_KIND_VALUES: readonly ShapeKind[] = ['rectangle', 'ellipse']
 
 /** Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. */
-export type WidgetType = 'text' | 'shape' | 'delta_time'
-export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'delta_time']
+export type WidgetType = 'text' | 'shape' | 'bar' | 'delta_time'
+export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'delta_time']
 
 export interface FontSpec {
   family?: string
@@ -253,6 +257,32 @@ export interface TextWidgetConfiguration {
   value?: WidgetValueStyle
 }
 
+/** Input window a widget maps its source through. The fraction is clamped, so a value outside the window reads as full or empty rather than overflowing. */
+export interface ValueRange {
+  minimum?: number
+  maximum?: number
+}
+
+/** One telemetry source drawn as a filled proportion of the widget. The frame background is the track the fill runs over, so a bar needs no track colour of its own. */
+export interface BarWidgetConfiguration {
+  type: 'bar'
+  id?: string
+  placement?: WidgetPlacement
+  z_index?: number
+  padding?: WidgetInsets
+  border?: WidgetBorder
+  background_color?: RgbColor
+  background_inset_px?: number
+  condition_source?: ValueSourceConfiguration
+  conditions?: WidgetCondition[]
+  source?: ValueSourceConfiguration
+  minimum?: number
+  maximum?: number
+  orientation?: BarOrientation
+  inverted?: boolean
+  fill_color?: RgbColor
+}
+
 /** Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle. */
 export interface ShapeWidgetConfiguration {
   type: 'shape'
@@ -288,9 +318,9 @@ export interface ApplicationConfiguration {
 }
 
 /** Discriminated widget union. Adding a widget type adds one member here. */
-export type WidgetConfiguration = DeltaTimeWidgetConfiguration | ShapeWidgetConfiguration | TextWidgetConfiguration
+export type WidgetConfiguration = BarWidgetConfiguration | DeltaTimeWidgetConfiguration | ShapeWidgetConfiguration | TextWidgetConfiguration
 
-export const WIDGET_TYPES: readonly string[] = ['delta_time', 'text', 'shape']
+export const WIDGET_TYPES: readonly string[] = ['delta_time', 'text', 'bar', 'shape']
 
 /** Property names accepted inside each object, mirroring the firmware allow-lists. */
 export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
@@ -313,6 +343,8 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
   WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions'],
   TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'sources', 'title', 'value'],
+  ValueRange: ['minimum', 'maximum'],
+  BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'inverted', 'fill_color'],
   ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'kind'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
@@ -320,7 +352,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
 }
 
 /** Struct that carries each widget variant, keyed by its discriminator. */
-export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { delta_time: 'DeltaTimeWidgetConfiguration', text: 'TextWidgetConfiguration', shape: 'ShapeWidgetConfiguration' }
+export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { delta_time: 'DeltaTimeWidgetConfiguration', text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', shape: 'ShapeWidgetConfiguration' }
 
 /**
  * Nested object type for each property, so a validator can walk an unknown
@@ -336,6 +368,7 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   TextSourceConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform' },
   WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
   TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', title: 'WidgetTitleStyle', value: 'WidgetValueStyle' },
+  BarWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
   ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
   ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', delta_time: 'DeltaTimeConfiguration', dashboard: 'DashboardConfiguration' },

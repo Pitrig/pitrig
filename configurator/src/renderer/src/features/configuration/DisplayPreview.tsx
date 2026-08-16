@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useDeviceStore } from '@/features/device/device-store'
 import { screensOf, widgetsOf } from '../../../../shared/configuration-access'
 import type {
+  BarWidgetConfiguration,
   DeltaTimeWidgetConfiguration,
   FontSpec,
   ShapeWidgetConfiguration,
@@ -16,6 +17,7 @@ import type { DeviceConfiguration, DisplayDescriptor } from '../../../../shared/
 import { BOARD_PROFILES } from '../../../../shared/device'
 import {
   activeScreen,
+  addBarWidget,
   addDeltaTimeWidget,
   addShapeWidget,
   addTextWidget,
@@ -78,6 +80,11 @@ export function DisplayPreview(): React.JSX.Element {
               const added = addShapeWidget(display)
               if (added) select(added)
             }}>+ Shape</Button>
+            <Button className="h-8 w-20" variant="outline" disabled={!configuration} onClick={() => {
+              if (!display) return
+              const added = addBarWidget(display)
+              if (added) select(added)
+            }}>+ Bar</Button>
             <Button className="h-8 w-20" variant="outline" disabled={!configuration || hasDeltaTimeWidget} onClick={() => {
               if (!display) return
               const added = addDeltaTimeWidget(display, defaultFont)
@@ -212,6 +219,8 @@ function Widgets({
         }}>
           {layer.configuration.type === 'delta_time' ? (
             <DeltaTimePreview configuration={layer.configuration} module={configuration.delta_time} />
+          ) : layer.configuration.type === 'bar' ? (
+            <BarPreview configuration={layer.configuration} />
           ) : layer.configuration.type === 'shape' ? (
             <ShapePreview configuration={layer.configuration} />
           ) : (
@@ -416,6 +425,46 @@ function zeroValue(transform: ValueTransform | undefined): string {
     return zero.toFixed(transform.decimals ?? 0)
   }
   return '0'
+}
+
+// No telemetry here, so the bar draws its track with an empty fill, which is
+// exactly what the device shows before the first value.
+function BarPreview({
+  configuration
+}: {
+  configuration: BarWidgetConfiguration
+}): React.JSX.Element | null {
+  const placement = completePlacement(configuration.placement)
+  if (!placement) return null
+  const borderWidth = configuration.border?.width_px ?? 0
+  const track = normalizeColor(configuration.background_color) ?? 'transparent'
+  const radius = configuration.border?.radius_px ?? 0
+  return (
+    <g>
+      {track !== 'transparent' ? (
+        <rect
+          x={placement.x}
+          y={placement.y}
+          width={placement.width}
+          height={placement.height}
+          rx={radius}
+          fill={track}
+        />
+      ) : null}
+      {borderWidth > 0 ? (
+        <rect
+          x={placement.x + borderWidth / 2}
+          y={placement.y + borderWidth / 2}
+          width={placement.width - borderWidth}
+          height={placement.height - borderWidth}
+          rx={Math.max(0, radius - borderWidth / 2)}
+          fill="none"
+          stroke={configuration.border?.color ?? DEFAULT_BORDER_COLOR}
+          strokeWidth={borderWidth}
+        />
+      ) : null}
+    </g>
+  )
 }
 
 function ShapePreview({

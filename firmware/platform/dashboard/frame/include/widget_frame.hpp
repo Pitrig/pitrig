@@ -48,6 +48,69 @@ struct SourceContext {
     ModifierReader lap_timer_modifier, SourceContext& context,
     ValueReadCallback& read, void*& read_context, bool& fast_updates);
 
+// One widget's resolved sources: the value it draws and the source its rules
+// watch. Widgets that draw a single value all bind exactly this pair.
+struct ValueBinding {
+  ValueReadCallback read{};
+  void* read_context{};
+  bool fast_updates{};
+  ValueReadCallback condition_read{};
+  void* condition_context{};
+};
+
+// Binds the value source and the condition source of every widget of one type.
+template <typename WidgetConfig, std::size_t Capacity>
+class ValueBinder final {
+ public:
+  [[nodiscard]] bool bind(const std::span<const WidgetConfig> configurations,
+                          const telemetry::ITelemetryRegistry& registry,
+                          const telemetry::ITelemetryReader& telemetry,
+                          const ModifierReader lap_timer_modifier) {
+    count_ = 0;
+    if (configurations.size() > bindings_.size()) {
+      return false;
+    }
+    for (const WidgetConfig& configuration : configurations) {
+      ValueBinding binding{};
+      if (!bind_source(
+              configuration::value_binding_view(configuration.source.binding),
+              configuration.source.modifier_count,
+              configuration.source.modifiers, registry, telemetry,
+              lap_timer_modifier, value_contexts_[count_], binding.read,
+              binding.read_context, binding.fast_updates)) {
+        count_ = 0;
+        return false;
+      }
+      const configuration::WidgetFrame& widget_frame = configuration.frame;
+      bool condition_fast{};
+      if (widget_frame.condition_count > 0 &&
+          !bind_source(configuration::value_binding_view(
+                           widget_frame.condition_source.binding),
+                       widget_frame.condition_source.modifier_count,
+                       widget_frame.condition_source.modifiers, registry,
+                       telemetry, lap_timer_modifier,
+                       condition_contexts_[count_], binding.condition_read,
+                       binding.condition_context, condition_fast)) {
+        count_ = 0;
+        return false;
+      }
+      bindings_[count_] = binding;
+      ++count_;
+    }
+    return true;
+  }
+
+  [[nodiscard]] std::span<const ValueBinding> bindings() const {
+    return {bindings_.data(), count_};
+  }
+
+ private:
+  std::array<SourceContext, Capacity> value_contexts_{};
+  std::array<SourceContext, Capacity> condition_contexts_{};
+  std::array<ValueBinding, Capacity> bindings_{};
+  std::size_t count_{};
+};
+
 // Binds the condition source of every widget of one type. A widget that draws
 // no telemetry of its own still needs this, because its rules do.
 template <typename WidgetConfig, std::size_t Capacity>

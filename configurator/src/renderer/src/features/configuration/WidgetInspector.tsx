@@ -4,10 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useDeviceStore } from '@/features/device/device-store'
 import { widgetsOf } from '../../../../shared/configuration-access'
 import {
+  BAR_ORIENTATION_VALUES,
   CONDITION_OPERATOR_VALUES,
   MAXIMUM_TEXT_SOURCES,
   MAXIMUM_WIDGET_CONDITIONS,
   SHAPE_KIND_VALUES,
+  type BarOrientation,
+  type BarWidgetConfiguration,
   type ConditionOperator,
   type DeltaTimeWidgetConfiguration,
   type FontSpec,
@@ -24,7 +27,7 @@ import {
 
 // Every widget except Delta Time carries the shared frame, so the box and the
 // styling rules are edited by the same two components for all of them.
-type FramedWidget = TextWidgetConfiguration | ShapeWidgetConfiguration
+type FramedWidget = TextWidgetConfiguration | ShapeWidgetConfiguration | BarWidgetConfiguration
 import type { DeviceConfiguration } from '../../../../shared/device'
 import {
   TELEMETRY_CATALOG,
@@ -91,6 +94,8 @@ export function WidgetInspector(): React.JSX.Element {
             <GeometryEditor selection={selection} placement={completePlacement(widget.placement)} zIndex={widget.z_index ?? 0} />
             {widget.type === 'delta_time' ? (
               <DeltaTimeEditor selection={selection} widget={widget} configuration={configuration} />
+            ) : widget.type === 'bar' ? (
+              <BarEditor selection={selection} widget={widget} />
             ) : widget.type === 'shape' ? (
               <ShapeEditor selection={selection} widget={widget} />
             ) : (
@@ -111,9 +116,43 @@ function widgetLabel(widget: WidgetConfiguration, index: number): string {
       return 'Delta time'
     case 'shape':
       return `Shape ${index + 1}: ${widget.kind ?? 'rectangle'}`
+    case 'bar':
+      return `Bar ${index + 1}: ${widget.source?.binding || 'Unbound'}`
     case 'text':
       return `Text ${index + 1}: ${widget.title?.text || widget.sources?.[0]?.binding || 'Untitled'}`
   }
+}
+
+function BarEditor({ selection, widget }: { selection: WidgetSelection; widget: BarWidgetConfiguration }): React.JSX.Element {
+  const update = (mutation: (next: BarWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as BarWidgetConfiguration))
+  const binding = TELEMETRY_CATALOG.find(({ name }) => name === widget.source?.binding)
+  const unit = binding?.unit && binding.unit !== 'source' ? ` (${binding.unit})` : ''
+  return (
+    <>
+      <Section title="Data">
+        <TelemetryBindingField value={widget.source?.binding ?? ''} onChange={(value) => update((next) => {
+          next.source = { ...next.source, binding: value }
+        })} />
+        <SelectField label="Modifier" value={widget.source?.modifiers?.some(({ type }) => type === 'lap_timer') ? 'lap_timer' : 'none'} options={['none', 'lap_timer']} onChange={(value) => update((next) => {
+          if (value === 'lap_timer') next.source = { binding: 'session.lap.current_time', modifiers: [{ type: 'lap_timer' }] }
+          else if (next.source) delete next.source.modifiers
+        })} />
+        <p className="text-muted-foreground">The fill is the value's place in this window, clamped at both ends.</p>
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label={`Minimum${unit}`} value={widget.minimum ?? 0} step="any" onChange={(value) => update((next) => { next.minimum = value })} />
+          <NumberField label={`Maximum${unit}`} value={widget.maximum ?? 1} step="any" onChange={(value) => update((next) => { next.maximum = value })} />
+        </div>
+      </Section>
+      <Section title="Bar">
+        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value as BarOrientation })} />
+        <CheckboxField label="Fill from the far end" checked={widget.inverted ?? false} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
+        <ColorField label="Fill color" value={widget.fill_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.fill_color = value })} />
+        <p className="text-muted-foreground">The box background below is the track the fill runs over.</p>
+      </Section>
+      <BoxEditor widget={widget} update={update} />
+      <ConditionsEditor widget={widget} update={update} />
+    </>
+  )
 }
 
 // A shape is its frame, so its own section is one property; the box and the

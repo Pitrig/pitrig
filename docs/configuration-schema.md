@@ -42,8 +42,9 @@ Schema version: 4.
 | `ValueTransformType` | `none`, `time`, `number` | Presentation transform applied after the modifier pipeline. |
 | `ConditionOperator` | `above`, `at_or_above`, `below`, `at_or_below`, `equal`, `not_equal` | Comparison a styling rule applies to the numeric value of its condition source. |
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
+| `BarOrientation` | `horizontal`, `vertical` | Axis a bar fills along. A vertical bar grows upwards unless it is inverted. |
 | `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
-| `WidgetType` | `text`, `shape`, `delta_time` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
+| `WidgetType` | `text`, `shape`, `bar`, `delta_time` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
 
 ## Objects
 
@@ -239,6 +240,27 @@ Reusable telemetry text widget. Renders its ordered sources as one string.
 | `title` | [`WidgetTitleStyle`](#widgettitlestyle) | absent |
 | `value` | [`WidgetValueStyle`](#widgetvaluestyle) | absent |
 
+### ValueRange
+
+Input window a widget maps its source through. The fraction is clamped, so a value outside the window reads as full or empty rather than overflowing.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `minimum` | number | `0` |
+| `maximum` | number | `1` |
+
+### BarWidgetConfiguration
+
+One telemetry source drawn as a filled proportion of the widget. The frame background is the track the fill runs over, so a bar needs no track colour of its own.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `bar` | required |
+| `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `orientation` | `BarOrientation` | `horizontal` |
+| `inverted` | boolean | `false` |
+| `fill_color` | string `#RRGGBB` | `#38BDF8` |
+
 ### ShapeWidgetConfiguration
 
 Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle.
@@ -256,7 +278,7 @@ One dashboard screen. A screen is the coordinate space for the widgets it owns.
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`DeltaTimeWidgetConfiguration`](#deltatimewidgetconfiguration), max 71, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`DeltaTimeWidgetConfiguration`](#deltatimewidgetconfiguration), max 71, discriminated by `type` | absent |
 
 ### DashboardConfiguration
 

@@ -142,11 +142,14 @@ class Validator final {
 
   [[nodiscard]] bool text_widget(const TextWidgetConfiguration& config);
   [[nodiscard]] bool shape_widget(const ShapeWidgetConfiguration& config);
+  [[nodiscard]] bool bar_widget(const BarWidgetConfiguration& config);
   [[nodiscard]] bool delta_time_widget(
       const DeltaTimeWidgetConfiguration& config);
 
  private:
   [[nodiscard]] bool frame(const WidgetFrame& config);
+  [[nodiscard]] bool value_source(const ValueSourceConfiguration& config);
+  [[nodiscard]] bool value_range(const ValueRange& range);
   [[nodiscard]] bool text_source(const TextSourceConfiguration& config);
   [[nodiscard]] bool conditions(const WidgetFrame& config);
 
@@ -283,6 +286,38 @@ bool Validator::frame(const WidgetFrame& config) {
   return conditions(config);
 }
 
+// A widget that maps one source through a window needs a resolvable binding
+// and a window with something in it.
+bool Validator::value_source(const ValueSourceConfiguration& config) {
+  if (!registry_.resolve(value_binding_view(config.binding)).valid()) {
+    return reject(failure_, ValidationError::invalid_widget, "source");
+  }
+  if (config.modifier_count > config.modifiers.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "source");
+  }
+  return true;
+}
+
+bool Validator::value_range(const ValueRange& range) {
+  if (!std::isfinite(range.minimum) || !std::isfinite(range.maximum) ||
+      range.maximum <= range.minimum) {
+    return reject(failure_, ValidationError::invalid_widget, "maximum");
+  }
+  return true;
+}
+
+bool Validator::bar_widget(const BarWidgetConfiguration& config) {
+  if (config.orientation < BarOrientation::horizontal ||
+      config.orientation > BarOrientation::vertical) {
+    return reject(failure_, ValidationError::invalid_widget, "orientation");
+  }
+  if (!valid_color(config.fill_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "fill_color");
+  }
+  return value_source(config.source) && value_range(config.range) &&
+         frame(config.frame);
+}
+
 // A shape is its frame, so there is nothing else to check.
 bool Validator::shape_widget(const ShapeWidgetConfiguration& config) {
   if (config.kind < ShapeKind::rectangle || config.kind > ShapeKind::ellipse) {
@@ -405,6 +440,7 @@ ValidationFailure validate_configuration(
     if (screen.widget_count > screen.widgets.size() ||
         screen.text_widget_count > screen.text_widgets.size() ||
         screen.shape_widget_count > screen.shape_widgets.size() ||
+        screen.bar_widget_count > screen.bar_widgets.size() ||
         screen.delta_time_widget_count > screen.delta_time_widgets.size()) {
       (void)reject(failure, ValidationError::invalid_screen, "widgets");
       failure.screen_index = static_cast<std::int16_t>(screen_index);
@@ -430,6 +466,10 @@ ValidationFailure validate_configuration(
         case WidgetType::shape:
           valid = reference.index < screen.shape_widget_count &&
                   validator.shape_widget(screen.shape_widgets[reference.index]);
+          break;
+        case WidgetType::bar:
+          valid = reference.index < screen.bar_widget_count &&
+                  validator.bar_widget(screen.bar_widgets[reference.index]);
           break;
         case WidgetType::delta_time:
           valid =

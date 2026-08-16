@@ -229,6 +229,30 @@ inline constexpr std::array<std::string_view, 13> kTextWidgetConfigurationKeys{{
     "value",
 }};
 
+inline constexpr std::array<std::string_view, 2> kValueRangeKeys{{
+    "minimum",
+    "maximum",
+}};
+
+inline constexpr std::array<std::string_view, 16> kBarWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "background_color",
+    "background_inset_px",
+    "condition_source",
+    "conditions",
+    "source",
+    "minimum",
+    "maximum",
+    "orientation",
+    "inverted",
+    "fill_color",
+}};
+
 inline constexpr std::array<std::string_view, 11> kShapeWidgetConfigurationKeys{{
     "type",
     "id",
