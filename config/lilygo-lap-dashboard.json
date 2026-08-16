@@ -34,16 +34,20 @@
           },
           {
             "type": "text",
-            "binding": "session.lap.current_time",
-            "modifiers": [
+            "sources": [
               {
-                "type": "lap_timer"
+                "binding": "session.lap.current_time",
+                "modifiers": [
+                  {
+                    "type": "lap_timer"
+                  }
+                ],
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
               }
             ],
-            "transform": {
-              "type": "time",
-              "format": "duration_ms"
-            },
             "placement": {
               "x": 8,
               "y": 8,
@@ -61,11 +65,15 @@
           },
           {
             "type": "text",
-            "binding": "session.lap.estimated_time",
-            "transform": {
-              "type": "time",
-              "format": "duration_ms"
-            },
+            "sources": [
+              {
+                "binding": "session.lap.estimated_time",
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
+              }
+            ],
             "placement": {
               "x": 8,
               "y": 122,

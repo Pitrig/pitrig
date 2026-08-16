@@ -388,8 +388,11 @@ function TextWidgetPreview({
 function formattedPreviewValue(configuration: TextWidgetConfiguration): string {
   const configured = configuration.value?.unavailable_text
   if (configured) return configured
-  const transform = configuration.transform
-  return `${transform?.prefix ?? ''}${zeroValue(transform)}${transform?.suffix ?? ''}`
+  // No telemetry stream here, so the preview is what the device shows while
+  // every source is still silent: each one's zero through its own transform.
+  return (configuration.sources ?? [])
+    .map(({ transform }) => `${transform?.prefix ?? ''}${zeroValue(transform)}${transform?.suffix ?? ''}`)
+    .join('')
 }
 
 function zeroValue(transform: ValueTransform | undefined): string {

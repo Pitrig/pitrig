@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "limits": {
@@ -23,9 +23,13 @@
       "value": 1,
       "doc": "Delta Time widget storage per screen."
     },
+    "kMaximumTextSources": {
+      "value": 3,
+      "doc": "Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays."
+    },
     "kMaximumValueModifiers": {
       "value": 4,
-      "doc": "Value modifiers per text widget."
+      "doc": "Value modifiers per text widget source."
     },
     "kWidgetIdCapacity": {
       "value": 16,
@@ -261,15 +265,23 @@
       ]
     },
 
-    "TextWidgetConfiguration": {
-      "widget_type": "text",
-      "doc": "Reusable telemetry text widget. Consumes one canonical binding through a pre-bound typed callback.",
+    "TextSourceConfiguration": {
+      "doc": "One canonical telemetry source of a text widget, consumed through a pre-bound typed callback. Its transform affixes are what separate it from the next source, so composing several needs no format string.",
       "fields": [
-        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
         { "name": "binding", "kind": "text", "capacity": "kValueBindingCapacity", "default": "vehicle.speed" },
         { "name": "modifier_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "modifiers", "kind": "array", "struct": "ValueModifier", "capacity": "kMaximumValueModifiers", "count_field": "modifier_count" },
-        { "name": "transform", "kind": "struct", "struct": "ValueTransform" },
+        { "name": "transform", "kind": "struct", "struct": "ValueTransform" }
+      ]
+    },
+
+    "TextWidgetConfiguration": {
+      "widget_type": "text",
+      "doc": "Reusable telemetry text widget. Renders its ordered sources as one string.",
+      "fields": [
+        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "source_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "sources", "kind": "array", "struct": "TextSourceConfiguration", "capacity": "kMaximumTextSources", "count_field": "source_count" },
         { "name": "placement", "kind": "struct", "struct": "WidgetPlacement" },
         { "name": "z_index", "kind": "int16", "default": 0 },
         { "name": "padding", "kind": "struct", "struct": "WidgetInsets" },

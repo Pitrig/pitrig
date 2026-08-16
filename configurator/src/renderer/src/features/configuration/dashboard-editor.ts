@@ -143,6 +143,9 @@ export function addTextWidget(
     const widget: TextWidgetConfiguration = {
       type: 'text',
       id: createWidgetId(),
+      // A text widget renders its sources, so it always has at least one. The
+      // empty source takes the schema default binding.
+      sources: [{}],
       ...(font ? { value: { font } } : {}),
       placement: {
         x: Math.floor((display.width - width) / 2),

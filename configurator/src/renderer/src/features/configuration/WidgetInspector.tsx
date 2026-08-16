@@ -3,13 +3,15 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
 import { widgetsOf } from '../../../../shared/configuration-access'
-import type {
-  DeltaTimeWidgetConfiguration,
-  FontSpec,
-  RgbColor,
-  TextWidgetConfiguration,
-  ValueTransform,
-  WidgetPlacement
+import {
+  MAXIMUM_TEXT_SOURCES,
+  type DeltaTimeWidgetConfiguration,
+  type FontSpec,
+  type RgbColor,
+  type TextSourceConfiguration,
+  type TextWidgetConfiguration,
+  type ValueTransform,
+  type WidgetPlacement
 } from '../../../../shared/configuration-schema'
 import type { DeviceConfiguration } from '../../../../shared/device'
 import {
@@ -57,7 +59,7 @@ export function WidgetInspector(): React.JSX.Element {
               <option key={item.id ?? index} value={`widget:${item.id ?? ''}`}>
                 {item.type === 'delta_time'
                   ? 'Delta time'
-                  : `Text ${index + 1}: ${item.title?.text || item.binding || 'Untitled'}`}
+                  : `Text ${index + 1}: ${item.title?.text || item.sources?.[0]?.binding || 'Untitled'}`}
               </option>
             ))}
           </select>
@@ -119,56 +121,41 @@ function GeometryEditor({ selection, placement, zIndex }: { selection: WidgetSel
 
 function TextEditor({ selection, widget }: { selection: WidgetSelection; widget: TextWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: TextWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as TextWidgetConfiguration))
-  const binding = TELEMETRY_CATALOG.find(({ name }) => name === widget.binding)
-  const transforms = transformOptions(binding)
-  const presets = unitPresetsFor(binding)
-  const affix = (key: 'prefix' | 'suffix') => (value: string): void => update((next) => {
-    const transform = next.transform ?? {}
-    transform[key] = value
-    next.transform = transform
-    pruneTransform(next)
-  })
+  const sources = widget.sources ?? []
   return (
     <>
       <Section title="Data">
-        <TelemetryBindingField value={widget.binding ?? ''} onChange={(value) => update((next) => {
-          next.binding = value
-          const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
-          // An unrecognized name is left alone: the binding is mid-edit, not wrong.
-          if (selected && next.transform && !transformOptions(selected).includes(transformSelection(next.transform))) {
-            clearTransformType(next.transform)
-            pruneTransform(next)
-          }
-        })} />
-        <SelectField label="Modifier" value={widget.modifiers?.some(({ type }) => type === 'lap_timer') ? 'lap_timer' : 'none'} options={['none', 'lap_timer']} onChange={(value) => update((next) => {
-          if (value === 'lap_timer') { next.binding = 'session.lap.current_time'; next.modifiers = [{ type: 'lap_timer' }] }
-          else delete next.modifiers
-        })} />
-        <SelectField label="Transform" value={transformSelection(widget.transform)} options={transforms} onChange={(value) => update((next) => {
-          const transform = next.transform ?? {}
-          clearTransformType(transform)
-          if (value === 'number') transform.type = 'number'
-          else if (value !== 'source_text') { transform.type = 'time'; transform.format = value as 'duration_ms' | 'signed_duration_ms' }
-          next.transform = transform
-          pruneTransform(next)
-        })} />
-        {widget.transform?.type === 'number' ? (
-          <>
-            {presets.length > 0 ? <SelectField label="Unit preset" value={presets.find(({ scale, offset }) => scale === widget.transform?.scale && offset === (widget.transform?.offset ?? 0))?.label ?? ''} options={presets.map(({ label }) => label)} onChange={(label) => update((next) => {
-              const preset = presets.find((entry) => entry.label === label)
-              if (!preset || !next.transform) return
-              next.transform.scale = preset.scale
-              next.transform.offset = preset.offset
-              next.transform.suffix = preset.suffix
-            })} /> : null}
-            <div className="grid grid-cols-3 gap-2">
-              <NumberField label="Decimals" value={widget.transform.decimals ?? 0} min={0} max={MAXIMUM_TRANSFORM_DECIMALS} onChange={(value) => update((next) => { if (next.transform) next.transform.decimals = Math.min(MAXIMUM_TRANSFORM_DECIMALS, Math.max(0, Math.round(value))) })} />
-              <NumberField label="Scale" value={widget.transform.scale ?? 1} step="any" onChange={(value) => update((next) => { if (next.transform) next.transform.scale = value })} />
-              <NumberField label="Offset" value={widget.transform.offset ?? 0} step="any" onChange={(value) => update((next) => { if (next.transform) next.transform.offset = value })} />
-            </div>
-          </>
+        <p className="text-muted-foreground">
+          Sources render in order, each through its own transform. A prefix or suffix is what
+          separates one from the next, so {'"P 3/24"'} is a position source followed by a
+          participants source prefixed with {'"/"'}.
+        </p>
+        {sources.map((source, index) => (
+          <SourceEditor
+            key={index}
+            source={source}
+            index={index}
+            removable={sources.length > 1}
+            onChange={(mutation) => update((next) => {
+              const list = next.sources ?? []
+              if (list[index]) mutation(list[index])
+            })}
+            onRemove={() => update((next) => {
+              next.sources = (next.sources ?? []).filter((_, position) => position !== index)
+            })}
+          />
+        ))}
+        {sources.length < MAXIMUM_TEXT_SOURCES ? (
+          <button
+            type="button"
+            className="h-8 w-full rounded-md border text-foreground"
+            onClick={() => update((next) => {
+              next.sources = [...(next.sources ?? []), {}]
+            })}
+          >
+            Add source
+          </button>
         ) : null}
-        <div className="grid grid-cols-2 gap-2"><TextField label="Prefix" value={widget.transform?.prefix ?? ''} onChange={affix('prefix')} /><TextField label="Suffix" value={widget.transform?.suffix ?? ''} onChange={affix('suffix')} /></div>
       </Section>
       <Section title="Value">
         <FontEditor font={widget.value?.font} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
@@ -187,6 +174,74 @@ function TextEditor({ selection, widget }: { selection: WidgetSelection; widget:
         <ColorField label="Border color" value={widget.border?.color ?? '#AEAEAE'} onChange={(value) => update((next) => { next.border = { ...next.border, color: value } })} />
       </Section>
     </>
+  )
+}
+
+function SourceEditor({ source, index, removable, onChange, onRemove }: {
+  source: TextSourceConfiguration
+  index: number
+  removable: boolean
+  onChange: (mutation: (next: TextSourceConfiguration) => void) => void
+  onRemove: () => void
+}): React.JSX.Element {
+  const binding = TELEMETRY_CATALOG.find(({ name }) => name === source.binding)
+  const transforms = transformOptions(binding)
+  const presets = unitPresetsFor(binding)
+  const affix = (key: 'prefix' | 'suffix') => (value: string): void => onChange((next) => {
+    const transform = next.transform ?? {}
+    transform[key] = value
+    next.transform = transform
+    pruneTransform(next)
+  })
+  return (
+    <div className="space-y-2 rounded-md border p-2">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Source {index + 1}</span>
+        {removable ? (
+          <button type="button" className="rounded-md border px-2 py-0.5 text-foreground" onClick={onRemove}>
+            Remove
+          </button>
+        ) : null}
+      </div>
+      <TelemetryBindingField value={source.binding ?? ''} onChange={(value) => onChange((next) => {
+        next.binding = value
+        const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
+        // An unrecognized name is left alone: the binding is mid-edit, not wrong.
+        if (selected && next.transform && !transformOptions(selected).includes(transformSelection(next.transform))) {
+          clearTransformType(next.transform)
+          pruneTransform(next)
+        }
+      })} />
+      <SelectField label="Modifier" value={source.modifiers?.some(({ type }) => type === 'lap_timer') ? 'lap_timer' : 'none'} options={['none', 'lap_timer']} onChange={(value) => onChange((next) => {
+        if (value === 'lap_timer') { next.binding = 'session.lap.current_time'; next.modifiers = [{ type: 'lap_timer' }] }
+        else delete next.modifiers
+      })} />
+      <SelectField label="Transform" value={transformSelection(source.transform)} options={transforms} onChange={(value) => onChange((next) => {
+        const transform = next.transform ?? {}
+        clearTransformType(transform)
+        if (value === 'number') transform.type = 'number'
+        else if (value !== 'source_text') { transform.type = 'time'; transform.format = value as 'duration_ms' | 'signed_duration_ms' }
+        next.transform = transform
+        pruneTransform(next)
+      })} />
+      {source.transform?.type === 'number' ? (
+        <>
+          {presets.length > 0 ? <SelectField label="Unit preset" value={presets.find(({ scale, offset }) => scale === source.transform?.scale && offset === (source.transform?.offset ?? 0))?.label ?? ''} options={presets.map(({ label }) => label)} onChange={(label) => onChange((next) => {
+            const preset = presets.find((entry) => entry.label === label)
+            if (!preset || !next.transform) return
+            next.transform.scale = preset.scale
+            next.transform.offset = preset.offset
+            next.transform.suffix = preset.suffix
+          })} /> : null}
+          <div className="grid grid-cols-3 gap-2">
+            <NumberField label="Decimals" value={source.transform.decimals ?? 0} min={0} max={MAXIMUM_TRANSFORM_DECIMALS} onChange={(value) => onChange((next) => { if (next.transform) next.transform.decimals = Math.min(MAXIMUM_TRANSFORM_DECIMALS, Math.max(0, Math.round(value))) })} />
+            <NumberField label="Scale" value={source.transform.scale ?? 1} step="any" onChange={(value) => onChange((next) => { if (next.transform) next.transform.scale = value })} />
+            <NumberField label="Offset" value={source.transform.offset ?? 0} step="any" onChange={(value) => onChange((next) => { if (next.transform) next.transform.offset = value })} />
+          </div>
+        </>
+      ) : null}
+      <div className="grid grid-cols-2 gap-2"><TextField label="Prefix" value={source.transform?.prefix ?? ''} onChange={affix('prefix')} /><TextField label="Suffix" value={source.transform?.suffix ?? ''} onChange={affix('suffix')} /></div>
+    </div>
   )
 }
 
@@ -248,10 +303,10 @@ function clearTransformType(transform: ValueTransform): void {
 }
 
 /** Keeps the document sparse: a transform that formats nothing is not written. */
-function pruneTransform(widget: TextWidgetConfiguration): void {
-  const transform = widget.transform
+function pruneTransform(source: TextSourceConfiguration): void {
+  const transform = source.transform
   if (transform && (transform.type ?? 'none') === 'none' && !transform.prefix && !transform.suffix) {
-    delete widget.transform
+    delete source.transform
   }
 }
 

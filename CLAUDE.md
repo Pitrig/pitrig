@@ -165,10 +165,12 @@ no protocol, no LVGL) and mirrors into `configurator/src/shared/`.
 
 Widgets never know telemetry field names or protocol IDs. Telemetry ingestion splits into an
 immutable registry (protocol-neutral names/types), one-time startup binding of protocol source IDs to
-handles, and mutable state in fixed slots. A startup-only widget binder hands each widget a pre-bound
-typed callback; stateful modifiers (e.g. `lap_timer`) are module code behind that callback, and pure
-transforms live in `utils/transformers`. Periodic paths perform no name lookup and no allocation. See
-ADRs 0003, 0005, 0012.
+handles, and mutable state in fixed slots. A startup-only widget binder hands each text widget one
+pre-bound typed callback per `sources` entry (up to `kMaximumTextSources`), and the widget renders
+them in order into one string; stateful modifiers (e.g. `lap_timer`) are module code behind that
+callback, and pure transforms live in `utils/transformers`. Transform `prefix`/`suffix` supply the
+literal text between sources, so composition needs no format string. Periodic paths perform no name
+lookup and no allocation. See ADRs 0003, 0005, 0012.
 
 ### Communication
 

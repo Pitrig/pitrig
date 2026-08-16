@@ -22,10 +22,12 @@ namespace simcore::dashboard::text_widget {
 
 inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumTextWidgets;
+inline constexpr std::size_t kMaximumSources =
+    configuration::kMaximumTextSources;
 inline constexpr std::size_t kTitleCapacity =
     configuration::kWidgetTitleCapacity;
 
-struct BoundConfig;
+struct WidgetBinding;
 
 using ValueReadCallback = telemetry::TelemetryRead (*)(void* context);
 
@@ -45,7 +47,7 @@ class Collection final {
   // the widget element N of the other resolves values for.
   [[nodiscard]] bool create(
       const Layout& layout, std::span<const Config> configurations,
-      std::span<const BoundConfig> bindings, const fonts::Registry& fonts);
+      std::span<const WidgetBinding> bindings, const fonts::Registry& fonts);
   [[nodiscard]] lv_obj_t* root_object(const std::size_t index) const {
     return index < count_ ? states_[index].container : nullptr;
   }
@@ -62,14 +64,27 @@ class Collection final {
   // is left empty rather than half-built.
   [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
                               const Config& configuration,
-                              const BoundConfig& binding,
+                              const WidgetBinding& binding,
                               const fonts::Registry& fonts);
 
  private:
-  struct State {
+  // One resolved source of a widget. Its text is rendered independently and
+  // concatenated with its siblings, so a widget showing `P 3/24` holds two.
+  struct Source {
     ValueReadCallback read{};
     void* read_context{};
     configuration::ValueTransform transform{};
+    // Telemetry revision and availability last turned into displayed text.
+    std::uint64_t rendered_revision{};
+    bool rendered_available{};
+    // Set for module modifiers, whose value derives from a free-running clock
+    // and therefore carries no telemetry revision to compare against.
+    bool free_running{};
+  };
+
+  struct State {
+    std::array<Source, kMaximumSources> sources{};
+    std::size_t source_count{};
     lv_obj_t* container{};
     lv_obj_t* caption_gap{};
     lv_obj_t* caption{};
@@ -80,12 +95,6 @@ class Collection final {
     std::array<char, kTitleCapacity> title_text{};
     std::array<char, telemetry::kTelemetryTextCapacity> unavailable_text{};
     std::array<char, telemetry::kTelemetryTextCapacity> displayed_text{};
-    // Telemetry revision and availability last turned into displayed text.
-    std::uint64_t rendered_revision{};
-    bool rendered_available{};
-    // Set for module modifiers, whose value derives from a free-running clock
-    // and therefore carries no telemetry revision to compare against.
-    bool free_running{};
     bool initialized{};
   };
 
@@ -96,7 +105,7 @@ class Collection final {
   void release(State& state);
   [[nodiscard]] bool build(State& state, const Layout& layout,
                            const Config& configuration,
-                           const BoundConfig& binding,
+                           const WidgetBinding& binding,
                            const fonts::Registry& fonts);
 
   std::array<State, kMaximumInstances> states_{};

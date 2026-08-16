@@ -1,3 +1,4 @@
+import { migrateConfigurationDocument } from '../../shared/configuration-migrate'
 import { validateConfigurationDocument } from '../../shared/configuration-validate'
 import {
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
@@ -18,7 +19,9 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
   } catch {
     throw new Error('Configuration JSON is malformed.')
   }
-  const result = validateConfigurationDocument(value, {
+  // Documents authored against an older schema are brought forward before
+  // validation, so opening a project saved by an earlier build just works.
+  const result = validateConfigurationDocument(migrateConfigurationDocument(value), {
     supportedBoards: SIMCORE_BOARD_IDS
   })
   if (!result.ok) {

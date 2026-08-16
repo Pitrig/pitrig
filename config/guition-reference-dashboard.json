@@ -29,7 +29,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.speed",
+            "sources": [
+              {
+                "binding": "vehicle.speed"
+              }
+            ],
             "placement": {
               "x": 8,
               "y": 8,
@@ -59,7 +63,11 @@
           },
           {
             "type": "text",
-            "binding": "engine.rpm",
+            "sources": [
+              {
+                "binding": "engine.rpm"
+              }
+            ],
             "placement": {
               "x": 340,
               "y": 8,
@@ -89,7 +97,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.fuel.level",
+            "sources": [
+              {
+                "binding": "vehicle.fuel.level"
+              }
+            ],
             "placement": {
               "x": 8,
               "y": 68,
@@ -119,7 +131,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.fuel.average_consumption",
+            "sources": [
+              {
+                "binding": "vehicle.fuel.average_consumption"
+              }
+            ],
             "placement": {
               "x": 8,
               "y": 229,
@@ -149,7 +165,11 @@
           },
           {
             "type": "text",
-            "binding": "transmission.gear",
+            "sources": [
+              {
+                "binding": "transmission.gear"
+              }
+            ],
             "placement": {
               "x": 148,
               "y": 68,
@@ -180,11 +200,15 @@
           },
           {
             "type": "text",
-            "binding": "session.lap.estimated_time",
-            "transform": {
-              "type": "time",
-              "format": "duration_ms"
-            },
+            "sources": [
+              {
+                "binding": "session.lap.estimated_time",
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
+              }
+            ],
             "placement": {
               "x": 340,
               "y": 68,
@@ -214,16 +238,20 @@
           },
           {
             "type": "text",
-            "binding": "session.lap.current_time",
-            "modifiers": [
+            "sources": [
               {
-                "type": "lap_timer"
+                "binding": "session.lap.current_time",
+                "modifiers": [
+                  {
+                    "type": "lap_timer"
+                  }
+                ],
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
               }
             ],
-            "transform": {
-              "type": "time",
-              "format": "duration_ms"
-            },
             "placement": {
               "x": 340,
               "y": 172,
@@ -253,11 +281,15 @@
           },
           {
             "type": "text",
-            "binding": "session.lap.best_time",
-            "transform": {
-              "type": "time",
-              "format": "duration_ms"
-            },
+            "sources": [
+              {
+                "binding": "session.lap.best_time",
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
+              }
+            ],
             "placement": {
               "x": 340,
               "y": 280,
@@ -287,7 +319,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.aids.traction_control_level",
+            "sources": [
+              {
+                "binding": "vehicle.aids.traction_control_level"
+              }
+            ],
             "placement": {
               "x": 8,
               "y": 390,
@@ -317,7 +353,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.aids.abs_level",
+            "sources": [
+              {
+                "binding": "vehicle.aids.abs_level"
+              }
+            ],
             "placement": {
               "x": 166,
               "y": 390,
@@ -347,7 +387,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.brake_bias",
+            "sources": [
+              {
+                "binding": "vehicle.brake_bias"
+              }
+            ],
             "placement": {
               "x": 324,
               "y": 390,

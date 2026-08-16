@@ -70,11 +70,15 @@ bool has_lap_timer_modifier(
     for (std::size_t widget_index = 0;
          widget_index < screen.text_widget_count; ++widget_index) {
       const auto& widget = screen.text_widgets[widget_index];
-      for (std::size_t modifier_index = 0;
-           modifier_index < widget.modifier_count; ++modifier_index) {
-        if (widget.modifiers[modifier_index].type ==
-            configuration::ValueModifierType::lap_timer) {
-          return true;
+      for (std::size_t source_index = 0; source_index < widget.source_count;
+           ++source_index) {
+        const auto& source = widget.sources[source_index];
+        for (std::size_t modifier_index = 0;
+             modifier_index < source.modifier_count; ++modifier_index) {
+          if (source.modifiers[modifier_index].type ==
+              configuration::ValueModifierType::lap_timer) {
+            return true;
+          }
         }
       }
     }

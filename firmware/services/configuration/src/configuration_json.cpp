@@ -379,9 +379,9 @@ template <typename Enum, typename FromName>
 }
 
 [[nodiscard]] bool parse_modifiers(const cJSON* const object,
-                                   TextWidgetConfiguration& config,
+                                   TextSourceConfiguration& config,
                                    ValidationFailure& failure) {
-  constexpr std::string_view kName = "widget.text.modifiers";
+  constexpr std::string_view kName = "widget.text.source.modifiers";
   const cJSON* const modifiers = member(object, "modifiers");
   if (modifiers == nullptr) {
     return true;
@@ -404,6 +404,39 @@ template <typename Enum, typename FromName>
   return true;
 }
 
+// A widget renders its sources in authored order, so the array is the widget's
+// value pipeline rather than a set.
+[[nodiscard]] bool parse_sources(const cJSON* const object,
+                                 TextWidgetConfiguration& config,
+                                 ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.text.sources";
+  const cJSON* const sources = member(object, "sources");
+  if (sources == nullptr) {
+    return reject(failure, ValidationError::malformed, kName);
+  }
+  const int count = cJSON_IsArray(sources) ? cJSON_GetArraySize(sources) : -1;
+  if (count <= 0 || count > static_cast<int>(config.sources.size())) {
+    return reject(failure, ValidationError::malformed, kName);
+  }
+  for (int index = 0; index < count; ++index) {
+    const cJSON* const source = cJSON_GetArrayItem(sources, index);
+    TextSourceConfiguration& parsed = config.sources[index];
+    if (!valid_object(source, schema::kTextSourceConfigurationKeys, kName,
+                      failure) ||
+        !read_text(source, "binding", parsed.binding, kName, failure) ||
+        !parse_modifiers(source, parsed, failure)) {
+      return false;
+    }
+    if (const cJSON* const transform = member(source, "transform");
+        transform != nullptr &&
+        !parse_transform(transform, parsed.transform, failure)) {
+      return false;
+    }
+  }
+  config.source_count = static_cast<std::uint8_t>(count);
+  return true;
+}
+
 [[nodiscard]] bool parse_text_widget(const cJSON* const object,
                                      TextWidgetConfiguration& config,
                                      ValidationFailure& failure) {
@@ -411,18 +444,11 @@ template <typename Enum, typename FromName>
   if (!valid_object(object, schema::kTextWidgetConfigurationKeys, kName,
                     failure) ||
       !read_text(object, "id", config.id, kName, failure) ||
-      !read_text(object, "binding", config.binding, kName, failure) ||
       !parse_optional_placement(object, config.placement, failure) ||
       !read_integer(object, "z_index", config.z_index, kName, failure) ||
       !read_color(object, "background_color", config.background_color, kName,
                   failure) ||
-      !parse_modifiers(object, config, failure)) {
-    return false;
-  }
-
-  if (const cJSON* const transform = member(object, "transform");
-      transform != nullptr && !parse_transform(transform, config.transform,
-                                               failure)) {
+      !parse_sources(object, config, failure)) {
     return false;
   }
 

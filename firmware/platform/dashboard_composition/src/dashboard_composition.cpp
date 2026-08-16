@@ -249,9 +249,11 @@ void for_each_configured_font(
         screen.text_widgets[index];
     visit(widget.value.font, widget.value.unavailable_text);
     // Affixes belong to the transform rather than to one of its types, so they
-    // are rendered whatever the type is.
-    visit(widget.value.font, widget.transform.prefix);
-    visit(widget.value.font, widget.transform.suffix);
+    // are rendered whatever the type is, for every source the widget composes.
+    for (std::size_t source = 0; source < widget.source_count; ++source) {
+      visit(widget.value.font, widget.sources[source].transform.prefix);
+      visit(widget.value.font, widget.sources[source].transform.suffix);
+    }
     if (widget.title.text.front() != '\0') {
       visit(widget.title.font, widget.title.text);
     }

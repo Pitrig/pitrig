@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 3
+export const CONFIGURATION_SCHEMA_VERSION = 4
 
 /** Maximum compact JSON payload in bytes, for both the wire and NVS. */
 export const MAXIMUM_PAYLOAD_SIZE = 16384
@@ -14,7 +14,9 @@ export const MAXIMUM_WIDGETS_PER_SCREEN = 17
 export const MAXIMUM_TEXT_WIDGETS = 16
 /** Delta Time widget storage per screen. */
 export const MAXIMUM_DELTA_TIME_WIDGETS = 1
-/** Value modifiers per text widget. */
+/** Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. */
+export const MAXIMUM_TEXT_SOURCES = 3
+/** Value modifiers per text widget source. */
 export const MAXIMUM_VALUE_MODIFIERS = 4
 /** Widget identifier storage including the terminator (15 usable bytes). */
 export const WIDGET_ID_CAPACITY = 16
@@ -172,13 +174,18 @@ export interface DeltaTimeWidgetConfiguration {
   scale?: DeltaTimeScaleStyle
 }
 
-/** Reusable telemetry text widget. Consumes one canonical binding through a pre-bound typed callback. */
-export interface TextWidgetConfiguration {
-  type: 'text'
-  id?: string
+/** One canonical telemetry source of a text widget, consumed through a pre-bound typed callback. Its transform affixes are what separate it from the next source, so composing several needs no format string. */
+export interface TextSourceConfiguration {
   binding?: string
   modifiers?: ValueModifier[]
   transform?: ValueTransform
+}
+
+/** Reusable telemetry text widget. Renders its ordered sources as one string. */
+export interface TextWidgetConfiguration {
+  type: 'text'
+  id?: string
+  sources?: TextSourceConfiguration[]
   placement?: WidgetPlacement
   z_index?: number
   padding?: WidgetInsets
@@ -228,7 +235,8 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ValueModifier: ['type'],
   DeltaTimeScaleStyle: ['vertical_padding_px', 'border_width_px', 'border_radius_px'],
   DeltaTimeWidgetConfiguration: ['type', 'id', 'font', 'placement', 'z_index', 'faster_color', 'slower_color', 'neutral_color', 'scale'],
-  TextWidgetConfiguration: ['type', 'id', 'binding', 'modifiers', 'transform', 'placement', 'z_index', 'padding', 'border', 'title', 'value', 'background_color'],
+  TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
+  TextWidgetConfiguration: ['type', 'id', 'sources', 'placement', 'z_index', 'padding', 'border', 'title', 'value', 'background_color'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'delta_time', 'dashboard'],
@@ -244,7 +252,8 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   WidgetTitleStyle: { font: 'FontSpec' },
   WidgetValueStyle: { font: 'FontSpec' },
   DeltaTimeWidgetConfiguration: { font: 'FontSpec', placement: 'WidgetPlacement', scale: 'DeltaTimeScaleStyle' },
-  TextWidgetConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform', placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', value: 'WidgetValueStyle' },
+  TextSourceConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform' },
+  TextWidgetConfiguration: { sources: 'TextSourceConfiguration', placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', value: 'WidgetValueStyle' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
   ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', delta_time: 'DeltaTimeConfiguration', dashboard: 'DashboardConfiguration' },
 }
@@ -257,7 +266,7 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ValueTransform.prefix': 16,
   'ValueTransform.suffix': 16,
   'DeltaTimeWidgetConfiguration.id': 16,
+  'TextSourceConfiguration.binding': 40,
   'TextWidgetConfiguration.id': 16,
-  'TextWidgetConfiguration.binding': 40,
   'ScreenConfiguration.id': 16,
 }

@@ -52,15 +52,17 @@ export function collectDashboardTelemetry(
       requested.add('session.lap.delta')
       continue
     }
-    if (widget.binding) {
-      if (PROFILE_FIELD_NAMES.has(widget.binding)) requested.add(widget.binding)
-      else unknownBindings.add(widget.binding)
-    }
-    if (
-      Array.isArray(widget.modifiers) &&
-      widget.modifiers.some((modifier) => modifier?.type === 'lap_timer')
-    ) {
-      requested.add('session.lap.current_time')
+    for (const source of widget.sources ?? []) {
+      if (source.binding) {
+        if (PROFILE_FIELD_NAMES.has(source.binding)) requested.add(source.binding)
+        else unknownBindings.add(source.binding)
+      }
+      if (
+        Array.isArray(source.modifiers) &&
+        source.modifiers.some((modifier) => modifier?.type === 'lap_timer')
+      ) {
+        requested.add('session.lap.current_time')
+      }
     }
   }
 

@@ -137,6 +137,8 @@ class Validator final {
       const DeltaTimeWidgetConfiguration& config);
 
  private:
+  [[nodiscard]] bool text_source(const TextSourceConfiguration& config);
+
   [[nodiscard]] std::int32_t width() const { return profile_.display.width; }
   [[nodiscard]] std::int32_t height() const { return profile_.display.height; }
 
@@ -167,7 +169,7 @@ bool Validator::delta_time_widget(const DeltaTimeWidgetConfiguration& config) {
   return true;
 }
 
-bool Validator::text_widget(const TextWidgetConfiguration& config) {
+bool Validator::text_source(const TextSourceConfiguration& config) {
   const std::string_view binding = value_binding_view(config.binding);
   const telemetry::Handle handle = registry_.resolve(binding);
   if (!handle.valid()) {
@@ -197,6 +199,21 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
   if (!terminated(config.transform.prefix) ||
       !terminated(config.transform.suffix)) {
     return reject(failure_, ValidationError::invalid_widget, "transform");
+  }
+  return true;
+}
+
+bool Validator::text_widget(const TextWidgetConfiguration& config) {
+  // A widget with no source has nothing to render, and its LVGL label would be
+  // sized from an empty placeholder.
+  if (config.source_count == 0 ||
+      config.source_count > config.sources.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "sources");
+  }
+  for (std::size_t index = 0; index < config.source_count; ++index) {
+    if (!text_source(config.sources[index])) {
+      return false;
+    }
   }
   if (!valid_placement(config.placement, width(), height())) {
     return reject(failure_, ValidationError::invalid_widget, "placement");
@@ -353,10 +370,13 @@ ValidationFailure validate_configuration(
 
     for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
       const TextWidgetConfiguration& widget = screen.text_widgets[index];
-      for (std::size_t modifier = 0; modifier < widget.modifier_count;
-           ++modifier) {
-        if (widget.modifiers[modifier].type == ValueModifierType::lap_timer) {
-          ++lap_timer_modifier_count;
+      for (std::size_t source = 0; source < widget.source_count; ++source) {
+        const TextSourceConfiguration& value = widget.sources[source];
+        for (std::size_t modifier = 0; modifier < value.modifier_count;
+             ++modifier) {
+          if (value.modifiers[modifier].type == ValueModifierType::lap_timer) {
+            ++lap_timer_modifier_count;
+          }
         }
       }
     }

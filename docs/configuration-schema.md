@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 3. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 4. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 3.
+Schema version: 4.
 
 ## Limits
 
@@ -13,7 +13,8 @@ Schema version: 3.
 | `kMaximumWidgetsPerScreen` | 17 | Ordered widget references per screen. Bounds the sum of every widget variant on one screen. |
 | `kMaximumTextWidgets` | 16 | Text widget storage per screen. |
 | `kMaximumDeltaTimeWidgets` | 1 | Delta Time widget storage per screen. |
-| `kMaximumValueModifiers` | 4 | Value modifiers per text widget. |
+| `kMaximumTextSources` | 3 | Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. |
+| `kMaximumValueModifiers` | 4 | Value modifiers per text widget source. |
 | `kWidgetIdCapacity` | 16 | Widget identifier storage including the terminator (15 usable bytes). |
 | `kWidgetTitleCapacity` | 16 | Widget title text storage including the terminator (15 usable bytes). |
 | `kUnavailableTextCapacity` | 16 | Placeholder text storage including the terminator (15 usable bytes). |
@@ -167,17 +168,25 @@ Renders Delta Time module state. Requires the delta_time module section to be pr
 | `neutral_color` | string `#RRGGBB` | `#E8E8E8` |
 | `scale` | [`DeltaTimeScaleStyle`](#deltatimescalestyle) | absent |
 
+### TextSourceConfiguration
+
+One canonical telemetry source of a text widget, consumed through a pre-bound typed callback. Its transform affixes are what separate it from the next source, so composing several needs no format string.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `binding` | string, max 39 bytes | `vehicle.speed` |
+| `modifiers` | array of [`ValueModifier`](#valuemodifier), max 4 | absent |
+| `transform` | [`ValueTransform`](#valuetransform) | absent |
+
 ### TextWidgetConfiguration
 
-Reusable telemetry text widget. Consumes one canonical binding through a pre-bound typed callback.
+Reusable telemetry text widget. Renders its ordered sources as one string.
 
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `text` | required |
 | `id` | string, max 15 bytes | empty |
-| `binding` | string, max 39 bytes | `vehicle.speed` |
-| `modifiers` | array of [`ValueModifier`](#valuemodifier), max 4 | absent |
-| `transform` | [`ValueTransform`](#valuetransform) | absent |
+| `sources` | array of [`TextSourceConfiguration`](#textsourceconfiguration), max 3 | absent |
 | `placement` | [`WidgetPlacement`](#widgetplacement) | absent |
 | `z_index` | integer, -32768..32767 | `0` |
 | `padding` | [`WidgetInsets`](#widgetinsets) | absent |

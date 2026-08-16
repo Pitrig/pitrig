@@ -46,7 +46,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] Reusable telemetry text widgets
 - [*] Value modifiers and time transforms
 - [*] Value formatting transforms (decimal precision, scale and offset, units)
-- [ ] Multi-field text composition
+- [*] Multi-field text composition
 - [ ] Additional widget types (bar, arc, indicator strip)
 - [ ] Conditional and animated widget styling
 - [ ] Uploaded image asset pipeline and image widgets

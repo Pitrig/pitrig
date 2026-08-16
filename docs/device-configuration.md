@@ -149,7 +149,11 @@ Example sparse configuration:
           {
             "type": "text",
             "id": "tc",
-            "binding": "vehicle.aids.traction_control_level",
+            "sources": [
+              {
+                "binding": "vehicle.aids.traction_control_level"
+              }
+            ],
             "placement": {
               "x": 16,
               "y": 16,
@@ -177,15 +181,38 @@ The text widget supplies its documented defaults for omitted padding, fonts,
 colors, alignment, background, title offset, and unavailable text.
 
 Until a value arrives, a widget renders its placeholder. An explicit
-`unavailable_text` is that placeholder; omitting it renders a zero through the
-widget's own transform, so a plain value reads `0` and a time value keeps its
+`unavailable_text` is that placeholder; omitting it renders a zero through each
+source's own transform, so a plain value reads `0` and a time value keeps its
 format with every field zeroed, such as `00:00.000`. The Delta Time module
 behaves the same way: its default `unavailable_behavior` is `zero`, and
 `placeholder` applies only when that behavior is set to `placeholder`.
 
-The `binding` property always identifies the canonical telemetry source. An
-ordered modifier pipeline may change the typed value before its presentation
-transform:
+A text widget renders its `sources` in order and joins them into one string, up
+to three of them. Each source is a telemetry field with its own modifiers and
+its own transform, and the transform affixes are what separate one source from
+the next, so no format string is involved:
+
+```json
+{
+  "type": "text",
+  "sources": [
+    { "binding": "session.position", "transform": { "prefix": "P " } },
+    { "binding": "session.participants", "transform": { "prefix": "/" } }
+  ]
+}
+```
+
+That widget reads `P 3/24`. One widget rather than three matters because a value
+label is sized to its own text: neighbouring widgets would move the `/` every
+time the position changed width.
+
+A source with no value contributes the zero its own transform renders, so a live
+source keeps updating beside a silent one, and `unavailable_text` appears only
+while no source has a value at all.
+
+The `binding` property of a source always identifies the canonical telemetry
+field. An ordered modifier pipeline may change the typed value before its
+presentation transform:
 
 ```json
 {

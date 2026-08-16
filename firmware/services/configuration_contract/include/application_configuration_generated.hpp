@@ -12,7 +12,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 3;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 4;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
@@ -27,7 +27,9 @@ inline constexpr std::size_t kMaximumWidgetsPerScreen = 17;
 inline constexpr std::size_t kMaximumTextWidgets = 16;
 // Delta Time widget storage per screen.
 inline constexpr std::size_t kMaximumDeltaTimeWidgets = 1;
-// Value modifiers per text widget.
+// Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays.
+inline constexpr std::size_t kMaximumTextSources = 3;
+// Value modifiers per text widget source.
 inline constexpr std::size_t kMaximumValueModifiers = 4;
 // Widget identifier storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kWidgetIdCapacity = 16;
@@ -197,14 +199,22 @@ struct DeltaTimeWidgetConfiguration {
   DeltaTimeScaleStyle scale{};
 };
 
-// Reusable telemetry text widget. Consumes one canonical binding through a
-// pre-bound typed callback.
-struct TextWidgetConfiguration {
-  std::array<char, kWidgetIdCapacity> id{};
+// One canonical telemetry source of a text widget, consumed through a
+// pre-bound typed callback. Its transform affixes are what separate it from
+// the next source, so composing several needs no format string.
+struct TextSourceConfiguration {
   std::array<char, kValueBindingCapacity> binding{'v', 'e', 'h', 'i', 'c', 'l', 'e', '.', 's', 'p', 'e', 'e', 'd', '\0'};
   std::uint8_t modifier_count{};
   std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
   ValueTransform transform{};
+};
+
+// Reusable telemetry text widget. Renders its ordered sources as one
+// string.
+struct TextWidgetConfiguration {
+  std::array<char, kWidgetIdCapacity> id{};
+  std::uint8_t source_count{};
+  std::array<TextSourceConfiguration, kMaximumTextSources> sources{};
   WidgetPlacement placement{};
   std::int16_t z_index{};
   WidgetInsets padding{};

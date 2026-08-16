@@ -30,7 +30,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.speed",
+            "sources": [
+              {
+                "binding": "vehicle.speed"
+              }
+            ],
             "placement": {
               "x": 8,
               "y": 16,
@@ -57,7 +61,11 @@
           },
           {
             "type": "text",
-            "binding": "engine.rpm",
+            "sources": [
+              {
+                "binding": "engine.rpm"
+              }
+            ],
             "placement": {
               "x": 8,
               "y": 224,
@@ -84,7 +92,11 @@
           },
           {
             "type": "text",
-            "binding": "transmission.gear",
+            "sources": [
+              {
+                "binding": "transmission.gear"
+              }
+            ],
             "placement": {
               "x": 406,
               "y": 92,
@@ -114,11 +126,15 @@
           },
           {
             "type": "text",
-            "binding": "session.lap.estimated_time",
-            "transform": {
-              "type": "time",
-              "format": "duration_ms"
-            },
+            "sources": [
+              {
+                "binding": "session.lap.estimated_time",
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
+              }
+            ],
             "placement": {
               "x": 628,
               "y": 16,
@@ -146,16 +162,20 @@
           },
           {
             "type": "text",
-            "binding": "session.lap.current_time",
-            "modifiers": [
+            "sources": [
               {
-                "type": "lap_timer"
+                "binding": "session.lap.current_time",
+                "modifiers": [
+                  {
+                    "type": "lap_timer"
+                  }
+                ],
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
               }
             ],
-            "transform": {
-              "type": "time",
-              "format": "duration_ms"
-            },
             "placement": {
               "x": 628,
               "y": 160,
@@ -183,11 +203,15 @@
           },
           {
             "type": "text",
-            "binding": "session.lap.best_time",
-            "transform": {
-              "type": "time",
-              "format": "duration_ms"
-            },
+            "sources": [
+              {
+                "binding": "session.lap.best_time",
+                "transform": {
+                  "type": "time",
+                  "format": "duration_ms"
+                }
+              }
+            ],
             "placement": {
               "x": 628,
               "y": 304,
@@ -215,7 +239,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.aids.traction_control_level",
+            "sources": [
+              {
+                "binding": "vehicle.aids.traction_control_level"
+              }
+            ],
             "placement": {
               "x": 8,
               "y": 450,
@@ -245,7 +273,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.aids.abs_level",
+            "sources": [
+              {
+                "binding": "vehicle.aids.abs_level"
+              }
+            ],
             "placement": {
               "x": 144,
               "y": 450,
@@ -275,7 +307,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.brake_bias",
+            "sources": [
+              {
+                "binding": "vehicle.brake_bias"
+              }
+            ],
             "placement": {
               "x": 280,
               "y": 450,
@@ -305,7 +341,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.fuel.level",
+            "sources": [
+              {
+                "binding": "vehicle.fuel.level"
+              }
+            ],
             "placement": {
               "x": 448,
               "y": 450,
@@ -332,7 +372,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.fuel.average_consumption",
+            "sources": [
+              {
+                "binding": "vehicle.fuel.average_consumption"
+              }
+            ],
             "placement": {
               "x": 642,
               "y": 450,
@@ -359,7 +403,11 @@
           },
           {
             "type": "text",
-            "binding": "vehicle.fuel.laps_remaining",
+            "sources": [
+              {
+                "binding": "vehicle.fuel.laps_remaining"
+              }
+            ],
             "placement": {
               "x": 826,
               "y": 450,

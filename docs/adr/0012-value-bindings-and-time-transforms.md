@@ -17,8 +17,20 @@ Keep stateful telemetry transformation in modules. Keep stateless,
 presentation-independent value transforms in generic utilities so they can be
 reused outside the dashboard.
 
-A text widget has one bounded string `binding` to a canonical telemetry field.
-Bindings are resolved and type-checked once during startup.
+A text widget has a bounded ordered list of `sources`, each with one bounded
+string `binding` to a canonical telemetry field, its own modifiers, and its own
+transform. The widget renders every source in order and concatenates the result
+into one string. Bindings are resolved and type-checked once during startup.
+
+Composition needs no template language and no format-string parsing, because the
+transform affixes already supply the literal text: `P 3/24` is a position source
+with the prefix `P ` followed by a participants source with the prefix `/`. A
+separator therefore inherits the type checking and the byte bounds that already
+apply to an affix.
+
+A source that has no value contributes the zero its own transform renders, so a
+live source keeps updating next to a silent one. The widget-level
+`unavailable_text` is shown only while no source has a value at all.
 
 After binding, a bounded ordered `modifiers` list may apply stateful typed-value
 processing. Modifiers preserve the value type. The initial `lap_timer` modifier
@@ -60,17 +72,26 @@ during configuration validation.
 Lap time presentation uses the reusable Text widget with the `lap_timer`
 modifier and `time` transform. There is no parallel dedicated widget path.
 
-This is an additive schema 2 extension: existing `binding` configurations stay
-valid, while older firmware may reject configurations using `modifiers` or
-`transform`. Moving the affixes off the time transform left the payload
-unchanged, because they keep the position they already had on the transform
-object.
+Bindings, modifiers, and transforms arrived as an additive schema 2 extension,
+and moving the affixes off the time transform left the payload unchanged.
+Replacing the widget-level `binding`, `modifiers`, and `transform` with
+`sources` does not: it is schema 4, and firmware carries no second spelling. The
+configurator migrates a document authored against an older schema when it loads
+it, so the one-time cost is a device rejecting its stored record and booting the
+factory dashboard until the next upload, not a configuration anyone rewrites by
+hand.
 
 ## Consequences
 
 - The Lap Timer module remains independent from LVGL and string presentation.
-- Generic text widgets consume one pre-bound read callback and have no concrete
+- Generic text widgets consume pre-bound read callbacks and have no concrete
   Lap Timer dependency.
+- One widget can align parts that separate widgets could not: a value label is
+  sized to its own text, so `3` and `24` in neighbouring widgets move their
+  separator as the digits change width.
+- Composition costs storage per widget rather than per dashboard, in the
+  document, the widget render state, and the binder. `kMaximumTextSources` is
+  the RAM budget decision.
 - Best and estimated lap telemetry can remain numeric milliseconds until the
   presentation boundary.
 - Adding another modifier requires an explicit bounded pipeline adapter and

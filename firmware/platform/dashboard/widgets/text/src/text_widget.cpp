@@ -200,23 +200,18 @@ void copy_text(std::array<char, DestinationSize>& destination,
   return false;
 }
 
-// What a widget shows before its first telemetry value. An explicit
-// unavailable_text wins; otherwise the widget renders a zero through its own
+// The zero one source shows while it has no value: rendered through its own
 // transform, so a plain value reads 0 and a time value keeps its format with
 // every field zeroed.
-void unavailable_text(
-    const Config& config,
+void placeholder_value(
+    const configuration::ValueTransform& transform,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
-  if (config.value.unavailable_text.front() != '\0') {
-    copy_text(output, config.value.unavailable_text);
-    return;
-  }
   std::array<char, telemetry::kTelemetryTextCapacity> body{};
-  if (!zero_body(config.transform, body)) {
+  if (!zero_body(transform, body)) {
     constexpr std::array<char, 2> kZero{'0', '\0'};
     copy_text(body, kZero);
   }
-  if (!compose(config.transform, transformers::text_view(body), output)) {
+  if (!compose(transform, transformers::text_view(body), output)) {
     output = body;
   }
 }
@@ -231,6 +226,51 @@ void unavailable_text(
   std::array<char, telemetry::kTelemetryTextCapacity> body{};
   return transform_body(transform, value, body) &&
          compose(transform, transformers::text_view(body), output);
+}
+
+// A binding is usable only once every source resolved to a callback.
+[[nodiscard]] bool complete(const WidgetBinding& binding) {
+  if (binding.count == 0 || binding.count > binding.sources.size()) {
+    return false;
+  }
+  for (std::size_t index = 0; index < binding.count; ++index) {
+    if (binding.sources[index].read == nullptr ||
+        binding.sources[index].read_context == nullptr) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// The text one source contributes to the widget string. An unavailable source
+// falls back to its own placeholder, so a live neighbour keeps updating.
+void source_text_for(
+    const configuration::ValueTransform& transform,
+    const telemetry::TelemetryRead& value,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  if (!transform_value(transform, value, output)) {
+    placeholder_value(transform, output);
+  }
+}
+
+// What a widget shows before any of its sources has a value. An explicit
+// unavailable_text wins; otherwise every source contributes its placeholder,
+// which for a single-source widget is that source's zero.
+void unavailable_text(
+    const Config& config,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  if (config.value.unavailable_text.front() != '\0') {
+    copy_text(output, config.value.unavailable_text);
+    return;
+  }
+  transformers::TextWriter writer(output);
+  for (std::size_t index = 0; index < config.source_count; ++index) {
+    std::array<char, telemetry::kTelemetryTextCapacity> part{};
+    placeholder_value(config.sources[index].transform, part);
+    if (!writer.append(transformers::text_view(part))) {
+      return;
+    }
+  }
 }
 
 }  // namespace
@@ -249,7 +289,7 @@ void Collection::destroy() {
 // Callers hold the LVGL lock. On failure the state is left partially built
 // and the caller must release it.
 bool Collection::build(State& state, const Layout& layout,
-                      const Config& config, const BoundConfig& binding,
+                      const Config& config, const WidgetBinding& binding,
                       const fonts::Registry& fonts) {
     const bool has_title = config.title.text.front() != '\0';
   const lv_font_t* const title_font =
@@ -297,10 +337,15 @@ bool Collection::build(State& state, const Layout& layout,
     return false;
   }
 
-  state.read = binding.read;
-  state.read_context = binding.read_context;
-  state.transform = config.transform;
-  state.free_running = binding.fast_updates;
+  state.source_count = binding.count;
+  for (std::size_t index = 0; index < binding.count; ++index) {
+    state.sources[index] = {
+        .read = binding.sources[index].read,
+        .read_context = binding.sources[index].read_context,
+        .transform = config.sources[index].transform,
+        .free_running = binding.sources[index].fast_updates,
+    };
+  }
   state.unavailable_text = unavailable;
   copy_text(state.title_text, config.title.text);
   state.container = lv_obj_create(parent);
@@ -387,7 +432,7 @@ bool Collection::build(State& state, const Layout& layout,
 
 bool Collection::create(
     const Layout& layout, const std::span<const Config> configurations,
-    const std::span<const BoundConfig> bindings,
+    const std::span<const WidgetBinding> bindings,
     const fonts::Registry& fonts) {
   if (layout.display == nullptr || bindings.size() > states_.size() ||
       configurations.size() != bindings.size() || created_ ||
@@ -397,8 +442,8 @@ bool Collection::create(
 
   created_ = true;
   for (std::size_t widget = 0; widget < bindings.size(); ++widget) {
-    const BoundConfig& binding = bindings[widget];
-    if (binding.read == nullptr || binding.read_context == nullptr ||
+    const WidgetBinding& binding = bindings[widget];
+    if (!complete(binding) ||
         !build(states_[count_], layout, configurations[widget], binding,
                fonts)) {
       clear_objects();
@@ -441,22 +486,42 @@ void Collection::wake() {
 }
 
 void Collection::render_state(State& state) {
-  const telemetry::TelemetryRead value = state.read(state.read_context);
   // A telemetry slot advances its revision only when the stored value really
-  // changed, so an unchanged slot needs no transform, formatting, or compare.
-  // Free-running module sources report no revision and always re-render.
+  // changed, so a widget whose sources all stood still needs no transform,
+  // formatting, or compare. Free-running module sources report no revision and
+  // always re-render.
   const bool first_render = !state.initialized;
-  if (!first_render && !state.free_running &&
-      value.revision == state.rendered_revision &&
-      value.available == state.rendered_available) {
+  std::array<telemetry::TelemetryRead, kMaximumSources> values{};
+  bool changed = first_render;
+  bool any_available = false;
+  for (std::size_t index = 0; index < state.source_count; ++index) {
+    Source& source = state.sources[index];
+    values[index] = source.read(source.read_context);
+    changed = changed || source.free_running ||
+              values[index].revision != source.rendered_revision ||
+              values[index].available != source.rendered_available;
+    // Recorded here rather than while formatting, so a composition that runs
+    // out of room still leaves every source compared against what it read.
+    source.rendered_revision = values[index].revision;
+    source.rendered_available = values[index].available;
+    any_available = any_available || values[index].available;
+  }
+  if (!changed) {
     return;
   }
-  state.rendered_revision = value.revision;
-  state.rendered_available = value.available;
-  state.initialized = true;
 
   std::array<char, telemetry::kTelemetryTextCapacity> next{};
-  if (!transform_value(state.transform, value, next)) {
+  transformers::TextWriter writer(next);
+  for (std::size_t index = 0; index < state.source_count; ++index) {
+    std::array<char, telemetry::kTelemetryTextCapacity> part{};
+    source_text_for(state.sources[index].transform, values[index], part);
+    if (!writer.append(transformers::text_view(part))) {
+      break;
+    }
+  }
+  state.initialized = true;
+  // Every source silent means the widget has nothing of its own to show yet.
+  if (!any_available) {
     next = state.unavailable_text;
   }
   // A changed source can still transform to the same text, so keep the
@@ -505,10 +570,10 @@ void Collection::clear_objects() {
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
                           const Config& configuration,
-                          const BoundConfig& binding,
+                          const WidgetBinding& binding,
                           const fonts::Registry& fonts) {
-  if (!created_ || index >= count_ || binding.read == nullptr ||
-      binding.read_context == nullptr || !lvgl_port_lock(0)) {
+  if (!created_ || index >= count_ || !complete(binding) ||
+      !lvgl_port_lock(0)) {
     return false;
   }
   State& state = states_[index];

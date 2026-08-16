@@ -179,12 +179,16 @@ inline constexpr std::array<std::string_view, 9> kDeltaTimeWidgetConfigurationKe
     "scale",
 }};
 
-inline constexpr std::array<std::string_view, 12> kTextWidgetConfigurationKeys{{
-    "type",
-    "id",
+inline constexpr std::array<std::string_view, 3> kTextSourceConfigurationKeys{{
     "binding",
     "modifiers",
     "transform",
+}};
+
+inline constexpr std::array<std::string_view, 10> kTextWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "sources",
     "placement",
     "z_index",
     "padding",
