@@ -4,24 +4,52 @@
 
   "limits": {
     "kMaximumPayloadSize": {
-      "value": 16384,
-      "doc": "Maximum compact JSON payload in bytes, for both the wire and NVS."
+      "value": 65536,
+      "doc": "Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory."
     },
     "kMaximumScreens": {
       "value": 1,
       "doc": "Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review."
     },
     "kMaximumWidgetsPerScreen": {
-      "value": 17,
-      "doc": "Ordered widget references per screen. Bounds the sum of every widget variant on one screen."
+      "value": 71,
+      "doc": "Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize."
     },
     "kMaximumTextWidgets": {
       "value": 16,
       "doc": "Text widget storage per screen."
     },
+    "kMaximumShapeWidgets": {
+      "value": 24,
+      "doc": "Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap."
+    },
+    "kMaximumBarWidgets": {
+      "value": 16,
+      "doc": "Bar widget storage per screen."
+    },
+    "kMaximumArcWidgets": {
+      "value": 8,
+      "doc": "Arc widget storage per screen."
+    },
+    "kMaximumIndicatorWidgets": {
+      "value": 4,
+      "doc": "Indicator strip storage per screen."
+    },
+    "kMaximumGraphWidgets": {
+      "value": 2,
+      "doc": "Graph storage per screen. Each instance owns a sample ring buffer, which is why this cap is the smallest."
+    },
     "kMaximumDeltaTimeWidgets": {
       "value": 1,
       "doc": "Delta Time widget storage per screen."
+    },
+    "kMaximumIndicatorSegments": {
+      "value": 16,
+      "doc": "Segments in one indicator strip."
+    },
+    "kMaximumGraphPoints": {
+      "value": 128,
+      "doc": "Samples one graph retains. The ring buffer is sized by this whatever point_count asks for."
     },
     "kMaximumTextSources": {
       "value": 3,
@@ -307,24 +335,31 @@
       ]
     },
 
-    "TextWidgetConfiguration": {
-      "widget_type": "text",
-      "doc": "Reusable telemetry text widget. Renders its ordered sources as one string.",
+    "WidgetFrame": {
+      "doc": "What every widget type owns regardless of what it draws: where it sits, how it is boxed, and the rules that restyle it. Flattened into each widget, so these are plain widget properties on the wire.",
       "fields": [
         { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
-        { "name": "source_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "sources", "kind": "array", "struct": "TextSourceConfiguration", "capacity": "kMaximumTextSources", "count_field": "source_count" },
-        { "name": "condition_source", "kind": "struct", "struct": "ConditionSourceConfiguration" },
-        { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "conditions", "kind": "array", "struct": "WidgetCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
         { "name": "placement", "kind": "struct", "struct": "WidgetPlacement" },
         { "name": "z_index", "kind": "int16", "default": 0 },
         { "name": "padding", "kind": "struct", "struct": "WidgetInsets" },
         { "name": "border", "kind": "struct", "struct": "WidgetBorder" },
-        { "name": "title", "kind": "struct", "struct": "WidgetTitleStyle" },
-        { "name": "value", "kind": "struct", "struct": "WidgetValueStyle" },
         { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" },
-        { "name": "background_inset_px", "kind": "uint16", "default": 0, "doc": "Gap between the border and the painted background, so a filled widget keeps its frame visible. Applies to the authored background and to one a rule paints." }
+        { "name": "background_inset_px", "kind": "uint16", "default": 0, "doc": "Gap between the border and the painted background, so a filled widget keeps its frame visible. Applies to the authored background and to one a rule paints." },
+        { "name": "condition_source", "kind": "struct", "struct": "ConditionSourceConfiguration" },
+        { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "conditions", "kind": "array", "struct": "WidgetCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" }
+      ]
+    },
+
+    "TextWidgetConfiguration": {
+      "widget_type": "text",
+      "doc": "Reusable telemetry text widget. Renders its ordered sources as one string.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "source_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "sources", "kind": "array", "struct": "TextSourceConfiguration", "capacity": "kMaximumTextSources", "count_field": "source_count" },
+        { "name": "title", "kind": "struct", "struct": "WidgetTitleStyle" },
+        { "name": "value", "kind": "struct", "struct": "WidgetValueStyle" }
       ]
     },
 

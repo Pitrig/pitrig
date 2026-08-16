@@ -50,7 +50,10 @@ struct WidgetDescriptor {
 // table, and the trigger holds it while waking.
 class WidgetManager final {
  public:
-  static constexpr std::size_t kMaximumWidgetTypes = 8;
+  // Room for the types the dashboard composes today plus the ones the roadmap
+  // still owes it. The table is assembled once at startup, so an unused slot
+  // costs one empty descriptor.
+  static constexpr std::size_t kMaximumWidgetTypes = 16;
 
   WidgetManager() = default;
   ~WidgetManager();

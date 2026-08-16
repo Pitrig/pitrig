@@ -54,6 +54,13 @@ constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
   return LV_ALIGN_CENTER;
 }
 
+// Where a rule's value colour lands for this widget type. The frame resolves
+// the colour and calls this with the label it was given as its context.
+void apply_value_color(void* const context, const std::uint32_t rgb) {
+  lv_obj_set_style_text_color(static_cast<lv_obj_t*>(context),
+                              lv_color_hex(rgb), LV_PART_MAIN);
+}
+
 [[nodiscard]] lv_color_t background_behind(const lv_obj_t* object) {
   while (object != nullptr) {
     if (lv_obj_get_style_bg_opa(object, LV_PART_MAIN) > LV_OPA_TRANSP) {
@@ -291,7 +298,10 @@ void Collection::destroy() {
 bool Collection::build(State& state, const Layout& layout,
                       const Config& config, const WidgetBinding& binding,
                       const fonts::Registry& fonts) {
-    const bool has_title = config.title.text.front() != '\0';
+  // Geometry, box and styling rules are the shared frame every widget type
+  // carries; only the title, the value style and the sources are text's own.
+  const configuration::WidgetFrame& frame = config.frame;
+  const bool has_title = config.title.text.front() != '\0';
   const lv_font_t* const title_font =
       has_title ? fonts.resolve(config.title.font) : nullptr;
   const lv_font_t* const value_font = fonts.resolve(config.value.font);
@@ -309,12 +319,6 @@ bool Collection::build(State& state, const Layout& layout,
           text_width(value_font, unavailable.data()),
           lv_font_get_glyph_width(value_font, '8', '\0'));
   const std::int32_t value_height = lv_font_get_line_height(value_font);
-  const std::int32_t horizontal_insets =
-      2 * config.border.width_px + config.padding.left +
-      config.padding.right;
-  const std::int32_t vertical_insets =
-      2 * config.border.width_px + config.padding.top +
-      config.padding.bottom;
   const std::int32_t content_width =
       std::max(value_width, title_width + (has_title ? 8 : 0));
   const std::int32_t content_height =
@@ -322,18 +326,9 @@ bool Collection::build(State& state, const Layout& layout,
 
   lv_obj_t* parent{};
   Rect bounds{};
-  if (!resolve_widget_bounds(
-          layout, config.placement, content_width + horizontal_insets,
-          content_height + vertical_insets, false, parent, bounds) ||
-      bounds.width <= horizontal_insets ||
-      bounds.height <= vertical_insets) {
-    // Font metrics come from the uploaded face, so a placement authored against
-    // different metrics can be too small. Report what it would have taken.
-    log::error(kTag, "Text widget needs %dx%d but is placed at %dx%d",
-               static_cast<int>(content_width + horizontal_insets),
-               static_cast<int>(content_height + vertical_insets),
-               static_cast<int>(config.placement.width),
-               static_cast<int>(config.placement.height));
+  frame::Box box{};
+  if (!frame::build(layout, frame, kTag, content_width, content_height, false,
+                    parent, bounds, box)) {
     return false;
   }
 
@@ -346,104 +341,19 @@ bool Collection::build(State& state, const Layout& layout,
         .free_running = binding.sources[index].fast_updates,
     };
   }
-  state.condition_count =
-      std::min<std::size_t>(config.condition_count, state.conditions.size());
-  for (std::size_t index = 0; index < state.condition_count; ++index) {
-    state.conditions[index] = config.conditions[index];
-  }
-  state.condition_read = binding.condition.read;
-  state.condition_context = binding.condition.read_context;
-  // The widget as authored is what every rule falls back to, and what LVGL is
-  // configured with just below, so the first render has nothing to apply.
-  state.static_style = {
-      .color = config.value.color,
-      .background_color = config.background_color,
-      .border_color = config.border.color,
-      .blink_ms = 0,
-      .hidden = false,
-  };
-  state.applied_style = state.static_style;
-  state.blink_visible = true;
   state.unavailable_text = unavailable;
   copy_text(state.title_text, config.title.text);
-  state.container = lv_obj_create(parent);
-  lv_obj_remove_style_all(state.container);
-  lv_obj_set_pos(state.container, bounds.x, bounds.y);
-  lv_obj_set_size(state.container, bounds.width, bounds.height);
+  state.container = box.container;
   const bool has_background =
-      config.background_color != kTransparentColor;
-  // An inset background cannot be the container's own fill, which always
-  // reaches the border, so it becomes a child sized to leave the frame clear.
-  // A rule that repaints the background then targets whichever of the two the
-  // widget was built with.
-  const std::int32_t inset = config.background_inset_px;
-  const bool paints_container = inset == 0;
-  if (has_background && paints_container) {
-    lv_obj_set_style_bg_color(
-        state.container, lv_color_hex(config.background_color),
-        LV_PART_MAIN);
-  }
-  lv_obj_set_style_bg_opa(
-      state.container,
-      has_background && paints_container ? LV_OPA_COVER : LV_OPA_TRANSP,
-      LV_PART_MAIN);
-  lv_obj_set_style_border_color(
-      state.container, lv_color_hex(config.border.color), LV_PART_MAIN);
-  lv_obj_set_style_border_width(state.container, config.border.width_px,
-                                LV_PART_MAIN);
-  lv_obj_set_style_border_opa(
-      state.container,
-      config.border.width_px == 0 ? LV_OPA_TRANSP : LV_OPA_COVER,
-      LV_PART_MAIN);
-  lv_obj_set_style_radius(state.container, config.border.radius_px,
-                          LV_PART_MAIN);
-  lv_obj_set_style_pad_left(state.container, config.padding.left,
-                            LV_PART_MAIN);
-  lv_obj_set_style_pad_top(state.container, config.padding.top, LV_PART_MAIN);
-  lv_obj_set_style_pad_right(state.container, config.padding.right,
-                             LV_PART_MAIN);
-  lv_obj_set_style_pad_bottom(state.container, config.padding.bottom,
-                              LV_PART_MAIN);
-  lv_obj_remove_flag(state.container, LV_OBJ_FLAG_SCROLLABLE);
-  lv_obj_remove_flag(state.container, LV_OBJ_FLAG_CLICKABLE);
-  apply_debug_widget_outline(state.container);
-
-  if (!paints_container) {
-    // Created before the value label so it stays behind it. LVGL places a child
-    // against the parent's content area, which the border and the widget
-    // padding already push inwards, so the padding is subtracted back out to
-    // leave exactly `inset` of frame showing.
-    const std::int32_t edge = config.border.width_px + inset;
-    state.background_fill = lv_obj_create(state.container);
-    lv_obj_remove_style_all(state.background_fill);
-    lv_obj_set_pos(state.background_fill,
-                   inset - static_cast<std::int32_t>(config.padding.left),
-                   inset - static_cast<std::int32_t>(config.padding.top));
-    lv_obj_set_size(state.background_fill,
-                    std::max<std::int32_t>(bounds.width - 2 * edge, 0),
-                    std::max<std::int32_t>(bounds.height - 2 * edge, 0));
-    lv_obj_set_style_radius(
-        state.background_fill,
-        std::max<std::int32_t>(config.border.radius_px - inset, 0),
-        LV_PART_MAIN);
-    if (has_background) {
-      lv_obj_set_style_bg_color(state.background_fill,
-                                lv_color_hex(config.background_color),
-                                LV_PART_MAIN);
-    }
-    lv_obj_set_style_bg_opa(state.background_fill,
-                            has_background ? LV_OPA_COVER : LV_OPA_TRANSP,
-                            LV_PART_MAIN);
-    lv_obj_remove_flag(state.background_fill, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(state.background_fill, LV_OBJ_FLAG_CLICKABLE);
-  }
+      frame.background_color != kTransparentColor;
+  const bool paints_container = frame.background_inset_px == 0;
 
   if (has_title) {
-    if (config.border.width_px > 0) {
+    if (frame.border.width_px > 0) {
       state.caption_gap = lv_obj_create(parent);
       lv_obj_remove_style_all(state.caption_gap);
       lv_obj_set_size(state.caption_gap, title_width + 8,
-                      config.border.width_px + 2);
+                      frame.border.width_px + 2);
       lv_obj_set_pos(state.caption_gap,
                      bounds.x + (bounds.width - title_width - 8) / 2,
                      bounds.y);
@@ -452,9 +362,10 @@ bool Collection::build(State& state, const Layout& layout,
       // over the parent, not over the widget's fill.
       const lv_color_t gap_color =
           has_background && paints_container
-              ? lv_color_hex(config.background_color)
+              ? lv_color_hex(frame.background_color)
               : background_behind(parent);
-      state.caption_gap_rgb = lv_color_to_u32(gap_color) & 0x00FF'FFFFU;
+      state.painter.set_background_mask(
+          state.caption_gap, lv_color_to_u32(gap_color) & 0x00FF'FFFFU);
       lv_obj_set_style_bg_color(state.caption_gap, gap_color, LV_PART_MAIN);
       lv_obj_set_style_bg_opa(state.caption_gap, LV_OPA_COVER, LV_PART_MAIN);
       lv_obj_remove_flag(state.caption_gap, LV_OBJ_FLAG_SCROLLABLE);
@@ -485,6 +396,13 @@ bool Collection::build(State& state, const Layout& layout,
       state.value_label, lv_color_hex(config.value.color), LV_PART_MAIN);
   lv_obj_align(state.value_label, lv_alignment(config.value.alignment), 0,
                has_title ? title_height / 4 : 0);
+
+  // The caption and its gap live on the parent so the border can pass behind
+  // them, so the frame has to be told to hide them with the widget.
+  const std::array<lv_obj_t*, 2> attachments{state.caption_gap, state.caption};
+  state.painter.configure(frame, box, attachments, config.value.color,
+                          &apply_value_color, state.value_label);
+  state.painter.bind(binding.condition.read, binding.condition.read_context);
   return true;
 }
 
@@ -543,94 +461,7 @@ void Collection::wake() {
   }
 }
 
-void Collection::apply_style(State& state,
-                             const conditions::ResolvedStyle& style) {
-  if (style == state.applied_style) {
-    return;
-  }
-  if (style.color != state.applied_style.color) {
-    lv_obj_set_style_text_color(state.value_label, lv_color_hex(style.color),
-                                LV_PART_MAIN);
-  }
-  if (style.background_color != state.applied_style.background_color) {
-    const bool painted = style.background_color != kTransparentColor;
-    // Whichever object carries the background: the container itself, or the
-    // inset child that leaves the frame clear.
-    lv_obj_t* const filled = state.background_fill != nullptr
-                                 ? state.background_fill
-                                 : state.container;
-    if (painted) {
-      lv_obj_set_style_bg_color(filled, lv_color_hex(style.background_color),
-                                LV_PART_MAIN);
-    }
-    lv_obj_set_style_bg_opa(
-        filled, painted ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_MAIN);
-    if (state.caption_gap != nullptr && state.background_fill == nullptr) {
-      // The gap masks the border behind the caption, so it has to match
-      // whatever the widget is painted with now. An inset background never
-      // reaches that line, so the gap keeps the colour it was built with.
-      lv_obj_set_style_bg_color(
-          state.caption_gap,
-          lv_color_hex(painted ? style.background_color
-                               : state.caption_gap_rgb),
-          LV_PART_MAIN);
-    }
-  }
-  if (style.border_color != state.applied_style.border_color) {
-    lv_obj_set_style_border_color(
-        state.container, lv_color_hex(style.border_color), LV_PART_MAIN);
-  }
-  if (style.blink_ms != state.applied_style.blink_ms) {
-    // Anchor the phase to the change, so the frame that turns the widget red is
-    // one the widget is visible in instead of one it happens to blink out on.
-    state.blink_started = lv_tick_get();
-    state.blink_visible = true;
-  }
-  state.applied_style = style;
-  apply_visibility(state);
-  // Border, background and value are one visual change. Invalidating the whole
-  // widget publishes them as a single area, instead of leaving LVGL with
-  // separate rectangles that a partial draw buffer can flush one after another.
-  lv_obj_invalidate(state.container);
-  if (state.caption_gap != nullptr) {
-    lv_obj_invalidate(state.caption_gap);
-  }
-  if (state.caption != nullptr) {
-    lv_obj_invalidate(state.caption);
-  }
-}
 
-void Collection::apply_blink(State& state) {
-  const std::uint32_t period = state.applied_style.blink_ms;
-  const bool phase =
-      period == 0 || (lv_tick_elaps(state.blink_started) % period) < period / 2U;
-  if (phase == state.blink_visible) {
-    return;
-  }
-  state.blink_visible = phase;
-  apply_visibility(state);
-}
-
-void Collection::apply_visibility(State& state) {
-  const bool visible = !state.applied_style.hidden && state.blink_visible;
-  if (visible == state.visible) {
-    return;
-  }
-  state.visible = visible;
-  // The caption and its gap are siblings of the container rather than children,
-  // so showing and hiding the widget has to take them along.
-  for (lv_obj_t* const object :
-       {state.container, state.caption_gap, state.caption}) {
-    if (object == nullptr) {
-      continue;
-    }
-    if (visible) {
-      lv_obj_remove_flag(object, LV_OBJ_FLAG_HIDDEN);
-    } else {
-      lv_obj_add_flag(object, LV_OBJ_FLAG_HIDDEN);
-    }
-  }
-}
 
 void Collection::render_state(State& state) {
   // A telemetry slot advances its revision only when the stored value really
@@ -654,43 +485,9 @@ void Collection::render_state(State& state) {
     any_available = any_available || values[index].available;
   }
 
-  const telemetry::TelemetryRead condition =
-      state.condition_read != nullptr
-          ? state.condition_read(state.condition_context)
-          : telemetry::TelemetryRead{};
-  if (state.condition_read != nullptr) {
-    changed = changed || condition.revision != state.condition_revision ||
-              condition.available != state.condition_available;
-    state.condition_revision = condition.revision;
-    state.condition_available = condition.available;
-  }
-  // Styling is re-resolved whenever a source moved, while a hold is running
-  // down, and while a blink is on, so a widget with no rules keeps costing one
-  // revision comparison per source and nothing else.
-  if (state.condition_count > 0 &&
-      (changed || state.holding || state.applied_style.blink_ms != 0)) {
-    conditions::Resolution resolution =
-        conditions::resolve({state.conditions.data(), state.condition_count},
-                            conditions::condition_value(condition),
-                            state.static_style);
-    if (resolution.matched) {
-      state.held_style = resolution.style;
-      state.hold_ms = resolution.hold_ms;
-      state.hold_started = lv_tick_get();
-      state.holding = resolution.hold_ms > 0;
-    } else if (state.holding &&
-               lv_tick_elaps(state.hold_started) < state.hold_ms) {
-      // The rule stopped matching but its flash has not run out yet, which is
-      // what makes a momentary trigger visible at all.
-      resolution.style = state.held_style;
-    } else {
-      state.holding = false;
-    }
-    apply_style(state, resolution.style);
-  }
-  // A blink runs off the tick rather than off telemetry, so its phase advances
-  // even on a pass where nothing else moved.
-  apply_blink(state);
+  // Conditional colour, hiding and blink are the frame's business, and its
+  // watched source is not one of these, so it gates itself.
+  state.painter.render();
   if (!changed) {
     return;
   }

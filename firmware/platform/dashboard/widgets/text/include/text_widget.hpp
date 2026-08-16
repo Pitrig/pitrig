@@ -8,7 +8,7 @@
 #include "application_configuration.hpp"
 #include "dashboard_layout.hpp"
 #include "telemetry_registry.hpp"
-#include "widget_conditions.hpp"
+#include "widget_frame.hpp"
 
 struct _lv_obj_t;
 using lv_obj_t = _lv_obj_t;
@@ -88,41 +88,13 @@ class Collection final {
   struct State {
     std::array<Source, kMaximumSources> sources{};
     std::size_t source_count{};
-    // Styling rules and the source they watch. The rules are copied rather
-    // than referenced for the same reason the transforms are: a configuration
-    // replacement can swap the document out from under a widget that did not
-    // itself change.
-    std::array<configuration::WidgetCondition, kMaximumConditions> conditions{};
-    std::size_t condition_count{};
-    ValueReadCallback condition_read{};
-    void* condition_context{};
-    std::uint64_t condition_revision{};
-    bool condition_available{};
-    // The widget as authored, and the appearance currently on screen.
-    conditions::ResolvedStyle static_style{};
-    conditions::ResolvedStyle applied_style{};
-    // A matched rule may outlive its match so a momentary trigger is visible.
-    conditions::ResolvedStyle held_style{};
-    std::uint32_t hold_started{};
-    std::uint16_t hold_ms{};
-    bool holding{};
-    // Phase anchor, so a blink starts with the value showing rather than
-    // wherever a free-running clock happens to be.
-    std::uint32_t blink_started{};
-    bool blink_visible{true};
-    // Whether the widget is currently on screen. A rule may hide it, and a
-    // blink hides it for half of every period, so both feed one flag.
-    bool visible{true};
+    // Geometry, box, conditional colour, hiding and blink all belong to the
+    // shared frame; what stays here is what makes this widget a text widget.
+    frame::Painter painter{};
     lv_obj_t* container{};
-    // Present only when the widget insets its background from the border, in
-    // which case the container paints nothing and this child is the fill.
-    lv_obj_t* background_fill{};
     lv_obj_t* caption_gap{};
     lv_obj_t* caption{};
     lv_obj_t* value_label{};
-    // Colour the caption gap was painted with, so a rule that paints and then
-    // clears the widget background can put it back.
-    std::uint32_t caption_gap_rgb{};
     // LVGL keeps the pointer a static label is given, so the view owns the
     // caption bytes. Pointing at the configuration document would leave the
     // label reading a buffer that a later replacement overwrites.
@@ -135,13 +107,6 @@ class Collection final {
   static void update(lv_timer_t* timer);
   void render();
   void render_state(State& state);
-  // Both touch LVGL only where the resolved appearance differs from what is on
-  // screen, the way the Delta Time widget caches its tone colours.
-  void apply_style(State& state, const conditions::ResolvedStyle& style);
-  void apply_blink(State& state);
-  // A blink flashes the whole widget rather than its reading alone, so the box,
-  // the frame and the value pulse together.
-  void apply_visibility(State& state);
   void clear_objects();
   void release(State& state);
   [[nodiscard]] bool build(State& state, const Layout& layout,

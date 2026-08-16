@@ -498,8 +498,12 @@ extensions must be recorded in an ADR.
 The schema retains deterministic limits. They are generated from
 `configuration/configuration_schema.json` together with the firmware structures
 and the configurator types, and the current values are listed in
-[configuration-schema.md](configuration-schema.md). The payload bound is 16384
-bytes of compact JSON.
+[configuration-schema.md](configuration-schema.md). The payload bound is 65536
+bytes of compact JSON, which a screen filled to every per-type widget cap does
+not come close to. The buffers it sizes live in external memory, and so does the
+parser's document: the parser points cJSON's allocator at PSRAM, because the
+SPIRAM policy sends every allocation under 16 KiB to internal RAM and a document
+is thousands of small nodes.
 
 The property table, object shapes, enumerations, and rejection reasons in that
 generated reference are authoritative; this document describes the rules around

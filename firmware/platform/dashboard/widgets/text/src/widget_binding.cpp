@@ -65,11 +65,11 @@ bool Binder::bind_sources(
   }
   binding.count = configuration.source_count;
 
-  if (configuration.condition_count == 0) {
+  if (configuration.frame.condition_count == 0) {
     return true;
   }
   const configuration::ConditionSourceConfiguration& source =
-      configuration.condition_source;
+      configuration.frame.condition_source;
   return bind_one(configuration::value_binding_view(source.binding),
                   source.modifier_count, source.modifiers, registry, telemetry,
                   lap_timer_modifier, binding.condition);

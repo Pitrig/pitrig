@@ -11,11 +11,35 @@
 #include <string_view>
 
 #include "cJSON.h"
+#include "esp_heap_caps.h"
 
 namespace simcore::configuration {
 namespace {
 
 using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
+
+// cJSON builds a document out of many small nodes, and the SPIRAM policy sends
+// every allocation under 16 KiB to internal RAM, so a large payload would parse
+// itself into the scarcest memory the device has. This parser is the only cJSON
+// user in the firmware, so pointing its allocator at external memory is safe
+// and makes the payload limit a question of PSRAM rather than of SRAM.
+void* json_malloc(const std::size_t size) {
+  void* const external =
+      heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  return external != nullptr ? external : std::malloc(size);
+}
+
+void json_free(void* const pointer) { heap_caps_free(pointer); }
+
+void install_json_allocator() {
+  static bool installed = false;
+  if (installed) {
+    return;
+  }
+  cJSON_Hooks hooks{.malloc_fn = &json_malloc, .free_fn = &json_free};
+  cJSON_InitHooks(&hooks);
+  installed = true;
+}
 using KeyList = std::span<const std::string_view>;
 
 // Records the first cause and leaves it untouched afterwards, so a nested
@@ -442,12 +466,12 @@ template <typename Source>
 // Styling rules and the source they watch. Both are optional; a widget with
 // neither renders its authored colours and nothing evaluates at render time.
 [[nodiscard]] bool parse_conditions(const cJSON* const object,
-                                    TextWidgetConfiguration& config,
+                                    WidgetFrame& config,
                                     ValidationFailure& failure) {
-  constexpr std::string_view kName = "widget.text.conditions";
+  constexpr std::string_view kName = "widget.conditions";
   if (const cJSON* const source = member(object, "condition_source");
       source != nullptr) {
-    constexpr std::string_view kSourceName = "widget.text.condition_source";
+    constexpr std::string_view kSourceName = "widget.condition_source";
     if (!valid_object(source, schema::kConditionSourceConfigurationKeys,
                       kSourceName, failure) ||
         !read_text(source, "binding", config.condition_source.binding,
@@ -488,53 +512,64 @@ template <typename Source>
   return true;
 }
 
-[[nodiscard]] bool parse_text_widget(const cJSON* const object,
-                                     TextWidgetConfiguration& config,
-                                     ValidationFailure& failure) {
-  constexpr std::string_view kName = "widget.text";
-  if (!valid_object(object, schema::kTextWidgetConfigurationKeys, kName,
-                    failure) ||
-      !read_text(object, "id", config.id, kName, failure) ||
-      !parse_optional_placement(object, config.placement, failure) ||
-      !read_integer(object, "z_index", config.z_index, kName, failure) ||
-      !read_color(object, "background_color", config.background_color, kName,
+// Every widget type carries a frame, so this reads the properties none of them
+// has to declare for itself.
+[[nodiscard]] bool parse_frame(const cJSON* const object, WidgetFrame& frame,
+                               const std::string_view name,
+                               ValidationFailure& failure) {
+  if (!read_text(object, "id", frame.id, name, failure) ||
+      !parse_optional_placement(object, frame.placement, failure) ||
+      !read_integer(object, "z_index", frame.z_index, name, failure) ||
+      !read_color(object, "background_color", frame.background_color, name,
                   failure) ||
-      !read_integer(object, "background_inset_px", config.background_inset_px,
-                    kName, failure) ||
-      !parse_sources(object, config, failure) ||
-      !parse_conditions(object, config, failure)) {
+      !read_integer(object, "background_inset_px", frame.background_inset_px,
+                    name, failure) ||
+      !parse_conditions(object, frame, failure)) {
     return false;
   }
 
   if (const cJSON* const padding = member(object, "padding");
       padding != nullptr) {
-    constexpr std::string_view kPaddingName = "widget.text.padding";
+    constexpr std::string_view kPaddingName = "widget.padding";
     if (!valid_object(padding, schema::kWidgetInsetsKeys, kPaddingName,
                       failure) ||
-        !read_integer(padding, "left", config.padding.left, kPaddingName,
+        !read_integer(padding, "left", frame.padding.left, kPaddingName,
                       failure) ||
-        !read_integer(padding, "top", config.padding.top, kPaddingName,
+        !read_integer(padding, "top", frame.padding.top, kPaddingName,
                       failure) ||
-        !read_integer(padding, "right", config.padding.right, kPaddingName,
+        !read_integer(padding, "right", frame.padding.right, kPaddingName,
                       failure) ||
-        !read_integer(padding, "bottom", config.padding.bottom, kPaddingName,
+        !read_integer(padding, "bottom", frame.padding.bottom, kPaddingName,
                       failure)) {
       return false;
     }
   }
 
   if (const cJSON* const border = member(object, "border"); border != nullptr) {
-    constexpr std::string_view kBorderName = "widget.text.border";
+    constexpr std::string_view kBorderName = "widget.border";
     if (!valid_object(border, schema::kWidgetBorderKeys, kBorderName,
                       failure) ||
-        !read_color(border, "color", config.border.color, kBorderName,
+        !read_color(border, "color", frame.border.color, kBorderName,
                     failure) ||
-        !read_integer(border, "width_px", config.border.width_px, kBorderName,
+        !read_integer(border, "width_px", frame.border.width_px, kBorderName,
                       failure) ||
-        !read_integer(border, "radius_px", config.border.radius_px, kBorderName,
+        !read_integer(border, "radius_px", frame.border.radius_px, kBorderName,
                       failure)) {
       return false;
     }
+  }
+  return true;
+}
+
+[[nodiscard]] bool parse_text_widget(const cJSON* const object,
+                                     TextWidgetConfiguration& config,
+                                     ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.text";
+  if (!valid_object(object, schema::kTextWidgetConfigurationKeys, kName,
+                    failure) ||
+      !parse_frame(object, config.frame, kName, failure) ||
+      !parse_sources(object, config, failure)) {
+    return false;
   }
 
   if (const cJSON* const title = member(object, "title"); title != nullptr) {
@@ -618,7 +653,7 @@ template <typename Source>
   // knowledge.
   const std::int16_t z_index =
       widget_type == WidgetType::text
-          ? screen.text_widgets[storage_index].z_index
+          ? screen.text_widgets[storage_index].frame.z_index
           : screen.delta_time_widgets[storage_index].z_index;
   screen.widgets[screen.widget_count] = {
       .type = widget_type,
@@ -749,6 +784,7 @@ ValidationFailure parse_configuration_json(
     (void)reject(failure, ValidationError::malformed, "configuration");
     return failure;
   }
+  install_json_allocator();
   const char* parse_end{};
   Json root(cJSON_ParseWithLengthOpts(
                 reinterpret_cast<const char*>(input.data()), input.size(),

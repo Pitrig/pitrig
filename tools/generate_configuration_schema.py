@@ -209,6 +209,26 @@ def object_keys(document: dict[str, Any], struct_name: str) -> list[str]:
     return keys
 
 
+def child_types(document: dict[str, Any], body: dict[str, Any]) -> dict[str, str]:
+    """Nested object type per public property, following flattened structs.
+
+    A flattened struct contributes its properties at this level, so its children
+    have to be reported here too or a validator walking the document would stop
+    at the boundary and miss everything below it.
+    """
+    children: dict[str, str] = {}
+    for field in serialized_fields(body):
+        if field.get("flatten"):
+            children.update(child_types(document, document["structs"][field["struct"]]))
+        elif field["kind"] == "struct":
+            children[json_key(field)] = field["struct"]
+        elif field["kind"] == "array" and not field.get("json_variants"):
+            children[json_key(field)] = field["struct"]
+        elif field["kind"] == "external" and not field.get("inline"):
+            children[json_key(field)] = field["external"]
+    return children
+
+
 def widget_variants(document: dict[str, Any]) -> dict[str, str]:
     """Widget discriminator value to the struct that carries its properties."""
     return {
@@ -638,16 +658,7 @@ def generate_typescript(document: dict[str, Any]) -> str:
     for name, body in document["structs"].items():
         if body.get("serialized") is False:
             continue
-        children: dict[str, str] = {}
-        for field in serialized_fields(body):
-            if field.get("flatten"):
-                continue
-            if field["kind"] == "struct":
-                children[json_key(field)] = field["struct"]
-            elif field["kind"] == "array" and not field.get("json_variants"):
-                children[json_key(field)] = field["struct"]
-            elif field["kind"] == "external" and not field.get("inline"):
-                children[json_key(field)] = field["external"]
+        children = child_types(document, body)
         if not children:
             continue
         rendered = ", ".join(f"{key}: '{value}'" for key, value in children.items())

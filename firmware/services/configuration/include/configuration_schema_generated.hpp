@@ -201,20 +201,32 @@ inline constexpr std::array<std::string_view, 3> kTextSourceConfigurationKeys{{
     "transform",
 }};
 
-inline constexpr std::array<std::string_view, 13> kTextWidgetConfigurationKeys{{
-    "type",
+inline constexpr std::array<std::string_view, 9> kWidgetFrameKeys{{
     "id",
-    "sources",
-    "condition_source",
-    "conditions",
     "placement",
     "z_index",
     "padding",
     "border",
-    "title",
-    "value",
     "background_color",
     "background_inset_px",
+    "condition_source",
+    "conditions",
+}};
+
+inline constexpr std::array<std::string_view, 13> kTextWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "background_color",
+    "background_inset_px",
+    "condition_source",
+    "conditions",
+    "sources",
+    "title",
+    "value",
 }};
 
 inline constexpr std::array<std::string_view, 3> kScreenConfigurationKeys{{

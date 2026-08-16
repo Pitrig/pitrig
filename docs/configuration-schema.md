@@ -8,11 +8,18 @@ Schema version: 4.
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
-| `kMaximumPayloadSize` | 16384 | Maximum compact JSON payload in bytes, for both the wire and NVS. |
+| `kMaximumPayloadSize` | 65536 | Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. |
 | `kMaximumScreens` | 1 | Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review. |
-| `kMaximumWidgetsPerScreen` | 17 | Ordered widget references per screen. Bounds the sum of every widget variant on one screen. |
+| `kMaximumWidgetsPerScreen` | 71 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize. |
 | `kMaximumTextWidgets` | 16 | Text widget storage per screen. |
+| `kMaximumShapeWidgets` | 24 | Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap. |
+| `kMaximumBarWidgets` | 16 | Bar widget storage per screen. |
+| `kMaximumArcWidgets` | 8 | Arc widget storage per screen. |
+| `kMaximumIndicatorWidgets` | 4 | Indicator strip storage per screen. |
+| `kMaximumGraphWidgets` | 2 | Graph storage per screen. Each instance owns a sample ring buffer, which is why this cap is the smallest. |
 | `kMaximumDeltaTimeWidgets` | 1 | Delta Time widget storage per screen. |
+| `kMaximumIndicatorSegments` | 16 | Segments in one indicator strip. |
+| `kMaximumGraphPoints` | 128 | Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. |
 | `kMaximumTextSources` | 3 | Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. |
 | `kMaximumValueModifiers` | 4 | Value modifiers per text widget source. |
 | `kMaximumWidgetConditions` | 4 | Conditional styling rules per widget. Four covers a normal, caution, warning and limit band. |
@@ -204,6 +211,22 @@ One canonical telemetry source of a text widget, consumed through a pre-bound ty
 | `modifiers` | array of [`ValueModifier`](#valuemodifier), max 4 | absent |
 | `transform` | [`ValueTransform`](#valuetransform) | absent |
 
+### WidgetFrame
+
+What every widget type owns regardless of what it draws: where it sits, how it is boxed, and the rules that restyle it. Flattened into each widget, so these are plain widget properties on the wire.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `id` | string, max 15 bytes | empty |
+| `placement` | [`WidgetPlacement`](#widgetplacement) | absent |
+| `z_index` | integer, -32768..32767 | `0` |
+| `padding` | [`WidgetInsets`](#widgetinsets) | absent |
+| `border` | [`WidgetBorder`](#widgetborder) | absent |
+| `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `background_inset_px` | integer, 0..65535 | `0` |
+| `condition_source` | [`ConditionSourceConfiguration`](#conditionsourceconfiguration) | absent |
+| `conditions` | array of [`WidgetCondition`](#widgetcondition), max 4 | absent |
+
 ### TextWidgetConfiguration
 
 Reusable telemetry text widget. Renders its ordered sources as one string.
@@ -211,18 +234,9 @@ Reusable telemetry text widget. Renders its ordered sources as one string.
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `text` | required |
-| `id` | string, max 15 bytes | empty |
 | `sources` | array of [`TextSourceConfiguration`](#textsourceconfiguration), max 3 | absent |
-| `condition_source` | [`ConditionSourceConfiguration`](#conditionsourceconfiguration) | absent |
-| `conditions` | array of [`WidgetCondition`](#widgetcondition), max 4 | absent |
-| `placement` | [`WidgetPlacement`](#widgetplacement) | absent |
-| `z_index` | integer, -32768..32767 | `0` |
-| `padding` | [`WidgetInsets`](#widgetinsets) | absent |
-| `border` | [`WidgetBorder`](#widgetborder) | absent |
 | `title` | [`WidgetTitleStyle`](#widgettitlestyle) | absent |
 | `value` | [`WidgetValueStyle`](#widgetvaluestyle) | absent |
-| `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
-| `background_inset_px` | integer, 0..65535 | `0` |
 
 ### ScreenConfiguration
 
@@ -232,7 +246,7 @@ One dashboard screen. A screen is the coordinate space for the widgets it owns.
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`DeltaTimeWidgetConfiguration`](#deltatimewidgetconfiguration), max 17, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`DeltaTimeWidgetConfiguration`](#deltatimewidgetconfiguration), max 71, discriminated by `type` | absent |
 
 ### DashboardConfiguration
 

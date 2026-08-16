@@ -145,8 +145,9 @@ class Validator final {
       const DeltaTimeWidgetConfiguration& config);
 
  private:
+  [[nodiscard]] bool frame(const WidgetFrame& config);
   [[nodiscard]] bool text_source(const TextSourceConfiguration& config);
-  [[nodiscard]] bool conditions(const TextWidgetConfiguration& config);
+  [[nodiscard]] bool conditions(const WidgetFrame& config);
 
   [[nodiscard]] std::int32_t width() const { return profile_.display.width; }
   [[nodiscard]] std::int32_t height() const { return profile_.display.height; }
@@ -214,7 +215,7 @@ bool Validator::text_source(const TextSourceConfiguration& config) {
 
 // Styling rules read one telemetry source and may not blink faster than the eye
 // can follow or so slowly that the widget looks broken.
-bool Validator::conditions(const TextWidgetConfiguration& config) {
+bool Validator::conditions(const WidgetFrame& config) {
   if (config.condition_count > config.conditions.size()) {
     return reject(failure_, ValidationError::invalid_widget, "conditions");
   }
@@ -248,21 +249,9 @@ bool Validator::conditions(const TextWidgetConfiguration& config) {
   return true;
 }
 
-bool Validator::text_widget(const TextWidgetConfiguration& config) {
-  // A widget with no source has nothing to render, and its LVGL label would be
-  // sized from an empty placeholder.
-  if (config.source_count == 0 ||
-      config.source_count > config.sources.size()) {
-    return reject(failure_, ValidationError::invalid_widget, "sources");
-  }
-  for (std::size_t index = 0; index < config.source_count; ++index) {
-    if (!text_source(config.sources[index])) {
-      return false;
-    }
-  }
-  if (!conditions(config)) {
-    return false;
-  }
+// Geometry, box and styling rules belong to every widget type, so each one
+// validates them here rather than repeating the same checks.
+bool Validator::frame(const WidgetFrame& config) {
   if (!valid_placement(config.placement, width(), height())) {
     return reject(failure_, ValidationError::invalid_widget, "placement");
   }
@@ -283,6 +272,31 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
     return reject(failure_, ValidationError::invalid_widget,
                   "background_inset_px");
   }
+  if (!valid_optional_color(config.background_color)) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "background_color");
+  }
+  if (!terminated(config.id)) {
+    return reject(failure_, ValidationError::invalid_widget, "id");
+  }
+  return conditions(config);
+}
+
+bool Validator::text_widget(const TextWidgetConfiguration& config) {
+  // A widget with no source has nothing to render, and its LVGL label would be
+  // sized from an empty placeholder.
+  if (config.source_count == 0 ||
+      config.source_count > config.sources.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "sources");
+  }
+  for (std::size_t index = 0; index < config.source_count; ++index) {
+    if (!text_source(config.sources[index])) {
+      return false;
+    }
+  }
+  if (!frame(config.frame)) {
+    return false;
+  }
   if (!terminated(config.title.text) || !valid_color(config.title.color) ||
       (config.title.text.front() != '\0' && !valid_font(config.title.font))) {
     return reject(failure_, ValidationError::invalid_widget, "title");
@@ -292,13 +306,6 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
       config.value.alignment < TextAlignment::left ||
       config.value.alignment > TextAlignment::right) {
     return reject(failure_, ValidationError::invalid_widget, "value");
-  }
-  if (!valid_optional_color(config.background_color)) {
-    return reject(failure_, ValidationError::invalid_widget,
-                  "background_color");
-  }
-  if (!terminated(config.id)) {
-    return reject(failure_, ValidationError::invalid_widget, "id");
   }
   return true;
 }

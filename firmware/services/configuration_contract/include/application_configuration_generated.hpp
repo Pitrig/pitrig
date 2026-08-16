@@ -17,16 +17,30 @@ inline constexpr std::uint16_t kConfigurationSchemaVersion = 4;
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
-// Maximum compact JSON payload in bytes, for both the wire and NVS.
-inline constexpr std::size_t kMaximumPayloadSize = 16384;
+// Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory.
+inline constexpr std::size_t kMaximumPayloadSize = 65536;
 // Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review.
 inline constexpr std::size_t kMaximumScreens = 1;
-// Ordered widget references per screen. Bounds the sum of every widget variant on one screen.
-inline constexpr std::size_t kMaximumWidgetsPerScreen = 17;
+// Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize.
+inline constexpr std::size_t kMaximumWidgetsPerScreen = 71;
 // Text widget storage per screen.
 inline constexpr std::size_t kMaximumTextWidgets = 16;
+// Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap.
+inline constexpr std::size_t kMaximumShapeWidgets = 24;
+// Bar widget storage per screen.
+inline constexpr std::size_t kMaximumBarWidgets = 16;
+// Arc widget storage per screen.
+inline constexpr std::size_t kMaximumArcWidgets = 8;
+// Indicator strip storage per screen.
+inline constexpr std::size_t kMaximumIndicatorWidgets = 4;
+// Graph storage per screen. Each instance owns a sample ring buffer, which is why this cap is the smallest.
+inline constexpr std::size_t kMaximumGraphWidgets = 2;
 // Delta Time widget storage per screen.
 inline constexpr std::size_t kMaximumDeltaTimeWidgets = 1;
+// Segments in one indicator strip.
+inline constexpr std::size_t kMaximumIndicatorSegments = 16;
+// Samples one graph retains. The ring buffer is sized by this whatever point_count asks for.
+inline constexpr std::size_t kMaximumGraphPoints = 128;
 // Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays.
 inline constexpr std::size_t kMaximumTextSources = 3;
 // Value modifiers per text widget source.
@@ -245,23 +259,30 @@ struct TextSourceConfiguration {
   ValueTransform transform{};
 };
 
-// Reusable telemetry text widget. Renders its ordered sources as one
-// string.
-struct TextWidgetConfiguration {
+// What every widget type owns regardless of what it draws: where it sits,
+// how it is boxed, and the rules that restyle it. Flattened into each
+// widget, so these are plain widget properties on the wire.
+struct WidgetFrame {
   std::array<char, kWidgetIdCapacity> id{};
-  std::uint8_t source_count{};
-  std::array<TextSourceConfiguration, kMaximumTextSources> sources{};
-  ConditionSourceConfiguration condition_source{};
-  std::uint8_t condition_count{};
-  std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
   WidgetPlacement placement{};
   std::int16_t z_index{};
   WidgetInsets padding{};
   WidgetBorder border{};
-  WidgetTitleStyle title{};
-  WidgetValueStyle value{};
   std::uint32_t background_color{kTransparentColor};
   std::uint16_t background_inset_px{};
+  ConditionSourceConfiguration condition_source{};
+  std::uint8_t condition_count{};
+  std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
+};
+
+// Reusable telemetry text widget. Renders its ordered sources as one
+// string.
+struct TextWidgetConfiguration {
+  WidgetFrame frame{};
+  std::uint8_t source_count{};
+  std::array<TextSourceConfiguration, kMaximumTextSources> sources{};
+  WidgetTitleStyle title{};
+  WidgetValueStyle value{};
 };
 
 // Declaration-order reference into the typed widget storage of one screen.

@@ -1,5 +1,6 @@
 set(component_sources
     "conditions/src/widget_conditions.cpp"
+    "frame/src/widget_frame.cpp"
     "fonts/src/dashboard_fonts.cpp"
     "fonts/src/font_glyph_allocator.cpp"
     "layout/src/dashboard_layout.cpp"
@@ -13,6 +14,7 @@ set(component_sources
 set(component_include_dirs
     "include"
     "conditions/include"
+    "frame/include"
     "fonts/include"
     "layout/include"
     "utilities/boot_splash/include"
