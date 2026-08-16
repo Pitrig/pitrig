@@ -119,12 +119,13 @@ components → interfaces ← drivers
   `guition_jc1060p470c`, `transport/uart`, `transport/usb_cdc`). No application logic.
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
-- `services/` — shared infrastructure (`configuration`, `configuration_contract`,
-  `configuration_control`, `event_bus`, `font_assets`, `font_asset_control`, `font_contract`,
+- `services/` — shared infrastructure (`asset_storage`, `binary_session`, `configuration`,
+  `configuration_contract`, `configuration_control`, `event_bus`, `font_assets`,
+  `font_asset_control`, `font_contract`, `image_assets`, `image_asset_control`, `image_contract`,
   `logger`, `performance`, `telemetry` + `telemetry/protocols/simhub`).
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
   `dashboard` (LVGL widgets), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
-  `partition_font_asset_storage`, `telemetry_transport`, `external_memory`.
+  `partition_asset_storage`, `telemetry_transport`, `external_memory`.
 - `utils/` — dependency-free helpers (`binary`, `transformers/number_transform`,
   `transformers/text_writer`, `transformers/time_transform`).
 
@@ -183,6 +184,17 @@ control protocol (`INFO`, `GET`, `VALIDATE`, `APPLY`, `SET`, `RESET`, `REBOOT`),
 stop-and-wait mode for font package upload. `core` receives only `ITransport` and knows nothing about
 UART, USB CDC, or SimHub. See [docs/simhub-custom-serial.md](docs/simhub-custom-serial.md) and
 [docs/font-assets.md](docs/font-assets.md).
+
+### Uploaded assets
+
+Fonts and images are both uploaded, never compiled in, and they share everything
+except their package format: one 4 MiB `image_assets` partition beside the 2 MiB
+`font_assets` one, the `asset_storage` contract under both, the `SCF1` frames
+over `@SC:FONT:` / `@SC:IMAGE:`, and a single `binary_session::Claim` that
+decides which one owns the serial link — a second upload is answered `busy`
+rather than raced. Images are converted **in the configurator** to the LVGL
+layout and the size they are drawn at; the device holds no decoder and neither
+scales nor rotates. See [docs/adr/0018-uploaded-image-assets.md](docs/adr/0018-uploaded-image-assets.md).
 
 ### Fonts
 

@@ -22,7 +22,7 @@ inline constexpr std::size_t kMaximumPayloadSize = 65536;
 // Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table.
 inline constexpr std::size_t kMaximumScreens = 1;
 // Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize.
-inline constexpr std::size_t kMaximumWidgetsPerScreen = 86;
+inline constexpr std::size_t kMaximumWidgetsPerScreen = 94;
 // Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts.
 inline constexpr std::size_t kMaximumTextWidgets = 32;
 // Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap.
@@ -35,6 +35,8 @@ inline constexpr std::size_t kMaximumArcWidgets = 8;
 inline constexpr std::size_t kMaximumIndicatorWidgets = 4;
 // Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest.
 inline constexpr std::size_t kMaximumGraphWidgets = 2;
+// Image widget storage for the whole dashboard.
+inline constexpr std::size_t kMaximumImageWidgets = 8;
 // Segments in one indicator strip.
 inline constexpr std::size_t kMaximumIndicatorSegments = 16;
 // Samples one graph retains. The ring buffer is sized by this whatever point_count asks for.
@@ -47,6 +49,8 @@ inline constexpr std::size_t kMaximumValueModifiers = 4;
 inline constexpr std::size_t kMaximumColorStops = 4;
 // Conditional styling rules per widget. Four covers a normal, caution, warning and limit band.
 inline constexpr std::size_t kMaximumWidgetConditions = 4;
+// Uploaded image identifier storage including the terminator (31 usable bytes). Must match kImageIdCapacity in the image contract.
+inline constexpr std::size_t kImageIdCapacity = 32;
 // Widget identifier storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kWidgetIdCapacity = 16;
 // Widget title text storage including the terminator (15 usable bytes).
@@ -136,6 +140,7 @@ enum class WidgetType : std::uint8_t {
   arc,
   indicator,
   graph,
+  image,
 };
 
 struct BoardConfiguration {
@@ -362,6 +367,17 @@ struct GraphWidgetConfiguration {
   std::uint16_t line_width_px{2};
 };
 
+// An uploaded image drawn inside the frame. It binds no telemetry of its
+// own, but its styling rules can hide it, flash it or recolour it. Neither
+// scaled nor rotated: the configurator converts each image to the size it
+// is drawn at, which also keeps the accelerated draw path on the ESP32-P4.
+struct ImageWidgetConfiguration {
+  WidgetFrame frame{};
+  std::array<char, kImageIdCapacity> image{};
+  std::uint32_t recolor{kTransparentColor};
+  std::uint8_t recolor_opa{255};
+};
+
 // Panels, dividers and backing plates: the frame is the whole widget. It
 // binds no telemetry of its own, but its styling rules can still hide it or
 // flash it. A line is a thin rectangle.
@@ -408,6 +424,8 @@ struct DashboardConfiguration {
   std::array<IndicatorWidgetConfiguration, kMaximumIndicatorWidgets> indicator_widgets{};
   std::uint8_t graph_widget_count{};
   std::array<GraphWidgetConfiguration, kMaximumGraphWidgets> graph_widgets{};
+  std::uint8_t image_widget_count{};
+  std::array<ImageWidgetConfiguration, kMaximumImageWidgets> image_widgets{};
 };
 
 struct ApplicationConfiguration {
@@ -640,13 +658,14 @@ inline constexpr std::array<std::string_view, 2> kShapeKindNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 6> kWidgetTypeNames{{
+inline constexpr std::array<std::string_view, 7> kWidgetTypeNames{{
     "text",
     "shape",
     "bar",
     "arc",
     "indicator",
     "graph",
+    "image",
 }};
 
 [[nodiscard]] inline std::string_view widget_type_name(const WidgetType value) {

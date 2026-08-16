@@ -124,6 +124,7 @@ allowance. The production firmware supports these widget types:
 | `arc` | 8 | one telemetry source swept around an arc |
 | `indicator` | 4 | up to 16 lamps lighting as one source climbs its range |
 | `graph` | 2 | a rolling trace of one source, sampled on its own timer |
+| `image` | 8 | an uploaded image, optionally tinted |
 
 `kMaximumWidgetsPerScreen` is the sum of those caps, so a single screen can
 reference the whole pool; what bounds a document overall is the payload size.

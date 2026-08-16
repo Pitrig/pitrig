@@ -1,3 +1,5 @@
+import type { AssetResult, AssetUploadProgress } from './asset-upload'
+import type { ImageSourceSelection, ImageUploadRequest } from './image-assets'
 import type {
   ConnectDeviceRequest,
   DeviceConfigurationApplyResult,
@@ -62,10 +64,15 @@ export interface SimCoreApi {
   uploadFontAssets: (request: FontUploadRequest) => Promise<FontAssetResult<void>>
   cancelFontUpload: () => Promise<FontAssetResult<void>>
   clearFontAssets: () => Promise<DeviceResult<DeviceState>>
+  selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>
+  uploadImageAssets: (request: ImageUploadRequest) => Promise<AssetResult<void>>
+  cancelImageUpload: () => Promise<AssetResult<void>>
+  clearImageAssets: () => Promise<DeviceResult<DeviceState>>
   exportSimHubProfile: (
     request: SimHubProfileExportRequest
   ) => Promise<SimHubProfileResult<SimHubProfileExportValue>>
   onFontUploadProgress: (listener: (progress: FontUploadProgress) => void) => () => void
+  onImageUploadProgress: (listener: (progress: AssetUploadProgress) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
   onDevelopmentSerialTraffic?: (listener: (log: SerialTrafficLog) => void) => () => void
 }

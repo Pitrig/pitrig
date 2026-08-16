@@ -1,5 +1,7 @@
 #include "dashboard_composition.hpp"
 
+#include "image_asset_service.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -391,6 +393,58 @@ void wake_shape_widgets(void* const context) {
   static_cast<ShapeWidgets*>(context)->collection.wake();
 }
 
+bool create_image_widgets(void* const context) {
+  auto& widgets = *static_cast<ImageWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.dashboard->image_widget_count);
+  const std::span configurations{widgets.dashboard->image_widgets.data(), count};
+  // An image binds no telemetry of its own; only its styling rules watch one.
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    log::error(kTag, "Failed to resolve Image widget conditions");
+    return false;
+  }
+  if (!widgets.collection.create(widgets.layout, configurations,
+                                 widgets.binder.reads(),
+                                 widgets.binder.contexts(), *widgets.fonts,
+                                 *widgets.images)) {
+    log::error(kTag, "Failed to create Image widgets");
+    return false;
+  }
+  return true;
+}
+
+void destroy_image_widgets(void* const context) {
+  static_cast<ImageWidgets*>(context)->collection.destroy();
+}
+
+lv_obj_t* image_widget_root(void* const context, const std::uint8_t index) {
+  return static_cast<ImageWidgets*>(context)->collection.root_object(index);
+}
+
+bool update_image_widget(void* const context, const std::uint8_t index) {
+  auto& widgets = *static_cast<ImageWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.dashboard->image_widget_count);
+  if (index >= count) {
+    return false;
+  }
+  const std::span configurations{widgets.dashboard->image_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    return false;
+  }
+  return widgets.collection.recreate(index, widgets.layout,
+                                     configurations[index],
+                                     widgets.binder.reads()[index],
+                                     widgets.binder.contexts()[index],
+                                     *widgets.fonts, *widgets.images);
+}
+
+void wake_image_widgets(void* const context) {
+  static_cast<ImageWidgets*>(context)->collection.wake();
+}
+
 // Runs on the render-trigger task with the LVGL lock held.
 void wake_widgets(void* const context) {
   static_cast<Dashboard*>(context)->widgets.wake_all();
@@ -530,6 +584,9 @@ void for_each_configured_font(
   for (std::size_t index = 0; index < dashboard.graph_widget_count; ++index) {
     visit_caption(dashboard.graph_widgets[index].frame);
   }
+  for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
+    visit_caption(dashboard.image_widgets[index].frame);
+  }
 }
 
 // Creates the fonts this configuration renders with and drops the ones it no
@@ -625,6 +682,12 @@ bool create(lv_display_t* const display,
     dashboard_state.graph.registry = &telemetry_registry;
     dashboard_state.graph.telemetry = &telemetry;
     dashboard_state.graph.fonts = &dashboard_state.fonts;
+    dashboard_state.image.layout = layout;
+    dashboard_state.image.dashboard = &configuration.dashboard;
+    dashboard_state.image.registry = &telemetry_registry;
+    dashboard_state.image.telemetry = &telemetry;
+    dashboard_state.image.fonts = &dashboard_state.fonts;
+    dashboard_state.image.images = &dashboard_state.images;
     dashboard_state.shape.layout = layout;
     dashboard_state.shape.dashboard = &configuration.dashboard;
     dashboard_state.shape.registry = &telemetry_registry;
@@ -706,6 +769,16 @@ bool create(lv_display_t* const display,
             .update_instance = &update_graph_widget,
             .wake = &wake_graph_widgets,
             .context = &dashboard_state.graph,
+        }) &&
+        dashboard_state.widgets.add({
+            .type = configuration::WidgetType::image,
+            .enabled = configuration.dashboard.image_widget_count > 0,
+            .create = &create_image_widgets,
+            .destroy = &destroy_image_widgets,
+            .root_object = &image_widget_root,
+            .update_instance = &update_image_widget,
+            .wake = &wake_image_widgets,
+            .context = &dashboard_state.image,
         });
     lvgl_port_unlock();
     if (!registered) {
@@ -749,6 +822,24 @@ bool widget_changed(const Widget& left, const Widget& right) {
          fonts.has_family(frame.title.font.family);
 }
 
+bool load_images(Dashboard& dashboard, const image_assets::Service& image_assets,
+                 const std::span<std::uint8_t> storage) {
+  return dashboard.images.load(image_assets.images(), storage);
+}
+
+bool images_available(
+    const configuration::ApplicationConfiguration& configuration,
+    const dashboard::images::Registry& images) {
+  const configuration::DashboardConfiguration& dashboard =
+      configuration.dashboard;
+  for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
+    if (!images.has_image(dashboard.image_widgets[index].image)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool fonts_available(
     const configuration::ApplicationConfiguration& configuration,
     const dashboard::fonts::Registry& fonts) {
@@ -789,6 +880,11 @@ bool fonts_available(
       return false;
     }
   }
+  for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
+    if (!captioned(dashboard.image_widgets[index].frame, fonts)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -807,7 +903,8 @@ bool apply_incremental(
       before.bar_widget_count != after.bar_widget_count ||
       before.arc_widget_count != after.arc_widget_count ||
       before.indicator_widget_count != after.indicator_widget_count ||
-      before.graph_widget_count != after.graph_widget_count) {
+      before.graph_widget_count != after.graph_widget_count ||
+      before.image_widget_count != after.image_widget_count) {
     return false;
   }
   for (std::size_t index = 0; index < after.screen_count; ++index) {
@@ -831,6 +928,7 @@ bool apply_incremental(
   dashboard.arc.dashboard = &after;
   dashboard.indicator.dashboard = &after;
   dashboard.graph.dashboard = &after;
+  dashboard.image.dashboard = &after;
 
   for (std::size_t index = 0; index < after.screen_count; ++index) {
     if (before.screens[index].background_color ==
@@ -882,7 +980,10 @@ bool apply_incremental(
                        configuration::WidgetType::indicator) ||
       !rebuild_changed(before.graph_widgets, after.graph_widgets,
                        after.graph_widget_count,
-                       configuration::WidgetType::graph)) {
+                       configuration::WidgetType::graph) ||
+      !rebuild_changed(before.image_widgets, after.image_widgets,
+                       after.image_widget_count,
+                       configuration::WidgetType::image)) {
     return false;
   }
 

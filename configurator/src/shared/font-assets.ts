@@ -1,3 +1,11 @@
+import type {
+  AssetError,
+  AssetErrorCode,
+  AssetResult,
+  AssetUploadProgress,
+  AssetUploadStage
+} from './asset-upload'
+
 export const FONT_SELECT_SOURCE_CHANNEL = 'font-assets:select-source' as const
 export const FONT_UPLOAD_CHANNEL = 'font-assets:upload' as const
 export const FONT_CANCEL_UPLOAD_CHANNEL = 'font-assets:cancel-upload' as const
@@ -28,38 +36,10 @@ export interface FontUploadRequest {
   assets: FontAssetInput[]
 }
 
-export type FontUploadStage =
-  | 'reading'
-  | 'building'
-  | 'erasing'
-  | 'uploading'
-  | 'committing'
-  | 'completed'
-  | 'cancelled'
-  | 'error'
-
-export interface FontUploadProgress {
-  stage: FontUploadStage
-  completed: number
-  total: number
-  message: string
-}
-
-export type FontAssetErrorCode =
-  | 'busy'
-  | 'cancelled'
-  | 'device_error'
-  | 'invalid_request'
-  | 'package_too_large'
-  | 'source_missing'
-  | 'source_unreadable'
-  | 'unsupported_firmware'
-
-export interface FontAssetError {
-  code: FontAssetErrorCode
-  message: string
-}
-
-export type FontAssetResult<T> =
-  | { ok: true; value: T }
-  | { ok: false; error: FontAssetError }
+// Fonts share the upload vocabulary with every other asset kind; these aliases
+// keep the existing names working where the code reads better for it.
+export type FontUploadStage = AssetUploadStage
+export type FontUploadProgress = AssetUploadProgress
+export type FontAssetErrorCode = AssetErrorCode
+export type FontAssetError = AssetError
+export type FontAssetResult<T> = AssetResult<T>

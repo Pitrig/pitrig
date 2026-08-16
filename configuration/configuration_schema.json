@@ -12,7 +12,7 @@
       "doc": "Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table."
     },
     "kMaximumWidgetsPerScreen": {
-      "value": 86,
+      "value": 94,
       "doc": "Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize."
     },
     "kMaximumTextWidgets": {
@@ -39,6 +39,10 @@
       "value": 2,
       "doc": "Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest."
     },
+    "kMaximumImageWidgets": {
+      "value": 8,
+      "doc": "Image widget storage for the whole dashboard."
+    },
     "kMaximumIndicatorSegments": {
       "value": 16,
       "doc": "Segments in one indicator strip."
@@ -62,6 +66,10 @@
     "kMaximumWidgetConditions": {
       "value": 4,
       "doc": "Conditional styling rules per widget. Four covers a normal, caution, warning and limit band."
+    },
+    "kImageIdCapacity": {
+      "value": 32,
+      "doc": "Uploaded image identifier storage including the terminator (31 usable bytes). Must match kImageIdCapacity in the image contract."
     },
     "kWidgetIdCapacity": {
       "value": 16,
@@ -173,7 +181,7 @@
       "doc": "Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own."
     },
     "WidgetType": {
-      "json_values": ["text", "shape", "bar", "arc", "indicator", "graph"],
+      "json_values": ["text", "shape", "bar", "arc", "indicator", "graph", "image"],
       "default": "text",
       "doc": "Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget."
     }
@@ -435,6 +443,17 @@
       ]
     },
 
+    "ImageWidgetConfiguration": {
+      "widget_type": "image",
+      "doc": "An uploaded image drawn inside the frame. It binds no telemetry of its own, but its styling rules can hide it, flash it or recolour it. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "image", "kind": "text", "capacity": "kImageIdCapacity", "default": "", "doc": "Identifier of an uploaded image. A missing one is a composition error, never a silent fallback — the same rule a font family follows." },
+        { "name": "recolor", "kind": "optional_color", "default": "kTransparentColor", "doc": "Tints the image towards this colour. Omitted draws it as uploaded." },
+        { "name": "recolor_opa", "kind": "uint8", "default": 255, "doc": "How strongly the recolour applies, 0 to 255." }
+      ]
+    },
+
     "ShapeWidgetConfiguration": {
       "widget_type": "shape",
       "doc": "Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle.",
@@ -472,7 +491,8 @@
             "bar": "BarWidgetConfiguration",
             "arc": "ArcWidgetConfiguration",
             "indicator": "IndicatorWidgetConfiguration",
-            "graph": "GraphWidgetConfiguration"
+            "graph": "GraphWidgetConfiguration",
+            "image": "ImageWidgetConfiguration"
           },
           "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the dashboard pool for its variant, and the screen keeps a reference to that slot."
         }
@@ -495,7 +515,9 @@
         { "name": "indicator_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "indicator_widgets", "kind": "array", "struct": "IndicatorWidgetConfiguration", "capacity": "kMaximumIndicatorWidgets", "count_field": "indicator_widget_count", "serialized": false },
         { "name": "graph_widget_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "graph_widgets", "kind": "array", "struct": "GraphWidgetConfiguration", "capacity": "kMaximumGraphWidgets", "count_field": "graph_widget_count", "serialized": false }
+        { "name": "graph_widgets", "kind": "array", "struct": "GraphWidgetConfiguration", "capacity": "kMaximumGraphWidgets", "count_field": "graph_widget_count", "serialized": false },
+        { "name": "image_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "image_widgets", "kind": "array", "struct": "ImageWidgetConfiguration", "capacity": "kMaximumImageWidgets", "count_field": "image_widget_count", "serialized": false }
       ]
     },
 

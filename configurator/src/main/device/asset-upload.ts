@@ -1,7 +1,12 @@
 import type { SerialPort } from 'serialport'
 
-import type { FontUploadProgress } from '../../shared/font-assets'
-import { crc32 } from '../font-assets/font-package'
+import type { AssetUploadProgress } from '../../shared/asset-upload'
+import { crc32 } from './asset-crc'
+
+// The binary upload protocol, which is the same for every asset kind: SCF1
+// frames, one in flight, acknowledged by sequence. Only the command namespace
+// and the words in the messages differ, so those are parameters rather than a
+// second copy of the state machine.
 
 const FRAME_MAGIC = Buffer.from('SCF1', 'ascii')
 const FRAME_HEADER_SIZE = 14
@@ -11,13 +16,21 @@ const FRAME_TIMEOUT_MS = 5_000
 
 class DeviceRejectedUploadError extends Error {}
 
+export interface AssetNamespace {
+  /** The `@SC:` command namespace, e.g. `FONT` or `IMAGE`. */
+  command: string
+  /** What the messages call the thing being uploaded. */
+  label: string
+}
+
 interface UploadCallbacks {
-  onProgress: (progress: FontUploadProgress) => void
+  onProgress: (progress: AssetUploadProgress) => void
   onTransmit: (data: string, encoding: 'utf8' | 'hex') => void
 }
 
-export async function uploadFontPackage(
+export async function uploadAssetPackage(
   port: SerialPort,
+  namespace: AssetNamespace,
   packageBytes: Uint8Array,
   callbacks: UploadCallbacks,
   signal: AbortSignal
@@ -31,14 +44,14 @@ export async function uploadFontPackage(
       stage: 'erasing',
       completed: 0,
       total: packageBytes.byteLength,
-      message: 'Preparing font storage'
+      message: `Preparing ${namespace.label} storage`
     })
-    const begin = `@SC:FONT:BEGIN:size=${packageBytes.byteLength}\n`
+    const begin = `@SC:${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`
     beginMayBeActive = true
     await exchangeLine(
       port,
       Buffer.from(begin, 'utf8'),
-      '@SC:OK:FONT:READY:max_chunk=1024',
+      `@SC:OK:${namespace.command}:READY:max_chunk=1024`,
       BEGIN_TIMEOUT_MS,
       callbacks,
       signal
@@ -56,15 +69,15 @@ export async function uploadFontPackage(
       const response = await exchangeLine(
         port,
         createFrame(1, sequence, payload),
-        '@SC:OK:FONT:ACK:',
+        `@SC:OK:${namespace.command}:ACK:`,
         FRAME_TIMEOUT_MS,
         callbacks,
         signal
       )
-      const ack = parseAck(response)
+      const ack = parseAck(namespace, response)
       const nextReceived = received + payload.byteLength
       if (ack.sequence !== sequence || ack.received !== nextReceived) {
-        throw new Error('The device returned an invalid font upload acknowledgement.')
+        throw new Error(`The device returned an invalid ${namespace.label} upload acknowledgement.`)
       }
       received = nextReceived
       callbacks.onProgress({
@@ -80,12 +93,12 @@ export async function uploadFontPackage(
       stage: 'committing',
       completed: packageBytes.byteLength,
       total: packageBytes.byteLength,
-      message: 'Validating and committing the font package'
+      message: `Validating and committing the ${namespace.label} package`
     })
     await exchangeLine(
       port,
       createFrame(2, sequence),
-      '@SC:OK:FONT:COMMITTED:reboot_required=1',
+      `@SC:OK:${namespace.command}:COMMITTED:reboot_required=1`,
       FRAME_TIMEOUT_MS,
       callbacks,
       signal
@@ -96,7 +109,7 @@ export async function uploadFontPackage(
       port.isOpen &&
       (sessionStarted || (beginMayBeActive && !(error instanceof DeviceRejectedUploadError)))
     ) {
-      await cancelSession(port, sequence, callbacks)
+      await cancelSession(port, namespace, sequence, callbacks)
     }
     throw error
   }
@@ -121,6 +134,7 @@ function createFrame(
 
 async function cancelSession(
   port: SerialPort,
+  namespace: AssetNamespace,
   sequence: number,
   callbacks: UploadCallbacks
 ): Promise<void> {
@@ -128,7 +142,7 @@ async function cancelSession(
     await exchangeLine(
       port,
       createFrame(3, sequence),
-      '@SC:OK:FONT:CANCELLED',
+      `@SC:OK:${namespace.command}:CANCELLED`,
       FRAME_TIMEOUT_MS,
       callbacks,
       new AbortController().signal
@@ -179,12 +193,12 @@ function exchangeLine(
       }
       const deviceError = lines.find((line) => line.startsWith('@SC:ERR:'))
       if (deviceError) {
-        finish(new DeviceRejectedUploadError(`SimCore rejected the font upload: ${deviceError}`))
+        finish(new DeviceRejectedUploadError(`SimCore rejected the upload: ${deviceError}`))
       }
     }
     const onError = (error: Error): void => finish(error)
-    const onClose = (): void => finish(new Error('The serial port closed during font upload.'))
-    const onAbort = (): void => finish(new Error('Font upload was cancelled.'))
+    const onClose = (): void => finish(new Error('The serial port closed during the upload.'))
+    const onAbort = (): void => finish(new Error('The upload was cancelled.'))
 
     port.on('data', onData)
     port.once('error', onError)
@@ -210,13 +224,20 @@ function exchangeLine(
   })
 }
 
-function parseAck(line: string): { sequence: number; received: number } {
-  const match = /^@SC:OK:FONT:ACK:sequence=(\d+),received=(\d+)$/.exec(line)
-  if (!match) throw new Error('The device returned a malformed font upload acknowledgement.')
+function parseAck(
+  namespace: AssetNamespace,
+  line: string
+): { sequence: number; received: number } {
+  const match = new RegExp(
+    `^@SC:OK:${namespace.command}:ACK:sequence=(\\d+),received=(\\d+)$`
+  ).exec(line)
+  if (!match) {
+    throw new Error(`The device returned a malformed ${namespace.label} acknowledgement.`)
+  }
   const sequence = Number(match[1])
   const received = Number(match[2])
   if (!Number.isSafeInteger(sequence) || !Number.isSafeInteger(received)) {
-    throw new Error('The device returned an invalid font upload acknowledgement.')
+    throw new Error(`The device returned an invalid ${namespace.label} acknowledgement.`)
   }
   return { sequence, received }
 }

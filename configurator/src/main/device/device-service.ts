@@ -14,6 +14,7 @@ import {
   type DeviceState,
   type SerialPortSummary
 } from '../../shared/device'
+import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type { FontUploadProgress } from '../../shared/font-assets'
 import {
   DeviceServiceError,
@@ -21,13 +22,14 @@ import {
   success,
   toDeviceError
 } from './device-errors'
-import { uploadFontPackage } from './font-upload'
+import { uploadAssetPackage } from './asset-upload'
 import { prepareDeviceConfigurationJson } from './configuration-json'
 import { isBluetoothPort, PortRegistry, type PortRecord } from './port-registry'
 import { closePort, openPort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
 import {
   clearFontAssets,
+  clearImageAssets,
   probeSimCore,
   readConfiguration,
   requestResponse,
@@ -314,6 +316,43 @@ export class DeviceService {
     }
   }
 
+  async clearImages(): Promise<DeviceResult<DeviceState>> {
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    const { port, session, traffic } = active.value
+    if (!session.imageAssets) {
+      return failure({
+        code: 'not_simcore',
+        message: 'The connected firmware does not support image management.'
+      })
+    }
+    this.deviceOperationActive = true
+    try {
+      await clearImageAssets(port, this.operationTraffic(traffic))
+      if (this.activePort !== port || this.state.session !== session) {
+        throw new DeviceServiceError('serial_error', 'The connected device changed during image cleanup.')
+      }
+      this.setState({
+        ...this.state,
+        session: {
+          ...session,
+          imageAssets: {
+            ...session.imageAssets,
+            packageAvailable: false,
+            formatVersion: 0,
+            images: [],
+            packageSize: 0,
+            rebootRequired: true
+          }
+        }
+      })
+      return success(this.state)
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
   async clearFonts(): Promise<DeviceResult<DeviceState>> {
     const active = this.getActiveDevice()
     if (!active.ok) return failure(active.error)
@@ -422,8 +461,9 @@ export class DeviceService {
     }
     this.deviceOperationActive = true
     try {
-      await uploadFontPackage(
+      await uploadAssetPackage(
         port,
+        { command: 'FONT', label: 'font' },
         packageBytes,
         {
           onProgress,
@@ -447,6 +487,60 @@ export class DeviceService {
               formatVersion: packageView.getUint16(4, true),
               familyCount: packageView.getUint16(12, true),
               families: readPackageFontFamilies(packageBytes),
+              packageSize: packageBytes.byteLength,
+              rebootRequired: true
+            }
+          }
+        })
+      }
+    } finally {
+      this.deviceOperationActive = false
+    }
+  }
+
+  /**
+   * Uploads an image package. The device answers a second upload with `busy`
+   * while one owns the serial link, and this guard keeps the configurator from
+   * asking in the first place.
+   */
+  async uploadImages(
+    packageBytes: Uint8Array,
+    onProgress: (progress: AssetUploadProgress) => void,
+    signal: AbortSignal
+  ): Promise<void> {
+    const port = this.activePort
+    const connection = this.state.connection
+    const session = this.state.session
+    const traffic = this.activeTraffic
+    if (!port?.isOpen || !connection || !session) {
+      throw new DeviceServiceError('serial_error', 'No SimCore device is connected.')
+    }
+    if (this.deviceOperationActive) {
+      throw new DeviceServiceError('busy', 'Another device operation is already running.')
+    }
+    this.deviceOperationActive = true
+    try {
+      await uploadAssetPackage(
+        port,
+        { command: 'IMAGE', label: 'image' },
+        packageBytes,
+        {
+          onProgress,
+          onTransmit: (data: string, encoding: 'utf8' | 'hex') =>
+            traffic?.write('tx', data, encoding)
+        },
+        signal
+      )
+      // The device reports the installed set only after a restart, so the
+      // session is advanced from what was just sent rather than re-probed.
+      if (this.state.session === session && session.imageAssets) {
+        this.setState({
+          ...this.state,
+          session: {
+            ...session,
+            imageAssets: {
+              ...session.imageAssets,
+              packageAvailable: true,
               packageSize: packageBytes.byteLength,
               rebootRequired: true
             }

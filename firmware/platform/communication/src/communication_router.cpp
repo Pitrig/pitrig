@@ -7,18 +7,28 @@ namespace simcore::communication {
 namespace {
 
 constexpr std::array<std::uint8_t, 4> kControlPrefix{'@', 'S', 'C', ':'};
-constexpr std::string_view kFontControlPrefix = "@SC:FONT:";
+
+[[nodiscard]] bool starts_with(const std::span<const std::uint8_t> line,
+                               const std::string_view prefix) {
+  return line.size() >= prefix.size() &&
+         std::equal(prefix.begin(), prefix.end(), line.begin());
+}
 
 }  // namespace
 
 void Router::initialize(
     configuration::ConfigurationControl& control,
-    font_assets::FontAssetControl& font_asset_control,
+    binary_session::Claim& claim,
+    const std::span<const binary_session::Session* const> sessions,
     const transport::DataHandler telemetry_handler,
     void* const telemetry_context,
     const std::span<std::uint8_t> control_line_buffer) {
   control_ = &control;
-  font_asset_control_ = &font_asset_control;
+  claim_ = &claim;
+  session_count_ = std::min(sessions.size(), sessions_.size());
+  for (std::size_t index = 0; index < session_count_; ++index) {
+    sessions_[index] = sessions[index];
+  }
   telemetry_handler_ = telemetry_handler;
   telemetry_context_ = telemetry_context;
   control_line_ = control_line_buffer.first(
@@ -30,7 +40,9 @@ void Router::initialize(
 
 void Router::reset() {
   control_ = nullptr;
-  font_asset_control_ = nullptr;
+  claim_ = nullptr;
+  sessions_ = {};
+  session_count_ = 0;
   telemetry_handler_ = nullptr;
   telemetry_context_ = nullptr;
   control_line_ = {};
@@ -41,9 +53,14 @@ void Router::reset() {
 
 void Router::consume(const std::span<const std::uint8_t> data) {
   for (std::size_t index = 0; index < data.size(); ++index) {
-    if (font_asset_control_ != nullptr && font_asset_control_->active()) {
-      font_asset_control_->consume(data.subspan(index));
-      return;
+    // While a session owns the stream the whole remainder is its business;
+    // there is no line parsing to do until it gives the stream back.
+    if (claim_ != nullptr) {
+      if (const binary_session::Session* const owner = claim_->owner();
+          owner != nullptr) {
+        owner->consume(owner->context, data.subspan(index));
+        return;
+      }
     }
     const std::uint8_t value = data[index];
     if (discarding_) {
@@ -94,12 +111,12 @@ void Router::dispatch() {
   }
   if (line.size() >= kControlPrefix.size() &&
       std::equal(kControlPrefix.begin(), kControlPrefix.end(), line.begin())) {
-    if (font_asset_control_ != nullptr &&
-        line.size() >= kFontControlPrefix.size() &&
-        std::equal(kFontControlPrefix.begin(), kFontControlPrefix.end(),
-                   line.begin())) {
-      font_asset_control_->consume_command(line);
-      return;
+    for (std::size_t index = 0; index < session_count_; ++index) {
+      const binary_session::Session* const session = sessions_[index];
+      if (session != nullptr && starts_with(line, session->command_prefix)) {
+        session->consume_command(session->context, line);
+        return;
+      }
     }
     if (control_ != nullptr) {
       control_->consume(line);

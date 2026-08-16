@@ -328,6 +328,26 @@ inline constexpr std::array<std::string_view, 21> kGraphWidgetConfigurationKeys{
     "line_width_px",
 }};
 
+inline constexpr std::array<std::string_view, 17> kImageWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "title",
+    "background_color",
+    "background_grad_color",
+    "background_grad_dir",
+    "background_inset_px",
+    "condition_source",
+    "color_ramp",
+    "conditions",
+    "image",
+    "recolor",
+    "recolor_opa",
+}};
+
 inline constexpr std::array<std::string_view, 15> kShapeWidgetConfigurationKeys{{
     "type",
     "id",

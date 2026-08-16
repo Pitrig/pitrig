@@ -10,6 +10,7 @@ import {
   MAXIMUM_ARC_WIDGETS,
   MAXIMUM_BAR_WIDGETS,
   MAXIMUM_GRAPH_WIDGETS,
+  MAXIMUM_IMAGE_WIDGETS,
   MAXIMUM_INDICATOR_WIDGETS,
   MAXIMUM_SHAPE_WIDGETS,
   MAXIMUM_TEXT_WIDGETS,
@@ -31,6 +32,7 @@ export {
   MAXIMUM_ARC_WIDGETS,
   MAXIMUM_BAR_WIDGETS,
   MAXIMUM_GRAPH_WIDGETS,
+  MAXIMUM_IMAGE_WIDGETS,
   MAXIMUM_INDICATOR_WIDGETS,
   MAXIMUM_SHAPE_WIDGETS,
   MAXIMUM_TEXT_WIDGETS
@@ -255,7 +257,8 @@ const WIDGET_CAPACITIES: Record<WidgetConfiguration['type'], number> = {
   bar: MAXIMUM_BAR_WIDGETS,
   arc: MAXIMUM_ARC_WIDGETS,
   indicator: MAXIMUM_INDICATOR_WIDGETS,
-  graph: MAXIMUM_GRAPH_WIDGETS
+  graph: MAXIMUM_GRAPH_WIDGETS,
+  image: MAXIMUM_IMAGE_WIDGETS
 }
 
 /**
@@ -374,6 +377,23 @@ export function addIndicatorWidget(
         { threshold: 0.97, color: '#D50000' }
       ],
       placement: centeredPlacement(display, 240, 20)
+    })
+  })
+  return added
+}
+
+export function addImageWidget(
+  display: { width: number; height: number },
+  image?: string
+): WidgetSelection | undefined {
+  let added: WidgetSelection | undefined
+  mutateDraftConfiguration((configuration) => {
+    added = insertWidget(configuration, {
+      type: 'image',
+      // The device draws an image at the size it was uploaded at, so a new
+      // widget starts at that size when one is installed.
+      ...(image ? { image } : {}),
+      placement: centeredPlacement(display, 96, 96)
     })
   })
   return added

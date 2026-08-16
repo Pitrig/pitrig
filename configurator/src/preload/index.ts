@@ -4,6 +4,14 @@ import {
   DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL,
   type SerialTrafficLog
 } from '../shared/development'
+import type { AssetUploadProgress } from '../shared/asset-upload'
+import {
+  IMAGE_CANCEL_UPLOAD_CHANNEL,
+  IMAGE_CLEAR_CHANNEL,
+  IMAGE_SELECT_SOURCE_CHANNEL,
+  IMAGE_UPLOAD_CHANNEL,
+  IMAGE_UPLOAD_PROGRESS_CHANNEL
+} from '../shared/image-assets'
 import {
   CONFIGURATION_FILE_LOAD_CHANNEL,
   CONFIGURATION_FILE_SAVE_CHANNEL
@@ -59,6 +67,10 @@ const api: SimCoreApi = {
   uploadFontAssets: (request) => ipcRenderer.invoke(FONT_UPLOAD_CHANNEL, request),
   cancelFontUpload: () => ipcRenderer.invoke(FONT_CANCEL_UPLOAD_CHANNEL),
   clearFontAssets: () => ipcRenderer.invoke(FONT_CLEAR_CHANNEL),
+  selectImageSource: () => ipcRenderer.invoke(IMAGE_SELECT_SOURCE_CHANNEL),
+  uploadImageAssets: (request) => ipcRenderer.invoke(IMAGE_UPLOAD_CHANNEL, request),
+  cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),
+  clearImageAssets: () => ipcRenderer.invoke(IMAGE_CLEAR_CHANNEL),
   exportSimHubProfile: (request) =>
     ipcRenderer.invoke(SIMHUB_PROFILE_EXPORT_CHANNEL, request),
   onFontUploadProgress: (listener) => {
@@ -66,6 +78,12 @@ const api: SimCoreApi = {
       listener(progress)
     ipcRenderer.on(FONT_UPLOAD_PROGRESS_CHANNEL, handler)
     return () => ipcRenderer.removeListener(FONT_UPLOAD_PROGRESS_CHANNEL, handler)
+  },
+  onImageUploadProgress: (listener) => {
+    const handler = (_event: IpcRendererEvent, progress: AssetUploadProgress): void =>
+      listener(progress)
+    ipcRenderer.on(IMAGE_UPLOAD_PROGRESS_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(IMAGE_UPLOAD_PROGRESS_CHANNEL, handler)
   },
   onDeviceStateChanged: (listener) => {
     const handler = (_event: IpcRendererEvent, state: DeviceState): void => listener(state)

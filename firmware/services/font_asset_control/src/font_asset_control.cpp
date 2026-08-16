@@ -52,13 +52,31 @@ enum class FrameType : std::uint8_t {
 
 FontAssetControl::~FontAssetControl() { stop(); }
 
+void FontAssetControl::consume_command_entry(
+    void* const context, const std::span<const std::uint8_t> line) {
+  static_cast<FontAssetControl*>(context)->consume_command(line);
+}
+
+void FontAssetControl::consume_entry(void* const context,
+                                     const std::span<const std::uint8_t> bytes) {
+  static_cast<FontAssetControl*>(context)->consume(bytes);
+}
+
 bool FontAssetControl::initialize(Service& service,
-                                  transport::ITransport& transport) {
+                                  transport::ITransport& transport,
+                                  binary_session::Claim& claim) {
   if (task_ != nullptr) {
     return false;
   }
   service_ = &service;
   transport_ = &transport;
+  claim_ = &claim;
+  session_ = {
+      .command_prefix = "@SC:FONT:",
+      .consume_command = &FontAssetControl::consume_command_entry,
+      .consume = &FontAssetControl::consume_entry,
+      .context = this,
+  };
   reset_session();
   request_state_.store(RequestState::idle, std::memory_order_relaxed);
   task_ = xTaskCreateStatic(&FontAssetControl::task_entry,
@@ -127,8 +145,15 @@ void FontAssetControl::consume_command(
     if (result.ec != std::errc{} || result.ptr != end) {
       requested_package_size_ = 0;
     }
-    session_active_.store(true, std::memory_order_release);
-    request_type_ = RequestType::begin;
+    // Taken here, on the task that reads the bytes, so a second upload
+    // arriving mid-handshake finds the stream owned rather than a flag that
+    // has not been set yet.
+    if (claim_ != nullptr && !claim_->try_claim(&session_)) {
+      request_type_ = RequestType::busy;
+    } else {
+      session_active_.store(true, std::memory_order_release);
+      request_type_ = RequestType::begin;
+    }
   } else {
     request_type_ = RequestType::invalid_command;
   }
@@ -210,6 +235,9 @@ void FontAssetControl::process() {
     } else if (request_type_ == RequestType::invalid_command) {
       release_request();
       (void)send_text("@SC:ERR:FONT:unknown_command\n");
+    } else if (request_type_ == RequestType::busy) {
+      release_request();
+      (void)send_text("@SC:ERR:FONT:busy\n");
     } else {
       finish_with_error("invalid_frame");
     }
@@ -407,6 +435,11 @@ void FontAssetControl::reset_session() {
   expected_sequence_ = 0;
   overrun_.store(false, std::memory_order_relaxed);
   session_active_.store(false, std::memory_order_release);
+  // Releases only if this session still holds the stream, so an error arriving
+  // after another kind took it cannot hand it away.
+  if (claim_ != nullptr) {
+    claim_->release(&session_);
+  }
 }
 
 }  // namespace simcore::font_assets

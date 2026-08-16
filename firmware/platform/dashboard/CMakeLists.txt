@@ -2,6 +2,7 @@ set(component_sources
     "conditions/src/widget_conditions.cpp"
     "frame/src/widget_frame.cpp"
     "fonts/src/dashboard_fonts.cpp"
+    "images/src/dashboard_images.cpp"
     "fonts/src/font_glyph_allocator.cpp"
     "layout/src/dashboard_layout.cpp"
     "utilities/boot_splash/src/boot_splash.cpp"
@@ -9,6 +10,7 @@ set(component_sources
     "widgets/arc/src/arc_widget.cpp"
     "widgets/bar/src/bar_widget.cpp"
     "widgets/graph/src/graph_widget.cpp"
+    "widgets/image/src/image_widget.cpp"
     "widgets/indicator/src/indicator_widget.cpp"
     "widgets/shape/src/shape_widget.cpp"
     "widgets/text/src/text_widget.cpp"
@@ -20,12 +22,14 @@ set(component_include_dirs
     "conditions/include"
     "frame/include"
     "fonts/include"
+    "images/include"
     "layout/include"
     "utilities/boot_splash/include"
     "utilities/render_trigger/include"
     "widgets/arc/include"
     "widgets/bar/include"
     "widgets/graph/include"
+    "widgets/image/include"
     "widgets/indicator/include"
     "widgets/shape/include"
     "widgets/text/include"
@@ -42,7 +46,8 @@ idf_component_register(
     SRCS ${component_sources}
     INCLUDE_DIRS ${component_include_dirs}
     EMBED_FILES ${boot_splash_asset}
-    REQUIRES configuration_contract font_assets lvgl__lvgl telemetry
+    REQUIRES configuration_contract font_assets image_assets lvgl__lvgl
+             telemetry
     PRIV_REQUIRES display esp_lvgl_port esp_timer heap logger number_transform
                   performance simcore_config text_writer time_transform
                   transport)

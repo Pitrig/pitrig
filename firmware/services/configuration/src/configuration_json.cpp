@@ -687,6 +687,19 @@ template <typename Source>
                       failure);
 }
 
+[[nodiscard]] bool parse_image_widget(const cJSON* const object,
+                                      ImageWidgetConfiguration& config,
+                                      ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.image";
+  return valid_object(object, schema::kImageWidgetConfigurationKeys, kName,
+                      failure) &&
+         parse_frame(object, config.frame, kName, failure) &&
+         read_text(object, "image", config.image, kName, failure) &&
+         read_color(object, "recolor", config.recolor, kName, failure) &&
+         read_integer(object, "recolor_opa", config.recolor_opa, kName,
+                      failure);
+}
+
 [[nodiscard]] bool parse_shape_widget(const cJSON* const object,
                                       ShapeWidgetConfiguration& config,
                                       ValidationFailure& failure) {
@@ -829,6 +842,20 @@ template <typename Source>
           screen_index;
       z_index = dashboard.indicator_widgets[storage_index].frame.z_index;
       ++dashboard.indicator_widget_count;
+      break;
+    case WidgetType::image:
+      if (dashboard.image_widget_count >= dashboard.image_widgets.size()) {
+        return reject(failure, ValidationError::invalid_dashboard, "dashboard",
+                      "image_widgets");
+      }
+      storage_index = dashboard.image_widget_count;
+      if (!parse_image_widget(object, dashboard.image_widgets[storage_index],
+                              failure)) {
+        return false;
+      }
+      dashboard.image_widgets[storage_index].frame.screen_index = screen_index;
+      z_index = dashboard.image_widgets[storage_index].frame.z_index;
+      ++dashboard.image_widget_count;
       break;
     case WidgetType::graph:
       if (dashboard.graph_widget_count >= dashboard.graph_widgets.size()) {

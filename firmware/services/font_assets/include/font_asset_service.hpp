@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <span>
 
+#include "asset_storage.hpp"
 #include "font_asset_types.hpp"
 
 namespace simcore::font_assets {
@@ -15,17 +16,9 @@ inline constexpr std::size_t kManifestEntrySize = 48;
 inline constexpr std::size_t kAssetDataOffset = 4096;
 inline constexpr std::uint16_t kFormatVersion = 3;
 
-class IStorage {
- public:
-  virtual ~IStorage() = default;
-
-  [[nodiscard]] virtual bool initialize() = 0;
-  [[nodiscard]] virtual bool map(std::span<const std::uint8_t>& bytes) = 0;
-  virtual void unmap() = 0;
-  [[nodiscard]] virtual bool erase() = 0;
-  [[nodiscard]] virtual bool write(
-      std::size_t offset, std::span<const std::uint8_t> bytes) = 0;
-};
+// Fonts own their package format; the flash under it is shared with the other
+// uploaded asset kinds.
+using IStorage = asset_storage::IStorage;
 
 // Spans the mapped package. The mapping is released by the next update, so a
 // consumer that outlives one boot phase must copy the bytes it needs.

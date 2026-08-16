@@ -9,7 +9,7 @@ export const MAXIMUM_PAYLOAD_SIZE = 65536
 /** Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table. */
 export const MAXIMUM_SCREENS = 1
 /** Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. */
-export const MAXIMUM_WIDGETS_PER_SCREEN = 86
+export const MAXIMUM_WIDGETS_PER_SCREEN = 94
 /** Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. */
 export const MAXIMUM_TEXT_WIDGETS = 32
 /** Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap. */
@@ -22,6 +22,8 @@ export const MAXIMUM_ARC_WIDGETS = 8
 export const MAXIMUM_INDICATOR_WIDGETS = 4
 /** Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest. */
 export const MAXIMUM_GRAPH_WIDGETS = 2
+/** Image widget storage for the whole dashboard. */
+export const MAXIMUM_IMAGE_WIDGETS = 8
 /** Segments in one indicator strip. */
 export const MAXIMUM_INDICATOR_SEGMENTS = 16
 /** Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. */
@@ -34,6 +36,8 @@ export const MAXIMUM_VALUE_MODIFIERS = 4
 export const MAXIMUM_COLOR_STOPS = 4
 /** Conditional styling rules per widget. Four covers a normal, caution, warning and limit band. */
 export const MAXIMUM_WIDGET_CONDITIONS = 4
+/** Uploaded image identifier storage including the terminator (31 usable bytes). Must match kImageIdCapacity in the image contract. */
+export const IMAGE_ID_CAPACITY = 32
 /** Widget identifier storage including the terminator (15 usable bytes). */
 export const WIDGET_ID_CAPACITY = 16
 /** Widget title text storage including the terminator (15 usable bytes). */
@@ -88,8 +92,8 @@ export type ShapeKind = 'rectangle' | 'ellipse'
 export const SHAPE_KIND_VALUES: readonly ShapeKind[] = ['rectangle', 'ellipse']
 
 /** Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. */
-export type WidgetType = 'text' | 'shape' | 'bar' | 'arc' | 'indicator' | 'graph'
-export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'arc', 'indicator', 'graph']
+export type WidgetType = 'text' | 'shape' | 'bar' | 'arc' | 'indicator' | 'graph' | 'image'
+export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'arc', 'indicator', 'graph', 'image']
 
 export interface FontSpec {
   family?: string
@@ -364,6 +368,27 @@ export interface GraphWidgetConfiguration {
   line_width_px?: number
 }
 
+/** An uploaded image drawn inside the frame. It binds no telemetry of its own, but its styling rules can hide it, flash it or recolour it. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4. */
+export interface ImageWidgetConfiguration {
+  type: 'image'
+  id?: string
+  placement?: WidgetPlacement
+  z_index?: number
+  padding?: WidgetInsets
+  border?: WidgetBorder
+  title?: WidgetTitleStyle
+  background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
+  background_inset_px?: number
+  condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
+  conditions?: WidgetCondition[]
+  image?: string
+  recolor?: RgbColor
+  recolor_opa?: number
+}
+
 /** Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle. */
 export interface ShapeWidgetConfiguration {
   type: 'shape'
@@ -403,9 +428,9 @@ export interface ApplicationConfiguration {
 }
 
 /** Discriminated widget union. Adding a widget type adds one member here. */
-export type WidgetConfiguration = ArcWidgetConfiguration | BarWidgetConfiguration | GraphWidgetConfiguration | IndicatorWidgetConfiguration | ShapeWidgetConfiguration | TextWidgetConfiguration
+export type WidgetConfiguration = ArcWidgetConfiguration | BarWidgetConfiguration | GraphWidgetConfiguration | ImageWidgetConfiguration | IndicatorWidgetConfiguration | ShapeWidgetConfiguration | TextWidgetConfiguration
 
-export const WIDGET_TYPES: readonly string[] = ['text', 'bar', 'arc', 'indicator', 'graph', 'shape']
+export const WIDGET_TYPES: readonly string[] = ['text', 'bar', 'arc', 'indicator', 'graph', 'image', 'shape']
 
 /** Property names accepted inside each object, mirroring the firmware allow-lists. */
 export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
@@ -432,6 +457,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   IndicatorSegment: ['threshold', 'color'],
   IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'segment_gap_px', 'segment_radius_px', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
   GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px'],
+  ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'image', 'recolor', 'recolor_opa'],
   ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'kind'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
@@ -439,7 +465,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
 }
 
 /** Struct that carries each widget variant, keyed by its discriminator. */
-export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', arc: 'ArcWidgetConfiguration', indicator: 'IndicatorWidgetConfiguration', graph: 'GraphWidgetConfiguration', shape: 'ShapeWidgetConfiguration' }
+export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', arc: 'ArcWidgetConfiguration', indicator: 'IndicatorWidgetConfiguration', graph: 'GraphWidgetConfiguration', image: 'ImageWidgetConfiguration', shape: 'ShapeWidgetConfiguration' }
 
 /**
  * Nested object type for each property, so a validator can walk an unknown
@@ -458,6 +484,7 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   ArcWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
   IndicatorWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', segments: 'IndicatorSegment' },
   GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  ImageWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
   ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
   ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', dashboard: 'DashboardConfiguration' },
@@ -477,6 +504,8 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ArcWidgetConfiguration.id': 16,
   'IndicatorWidgetConfiguration.id': 16,
   'GraphWidgetConfiguration.id': 16,
+  'ImageWidgetConfiguration.id': 16,
+  'ImageWidgetConfiguration.image': 32,
   'ShapeWidgetConfiguration.id': 16,
   'ScreenConfiguration.id': 16,
 }

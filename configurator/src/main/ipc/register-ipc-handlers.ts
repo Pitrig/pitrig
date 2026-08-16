@@ -49,11 +49,23 @@ import {
 import { DeviceService } from '../device/device-service'
 import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
 import { FontAssetService } from '../font-assets/font-asset-service'
+import { ImageAssetService } from '../image-assets/image-asset-service'
+import type { AssetResult, AssetUploadProgress } from '../../shared/asset-upload'
+import {
+  IMAGE_CANCEL_UPLOAD_CHANNEL,
+  IMAGE_CLEAR_CHANNEL,
+  IMAGE_COLOR_FORMATS,
+  IMAGE_SELECT_SOURCE_CHANNEL,
+  IMAGE_UPLOAD_CHANNEL,
+  IMAGE_UPLOAD_PROGRESS_CHANNEL,
+  type ImageUploadRequest
+} from '../../shared/image-assets'
 import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 
 export function registerIpcHandlers(
   deviceService: DeviceService,
   fontAssetService: FontAssetService,
+  imageAssetService: ImageAssetService,
   simHubProfileService: SimHubProfileService,
   configurationFileService: ConfigurationFileService
 ): void {
@@ -115,6 +127,21 @@ export function registerIpcHandlers(
     }
     return fontAssetService.upload(request)
   })
+  ipcMain.handle(IMAGE_SELECT_SOURCE_CHANNEL, (event) =>
+    imageAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
+  )
+  ipcMain.handle(IMAGE_CANCEL_UPLOAD_CHANNEL, () => imageAssetService.cancel())
+  ipcMain.handle(IMAGE_CLEAR_CHANNEL, () => deviceService.clearImages())
+  ipcMain.handle(IMAGE_UPLOAD_CHANNEL, (_event, request: unknown) => {
+    if (!isImageUploadRequest(request)) {
+      const result: AssetResult<void> = {
+        ok: false,
+        error: { code: 'invalid_request', message: 'Invalid image upload request.' }
+      }
+      return result
+    }
+    return imageAssetService.upload(request)
+  })
   ipcMain.handle(SIMHUB_PROFILE_EXPORT_CHANNEL, (event, request: unknown) => {
     if (!isSimHubProfileExportRequest(request)) {
       const result: SimHubProfileResult<never> = {
@@ -138,6 +165,33 @@ export function registerIpcHandlers(
     }
     return deviceService.connect(request.portId, request.baudRate)
   })
+}
+
+export function broadcastImageUploadProgress(progress: AssetUploadProgress): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    if (!window.isDestroyed()) {
+      window.webContents.send(IMAGE_UPLOAD_PROGRESS_CHANNEL, progress)
+    }
+  }
+}
+
+/** Shape-checked like every other payload: the renderer is not trusted. */
+function isImageUploadRequest(value: unknown): value is ImageUploadRequest {
+  if (typeof value !== 'object' || value === null) return false
+  const assets = (value as ImageUploadRequest).assets
+  return (
+    Array.isArray(assets) &&
+    assets.every(
+      (asset) =>
+        typeof asset === 'object' &&
+        asset !== null &&
+        typeof asset.sourceId === 'string' &&
+        typeof asset.name === 'string' &&
+        typeof asset.width === 'number' &&
+        typeof asset.height === 'number' &&
+        IMAGE_COLOR_FORMATS.includes(asset.format)
+    )
+  )
 }
 
 export function broadcastFontUploadProgress(progress: FontUploadProgress): void {

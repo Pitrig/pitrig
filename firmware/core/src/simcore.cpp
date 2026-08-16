@@ -11,9 +11,10 @@
 #include "event_bus.hpp"
 #include "external_memory_buffer.hpp"
 #include "font_asset_service.hpp"
+#include "image_asset_service.hpp"
 #include "logger.hpp"
 #include "nvs_config_storage.hpp"
-#include "partition_font_asset_storage.hpp"
+#include "partition_asset_storage.hpp"
 #include "dashboard_composition.hpp"
 #include "module_composition.hpp"
 #include "simcore_features.hpp"
@@ -33,15 +34,20 @@ constexpr char kTag[] = "simcore";
 
 struct PlatformAdapters {
   configuration::NvsConfigurationStorage configuration_storage;
-  font_assets::PartitionStorage font_asset_storage;
+  platform::PartitionStorage font_asset_storage{"font_assets",
+                                                font_assets::kStorageSize};
+  platform::PartitionStorage image_asset_storage{"image_assets",
+                                                 image_assets::kStorageSize};
   transport::TelemetryComposition telemetry_transport;
   platform::ExternalMemoryBuffer configuration_memory;
   platform::ExternalMemoryBuffer font_memory;
+  platform::ExternalMemoryBuffer image_memory;
 };
 
 struct ApplicationServices {
   configuration::ConfigurationService configuration;
   font_assets::Service font_assets;
+  image_assets::Service image_assets;
   events::EventBus event_bus;
   telemetry::TelemetryRegistry telemetry_registry;
   telemetry::TelemetryStateService telemetry_state{telemetry_registry};
@@ -99,6 +105,11 @@ configuration::ValidationFailure apply_configuration(
                                               application.dashboard.fonts)) {
     return {.error = configuration::ValidationError::invalid_widget,
             .path = {'f', 'o', 'n', 't', '\0'}};
+  }
+  if (!dashboard_composition::images_available(service.staged(),
+                                               application.dashboard.images)) {
+    return {.error = configuration::ValidationError::invalid_widget,
+            .path = {'i', 'm', 'a', 'g', 'e', '\0'}};
   }
 
   // Anything outside the dashboard changes module lifecycle or transport, so
@@ -182,6 +193,10 @@ void run() {
           application.platform.font_asset_storage)) {
     log::warn(kTag, "Font asset storage unavailable");
   }
+  if (!application.services.image_assets.initialize(
+          application.platform.image_asset_storage)) {
+    log::warn(kTag, "Image asset storage unavailable");
+  }
   transport::ITransport* telemetry_transport =
       application.platform.telemetry_transport.select(board, configuration);
   ESP_ERROR_CHECK(telemetry_transport == nullptr ? ESP_ERR_NOT_SUPPORTED
@@ -212,6 +227,21 @@ void run() {
       log::error(kTag, "Font faces could not be loaded");
     }
   }
+  // Images are copied out of the package mapping for the same reason faces are:
+  // the next upload releases that mapping, and a widget drawing from it would
+  // be reading a partition mid-erase. The cost is bounded by what was actually
+  // uploaded rather than by the partition.
+  const std::size_t image_bytes =
+      application.services.image_assets.image_bytes_total();
+  if (image_bytes > 0) {
+    if (!application.platform.image_memory.initialize(image_bytes)) {
+      log::error(kTag, "Images do not fit in external memory");
+    } else if (!dashboard_composition::load_images(
+                   application.dashboard, application.services.image_assets,
+                   application.platform.image_memory.bytes())) {
+      log::error(kTag, "Images could not be loaded");
+    }
+  }
   if (!module_composition::start(
           application.modules, application.services.event_bus,
           application.services.telemetry_registry,
@@ -234,7 +264,7 @@ void run() {
   }
   if (!application.communication.start(
           application.services.configuration,
-          application.services.font_assets,
+          application.services.font_assets, application.services.image_assets,
           application.services.telemetry_provider, *telemetry_transport,
           &apply_configuration, &application, control_io_buffer,
           control_line_buffer)) {

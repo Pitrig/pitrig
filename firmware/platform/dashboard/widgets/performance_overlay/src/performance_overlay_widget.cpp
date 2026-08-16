@@ -75,7 +75,7 @@ void View::render() {
                 static_cast<unsigned long>(
                     stats.task_stacks.configuration_free_bytes),
                 static_cast<unsigned long>(
-                    stats.task_stacks.font_assets_free_bytes),
+                    stats.task_stacks.asset_upload_free_bytes),
                 static_cast<unsigned long>(stats.task_stacks.sampler_free_bytes));
   lv_label_set_text(label_, text);
 }

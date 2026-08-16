@@ -52,7 +52,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] Conditional and animated widget styling (colour, visibility and blink)
 - [*] Value-driven colour ramps and linear gradients (rotation, opacity and
       animation curves are excluded by decision)
-- [ ] Uploaded image asset pipeline and image widgets
+- [*] Uploaded image asset pipeline and image widgets
 - [ ] Button Matrix
 - [ ] RGB
 

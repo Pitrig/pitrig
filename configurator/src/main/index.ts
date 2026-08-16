@@ -7,9 +7,11 @@ import {
   broadcastDevelopmentSerialTraffic,
   broadcastDeviceState,
   broadcastFontUploadProgress,
+  broadcastImageUploadProgress,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
 import { FontAssetService } from './font-assets/font-asset-service'
+import { ImageAssetService } from './image-assets/image-asset-service'
 import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
 
 const isDevelopment = import.meta.env.DEV
@@ -18,6 +20,7 @@ const deviceService = new DeviceService(
   isDevelopment ? broadcastDevelopmentSerialTraffic : undefined
 )
 const fontAssetService = new FontAssetService(deviceService, broadcastFontUploadProgress)
+const imageAssetService = new ImageAssetService(deviceService, broadcastImageUploadProgress)
 const simHubProfileService = new SimHubProfileService()
 const configurationFileService = new ConfigurationFileService()
 let quitAfterDeviceCleanup = false
@@ -52,6 +55,7 @@ app.whenReady().then(() => {
   registerIpcHandlers(
     deviceService,
     fontAssetService,
+    imageAssetService,
     simHubProfileService,
     configurationFileService
   )

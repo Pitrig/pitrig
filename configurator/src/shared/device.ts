@@ -1,3 +1,4 @@
+import type { ImageAssetState } from './image-assets'
 import {
   BOARD_ID_VALUES,
   CONFIGURATION_SCHEMA_VERSION,
@@ -139,6 +140,10 @@ export interface DeviceSession {
   info: DeviceInfo
   configuration: DeviceConfiguration
   fontAssets?: FontAssetDeviceInfo
+  // Absent when the firmware predates uploaded images, the same way font
+  // support is reported: an older board answers the probe with an unknown
+  // command rather than an error worth showing.
+  imageAssets?: ImageAssetState
 }
 
 export interface DeviceScanProgress {

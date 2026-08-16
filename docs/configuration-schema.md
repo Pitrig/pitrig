@@ -10,19 +10,21 @@ Schema version: 5.
 | --- | --- | --- |
 | `kMaximumPayloadSize` | 65536 | Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. |
 | `kMaximumScreens` | 1 | Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table. |
-| `kMaximumWidgetsPerScreen` | 86 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. |
+| `kMaximumWidgetsPerScreen` | 94 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. |
 | `kMaximumTextWidgets` | 32 | Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. |
 | `kMaximumShapeWidgets` | 24 | Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap. |
 | `kMaximumBarWidgets` | 16 | Bar widget storage for the whole dashboard. |
 | `kMaximumArcWidgets` | 8 | Arc widget storage for the whole dashboard. |
 | `kMaximumIndicatorWidgets` | 4 | Indicator strip storage for the whole dashboard. |
 | `kMaximumGraphWidgets` | 2 | Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest. |
+| `kMaximumImageWidgets` | 8 | Image widget storage for the whole dashboard. |
 | `kMaximumIndicatorSegments` | 16 | Segments in one indicator strip. |
 | `kMaximumGraphPoints` | 128 | Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. |
 | `kMaximumTextSources` | 3 | Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. |
 | `kMaximumValueModifiers` | 4 | Value modifiers per text widget source. |
 | `kMaximumColorStops` | 4 | Stops in one widget colour ramp. Four is a normal, caution, warning and limit band, the same bands the conditional rules cover discretely. |
 | `kMaximumWidgetConditions` | 4 | Conditional styling rules per widget. Four covers a normal, caution, warning and limit band. |
+| `kImageIdCapacity` | 32 | Uploaded image identifier storage including the terminator (31 usable bytes). Must match kImageIdCapacity in the image contract. |
 | `kWidgetIdCapacity` | 16 | Widget identifier storage including the terminator (15 usable bytes). |
 | `kWidgetTitleCapacity` | 16 | Widget title text storage including the terminator (15 usable bytes). |
 | `kUnavailableTextCapacity` | 16 | Placeholder text storage including the terminator (15 usable bytes). |
@@ -44,7 +46,7 @@ Schema version: 5.
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
 | `BarOrientation` | `horizontal`, `vertical` | Axis a bar fills along. A vertical bar grows upwards unless it is inverted. |
 | `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
-| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
+| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
 
 ## Objects
 
@@ -295,6 +297,17 @@ A rolling trace of one telemetry source. The history is presentation state the w
 | `line_color` | string `#RRGGBB` | `#38BDF8` |
 | `line_width_px` | integer, 0..65535 | `2` |
 
+### ImageWidgetConfiguration
+
+An uploaded image drawn inside the frame. It binds no telemetry of its own, but its styling rules can hide it, flash it or recolour it. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `image` | required |
+| `image` | string, max 31 bytes | empty |
+| `recolor` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `recolor_opa` | integer, 0..255 | `255` |
+
 ### ShapeWidgetConfiguration
 
 Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle.
@@ -312,7 +325,7 @@ One dashboard screen: the coordinate space its widgets are placed in, and the or
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), max 86, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 94, discriminated by `type` | absent |
 
 ### DashboardConfiguration
 

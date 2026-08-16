@@ -9,6 +9,7 @@ enum class TaskMetric : std::uint8_t {
   transport,
   configuration_control,
   font_asset_control,
+  image_asset_control,
   sampler,
   count,
 };
@@ -17,7 +18,7 @@ struct TaskStackStats {
   std::uint32_t lvgl_free_bytes{};
   std::uint32_t transport_free_bytes{};
   std::uint32_t configuration_free_bytes{};
-  std::uint32_t font_assets_free_bytes{};
+  std::uint32_t asset_upload_free_bytes{};
   std::uint32_t sampler_free_bytes{};
 };
 

@@ -5,7 +5,9 @@
 
 #include "configuration_control.hpp"
 #include "communication_router.hpp"
+#include "binary_session.hpp"
 #include "font_asset_control.hpp"
+#include "image_asset_control.hpp"
 #include "simhub_protocol.hpp"
 
 namespace simcore::configuration {
@@ -13,6 +15,10 @@ class ConfigurationService;
 }
 
 namespace simcore::font_assets {
+class Service;
+}
+
+namespace simcore::image_assets {
 class Service;
 }
 
@@ -41,6 +47,7 @@ class Composition final {
   [[nodiscard]] bool start(
       configuration::ConfigurationService& configuration,
       font_assets::Service& font_assets,
+      image_assets::Service& image_assets,
       telemetry::TelemetryProvider& telemetry,
       transport::ITransport& transport,
       configuration::ConfigurationControl::ApplyHandler apply_handler,
@@ -60,6 +67,9 @@ class Composition final {
 
   configuration::ConfigurationControl configuration_control_;
   font_assets::FontAssetControl font_asset_control_;
+  image_assets::ImageAssetControl image_asset_control_;
+  // One serial link, so one owner of the binary stream at a time.
+  binary_session::Claim binary_claim_;
   Router router_;
   protocols::SimHubProtocol protocol_;
   telemetry::TelemetryProvider* telemetry_{};

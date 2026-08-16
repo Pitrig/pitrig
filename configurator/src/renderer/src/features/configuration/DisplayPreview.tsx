@@ -32,6 +32,7 @@ import {
 import { MAXIMUM_GRAPH_POINTS } from '../../../../shared/configuration-schema'
 import type {
   ArcWidgetConfiguration,
+  ImageWidgetConfiguration,
   BarWidgetConfiguration,
   GraphWidgetConfiguration,
   IndicatorWidgetConfiguration,
@@ -47,6 +48,7 @@ import {
   addArcWidget,
   addBarWidget,
   addGraphWidget,
+  addImageWidget,
   addIndicatorWidget,
   duplicateWidget,
   addShapeWidget,
@@ -73,6 +75,7 @@ type FramedWidgetConfiguration =
   | ArcWidgetConfiguration
   | IndicatorWidgetConfiguration
   | GraphWidgetConfiguration
+  | ImageWidgetConfiguration
 
 const SCREEN_BACKGROUND = '#000000'
 const DEFAULT_TEXT_COLOR = '#E8E8E8'
@@ -148,6 +151,11 @@ export function DisplayPreview(): React.JSX.Element {
               const added = addGraphWidget(display)
               if (added) select(added)
             }}>+ Graph</Button>
+            <Button className="h-8 w-20" variant="outline" disabled={!configuration} onClick={() => {
+              if (!display) return
+              const added = addImageWidget(display, session?.imageAssets?.images[0]?.name)
+              if (added) select(added)
+            }}>+ Image</Button>
             <Button className="h-8 w-20" variant="outline" disabled={!selectedExists} title="Duplicate the selected widget (Cmd/Ctrl+D)" onClick={() => {
               if (!display || !selection) return
               const added = duplicateWidget(selection, display)
@@ -608,6 +616,8 @@ function Widgets({
               <IndicatorPreview configuration={layer.configuration} values={values} />
             ) : layer.configuration.type === 'graph' ? (
               <GraphPreview configuration={layer.configuration} values={values} />
+            ) : layer.configuration.type === 'image' ? (
+              <ImagePreview configuration={layer.configuration} values={values} />
             ) : layer.configuration.type === 'shape' ? (
               <ShapePreview configuration={layer.configuration} values={values} />
             ) : (
@@ -1337,6 +1347,55 @@ function GraphPreview({
           strokeOpacity={0.35}
         />
       )}
+    </g>
+  )
+}
+
+// The image itself lives on the board, so the preview draws the box it occupies
+// and names it. That is the layout question the canvas can answer; whether the
+// artwork is right is answered by looking at the display.
+function ImagePreview({
+  configuration,
+  values
+}: {
+  configuration: ImageWidgetConfiguration
+  values: PreviewValues
+}): React.JSX.Element | null {
+  const placement = completePlacement(configuration.placement)
+  if (!placement) return null
+  const style = values.styleFor(configuration, {
+    color: configuration.recolor,
+    backgroundColor: configuration.background_color,
+    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
+  })
+  if (!style.visible) return null
+  const tint = normalizeColor(style.color)
+  return (
+    <g>
+      <rect
+        x={placement.x}
+        y={placement.y}
+        width={placement.width}
+        height={placement.height}
+        rx={configuration.border?.radius_px ?? 0}
+        fill={tint && tint !== 'transparent' ? tint : '#334155'}
+        fillOpacity={tint && tint !== 'transparent' ? 0.5 : 0.35}
+        stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
+        strokeOpacity={0.6}
+        strokeDasharray="4 3"
+        strokeWidth={configuration.border?.width_px || 1}
+      />
+      <text
+        x={placement.x + placement.width / 2}
+        y={placement.y + placement.height / 2}
+        fill={DEFAULT_TEXT_COLOR}
+        fontFamily="Arial, sans-serif"
+        fontSize={Math.max(8, Math.min(placement.height / 4, 14))}
+        textAnchor="middle"
+        dominantBaseline="middle"
+      >
+        {configuration.image || 'no image'}
+      </text>
     </g>
   )
 }

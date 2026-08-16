@@ -5,12 +5,14 @@
 #include <span>
 
 #include "dashboard_fonts.hpp"
+#include "dashboard_images.hpp"
 #include "dashboard_layout.hpp"
 #include "event_bus.hpp"
 #include "performance_overlay_widget.hpp"
 #include "arc_widget.hpp"
 #include "bar_widget.hpp"
 #include "graph_widget.hpp"
+#include "image_widget.hpp"
 #include "indicator_widget.hpp"
 #include "render_trigger.hpp"
 #include "shape_widget.hpp"
@@ -26,6 +28,9 @@ struct ApplicationConfiguration;
 struct DashboardConfiguration;
 }
 namespace simcore::font_assets {
+class Service;
+}
+namespace simcore::image_assets {
 class Service;
 }
 namespace simcore::module_composition {
@@ -108,6 +113,20 @@ struct GraphWidgets {
   dashboard::frame::ModifierReader lap_timer_modifier{};
 };
 
+struct ImageWidgets {
+  dashboard::frame::ConditionBinder<configuration::ImageWidgetConfiguration,
+                                    dashboard::image_widget::kMaximumInstances>
+      binder;
+  dashboard::image_widget::Collection collection;
+  dashboard::Layout layout{};
+  const configuration::DashboardConfiguration* dashboard{};
+  const dashboard::fonts::Registry* fonts{};
+  const dashboard::images::Registry* images{};
+  const telemetry::ITelemetryRegistry* registry{};
+  const telemetry::ITelemetryReader* telemetry{};
+  dashboard::frame::ModifierReader lap_timer_modifier{};
+};
+
 struct ShapeWidgets {
   dashboard::frame::ConditionBinder<configuration::ShapeWidgetConfiguration,
                                     dashboard::shape_widget::kMaximumInstances>
@@ -123,6 +142,7 @@ struct ShapeWidgets {
 
 struct Dashboard {
   dashboard::fonts::Registry fonts;
+  dashboard::images::Registry images;
   // One LVGL screen per configured screen, in configuration order. A widget is
   // parented by the index its frame carries, so this is what makes the shared
   // widget pool addressable.
@@ -135,6 +155,7 @@ struct Dashboard {
   ArcWidgets arc;
   IndicatorWidgets indicator;
   GraphWidgets graph;
+  ImageWidgets image;
   // Firmware-lifetime: survives destroy()/create() cycles, which only replace
   // the widgets it wakes.
   dashboard::render_trigger::Trigger render_trigger;
@@ -154,6 +175,21 @@ struct Dashboard {
 [[nodiscard]] bool load_fonts(Dashboard& dashboard,
                               const font_assets::Service& font_assets,
                               std::span<std::uint8_t> storage);
+
+// Copies every uploaded image into caller-owned external memory, for the same
+// reason the faces are copied: the next upload releases the package mapping
+// while the dashboard is still drawing from it. `storage` must be at least
+// `image_assets.image_bytes_total()` bytes.
+[[nodiscard]] bool load_images(Dashboard& dashboard,
+                               const image_assets::Service& image_assets,
+                               std::span<std::uint8_t> storage);
+
+// Whether every image a configuration names is installed. Checked before a
+// replacement is applied, so a document that references a missing image is
+// rejected while the running dashboard is still intact.
+[[nodiscard]] bool images_available(
+    const configuration::ApplicationConfiguration& configuration,
+    const dashboard::images::Registry& images);
 
 // Starts event-driven rendering: every telemetry update wakes the widget render
 // timers through the render trigger, so a changed value is drawn on the next

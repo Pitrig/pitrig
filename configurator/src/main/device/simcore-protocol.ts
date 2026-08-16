@@ -12,6 +12,13 @@ import {
   type SimCoreBoardId
 } from '../../shared/device'
 import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES } from '../../shared/font-assets'
+import {
+  IMAGE_ID_PATTERN,
+  MAXIMUM_IMAGES,
+  MAXIMUM_IMAGE_PACKAGE_SIZE,
+  type ImageAssetState,
+  type InstalledImage
+} from '../../shared/image-assets'
 import { parseDeviceConfigurationJson } from './configuration-json'
 import { DeviceServiceError } from './device-errors'
 
@@ -19,6 +26,7 @@ const PROBE_TIMEOUT_MS = 1_000
 const MAXIMUM_RESPONSE_BUFFER_SIZE = 8_192
 const INFO_REQUEST = '@SC:INFO\n'
 const GET_REQUEST = '@SC:GET\n'
+const IMAGE_INFO_REQUEST = '@SC:IMAGE:INFO\n'
 const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
 const CONFIGURATION_TIMEOUT_MS = 2_000
 
@@ -44,7 +52,13 @@ export async function probeSimCore(
     )
   }
   const fontAssets = await probeFontAssets(port, onTraffic)
-  return { info, configuration, ...(fontAssets ? { fontAssets } : {}) }
+  const imageAssets = await probeImageAssets(port, onTraffic)
+  return {
+    info,
+    configuration,
+    ...(fontAssets ? { fontAssets } : {}),
+    ...(imageAssets ? { imageAssets } : {})
+  }
 }
 
 export async function readConfiguration(
@@ -114,6 +128,20 @@ export async function resetConfiguration(
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
     'configuration_rejected'
+  )
+}
+
+export async function clearImageAssets(
+  port: SerialPort,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    '@SC:IMAGE:CLEAR\n',
+    '@SC:OK:IMAGE:CLEARED:reboot_required=1',
+    CONFIGURATION_TIMEOUT_MS,
+    onTraffic,
+    'serial_error'
   )
 }
 
@@ -258,6 +286,92 @@ function parseDeviceInfo(line: string): DeviceInfo {
     generation,
     storageAvailable: fields.get('storage') === '1'
   }
+}
+
+/**
+ * Firmware without uploaded images answers with `unknown_command`, which is a
+ * fact about the board rather than a failure — the same graceful degradation
+ * the font probe uses.
+ */
+async function probeImageAssets(
+  port: SerialPort,
+  onTraffic: TrafficCallback
+): Promise<ImageAssetState | undefined> {
+  try {
+    const line = await requestResponse(
+      port,
+      IMAGE_INFO_REQUEST,
+      '@SC:OK:IMAGE:INFO:',
+      PROBE_TIMEOUT_MS,
+      onTraffic
+    )
+    return parseImageAssetInfo(line)
+  } catch (error) {
+    if (
+      error instanceof DeviceServiceError &&
+      error.code === 'not_simcore' &&
+      error.message.includes('unknown_command')
+    ) {
+      return undefined
+    }
+    throw error
+  }
+}
+
+function parseImageAssetInfo(line: string): ImageAssetState {
+  const fields = parseFields(line, '@SC:OK:IMAGE:INFO:', 'image status')
+  const formatVersion = Number(fields.get('format'))
+  const imageCount = Number(fields.get('images'))
+  const packageSize = Number(fields.get('size'))
+  const packageAvailable = fields.get('package') === '1'
+  const images = parseInstalledImages(fields.get('entries'))
+  if (
+    !isBooleanField(fields.get('storage')) ||
+    !isBooleanField(fields.get('package')) ||
+    !Number.isSafeInteger(formatVersion) || formatVersion < 0 || formatVersion > 0xffff ||
+    !Number.isSafeInteger(imageCount) || imageCount < 0 || imageCount > MAXIMUM_IMAGES ||
+    (fields.has('entries') && images.length !== imageCount) ||
+    !Number.isSafeInteger(packageSize) || packageSize < 0 ||
+    packageSize > MAXIMUM_IMAGE_PACKAGE_SIZE ||
+    (packageAvailable
+      ? formatVersion !== 1 || packageSize < 4096
+      : formatVersion !== 0 || imageCount !== 0 || packageSize !== 0) ||
+    !isBooleanField(fields.get('reboot_required'))
+  ) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed image status.')
+  }
+  return {
+    storageAvailable: fields.get('storage') === '1',
+    packageAvailable,
+    formatVersion,
+    packageSize,
+    images,
+    rebootRequired: fields.get('reboot_required') === '1'
+  }
+}
+
+/** `name:WxH:format`, separated by semicolons. */
+function parseInstalledImages(value: string | undefined): InstalledImage[] {
+  if (!value) return []
+  return value
+    .split(';')
+    .filter((entry) => entry.length > 0)
+    .map((entry) => {
+      const [name, size, format] = entry.split(':')
+      const [width, height] = (size ?? '').split('x')
+      return {
+        name: name ?? '',
+        width: Number(width),
+        height: Number(height),
+        format: format ?? ''
+      }
+    })
+    .filter(
+      (image) =>
+        IMAGE_ID_PATTERN.test(image.name) &&
+        Number.isSafeInteger(image.width) &&
+        Number.isSafeInteger(image.height)
+    )
 }
 
 function parseFontAssetInfo(line: string): FontAssetDeviceInfo {

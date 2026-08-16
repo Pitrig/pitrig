@@ -15,6 +15,7 @@ function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
     case 'arc':
     case 'indicator':
     case 'graph':
+    case 'image':
       // None of these draw text of their own, so none requires a font.
       return []
     default: {

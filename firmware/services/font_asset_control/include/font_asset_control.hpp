@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <span>
 
+#include "binary_session.hpp"
 #include "font_asset_service.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -20,7 +21,14 @@ class FontAssetControl final {
   ~FontAssetControl();
 
   [[nodiscard]] bool initialize(Service& service,
-                                transport::ITransport& transport);
+                                transport::ITransport& transport,
+                                binary_session::Claim& claim);
+
+  // Registered with the router, which routes by prefix and by who holds the
+  // stream rather than by knowing what a font is.
+  [[nodiscard]] const binary_session::Session& session() const {
+    return session_;
+  }
   void stop();
 
   // Queues an ASCII @SC:FONT command without its line terminator.
@@ -45,6 +53,9 @@ class FontAssetControl final {
     info,
     clear,
     invalid_command,
+    // A BEGIN that arrived while another asset kind owns the stream. Answered
+    // from the worker task like every other response.
+    busy,
     frame,
     invalid_frame,
   };
@@ -70,8 +81,15 @@ class FontAssetControl final {
   [[nodiscard]] bool send_ack(std::uint32_t sequence);
   void reset_session();
 
+  static void consume_command_entry(void* context,
+                                    std::span<const std::uint8_t> line);
+  static void consume_entry(void* context,
+                            std::span<const std::uint8_t> bytes);
+
   Service* service_{};
   transport::ITransport* transport_{};
+  binary_session::Claim* claim_{};
+  binary_session::Session session_{};
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};

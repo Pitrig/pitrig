@@ -1,5 +1,7 @@
 #include "communication_composition.hpp"
 
+#include <array>
+
 #include "configuration_service.hpp"
 #include "esp_system.h"
 #include "font_asset_service.hpp"
@@ -24,6 +26,7 @@ Composition::~Composition() { stop(); }
 bool Composition::start(
     configuration::ConfigurationService& configuration,
     font_assets::Service& font_assets,
+    image_assets::Service& image_assets,
     telemetry::TelemetryProvider& telemetry,
     transport::ITransport& transport,
     const configuration::ConfigurationControl::ApplyHandler apply_handler,
@@ -41,17 +44,26 @@ bool Composition::start(
     log::error(kTag, "Failed to start configuration control task");
     return false;
   }
-  if (!font_asset_control_.initialize(font_assets, transport)) {
+  if (!font_asset_control_.initialize(font_assets, transport, binary_claim_)) {
     log::error(kTag, "Failed to start font asset control task");
     configuration_control_.stop();
     return false;
   }
-  router_.initialize(configuration_control_, font_asset_control_,
+  if (!image_asset_control_.initialize(image_assets, transport, binary_claim_)) {
+    log::error(kTag, "Failed to start image asset control task");
+    font_asset_control_.stop();
+    configuration_control_.stop();
+    return false;
+  }
+  const std::array<const binary_session::Session*, 2> sessions{
+      &font_asset_control_.session(), &image_asset_control_.session()};
+  router_.initialize(configuration_control_, binary_claim_, sessions,
                      &receive_telemetry_data, this, control_line_buffer);
   telemetry_ = &telemetry;
   if (!transport.start(&receive_transport_data, this)) {
     log::error(kTag, "Failed to start telemetry transport");
     router_.reset();
+    image_asset_control_.stop();
     font_asset_control_.stop();
     configuration_control_.stop();
     telemetry_ = nullptr;
@@ -67,6 +79,7 @@ void Composition::stop() {
     transport_->stop();
   }
   router_.reset();
+  image_asset_control_.stop();
   font_asset_control_.stop();
   configuration_control_.stop();
   telemetry_ = nullptr;

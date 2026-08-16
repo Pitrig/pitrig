@@ -19,6 +19,7 @@ import {
   type ColorRampTarget,
   type ColorStop,
   type GraphWidgetConfiguration,
+  type ImageWidgetConfiguration,
   type IndicatorWidgetConfiguration,
   type ConditionOperator,
   type FontSpec,
@@ -43,6 +44,7 @@ type FramedWidget =
   | ArcWidgetConfiguration
   | IndicatorWidgetConfiguration
   | GraphWidgetConfiguration
+  | ImageWidgetConfiguration
 import type { DeviceConfiguration } from '../../../../shared/device'
 import {
   TELEMETRY_CATALOG,
@@ -115,6 +117,8 @@ export function WidgetInspector(): React.JSX.Element {
               <IndicatorEditor selection={selection} widget={widget} />
             ) : widget.type === 'graph' ? (
               <GraphEditor selection={selection} widget={widget} />
+            ) : widget.type === 'image' ? (
+              <ImageEditor selection={selection} widget={widget} />
             ) : widget.type === 'shape' ? (
               <ShapeEditor selection={selection} widget={widget} />
             ) : (
@@ -141,6 +145,8 @@ function widgetLabel(widget: WidgetConfiguration, index: number): string {
       return `Lights ${index + 1}: ${widget.source?.binding || 'Unbound'}`
     case 'graph':
       return `Graph ${index + 1}: ${widget.source?.binding || 'Unbound'}`
+    case 'image':
+      return `Image ${index + 1}: ${widget.image || 'Unassigned'}`
     case 'text':
       return `Text ${index + 1}: ${widget.title?.text || widget.sources?.[0]?.binding || 'Untitled'}`
   }
@@ -242,6 +248,27 @@ function IndicatorEditor({ selection, widget }: { selection: WidgetSelection; wi
             next.segments = [...list, { threshold: previous?.threshold ?? 0, color: previous?.color ?? '#00C853' }]
           })}>Add lamp</button>
         ) : <Hint>{`A strip holds at most ${MAXIMUM_INDICATOR_SEGMENTS} lamps.`}</Hint>}
+      </Section>
+      <TitleEditor widget={widget} update={update} />
+      <BoxEditor widget={widget} update={update} />
+      <ConditionsEditor widget={widget} update={update} />
+    </>
+  )
+}
+
+function ImageEditor({ selection, widget }: { selection: WidgetSelection; widget: ImageWidgetConfiguration }): React.JSX.Element {
+  const update = (mutation: (next: ImageWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ImageWidgetConfiguration))
+  const installed = useDeviceStore((state) => state.session?.imageAssets?.images) ?? []
+  const known = installed.find(({ name }) => name === widget.image)
+  return (
+    <>
+      <Section title="Image">
+        <SelectField label="Uploaded image" value={widget.image ?? ''} options={['', ...installed.map(({ name }) => name)]} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
+        {installed.length === 0 ? <Hint>Upload images to the board to choose one here.</Hint> : null}
+        {widget.image && !known && installed.length > 0 ? <Hint>{`"${widget.image}" is not installed on the connected board, so the device will refuse this configuration.`}</Hint> : null}
+        {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}. The device draws it at the size it was uploaded at, so match the widget to it.`}</p> : null}
+        <OptionalColorField label="Recolor" value={widget.recolor} onChange={(value) => update((next) => { if (value) next.recolor = value; else { delete next.recolor; delete next.recolor_opa } })} />
+        {widget.recolor ? <NumberField label="Recolor strength (0-255)" value={widget.recolor_opa ?? 255} min={0} max={255} onChange={(value) => update((next) => { next.recolor_opa = Math.min(255, Math.max(0, Math.round(value))) })} /> : null}
       </Section>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />

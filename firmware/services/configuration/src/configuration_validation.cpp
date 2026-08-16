@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "configuration_json.hpp"
+#include "image_asset_types.hpp"
 #include "telemetry_registry.hpp"
 
 namespace simcore::configuration {
@@ -133,6 +134,11 @@ constexpr std::uint16_t kMaximumHoldMs = 10'000;
       return false;
     }
   }
+  for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
+    if (!record_caption(dashboard.image_widgets[index].frame)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -164,6 +170,7 @@ class Validator final {
   [[nodiscard]] bool arc_widget(const ArcWidgetConfiguration& config);
   [[nodiscard]] bool indicator_widget(const IndicatorWidgetConfiguration& config);
   [[nodiscard]] bool graph_widget(const GraphWidgetConfiguration& config);
+  [[nodiscard]] bool image_widget(const ImageWidgetConfiguration& config);
 
  private:
   [[nodiscard]] bool frame(const WidgetFrame& config);
@@ -426,6 +433,19 @@ bool Validator::graph_widget(const GraphWidgetConfiguration& config) {
          frame(config.frame);
 }
 
+bool Validator::image_widget(const ImageWidgetConfiguration& config) {
+  // Whether the image is installed is a composition question, checked before a
+  // replacement is applied; whether the name could ever be one is this.
+  if (!terminated(config.image) ||
+      !image_assets::valid_image_id(config.image)) {
+    return reject(failure_, ValidationError::invalid_widget, "image");
+  }
+  if (!valid_optional_color(config.recolor)) {
+    return reject(failure_, ValidationError::invalid_widget, "recolor");
+  }
+  return frame(config.frame);
+}
+
 bool Validator::shape_widget(const ShapeWidgetConfiguration& config) {
   if (config.kind < ShapeKind::rectangle || config.kind > ShapeKind::ellipse) {
     return reject(failure_, ValidationError::invalid_widget, "kind");
@@ -521,7 +541,8 @@ ValidationFailure validate_configuration(
       dashboard.bar_widget_count > dashboard.bar_widgets.size() ||
       dashboard.arc_widget_count > dashboard.arc_widgets.size() ||
       dashboard.indicator_widget_count > dashboard.indicator_widgets.size() ||
-      dashboard.graph_widget_count > dashboard.graph_widgets.size()) {
+      dashboard.graph_widget_count > dashboard.graph_widgets.size() ||
+      dashboard.image_widget_count > dashboard.image_widgets.size()) {
     (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
     return failure;
   }
@@ -534,6 +555,7 @@ ValidationFailure validate_configuration(
   static_assert(kMaximumArcWidgets <= 255);
   static_assert(kMaximumIndicatorWidgets <= 255);
   static_assert(kMaximumGraphWidgets <= 255);
+  static_assert(kMaximumImageWidgets <= 255);
 
   Validator validator(profile, failure);
   std::size_t lap_timer_modifier_count{};
@@ -588,6 +610,13 @@ ValidationFailure validate_configuration(
                   validator.indicator_widget(
                       dashboard.indicator_widgets[reference.index]);
           break;
+        case WidgetType::image:
+          valid = reference.index < dashboard.image_widget_count &&
+                  dashboard.image_widgets[reference.index]
+                          .frame.screen_index == screen_index &&
+                  validator.image_widget(
+                      dashboard.image_widgets[reference.index]);
+          break;
         case WidgetType::graph:
           valid = reference.index < dashboard.graph_widget_count &&
                   dashboard.graph_widgets[reference.index]
@@ -627,7 +656,7 @@ ValidationFailure validate_configuration(
       static_cast<std::size_t>(dashboard.text_widget_count) +
           dashboard.shape_widget_count + dashboard.bar_widget_count +
           dashboard.arc_widget_count + dashboard.indicator_widget_count +
-          dashboard.graph_widget_count) {
+          dashboard.graph_widget_count + dashboard.image_widget_count) {
     (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
     return failure;
   }

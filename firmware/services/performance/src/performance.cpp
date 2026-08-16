@@ -324,8 +324,13 @@ void update() {
       .configuration_free_bytes =
           stack_free_bytes(task_handles[static_cast<std::size_t>(
               TaskMetric::configuration_control)]),
-      .font_assets_free_bytes = stack_free_bytes(
-          task_handles[static_cast<std::size_t>(TaskMetric::font_asset_control)]),
+      // Only one upload can own the serial link at a time, so the pair share
+      // one line: whichever task is idle reports its full stack.
+      .asset_upload_free_bytes = std::min(
+          stack_free_bytes(
+              task_handles[static_cast<std::size_t>(TaskMetric::font_asset_control)]),
+          stack_free_bytes(
+              task_handles[static_cast<std::size_t>(TaskMetric::image_asset_control)])),
       .sampler_free_bytes = stack_free_bytes(
           task_handles[static_cast<std::size_t>(TaskMetric::sampler)]),
   };
