@@ -111,15 +111,12 @@ function DeviceInfo({ session }: { session?: DeviceSession }): React.JSX.Element
             <div className="grid gap-1">
               <span className="text-muted-foreground">Uploaded fonts</span>
               {fontAssets ? (
-                fontAssets.assets.length > 0 ? (
+                fontAssets.families.length > 0 ? (
                   <div className="space-y-1 rounded-md border bg-muted/20 p-2">
-                    {fontAssets.assets.map((font) => (
-                      <div
-                        key={`${font.family}:${font.sizePx}`}
-                        className="flex items-center justify-between gap-2"
-                      >
-                        <span className="min-w-0 truncate" title={font.family}>{font.family}</span>
-                        <span className="flex-none text-muted-foreground">{font.sizePx}px</span>
+                    {fontAssets.families.map((family) => (
+                      <div key={family} className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate" title={family}>{family}</span>
+                        <span className="flex-none text-muted-foreground">any size</span>
                       </div>
                     ))}
                   </div>

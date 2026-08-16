@@ -23,31 +23,36 @@ constexpr std::size_t kHeaderManifestCrcOffset = 20;
 constexpr std::size_t kHeaderPayloadCrcOffset = 24;
 constexpr std::size_t kHeaderCrcOffset = 28;
 constexpr std::size_t kEntryFamilyOffset = 0;
-constexpr std::size_t kEntrySizeOffset = 32;
-constexpr std::size_t kEntryReservedOffset = 34;
+constexpr std::size_t kEntryReservedOffset = 32;
 constexpr std::size_t kEntryDataOffset = 36;
 constexpr std::size_t kEntryLengthOffset = 40;
 constexpr std::size_t kEntryCrcOffset = 44;
+constexpr std::size_t kFaceAlignment = 4;
+// A face is parsed lazily on the render path, so a payload that is not an sfnt
+// container is rejected at commit instead of failing inside a frame. The four
+// accepted signatures are TrueType, OpenType/CFF, the legacy Apple tag, and a
+// TrueType collection.
+constexpr std::size_t kMinimumFaceSize = 128;
+constexpr std::uint32_t kSfntVersion1 = 0x0001'0000U;
+constexpr std::uint32_t kSfntOpenType = 0x4F54'544FU;
+constexpr std::uint32_t kSfntTrue = 0x7472'7565U;
+constexpr std::uint32_t kSfntCollection = 0x7474'6366U;
 
-[[nodiscard]] bool valid_family(const FamilyId& family) {
-  const std::string_view value = family_id_view(family);
-  if (value.empty() || value.size() > kMaximumFamilyIdLength) {
+[[nodiscard]] bool valid_face(const std::span<const std::uint8_t> bytes) {
+  if (bytes.size() < kMinimumFaceSize) {
     return false;
   }
-  for (const char character : value) {
-    const bool valid_character =
-        (character >= 'a' && character <= 'z') ||
-        (character >= '0' && character <= '9') || character == '_' ||
-        character == '-';
-    if (!valid_character) {
-      return false;
-    }
-  }
-  return true;
+  const std::uint32_t signature =
+      (static_cast<std::uint32_t>(bytes[0]) << 24) |
+      (static_cast<std::uint32_t>(bytes[1]) << 16) |
+      (static_cast<std::uint32_t>(bytes[2]) << 8) |
+      static_cast<std::uint32_t>(bytes[3]);
+  return signature == kSfntVersion1 || signature == kSfntOpenType ||
+         signature == kSfntTrue || signature == kSfntCollection;
 }
 
-[[nodiscard]] bool ranges_overlap(const AssetView& lhs,
-                                  const AssetView& rhs) {
+[[nodiscard]] bool ranges_overlap(const FamilyAsset& lhs,
+                                  const FamilyAsset& rhs) {
   const auto* const lhs_begin = lhs.bytes.data();
   const auto* const lhs_end = lhs_begin + lhs.bytes.size();
   const auto* const rhs_begin = rhs.bytes.data();
@@ -71,7 +76,7 @@ bool Service::initialize(IStorage& storage) {
   status_ = {};
   package_mapping_ = {};
   package_ = {};
-  asset_catalog_ = {};
+  family_catalog_ = {};
   reset_update();
   status_.storage_available = storage.initialize();
   if (!status_.storage_available) {
@@ -90,20 +95,28 @@ bool Service::initialize(IStorage& storage) {
 
   status_.package_available = true;
   status_.format_version = kFormatVersion;
-  status_.asset_count = package_.asset_count;
+  status_.family_count = package_.family_count;
   status_.package_size = package_.package_size;
-  for (std::size_t index = 0; index < package_.asset_count; ++index) {
-    asset_catalog_[index] = package_.assets[index].font;
+  for (std::size_t index = 0; index < package_.family_count; ++index) {
+    family_catalog_[index] = package_.families[index].family;
   }
   return true;
 }
 
-const AssetView* Service::find(const FontSpec& font) const {
-  const auto available = assets();
+const FamilyAsset* Service::find(const FamilyId& family) const {
+  const auto available = families();
   const auto match = std::find_if(
       available.begin(), available.end(),
-      [&font](const AssetView& asset) { return asset.font == font; });
+      [&family](const FamilyAsset& asset) { return asset.family == family; });
   return match == available.end() ? nullptr : &*match;
+}
+
+std::size_t Service::face_bytes_total() const {
+  std::size_t total{};
+  for (const FamilyAsset& asset : families()) {
+    total += (asset.bytes.size() + kFaceAlignment - 1) & ~(kFaceAlignment - 1);
+  }
+  return total;
 }
 
 UpdateError Service::begin_update(const std::size_t package_size) {
@@ -199,11 +212,11 @@ UpdateError Service::commit_update() {
   storage_->unmap();
   status_.package_available = true;
   status_.format_version = kFormatVersion;
-  status_.asset_count = package_.asset_count;
+  status_.family_count = package_.family_count;
   status_.package_size = package_.package_size;
-  asset_catalog_ = {};
-  for (std::size_t index = 0; index < package_.asset_count; ++index) {
-    asset_catalog_[index] = package_.assets[index].font;
+  family_catalog_ = {};
+  for (std::size_t index = 0; index < package_.family_count; ++index) {
+    family_catalog_[index] = package_.families[index].family;
   }
   package_ = {};
   reset_update();
@@ -262,7 +275,7 @@ bool Service::validate_package(
           kFormatVersion ||
       binary::read_u16_le(header, kHeaderSizeOffset) != kHeaderSize ||
       binary::read_u32_le(header, kHeaderReservedWordOffset) != 0 ||
-      entry_count > kMaximumAssets ||
+      entry_count > kMaximumFamilies ||
       binary::read_u16_le(header, kHeaderReservedOffset) != 0 ||
       kManifestOffset + manifest_size > kAssetDataOffset ||
       payload_size < kAssetDataOffset || payload_size > storage_bytes.size() ||
@@ -279,35 +292,34 @@ bool Service::validate_package(
               kAssetDataOffset, payload_size - kAssetDataOffset))) {
     return false;
   }
-  parsed.asset_count = entry_count;
+  parsed.family_count = entry_count;
   parsed.package_size = payload_size;
   for (std::size_t index = 0; index < entry_count; ++index) {
     const auto entry = manifest.subspan(index * kManifestEntrySize,
                                         kManifestEntrySize);
-    AssetView& asset = parsed.assets[index];
-    std::copy_n(entry.begin() + kEntryFamilyOffset, asset.font.family.size(),
-                asset.font.family.begin());
-    asset.font.size_px = binary::read_u16_le(entry, kEntrySizeOffset);
+    FamilyAsset& asset = parsed.families[index];
+    std::copy_n(entry.begin() + kEntryFamilyOffset, asset.family.size(),
+                asset.family.begin());
     const std::uint32_t offset =
         binary::read_u32_le(entry, kEntryDataOffset);
     const std::uint32_t length =
         binary::read_u32_le(entry, kEntryLengthOffset);
-    if (!valid_family(asset.font.family) || asset.font.size_px == 0 ||
-        asset.font.size_px > kMaximumFontSizePx ||
-        binary::read_u16_le(entry, kEntryReservedOffset) != 0 ||
+    if (!valid_family_id(asset.family) ||
+        binary::read_u32_le(entry, kEntryReservedOffset) != 0 ||
         offset < kAssetDataOffset || offset > payload_size ||
-        (offset & 0x3U) != 0 || length == 0 ||
+        (offset & (kFaceAlignment - 1)) != 0 || length == 0 ||
         length > payload_size - offset) {
       return false;
     }
     asset.bytes = storage_bytes.subspan(offset, length);
-    if (binary::read_u32_le(entry, kEntryCrcOffset) !=
-        binary::crc32(asset.bytes)) {
+    if (!valid_face(asset.bytes) ||
+        binary::read_u32_le(entry, kEntryCrcOffset) !=
+            binary::crc32(asset.bytes)) {
       return false;
     }
     for (std::size_t previous = 0; previous < index; ++previous) {
-      if (asset.font == parsed.assets[previous].font ||
-          ranges_overlap(asset, parsed.assets[previous])) {
+      if (asset.family == parsed.families[previous].family ||
+          ranges_overlap(asset, parsed.families[previous])) {
         return false;
       }
     }
@@ -319,9 +331,9 @@ void Service::clear_package_status() {
   status_.package_available = false;
   status_.reboot_required = false;
   status_.format_version = 0;
-  status_.asset_count = 0;
+  status_.family_count = 0;
   status_.package_size = 0;
-  asset_catalog_ = {};
+  family_catalog_ = {};
 }
 
 void Service::reset_update() {

@@ -1,5 +1,6 @@
 set(component_sources
     "fonts/src/dashboard_fonts.cpp"
+    "fonts/src/font_glyph_allocator.cpp"
     "layout/src/dashboard_layout.cpp"
     "utilities/boot_splash/src/boot_splash.cpp"
     "utilities/display_diagnostics/src/display_diagnostics.cpp"
@@ -32,7 +33,7 @@ idf_component_register(
     INCLUDE_DIRS ${component_include_dirs}
     EMBED_FILES ${boot_splash_asset}
     REQUIRES configuration_contract delta_time font_assets lvgl__lvgl telemetry
-    PRIV_REQUIRES display esp_lvgl_port heap performance
+    PRIV_REQUIRES display esp_lvgl_port esp_timer heap logger performance
                   simcore_config time_transform transport)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)

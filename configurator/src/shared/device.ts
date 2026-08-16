@@ -4,7 +4,6 @@ import {
   MAXIMUM_PAYLOAD_SIZE
 } from './configuration-schema'
 import type { ApplicationConfiguration, BoardId } from './configuration-schema'
-import type { FontAssetKey } from './font-assets'
 
 export const DEVICE_LIST_PORTS_CHANNEL = 'device:list-ports' as const
 export const DEVICE_GET_STATE_CHANNEL = 'device:get-state' as const
@@ -127,8 +126,10 @@ export interface FontAssetDeviceInfo {
   storageAvailable: boolean
   packageAvailable: boolean
   formatVersion: number
-  assetCount: number
-  assets: FontAssetKey[]
+  familyCount: number
+  // Installed faces. Every pixel size is rasterized from them on the device, so
+  // a configuration only has to match a family.
+  families: string[]
   packageSize: number
   rebootRequired: boolean
 }

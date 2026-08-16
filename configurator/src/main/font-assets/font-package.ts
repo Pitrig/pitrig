@@ -1,28 +1,29 @@
 import {
   FONT_FAMILY_PATTERN,
-  MAXIMUM_FONT_ASSETS,
-  MAXIMUM_FONT_PACKAGE_SIZE,
-  MAXIMUM_FONT_SIZE_PX
+  MAXIMUM_FONT_FAMILIES,
+  MAXIMUM_FONT_PACKAGE_SIZE
 } from '../../shared/font-assets'
 
 const HEADER_SIZE = 32
 const MANIFEST_ENTRY_SIZE = 48
 const ASSET_DATA_OFFSET = 4096
-const FORMAT_VERSION = 2
+const FORMAT_VERSION = 3
+const MINIMUM_FACE_SIZE = 128
+// TrueType, OpenType/CFF, the legacy Apple tag, and a TrueType collection. The
+// device rejects anything else at commit, so the same check runs here to fail
+// on the desk instead of on the board.
+const SFNT_SIGNATURES = [0x00010000, 0x4f54544f, 0x74727565, 0x74746366] as const
 
-export interface ConvertedFontAsset {
+export interface FontFamilyAsset {
   family: string
-  sizePx: number
   bytes: Uint8Array
 }
 
-export function buildFontPackage(assets: ConvertedFontAsset[]): Uint8Array {
-  const ordered = [...assets].sort(
-    (left, right) => left.family.localeCompare(right.family) || left.sizePx - right.sizePx
-  )
+export function buildFontPackage(assets: FontFamilyAsset[]): Uint8Array {
+  const ordered = [...assets].sort((left, right) => left.family.localeCompare(right.family))
   validateAssets(ordered)
 
-  const placements: Array<{ asset: ConvertedFontAsset; offset: number }> = []
+  const placements: Array<{ asset: FontFamilyAsset; offset: number }> = []
   let packageSize = ASSET_DATA_OFFSET
   for (const asset of ordered) {
     packageSize = align4(packageSize)
@@ -30,7 +31,7 @@ export function buildFontPackage(assets: ConvertedFontAsset[]): Uint8Array {
     packageSize += asset.bytes.byteLength
   }
   if (packageSize > MAXIMUM_FONT_PACKAGE_SIZE) {
-    throw new Error('The converted font package exceeds the 2 MiB device limit.')
+    throw new Error('The font package exceeds the 2 MiB device limit.')
   }
 
   const output = new Uint8Array(packageSize)
@@ -49,8 +50,7 @@ export function buildFontPackage(assets: ConvertedFontAsset[]): Uint8Array {
     if (!placement) continue
     const entryOffset = HEADER_SIZE + index * MANIFEST_ENTRY_SIZE
     output.set(encoder.encode(placement.asset.family), entryOffset)
-    view.setUint16(entryOffset + 32, placement.asset.sizePx, true)
-    view.setUint16(entryOffset + 34, 0, true)
+    view.setUint32(entryOffset + 32, 0, true)
     view.setUint32(entryOffset + 36, placement.offset, true)
     view.setUint32(entryOffset + 40, placement.asset.bytes.byteLength, true)
     view.setUint32(entryOffset + 44, crc32(placement.asset.bytes), true)
@@ -80,30 +80,31 @@ export function crc32(bytes: Uint8Array): number {
   return (~crc) >>> 0
 }
 
-function validateAssets(assets: ConvertedFontAsset[]): void {
-  if (assets.length > MAXIMUM_FONT_ASSETS) {
-    throw new Error(`A font package supports at most ${MAXIMUM_FONT_ASSETS} assets.`)
+function validateAssets(assets: FontFamilyAsset[]): void {
+  if (assets.length > MAXIMUM_FONT_FAMILIES) {
+    throw new Error(`A font package supports at most ${MAXIMUM_FONT_FAMILIES} families.`)
   }
   if (HEADER_SIZE + assets.length * MANIFEST_ENTRY_SIZE > ASSET_DATA_OFFSET) {
     throw new Error('The font package manifest exceeds its reserved area.')
   }
-  const keys = new Set<string>()
+  const families = new Set<string>()
   for (const asset of assets) {
     if (!FONT_FAMILY_PATTERN.test(asset.family)) {
       throw new Error(`Invalid font family: ${asset.family}`)
     }
-    if (!Number.isInteger(asset.sizePx) || asset.sizePx < 1 || asset.sizePx > MAXIMUM_FONT_SIZE_PX) {
-      throw new Error(`Invalid font size: ${asset.sizePx}`)
+    if (asset.bytes.byteLength < MINIMUM_FACE_SIZE || !isFontFace(asset.bytes)) {
+      throw new Error(`${asset.family} is not a TTF or OTF font file.`)
     }
-    if (asset.bytes.byteLength === 0) {
-      throw new Error(`Font ${asset.family} ${asset.sizePx}px is empty.`)
+    if (families.has(asset.family)) {
+      throw new Error(`Duplicate font family: ${asset.family}.`)
     }
-    const key = `${asset.family}:${asset.sizePx}`
-    if (keys.has(key)) {
-      throw new Error(`Duplicate font asset: ${asset.family} ${asset.sizePx}px.`)
-    }
-    keys.add(key)
+    families.add(asset.family)
   }
+}
+
+function isFontFace(bytes: Uint8Array): boolean {
+  const signature = new DataView(bytes.buffer, bytes.byteOffset, 4).getUint32(0, false)
+  return SFNT_SIGNATURES.some((candidate) => candidate === signature)
 }
 
 function align4(value: number): number {

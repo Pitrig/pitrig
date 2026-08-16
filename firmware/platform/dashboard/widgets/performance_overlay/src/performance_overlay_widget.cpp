@@ -96,9 +96,11 @@ bool View::create(lv_display_t* const display,
   label_ = lv_label_create(lv_display_get_layer_top(display));
   lv_obj_remove_style_all(label_);
   lv_obj_set_style_bg_color(label_, lv_color_hex(kBackgroundColor), LV_PART_MAIN);
-  // Opaque so the widgets it covers are skipped instead of blended into it
-  // once a second, which would otherwise show up as a slow frame.
-  lv_obj_set_style_bg_opa(label_, LV_OPA_COVER, LV_PART_MAIN);
+  // Translucent so the dashboard underneath stays readable. The cost is that
+  // the widgets it covers are blended into it whenever the overlay refreshes,
+  // which is one slower frame per second and shows up in the longest-frame
+  // measurement; that is worth less than hiding the widgets being diagnosed.
+  lv_obj_set_style_bg_opa(label_, LV_OPA_70, LV_PART_MAIN);
   lv_obj_set_style_pad_all(label_, kPadding, LV_PART_MAIN);
   lv_obj_set_style_text_color(label_, lv_color_hex(kTextColor), LV_PART_MAIN);
   lv_obj_set_style_text_font(label_, LV_FONT_DEFAULT, LV_PART_MAIN);

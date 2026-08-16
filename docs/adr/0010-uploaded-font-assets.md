@@ -1,5 +1,7 @@
 # ADR 0010: Uploaded Font Assets
 
+Status: Accepted; revised to store font faces and rasterize sizes on the device
+
 ## Context
 
 Dashboard fonts were compiled into the firmware as generated C sources. Every
@@ -26,49 +28,66 @@ identifier and pixel size. Public configuration schema 2 stores a font as:
 
 Family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`, or
 `-`. Font sizes are integers from 1 through 255 pixels. Production firmware
-exposes no built-in dashboard font family. Resolution is exact: a missing
-family/size is an explicit dashboard composition error and is not silently
+exposes no built-in dashboard font family. Family resolution is exact: a
+missing family is an explicit dashboard composition error and is not silently
 replaced with another font. Debug or display-diagnostics builds may retain
 private framework fonts for service UI, but the dashboard registry never
 resolves them by public family identifier.
 
-The configurator will convert imported TTF or OTF sources into LVGL binary font
-assets. Original font files never reach the device. Each device asset is keyed
-by `family + size_px`; editor display names and original source metadata remain
-project-only data.
+The configurator uploads the imported TTF or OTF face unchanged, one per
+family, and the device rasterizes every pixel size a configuration asks for.
+A device asset is keyed by family alone; editor display names and source
+metadata remain project-only data. Storing faces rather than converted bitmaps
+removes the conversion step, makes a size change a configuration change instead
+of an upload, and stops the device from holding glyphs it never draws — a
+192 px family converted for every printable character is close to a megabyte of
+which a dashboard uses a dozen glyphs.
+
+A package holds at most 8 families, and a configuration may name no more than
+that. Pixel sizes are unbounded by storage because they cost nothing there;
+each family and size a configuration references becomes one runtime font
+object.
 
 Font assets live outside the application image and configuration NVS in one raw
 2 MiB `font_assets` partition. The package contains a bounded manifest followed
-by font data. The manifest owns a format version, bounded entry count, and for
-every entry its family identifier, pixel size, offset, length, and CRC32.
-Package-level validation covers the complete stored asset set.
+by face data. The manifest owns a format version, bounded entry count, and for
+every entry its family identifier, offset, length, and CRC32. Package-level
+validation covers the complete stored asset set and includes an sfnt signature
+check, because a face is parsed while rendering rather than at load.
 
 An upload erases and replaces the single partition. Bytes after the header are
 written first; firmware validates every bound and checksum before writing the
 header last. An interrupted upload therefore leaves an invalid package rather
 than a partially committed one, but the previous package is not recoverable.
 The new package becomes active only after reboot. At startup the package is
-memory-mapped read-only and exposed to LVGL's binary font loader. The current
-LVGL loader materializes the opened font's glyph metadata and bitmap data in
-the LVGL heap, so the mapping can be released before a later upload without
-invalidating active LVGL font objects. LVGL uses the system C allocator rather
-than its fixed 64 KiB built-in pool. ESP-IDF routes allocations of at least
-16 KiB to PSRAM while reserving internal memory for DMA and other constrained
-users; this lets bounded large font bitmaps load without consuming the internal
-heap or entering LVGL's allocation assertion.
+memory-mapped read-only and every face is copied into external RAM before any
+font is created. The rasterizer re-reads the face on each glyph cache miss, so
+that copy is what keeps live fonts valid when a later upload releases the
+mapping while the dashboard is still rendering.
+
+Each runtime font owns a bounded cache of rendered glyphs. Those glyph bitmaps
+are allocated through LVGL's font draw-buffer handlers, which the platform
+points at external RAM: the ESP-IDF allocator keeps blocks below its internal
+threshold in internal memory, and a single 192 px glyph sits just under it.
+Fonts are created without kerning so a cached advance width does not depend on
+the neighbouring glyph, which is what allows dashboard composition to pre-warm
+each font one glyph at a time — the digits and separators the runtime emits
+plus the characters the configuration itself supplies. A character outside that
+set is rasterized when first drawn.
 
 Asset upload uses a dedicated bounded, stop-and-wait protocol over the selected
 serial transport, separate from configuration `SET`. Binary frames carry an
 explicit type, sequence, bounded payload length, and CRC32. Flash erase and
 write operations run in a dedicated static task rather than the transport RX
 task. A separate `FONT:INFO` query exposes storage and package availability,
-format version, the exact `family + size_px` asset catalog, package size, and
-pending-reboot state.
+format version, the installed family catalog, package size, and pending-reboot
+state.
 The bounded `FONT:CLEAR` command erases the complete package and requires a
 reboot; individual assets are not deleted independently.
-Configuration may reference a syntactically valid font that is not installed,
-but dashboard composition reports that unresolved dependency instead of
-substituting another font.
+Configuration may reference a family that is not installed, but dashboard
+composition reports that unresolved dependency instead of substituting another
+font. A pixel size is never an unresolved dependency: it is rasterized on
+demand.
 
 Schema 1 persisted configuration is not migrated because its closed `lcd` and
 `roboto_mono` identifiers refer to fonts that no longer exist. Firmware falls
@@ -80,17 +99,23 @@ back to a valid schema 2 slot or the board-only factory configuration.
 - Production firmware keeps no dashboard font family in its application image.
   Diagnostic-only framework fonts are not part of the public resolver.
 - Persisted font bytes consume dedicated flash rather than configuration NVS or
-  the application image. The current LVGL loader still allocates runtime font
-  data when an uploaded font is opened; large allocations use PSRAM through the
-  ESP-IDF system allocator.
-- Replacing a package requires a reboot before the new assets are used.
+  the application image, and hold one face per family instead of one bitmap set
+  per family and size.
+- Changing a font size needs neither an upload nor a reboot. Adding a family
+  needs both.
+- Rasterization moves to runtime. Composition pre-warms the glyphs a dashboard
+  draws, so periodic frames hit the cache; an unwarmed character costs one
+  longer frame.
+- A malformed face is rejected at commit by the signature check and, failing
+  that, when its font is created during composition — not inside a frame.
+- Replacing a package requires a reboot before the new faces are used.
 - An interrupted update can remove the previous package; there is no second
   slot or rollback generation.
-- The configurator must retain source fonts in its local project and upload a
-  complete converted asset set before expecting custom rendering.
+- The configurator must retain source fonts in its local project and upload the
+  complete family set before expecting custom rendering.
 - The configurator derives the target package from configuration dependencies,
-  asks for one source per family, generates every required size, uploads the
-  complete package, and only then saves the configuration.
+  asks for one source per family, uploads the complete package, and only then
+  saves the configuration. It no longer carries a font converter.
 - Every device connection performs a fresh configuration and font manifest
   probe. Reconnecting clears transient validation and upload feedback before
   the configurator evaluates the newly reported device state.
@@ -100,6 +125,11 @@ back to a valid schema 2 slot or the board-only factory configuration.
 - The single partition, bounded asset service, read-only flash mapping, and
   LVGL font registry are implemented. The exact package contract is
   documented in [Font asset storage](../font-assets.md).
-- The firmware binary upload protocol and the configurator-side MVP conversion
-  and upload orchestration are implemented. Project persistence, broader glyph
-  selection, and editor integration remain separate phases.
+- The firmware binary upload protocol and the configurator-side upload
+  orchestration are implemented. Project persistence and editor integration
+  remain separate phases.
+- Package format 3 is not backward compatible and installed format 2 packages
+  read as absent, so firmware and configurator must ship together and existing
+  devices need one re-upload.
+- Text metrics come from the face rather than from a converter, so a dashboard
+  authored against the previous packages can shift by a pixel or two.

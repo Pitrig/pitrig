@@ -361,8 +361,8 @@ export class DeviceService {
             ...session.fontAssets,
             packageAvailable: false,
             formatVersion: 0,
-            assetCount: 0,
-            assets: [],
+            familyCount: 0,
+            families: [],
             packageSize: 0,
             rebootRequired: true
           }
@@ -468,8 +468,8 @@ export class DeviceService {
               ...session.fontAssets,
               packageAvailable: true,
               formatVersion: packageView.getUint16(4, true),
-              assetCount: packageView.getUint16(12, true),
-              assets: readPackageFontEntries(packageBytes),
+              familyCount: packageView.getUint16(12, true),
+              families: readPackageFontFamilies(packageBytes),
               packageSize: packageBytes.byteLength,
               rebootRequired: true
             }
@@ -630,7 +630,7 @@ export class DeviceService {
   }
 }
 
-function readPackageFontEntries(packageBytes: Uint8Array): Array<{ family: string; sizePx: number }> {
+function readPackageFontFamilies(packageBytes: Uint8Array): string[] {
   const view = new DataView(packageBytes.buffer, packageBytes.byteOffset, packageBytes.byteLength)
   const count = view.getUint16(12, true)
   const decoder = new TextDecoder('ascii')
@@ -638,9 +638,6 @@ function readPackageFontEntries(packageBytes: Uint8Array): Array<{ family: strin
     const offset = 32 + index * 48
     const familyBytes = packageBytes.subarray(offset, offset + 32)
     const terminator = familyBytes.indexOf(0)
-    return {
-      family: decoder.decode(familyBytes.subarray(0, terminator < 0 ? 32 : terminator)),
-      sizePx: view.getUint16(offset + 32, true)
-    }
+    return decoder.decode(familyBytes.subarray(0, terminator < 0 ? 32 : terminator))
   })
 }

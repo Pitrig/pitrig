@@ -91,7 +91,7 @@
     },
     "DeltaTimeUnavailableBehavior": {
       "json_values": ["hide", "placeholder", "zero"],
-      "default": "hide",
+      "default": "zero",
       "doc": "What the Delta Time widget shows while its telemetry is unavailable."
     },
     "TextAlignment": {
@@ -206,7 +206,7 @@
         { "name": "font", "kind": "external", "external": "FontSpec" },
         { "name": "color", "kind": "color", "default": "0xE8E8E8" },
         { "name": "alignment", "kind": "enum", "enum": "TextAlignment" },
-        { "name": "unavailable_text", "kind": "text", "capacity": "kUnavailableTextCapacity", "default": "--" }
+        { "name": "unavailable_text", "kind": "text", "capacity": "kUnavailableTextCapacity", "doc": "Shown while the bound value is unavailable. Empty renders a zero through the widget's own transform, so a plain value reads 0 and a time value keeps its format." }
       ]
     },
 

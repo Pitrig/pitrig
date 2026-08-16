@@ -37,12 +37,17 @@ export function collectFontRequirements(configuration: DeviceConfiguration): Fon
   )
 }
 
-export function missingFontRequirements(
-  required: FontAssetKey[],
-  installed: FontAssetKey[]
-): FontAssetKey[] {
-  const installedKeys = new Set(installed.map(fontKey))
-  return required.filter((font) => !installedKeys.has(fontKey(font)))
+// Only families have to be installed: the device rasterizes every size from
+// the uploaded face, so a size it has never rendered needs no upload.
+export function missingFontFamilies(required: FontAssetKey[], installed: string[]): string[] {
+  const present = new Set(installed)
+  const missing: string[] = []
+  for (const font of required) {
+    if (!present.has(font.family) && !missing.includes(font.family)) {
+      missing.push(font.family)
+    }
+  }
+  return missing
 }
 
 export function groupFontRequirements(required: FontAssetKey[]): Map<string, number[]> {

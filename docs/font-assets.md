@@ -1,8 +1,12 @@
 # Font asset storage
 
-This document defines font asset package format version 2. It is the contract
-between the configurator converter and the firmware font asset service. It is
-separate from device configuration schema 2 and from configuration NVS.
+This document defines font asset package format version 3. It is the contract
+between the configurator and the firmware font asset service. It is separate
+from the device configuration schema and from configuration NVS.
+
+A package carries font faces, one per family, exactly as the user selected
+them. Pixel sizes are not stored: the device rasterizes every size a
+configuration asks for from the installed face.
 
 ## Storage model
 
@@ -17,11 +21,11 @@ leaves an invalid package, but there is no second slot or previous generation
 to recover.
 
 A successfully committed package becomes active after reboot. The package is
-mapped read-only at startup and its font byte ranges are passed to the LVGL
-binary font loader. The current `lv_binfont_create_from_buffer` implementation
-materializes glyph metadata and bitmap data in the LVGL heap, so the flash
-mapping can be released before a later upload without invalidating the active
-runtime font objects.
+mapped read-only at startup and firmware copies each face into external RAM
+before creating any font. That copy is what allows the mapping to be released
+by a later upload while the dashboard keeps rendering: a rasterizer re-reads
+the face on every glyph cache miss, so a font pointing into the released
+mapping would fault.
 
 After a successful commit, the service rejects another update until reboot.
 
@@ -38,7 +42,7 @@ polynomial, initial value `0xFFFFFFFF`, final XOR `0xFFFFFFFF`).
 | `0x0000` | 32 | Header |
 | `0x0020` | `entry_count * 48` | Manifest entries |
 | following | until `0x1000` | Reserved; ignored by version 2 |
-| `0x1000` | variable | Aligned LVGL binary font data |
+| `0x1000` | variable | Aligned font face data |
 
 `payload_size` is the exact package size and may not exceed 2 MiB. Every asset
 range must be fully contained in `[0x1000, payload_size)`. Asset offsets are
@@ -49,10 +53,10 @@ four-byte aligned and must not overlap.
 | Offset | Type | Field | Rule |
 | ---: | --- | --- | --- |
 | 0 | `u32` | magic | bytes `SCFA` |
-| 4 | `u16` | format version | `2` |
+| 4 | `u16` | format version | `3` |
 | 6 | `u16` | header size | `32` |
 | 8 | `u32` | reserved | zero |
-| 12 | `u16` | entry count | 0 through 32 |
+| 12 | `u16` | entry count | 0 through 8 |
 | 14 | `u16` | reserved | zero |
 | 16 | `u32` | payload size | `0x1000` through `0x200000` |
 | 20 | `u32` | manifest CRC | manifest entries only |
@@ -69,23 +73,25 @@ Each entry is exactly 48 bytes.
 | Offset | Type | Field | Rule |
 | ---: | --- | --- | --- |
 | 0 | `char[32]` | family identifier | zero-terminated; at most 31 usable bytes |
-| 32 | `u16` | pixel size | 1 through 255 |
-| 34 | `u16` | reserved | zero |
+| 32 | `u32` | reserved | zero |
 | 36 | `u32` | data offset | at least `0x1000`, four-byte aligned |
 | 40 | `u32` | data length | non-zero and within `payload_size` |
-| 44 | `u32` | asset CRC | exact font byte range |
+| 44 | `u32` | asset CRC | exact face byte range |
 
 Family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`, or
-`-`. The pair `family + pixel size` must be unique within a package. Each asset
-must be an LVGL binary font accepted by the firmware's LVGL version.
+`-`, and must be unique within a package. Each asset must be a TTF or OTF face:
+firmware checks the sfnt signature (`0x00010000`, `OTTO`, `true`, or `ttcf`)
+and a minimum length, because a face is parsed lazily while rendering and a
+malformed one must be rejected at commit rather than inside a frame.
 
 ## Validation and resolution
 
 Firmware validates package structure, identifier syntax, size limits,
-uniqueness, non-overlap, and every CRC before committing the header. At startup
-LVGL may still reject an individual structurally bounded asset. That asset is
-not registered. Font resolution requires an exact uploaded family/size match;
-unresolved fonts are not replaced with another font.
+uniqueness, non-overlap, the sfnt signature, and every CRC before committing the
+header. A configuration resolves against installed families: a family that is
+not installed is a composition error and is never replaced with another font,
+while any pixel size of an installed family resolves without an upload or a
+restart.
 
 ## Serial upload protocol
 
@@ -94,14 +100,14 @@ can query persisted asset state without starting an upload:
 
 ```text
 @SC:FONT:INFO
-@SC:OK:FONT:INFO:storage=1,package=1,format=2,assets=3,size=24576,reboot_required=0,entries=roboto-black:14;roboto-black:32;inter:24
+@SC:OK:FONT:INFO:storage=1,package=1,format=3,families=2,size=311296,reboot_required=0,entries=inter;roboto-black
 ```
 
 `storage` reports whether the partition is available. `package` reports
-whether a valid package is stored. `format`, `assets`, and `size` describe that
-package and are zero when none is valid. `reboot_required` is set after a
-successful commit until restart. `entries` contains the exact semicolon-separated
-manifest keys in `family:size_px` form and is empty for an asset-free package.
+whether a valid package is stored. `format`, `families`, and `size` describe
+that package and are zero when none is valid. `reboot_required` is set after a
+successful commit until restart. `entries` contains the semicolon-separated
+family identifiers and is empty for a package without faces.
 
 The host can erase the complete installed package outside an upload session:
 
@@ -167,7 +173,24 @@ request cancels an active session with `@SC:ERR:FONT:timeout`. During a session,
 all received bytes belong to the font protocol; normal line commands and
 telemetry input resume after commit, cancel, timeout, or error.
 
-The configurator converts TTF/OTF sources with the official `lv_font_conv`
-binary output, four bits per pixel, compression disabled, and printable ASCII
-range `0x20` through `0x7E`. Broader glyph-range selection and compressed
-assets remain later improvements.
+The configurator uploads the selected TTF or OTF file unchanged; there is no
+conversion step and no glyph range to choose.
+
+## Runtime rasterization
+
+Firmware creates one font object per family and pixel size the active
+configuration references, over the external-RAM copy of that family's face.
+Each font owns a bounded glyph cache holding rendered 8-bit alpha bitmaps, and
+those bitmaps are allocated in external RAM so a large size cannot exhaust
+internal memory.
+
+Fonts are created without kerning. A cached advance width is then independent
+of the neighbouring glyph, which is what lets composition pre-warm the cache
+one glyph at a time.
+
+Dashboard composition warms each font it creates: the characters the runtime
+emits on its own (digits, the time transform's separators and sign) plus the
+characters the configuration supplies (widget titles, transform prefixes and
+suffixes, unavailable and placeholder text). A character outside that set is
+rasterized when it is first drawn, which costs one longer frame and is then
+cached.

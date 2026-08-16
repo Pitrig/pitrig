@@ -174,6 +174,13 @@ Only the properties shown above are present in the project and public payload.
 The text widget supplies its documented defaults for omitted padding, fonts,
 colors, alignment, background, title offset, and unavailable text.
 
+Until a value arrives, a widget renders its placeholder. An explicit
+`unavailable_text` is that placeholder; omitting it renders a zero through the
+widget's own transform, so a plain value reads `0` and a time value keeps its
+format with every field zeroed, such as `00:00.000`. The Delta Time module
+behaves the same way: its default `unavailable_behavior` is `zero`, and
+`placeholder` applies only when that behavior is set to `placeholder`.
+
 The `binding` property always identifies the canonical telemetry source. An
 ordered modifier pipeline may change the typed value before its presentation
 transform:
@@ -243,24 +250,27 @@ offered by the add picker.
 
 Production firmware exposes no compiled dashboard font families. Every widget
 font reference uses a stable family identifier plus `size_px` and resolves to
-a separately uploaded LVGL binary asset. Widget fonts must be explicit; a text
-widget without a title does not require a title font. Resolution is
-exact: an unavailable family/size causes dashboard composition to report an
-error instead of silently selecting another font.
+an uploaded TTF or OTF face that the device rasterizes at the requested size.
+Widget fonts must be explicit; a text widget without a title does not require a
+title font. Family resolution is exact: an unavailable family causes dashboard
+composition to report an error instead of silently selecting another font. A
+pixel size never fails to resolve, because it is rasterized from the installed
+face.
 
 Font family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`,
-or `-`. `size_px` is an integer from 1 through 255. Font files and converted
-font bytes are not part of this JSON document or configuration NVS.
+or `-`. `size_px` is an integer from 1 through 255. One configuration may
+reference at most 8 families. Font files are not part of this JSON document or
+configuration NVS.
 
-Uploaded fonts are stored as one checksummed asset package in a dedicated
-partition.
+Uploaded faces are stored as one checksummed package in a dedicated partition.
 The package format and firmware validation rules are defined in
 [Font asset storage](font-assets.md), including its separate bounded serial
-upload protocol. Installing a new package requires a reboot before its fonts
-can be selected. Before applying a configuration, the configurator compares its
-requirements with the exact device asset catalog. When assets are missing it
-collects one TTF/OTF source per family, converts every required size, replaces
-the complete font package, and then saves the configuration.
+upload protocol. Installing a new package requires a reboot before its families
+can be selected; changing only a `size_px` of an installed family requires
+neither an upload nor a restart. Before applying a configuration, the
+configurator compares its required families with the device catalog. When a
+family is missing it collects one TTF/OTF source per family, replaces the
+complete package, and then saves the configuration.
 
 ## Device information
 

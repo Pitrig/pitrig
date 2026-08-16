@@ -6,7 +6,7 @@ import {
 } from './configuration-schema'
 import type { ApplicationConfiguration } from './configuration-schema'
 import { allWidgetsOf } from './configuration-access'
-import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_ASSETS, MAXIMUM_FONT_SIZE_PX } from './font-assets'
+import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES, MAXIMUM_FONT_SIZE_PX } from './font-assets'
 
 // The single configuration validator. The renderer, the main process, and file
 // import all use this instead of keeping their own partial copies, and the key
@@ -134,9 +134,11 @@ function findFontError(configuration: ApplicationConfiguration): string | undefi
       return 'Every dashboard font must explicitly define a valid family and size_px.'
     }
   }
-  const unique = new Set(fonts.map((font) => `${font?.family}:${font?.size_px}`))
-  if (unique.size > MAXIMUM_FONT_ASSETS) {
-    return `Configuration requires more than ${MAXIMUM_FONT_ASSETS} unique font assets.`
+  // The device stores one face per family and rasterizes every size from it, so
+  // families are the bounded resource; sizes cost nothing to add.
+  const families = new Set(fonts.map((font) => font?.family))
+  if (families.size > MAXIMUM_FONT_FAMILIES) {
+    return `Configuration references more than ${MAXIMUM_FONT_FAMILIES} font families.`
   }
   return undefined
 }

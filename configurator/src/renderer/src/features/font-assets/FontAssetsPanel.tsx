@@ -9,7 +9,7 @@ import { useFontAssetsStore } from './font-assets-store'
 import {
   collectFontRequirements,
   groupFontRequirements,
-  missingFontRequirements
+  missingFontFamilies
 } from './font-requirements'
 
 export function FontAssetsPanel(): React.JSX.Element {
@@ -46,7 +46,7 @@ export function FontAssetsPanel(): React.JSX.Element {
     () => (draft ? collectFontRequirements(draft) : []),
     [draft]
   )
-  const missing = missingFontRequirements(required, session?.fontAssets?.assets ?? [])
+  const missing = missingFontFamilies(required, session?.fontAssets?.families ?? [])
   const groups = groupFontRequirements(required)
   const packageReplacementNeeded = missing.length > 0
   const working = workingStage(progress?.stage)
@@ -69,16 +69,14 @@ export function FontAssetsPanel(): React.JSX.Element {
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-[11px] text-muted-foreground">
-          {fontSummary(Boolean(session), required.length, missing.length)}
+          {fontSummary(Boolean(session), groups.size, missing.length)}
         </p>
 
         {groups.size > 0 ? (
           <div className="space-y-2">
             {[...groups].map(([family, sizes]) => {
               const source = sources[family]
-              const familyMissing = sizes.some((sizePx) => missing.some(
-                (font) => font.family === family && font.sizePx === sizePx
-              ))
+              const familyMissing = missing.includes(family)
               const needsSource = packageReplacementNeeded
               return (
                 <div key={family} className="rounded-md border p-2 text-[11px]">
@@ -89,7 +87,7 @@ export function FontAssetsPanel(): React.JSX.Element {
                     </span>
                   </div>
                   <p className="mt-1 text-muted-foreground">
-                    {sizes.map((size) => `${size}px`).join(', ')}
+                    Rendered at {sizes.map((size) => `${size}px`).join(', ')}
                   </p>
                   {needsSource ? (
                     <Button
@@ -113,7 +111,9 @@ export function FontAssetsPanel(): React.JSX.Element {
 
         {packageReplacementNeeded ? (
           <p className="text-[11px] text-amber-400">
-            Saving will replace the complete device font package with the set shown above.
+            Saving will replace the complete device font package with the families shown
+            above. An installed family covers every size, so changing a size never needs
+            another upload.
           </p>
         ) : null}
 
@@ -155,18 +155,18 @@ function Progress({
 
 function fontSummary(connected: boolean, required: number, missing: number): string {
   if (!connected) return 'Connect a device to check the required fonts.'
-  if (required === 0) return 'No font assets required.'
-  if (missing === 0) return `All ${required} required font assets are installed.`
-  return `${missing} of ${required} required font assets are missing.`
+  if (required === 0) return 'No font families required.'
+  if (missing === 0) return `All ${required} required font families are installed.`
+  return `${missing} of ${required} required font families are missing.`
 }
 
 function workingStage(stage: FontUploadProgress['stage'] | undefined): boolean {
-  return stage !== undefined && ['converting', 'building', 'erasing', 'uploading', 'committing'].includes(stage)
+  return stage !== undefined && ['reading', 'building', 'erasing', 'uploading', 'committing'].includes(stage)
 }
 
 function stageLabel(stage: FontUploadProgress['stage']): string {
   return ({
-    converting: 'Converting fonts',
+    reading: 'Reading font files',
     building: 'Building package',
     erasing: 'Preparing device storage',
     uploading: 'Uploading fonts',

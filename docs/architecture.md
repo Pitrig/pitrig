@@ -392,13 +392,17 @@ contract. Firmware parses and validates JSON on the configuration/startup path,
 then runtime code uses bounded typed structures.
 
 Fonts use a bounded family identifier and pixel size. Production firmware has
-no built-in dashboard font families. Configurator-imported fonts are converted to LVGL
-binary assets and stored in a separately versioned, checksummed flash package;
-they are not embedded in configuration JSON, configuration NVS, or the
-application image. Font resolution is exact, so a missing uploaded asset is a
-dashboard composition error rather than an implicit fallback. Diagnostic builds
-may compile private LVGL fonts for service screens; those fonts are not exposed
-through the dashboard font registry.
+no built-in dashboard font families. Configurator-imported faces are uploaded
+unchanged, one per family, into a separately versioned, checksummed flash
+package; they are not embedded in configuration JSON, configuration NVS, or the
+application image. Family resolution is exact, so a missing family is a
+dashboard composition error rather than an implicit fallback, while any pixel
+size is rasterized on the device. Dashboard code owns the runtime font registry:
+it copies each face into external memory, creates one font per family and size
+the active configuration references, and pre-warms their glyph caches during
+composition so periodic frames do not rasterize. Diagnostic builds may compile
+private LVGL fonts for service screens; those fonts are not exposed through the
+dashboard font registry.
 
 Persistent NVS slot headers, generations, CRC validation, and recovery remain
 private to the configuration service. External tools communicate only through

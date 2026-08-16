@@ -238,10 +238,65 @@ bool show_startup_screen(
       !will_render_content(configuration));
 }
 
+// Visits every font a configuration renders with, together with the characters
+// that configuration supplies for it. Fonts the runtime emits on its own are
+// warmed by the registry.
+template <typename Visitor>
+void for_each_configured_font(
+    const configuration::ApplicationConfiguration& configuration,
+    Visitor&& visit) {
+  const configuration::ScreenConfiguration& screen =
+      active_screen(configuration);
+  for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
+    const configuration::TextWidgetConfiguration& widget =
+        screen.text_widgets[index];
+    visit(widget.value.font, widget.value.unavailable_text);
+    if (widget.transform.type == configuration::ValueTransformType::time) {
+      visit(widget.value.font, widget.transform.time.prefix);
+      visit(widget.value.font, widget.transform.time.suffix);
+    }
+    if (widget.title.text.front() != '\0') {
+      visit(widget.title.font, widget.title.text);
+    }
+  }
+  for (std::size_t index = 0; index < screen.delta_time_widget_count; ++index) {
+    visit(screen.delta_time_widgets[index].font,
+          configuration.delta_time.placeholder);
+  }
+}
+
+// Creates the fonts this configuration renders with and drops the ones it no
+// longer needs. Runs with the previous widgets already destroyed, so no label
+// can be pointing at a font object being released.
+bool prepare_fonts(
+    const configuration::ApplicationConfiguration& configuration,
+    dashboard::fonts::Registry& fonts) {
+  fonts.retain_if([&configuration](const font_assets::FontSpec& spec) {
+    bool used = false;
+    for_each_configured_font(
+        configuration, [&spec, &used](const font_assets::FontSpec& candidate,
+                                      const std::span<const char>) {
+          used = used || candidate == spec;
+        });
+    return used;
+  });
+
+  bool complete = true;
+  for_each_configured_font(
+      configuration, [&fonts, &complete](const font_assets::FontSpec& spec,
+                                         const std::span<const char> text) {
+        if (!fonts.acquire(spec)) {
+          complete = false;
+          return;
+        }
+        fonts.warm(spec, text);
+      });
+  return complete;
+}
+
 bool create(lv_display_t* const display,
             const configuration::ApplicationConfiguration& configuration,
             module_composition::Modules& modules, Dashboard& dashboard_state,
-            const font_assets::Service& font_assets,
             const telemetry::ITelemetryRegistry& telemetry_registry,
             const telemetry::ITelemetryReader& telemetry,
             const transport::ITransport& telemetry_transport) {
@@ -268,8 +323,9 @@ bool create(lv_display_t* const display,
     log::error(kTag, "Dashboard screen is unavailable");
     return false;
   }
-  if (!dashboard_state.fonts.initialize(font_assets)) {
-    log::warn(kTag, "One or more font assets could not be loaded");
+  if (!prepare_fonts(configuration, dashboard_state.fonts)) {
+    log::error(kTag, "One or more configured fonts could not be created");
+    return false;
   }
 
   bool initialized = true;
@@ -364,6 +420,9 @@ bool widget_changed(const Widget& left, const Widget& right) {
   return std::memcmp(&left, &right, sizeof(Widget)) != 0;
 }
 
+// Only the face has to be installed: every pixel size is rasterized from it, so
+// a configuration that asks for a size the device has never rendered composes
+// without an upload.
 bool fonts_available(
     const configuration::ApplicationConfiguration& configuration,
     const dashboard::fonts::Registry& fonts) {
@@ -374,18 +433,18 @@ bool fonts_available(
     switch (reference.type) {
       case configuration::WidgetType::text: {
         const auto& widget = screen.text_widgets[reference.index];
-        if (fonts.resolve(widget.value.font) == nullptr) {
+        if (!fonts.has_family(widget.value.font.family)) {
           return false;
         }
         if (widget.title.text.front() != '\0' &&
-            fonts.resolve(widget.title.font) == nullptr) {
+            !fonts.has_family(widget.title.font.family)) {
           return false;
         }
         break;
       }
       case configuration::WidgetType::delta_time:
-        if (fonts.resolve(screen.delta_time_widgets[reference.index].font) ==
-            nullptr) {
+        if (!fonts.has_family(
+                screen.delta_time_widgets[reference.index].font.family)) {
           return false;
         }
         break;
@@ -460,6 +519,17 @@ void destroy(Dashboard& dashboard) {
   dashboard.performance_overlay.destroy();
 }
 
+bool load_fonts(Dashboard& dashboard, const font_assets::Service& font_assets,
+                const std::span<std::uint8_t> storage) {
+  if (!lvgl_port_lock(0)) {
+    log::error(kTag, "Failed to lock LVGL for font loading");
+    return false;
+  }
+  const bool loaded = dashboard.fonts.load(font_assets.families(), storage);
+  lvgl_port_unlock();
+  return loaded;
+}
+
 bool start_render_trigger(Dashboard& dashboard, events::EventBus& event_bus) {
   if (dashboard.render_trigger.started()) {
     return false;
@@ -480,13 +550,12 @@ bool start_render_trigger(Dashboard& dashboard, events::EventBus& event_bus) {
 bool rebuild(lv_display_t* const display,
              const configuration::ApplicationConfiguration& configuration,
              module_composition::Modules& modules, Dashboard& dashboard,
-             const font_assets::Service& font_assets,
              const telemetry::ITelemetryRegistry& telemetry_registry,
              const telemetry::ITelemetryReader& telemetry,
              const transport::ITransport& telemetry_transport) {
   destroy(dashboard);
-  return create(display, configuration, modules, dashboard, font_assets,
-                telemetry_registry, telemetry, telemetry_transport);
+  return create(display, configuration, modules, dashboard, telemetry_registry,
+                telemetry, telemetry_transport);
 }
 
 }  // namespace simcore::dashboard_composition

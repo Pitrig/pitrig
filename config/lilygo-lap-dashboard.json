@@ -1,8 +1,6 @@
 {
   "board": "t_display_s3",
   "delta_time": {
-    "unavailable_behavior": "placeholder",
-    "placeholder": "--",
     "scale": {
       "enabled": true,
       "show_sign": true,
@@ -58,8 +56,7 @@
                 "size_px": 32
               },
               "color": "#FFFFFF",
-              "alignment": "center",
-              "unavailable_text": "--"
+              "alignment": "center"
             }
           },
           {
@@ -86,8 +83,7 @@
                 "size_px": 32
               },
               "color": "#FFFFFF",
-              "alignment": "center",
-              "unavailable_text": "--"
+              "alignment": "center"
             }
           }
         ]

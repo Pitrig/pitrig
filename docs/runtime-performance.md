@@ -61,3 +61,8 @@ path, and FreeRTOS runtime statistics remain disabled.
 
 The service owns measurement and aggregation. The dashboard widget only reads
 the latest statistics snapshot and formats it for display.
+
+Dashboard glyphs are rasterized from the uploaded font faces and cached per
+font in external RAM. Composition pre-warms the characters a dashboard draws,
+so a steady-state frame performs no rasterization; a character outside the warm
+set shows up as one longer frame in **Longest frame** and is cached afterwards.

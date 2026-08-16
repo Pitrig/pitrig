@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <span>
+
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
 #include "delta_time_widget.hpp"
@@ -77,6 +80,16 @@ struct Dashboard {
     lv_display_t* display,
     const configuration::ApplicationConfiguration& configuration);
 
+// Copies every uploaded font face into caller-owned external memory. A
+// rasterizer reads the face on every glyph cache miss, while the next upload
+// releases the package mapping with the dashboard still running, so the copy is
+// what keeps live fonts valid. Call once after the display exists and before
+// the first create(); `storage` must be at least
+// `font_assets.face_bytes_total()` bytes.
+[[nodiscard]] bool load_fonts(Dashboard& dashboard,
+                              const font_assets::Service& font_assets,
+                              std::span<std::uint8_t> storage);
+
 // Starts event-driven rendering: every telemetry update wakes the widget render
 // timers through the render trigger, so a changed value is drawn on the next
 // LVGL pass instead of the next timer period. Call once after the first
@@ -88,16 +101,16 @@ struct Dashboard {
     lv_display_t* display,
     const configuration::ApplicationConfiguration& configuration,
     module_composition::Modules& modules, Dashboard& dashboard,
-    const font_assets::Service& font_assets,
     const telemetry::ITelemetryRegistry& telemetry_registry,
     const telemetry::ITelemetryReader& telemetry,
     const transport::ITransport& telemetry_transport);
 
-// Reports whether every font the configuration references is present in the
-// loaded package. Font assets are installed once per boot, so a configuration
-// needing a new family or size cannot be composed until the device restarts.
-// Checking before tearing the dashboard down keeps a rejected replacement from
-// leaving a blank screen.
+// Reports whether every font family the configuration references is installed.
+// Faces are installed once per boot, so a configuration naming a new family
+// cannot be composed until the device restarts; a new pixel size of an
+// installed family needs neither an upload nor a restart. Checking before
+// tearing the dashboard down keeps a rejected replacement from leaving a blank
+// screen.
 [[nodiscard]] bool fonts_available(
     const configuration::ApplicationConfiguration& configuration,
     const dashboard::fonts::Registry& fonts);
@@ -114,8 +127,9 @@ struct Dashboard {
     const configuration::ApplicationConfiguration& next,
     Dashboard& dashboard);
 
-// Releases every LVGL object and timer the dashboard owns. The loaded font
-// registry is kept: font assets are installed once per boot.
+// Releases every LVGL object and timer the dashboard owns. The loaded faces are
+// kept: they are installed once per boot. Font objects are kept too; the next
+// create() destroys the ones its configuration no longer references.
 void destroy(Dashboard& dashboard);
 
 // Tears the dashboard down and composes it again from a configuration document
@@ -127,7 +141,6 @@ void destroy(Dashboard& dashboard);
     lv_display_t* display,
     const configuration::ApplicationConfiguration& configuration,
     module_composition::Modules& modules, Dashboard& dashboard,
-    const font_assets::Service& font_assets,
     const telemetry::ITelemetryRegistry& telemetry_registry,
     const telemetry::ITelemetryReader& telemetry,
     const transport::ITransport& telemetry_transport);

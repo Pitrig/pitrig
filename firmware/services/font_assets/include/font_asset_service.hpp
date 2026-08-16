@@ -13,8 +13,7 @@ inline constexpr std::size_t kStorageSize = 2U * 1024U * 1024U;
 inline constexpr std::size_t kHeaderSize = 32;
 inline constexpr std::size_t kManifestEntrySize = 48;
 inline constexpr std::size_t kAssetDataOffset = 4096;
-inline constexpr std::size_t kMaximumAssets = 32;
-inline constexpr std::uint16_t kFormatVersion = 2;
+inline constexpr std::uint16_t kFormatVersion = 3;
 
 class IStorage {
  public:
@@ -28,8 +27,10 @@ class IStorage {
       std::size_t offset, std::span<const std::uint8_t> bytes) = 0;
 };
 
-struct AssetView {
-  FontSpec font{};
+// Spans the mapped package. The mapping is released by the next update, so a
+// consumer that outlives one boot phase must copy the bytes it needs.
+struct FamilyAsset {
+  FamilyId family{};
   std::span<const std::uint8_t> bytes{};
 };
 
@@ -38,7 +39,7 @@ struct Status {
   bool package_available{};
   bool reboot_required{};
   std::uint16_t format_version{};
-  std::uint16_t asset_count{};
+  std::uint16_t family_count{};
   std::uint32_t package_size{};
 };
 
@@ -62,13 +63,16 @@ class Service final {
 
   [[nodiscard]] bool initialize(IStorage& storage);
   [[nodiscard]] const Status& status() const { return status_; }
-  [[nodiscard]] std::span<const AssetView> assets() const {
-    return {package_.assets.data(), package_.asset_count};
+  [[nodiscard]] std::span<const FamilyAsset> families() const {
+    return {package_.families.data(), package_.family_count};
   }
-  [[nodiscard]] std::span<const FontSpec> asset_catalog() const {
-    return {asset_catalog_.data(), status_.asset_count};
+  [[nodiscard]] std::span<const FamilyId> family_catalog() const {
+    return {family_catalog_.data(), status_.family_count};
   }
-  [[nodiscard]] const AssetView* find(const FontSpec& font) const;
+  [[nodiscard]] const FamilyAsset* find(const FamilyId& family) const;
+  // Bytes a consumer must reserve to copy every face out of the mapping, each
+  // face aligned to four bytes.
+  [[nodiscard]] std::size_t face_bytes_total() const;
 
   [[nodiscard]] UpdateError begin_update(std::size_t package_size);
   [[nodiscard]] UpdateError write_update(
@@ -79,9 +83,9 @@ class Service final {
 
  private:
   struct ParsedPackage {
-    std::uint16_t asset_count{};
+    std::uint16_t family_count{};
     std::uint32_t package_size{};
-    std::array<AssetView, kMaximumAssets> assets{};
+    std::array<FamilyAsset, kMaximumFamilies> families{};
   };
 
   [[nodiscard]] bool validate_package(
@@ -97,7 +101,7 @@ class Service final {
   // Indexes the active mapping at boot and acts as update-validation scratch
   // after that mapping has been released.
   ParsedPackage package_{};
-  std::array<FontSpec, kMaximumAssets> asset_catalog_{};
+  std::array<FamilyId, kMaximumFamilies> family_catalog_{};
 
   bool update_in_progress_{};
   std::size_t update_size_{};

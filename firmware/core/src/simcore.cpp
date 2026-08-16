@@ -36,6 +36,7 @@ struct PlatformAdapters {
   font_assets::PartitionStorage font_asset_storage;
   transport::TelemetryComposition telemetry_transport;
   platform::ExternalMemoryBuffer configuration_memory;
+  platform::ExternalMemoryBuffer font_memory;
 };
 
 struct ApplicationServices {
@@ -70,8 +71,7 @@ bool recompose(Application& application) {
       application.services.telemetry_state, configuration);
   const bool dashboard_created = dashboard_composition::create(
       application.display, configuration, application.modules,
-      application.dashboard, application.services.font_assets,
-      application.services.telemetry_registry,
+      application.dashboard, application.services.telemetry_registry,
       application.services.telemetry_state,
       *application.telemetry_transport);
   return modules_started && dashboard_created;
@@ -200,6 +200,21 @@ void run() {
   if (!dashboard_composition::show_startup_screen(display, configuration)) {
     log::warn(kTag, "Startup screen is unavailable for this display");
   }
+  // Fonts are rasterized from the uploaded faces at runtime, so the faces are
+  // copied out of the package mapping that a later upload releases. A failure
+  // here leaves the dashboard without fonts, which composition already reports
+  // as an unresolved dependency, so it is not fatal.
+  const std::size_t face_bytes =
+      application.services.font_assets.face_bytes_total();
+  if (face_bytes > 0) {
+    if (!application.platform.font_memory.initialize(face_bytes)) {
+      log::error(kTag, "Font faces do not fit in external memory");
+    } else if (!dashboard_composition::load_fonts(
+                   application.dashboard, application.services.font_assets,
+                   application.platform.font_memory.bytes())) {
+      log::error(kTag, "Font faces could not be loaded");
+    }
+  }
   if (!module_composition::start(
           application.modules, application.services.event_bus,
           application.services.telemetry_registry,
@@ -209,7 +224,6 @@ void run() {
   }
   if (!dashboard_composition::create(
           display, configuration, application.modules, application.dashboard,
-          application.services.font_assets,
           application.services.telemetry_registry,
           application.services.telemetry_state,
           *telemetry_transport)) {

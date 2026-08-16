@@ -4,7 +4,7 @@ export const FONT_CANCEL_UPLOAD_CHANNEL = 'font-assets:cancel-upload' as const
 export const FONT_CLEAR_CHANNEL = 'font-assets:clear' as const
 export const FONT_UPLOAD_PROGRESS_CHANNEL = 'font-assets:upload-progress' as const
 
-export const MAXIMUM_FONT_ASSETS = 32
+export const MAXIMUM_FONT_FAMILIES = 8
 export const MAXIMUM_FONT_SIZE_PX = 255
 export const MAXIMUM_FONT_PACKAGE_SIZE = 2 * 1024 * 1024
 export const FONT_FAMILY_PATTERN = /^[a-z0-9_-]{1,31}$/
@@ -17,7 +17,6 @@ export interface FontSourceSelection {
 export interface FontAssetInput {
   sourceId: string
   family: string
-  sizePx: number
 }
 
 export interface FontAssetKey {
@@ -30,7 +29,7 @@ export interface FontUploadRequest {
 }
 
 export type FontUploadStage =
-  | 'converting'
+  | 'reading'
   | 'building'
   | 'erasing'
   | 'uploading'
@@ -49,11 +48,11 @@ export interface FontUploadProgress {
 export type FontAssetErrorCode =
   | 'busy'
   | 'cancelled'
-  | 'conversion_failed'
   | 'device_error'
   | 'invalid_request'
   | 'package_too_large'
   | 'source_missing'
+  | 'source_unreadable'
   | 'unsupported_firmware'
 
 export interface FontAssetError {

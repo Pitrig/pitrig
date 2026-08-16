@@ -8,10 +8,13 @@
 #include "dashboard_layout_internal.hpp"
 #include "delta_time.hpp"
 #include "esp_lvgl_port.h"
+#include "logger.hpp"
 #include "lvgl.h"
 
 namespace simcore::dashboard::delta_time_widget {
 namespace {
+
+constexpr char kTag[] = "delta_time_widget";
 
 // Fallback poll only: a telemetry change wakes the timer early through the
 // dashboard's render trigger.
@@ -197,6 +200,13 @@ bool View::create(const Layout& layout, const Config& config,
   if (!resolve_widget_bounds(layout, config.placement, intrinsic_width,
                              scale_height, true, parent, bounds) ||
       bounds.width <= 2 * border_width || bounds.height < scale_height) {
+    // Font metrics come from the uploaded face, so a placement authored against
+    // different metrics can be too small. Report what it would have taken.
+    log::error(kTag, "Delta Time widget needs %dx%d but is placed at %dx%d",
+               static_cast<int>(intrinsic_width),
+               static_cast<int>(scale_height),
+               static_cast<int>(config.placement.width),
+               static_cast<int>(config.placement.height));
     lvgl_port_unlock();
     return false;
   }

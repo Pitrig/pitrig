@@ -119,7 +119,7 @@ struct DeltaTimeScaleConfiguration {
 // Delta Time module configuration. Distinct from the Delta Time widget,
 // which owns presentation only.
 struct DeltaTimeConfiguration {
-  DeltaTimeUnavailableBehavior unavailable_behavior{DeltaTimeUnavailableBehavior::hide};
+  DeltaTimeUnavailableBehavior unavailable_behavior{DeltaTimeUnavailableBehavior::zero};
   std::array<char, kDeltaTimeTextCapacity> placeholder{'-', '-', '-', '\0'};
   DeltaTimeScaleConfiguration scale{};
 };
@@ -156,7 +156,7 @@ struct WidgetValueStyle {
   font_assets::FontSpec font{};
   std::uint32_t color{0xE8E8E8};
   TextAlignment alignment{TextAlignment::center};
-  std::array<char, kUnavailableTextCapacity> unavailable_text{'-', '-', '\0'};
+  std::array<char, kUnavailableTextCapacity> unavailable_text{};
 };
 
 // Stateless presentation transform. Absent means no transform is applied.

@@ -36,20 +36,49 @@ bool reject(ValidationFailure& failure, const ValidationError error,
 }
 
 [[nodiscard]] bool valid_font(const font_assets::FontSpec& font) {
-  const std::string_view family = font_assets::family_id_view(font.family);
-  if (family.empty() ||
-      family.size() > font_assets::kMaximumFamilyIdLength ||
-      font.size_px == 0 ||
-      font.size_px > font_assets::kMaximumFontSizePx) {
-    return false;
-  }
-  for (const char character : family) {
-    const bool valid_character =
-        (character >= 'a' && character <= 'z') ||
-        (character >= '0' && character <= '9') || character == '_' ||
-        character == '-';
-    if (!valid_character) {
+  return font_assets::valid_family_id(font.family) && font.size_px != 0 &&
+         font.size_px <= font_assets::kMaximumFontSizePx;
+}
+
+// An uploaded package carries one face per family, so a document may not name
+// more families than a package can hold. Sizes are free: every one of them is
+// rasterized from the same face.
+[[nodiscard]] bool within_family_budget(
+    const ApplicationConfiguration& configuration) {
+  std::array<font_assets::FamilyId, font_assets::kMaximumFamilies> families{};
+  std::size_t count{};
+  const auto record = [&families, &count](const font_assets::FontSpec& font) {
+    for (std::size_t index = 0; index < count; ++index) {
+      if (families[index] == font.family) {
+        return true;
+      }
+    }
+    if (count == families.size()) {
       return false;
+    }
+    families[count] = font.family;
+    ++count;
+    return true;
+  };
+
+  const DashboardConfiguration& dashboard = configuration.dashboard;
+  for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
+       ++screen_index) {
+    const ScreenConfiguration& screen = dashboard.screens[screen_index];
+    for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
+      const TextWidgetConfiguration& widget = screen.text_widgets[index];
+      if (!record(widget.value.font)) {
+        return false;
+      }
+      if (widget.title.text.front() != '\0' && !record(widget.title.font)) {
+        return false;
+      }
+    }
+    for (std::size_t index = 0; index < screen.delta_time_widget_count;
+         ++index) {
+      if (!record(screen.delta_time_widgets[index].font)) {
+        return false;
+      }
     }
   }
   return true;
@@ -319,6 +348,10 @@ ValidationFailure validate_configuration(
   // widget may claim it across the whole dashboard.
   if (lap_timer_modifier_count > 1) {
     (void)reject(failure, ValidationError::invalid_widget, "modifiers");
+    return failure;
+  }
+  if (!within_family_budget(configuration)) {
+    (void)reject(failure, ValidationError::invalid_widget, "font");
     return failure;
   }
   return failure;

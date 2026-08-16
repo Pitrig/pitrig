@@ -11,6 +11,7 @@ import {
   type FontAssetDeviceInfo,
   type SimCoreBoardId
 } from '../../shared/device'
+import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES } from '../../shared/font-assets'
 import { parseDeviceConfigurationJson } from './configuration-json'
 import { DeviceServiceError } from './device-errors'
 
@@ -277,20 +278,21 @@ function parseDeviceInfo(line: string): DeviceInfo {
 function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   const fields = parseFields(line, '@SC:OK:FONT:INFO:', 'font status')
   const formatVersion = Number(fields.get('format'))
-  const assetCount = Number(fields.get('assets'))
+  const familyCount = Number(fields.get('families'))
   const packageSize = Number(fields.get('size'))
   const packageAvailable = fields.get('package') === '1'
-  const assets = parseFontAssetEntries(fields.get('entries'))
+  const families = parseFontFamilies(fields.get('entries'))
   if (
     !isBooleanField(fields.get('storage')) ||
     !isBooleanField(fields.get('package')) ||
     !Number.isSafeInteger(formatVersion) || formatVersion < 0 || formatVersion > 0xffff ||
-    !Number.isSafeInteger(assetCount) || assetCount < 0 || assetCount > 32 ||
-    (fields.has('entries') && assets.length !== assetCount) ||
+    !Number.isSafeInteger(familyCount) || familyCount < 0 ||
+    familyCount > MAXIMUM_FONT_FAMILIES ||
+    (fields.has('entries') && families.length !== familyCount) ||
     !Number.isSafeInteger(packageSize) || packageSize < 0 || packageSize > 2 * 1024 * 1024 ||
     (packageAvailable
-      ? formatVersion !== 2 || packageSize < 4096
-      : formatVersion !== 0 || assetCount !== 0 || packageSize !== 0) ||
+      ? formatVersion !== 3 || packageSize < 4096
+      : formatVersion !== 0 || familyCount !== 0 || packageSize !== 0) ||
     !isBooleanField(fields.get('reboot_required'))
   ) {
     throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
@@ -299,32 +301,23 @@ function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
     storageAvailable: fields.get('storage') === '1',
     packageAvailable,
     formatVersion,
-    assetCount,
-    assets,
+    familyCount,
+    families,
     packageSize,
     rebootRequired: fields.get('reboot_required') === '1'
   }
 }
 
-function parseFontAssetEntries(value: string | undefined): FontAssetDeviceInfo['assets'] {
+function parseFontFamilies(value: string | undefined): string[] {
   if (value === undefined || value === '') return []
-  const assets: FontAssetDeviceInfo['assets'] = []
-  const keys = new Set<string>()
-  for (const entry of value.split(';')) {
-    const separator = entry.lastIndexOf(':')
-    const family = entry.slice(0, separator)
-    const sizePx = Number(entry.slice(separator + 1))
-    const key = `${family}:${sizePx}`
-    if (
-      separator <= 0 || !/^[a-z0-9_-]{1,31}$/.test(family) ||
-      !Number.isInteger(sizePx) || sizePx < 1 || sizePx > 255 || keys.has(key)
-    ) {
+  const families: string[] = []
+  for (const family of value.split(';')) {
+    if (!FONT_FAMILY_PATTERN.test(family) || families.includes(family)) {
       throw new DeviceServiceError('not_simcore', 'The device returned malformed font entries.')
     }
-    keys.add(key)
-    assets.push({ family, sizePx })
+    families.push(family)
   }
-  return assets
+  return families
 }
 
 function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {

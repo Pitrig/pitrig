@@ -1,8 +1,6 @@
 {
   "board": "guition_esp32_4848s040",
   "delta_time": {
-    "unavailable_behavior": "placeholder",
-    "placeholder": "--",
     "scale": {
       "enabled": true,
       "show_sign": true,

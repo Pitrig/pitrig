@@ -1,11 +1,11 @@
 import { dialog, type BrowserWindow, type OpenDialogOptions } from 'electron'
 import { randomUUID } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { basename, extname } from 'node:path'
 
 import {
   FONT_FAMILY_PATTERN,
-  MAXIMUM_FONT_ASSETS,
-  MAXIMUM_FONT_SIZE_PX,
+  MAXIMUM_FONT_FAMILIES,
   type FontAssetError,
   type FontAssetResult,
   type FontSourceSelection,
@@ -13,8 +13,7 @@ import {
   type FontUploadRequest
 } from '../../shared/font-assets'
 import { DeviceService } from '../device/device-service'
-import { convertFont } from './font-converter'
-import { buildFontPackage, type ConvertedFontAsset } from './font-package'
+import { buildFontPackage, type FontFamilyAsset } from './font-package'
 
 interface SourceRecord extends FontSourceSelection {
   path: string
@@ -51,7 +50,7 @@ export class FontAssetService {
 
   async upload(request: FontUploadRequest): Promise<FontAssetResult<void>> {
     if (this.activeOperation) {
-      return failure('busy', 'A font conversion or upload is already running.')
+      return failure('busy', 'A font upload is already running.')
     }
     const validationError = this.validateRequest(request)
     if (validationError) return { ok: false, error: validationError }
@@ -72,9 +71,9 @@ export class FontAssetService {
     }
     const operation = new AbortController()
     this.activeOperation = operation
-    let stage: 'converting' | 'building' | 'uploading' = 'converting'
+    let stage: 'reading' | 'building' | 'uploading' = 'reading'
     try {
-      const converted: ConvertedFontAsset[] = []
+      const faces: FontFamilyAsset[] = []
       for (let index = 0; index < request.assets.length; ++index) {
         operation.signal.throwIfAborted()
         const asset = request.assets[index]
@@ -84,33 +83,29 @@ export class FontAssetService {
           return failure('source_missing', `Font source for ${asset.family} is no longer available.`)
         }
         this.onProgress({
-          stage: 'converting',
+          stage: 'reading',
           completed: index,
           total: request.assets.length,
-          message: `Converting ${source.name} at ${asset.sizePx}px`
+          message: `Reading ${source.name}`
         })
-        const bytes = await convertFont(source.path, asset.sizePx, operation.signal)
-        converted.push({
-          family: asset.family,
-          sizePx: asset.sizePx,
-          bytes
-        })
+        const bytes = new Uint8Array(await readFile(source.path))
+        faces.push({ family: asset.family, bytes })
         this.onProgress({
-          stage: 'converting',
+          stage: 'reading',
           completed: index + 1,
           total: request.assets.length,
-          message: `Converted ${source.name} at ${asset.sizePx}px: ${bytes.byteLength} bytes`
+          message: `Read ${source.name}: ${bytes.byteLength} bytes`
         })
       }
 
       stage = 'building'
       this.onProgress({
         stage: 'building',
-        completed: converted.length,
-        total: converted.length,
-        message: `Building one font package from ${converted.length} converted font assets`
+        completed: faces.length,
+        total: faces.length,
+        message: `Building one font package from ${faces.length} font families`
       })
-      const packageBytes = buildFontPackage(converted)
+      const packageBytes = buildFontPackage(faces)
       this.onProgress({
         stage: 'building',
         completed: packageBytes.byteLength,
@@ -120,7 +115,7 @@ export class FontAssetService {
 
       stage = 'uploading'
       if (this.deviceService.getState().session !== deviceSession) {
-        throw new Error('The connected device changed during font conversion.')
+        throw new Error('The connected device changed while the package was built.')
       }
       await this.deviceService.uploadFonts(packageBytes, this.onProgress, operation.signal)
       this.onProgress({
@@ -138,7 +133,7 @@ export class FontAssetService {
       }
       this.onProgress({ stage: 'error', completed: 0, total: 0, message })
       if (message.includes('2 MiB')) return failure('package_too_large', message)
-      return failure(stage === 'converting' ? 'conversion_failed' : 'device_error', message)
+      return failure(stage === 'reading' ? 'source_unreadable' : 'device_error', message)
     } finally {
       if (this.activeOperation === operation) this.activeOperation = undefined
     }
@@ -151,23 +146,24 @@ export class FontAssetService {
   }
 
   private validateRequest(request: FontUploadRequest): FontAssetError | undefined {
-    if (!Array.isArray(request.assets) || request.assets.length > MAXIMUM_FONT_ASSETS) {
-      return { code: 'invalid_request', message: `At most ${MAXIMUM_FONT_ASSETS} fonts can be uploaded.` }
+    if (!Array.isArray(request.assets) || request.assets.length > MAXIMUM_FONT_FAMILIES) {
+      return {
+        code: 'invalid_request',
+        message: `At most ${MAXIMUM_FONT_FAMILIES} font families can be uploaded.`
+      }
     }
-    const keys = new Set<string>()
+    const families = new Set<string>()
     for (const asset of request.assets) {
       if (
         !asset || typeof asset.sourceId !== 'string' || !this.sources.has(asset.sourceId) ||
-        typeof asset.family !== 'string' || !FONT_FAMILY_PATTERN.test(asset.family) ||
-        !Number.isInteger(asset.sizePx) || asset.sizePx < 1 || asset.sizePx > MAXIMUM_FONT_SIZE_PX
+        typeof asset.family !== 'string' || !FONT_FAMILY_PATTERN.test(asset.family)
       ) {
         return { code: 'invalid_request', message: 'The font upload request is invalid.' }
       }
-      const key = `${asset.family}:${asset.sizePx}`
-      if (keys.has(key)) {
-        return { code: 'invalid_request', message: `Duplicate font asset: ${asset.family} ${asset.sizePx}px.` }
+      if (families.has(asset.family)) {
+        return { code: 'invalid_request', message: `Duplicate font family: ${asset.family}.` }
       }
-      keys.add(key)
+      families.add(asset.family)
     }
     return undefined
   }

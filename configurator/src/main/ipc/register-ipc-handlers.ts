@@ -33,8 +33,7 @@ import {
   FONT_CANCEL_UPLOAD_CHANNEL,
   FONT_CLEAR_CHANNEL,
   FONT_FAMILY_PATTERN,
-  MAXIMUM_FONT_ASSETS,
-  MAXIMUM_FONT_SIZE_PX,
+  MAXIMUM_FONT_FAMILIES,
   FONT_SELECT_SOURCE_CHANNEL,
   FONT_UPLOAD_CHANNEL,
   FONT_UPLOAD_PROGRESS_CHANNEL,
@@ -215,7 +214,7 @@ function isFontUploadRequest(value: unknown): value is FontUploadRequest {
   const request = value as Partial<FontUploadRequest>
   return (
     Array.isArray(request.assets) &&
-    request.assets.length <= MAXIMUM_FONT_ASSETS &&
+    request.assets.length <= MAXIMUM_FONT_FAMILIES &&
     request.assets.every(isFontAssetInput)
   )
 }
@@ -225,9 +224,7 @@ function isFontAssetInput(value: unknown): value is FontAssetInput {
   const asset = value as Partial<FontAssetInput>
   return (
     typeof asset.sourceId === 'string' && asset.sourceId.length > 0 && asset.sourceId.length <= 128 &&
-    typeof asset.family === 'string' && FONT_FAMILY_PATTERN.test(asset.family) &&
-    typeof asset.sizePx === 'number' && Number.isInteger(asset.sizePx) &&
-    asset.sizePx >= 1 && asset.sizePx <= MAXIMUM_FONT_SIZE_PX
+    typeof asset.family === 'string' && FONT_FAMILY_PATTERN.test(asset.family)
   )
 }
 

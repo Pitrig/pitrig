@@ -14,7 +14,6 @@
   "dependencies": {
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lv_font_conv": "1.5.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "serialport": "^13.0.0",

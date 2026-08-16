@@ -72,7 +72,7 @@ Delta Time module configuration. Distinct from the Delta Time widget, which owns
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `unavailable_behavior` | `DeltaTimeUnavailableBehavior` | `hide` |
+| `unavailable_behavior` | `DeltaTimeUnavailableBehavior` | `zero` |
 | `placeholder` | string, max 15 bytes | `---` |
 | `scale` | [`DeltaTimeScaleConfiguration`](#deltatimescaleconfiguration) | absent |
 
@@ -120,7 +120,7 @@ Absolute geometry in logical screen pixels.
 | `font` | `FontSpec` | absent |
 | `color` | string `#RRGGBB` | `#E8E8E8` |
 | `alignment` | `TextAlignment` | `center` |
-| `unavailable_text` | string, max 15 bytes | `--` |
+| `unavailable_text` | string, max 15 bytes | empty |
 
 ### ValueTransform
 

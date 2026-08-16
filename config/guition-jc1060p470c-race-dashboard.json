@@ -4,8 +4,6 @@
     "id": "native_usb_cdc"
   },
   "delta_time": {
-    "unavailable_behavior": "placeholder",
-    "placeholder": "--",
     "scale": {
       "enabled": true,
       "show_sign": true,
@@ -22,7 +20,7 @@
               "x": 406,
               "y": 8,
               "width": 204,
-              "height": 68
+              "height": 80
             },
             "font": {
               "family": "roboto-black",

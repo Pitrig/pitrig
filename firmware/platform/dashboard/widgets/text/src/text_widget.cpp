@@ -10,11 +10,14 @@
 #include "dashboard_layout_internal.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
+#include "logger.hpp"
 #include "time_transform.hpp"
 #include "widget_binding.hpp"
 
 namespace simcore::dashboard::text_widget {
 namespace {
+
+constexpr char kTag[] = "text_widget";
 
 // Telemetry changes wake the render timer early through the dashboard's render
 // trigger, so this period is the fallback poll and the cadence of free-running
@@ -112,6 +115,35 @@ void copy_text(std::array<char, DestinationSize>& destination,
   return true;
 }
 
+// What a widget shows before its first telemetry value. An explicit
+// unavailable_text wins; otherwise the widget renders a zero through its own
+// transform, so a plain value reads 0 and a time value keeps its format with
+// every field zeroed.
+void unavailable_text(
+    const Config& config,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  if (config.value.unavailable_text.front() != '\0') {
+    copy_text(output, config.value.unavailable_text);
+    return;
+  }
+  if (config.transform.type == configuration::ValueTransformType::time) {
+    const bool signed_format = config.transform.time.format ==
+                               transformers::time_transform::Format::
+                                   signed_duration_ms;
+    const bool rendered =
+        signed_format
+            ? transformers::time_transform::apply(config.transform.time,
+                                                  std::int32_t{0}, output)
+            : transformers::time_transform::apply(config.transform.time,
+                                                  std::uint32_t{0}, output);
+    if (rendered) {
+      return;
+    }
+  }
+  constexpr std::array<char, 2> kZero{'0', '\0'};
+  copy_text(output, kZero);
+}
+
 [[nodiscard]] bool transform_value(
     const configuration::ValueTransform& transform,
     const telemetry::TelemetryRead& value,
@@ -165,9 +197,11 @@ bool Collection::build(State& state, const Layout& layout,
       has_title ? text_width(title_font, config.title.text.data()) : 0;
   const std::int32_t title_height =
       has_title ? lv_font_get_line_height(title_font) : 0;
+  std::array<char, telemetry::kTelemetryTextCapacity> unavailable{};
+  unavailable_text(config, unavailable);
   const std::int32_t value_width =
       std::max<std::int32_t>(
-          text_width(value_font, config.value.unavailable_text.data()),
+          text_width(value_font, unavailable.data()),
           lv_font_get_glyph_width(value_font, '8', '\0'));
   const std::int32_t value_height = lv_font_get_line_height(value_font);
   const std::int32_t horizontal_insets =
@@ -188,6 +222,13 @@ bool Collection::build(State& state, const Layout& layout,
           content_height + vertical_insets, false, parent, bounds) ||
       bounds.width <= horizontal_insets ||
       bounds.height <= vertical_insets) {
+    // Font metrics come from the uploaded face, so a placement authored against
+    // different metrics can be too small. Report what it would have taken.
+    log::error(kTag, "Text widget needs %dx%d but is placed at %dx%d",
+               static_cast<int>(content_width + horizontal_insets),
+               static_cast<int>(content_height + vertical_insets),
+               static_cast<int>(config.placement.width),
+               static_cast<int>(config.placement.height));
     return false;
   }
 
@@ -195,7 +236,7 @@ bool Collection::build(State& state, const Layout& layout,
   state.read_context = binding.read_context;
   state.transform = config.transform;
   state.free_running = binding.fast_updates;
-  copy_text(state.unavailable_text, config.value.unavailable_text);
+  state.unavailable_text = unavailable;
   copy_text(state.title_text, config.title.text);
   state.container = lv_obj_create(parent);
   lv_obj_remove_style_all(state.container);

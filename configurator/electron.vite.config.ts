@@ -8,15 +8,7 @@ export default defineConfig(({ command }) => ({
   main: {
     build: {
       lib: {
-        entry: {
-          index: resolve('src/main/index.ts'),
-          'font-converter-worker': resolve('src/main/font-assets/font-converter-worker.ts')
-        }
-      },
-      rollupOptions: {
-        output: {
-          entryFileNames: '[name].js'
-        }
+        entry: resolve('src/main/index.ts')
       }
     }
   },

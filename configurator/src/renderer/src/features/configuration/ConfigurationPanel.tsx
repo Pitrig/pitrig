@@ -20,7 +20,7 @@ import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
 import {
   collectFontRequirements,
   groupFontRequirements,
-  missingFontRequirements
+  missingFontFamilies
 } from '@/features/font-assets/font-requirements'
 import {
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
@@ -80,9 +80,9 @@ export function ConfigurationPanel(): React.JSX.Element {
   const connected = status === 'connected' && Boolean(session)
   const busy = operation !== 'idle'
   const requiredFonts = parsed.ok ? collectFontRequirements(parsed.configuration) : []
-  const missingFonts = missingFontRequirements(
+  const missingFamilies = missingFontFamilies(
     requiredFonts,
-    session?.fontAssets?.assets ?? []
+    session?.fontAssets?.families ?? []
   )
 
   const boardMismatch = parsed.ok && session
@@ -103,7 +103,7 @@ export function ConfigurationPanel(): React.JSX.Element {
         ? parsed.error
         : !session?.info.storageAvailable
           ? 'Persistent configuration storage is unavailable on this board.'
-          : !dirty && missingFonts.length === 0
+          : !dirty && missingFamilies.length === 0
             ? 'The draft already matches the active or pending configuration.'
             : undefined
 
@@ -210,7 +210,7 @@ export function ConfigurationPanel(): React.JSX.Element {
       setFeedback({ kind: 'error', message: parsed.error })
       return
     }
-    if (missingFonts.length > 0) {
+    if (missingFamilies.length > 0) {
       const fontInfo = session?.fontAssets
       if (!fontInfo) {
         setFeedback({ kind: 'error', message: 'The connected firmware cannot report installed font assets.' })
@@ -225,7 +225,7 @@ export function ConfigurationPanel(): React.JSX.Element {
         return
       }
       if (!window.confirm(
-        `${missingFonts.length} required font asset${missingFonts.length === 1 ? ' is' : 's are'} missing. Upload the complete font set before saving the configuration?`
+        `${missingFamilies.length} required font famil${missingFamilies.length === 1 ? 'y is' : 'ies are'} missing. Upload the complete font set before saving the configuration?`
       )) return
 
       const fontStore = useFontAssetsStore.getState()
@@ -242,11 +242,12 @@ export function ConfigurationPanel(): React.JSX.Element {
       setOperation('save')
       setFeedback(undefined)
       fontStore.beginOperation()
+      // The package is replaced whole, so every family the configuration needs
+      // is uploaded, not only the missing ones.
       const fontRequest = {
-        assets: requiredFonts.map((font) => ({
-          sourceId: fontStore.sources[font.family]!.id,
-          family: font.family,
-          sizePx: font.sizePx
+        assets: [...groupFontRequirements(requiredFonts).keys()].map((family) => ({
+          sourceId: fontStore.sources[family]!.id,
+          family
         }))
       }
       writeDevelopmentLog('Automatic font upload requested', fontRequest)

@@ -17,6 +17,7 @@ import {
   addDeltaTimeWidget,
   addTextWidget,
   completePlacement,
+  DEFAULT_WIDGET_FONT_SIZE_PX,
   deleteWidget,
   findWidget,
   MAXIMUM_TEXT_WIDGETS,
@@ -39,9 +40,11 @@ export function DisplayPreview(): React.JSX.Element {
     : session?.info.display
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
-  const installedFont = session?.fontAssets?.assets[0]
-  const defaultFont = installedFont
-    ? { family: installedFont.family, size_px: installedFont.sizePx }
+  // Any size of an installed family renders, so a new widget starts at a
+  // readable default rather than at whatever size happens to be installed.
+  const installedFamily = session?.fontAssets?.families[0]
+  const defaultFont = installedFamily
+    ? { family: installedFamily, size_px: DEFAULT_WIDGET_FONT_SIZE_PX }
     : undefined
   const screenWidgets = widgetsOf(activeScreen(configuration))
   const textWidgetCount = screenWidgets.filter((widget) => widget.type === 'text').length
@@ -378,13 +381,20 @@ function TextWidgetPreview({
 }
 
 // The configurator has no telemetry stream, so the honest preview is what the
-// device renders while a value is unavailable: the placeholder, never a
-// zero-formatted value. Firmware applies a transform only to an available
-// value, so showing `00:00.000` here made the preview disagree with the board.
+// device renders while a value is unavailable. An explicit unavailable_text is
+// that text; without one the device renders a zero through the widget's own
+// transform, so the preview mirrors the same rule.
 function formattedPreviewValue(configuration: TextWidgetConfiguration): string {
-  // Nullish, not falsy: an absent property takes the contract default, while an
-  // explicitly empty one renders empty, exactly as the device does.
-  return configuration.value?.unavailable_text ?? '--'
+  const configured = configuration.value?.unavailable_text
+  if (configured) return configured
+  const transform = configuration.transform
+  if (transform?.type === 'time') {
+    const prefix = transform.prefix ?? ''
+    const suffix = transform.suffix ?? ''
+    const zero = transform.format === 'signed_duration_ms' ? '+0.000' : '00:00.000'
+    return `${prefix}${zero}${suffix}`
+  }
+  return '0'
 }
 
 function DeltaTimePreview({
@@ -395,7 +405,7 @@ function DeltaTimePreview({
   module: DeviceConfiguration['delta_time']
 }): React.JSX.Element | null {
   const placement = completePlacement(configuration.placement)
-  const unavailableBehavior = module?.unavailable_behavior ?? 'hide'
+  const unavailableBehavior = module?.unavailable_behavior ?? 'zero'
   if (!placement || unavailableBehavior === 'hide') return null
 
   const font = resolvedFont(configuration.font, 48)

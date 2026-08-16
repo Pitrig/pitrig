@@ -164,11 +164,15 @@ UART, USB CDC, or SimHub. See [docs/simhub-custom-serial.md](docs/simhub-custom-
 
 ### Fonts
 
-Production firmware compiles **no** dashboard fonts. Widgets reference `family` + `size_px`, resolved
-exactly against a separately versioned, checksummed package in the `font_assets` partition — a miss
-is a composition error, never a silent fallback. The configurator converts TTF/OTF via `lv_font_conv`
-and replaces the whole package before saving a configuration that needs new fonts. Installing a
-package requires a reboot.
+Production firmware compiles **no** dashboard fonts. The `font_assets` partition holds a versioned,
+checksummed package of TTF/OTF faces, one per family (max 8), and the device rasterizes each
+`size_px` at runtime with LVGL's TinyTTF. Widgets reference `family` + `size_px`: a missing **family**
+is a composition error, never a silent fallback, while a new **size** needs neither upload nor
+reboot. Faces are copied into external RAM at startup so a later upload can release the flash
+mapping while the dashboard renders; glyph bitmaps are cached per font in external RAM and
+pre-warmed during composition. The configurator uploads the chosen file unchanged and replaces the
+whole package before saving a configuration that needs a new family; installing a package requires a
+reboot.
 
 ### Configurator (`configurator/src/`)
 

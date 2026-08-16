@@ -120,9 +120,13 @@ function ensureScreen(configuration: DeviceConfiguration): ScreenConfiguration {
   return created
 }
 
+// The device rasterizes any size from an installed family, so a new widget
+// picks a readable size rather than inheriting one that happens to be installed.
+export const DEFAULT_WIDGET_FONT_SIZE_PX = 24
+
 // A widget with no font is rejected by the device as a whole-document error,
-// so a newly added one adopts an installed font when the board has any. Without
-// fonts installed it is created bare and the validator explains why.
+// so a newly added one adopts an installed family when the board has any.
+// Without fonts installed it is created bare and the validator explains why.
 export function addTextWidget(
   display: { width: number; height: number },
   font?: FontSpec
