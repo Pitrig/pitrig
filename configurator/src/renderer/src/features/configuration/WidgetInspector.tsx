@@ -7,16 +7,24 @@ import {
   CONDITION_OPERATOR_VALUES,
   MAXIMUM_TEXT_SOURCES,
   MAXIMUM_WIDGET_CONDITIONS,
+  SHAPE_KIND_VALUES,
   type ConditionOperator,
   type DeltaTimeWidgetConfiguration,
   type FontSpec,
   type RgbColor,
+  type ShapeKind,
+  type ShapeWidgetConfiguration,
   type TextSourceConfiguration,
   type TextWidgetConfiguration,
   type ValueTransform,
   type WidgetCondition,
+  type WidgetConfiguration,
   type WidgetPlacement
 } from '../../../../shared/configuration-schema'
+
+// Every widget except Delta Time carries the shared frame, so the box and the
+// styling rules are edited by the same two components for all of them.
+type FramedWidget = TextWidgetConfiguration | ShapeWidgetConfiguration
 import type { DeviceConfiguration } from '../../../../shared/device'
 import {
   TELEMETRY_CATALOG,
@@ -67,9 +75,7 @@ export function WidgetInspector(): React.JSX.Element {
             <option value="screen">Screen</option>
             {widgets.map((item, index) => (
               <option key={item.id ?? index} value={`widget:${item.id ?? ''}`}>
-                {item.type === 'delta_time'
-                  ? 'Delta time'
-                  : `Text ${index + 1}: ${item.title?.text || item.sources?.[0]?.binding || 'Untitled'}`}
+                {widgetLabel(item, index)}
               </option>
             ))}
           </select>
@@ -85,6 +91,8 @@ export function WidgetInspector(): React.JSX.Element {
             <GeometryEditor selection={selection} placement={completePlacement(widget.placement)} zIndex={widget.z_index ?? 0} />
             {widget.type === 'delta_time' ? (
               <DeltaTimeEditor selection={selection} widget={widget} configuration={configuration} />
+            ) : widget.type === 'shape' ? (
+              <ShapeEditor selection={selection} widget={widget} />
             ) : (
               <TextEditor selection={selection} widget={widget} />
             )}
@@ -92,6 +100,35 @@ export function WidgetInspector(): React.JSX.Element {
         ) : null}
       </CardContent>
     </Card>
+  )
+}
+
+// The list has to name a widget before it is selected, so each type answers
+// with whatever identifies it best.
+function widgetLabel(widget: WidgetConfiguration, index: number): string {
+  switch (widget.type) {
+    case 'delta_time':
+      return 'Delta time'
+    case 'shape':
+      return `Shape ${index + 1}: ${widget.kind ?? 'rectangle'}`
+    case 'text':
+      return `Text ${index + 1}: ${widget.title?.text || widget.sources?.[0]?.binding || 'Untitled'}`
+  }
+}
+
+// A shape is its frame, so its own section is one property; the box and the
+// styling rules come from the shared frame editors below.
+function ShapeEditor({ selection, widget }: { selection: WidgetSelection; widget: ShapeWidgetConfiguration }): React.JSX.Element {
+  const update = (mutation: (next: ShapeWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ShapeWidgetConfiguration))
+  return (
+    <>
+      <Section title="Shape">
+        <SelectField label="Kind" value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} onChange={(value) => update((next) => { next.kind = value as ShapeKind })} />
+        <p className="text-muted-foreground">A line is a thin rectangle: give it a small height or width.</p>
+      </Section>
+      <BoxEditor widget={widget} update={update} />
+      <ConditionsEditor widget={widget} update={update} />
+    </>
   )
 }
 
@@ -178,24 +215,33 @@ function TextEditor({ selection, widget }: { selection: WidgetSelection; widget:
         <TextField label="Text" value={widget.title?.text ?? ''} onChange={(value) => update((next) => { next.title = { ...next.title, text: value } })} />
         {widget.title?.text ? <><FontEditor font={widget.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} /><ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} /><NumberField label="Y offset" value={widget.title.offset_y_px ?? 0} onChange={(value) => update((next) => { next.title = { ...next.title, offset_y_px: value } })} /></> : null}
       </Section>
-      <Section title="Box">
-        <OptionalColorField label="Background" value={widget.background_color} onChange={(value) => update((next) => { if (value) next.background_color = value; else delete next.background_color })} />
-        <div className="grid grid-cols-2 gap-2">{(['left', 'top', 'right', 'bottom'] as const).map((key) => <NumberField key={key} label={`Padding ${key}`} value={widget.padding?.[key] ?? 0} min={0} onChange={(value) => update((next) => { next.padding = { ...next.padding, [key]: value } })} />)}</div>
-        <div className="grid grid-cols-2 gap-2"><NumberField label="Border width" value={widget.border?.width_px ?? 0} min={0} onChange={(value) => update((next) => { next.border = { ...next.border, width_px: value } })} /><NumberField label="Radius" value={widget.border?.radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.border = { ...next.border, radius_px: value } })} /></div>
-        <NumberField label="Background inset" value={widget.background_inset_px ?? 0} min={0} onChange={(value) => update((next) => {
-          const inset = Math.max(0, Math.round(value))
-          if (inset === 0) delete next.background_inset_px
-          else next.background_inset_px = inset
-        })} />
-        <ColorField label="Border color" value={widget.border?.color ?? '#AEAEAE'} onChange={(value) => update((next) => { next.border = { ...next.border, color: value } })} />
-      </Section>
+      <BoxEditor widget={widget} update={update} />
     </>
   )
 }
 
+function BoxEditor({ widget, update }: {
+  widget: FramedWidget
+  update: (mutation: (next: FramedWidget) => void) => void
+}): React.JSX.Element {
+  return (
+    <Section title="Box">
+      <OptionalColorField label="Background" value={widget.background_color} onChange={(value) => update((next) => { if (value) next.background_color = value; else delete next.background_color })} />
+      <div className="grid grid-cols-2 gap-2">{(['left', 'top', 'right', 'bottom'] as const).map((key) => <NumberField key={key} label={`Padding ${key}`} value={widget.padding?.[key] ?? 0} min={0} onChange={(value) => update((next) => { next.padding = { ...next.padding, [key]: value } })} />)}</div>
+      <div className="grid grid-cols-2 gap-2"><NumberField label="Border width" value={widget.border?.width_px ?? 0} min={0} onChange={(value) => update((next) => { next.border = { ...next.border, width_px: value } })} /><NumberField label="Radius" value={widget.border?.radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.border = { ...next.border, radius_px: value } })} /></div>
+      <NumberField label="Background inset" value={widget.background_inset_px ?? 0} min={0} onChange={(value) => update((next) => {
+        const inset = Math.max(0, Math.round(value))
+        if (inset === 0) delete next.background_inset_px
+        else next.background_inset_px = inset
+      })} />
+      <ColorField label="Border color" value={widget.border?.color ?? '#AEAEAE'} onChange={(value) => update((next) => { next.border = { ...next.border, color: value } })} />
+    </Section>
+  )
+}
+
 function ConditionsEditor({ widget, update }: {
-  widget: TextWidgetConfiguration
-  update: (mutation: (next: TextWidgetConfiguration) => void) => void
+  widget: FramedWidget
+  update: (mutation: (next: FramedWidget) => void) => void
 }): React.JSX.Element {
   const watched = widget.condition_source?.binding ?? ''
   const field = TELEMETRY_CATALOG.find(({ name }) => name === watched)

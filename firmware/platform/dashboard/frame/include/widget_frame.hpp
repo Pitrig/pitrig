@@ -7,16 +7,95 @@
 
 #include "application_configuration.hpp"
 #include "dashboard_layout.hpp"
+#include "telemetry_registry.hpp"
 #include "telemetry_types.hpp"
 #include "widget_conditions.hpp"
 
 struct _lv_obj_t;
 using lv_obj_t = _lv_obj_t;
 
+namespace simcore::telemetry {
+class ITelemetryReader;
+}
+
 namespace simcore::dashboard::frame {
 
 using Config = configuration::WidgetFrame;
 using ValueReadCallback = telemetry::TelemetryRead (*)(void* context);
+
+// A module that replaces a telemetry value behind the pipeline callback.
+struct ModifierReader {
+  ValueReadCallback read{};
+  void* context{};
+};
+
+// Telemetry read context, owned by the widget type that binds the source. It is
+// deliberately not a pointer into the configuration document, so a replacement
+// cannot leave a widget reading stale storage.
+struct SourceContext {
+  const telemetry::ITelemetryReader* telemetry{};
+  telemetry::Handle handle{};
+};
+
+// Resolves one canonical name plus its modifiers into a read callback. Every
+// widget type binds through this, whether the source drives what it draws or
+// only what its rules watch.
+[[nodiscard]] bool bind_source(
+    std::string_view name, std::uint8_t modifier_count,
+    std::span<const configuration::ValueModifier> modifiers,
+    const telemetry::ITelemetryRegistry& registry,
+    const telemetry::ITelemetryReader& telemetry,
+    ModifierReader lap_timer_modifier, SourceContext& context,
+    ValueReadCallback& read, void*& read_context, bool& fast_updates);
+
+// Binds the condition source of every widget of one type. A widget that draws
+// no telemetry of its own still needs this, because its rules do.
+template <typename WidgetConfig, std::size_t Capacity>
+class ConditionBinder final {
+ public:
+  [[nodiscard]] bool bind(const std::span<const WidgetConfig> configurations,
+                          const telemetry::ITelemetryRegistry& registry,
+                          const telemetry::ITelemetryReader& telemetry,
+                          const ModifierReader lap_timer_modifier) {
+    count_ = 0;
+    if (configurations.size() > reads_.size()) {
+      return false;
+    }
+    for (const WidgetConfig& configuration : configurations) {
+      ValueReadCallback read{};
+      void* read_context{};
+      bool fast_updates{};
+      const configuration::WidgetFrame& widget_frame = configuration.frame;
+      if (widget_frame.condition_count > 0 &&
+          !bind_source(configuration::value_binding_view(
+                           widget_frame.condition_source.binding),
+                       widget_frame.condition_source.modifier_count,
+                       widget_frame.condition_source.modifiers, registry,
+                       telemetry, lap_timer_modifier, contexts_[count_], read,
+                       read_context, fast_updates)) {
+        count_ = 0;
+        return false;
+      }
+      reads_[count_] = read;
+      read_contexts_[count_] = read_context;
+      ++count_;
+    }
+    return true;
+  }
+
+  [[nodiscard]] std::span<const ValueReadCallback> reads() const {
+    return {reads_.data(), count_};
+  }
+  [[nodiscard]] std::span<void* const> contexts() const {
+    return {read_contexts_.data(), count_};
+  }
+
+ private:
+  std::array<SourceContext, Capacity> contexts_{};
+  std::array<ValueReadCallback, Capacity> reads_{};
+  std::array<void*, Capacity> read_contexts_{};
+  std::size_t count_{};
+};
 
 // Objects that belong to a widget without living inside its container. The text
 // widget's caption sits on the parent so the border can pass behind it, and it

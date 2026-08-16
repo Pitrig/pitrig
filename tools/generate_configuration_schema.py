@@ -646,8 +646,16 @@ def generate_typescript(document: dict[str, Any]) -> str:
     lines.append("}")
     lines.append("")
 
+    variants = widget_variants(document)
+    rendered_variants = ", ".join(
+        f"{key}: '{struct}'" for key, struct in variants.items()
+    )
     lines.extend(
         [
+            "/** Struct that carries each widget variant, keyed by its discriminator. */",
+            "export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = "
+            f"{{ {rendered_variants} }}",
+            "",
             "/**",
             " * Nested object type for each property, so a validator can walk an unknown",
             " * document without a hand-maintained mapping.",

@@ -77,9 +77,13 @@ export const CONDITION_OPERATOR_VALUES: readonly ConditionOperator[] = ['above',
 export type ValueModifierType = 'lap_timer'
 export const VALUE_MODIFIER_TYPE_VALUES: readonly ValueModifierType[] = ['lap_timer']
 
+/** Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. */
+export type ShapeKind = 'rectangle' | 'ellipse'
+export const SHAPE_KIND_VALUES: readonly ShapeKind[] = ['rectangle', 'ellipse']
+
 /** Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. */
-export type WidgetType = 'text' | 'delta_time'
-export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'delta_time']
+export type WidgetType = 'text' | 'shape' | 'delta_time'
+export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'delta_time']
 
 export interface FontSpec {
   family?: string
@@ -194,8 +198,8 @@ export interface DeltaTimeWidgetConfiguration {
   scale?: DeltaTimeScaleStyle
 }
 
-/** Telemetry a widget watches to style itself, independent of what it displays: a gear readout can turn red on engine speed. It carries no transform because a condition consumes the typed value rather than its presentation. */
-export interface ConditionSourceConfiguration {
+/** A canonical telemetry binding with its modifier pipeline, consumed as a typed value. Carries no transform: the widgets that read one map it through a range or compare it, rather than presenting it as text. */
+export interface ValueSourceConfiguration {
   binding?: string
   modifiers?: ValueModifier[]
 }
@@ -228,7 +232,7 @@ export interface WidgetFrame {
   border?: WidgetBorder
   background_color?: RgbColor
   background_inset_px?: number
-  condition_source?: ConditionSourceConfiguration
+  condition_source?: ValueSourceConfiguration
   conditions?: WidgetCondition[]
 }
 
@@ -242,11 +246,26 @@ export interface TextWidgetConfiguration {
   border?: WidgetBorder
   background_color?: RgbColor
   background_inset_px?: number
-  condition_source?: ConditionSourceConfiguration
+  condition_source?: ValueSourceConfiguration
   conditions?: WidgetCondition[]
   sources?: TextSourceConfiguration[]
   title?: WidgetTitleStyle
   value?: WidgetValueStyle
+}
+
+/** Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle. */
+export interface ShapeWidgetConfiguration {
+  type: 'shape'
+  id?: string
+  placement?: WidgetPlacement
+  z_index?: number
+  padding?: WidgetInsets
+  border?: WidgetBorder
+  background_color?: RgbColor
+  background_inset_px?: number
+  condition_source?: ValueSourceConfiguration
+  conditions?: WidgetCondition[]
+  kind?: ShapeKind
 }
 
 /** One dashboard screen. A screen is the coordinate space for the widgets it owns. */
@@ -269,9 +288,9 @@ export interface ApplicationConfiguration {
 }
 
 /** Discriminated widget union. Adding a widget type adds one member here. */
-export type WidgetConfiguration = DeltaTimeWidgetConfiguration | TextWidgetConfiguration
+export type WidgetConfiguration = DeltaTimeWidgetConfiguration | ShapeWidgetConfiguration | TextWidgetConfiguration
 
-export const WIDGET_TYPES: readonly string[] = ['delta_time', 'text']
+export const WIDGET_TYPES: readonly string[] = ['delta_time', 'text', 'shape']
 
 /** Property names accepted inside each object, mirroring the firmware allow-lists. */
 export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
@@ -289,15 +308,19 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ValueModifier: ['type'],
   DeltaTimeScaleStyle: ['vertical_padding_px', 'border_width_px', 'border_radius_px'],
   DeltaTimeWidgetConfiguration: ['type', 'id', 'font', 'placement', 'z_index', 'faster_color', 'slower_color', 'neutral_color', 'scale'],
-  ConditionSourceConfiguration: ['binding', 'modifiers'],
+  ValueSourceConfiguration: ['binding', 'modifiers'],
   WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'hidden', 'blink_ms', 'hold_ms'],
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
   WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions'],
   TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'sources', 'title', 'value'],
+  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'kind'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'delta_time', 'dashboard'],
 }
+
+/** Struct that carries each widget variant, keyed by its discriminator. */
+export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { delta_time: 'DeltaTimeWidgetConfiguration', text: 'TextWidgetConfiguration', shape: 'ShapeWidgetConfiguration' }
 
 /**
  * Nested object type for each property, so a validator can walk an unknown
@@ -309,10 +332,11 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   WidgetTitleStyle: { font: 'FontSpec' },
   WidgetValueStyle: { font: 'FontSpec' },
   DeltaTimeWidgetConfiguration: { font: 'FontSpec', placement: 'WidgetPlacement', scale: 'DeltaTimeScaleStyle' },
-  ConditionSourceConfiguration: { modifiers: 'ValueModifier' },
+  ValueSourceConfiguration: { modifiers: 'ValueModifier' },
   TextSourceConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform' },
-  WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ConditionSourceConfiguration', conditions: 'WidgetCondition' },
-  TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ConditionSourceConfiguration', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', title: 'WidgetTitleStyle', value: 'WidgetValueStyle' },
+  WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
+  TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', title: 'WidgetTitleStyle', value: 'WidgetValueStyle' },
+  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
   ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', delta_time: 'DeltaTimeConfiguration', dashboard: 'DashboardConfiguration' },
 }
@@ -325,7 +349,7 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ValueTransform.prefix': 16,
   'ValueTransform.suffix': 16,
   'DeltaTimeWidgetConfiguration.id': 16,
-  'ConditionSourceConfiguration.binding': 40,
+  'ValueSourceConfiguration.binding': 40,
   'TextSourceConfiguration.binding': 40,
   'WidgetFrame.id': 16,
   'ScreenConfiguration.id': 16,

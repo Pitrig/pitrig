@@ -120,6 +120,56 @@ void wake_text_widgets(void* const context) {
   static_cast<TextWidgets*>(context)->collection.wake();
 }
 
+bool create_shape_widgets(void* const context) {
+  auto& widgets = *static_cast<ShapeWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.screen->shape_widget_count);
+  const std::span configurations{widgets.screen->shape_widgets.data(), count};
+  // A shape binds no telemetry of its own; only its styling rules watch one.
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    log::error(kTag, "Failed to resolve Shape widget conditions");
+    return false;
+  }
+  if (!widgets.collection.create(widgets.layout, configurations,
+                                 widgets.binder.reads(),
+                                 widgets.binder.contexts())) {
+    log::error(kTag, "Failed to create Shape widgets");
+    return false;
+  }
+  return true;
+}
+
+void destroy_shape_widgets(void* const context) {
+  static_cast<ShapeWidgets*>(context)->collection.destroy();
+}
+
+lv_obj_t* shape_widget_root(void* const context, const std::uint8_t index) {
+  return static_cast<ShapeWidgets*>(context)->collection.root_object(index);
+}
+
+bool update_shape_widget(void* const context, const std::uint8_t index) {
+  auto& widgets = *static_cast<ShapeWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.screen->shape_widget_count);
+  if (index >= count) {
+    return false;
+  }
+  const std::span configurations{widgets.screen->shape_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    return false;
+  }
+  return widgets.collection.recreate(index, widgets.layout,
+                                     configurations[index],
+                                     widgets.binder.reads()[index],
+                                     widgets.binder.contexts()[index]);
+}
+
+void wake_shape_widgets(void* const context) {
+  static_cast<ShapeWidgets*>(context)->collection.wake();
+}
+
 bool create_delta_time_widget(void* const context) {
   auto& widgets = *static_cast<DeltaTimeWidgets*>(context);
   if (widgets.module == nullptr) {
@@ -334,6 +384,10 @@ bool create(lv_display_t* const display,
     dashboard_state.text.fonts = &dashboard_state.fonts;
     dashboard_state.text.registry = &telemetry_registry;
     dashboard_state.text.telemetry = &telemetry;
+    dashboard_state.shape.layout = layout;
+    dashboard_state.shape.screen = &screen_configuration;
+    dashboard_state.shape.registry = &telemetry_registry;
+    dashboard_state.shape.telemetry = &telemetry;
     dashboard_state.text.lap_timer_modifier = {
         .read = modules.lap_timer_started ? &read_lap_timer_modifier : nullptr,
         .context = modules.lap_timer_started
@@ -365,6 +419,16 @@ bool create(lv_display_t* const display,
             .update_instance = &update_text_widget,
             .wake = &wake_text_widgets,
             .context = &dashboard_state.text,
+        }) &&
+        dashboard_state.widgets.add({
+            .type = configuration::WidgetType::shape,
+            .enabled = screen_configuration.shape_widget_count > 0,
+            .create = &create_shape_widgets,
+            .destroy = &destroy_shape_widgets,
+            .root_object = &shape_widget_root,
+            .update_instance = &update_shape_widget,
+            .wake = &wake_shape_widgets,
+            .context = &dashboard_state.shape,
         }) &&
         dashboard_state.widgets.add({
             .type = configuration::WidgetType::delta_time,
@@ -430,6 +494,9 @@ bool fonts_available(
         }
         break;
       }
+      case configuration::WidgetType::shape:
+        // A shape draws no text, so it needs no font installed.
+        break;
       case configuration::WidgetType::delta_time:
         if (!fonts.has_family(
                 screen.delta_time_widgets[reference.index].font.family)) {
@@ -453,6 +520,7 @@ bool apply_incremental(
   if (previous.dashboard.screen_count != next.dashboard.screen_count ||
       before.widget_count != after.widget_count ||
       before.text_widget_count != after.text_widget_count ||
+      before.shape_widget_count != after.shape_widget_count ||
       before.delta_time_widget_count != after.delta_time_widget_count ||
       std::memcmp(before.widgets.data(), after.widgets.data(),
                   after.widget_count *
@@ -463,6 +531,7 @@ bool apply_incremental(
   // Widget contexts point into the document that was active when they were
   // built. Promotion swapped that out, so repoint them before rebuilding.
   dashboard.text.screen = &after;
+  dashboard.shape.screen = &after;
   dashboard.delta_time.screen = &after;
 
   if (before.background_color != after.background_color) {

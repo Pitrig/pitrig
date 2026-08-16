@@ -472,7 +472,7 @@ template <typename Source>
   if (const cJSON* const source = member(object, "condition_source");
       source != nullptr) {
     constexpr std::string_view kSourceName = "widget.condition_source";
-    if (!valid_object(source, schema::kConditionSourceConfigurationKeys,
+    if (!valid_object(source, schema::kValueSourceConfigurationKeys,
                       kSourceName, failure) ||
         !read_text(source, "binding", config.condition_source.binding,
                    kSourceName, failure) ||
@@ -561,6 +561,17 @@ template <typename Source>
   return true;
 }
 
+[[nodiscard]] bool parse_shape_widget(const cJSON* const object,
+                                      ShapeWidgetConfiguration& config,
+                                      ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.shape";
+  return valid_object(object, schema::kShapeWidgetConfigurationKeys, kName,
+                      failure) &&
+         parse_frame(object, config.frame, kName, failure) &&
+         read_enum(object, "kind", config.kind, shape_kind_from_name, kName,
+                   failure);
+}
+
 [[nodiscard]] bool parse_text_widget(const cJSON* const object,
                                      TextWidgetConfiguration& config,
                                      ValidationFailure& failure) {
@@ -622,6 +633,9 @@ template <typename Source>
   }
 
   std::uint8_t storage_index{};
+  // Carrying the ordering key here keeps compositing free of widget-type
+  // knowledge, so each variant reports it as it parses.
+  std::int16_t z_index{};
   switch (widget_type) {
     case WidgetType::text:
       if (screen.text_widget_count >= screen.text_widgets.size()) {
@@ -633,7 +647,21 @@ template <typename Source>
                              failure)) {
         return false;
       }
+      z_index = screen.text_widgets[storage_index].frame.z_index;
       ++screen.text_widget_count;
+      break;
+    case WidgetType::shape:
+      if (screen.shape_widget_count >= screen.shape_widgets.size()) {
+        return reject(failure, ValidationError::invalid_screen, "screen",
+                      "widgets");
+      }
+      storage_index = screen.shape_widget_count;
+      if (!parse_shape_widget(object, screen.shape_widgets[storage_index],
+                              failure)) {
+        return false;
+      }
+      z_index = screen.shape_widgets[storage_index].frame.z_index;
+      ++screen.shape_widget_count;
       break;
     case WidgetType::delta_time:
       if (screen.delta_time_widget_count >= screen.delta_time_widgets.size()) {
@@ -645,16 +673,11 @@ template <typename Source>
               object, screen.delta_time_widgets[storage_index], failure)) {
         return false;
       }
+      z_index = screen.delta_time_widgets[storage_index].z_index;
       ++screen.delta_time_widget_count;
       break;
   }
 
-  // Carrying the ordering key here keeps compositing free of widget-type
-  // knowledge.
-  const std::int16_t z_index =
-      widget_type == WidgetType::text
-          ? screen.text_widgets[storage_index].frame.z_index
-          : screen.delta_time_widgets[storage_index].z_index;
   screen.widgets[screen.widget_count] = {
       .type = widget_type,
       .index = storage_index,

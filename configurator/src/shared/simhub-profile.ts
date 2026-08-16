@@ -1,4 +1,4 @@
-import { allWidgetsOf, isDeltaTimeWidget } from './configuration-access'
+import { allWidgetsOf, isDeltaTimeWidget, isTextWidget } from './configuration-access'
 import type { DeviceConfiguration } from './device'
 import {
   SIMHUB_PROFILE_DEFAULTS,
@@ -54,7 +54,10 @@ export function collectDashboardTelemetry(
     }
     // A styling rule watches telemetry the widget never displays, so the field
     // it needs has to reach the profile too.
-    const sources = [...(widget.sources ?? []), ...(widget.condition_source ? [widget.condition_source] : [])]
+    const sources = [
+      ...(isTextWidget(widget) ? widget.sources ?? [] : []),
+      ...(widget.condition_source ? [widget.condition_source] : [])
+    ]
     for (const source of sources) {
       if (source.binding) {
         if (PROFILE_FIELD_NAMES.has(source.binding)) requested.add(source.binding)

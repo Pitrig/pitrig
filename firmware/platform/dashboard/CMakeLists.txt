@@ -7,6 +7,7 @@ set(component_sources
     "utilities/boot_splash/src/boot_splash.cpp"
     "utilities/render_trigger/src/render_trigger.cpp"
     "widgets/delta_time/src/delta_time_widget.cpp"
+    "widgets/shape/src/shape_widget.cpp"
     "widgets/text/src/text_widget.cpp"
     "widgets/text/src/widget_binding.cpp"
     "widgets/performance_overlay/src/performance_overlay_widget.cpp"
@@ -20,6 +21,7 @@ set(component_include_dirs
     "utilities/boot_splash/include"
     "utilities/render_trigger/include"
     "widgets/delta_time/include"
+    "widgets/shape/include"
     "widgets/text/include"
     "widgets/performance_overlay/include")
 

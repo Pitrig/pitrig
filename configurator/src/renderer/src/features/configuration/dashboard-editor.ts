@@ -6,6 +6,7 @@ import {
   widgetsOf
 } from '../../../../shared/configuration-access'
 import {
+  MAXIMUM_SHAPE_WIDGETS,
   MAXIMUM_TEXT_WIDGETS,
   MAXIMUM_WIDGETS_PER_SCREEN
 } from '../../../../shared/configuration-schema'
@@ -13,6 +14,7 @@ import type {
   DeltaTimeWidgetConfiguration,
   FontSpec,
   ScreenConfiguration,
+  ShapeWidgetConfiguration,
   TextWidgetConfiguration,
   WidgetConfiguration,
   WidgetPlacement
@@ -20,7 +22,7 @@ import type {
 import type { DeviceConfiguration } from '../../../../shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
 
-export { MAXIMUM_TEXT_WIDGETS }
+export { MAXIMUM_SHAPE_WIDGETS, MAXIMUM_TEXT_WIDGETS }
 
 // Selection addresses a widget by its stable id. Index-based selection silently
 // retargeted to a different widget whenever a sibling was deleted or reordered.
@@ -147,6 +149,38 @@ export function addTextWidget(
       // empty source takes the schema default binding.
       sources: [{}],
       ...(font ? { value: { font } } : {}),
+      placement: {
+        x: Math.floor((display.width - width) / 2),
+        y: Math.floor((display.height - height) / 2),
+        width,
+        height
+      }
+    }
+    widgets.push(widget)
+    added = { type: 'widget', id: widget.id as string }
+  })
+  return added
+}
+
+export function addShapeWidget(
+  display: { width: number; height: number }
+): WidgetSelection | undefined {
+  let added: WidgetSelection | undefined
+  mutateDraftConfiguration((configuration) => {
+    const screen = ensureScreen(configuration)
+    const widgets = (screen.widgets ??= [])
+    const shapeCount = widgets.filter((widget) => widget.type === 'shape').length
+    if (shapeCount >= MAXIMUM_SHAPE_WIDGETS || widgets.length >= MAXIMUM_WIDGETS_PER_SCREEN) {
+      return
+    }
+    const width = Math.min(160, display.width)
+    const height = Math.min(80, display.height)
+    const widget: ShapeWidgetConfiguration = {
+      type: 'shape',
+      id: createWidgetId(),
+      // A shape with nothing painted would be invisible, so it starts as a
+      // visible plate the author can restyle.
+      background_color: '#1E293B',
       placement: {
         x: Math.floor((display.width - width) / 2),
         y: Math.floor((display.height - height) / 2),

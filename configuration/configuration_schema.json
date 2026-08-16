@@ -161,8 +161,13 @@
       "default": "lap_timer",
       "doc": "Stateful value processing implemented by a module behind the pipeline callback."
     },
+    "ShapeKind": {
+      "json_values": ["rectangle", "ellipse"],
+      "default": "rectangle",
+      "doc": "Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own."
+    },
     "WidgetType": {
-      "json_values": ["text", "delta_time"],
+      "json_values": ["text", "shape", "delta_time"],
       "default": "text",
       "doc": "Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget."
     }
@@ -302,8 +307,8 @@
       ]
     },
 
-    "ConditionSourceConfiguration": {
-      "doc": "Telemetry a widget watches to style itself, independent of what it displays: a gear readout can turn red on engine speed. It carries no transform because a condition consumes the typed value rather than its presentation.",
+    "ValueSourceConfiguration": {
+      "doc": "A canonical telemetry binding with its modifier pipeline, consumed as a typed value. Carries no transform: the widgets that read one map it through a range or compare it, rather than presenting it as text.",
       "fields": [
         { "name": "binding", "kind": "text", "capacity": "kValueBindingCapacity", "default": "" },
         { "name": "modifier_count", "kind": "uint8", "default": 0, "serialized": false },
@@ -345,7 +350,7 @@
         { "name": "border", "kind": "struct", "struct": "WidgetBorder" },
         { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" },
         { "name": "background_inset_px", "kind": "uint16", "default": 0, "doc": "Gap between the border and the painted background, so a filled widget keeps its frame visible. Applies to the authored background and to one a rule paints." },
-        { "name": "condition_source", "kind": "struct", "struct": "ConditionSourceConfiguration" },
+        { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "conditions", "kind": "array", "struct": "WidgetCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" }
       ]
@@ -360,6 +365,15 @@
         { "name": "sources", "kind": "array", "struct": "TextSourceConfiguration", "capacity": "kMaximumTextSources", "count_field": "source_count" },
         { "name": "title", "kind": "struct", "struct": "WidgetTitleStyle" },
         { "name": "value", "kind": "struct", "struct": "WidgetValueStyle" }
+      ]
+    },
+
+    "ShapeWidgetConfiguration": {
+      "widget_type": "shape",
+      "doc": "Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "kind", "kind": "enum", "enum": "ShapeKind" }
       ]
     },
 
@@ -387,12 +401,15 @@
           "count_field": "widget_count",
           "json_variants": {
             "text": "TextWidgetConfiguration",
+            "shape": "ShapeWidgetConfiguration",
             "delta_time": "DeltaTimeWidgetConfiguration"
           },
           "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the typed storage for its variant."
         },
         { "name": "text_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "text_widgets", "kind": "array", "struct": "TextWidgetConfiguration", "capacity": "kMaximumTextWidgets", "count_field": "text_widget_count", "serialized": false },
+        { "name": "shape_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "shape_widgets", "kind": "array", "struct": "ShapeWidgetConfiguration", "capacity": "kMaximumShapeWidgets", "count_field": "shape_widget_count", "serialized": false },
         { "name": "delta_time_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "delta_time_widgets", "kind": "array", "struct": "DeltaTimeWidgetConfiguration", "capacity": "kMaximumDeltaTimeWidgets", "count_field": "delta_time_widget_count", "serialized": false }
       ]

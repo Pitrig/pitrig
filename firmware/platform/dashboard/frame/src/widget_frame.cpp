@@ -3,10 +3,53 @@
 #include <algorithm>
 
 #include "dashboard_layout_internal.hpp"
+#include "telemetry_state.hpp"
 #include "logger.hpp"
 #include "lvgl.h"
 
 namespace simcore::dashboard::frame {
+namespace {
+
+telemetry::TelemetryRead read_telemetry(void* const context) {
+  if (context == nullptr) {
+    return {};
+  }
+  const auto& source = *static_cast<const SourceContext*>(context);
+  return source.telemetry != nullptr ? source.telemetry->read(source.handle)
+                                     : telemetry::TelemetryRead{};
+}
+
+}  // namespace
+
+bool bind_source(const std::string_view name,
+                 const std::uint8_t modifier_count,
+                 const std::span<const configuration::ValueModifier> modifiers,
+                 const telemetry::ITelemetryRegistry& registry,
+                 const telemetry::ITelemetryReader& telemetry,
+                 const ModifierReader lap_timer_modifier,
+                 SourceContext& context, ValueReadCallback& read,
+                 void*& read_context, bool& fast_updates) {
+  const telemetry::Handle handle = registry.resolve(name);
+  if (!handle.valid()) {
+    return false;
+  }
+  const bool lap_timer_modified =
+      modifier_count == 1 &&
+      modifiers.front().type == configuration::ValueModifierType::lap_timer;
+  if (lap_timer_modified) {
+    read = lap_timer_modifier.read;
+    read_context = lap_timer_modifier.context;
+  } else {
+    context = {
+        .telemetry = &telemetry,
+        .handle = handle,
+    };
+    read = &read_telemetry;
+    read_context = &context;
+  }
+  fast_updates = lap_timer_modified;
+  return read != nullptr && read_context != nullptr;
+}
 
 bool build(const Layout& layout, const Config& config, const char* const tag,
            const std::int32_t content_width, const std::int32_t content_height,

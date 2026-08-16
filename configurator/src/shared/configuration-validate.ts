@@ -2,10 +2,11 @@ import {
   MAXIMUM_PAYLOAD_SIZE,
   SCHEMA_CHILD_TYPES,
   SCHEMA_OBJECT_KEYS,
+  SCHEMA_WIDGET_STRUCTS,
   WIDGET_TYPES
 } from './configuration-schema'
 import type { ApplicationConfiguration } from './configuration-schema'
-import { allWidgetsOf } from './configuration-access'
+import { allWidgetsOf, isTextWidget } from './configuration-access'
 import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES, MAXIMUM_FONT_SIZE_PX } from './font-assets'
 
 // The single configuration validator. The renderer, the main process, and file
@@ -104,8 +105,10 @@ function checkWidgets(value: unknown, path: string): string | undefined {
     if (typeof type !== 'string' || !WIDGET_TYPES.includes(type)) {
       return `"${here}.type" must be one of ${WIDGET_TYPES.join(', ')}.`
     }
-    const structName =
-      type === 'text' ? 'TextWidgetConfiguration' : 'DeltaTimeWidgetConfiguration'
+    // Generated, so a new widget type cannot be silently checked against
+    // another variant's properties.
+    const structName = SCHEMA_WIDGET_STRUCTS[type]
+    if (!structName) return `"${here}.type" must be one of ${WIDGET_TYPES.join(', ')}.`
     const error = findUnknownProperty(widget, structName, here)
     if (error) return error
   }
@@ -119,6 +122,8 @@ function findFontError(configuration: ApplicationConfiguration): string | undefi
       fonts.push(widget.font)
       continue
     }
+    // Only the types that draw text need a font; a shape needs none.
+    if (!isTextWidget(widget)) continue
     if (widget.title?.text) fonts.push(widget.title.font)
     fonts.push(widget.value?.font)
   }

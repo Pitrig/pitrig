@@ -141,6 +141,7 @@ class Validator final {
       : profile_(profile), failure_(failure) {}
 
   [[nodiscard]] bool text_widget(const TextWidgetConfiguration& config);
+  [[nodiscard]] bool shape_widget(const ShapeWidgetConfiguration& config);
   [[nodiscard]] bool delta_time_widget(
       const DeltaTimeWidgetConfiguration& config);
 
@@ -282,6 +283,14 @@ bool Validator::frame(const WidgetFrame& config) {
   return conditions(config);
 }
 
+// A shape is its frame, so there is nothing else to check.
+bool Validator::shape_widget(const ShapeWidgetConfiguration& config) {
+  if (config.kind < ShapeKind::rectangle || config.kind > ShapeKind::ellipse) {
+    return reject(failure_, ValidationError::invalid_widget, "kind");
+  }
+  return frame(config.frame);
+}
+
 bool Validator::text_widget(const TextWidgetConfiguration& config) {
   // A widget with no source has nothing to render, and its LVGL label would be
   // sized from an empty placeholder.
@@ -395,6 +404,7 @@ ValidationFailure validate_configuration(
     }
     if (screen.widget_count > screen.widgets.size() ||
         screen.text_widget_count > screen.text_widgets.size() ||
+        screen.shape_widget_count > screen.shape_widgets.size() ||
         screen.delta_time_widget_count > screen.delta_time_widgets.size()) {
       (void)reject(failure, ValidationError::invalid_screen, "widgets");
       failure.screen_index = static_cast<std::int16_t>(screen_index);
@@ -416,6 +426,10 @@ ValidationFailure validate_configuration(
         case WidgetType::text:
           valid = reference.index < screen.text_widget_count &&
                   validator.text_widget(screen.text_widgets[reference.index]);
+          break;
+        case WidgetType::shape:
+          valid = reference.index < screen.shape_widget_count &&
+                  validator.shape_widget(screen.shape_widgets[reference.index]);
           break;
         case WidgetType::delta_time:
           valid =

@@ -7,6 +7,7 @@ import { screensOf, widgetsOf } from '../../../../shared/configuration-access'
 import type {
   DeltaTimeWidgetConfiguration,
   FontSpec,
+  ShapeWidgetConfiguration,
   TextWidgetConfiguration,
   ValueTransform,
   WidgetConfiguration
@@ -16,6 +17,7 @@ import { BOARD_PROFILES } from '../../../../shared/device'
 import {
   activeScreen,
   addDeltaTimeWidget,
+  addShapeWidget,
   addTextWidget,
   completePlacement,
   DEFAULT_WIDGET_FONT_SIZE_PX,
@@ -71,6 +73,11 @@ export function DisplayPreview(): React.JSX.Element {
               const added = addTextWidget(display, defaultFont)
               if (added) select(added)
             }}>+ Text</Button>
+            <Button className="h-8 w-20" variant="outline" disabled={!configuration} onClick={() => {
+              if (!display) return
+              const added = addShapeWidget(display)
+              if (added) select(added)
+            }}>+ Shape</Button>
             <Button className="h-8 w-20" variant="outline" disabled={!configuration || hasDeltaTimeWidget} onClick={() => {
               if (!display) return
               const added = addDeltaTimeWidget(display, defaultFont)
@@ -205,6 +212,8 @@ function Widgets({
         }}>
           {layer.configuration.type === 'delta_time' ? (
             <DeltaTimePreview configuration={layer.configuration} module={configuration.delta_time} />
+          ) : layer.configuration.type === 'shape' ? (
+            <ShapePreview configuration={layer.configuration} />
           ) : (
             <TextWidgetPreview configuration={layer.configuration} />
           )}
@@ -407,6 +416,50 @@ function zeroValue(transform: ValueTransform | undefined): string {
     return zero.toFixed(transform.decimals ?? 0)
   }
   return '0'
+}
+
+function ShapePreview({
+  configuration
+}: {
+  configuration: ShapeWidgetConfiguration
+}): React.JSX.Element | null {
+  const placement = completePlacement(configuration.placement)
+  if (!placement) return null
+  const borderWidth = configuration.border?.width_px ?? 0
+  const background = normalizeColor(configuration.background_color) ?? 'transparent'
+  const inset = configuration.background_inset_px ?? 0
+  const edge = inset > 0 ? borderWidth + inset : 0
+  // An ellipse is a radius of half the shorter side, which is what the device
+  // gets from LV_RADIUS_CIRCLE.
+  const radius = configuration.kind === 'ellipse'
+    ? Math.min(placement.width, placement.height) / 2
+    : configuration.border?.radius_px ?? 0
+  return (
+    <g>
+      {background !== 'transparent' ? (
+        <rect
+          x={placement.x + edge}
+          y={placement.y + edge}
+          width={Math.max(0, placement.width - 2 * edge)}
+          height={Math.max(0, placement.height - 2 * edge)}
+          rx={Math.max(0, radius - inset)}
+          fill={background}
+        />
+      ) : null}
+      {borderWidth > 0 ? (
+        <rect
+          x={placement.x + borderWidth / 2}
+          y={placement.y + borderWidth / 2}
+          width={placement.width - borderWidth}
+          height={placement.height - borderWidth}
+          rx={Math.max(0, radius - borderWidth / 2)}
+          fill="none"
+          stroke={configuration.border?.color ?? DEFAULT_BORDER_COLOR}
+          strokeWidth={borderWidth}
+        />
+      ) : null}
+    </g>
+  )
 }
 
 function DeltaTimePreview({

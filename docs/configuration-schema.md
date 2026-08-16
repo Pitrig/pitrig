@@ -42,7 +42,8 @@ Schema version: 4.
 | `ValueTransformType` | `none`, `time`, `number` | Presentation transform applied after the modifier pipeline. |
 | `ConditionOperator` | `above`, `at_or_above`, `below`, `at_or_below`, `equal`, `not_equal` | Comparison a styling rule applies to the numeric value of its condition source. |
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
-| `WidgetType` | `text`, `delta_time` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
+| `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
+| `WidgetType` | `text`, `shape`, `delta_time` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
 
 ## Objects
 
@@ -177,9 +178,9 @@ Renders Delta Time module state. Requires the delta_time module section to be pr
 | `neutral_color` | string `#RRGGBB` | `#E8E8E8` |
 | `scale` | [`DeltaTimeScaleStyle`](#deltatimescalestyle) | absent |
 
-### ConditionSourceConfiguration
+### ValueSourceConfiguration
 
-Telemetry a widget watches to style itself, independent of what it displays: a gear readout can turn red on engine speed. It carries no transform because a condition consumes the typed value rather than its presentation.
+A canonical telemetry binding with its modifier pipeline, consumed as a typed value. Carries no transform: the widgets that read one map it through a range or compare it, rather than presenting it as text.
 
 | Property | Type | Default |
 | --- | --- | --- |
@@ -224,7 +225,7 @@ What every widget type owns regardless of what it draws: where it sits, how it i
 | `border` | [`WidgetBorder`](#widgetborder) | absent |
 | `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `background_inset_px` | integer, 0..65535 | `0` |
-| `condition_source` | [`ConditionSourceConfiguration`](#conditionsourceconfiguration) | absent |
+| `condition_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `conditions` | array of [`WidgetCondition`](#widgetcondition), max 4 | absent |
 
 ### TextWidgetConfiguration
@@ -238,6 +239,15 @@ Reusable telemetry text widget. Renders its ordered sources as one string.
 | `title` | [`WidgetTitleStyle`](#widgettitlestyle) | absent |
 | `value` | [`WidgetValueStyle`](#widgetvaluestyle) | absent |
 
+### ShapeWidgetConfiguration
+
+Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `shape` | required |
+| `kind` | `ShapeKind` | `rectangle` |
+
 ### ScreenConfiguration
 
 One dashboard screen. A screen is the coordinate space for the widgets it owns.
@@ -246,7 +256,7 @@ One dashboard screen. A screen is the coordinate space for the widgets it owns.
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`DeltaTimeWidgetConfiguration`](#deltatimewidgetconfiguration), max 71, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`DeltaTimeWidgetConfiguration`](#deltatimewidgetconfiguration), max 71, discriminated by `type` | absent |
 
 ### DashboardConfiguration
 

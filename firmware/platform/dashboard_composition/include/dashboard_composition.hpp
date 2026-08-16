@@ -9,6 +9,7 @@
 #include "event_bus.hpp"
 #include "performance_overlay_widget.hpp"
 #include "render_trigger.hpp"
+#include "shape_widget.hpp"
 #include "text_widget.hpp"
 #include "widget_binding.hpp"
 #include "widget_descriptor.hpp"
@@ -54,6 +55,18 @@ struct TextWidgets {
   dashboard::text_widget::ModifierReader lap_timer_modifier{};
 };
 
+struct ShapeWidgets {
+  dashboard::frame::ConditionBinder<configuration::ShapeWidgetConfiguration,
+                                    dashboard::shape_widget::kMaximumInstances>
+      binder;
+  dashboard::shape_widget::Collection collection;
+  dashboard::Layout layout{};
+  const configuration::ScreenConfiguration* screen{};
+  const telemetry::ITelemetryRegistry* registry{};
+  const telemetry::ITelemetryReader* telemetry{};
+  dashboard::frame::ModifierReader lap_timer_modifier{};
+};
+
 struct DeltaTimeWidgets {
   dashboard::delta_time_widget::View view;
   dashboard::Layout layout{};
@@ -67,6 +80,7 @@ struct Dashboard {
   dashboard::performance_overlay_widget::View performance_overlay;
   dashboard::WidgetManager widgets;
   TextWidgets text;
+  ShapeWidgets shape;
   DeltaTimeWidgets delta_time;
   // Firmware-lifetime: survives destroy()/create() cycles, which only replace
   // the widgets it wakes.

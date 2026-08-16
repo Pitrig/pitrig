@@ -179,7 +179,7 @@ inline constexpr std::array<std::string_view, 9> kDeltaTimeWidgetConfigurationKe
     "scale",
 }};
 
-inline constexpr std::array<std::string_view, 2> kConditionSourceConfigurationKeys{{
+inline constexpr std::array<std::string_view, 2> kValueSourceConfigurationKeys{{
     "binding",
     "modifiers",
 }};
@@ -227,6 +227,20 @@ inline constexpr std::array<std::string_view, 13> kTextWidgetConfigurationKeys{{
     "sources",
     "title",
     "value",
+}};
+
+inline constexpr std::array<std::string_view, 11> kShapeWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "background_color",
+    "background_inset_px",
+    "condition_source",
+    "conditions",
+    "kind",
 }};
 
 inline constexpr std::array<std::string_view, 3> kScreenConfigurationKeys{{

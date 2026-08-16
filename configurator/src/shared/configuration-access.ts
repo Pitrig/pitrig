@@ -1,7 +1,9 @@
+import { WIDGET_TYPES } from './configuration-schema'
 import type {
   ApplicationConfiguration,
   DeltaTimeWidgetConfiguration,
   ScreenConfiguration,
+  TextWidgetConfiguration,
   WidgetConfiguration
 } from './configuration-schema'
 
@@ -32,6 +34,14 @@ export function isDeltaTimeWidget(
   widget: WidgetConfiguration
 ): widget is DeltaTimeWidgetConfiguration {
   return widget.type === 'delta_time'
+}
+
+// With more than two variants, "not a delta time widget" no longer means text,
+// so anything reading text properties narrows on the type it actually wants.
+export function isTextWidget(
+  widget: WidgetConfiguration
+): widget is TextWidgetConfiguration {
+  return widget.type === 'text'
 }
 
 /**
@@ -107,12 +117,14 @@ function isRecord(value: unknown): value is ScreenConfiguration {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+// Driven by the generated list rather than a hand-kept one: a widget type this
+// missed would be dropped from every read helper without a word, including the
+// telemetry the SimHub profile has to request.
 function isWidget(value: unknown): value is WidgetConfiguration {
   return (
     typeof value === 'object' &&
     value !== null &&
     !Array.isArray(value) &&
-    ((value as WidgetConfiguration).type === 'text' ||
-      (value as WidgetConfiguration).type === 'delta_time')
+    WIDGET_TYPES.includes((value as WidgetConfiguration).type)
   )
 }

@@ -112,9 +112,16 @@ enum class ValueModifierType : std::uint8_t {
   lap_timer,
 };
 
+// Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own.
+enum class ShapeKind : std::uint8_t {
+  rectangle,
+  ellipse,
+};
+
 // Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget.
 enum class WidgetType : std::uint8_t {
   text,
+  shape,
   delta_time,
 };
 
@@ -225,11 +232,10 @@ struct DeltaTimeWidgetConfiguration {
   DeltaTimeScaleStyle scale{};
 };
 
-// Telemetry a widget watches to style itself, independent of what it
-// displays: a gear readout can turn red on engine speed. It carries no
-// transform because a condition consumes the typed value rather than its
-// presentation.
-struct ConditionSourceConfiguration {
+// A canonical telemetry binding with its modifier pipeline, consumed as a
+// typed value. Carries no transform: the widgets that read one map it
+// through a range or compare it, rather than presenting it as text.
+struct ValueSourceConfiguration {
   std::array<char, kValueBindingCapacity> binding{};
   std::uint8_t modifier_count{};
   std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
@@ -270,7 +276,7 @@ struct WidgetFrame {
   WidgetBorder border{};
   std::uint32_t background_color{kTransparentColor};
   std::uint16_t background_inset_px{};
-  ConditionSourceConfiguration condition_source{};
+  ValueSourceConfiguration condition_source{};
   std::uint8_t condition_count{};
   std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
 };
@@ -283,6 +289,14 @@ struct TextWidgetConfiguration {
   std::array<TextSourceConfiguration, kMaximumTextSources> sources{};
   WidgetTitleStyle title{};
   WidgetValueStyle value{};
+};
+
+// Panels, dividers and backing plates: the frame is the whole widget. It
+// binds no telemetry of its own, but its styling rules can still hide it or
+// flash it. A line is a thin rectangle.
+struct ShapeWidgetConfiguration {
+  WidgetFrame frame{};
+  ShapeKind kind{ShapeKind::rectangle};
 };
 
 // Declaration-order reference into the typed widget storage of one screen.
@@ -303,6 +317,8 @@ struct ScreenConfiguration {
   std::array<WidgetReference, kMaximumWidgetsPerScreen> widgets{};
   std::uint8_t text_widget_count{};
   std::array<TextWidgetConfiguration, kMaximumTextWidgets> text_widgets{};
+  std::uint8_t shape_widget_count{};
+  std::array<ShapeWidgetConfiguration, kMaximumShapeWidgets> shape_widgets{};
   std::uint8_t delta_time_widget_count{};
   std::array<DeltaTimeWidgetConfiguration, kMaximumDeltaTimeWidgets> delta_time_widgets{};
 };
@@ -481,8 +497,30 @@ inline constexpr std::array<std::string_view, 1> kValueModifierTypeNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 2> kWidgetTypeNames{{
+inline constexpr std::array<std::string_view, 2> kShapeKindNames{{
+    "rectangle",
+    "ellipse",
+}};
+
+[[nodiscard]] inline std::string_view shape_kind_name(const ShapeKind value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kShapeKindNames.size() ? kShapeKindNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool shape_kind_from_name(const std::string_view name,
+                                                  ShapeKind& value) {
+  for (std::size_t index = 0; index < kShapeKindNames.size(); ++index) {
+    if (kShapeKindNames[index] == name) {
+      value = static_cast<ShapeKind>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 3> kWidgetTypeNames{{
     "text",
+    "shape",
     "delta_time",
 }};
 

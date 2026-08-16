@@ -68,7 +68,7 @@ bool Binder::bind_sources(
   if (configuration.frame.condition_count == 0) {
     return true;
   }
-  const configuration::ConditionSourceConfiguration& source =
+  const configuration::ValueSourceConfiguration& source =
       configuration.frame.condition_source;
   return bind_one(configuration::value_binding_view(source.binding),
                   source.modifier_count, source.modifiers, registry, telemetry,
