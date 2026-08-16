@@ -4,6 +4,7 @@
 #include <array>
 #include <charconv>
 #include <cstdint>
+#include <string_view>
 #include <system_error>
 
 #include "dashboard_fonts.hpp"
@@ -11,6 +12,8 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 #include "logger.hpp"
+#include "number_transform.hpp"
+#include "text_writer.hpp"
 #include "time_transform.hpp"
 #include "widget_binding.hpp"
 
@@ -115,6 +118,88 @@ void copy_text(std::array<char, DestinationSize>& destination,
   return true;
 }
 
+// The value a transform produces, before its affixes.
+[[nodiscard]] bool transform_body(
+    const configuration::ValueTransform& transform,
+    const telemetry::TelemetryRead& value,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  switch (transform.type) {
+    case configuration::ValueTransformType::none:
+      return source_text(value, output);
+    case configuration::ValueTransformType::time:
+      if (value.handle.type == telemetry::ValueType::uint32) {
+        return transformers::time_transform::apply(
+            transform.time, value.value.typed.uint32_value, output);
+      }
+      if (value.handle.type == telemetry::ValueType::int32) {
+        return transformers::time_transform::apply(
+            transform.time, value.value.typed.int32_value, output);
+      }
+      return false;
+    case configuration::ValueTransformType::number:
+      switch (value.handle.type) {
+        case telemetry::ValueType::uint32:
+          return transformers::number_transform::apply(
+              transform.number, value.value.typed.uint32_value, output);
+        case telemetry::ValueType::int32:
+          return transformers::number_transform::apply(
+              transform.number, value.value.typed.int32_value, output);
+        case telemetry::ValueType::float32:
+          return transformers::number_transform::apply(
+              transform.number, value.value.typed.float32_value, output);
+        case telemetry::ValueType::text:
+          // Sources that format their number on the PC stay usable; a source
+          // that is not a number renders the placeholder instead.
+          return transformers::number_transform::apply(
+              transform.number, transformers::text_view(value.value.source_text),
+              output);
+        case telemetry::ValueType::boolean:
+          return false;
+      }
+      return false;
+  }
+  return false;
+}
+
+// Wraps a rendered body in its affixes. They belong to the transform rather
+// than to one of its types, so an untransformed value can carry a unit too.
+[[nodiscard]] bool compose(
+    const configuration::ValueTransform& transform, const std::string_view body,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  transformers::TextWriter writer(output);
+  if (writer.append(transformers::text_view(transform.prefix)) &&
+      writer.append(body) &&
+      writer.append(transformers::text_view(transform.suffix))) {
+    return true;
+  }
+  // The value outranks its decoration: a source string long enough to crowd
+  // out the affixes keeps its own text rather than losing everything.
+  transformers::TextWriter value_only(output);
+  return value_only.append(body);
+}
+
+// The zero a widget renders while its value is unavailable, run through the
+// widget's own transform.
+[[nodiscard]] bool zero_body(
+    const configuration::ValueTransform& transform,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  switch (transform.type) {
+    case configuration::ValueTransformType::none:
+      return false;
+    case configuration::ValueTransformType::time:
+      return transform.time.format ==
+                     transformers::time_transform::Format::signed_duration_ms
+                 ? transformers::time_transform::apply(
+                       transform.time, std::int32_t{0}, output)
+                 : transformers::time_transform::apply(
+                       transform.time, std::uint32_t{0}, output);
+    case configuration::ValueTransformType::number:
+      return transformers::number_transform::apply(
+          transform.number, std::uint32_t{0}, output);
+  }
+  return false;
+}
+
 // What a widget shows before its first telemetry value. An explicit
 // unavailable_text wins; otherwise the widget renders a zero through its own
 // transform, so a plain value reads 0 and a time value keeps its format with
@@ -126,22 +211,14 @@ void unavailable_text(
     copy_text(output, config.value.unavailable_text);
     return;
   }
-  if (config.transform.type == configuration::ValueTransformType::time) {
-    const bool signed_format = config.transform.time.format ==
-                               transformers::time_transform::Format::
-                                   signed_duration_ms;
-    const bool rendered =
-        signed_format
-            ? transformers::time_transform::apply(config.transform.time,
-                                                  std::int32_t{0}, output)
-            : transformers::time_transform::apply(config.transform.time,
-                                                  std::uint32_t{0}, output);
-    if (rendered) {
-      return;
-    }
+  std::array<char, telemetry::kTelemetryTextCapacity> body{};
+  if (!zero_body(config.transform, body)) {
+    constexpr std::array<char, 2> kZero{'0', '\0'};
+    copy_text(body, kZero);
   }
-  constexpr std::array<char, 2> kZero{'0', '\0'};
-  copy_text(output, kZero);
+  if (!compose(config.transform, transformers::text_view(body), output)) {
+    output = body;
+  }
 }
 
 [[nodiscard]] bool transform_value(
@@ -151,21 +228,9 @@ void unavailable_text(
   if (!value.available) {
     return false;
   }
-  if (transform.type == configuration::ValueTransformType::none) {
-    return source_text(value, output);
-  }
-  if (transform.type != configuration::ValueTransformType::time) {
-    return false;
-  }
-  if (value.handle.type == telemetry::ValueType::uint32) {
-    return transformers::time_transform::apply(
-        transform.time, value.value.typed.uint32_value, output);
-  }
-  if (value.handle.type == telemetry::ValueType::int32) {
-    return transformers::time_transform::apply(
-        transform.time, value.value.typed.int32_value, output);
-  }
-  return false;
+  std::array<char, telemetry::kTelemetryTextCapacity> body{};
+  return transform_body(transform, value, body) &&
+         compose(transform, transformers::text_view(body), output);
 }
 
 }  // namespace

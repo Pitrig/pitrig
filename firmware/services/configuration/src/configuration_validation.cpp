@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstddef>
 #include <string_view>
 
@@ -33,6 +34,31 @@ bool reject(ValidationFailure& failure, const ValidationError error,
 
 [[nodiscard]] bool valid_optional_color(const std::uint32_t color) {
   return color == kTransparentColor || valid_color(color);
+}
+
+// A transform must be able to read the value it is placed on. Each time format
+// accepts exactly one millisecond type. The number transform accepts anything
+// numeric, including a source that carries its number as text, and is bounded
+// by what the fixed-point conversion can render.
+[[nodiscard]] bool valid_transform(const ValueTransform& transform,
+                                   const telemetry::ValueType type) {
+  using transformers::time_transform::Format;
+  switch (transform.type) {
+    case ValueTransformType::none:
+      return true;
+    case ValueTransformType::time:
+      return (transform.time.format == Format::duration_ms &&
+              type == telemetry::ValueType::uint32) ||
+             (transform.time.format == Format::signed_duration_ms &&
+              type == telemetry::ValueType::int32);
+    case ValueTransformType::number:
+      return type != telemetry::ValueType::boolean &&
+             transform.number.decimals <=
+                 transformers::number_transform::kMaximumDecimals &&
+             std::isfinite(transform.number.scale) &&
+             std::isfinite(transform.number.offset);
+  }
+  return false;
 }
 
 [[nodiscard]] bool valid_font(const font_assets::FontSpec& font) {
@@ -165,19 +191,11 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
     return reject(failure_, ValidationError::invalid_widget, "modifiers");
   }
 
-  using transformers::time_transform::Format;
-  const bool compatible_transform =
-      config.transform.type == ValueTransformType::none ||
-      (config.transform.type == ValueTransformType::time &&
-       ((config.transform.time.format == Format::duration_ms &&
-         handle.type == telemetry::ValueType::uint32) ||
-        (config.transform.time.format == Format::signed_duration_ms &&
-         handle.type == telemetry::ValueType::int32)));
-  if (!compatible_transform) {
+  if (!valid_transform(config.transform, handle.type)) {
     return reject(failure_, ValidationError::invalid_widget, "transform");
   }
-  if (!terminated(config.transform.time.prefix) ||
-      !terminated(config.transform.time.suffix)) {
+  if (!terminated(config.transform.prefix) ||
+      !terminated(config.transform.suffix)) {
     return reject(failure_, ValidationError::invalid_widget, "transform");
   }
   if (!valid_placement(config.placement, width(), height())) {

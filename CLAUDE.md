@@ -125,7 +125,8 @@ components → interfaces ← drivers
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
   `dashboard` (LVGL widgets), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
   `partition_font_asset_storage`, `telemetry_transport`, `external_memory`.
-- `utils/` — dependency-free helpers (`binary`, `transformers/time_transform`).
+- `utils/` — dependency-free helpers (`binary`, `transformers/number_transform`,
+  `transformers/text_writer`, `transformers/time_transform`).
 
 Every layer directory listed above is a separate ESP-IDF component registered in
 `EXTRA_COMPONENT_DIRS` in [firmware/CMakeLists.txt](firmware/CMakeLists.txt) — **adding a new

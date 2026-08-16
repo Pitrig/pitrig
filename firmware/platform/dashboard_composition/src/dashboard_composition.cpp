@@ -248,10 +248,10 @@ void for_each_configured_font(
     const configuration::TextWidgetConfiguration& widget =
         screen.text_widgets[index];
     visit(widget.value.font, widget.value.unavailable_text);
-    if (widget.transform.type == configuration::ValueTransformType::time) {
-      visit(widget.value.font, widget.transform.time.prefix);
-      visit(widget.value.font, widget.transform.time.suffix);
-    }
+    // Affixes belong to the transform rather than to one of its types, so they
+    // are rendered whatever the type is.
+    visit(widget.value.font, widget.transform.prefix);
+    visit(widget.value.font, widget.transform.suffix);
     if (widget.title.text.front() != '\0') {
       visit(widget.title.font, widget.title.text);
     }

@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "font_asset_types.hpp"
+#include "number_transform.hpp"
 #include "time_transform.hpp"
 
 namespace simcore::configuration {
@@ -40,6 +41,8 @@ inline constexpr std::size_t kDeltaTimeTextCapacity = 16;
 inline constexpr std::size_t kValidationPathCapacity = 48;
 // Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py.
 inline constexpr std::size_t kValueBindingCapacity = 40;
+// Transform prefix and suffix storage including the terminator (15 usable bytes).
+inline constexpr std::size_t kValueAffixCapacity = 16;
 
 // Immutable hardware identity. Must match the firmware build or the configuration is rejected.
 enum class BoardId : std::uint8_t {
@@ -73,6 +76,7 @@ enum class TextAlignment : std::uint8_t {
 enum class ValueTransformType : std::uint8_t {
   none,
   time,
+  number,
 };
 
 // Stateful value processing implemented by a module behind the pipeline callback.
@@ -160,9 +164,14 @@ struct WidgetValueStyle {
 };
 
 // Stateless presentation transform. Absent means no transform is applied.
+// The prefix and suffix belong to the transform rather than to one type, so
+// they also apply to an untransformed value.
 struct ValueTransform {
   ValueTransformType type{ValueTransformType::none};
   transformers::time_transform::Config time{};
+  transformers::number_transform::Config number{};
+  std::array<char, kValueAffixCapacity> prefix{};
+  std::array<char, kValueAffixCapacity> suffix{};
 };
 
 struct ValueModifier {
@@ -334,9 +343,10 @@ inline constexpr std::array<std::string_view, 3> kTextAlignmentNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 2> kValueTransformTypeNames{{
+inline constexpr std::array<std::string_view, 3> kValueTransformTypeNames{{
     "none",
     "time",
+    "number",
 }};
 
 [[nodiscard]] inline std::string_view value_transform_type_name(const ValueTransformType value) {

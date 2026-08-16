@@ -20,6 +20,7 @@ Schema version: 3.
 | `kDeltaTimeTextCapacity` | 16 | Delta Time placeholder storage including the terminator (15 usable bytes). |
 | `kValidationPathCapacity` | 48 | Storage for the dotted property path reported with a rejection, including the terminator. |
 | `kValueBindingCapacity` | 40 | Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py. |
+| `kValueAffixCapacity` | 16 | Transform prefix and suffix storage including the terminator (15 usable bytes). |
 
 ## Enumerations
 
@@ -29,7 +30,7 @@ Schema version: 3.
 | `TelemetryTransportId` | `board_default`, `native_usb_cdc`, `uart` | Telemetry transport selection. board_default defers to the immutable board descriptor. |
 | `DeltaTimeUnavailableBehavior` | `hide`, `placeholder`, `zero` | What the Delta Time widget shows while its telemetry is unavailable. |
 | `TextAlignment` | `left`, `center`, `right` | Horizontal alignment of a text widget value. |
-| `ValueTransformType` | `none`, `time` | Presentation transform applied after the modifier pipeline. |
+| `ValueTransformType` | `none`, `time`, `number` | Presentation transform applied after the modifier pipeline. |
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
 | `WidgetType` | `text`, `delta_time` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
 
@@ -124,14 +125,17 @@ Absolute geometry in logical screen pixels.
 
 ### ValueTransform
 
-Stateless presentation transform. Absent means no transform is applied.
+Stateless presentation transform. Absent means no transform is applied. The prefix and suffix belong to the transform rather than to one type, so they also apply to an untransformed value.
 
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `ValueTransformType` | `none` |
 | `format` | see `TimeTransformConfig` | absent |
-| `prefix` | see `TimeTransformConfig` | absent |
-| `suffix` | see `TimeTransformConfig` | absent |
+| `decimals` | see `NumberTransformConfig` | absent |
+| `scale` | see `NumberTransformConfig` | absent |
+| `offset` | see `NumberTransformConfig` | absent |
+| `prefix` | string, max 15 bytes | empty |
+| `suffix` | string, max 15 bytes | empty |
 
 ### ValueModifier
 

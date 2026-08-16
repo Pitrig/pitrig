@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "src/time_transform.cpp"
+    SRCS "src/number_transform.cpp"
     INCLUDE_DIRS "include"
     REQUIRES text_writer)
 

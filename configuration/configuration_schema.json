@@ -50,6 +50,10 @@
     "kValueBindingCapacity": {
       "value": 40,
       "doc": "Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py."
+    },
+    "kValueAffixCapacity": {
+      "value": 16,
+      "doc": "Transform prefix and suffix storage including the terminator (15 usable bytes)."
     }
   },
 
@@ -73,8 +77,15 @@
       "cpp": "transformers::time_transform::Config",
       "cpp_header": "time_transform.hpp",
       "typescript": "TimeTransform",
-      "keys": ["format", "prefix", "suffix"],
+      "keys": ["format"],
       "doc": "Stateless time formatting configuration owned by utils/transformers/time_transform."
+    },
+    "NumberTransformConfig": {
+      "cpp": "transformers::number_transform::Config",
+      "cpp_header": "number_transform.hpp",
+      "typescript": "NumberTransform",
+      "keys": ["decimals", "scale", "offset"],
+      "doc": "Stateless linear number formatting owned by utils/transformers/number_transform. The value is rendered as value * scale + offset with a fixed decimal count, which is how unit conversion is expressed; the device knows no unit names."
     }
   },
 
@@ -100,7 +111,7 @@
       "doc": "Horizontal alignment of a text widget value."
     },
     "ValueTransformType": {
-      "json_values": ["none", "time"],
+      "json_values": ["none", "time", "number"],
       "default": "none",
       "doc": "Presentation transform applied after the modifier pipeline."
     },
@@ -211,10 +222,13 @@
     },
 
     "ValueTransform": {
-      "doc": "Stateless presentation transform. Absent means no transform is applied.",
+      "doc": "Stateless presentation transform. Absent means no transform is applied. The prefix and suffix belong to the transform rather than to one type, so they also apply to an untransformed value.",
       "fields": [
         { "name": "type", "kind": "enum", "enum": "ValueTransformType" },
-        { "name": "time", "kind": "external", "external": "TimeTransformConfig", "inline": true }
+        { "name": "time", "kind": "external", "external": "TimeTransformConfig", "inline": true },
+        { "name": "number", "kind": "external", "external": "NumberTransformConfig", "inline": true },
+        { "name": "prefix", "kind": "text", "capacity": "kValueAffixCapacity", "default": "" },
+        { "name": "suffix", "kind": "text", "capacity": "kValueAffixCapacity", "default": "" }
       ]
     },
 

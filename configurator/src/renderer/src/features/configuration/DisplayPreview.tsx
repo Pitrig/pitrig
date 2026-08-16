@@ -8,6 +8,7 @@ import type {
   DeltaTimeWidgetConfiguration,
   FontSpec,
   TextWidgetConfiguration,
+  ValueTransform,
   WidgetConfiguration
 } from '../../../../shared/configuration-schema'
 import type { DeviceConfiguration, DisplayDescriptor } from '../../../../shared/device'
@@ -388,11 +389,16 @@ function formattedPreviewValue(configuration: TextWidgetConfiguration): string {
   const configured = configuration.value?.unavailable_text
   if (configured) return configured
   const transform = configuration.transform
+  return `${transform?.prefix ?? ''}${zeroValue(transform)}${transform?.suffix ?? ''}`
+}
+
+function zeroValue(transform: ValueTransform | undefined): string {
   if (transform?.type === 'time') {
-    const prefix = transform.prefix ?? ''
-    const suffix = transform.suffix ?? ''
-    const zero = transform.format === 'signed_duration_ms' ? '+0.000' : '00:00.000'
-    return `${prefix}${zero}${suffix}`
+    return transform.format === 'signed_duration_ms' ? '+0.000' : '00:00.000'
+  }
+  if (transform?.type === 'number') {
+    const zero = 0 * (transform.scale ?? 1) + (transform.offset ?? 0)
+    return zero.toFixed(transform.decimals ?? 0)
   }
   return '0'
 }

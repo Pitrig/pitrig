@@ -35,6 +35,8 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/telemetry"
      "${CMAKE_CURRENT_LIST_DIR}/services/telemetry/protocols/simhub"
      "${CMAKE_CURRENT_LIST_DIR}/utils/binary"
+     "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/number_transform"
+     "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/text_writer"
      "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/time_transform")
 
 if(IDF_TARGET STREQUAL "esp32p4")

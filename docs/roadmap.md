@@ -45,7 +45,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] Delta Time
 - [*] Reusable telemetry text widgets
 - [*] Value modifiers and time transforms
-- [ ] Value formatting transforms (decimal precision, scale and offset, units)
+- [*] Value formatting transforms (decimal precision, scale and offset, units)
 - [ ] Multi-field text composition
 - [ ] Additional widget types (bar, arc, indicator strip)
 - [ ] Conditional and animated widget styling

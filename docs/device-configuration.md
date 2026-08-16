@@ -217,11 +217,37 @@ Text widgets support the optional `time` transform:
 - `signed_duration_ms` accepts signed milliseconds and renders `+S.mmm` or
   `-S.mmm`.
 
-Without `transform`, source text is preserved; a modifier-produced numeric
-value is rendered as a base-10 integer. Optional `prefix` and `suffix` strings
-are applied by the time transform and are each limited to 15 UTF-8 bytes. Incompatible
-binding, modifier, and transform types are rejected before the dashboard is
-created.
+The `number` transform renders `value * scale + offset` with `decimals` digits
+after the point:
+
+```json
+{
+  "binding": "engine.water_temperature",
+  "transform": {
+    "type": "number",
+    "decimals": 0,
+    "scale": 1.8,
+    "offset": 32,
+    "suffix": "°F"
+  }
+}
+```
+
+`decimals` defaults to `0` and is limited to 4, `scale` defaults to `1` and
+`offset` to `0`, so `{"type": "number", "decimals": 2}` only adds precision.
+Unit conversion is expressed through `scale` and `offset` because the device
+holds no unit names; the configurator offers presets for the common conversions
+and writes nothing else. The transform accepts every numeric binding and also a
+text binding whose source parses as a plain number, which is how the
+source-formatted fields such as `vehicle.speed` and `engine.rpm` are converted.
+A source that does not parse renders the placeholder, exactly like an
+unavailable value.
+
+Without `transform`, source text is preserved. Optional `prefix` and `suffix`
+strings belong to the transform rather than to one of its types, so they apply
+to an untransformed value too; each is limited to 15 UTF-8 bytes, and a value
+long enough to crowd them out keeps its own text. Incompatible binding,
+modifier, and transform types are rejected before the dashboard is created.
 
 Supported bindings are listed in the generated
 [telemetry catalog](telemetry-catalog.md). The configurator exposes these fields

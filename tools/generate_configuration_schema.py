@@ -530,8 +530,17 @@ def generate_typescript(document: dict[str, Any]) -> str:
             [
                 "export interface TimeTransform {",
                 "  format?: 'duration_ms' | 'signed_duration_ms'",
-                "  prefix?: string",
-                "  suffix?: string",
+                "}",
+                "",
+            ]
+        )
+    if "NumberTransformConfig" in externals:
+        lines.extend(
+            [
+                "export interface NumberTransform {",
+                "  decimals?: number",
+                "  scale?: number",
+                "  offset?: number",
                 "}",
                 "",
             ]

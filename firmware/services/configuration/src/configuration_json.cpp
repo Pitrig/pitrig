@@ -96,6 +96,26 @@ template <typename Integer>
   return true;
 }
 
+// Bounded well inside the float range so a scale or offset cannot reach the
+// device as an infinity after the narrowing conversion.
+constexpr double kMaximumRealMagnitude = 1.0e9;
+
+[[nodiscard]] bool read_float(const cJSON* const object,
+                              const char* const key, float& output,
+                              const std::string_view name,
+                              ValidationFailure& failure) {
+  const cJSON* const value = member(object, key);
+  if (value == nullptr) {
+    return true;
+  }
+  if (!cJSON_IsNumber(value) || !std::isfinite(value->valuedouble) ||
+      std::abs(value->valuedouble) > kMaximumRealMagnitude) {
+    return reject(failure, ValidationError::malformed, name, key);
+  }
+  output = static_cast<float>(value->valuedouble);
+  return true;
+}
+
 [[nodiscard]] bool read_boolean(const cJSON* const object,
                                 const char* const key, bool& output,
                                 const std::string_view name,
@@ -327,9 +347,17 @@ template <typename Enum, typename FromName>
   if (!valid_object(object, schema::kValueTransformKeys, kName, failure) ||
       !read_enum(object, "type", transform.type, value_transform_type_from_name,
                  kName, failure) ||
-      !read_text(object, "prefix", transform.time.prefix, kName, failure) ||
-      !read_text(object, "suffix", transform.time.suffix, kName, failure)) {
+      !read_text(object, "prefix", transform.prefix, kName, failure) ||
+      !read_text(object, "suffix", transform.suffix, kName, failure)) {
     return false;
+  }
+  if (transform.type == ValueTransformType::number) {
+    return read_integer(object, "decimals", transform.number.decimals, kName,
+                        failure) &&
+           read_float(object, "scale", transform.number.scale, kName,
+                      failure) &&
+           read_float(object, "offset", transform.number.offset, kName,
+                      failure);
   }
   if (transform.type != ValueTransformType::time) {
     return true;

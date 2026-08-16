@@ -8,6 +8,7 @@ import type {
   FontSpec,
   RgbColor,
   TextWidgetConfiguration,
+  ValueTransform,
   WidgetPlacement
 } from '../../../../shared/configuration-schema'
 import type { DeviceConfiguration } from '../../../../shared/device'
@@ -15,6 +16,10 @@ import {
   TELEMETRY_CATALOG,
   type TelemetryCatalogEntry
 } from '../../../../shared/telemetry-catalog'
+import {
+  MAXIMUM_TRANSFORM_DECIMALS,
+  unitPresetsFor
+} from '../../../../shared/value-transform'
 import {
   activeScreen,
   completePlacement,
@@ -116,23 +121,54 @@ function TextEditor({ selection, widget }: { selection: WidgetSelection; widget:
   const update = (mutation: (next: TextWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as TextWidgetConfiguration))
   const binding = TELEMETRY_CATALOG.find(({ name }) => name === widget.binding)
   const transforms = transformOptions(binding)
+  const presets = unitPresetsFor(binding)
+  const affix = (key: 'prefix' | 'suffix') => (value: string): void => update((next) => {
+    const transform = next.transform ?? {}
+    transform[key] = value
+    next.transform = transform
+    pruneTransform(next)
+  })
   return (
     <>
       <Section title="Data">
         <TelemetryBindingField value={widget.binding ?? ''} onChange={(value) => update((next) => {
           next.binding = value
           const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
-          if (next.transform && !transformOptions(selected).includes(next.transform.format ?? '')) delete next.transform
+          // An unrecognized name is left alone: the binding is mid-edit, not wrong.
+          if (selected && next.transform && !transformOptions(selected).includes(transformSelection(next.transform))) {
+            clearTransformType(next.transform)
+            pruneTransform(next)
+          }
         })} />
         <SelectField label="Modifier" value={widget.modifiers?.some(({ type }) => type === 'lap_timer') ? 'lap_timer' : 'none'} options={['none', 'lap_timer']} onChange={(value) => update((next) => {
           if (value === 'lap_timer') { next.binding = 'session.lap.current_time'; next.modifiers = [{ type: 'lap_timer' }] }
           else delete next.modifiers
         })} />
-        <SelectField label="Transform" value={widget.transform?.format ?? 'source_text'} options={transforms} onChange={(value) => update((next) => {
-          if (value === 'source_text') delete next.transform
-          else next.transform = { type: 'time', format: value as 'duration_ms' | 'signed_duration_ms' }
+        <SelectField label="Transform" value={transformSelection(widget.transform)} options={transforms} onChange={(value) => update((next) => {
+          const transform = next.transform ?? {}
+          clearTransformType(transform)
+          if (value === 'number') transform.type = 'number'
+          else if (value !== 'source_text') { transform.type = 'time'; transform.format = value as 'duration_ms' | 'signed_duration_ms' }
+          next.transform = transform
+          pruneTransform(next)
         })} />
-        {widget.transform ? <div className="grid grid-cols-2 gap-2"><TextField label="Prefix" value={widget.transform.prefix ?? ''} onChange={(value) => update((next) => { if (next.transform) next.transform.prefix = value })} /><TextField label="Suffix" value={widget.transform.suffix ?? ''} onChange={(value) => update((next) => { if (next.transform) next.transform.suffix = value })} /></div> : null}
+        {widget.transform?.type === 'number' ? (
+          <>
+            {presets.length > 0 ? <SelectField label="Unit preset" value={presets.find(({ scale, offset }) => scale === widget.transform?.scale && offset === (widget.transform?.offset ?? 0))?.label ?? ''} options={presets.map(({ label }) => label)} onChange={(label) => update((next) => {
+              const preset = presets.find((entry) => entry.label === label)
+              if (!preset || !next.transform) return
+              next.transform.scale = preset.scale
+              next.transform.offset = preset.offset
+              next.transform.suffix = preset.suffix
+            })} /> : null}
+            <div className="grid grid-cols-3 gap-2">
+              <NumberField label="Decimals" value={widget.transform.decimals ?? 0} min={0} max={MAXIMUM_TRANSFORM_DECIMALS} onChange={(value) => update((next) => { if (next.transform) next.transform.decimals = Math.min(MAXIMUM_TRANSFORM_DECIMALS, Math.max(0, Math.round(value))) })} />
+              <NumberField label="Scale" value={widget.transform.scale ?? 1} step="any" onChange={(value) => update((next) => { if (next.transform) next.transform.scale = value })} />
+              <NumberField label="Offset" value={widget.transform.offset ?? 0} step="any" onChange={(value) => update((next) => { if (next.transform) next.transform.offset = value })} />
+            </div>
+          </>
+        ) : null}
+        <div className="grid grid-cols-2 gap-2"><TextField label="Prefix" value={widget.transform?.prefix ?? ''} onChange={affix('prefix')} /><TextField label="Suffix" value={widget.transform?.suffix ?? ''} onChange={affix('suffix')} /></div>
       </Section>
       <Section title="Value">
         <FontEditor font={widget.value?.font} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
@@ -184,11 +220,39 @@ function TelemetryBindingField({ value, onChange }: { value: string; onChange: (
   )
 }
 
+// The device rejects a transform it cannot read, so the editor offers only the
+// ones the selected binding supports: any non-boolean value can be formatted as
+// a number, while each duration format accepts one millisecond type.
 function transformOptions(binding: TelemetryCatalogEntry | undefined): readonly string[] {
-  if (binding?.unit !== 'millisecond') return ['source_text']
-  if (binding.type === 'uint32') return ['source_text', 'duration_ms']
-  if (binding.type === 'int32') return ['source_text', 'signed_duration_ms']
-  return ['source_text']
+  if (!binding) return ['source_text']
+  const options = ['source_text']
+  if (binding.type !== 'boolean') options.push('number')
+  if (binding.unit === 'millisecond' && binding.type === 'uint32') options.push('duration_ms')
+  if (binding.unit === 'millisecond' && binding.type === 'int32') options.push('signed_duration_ms')
+  return options
+}
+
+/** The Transform select value: a transform may exist carrying affixes alone. */
+function transformSelection(transform: ValueTransform | undefined): string {
+  if (transform?.type === 'number') return 'number'
+  if (transform?.type === 'time') return transform.format ?? 'duration_ms'
+  return 'source_text'
+}
+
+function clearTransformType(transform: ValueTransform): void {
+  transform.type = 'none'
+  delete transform.format
+  delete transform.decimals
+  delete transform.scale
+  delete transform.offset
+}
+
+/** Keeps the document sparse: a transform that formats nothing is not written. */
+function pruneTransform(widget: TextWidgetConfiguration): void {
+  const transform = widget.transform
+  if (transform && (transform.type ?? 'none') === 'none' && !transform.prefix && !transform.suffix) {
+    delete widget.transform
+  }
 }
 
 function DeltaTimeEditor({ selection, widget, configuration }: { selection: WidgetSelection; widget: DeltaTimeWidgetConfiguration; configuration: DeviceConfiguration }): React.JSX.Element {
@@ -208,9 +272,9 @@ function TextField({ label, value, onChange }: { label: string; value: string; o
   const [local, change, flush] = useDebouncedCommit(value, onChange)
   return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><input className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} onChange={(event) => change(event.target.value)} onBlur={flush} /></label>
 }
-function NumberField({ label, value, min, max, onChange }: { label: string; value: number; min?: number; max?: number; onChange: (value: number) => void }): React.JSX.Element {
+function NumberField({ label, value, min, max, step, onChange }: { label: string; value: number; min?: number; max?: number; step?: number | 'any'; onChange: (value: number) => void }): React.JSX.Element {
   const [local, change, flush] = useDebouncedCommit(value, onChange)
-  return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><input type="number" className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} min={min} max={max} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) change(next) }} onBlur={flush} /></label>
+  return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><input type="number" className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} min={min} max={max} step={step} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) change(next) }} onBlur={flush} /></label>
 }
 function SelectField({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (value: string) => void }): React.JSX.Element { return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><select className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={value} onChange={(event) => onChange(event.target.value)}>{value === '' ? <option value="">Not set</option> : null}{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label> }
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: RgbColor) => void }): React.JSX.Element {

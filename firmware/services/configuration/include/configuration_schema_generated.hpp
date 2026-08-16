@@ -74,10 +74,14 @@ inline constexpr std::array<std::string_view, 2> kFontSpecKeys{{
     "size_px",
 }};
 
-inline constexpr std::array<std::string_view, 3> kTimeTransformConfigKeys{{
+inline constexpr std::array<std::string_view, 1> kTimeTransformConfigKeys{{
     "format",
-    "prefix",
-    "suffix",
+}};
+
+inline constexpr std::array<std::string_view, 3> kNumberTransformConfigKeys{{
+    "decimals",
+    "scale",
+    "offset",
 }};
 
 inline constexpr std::array<std::string_view, 1> kBoardConfigurationKeys{{
@@ -143,9 +147,12 @@ inline constexpr std::array<std::string_view, 4> kWidgetValueStyleKeys{{
     "unavailable_text",
 }};
 
-inline constexpr std::array<std::string_view, 4> kValueTransformKeys{{
+inline constexpr std::array<std::string_view, 7> kValueTransformKeys{{
     "type",
     "format",
+    "decimals",
+    "scale",
+    "offset",
     "prefix",
     "suffix",
 }};

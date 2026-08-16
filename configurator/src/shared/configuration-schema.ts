@@ -28,6 +28,8 @@ export const DELTA_TIME_TEXT_CAPACITY = 16
 export const VALIDATION_PATH_CAPACITY = 48
 /** Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py. */
 export const VALUE_BINDING_CAPACITY = 40
+/** Transform prefix and suffix storage including the terminator (15 usable bytes). */
+export const VALUE_AFFIX_CAPACITY = 16
 
 /** Immutable hardware identity. Must match the firmware build or the configuration is rejected. */
 export type BoardId = 't_display_s3' | 'guition_esp32_4848s040' | 'guition_jc1060p470c'
@@ -46,8 +48,8 @@ export type TextAlignment = 'left' | 'center' | 'right'
 export const TEXT_ALIGNMENT_VALUES: readonly TextAlignment[] = ['left', 'center', 'right']
 
 /** Presentation transform applied after the modifier pipeline. */
-export type ValueTransformType = 'none' | 'time'
-export const VALUE_TRANSFORM_TYPE_VALUES: readonly ValueTransformType[] = ['none', 'time']
+export type ValueTransformType = 'none' | 'time' | 'number'
+export const VALUE_TRANSFORM_TYPE_VALUES: readonly ValueTransformType[] = ['none', 'time', 'number']
 
 /** Stateful value processing implemented by a module behind the pipeline callback. */
 export type ValueModifierType = 'lap_timer'
@@ -64,8 +66,12 @@ export interface FontSpec {
 
 export interface TimeTransform {
   format?: 'duration_ms' | 'signed_duration_ms'
-  prefix?: string
-  suffix?: string
+}
+
+export interface NumberTransform {
+  decimals?: number
+  scale?: number
+  offset?: number
 }
 
 export interface BoardConfiguration {
@@ -136,9 +142,11 @@ export interface WidgetValueStyle {
   unavailable_text?: string
 }
 
-/** Stateless presentation transform. Absent means no transform is applied. */
-export interface ValueTransform extends TimeTransform {
+/** Stateless presentation transform. Absent means no transform is applied. The prefix and suffix belong to the transform rather than to one type, so they also apply to an untransformed value. */
+export interface ValueTransform extends TimeTransform, NumberTransform {
   type?: ValueTransformType
+  prefix?: string
+  suffix?: string
 }
 
 export interface ValueModifier {
@@ -216,7 +224,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   WidgetBorder: ['color', 'width_px', 'radius_px'],
   WidgetTitleStyle: ['text', 'font', 'color', 'offset_y_px'],
   WidgetValueStyle: ['font', 'color', 'alignment', 'unavailable_text'],
-  ValueTransform: ['type', 'format', 'prefix', 'suffix'],
+  ValueTransform: ['type', 'format', 'decimals', 'scale', 'offset', 'prefix', 'suffix'],
   ValueModifier: ['type'],
   DeltaTimeScaleStyle: ['vertical_padding_px', 'border_width_px', 'border_radius_px'],
   DeltaTimeWidgetConfiguration: ['type', 'id', 'font', 'placement', 'z_index', 'faster_color', 'slower_color', 'neutral_color', 'scale'],
@@ -246,6 +254,8 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'DeltaTimeConfiguration.placeholder': 16,
   'WidgetTitleStyle.text': 16,
   'WidgetValueStyle.unavailable_text': 16,
+  'ValueTransform.prefix': 16,
+  'ValueTransform.suffix': 16,
   'DeltaTimeWidgetConfiguration.id': 16,
   'TextWidgetConfiguration.id': 16,
   'TextWidgetConfiguration.binding': 40,
