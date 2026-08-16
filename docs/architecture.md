@@ -260,7 +260,8 @@ Examples include:
 - Scheduling
 - Configuration
 - Communication
-- Font asset catalog and package validation
+- Font and image asset catalogs and package validation
+- Uploaded asset storage and the shared binary upload session
 
 The `configuration_contract` service component owns the bounded
 application value contract. The configuration service parses, validates, and
@@ -280,6 +281,17 @@ The separate font asset control service owns the bounded serial upload session
 and delegates erase, write, validation, and commit operations to the asset
 service from a static worker task. The configuration router only switches the
 shared transport between normal line routing and the active binary session.
+
+Uploaded images follow the same shape with a different package format: an image
+asset service over its own partition, an image asset control service over its
+own worker task, and dashboard code owning the LVGL image descriptors. The two
+kinds share the `asset_storage` contract, the `platform/partition_asset_storage`
+adapter, and one `binary_session` claim: each kind registers a command prefix
+and two callbacks, so the router never branches on what a font or an image is,
+and a second concurrent upload is refused instead of raced. Images are
+converted by the configurator to the layout and size the display draws; the
+device holds no decoder. See [Image asset storage](image-assets.md) and
+[ADR 0018](adr/0018-uploaded-image-assets.md).
 
 The desktop configurator edits dashboard widgets directly in the logical
 display coordinate space. Canvas selection, dragging, resizing, property
@@ -402,6 +414,13 @@ the active configuration references, and pre-warms their glyph caches during
 composition so periodic frames do not rasterize. Diagnostic builds may compile
 private LVGL fonts for service screens; those fonts are not exposed through the
 dashboard font registry.
+
+Images follow the same rule from the configuration's point of view: a widget
+references a bounded image identifier, an uploaded package supplies the pixels,
+and a missing identifier is a composition error rather than a substitution.
+Unlike a face, an image is stored in the exact layout and size it is drawn at,
+so resizing a widget is a re-conversion in the configurator rather than a
+runtime scale.
 
 Persistent NVS slot headers, generations, CRC validation, and recovery remain
 private to the configuration service. External tools communicate only through

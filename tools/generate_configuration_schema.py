@@ -750,10 +750,28 @@ def generate_markdown(document: dict[str, Any]) -> str:
         fields = [field for field in serialized_fields(body) if not field.get("flatten")]
         if not fields:
             continue
+        flattened = [
+            field["struct"]
+            for field in serialized_fields(body)
+            if field.get("flatten") and field["kind"] == "struct"
+        ]
         lines.append(f"### {name}")
         lines.append("")
         if body.get("doc"):
             lines.append(body["doc"])
+            lines.append("")
+        if flattened:
+            # A flattened struct's properties are plain properties of this object
+            # on the wire, so a reader of this table has to be told where the
+            # rest of them are listed.
+            links = [f"[`{struct}`](#{struct.lower()})" for struct in flattened]
+            references = (
+                links[0] if len(links) == 1 else f"{', '.join(links[:-1])} and {links[-1]}"
+            )
+            lines.append(
+                f"Also carries the properties of {references}, flattened: they are "
+                "plain properties of this object in JSON."
+            )
             lines.append("")
         lines.append("| Property | Type | Default |")
         lines.append("| --- | --- | --- |")

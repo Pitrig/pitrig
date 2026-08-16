@@ -194,7 +194,8 @@ over `@SC:FONT:` / `@SC:IMAGE:`, and a single `binary_session::Claim` that
 decides which one owns the serial link — a second upload is answered `busy`
 rather than raced. Images are converted **in the configurator** to the LVGL
 layout and the size they are drawn at; the device holds no decoder and neither
-scales nor rotates. See [docs/adr/0018-uploaded-image-assets.md](docs/adr/0018-uploaded-image-assets.md).
+scales nor rotates. See [docs/image-assets.md](docs/image-assets.md) and
+[docs/adr/0018-uploaded-image-assets.md](docs/adr/0018-uploaded-image-assets.md).
 
 ### Fonts
 

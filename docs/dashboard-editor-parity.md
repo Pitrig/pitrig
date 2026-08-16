@@ -1,160 +1,174 @@
-# Паритет редактора дешбордів (SimCore vs SimHub)
+# Dashboard editor parity (SimCore vs SimHub)
 
-Аналіз того, чого бракує конфігуратору SimCore, щоб авторити дешборди так само,
-як це робить редактор SimHub. Це звіт про поточний стан, а не план — пункти,
-які вирішено робити, живуть у [roadmap.md](roadmap.md).
+An analysis of what the SimCore configurator still lacks to author dashboards
+the way the SimHub editor does. This is a status report rather than a plan; the
+items that have been accepted for work live in [roadmap.md](roadmap.md).
 
-Джерела для поточного стану: [configuration-schema.md](configuration-schema.md)
-(контракт), [device-configuration.md](device-configuration.md) (правила навколо
-нього) і `configurator/src/renderer/src/features/configuration/` (редактор).
+Sources for the current state: [configuration-schema.md](configuration-schema.md)
+(the contract), [device-configuration.md](device-configuration.md) (the rules
+around it) and `configurator/src/renderer/src/features/configuration/` (the
+editor).
 
-## Що вже є
+## What exists
 
-- Віджети `text`, `shape` і `bar`.
-- Абсолютна геометрія в логічних пікселях, drag/resize на прев'ю, порядок за
-  `z_index`.
-- Інспектор на основі схеми плюс розширений JSON-редактор над тим самим
-  чернетковим документом.
-- До трьох джерел на віджет із згенерованого каталогу телеметрії (227 полів),
-  які рендеряться по черзі в один рядок. У кожного джерела свій обмежений список
-  модифікаторів з єдиним `lap_timer` і свій опційний трансформ: `time` для
-  тривалостей, `number` для точності, множника, зсуву та одиниць. Префікс і
-  суфікс належать самому трансформу, тож працюють і без нього — саме вони
-  розділяють сусідні джерела.
-- Правила умовного стилю на будь-якому віджеті з фреймом (`text`, `shape`,
-  `bar`): до чотирьох правил над одним полем, яке віджет може й не показувати;
-  колір значення, фон, колір рамки, приховування та блимання.
-- Шрифти: завантажується обличчя на родину, будь-який `size_px` растеризується на
-  платі без перезавантаження.
-- Live apply перебудовує дешборд на підключеній платі без запису у флеш і без
-  перезавантаження — прямого аналога в SimHub немає.
+- Widget types `text`, `shape`, `bar`, `arc`, `indicator`, `graph` and `image`.
+- Absolute geometry in logical pixels, drag and resize on the preview, stacking
+  by `z_index`.
+- A schema-backed inspector plus an advanced JSON editor over the same draft
+  document.
+- Up to three sources per text widget from the generated telemetry catalog (227
+  fields), rendered in order into one string. Each source has its own bounded
+  modifier list — `lap_timer` is the only modifier — and its own optional
+  transform: `time` for durations, `number` for precision, scale, offset and
+  units. Prefix and suffix belong to the transform itself, so they work without
+  one, and they are what separates neighbouring sources.
+- Conditional styling rules on every widget with a frame: up to four rules over
+  one field the widget need not display, setting content colour, background,
+  border colour, hiding and blinking.
+- Value-driven colour ramps (up to four stops over the same watched source) and
+  linear gradients for the frame background and the bar fill.
+- Fonts: one uploaded face per family, and any `size_px` is rasterized on the
+  board without a reboot.
+- Uploaded images, converted in the configurator to the layout and the size the
+  device draws.
+- Live apply rebuilds the dashboard on a connected board without writing flash
+  and without a reboot — SimHub has no direct equivalent.
 
-## Прогалини
+## Gaps
 
-### 1. Типи віджетів
+### 1. Widget types
 
-Є `text`, `shape`, `bar`, `arc`, `indicator`, `graph` і `image`. Спеціалізованого
-віджета дельти більше немає: він авториться текстом зі знаковим трансформом і
-баром із центрованим `origin`.
-Немає: таблиць.
+Available: `text`, `shape`, `bar`, `arc`, `indicator`, `graph` and `image`.
+There is no dedicated delta widget any more: a delta is authored from a text
+widget with a signed transform plus a bar with a centred `origin`.
+Missing: tables.
 
-Кожен тип потребує реалізації на LVGL, compile-time дескриптора згідно
-[ADR 0015](adr/0015-widget-descriptors.md) і запису в схемі. Це робота у
-фірмварі; конфігуратор іде за згенерованим контрактом.
+Every type needs an LVGL implementation, a compile-time descriptor per
+[ADR 0015](adr/0015-widget-descriptors.md) and an entry in the schema. That is
+firmware work; the configurator follows the generated contract.
 
-### 2. Формули та вирази над телеметрією
+### 2. Formulas and expressions over telemetry
 
-Пайплайн значення — до трьох джерел на віджет, кожне зі своїм списком
-модифікаторів і своїм трансформом. Лінійна арифметика вже закрита: трансформ
-`number` дає знаки після коми, множник і зсув, тобто й конверсії одиниць
-(km/h → mph, °C → °F, kPa → psi), а імена одиниць живуть лише в конфігураторі.
-Складання кількох полів в один рядок теж є: `P 3/24` — це джерело позиції та
-джерело кількості учасників із префіксом `/`, без жодної форматної строки
-([ADR 0012](adr/0012-value-bindings-and-time-transforms.md)). Немає:
+The value pipeline is up to three sources per widget, each with its own
+modifier list and its own transform. Linear arithmetic is covered: the `number`
+transform provides decimals, a multiplier and an offset, which is also how unit
+conversion works (km/h → mph, °C → °F, kPa → psi), and unit names live only in
+the configurator. Composing several fields into one string is covered too:
+`P 3/24` is a position source and a participant-count source with a `/` prefix,
+with no format string involved
+([ADR 0012](adr/0012-value-bindings-and-time-transforms.md)). Missing:
 
-- умовних виразів.
+- conditional expressions.
 
-SimHub розв'язує це формулами NCalc і JavaScript на будь-якій властивості.
-Інтерпретатор у фірмварі суперечить правилу «жодних алокацій у періодичному
-шляху», тож напрям той самий, що дав `number`: декларативні обмежені
-трансформи. Потрібне явне рішення (ADR) до реалізації.
+SimHub solves this with NCalc and JavaScript formulas on any property. An
+interpreter in the firmware contradicts the "no allocation in the periodic path"
+rule, so the direction is the one that produced `number`: declarative bounded
+transforms. This needs an explicit decision (an ADR) before implementation.
 
-### 3. Умовний та анімований стиль
+### 3. Conditional and animated styling
 
-Колір за порогом, приховування за умовою і блимання вже є: правила живуть на
-`WidgetFrame`, тож їх має кожен віджет із фреймом. Віджет стежить за одним полем
-телеметрії (незалежним від того, що показує) і має до чотирьох правил; перше, що
-спрацювало, задає колір вмісту, фон, колір рамки, видимість і період блимання,
-решта лишається як в авторському стилі
-([ADR 0017](adr/0017-conditional-widget-styling.md)). Що саме означає «колір
-вмісту», вирішує тип: текст фарбує напис, bar — свою заливку. Під правилами є
-колірна рампа: до чотирьох опорних точок на тому самому джерелі, між якими колір
-інтерполюється — правило, що спрацювало, її перекриває. Є й лінійні градієнти
-(фон рамки та заливка бара). Немає: кривих анімації та тригерів.
+Colour by threshold, hiding by condition and blinking all exist. The rules live
+on `WidgetFrame`, so every widget with a frame has them. A widget watches one
+telemetry field (independent of what it displays) and carries up to four rules;
+the first one that matches sets content colour, background, border colour,
+visibility and blink period, and everything it leaves unset stays as authored
+([ADR 0017](adr/0017-conditional-widget-styling.md)). What "content colour"
+means is the widget type's own business: text paints its label, a bar its fill.
+Under the rules sits a colour ramp: up to four stops over the same source, with
+the colour interpolated between them — a matching rule paints over it. Linear
+gradients exist as well (frame background and bar fill). Missing: animation
+curves and triggers.
 
-### 4. Кілька екранів і навігація
+### 4. Multiple screens and navigation
 
-`kMaximumScreens` дорівнює 1. Масив `screens` уже існує як примітив композиції
-([ADR 0014](adr/0014-screen-as-composition-primitive.md)), тобто структура
-готова, але немає ні другого екрана, ні перемикання за телеметрією, кнопкою чи
-тачем. Заблоковано підсистемою вводу, а не редактором.
+`kMaximumScreens` is 1. The `screens` array already exists as a composition
+primitive ([ADR 0014](adr/0014-screen-as-composition-primitive.md)), so the
+structure is ready, but there is no second screen and no switching by telemetry,
+button or touch. This is blocked by the input subsystem rather than by the
+editor.
 
-### 5. Графічні ассети
+### 5. Graphical assets
 
-Є: партиція `image_assets` на 4 MiB, формат `SCIA`, завантаження тими самими
-кадрами `SCF1` під простором `@SC:IMAGE:`, конвертація в конфігураторі
-(RGB565 / RGB565A8 / A8) і віджет `image`
-([ADR 0018](adr/0018-uploaded-image-assets.md)). Пристрій нічого не декодує:
-зображення приходить у тому вигляді й розмірі, в якому малюється.
+Available: a 4 MiB `image_assets` partition, the `SCIA` format, upload over the
+same `SCF1` frames under the `@SC:IMAGE:` namespace, conversion in the
+configurator (RGB565 / RGB565A8 / A8) and the `image` widget
+([ADR 0018](adr/0018-uploaded-image-assets.md), [image-assets.md](image-assets.md)).
+The device decodes nothing: an image arrives in the layout and at the size it is
+drawn at.
 
-Немає: індексованої палітри (формат її приймає, але конфігуратор поки не
-квантує) і спрайтових атласів.
+Missing: an indexed palette (the format accepts one, but the configurator does
+not quantize yet) and sprite atlases.
 
-### 6. UX самого редактора
+### 6. Editor UX
 
-Є: undo/redo з групуванням жесту в один запис, copy/paste/duplicate (буфер —
-JSON, тож і між проєктами), зсув стрілками, видалення з клавіатури, множинний
-вибір гумкою та Shift, вирівнювання й рівномірний розподіл, прив'язка до сітки
-й до країв сусідів із напрямними, зум із панорамуванням, панель шарів із
-перетягуванням порядку, перейменуванням та lock/hide.
+Available: undo/redo with a whole gesture grouped into one entry,
+copy/paste/duplicate (the clipboard is JSON, so it crosses projects), arrow-key
+nudging, keyboard deletion, multi-select by rubber band and Shift, alignment and
+even distribution, snapping to a grid and to neighbouring edges with guides,
+zoom with panning, and a layer panel with drag reordering, renaming and
+lock/hide.
 
-Немає: групування (як окремої сутності документа).
+Missing: grouping (as a separate document entity).
 
-Уся ця група — чиста робота конфігуратора: без змін схеми й фірмвари. Стан
-редактора (замки, приховування, сітка, зум) свідомо не потрапляє в документ:
-валідатор відхиляє невідомі властивості, а прихований шар — це не прихований
-віджет.
+This whole group is pure configurator work: no schema and no firmware changes.
+Editor state (locks, hiding, grid, zoom) deliberately stays out of the document:
+the validator rejects unknown properties, and a hidden layer is not a hidden
+widget.
 
-### 7. Прев'ю з живими значеннями
+### 7. Preview with live values
 
-Є режим відтворення: канвас програє синтетичне коло, де поля узгоджені між
-собою (передача йде за швидкістю, оберти — за передачею), з паузою і
-перемоткою, і окремий режим «немає даних» для перевірки `unavailable_text`.
-Форматування значень дзеркальне до фірмвари, включно з округленням half away
-from zero, тож прев'ю показує ті самі рядки, що й плата. Умовні правила й
-колірна рампа обчислюються тут же.
+A playback mode exists: the canvas runs a synthetic lap in which the fields are
+coherent with each other (speed follows gear, engine speed follows gear), with
+pause and scrubbing, plus a separate "no data" mode for checking
+`unavailable_text`. Value formatting mirrors the firmware, including half-away-
+from-zero rounding, so the preview shows the same strings the board does.
+Conditional rules and the colour ramp are evaluated there as well.
 
-Живої телеметрії з гри немає і не планується: у `@SC:` немає команди читання
-значень, а поки триває сесія, порт належить SimHub.
+Live telemetry from the game does not exist and is not planned: `@SC:` has no
+command for reading values, and while a session is running the port belongs to
+SimHub.
 
-### 8. Шаблони й портованість
+### 8. Templates and portability
 
-Немає бібліотеки шаблонів дешбордів і немає перенесення дешборда між платами.
-Геометрія — абсолютні пікселі, тож розкладку 320×170 доводиться перебивати
-руками під 1024×600.
+There is no dashboard template library and no way to move a dashboard between
+boards. Geometry is absolute pixels, so a 320×170 layout has to be redone by
+hand for 1024×600.
 
-### 9. Деталі стилю
+### 9. Style details
 
-Bold та italic — окремі родини, бо родина завантажується одним файлом обличчя.
+Bold and italic are separate families, because a family is uploaded as a single
+face file.
 
-## Свідомі обмеження
+## Deliberate limitations
 
-Прозорість (кольори лишаються непрозорими `#RRGGBB`), обертання, тіні та
-авто-підгонка тексту під бокс — виключені рішенням, а не відкладені. Прозорість
-не потрібна продукту, а пакування `#RRGGBBAA` зробило б `#FFFFFFFF`
-невідрізнимим від сентинела `kTransparentColor`; обертання вміє лише `lv_image`
-і воно вимикає PPA на ESP32-P4, тож повернуте зображення готується під час
-конвертації; тінь — це щокадровий блюр у direct mode; авто-підгонка б'ється з
-попереднім прогріванням гліфів ([ADR 0010](adr/0010-uploaded-font-assets.md)),
-тому замість неї віджет повідомляє потрібний йому розмір.
+Transparency (colours stay opaque `#RRGGBB`), rotation, shadows and auto-fitting
+text to its box are excluded by decision rather than deferred. Transparency is
+not needed by the product, and packing `#RRGGBBAA` would make `#FFFFFFFF`
+indistinguishable from the `kTransparentColor` sentinel; only `lv_image` can
+rotate and doing so disables the PPA on the ESP32-P4, so a rotated image is
+prepared during conversion; a shadow is a per-frame blur in direct mode; and
+auto-fitting fights glyph pre-warming ([ADR 0010](adr/0010-uploaded-font-assets.md)),
+so a widget reports the size it needs instead.
 
-Покласові ліміти віджетів на екран (32 текстових, 24 shape, 16 bar, 8 arc,
-4 indicator, 2 graph), 3 джерела на віджет, рядки по 15 байт і 4 модифікатори на
-джерело — це межі вбудованої системи, а не недоробки. `kMaximumWidgetsPerScreen`
-дорівнює сумі покласових лімітів, тож окремої межі на екран немає. Payload
-64 KB і документи в PSRAM більше не є вузьким місцем; вузьким лишається
-внутрішній RAM під стан віджетів, тож підняття конкретного ліміту — це рішення
-про бюджет RAM.
+The per-class widget caps for the dashboard (32 text, 24 shape, 16 bar, 8 arc,
+4 indicator, 2 graph, 8 image), 3 sources per widget, 15-byte strings and 4
+modifiers per source are embedded-system limits rather than unfinished work.
+`kMaximumWidgetsPerScreen` equals the sum of the per-class caps, so there is no
+separate per-screen limit. The 64 KB payload and documents in PSRAM are no
+longer the bottleneck; what still is, is internal RAM for widget state, so
+raising a particular cap is a decision about the RAM budget.
 
-## Рекомендований порядок
+## Recommended order
 
-1. ~~**Форматування чисел** — знаки після коми, множник і зсув, одиниці.~~
-   Зроблено: трансформ `number`.
-2. ~~**Умовний колір і видимість** — закриває rev-lights, попередження, ABS/TC.~~
-   Зроблено: правила стилю на віджеті.
-3. ~~**Bar, arc/gauge, indicator strip**~~ Зроблено, плюс `shape` і `graph`.
-4. ~~**UX редактора**~~ Зроблено.
-5. **Зображення та кілька екранів** — окремі великі етапи, кожен зі своїм ADR.
+1. ~~**Number formatting** — decimals, multiplier and offset, units.~~
+   Done: the `number` transform.
+2. ~~**Conditional colour and visibility** — covers rev lights, warnings,
+   ABS/TC.~~ Done: styling rules on the widget.
+3. ~~**Bar, arc/gauge, indicator strip**~~ Done, plus `shape` and `graph`.
+4. ~~**Editor UX**~~ Done.
+5. ~~**Images**~~ Done: the uploaded image pipeline and the `image` widget.
+6. **Multiple screens** — a large stage of its own, with its own ADR, blocked by
+   the input subsystem.
 
-Пункт 5 змінює `configuration/configuration_schema.json` і фірмвару, тож
-потребує ADR (або оновлення наявного) до реалізації.
+Item 6 changes `configuration/configuration_schema.json` and the firmware, so it
+needs an ADR (or an update to an existing one) before implementation.

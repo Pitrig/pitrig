@@ -95,8 +95,13 @@ restart.
 
 ## Serial upload protocol
 
-The upload protocol shares the selected telemetry serial transport. The host
-can query persisted asset state without starting an upload:
+The upload protocol shares the selected telemetry serial transport. It also
+shares one binary session with the image upload defined in
+[Image asset storage](image-assets.md), which reuses these frames under the
+`@SC:IMAGE:` namespace: whichever kind claims the stream first owns it, and the
+other is answered `busy`.
+
+The host can query persisted asset state without starting an upload:
 
 ```text
 @SC:FONT:INFO

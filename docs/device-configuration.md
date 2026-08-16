@@ -285,11 +285,72 @@ to an untransformed value too; each is limited to 15 UTF-8 bytes, and a value
 long enough to crowd them out keeps its own text. Incompatible binding,
 modifier, and transform types are rejected before the dashboard is created.
 
+## Widgets that map one source
+
+`text` composes its sources into a string; the other telemetry-driven widgets
+consume one source and map it through an input window instead. That window is
+`minimum` and `maximum` on the widget itself, in the binding's own units —
+`ValueRange` is flattened, so those are plain widget properties — and the
+resulting fraction is clamped, so a value outside the window reads as full or
+empty rather than overflowing. The source is read as a number the same way a
+condition source is: booleans as 0 and 1, and a text-formatted field parsed the
+way the `number` transform parses one.
+
+```json
+{
+  "type": "bar",
+  "id": "rpm_bar",
+  "source": { "binding": "engine.rpm" },
+  "minimum": 0,
+  "maximum": 8000,
+  "orientation": "horizontal",
+  "fill_color": "#00C853"
+}
+```
+
+- `bar` fills the frame from `origin` — the value inside the window the fill
+  grows out of, which is what makes a centred delta bar — along `orientation`,
+  optionally `inverted`. The frame background is the track, so a bar needs no
+  track colour of its own, and `fill_grad_color` gives the fill a linear
+  gradient.
+- `arc` sweeps `sweep_deg` degrees from `start_angle_deg` at `thickness_px`,
+  over an optional `track_color`.
+- `indicator` lights up to 16 `segments`, each with its own `color` and its own
+  `threshold` on the mapped fraction, spaced by `segment_gap_px` and rounded by
+  `segment_radius_px`; unlit lamps use `off_color`, and the strip flashes at
+  `blink_ms` once the fraction reaches `blink_threshold`, whose default of `2`
+  is outside the clamped fraction and therefore never blinks.
+- `graph` keeps `point_count` samples taken every `sample_interval_ms` and draws
+  them as a `line_width_px` trace in `line_color`. The history is presentation
+  state the widget samples for itself; nothing else can read it.
+- `shape` and `image` bind no telemetry of their own. A shape is a `rectangle`
+  or an `ellipse` — a line is a thin rectangle — and an image names an uploaded
+  asset through `image`, optionally tinted with `recolor` at `recolor_opa`.
+
+Defaults and ranges for all of these are in
+[configuration-schema.md](configuration-schema.md).
+
+## Uploaded images
+
+An `image` widget draws an uploaded asset by identifier. The device holds no
+decoder: the configurator converts the source PNG, JPEG or BMP into the pixel
+layout the display draws and into the size the widget uses, so resizing the
+widget re-converts the artwork rather than scaling it on the board. Images are
+neither scaled nor rotated at runtime, which is also what keeps the ESP32-P4 on
+its accelerated draw path.
+
+Image identifiers follow the font-family rule: 1 to 31 lowercase ASCII letters,
+digits, `_`, or `-`. Resolution is exact — a configuration naming an image the
+device does not hold is rejected before it replaces the running dashboard,
+exactly like a missing font family. The package format and its upload protocol
+are defined in [Image asset storage](image-assets.md); installing a package
+requires a reboot before its images can be drawn.
+
 ## Conditional styling
 
-A text widget may watch one telemetry field and restyle itself from it. The
-watched field is independent of what the widget displays, which is what makes a
-shift indicator possible:
+Every widget with a frame — which is every widget type — may watch one telemetry
+field and restyle itself from it. The watched field is independent of what the
+widget displays, which is what makes a shift indicator possible:
 
 ```json
 {
@@ -315,6 +376,10 @@ priority. `op` is `above`, `at_or_above`, `below`, `at_or_below`, `equal`, or
 `not_equal`, compared against `value`. A rule may set `color`,
 `background_color`, `border_color`, `hidden`, and `blink_ms`; up to four rules
 per widget.
+
+`color` is the widget's content colour, and what content means is the type's own
+business: text paints its label, a bar and an arc their fill, a graph its line,
+a shape its border, and an image its recolor tint.
 
 A colour left out of a rule keeps the widget's static colour, which also means a
 rule cannot clear a background it did not paint. A widget that needs to switch
@@ -350,6 +415,40 @@ paints the background, so a widget that turns red keeps its frame visible
 instead of flooding to the edge. It applies to the authored background and to
 one a rule paints, and the inset area shows whatever is behind the widget.
 
+## Colour ramps and gradients
+
+A `color_ramp` interpolates a colour from the same watched source rather than
+switching it at a threshold. Its `target` selects what the colour paints —
+`content`, `background`, or `border` — and up to four `stops` anchor it:
+
+```json
+{
+  "condition_source": { "binding": "tyre.front_left.temperature" },
+  "color_ramp": {
+    "target": "background",
+    "stops": [
+      { "at": 60, "color": "#0091EA" },
+      { "at": 85, "color": "#00C853" },
+      { "at": 105, "color": "#D50000" }
+    ]
+  }
+}
+```
+
+Below the first stop and above the last one the ramp holds that stop's colour,
+so a value outside the authored band reads as its nearest edge. The ramp is the
+base layer: a matching rule paints over it, and with fewer than two stops or an
+unavailable value the authored colour stands.
+
+Gradients are static rather than value-driven. `background_grad_color` with
+`background_grad_dir` gives the frame background a linear gradient along the
+`horizontal` or `vertical` axis, and `fill_grad_color` does the same for a bar
+fill. A gradient needs a background to run over, so it is drawn only where a
+background colour is authored, and a rule or a ramp that repaints the background
+replaces the near colour while the authored gradient stays.
+
+## Authoring in the configurator
+
 Supported bindings are listed in the generated
 [telemetry catalog](telemetry-catalog.md). The configurator exposes these fields
 through a searchable binding input and shows the selected field's category,
@@ -361,8 +460,8 @@ properties in the inspector. Dragging and resizing write absolute logical
 `x`, `y`, `width`, and `height` values and keep the widget within the immutable
 display bounds. Selecting empty canvas space exposes the screen-level opaque
 `background_color`. The advanced JSON editor remains available and edits the
-same draft used by the canvas, validation, font dependency check, and save
-flow.
+same draft used by the canvas, validation, the font and image dependency checks,
+and the save flow.
 
 Every widget may define `z_index` from `-32768` through `32767`. Larger values
 render above smaller values. Missing values default to zero; equal values use
@@ -372,7 +471,9 @@ remain identical.
 The preview toolbar exposes one button per widget type plus `Duplicate`, undo,
 redo and `Delete`. Adding a widget creates it with only a centered placement
 (clamped for smaller displays), leaving its content and style fields unset for
-explicit configuration in the inspector.
+explicit configuration in the inspector; a new image widget is the one exception
+and starts on the first installed image, because an image widget without one has
+nothing to draw.
 
 The preview can draw a synthetic lap in place of telemetry, which is what makes
 conditional styling and colour ramps visible while authoring: the values are
@@ -405,6 +506,8 @@ and duplicate. A copied widget travels as JSON through the system clipboard, so
 it can be pasted into another project; a pasted fragment is validated against
 the same schema allow-list the device payload uses.
 
+## Fonts
+
 Production firmware exposes no compiled dashboard font families. Every widget
 font reference uses a stable family identifier plus `size_px` and resolves to
 an uploaded TTF or OTF face that the device rasterizes at the requested size.
@@ -427,7 +530,9 @@ can be selected; changing only a `size_px` of an installed family requires
 neither an upload nor a restart. Before applying a configuration, the
 configurator compares its required families with the device catalog. When a
 family is missing it collects one TTF/OTF source per family, replaces the
-complete package, and then saves the configuration.
+complete package, and then saves the configuration. Images are checked the same
+way against the installed image package, and firmware repeats both checks before
+it lets a configuration replace the running dashboard.
 
 ## Device information
 
@@ -435,7 +540,7 @@ complete package, and then saves the configuration.
 
 ```text
 @SC:INFO
-@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=2,source=factory,generation=0,storage=1
+@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=5,source=factory,generation=0,storage=1
 ```
 
 Fields:
@@ -462,10 +567,13 @@ currently used by modules and widgets.
 ## Control commands
 
 The configuration protocol remains line-oriented and shares the selected
-telemetry serial transport. Font package upload temporarily switches that same
-transport into the binary stop-and-wait mode defined in
-[Font asset storage](font-assets.md); it is not a configuration command and its
-bytes are never stored in configuration NVS.
+telemetry serial transport. Asset upload temporarily switches that same
+transport into a binary stop-and-wait mode: `@SC:FONT:` for font packages
+(see [Font asset storage](font-assets.md)) and `@SC:IMAGE:` for image packages
+(see [Image asset storage](image-assets.md)). The two share one binary session,
+so an upload that starts while another is running is answered `busy` rather than
+interleaved. Neither is a configuration command, and their bytes are never
+stored in configuration NVS.
 
 | Request | Successful response | Purpose |
 | --- | --- | --- |
@@ -504,11 +612,14 @@ Top-level properties:
 | `dashboard.screens` | array, optional | Bounded screen list; currently at most one entry. |
 
 Nested property names use snake case. Placement uses `x`, `y`, `width`, and
-`height`; widget stacking uses `z_index`; font uses `family` and `size_px`. UART settings use `port`, `tx_pin`,
-`rx_pin`, `baud_rate`, and `silence_esp_logs`. Style properties follow the
-names used in the sparse example, including `faster_color`,
-`slower_color`, `neutral_color`, `background_color`, `width_px`, `radius_px`,
-and `offset_y_px`.
+`height`; widget stacking uses `z_index`; font uses `family` and `size_px`; a
+mapped source uses `minimum` and `maximum`. UART settings use `port`, `tx_pin`,
+`rx_pin`, `baud_rate`, and `silence_esp_logs`. Style properties follow the names
+used in the sparse examples, including `background_color`,
+`background_grad_color`, `background_grad_dir`, `background_inset_px`,
+`fill_color`, `fill_grad_color`, `width_px`, `radius_px`, and `offset_y_px`. The
+complete property table is generated into
+[configuration-schema.md](configuration-schema.md).
 
 The current board mappings expose GPIO 43 for UART TX and GPIO 44 for UART RX;
 other pairs are rejected to prevent collisions with display, flash, PSRAM,

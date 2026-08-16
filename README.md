@@ -30,9 +30,9 @@ pnpm run dev
 ```
 
 The configurator identifies the connected board, reports its read-only display
-descriptor, loads and previews its sparse schema 3 configuration, validates and
-saves configuration changes, manages uploaded font assets, and can reset or
-reboot the device.
+descriptor, loads and previews its sparse schema 5 configuration, validates and
+saves configuration changes, manages uploaded font and image assets, and can
+reset or reboot the device.
 
 See [docs/device-configuration.md](docs/device-configuration.md) for the public
 schema, validation behavior, control protocol, and recovery order.

@@ -215,6 +215,8 @@ What every widget type owns regardless of what it draws: where it sits, how it i
 
 Reusable telemetry text widget. Renders its ordered sources as one string.
 
+Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
+
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `text` | required |
@@ -234,6 +236,8 @@ Input window a widget maps its source through. The fraction is clamped, so a val
 
 One telemetry source drawn as a filled proportion of the widget. The frame background is the track the fill runs over, so a bar needs no track colour of its own.
 
+Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](#valuerange), flattened: they are plain properties of this object in JSON.
+
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `bar` | required |
@@ -247,6 +251,8 @@ One telemetry source drawn as a filled proportion of the widget. The frame backg
 ### ArcWidgetConfiguration
 
 One telemetry source swept around an arc. The track is the arc's own background, so a gauge needs no shape behind it.
+
+Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](#valuerange), flattened: they are plain properties of this object in JSON.
 
 | Property | Type | Default |
 | --- | --- | --- |
@@ -272,6 +278,8 @@ One lamp in an indicator strip.
 
 A row of lamps that light as one telemetry source climbs its range: shift lights, a rev strip, a stint marker.
 
+Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](#valuerange), flattened: they are plain properties of this object in JSON.
+
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `indicator` | required |
@@ -288,6 +296,8 @@ A row of lamps that light as one telemetry source climbs its range: shift lights
 
 A rolling trace of one telemetry source. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it.
 
+Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](#valuerange), flattened: they are plain properties of this object in JSON.
+
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `graph` | required |
@@ -301,6 +311,8 @@ A rolling trace of one telemetry source. The history is presentation state the w
 
 An uploaded image drawn inside the frame. It binds no telemetry of its own, but its styling rules can hide it, flash it or recolour it. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4.
 
+Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
+
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `image` | required |
@@ -311,6 +323,8 @@ An uploaded image drawn inside the frame. It binds no telemetry of its own, but 
 ### ShapeWidgetConfiguration
 
 Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle.
+
+Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
 
 | Property | Type | Default |
 | --- | --- | --- |
@@ -336,6 +350,8 @@ Owns the typed widget storage as one pool shared by every screen; a screen holds
 | `screens` | array of [`ScreenConfiguration`](#screenconfiguration), max 1 | absent |
 
 ### ApplicationConfiguration
+
+Also carries the properties of [`BoardConfiguration`](#boardconfiguration), flattened: they are plain properties of this object in JSON.
 
 | Property | Type | Default |
 | --- | --- | --- |

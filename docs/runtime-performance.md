@@ -67,7 +67,9 @@ path, and FreeRTOS runtime statistics remain disabled.
 - **Uptime**, and the transport counters **Link** (bytes and reads per second),
   **Queue**, **Overflow**, **Gap**/**Handler** (worst read gap and handler time
   since boot), and **Stack** (free bytes of the LVGL, transport, configuration,
-  font-asset and sampler tasks).
+  asset-upload and sampler tasks). The font and image upload tasks share one
+  stack figure, reported as the smaller of the two, because only one of them can
+  own the serial link at a time.
 
 The service owns measurement and aggregation. The dashboard widget only reads
 the latest statistics snapshot and formats it for display.
