@@ -1,31 +1,67 @@
 {
   "board": "guition_esp32_4848s040",
-  "delta_time": {
-    "scale": {
-      "enabled": true,
-      "show_sign": true,
-      "range_ms": 5000
-    }
-  },
   "dashboard": {
     "screens": [
       {
         "widgets": [
           {
-            "type": "delta_time",
+            "type": "bar",
+            "id": "wmsw2jdjr2se",
             "placement": {
               "x": 148,
               "y": 8,
               "width": 184,
               "height": 52
             },
-            "font": {
-              "family": "roboto-black",
-              "size_px": 32
+            "z_index": 0,
+            "source": {
+              "binding": "session.lap.delta"
             },
-            "faster_color": "#00F020",
-            "slower_color": "#FF4040",
-            "neutral_color": "#FFE04A"
+            "minimum": -5000,
+            "maximum": 5000,
+            "origin": 0,
+            "fill_color": "#FFE04A"
+          },
+          {
+            "type": "text",
+            "placement": {
+              "x": 148,
+              "y": 8,
+              "width": 184,
+              "height": 52
+            },
+            "z_index": 1,
+            "sources": [
+              {
+                "binding": "session.lap.delta",
+                "transform": {
+                  "type": "time",
+                  "format": "signed_duration_ms"
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 32
+              },
+              "color": "#FFE04A"
+            },
+            "condition_source": {
+              "binding": "session.lap.delta"
+            },
+            "conditions": [
+              {
+                "op": "below",
+                "value": 0,
+                "color": "#00F020"
+              },
+              {
+                "op": "above",
+                "value": 0,
+                "color": "#FF4040"
+              }
+            ]
           },
           {
             "type": "text",

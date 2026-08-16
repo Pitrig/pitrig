@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 
 #include "application_configuration.hpp"
 #include "font_asset_types.hpp"
@@ -26,12 +27,18 @@ struct Rect {
 
 using Placement = configuration::WidgetPlacement;
 
-// The screen a widget is placed on, and the display that screen belongs to.
-// Geometry resolves against the screen, so adding screens later changes the
-// collection that produces this, not the widgets that consume it.
+// The screens a dashboard renders on, and the display they belong to. Widget
+// storage is one dashboard-wide pool, so a widget names the screen it belongs
+// to and the parent is resolved per widget rather than per collection.
 struct Layout {
   lv_display_t* display{};
-  lv_obj_t* screen{};
+  std::span<lv_obj_t* const> screens{};
+
+  // Null for an index no screen was created for, which the caller reports as a
+  // failed placement rather than parenting the widget somewhere arbitrary.
+  [[nodiscard]] lv_obj_t* screen(const std::uint8_t index) const {
+    return index < screens.size() ? screens[index] : nullptr;
+  }
 };
 
 }  // namespace simcore::dashboard

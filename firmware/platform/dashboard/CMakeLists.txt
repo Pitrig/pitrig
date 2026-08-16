@@ -6,8 +6,10 @@ set(component_sources
     "layout/src/dashboard_layout.cpp"
     "utilities/boot_splash/src/boot_splash.cpp"
     "utilities/render_trigger/src/render_trigger.cpp"
-    "widgets/delta_time/src/delta_time_widget.cpp"
+    "widgets/arc/src/arc_widget.cpp"
     "widgets/bar/src/bar_widget.cpp"
+    "widgets/graph/src/graph_widget.cpp"
+    "widgets/indicator/src/indicator_widget.cpp"
     "widgets/shape/src/shape_widget.cpp"
     "widgets/text/src/text_widget.cpp"
     "widgets/text/src/widget_binding.cpp"
@@ -21,8 +23,10 @@ set(component_include_dirs
     "layout/include"
     "utilities/boot_splash/include"
     "utilities/render_trigger/include"
-    "widgets/delta_time/include"
+    "widgets/arc/include"
     "widgets/bar/include"
+    "widgets/graph/include"
+    "widgets/indicator/include"
     "widgets/shape/include"
     "widgets/text/include"
     "widgets/performance_overlay/include")
@@ -38,7 +42,7 @@ idf_component_register(
     SRCS ${component_sources}
     INCLUDE_DIRS ${component_include_dirs}
     EMBED_FILES ${boot_splash_asset}
-    REQUIRES configuration_contract delta_time font_assets lvgl__lvgl telemetry
+    REQUIRES configuration_contract font_assets lvgl__lvgl telemetry
     PRIV_REQUIRES display esp_lvgl_port esp_timer heap logger number_transform
                   performance simcore_config text_writer time_transform
                   transport)

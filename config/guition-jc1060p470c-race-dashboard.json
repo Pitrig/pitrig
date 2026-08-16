@@ -1,13 +1,5 @@
 {
   "board": "guition_jc1060p470c",
-  "delta_time": {
-    "unavailable_behavior": "zero",
-    "scale": {
-      "enabled": true,
-      "show_sign": true,
-      "range_ms": 2000
-    }
-  },
   "dashboard": {
     "screens": [
       {
@@ -144,27 +136,69 @@
             ]
           },
           {
-            "type": "delta_time",
-            "id": "delta",
-            "z_index": 10,
+            "type": "bar",
+            "id": "wmsw2jdjswg",
             "placement": {
               "x": 404,
               "y": 8,
               "width": 216,
               "height": 86
             },
-            "font": {
-              "family": "roboto-black",
-              "size_px": 44
+            "z_index": 10,
+            "source": {
+              "binding": "session.lap.delta"
             },
-            "faster_color": "#00E000",
-            "slower_color": "#FF0000",
-            "neutral_color": "#FFD200",
-            "scale": {
-              "vertical_padding_px": 3,
-              "border_width_px": 2,
-              "border_radius_px": 8
+            "minimum": -2000,
+            "maximum": 2000,
+            "origin": 0,
+            "fill_color": "#FFD200",
+            "border": {
+              "width_px": 2,
+              "radius_px": 8,
+              "color": "#FFD200"
             }
+          },
+          {
+            "type": "text",
+            "id": "delta",
+            "placement": {
+              "x": 404,
+              "y": 8,
+              "width": 216,
+              "height": 86
+            },
+            "z_index": 11,
+            "sources": [
+              {
+                "binding": "session.lap.delta",
+                "transform": {
+                  "type": "time",
+                  "format": "signed_duration_ms"
+                }
+              }
+            ],
+            "value": {
+              "font": {
+                "family": "roboto-black",
+                "size_px": 44
+              },
+              "color": "#FFD200"
+            },
+            "condition_source": {
+              "binding": "session.lap.delta"
+            },
+            "conditions": [
+              {
+                "op": "below",
+                "value": 0,
+                "color": "#00E000"
+              },
+              {
+                "op": "above",
+                "value": 0,
+                "color": "#FF0000"
+              }
+            ]
           },
           {
             "type": "shape",
@@ -361,7 +395,7 @@
                 "transform": {
                   "type": "number",
                   "decimals": 1,
-                  "suffix": "\u00b0"
+                  "suffix": "°"
                 }
               }
             ],
@@ -433,7 +467,7 @@
                 "transform": {
                   "type": "number",
                   "decimals": 1,
-                  "suffix": "\u00b0"
+                  "suffix": "°"
                 }
               }
             ],
@@ -505,7 +539,7 @@
                 "transform": {
                   "type": "number",
                   "decimals": 1,
-                  "suffix": "\u00b0"
+                  "suffix": "°"
                 }
               }
             ],
@@ -577,7 +611,7 @@
                 "transform": {
                   "type": "number",
                   "decimals": 1,
-                  "suffix": "\u00b0"
+                  "suffix": "°"
                 }
               }
             ],
@@ -777,7 +811,7 @@
                 "transform": {
                   "type": "number",
                   "decimals": 0,
-                  "suffix": "\u00b0 air"
+                  "suffix": "° air"
                 }
               },
               {
@@ -786,7 +820,7 @@
                   "type": "number",
                   "decimals": 0,
                   "prefix": "  ",
-                  "suffix": "\u00b0 trk"
+                  "suffix": "° trk"
                 }
               }
             ],

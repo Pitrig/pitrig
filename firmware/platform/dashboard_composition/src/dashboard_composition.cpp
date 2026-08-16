@@ -25,15 +25,34 @@ constexpr char kTag[] = "dashboard";
 constexpr std::uint32_t kMinimumStartupScreenDurationMs = 1'000;
 constexpr std::uint32_t kDefaultBackgroundColor = 0x000000;
 
-// The dashboard owns a bounded screen collection. Until screen navigation
-// exists the composition renders the first one; an absent dashboard section
-// yields a default screen with no widgets.
-// Screen navigation does not exist yet, so the single configured screen renders
-// on the display's active LVGL screen. Additional screens will be created here
-// and swapped by a future navigation path; nothing above this function needs to
+// Resolving a configured screen to an LVGL screen happens here and nowhere
+// else. Navigation does not exist yet, so the first screen renders on the
+// display's active LVGL screen; additional screens will be created here and
+// swapped by a future navigation path, and nothing above this function needs to
 // know which of those is happening.
 lv_obj_t* screen_object(lv_display_t* const display, const std::size_t index) {
   return index == 0 ? lv_display_get_screen_active(display) : nullptr;
+}
+
+// The screens a configuration asks for, in configuration order. An empty
+// dashboard still gets one, so a bare document renders a background.
+std::size_t create_screens(
+    lv_display_t* const display,
+    const configuration::ApplicationConfiguration& configuration,
+    std::span<lv_obj_t*> screens) {
+  const std::size_t count =
+      std::max<std::size_t>(configuration.dashboard.screen_count, 1);
+  std::size_t created{};
+  for (std::size_t index = 0; index < count && index < screens.size();
+       ++index) {
+    lv_obj_t* const screen = screen_object(display, index);
+    if (screen == nullptr) {
+      break;
+    }
+    screens[index] = screen;
+    ++created;
+  }
+  return created;
 }
 
 const configuration::ScreenConfiguration& active_screen(
@@ -42,6 +61,14 @@ const configuration::ScreenConfiguration& active_screen(
   return configuration.dashboard.screen_count > 0
              ? configuration.dashboard.screens[0]
              : kEmptyScreen;
+}
+
+std::uint32_t screen_background(
+    const configuration::ApplicationConfiguration& configuration,
+    const std::size_t index) {
+  return index < configuration.dashboard.screen_count
+             ? configuration.dashboard.screens[index].background_color
+             : kDefaultBackgroundColor;
 }
 
 bool will_render_content(
@@ -73,8 +100,8 @@ telemetry::TelemetryRead read_lap_timer_modifier(void* const context) {
 bool create_text_widgets(void* const context) {
   auto& widgets = *static_cast<TextWidgets*>(context);
   const std::span configurations{
-      widgets.screen->text_widgets.data(),
-      static_cast<std::size_t>(widgets.screen->text_widget_count)};
+      widgets.dashboard->text_widgets.data(),
+      static_cast<std::size_t>(widgets.dashboard->text_widget_count)};
   if (!widgets.binder.bind(configurations, *widgets.registry, *widgets.telemetry,
                            widgets.lap_timer_modifier)) {
     log::error(kTag, "Failed to resolve Text widget bindings");
@@ -99,8 +126,8 @@ lv_obj_t* text_widget_root(void* const context, const std::uint8_t index) {
 bool update_text_widget(void* const context, const std::uint8_t index) {
   auto& widgets = *static_cast<TextWidgets*>(context);
   const std::span configurations{
-      widgets.screen->text_widgets.data(),
-      static_cast<std::size_t>(widgets.screen->text_widget_count)};
+      widgets.dashboard->text_widgets.data(),
+      static_cast<std::size_t>(widgets.dashboard->text_widget_count)};
   if (index >= configurations.size()) {
     return false;
   }
@@ -123,8 +150,8 @@ void wake_text_widgets(void* const context) {
 bool create_bar_widgets(void* const context) {
   auto& widgets = *static_cast<BarWidgets*>(context);
   const std::size_t count =
-      static_cast<std::size_t>(widgets.screen->bar_widget_count);
-  const std::span configurations{widgets.screen->bar_widgets.data(), count};
+      static_cast<std::size_t>(widgets.dashboard->bar_widget_count);
+  const std::span configurations{widgets.dashboard->bar_widgets.data(), count};
   if (!widgets.binder.bind(configurations, *widgets.registry,
                            *widgets.telemetry, widgets.lap_timer_modifier)) {
     log::error(kTag, "Failed to resolve Bar widget bindings");
@@ -149,11 +176,11 @@ lv_obj_t* bar_widget_root(void* const context, const std::uint8_t index) {
 bool update_bar_widget(void* const context, const std::uint8_t index) {
   auto& widgets = *static_cast<BarWidgets*>(context);
   const std::size_t count =
-      static_cast<std::size_t>(widgets.screen->bar_widget_count);
+      static_cast<std::size_t>(widgets.dashboard->bar_widget_count);
   if (index >= count) {
     return false;
   }
-  const std::span configurations{widgets.screen->bar_widgets.data(), count};
+  const std::span configurations{widgets.dashboard->bar_widgets.data(), count};
   if (!widgets.binder.bind(configurations, *widgets.registry,
                            *widgets.telemetry, widgets.lap_timer_modifier)) {
     return false;
@@ -168,11 +195,156 @@ void wake_bar_widgets(void* const context) {
   static_cast<BarWidgets*>(context)->collection.wake();
 }
 
+bool create_arc_widgets(void* const context) {
+  auto& widgets = *static_cast<ArcWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.dashboard->arc_widget_count);
+  const std::span configurations{widgets.dashboard->arc_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    log::error(kTag, "Failed to resolve Arc widget bindings");
+    return false;
+  }
+  if (!widgets.collection.create(widgets.layout, configurations,
+                                 widgets.binder.bindings(), *widgets.fonts)) {
+    log::error(kTag, "Failed to create Arc widgets");
+    return false;
+  }
+  return true;
+}
+
+void destroy_arc_widgets(void* const context) {
+  static_cast<ArcWidgets*>(context)->collection.destroy();
+}
+
+lv_obj_t* arc_widget_root(void* const context, const std::uint8_t index) {
+  return static_cast<ArcWidgets*>(context)->collection.root_object(index);
+}
+
+bool update_arc_widget(void* const context, const std::uint8_t index) {
+  auto& widgets = *static_cast<ArcWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.dashboard->arc_widget_count);
+  if (index >= count) {
+    return false;
+  }
+  const std::span configurations{widgets.dashboard->arc_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    return false;
+  }
+  return widgets.collection.recreate(index, widgets.layout,
+                                     configurations[index],
+                                     widgets.binder.bindings()[index],
+                                     *widgets.fonts);
+}
+
+void wake_arc_widgets(void* const context) {
+  static_cast<ArcWidgets*>(context)->collection.wake();
+}
+
+bool create_indicator_widgets(void* const context) {
+  auto& widgets = *static_cast<IndicatorWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.dashboard->indicator_widget_count);
+  const std::span configurations{widgets.dashboard->indicator_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    log::error(kTag, "Failed to resolve Indicator widget bindings");
+    return false;
+  }
+  if (!widgets.collection.create(widgets.layout, configurations,
+                                 widgets.binder.bindings(), *widgets.fonts)) {
+    log::error(kTag, "Failed to create Indicator widgets");
+    return false;
+  }
+  return true;
+}
+
+void destroy_indicator_widgets(void* const context) {
+  static_cast<IndicatorWidgets*>(context)->collection.destroy();
+}
+
+lv_obj_t* indicator_widget_root(void* const context, const std::uint8_t index) {
+  return static_cast<IndicatorWidgets*>(context)->collection.root_object(index);
+}
+
+bool update_indicator_widget(void* const context, const std::uint8_t index) {
+  auto& widgets = *static_cast<IndicatorWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.dashboard->indicator_widget_count);
+  if (index >= count) {
+    return false;
+  }
+  const std::span configurations{widgets.dashboard->indicator_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    return false;
+  }
+  return widgets.collection.recreate(index, widgets.layout,
+                                     configurations[index],
+                                     widgets.binder.bindings()[index],
+                                     *widgets.fonts);
+}
+
+void wake_indicator_widgets(void* const context) {
+  static_cast<IndicatorWidgets*>(context)->collection.wake();
+}
+
+bool create_graph_widgets(void* const context) {
+  auto& widgets = *static_cast<GraphWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.dashboard->graph_widget_count);
+  const std::span configurations{widgets.dashboard->graph_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    log::error(kTag, "Failed to resolve Graph widget bindings");
+    return false;
+  }
+  if (!widgets.collection.create(widgets.layout, configurations,
+                                 widgets.binder.bindings(), *widgets.fonts)) {
+    log::error(kTag, "Failed to create Graph widgets");
+    return false;
+  }
+  return true;
+}
+
+void destroy_graph_widgets(void* const context) {
+  static_cast<GraphWidgets*>(context)->collection.destroy();
+}
+
+lv_obj_t* graph_widget_root(void* const context, const std::uint8_t index) {
+  return static_cast<GraphWidgets*>(context)->collection.root_object(index);
+}
+
+bool update_graph_widget(void* const context, const std::uint8_t index) {
+  auto& widgets = *static_cast<GraphWidgets*>(context);
+  const std::size_t count =
+      static_cast<std::size_t>(widgets.dashboard->graph_widget_count);
+  if (index >= count) {
+    return false;
+  }
+  const std::span configurations{widgets.dashboard->graph_widgets.data(), count};
+  if (!widgets.binder.bind(configurations, *widgets.registry,
+                           *widgets.telemetry, widgets.lap_timer_modifier)) {
+    return false;
+  }
+  return widgets.collection.recreate(index, widgets.layout,
+                                     configurations[index],
+                                     widgets.binder.bindings()[index],
+                                     *widgets.fonts);
+}
+
+void wake_graph_widgets(void* const context) {
+  static_cast<GraphWidgets*>(context)->collection.wake();
+}
+
+
 bool create_shape_widgets(void* const context) {
   auto& widgets = *static_cast<ShapeWidgets*>(context);
   const std::size_t count =
-      static_cast<std::size_t>(widgets.screen->shape_widget_count);
-  const std::span configurations{widgets.screen->shape_widgets.data(), count};
+      static_cast<std::size_t>(widgets.dashboard->shape_widget_count);
+  const std::span configurations{widgets.dashboard->shape_widgets.data(), count};
   // A shape binds no telemetry of its own; only its styling rules watch one.
   if (!widgets.binder.bind(configurations, *widgets.registry,
                            *widgets.telemetry, widgets.lap_timer_modifier)) {
@@ -199,11 +371,11 @@ lv_obj_t* shape_widget_root(void* const context, const std::uint8_t index) {
 bool update_shape_widget(void* const context, const std::uint8_t index) {
   auto& widgets = *static_cast<ShapeWidgets*>(context);
   const std::size_t count =
-      static_cast<std::size_t>(widgets.screen->shape_widget_count);
+      static_cast<std::size_t>(widgets.dashboard->shape_widget_count);
   if (index >= count) {
     return false;
   }
-  const std::span configurations{widgets.screen->shape_widgets.data(), count};
+  const std::span configurations{widgets.dashboard->shape_widgets.data(), count};
   if (!widgets.binder.bind(configurations, *widgets.registry,
                            *widgets.telemetry, widgets.lap_timer_modifier)) {
     return false;
@@ -217,42 +389,6 @@ bool update_shape_widget(void* const context, const std::uint8_t index) {
 
 void wake_shape_widgets(void* const context) {
   static_cast<ShapeWidgets*>(context)->collection.wake();
-}
-
-bool create_delta_time_widget(void* const context) {
-  auto& widgets = *static_cast<DeltaTimeWidgets*>(context);
-  if (widgets.module == nullptr) {
-    log::error(kTag, "Delta Time widget dependency is unavailable");
-    return false;
-  }
-  if (!widgets.view.create(widgets.layout,
-                           widgets.screen->delta_time_widgets[0],
-                           *widgets.module, *widgets.fonts)) {
-    log::error(kTag, "Failed to create Delta Time widget");
-    return false;
-  }
-  return true;
-}
-
-void destroy_delta_time_widget(void* const context) {
-  static_cast<DeltaTimeWidgets*>(context)->view.destroy();
-}
-
-lv_obj_t* delta_time_widget_root(void* const context, const std::uint8_t index) {
-  return index == 0 ? static_cast<DeltaTimeWidgets*>(context)->view.root_object()
-                    : nullptr;
-}
-
-bool update_delta_time_widget(void* const context, const std::uint8_t index) {
-  if (index != 0) {
-    return false;
-  }
-  static_cast<DeltaTimeWidgets*>(context)->view.destroy();
-  return create_delta_time_widget(context);
-}
-
-void wake_delta_time_widget(void* const context) {
-  static_cast<DeltaTimeWidgets*>(context)->view.wake();
 }
 
 // Runs on the render-trigger task with the LVGL lock held.
@@ -278,11 +414,11 @@ struct WidgetLayer {
   std::uint8_t configuration_order{};
 };
 
-bool apply_widget_z_order(
-    const configuration::ApplicationConfiguration& configuration,
-    Dashboard& dashboard) {
-  const configuration::ScreenConfiguration& screen =
-      active_screen(configuration);
+// Stacking is an order among one LVGL parent's children, so this runs once per
+// screen over that screen's own reference table. The scratch table is reused
+// between screens, which is why more screens cost no more stack.
+bool apply_screen_z_order(const configuration::ScreenConfiguration& screen,
+                          Dashboard& dashboard) {
   std::array<WidgetLayer, configuration::kMaximumWidgetsPerScreen> layers{};
   std::size_t count{};
   // Authored order breaks z_index ties, and the screen's reference table is
@@ -324,6 +460,19 @@ bool apply_widget_z_order(
   return true;
 }
 
+bool apply_widget_z_order(
+    const configuration::ApplicationConfiguration& configuration,
+    Dashboard& dashboard) {
+  const configuration::DashboardConfiguration& screens =
+      configuration.dashboard;
+  for (std::size_t index = 0; index < screens.screen_count; ++index) {
+    if (!apply_screen_z_order(screens.screens[index], dashboard)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 }  // namespace
 
 bool show_startup_screen(
@@ -341,11 +490,13 @@ template <typename Visitor>
 void for_each_configured_font(
     const configuration::ApplicationConfiguration& configuration,
     Visitor&& visit) {
-  const configuration::ScreenConfiguration& screen =
-      active_screen(configuration);
-  for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
+  // Widget storage is one pool, so every screen's fonts are covered by walking
+  // it once.
+  const configuration::DashboardConfiguration& dashboard =
+      configuration.dashboard;
+  for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
     const configuration::TextWidgetConfiguration& widget =
-        screen.text_widgets[index];
+        dashboard.text_widgets[index];
     visit(widget.value.font, widget.value.unavailable_text);
     // Affixes belong to the transform rather than to one of its types, so they
     // are rendered whatever the type is, for every source the widget composes.
@@ -360,18 +511,24 @@ void for_each_configured_font(
       visit(frame.title.font, frame.title.text);
     }
   };
-  for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
-    visit_caption(screen.text_widgets[index].frame);
+  for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
+    visit_caption(dashboard.text_widgets[index].frame);
   }
-  for (std::size_t index = 0; index < screen.shape_widget_count; ++index) {
-    visit_caption(screen.shape_widgets[index].frame);
+  for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
+    visit_caption(dashboard.shape_widgets[index].frame);
   }
-  for (std::size_t index = 0; index < screen.bar_widget_count; ++index) {
-    visit_caption(screen.bar_widgets[index].frame);
+  for (std::size_t index = 0; index < dashboard.bar_widget_count; ++index) {
+    visit_caption(dashboard.bar_widgets[index].frame);
   }
-  for (std::size_t index = 0; index < screen.delta_time_widget_count; ++index) {
-    visit(screen.delta_time_widgets[index].font,
-          configuration.delta_time.placeholder);
+  for (std::size_t index = 0; index < dashboard.arc_widget_count; ++index) {
+    visit_caption(dashboard.arc_widgets[index].frame);
+  }
+  for (std::size_t index = 0; index < dashboard.indicator_widget_count;
+       ++index) {
+    visit_caption(dashboard.indicator_widgets[index].frame);
+  }
+  for (std::size_t index = 0; index < dashboard.graph_widget_count; ++index) {
+    visit_caption(dashboard.graph_widgets[index].frame);
   }
 }
 
@@ -414,22 +571,25 @@ bool create(lv_display_t* const display,
     log::error(kTag, "Dashboard display is unavailable");
     return false;
   }
-  const configuration::ScreenConfiguration& screen_configuration =
-      active_screen(configuration);
-  lv_obj_t* const screen = screen_object(display, 0);
-  const dashboard::Layout layout{.display = display, .screen = screen};
+  dashboard_state.screens = {};
+  const std::size_t screen_count =
+      create_screens(display, configuration, dashboard_state.screens);
+  const dashboard::Layout layout{
+      .display = display,
+      .screens = std::span{dashboard_state.screens}.first(screen_count)};
   if (!lvgl_port_lock(0)) {
     log::error(kTag, "Failed to lock LVGL for dashboard background");
     return false;
   }
-  if (screen != nullptr) {
+  for (std::size_t index = 0; index < screen_count; ++index) {
+    lv_obj_t* const screen = dashboard_state.screens[index];
     lv_obj_set_style_bg_color(
-        screen, lv_color_hex(screen_configuration.background_color),
+        screen, lv_color_hex(screen_background(configuration, index)),
         LV_PART_MAIN);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
   }
   lvgl_port_unlock();
-  if (screen == nullptr) {
+  if (screen_count == 0) {
     log::error(kTag, "Dashboard screen is unavailable");
     return false;
   }
@@ -441,17 +601,32 @@ bool create(lv_display_t* const display,
   bool initialized = true;
   {
     dashboard_state.text.layout = layout;
-    dashboard_state.text.screen = &screen_configuration;
+    dashboard_state.text.dashboard = &configuration.dashboard;
     dashboard_state.text.fonts = &dashboard_state.fonts;
     dashboard_state.text.registry = &telemetry_registry;
     dashboard_state.text.telemetry = &telemetry;
     dashboard_state.bar.layout = layout;
-    dashboard_state.bar.screen = &screen_configuration;
+    dashboard_state.bar.dashboard = &configuration.dashboard;
     dashboard_state.bar.registry = &telemetry_registry;
     dashboard_state.bar.telemetry = &telemetry;
     dashboard_state.bar.fonts = &dashboard_state.fonts;
+    dashboard_state.arc.layout = layout;
+    dashboard_state.arc.dashboard = &configuration.dashboard;
+    dashboard_state.arc.registry = &telemetry_registry;
+    dashboard_state.arc.telemetry = &telemetry;
+    dashboard_state.arc.fonts = &dashboard_state.fonts;
+    dashboard_state.indicator.layout = layout;
+    dashboard_state.indicator.dashboard = &configuration.dashboard;
+    dashboard_state.indicator.registry = &telemetry_registry;
+    dashboard_state.indicator.telemetry = &telemetry;
+    dashboard_state.indicator.fonts = &dashboard_state.fonts;
+    dashboard_state.graph.layout = layout;
+    dashboard_state.graph.dashboard = &configuration.dashboard;
+    dashboard_state.graph.registry = &telemetry_registry;
+    dashboard_state.graph.telemetry = &telemetry;
+    dashboard_state.graph.fonts = &dashboard_state.fonts;
     dashboard_state.shape.layout = layout;
-    dashboard_state.shape.screen = &screen_configuration;
+    dashboard_state.shape.dashboard = &configuration.dashboard;
     dashboard_state.shape.registry = &telemetry_registry;
     dashboard_state.shape.telemetry = &telemetry;
     dashboard_state.shape.fonts = &dashboard_state.fonts;
@@ -461,11 +636,6 @@ bool create(lv_display_t* const display,
                        ? static_cast<void*>(&modules.lap_timer)
                        : nullptr,
     };
-    dashboard_state.delta_time.layout = layout;
-    dashboard_state.delta_time.screen = &screen_configuration;
-    dashboard_state.delta_time.fonts = &dashboard_state.fonts;
-    dashboard_state.delta_time.module =
-        modules.delta_time_started ? &modules.delta_time : nullptr;
 
     // Widget presence in the configuration decides which descriptors run. The
     // manager itself knows nothing about either widget type. The table is
@@ -479,7 +649,7 @@ bool create(lv_display_t* const display,
     const bool registered =
         dashboard_state.widgets.add({
             .type = configuration::WidgetType::text,
-            .enabled = screen_configuration.text_widget_count > 0,
+            .enabled = configuration.dashboard.text_widget_count > 0,
             .create = &create_text_widgets,
             .destroy = &destroy_text_widgets,
             .root_object = &text_widget_root,
@@ -489,7 +659,7 @@ bool create(lv_display_t* const display,
         }) &&
         dashboard_state.widgets.add({
             .type = configuration::WidgetType::shape,
-            .enabled = screen_configuration.shape_widget_count > 0,
+            .enabled = configuration.dashboard.shape_widget_count > 0,
             .create = &create_shape_widgets,
             .destroy = &destroy_shape_widgets,
             .root_object = &shape_widget_root,
@@ -499,7 +669,7 @@ bool create(lv_display_t* const display,
         }) &&
         dashboard_state.widgets.add({
             .type = configuration::WidgetType::bar,
-            .enabled = screen_configuration.bar_widget_count > 0,
+            .enabled = configuration.dashboard.bar_widget_count > 0,
             .create = &create_bar_widgets,
             .destroy = &destroy_bar_widgets,
             .root_object = &bar_widget_root,
@@ -508,14 +678,34 @@ bool create(lv_display_t* const display,
             .context = &dashboard_state.bar,
         }) &&
         dashboard_state.widgets.add({
-            .type = configuration::WidgetType::delta_time,
-            .enabled = screen_configuration.delta_time_widget_count > 0,
-            .create = &create_delta_time_widget,
-            .destroy = &destroy_delta_time_widget,
-            .root_object = &delta_time_widget_root,
-            .update_instance = &update_delta_time_widget,
-            .wake = &wake_delta_time_widget,
-            .context = &dashboard_state.delta_time,
+            .type = configuration::WidgetType::arc,
+            .enabled = configuration.dashboard.arc_widget_count > 0,
+            .create = &create_arc_widgets,
+            .destroy = &destroy_arc_widgets,
+            .root_object = &arc_widget_root,
+            .update_instance = &update_arc_widget,
+            .wake = &wake_arc_widgets,
+            .context = &dashboard_state.arc,
+        }) &&
+        dashboard_state.widgets.add({
+            .type = configuration::WidgetType::indicator,
+            .enabled = configuration.dashboard.indicator_widget_count > 0,
+            .create = &create_indicator_widgets,
+            .destroy = &destroy_indicator_widgets,
+            .root_object = &indicator_widget_root,
+            .update_instance = &update_indicator_widget,
+            .wake = &wake_indicator_widgets,
+            .context = &dashboard_state.indicator,
+        }) &&
+        dashboard_state.widgets.add({
+            .type = configuration::WidgetType::graph,
+            .enabled = configuration.dashboard.graph_widget_count > 0,
+            .create = &create_graph_widgets,
+            .destroy = &destroy_graph_widgets,
+            .root_object = &graph_widget_root,
+            .update_instance = &update_graph_widget,
+            .wake = &wake_graph_widgets,
+            .context = &dashboard_state.graph,
         });
     lvgl_port_unlock();
     if (!registered) {
@@ -562,35 +752,41 @@ bool widget_changed(const Widget& left, const Widget& right) {
 bool fonts_available(
     const configuration::ApplicationConfiguration& configuration,
     const dashboard::fonts::Registry& fonts) {
-  const configuration::ScreenConfiguration& screen =
-      active_screen(configuration);
-  for (std::size_t index = 0; index < screen.widget_count; ++index) {
-    const configuration::WidgetReference& reference = screen.widgets[index];
-    switch (reference.type) {
-      case configuration::WidgetType::text: {
-        const auto& widget = screen.text_widgets[reference.index];
-        if (!fonts.has_family(widget.value.font.family) ||
-            !captioned(widget.frame, fonts)) {
-          return false;
-        }
-        break;
-      }
-      case configuration::WidgetType::shape:
-        if (!captioned(screen.shape_widgets[reference.index].frame, fonts)) {
-          return false;
-        }
-        break;
-      case configuration::WidgetType::bar:
-        if (!captioned(screen.bar_widgets[reference.index].frame, fonts)) {
-          return false;
-        }
-        break;
-      case configuration::WidgetType::delta_time:
-        if (!fonts.has_family(
-                screen.delta_time_widgets[reference.index].font.family)) {
-          return false;
-        }
-        break;
+  // The pool is what gets composed, so checking it directly covers every screen
+  // and cannot check the same widget twice.
+  const configuration::DashboardConfiguration& dashboard =
+      configuration.dashboard;
+  for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
+    const auto& widget = dashboard.text_widgets[index];
+    if (!fonts.has_family(widget.value.font.family) ||
+        !captioned(widget.frame, fonts)) {
+      return false;
+    }
+  }
+  for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
+    if (!captioned(dashboard.shape_widgets[index].frame, fonts)) {
+      return false;
+    }
+  }
+  for (std::size_t index = 0; index < dashboard.bar_widget_count; ++index) {
+    if (!captioned(dashboard.bar_widgets[index].frame, fonts)) {
+      return false;
+    }
+  }
+  for (std::size_t index = 0; index < dashboard.arc_widget_count; ++index) {
+    if (!captioned(dashboard.arc_widgets[index].frame, fonts)) {
+      return false;
+    }
+  }
+  for (std::size_t index = 0; index < dashboard.indicator_widget_count;
+       ++index) {
+    if (!captioned(dashboard.indicator_widgets[index].frame, fonts)) {
+      return false;
+    }
+  }
+  for (std::size_t index = 0; index < dashboard.graph_widget_count; ++index) {
+    if (!captioned(dashboard.graph_widgets[index].frame, fonts)) {
+      return false;
     }
   }
   return true;
@@ -599,55 +795,95 @@ bool fonts_available(
 bool apply_incremental(
     const configuration::ApplicationConfiguration& previous,
     const configuration::ApplicationConfiguration& next, Dashboard& dashboard) {
-  const configuration::ScreenConfiguration& before = active_screen(previous);
-  const configuration::ScreenConfiguration& after = active_screen(next);
+  const configuration::DashboardConfiguration& before = previous.dashboard;
+  const configuration::DashboardConfiguration& after = next.dashboard;
 
-  // A different widget set, order, or storage layout is structural: the
+  // A different widget set, order, or storage layout is structural: a screen's
   // reference table carries type, storage index, and the z_index ordering key,
-  // so an equal table means compositing cannot have changed either.
-  if (previous.dashboard.screen_count != next.dashboard.screen_count ||
-      before.widget_count != after.widget_count ||
+  // so equal tables mean compositing cannot have changed either.
+  if (before.screen_count != after.screen_count ||
       before.text_widget_count != after.text_widget_count ||
       before.shape_widget_count != after.shape_widget_count ||
       before.bar_widget_count != after.bar_widget_count ||
-      before.delta_time_widget_count != after.delta_time_widget_count ||
-      std::memcmp(before.widgets.data(), after.widgets.data(),
-                  after.widget_count *
-                      sizeof(configuration::WidgetReference)) != 0) {
+      before.arc_widget_count != after.arc_widget_count ||
+      before.indicator_widget_count != after.indicator_widget_count ||
+      before.graph_widget_count != after.graph_widget_count) {
     return false;
+  }
+  for (std::size_t index = 0; index < after.screen_count; ++index) {
+    const configuration::ScreenConfiguration& before_screen =
+        before.screens[index];
+    const configuration::ScreenConfiguration& after_screen =
+        after.screens[index];
+    if (before_screen.widget_count != after_screen.widget_count ||
+        std::memcmp(before_screen.widgets.data(), after_screen.widgets.data(),
+                    after_screen.widget_count *
+                        sizeof(configuration::WidgetReference)) != 0) {
+      return false;
+    }
   }
 
   // Widget contexts point into the document that was active when they were
   // built. Promotion swapped that out, so repoint them before rebuilding.
-  dashboard.text.screen = &after;
-  dashboard.shape.screen = &after;
-  dashboard.bar.screen = &after;
-  dashboard.delta_time.screen = &after;
+  dashboard.text.dashboard = &after;
+  dashboard.shape.dashboard = &after;
+  dashboard.bar.dashboard = &after;
+  dashboard.arc.dashboard = &after;
+  dashboard.indicator.dashboard = &after;
+  dashboard.graph.dashboard = &after;
 
-  if (before.background_color != after.background_color) {
+  for (std::size_t index = 0; index < after.screen_count; ++index) {
+    if (before.screens[index].background_color ==
+        after.screens[index].background_color) {
+      continue;
+    }
     if (!lvgl_port_lock(0)) {
       return false;
     }
-    lv_obj_set_style_bg_color(dashboard.text.layout.screen,
-                              lv_color_hex(after.background_color),
-                              LV_PART_MAIN);
+    lv_obj_set_style_bg_color(
+        dashboard.screens[index],
+        lv_color_hex(after.screens[index].background_color), LV_PART_MAIN);
     lvgl_port_unlock();
   }
 
-  for (std::size_t index = 0; index < after.widget_count; ++index) {
-    const configuration::WidgetReference& reference = after.widgets[index];
-    const bool changed =
-        reference.type == configuration::WidgetType::text
-            ? widget_changed(before.text_widgets[reference.index],
-                             after.text_widgets[reference.index])
-            : widget_changed(before.delta_time_widgets[reference.index],
-                             after.delta_time_widgets[reference.index]);
-    if (!changed) {
-      continue;
+  // Walking the pool rather than the reference tables compares each widget
+  // once, whatever screen it belongs to, and cannot pair an index with the
+  // wrong type's storage.
+  const auto rebuild_changed = [&dashboard](const auto& before_widgets,
+                                            const auto& after_widgets,
+                                            const std::size_t count,
+                                            const configuration::WidgetType
+                                                type) {
+    for (std::size_t index = 0; index < count; ++index) {
+      if (!widget_changed(before_widgets[index], after_widgets[index])) {
+        continue;
+      }
+      if (!dashboard.widgets.update_instance(
+              type, static_cast<std::uint8_t>(index))) {
+        return false;
+      }
     }
-    if (!dashboard.widgets.update_instance(reference.type, reference.index)) {
-      return false;
-    }
+    return true;
+  };
+  if (!rebuild_changed(before.text_widgets, after.text_widgets,
+                       after.text_widget_count,
+                       configuration::WidgetType::text) ||
+      !rebuild_changed(before.shape_widgets, after.shape_widgets,
+                       after.shape_widget_count,
+                       configuration::WidgetType::shape) ||
+      !rebuild_changed(before.bar_widgets, after.bar_widgets,
+                       after.bar_widget_count,
+                       configuration::WidgetType::bar) ||
+      !rebuild_changed(before.arc_widgets, after.arc_widgets,
+                       after.arc_widget_count,
+                       configuration::WidgetType::arc) ||
+      !rebuild_changed(before.indicator_widgets, after.indicator_widgets,
+                       after.indicator_widget_count,
+                       configuration::WidgetType::indicator) ||
+      !rebuild_changed(before.graph_widgets, after.graph_widgets,
+                       after.graph_widget_count,
+                       configuration::WidgetType::graph)) {
+    return false;
   }
 
   // Rebuilt widgets are new LVGL children, so they sit on top until the

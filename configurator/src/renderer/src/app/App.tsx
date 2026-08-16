@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ConfigurationPanel } from '@/features/configuration/ConfigurationPanel'
 import { DisplayPreview } from '@/features/configuration/DisplayPreview'
+import { LayersPanel } from '@/features/configuration/LayersPanel'
+import { useEditorShortcuts } from '@/features/configuration/use-editor-shortcuts'
 import { WidgetInspector } from '@/features/configuration/WidgetInspector'
 import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
@@ -17,6 +19,8 @@ export function App(): React.JSX.Element {
   const [deviceStatusText, setDeviceStatusText] = useState<string>()
   const deviceSession = useDeviceStore((state) => state.session)
   const connectionRevision = useDeviceStore((state) => state.connectionRevision)
+
+  useEditorShortcuts()
 
   useEffect(() => {
     void window.simcore.getAppInfo().then(setAppInfo)
@@ -46,7 +50,8 @@ export function App(): React.JSX.Element {
           <DisplayPreview />
         </section>
 
-        <aside className="min-h-0 overflow-y-auto overscroll-contain border-l p-3">
+        <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-l p-3">
+          <LayersPanel key={`layers-${connectionRevision}`} />
           <WidgetInspector key={`inspector-${connectionRevision}`} />
         </aside>
       </main>

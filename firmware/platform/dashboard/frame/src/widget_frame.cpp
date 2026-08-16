@@ -142,7 +142,7 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
       2 * config.border.width_px + config.padding.left + config.padding.right;
   const std::int32_t vertical_insets =
       2 * config.border.width_px + config.padding.top + config.padding.bottom;
-  if (!resolve_widget_bounds(layout, config.placement,
+  if (!resolve_widget_bounds(layout, config.placement, config.screen_index,
                              framed_width + horizontal_insets,
                              framed_height + vertical_insets,
                              fill_available_width, parent, bounds) ||
@@ -159,6 +159,23 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
 
   const bool has_background =
       config.background_color != configuration::kTransparentColor;
+  // A gradient is two style properties on whichever object paints the
+  // background, so it costs nothing where it is not configured. A rule that
+  // repaints the background replaces only the near colour, which keeps the
+  // gradient the widget was authored with.
+  const auto apply_background_gradient = [&config](lv_obj_t* const object) {
+    if (config.background_grad_color == configuration::kTransparentColor) {
+      return;
+    }
+    lv_obj_set_style_bg_grad_color(
+        object, lv_color_hex(config.background_grad_color), LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_dir(
+        object,
+        config.background_grad_dir == configuration::GradientDirection::horizontal
+            ? LV_GRAD_DIR_HOR
+            : LV_GRAD_DIR_VER,
+        LV_PART_MAIN);
+  };
   // An inset background cannot be the container's own fill, which always
   // reaches the border, so it becomes a child sized to leave the frame clear.
   const std::int32_t inset = config.background_inset_px;
@@ -171,6 +188,7 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
   if (has_background && paints_container) {
     lv_obj_set_style_bg_color(
         box.container, lv_color_hex(config.background_color), LV_PART_MAIN);
+    apply_background_gradient(box.container);
   }
   lv_obj_set_style_bg_opa(
       box.container,
@@ -217,6 +235,7 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
     lv_obj_set_style_bg_color(box.background_fill,
                               lv_color_hex(config.background_color),
                               LV_PART_MAIN);
+    apply_background_gradient(box.background_fill);
   }
   lv_obj_set_style_bg_opa(box.background_fill,
                           has_background ? LV_OPA_COVER : LV_OPA_TRANSP,
@@ -251,6 +270,12 @@ void Painter::configure(const Config& config, const Box& box,
       std::min<std::size_t>(config.condition_count, conditions_.size());
   for (std::size_t index = 0; index < condition_count_; ++index) {
     conditions_[index] = config.conditions[index];
+  }
+  ramp_stop_count_ =
+      std::min<std::size_t>(config.color_ramp.stop_count, ramp_stops_.size());
+  ramp_target_ = config.color_ramp.target;
+  for (std::size_t index = 0; index < ramp_stop_count_; ++index) {
+    ramp_stops_[index] = config.color_ramp.stops[index];
   }
   // The widget as authored is what every rule falls back to, and what build()
   // just configured LVGL with, so the first render has nothing to apply.
@@ -292,13 +317,14 @@ void Painter::render() {
     rendered_revision_ = value.revision;
     rendered_available_ = value.available;
   }
-  // Rules are re-resolved when the watched value moved, while a hold runs down,
-  // and while a blink is on. A widget with no rules never enters this at all.
-  if (condition_count_ > 0 &&
+  // Styling is re-resolved when the watched value moved, while a hold runs
+  // down, and while a blink is on. A widget with neither rules nor a ramp never
+  // enters this at all.
+  if ((condition_count_ > 0 || ramp_stop_count_ >= 2) &&
       (changed || holding_ || applied_style_.blink_ms != 0)) {
-    conditions::Resolution resolution =
-        conditions::resolve({conditions_.data(), condition_count_},
-                            conditions::condition_value(value), static_style_);
+    const std::optional<double> numeric = conditions::condition_value(value);
+    conditions::Resolution resolution = conditions::resolve(
+        {conditions_.data(), condition_count_}, numeric, ramped(numeric));
     if (resolution.matched) {
       held_style_ = resolution.style;
       hold_ms_ = resolution.hold_ms;
@@ -316,6 +342,31 @@ void Painter::render() {
   // A blink runs off the tick rather than off telemetry, so its phase advances
   // even on a pass where nothing else moved.
   apply_blink();
+}
+
+// The authored style with the ramp's colour in place of the one it paints. This
+// is what the rules fall back to, which is what makes the ramp the base layer
+// rather than a competing mechanism.
+conditions::ResolvedStyle Painter::ramped(
+    const std::optional<double> value) const {
+  conditions::ResolvedStyle style = static_style_;
+  const std::optional<std::uint32_t> color =
+      conditions::ramp_color({ramp_stops_.data(), ramp_stop_count_}, value);
+  if (!color.has_value()) {
+    return style;
+  }
+  switch (ramp_target_) {
+    case configuration::ColorRampTarget::content:
+      style.color = *color;
+      break;
+    case configuration::ColorRampTarget::background:
+      style.background_color = *color;
+      break;
+    case configuration::ColorRampTarget::border:
+      style.border_color = *color;
+      break;
+  }
+  return style;
 }
 
 void Painter::apply_style(const conditions::ResolvedStyle& style) {

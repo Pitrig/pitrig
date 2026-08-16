@@ -1,32 +1,31 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 4. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 5. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 4.
+Schema version: 5.
 
 ## Limits
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
 | `kMaximumPayloadSize` | 65536 | Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. |
-| `kMaximumScreens` | 1 | Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review. |
-| `kMaximumWidgetsPerScreen` | 87 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize. |
-| `kMaximumTextWidgets` | 32 | Text widget storage per screen. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. |
-| `kMaximumShapeWidgets` | 24 | Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap. |
-| `kMaximumBarWidgets` | 16 | Bar widget storage per screen. |
-| `kMaximumArcWidgets` | 8 | Arc widget storage per screen. |
-| `kMaximumIndicatorWidgets` | 4 | Indicator strip storage per screen. |
-| `kMaximumGraphWidgets` | 2 | Graph storage per screen. Each instance owns a sample ring buffer, which is why this cap is the smallest. |
-| `kMaximumDeltaTimeWidgets` | 1 | Delta Time widget storage per screen. |
+| `kMaximumScreens` | 1 | Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table. |
+| `kMaximumWidgetsPerScreen` | 86 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. |
+| `kMaximumTextWidgets` | 32 | Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. |
+| `kMaximumShapeWidgets` | 24 | Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap. |
+| `kMaximumBarWidgets` | 16 | Bar widget storage for the whole dashboard. |
+| `kMaximumArcWidgets` | 8 | Arc widget storage for the whole dashboard. |
+| `kMaximumIndicatorWidgets` | 4 | Indicator strip storage for the whole dashboard. |
+| `kMaximumGraphWidgets` | 2 | Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest. |
 | `kMaximumIndicatorSegments` | 16 | Segments in one indicator strip. |
 | `kMaximumGraphPoints` | 128 | Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. |
 | `kMaximumTextSources` | 3 | Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. |
 | `kMaximumValueModifiers` | 4 | Value modifiers per text widget source. |
+| `kMaximumColorStops` | 4 | Stops in one widget colour ramp. Four is a normal, caution, warning and limit band, the same bands the conditional rules cover discretely. |
 | `kMaximumWidgetConditions` | 4 | Conditional styling rules per widget. Four covers a normal, caution, warning and limit band. |
 | `kWidgetIdCapacity` | 16 | Widget identifier storage including the terminator (15 usable bytes). |
 | `kWidgetTitleCapacity` | 16 | Widget title text storage including the terminator (15 usable bytes). |
 | `kUnavailableTextCapacity` | 16 | Placeholder text storage including the terminator (15 usable bytes). |
-| `kDeltaTimeTextCapacity` | 16 | Delta Time placeholder storage including the terminator (15 usable bytes). |
 | `kValidationPathCapacity` | 48 | Storage for the dotted property path reported with a rejection, including the terminator. |
 | `kValueBindingCapacity` | 40 | Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py. |
 | `kValueAffixCapacity` | 16 | Transform prefix and suffix storage including the terminator (15 usable bytes). |
@@ -37,14 +36,15 @@ Schema version: 4.
 | --- | --- | --- |
 | `BoardId` | `t_display_s3`, `guition_esp32_4848s040`, `guition_jc1060p470c` | Immutable hardware identity. Must match the firmware build or the configuration is rejected. |
 | `TelemetryTransportId` | `board_default`, `native_usb_cdc`, `uart` | Telemetry transport selection. board_default defers to the immutable board descriptor. |
-| `DeltaTimeUnavailableBehavior` | `hide`, `placeholder`, `zero` | What the Delta Time widget shows while its telemetry is unavailable. |
 | `TextAlignment` | `left`, `center`, `right` | Horizontal alignment of a text widget value. |
 | `ValueTransformType` | `none`, `time`, `number` | Presentation transform applied after the modifier pipeline. |
+| `GradientDirection` | `horizontal`, `vertical` | Axis a linear gradient runs along. Only used when a gradient colour is set. |
+| `ColorRampTarget` | `content`, `background`, `border` | Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill. |
 | `ConditionOperator` | `above`, `at_or_above`, `below`, `at_or_below`, `equal`, `not_equal` | Comparison a styling rule applies to the numeric value of its condition source. |
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
 | `BarOrientation` | `horizontal`, `vertical` | Axis a bar fills along. A vertical bar grows upwards unless it is inverted. |
 | `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
-| `WidgetType` | `text`, `shape`, `bar`, `delta_time` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
+| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
 
 ## Objects
 
@@ -70,24 +70,6 @@ Schema version: 4.
 | --- | --- | --- |
 | `id` | `TelemetryTransportId` | `board_default` |
 | `uart` | [`UartTelemetryConfiguration`](#uarttelemetryconfiguration) | absent |
-
-### DeltaTimeScaleConfiguration
-
-| Property | Type | Default |
-| --- | --- | --- |
-| `enabled` | boolean | `false` |
-| `show_sign` | boolean | `false` |
-| `range_ms` | integer | `2000` |
-
-### DeltaTimeConfiguration
-
-Delta Time module configuration. Distinct from the Delta Time widget, which owns presentation only.
-
-| Property | Type | Default |
-| --- | --- | --- |
-| `unavailable_behavior` | `DeltaTimeUnavailableBehavior` | `zero` |
-| `placeholder` | string, max 15 bytes | `---` |
-| `scale` | [`DeltaTimeScaleConfiguration`](#deltatimescaleconfiguration) | absent |
 
 ### WidgetPlacement
 
@@ -155,30 +137,6 @@ Stateless presentation transform. Absent means no transform is applied. The pref
 | --- | --- | --- |
 | `type` | `ValueModifierType` | `lap_timer` |
 
-### DeltaTimeScaleStyle
-
-| Property | Type | Default |
-| --- | --- | --- |
-| `vertical_padding_px` | integer, 0..65535 | `2` |
-| `border_width_px` | integer, 0..65535 | `2` |
-| `border_radius_px` | integer, 0..65535 | `8` |
-
-### DeltaTimeWidgetConfiguration
-
-Renders Delta Time module state. Requires the delta_time module section to be present.
-
-| Property | Type | Default |
-| --- | --- | --- |
-| `type` | `WidgetType`, fixed `delta_time` | required |
-| `id` | string, max 15 bytes | empty |
-| `font` | `FontSpec` | absent |
-| `placement` | [`WidgetPlacement`](#widgetplacement) | absent |
-| `z_index` | integer, -32768..32767 | `0` |
-| `faster_color` | string `#RRGGBB` | `#00C853` |
-| `slower_color` | string `#RRGGBB` | `#D50000` |
-| `neutral_color` | string `#RRGGBB` | `#E8E8E8` |
-| `scale` | [`DeltaTimeScaleStyle`](#deltatimescalestyle) | absent |
-
 ### ValueSourceConfiguration
 
 A canonical telemetry binding with its modifier pipeline, consumed as a typed value. Carries no transform: the widgets that read one map it through a range or compare it, rather than presenting it as text.
@@ -187,6 +145,24 @@ A canonical telemetry binding with its modifier pipeline, consumed as a typed va
 | --- | --- | --- |
 | `binding` | string, max 39 bytes | empty |
 | `modifiers` | array of [`ValueModifier`](#valuemodifier), max 4 | absent |
+
+### ColorStop
+
+One anchor of a colour ramp.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `at` | number | `0` |
+| `color` | string `#RRGGBB` | `#E8E8E8` |
+
+### ColorRamp
+
+A colour interpolated from the watched source rather than switched by a threshold. It is the base layer: a matching rule paints over it, and with no stops the authored colour stands.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `target` | `ColorRampTarget` | `content` |
+| `stops` | array of [`ColorStop`](#colorstop), max 4 | absent |
 
 ### WidgetCondition
 
@@ -226,8 +202,11 @@ What every widget type owns regardless of what it draws: where it sits, how it i
 | `border` | [`WidgetBorder`](#widgetborder) | absent |
 | `title` | [`WidgetTitleStyle`](#widgettitlestyle) | absent |
 | `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `background_grad_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `background_grad_dir` | `GradientDirection` | `vertical` |
 | `background_inset_px` | integer, 0..65535 | `0` |
 | `condition_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `color_ramp` | [`ColorRamp`](#colorramp) | absent |
 | `conditions` | array of [`WidgetCondition`](#widgetcondition), max 4 | absent |
 
 ### TextWidgetConfiguration
@@ -257,9 +236,64 @@ One telemetry source drawn as a filled proportion of the widget. The frame backg
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `bar` | required |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `origin` | number | `0` |
 | `orientation` | `BarOrientation` | `horizontal` |
 | `inverted` | boolean | `false` |
 | `fill_color` | string `#RRGGBB` | `#38BDF8` |
+| `fill_grad_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+
+### ArcWidgetConfiguration
+
+One telemetry source swept around an arc. The track is the arc's own background, so a gauge needs no shape behind it.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `arc` | required |
+| `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `start_angle_deg` | integer, 0..65535 | `135` |
+| `sweep_deg` | integer, 0..65535 | `270` |
+| `thickness_px` | integer, 0..65535 | `8` |
+| `track_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `fill_color` | string `#RRGGBB` | `#38BDF8` |
+| `inverted` | boolean | `false` |
+
+### IndicatorSegment
+
+One lamp in an indicator strip.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `threshold` | number | `0` |
+| `color` | string `#RRGGBB` | `#00C853` |
+
+### IndicatorWidgetConfiguration
+
+A row of lamps that light as one telemetry source climbs its range: shift lights, a rev strip, a stint marker.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `indicator` | required |
+| `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `orientation` | `BarOrientation` | `horizontal` |
+| `segment_gap_px` | integer, 0..65535 | `4` |
+| `segment_radius_px` | integer, 0..65535 | `0` |
+| `off_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `blink_threshold` | number | `2` |
+| `blink_ms` | integer, 0..65535 | `0` |
+| `segments` | array of [`IndicatorSegment`](#indicatorsegment), max 16 | absent |
+
+### GraphWidgetConfiguration
+
+A rolling trace of one telemetry source. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `graph` | required |
+| `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `point_count` | integer, 0..65535 | `64` |
+| `sample_interval_ms` | integer, 0..65535 | `100` |
+| `line_color` | string `#RRGGBB` | `#38BDF8` |
+| `line_width_px` | integer, 0..65535 | `2` |
 
 ### ShapeWidgetConfiguration
 
@@ -272,15 +306,17 @@ Panels, dividers and backing plates: the frame is the whole widget. It binds no 
 
 ### ScreenConfiguration
 
-One dashboard screen. A screen is the coordinate space for the widgets it owns.
+One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference.
 
 | Property | Type | Default |
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`DeltaTimeWidgetConfiguration`](#deltatimewidgetconfiguration), max 87, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), max 86, discriminated by `type` | absent |
 
 ### DashboardConfiguration
+
+Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays.
 
 | Property | Type | Default |
 | --- | --- | --- |
@@ -292,7 +328,6 @@ One dashboard screen. A screen is the coordinate space for the widgets it owns.
 | --- | --- | --- |
 | `hardware` | [`HardwareConfiguration`](#hardwareconfiguration) | absent |
 | `telemetry_transport` | [`TelemetryTransportConfiguration`](#telemetrytransportconfiguration) | absent |
-| `delta_time` | [`DeltaTimeConfiguration`](#deltatimeconfiguration) | absent |
 | `dashboard` | [`DashboardConfiguration`](#dashboardconfiguration) | absent |
 
 ## Validation errors

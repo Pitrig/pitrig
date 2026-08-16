@@ -1,14 +1,17 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <span>
 
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
-#include "delta_time_widget.hpp"
 #include "event_bus.hpp"
 #include "performance_overlay_widget.hpp"
+#include "arc_widget.hpp"
 #include "bar_widget.hpp"
+#include "graph_widget.hpp"
+#include "indicator_widget.hpp"
 #include "render_trigger.hpp"
 #include "shape_widget.hpp"
 #include "text_widget.hpp"
@@ -20,10 +23,7 @@ using lv_display_t = _lv_display_t;
 
 namespace simcore::configuration {
 struct ApplicationConfiguration;
-struct ScreenConfiguration;
-}
-namespace simcore::delta_time {
-class DeltaTime;
+struct DashboardConfiguration;
 }
 namespace simcore::font_assets {
 class Service;
@@ -49,7 +49,7 @@ struct TextWidgets {
   dashboard::text_widget::Binder binder;
   dashboard::text_widget::Collection collection;
   dashboard::Layout layout{};
-  const configuration::ScreenConfiguration* screen{};
+  const configuration::DashboardConfiguration* dashboard{};
   const dashboard::fonts::Registry* fonts{};
   const telemetry::ITelemetryRegistry* registry{};
   const telemetry::ITelemetryReader* telemetry{};
@@ -62,7 +62,46 @@ struct BarWidgets {
       binder;
   dashboard::bar_widget::Collection collection;
   dashboard::Layout layout{};
-  const configuration::ScreenConfiguration* screen{};
+  const configuration::DashboardConfiguration* dashboard{};
+  const dashboard::fonts::Registry* fonts{};
+  const telemetry::ITelemetryRegistry* registry{};
+  const telemetry::ITelemetryReader* telemetry{};
+  dashboard::frame::ModifierReader lap_timer_modifier{};
+};
+
+struct ArcWidgets {
+  dashboard::frame::ValueBinder<configuration::ArcWidgetConfiguration,
+                                dashboard::arc_widget::kMaximumInstances>
+      binder;
+  dashboard::arc_widget::Collection collection;
+  dashboard::Layout layout{};
+  const configuration::DashboardConfiguration* dashboard{};
+  const dashboard::fonts::Registry* fonts{};
+  const telemetry::ITelemetryRegistry* registry{};
+  const telemetry::ITelemetryReader* telemetry{};
+  dashboard::frame::ModifierReader lap_timer_modifier{};
+};
+
+struct IndicatorWidgets {
+  dashboard::frame::ValueBinder<configuration::IndicatorWidgetConfiguration,
+                                dashboard::indicator_widget::kMaximumInstances>
+      binder;
+  dashboard::indicator_widget::Collection collection;
+  dashboard::Layout layout{};
+  const configuration::DashboardConfiguration* dashboard{};
+  const dashboard::fonts::Registry* fonts{};
+  const telemetry::ITelemetryRegistry* registry{};
+  const telemetry::ITelemetryReader* telemetry{};
+  dashboard::frame::ModifierReader lap_timer_modifier{};
+};
+
+struct GraphWidgets {
+  dashboard::frame::ValueBinder<configuration::GraphWidgetConfiguration,
+                                dashboard::graph_widget::kMaximumInstances>
+      binder;
+  dashboard::graph_widget::Collection collection;
+  dashboard::Layout layout{};
+  const configuration::DashboardConfiguration* dashboard{};
   const dashboard::fonts::Registry* fonts{};
   const telemetry::ITelemetryRegistry* registry{};
   const telemetry::ITelemetryReader* telemetry{};
@@ -75,29 +114,27 @@ struct ShapeWidgets {
       binder;
   dashboard::shape_widget::Collection collection;
   dashboard::Layout layout{};
-  const configuration::ScreenConfiguration* screen{};
+  const configuration::DashboardConfiguration* dashboard{};
   const dashboard::fonts::Registry* fonts{};
   const telemetry::ITelemetryRegistry* registry{};
   const telemetry::ITelemetryReader* telemetry{};
   dashboard::frame::ModifierReader lap_timer_modifier{};
 };
 
-struct DeltaTimeWidgets {
-  dashboard::delta_time_widget::View view;
-  dashboard::Layout layout{};
-  const configuration::ScreenConfiguration* screen{};
-  const dashboard::fonts::Registry* fonts{};
-  const delta_time::DeltaTime* module{};
-};
-
 struct Dashboard {
   dashboard::fonts::Registry fonts;
+  // One LVGL screen per configured screen, in configuration order. A widget is
+  // parented by the index its frame carries, so this is what makes the shared
+  // widget pool addressable.
+  std::array<lv_obj_t*, configuration::kMaximumScreens> screens{};
   dashboard::performance_overlay_widget::View performance_overlay;
   dashboard::WidgetManager widgets;
   TextWidgets text;
   ShapeWidgets shape;
   BarWidgets bar;
-  DeltaTimeWidgets delta_time;
+  ArcWidgets arc;
+  IndicatorWidgets indicator;
+  GraphWidgets graph;
   // Firmware-lifetime: survives destroy()/create() cycles, which only replace
   // the widgets it wakes.
   dashboard::render_trigger::Trigger render_trigger;

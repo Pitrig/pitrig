@@ -35,50 +35,20 @@ void stop_lap_timer(void* const context) {
   }
 }
 
-bool start_delta_time(void* const context) {
-  auto& binding = *static_cast<Modules::DeltaTimeBinding*>(context);
-  if (binding.module == nullptr || binding.event_bus == nullptr ||
-      binding.telemetry == nullptr || binding.configuration == nullptr ||
-      binding.started == nullptr) {
-    return false;
-  }
-  *binding.started = binding.module->start(
-      *binding.event_bus, *binding.telemetry, binding.handle,
-      *binding.configuration);
-  if (!*binding.started) {
-    log::error(kTag, "Failed to subscribe Delta Time to telemetry");
-  }
-  return *binding.started;
-}
-
-void stop_delta_time(void* const context) {
-  auto& binding = *static_cast<Modules::DeltaTimeBinding*>(context);
-  if (binding.module != nullptr) {
-    binding.module->stop();
-  }
-  if (binding.started != nullptr) {
-    *binding.started = false;
-  }
-}
-
 bool has_lap_timer_modifier(
     const configuration::ApplicationConfiguration& configuration) {
   const auto& dashboard = configuration.dashboard;
-  for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
-       ++screen_index) {
-    const auto& screen = dashboard.screens[screen_index];
-    for (std::size_t widget_index = 0;
-         widget_index < screen.text_widget_count; ++widget_index) {
-      const auto& widget = screen.text_widgets[widget_index];
-      for (std::size_t source_index = 0; source_index < widget.source_count;
-           ++source_index) {
-        const auto& source = widget.sources[source_index];
-        for (std::size_t modifier_index = 0;
-             modifier_index < source.modifier_count; ++modifier_index) {
-          if (source.modifiers[modifier_index].type ==
-              configuration::ValueModifierType::lap_timer) {
-            return true;
-          }
+  for (std::size_t widget_index = 0;
+       widget_index < dashboard.text_widget_count; ++widget_index) {
+    const auto& widget = dashboard.text_widgets[widget_index];
+    for (std::size_t source_index = 0; source_index < widget.source_count;
+         ++source_index) {
+      const auto& source = widget.sources[source_index];
+      for (std::size_t modifier_index = 0;
+           modifier_index < source.modifier_count; ++modifier_index) {
+        if (source.modifiers[modifier_index].type ==
+            configuration::ValueModifierType::lap_timer) {
+          return true;
         }
       }
     }
@@ -95,7 +65,6 @@ bool start(Modules& modules, events::EventBus& event_bus,
   const bool widgets_enabled = true;
   modules.manager.clear();
   modules.lap_timer_started = false;
-  modules.delta_time_started = false;
   modules.lap_timer_binding = {
       .module = &modules.lap_timer,
       .event_bus = &event_bus,
@@ -103,27 +72,12 @@ bool start(Modules& modules, events::EventBus& event_bus,
       .handle = telemetry_registry.resolve(telemetry::fields::kCurrentLapTime),
       .started = &modules.lap_timer_started,
   };
-  modules.delta_time_binding = {
-      .module = &modules.delta_time,
-      .event_bus = &event_bus,
-      .telemetry = &telemetry,
-      .handle = telemetry_registry.resolve(telemetry::fields::kLapDelta),
-      .configuration = &configuration.delta_time,
-      .started = &modules.delta_time_started,
-  };
-  const bool registered =
-      modules.manager.add({
-          .enabled = widgets_enabled && has_lap_timer_modifier(configuration),
-          .start = &start_lap_timer,
-          .stop = &stop_lap_timer,
-          .context = &modules.lap_timer_binding,
-      }) &&
-      modules.manager.add({
-          .enabled = widgets_enabled && configuration.delta_time_present,
-          .start = &start_delta_time,
-          .stop = &stop_delta_time,
-          .context = &modules.delta_time_binding,
-      });
+  const bool registered = modules.manager.add({
+      .enabled = widgets_enabled && has_lap_timer_modifier(configuration),
+      .start = &start_lap_timer,
+      .stop = &stop_lap_timer,
+      .context = &modules.lap_timer_binding,
+  });
   if (!registered) {
     modules.manager.clear();
     log::error(kTag, "Failed to register configured modules");

@@ -1,4 +1,4 @@
-import { allWidgetsOf, isDeltaTimeWidget, isTextWidget } from './configuration-access'
+import { dashboardBindings } from './configuration-access'
 import type { DeviceConfiguration } from './device'
 import {
   SIMHUB_PROFILE_DEFAULTS,
@@ -47,33 +47,12 @@ export function collectDashboardTelemetry(
 ): DashboardTelemetrySelection {
   const requested = new Set<string>()
   const unknownBindings = new Set<string>()
-  for (const widget of allWidgetsOf(configuration)) {
-    if (isDeltaTimeWidget(widget)) {
-      requested.add('session.lap.delta')
-      continue
-    }
-    // Everything a widget reads has to reach the profile: the several sources a
-    // text widget composes, the single source a gauge maps, and the source a
-    // styling rule watches even though the widget never displays it. Probing
-    // for the property rather than switching on the type keeps a new widget
-    // type from silently losing its telemetry.
-    const sources = [
-      ...(isTextWidget(widget) ? widget.sources ?? [] : []),
-      ...('source' in widget && widget.source ? [widget.source] : []),
-      ...(widget.condition_source ? [widget.condition_source] : [])
-    ]
-    for (const source of sources) {
-      if (source.binding) {
-        if (PROFILE_FIELD_NAMES.has(source.binding)) requested.add(source.binding)
-        else unknownBindings.add(source.binding)
-      }
-      if (
-        Array.isArray(source.modifiers) &&
-        source.modifiers.some((modifier) => modifier?.type === 'lap_timer')
-      ) {
-        requested.add('session.lap.current_time')
-      }
-    }
+  // Everything the dashboard reads has to reach the profile, so this asks the
+  // same question the preview does and then splits the answer by whether SimHub
+  // knows the field.
+  for (const binding of dashboardBindings(configuration)) {
+    if (PROFILE_FIELD_NAMES.has(binding)) requested.add(binding)
+    else unknownBindings.add(binding)
   }
 
   return {

@@ -1,5 +1,6 @@
 import {
   MAXIMUM_PAYLOAD_SIZE,
+  MAXIMUM_SCREENS,
   SCHEMA_CHILD_TYPES,
   SCHEMA_OBJECT_KEYS,
   SCHEMA_WIDGET_STRUCTS,
@@ -48,6 +49,9 @@ export function validateConfigurationDocument(
 
   const unknown = findUnknownProperty(value, 'ApplicationConfiguration', '')
   if (unknown) return { ok: false, error: unknown }
+
+  const screenError = findScreenError(configuration)
+  if (screenError) return { ok: false, error: screenError }
 
   const fontError = findFontError(configuration)
   if (fontError) return { ok: false, error: fontError }
@@ -126,13 +130,24 @@ function checkWidgets(value: unknown, path: string): string | undefined {
   return undefined
 }
 
+/**
+ * The screen array is bounded on the device, and the editor only ever authors
+ * the first one — but the advanced JSON editor can write any array, so the cap
+ * belongs here rather than in the canvas.
+ */
+function findScreenError(configuration: ApplicationConfiguration): string | undefined {
+  const screens = configuration.dashboard?.screens
+  if (screens === undefined) return undefined
+  if (!Array.isArray(screens)) return '"dashboard.screens" must be an array of screens.'
+  if (screens.length > MAXIMUM_SCREENS) {
+    return `A dashboard carries at most ${MAXIMUM_SCREENS} screen(s); this one declares ${screens.length}.`
+  }
+  return undefined
+}
+
 function findFontError(configuration: ApplicationConfiguration): string | undefined {
   const fonts: Array<{ family?: string; size_px?: number } | undefined> = []
   for (const widget of allWidgetsOf(configuration)) {
-    if (widget.type === 'delta_time') {
-      fonts.push(widget.font)
-      continue
-    }
     // Only the types that draw text need a font; a shape needs none.
     if (!isTextWidget(widget)) continue
     if (widget.title?.text) fonts.push(widget.title.font)

@@ -52,6 +52,10 @@ class Collection final {
     frame::ValueReadCallback read{};
     void* read_context{};
     configuration::ValueRange range{};
+    // Where in the range the fill starts, as a fraction of the span. Zero is
+    // the low end, which is what an unconfigured origin means; a half turns a
+    // signed window into a centred meter.
+    float origin_fraction{};
     configuration::BarOrientation orientation{};
     bool inverted{};
     bool free_running{};
@@ -64,8 +68,10 @@ class Collection final {
     std::int32_t origin_y{};
     std::uint64_t rendered_revision{};
     bool rendered_available{};
-    // Fill length already on screen, so an unchanged proportion touches no LVGL.
+    // Fill geometry already on screen, so an unchanged proportion touches no
+    // LVGL. The offset matters as soon as the origin is not the low end.
     std::int32_t drawn_length{-1};
+    std::int32_t drawn_offset{-1};
     bool initialized{};
   };
 

@@ -117,7 +117,7 @@ components → interfaces ← drivers
   never on concrete drivers.
 - `drivers/` — board/hardware implementations (`t_display_s3`, `guition_esp32_4848s040`,
   `guition_jc1060p470c`, `transport/uart`, `transport/usb_cdc`). No application logic.
-- `modules/` — user-visible functionality (`delta_time`, `lap_timer`). Must not depend on platform
+- `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
 - `services/` — shared infrastructure (`configuration`, `configuration_contract`,
   `configuration_control`, `event_bus`, `font_assets`, `font_asset_control`, `font_contract`,
@@ -151,12 +151,12 @@ which yields an enabled display with an empty dashboard). NVS record format (mag
 CRC32, dual slot in the `simcore_cfg` partition) is private to the configuration service; the
 configurator must not depend on it.
 
-### Configuration schema 3
+### Configuration schema
 
 Sparse JSON, used unchanged for both configurator projects and the device wire payload — omitted
 properties are *not* expanded through board profiles. Widget geometry is absolute logical display
-pixels (no regions/anchors). Bounded limits (16 KB payload, 16 text widgets, 4 modifiers per widget,
-byte limits on strings) and the full property table are in
+pixels (no regions/anchors). Bounded limits (64 KB payload, per-type widget caps, 4 modifiers per
+source, byte limits on strings) and the full property table are in
 [docs/device-configuration.md](docs/device-configuration.md) — read it before touching config code on
 either side. The contract itself lives in the `configuration_contract` service component (no storage,
 no protocol, no LVGL) and mirrors into `configurator/src/shared/`.
@@ -205,7 +205,7 @@ Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `font-ass
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 
-The editor mutates one sparse schema-3 draft; canvas drag/resize, the inspector, and the advanced
+The editor mutates one sparse draft document; canvas drag/resize, the inspector, and the advanced
 JSON editor all write the same document — there is no separate editor-only layout model. The draft
 owns its board identity, so it works fully disconnected; device connection and draft have independent
 lifetimes ("Reload board" is the explicit discard).

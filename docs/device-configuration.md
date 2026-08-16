@@ -1,6 +1,6 @@
 # Device configuration
 
-This document defines the schema 3 configuration contract implemented by the
+This document defines the schema 5 configuration contract implemented by the
 firmware and read by the desktop configurator. Earlier schemas are
 intentionally not part of the current contract.
 
@@ -45,8 +45,8 @@ than transmitted by firmware or stored in device configuration.
 
 SimCore loads user configuration in this order:
 
-1. Active valid schema 3 NVS slot.
-2. Backup valid schema 3 NVS slot.
+1. Active valid NVS slot.
+2. Backup valid NVS slot.
 3. Board-only factory configuration compiled into firmware.
 
 The factory configuration enables no additional hardware devices, modules, or
@@ -112,15 +112,25 @@ screen composed today. Each screen carries its own `id`, `background_color`, and
 one ordered `widgets` array discriminated by a `type` property. Every widget also
 carries a stable `id`.
 
-The production firmware supports these widget types:
+Widgets live in a dashboard-wide pool, one per type, and a screen names them by
+reference — so a cap is a budget across every screen rather than a per-screen
+allowance. The production firmware supports these widget types:
 
-- `text`, with at most 16 instances per screen;
-- `delta_time`, with at most one instance per screen.
+| Type | Cap | Draws |
+| --- | --- | --- |
+| `text` | 32 | up to three telemetry sources composed into one string |
+| `shape` | 24 | a rectangle or ellipse; no telemetry of its own |
+| `bar` | 16 | one telemetry source as a filled track, optionally from a configured origin |
+| `arc` | 8 | one telemetry source swept around an arc |
+| `indicator` | 4 | up to 16 lamps lighting as one source climbs its range |
+| `graph` | 2 | a rolling trace of one source, sampled on its own timer |
+
+`kMaximumWidgetsPerScreen` is the sum of those caps, so a single screen can
+reference the whole pool; what bounds a document overall is the payload size.
 
 Module lifecycle is derived from configured consumers. A `lap_timer` modifier
 activates the Lap Timer module automatically; there is no separate root Lap
-Timer object or dedicated Lap Timer widget. A configured Delta Time widget
-still requires its root Delta Time module object.
+Timer object or dedicated Lap Timer widget.
 
 A screen is the layout coordinate space for the widgets it owns. Every widget
 placement uses absolute logical pixels:
@@ -183,9 +193,7 @@ colors, alignment, background, title offset, and unavailable text.
 Until a value arrives, a widget renders its placeholder. An explicit
 `unavailable_text` is that placeholder; omitting it renders a zero through each
 source's own transform, so a plain value reads `0` and a time value keeps its
-format with every field zeroed, such as `00:00.000`. The Delta Time module
-behaves the same way: its default `unavailable_behavior` is `zero`, and
-`placeholder` applies only when that behavior is set to `placeholder`.
+format with every field zeroed, such as `00:00.000`.
 
 A text widget renders its `sources` in order and joins them into one string, up
 to three of them. Each source is a telemetry field with its own modifiers and
@@ -360,13 +368,41 @@ render above smaller values. Missing values default to zero; equal values use
 stable configuration order so the configurator preview and firmware display
 remain identical.
 
-The preview toolbar exposes only `Add` and `Delete`. `Add` opens a widget-type
-picker; the current editor creates a Text widget with only a centered 120 × 64
-logical-pixel placement (clamped for smaller displays), leaving its content and
-style fields unset for explicit configuration in the inspector. `Delete`
-requires confirmation and removes the selected widget. Delta Time remains
-loadable and editable when present in an existing configuration, but is not
-offered by the add picker.
+The preview toolbar exposes one button per widget type plus `Duplicate`, undo,
+redo and `Delete`. Adding a widget creates it with only a centered placement
+(clamped for smaller displays), leaving its content and style fields unset for
+explicit configuration in the inspector.
+
+The preview can draw a synthetic lap in place of telemetry, which is what makes
+conditional styling and colour ramps visible while authoring: the values are
+generated in the configurator, coherently — the gear follows the speed, the
+engine speed follows the gear — and the lap can be paused and scrubbed to stop
+on a state worth judging. A third mode renders every source as unavailable, so
+`unavailable_text` and a hiding rule can be checked too. None of the three
+modes touches the document; the configurator never receives telemetry, because
+the control protocol carries none and SimHub owns the port while a session runs.
+
+Widgets are selected one at a time, by shift-clicking to add to the selection,
+or by dragging a rubber band across the canvas. A selection of two or more can
+be aligned to the group's own bounds and, from three, spread so the gaps between
+them match. Dragging is snapped to the other widgets' edges and centres and to
+the display's, and optionally to a grid; the canvas magnifies up to eight times
+and pans with the middle button. A layer list shows the stack top first, restacks
+by dragging, renames a widget by editing its `id`, and can lock or hide a layer
+for the editing session — locking and hiding are the editor's own state and
+never reach the document, which the device would reject for the unknown
+properties.
+
+Editing is undoable, so nothing destructive asks for confirmation. A drag or a
+held arrow key is one entry rather than one per commit, and a raw-JSON editing
+session is one entry rather than one per keystroke; loading a file, reloading
+from the board, saving and resetting each start a new history. Keyboard editing
+works on the selected widget wherever focus is, except inside a text field:
+arrow keys nudge by one logical pixel and by ten with `Shift`, `Delete` removes,
+and `Cmd`/`Ctrl` with `Z`, `Shift+Z`, `C`, `V` and `D` undo, redo, copy, paste
+and duplicate. A copied widget travels as JSON through the system clipboard, so
+it can be pasted into another project; a pasted fragment is validated against
+the same schema allow-list the device payload uses.
 
 Production firmware exposes no compiled dashboard font families. Every widget
 font reference uses a stable family identifier plus `size_px` and resolves to
@@ -433,7 +469,7 @@ bytes are never stored in configuration NVS.
 | Request | Successful response | Purpose |
 | --- | --- | --- |
 | `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata. |
-| `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse schema 3 JSON payload. |
+| `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse JSON payload. |
 | `@SC:VALIDATE:<JSON>` | `@SC:OK:VALID` | Validate without saving. |
 | `@SC:APPLY:<JSON>` | `@SC:OK:APPLIED` | Validate and apply to the running dashboard without saving. |
 | `@SC:SET:<JSON>` | `@SC:OK:SAVED:reboot_required=1` | Validate and save. |
@@ -449,7 +485,7 @@ token keeps its position, so a host that only reads the reason is unaffected.
 After reset and reboot, `GET` returns the board-only factory configuration and
 the board-provided display remains enabled with an empty dashboard.
 
-## Public schema 3 payload
+## Public payload
 
 The public payload is the bounded sparse JSON document described above. The
 configurator sends it directly; there is no binary codec or hexadecimal wrapper.
@@ -457,14 +493,13 @@ The serial protocol is line-oriented, so payloads must be compact single-line
 JSON without literal CR or LF bytes. Whitespace inside that one line is valid,
 but the configurator should use `JSON.stringify` output.
 
-Schema 3 top-level properties:
+Top-level properties:
 
 | Property | Shape | Meaning |
 | --- | --- | --- |
 | `board` | string, required | Immutable compatible board identifier. |
 | `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
 | `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
-| `delta_time` | object, optional | Delta Time module configuration. |
 | `dashboard.screens` | array, optional | Bounded screen list; currently at most one entry. |
 
 Nested property names use snake case. Placement uses `x`, `y`, `width`, and
@@ -519,11 +554,11 @@ writes and verifies the inactive slot before selecting it.
 Configurator code must not reproduce or depend on this NVS record format.
 
 Schema 0 and schema 1 records are unsupported and are not migrated. They fall
-back to another valid schema 3 slot or the board-only factory configuration.
+back to another valid slot or the board-only factory configuration.
 
 ## Legacy tooling
 
 The schema 0 Python configuration CLI and its inheritance profiles were removed
 after the desktop configurator implemented the complete `INFO`, `GET`,
 `VALIDATE`, `SET`, `RESET`, and `REBOOT` round trip. Current tooling authors and
-transfers only the sparse schema 3 JSON document described here.
+transfers only the sparse JSON document described here.

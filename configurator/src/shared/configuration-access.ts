@@ -1,9 +1,9 @@
 import { WIDGET_TYPES } from './configuration-schema'
 import type {
   ApplicationConfiguration,
-  DeltaTimeWidgetConfiguration,
   ScreenConfiguration,
   TextWidgetConfiguration,
+  ValueSourceConfiguration,
   WidgetConfiguration
 } from './configuration-schema'
 
@@ -30,18 +30,44 @@ export function allWidgetsOf(
   return screensOf(configuration).flatMap(widgetsOf)
 }
 
-export function isDeltaTimeWidget(
-  widget: WidgetConfiguration
-): widget is DeltaTimeWidgetConfiguration {
-  return widget.type === 'delta_time'
-}
-
-// With more than two variants, "not a delta time widget" no longer means text,
-// so anything reading text properties narrows on the type it actually wants.
+// Several variants carry a frame, so anything reading text properties narrows
+// on the type it actually wants rather than excluding the others.
 export function isTextWidget(
   widget: WidgetConfiguration
 ): widget is TextWidgetConfiguration {
   return widget.type === 'text'
+}
+
+/**
+ * Every telemetry binding a dashboard reads, in the order the widgets declare
+ * them: the several sources a text widget composes, the single source a gauge
+ * maps, and the field a styling rule watches even though the widget never shows
+ * it. Probing for the property rather than switching on the type keeps a new
+ * widget type from silently losing its telemetry.
+ */
+export function dashboardBindings(
+  configuration: ApplicationConfiguration | undefined
+): string[] {
+  const bindings = new Set<string>()
+  for (const widget of allWidgetsOf(configuration)) {
+    for (const source of widgetSources(widget)) {
+      if (source.binding) bindings.add(source.binding)
+      // A lap timer modifier replaces the reading with module state the device
+      // derives from the current lap time, so that is the field it needs.
+      if (source.modifiers?.some((modifier) => modifier?.type === 'lap_timer')) {
+        bindings.add('session.lap.current_time')
+      }
+    }
+  }
+  return [...bindings]
+}
+
+export function widgetSources(widget: WidgetConfiguration): ValueSourceConfiguration[] {
+  return [
+    ...(isTextWidget(widget) ? widget.sources ?? [] : []),
+    ...('source' in widget && widget.source ? [widget.source] : []),
+    ...(widget.condition_source ? [widget.condition_source] : [])
+  ]
 }
 
 /**

@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "limits": {
@@ -9,39 +9,35 @@
     },
     "kMaximumScreens": {
       "value": 1,
-      "doc": "Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review."
+      "doc": "Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table."
     },
     "kMaximumWidgetsPerScreen": {
-      "value": 87,
-      "doc": "Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize."
+      "value": 86,
+      "doc": "Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize."
     },
     "kMaximumTextWidgets": {
       "value": 32,
-      "doc": "Text widget storage per screen. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts."
+      "doc": "Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts."
     },
     "kMaximumShapeWidgets": {
       "value": 24,
-      "doc": "Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap."
+      "doc": "Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap."
     },
     "kMaximumBarWidgets": {
       "value": 16,
-      "doc": "Bar widget storage per screen."
+      "doc": "Bar widget storage for the whole dashboard."
     },
     "kMaximumArcWidgets": {
       "value": 8,
-      "doc": "Arc widget storage per screen."
+      "doc": "Arc widget storage for the whole dashboard."
     },
     "kMaximumIndicatorWidgets": {
       "value": 4,
-      "doc": "Indicator strip storage per screen."
+      "doc": "Indicator strip storage for the whole dashboard."
     },
     "kMaximumGraphWidgets": {
       "value": 2,
-      "doc": "Graph storage per screen. Each instance owns a sample ring buffer, which is why this cap is the smallest."
-    },
-    "kMaximumDeltaTimeWidgets": {
-      "value": 1,
-      "doc": "Delta Time widget storage per screen."
+      "doc": "Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest."
     },
     "kMaximumIndicatorSegments": {
       "value": 16,
@@ -59,6 +55,10 @@
       "value": 4,
       "doc": "Value modifiers per text widget source."
     },
+    "kMaximumColorStops": {
+      "value": 4,
+      "doc": "Stops in one widget colour ramp. Four is a normal, caution, warning and limit band, the same bands the conditional rules cover discretely."
+    },
     "kMaximumWidgetConditions": {
       "value": 4,
       "doc": "Conditional styling rules per widget. Four covers a normal, caution, warning and limit band."
@@ -74,10 +74,6 @@
     "kUnavailableTextCapacity": {
       "value": 16,
       "doc": "Placeholder text storage including the terminator (15 usable bytes)."
-    },
-    "kDeltaTimeTextCapacity": {
-      "value": 16,
-      "doc": "Delta Time placeholder storage including the terminator (15 usable bytes)."
     },
     "kValidationPathCapacity": {
       "value": 48,
@@ -136,11 +132,6 @@
       "default": "board_default",
       "doc": "Telemetry transport selection. board_default defers to the immutable board descriptor."
     },
-    "DeltaTimeUnavailableBehavior": {
-      "json_values": ["hide", "placeholder", "zero"],
-      "default": "zero",
-      "doc": "What the Delta Time widget shows while its telemetry is unavailable."
-    },
     "TextAlignment": {
       "json_values": ["left", "center", "right"],
       "default": "center",
@@ -150,6 +141,16 @@
       "json_values": ["none", "time", "number"],
       "default": "none",
       "doc": "Presentation transform applied after the modifier pipeline."
+    },
+    "GradientDirection": {
+      "json_values": ["horizontal", "vertical"],
+      "default": "vertical",
+      "doc": "Axis a linear gradient runs along. Only used when a gradient colour is set."
+    },
+    "ColorRampTarget": {
+      "json_values": ["content", "background", "border"],
+      "default": "content",
+      "doc": "Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill."
     },
     "ConditionOperator": {
       "json_values": ["above", "at_or_above", "below", "at_or_below", "equal", "not_equal"],
@@ -172,7 +173,7 @@
       "doc": "Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own."
     },
     "WidgetType": {
-      "json_values": ["text", "shape", "bar", "delta_time"],
+      "json_values": ["text", "shape", "bar", "arc", "indicator", "graph"],
       "default": "text",
       "doc": "Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget."
     }
@@ -207,23 +208,6 @@
       "fields": [
         { "name": "id", "kind": "enum", "enum": "TelemetryTransportId" },
         { "name": "uart", "kind": "struct", "struct": "UartTelemetryConfiguration" }
-      ]
-    },
-
-    "DeltaTimeScaleConfiguration": {
-      "fields": [
-        { "name": "enabled", "kind": "bool", "default": false },
-        { "name": "show_sign", "kind": "bool", "default": false },
-        { "name": "range_ms", "kind": "int32", "default": 2000 }
-      ]
-    },
-
-    "DeltaTimeConfiguration": {
-      "doc": "Delta Time module configuration. Distinct from the Delta Time widget, which owns presentation only.",
-      "fields": [
-        { "name": "unavailable_behavior", "kind": "enum", "enum": "DeltaTimeUnavailableBehavior" },
-        { "name": "placeholder", "kind": "text", "capacity": "kDeltaTimeTextCapacity", "default": "---" },
-        { "name": "scale", "kind": "struct", "struct": "DeltaTimeScaleConfiguration" }
       ]
     },
 
@@ -289,35 +273,29 @@
       ]
     },
 
-    "DeltaTimeScaleStyle": {
-      "fields": [
-        { "name": "vertical_padding_px", "kind": "uint16", "default": 2 },
-        { "name": "border_width_px", "kind": "uint16", "default": 2 },
-        { "name": "border_radius_px", "kind": "uint16", "default": 8 }
-      ]
-    },
-
-    "DeltaTimeWidgetConfiguration": {
-      "widget_type": "delta_time",
-      "doc": "Renders Delta Time module state. Requires the delta_time module section to be present.",
-      "fields": [
-        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
-        { "name": "font", "kind": "external", "external": "FontSpec" },
-        { "name": "placement", "kind": "struct", "struct": "WidgetPlacement" },
-        { "name": "z_index", "kind": "int16", "default": 0 },
-        { "name": "faster_color", "kind": "color", "default": "0x00C853" },
-        { "name": "slower_color", "kind": "color", "default": "0xD50000" },
-        { "name": "neutral_color", "kind": "color", "default": "0xE8E8E8" },
-        { "name": "scale", "kind": "struct", "struct": "DeltaTimeScaleStyle" }
-      ]
-    },
-
     "ValueSourceConfiguration": {
       "doc": "A canonical telemetry binding with its modifier pipeline, consumed as a typed value. Carries no transform: the widgets that read one map it through a range or compare it, rather than presenting it as text.",
       "fields": [
         { "name": "binding", "kind": "text", "capacity": "kValueBindingCapacity", "default": "" },
         { "name": "modifier_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "modifiers", "kind": "array", "struct": "ValueModifier", "capacity": "kMaximumValueModifiers", "count_field": "modifier_count" }
+      ]
+    },
+
+    "ColorStop": {
+      "doc": "One anchor of a colour ramp.",
+      "fields": [
+        { "name": "at", "kind": "float", "default": 0, "doc": "Value of the watched source this colour lands exactly on. Absolute like a rule's value, not a fraction, so a ramp is authored in the units it is read in." },
+        { "name": "color", "kind": "color", "default": "0xE8E8E8" }
+      ]
+    },
+
+    "ColorRamp": {
+      "doc": "A colour interpolated from the watched source rather than switched by a threshold. It is the base layer: a matching rule paints over it, and with no stops the authored colour stands.",
+      "fields": [
+        { "name": "target", "kind": "enum", "enum": "ColorRampTarget" },
+        { "name": "stop_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "stops", "kind": "array", "struct": "ColorStop", "capacity": "kMaximumColorStops", "count_field": "stop_count" }
       ]
     },
 
@@ -355,9 +333,13 @@
         { "name": "border", "kind": "struct", "struct": "WidgetBorder" },
         { "name": "title", "kind": "struct", "struct": "WidgetTitleStyle" },
         { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" },
+        { "name": "background_grad_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Far end of a linear gradient across the background. Omitted paints the background flat." },
+        { "name": "background_grad_dir", "kind": "enum", "enum": "GradientDirection" },
         { "name": "background_inset_px", "kind": "uint16", "default": 0, "doc": "Gap between the border and the painted background, so a filled widget keeps its frame visible. Applies to the authored background and to one a rule paints." },
         { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration" },
+        { "name": "color_ramp", "kind": "struct", "struct": "ColorRamp" },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "screen_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "Screen this widget is parented to, written by the parser from the screen that declared it. An LVGL object has one parent, so a pool slot belongs to exactly one screen." },
         { "name": "conditions", "kind": "array", "struct": "WidgetCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" }
       ]
     },
@@ -388,9 +370,68 @@
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
+        { "name": "origin", "kind": "float", "default": 0, "doc": "Value the fill grows from, clamped into the range. Omitted means the low end, which is what a plain gauge wants; setting it to the middle of a signed range gives a centred meter such as a lap delta." },
+        { "name": "origin_present", "kind": "bool", "default": false, "serialized": false },
         { "name": "orientation", "kind": "enum", "enum": "BarOrientation" },
         { "name": "inverted", "kind": "bool", "default": false, "doc": "Fills from the opposite end: right instead of left, or top instead of bottom." },
-        { "name": "fill_color", "kind": "color", "default": "0x38BDF8" }
+        { "name": "fill_color", "kind": "color", "default": "0x38BDF8" },
+        { "name": "fill_grad_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Far end of a linear gradient across the fill, running along the bar's own axis. Omitted paints the fill flat." }
+      ]
+    },
+
+    "ArcWidgetConfiguration": {
+      "widget_type": "arc",
+      "doc": "One telemetry source swept around an arc. The track is the arc's own background, so a gauge needs no shape behind it.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
+        { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
+        { "name": "start_angle_deg", "kind": "uint16", "default": 135, "doc": "Where the sweep begins, in LVGL degrees: zero is three o'clock and the angle grows clockwise." },
+        { "name": "sweep_deg", "kind": "uint16", "default": 270, "doc": "How far the arc runs from its start. An extent rather than an end angle, so the wrap past 360 degrees is never ambiguous." },
+        { "name": "thickness_px", "kind": "uint16", "default": 8 },
+        { "name": "track_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Unfilled part of the sweep. Omitted leaves it unpainted, which suits an arc drawn over a shape." },
+        { "name": "fill_color", "kind": "color", "default": "0x38BDF8" },
+        { "name": "inverted", "kind": "bool", "default": false, "doc": "Sweeps from the far end of the arc instead of the near one." }
+      ]
+    },
+
+    "IndicatorSegment": {
+      "doc": "One lamp in an indicator strip.",
+      "fields": [
+        { "name": "threshold", "kind": "float", "default": 0, "doc": "Fraction of the widget's range, 0 to 1, at or above which this segment lights. A fraction rather than a raw value, so one authored strip suits any engine." },
+        { "name": "color", "kind": "color", "default": "0x00C853" }
+      ]
+    },
+
+    "IndicatorWidgetConfiguration": {
+      "widget_type": "indicator",
+      "doc": "A row of lamps that light as one telemetry source climbs its range: shift lights, a rev strip, a stint marker.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
+        { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
+        { "name": "orientation", "kind": "enum", "enum": "BarOrientation" },
+        { "name": "segment_gap_px", "kind": "uint16", "default": 4 },
+        { "name": "segment_radius_px", "kind": "uint16", "default": 0 },
+        { "name": "off_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a segment that is not lit. Omitted leaves it unpainted." },
+        { "name": "blink_threshold", "kind": "float", "default": 2, "doc": "Range fraction at or above which every lit segment blinks. The default is past the top of the range, which is how a strip says never." },
+        { "name": "blink_ms", "kind": "uint16", "default": 0, "doc": "Blink period once the blink threshold is reached. Zero never blinks." },
+        { "name": "segment_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "segments", "kind": "array", "struct": "IndicatorSegment", "capacity": "kMaximumIndicatorSegments", "count_field": "segment_count" }
+      ]
+    },
+
+    "GraphWidgetConfiguration": {
+      "widget_type": "graph",
+      "doc": "A rolling trace of one telemetry source. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
+        { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
+        { "name": "point_count", "kind": "uint16", "default": 64, "doc": "Samples the trace shows. The ring buffer is sized by kMaximumGraphPoints whatever this asks for." },
+        { "name": "sample_interval_ms", "kind": "uint16", "default": 100, "doc": "How often a sample is taken, which with point_count sets how far back the trace reaches." },
+        { "name": "line_color", "kind": "color", "default": "0x38BDF8" },
+        { "name": "line_width_px", "kind": "uint16", "default": 2 }
       ]
     },
 
@@ -414,7 +455,7 @@
     },
 
     "ScreenConfiguration": {
-      "doc": "One dashboard screen. A screen is the coordinate space for the widgets it owns.",
+      "doc": "One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference.",
       "fields": [
         { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
         { "name": "background_color", "kind": "color", "default": "0x000000" },
@@ -429,25 +470,32 @@
             "text": "TextWidgetConfiguration",
             "shape": "ShapeWidgetConfiguration",
             "bar": "BarWidgetConfiguration",
-            "delta_time": "DeltaTimeWidgetConfiguration"
+            "arc": "ArcWidgetConfiguration",
+            "indicator": "IndicatorWidgetConfiguration",
+            "graph": "GraphWidgetConfiguration"
           },
-          "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the typed storage for its variant."
-        },
+          "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the dashboard pool for its variant, and the screen keeps a reference to that slot."
+        }
+      ]
+    },
+
+    "DashboardConfiguration": {
+      "doc": "Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays.",
+      "fields": [
+        { "name": "screen_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "screens", "kind": "array", "struct": "ScreenConfiguration", "capacity": "kMaximumScreens", "count_field": "screen_count" },
         { "name": "text_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "text_widgets", "kind": "array", "struct": "TextWidgetConfiguration", "capacity": "kMaximumTextWidgets", "count_field": "text_widget_count", "serialized": false },
         { "name": "shape_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "shape_widgets", "kind": "array", "struct": "ShapeWidgetConfiguration", "capacity": "kMaximumShapeWidgets", "count_field": "shape_widget_count", "serialized": false },
         { "name": "bar_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "bar_widgets", "kind": "array", "struct": "BarWidgetConfiguration", "capacity": "kMaximumBarWidgets", "count_field": "bar_widget_count", "serialized": false },
-        { "name": "delta_time_widget_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "delta_time_widgets", "kind": "array", "struct": "DeltaTimeWidgetConfiguration", "capacity": "kMaximumDeltaTimeWidgets", "count_field": "delta_time_widget_count", "serialized": false }
-      ]
-    },
-
-    "DashboardConfiguration": {
-      "fields": [
-        { "name": "screen_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "screens", "kind": "array", "struct": "ScreenConfiguration", "capacity": "kMaximumScreens", "count_field": "screen_count" }
+        { "name": "arc_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "arc_widgets", "kind": "array", "struct": "ArcWidgetConfiguration", "capacity": "kMaximumArcWidgets", "count_field": "arc_widget_count", "serialized": false },
+        { "name": "indicator_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "indicator_widgets", "kind": "array", "struct": "IndicatorWidgetConfiguration", "capacity": "kMaximumIndicatorWidgets", "count_field": "indicator_widget_count", "serialized": false },
+        { "name": "graph_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "graph_widgets", "kind": "array", "struct": "GraphWidgetConfiguration", "capacity": "kMaximumGraphWidgets", "count_field": "graph_widget_count", "serialized": false }
       ]
     },
 
@@ -458,8 +506,6 @@
         { "name": "hardware", "kind": "struct", "struct": "HardwareConfiguration" },
         { "name": "telemetry_transport_present", "kind": "bool", "default": false, "serialized": false },
         { "name": "telemetry_transport", "kind": "struct", "struct": "TelemetryTransportConfiguration" },
-        { "name": "delta_time_present", "kind": "bool", "default": false, "serialized": false },
-        { "name": "delta_time", "kind": "struct", "struct": "DeltaTimeConfiguration" },
         { "name": "dashboard", "kind": "struct", "struct": "DashboardConfiguration" }
       ]
     }

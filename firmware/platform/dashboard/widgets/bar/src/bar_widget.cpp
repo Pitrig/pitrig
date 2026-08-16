@@ -48,6 +48,10 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.read = binding.read;
   state.read_context = binding.read_context;
   state.range = config.range;
+  state.origin_fraction =
+      config.origin_present
+          ? conditions::range_fraction(config.origin, config.range)
+          : 0.0F;
   state.orientation = config.orientation;
   state.inverted = config.inverted;
   state.free_running = binding.fast_updates;
@@ -72,6 +76,19 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_set_style_bg_color(state.fill, lv_color_hex(config.fill_color),
                             LV_PART_MAIN);
   lv_obj_set_style_bg_opa(state.fill, LV_OPA_COVER, LV_PART_MAIN);
+  // A gradient runs along the bar's own axis, so it reads as depth on the fill
+  // rather than as a second colour crossing it.
+  if (config.fill_grad_color != configuration::kTransparentColor) {
+    lv_obj_set_style_bg_grad_color(state.fill,
+                                   lv_color_hex(config.fill_grad_color),
+                                   LV_PART_MAIN);
+    lv_obj_set_style_bg_grad_dir(
+        state.fill,
+        config.orientation == configuration::BarOrientation::horizontal
+            ? LV_GRAD_DIR_HOR
+            : LV_GRAD_DIR_VER,
+        LV_PART_MAIN);
+  }
   lv_obj_set_style_radius(
       state.fill, std::max<std::int32_t>(config.frame.border.radius_px - border, 0),
       LV_PART_MAIN);
@@ -163,26 +180,34 @@ void Collection::render_state(State& state) {
   const bool horizontal =
       state.orientation == configuration::BarOrientation::horizontal;
   const std::int32_t span = horizontal ? state.inner_width : state.inner_height;
+  // The fill covers the stretch between the origin and the value, so a value
+  // below the origin fills backwards rather than reading as empty.
+  const float nearest = std::min(state.origin_fraction, fraction);
+  const float farthest = std::max(state.origin_fraction, fraction);
+  const auto offset =
+      static_cast<std::int32_t>(static_cast<float>(span) * nearest + 0.5F);
   const auto length =
-      static_cast<std::int32_t>(static_cast<float>(span) * fraction + 0.5F);
-  if (!first_render && length == state.drawn_length) {
+      static_cast<std::int32_t>(static_cast<float>(span) * farthest + 0.5F) -
+      offset;
+  if (!first_render && length == state.drawn_length &&
+      offset == state.drawn_offset) {
     return;
   }
   state.drawn_length = length;
+  state.drawn_offset = offset;
 
+  // A horizontal bar counts from the left and a vertical one from the bottom,
+  // which is what a gauge reads as; inverting mirrors either axis. Both cases
+  // reduce to whether the offset starts at the low end of the axis, so the
+  // branches differ only in which coordinate they write.
+  const bool from_axis_start = horizontal != state.inverted;
+  const std::int32_t leading =
+      from_axis_start ? offset : span - offset - length;
   if (horizontal) {
-    // A horizontal bar grows from the left, or from the right when inverted.
-    lv_obj_set_pos(state.fill,
-                   state.origin_x +
-                       (state.inverted ? state.inner_width - length : 0),
-                   state.origin_y);
+    lv_obj_set_pos(state.fill, state.origin_x + leading, state.origin_y);
     lv_obj_set_size(state.fill, length, state.inner_height);
   } else {
-    // A vertical bar grows upwards, which is what a gauge reads as, unless it
-    // is inverted.
-    lv_obj_set_pos(state.fill, state.origin_x,
-                   state.origin_y +
-                       (state.inverted ? 0 : state.inner_height - length));
+    lv_obj_set_pos(state.fill, state.origin_x, state.origin_y + leading);
     lv_obj_set_size(state.fill, state.inner_width, length);
   }
 }

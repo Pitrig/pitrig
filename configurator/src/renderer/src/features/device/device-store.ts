@@ -13,6 +13,20 @@ import type {
 // advanced JSON editor and for the wire. `rawDraft` holds the advanced editor's
 // text while it differs from the structured draft, including while it is not
 // parseable — the preview keeps rendering the last good document, as before.
+//
+// History lives here rather than in the editor because this is where every
+// document replacement lands. Entries are whole documents: each edit already
+// produces a fresh clone, so a snapshot costs a reference rather than a copy,
+// and a 64 KB bound on the document keeps the stack small.
+
+const MAXIMUM_HISTORY_ENTRIES = 100
+
+/**
+ * Which control produced the current draft. A raw-JSON session records one
+ * entry when it starts rather than one per keystroke, which is what makes undo
+ * step over an editing session instead of a character.
+ */
+type EditSource = 'structured' | 'raw'
 
 interface DeviceStore {
   status: DeviceStatus
@@ -25,6 +39,11 @@ interface DeviceStore {
   draftFileName?: string
   pendingConfiguration?: DeviceConfiguration
   rebootRequired: boolean
+  past: DeviceConfiguration[]
+  future: DeviceConfiguration[]
+  editDepth: number
+  editRecorded: boolean
+  editSource: EditSource
   applyDeviceState: (state: DeviceState) => void
   setDraft: (configuration: DeviceConfiguration) => void
   setRawDraft: (text: string) => void
@@ -32,10 +51,28 @@ interface DeviceStore {
   reloadDraft: (session: DeviceSession) => void
   markConfigurationSaved: (configuration: DeviceConfiguration) => void
   markConfigurationReset: (configuration: DeviceConfiguration) => void
+  /**
+   * Collapses everything until the matching `endEdit` into one history entry.
+   * A drag commits a document per animation frame and a held arrow key one per
+   * repeat; both are one edit to the person doing them.
+   */
+  beginEdit: () => void
+  endEdit: () => void
+  undo: () => void
+  redo: () => void
 }
 
 function adopt(configuration: DeviceConfiguration): DeviceConfiguration {
   return withWidgetIds(configuration)
+}
+
+/**
+ * A document arriving from outside the editor — a file, the board, a save —
+ * is a new starting point, so the stack it would have been compared against no
+ * longer describes anything the person can return to.
+ */
+function clearedHistory(): Partial<DeviceStore> {
+  return { past: [], future: [], editDepth: 0, editRecorded: false }
 }
 
 export const useDeviceStore = create<DeviceStore>((set) => ({
@@ -43,6 +80,11 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
   connectionRevision: 0,
   hasLocalDraft: false,
   rebootRequired: false,
+  past: [],
+  future: [],
+  editDepth: 0,
+  editRecorded: false,
+  editSource: 'structured',
   applyDeviceState: (state) =>
     set((current) => {
       if (state.status !== 'connected' || !state.session) {
@@ -78,27 +120,45 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
         activeConfiguration,
         ...(current.hasLocalDraft
           ? {}
-          : { draft: adopt(activeConfiguration), rawDraft: undefined, hasLocalDraft: true }),
+          : {
+              draft: adopt(activeConfiguration),
+              rawDraft: undefined,
+              hasLocalDraft: true,
+              ...clearedHistory()
+            }),
         pendingConfiguration: undefined,
         rebootRequired: state.session.fontAssets?.rebootRequired ?? false
       }
     }),
-  setDraft: (draft) => set({ draft, rawDraft: undefined, hasLocalDraft: true }),
+  setDraft: (draft) =>
+    set((current) => ({
+      draft,
+      rawDraft: undefined,
+      hasLocalDraft: true,
+      editSource: 'structured',
+      ...recordHistory(current, 'structured')
+    })),
   // Keeps the typed text exactly as entered so reformatting never fights the
   // caret; the structured draft advances only while the text parses.
   setRawDraft: (text) =>
-    set(() => {
+    set((current) => {
       const parsed = parseConfiguration(text)
-      return parsed
-        ? { rawDraft: text, draft: parsed, hasLocalDraft: true }
-        : { rawDraft: text, hasLocalDraft: true }
+      if (!parsed) return { rawDraft: text, hasLocalDraft: true }
+      return {
+        rawDraft: text,
+        draft: parsed,
+        hasLocalDraft: true,
+        editSource: 'raw',
+        ...recordHistory(current, 'raw')
+      }
     }),
   replaceLocalDraft: (configuration, draftFileName) =>
     set({
       draft: adopt(configuration),
       rawDraft: undefined,
       hasLocalDraft: true,
-      draftFileName
+      draftFileName,
+      ...clearedHistory()
     }),
   reloadDraft: (session) =>
     set((current) => ({
@@ -108,7 +168,8 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       rawDraft: undefined,
       hasLocalDraft: true,
       draftFileName: undefined,
-      rebootRequired: current.rebootRequired || (session.fontAssets?.rebootRequired ?? false)
+      rebootRequired: current.rebootRequired || (session.fontAssets?.rebootRequired ?? false),
+      ...clearedHistory()
     })),
   markConfigurationSaved: (configuration) =>
     set({
@@ -117,7 +178,8 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       hasLocalDraft: true,
       draftFileName: undefined,
       pendingConfiguration: configuration,
-      rebootRequired: true
+      rebootRequired: true,
+      ...clearedHistory()
     }),
   markConfigurationReset: (configuration) =>
     set({
@@ -126,9 +188,58 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       hasLocalDraft: true,
       draftFileName: undefined,
       pendingConfiguration: configuration,
-      rebootRequired: true
+      rebootRequired: true,
+      ...clearedHistory()
+    }),
+  beginEdit: () =>
+    set((current) => ({ editDepth: current.editDepth + 1, editRecorded: false })),
+  endEdit: () => set((current) => ({ editDepth: Math.max(0, current.editDepth - 1) })),
+  undo: () =>
+    set((current) => {
+      const previous = current.past.at(-1)
+      if (previous === undefined || current.draft === undefined) return {}
+      return {
+        draft: previous,
+        // The advanced editor's text belonged to the document being undone.
+        rawDraft: undefined,
+        hasLocalDraft: true,
+        past: current.past.slice(0, -1),
+        future: [current.draft, ...current.future]
+      }
+    }),
+  redo: () =>
+    set((current) => {
+      const [next, ...rest] = current.future
+      if (next === undefined || current.draft === undefined) return {}
+      return {
+        draft: next,
+        rawDraft: undefined,
+        hasLocalDraft: true,
+        past: [...current.past, current.draft],
+        future: rest
+      }
     })
 }))
+
+/**
+ * The history half of a draft replacement. Nothing is recorded until there is a
+ * document to go back to, an open edit group records only its first change, and
+ * a raw-JSON session records only where it began.
+ */
+function recordHistory(
+  current: DeviceStore,
+  source: EditSource
+): Partial<DeviceStore> {
+  const grouped = current.editDepth > 0 && current.editRecorded
+  const continuingRawSession = source === 'raw' && current.editSource === 'raw'
+  if (current.draft === undefined || grouped || continuingRawSession) return {}
+  return {
+    past: [...current.past, current.draft].slice(-MAXIMUM_HISTORY_ENTRIES),
+    // Editing after undoing abandons the branch that was undone.
+    future: [],
+    editRecorded: true
+  }
+}
 
 export function formatConfiguration(configuration: DeviceConfiguration): string {
   return JSON.stringify(configuration, null, 2)

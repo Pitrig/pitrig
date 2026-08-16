@@ -81,9 +81,28 @@ it, so the one-time cost is a device rejecting its stored record and booting the
 factory dashboard until the next upload, not a configuration anyone rewrites by
 hand.
 
+## Amendment: presentation history
+
+A widget may keep a bounded history of the values it has read, for its own
+drawing only. The graph widget does: it samples its source on its own timer into
+a fixed ring buffer and draws the result as a trace.
+
+This does not make the widget a stateful modifier. A modifier produces a value
+the pipeline hands to whoever asked for it, which is why `lap_timer` is module
+code behind a callback. A trace is geometry: nothing else can read it, it is
+never published, it is discarded when the widget is destroyed, and it changes
+with the passage of time rather than with the value. Routing it through a module
+would give the pipeline a consumer-specific shape for no gain.
+
+The bound is the point. History is a fixed array sized by `kMaximumGraphPoints`,
+allocated with the widget, so a trace cannot grow and the sample rate cannot
+outrun its storage.
+
 ## Consequences
 
 - The Lap Timer module remains independent from LVGL and string presentation.
+- A widget may retain bounded presentation history sampled on its own timer; it
+  is not a telemetry value and does not enter the pipeline.
 - Generic text widgets consume pre-bound read callbacks and have no concrete
   Lap Timer dependency.
 - One widget can align parts that separate widgets could not: a value label is

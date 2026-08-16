@@ -39,10 +39,21 @@ and index and sorts; it never inspects a widget's configuration.
 This is not a runtime registry. The descriptor table is assembled by the
 composition at startup from a fixed set known at compile time.
 
+A widget type earns its place by being a shape the primitives cannot express,
+not by being a feature. Delta Time was the counter-example: a reading, three
+threshold colours, and a scale filled from the centre. Once a text widget could
+compose a signed duration, a rule could colour it, and a bar could fill from a
+configured origin, the type was a preset with parser, validation, composition,
+and configurator code behind it. It was removed in schema 5 and is authored from
+those primitives instead. Apply the same test before adding one: name the pixels
+it draws that no existing type can.
+
 ## Consequences
 
 - Adding a widget type is a schema entry, a widget implementation, and one
   descriptor; the manager, the compositing pass, and the layout are untouched.
+- Removing one is the same list in reverse, plus a migration: a document that
+  named the type has to be rewritten into the primitives that replace it.
 - A widget type that fails to create no longer leaves the dashboard half-built:
   already-created types are destroyed in reverse order.
 - The ordering rule from ADR 0007 is preserved and now stated in data rather

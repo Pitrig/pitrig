@@ -305,65 +305,6 @@ template <typename Enum, typename FromName>
   return uart == nullptr || parse_uart(uart, transport.uart, failure);
 }
 
-[[nodiscard]] bool parse_delta_time_module(const cJSON* const object,
-                                           DeltaTimeConfiguration& config,
-                                           ValidationFailure& failure) {
-  constexpr std::string_view kName = "delta_time";
-  if (!valid_object(object, schema::kDeltaTimeConfigurationKeys, kName,
-                    failure) ||
-      !read_text(object, "placeholder", config.placeholder, kName, failure) ||
-      !read_enum(object, "unavailable_behavior", config.unavailable_behavior,
-                 delta_time_unavailable_behavior_from_name, kName, failure)) {
-    return false;
-  }
-  const cJSON* const scale = member(object, "scale");
-  if (scale == nullptr) {
-    return true;
-  }
-  constexpr std::string_view kScaleName = "delta_time.scale";
-  return valid_object(scale, schema::kDeltaTimeScaleConfigurationKeys,
-                      kScaleName, failure) &&
-         read_boolean(scale, "enabled", config.scale.enabled, kScaleName,
-                      failure) &&
-         read_boolean(scale, "show_sign", config.scale.show_sign, kScaleName,
-                      failure) &&
-         read_integer(scale, "range_ms", config.scale.range_ms, kScaleName,
-                      failure);
-}
-
-[[nodiscard]] bool parse_delta_time_widget(
-    const cJSON* const object, DeltaTimeWidgetConfiguration& config,
-    ValidationFailure& failure) {
-  constexpr std::string_view kName = "widget.delta_time";
-  if (!valid_object(object, schema::kDeltaTimeWidgetConfigurationKeys, kName,
-                    failure) ||
-      !read_text(object, "id", config.id, kName, failure) ||
-      !parse_optional_placement(object, config.placement, failure) ||
-      !read_integer(object, "z_index", config.z_index, kName, failure) ||
-      !parse_optional_font(object, config.font, failure) ||
-      !read_color(object, "faster_color", config.faster_color, kName,
-                  failure) ||
-      !read_color(object, "slower_color", config.slower_color, kName,
-                  failure) ||
-      !read_color(object, "neutral_color", config.neutral_color, kName,
-                  failure)) {
-    return false;
-  }
-  const cJSON* const scale = member(object, "scale");
-  if (scale == nullptr) {
-    return true;
-  }
-  constexpr std::string_view kScaleName = "widget.delta_time.scale";
-  return valid_object(scale, schema::kDeltaTimeScaleStyleKeys, kScaleName,
-                      failure) &&
-         read_integer(scale, "vertical_padding_px",
-                      config.scale.vertical_padding_px, kScaleName, failure) &&
-         read_integer(scale, "border_width_px", config.scale.border_width_px,
-                      kScaleName, failure) &&
-         read_integer(scale, "border_radius_px", config.scale.border_radius_px,
-                      kScaleName, failure);
-}
-
 [[nodiscard]] bool parse_transform(const cJSON* const object,
                                    ValueTransform& transform,
                                    ValidationFailure& failure) {
@@ -465,6 +406,42 @@ template <typename Source>
 
 // Styling rules and the source they watch. Both are optional; a widget with
 // neither renders its authored colours and nothing evaluates at render time.
+// The ramp sits beside the rules because both read the same watched source; it
+// is the colour they fall back to rather than a rule of its own.
+[[nodiscard]] bool parse_color_ramp(const cJSON* const object,
+                                    WidgetFrame& config,
+                                    ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.color_ramp";
+  const cJSON* const ramp = member(object, "color_ramp");
+  if (ramp == nullptr) {
+    return true;
+  }
+  if (!valid_object(ramp, schema::kColorRampKeys, kName, failure) ||
+      !read_enum(ramp, "target", config.color_ramp.target,
+                 color_ramp_target_from_name, kName, failure)) {
+    return false;
+  }
+  const cJSON* const stops = member(ramp, "stops");
+  if (stops == nullptr) {
+    return true;
+  }
+  const int count = cJSON_IsArray(stops) ? cJSON_GetArraySize(stops) : -1;
+  if (count < 0 || count > static_cast<int>(config.color_ramp.stops.size())) {
+    return reject(failure, ValidationError::malformed, kName);
+  }
+  for (int index = 0; index < count; ++index) {
+    const cJSON* const stop = cJSON_GetArrayItem(stops, index);
+    ColorStop& parsed = config.color_ramp.stops[index];
+    if (!valid_object(stop, schema::kColorStopKeys, kName, failure) ||
+        !read_float(stop, "at", parsed.at, kName, failure) ||
+        !read_color(stop, "color", parsed.color, kName, failure)) {
+      return false;
+    }
+  }
+  config.color_ramp.stop_count = static_cast<std::uint8_t>(count);
+  return true;
+}
+
 [[nodiscard]] bool parse_conditions(const cJSON* const object,
                                     WidgetFrame& config,
                                     ValidationFailure& failure) {
@@ -479,6 +456,10 @@ template <typename Source>
         !parse_modifiers(source, config.condition_source, failure)) {
       return false;
     }
+  }
+
+  if (!parse_color_ramp(object, config, failure)) {
+    return false;
   }
 
   const cJSON* const conditions = member(object, "conditions");
@@ -522,6 +503,10 @@ template <typename Source>
       !read_integer(object, "z_index", frame.z_index, name, failure) ||
       !read_color(object, "background_color", frame.background_color, name,
                   failure) ||
+      !read_color(object, "background_grad_color", frame.background_grad_color,
+                  name, failure) ||
+      !read_enum(object, "background_grad_dir", frame.background_grad_dir,
+                 gradient_direction_from_name, name, failure) ||
       !read_integer(object, "background_inset_px", frame.background_inset_px,
                     name, failure) ||
       !parse_conditions(object, frame, failure)) {
@@ -592,7 +577,79 @@ template <typename Source>
                                     BarWidgetConfiguration& config,
                                     ValidationFailure& failure) {
   constexpr std::string_view kName = "widget.bar";
-  return valid_object(object, schema::kBarWidgetConfigurationKeys, kName,
+  if (!valid_object(object, schema::kBarWidgetConfigurationKeys, kName,
+                    failure) ||
+      !parse_frame(object, config.frame, kName, failure) ||
+      !parse_value_source(object, config.source, kName, failure) ||
+      !read_float(object, "minimum", config.range.minimum, kName, failure) ||
+      !read_float(object, "maximum", config.range.maximum, kName, failure) ||
+      !read_float(object, "origin", config.origin, kName, failure) ||
+      !read_enum(object, "orientation", config.orientation,
+                 bar_orientation_from_name, kName, failure) ||
+      !read_boolean(object, "inverted", config.inverted, kName, failure) ||
+      !read_color(object, "fill_color", config.fill_color, kName, failure) ||
+      !read_color(object, "fill_grad_color", config.fill_grad_color, kName,
+                  failure)) {
+    return false;
+  }
+  // An omitted origin means the low end of the range, which a literal zero
+  // cannot express once the window goes negative.
+  config.origin_present = member(object, "origin") != nullptr;
+  return true;
+}
+
+[[nodiscard]] bool parse_arc_widget(const cJSON* const object,
+                                    ArcWidgetConfiguration& config,
+                                    ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.arc";
+  return valid_object(object, schema::kArcWidgetConfigurationKeys, kName,
+                      failure) &&
+         parse_frame(object, config.frame, kName, failure) &&
+         parse_value_source(object, config.source, kName, failure) &&
+         read_float(object, "minimum", config.range.minimum, kName, failure) &&
+         read_float(object, "maximum", config.range.maximum, kName, failure) &&
+         read_integer(object, "start_angle_deg", config.start_angle_deg, kName,
+                      failure) &&
+         read_integer(object, "sweep_deg", config.sweep_deg, kName, failure) &&
+         read_integer(object, "thickness_px", config.thickness_px, kName,
+                      failure) &&
+         read_color(object, "track_color", config.track_color, kName,
+                    failure) &&
+         read_color(object, "fill_color", config.fill_color, kName, failure) &&
+         read_boolean(object, "inverted", config.inverted, kName, failure);
+}
+
+[[nodiscard]] bool parse_indicator_segments(const cJSON* const object,
+                                            IndicatorWidgetConfiguration& config,
+                                            ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.indicator.segments";
+  const cJSON* const segments = member(object, "segments");
+  if (segments == nullptr) {
+    return true;
+  }
+  const int count =
+      cJSON_IsArray(segments) ? cJSON_GetArraySize(segments) : -1;
+  if (count < 0 || count > static_cast<int>(config.segments.size())) {
+    return reject(failure, ValidationError::malformed, kName);
+  }
+  for (int index = 0; index < count; ++index) {
+    const cJSON* const segment = cJSON_GetArrayItem(segments, index);
+    IndicatorSegment& parsed = config.segments[index];
+    if (!valid_object(segment, schema::kIndicatorSegmentKeys, kName, failure) ||
+        !read_float(segment, "threshold", parsed.threshold, kName, failure) ||
+        !read_color(segment, "color", parsed.color, kName, failure)) {
+      return false;
+    }
+  }
+  config.segment_count = static_cast<std::uint8_t>(count);
+  return true;
+}
+
+[[nodiscard]] bool parse_indicator_widget(const cJSON* const object,
+                                          IndicatorWidgetConfiguration& config,
+                                          ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.indicator";
+  return valid_object(object, schema::kIndicatorWidgetConfigurationKeys, kName,
                       failure) &&
          parse_frame(object, config.frame, kName, failure) &&
          parse_value_source(object, config.source, kName, failure) &&
@@ -600,8 +657,34 @@ template <typename Source>
          read_float(object, "maximum", config.range.maximum, kName, failure) &&
          read_enum(object, "orientation", config.orientation,
                    bar_orientation_from_name, kName, failure) &&
-         read_boolean(object, "inverted", config.inverted, kName, failure) &&
-         read_color(object, "fill_color", config.fill_color, kName, failure);
+         read_integer(object, "segment_gap_px", config.segment_gap_px, kName,
+                      failure) &&
+         read_integer(object, "segment_radius_px", config.segment_radius_px,
+                      kName, failure) &&
+         read_color(object, "off_color", config.off_color, kName, failure) &&
+         read_float(object, "blink_threshold", config.blink_threshold, kName,
+                    failure) &&
+         read_integer(object, "blink_ms", config.blink_ms, kName, failure) &&
+         parse_indicator_segments(object, config, failure);
+}
+
+[[nodiscard]] bool parse_graph_widget(const cJSON* const object,
+                                      GraphWidgetConfiguration& config,
+                                      ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.graph";
+  return valid_object(object, schema::kGraphWidgetConfigurationKeys, kName,
+                      failure) &&
+         parse_frame(object, config.frame, kName, failure) &&
+         parse_value_source(object, config.source, kName, failure) &&
+         read_float(object, "minimum", config.range.minimum, kName, failure) &&
+         read_float(object, "maximum", config.range.maximum, kName, failure) &&
+         read_integer(object, "point_count", config.point_count, kName,
+                      failure) &&
+         read_integer(object, "sample_interval_ms", config.sample_interval_ms,
+                      kName, failure) &&
+         read_color(object, "line_color", config.line_color, kName, failure) &&
+         read_integer(object, "line_width_px", config.line_width_px, kName,
+                      failure);
 }
 
 [[nodiscard]] bool parse_shape_widget(const cJSON* const object,
@@ -643,8 +726,13 @@ template <typename Source>
 
 // Dispatches one element of the heterogeneous widget array into the typed
 // storage for its variant and records its authored position.
+// Widgets are authored inside a screen but stored in the dashboard-wide pool,
+// so this writes the configuration into the pool and leaves the screen holding
+// a reference to that slot.
 [[nodiscard]] bool parse_widget(const cJSON* const object,
+                                DashboardConfiguration& dashboard,
                                 ScreenConfiguration& screen,
+                                const std::uint8_t screen_index,
                                 ValidationFailure& failure) {
   constexpr std::string_view kName = "widget";
   if (!cJSON_IsObject(object)) {
@@ -668,56 +756,93 @@ template <typename Source>
   std::int16_t z_index{};
   switch (widget_type) {
     case WidgetType::text:
-      if (screen.text_widget_count >= screen.text_widgets.size()) {
-        return reject(failure, ValidationError::invalid_screen, "screen",
-                      "widgets");
+      if (dashboard.text_widget_count >= dashboard.text_widgets.size()) {
+        return reject(failure, ValidationError::invalid_dashboard, "dashboard",
+                      "text_widgets");
       }
-      storage_index = screen.text_widget_count;
-      if (!parse_text_widget(object, screen.text_widgets[storage_index],
+      storage_index = dashboard.text_widget_count;
+      if (!parse_text_widget(object, dashboard.text_widgets[storage_index],
                              failure)) {
         return false;
       }
-      z_index = screen.text_widgets[storage_index].frame.z_index;
-      ++screen.text_widget_count;
+      dashboard.text_widgets[storage_index].frame.screen_index =
+          screen_index;
+      z_index = dashboard.text_widgets[storage_index].frame.z_index;
+      ++dashboard.text_widget_count;
       break;
     case WidgetType::shape:
-      if (screen.shape_widget_count >= screen.shape_widgets.size()) {
-        return reject(failure, ValidationError::invalid_screen, "screen",
-                      "widgets");
+      if (dashboard.shape_widget_count >= dashboard.shape_widgets.size()) {
+        return reject(failure, ValidationError::invalid_dashboard, "dashboard",
+                      "shape_widgets");
       }
-      storage_index = screen.shape_widget_count;
-      if (!parse_shape_widget(object, screen.shape_widgets[storage_index],
+      storage_index = dashboard.shape_widget_count;
+      if (!parse_shape_widget(object, dashboard.shape_widgets[storage_index],
                               failure)) {
         return false;
       }
-      z_index = screen.shape_widgets[storage_index].frame.z_index;
-      ++screen.shape_widget_count;
+      dashboard.shape_widgets[storage_index].frame.screen_index =
+          screen_index;
+      z_index = dashboard.shape_widgets[storage_index].frame.z_index;
+      ++dashboard.shape_widget_count;
       break;
     case WidgetType::bar:
-      if (screen.bar_widget_count >= screen.bar_widgets.size()) {
-        return reject(failure, ValidationError::invalid_screen, "screen",
-                      "widgets");
+      if (dashboard.bar_widget_count >= dashboard.bar_widgets.size()) {
+        return reject(failure, ValidationError::invalid_dashboard, "dashboard",
+                      "bar_widgets");
       }
-      storage_index = screen.bar_widget_count;
-      if (!parse_bar_widget(object, screen.bar_widgets[storage_index],
+      storage_index = dashboard.bar_widget_count;
+      if (!parse_bar_widget(object, dashboard.bar_widgets[storage_index],
                             failure)) {
         return false;
       }
-      z_index = screen.bar_widgets[storage_index].frame.z_index;
-      ++screen.bar_widget_count;
+      dashboard.bar_widgets[storage_index].frame.screen_index =
+          screen_index;
+      z_index = dashboard.bar_widgets[storage_index].frame.z_index;
+      ++dashboard.bar_widget_count;
       break;
-    case WidgetType::delta_time:
-      if (screen.delta_time_widget_count >= screen.delta_time_widgets.size()) {
-        return reject(failure, ValidationError::invalid_screen, "screen",
-                      "widgets");
+    case WidgetType::arc:
+      if (dashboard.arc_widget_count >= dashboard.arc_widgets.size()) {
+        return reject(failure, ValidationError::invalid_dashboard, "dashboard",
+                      "arc_widgets");
       }
-      storage_index = screen.delta_time_widget_count;
-      if (!parse_delta_time_widget(
-              object, screen.delta_time_widgets[storage_index], failure)) {
+      storage_index = dashboard.arc_widget_count;
+      if (!parse_arc_widget(object, dashboard.arc_widgets[storage_index],
+                            failure)) {
         return false;
       }
-      z_index = screen.delta_time_widgets[storage_index].z_index;
-      ++screen.delta_time_widget_count;
+      dashboard.arc_widgets[storage_index].frame.screen_index = screen_index;
+      z_index = dashboard.arc_widgets[storage_index].frame.z_index;
+      ++dashboard.arc_widget_count;
+      break;
+    case WidgetType::indicator:
+      if (dashboard.indicator_widget_count >=
+          dashboard.indicator_widgets.size()) {
+        return reject(failure, ValidationError::invalid_dashboard, "dashboard",
+                      "indicator_widgets");
+      }
+      storage_index = dashboard.indicator_widget_count;
+      if (!parse_indicator_widget(
+              object, dashboard.indicator_widgets[storage_index], failure)) {
+        return false;
+      }
+      dashboard.indicator_widgets[storage_index].frame.screen_index =
+          screen_index;
+      z_index = dashboard.indicator_widgets[storage_index].frame.z_index;
+      ++dashboard.indicator_widget_count;
+      break;
+    case WidgetType::graph:
+      if (dashboard.graph_widget_count >= dashboard.graph_widgets.size()) {
+        return reject(failure, ValidationError::invalid_dashboard, "dashboard",
+                      "graph_widgets");
+      }
+      storage_index = dashboard.graph_widget_count;
+      if (!parse_graph_widget(object, dashboard.graph_widgets[storage_index],
+                              failure)) {
+        return false;
+      }
+      dashboard.graph_widgets[storage_index].frame.screen_index = screen_index;
+      z_index = dashboard.graph_widgets[storage_index].frame.z_index;
+      ++dashboard.graph_widget_count;
       break;
   }
 
@@ -731,8 +856,10 @@ template <typename Source>
 }
 
 [[nodiscard]] bool parse_screen(const cJSON* const object,
-                                ScreenConfiguration& screen,
+                                DashboardConfiguration& dashboard,
+                                const std::uint8_t screen_index,
                                 ValidationFailure& failure) {
+  ScreenConfiguration& screen = dashboard.screens[screen_index];
   constexpr std::string_view kName = "screen";
   if (!valid_object(object, schema::kScreenConfigurationKeys, kName, failure) ||
       !read_text(object, "id", screen.id, kName, failure) ||
@@ -751,7 +878,8 @@ template <typename Source>
   }
   const int count = cJSON_GetArraySize(widgets);
   for (int index = 0; index < count; ++index) {
-    if (!parse_widget(cJSON_GetArrayItem(widgets, index), screen, failure)) {
+    if (!parse_widget(cJSON_GetArrayItem(widgets, index), dashboard, screen,
+                      screen_index, failure)) {
       failure.widget_index = static_cast<std::int16_t>(index);
       return false;
     }
@@ -778,8 +906,8 @@ template <typename Source>
   }
   const int count = cJSON_GetArraySize(screens);
   for (int index = 0; index < count; ++index) {
-    if (!parse_screen(cJSON_GetArrayItem(screens, index),
-                      dashboard.screens[index], failure)) {
+    if (!parse_screen(cJSON_GetArrayItem(screens, index), dashboard,
+                      static_cast<std::uint8_t>(index), failure)) {
       failure.screen_index = static_cast<std::int16_t>(index);
       return false;
     }
@@ -818,15 +946,6 @@ template <typename Source>
     configuration.telemetry_transport_present = true;
     if (!parse_transport(transport, configuration.telemetry_transport,
                          failure)) {
-      return failure;
-    }
-  }
-
-  const cJSON* const delta_time_module = member(root, "delta_time");
-  if (delta_time_module != nullptr) {
-    configuration.delta_time_present = true;
-    if (!parse_delta_time_module(delta_time_module, configuration.delta_time,
-                                 failure)) {
       return failure;
     }
   }

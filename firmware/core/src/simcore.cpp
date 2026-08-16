@@ -106,9 +106,6 @@ configuration::ValidationFailure apply_configuration(
   const configuration::ApplicationConfiguration& previous = service.current();
   const configuration::ApplicationConfiguration& candidate = service.staged();
   const bool dashboard_only =
-      previous.delta_time_present == candidate.delta_time_present &&
-      std::memcmp(&previous.delta_time, &candidate.delta_time,
-                  sizeof(previous.delta_time)) == 0 &&
       previous.telemetry_transport_present ==
           candidate.telemetry_transport_present &&
       std::memcmp(&previous.telemetry_transport,

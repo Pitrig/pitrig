@@ -8,13 +8,14 @@ import type { FontAssetKey } from '../../../../shared/font-assets'
 // cannot silently ship a package that is missing them.
 function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
   switch (widget.type) {
-    case 'delta_time':
-      return [widget.font]
     case 'text':
       return [widget.title?.text ? widget.title.font : undefined, widget.value?.font]
     case 'shape':
     case 'bar':
-      // Neither draws text, so neither requires a font.
+    case 'arc':
+    case 'indicator':
+    case 'graph':
+      // None of these draw text of their own, so none requires a font.
       return []
     default: {
       const exhaustive: never = widget

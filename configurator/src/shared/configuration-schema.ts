@@ -2,28 +2,26 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 4
+export const CONFIGURATION_SCHEMA_VERSION = 5
 
 /** Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
 export const MAXIMUM_PAYLOAD_SIZE = 65536
-/** Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review. */
+/** Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table. */
 export const MAXIMUM_SCREENS = 1
-/** Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize. */
-export const MAXIMUM_WIDGETS_PER_SCREEN = 87
-/** Text widget storage per screen. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. */
+/** Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. */
+export const MAXIMUM_WIDGETS_PER_SCREEN = 86
+/** Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. */
 export const MAXIMUM_TEXT_WIDGETS = 32
-/** Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap. */
+/** Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap. */
 export const MAXIMUM_SHAPE_WIDGETS = 24
-/** Bar widget storage per screen. */
+/** Bar widget storage for the whole dashboard. */
 export const MAXIMUM_BAR_WIDGETS = 16
-/** Arc widget storage per screen. */
+/** Arc widget storage for the whole dashboard. */
 export const MAXIMUM_ARC_WIDGETS = 8
-/** Indicator strip storage per screen. */
+/** Indicator strip storage for the whole dashboard. */
 export const MAXIMUM_INDICATOR_WIDGETS = 4
-/** Graph storage per screen. Each instance owns a sample ring buffer, which is why this cap is the smallest. */
+/** Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest. */
 export const MAXIMUM_GRAPH_WIDGETS = 2
-/** Delta Time widget storage per screen. */
-export const MAXIMUM_DELTA_TIME_WIDGETS = 1
 /** Segments in one indicator strip. */
 export const MAXIMUM_INDICATOR_SEGMENTS = 16
 /** Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. */
@@ -32,6 +30,8 @@ export const MAXIMUM_GRAPH_POINTS = 128
 export const MAXIMUM_TEXT_SOURCES = 3
 /** Value modifiers per text widget source. */
 export const MAXIMUM_VALUE_MODIFIERS = 4
+/** Stops in one widget colour ramp. Four is a normal, caution, warning and limit band, the same bands the conditional rules cover discretely. */
+export const MAXIMUM_COLOR_STOPS = 4
 /** Conditional styling rules per widget. Four covers a normal, caution, warning and limit band. */
 export const MAXIMUM_WIDGET_CONDITIONS = 4
 /** Widget identifier storage including the terminator (15 usable bytes). */
@@ -40,8 +40,6 @@ export const WIDGET_ID_CAPACITY = 16
 export const WIDGET_TITLE_CAPACITY = 16
 /** Placeholder text storage including the terminator (15 usable bytes). */
 export const UNAVAILABLE_TEXT_CAPACITY = 16
-/** Delta Time placeholder storage including the terminator (15 usable bytes). */
-export const DELTA_TIME_TEXT_CAPACITY = 16
 /** Storage for the dotted property path reported with a rejection, including the terminator. */
 export const VALIDATION_PATH_CAPACITY = 48
 /** Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py. */
@@ -57,10 +55,6 @@ export const BOARD_ID_VALUES: readonly BoardId[] = ['t_display_s3', 'guition_esp
 export type TelemetryTransportId = 'board_default' | 'native_usb_cdc' | 'uart'
 export const TELEMETRY_TRANSPORT_ID_VALUES: readonly TelemetryTransportId[] = ['board_default', 'native_usb_cdc', 'uart']
 
-/** What the Delta Time widget shows while its telemetry is unavailable. */
-export type DeltaTimeUnavailableBehavior = 'hide' | 'placeholder' | 'zero'
-export const DELTA_TIME_UNAVAILABLE_BEHAVIOR_VALUES: readonly DeltaTimeUnavailableBehavior[] = ['hide', 'placeholder', 'zero']
-
 /** Horizontal alignment of a text widget value. */
 export type TextAlignment = 'left' | 'center' | 'right'
 export const TEXT_ALIGNMENT_VALUES: readonly TextAlignment[] = ['left', 'center', 'right']
@@ -68,6 +62,14 @@ export const TEXT_ALIGNMENT_VALUES: readonly TextAlignment[] = ['left', 'center'
 /** Presentation transform applied after the modifier pipeline. */
 export type ValueTransformType = 'none' | 'time' | 'number'
 export const VALUE_TRANSFORM_TYPE_VALUES: readonly ValueTransformType[] = ['none', 'time', 'number']
+
+/** Axis a linear gradient runs along. Only used when a gradient colour is set. */
+export type GradientDirection = 'horizontal' | 'vertical'
+export const GRADIENT_DIRECTION_VALUES: readonly GradientDirection[] = ['horizontal', 'vertical']
+
+/** Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill. */
+export type ColorRampTarget = 'content' | 'background' | 'border'
+export const COLOR_RAMP_TARGET_VALUES: readonly ColorRampTarget[] = ['content', 'background', 'border']
 
 /** Comparison a styling rule applies to the numeric value of its condition source. */
 export type ConditionOperator = 'above' | 'at_or_above' | 'below' | 'at_or_below' | 'equal' | 'not_equal'
@@ -86,8 +88,8 @@ export type ShapeKind = 'rectangle' | 'ellipse'
 export const SHAPE_KIND_VALUES: readonly ShapeKind[] = ['rectangle', 'ellipse']
 
 /** Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. */
-export type WidgetType = 'text' | 'shape' | 'bar' | 'delta_time'
-export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'delta_time']
+export type WidgetType = 'text' | 'shape' | 'bar' | 'arc' | 'indicator' | 'graph'
+export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'arc', 'indicator', 'graph']
 
 export interface FontSpec {
   family?: string
@@ -122,19 +124,6 @@ export interface UartTelemetryConfiguration {
 export interface TelemetryTransportConfiguration {
   id?: TelemetryTransportId
   uart?: UartTelemetryConfiguration
-}
-
-export interface DeltaTimeScaleConfiguration {
-  enabled?: boolean
-  show_sign?: boolean
-  range_ms?: number
-}
-
-/** Delta Time module configuration. Distinct from the Delta Time widget, which owns presentation only. */
-export interface DeltaTimeConfiguration {
-  unavailable_behavior?: DeltaTimeUnavailableBehavior
-  placeholder?: string
-  scale?: DeltaTimeScaleConfiguration
 }
 
 /** Absolute geometry in logical screen pixels. */
@@ -183,29 +172,22 @@ export interface ValueModifier {
   type?: ValueModifierType
 }
 
-export interface DeltaTimeScaleStyle {
-  vertical_padding_px?: number
-  border_width_px?: number
-  border_radius_px?: number
-}
-
-/** Renders Delta Time module state. Requires the delta_time module section to be present. */
-export interface DeltaTimeWidgetConfiguration {
-  type: 'delta_time'
-  id?: string
-  font?: FontSpec
-  placement?: WidgetPlacement
-  z_index?: number
-  faster_color?: RgbColor
-  slower_color?: RgbColor
-  neutral_color?: RgbColor
-  scale?: DeltaTimeScaleStyle
-}
-
 /** A canonical telemetry binding with its modifier pipeline, consumed as a typed value. Carries no transform: the widgets that read one map it through a range or compare it, rather than presenting it as text. */
 export interface ValueSourceConfiguration {
   binding?: string
   modifiers?: ValueModifier[]
+}
+
+/** One anchor of a colour ramp. */
+export interface ColorStop {
+  at?: number
+  color?: RgbColor
+}
+
+/** A colour interpolated from the watched source rather than switched by a threshold. It is the base layer: a matching rule paints over it, and with no stops the authored colour stands. */
+export interface ColorRamp {
+  target?: ColorRampTarget
+  stops?: ColorStop[]
 }
 
 /** One styling rule. The first rule whose comparison holds describes the widget; whatever it leaves unset stays as the widget's static style, and a transparent colour means unset rather than see-through. */
@@ -236,8 +218,11 @@ export interface WidgetFrame {
   border?: WidgetBorder
   title?: WidgetTitleStyle
   background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
   background_inset_px?: number
   condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
 }
 
@@ -251,8 +236,11 @@ export interface TextWidgetConfiguration {
   border?: WidgetBorder
   title?: WidgetTitleStyle
   background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
   background_inset_px?: number
   condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
   sources?: TextSourceConfiguration[]
   value?: WidgetValueStyle
@@ -274,15 +262,106 @@ export interface BarWidgetConfiguration {
   border?: WidgetBorder
   title?: WidgetTitleStyle
   background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
   background_inset_px?: number
   condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
+  conditions?: WidgetCondition[]
+  source?: ValueSourceConfiguration
+  minimum?: number
+  maximum?: number
+  origin?: number
+  orientation?: BarOrientation
+  inverted?: boolean
+  fill_color?: RgbColor
+  fill_grad_color?: RgbColor
+}
+
+/** One telemetry source swept around an arc. The track is the arc's own background, so a gauge needs no shape behind it. */
+export interface ArcWidgetConfiguration {
+  type: 'arc'
+  id?: string
+  placement?: WidgetPlacement
+  z_index?: number
+  padding?: WidgetInsets
+  border?: WidgetBorder
+  title?: WidgetTitleStyle
+  background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
+  background_inset_px?: number
+  condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
+  conditions?: WidgetCondition[]
+  source?: ValueSourceConfiguration
+  minimum?: number
+  maximum?: number
+  start_angle_deg?: number
+  sweep_deg?: number
+  thickness_px?: number
+  track_color?: RgbColor
+  fill_color?: RgbColor
+  inverted?: boolean
+}
+
+/** One lamp in an indicator strip. */
+export interface IndicatorSegment {
+  threshold?: number
+  color?: RgbColor
+}
+
+/** A row of lamps that light as one telemetry source climbs its range: shift lights, a rev strip, a stint marker. */
+export interface IndicatorWidgetConfiguration {
+  type: 'indicator'
+  id?: string
+  placement?: WidgetPlacement
+  z_index?: number
+  padding?: WidgetInsets
+  border?: WidgetBorder
+  title?: WidgetTitleStyle
+  background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
+  background_inset_px?: number
+  condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
   source?: ValueSourceConfiguration
   minimum?: number
   maximum?: number
   orientation?: BarOrientation
-  inverted?: boolean
-  fill_color?: RgbColor
+  segment_gap_px?: number
+  segment_radius_px?: number
+  off_color?: RgbColor
+  blink_threshold?: number
+  blink_ms?: number
+  segments?: IndicatorSegment[]
+}
+
+/** A rolling trace of one telemetry source. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it. */
+export interface GraphWidgetConfiguration {
+  type: 'graph'
+  id?: string
+  placement?: WidgetPlacement
+  z_index?: number
+  padding?: WidgetInsets
+  border?: WidgetBorder
+  title?: WidgetTitleStyle
+  background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
+  background_inset_px?: number
+  condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
+  conditions?: WidgetCondition[]
+  source?: ValueSourceConfiguration
+  minimum?: number
+  maximum?: number
+  point_count?: number
+  sample_interval_ms?: number
+  line_color?: RgbColor
+  line_width_px?: number
 }
 
 /** Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle. */
@@ -295,19 +374,23 @@ export interface ShapeWidgetConfiguration {
   border?: WidgetBorder
   title?: WidgetTitleStyle
   background_color?: RgbColor
+  background_grad_color?: RgbColor
+  background_grad_dir?: GradientDirection
   background_inset_px?: number
   condition_source?: ValueSourceConfiguration
+  color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
   kind?: ShapeKind
 }
 
-/** One dashboard screen. A screen is the coordinate space for the widgets it owns. */
+/** One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference. */
 export interface ScreenConfiguration {
   id?: string
   background_color?: RgbColor
   widgets?: WidgetConfiguration[]
 }
 
+/** Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays. */
 export interface DashboardConfiguration {
   screens?: ScreenConfiguration[]
 }
@@ -316,22 +399,19 @@ export interface ApplicationConfiguration {
   board: BoardId
   hardware?: HardwareConfiguration
   telemetry_transport?: TelemetryTransportConfiguration
-  delta_time?: DeltaTimeConfiguration
   dashboard?: DashboardConfiguration
 }
 
 /** Discriminated widget union. Adding a widget type adds one member here. */
-export type WidgetConfiguration = BarWidgetConfiguration | DeltaTimeWidgetConfiguration | ShapeWidgetConfiguration | TextWidgetConfiguration
+export type WidgetConfiguration = ArcWidgetConfiguration | BarWidgetConfiguration | GraphWidgetConfiguration | IndicatorWidgetConfiguration | ShapeWidgetConfiguration | TextWidgetConfiguration
 
-export const WIDGET_TYPES: readonly string[] = ['delta_time', 'text', 'bar', 'shape']
+export const WIDGET_TYPES: readonly string[] = ['text', 'bar', 'arc', 'indicator', 'graph', 'shape']
 
 /** Property names accepted inside each object, mirroring the firmware allow-lists. */
 export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   BoardConfiguration: ['board'],
   UartTelemetryConfiguration: ['port', 'tx_pin', 'rx_pin', 'baud_rate', 'silence_esp_logs'],
   TelemetryTransportConfiguration: ['id', 'uart'],
-  DeltaTimeScaleConfiguration: ['enabled', 'show_sign', 'range_ms'],
-  DeltaTimeConfiguration: ['unavailable_behavior', 'placeholder', 'scale'],
   WidgetPlacement: ['x', 'y', 'width', 'height'],
   WidgetInsets: ['left', 'top', 'right', 'bottom'],
   WidgetBorder: ['color', 'width_px', 'radius_px'],
@@ -339,23 +419,27 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   WidgetValueStyle: ['font', 'color', 'alignment', 'unavailable_text'],
   ValueTransform: ['type', 'format', 'decimals', 'scale', 'offset', 'prefix', 'suffix'],
   ValueModifier: ['type'],
-  DeltaTimeScaleStyle: ['vertical_padding_px', 'border_width_px', 'border_radius_px'],
-  DeltaTimeWidgetConfiguration: ['type', 'id', 'font', 'placement', 'z_index', 'faster_color', 'slower_color', 'neutral_color', 'scale'],
   ValueSourceConfiguration: ['binding', 'modifiers'],
+  ColorStop: ['at', 'color'],
+  ColorRamp: ['target', 'stops'],
   WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'hidden', 'blink_ms', 'hold_ms'],
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
-  WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_inset_px', 'condition_source', 'conditions'],
-  TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'sources', 'value'],
+  WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions'],
+  TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'sources', 'value'],
   ValueRange: ['minimum', 'maximum'],
-  BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'inverted', 'fill_color'],
-  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_inset_px', 'condition_source', 'conditions', 'kind'],
+  BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'origin', 'orientation', 'inverted', 'fill_color', 'fill_grad_color'],
+  ArcWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'start_angle_deg', 'sweep_deg', 'thickness_px', 'track_color', 'fill_color', 'inverted'],
+  IndicatorSegment: ['threshold', 'color'],
+  IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'segment_gap_px', 'segment_radius_px', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
+  GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px'],
+  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'kind'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
-  ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'delta_time', 'dashboard'],
+  ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'dashboard'],
 }
 
 /** Struct that carries each widget variant, keyed by its discriminator. */
-export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { delta_time: 'DeltaTimeWidgetConfiguration', text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', shape: 'ShapeWidgetConfiguration' }
+export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', arc: 'ArcWidgetConfiguration', indicator: 'IndicatorWidgetConfiguration', graph: 'GraphWidgetConfiguration', shape: 'ShapeWidgetConfiguration' }
 
 /**
  * Nested object type for each property, so a validator can walk an unknown
@@ -363,33 +447,36 @@ export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { delta_time: 'Delt
  */
 export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   TelemetryTransportConfiguration: { uart: 'UartTelemetryConfiguration' },
-  DeltaTimeConfiguration: { scale: 'DeltaTimeScaleConfiguration' },
   WidgetTitleStyle: { font: 'FontSpec' },
   WidgetValueStyle: { font: 'FontSpec' },
-  DeltaTimeWidgetConfiguration: { font: 'FontSpec', placement: 'WidgetPlacement', scale: 'DeltaTimeScaleStyle' },
   ValueSourceConfiguration: { modifiers: 'ValueModifier' },
+  ColorRamp: { stops: 'ColorStop' },
   TextSourceConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform' },
-  WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
-  TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', value: 'WidgetValueStyle' },
-  BarWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
-  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', conditions: 'WidgetCondition' },
+  WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
+  TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', value: 'WidgetValueStyle' },
+  BarWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  ArcWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  IndicatorWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', segments: 'IndicatorSegment' },
+  GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
-  ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', delta_time: 'DeltaTimeConfiguration', dashboard: 'DashboardConfiguration' },
+  ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', dashboard: 'DashboardConfiguration' },
 }
 
 /** Bounded string capacities. Values include the terminator the firmware stores. */
 export const TEXT_CAPACITIES: Record<string, number> = {
-  'DeltaTimeConfiguration.placeholder': 16,
   'WidgetTitleStyle.text': 16,
   'WidgetValueStyle.unavailable_text': 16,
   'ValueTransform.prefix': 16,
   'ValueTransform.suffix': 16,
-  'DeltaTimeWidgetConfiguration.id': 16,
   'ValueSourceConfiguration.binding': 40,
   'TextSourceConfiguration.binding': 40,
   'WidgetFrame.id': 16,
   'TextWidgetConfiguration.id': 16,
   'BarWidgetConfiguration.id': 16,
+  'ArcWidgetConfiguration.id': 16,
+  'IndicatorWidgetConfiguration.id': 16,
+  'GraphWidgetConfiguration.id': 16,
   'ShapeWidgetConfiguration.id': 16,
   'ScreenConfiguration.id': 16,
 }

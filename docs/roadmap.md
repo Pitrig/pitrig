@@ -42,14 +42,16 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 
 - [*] Dashboard
 - [*] Lap Timer
-- [*] Delta Time
 - [*] Reusable telemetry text widgets
 - [*] Value modifiers and time transforms
 - [*] Value formatting transforms (decimal precision, scale and offset, units)
 - [*] Multi-field text composition
-- [ ] Additional widget types (bar, arc, indicator strip)
-- [*] Conditional and animated widget styling (colour, visibility and blink;
-      gradients, rotation and animation curves are not included)
+- [*] Lap delta readout — authored from a text widget and a centred bar rather
+      than a dedicated widget type
+- [*] Additional widget types (arc, indicator strip, graph)
+- [*] Conditional and animated widget styling (colour, visibility and blink)
+- [*] Value-driven colour ramps and linear gradients (rotation, opacity and
+      animation curves are excluded by decision)
 - [ ] Uploaded image asset pipeline and image widgets
 - [ ] Button Matrix
 - [ ] RGB
@@ -62,11 +64,11 @@ foundation for them landed in Phase 1.
 - [ ] Touch input subsystem
 - [ ] Multiple dashboard screens with navigation
 - [*] Applying a configuration without restarting
-- [ ] Configurator undo and redo
-- [ ] Configurator copy, paste and duplicate
-- [ ] Configurator multi-select, alignment and grid snapping
-- [ ] Configurator layer panel with reordering, lock and hide
-- [ ] Dashboard preview with live or mock telemetry values
+- [*] Configurator undo and redo
+- [*] Configurator copy, paste and duplicate
+- [*] Configurator multi-select, alignment and grid snapping
+- [*] Configurator layer panel with reordering, lock and hide
+- [*] Dashboard preview with mock telemetry values
 - [ ] Dashboard templates and cross-board layout transfer
 
 # Phase 6 — Field maintenance

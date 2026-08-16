@@ -7,9 +7,10 @@ transport.
 
 The desktop configurator's **SimHub profile** panel provides two export modes:
 
-- **Dashboard only** includes each Text widget binding, the Delta Time module
-  input when its widget is present, and the Lap Timer input when its modifier
-  is present. Duplicate bindings are emitted once.
+- **Dashboard only** includes every binding the dashboard reads: the sources a
+  text widget composes, the source a gauge maps, and the field a styling rule
+  watches even when the widget never shows it. Duplicate bindings are emitted
+  once.
 - **All telemetry** includes the complete 227-field catalog.
 
 The export uses the current configuration draft. Its explicit

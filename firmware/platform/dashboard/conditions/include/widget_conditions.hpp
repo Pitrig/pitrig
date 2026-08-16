@@ -44,6 +44,15 @@ struct Resolution {
 [[nodiscard]] float range_fraction(double value,
                                    const configuration::ValueRange& range);
 
+// Colour interpolated from where the value sits between the ramp's stops. Below
+// the first stop and above the last one the ramp holds that stop's colour, so a
+// value outside the authored band reads as its nearest edge rather than as
+// something the ramp never described. Empty when the value is unavailable or
+// the ramp has fewer than two stops, which leaves the authored colour standing.
+[[nodiscard]] std::optional<std::uint32_t> ramp_color(
+    std::span<const configuration::ColorStop> stops,
+    std::optional<double> value);
+
 // The first rule whose comparison holds describes the widget. Without a value
 // no rule can match, so an unavailable condition source resolves to the
 // fallback rather than latching the last match.

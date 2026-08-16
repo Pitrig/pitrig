@@ -65,7 +65,9 @@ export function ConfigurationPanel(): React.JSX.Element {
   const [operation, setOperation] = useState<Operation>('idle')
   const [feedback, setFeedback] = useState<Feedback>()
   const [offlineBoard, setOfflineBoard] = useState<SimCoreBoardId | ''>('')
-  const selectWidget = useDashboardEditorStore((state) => state.select)
+  // A different document is a different set of widgets, so the selection, the
+  // locked and hidden layers and the zoom all describe nothing any more.
+  const resetEditorState = useDashboardEditorStore((state) => state.resetEditorState)
   const selectedNewBoard = session?.info.boardId ?? offlineBoard
 
   const draftJson = draftText({ rawDraft, draft })
@@ -140,7 +142,7 @@ export function ConfigurationPanel(): React.JSX.Element {
       return
     }
     replaceLocalDraft({ board: selectedNewBoard })
-    selectWidget(undefined)
+    resetEditorState()
     setFeedback({ kind: 'success', message: `New ${selectedNewBoard} configuration created locally.` })
   }
 
@@ -157,7 +159,7 @@ export function ConfigurationPanel(): React.JSX.Element {
         setFeedback({ kind: 'error', message: result.error.message })
       } else if (result.value) {
         replaceLocalDraft(result.value.configuration, result.value.fileName)
-        selectWidget(undefined)
+        resetEditorState()
         setFeedback({ kind: 'success', message: `${result.value.fileName} loaded.` })
       }
     } catch (error) {
@@ -181,6 +183,7 @@ export function ConfigurationPanel(): React.JSX.Element {
         setFeedback({ kind: 'error', message: result.error.message })
       } else if (result.value.saved) {
         replaceLocalDraft(parsed.configuration, result.value.fileName)
+        resetEditorState()
         setFeedback({
           kind: 'success',
           message: `${result.value.fileName ?? 'Configuration'} saved.`
@@ -200,6 +203,7 @@ export function ConfigurationPanel(): React.JSX.Element {
     await run('read', () => window.simcore.readDeviceConfiguration(), (state) => {
       if (state.session) {
         reloadDraft(state.session)
+        resetEditorState()
       }
       return 'Active configuration read from the board.'
     })

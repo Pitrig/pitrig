@@ -9,6 +9,20 @@
 namespace simcore::dashboard::conditions {
 namespace {
 
+// Linear interpolation per channel in sRGB. Integer arithmetic on bytes, so a
+// ramp costs the same on every render pass whatever the display is.
+[[nodiscard]] std::uint32_t blend(const std::uint32_t from,
+                                  const std::uint32_t to, const double ratio) {
+  std::uint32_t blended{};
+  for (int shift = 16; shift >= 0; shift -= 8) {
+    const auto start = static_cast<double>((from >> shift) & 0xFFU);
+    const auto end = static_cast<double>((to >> shift) & 0xFFU);
+    const auto channel = static_cast<std::uint32_t>(start + (end - start) * ratio + 0.5);
+    blended |= (channel & 0xFFU) << shift;
+  }
+  return blended;
+}
+
 [[nodiscard]] bool holds(const configuration::ConditionOperator op,
                          const double value, const double threshold) {
   switch (op) {
@@ -100,6 +114,35 @@ Resolution resolve(const std::span<const configuration::WidgetCondition> rules,
     return {.style = style, .hold_ms = rule.hold_ms, .matched = true};
   }
   return {.style = fallback};
+}
+
+std::optional<std::uint32_t> ramp_color(
+    const std::span<const configuration::ColorStop> stops,
+    const std::optional<double> value) {
+  if (stops.size() < 2 || !value.has_value()) {
+    return std::nullopt;
+  }
+  if (*value <= stops.front().at) {
+    return stops.front().color;
+  }
+  if (*value >= stops.back().at) {
+    return stops.back().color;
+  }
+  for (std::size_t index = 1; index < stops.size(); ++index) {
+    const configuration::ColorStop& upper = stops[index];
+    if (*value > upper.at) {
+      continue;
+    }
+    const configuration::ColorStop& lower = stops[index - 1];
+    const double width = static_cast<double>(upper.at) - lower.at;
+    // Stops are validated as increasing, so this only guards a pair the
+    // validator could not have seen, such as two stops at the same value.
+    if (!(width > 0.0)) {
+      return lower.color;
+    }
+    return blend(lower.color, upper.color, (*value - lower.at) / width);
+  }
+  return stops.back().color;
 }
 
 }  // namespace simcore::dashboard::conditions

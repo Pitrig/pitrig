@@ -101,18 +101,6 @@ inline constexpr std::array<std::string_view, 2> kTelemetryTransportConfiguratio
     "uart",
 }};
 
-inline constexpr std::array<std::string_view, 3> kDeltaTimeScaleConfigurationKeys{{
-    "enabled",
-    "show_sign",
-    "range_ms",
-}};
-
-inline constexpr std::array<std::string_view, 3> kDeltaTimeConfigurationKeys{{
-    "unavailable_behavior",
-    "placeholder",
-    "scale",
-}};
-
 inline constexpr std::array<std::string_view, 4> kWidgetPlacementKeys{{
     "x",
     "y",
@@ -161,27 +149,19 @@ inline constexpr std::array<std::string_view, 1> kValueModifierKeys{{
     "type",
 }};
 
-inline constexpr std::array<std::string_view, 3> kDeltaTimeScaleStyleKeys{{
-    "vertical_padding_px",
-    "border_width_px",
-    "border_radius_px",
-}};
-
-inline constexpr std::array<std::string_view, 9> kDeltaTimeWidgetConfigurationKeys{{
-    "type",
-    "id",
-    "font",
-    "placement",
-    "z_index",
-    "faster_color",
-    "slower_color",
-    "neutral_color",
-    "scale",
-}};
-
 inline constexpr std::array<std::string_view, 2> kValueSourceConfigurationKeys{{
     "binding",
     "modifiers",
+}};
+
+inline constexpr std::array<std::string_view, 2> kColorStopKeys{{
+    "at",
+    "color",
+}};
+
+inline constexpr std::array<std::string_view, 2> kColorRampKeys{{
+    "target",
+    "stops",
 }};
 
 inline constexpr std::array<std::string_view, 8> kWidgetConditionKeys{{
@@ -201,7 +181,7 @@ inline constexpr std::array<std::string_view, 3> kTextSourceConfigurationKeys{{
     "transform",
 }};
 
-inline constexpr std::array<std::string_view, 10> kWidgetFrameKeys{{
+inline constexpr std::array<std::string_view, 13> kWidgetFrameKeys{{
     "id",
     "placement",
     "z_index",
@@ -209,12 +189,15 @@ inline constexpr std::array<std::string_view, 10> kWidgetFrameKeys{{
     "border",
     "title",
     "background_color",
+    "background_grad_color",
+    "background_grad_dir",
     "background_inset_px",
     "condition_source",
+    "color_ramp",
     "conditions",
 }};
 
-inline constexpr std::array<std::string_view, 13> kTextWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 16> kTextWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -223,8 +206,11 @@ inline constexpr std::array<std::string_view, 13> kTextWidgetConfigurationKeys{{
     "border",
     "title",
     "background_color",
+    "background_grad_color",
+    "background_grad_dir",
     "background_inset_px",
     "condition_source",
+    "color_ramp",
     "conditions",
     "sources",
     "value",
@@ -235,7 +221,7 @@ inline constexpr std::array<std::string_view, 2> kValueRangeKeys{{
     "maximum",
 }};
 
-inline constexpr std::array<std::string_view, 17> kBarWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 22> kBarWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -244,18 +230,81 @@ inline constexpr std::array<std::string_view, 17> kBarWidgetConfigurationKeys{{
     "border",
     "title",
     "background_color",
+    "background_grad_color",
+    "background_grad_dir",
     "background_inset_px",
     "condition_source",
+    "color_ramp",
+    "conditions",
+    "source",
+    "minimum",
+    "maximum",
+    "origin",
+    "orientation",
+    "inverted",
+    "fill_color",
+    "fill_grad_color",
+}};
+
+inline constexpr std::array<std::string_view, 23> kArcWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "title",
+    "background_color",
+    "background_grad_color",
+    "background_grad_dir",
+    "background_inset_px",
+    "condition_source",
+    "color_ramp",
+    "conditions",
+    "source",
+    "minimum",
+    "maximum",
+    "start_angle_deg",
+    "sweep_deg",
+    "thickness_px",
+    "track_color",
+    "fill_color",
+    "inverted",
+}};
+
+inline constexpr std::array<std::string_view, 2> kIndicatorSegmentKeys{{
+    "threshold",
+    "color",
+}};
+
+inline constexpr std::array<std::string_view, 24> kIndicatorWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "title",
+    "background_color",
+    "background_grad_color",
+    "background_grad_dir",
+    "background_inset_px",
+    "condition_source",
+    "color_ramp",
     "conditions",
     "source",
     "minimum",
     "maximum",
     "orientation",
-    "inverted",
-    "fill_color",
+    "segment_gap_px",
+    "segment_radius_px",
+    "off_color",
+    "blink_threshold",
+    "blink_ms",
+    "segments",
 }};
 
-inline constexpr std::array<std::string_view, 12> kShapeWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 21> kGraphWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -264,8 +313,35 @@ inline constexpr std::array<std::string_view, 12> kShapeWidgetConfigurationKeys{
     "border",
     "title",
     "background_color",
+    "background_grad_color",
+    "background_grad_dir",
     "background_inset_px",
     "condition_source",
+    "color_ramp",
+    "conditions",
+    "source",
+    "minimum",
+    "maximum",
+    "point_count",
+    "sample_interval_ms",
+    "line_color",
+    "line_width_px",
+}};
+
+inline constexpr std::array<std::string_view, 15> kShapeWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "title",
+    "background_color",
+    "background_grad_color",
+    "background_grad_dir",
+    "background_inset_px",
+    "condition_source",
+    "color_ramp",
     "conditions",
     "kind",
 }};
@@ -280,11 +356,10 @@ inline constexpr std::array<std::string_view, 1> kDashboardConfigurationKeys{{
     "screens",
 }};
 
-inline constexpr std::array<std::string_view, 5> kApplicationConfigurationKeys{{
+inline constexpr std::array<std::string_view, 4> kApplicationConfigurationKeys{{
     "board",
     "hardware",
     "telemetry_transport",
-    "delta_time",
     "dashboard",
 }};
 

@@ -3,31 +3,66 @@ import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useDeviceStore } from '@/features/device/device-store'
-import { screensOf, widgetsOf } from '../../../../shared/configuration-access'
+import {
+  allWidgetsOf,
+  dashboardBindings,
+  screensOf,
+  widgetsOf
+} from '../../../../shared/configuration-access'
+import { LAP_SECONDS, mockTelemetry, mockValue } from '../../../../shared/mock-telemetry'
+import { TELEMETRY_CATALOG } from '../../../../shared/telemetry-catalog'
+import {
+  conditionValue,
+  rangeFraction,
+  UNAVAILABLE,
+  type TelemetryValue
+} from '../../../../shared/telemetry-value'
+import {
+  placeholderBody,
+  transformedBody,
+  withAffixes
+} from '../../../../shared/value-format'
+import {
+  blinkVisible,
+  resolveWidgetStyle,
+  type AuthoredStyle,
+  type ResolvedStyle,
+  type StyledFrame
+} from '../../../../shared/widget-style'
+import { MAXIMUM_GRAPH_POINTS } from '../../../../shared/configuration-schema'
 import type {
+  ArcWidgetConfiguration,
   BarWidgetConfiguration,
-  DeltaTimeWidgetConfiguration,
+  GraphWidgetConfiguration,
+  IndicatorWidgetConfiguration,
   FontSpec,
   ShapeWidgetConfiguration,
   TextWidgetConfiguration,
-  ValueTransform,
   WidgetConfiguration
 } from '../../../../shared/configuration-schema'
 import type { DeviceConfiguration, DisplayDescriptor } from '../../../../shared/device'
 import { BOARD_PROFILES } from '../../../../shared/device'
+import type { PreviewPlayback, PreviewValueMode } from './dashboard-editor'
 import {
-  activeScreen,
+  addArcWidget,
   addBarWidget,
-  addDeltaTimeWidget,
+  addGraphWidget,
+  addIndicatorWidget,
+  duplicateWidget,
   addShapeWidget,
   addTextWidget,
   completePlacement,
   DEFAULT_WIDGET_FONT_SIZE_PX,
+  alignWidgets,
   deleteWidget,
+  distributeWidgets,
   findWidget,
   MAXIMUM_TEXT_WIDGETS,
-  mutateSelectedWidget,
+  MAXIMUM_ZOOM,
+  MINIMUM_ZOOM,
+  mutateDraftConfiguration,
   useDashboardEditorStore,
+  type AlignmentEdge,
   type WidgetSelection
 } from './dashboard-editor'
 
@@ -35,6 +70,9 @@ type FramedWidgetConfiguration =
   | TextWidgetConfiguration
   | ShapeWidgetConfiguration
   | BarWidgetConfiguration
+  | ArcWidgetConfiguration
+  | IndicatorWidgetConfiguration
+  | GraphWidgetConfiguration
 
 const SCREEN_BACKGROUND = '#000000'
 const DEFAULT_TEXT_COLOR = '#E8E8E8'
@@ -50,15 +88,20 @@ export function DisplayPreview(): React.JSX.Element {
     : session?.info.display
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
+  const canUndo = useDeviceStore((state) => state.past.length > 0)
+  const canRedo = useDeviceStore((state) => state.future.length > 0)
+  const undo = useDeviceStore((state) => state.undo)
+  const redo = useDeviceStore((state) => state.redo)
   // Any size of an installed family renders, so a new widget starts at a
   // readable default rather than at whatever size happens to be installed.
   const installedFamily = session?.fontAssets?.families[0]
   const defaultFont = installedFamily
     ? { family: installedFamily, size_px: DEFAULT_WIDGET_FONT_SIZE_PX }
     : undefined
-  const screenWidgets = widgetsOf(activeScreen(configuration))
-  const textWidgetCount = screenWidgets.filter((widget) => widget.type === 'text').length
-  const hasDeltaTimeWidget = screenWidgets.some((widget) => widget.type === 'delta_time')
+  // Widget storage is a dashboard-wide pool, so the cap counts every screen.
+  const textWidgetCount = allWidgetsOf(configuration).filter(
+    (widget) => widget.type === 'text'
+  ).length
   const selectedExists =
     selection?.type === 'widget' && Boolean(findWidget(configuration, selection.id))
   const displayRatio = display
@@ -74,7 +117,7 @@ export function DisplayPreview(): React.JSX.Element {
       <CardHeader className="flex-none py-3">
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Display preview</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <Button className="h-8 w-20" variant="outline" disabled={!configuration || textWidgetCount >= MAXIMUM_TEXT_WIDGETS} title={textWidgetCount >= MAXIMUM_TEXT_WIDGETS ? `Maximum of ${MAXIMUM_TEXT_WIDGETS} text widgets reached.` : undefined} onClick={() => {
               if (!display) return
               const added = addTextWidget(display, defaultFont)
@@ -90,17 +133,35 @@ export function DisplayPreview(): React.JSX.Element {
               const added = addBarWidget(display)
               if (added) select(added)
             }}>+ Bar</Button>
-            <Button className="h-8 w-20" variant="outline" disabled={!configuration || hasDeltaTimeWidget} onClick={() => {
+            <Button className="h-8 w-20" variant="outline" disabled={!configuration} onClick={() => {
               if (!display) return
-              const added = addDeltaTimeWidget(display, defaultFont)
+              const added = addArcWidget(display)
               if (added) select(added)
-            }}>+ Delta</Button>
-            <Button className="h-8 w-20" variant="outline" disabled={!selectedExists} onClick={() => {
-              if (!selection || !window.confirm('Are you sure you want to delete the selected widget?')) return
+            }}>+ Arc</Button>
+            <Button className="h-8 w-24" variant="outline" disabled={!configuration} onClick={() => {
+              if (!display) return
+              const added = addIndicatorWidget(display)
+              if (added) select(added)
+            }}>+ Lights</Button>
+            <Button className="h-8 w-20" variant="outline" disabled={!configuration} onClick={() => {
+              if (!display) return
+              const added = addGraphWidget(display)
+              if (added) select(added)
+            }}>+ Graph</Button>
+            <Button className="h-8 w-20" variant="outline" disabled={!selectedExists} title="Duplicate the selected widget (Cmd/Ctrl+D)" onClick={() => {
+              if (!display || !selection) return
+              const added = duplicateWidget(selection, display)
+              if (added) select(added)
+            }}>Duplicate</Button>
+            <Button className="h-8 w-10" variant="outline" disabled={!canUndo} title="Undo (Cmd/Ctrl+Z)" onClick={() => undo()}>↶</Button>
+            <Button className="h-8 w-10" variant="outline" disabled={!canRedo} title="Redo (Shift+Cmd/Ctrl+Z)" onClick={() => redo()}>↷</Button>
+            <Button className="h-8 w-20" variant="outline" disabled={!selectedExists} title="Delete the selected widget (Delete)" onClick={() => {
+              if (!selection) return
               if (deleteWidget(selection)) select(undefined)
             }}>Delete</Button>
           </div>
         </div>
+        {display ? <ArrangeToolbar display={display} /> : null}
         <CardDescription>
           {display
             ? `${display.width} × ${display.height} logical pixels · ${configuration?.board ?? 'connected board'}`
@@ -130,6 +191,126 @@ export function DisplayPreview(): React.JSX.Element {
   )
 }
 
+/**
+ * Arrangement acts on the selection and the view controls act on the canvas, so
+ * neither belongs with the buttons that add widgets. Alignment appears only
+ * once there is a group to align, which is also when it starts meaning
+ * anything.
+ */
+function ArrangeToolbar({ display }: { display: DisplayDescriptor }): React.JSX.Element {
+  const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
+  const view = useDashboardEditorStore((state) => state.view)
+  const setView = useDashboardEditorStore((state) => state.setView)
+  const distributable = selectedIds.length >= 3
+  const zoomTo = (zoom: number): void => setView({ zoom, ...clampPan(view, display, zoom) })
+  return (
+    <div className="flex flex-wrap items-center gap-1 text-xs">
+      {selectedIds.length >= 2 ? (
+        <>
+          <span className="mr-1 text-muted-foreground">{`${selectedIds.length} selected`}</span>
+          {ALIGNMENTS.map(({ edge, label, title }) => (
+            <button key={edge} type="button" title={title} className="h-7 rounded-md border px-2 hover:bg-muted" onClick={() => alignWidgets(selectedIds, edge)}>
+              {label}
+            </button>
+          ))}
+          <button type="button" title="Space evenly across" disabled={!distributable} className="h-7 rounded-md border px-2 hover:bg-muted disabled:opacity-40" onClick={() => distributeWidgets(selectedIds, 'horizontal')}>
+            ⇹
+          </button>
+          <button type="button" title="Space evenly down" disabled={!distributable} className="h-7 rounded-md border px-2 hover:bg-muted disabled:opacity-40" onClick={() => distributeWidgets(selectedIds, 'vertical')}>
+            ⇵
+          </button>
+          <span className="mx-1 h-4 w-px bg-border" />
+        </>
+      ) : null}
+      <label className="flex items-center gap-1">
+        <input type="checkbox" checked={view.snapToGrid} onChange={(event) => setView({ snapToGrid: event.target.checked })} />
+        Grid
+      </label>
+      <input
+        aria-label="Grid size"
+        type="number"
+        min={1}
+        max={64}
+        value={view.gridSize}
+        disabled={!view.snapToGrid}
+        className="h-7 w-14 rounded-md border bg-transparent px-1 disabled:opacity-40"
+        onChange={(event) => setView({ gridSize: Math.max(1, Math.round(Number(event.target.value) || 1)) })}
+      />
+      <span className="mx-1 h-4 w-px bg-border" />
+      <PreviewValuesControls />
+      <span className="mx-1 h-4 w-px bg-border" />
+      <button type="button" title="Zoom out" className="h-7 rounded-md border px-2 hover:bg-muted" onClick={() => zoomTo(Math.max(MINIMUM_ZOOM, view.zoom / 2))}>−</button>
+      <span className="w-10 text-center text-muted-foreground">{`${Math.round(view.zoom * 100)}%`}</span>
+      <button type="button" title="Zoom in" className="h-7 rounded-md border px-2 hover:bg-muted" onClick={() => zoomTo(Math.min(MAXIMUM_ZOOM, view.zoom * 2))}>+</button>
+      <button type="button" title="Fit the whole display" className="h-7 rounded-md border px-2 hover:bg-muted" onClick={() => setView({ zoom: 1, panX: 0, panY: 0 })}>Fit</button>
+      {view.zoom > 1 ? <span className="text-muted-foreground">middle-drag to pan</span> : null}
+    </div>
+  )
+}
+
+/**
+ * The configurator never receives telemetry — the control protocol has no
+ * command for it and SimHub owns the port while a session runs — so the canvas
+ * plays a synthetic lap instead. `Unavailable` is a mode of its own because the
+ * live mode resolves every source, which would otherwise leave no way to see
+ * what a dashboard looks like when the game stops sending.
+ */
+function PreviewValuesControls(): React.JSX.Element {
+  const preview = useDashboardEditorStore((state) => state.preview)
+  const setPreview = useDashboardEditorStore((state) => state.setPreview)
+  const live = preview.mode === 'values'
+  return (
+    <>
+      <select
+        aria-label="Preview values"
+        className="h-7 rounded-md border bg-transparent px-1"
+        value={preview.mode}
+        onChange={(event) => setPreview({ mode: event.target.value as PreviewValueMode })}
+      >
+        <option value="placeholders">Placeholders</option>
+        <option value="values">Live values</option>
+        <option value="unavailable">Unavailable</option>
+      </select>
+      {live ? (
+        <>
+          <button
+            type="button"
+            title={preview.playing ? 'Pause the lap' : 'Play the lap'}
+            className="h-7 rounded-md border px-2 hover:bg-muted"
+            onClick={() => setPreview({ playing: !preview.playing })}
+          >
+            {preview.playing ? '❙❙' : '▶'}
+          </button>
+          <input
+            aria-label="Lap position"
+            type="range"
+            min={0}
+            max={1}
+            step={0.001}
+            value={preview.phase}
+            className="w-24"
+            // Scrubbing is a way to stop on a state worth judging — the limiter,
+            // the braking zone — so it pauses rather than fighting the clock.
+            onChange={(event) => setPreview({ phase: Number(event.target.value), playing: false })}
+          />
+          <span className="w-10 text-right text-muted-foreground">
+            {`${(preview.phase * LAP_SECONDS).toFixed(0)}s`}
+          </span>
+        </>
+      ) : null}
+    </>
+  )
+}
+
+const ALIGNMENTS: { edge: AlignmentEdge; label: string; title: string }[] = [
+  { edge: 'left', label: '⇤', title: 'Align left edges' },
+  { edge: 'center', label: '↔', title: 'Align horizontal centres' },
+  { edge: 'right', label: '⇥', title: 'Align right edges' },
+  { edge: 'top', label: '⤒', title: 'Align top edges' },
+  { edge: 'middle', label: '↕', title: 'Align vertical centres' },
+  { edge: 'bottom', label: '⤓', title: 'Align bottom edges' }
+]
+
 function Widgets({
   configuration,
   display
@@ -139,13 +320,45 @@ function Widgets({
 }): React.JSX.Element {
   const svgRef = useRef<SVGSVGElement>(null)
   const selection = useDashboardEditorStore((state) => state.selection)
+  const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
   const select = useDashboardEditorStore((state) => state.select)
+  const extendSelection = useDashboardEditorStore((state) => state.extendSelection)
+  const selectMany = useDashboardEditorStore((state) => state.selectMany)
+  const view = useDashboardEditorStore((state) => state.view)
+  const locked = useDashboardEditorStore((state) => state.locked)
+  const hidden = useDashboardEditorStore((state) => state.hidden)
   const [interaction, setInteraction] = useState<Interaction>()
+  const [marquee, setMarquee] = useState<Marquee>()
+  const [pan, setPan] = useState<Pan>()
+  const [guides, setGuides] = useState<Guides>(NO_GUIDES)
+  const playback = useDashboardEditorStore((state) => state.preview)
+  // Blink runs off the wall clock rather than off the lap, the way the device
+  // runs it off ticks: it is a property of the frame being drawn, not of the
+  // value, so scrubbing to a paused phase still shows the widget flashing.
+  const [clockMs, setClockMs] = useState(0)
+  const playing = playback.playing && playback.mode === 'values'
+  useEffect(() => {
+    if (playback.mode !== 'values') return
+    const started = Date.now()
+    const timer = setInterval(() => {
+      setClockMs(Date.now() - started)
+      // The lap advances only while playing; the clock keeps running either way
+      // so a paused frame still blinks.
+      if (!playing) return
+      const { preview, setPreview } = useDashboardEditorStore.getState()
+      setPreview({ phase: (preview.phase + PREVIEW_TICK_MS / (LAP_SECONDS * 1000)) % 1 })
+    }, PREVIEW_TICK_MS)
+    return () => clearInterval(timer)
+  }, [playback.mode, playing])
+  const values = createPreviewValues(configuration, playback, clockMs)
   const screen = screensOf(configuration)[0]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
   const widgets = widgetsOf(screen)
 
-  const selectedPlacement =
+  const selectedPlacements = selectedIds
+    .map((id) => completePlacement(findWidget(configuration, id)?.widget.placement))
+    .filter((placement): placement is Placement => placement !== undefined)
+  const primaryPlacement =
     selection?.type === 'widget'
       ? completePlacement(findWidget(configuration, selection.id)?.widget.placement)
       : undefined
@@ -154,15 +367,43 @@ function Widgets({
     event: React.PointerEvent<SVGElement>,
     target: WidgetSelection,
     mode: InteractionMode,
-    placement: Required<NonNullable<TextWidgetConfiguration['placement']>>
+    placement: Placement
   ): void => {
     event.preventDefault()
     event.stopPropagation()
-    select(target)
+    if (target.type === 'widget' && event.shiftKey) {
+      extendSelection(target.id)
+      return
+    }
+    // Dragging one of several selected widgets moves the group; dragging an
+    // unselected one starts a new selection, which is what a click on it means.
+    const group =
+      target.type === 'widget' && selectedIds.includes(target.id)
+        ? selectedIds
+        : (select(target), target.type === 'widget' ? [target.id] : [])
     const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
     if (!point) return
     svgRef.current?.setPointerCapture(event.pointerId)
-    setInteraction({ pointerId: event.pointerId, target, mode, start: point, placement })
+    // One commit per frame is still one gesture, so the whole drag collapses
+    // into a single history entry.
+    useDeviceStore.getState().beginEdit()
+    setInteraction({
+      pointerId: event.pointerId,
+      target,
+      mode,
+      start: point,
+      placement,
+      followers:
+        mode === 'move'
+          ? group
+              .filter((id) => id !== (target.type === 'widget' ? target.id : ''))
+              .map((id) => ({
+                id,
+                placement: completePlacement(findWidget(configuration, id)?.widget.placement)
+              }))
+              .filter((entry): entry is Follower => entry.placement !== undefined)
+          : []
+    })
   }
 
   // A pointer stream can outpace the frame rate, and each commit rewrites the
@@ -172,7 +413,30 @@ function Widgets({
     if (pendingFrame.current !== undefined) cancelAnimationFrame(pendingFrame.current)
   }, [])
 
-  const moveInteraction = (event: React.PointerEvent<SVGSVGElement>): void => {
+  const snapTargets = (): SnapTargets =>
+    collectSnapTargets(widgets, display, interaction?.target, hidden)
+
+  const movePointer = (event: React.PointerEvent<SVGSVGElement>): void => {
+    if (pan && event.pointerId === pan.pointerId) {
+      const scale = viewportScale(svgRef.current, display, view.zoom)
+      setPan(pan)
+      useDashboardEditorStore.getState().setView(
+        clampPan(
+          {
+            panX: pan.startPanX - (event.clientX - pan.startClientX) / scale,
+            panY: pan.startPanY - (event.clientY - pan.startClientY) / scale
+          },
+          display,
+          view.zoom
+        )
+      )
+      return
+    }
+    if (marquee && event.pointerId === marquee.pointerId) {
+      const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
+      if (point) setMarquee({ ...marquee, current: point })
+      return
+    }
     if (!interaction || event.pointerId !== interaction.pointerId) return
     const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
     if (!point) return
@@ -181,15 +445,120 @@ function Widgets({
     if (pendingFrame.current !== undefined) cancelAnimationFrame(pendingFrame.current)
     pendingFrame.current = requestAnimationFrame(() => {
       pendingFrame.current = undefined
-      const placement = transformedPlacement(interaction, dx, dy, display)
-      mutateSelectedWidget(interaction.target, (widget) => { widget.placement = placement })
+      const resolved = transformedPlacement(interaction, dx, dy, display, {
+        grid: view.snapToGrid ? view.gridSize : 0,
+        // Snapping is in logical pixels, so the tolerance shrinks as the canvas
+        // is magnified and stays the same distance under the pointer.
+        tolerance: SNAP_TOLERANCE_PX / view.zoom,
+        targets: snapTargets()
+      })
+      setGuides(resolved.guides)
+      const shiftX = resolved.placement.x - interaction.placement.x
+      const shiftY = resolved.placement.y - interaction.placement.y
+      mutateDraftConfiguration((draft) => {
+        const primary = findWidget(draft, interaction.target.type === 'widget' ? interaction.target.id : '')
+        if (primary) primary.widget.placement = resolved.placement
+        for (const follower of interaction.followers) {
+          const widget = findWidget(draft, follower.id)?.widget
+          if (!widget) continue
+          widget.placement = {
+            ...follower.placement,
+            x: Math.round(clamp(follower.placement.x + shiftX, 0, display.width - follower.placement.width)),
+            y: Math.round(clamp(follower.placement.y + shiftY, 0, display.height - follower.placement.height))
+          }
+        }
+      })
     })
   }
 
-  const finishInteraction = (event: React.PointerEvent<SVGSVGElement>): void => {
+  const finishPointer = (event: React.PointerEvent<SVGSVGElement>): void => {
+    if (pan?.pointerId === event.pointerId) {
+      svgRef.current?.releasePointerCapture(event.pointerId)
+      setPan(undefined)
+      return
+    }
+    if (marquee?.pointerId === event.pointerId) {
+      svgRef.current?.releasePointerCapture(event.pointerId)
+      const bounds = marqueeBounds(marquee)
+      // A click rather than a drag: the screen is what was picked.
+      if (bounds.width < 2 && bounds.height < 2) {
+        if (!marquee.additive) select({ type: 'screen' })
+      } else {
+        const caught = widgets
+          .filter((widget) => widget.id && !hidden[widget.id] && !locked[widget.id])
+          .filter((widget) => {
+            const placement = completePlacement(widget.placement)
+            return placement !== undefined && intersects(placement, bounds)
+          })
+          .map((widget) => widget.id as string)
+        selectMany(marquee.additive ? [...new Set([...selectedIds, ...caught])] : caught)
+      }
+      setMarquee(undefined)
+      return
+    }
     if (interaction?.pointerId !== event.pointerId) return
     svgRef.current?.releasePointerCapture(event.pointerId)
+    // The last frame may still be pending, so it has to land inside the group.
+    if (pendingFrame.current !== undefined) {
+      cancelAnimationFrame(pendingFrame.current)
+      pendingFrame.current = undefined
+    }
+    useDeviceStore.getState().endEdit()
     setInteraction(undefined)
+    setGuides(NO_GUIDES)
+  }
+
+  // Zooming at the pointer keeps whatever is under it under it, which is what
+  // makes magnifying a corner of the display usable at all.
+  const zoomAtPointer = (event: React.WheelEvent<SVGSVGElement>): void => {
+    if (!event.ctrlKey && !event.metaKey) return
+    event.preventDefault()
+    const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
+    const zoom = clamp(
+      view.zoom * (event.deltaY < 0 ? 1.25 : 0.8),
+      MINIMUM_ZOOM,
+      MAXIMUM_ZOOM
+    )
+    if (!point) {
+      useDashboardEditorStore.getState().setView({ zoom, ...clampPan(view, display, zoom) })
+      return
+    }
+    useDashboardEditorStore.getState().setView({
+      zoom,
+      ...clampPan(
+        {
+          panX: point.x - (point.x - view.panX) * (view.zoom / zoom),
+          panY: point.y - (point.y - view.panY) * (view.zoom / zoom)
+        },
+        display,
+        zoom
+      )
+    })
+  }
+
+  const beginBackground = (event: React.PointerEvent<SVGSVGElement>): void => {
+    const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
+    if (!point) return
+    svgRef.current?.setPointerCapture(event.pointerId)
+    // The middle button pans, which leaves the left button free for the
+    // rubber band even when the canvas is magnified.
+    if (event.button === 1) {
+      event.preventDefault()
+      setPan({
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startPanX: view.panX,
+        startPanY: view.panY
+      })
+      return
+    }
+    setMarquee({
+      pointerId: event.pointerId,
+      start: point,
+      current: point,
+      additive: event.shiftKey
+    })
   }
 
   // Same rule the firmware applies: z_index ascending, authored array order
@@ -203,47 +572,114 @@ function Widgets({
     left.zIndex - right.zIndex || left.configurationOrder - right.configurationOrder
   )
 
+  const viewWidth = display.width / view.zoom
+  const viewHeight = display.height / view.zoom
+  const band = marquee ? marqueeBounds(marquee) : undefined
+
   return (
     <svg
       ref={svgRef}
       aria-label="Dashboard display preview"
       className="block size-full touch-none select-none"
       preserveAspectRatio="xMidYMid meet"
-      viewBox={`0 0 ${display.width} ${display.height}`}
-      onPointerMove={moveInteraction}
-      onPointerUp={finishInteraction}
-      onPointerCancel={finishInteraction}
-      onPointerDown={() => select({ type: 'screen' })}
+      viewBox={`${view.panX} ${view.panY} ${viewWidth} ${viewHeight}`}
+      onPointerMove={movePointer}
+      onPointerUp={finishPointer}
+      onPointerCancel={finishPointer}
+      onPointerDown={beginBackground}
+      onWheel={zoomAtPointer}
     >
       <rect width={display.width} height={display.height} fill={screenBackground} />
-      {layers.map((layer) => (
-        <g key={layer.configuration.id ?? layer.configurationOrder} onPointerDown={(event) => {
-          const placement = completePlacement(layer.configuration.placement)
-          const id = layer.configuration.id
-          if (placement && id) beginInteraction(event, { type: 'widget', id }, 'move', placement)
-        }}>
-          {layer.configuration.type === 'delta_time' ? (
-            <DeltaTimePreview configuration={layer.configuration} module={configuration.delta_time} />
-          ) : layer.configuration.type === 'bar' ? (
-            <BarPreview configuration={layer.configuration} />
-          ) : layer.configuration.type === 'shape' ? (
-            <ShapePreview configuration={layer.configuration} />
-          ) : (
-            <TextWidgetPreview configuration={layer.configuration} />
-          )}
-          {layer.configuration.type !== 'delta_time' ? (
+      {view.snapToGrid ? <GridOverlay display={display} size={view.gridSize} zoom={view.zoom} /> : null}
+      {layers.map((layer) => {
+        const id = layer.configuration.id
+        if (id && hidden[id]) return null
+        return (
+          <g key={id ?? layer.configurationOrder} onPointerDown={(event) => {
+            const placement = completePlacement(layer.configuration.placement)
+            if (!placement || !id || locked[id]) return
+            beginInteraction(event, { type: 'widget', id }, 'move', placement)
+          }}>
+            {layer.configuration.type === 'bar' ? (
+              <BarPreview configuration={layer.configuration} values={values} />
+            ) : layer.configuration.type === 'arc' ? (
+              <ArcPreview configuration={layer.configuration} values={values} />
+            ) : layer.configuration.type === 'indicator' ? (
+              <IndicatorPreview configuration={layer.configuration} values={values} />
+            ) : layer.configuration.type === 'graph' ? (
+              <GraphPreview configuration={layer.configuration} values={values} />
+            ) : layer.configuration.type === 'shape' ? (
+              <ShapePreview configuration={layer.configuration} values={values} />
+            ) : (
+              <TextWidgetPreview configuration={layer.configuration} values={values} />
+            )}
             <CaptionPreview configuration={layer.configuration} />
-          ) : null}
-          <HitArea placement={completePlacement(layer.configuration.placement)} />
-        </g>
+            {id && locked[id] ? null : (
+              <HitArea placement={completePlacement(layer.configuration.placement)} />
+            )}
+          </g>
+        )
+      })}
+      {/* Every selected widget is outlined; only the primary one carries the
+          resize handles, because a resize has one anchor. */}
+      {selectedPlacements.map((placement, index) => (
+        <rect
+          key={index}
+          {...placement}
+          fill="none"
+          stroke="#38BDF8"
+          strokeWidth={1 / view.zoom}
+          strokeDasharray={`${4 / view.zoom} ${3 / view.zoom}`}
+          pointerEvents="none"
+        />
       ))}
-      {selection && selectedPlacement ? (
+      <GuideOverlay guides={guides} display={display} zoom={view.zoom} />
+      {selection && primaryPlacement ? (
         <SelectionFrame
-          placement={selectedPlacement}
-          onResize={(event, mode) => beginInteraction(event, selection, mode, selectedPlacement)}
+          placement={primaryPlacement}
+          zoom={view.zoom}
+          onResize={(event, mode) => beginInteraction(event, selection, mode, primaryPlacement)}
+        />
+      ) : null}
+      {band && (band.width >= 2 || band.height >= 2) ? (
+        <rect
+          {...band}
+          fill="#38BDF8"
+          fillOpacity={0.12}
+          stroke="#38BDF8"
+          strokeWidth={1 / view.zoom}
+          pointerEvents="none"
         />
       ) : null}
     </svg>
+  )
+}
+
+function GridOverlay({ display, size, zoom }: { display: DisplayDescriptor; size: number; zoom: number }): React.JSX.Element | null {
+  if (size <= 0) return null
+  // A grid finer than a couple of screen pixels reads as a wash rather than as
+  // a grid, so it is left out until the canvas is magnified enough to show it.
+  const step = size * zoom >= 4 ? size : size * Math.ceil(4 / (size * zoom))
+  const lines: React.JSX.Element[] = []
+  for (let x = step; x < display.width; x += step) {
+    lines.push(<line key={`x${x}`} x1={x} y1={0} x2={x} y2={display.height} stroke="#94A3B8" strokeOpacity={0.18} strokeWidth={1 / zoom} />)
+  }
+  for (let y = step; y < display.height; y += step) {
+    lines.push(<line key={`y${y}`} x1={0} y1={y} x2={display.width} y2={y} stroke="#94A3B8" strokeOpacity={0.18} strokeWidth={1 / zoom} />)
+  }
+  return <g pointerEvents="none">{lines}</g>
+}
+
+function GuideOverlay({ guides, display, zoom }: { guides: Guides; display: DisplayDescriptor; zoom: number }): React.JSX.Element {
+  return (
+    <g pointerEvents="none">
+      {guides.x.map((x) => (
+        <line key={`gx${x}`} x1={x} y1={0} x2={x} y2={display.height} stroke="#F472B6" strokeWidth={1 / zoom} />
+      ))}
+      {guides.y.map((y) => (
+        <line key={`gy${y}`} x1={0} y1={y} x2={display.width} y2={y} stroke="#F472B6" strokeWidth={1 / zoom} />
+      ))}
+    </g>
   )
 }
 
@@ -255,19 +691,160 @@ interface PreviewLayer {
 
 type ResizeMode = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 type InteractionMode = 'move' | ResizeMode
+type Placement = Required<NonNullable<TextWidgetConfiguration['placement']>>
+
+/** A widget that moves with the one under the pointer. */
+interface Follower {
+  id: string
+  placement: Placement
+}
+
 interface Interaction {
   pointerId: number
   target: WidgetSelection
   mode: InteractionMode
   start: { x: number; y: number }
-  placement: Required<NonNullable<TextWidgetConfiguration['placement']>>
+  placement: Placement
+  followers: Follower[]
 }
 
-function HitArea({ placement }: { placement?: Required<NonNullable<TextWidgetConfiguration['placement']>> }): React.JSX.Element | null {
+interface Marquee {
+  pointerId: number
+  start: { x: number; y: number }
+  current: { x: number; y: number }
+  additive: boolean
+}
+
+interface Pan {
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startPanX: number
+  startPanY: number
+}
+
+/** Lines the dragged widget snapped to, drawn while the drag is in progress. */
+interface Guides {
+  x: number[]
+  y: number[]
+}
+
+const NO_GUIDES: Guides = { x: [], y: [] }
+
+// How close an edge has to be before it snaps, in screen pixels.
+const SNAP_TOLERANCE_PX = 6
+
+// Ten frames a second: enough for a colour ramp to read as continuous and for a
+// blink to be legible, without re-rendering the canvas at display rate.
+const PREVIEW_TICK_MS = 100
+
+interface SnapTargets {
+  x: number[]
+  y: number[]
+}
+
+/**
+ * The lines a dragged widget can snap to: every other widget's left, centre and
+ * right, its top, middle and bottom, and the display's own edges and centre.
+ * Hidden widgets contribute nothing, because a line to something invisible
+ * cannot be understood.
+ */
+function collectSnapTargets(
+  widgets: readonly WidgetConfiguration[],
+  display: DisplayDescriptor,
+  dragged: WidgetSelection | undefined,
+  hidden: Readonly<Record<string, boolean>>
+): SnapTargets {
+  const draggedId = dragged?.type === 'widget' ? dragged.id : undefined
+  const x = [0, display.width / 2, display.width]
+  const y = [0, display.height / 2, display.height]
+  for (const widget of widgets) {
+    if (!widget.id || widget.id === draggedId || hidden[widget.id]) continue
+    const placement = completePlacement(widget.placement)
+    if (!placement) continue
+    x.push(placement.x, placement.x + placement.width / 2, placement.x + placement.width)
+    y.push(placement.y, placement.y + placement.height / 2, placement.y + placement.height)
+  }
+  return { x, y }
+}
+
+interface SnapOptions {
+  grid: number
+  tolerance: number
+  targets: SnapTargets
+}
+
+/**
+ * Snaps one coordinate. The widget's own three edges are each tried against
+ * every target, and the nearest match within tolerance wins, so a widget lines
+ * up by whichever of its edges is closest to something.
+ */
+function snapAxis(
+  start: number,
+  size: number,
+  targets: readonly number[],
+  options: SnapOptions
+): { value: number; guide?: number } {
+  let best: { value: number; guide: number; distance: number } | undefined
+  for (const edge of [0, size / 2, size]) {
+    for (const target of targets) {
+      const candidate = target - edge
+      const distance = Math.abs(candidate - start)
+      if (distance > options.tolerance) continue
+      if (!best || distance < best.distance) {
+        best = { value: candidate, guide: target, distance }
+      }
+    }
+  }
+  if (best) return { value: best.value, guide: best.guide }
+  if (options.grid > 0) return { value: Math.round(start / options.grid) * options.grid }
+  return { value: start }
+}
+
+function marqueeBounds(marquee: Marquee): Placement {
+  return {
+    x: Math.min(marquee.start.x, marquee.current.x),
+    y: Math.min(marquee.start.y, marquee.current.y),
+    width: Math.abs(marquee.current.x - marquee.start.x),
+    height: Math.abs(marquee.current.y - marquee.start.y)
+  }
+}
+
+function intersects(placement: Placement, bounds: Placement): boolean {
+  return (
+    placement.x < bounds.x + bounds.width &&
+    placement.x + placement.width > bounds.x &&
+    placement.y < bounds.y + bounds.height &&
+    placement.y + placement.height > bounds.y
+  )
+}
+
+/** Screen pixels per logical pixel, which is what a pan in client space costs. */
+function viewportScale(
+  svg: SVGSVGElement | null,
+  display: DisplayDescriptor,
+  zoom: number
+): number {
+  const width = svg?.getBoundingClientRect().width ?? display.width
+  return (width / display.width) * zoom
+}
+
+function clampPan(
+  pan: { panX: number; panY: number },
+  display: DisplayDescriptor,
+  zoom: number
+): { panX: number; panY: number } {
+  return {
+    panX: clamp(pan.panX, 0, display.width - display.width / zoom),
+    panY: clamp(pan.panY, 0, display.height - display.height / zoom)
+  }
+}
+
+function HitArea({ placement }: { placement?: Placement }): React.JSX.Element | null {
   return placement ? <rect {...placement} fill="transparent" className="cursor-move" /> : null
 }
 
-function SelectionFrame({ placement, onResize }: { placement: Required<NonNullable<TextWidgetConfiguration['placement']>>; onResize: (event: React.PointerEvent<SVGCircleElement>, mode: ResizeMode) => void }): React.JSX.Element {
+function SelectionFrame({ placement, zoom, onResize }: { placement: Placement; zoom: number; onResize: (event: React.PointerEvent<SVGCircleElement>, mode: ResizeMode) => void }): React.JSX.Element {
   const points: Array<[ResizeMode, number, number]> = [
     ['nw', placement.x, placement.y], ['n', placement.x + placement.width / 2, placement.y],
     ['ne', placement.x + placement.width, placement.y], ['e', placement.x + placement.width, placement.y + placement.height / 2],
@@ -275,8 +852,8 @@ function SelectionFrame({ placement, onResize }: { placement: Required<NonNullab
     ['sw', placement.x, placement.y + placement.height], ['w', placement.x, placement.y + placement.height / 2]
   ]
   return <g aria-label="Selected widget bounds">
-    <rect {...placement} fill="none" stroke="#38BDF8" strokeWidth={2} strokeDasharray="5 3" pointerEvents="none" />
-    {points.map(([mode, cx, cy]) => <circle key={mode} cx={cx} cy={cy} r={5} fill="#0EA5E9" stroke="#E0F2FE" strokeWidth={1.5} className="cursor-pointer" onPointerDown={(event) => onResize(event, mode)} />)}
+    <rect {...placement} fill="none" stroke="#38BDF8" strokeWidth={2 / zoom} strokeDasharray={`${5 / zoom} ${3 / zoom}`} pointerEvents="none" />
+    {points.map(([mode, cx, cy]) => <circle key={mode} cx={cx} cy={cy} r={5 / zoom} fill="#0EA5E9" stroke="#E0F2FE" strokeWidth={1.5 / zoom} className="cursor-pointer" onPointerDown={(event) => onResize(event, mode)} />)}
   </g>
 }
 
@@ -288,38 +865,122 @@ function logicalPoint(svg: SVGSVGElement | null, clientX: number, clientY: numbe
   return { x: point.x, y: point.y }
 }
 
-function transformedPlacement(interaction: Interaction, dx: number, dy: number, display: DisplayDescriptor): Required<NonNullable<TextWidgetConfiguration['placement']>> {
+function transformedPlacement(
+  interaction: Interaction,
+  dx: number,
+  dy: number,
+  display: DisplayDescriptor,
+  snap: SnapOptions
+): { placement: Placement; guides: Guides } {
   const original = interaction.placement
-  if (interaction.mode === 'move') return {
-    ...original,
-    x: Math.round(clamp(original.x + dx, 0, display.width - original.width)),
-    y: Math.round(clamp(original.y + dy, 0, display.height - original.height))
+  if (interaction.mode === 'move') {
+    const horizontal = snapAxis(original.x + dx, original.width, snap.targets.x, snap)
+    const vertical = snapAxis(original.y + dy, original.height, snap.targets.y, snap)
+    return {
+      placement: {
+        ...original,
+        x: Math.round(clamp(horizontal.value, 0, display.width - original.width)),
+        y: Math.round(clamp(vertical.value, 0, display.height - original.height))
+      },
+      guides: {
+        x: horizontal.guide === undefined ? [] : [horizontal.guide],
+        y: vertical.guide === undefined ? [] : [vertical.guide]
+      }
+    }
   }
   const minimum = 8
+  // A resized edge snaps to the grid but not to another widget: a size that
+  // quietly followed a neighbour would be harder to predict than to correct.
+  const align = (value: number): number =>
+    snap.grid > 0 ? Math.round(value / snap.grid) * snap.grid : value
   let left = original.x
   let top = original.y
   let right = original.x + original.width
   let bottom = original.y + original.height
-  if (interaction.mode.includes('w')) left = clamp(original.x + dx, 0, right - minimum)
-  if (interaction.mode.includes('e')) right = clamp(original.x + original.width + dx, left + minimum, display.width)
-  if (interaction.mode.includes('n')) top = clamp(original.y + dy, 0, bottom - minimum)
-  if (interaction.mode.includes('s')) bottom = clamp(original.y + original.height + dy, top + minimum, display.height)
-  return { x: Math.round(left), y: Math.round(top), width: Math.round(right - left), height: Math.round(bottom - top) }
+  if (interaction.mode.includes('w')) left = clamp(align(original.x + dx), 0, right - minimum)
+  if (interaction.mode.includes('e')) right = clamp(align(original.x + original.width + dx), left + minimum, display.width)
+  if (interaction.mode.includes('n')) top = clamp(align(original.y + dy), 0, bottom - minimum)
+  if (interaction.mode.includes('s')) bottom = clamp(align(original.y + original.height + dy), top + minimum, display.height)
+  return {
+    placement: { x: Math.round(left), y: Math.round(top), width: Math.round(right - left), height: Math.round(bottom - top) },
+    guides: NO_GUIDES
+  }
 }
 
 function clamp(value: number, minimum: number, maximum: number): number { return Math.min(maximum, Math.max(minimum, value)) }
 
+/**
+ * What the previews ask about a value. Wrapping the map keeps every renderer
+ * from repeating the "read the binding, take its numeric view, resolve the
+ * frame" chain, and keeps the placeholders mode from needing a second code
+ * path — it simply answers "unavailable" to everything.
+ */
+export interface PreviewValues {
+  read: (binding: string | undefined) => TelemetryValue
+  /** Numeric view of what a widget's own source reads, for a fill or a sweep. */
+  numberFor: (source: { binding?: string } | undefined) => number | undefined
+  /** Authored style with the ramp and the rules applied, plus blink visibility. */
+  styleFor: (frame: StyledFrame, authored: AuthoredStyle) => ResolvedStyle & { visible: boolean }
+  /** Whether a lamp is lit on this frame, for a widget that blinks by itself. */
+  blinkPhase: (blinkMs: number) => boolean
+  /**
+   * The samples a graph would be holding right now. The mock is a pure function
+   * of the lap phase, so the trace is the real thing rather than a sketch: it is
+   * the same signal evaluated at the phases that came before this one.
+   */
+  traceFor: (
+    source: { binding?: string } | undefined,
+    points: number,
+    sampleIntervalMs: number
+  ) => number[] | undefined
+  /** Whether any value is being played at all. */
+  live: boolean
+}
+
+function createPreviewValues(
+  configuration: DeviceConfiguration,
+  playback: PreviewPlayback,
+  clockMs: number
+): PreviewValues {
+  const values =
+    playback.mode === 'values'
+      ? mockTelemetry(dashboardBindings(configuration), playback.phase)
+      : new Map<string, TelemetryValue>()
+  const read = (binding: string | undefined): TelemetryValue =>
+    (binding ? values.get(binding) : undefined) ?? UNAVAILABLE
+  return {
+    read,
+    numberFor: (source) => conditionValue(read(source?.binding)),
+    styleFor: (frame, authored) => {
+      const style = resolveWidgetStyle(frame, authored, conditionValue(read(frame.condition_source?.binding)))
+      return { ...style, visible: blinkVisible(style, clockMs) }
+    },
+    blinkPhase: (blinkMs) => blinkMs <= 0 || clockMs % blinkMs < blinkMs / 2,
+    traceFor: (source, points, sampleIntervalMs) => {
+      if (playback.mode !== 'values' || !source?.binding || points < 2) return undefined
+      const entry = TELEMETRY_CATALOG.find(({ name }) => name === source.binding)
+      if (!entry) return undefined
+      const step = sampleIntervalMs / (LAP_SECONDS * 1000)
+      return Array.from({ length: points }, (_, index) =>
+        conditionValue(mockValue(entry, playback.phase - (points - 1 - index) * step)) ?? 0
+      )
+    },
+    live: playback.mode === 'values'
+  }
+}
+
 function TextWidgetPreview({
-  configuration
+  configuration,
+  values
 }: {
   configuration: TextWidgetConfiguration
+  values: PreviewValues
 }): React.JSX.Element | null {
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
 
   const borderWidth = configuration.border?.width_px ?? 0
   const borderRadius = configuration.border?.radius_px ?? 0
-  const backgroundColor = normalizeColor(configuration.background_color) ?? 'transparent'
   // An inset background leaves the frame clear, so it starts inside the border.
   const backgroundInset = configuration.background_inset_px ?? 0
   const backgroundEdge = backgroundInset > 0 ? borderWidth + backgroundInset : 0
@@ -336,6 +997,12 @@ function TextWidgetPreview({
   const contentRight = placement.x + placement.width - borderWidth - padding.right
   const contentTop = placement.y + borderWidth + padding.top
   const contentBottom = placement.y + placement.height - borderWidth - padding.bottom
+  const style = values.styleFor(configuration, {
+    color: configuration.value?.color ?? DEFAULT_TEXT_COLOR,
+    backgroundColor: configuration.background_color,
+    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
+  })
+  if (!style.visible) return null
   const alignment = configuration.value?.alignment ?? 'center'
   const valueX = alignment === 'left'
     ? contentLeft
@@ -344,7 +1011,8 @@ function TextWidgetPreview({
       : (contentLeft + contentRight) / 2
   const valueAnchor = alignment === 'left' ? 'start' : alignment === 'right' ? 'end' : 'middle'
   const valueY = (contentTop + contentBottom) / 2 + (title ? titleFont.sizePx / 4 : 0)
-  const previewValue = formattedPreviewValue(configuration)
+  const previewValue = composedText(configuration, values)
+  const backgroundColor = normalizeColor(style.backgroundColor) ?? 'transparent'
 
   return (
     <g>
@@ -366,14 +1034,14 @@ function TextWidgetPreview({
           height={placement.height - borderWidth}
           rx={Math.max(0, borderRadius - borderWidth / 2)}
           fill="none"
-          stroke={configuration.border?.color ?? DEFAULT_BORDER_COLOR}
+          stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
           strokeWidth={borderWidth}
         />
       ) : null}
       <text
         x={valueX}
         y={valueY}
-        fill={configuration.value?.color ?? DEFAULT_TEXT_COLOR}
+        fill={style.color ?? DEFAULT_TEXT_COLOR}
         fontFamily={valueFont.family}
         fontSize={valueFont.sizePx}
         fontWeight={valueFont.weight}
@@ -386,43 +1054,64 @@ function TextWidgetPreview({
   )
 }
 
-// The configurator has no telemetry stream, so the honest preview is what the
-// device renders while a value is unavailable. An explicit unavailable_text is
-// that text; without one the device renders a zero through the widget's own
-// transform, so the preview mirrors the same rule.
-function formattedPreviewValue(configuration: TextWidgetConfiguration): string {
-  const configured = configuration.value?.unavailable_text
-  if (configured) return configured
-  // No telemetry stream here, so the preview is what the device shows while
-  // every source is still silent: each one's zero through its own transform.
-  return (configuration.sources ?? [])
-    .map(({ transform }) => `${transform?.prefix ?? ''}${zeroValue(transform)}${transform?.suffix ?? ''}`)
-    .join('')
+/**
+ * The device keeps two unavailability rules apart, and so does this. A source
+ * that has no value falls back to its own placeholder, so a live neighbour
+ * keeps updating beside it; only when *every* source is silent does the
+ * widget-level `unavailable_text` replace the whole string.
+ */
+function composedText(configuration: TextWidgetConfiguration, values: PreviewValues): string {
+  const sources = configuration.sources ?? []
+  let anyAvailable = false
+  const parts = sources.map(({ binding, transform }) => {
+    const body = transformedBody(transform, values.read(binding))
+    if (body !== undefined) anyAvailable = true
+    return withAffixes(transform, body ?? placeholderBody(transform))
+  })
+  if (!anyAvailable && configuration.value?.unavailable_text) {
+    return configuration.value.unavailable_text
+  }
+  return parts.join('')
 }
 
-function zeroValue(transform: ValueTransform | undefined): string {
-  if (transform?.type === 'time') {
-    return transform.format === 'signed_duration_ms' ? '+0.000' : '00:00.000'
-  }
-  if (transform?.type === 'number') {
-    const zero = 0 * (transform.scale ?? 1) + (transform.offset ?? 0)
-    return zero.toFixed(transform.decimals ?? 0)
-  }
-  return '0'
-}
-
-// No telemetry here, so the bar draws its track with an empty fill, which is
-// exactly what the device shows before the first value.
 function BarPreview({
-  configuration
+  configuration,
+  values
 }: {
   configuration: BarWidgetConfiguration
+  values: PreviewValues
 }): React.JSX.Element | null {
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
+  const style = values.styleFor(configuration, {
+    color: configuration.fill_color ?? '#38BDF8',
+    backgroundColor: configuration.background_color,
+    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
+  })
+  if (!style.visible) return null
   const borderWidth = configuration.border?.width_px ?? 0
-  const track = normalizeColor(configuration.background_color) ?? 'transparent'
+  const track = normalizeColor(style.backgroundColor) ?? 'transparent'
   const radius = configuration.border?.radius_px ?? 0
+
+  // The same geometry the device fills with: the bar runs between its origin
+  // and its value, so a signed window with a zero origin reads from the centre.
+  const inner = {
+    x: placement.x + borderWidth + (configuration.padding?.left ?? 0),
+    y: placement.y + borderWidth + (configuration.padding?.top ?? 0),
+    width: Math.max(0, placement.width - 2 * borderWidth - (configuration.padding?.left ?? 0) - (configuration.padding?.right ?? 0)),
+    height: Math.max(0, placement.height - 2 * borderWidth - (configuration.padding?.top ?? 0) - (configuration.padding?.bottom ?? 0))
+  }
+  const horizontal = (configuration.orientation ?? 'horizontal') === 'horizontal'
+  const span = horizontal ? inner.width : inner.height
+  const fraction = rangeFraction(values.numberFor(configuration.source), configuration.minimum, configuration.maximum)
+  const originFraction = configuration.origin === undefined
+    ? 0
+    : rangeFraction(configuration.origin, configuration.minimum, configuration.maximum)
+  const offset = Math.round(span * Math.min(originFraction, fraction))
+  const length = Math.round(span * Math.max(originFraction, fraction)) - offset
+  const fromAxisStart = horizontal !== (configuration.inverted ?? false)
+  const leading = fromAxisStart ? offset : span - offset - length
+
   return (
     <g>
       {track !== 'transparent' ? (
@@ -435,6 +1124,16 @@ function BarPreview({
           fill={track}
         />
       ) : null}
+      {length > 0 ? (
+        <rect
+          x={horizontal ? inner.x + leading : inner.x}
+          y={horizontal ? inner.y : inner.y + leading}
+          width={horizontal ? length : inner.width}
+          height={horizontal ? inner.height : length}
+          rx={Math.max(0, radius - borderWidth)}
+          fill={style.color ?? '#38BDF8'}
+        />
+      ) : null}
       {borderWidth > 0 ? (
         <rect
           x={placement.x + borderWidth / 2}
@@ -443,10 +1142,201 @@ function BarPreview({
           height={placement.height - borderWidth}
           rx={Math.max(0, radius - borderWidth / 2)}
           fill="none"
-          stroke={configuration.border?.color ?? DEFAULT_BORDER_COLOR}
+          stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
           strokeWidth={borderWidth}
         />
       ) : null}
+    </g>
+  )
+}
+
+function ArcPreview({
+  configuration,
+  values
+}: {
+  configuration: ArcWidgetConfiguration
+  values: PreviewValues
+}): React.JSX.Element | null {
+  const placement = completePlacement(configuration.placement)
+  if (!placement) return null
+  const style = values.styleFor(configuration, {
+    color: configuration.fill_color ?? '#38BDF8',
+    backgroundColor: configuration.background_color,
+    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
+  })
+  if (!style.visible) return null
+  const thickness = configuration.thickness_px ?? 8
+  const start = configuration.start_angle_deg ?? 135
+  const sweep = Math.min(configuration.sweep_deg ?? 270, 360)
+  const radius = Math.max(0, Math.min(placement.width, placement.height) / 2 - thickness / 2)
+  const centerX = placement.x + placement.width / 2
+  const centerY = placement.y + placement.height / 2
+  const track = normalizeColor(configuration.track_color)
+  const value = values.numberFor(configuration.source)
+  const fraction = rangeFraction(value, configuration.minimum, configuration.maximum)
+  // Without a value the sweep is drawn faintly at full length, so the geometry
+  // can still be judged; with one it is the arc the device would sweep.
+  const swept = value === undefined ? sweep : sweep * (configuration.inverted ? 1 - fraction : fraction)
+
+  return (
+    <g>
+      {track && track !== 'transparent' ? (
+        <path
+          d={arcPath(centerX, centerY, radius, start, sweep)}
+          fill="none"
+          stroke={track}
+          strokeWidth={thickness}
+        />
+      ) : null}
+      {swept > 0 ? (
+        <path
+          d={arcPath(centerX, centerY, radius, start, swept)}
+          fill="none"
+          stroke={style.color ?? '#38BDF8'}
+          strokeWidth={thickness}
+          strokeOpacity={value === undefined ? (track && track !== 'transparent' ? 0.25 : 0.35) : 1}
+        />
+      ) : null}
+    </g>
+  )
+}
+
+/** LVGL measures from three o'clock and grows clockwise, which SVG also does. */
+function arcPath(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  startDegrees: number,
+  sweepDegrees: number
+): string {
+  const point = (degrees: number): [number, number] => {
+    const radians = (degrees * Math.PI) / 180
+    return [centerX + radius * Math.cos(radians), centerY + radius * Math.sin(radians)]
+  }
+  // A full turn has no distinct end point, so it is drawn as two half turns.
+  if (sweepDegrees >= 360) {
+    const [x, y] = point(startDegrees)
+    const [oppositeX, oppositeY] = point(startDegrees + 180)
+    return `M ${x} ${y} A ${radius} ${radius} 0 1 1 ${oppositeX} ${oppositeY} A ${radius} ${radius} 0 1 1 ${x} ${y}`
+  }
+  const [startX, startY] = point(startDegrees)
+  const [endX, endY] = point(startDegrees + sweepDegrees)
+  return `M ${startX} ${startY} A ${radius} ${radius} 0 ${sweepDegrees > 180 ? 1 : 0} 1 ${endX} ${endY}`
+}
+
+function IndicatorPreview({
+  configuration,
+  values
+}: {
+  configuration: IndicatorWidgetConfiguration
+  values: PreviewValues
+}): React.JSX.Element | null {
+  const placement = completePlacement(configuration.placement)
+  const segments = configuration.segments ?? []
+  if (!placement || segments.length === 0) return null
+  const style = values.styleFor(configuration, {
+    backgroundColor: configuration.background_color,
+    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
+  })
+  if (!style.visible) return null
+  const horizontal = (configuration.orientation ?? 'horizontal') === 'horizontal'
+  const gap = configuration.segment_gap_px ?? 4
+  const span = horizontal ? placement.width : placement.height
+  const length = (span - gap * (segments.length - 1)) / segments.length
+  if (length <= 0) return null
+  const off = normalizeColor(configuration.off_color)
+  const value = values.numberFor(configuration.source)
+  const fraction = rangeFraction(value, configuration.minimum, configuration.maximum)
+  // The device blinks every lit lamp once the value passes the blink threshold,
+  // on the same clock the frame's own blink runs on.
+  const blinkMs = configuration.blink_ms ?? 0
+  const blinking =
+    value !== undefined && blinkMs > 0 && fraction >= (configuration.blink_threshold ?? 2)
+  const lampsVisible = !blinking || values.blinkPhase(blinkMs)
+
+  return (
+    <g>
+      {segments.map((segment, index) => {
+        const offset = index * (length + gap)
+        // Thresholds do not decrease, so the lit lamps are a prefix and the
+        // first one not reached ends the strip.
+        const lit = value !== undefined && fraction >= (segment.threshold ?? 0) && lampsVisible
+        const unlitFill = off && off !== 'transparent' ? off : (segment.color ?? '#00C853')
+        return (
+          <rect
+            key={index}
+            x={horizontal ? placement.x + offset : placement.x}
+            // A vertical strip lights from the bottom up, so the first segment
+            // is the lowest one.
+            y={horizontal ? placement.y : placement.y + placement.height - offset - length}
+            width={horizontal ? length : placement.width}
+            height={horizontal ? placement.height : length}
+            rx={configuration.segment_radius_px ?? 0}
+            fill={lit ? (segment.color ?? '#00C853') : unlitFill}
+            fillOpacity={lit || (off && off !== 'transparent') ? 1 : 0.25}
+          />
+        )
+      })}
+    </g>
+  )
+}
+
+function GraphPreview({
+  configuration,
+  values
+}: {
+  configuration: GraphWidgetConfiguration
+  values: PreviewValues
+}): React.JSX.Element | null {
+  const placement = completePlacement(configuration.placement)
+  if (!placement) return null
+  const style = values.styleFor(configuration, {
+    color: configuration.line_color ?? '#38BDF8',
+    backgroundColor: configuration.background_color,
+    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
+  })
+  if (!style.visible) return null
+  const background = normalizeColor(style.backgroundColor)
+  const points = Math.min(configuration.point_count ?? 64, MAXIMUM_GRAPH_POINTS)
+  const trace = values.traceFor(configuration.source, points, configuration.sample_interval_ms ?? 100)
+
+  return (
+    <g>
+      {background && background !== 'transparent' ? (
+        <rect
+          x={placement.x}
+          y={placement.y}
+          width={placement.width}
+          height={placement.height}
+          rx={configuration.border?.radius_px ?? 0}
+          fill={background}
+        />
+      ) : null}
+      {trace ? (
+        <polyline
+          points={trace
+            .map((sample, index) => {
+              const x = placement.x + (placement.width * index) / Math.max(points - 1, 1)
+              const y = placement.y + placement.height * (1 - rangeFraction(sample, configuration.minimum, configuration.maximum))
+              return `${x.toFixed(1)},${y.toFixed(1)}`
+            })
+            .join(' ')}
+          fill="none"
+          stroke={style.color ?? '#38BDF8'}
+          strokeWidth={configuration.line_width_px ?? 2}
+          strokeLinejoin="round"
+        />
+      ) : (
+        <line
+          x1={placement.x}
+          y1={placement.y + placement.height / 2}
+          x2={placement.x + placement.width}
+          y2={placement.y + placement.height / 2}
+          stroke={style.color ?? '#38BDF8'}
+          strokeWidth={configuration.line_width_px ?? 2}
+          strokeOpacity={0.35}
+        />
+      )}
     </g>
   )
 }
@@ -494,14 +1384,23 @@ function CaptionPreview({
 }
 
 function ShapePreview({
-  configuration
+  configuration,
+  values
 }: {
   configuration: ShapeWidgetConfiguration
+  values: PreviewValues
 }): React.JSX.Element | null {
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
+  // A shape has no content of its own, so a rule's value colour has nowhere to
+  // land — exactly as on the device, where it binds no content-colour applier.
+  const style = values.styleFor(configuration, {
+    backgroundColor: configuration.background_color,
+    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
+  })
+  if (!style.visible) return null
   const borderWidth = configuration.border?.width_px ?? 0
-  const background = normalizeColor(configuration.background_color) ?? 'transparent'
+  const background = normalizeColor(style.backgroundColor) ?? 'transparent'
   const inset = configuration.background_inset_px ?? 0
   const edge = inset > 0 ? borderWidth + inset : 0
   // An ellipse is a radius of half the shorter side, which is what the device
@@ -529,77 +1428,10 @@ function ShapePreview({
           height={placement.height - borderWidth}
           rx={Math.max(0, radius - borderWidth / 2)}
           fill="none"
-          stroke={configuration.border?.color ?? DEFAULT_BORDER_COLOR}
+          stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
           strokeWidth={borderWidth}
         />
       ) : null}
-    </g>
-  )
-}
-
-function DeltaTimePreview({
-  configuration,
-  module
-}: {
-  configuration: DeltaTimeWidgetConfiguration
-  module: DeviceConfiguration['delta_time']
-}): React.JSX.Element | null {
-  const placement = completePlacement(configuration.placement)
-  const unavailableBehavior = module?.unavailable_behavior ?? 'zero'
-  if (!placement || unavailableBehavior === 'hide') return null
-
-  const font = resolvedFont(configuration.font, 48)
-  const scaleEnabled = module?.scale?.enabled ?? false
-  const showSign = module?.scale?.show_sign ?? false
-  const label = unavailableBehavior === 'zero'
-    ? showSign ? '+0.00' : '0.00'
-    : module?.placeholder ?? '---'
-  const borderWidth = configuration.scale?.border_width_px ?? 2
-  const verticalPadding = configuration.scale?.vertical_padding_px ?? 2
-  const borderRadius = configuration.scale?.border_radius_px ?? 8
-  const contentHeight = font.sizePx + 2 * verticalPadding
-  const scaleHeight = contentHeight + 2 * borderWidth
-  const scaleY = placement.y + (placement.height - scaleHeight) / 2
-  const color = configuration.neutral_color ?? DEFAULT_TEXT_COLOR
-
-  return (
-    <g>
-      {scaleEnabled ? (
-        <>
-          <rect
-            x={placement.x + borderWidth / 2}
-            y={scaleY + borderWidth / 2}
-            width={placement.width - borderWidth}
-            height={scaleHeight - borderWidth}
-            rx={Math.max(0, borderRadius - borderWidth / 2)}
-            fill="none"
-            stroke={color}
-            strokeWidth={borderWidth}
-          />
-          {[1, 3].map((numerator) => (
-            <rect
-              key={numerator}
-              x={placement.x + placement.width * numerator / 4 - borderWidth / 2}
-              y={scaleY + scaleHeight - borderWidth - Math.max(1, verticalPadding / 2)}
-              width={borderWidth}
-              height={Math.max(1, verticalPadding / 2)}
-              fill={color}
-            />
-          ))}
-        </>
-      ) : null}
-      <text
-        x={placement.x + placement.width / 2}
-        y={placement.y + placement.height / 2}
-        fill={color}
-        fontFamily={font.family}
-        fontSize={font.sizePx}
-        fontWeight={font.weight}
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {label}
-      </text>
     </g>
   )
 }

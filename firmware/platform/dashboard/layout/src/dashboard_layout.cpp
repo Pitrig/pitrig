@@ -21,17 +21,19 @@ void apply_outline(lv_obj_t* const object, const std::uint32_t color_rgb) {
 }  // namespace
 
 bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
+                           const std::uint8_t screen_index,
                            const std::int32_t intrinsic_width,
                            const std::int32_t intrinsic_height,
                            const bool fill_available_width, lv_obj_t*& parent,
                            Rect& bounds) {
-  if (layout.display == nullptr || layout.screen == nullptr ||
-      intrinsic_width <= 0 || intrinsic_height <= 0 || placement.x < 0 ||
-      placement.y < 0 || placement.width < 0 || placement.height < 0) {
+  lv_obj_t* const screen = layout.screen(screen_index);
+  if (layout.display == nullptr || screen == nullptr || intrinsic_width <= 0 ||
+      intrinsic_height <= 0 || placement.x < 0 || placement.y < 0 ||
+      placement.width < 0 || placement.height < 0) {
     return false;
   }
 
-  parent = layout.screen;
+  parent = screen;
   const std::int32_t display_width =
       lv_display_get_horizontal_resolution(layout.display);
   const std::int32_t display_height =

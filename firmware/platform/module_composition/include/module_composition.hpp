@@ -1,6 +1,5 @@
 #pragma once
 
-#include "delta_time.hpp"
 #include "lap_timer.hpp"
 #include "module_manager.hpp"
 
@@ -25,21 +24,9 @@ struct Modules {
     telemetry::Handle handle{};
     bool* started{};
   };
-  struct DeltaTimeBinding {
-    delta_time::DeltaTime* module{};
-    events::EventBus* event_bus{};
-    const telemetry::ITelemetryReader* telemetry{};
-    telemetry::Handle handle{};
-    const delta_time::Config* configuration{};
-    bool* started{};
-  };
-
   lap_timer::LapTimer lap_timer;
-  delta_time::DeltaTime delta_time;
   LapTimerBinding lap_timer_binding{};
-  DeltaTimeBinding delta_time_binding{};
   bool lap_timer_started{};
-  bool delta_time_started{};
   modules::Manager manager;
 };
 

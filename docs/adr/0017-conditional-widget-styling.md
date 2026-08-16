@@ -81,11 +81,47 @@ border, so an inset background is a child object sized to leave the frame clear
 and the container paints nothing; a rule repaints whichever of the two the
 widget was built with.
 
-The Delta Time widget keeps its own tone model. Giving it rules as well would
-leave two mechanisms deciding one colour.
+This is an additive extension: a widget without `conditions` parses, validates,
+and renders exactly as before.
 
-This is an additive schema 4 extension: a widget without `conditions` parses,
-validates, and renders exactly as before.
+Amended in schema 5. The paragraph this replaces read "The Delta Time widget
+keeps its own tone model. Giving it rules as well would leave two mechanisms
+deciding one colour." That widget no longer exists — its three tone colours
+were two rules over the field it already read, so it was removed rather than
+given a second mechanism (see ADR 0015). Nothing on the dashboard now decides a
+colour outside what this decision describes.
+
+## Amendment: colour ramps and gradients
+
+Rules switch a colour at a threshold, which is right for a warning and wrong for
+a gauge that should warm as it climbs. A widget may therefore also carry a
+**colour ramp**: up to four stops on the same watched source, interpolated per
+sRGB channel between the two stops a value falls between, and held at the
+nearest stop's colour outside them.
+
+The ramp is the layer **under** the rules. It replaces the colour in the
+fallback style that `resolve` is given, so a rule that matches paints over it
+and a rule that does not leaves a colour that moved with the value. One property
+still has one owner, which is what the original decision was protecting. A ramp
+names which property it paints — content, background or border — and what
+content means stays the widget type's own business.
+
+Stops are absolute values of the watched source, like a rule's threshold, rather
+than fractions of a range: a ramp is authored in the units it is read in, and a
+widget with a ramp needs no range of its own.
+
+Linear background gradients come in with them: a far colour and an axis on the
+frame's background, and on the bar's fill along its own axis. These are spatial,
+not value-driven, and they are two LVGL style properties where they are used and
+nothing where they are not. On the ESP32-P4 a gradient fill is refused by the
+PPA, so those widgets fall back to the software renderer — a performance note,
+not a correctness one.
+
+Opacity and rotation remain out of scope. Both were excluded by decision rather
+than deferred: opacity is not wanted, and packing it into the colour would make
+`#FFFFFFFF` indistinguishable from the transparent sentinel; rotation exists
+only for images and disables the P4 accelerator, so a rotated image is prepared
+as one.
 
 ## Consequences
 

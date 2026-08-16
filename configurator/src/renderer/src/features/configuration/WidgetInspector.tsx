@@ -5,29 +5,44 @@ import { useDeviceStore } from '@/features/device/device-store'
 import { widgetsOf } from '../../../../shared/configuration-access'
 import {
   BAR_ORIENTATION_VALUES,
+  COLOR_RAMP_TARGET_VALUES,
   CONDITION_OPERATOR_VALUES,
+  MAXIMUM_COLOR_STOPS,
+  MAXIMUM_GRAPH_POINTS,
+  MAXIMUM_INDICATOR_SEGMENTS,
   MAXIMUM_TEXT_SOURCES,
   MAXIMUM_WIDGET_CONDITIONS,
   SHAPE_KIND_VALUES,
+  type ArcWidgetConfiguration,
   type BarOrientation,
   type BarWidgetConfiguration,
+  type ColorRampTarget,
+  type ColorStop,
+  type GraphWidgetConfiguration,
+  type IndicatorWidgetConfiguration,
   type ConditionOperator,
-  type DeltaTimeWidgetConfiguration,
   type FontSpec,
   type RgbColor,
   type ShapeKind,
   type ShapeWidgetConfiguration,
   type TextSourceConfiguration,
   type TextWidgetConfiguration,
+  type ValueSourceConfiguration,
   type ValueTransform,
   type WidgetCondition,
   type WidgetConfiguration,
   type WidgetPlacement
 } from '../../../../shared/configuration-schema'
 
-// Every widget except Delta Time carries the shared frame, so the box and the
-// styling rules are edited by the same two components for all of them.
-type FramedWidget = TextWidgetConfiguration | ShapeWidgetConfiguration | BarWidgetConfiguration
+// Every widget carries the shared frame, so the box and the styling rules are
+// edited by the same two components for all of them.
+type FramedWidget =
+  | TextWidgetConfiguration
+  | ShapeWidgetConfiguration
+  | BarWidgetConfiguration
+  | ArcWidgetConfiguration
+  | IndicatorWidgetConfiguration
+  | GraphWidgetConfiguration
 import type { DeviceConfiguration } from '../../../../shared/device'
 import {
   TELEMETRY_CATALOG,
@@ -92,10 +107,14 @@ export function WidgetInspector(): React.JSX.Element {
         {configuration && widget && selection?.type === 'widget' ? (
           <>
             <GeometryEditor selection={selection} placement={completePlacement(widget.placement)} zIndex={widget.z_index ?? 0} />
-            {widget.type === 'delta_time' ? (
-              <DeltaTimeEditor selection={selection} widget={widget} configuration={configuration} />
-            ) : widget.type === 'bar' ? (
+            {widget.type === 'bar' ? (
               <BarEditor selection={selection} widget={widget} />
+            ) : widget.type === 'arc' ? (
+              <ArcEditor selection={selection} widget={widget} />
+            ) : widget.type === 'indicator' ? (
+              <IndicatorEditor selection={selection} widget={widget} />
+            ) : widget.type === 'graph' ? (
+              <GraphEditor selection={selection} widget={widget} />
             ) : widget.type === 'shape' ? (
               <ShapeEditor selection={selection} widget={widget} />
             ) : (
@@ -112,15 +131,146 @@ export function WidgetInspector(): React.JSX.Element {
 // with whatever identifies it best.
 function widgetLabel(widget: WidgetConfiguration, index: number): string {
   switch (widget.type) {
-    case 'delta_time':
-      return 'Delta time'
     case 'shape':
       return `Shape ${index + 1}: ${widget.kind ?? 'rectangle'}`
     case 'bar':
       return `Bar ${index + 1}: ${widget.source?.binding || 'Unbound'}`
+    case 'arc':
+      return `Arc ${index + 1}: ${widget.source?.binding || 'Unbound'}`
+    case 'indicator':
+      return `Lights ${index + 1}: ${widget.source?.binding || 'Unbound'}`
+    case 'graph':
+      return `Graph ${index + 1}: ${widget.source?.binding || 'Unbound'}`
     case 'text':
       return `Text ${index + 1}: ${widget.title?.text || widget.sources?.[0]?.binding || 'Untitled'}`
   }
+}
+
+// Every gauge reads one source through one window, so they share the section
+// that binds it rather than each spelling it out.
+interface RangedWidget {
+  source?: ValueSourceConfiguration
+  minimum?: number
+  maximum?: number
+}
+
+function SourceRangeSection<T extends RangedWidget>({ widget, update }: { widget: T; update: (mutation: (next: T) => void) => void }): React.JSX.Element {
+  const binding = TELEMETRY_CATALOG.find(({ name }) => name === widget.source?.binding)
+  const unit = binding?.unit && binding.unit !== 'source' ? ` (${binding.unit})` : ''
+  return (
+    <Section title="Data">
+      <TelemetryBindingField value={widget.source?.binding ?? ''} onChange={(value) => update((next) => {
+        next.source = { ...next.source, binding: value }
+      })} />
+      <SelectField label="Modifier" value={widget.source?.modifiers?.some(({ type }) => type === 'lap_timer') ? 'lap_timer' : 'none'} options={['none', 'lap_timer']} onChange={(value) => update((next) => {
+        if (value === 'lap_timer') next.source = { binding: 'session.lap.current_time', modifiers: [{ type: 'lap_timer' }] }
+        else if (next.source) delete next.source.modifiers
+      })} />
+      <div className="grid grid-cols-2 gap-2">
+        <NumberField label={`Minimum${unit}`} value={widget.minimum ?? 0} step="any" onChange={(value) => update((next) => { next.minimum = value })} />
+        <NumberField label={`Maximum${unit}`} value={widget.maximum ?? 1} step="any" onChange={(value) => update((next) => { next.maximum = value })} />
+      </div>
+    </Section>
+  )
+}
+
+function ArcEditor({ selection, widget }: { selection: WidgetSelection; widget: ArcWidgetConfiguration }): React.JSX.Element {
+  const update = (mutation: (next: ArcWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ArcWidgetConfiguration))
+  return (
+    <>
+      <SourceRangeSection widget={widget} update={update} />
+      <Section title="Arc">
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label="Start angle (deg)" value={widget.start_angle_deg ?? 135} min={0} max={359} onChange={(value) => update((next) => { next.start_angle_deg = value })} />
+          <NumberField label="Sweep (deg)" value={widget.sweep_deg ?? 270} min={1} max={360} onChange={(value) => update((next) => { next.sweep_deg = value })} />
+        </div>
+        <p className="text-muted-foreground">Zero degrees is three o&apos;clock and the angle grows clockwise, so 135 with a 270 sweep is the usual car gauge.</p>
+        <NumberField label="Thickness (px)" value={widget.thickness_px ?? 8} min={1} onChange={(value) => update((next) => { next.thickness_px = value })} />
+        <ColorField label="Fill color" value={widget.fill_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.fill_color = value })} />
+        <OptionalColorField label="Track color" value={widget.track_color} onChange={(value) => update((next) => { if (value === undefined) delete next.track_color; else next.track_color = value })} />
+        <CheckboxField label="Sweep from the far end" checked={widget.inverted ?? false} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
+      </Section>
+      <TitleEditor widget={widget} update={update} />
+      <BoxEditor widget={widget} update={update} />
+      <ConditionsEditor widget={widget} update={update} />
+    </>
+  )
+}
+
+function IndicatorEditor({ selection, widget }: { selection: WidgetSelection; widget: IndicatorWidgetConfiguration }): React.JSX.Element {
+  const update = (mutation: (next: IndicatorWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as IndicatorWidgetConfiguration))
+  const segments = widget.segments ?? []
+  return (
+    <>
+      <SourceRangeSection widget={widget} update={update} />
+      <Section title="Strip">
+        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value as BarOrientation })} />
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label="Gap (px)" value={widget.segment_gap_px ?? 4} min={0} onChange={(value) => update((next) => { next.segment_gap_px = value })} />
+          <NumberField label="Radius (px)" value={widget.segment_radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.segment_radius_px = value })} />
+        </div>
+        <OptionalColorField label="Unlit color" value={widget.off_color} onChange={(value) => update((next) => { if (value === undefined) delete next.off_color; else next.off_color = value })} />
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label="Blink from" value={widget.blink_threshold ?? 2} step="any" onChange={(value) => update((next) => { next.blink_threshold = value })} />
+          <NumberField label="Blink (ms)" value={widget.blink_ms ?? 0} min={0} max={MAXIMUM_BLINK_MS} onChange={(value) => update((next) => { next.blink_ms = value })} />
+        </div>
+        <p className="text-muted-foreground">Blinking starts at this fraction of the range; above 1 it never blinks, and so does a zero period.</p>
+      </Section>
+      <Section title="Segments">
+        <p className="text-muted-foreground">Each lamp lights at its fraction of the range, so one strip suits any engine. Thresholds must not decrease.</p>
+        {segments.map((segment, index) => (
+          <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+            <NumberField label={`Lamp ${index + 1}`} value={segment.threshold ?? 0} step="any" min={0} max={1} onChange={(value) => update((next) => {
+              const list = [...(next.segments ?? [])]
+              list[index] = { ...list[index], threshold: value }
+              next.segments = list
+            })} />
+            <ColorField label="Color" value={segment.color ?? '#00C853'} onChange={(value) => update((next) => {
+              const list = [...(next.segments ?? [])]
+              list[index] = { ...list[index], color: value }
+              next.segments = list
+            })} />
+            <button className="h-8 rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => update((next) => {
+              next.segments = (next.segments ?? []).filter((_, position) => position !== index)
+            })}>Remove</button>
+          </div>
+        ))}
+        {segments.length < MAXIMUM_INDICATOR_SEGMENTS ? (
+          <button className="h-8 rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => update((next) => {
+            const list = next.segments ?? []
+            const previous = list[list.length - 1]
+            next.segments = [...list, { threshold: previous?.threshold ?? 0, color: previous?.color ?? '#00C853' }]
+          })}>Add lamp</button>
+        ) : <Hint>{`A strip holds at most ${MAXIMUM_INDICATOR_SEGMENTS} lamps.`}</Hint>}
+      </Section>
+      <TitleEditor widget={widget} update={update} />
+      <BoxEditor widget={widget} update={update} />
+      <ConditionsEditor widget={widget} update={update} />
+    </>
+  )
+}
+
+function GraphEditor({ selection, widget }: { selection: WidgetSelection; widget: GraphWidgetConfiguration }): React.JSX.Element {
+  const update = (mutation: (next: GraphWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as GraphWidgetConfiguration))
+  const points = widget.point_count ?? 64
+  const interval = widget.sample_interval_ms ?? 100
+  return (
+    <>
+      <SourceRangeSection widget={widget} update={update} />
+      <Section title="Trace">
+        <div className="grid grid-cols-2 gap-2">
+          <NumberField label="Points" value={points} min={2} max={MAXIMUM_GRAPH_POINTS} onChange={(value) => update((next) => { next.point_count = value })} />
+          <NumberField label="Interval (ms)" value={interval} min={1} onChange={(value) => update((next) => { next.sample_interval_ms = value })} />
+        </div>
+        <p className="text-muted-foreground">{`Shows the last ${((points * interval) / 1000).toFixed(1)} s. The trace is the most expensive widget to draw, so keep the point count only as high as it needs to be.`}</p>
+        <ColorField label="Line color" value={widget.line_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.line_color = value })} />
+        <NumberField label="Line width (px)" value={widget.line_width_px ?? 2} min={1} onChange={(value) => update((next) => { next.line_width_px = value })} />
+      </Section>
+      <TitleEditor widget={widget} update={update} />
+      <BoxEditor widget={widget} update={update} />
+      <ConditionsEditor widget={widget} update={update} />
+    </>
+  )
 }
 
 function BarEditor({ selection, widget }: { selection: WidgetSelection; widget: BarWidgetConfiguration }): React.JSX.Element {
@@ -142,6 +292,13 @@ function BarEditor({ selection, widget }: { selection: WidgetSelection; widget: 
           <NumberField label={`Minimum${unit}`} value={widget.minimum ?? 0} step="any" onChange={(value) => update((next) => { next.minimum = value })} />
           <NumberField label={`Maximum${unit}`} value={widget.maximum ?? 1} step="any" onChange={(value) => update((next) => { next.maximum = value })} />
         </div>
+        <CheckboxField label="Fill from a value" checked={widget.origin !== undefined} onChange={(checked) => update((next) => { if (checked) next.origin = 0; else delete next.origin })} />
+        {widget.origin !== undefined ? (
+          <>
+            <NumberField label={`Origin${unit}`} value={widget.origin} step="any" onChange={(value) => update((next) => { next.origin = value })} />
+            <p className="text-muted-foreground">The fill runs between this value and the current one, so a signed window with a zero origin reads as a centred meter.</p>
+          </>
+        ) : null}
       </Section>
       <Section title="Bar">
         <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value as BarOrientation })} />
@@ -307,10 +464,10 @@ function ConditionsEditor({ widget, update }: {
   return (
     <Section title="Conditions">
       <p className="text-muted-foreground">
-        The first rule that holds restyles the widget; anything it leaves unset stays as
-        authored. The watched field is independent of what the widget shows, so a gear
-        readout can turn red on engine speed. The preview always draws the unconditional
-        style.
+        The watched field is independent of what the widget shows, so a gear readout can
+        turn red on engine speed. A colour ramp moves the colour smoothly with the value;
+        the first rule that holds paints over it, and anything a rule leaves unset stays
+        as authored. Switch the preview to live values to watch both.
       </p>
       <TelemetryBindingField value={watched} onChange={(value) => update((next) => {
         if (!value) {
@@ -330,6 +487,7 @@ function ConditionsEditor({ widget, update }: {
       })} />
       {watched ? (
         <>
+          <ColorRampEditor widget={widget} update={update} unit={field?.unit && field.unit !== 'source' ? field.unit : undefined} />
           {rules.map((rule, index) => (
             <div key={index} className="space-y-2 rounded-md border p-2">
               <div className="flex items-center justify-between">
@@ -377,6 +535,74 @@ function ConditionsEditor({ widget, update }: {
         </>
       ) : null}
     </Section>
+  )
+}
+
+// The ramp is the layer under the rules, so it is edited with them rather than
+// in a section of its own.
+function ColorRampEditor({ widget, update, unit }: {
+  widget: FramedWidget
+  update: (mutation: (next: FramedWidget) => void) => void
+  unit?: string
+}): React.JSX.Element {
+  const stops = widget.color_ramp?.stops ?? []
+  const changeStops = (mutation: (list: ColorStop[]) => ColorStop[]): void => update((next) => {
+    const list = mutation([...(next.color_ramp?.stops ?? [])])
+    if (list.length === 0) {
+      delete next.color_ramp
+      return
+    }
+    next.color_ramp = { ...next.color_ramp, stops: list }
+  })
+  return (
+    <div className="space-y-2 rounded-md border p-2">
+      <div className="flex items-center justify-between">
+        <span className="font-medium">Colour ramp</span>
+        {stops.length > 0 ? (
+          <button type="button" className="rounded-md border px-2 py-0.5 text-foreground" onClick={() => update((next) => { delete next.color_ramp })}>
+            Remove
+          </button>
+        ) : null}
+      </div>
+      {stops.length > 0 ? (
+        <>
+          <SelectField label="Paints" value={widget.color_ramp?.target ?? 'content'} options={COLOR_RAMP_TARGET_VALUES} onChange={(value) => update((next) => {
+            next.color_ramp = { ...next.color_ramp, target: value as ColorRampTarget }
+          })} />
+          {stops.map((stop, index) => (
+            <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
+              <NumberField label={unit ? `At (${unit})` : 'At'} value={stop.at ?? 0} step="any" onChange={(value) => changeStops((list) => {
+                list[index] = { ...list[index], at: value }
+                return list
+              })} />
+              <ColorField label="Color" value={stop.color ?? '#E8E8E8'} onChange={(value) => changeStops((list) => {
+                list[index] = { ...list[index], color: value }
+                return list
+              })} />
+              <button type="button" className="h-8 rounded-md border px-2 text-foreground" onClick={() => changeStops((list) => list.filter((_, position) => position !== index))}>
+                Remove
+              </button>
+            </div>
+          ))}
+          {stops.length < MAXIMUM_COLOR_STOPS ? (
+            <button type="button" className="h-8 w-full rounded-md border text-foreground" onClick={() => changeStops((list) => {
+              const previous = list[list.length - 1]
+              return [...list, { at: (previous?.at ?? 0) + 1, color: previous?.color ?? '#E8E8E8' }]
+            })}>
+              Add stop
+            </button>
+          ) : null}
+          {stops.length < 2 ? <Hint>A ramp needs at least two stops to interpolate between.</Hint> : null}
+        </>
+      ) : (
+        <button type="button" className="h-8 w-full rounded-md border text-foreground" onClick={() => changeStops(() => [
+          { at: 0, color: '#00C853' },
+          { at: 1, color: '#D50000' }
+        ])}>
+          Add a colour ramp
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -511,16 +737,6 @@ function pruneTransform(source: TextSourceConfiguration): void {
   if (transform && (transform.type ?? 'none') === 'none' && !transform.prefix && !transform.suffix) {
     delete source.transform
   }
-}
-
-function DeltaTimeEditor({ selection, widget, configuration }: { selection: WidgetSelection; widget: DeltaTimeWidgetConfiguration; configuration: DeviceConfiguration }): React.JSX.Element {
-  const update = (mutation: (next: DeltaTimeWidgetConfiguration, config: DeviceConfiguration) => void): void => mutateSelectedWidget(selection, (next, config) => mutation(next as DeltaTimeWidgetConfiguration, config))
-  const module = configuration.delta_time
-  return <>
-    <Section title="Value"><FontEditor font={widget.font} onChange={(font) => update((next) => { next.font = font })} /><ColorField label="Faster" value={widget.faster_color ?? '#00C853'} onChange={(value) => update((next) => { next.faster_color = value })} /><ColorField label="Slower" value={widget.slower_color ?? '#D50000'} onChange={(value) => update((next) => { next.slower_color = value })} /><ColorField label="Neutral" value={widget.neutral_color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.neutral_color = value })} /></Section>
-    <Section title="Behavior"><SelectField label="Unavailable" value={module?.unavailable_behavior ?? 'hide'} options={['hide', 'placeholder', 'zero']} onChange={(value) => update((_next, config) => { config.delta_time = { ...config.delta_time, unavailable_behavior: value as 'hide' | 'placeholder' | 'zero' } })} />{module?.unavailable_behavior === 'placeholder' ? <TextField label="Placeholder" value={module.placeholder ?? '---'} onChange={(value) => update((_next, config) => { config.delta_time = { ...config.delta_time, placeholder: value } })} /> : null}</Section>
-    <Section title="Scale"><CheckboxField label="Enabled" checked={module?.scale?.enabled ?? false} onChange={(checked) => update((_next, config) => { config.delta_time = { ...config.delta_time, scale: { ...config.delta_time?.scale, enabled: checked } } })} /><CheckboxField label="Show sign" checked={module?.scale?.show_sign ?? false} onChange={(checked) => update((_next, config) => { config.delta_time = { ...config.delta_time, scale: { ...config.delta_time?.scale, show_sign: checked } } })} /><NumberField label="Range (ms)" value={module?.scale?.range_ms ?? 2000} min={1} onChange={(value) => update((_next, config) => { config.delta_time = { ...config.delta_time, scale: { ...config.delta_time?.scale, range_ms: value } } })} /><div className="grid grid-cols-2 gap-2"><NumberField label="Vertical padding" value={widget.scale?.vertical_padding_px ?? 2} min={0} onChange={(value) => update((next) => { next.scale = { ...next.scale, vertical_padding_px: value } })} /><NumberField label="Border width" value={widget.scale?.border_width_px ?? 2} min={0} onChange={(value) => update((next) => { next.scale = { ...next.scale, border_width_px: value } })} /><NumberField label="Radius" value={widget.scale?.border_radius_px ?? 8} min={0} onChange={(value) => update((next) => { next.scale = { ...next.scale, border_radius_px: value } })} /></div></Section>
-  </>
 }
 
 function FontEditor({ font, onChange }: { font?: FontSpec; onChange: (font: FontSpec) => void }): React.JSX.Element { return <div className="grid grid-cols-[minmax(0,1fr)_5rem] gap-2"><TextField label="Font family" value={font?.family ?? ''} onChange={(family) => onChange({ ...font, family })} /><NumberField label="Size" value={font?.size_px ?? 16} min={1} max={255} onChange={(size_px) => onChange({ ...font, size_px })} /></div> }

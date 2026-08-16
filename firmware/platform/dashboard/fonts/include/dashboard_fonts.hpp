@@ -13,11 +13,11 @@
 namespace simcore::dashboard::fonts {
 
 // One font object per family and pixel size the active configuration asks for.
-// A document cannot reference more than this: every text widget contributes a
-// value font and a title font, and the Delta Time widget contributes one.
+// A document cannot reference more than this: a text widget contributes a value
+// font and a caption font, and every other framed type contributes a caption.
 inline constexpr std::size_t kMaximumFonts =
     configuration::kMaximumTextWidgets * 2 +
-    configuration::kMaximumDeltaTimeWidgets;
+    configuration::kMaximumShapeWidgets + configuration::kMaximumBarWidgets;
 
 class Registry final {
  public:

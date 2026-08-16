@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 
 #include "application_configuration.hpp"
@@ -212,6 +213,8 @@ class Painter {
   void release();
 
  private:
+  [[nodiscard]] conditions::ResolvedStyle ramped(
+      std::optional<double> value) const;
   void apply_style(const conditions::ResolvedStyle& style);
   void apply_blink();
   void apply_visibility();
@@ -220,6 +223,13 @@ class Painter {
              configuration::kMaximumWidgetConditions>
       conditions_{};
   std::size_t condition_count_{};
+  // The ramp is the layer under the rules: it replaces the colour they fall
+  // back to, so a rule that matches still wins and one that does not leaves a
+  // colour that moved with the value.
+  std::array<configuration::ColorStop, configuration::kMaximumColorStops>
+      ramp_stops_{};
+  std::size_t ramp_stop_count_{};
+  configuration::ColorRampTarget ramp_target_{};
   ValueReadCallback read_{};
   void* read_context_{};
   std::uint64_t rendered_revision_{};

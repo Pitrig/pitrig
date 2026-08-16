@@ -2,6 +2,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <string_view>
 
 #include "configuration_json.hpp"
@@ -95,34 +96,41 @@ constexpr std::uint16_t kMaximumHoldMs = 10'000;
     return true;
   };
 
+  // Widget storage is one pool, so this walks it once rather than per screen.
   const DashboardConfiguration& dashboard = configuration.dashboard;
-  for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
-       ++screen_index) {
-    const ScreenConfiguration& screen = dashboard.screens[screen_index];
-    const auto record_caption = [&record](const WidgetFrame& frame) {
-      return frame.title.text.front() == '\0' || record(frame.title.font);
-    };
-    for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
-      const TextWidgetConfiguration& widget = screen.text_widgets[index];
-      if (!record(widget.value.font) || !record_caption(widget.frame)) {
-        return false;
-      }
+  const auto record_caption = [&record](const WidgetFrame& frame) {
+    return frame.title.text.front() == '\0' || record(frame.title.font);
+  };
+  for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
+    const TextWidgetConfiguration& widget = dashboard.text_widgets[index];
+    if (!record(widget.value.font) || !record_caption(widget.frame)) {
+      return false;
     }
-    for (std::size_t index = 0; index < screen.shape_widget_count; ++index) {
-      if (!record_caption(screen.shape_widgets[index].frame)) {
-        return false;
-      }
+  }
+  for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
+    if (!record_caption(dashboard.shape_widgets[index].frame)) {
+      return false;
     }
-    for (std::size_t index = 0; index < screen.bar_widget_count; ++index) {
-      if (!record_caption(screen.bar_widgets[index].frame)) {
-        return false;
-      }
+  }
+  for (std::size_t index = 0; index < dashboard.bar_widget_count; ++index) {
+    if (!record_caption(dashboard.bar_widgets[index].frame)) {
+      return false;
     }
-    for (std::size_t index = 0; index < screen.delta_time_widget_count;
-         ++index) {
-      if (!record(screen.delta_time_widgets[index].font)) {
-        return false;
-      }
+  }
+  for (std::size_t index = 0; index < dashboard.arc_widget_count; ++index) {
+    if (!record_caption(dashboard.arc_widgets[index].frame)) {
+      return false;
+    }
+  }
+  for (std::size_t index = 0; index < dashboard.indicator_widget_count;
+       ++index) {
+    if (!record_caption(dashboard.indicator_widgets[index].frame)) {
+      return false;
+    }
+  }
+  for (std::size_t index = 0; index < dashboard.graph_widget_count; ++index) {
+    if (!record_caption(dashboard.graph_widgets[index].frame)) {
+      return false;
     }
   }
   return true;
@@ -153,8 +161,9 @@ class Validator final {
   [[nodiscard]] bool text_widget(const TextWidgetConfiguration& config);
   [[nodiscard]] bool shape_widget(const ShapeWidgetConfiguration& config);
   [[nodiscard]] bool bar_widget(const BarWidgetConfiguration& config);
-  [[nodiscard]] bool delta_time_widget(
-      const DeltaTimeWidgetConfiguration& config);
+  [[nodiscard]] bool arc_widget(const ArcWidgetConfiguration& config);
+  [[nodiscard]] bool indicator_widget(const IndicatorWidgetConfiguration& config);
+  [[nodiscard]] bool graph_widget(const GraphWidgetConfiguration& config);
 
  private:
   [[nodiscard]] bool frame(const WidgetFrame& config);
@@ -170,28 +179,6 @@ class Validator final {
   const ValidationContext& profile_;
   ValidationFailure& failure_;
 };
-
-bool Validator::delta_time_widget(const DeltaTimeWidgetConfiguration& config) {
-  if (!valid_font(config.font)) {
-    return reject(failure_, ValidationError::invalid_widget, "font");
-  }
-  if (!valid_placement(config.placement, width(), height())) {
-    return reject(failure_, ValidationError::invalid_widget, "placement");
-  }
-  if (!valid_color(config.faster_color)) {
-    return reject(failure_, ValidationError::invalid_widget, "faster_color");
-  }
-  if (!valid_color(config.slower_color)) {
-    return reject(failure_, ValidationError::invalid_widget, "slower_color");
-  }
-  if (!valid_color(config.neutral_color)) {
-    return reject(failure_, ValidationError::invalid_widget, "neutral_color");
-  }
-  if (!terminated(config.id)) {
-    return reject(failure_, ValidationError::invalid_widget, "id");
-  }
-  return true;
-}
 
 bool Validator::text_source(const TextSourceConfiguration& config) {
   const std::string_view binding = value_binding_view(config.binding);
@@ -230,10 +217,31 @@ bool Validator::text_source(const TextSourceConfiguration& config) {
 // Styling rules read one telemetry source and may not blink faster than the eye
 // can follow or so slowly that the widget looks broken.
 bool Validator::conditions(const WidgetFrame& config) {
-  if (config.condition_count > config.conditions.size()) {
+  if (config.condition_count > config.conditions.size() ||
+      config.color_ramp.stop_count > config.color_ramp.stops.size()) {
     return reject(failure_, ValidationError::invalid_widget, "conditions");
   }
-  if (config.condition_count == 0) {
+  // A ramp needs at least two stops to interpolate between, and its stops have
+  // to climb, or the search for the pair a value sits between has no answer.
+  if (config.color_ramp.stop_count == 1) {
+    return reject(failure_, ValidationError::invalid_widget, "color_ramp");
+  }
+  float previous = -std::numeric_limits<float>::infinity();
+  for (std::size_t index = 0; index < config.color_ramp.stop_count; ++index) {
+    const ColorStop& stop = config.color_ramp.stops[index];
+    if (!std::isfinite(stop.at) || stop.at <= previous ||
+        !valid_color(stop.color)) {
+      return reject(failure_, ValidationError::invalid_widget, "color_ramp");
+    }
+    previous = stop.at;
+  }
+  if (config.color_ramp.target < ColorRampTarget::content ||
+      config.color_ramp.target > ColorRampTarget::border) {
+    return reject(failure_, ValidationError::invalid_widget, "color_ramp");
+  }
+  // Both mechanisms read the same source, so neither is configurable without
+  // one that resolves.
+  if (config.condition_count == 0 && config.color_ramp.stop_count == 0) {
     return true;
   }
   const std::string_view binding =
@@ -286,6 +294,12 @@ bool Validator::frame(const WidgetFrame& config) {
     return reject(failure_, ValidationError::invalid_widget,
                   "background_inset_px");
   }
+  if (!valid_optional_color(config.background_grad_color) ||
+      config.background_grad_dir < GradientDirection::horizontal ||
+      config.background_grad_dir > GradientDirection::vertical) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "background_grad_color");
+  }
   if (!valid_optional_color(config.background_color)) {
     return reject(failure_, ValidationError::invalid_widget,
                   "background_color");
@@ -328,11 +342,90 @@ bool Validator::bar_widget(const BarWidgetConfiguration& config) {
   if (!valid_color(config.fill_color)) {
     return reject(failure_, ValidationError::invalid_widget, "fill_color");
   }
+  if (!valid_optional_color(config.fill_grad_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "fill_grad_color");
+  }
+  if (config.origin_present && !std::isfinite(config.origin)) {
+    return reject(failure_, ValidationError::invalid_widget, "origin");
+  }
   return value_source(config.source) && value_range(config.range) &&
          frame(config.frame);
 }
 
 // A shape is its frame, so there is nothing else to check.
+bool Validator::arc_widget(const ArcWidgetConfiguration& config) {
+  // A sweep of zero would draw nothing and a sweep past a full turn would wrap
+  // over itself, so both are authoring mistakes rather than degenerate art.
+  if (config.sweep_deg == 0 || config.sweep_deg > 360) {
+    return reject(failure_, ValidationError::invalid_widget, "sweep_deg");
+  }
+  if (config.start_angle_deg >= 360) {
+    return reject(failure_, ValidationError::invalid_widget, "start_angle_deg");
+  }
+  // Two arcs of the configured thickness have to fit across the widget, or the
+  // ring closes into a disc.
+  const std::int32_t smallest_side =
+      std::min(config.frame.placement.width, config.frame.placement.height);
+  if (config.thickness_px == 0 || 2 * config.thickness_px > smallest_side) {
+    return reject(failure_, ValidationError::invalid_widget, "thickness_px");
+  }
+  if (!valid_color(config.fill_color) || !valid_optional_color(config.track_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "fill_color");
+  }
+  return value_source(config.source) && value_range(config.range) &&
+         frame(config.frame);
+}
+
+bool Validator::indicator_widget(const IndicatorWidgetConfiguration& config) {
+  if (config.orientation < BarOrientation::horizontal ||
+      config.orientation > BarOrientation::vertical) {
+    return reject(failure_, ValidationError::invalid_widget, "orientation");
+  }
+  if (config.segment_count == 0 ||
+      config.segment_count > config.segments.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "segments");
+  }
+  // Thresholds are read in order and the first one not reached stops the strip,
+  // so an out-of-order list would leave segments that can never light.
+  float previous = -std::numeric_limits<float>::infinity();
+  for (std::size_t index = 0; index < config.segment_count; ++index) {
+    const IndicatorSegment& segment = config.segments[index];
+    if (!std::isfinite(segment.threshold) || segment.threshold < previous ||
+        !valid_color(segment.color)) {
+      return reject(failure_, ValidationError::invalid_widget, "segments");
+    }
+    previous = segment.threshold;
+  }
+  if (!std::isfinite(config.blink_threshold)) {
+    return reject(failure_, ValidationError::invalid_widget, "blink_threshold");
+  }
+  // The same window conditions blink in, so one dashboard has one cadence.
+  if (config.blink_ms != 0 &&
+      (config.blink_ms < kMinimumBlinkMs || config.blink_ms > kMaximumBlinkMs)) {
+    return reject(failure_, ValidationError::invalid_widget, "blink_ms");
+  }
+  if (!valid_optional_color(config.off_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "off_color");
+  }
+  return value_source(config.source) && value_range(config.range) &&
+         frame(config.frame);
+}
+
+bool Validator::graph_widget(const GraphWidgetConfiguration& config) {
+  if (config.point_count < 2 || config.point_count > kMaximumGraphPoints) {
+    return reject(failure_, ValidationError::invalid_widget, "point_count");
+  }
+  if (config.sample_interval_ms == 0) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "sample_interval_ms");
+  }
+  if (config.line_width_px == 0 || !valid_color(config.line_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "line_color");
+  }
+  return value_source(config.source) && value_range(config.range) &&
+         frame(config.frame);
+}
+
 bool Validator::shape_widget(const ShapeWidgetConfiguration& config) {
   if (config.kind < ShapeKind::rectangle || config.kind > ShapeKind::ellipse) {
     return reject(failure_, ValidationError::invalid_widget, "kind");
@@ -418,26 +511,33 @@ ValidationFailure validate_configuration(
     return failure;
   }
 
-  if (configuration.delta_time_present &&
-      (configuration.delta_time.scale.range_ms <= 0 ||
-       configuration.delta_time.scale.range_ms > 60'000 ||
-       !terminated(configuration.delta_time.placeholder) ||
-       configuration.delta_time.unavailable_behavior <
-           DeltaTimeUnavailableBehavior::hide ||
-       configuration.delta_time.unavailable_behavior >
-           DeltaTimeUnavailableBehavior::zero)) {
-    (void)reject(failure, ValidationError::invalid_module, "delta_time");
-    return failure;
-  }
-
   const DashboardConfiguration& dashboard = configuration.dashboard;
   if (dashboard.screen_count > dashboard.screens.size()) {
     (void)reject(failure, ValidationError::invalid_screen, "dashboard.screens");
     return failure;
   }
+  if (dashboard.text_widget_count > dashboard.text_widgets.size() ||
+      dashboard.shape_widget_count > dashboard.shape_widgets.size() ||
+      dashboard.bar_widget_count > dashboard.bar_widgets.size() ||
+      dashboard.arc_widget_count > dashboard.arc_widgets.size() ||
+      dashboard.indicator_widget_count > dashboard.indicator_widgets.size() ||
+      dashboard.graph_widget_count > dashboard.graph_widgets.size()) {
+    (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
+    return failure;
+  }
+
+  // A reference index is a std::uint8_t, so a pool that outgrew that would
+  // silently alias its first entries.
+  static_assert(kMaximumTextWidgets <= 255);
+  static_assert(kMaximumShapeWidgets <= 255);
+  static_assert(kMaximumBarWidgets <= 255);
+  static_assert(kMaximumArcWidgets <= 255);
+  static_assert(kMaximumIndicatorWidgets <= 255);
+  static_assert(kMaximumGraphWidgets <= 255);
 
   Validator validator(profile, failure);
   std::size_t lap_timer_modifier_count{};
+  std::size_t referenced_widgets{};
 
   for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
        ++screen_index) {
@@ -447,45 +547,53 @@ ValidationFailure validate_configuration(
       failure.screen_index = static_cast<std::int16_t>(screen_index);
       return failure;
     }
-    if (screen.widget_count > screen.widgets.size() ||
-        screen.text_widget_count > screen.text_widgets.size() ||
-        screen.shape_widget_count > screen.shape_widgets.size() ||
-        screen.bar_widget_count > screen.bar_widgets.size() ||
-        screen.delta_time_widget_count > screen.delta_time_widgets.size()) {
+    if (screen.widget_count > screen.widgets.size()) {
       (void)reject(failure, ValidationError::invalid_screen, "widgets");
       failure.screen_index = static_cast<std::int16_t>(screen_index);
       return failure;
     }
-    // A Delta Time widget renders module state, so the module section must be
-    // present for the widget to have anything to show.
-    if (screen.delta_time_widget_count > 0 &&
-        !configuration.delta_time_present) {
-      (void)reject(failure, ValidationError::invalid_dashboard, "delta_time");
-      failure.screen_index = static_cast<std::int16_t>(screen_index);
-      return failure;
-    }
-
+    referenced_widgets += screen.widget_count;
     for (std::size_t index = 0; index < screen.widget_count; ++index) {
       const WidgetReference& reference = screen.widgets[index];
       bool valid = false;
       switch (reference.type) {
         case WidgetType::text:
-          valid = reference.index < screen.text_widget_count &&
-                  validator.text_widget(screen.text_widgets[reference.index]);
+          valid = reference.index < dashboard.text_widget_count &&
+                  dashboard.text_widgets[reference.index]
+                          .frame.screen_index == screen_index &&
+                  validator.text_widget(dashboard.text_widgets[reference.index]);
           break;
         case WidgetType::shape:
-          valid = reference.index < screen.shape_widget_count &&
-                  validator.shape_widget(screen.shape_widgets[reference.index]);
+          valid = reference.index < dashboard.shape_widget_count &&
+                  dashboard.shape_widgets[reference.index]
+                          .frame.screen_index == screen_index &&
+                  validator.shape_widget(dashboard.shape_widgets[reference.index]);
           break;
         case WidgetType::bar:
-          valid = reference.index < screen.bar_widget_count &&
-                  validator.bar_widget(screen.bar_widgets[reference.index]);
+          valid = reference.index < dashboard.bar_widget_count &&
+                  dashboard.bar_widgets[reference.index]
+                          .frame.screen_index == screen_index &&
+                  validator.bar_widget(dashboard.bar_widgets[reference.index]);
           break;
-        case WidgetType::delta_time:
-          valid =
-              reference.index < screen.delta_time_widget_count &&
-              validator.delta_time_widget(
-                  screen.delta_time_widgets[reference.index]);
+        case WidgetType::arc:
+          valid = reference.index < dashboard.arc_widget_count &&
+                  dashboard.arc_widgets[reference.index]
+                          .frame.screen_index == screen_index &&
+                  validator.arc_widget(dashboard.arc_widgets[reference.index]);
+          break;
+        case WidgetType::indicator:
+          valid = reference.index < dashboard.indicator_widget_count &&
+                  dashboard.indicator_widgets[reference.index]
+                          .frame.screen_index == screen_index &&
+                  validator.indicator_widget(
+                      dashboard.indicator_widgets[reference.index]);
+          break;
+        case WidgetType::graph:
+          valid = reference.index < dashboard.graph_widget_count &&
+                  dashboard.graph_widgets[reference.index]
+                          .frame.screen_index == screen_index &&
+                  validator.graph_widget(
+                      dashboard.graph_widgets[reference.index]);
           break;
       }
       if (!valid) {
@@ -496,18 +604,32 @@ ValidationFailure validate_configuration(
       }
     }
 
-    for (std::size_t index = 0; index < screen.text_widget_count; ++index) {
-      const TextWidgetConfiguration& widget = screen.text_widgets[index];
-      for (std::size_t source = 0; source < widget.source_count; ++source) {
-        const TextSourceConfiguration& value = widget.sources[source];
-        for (std::size_t modifier = 0; modifier < value.modifier_count;
-             ++modifier) {
-          if (value.modifiers[modifier].type == ValueModifierType::lap_timer) {
-            ++lap_timer_modifier_count;
-          }
+  }
+
+  for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
+    const TextWidgetConfiguration& widget = dashboard.text_widgets[index];
+    for (std::size_t source = 0; source < widget.source_count; ++source) {
+      const TextSourceConfiguration& value = widget.sources[source];
+      for (std::size_t modifier = 0; modifier < value.modifier_count;
+           ++modifier) {
+        if (value.modifiers[modifier].type == ValueModifierType::lap_timer) {
+          ++lap_timer_modifier_count;
         }
       }
     }
+  }
+
+  // Only the parser produces documents, and it appends one reference per pool
+  // slot it fills. An unreferenced slot would render nothing and still cost its
+  // storage, so treat the mismatch as a malformed dashboard rather than trust
+  // that no other path can build one.
+  if (referenced_widgets !=
+      static_cast<std::size_t>(dashboard.text_widget_count) +
+          dashboard.shape_widget_count + dashboard.bar_widget_count +
+          dashboard.arc_widget_count + dashboard.indicator_widget_count +
+          dashboard.graph_widget_count) {
+    (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
+    return failure;
   }
 
   // One Lap Timer module instance backs every lap_timer modifier, so only one

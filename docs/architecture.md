@@ -236,8 +236,7 @@ Modules use components and never access hardware directly.
 
 Platform code adapts modules and components to framework-specific presentation and runtime facilities.
 
-Dashboard widgets are platform-specific UI. The Delta Time widget renders its
-module state directly. Reusable text widgets receive a pre-bound typed value
+Dashboard widgets are platform-specific UI. Reusable widgets receive a pre-bound typed value
 pipeline from a startup-only widget binder and own only bounded transform
 configuration and LVGL presentation state. Stateful modifiers, including Lap
 Timer, are implemented by modules and hidden behind the pipeline callback. Pure
@@ -263,7 +262,7 @@ Examples include:
 - Communication
 - Font asset catalog and package validation
 
-The `configuration_contract` service component owns the bounded schema 3
+The `configuration_contract` service component owns the bounded
 application value contract. The configuration service parses, validates, and
 persists that contract. Module and dashboard implementations depend only on the
 contract component, which contains no storage, control protocol, module
@@ -284,7 +283,7 @@ shared transport between normal line routing and the active binary session.
 
 The desktop configurator edits dashboard widgets directly in the logical
 display coordinate space. Canvas selection, dragging, resizing, property
-inspection, and the advanced JSON editor all mutate the same sparse schema 3
+inspection, and the advanced JSON editor all mutate the same sparse
 local draft; there is no second editor-only layout model to reconcile. The
 draft owns its target board identity and therefore resolves the immutable local
 board profile and display geometry even while no device is connected. Device
@@ -385,7 +384,7 @@ read-only capability. Additional hardware devices, modules, and widgets are
 created only when present in the validated configuration, so a freshly flashed
 or reset production device has an enabled display with an empty dashboard.
 
-Public configuration schema 3 uses a bounded sparse JSON document directly for
+The public configuration schema uses a bounded sparse JSON document directly for
 authoring and device transport. Widget geometry uses absolute logical display
 coordinates; regions, region identifiers, and anchors are not part of the
 contract. Firmware parses and validates JSON on the configuration/startup path,

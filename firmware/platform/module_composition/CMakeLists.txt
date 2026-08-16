@@ -1,7 +1,7 @@
 idf_component_register(
   SRCS "src/module_composition.cpp"
   INCLUDE_DIRS "include"
-  REQUIRES configuration_contract delta_time event_bus lap_timer module_manager
+  REQUIRES configuration_contract event_bus lap_timer module_manager
            telemetry
   PRIV_REQUIRES logger simcore_config)
 

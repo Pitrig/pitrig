@@ -12,31 +12,29 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 4;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 5;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
 // Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory.
 inline constexpr std::size_t kMaximumPayloadSize = 65536;
-// Dashboard screens. Raising this multiplies per-screen widget storage and requires an explicit RAM-budget review.
+// Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table.
 inline constexpr std::size_t kMaximumScreens = 1;
-// Ordered widget references per screen. Exactly the sum of every per-type cap below, so it never rejects a widget the typed storage accepted; it exists because the z-order table needs a size. What actually bounds a screen is kMaximumPayloadSize.
-inline constexpr std::size_t kMaximumWidgetsPerScreen = 87;
-// Text widget storage per screen. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts.
+// Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize.
+inline constexpr std::size_t kMaximumWidgetsPerScreen = 86;
+// Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts.
 inline constexpr std::size_t kMaximumTextWidgets = 32;
-// Shape widget storage per screen. Shapes carry a dashboard's layout, so this is the most generous cap.
+// Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap.
 inline constexpr std::size_t kMaximumShapeWidgets = 24;
-// Bar widget storage per screen.
+// Bar widget storage for the whole dashboard.
 inline constexpr std::size_t kMaximumBarWidgets = 16;
-// Arc widget storage per screen.
+// Arc widget storage for the whole dashboard.
 inline constexpr std::size_t kMaximumArcWidgets = 8;
-// Indicator strip storage per screen.
+// Indicator strip storage for the whole dashboard.
 inline constexpr std::size_t kMaximumIndicatorWidgets = 4;
-// Graph storage per screen. Each instance owns a sample ring buffer, which is why this cap is the smallest.
+// Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest.
 inline constexpr std::size_t kMaximumGraphWidgets = 2;
-// Delta Time widget storage per screen.
-inline constexpr std::size_t kMaximumDeltaTimeWidgets = 1;
 // Segments in one indicator strip.
 inline constexpr std::size_t kMaximumIndicatorSegments = 16;
 // Samples one graph retains. The ring buffer is sized by this whatever point_count asks for.
@@ -45,6 +43,8 @@ inline constexpr std::size_t kMaximumGraphPoints = 128;
 inline constexpr std::size_t kMaximumTextSources = 3;
 // Value modifiers per text widget source.
 inline constexpr std::size_t kMaximumValueModifiers = 4;
+// Stops in one widget colour ramp. Four is a normal, caution, warning and limit band, the same bands the conditional rules cover discretely.
+inline constexpr std::size_t kMaximumColorStops = 4;
 // Conditional styling rules per widget. Four covers a normal, caution, warning and limit band.
 inline constexpr std::size_t kMaximumWidgetConditions = 4;
 // Widget identifier storage including the terminator (15 usable bytes).
@@ -53,8 +53,6 @@ inline constexpr std::size_t kWidgetIdCapacity = 16;
 inline constexpr std::size_t kWidgetTitleCapacity = 16;
 // Placeholder text storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kUnavailableTextCapacity = 16;
-// Delta Time placeholder storage including the terminator (15 usable bytes).
-inline constexpr std::size_t kDeltaTimeTextCapacity = 16;
 // Storage for the dotted property path reported with a rejection, including the terminator.
 inline constexpr std::size_t kValidationPathCapacity = 48;
 // Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py.
@@ -76,13 +74,6 @@ enum class TelemetryTransportId : std::uint8_t {
   uart,
 };
 
-// What the Delta Time widget shows while its telemetry is unavailable.
-enum class DeltaTimeUnavailableBehavior : std::uint8_t {
-  hide,
-  placeholder,
-  zero,
-};
-
 // Horizontal alignment of a text widget value.
 enum class TextAlignment : std::uint8_t {
   left,
@@ -95,6 +86,19 @@ enum class ValueTransformType : std::uint8_t {
   none,
   time,
   number,
+};
+
+// Axis a linear gradient runs along. Only used when a gradient colour is set.
+enum class GradientDirection : std::uint8_t {
+  horizontal,
+  vertical,
+};
+
+// Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill.
+enum class ColorRampTarget : std::uint8_t {
+  content,
+  background,
+  border,
 };
 
 // Comparison a styling rule applies to the numeric value of its condition source.
@@ -129,7 +133,9 @@ enum class WidgetType : std::uint8_t {
   text,
   shape,
   bar,
-  delta_time,
+  arc,
+  indicator,
+  graph,
 };
 
 struct BoardConfiguration {
@@ -154,20 +160,6 @@ struct UartTelemetryConfiguration {
 struct TelemetryTransportConfiguration {
   TelemetryTransportId id{TelemetryTransportId::board_default};
   UartTelemetryConfiguration uart{};
-};
-
-struct DeltaTimeScaleConfiguration {
-  bool enabled{false};
-  bool show_sign{false};
-  std::int32_t range_ms{2000};
-};
-
-// Delta Time module configuration. Distinct from the Delta Time widget,
-// which owns presentation only.
-struct DeltaTimeConfiguration {
-  DeltaTimeUnavailableBehavior unavailable_behavior{DeltaTimeUnavailableBehavior::zero};
-  std::array<char, kDeltaTimeTextCapacity> placeholder{'-', '-', '-', '\0'};
-  DeltaTimeScaleConfiguration scale{};
 };
 
 // Absolute geometry in logical screen pixels.
@@ -220,25 +212,6 @@ struct ValueModifier {
   ValueModifierType type{ValueModifierType::lap_timer};
 };
 
-struct DeltaTimeScaleStyle {
-  std::uint16_t vertical_padding_px{2};
-  std::uint16_t border_width_px{2};
-  std::uint16_t border_radius_px{8};
-};
-
-// Renders Delta Time module state. Requires the delta_time module section
-// to be present.
-struct DeltaTimeWidgetConfiguration {
-  std::array<char, kWidgetIdCapacity> id{};
-  font_assets::FontSpec font{};
-  WidgetPlacement placement{};
-  std::int16_t z_index{};
-  std::uint32_t faster_color{0x00C853};
-  std::uint32_t slower_color{0xD50000};
-  std::uint32_t neutral_color{0xE8E8E8};
-  DeltaTimeScaleStyle scale{};
-};
-
 // A canonical telemetry binding with its modifier pipeline, consumed as a
 // typed value. Carries no transform: the widgets that read one map it
 // through a range or compare it, rather than presenting it as text.
@@ -246,6 +219,21 @@ struct ValueSourceConfiguration {
   std::array<char, kValueBindingCapacity> binding{};
   std::uint8_t modifier_count{};
   std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
+};
+
+// One anchor of a colour ramp.
+struct ColorStop {
+  float at{};
+  std::uint32_t color{0xE8E8E8};
+};
+
+// A colour interpolated from the watched source rather than switched by a
+// threshold. It is the base layer: a matching rule paints over it, and with
+// no stops the authored colour stands.
+struct ColorRamp {
+  ColorRampTarget target{ColorRampTarget::content};
+  std::uint8_t stop_count{};
+  std::array<ColorStop, kMaximumColorStops> stops{};
 };
 
 // One styling rule. The first rule whose comparison holds describes the
@@ -283,9 +271,13 @@ struct WidgetFrame {
   WidgetBorder border{};
   WidgetTitleStyle title{};
   std::uint32_t background_color{kTransparentColor};
+  std::uint32_t background_grad_color{kTransparentColor};
+  GradientDirection background_grad_dir{GradientDirection::vertical};
   std::uint16_t background_inset_px{};
   ValueSourceConfiguration condition_source{};
+  ColorRamp color_ramp{};
   std::uint8_t condition_count{};
+  std::uint8_t screen_index{};
   std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
 };
 
@@ -313,9 +305,61 @@ struct BarWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
   ValueRange range{};
+  float origin{};
+  bool origin_present{false};
   BarOrientation orientation{BarOrientation::horizontal};
   bool inverted{false};
   std::uint32_t fill_color{0x38BDF8};
+  std::uint32_t fill_grad_color{kTransparentColor};
+};
+
+// One telemetry source swept around an arc. The track is the arc's own
+// background, so a gauge needs no shape behind it.
+struct ArcWidgetConfiguration {
+  WidgetFrame frame{};
+  ValueSourceConfiguration source{};
+  ValueRange range{};
+  std::uint16_t start_angle_deg{135};
+  std::uint16_t sweep_deg{270};
+  std::uint16_t thickness_px{8};
+  std::uint32_t track_color{kTransparentColor};
+  std::uint32_t fill_color{0x38BDF8};
+  bool inverted{false};
+};
+
+// One lamp in an indicator strip.
+struct IndicatorSegment {
+  float threshold{};
+  std::uint32_t color{0x00C853};
+};
+
+// A row of lamps that light as one telemetry source climbs its range: shift
+// lights, a rev strip, a stint marker.
+struct IndicatorWidgetConfiguration {
+  WidgetFrame frame{};
+  ValueSourceConfiguration source{};
+  ValueRange range{};
+  BarOrientation orientation{BarOrientation::horizontal};
+  std::uint16_t segment_gap_px{4};
+  std::uint16_t segment_radius_px{};
+  std::uint32_t off_color{kTransparentColor};
+  float blink_threshold{2.0F};
+  std::uint16_t blink_ms{};
+  std::uint8_t segment_count{};
+  std::array<IndicatorSegment, kMaximumIndicatorSegments> segments{};
+};
+
+// A rolling trace of one telemetry source. The history is presentation
+// state the widget samples for itself; it is not a telemetry value and
+// nothing else can read it.
+struct GraphWidgetConfiguration {
+  WidgetFrame frame{};
+  ValueSourceConfiguration source{};
+  ValueRange range{};
+  std::uint16_t point_count{64};
+  std::uint16_t sample_interval_ms{100};
+  std::uint32_t line_color{0x38BDF8};
+  std::uint16_t line_width_px{2};
 };
 
 // Panels, dividers and backing plates: the frame is the whole widget. It
@@ -335,26 +379,35 @@ struct WidgetReference {
   std::int16_t z_index{};
 };
 
-// One dashboard screen. A screen is the coordinate space for the widgets it
-// owns.
+// One dashboard screen: the coordinate space its widgets are placed in, and
+// the order they stack in. The widgets themselves live in the dashboard's
+// pool; a screen names them by reference.
 struct ScreenConfiguration {
   std::array<char, kWidgetIdCapacity> id{};
   std::uint32_t background_color{0x000000};
   std::uint8_t widget_count{};
   std::array<WidgetReference, kMaximumWidgetsPerScreen> widgets{};
+};
+
+// Owns the typed widget storage as one pool shared by every screen; a
+// screen holds only an ordered list of references into it. A screen
+// therefore costs its reference table rather than a full set of widget
+// arrays.
+struct DashboardConfiguration {
+  std::uint8_t screen_count{};
+  std::array<ScreenConfiguration, kMaximumScreens> screens{};
   std::uint8_t text_widget_count{};
   std::array<TextWidgetConfiguration, kMaximumTextWidgets> text_widgets{};
   std::uint8_t shape_widget_count{};
   std::array<ShapeWidgetConfiguration, kMaximumShapeWidgets> shape_widgets{};
   std::uint8_t bar_widget_count{};
   std::array<BarWidgetConfiguration, kMaximumBarWidgets> bar_widgets{};
-  std::uint8_t delta_time_widget_count{};
-  std::array<DeltaTimeWidgetConfiguration, kMaximumDeltaTimeWidgets> delta_time_widgets{};
-};
-
-struct DashboardConfiguration {
-  std::uint8_t screen_count{};
-  std::array<ScreenConfiguration, kMaximumScreens> screens{};
+  std::uint8_t arc_widget_count{};
+  std::array<ArcWidgetConfiguration, kMaximumArcWidgets> arc_widgets{};
+  std::uint8_t indicator_widget_count{};
+  std::array<IndicatorWidgetConfiguration, kMaximumIndicatorWidgets> indicator_widgets{};
+  std::uint8_t graph_widget_count{};
+  std::array<GraphWidgetConfiguration, kMaximumGraphWidgets> graph_widgets{};
 };
 
 struct ApplicationConfiguration {
@@ -362,8 +415,6 @@ struct ApplicationConfiguration {
   HardwareConfiguration hardware{};
   bool telemetry_transport_present{false};
   TelemetryTransportConfiguration telemetry_transport{};
-  bool delta_time_present{false};
-  DeltaTimeConfiguration delta_time{};
   DashboardConfiguration dashboard{};
 };
 
@@ -415,28 +466,6 @@ inline constexpr std::array<std::string_view, 3> kTelemetryTransportIdNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 3> kDeltaTimeUnavailableBehaviorNames{{
-    "hide",
-    "placeholder",
-    "zero",
-}};
-
-[[nodiscard]] inline std::string_view delta_time_unavailable_behavior_name(const DeltaTimeUnavailableBehavior value) {
-  const auto index = static_cast<std::size_t>(value);
-  return index < kDeltaTimeUnavailableBehaviorNames.size() ? kDeltaTimeUnavailableBehaviorNames[index] : std::string_view{};
-}
-
-[[nodiscard]] inline bool delta_time_unavailable_behavior_from_name(const std::string_view name,
-                                                  DeltaTimeUnavailableBehavior& value) {
-  for (std::size_t index = 0; index < kDeltaTimeUnavailableBehaviorNames.size(); ++index) {
-    if (kDeltaTimeUnavailableBehaviorNames[index] == name) {
-      value = static_cast<DeltaTimeUnavailableBehavior>(index);
-      return true;
-    }
-  }
-  return false;
-}
-
 inline constexpr std::array<std::string_view, 3> kTextAlignmentNames{{
     "left",
     "center",
@@ -475,6 +504,49 @@ inline constexpr std::array<std::string_view, 3> kValueTransformTypeNames{{
   for (std::size_t index = 0; index < kValueTransformTypeNames.size(); ++index) {
     if (kValueTransformTypeNames[index] == name) {
       value = static_cast<ValueTransformType>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kGradientDirectionNames{{
+    "horizontal",
+    "vertical",
+}};
+
+[[nodiscard]] inline std::string_view gradient_direction_name(const GradientDirection value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kGradientDirectionNames.size() ? kGradientDirectionNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool gradient_direction_from_name(const std::string_view name,
+                                                  GradientDirection& value) {
+  for (std::size_t index = 0; index < kGradientDirectionNames.size(); ++index) {
+    if (kGradientDirectionNames[index] == name) {
+      value = static_cast<GradientDirection>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 3> kColorRampTargetNames{{
+    "content",
+    "background",
+    "border",
+}};
+
+[[nodiscard]] inline std::string_view color_ramp_target_name(const ColorRampTarget value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kColorRampTargetNames.size() ? kColorRampTargetNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool color_ramp_target_from_name(const std::string_view name,
+                                                  ColorRampTarget& value) {
+  for (std::size_t index = 0; index < kColorRampTargetNames.size(); ++index) {
+    if (kColorRampTargetNames[index] == name) {
+      value = static_cast<ColorRampTarget>(index);
       return true;
     }
   }
@@ -568,11 +640,13 @@ inline constexpr std::array<std::string_view, 2> kShapeKindNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 4> kWidgetTypeNames{{
+inline constexpr std::array<std::string_view, 6> kWidgetTypeNames{{
     "text",
     "shape",
     "bar",
-    "delta_time",
+    "arc",
+    "indicator",
+    "graph",
 }};
 
 [[nodiscard]] inline std::string_view widget_type_name(const WidgetType value) {
