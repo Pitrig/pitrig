@@ -1,5 +1,7 @@
 idf_component_register(
   SRCS "src/dashboard_composition.cpp"
+       "src/dashboard_assets.cpp"
+       "src/dashboard_screens.cpp"
   INCLUDE_DIRS "include"
   REQUIRES configuration_contract dashboard event_bus font_assets
            image_assets

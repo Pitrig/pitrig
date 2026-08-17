@@ -317,73 +317,74 @@ export class DeviceService {
   }
 
   async clearImages(): Promise<DeviceResult<DeviceState>> {
-    const active = this.getActiveDevice()
-    if (!active.ok) return failure(active.error)
-    const { port, session, traffic } = active.value
-    if (!session.imageAssets) {
-      return failure({
-        code: 'not_simcore',
-        message: 'The connected firmware does not support image management.'
-      })
-    }
-    this.deviceOperationActive = true
-    try {
-      await clearImageAssets(port, this.operationTraffic(traffic))
-      if (this.activePort !== port || this.state.session !== session) {
-        throw new DeviceServiceError('serial_error', 'The connected device changed during image cleanup.')
-      }
-      this.setState({
-        ...this.state,
-        session: {
-          ...session,
-          imageAssets: {
-            ...session.imageAssets,
-            packageAvailable: false,
-            formatVersion: 0,
-            images: [],
-            packageSize: 0,
-            rebootRequired: true
-          }
+    return this.clearAssets(
+      (session) => session.imageAssets !== undefined,
+      'The connected firmware does not support image management.',
+      'The connected device changed during image cleanup.',
+      clearImageAssets,
+      (session) => ({
+        ...session,
+        imageAssets: {
+          ...session.imageAssets!,
+          packageAvailable: false,
+          formatVersion: 0,
+          images: [],
+          packageSize: 0,
+          rebootRequired: true
         }
       })
-      return success(this.state)
-    } catch (error) {
-      return failure(toDeviceError(error))
-    } finally {
-      this.deviceOperationActive = false
-    }
+    )
   }
+
   async clearFonts(): Promise<DeviceResult<DeviceState>> {
+    return this.clearAssets(
+      (session) => session.fontAssets !== undefined,
+      'The connected firmware does not support font asset management.',
+      'The connected device changed during font cleanup.',
+      clearFontAssets,
+      (session) => ({
+        ...session,
+        fontAssets: {
+          ...session.fontAssets!,
+          packageAvailable: false,
+          formatVersion: 0,
+          familyCount: 0,
+          families: [],
+          packageSize: 0,
+          rebootRequired: true
+        }
+      })
+    )
+  }
+
+  /**
+   * Clearing a font package and clearing an image package differ only in the
+   * command sent and in which half of the session the reply invalidates, so the
+   * guard, the mid-operation identity check and the bookkeeping live here once.
+   */
+  private async clearAssets(
+    supported: (session: DeviceSession) => boolean,
+    unsupportedMessage: string,
+    changedMessage: string,
+    clear: (
+      port: SerialPort,
+      onTraffic: (direction: 'rx' | 'tx', data: string) => void
+    ) => Promise<void>,
+    advance: (session: DeviceSession) => DeviceSession
+  ): Promise<DeviceResult<DeviceState>> {
     const active = this.getActiveDevice()
     if (!active.ok) return failure(active.error)
     const { port, session, traffic } = active.value
-    if (!session.fontAssets) {
-      return failure({
-        code: 'not_simcore',
-        message: 'The connected firmware does not support font asset management.'
-      })
+    if (!supported(session)) {
+      return failure({ code: 'not_simcore', message: unsupportedMessage })
     }
     this.deviceOperationActive = true
     try {
-      await clearFontAssets(port, this.operationTraffic(traffic))
+      await clear(port, this.operationTraffic(traffic))
       if (this.activePort !== port || this.state.session !== session) {
-        throw new DeviceServiceError('serial_error', 'The connected device changed during font cleanup.')
+        throw new DeviceServiceError('serial_error', changedMessage)
       }
-      this.setState({
-        ...this.state,
-        session: {
-          ...session,
-          fontAssets: {
-            ...session.fontAssets,
-            packageAvailable: false,
-            formatVersion: 0,
-            familyCount: 0,
-            families: [],
-            packageSize: 0,
-            rebootRequired: true
-          }
-        }
-      })
+      this.setState({ ...this.state, session: advance(session) })
       return success(this.state)
     } catch (error) {
       return failure(toDeviceError(error))
@@ -449,53 +450,28 @@ export class DeviceService {
     onProgress: (progress: FontUploadProgress) => void,
     signal: AbortSignal
   ): Promise<void> {
-    const port = this.activePort
-    const connection = this.state.connection
-    const session = this.state.session
-    const traffic = this.activeTraffic
-    if (!port?.isOpen || !connection || !session) {
-      throw new DeviceServiceError('serial_error', 'No SimCore device is connected.')
-    }
-    if (this.deviceOperationActive) {
-      throw new DeviceServiceError('busy', 'Another device operation is already running.')
-    }
-    this.deviceOperationActive = true
-    try {
-      await uploadAssetPackage(
-        port,
-        { command: 'FONT', label: 'font' },
-        packageBytes,
-        {
-          onProgress,
-          onTransmit: (data, encoding) => traffic?.write('tx', data, encoding)
-        },
-        signal
-      )
-      if (this.state.session === session && session.fontAssets) {
-        const packageView = new DataView(
-          packageBytes.buffer,
-          packageBytes.byteOffset,
-          packageBytes.byteLength
-        )
-        this.setState({
-          ...this.state,
-          session: {
-            ...session,
-            fontAssets: {
-              ...session.fontAssets,
-              packageAvailable: true,
-              formatVersion: packageView.getUint16(4, true),
-              familyCount: packageView.getUint16(12, true),
-              families: readPackageFontFamilies(packageBytes),
-              packageSize: packageBytes.byteLength,
-              rebootRequired: true
-            }
+    return this.uploadAssets(
+      { command: 'FONT', label: 'font' },
+      packageBytes,
+      onProgress,
+      signal,
+      (session, bytes) => {
+        if (!session.fontAssets) return undefined
+        const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+        return {
+          ...session,
+          fontAssets: {
+            ...session.fontAssets,
+            packageAvailable: true,
+            formatVersion: view.getUint16(4, true),
+            familyCount: view.getUint16(12, true),
+            families: readPackageFontFamilies(bytes),
+            packageSize: bytes.byteLength,
+            rebootRequired: true
           }
-        })
+        }
       }
-    } finally {
-      this.deviceOperationActive = false
-    }
+    )
   }
 
   /**
@@ -507,6 +483,38 @@ export class DeviceService {
     packageBytes: Uint8Array,
     onProgress: (progress: AssetUploadProgress) => void,
     signal: AbortSignal
+  ): Promise<void> {
+    return this.uploadAssets(
+      { command: 'IMAGE', label: 'image' },
+      packageBytes,
+      onProgress,
+      signal,
+      (session, bytes) =>
+        session.imageAssets
+          ? {
+              ...session,
+              imageAssets: {
+                ...session.imageAssets,
+                packageAvailable: true,
+                packageSize: bytes.byteLength,
+                rebootRequired: true
+              }
+            }
+          : undefined
+    )
+  }
+
+  /**
+   * One package upload, whatever the kind. The device reports the installed set
+   * only after a restart, so `advance` moves the session on from what was just
+   * sent rather than re-probing; returning undefined leaves it untouched.
+   */
+  private async uploadAssets(
+    namespace: { command: 'FONT' | 'IMAGE'; label: string },
+    packageBytes: Uint8Array,
+    onProgress: (progress: AssetUploadProgress) => void,
+    signal: AbortSignal,
+    advance: (session: DeviceSession, packageBytes: Uint8Array) => DeviceSession | undefined
   ): Promise<void> {
     const port = this.activePort
     const connection = this.state.connection
@@ -522,7 +530,7 @@ export class DeviceService {
     try {
       await uploadAssetPackage(
         port,
-        { command: 'IMAGE', label: 'image' },
+        namespace,
         packageBytes,
         {
           onProgress,
@@ -531,22 +539,9 @@ export class DeviceService {
         },
         signal
       )
-      // The device reports the installed set only after a restart, so the
-      // session is advanced from what was just sent rather than re-probed.
-      if (this.state.session === session && session.imageAssets) {
-        this.setState({
-          ...this.state,
-          session: {
-            ...session,
-            imageAssets: {
-              ...session.imageAssets,
-              packageAvailable: true,
-              packageSize: packageBytes.byteLength,
-              rebootRequired: true
-            }
-          }
-        })
-      }
+      if (this.state.session !== session) return
+      const next = advance(session, packageBytes)
+      if (next) this.setState({ ...this.state, session: next })
     } finally {
       this.deviceOperationActive = false
     }

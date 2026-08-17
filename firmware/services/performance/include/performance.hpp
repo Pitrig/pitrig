@@ -1,8 +1,22 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 
 namespace simcore::performance {
+
+// Raises a high-water mark to `candidate` if it is higher, from any task. Used
+// by the counters the overlay reports, which are written on the task that
+// observed the value and read on another; relaxed ordering is enough because
+// each counter stands alone and none of them guards other state.
+inline void record_maximum(std::atomic<std::uint32_t>& maximum,
+                           const std::uint32_t candidate) {
+  std::uint32_t current = maximum.load(std::memory_order_relaxed);
+  while (candidate > current &&
+         !maximum.compare_exchange_weak(current, candidate,
+                                        std::memory_order_relaxed)) {
+  }
+}
 
 enum class TaskMetric : std::uint8_t {
   lvgl,

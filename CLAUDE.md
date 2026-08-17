@@ -121,10 +121,12 @@ components → interfaces ← drivers
   logic. A board with no digitizer leaves `BoardDefinition::input` null.
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
-- `services/` — shared infrastructure (`asset_storage`, `binary_session`, `configuration`,
-  `configuration_contract`, `configuration_control`, `event_bus`, `font_assets`,
+- `services/` — shared infrastructure (`asset_control`, `asset_storage`, `binary_session`,
+  `configuration`, `configuration_contract`, `configuration_control`, `event_bus`, `font_assets`,
   `font_asset_control`, `font_contract`, `image_assets`, `image_asset_control`, `image_contract`,
-  `logger`, `performance`, `telemetry` + `telemetry/protocols/simhub`).
+  `logger`, `performance`, `telemetry` + `telemetry/protocols/simhub`). `asset_control` is the
+  `SCF1` upload engine; `font_asset_control` and `image_asset_control` are thin per-kind
+  wrappers over it that supply the protocol tag and the body of the `INFO` reply.
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
   `dashboard` (LVGL widgets, plus `navigation` for screen swiping and `slots` for group
   switching), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
@@ -229,6 +231,15 @@ The editor mutates one sparse draft document; canvas drag/resize, the inspector,
 JSON editor all write the same document — there is no separate editor-only layout model. The draft
 owns its board identity, so it works fully disconnected; device connection and draft have independent
 lifetimes ("Reload board" is the explicit discard).
+
+Inside `features/configuration/`, the editor is split three ways and each part has its own
+directory. `preview/` draws the canvas: `PreviewCanvas` and its chrome, the pure geometry in
+`canvas-geometry.ts`, and one renderer per widget type. `inspector/` is the property panel: the
+shell dispatches by widget type into `widget-editors`, over shared `section-editors`,
+`styling-editors` and form primitives in `fields.tsx`. `editor/` is the document layer — view
+state in `store.ts`, access and mutation in `document.ts`, and one module per family of commands
+(`widgets`, `screens`, `arrange`, `clipboard`, `naming`). `dashboard-editor.ts` re-exports
+`editor/` as one surface, so panels keep a single import.
 
 ## Conventions
 

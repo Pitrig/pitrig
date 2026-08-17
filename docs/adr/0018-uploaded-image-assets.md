@@ -78,6 +78,16 @@ is checked before a replacement configuration is applied, beside the same check
 for fonts, so a document naming an image the board does not hold is rejected
 while the running dashboard is still intact.
 
+## Shared upload engine
+
+The `SCF1` framing, the stop-and-wait sequence, the CRC, the inactivity timeout,
+the worker task and the `binary_session` claim are identical for every uploaded
+asset kind, so they live once in `services/asset_control`. A kind supplies its
+protocol tag, its task identity, an `Operations` table over its own service, and
+the body of its `INFO` reply; nothing else about the transfer is per-kind. The
+engine is plain data rather than a template, so the binary carries one copy of
+the state machine.
+
 ## Consequences
 
 - A new image needs an upload and a restart, not a new firmware.

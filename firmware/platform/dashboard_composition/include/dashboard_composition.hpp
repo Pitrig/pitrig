@@ -52,94 +52,105 @@ namespace simcore::dashboard_composition {
 // the `context` its WidgetDescriptor carries, so the manager stays free of
 // widget-specific knowledge.
 
-struct TextWidgets {
+// What every type's creation needs, whatever it draws. Held once here so
+// wiring a document into the storage is one pass over the base rather than a
+// line per type, and so a new dependency reaches every type by being added in
+// one place.
+struct WidgetStorage {
+  dashboard::Layout layout{};
+  const configuration::DashboardConfiguration* dashboard{};
+  const dashboard::fonts::Registry* fonts{};
+  const telemetry::ITelemetryRegistry* registry{};
+  const telemetry::ITelemetryReader* telemetry{};
+  dashboard::frame::ModifierReader lap_timer_modifier{};
+};
+
+// Each type states its configuration type, its discriminator, and the pool of
+// the document it is stored in. Those three are what let the operations
+// template reach a type's configurations without naming the type, which is why
+// creating, updating and waking are written once rather than seven times.
+
+struct TextWidgets : WidgetStorage {
+  using Config = configuration::TextWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::text;
+  static constexpr auto kPool =
+      &configuration::DashboardConfiguration::text_widgets;
+
   dashboard::text_widget::Binder binder;
   dashboard::text_widget::Collection collection;
-  dashboard::Layout layout{};
-  const configuration::DashboardConfiguration* dashboard{};
-  const dashboard::fonts::Registry* fonts{};
-  const telemetry::ITelemetryRegistry* registry{};
-  const telemetry::ITelemetryReader* telemetry{};
-  dashboard::text_widget::ModifierReader lap_timer_modifier{};
 };
 
-struct BarWidgets {
-  dashboard::frame::ValueBinder<configuration::BarWidgetConfiguration,
-                                dashboard::bar_widget::kMaximumInstances>
-      binder;
-  dashboard::bar_widget::Collection collection;
-  dashboard::Layout layout{};
-  const configuration::DashboardConfiguration* dashboard{};
-  const dashboard::fonts::Registry* fonts{};
-  const telemetry::ITelemetryRegistry* registry{};
-  const telemetry::ITelemetryReader* telemetry{};
-  dashboard::frame::ModifierReader lap_timer_modifier{};
-};
+struct ShapeWidgets : WidgetStorage {
+  using Config = configuration::ShapeWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::shape;
+  static constexpr auto kPool =
+      &configuration::DashboardConfiguration::shape_widgets;
 
-struct ArcWidgets {
-  dashboard::frame::ValueBinder<configuration::ArcWidgetConfiguration,
-                                dashboard::arc_widget::kMaximumInstances>
-      binder;
-  dashboard::arc_widget::Collection collection;
-  dashboard::Layout layout{};
-  const configuration::DashboardConfiguration* dashboard{};
-  const dashboard::fonts::Registry* fonts{};
-  const telemetry::ITelemetryRegistry* registry{};
-  const telemetry::ITelemetryReader* telemetry{};
-  dashboard::frame::ModifierReader lap_timer_modifier{};
-};
-
-struct IndicatorWidgets {
-  dashboard::frame::ValueBinder<configuration::IndicatorWidgetConfiguration,
-                                dashboard::indicator_widget::kMaximumInstances>
-      binder;
-  dashboard::indicator_widget::Collection collection;
-  dashboard::Layout layout{};
-  const configuration::DashboardConfiguration* dashboard{};
-  const dashboard::fonts::Registry* fonts{};
-  const telemetry::ITelemetryRegistry* registry{};
-  const telemetry::ITelemetryReader* telemetry{};
-  dashboard::frame::ModifierReader lap_timer_modifier{};
-};
-
-struct GraphWidgets {
-  dashboard::frame::ValueBinder<configuration::GraphWidgetConfiguration,
-                                dashboard::graph_widget::kMaximumInstances>
-      binder;
-  dashboard::graph_widget::Collection collection;
-  dashboard::Layout layout{};
-  const configuration::DashboardConfiguration* dashboard{};
-  const dashboard::fonts::Registry* fonts{};
-  const telemetry::ITelemetryRegistry* registry{};
-  const telemetry::ITelemetryReader* telemetry{};
-  dashboard::frame::ModifierReader lap_timer_modifier{};
-};
-
-struct ImageWidgets {
-  dashboard::frame::ConditionBinder<configuration::ImageWidgetConfiguration,
-                                    dashboard::image_widget::kMaximumInstances>
-      binder;
-  dashboard::image_widget::Collection collection;
-  dashboard::Layout layout{};
-  const configuration::DashboardConfiguration* dashboard{};
-  const dashboard::fonts::Registry* fonts{};
-  const dashboard::images::Registry* images{};
-  const telemetry::ITelemetryRegistry* registry{};
-  const telemetry::ITelemetryReader* telemetry{};
-  dashboard::frame::ModifierReader lap_timer_modifier{};
-};
-
-struct ShapeWidgets {
-  dashboard::frame::ConditionBinder<configuration::ShapeWidgetConfiguration,
+  dashboard::frame::ConditionBinder<Config,
                                     dashboard::shape_widget::kMaximumInstances>
       binder;
   dashboard::shape_widget::Collection collection;
-  dashboard::Layout layout{};
-  const configuration::DashboardConfiguration* dashboard{};
-  const dashboard::fonts::Registry* fonts{};
-  const telemetry::ITelemetryRegistry* registry{};
-  const telemetry::ITelemetryReader* telemetry{};
-  dashboard::frame::ModifierReader lap_timer_modifier{};
+};
+
+struct BarWidgets : WidgetStorage {
+  using Config = configuration::BarWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::bar;
+  static constexpr auto kPool =
+      &configuration::DashboardConfiguration::bar_widgets;
+
+  dashboard::frame::ValueBinder<Config, dashboard::bar_widget::kMaximumInstances>
+      binder;
+  dashboard::bar_widget::Collection collection;
+};
+
+struct ArcWidgets : WidgetStorage {
+  using Config = configuration::ArcWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::arc;
+  static constexpr auto kPool =
+      &configuration::DashboardConfiguration::arc_widgets;
+
+  dashboard::frame::ValueBinder<Config, dashboard::arc_widget::kMaximumInstances>
+      binder;
+  dashboard::arc_widget::Collection collection;
+};
+
+struct IndicatorWidgets : WidgetStorage {
+  using Config = configuration::IndicatorWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::indicator;
+  static constexpr auto kPool =
+      &configuration::DashboardConfiguration::indicator_widgets;
+
+  dashboard::frame::ValueBinder<Config,
+                                dashboard::indicator_widget::kMaximumInstances>
+      binder;
+  dashboard::indicator_widget::Collection collection;
+};
+
+struct GraphWidgets : WidgetStorage {
+  using Config = configuration::GraphWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::graph;
+  static constexpr auto kPool =
+      &configuration::DashboardConfiguration::graph_widgets;
+
+  dashboard::frame::ValueBinder<Config,
+                                dashboard::graph_widget::kMaximumInstances>
+      binder;
+  dashboard::graph_widget::Collection collection;
+};
+
+struct ImageWidgets : WidgetStorage {
+  using Config = configuration::ImageWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::image;
+  static constexpr auto kPool =
+      &configuration::DashboardConfiguration::image_widgets;
+
+  dashboard::frame::ConditionBinder<Config,
+                                    dashboard::image_widget::kMaximumInstances>
+      binder;
+  dashboard::image_widget::Collection collection;
+  // The only type that draws from an uploaded asset, so the only one that
+  // carries a registry beyond the fonts every framed type may caption with.
+  const dashboard::images::Registry* images{};
 };
 
 struct Dashboard {
@@ -246,18 +257,5 @@ struct Dashboard {
 // kept: they are installed once per boot. Font objects are kept too; the next
 // create() destroys the ones its configuration no longer references.
 void destroy(Dashboard& dashboard);
-
-// Tears the dashboard down and composes it again from a configuration document
-// that may differ from the one it was built with. Nothing calls this yet; it
-// exists so applying a configuration without a restart is a call rather than a
-// restructuring. Must run on a task that may take the LVGL lock, and the
-// supplied configuration must remain the active one for the call's duration.
-[[nodiscard]] bool rebuild(
-    lv_display_t* display,
-    const configuration::ApplicationConfiguration& configuration,
-    module_composition::Modules& modules, Dashboard& dashboard,
-    const telemetry::ITelemetryRegistry& telemetry_registry,
-    const telemetry::ITelemetryReader& telemetry,
-    const transport::ITransport& telemetry_transport);
 
 }  // namespace simcore::dashboard_composition

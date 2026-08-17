@@ -255,6 +255,35 @@ def widget_variants(document: dict[str, Any]) -> dict[str, str]:
     }
 
 
+def widget_pools(document: dict[str, Any]) -> list[tuple[str, str, dict[str, Any]]]:
+    """(discriminator, struct, storage array), in WidgetType order.
+
+    The traits table is indexed by the enum, so the order has to be the enum's.
+    Storage names are read from the schema rather than derived from the struct
+    name, so renaming a pool cannot silently produce a table that compiles
+    against the wrong array.
+    """
+    variants = widget_variants(document)
+    declared = set(document["enums"]["WidgetType"]["json_values"])
+    if set(variants) != declared:
+        fail(
+            "WidgetType values and widget_type structs disagree: "
+            f"{sorted(declared ^ set(variants))}"
+        )
+    arrays = {
+        field["struct"]: field
+        for field in document["structs"]["DashboardConfiguration"]["fields"]
+        if field["kind"] == "array"
+    }
+    pools: list[tuple[str, str, dict[str, Any]]] = []
+    for value in document["enums"]["WidgetType"]["json_values"]:
+        struct = variants[value]
+        if struct not in arrays:
+            fail(f"{struct} has no storage array in DashboardConfiguration")
+        pools.append((value, struct, arrays[struct]))
+    return pools
+
+
 # --------------------------------------------------------------------------- C++
 
 
@@ -312,6 +341,7 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
         "#include <array>",
         "#include <cstddef>",
         "#include <cstdint>",
+        "#include <span>",
         "#include <string_view>",
         "",
     ]
@@ -404,9 +434,109 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
         lines.append("  return false;")
         lines.append("}")
         lines.append("")
+    lines.extend(generate_cpp_widget_traits(document))
     lines.append("}  // namespace simcore::configuration")
     lines.append("")
     return "\n".join(lines)
+
+
+def generate_cpp_widget_traits(document: dict[str, Any]) -> list[str]:
+    """Per-type access to widget storage, so callers need not restate the list.
+
+    Composing a dashboard, parsing a document, comparing two of them and warming
+    the fonts a document needs all do the same thing for every widget type. Each
+    of those used to spell the seven types out again; they walk this table
+    instead, and a new widget type is added to the schema and nowhere else.
+    """
+    pools = widget_pools(document)
+    lines = [
+        "// Uniform access to the storage one widget type occupies in a document.",
+        "// Anything that has to do the same thing for every type — composing,",
+        "// parsing, comparing two documents, warming fonts — walks this table",
+        "// rather than naming each type, so adding a widget type is a schema",
+        "// change and not an edit in every such place.",
+        "struct WidgetTypeTraits {",
+        "  WidgetType type{};",
+        "  std::string_view name{};",
+        "  // The document property its pool is stored under, which is what a",
+        "  // capacity rejection has to name.",
+        "  std::string_view storage_key{};",
+        "  // Instances of this type one document can hold.",
+        "  std::size_t capacity{};",
+        "  std::uint8_t (*count)(const DashboardConfiguration&){};",
+        "  void (*set_count)(DashboardConfiguration&, std::uint8_t){};",
+        "  // Null past the count, so a caller cannot reach an instance the",
+        "  // document does not have.",
+        "  const WidgetFrame* (*frame)(const DashboardConfiguration&,",
+        "                              std::uint8_t){};",
+        "  WidgetFrame* (*mutable_frame)(DashboardConfiguration&, std::uint8_t){};",
+        "  // One instance as raw bytes, for the byte compare that decides whether",
+        "  // a widget changed between two documents. Empty past the count, so two",
+        "  // absent instances compare equal.",
+        "  std::span<const std::byte> (*element_bytes)(const DashboardConfiguration&,",
+        "                                              std::uint8_t){};",
+        "};",
+        "",
+        f"inline constexpr std::array<WidgetTypeTraits, {len(pools)}> "
+        "kWidgetTypeTraits{{",
+    ]
+    for value, struct, field in pools:
+        pool = field["name"]
+        count = field["count_field"]
+        lines.extend(
+            [
+                "    {",
+                f"        .type = WidgetType::{value},",
+                f'        .name = "{value}",',
+                f'        .storage_key = "{pool}",',
+                f"        .capacity = {field['capacity']},",
+                "        .count = [](const DashboardConfiguration& dashboard)",
+                "            -> std::uint8_t { return dashboard." + count + "; },",
+                "        .set_count = [](DashboardConfiguration& dashboard,",
+                "                        const std::uint8_t value) {",
+                f"          dashboard.{count} = value;",
+                "        },",
+                "        .frame = [](const DashboardConfiguration& dashboard,",
+                "                    const std::uint8_t index) -> const WidgetFrame* {",
+                f"          return index < dashboard.{count}",
+                f"                     ? &dashboard.{pool}[index].frame",
+                "                     : nullptr;",
+                "        },",
+                "        .mutable_frame = [](DashboardConfiguration& dashboard,",
+                "                            const std::uint8_t index) -> WidgetFrame* {",
+                f"          return index < dashboard.{count}",
+                f"                     ? &dashboard.{pool}[index].frame",
+                "                     : nullptr;",
+                "        },",
+                "        .element_bytes =",
+                "            [](const DashboardConfiguration& dashboard,",
+                "               const std::uint8_t index) -> std::span<const std::byte> {",
+                f"          if (index >= dashboard.{count}) {{",
+                "            return {};",
+                "          }",
+                f"          return std::as_bytes(std::span{{&dashboard.{pool}[index], 1}});",
+                "        },",
+                "    },",
+            ]
+        )
+    lines.extend(
+        [
+            "}};",
+            "",
+            "// A WidgetType always comes from the parser or from a reference the",
+            "// parser wrote, so it is always in range; the guard keeps a corrupted",
+            "// value from indexing past the table rather than reporting an error no",
+            "// caller could act on.",
+            "[[nodiscard]] inline const WidgetTypeTraits& widget_traits(",
+            "    const WidgetType type) {",
+            "  const auto index = static_cast<std::size_t>(type);",
+            "  return index < kWidgetTypeTraits.size() ? kWidgetTypeTraits[index]",
+            "                                         : kWidgetTypeTraits[0];",
+            "}",
+            "",
+        ]
+    )
+    return lines
 
 
 def snake(name: str) -> str:

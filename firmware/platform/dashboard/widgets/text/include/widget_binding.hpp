@@ -15,10 +15,10 @@ class ITelemetryReader;
 
 namespace simcore::dashboard::text_widget {
 
-struct ModifierReader {
-  ValueReadCallback read{};
-  void* context{};
-};
+// The same module reader every other widget type binds through. A text widget
+// resolves several sources rather than one, but a modifier replaces a reading
+// identically, so the type is shared rather than restated.
+using ModifierReader = frame::ModifierReader;
 
 // A resolved value pipeline for one source. It deliberately holds no pointer
 // into the configuration document: the binder owns everything here, and the

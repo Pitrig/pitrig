@@ -142,10 +142,18 @@ configuration::ValidationFailure apply_configuration(
   return {.error = configuration::ValidationError::invalid_dashboard};
 }
 
-}
+// The workspaces the configuration path needs, all carved from one external
+// memory reservation so ~8.5 KiB of bounded documents and line buffers stay off
+// the internal heap.
+struct ConfigurationBuffers {
+  std::span<std::uint8_t> record;
+  std::span<std::uint8_t> current_payload;
+  std::span<std::uint8_t> control_io;
+  std::span<std::uint8_t> control_line;
+  std::span<std::uint8_t> configuration;
+};
 
-void run() {
-  static Application application;
+ConfigurationBuffers reserve_configuration_memory(Application& application) {
   constexpr std::size_t kConfigurationMemorySize =
       configuration::ConfigurationService::kRecordBufferSize +
       configuration::ConfigurationService::kPayloadBufferSize +
@@ -156,40 +164,37 @@ void run() {
                       kConfigurationMemorySize)
                       ? ESP_OK
                       : ESP_ERR_NO_MEM);
-  std::span<std::uint8_t> configuration_memory =
+  std::span<std::uint8_t> memory =
       application.platform.configuration_memory.bytes();
-  const auto take_buffer = [&configuration_memory](const std::size_t size) {
-    const std::span<std::uint8_t> buffer = configuration_memory.first(size);
-    configuration_memory = configuration_memory.subspan(size);
+  const auto take = [&memory](const std::size_t size) {
+    const std::span<std::uint8_t> buffer = memory.first(size);
+    memory = memory.subspan(size);
     return buffer;
   };
-  const std::span<std::uint8_t> record_buffer = take_buffer(
-      configuration::ConfigurationService::kRecordBufferSize);
-  const std::span<std::uint8_t> current_payload_buffer = take_buffer(
-      configuration::ConfigurationService::kPayloadBufferSize);
-  const std::span<std::uint8_t> control_io_buffer = take_buffer(
-      configuration::ConfigurationControl::kIoBufferSize);
-  const std::span<std::uint8_t> control_line_buffer = take_buffer(
-      communication::Router::kControlLineBufferSize);
-  // The two bounded runtime documents live in external memory with the rest of
-  // the configuration workspaces, keeping ~8.5 KiB off the internal heap.
-  const std::span<std::uint8_t> configuration_buffer = take_buffer(
-      configuration::ConfigurationService::kConfigurationBufferSize);
-  const board_registry::BoardDefinition& board =
-      board_registry::factory_board();
+  return {
+      .record = take(configuration::ConfigurationService::kRecordBufferSize),
+      .current_payload =
+          take(configuration::ConfigurationService::kPayloadBufferSize),
+      .control_io = take(configuration::ConfigurationControl::kIoBufferSize),
+      .control_line = take(communication::Router::kControlLineBufferSize),
+      .configuration =
+          take(configuration::ConfigurationService::kConfigurationBufferSize),
+  };
+}
+
+void load_configuration(Application& application,
+                        const board_registry::BoardDefinition& board,
+                        const ConfigurationBuffers& buffers) {
   const std::string_view factory_json = board.factory_configuration_json;
   if (!application.services.configuration.initialize(
-          application.platform.configuration_storage,
-          board.validation,
+          application.platform.configuration_storage, board.validation,
           std::span<const std::uint8_t>(
               reinterpret_cast<const std::uint8_t*>(factory_json.data()),
               factory_json.size()),
-          record_buffer, current_payload_buffer, configuration_buffer)) {
+          buffers.record, buffers.current_payload, buffers.configuration)) {
     log::warn(kTag,
               "Configuration storage unavailable; using factory defaults");
   }
-  const configuration::ApplicationConfiguration& configuration =
-      application.services.configuration.current();
   if (!application.services.font_assets.initialize(
           application.platform.font_asset_storage)) {
     log::warn(kTag, "Font asset storage unavailable");
@@ -198,32 +203,32 @@ void run() {
           application.platform.image_asset_storage)) {
     log::warn(kTag, "Image asset storage unavailable");
   }
-  transport::ITransport* telemetry_transport =
-      application.platform.telemetry_transport.select(board, configuration);
-  ESP_ERROR_CHECK(telemetry_transport == nullptr ? ESP_ERR_NOT_SUPPORTED
-                                                 : ESP_OK);
+}
 
-  log::info(kTag, "SimCore starting");
-#if SIMCORE_DEBUG
-  performance::begin();
-#endif
-  application.telemetry_transport = telemetry_transport;
-  lv_display_t* display = display::initialize(board.display);
-  application.display = display;
+void initialize_display(Application& application,
+                        const board_registry::BoardDefinition& board,
+                        const configuration::ApplicationConfiguration&
+                            configuration) {
+  application.display = display::initialize(board.display);
   // A board without a digitizer leaves this null. The pointer device is never
   // torn down, so nothing else in the firmware learns which case it is in, and
   // a declared panel that fails to answer lands in the same place.
   if (board.input != nullptr &&
-      input::initialize(*board.input, display) == nullptr) {
+      input::initialize(*board.input, application.display) == nullptr) {
     log::warn(kTag, "Touch input unavailable; running without a pointer");
   }
-  if (!dashboard_composition::show_startup_screen(display, configuration)) {
+  if (!dashboard_composition::show_startup_screen(application.display,
+                                                  configuration)) {
     log::warn(kTag, "Startup screen is unavailable for this display");
   }
-  // Fonts are rasterized from the uploaded faces at runtime, so the faces are
-  // copied out of the package mapping that a later upload releases. A failure
-  // here leaves the dashboard without fonts, which composition already reports
-  // as an unresolved dependency, so it is not fatal.
+}
+
+// Fonts and images are both copied out of the package mapping a later upload
+// releases: a widget drawing from that mapping would be reading a partition
+// mid-erase. The cost is bounded by what was actually uploaded rather than by
+// the partition. A failure here is not fatal — composition reports it as an
+// unresolved dependency.
+void load_uploaded_assets(Application& application) {
   const std::size_t face_bytes =
       application.services.font_assets.face_bytes_total();
   if (face_bytes > 0) {
@@ -235,10 +240,6 @@ void run() {
       log::error(kTag, "Font faces could not be loaded");
     }
   }
-  // Images are copied out of the package mapping for the same reason faces are:
-  // the next upload releases that mapping, and a widget drawing from it would
-  // be reading a partition mid-erase. The cost is bounded by what was actually
-  // uploaded rather than by the partition.
   const std::size_t image_bytes =
       application.services.image_assets.image_bytes_total();
   if (image_bytes > 0) {
@@ -250,18 +251,22 @@ void run() {
       log::error(kTag, "Images could not be loaded");
     }
   }
-  if (!module_composition::start(
-          application.modules, application.services.event_bus,
-          application.services.telemetry_registry,
-          application.services.telemetry_state,
-          configuration)) {
+}
+
+void compose(Application& application,
+             const configuration::ApplicationConfiguration& configuration) {
+  if (!module_composition::start(application.modules,
+                                 application.services.event_bus,
+                                 application.services.telemetry_registry,
+                                 application.services.telemetry_state,
+                                 configuration)) {
     log::error(kTag, "One or more configured modules failed to start");
   }
   if (!dashboard_composition::create(
-          display, configuration, application.modules, application.dashboard,
-          application.services.telemetry_registry,
+          application.display, configuration, application.modules,
+          application.dashboard, application.services.telemetry_registry,
           application.services.telemetry_state,
-          *telemetry_transport)) {
+          *application.telemetry_transport)) {
     log::error(kTag, "Dashboard composition is incomplete");
   }
   if (!dashboard_composition::start_render_trigger(
@@ -270,14 +275,46 @@ void run() {
                "Render trigger is unavailable; widgets fall back to "
                "periodic polling");
   }
+}
+
+void start_communication(Application& application,
+                         const ConfigurationBuffers& buffers) {
   if (!application.communication.start(
           application.services.configuration,
           application.services.font_assets, application.services.image_assets,
-          application.services.telemetry_provider, *telemetry_transport,
-          &apply_configuration, &application, control_io_buffer,
-          control_line_buffer)) {
+          application.services.telemetry_provider,
+          *application.telemetry_transport, &apply_configuration, &application,
+          buffers.control_io, buffers.control_line)) {
     log::error(kTag, "Communication composition is incomplete");
   }
+}
+
+}  // namespace
+
+void run() {
+  static Application application;
+  const ConfigurationBuffers buffers =
+      reserve_configuration_memory(application);
+  const board_registry::BoardDefinition& board =
+      board_registry::factory_board();
+  load_configuration(application, board, buffers);
+
+  const configuration::ApplicationConfiguration& configuration =
+      application.services.configuration.current();
+  application.telemetry_transport =
+      application.platform.telemetry_transport.select(board, configuration);
+  ESP_ERROR_CHECK(application.telemetry_transport == nullptr
+                      ? ESP_ERR_NOT_SUPPORTED
+                      : ESP_OK);
+
+  log::info(kTag, "SimCore starting");
+#if SIMCORE_DEBUG
+  performance::begin();
+#endif
+  initialize_display(application, board, configuration);
+  load_uploaded_assets(application);
+  compose(application, configuration);
+  start_communication(application, buffers);
 }
 
 }

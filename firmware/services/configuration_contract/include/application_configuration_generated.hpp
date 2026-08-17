@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string_view>
 
 #include "font_asset_types.hpp"
@@ -764,6 +765,271 @@ inline constexpr std::array<std::string_view, 7> kWidgetTypeNames{{
     }
   }
   return false;
+}
+
+// Uniform access to the storage one widget type occupies in a document.
+// Anything that has to do the same thing for every type — composing,
+// parsing, comparing two documents, warming fonts — walks this table
+// rather than naming each type, so adding a widget type is a schema
+// change and not an edit in every such place.
+struct WidgetTypeTraits {
+  WidgetType type{};
+  std::string_view name{};
+  // The document property its pool is stored under, which is what a
+  // capacity rejection has to name.
+  std::string_view storage_key{};
+  // Instances of this type one document can hold.
+  std::size_t capacity{};
+  std::uint8_t (*count)(const DashboardConfiguration&){};
+  void (*set_count)(DashboardConfiguration&, std::uint8_t){};
+  // Null past the count, so a caller cannot reach an instance the
+  // document does not have.
+  const WidgetFrame* (*frame)(const DashboardConfiguration&,
+                              std::uint8_t){};
+  WidgetFrame* (*mutable_frame)(DashboardConfiguration&, std::uint8_t){};
+  // One instance as raw bytes, for the byte compare that decides whether
+  // a widget changed between two documents. Empty past the count, so two
+  // absent instances compare equal.
+  std::span<const std::byte> (*element_bytes)(const DashboardConfiguration&,
+                                              std::uint8_t){};
+};
+
+inline constexpr std::array<WidgetTypeTraits, 7> kWidgetTypeTraits{{
+    {
+        .type = WidgetType::text,
+        .name = "text",
+        .storage_key = "text_widgets",
+        .capacity = kMaximumTextWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.text_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.text_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.text_widget_count
+                     ? &dashboard.text_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.text_widget_count
+                     ? &dashboard.text_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.text_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.text_widgets[index], 1});
+        },
+    },
+    {
+        .type = WidgetType::shape,
+        .name = "shape",
+        .storage_key = "shape_widgets",
+        .capacity = kMaximumShapeWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.shape_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.shape_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.shape_widget_count
+                     ? &dashboard.shape_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.shape_widget_count
+                     ? &dashboard.shape_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.shape_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.shape_widgets[index], 1});
+        },
+    },
+    {
+        .type = WidgetType::bar,
+        .name = "bar",
+        .storage_key = "bar_widgets",
+        .capacity = kMaximumBarWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.bar_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.bar_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.bar_widget_count
+                     ? &dashboard.bar_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.bar_widget_count
+                     ? &dashboard.bar_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.bar_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.bar_widgets[index], 1});
+        },
+    },
+    {
+        .type = WidgetType::arc,
+        .name = "arc",
+        .storage_key = "arc_widgets",
+        .capacity = kMaximumArcWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.arc_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.arc_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.arc_widget_count
+                     ? &dashboard.arc_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.arc_widget_count
+                     ? &dashboard.arc_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.arc_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.arc_widgets[index], 1});
+        },
+    },
+    {
+        .type = WidgetType::indicator,
+        .name = "indicator",
+        .storage_key = "indicator_widgets",
+        .capacity = kMaximumIndicatorWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.indicator_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.indicator_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.indicator_widget_count
+                     ? &dashboard.indicator_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.indicator_widget_count
+                     ? &dashboard.indicator_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.indicator_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.indicator_widgets[index], 1});
+        },
+    },
+    {
+        .type = WidgetType::graph,
+        .name = "graph",
+        .storage_key = "graph_widgets",
+        .capacity = kMaximumGraphWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.graph_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.graph_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.graph_widget_count
+                     ? &dashboard.graph_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.graph_widget_count
+                     ? &dashboard.graph_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.graph_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.graph_widgets[index], 1});
+        },
+    },
+    {
+        .type = WidgetType::image,
+        .name = "image",
+        .storage_key = "image_widgets",
+        .capacity = kMaximumImageWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.image_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.image_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.image_widget_count
+                     ? &dashboard.image_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.image_widget_count
+                     ? &dashboard.image_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.image_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.image_widgets[index], 1});
+        },
+    },
+}};
+
+// A WidgetType always comes from the parser or from a reference the
+// parser wrote, so it is always in range; the guard keeps a corrupted
+// value from indexing past the table rather than reporting an error no
+// caller could act on.
+[[nodiscard]] inline const WidgetTypeTraits& widget_traits(
+    const WidgetType type) {
+  const auto index = static_cast<std::size_t>(type);
+  return index < kWidgetTypeTraits.size() ? kWidgetTypeTraits[index]
+                                         : kWidgetTypeTraits[0];
 }
 
 }  // namespace simcore::configuration

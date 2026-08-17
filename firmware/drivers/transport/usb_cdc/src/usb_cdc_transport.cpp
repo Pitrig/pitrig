@@ -97,17 +97,6 @@ constexpr tinyusb_port_t kUsbPort = TINYUSB_PORT_FULL_SPEED_0;
 #endif
 std::atomic<UsbCdcTransport*> active_transport;
 
-#if SIMCORE_DEBUG
-void update_maximum(std::atomic<std::uint32_t>& maximum,
-                    const std::uint32_t candidate) {
-  std::uint32_t current = maximum.load(std::memory_order_relaxed);
-  while (candidate > current &&
-         !maximum.compare_exchange_weak(current, candidate,
-                                        std::memory_order_relaxed)) {
-  }
-}
-#endif
-
 }  // namespace
 
 UsbCdcTransport::~UsbCdcTransport() {
@@ -315,7 +304,7 @@ void UsbCdcTransport::receive() {
 
   const std::int64_t read_at_us = esp_timer_get_time();
   if (last_read_at_us_ != 0) {
-    update_maximum(
+    performance::record_maximum(
         maximum_read_gap_ms_,
         static_cast<std::uint32_t>((read_at_us - last_read_at_us_) / 1'000));
   }
@@ -336,7 +325,7 @@ void UsbCdcTransport::process() {
       handler_(std::span<const std::uint8_t>(chunk.data.data(), chunk.size),
                handler_context_);
 #if SIMCORE_DEBUG
-      update_maximum(
+      performance::record_maximum(
           maximum_handler_time_us_,
           static_cast<std::uint32_t>(esp_timer_get_time() -
                                      handler_started_at_us));

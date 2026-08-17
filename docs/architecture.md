@@ -300,12 +300,23 @@ service from a static worker task. The configuration router only switches the
 shared transport between normal line routing and the active binary session.
 
 Uploaded images follow the same shape with a different package format: an image
-asset service over its own partition, an image asset control service over its
-own worker task, and dashboard code owning the LVGL image descriptors. The two
-kinds share the `asset_storage` contract, the `platform/partition_asset_storage`
-adapter, and one `binary_session` claim: each kind registers a command prefix
-and two callbacks, so the router never branches on what a font or an image is,
-and a second concurrent upload is refused instead of raced. Images are
+asset service over its own partition and dashboard code owning the LVGL image
+descriptors. The two kinds share the `asset_storage` contract, the
+`platform/partition_asset_storage` adapter, and one `binary_session` claim: each
+kind registers a command prefix and two callbacks, so the router never branches
+on what a font or an image is, and a second concurrent upload is refused instead
+of raced.
+
+They also share the upload engine itself. A package arrives the same way
+whatever it contains — the same `SCF1` framing, the same stop-and-wait sequence
+and CRC, the same inactivity timeout, the same worker task and claim — so that
+state machine lives once in `services/asset_control`. A kind supplies only its
+protocol tag (`FONT`, `IMAGE`), its task identity, and two things the engine
+cannot know: how to drive its service, and what its `INFO` reply says about an
+installed package. Those arrive as plain data — a `Traits` value and an
+`Operations` table of function pointers — rather than as a template, so the
+binary carries one copy of the machine and `font_asset_control` and
+`image_asset_control` are ~90 lines each. Images are
 converted by the configurator to the layout and size the display draws; the
 device holds no decoder. See [Image asset storage](image-assets.md) and
 [ADR 0018](adr/0018-uploaded-image-assets.md).

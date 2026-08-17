@@ -48,10 +48,32 @@ and configurator code behind it. It was removed in schema 5 and is authored from
 those primitives instead. Apply the same test before adding one: name the pixels
 it draws that no existing type can.
 
+## Filling the descriptors
+
+A descriptor's five entry points are the same five calls for every type: bind
+this type's sources, hand its collection the result, hand back a root object,
+rebuild one instance, wake the timers. Only two things vary — whether a type
+draws a bound value or only restyles on one, and, for images, that it also draws
+from the image registry. So the entry points are written twice rather than once
+per type, as `ValueWidgetOps` and `ConditionWidgetOps` over the type's storage
+struct, in the same idiom `ValueBinder` / `ConditionBinder` already use a layer
+below.
+
+What those templates cannot deduce — how many instances of a type a document
+holds, where its pool is, which property names it — comes from a
+`kWidgetTypeTraits` table emitted by the schema generator beside the `WidgetType`
+enum. Anything that must do the same thing for every type walks that table:
+composing, comparing two documents instance by instance, warming the fonts a
+document needs, and the parser's dispatch into typed storage. The table is
+generated rather than hand-kept because a table that disagreed with the schema
+would be a silent wrong answer, not a build error.
+
 ## Consequences
 
 - Adding a widget type is a schema entry, a widget implementation, and one
   descriptor; the manager, the compositing pass, and the layout are untouched.
+- Places that treat all types alike are driven by the generated traits table, so
+  they do not have to be found and edited when a type is added.
 - Removing one is the same list in reverse, plus a migration: a document that
   named the type has to be rewritten into the primitives that replace it.
 - A widget type that fails to create no longer leaves the dashboard half-built:
