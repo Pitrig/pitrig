@@ -5,15 +5,15 @@ import type { DeviceConfiguration } from '../../../../shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
 import { screenWidgetsOf } from '../../../../shared/configuration-access'
 import {
+  absolutePlacement,
   activeScreen,
-  completePlacement,
   copyWidget,
   deleteGroup,
   deleteWidget,
   duplicateWidget,
-  findWidget,
   groupWidgets,
   mutateSelectedWidget,
+  parentOffset,
   pasteWidget,
   selectedGroupId,
   ungroupWidgets,
@@ -100,8 +100,10 @@ export function useEditorShortcuts(): void {
           }
           return
         }
+        // groupWidgets returns a group id, and a group is selected as a group:
+        // selecting it as a widget would point the inspector at nothing.
         const created = groupWidgets(editor.selectedIds)
-        if (created) editor.select({ type: 'widget', id: created })
+        if (created) editor.select({ type: 'group', id: created })
         return
       }
       // Screens are switched by number, the way the driver swipes between them.
@@ -192,17 +194,19 @@ function nudge(
   step: { x: number; y: number },
   coarse: boolean
 ): void {
-  const current = findWidget(configuration, selection.type === 'widget' ? selection.id : '')
-  const placement = completePlacement(current?.widget.placement)
+  if (selection.type !== 'widget') return
+  // Clamped in display space the same way dragging is, so the keyboard cannot
+  // place a widget where the pointer could not; a widget in a group is then
+  // written back in its group's space.
+  const placement = absolutePlacement(configuration, selection.id)
   if (!placement) return
+  const offset = parentOffset(configuration, selection.id)
   const distance = coarse ? COARSE_NUDGE_PX : NUDGE_PX
-  // Clamped the same way dragging is, so the keyboard cannot place a widget
-  // where the pointer could not.
   const x = clamp(placement.x + step.x * distance, 0, display.width - placement.width)
   const y = clamp(placement.y + step.y * distance, 0, display.height - placement.height)
   if (x === placement.x && y === placement.y) return
   mutateSelectedWidget(selection, (widget) => {
-    widget.placement = { ...placement, x, y }
+    widget.placement = { ...placement, x: x - offset.x, y: y - offset.y }
   })
 }
 

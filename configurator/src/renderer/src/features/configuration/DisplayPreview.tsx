@@ -328,7 +328,7 @@ function ArrangeToolbar({ display }: { display: DisplayDescriptor }): React.JSX.
             className="h-7 rounded-md border px-2 hover:bg-muted"
             onClick={() => {
               const id = groupWidgets(selectedIds)
-              if (id) useDashboardEditorStore.getState().select({ type: 'widget', id })
+              if (id) useDashboardEditorStore.getState().select({ type: 'group', id })
             }}
           >
             Group
@@ -342,7 +342,7 @@ function ArrangeToolbar({ display }: { display: DisplayDescriptor }): React.JSX.
         className="h-7 rounded-md border px-2 hover:bg-muted"
         onClick={() => {
           const id = addTapZone(display)
-          if (id) useDashboardEditorStore.getState().select({ type: 'widget', id })
+          if (id) useDashboardEditorStore.getState().select({ type: 'group', id })
         }}
       >
         Tap zone
@@ -468,7 +468,6 @@ function Widgets({
   const extendSelection = useDashboardEditorStore((state) => state.extendSelection)
   const selectMany = useDashboardEditorStore((state) => state.selectMany)
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
-  const setActiveScreen = useDashboardEditorStore((state) => state.setActiveScreen)
   const previewSlots = useDashboardEditorStore((state) => state.previewSlots)
   const view = useDashboardEditorStore((state) => state.view)
   const locked = useDashboardEditorStore((state) => state.locked)
@@ -568,9 +567,25 @@ function Widgets({
 
   // A pointer stream can outpace the frame rate, and each commit rewrites the
   // whole document. Coalescing to one commit per frame keeps dragging smooth.
+  //
+  // The coalesced work is kept beside its frame id so releasing the pointer can
+  // run it rather than drop it. Cancelling the frame alone loses everything
+  // between the last painted frame and the release — a slow drag gave up a few
+  // pixels, and a quick one gave up the whole gesture.
   const pendingFrame = useRef<number | undefined>(undefined)
+  const pendingCommit = useRef<(() => void) | undefined>(undefined)
+  const flushPendingCommit = (): void => {
+    if (pendingFrame.current !== undefined) {
+      cancelAnimationFrame(pendingFrame.current)
+      pendingFrame.current = undefined
+    }
+    const commit = pendingCommit.current
+    pendingCommit.current = undefined
+    commit?.()
+  }
   useEffect(() => () => {
     if (pendingFrame.current !== undefined) cancelAnimationFrame(pendingFrame.current)
+    pendingCommit.current = undefined
   }, [])
 
   const snapTargets = (): SnapTargets =>
@@ -603,8 +618,7 @@ function Widgets({
     const dx = point.x - interaction.start.x
     const dy = point.y - interaction.start.y
     if (pendingFrame.current !== undefined) cancelAnimationFrame(pendingFrame.current)
-    pendingFrame.current = requestAnimationFrame(() => {
-      pendingFrame.current = undefined
+    pendingCommit.current = () => {
       const resolved = transformedPlacement(interaction, dx, dy, display, {
         grid: view.snapToGrid ? view.gridSize : 0,
         // Snapping is in logical pixels, so the tolerance shrinks as the canvas
@@ -648,6 +662,12 @@ function Widgets({
           }
         }
       })
+    }
+    pendingFrame.current = requestAnimationFrame(() => {
+      pendingFrame.current = undefined
+      const commit = pendingCommit.current
+      pendingCommit.current = undefined
+      commit?.()
     })
   }
 
@@ -678,11 +698,9 @@ function Widgets({
     }
     if (interaction?.pointerId !== event.pointerId) return
     svgRef.current?.releasePointerCapture(event.pointerId)
-    // The last frame may still be pending, so it has to land inside the group.
-    if (pendingFrame.current !== undefined) {
-      cancelAnimationFrame(pendingFrame.current)
-      pendingFrame.current = undefined
-    }
+    // The last move may still be waiting for a frame; it has to land, and it
+    // has to land inside the history group this gesture opened.
+    flushPendingCommit()
     useDeviceStore.getState().endEdit()
     setInteraction(undefined)
     setGuides(NO_GUIDES)
@@ -814,21 +832,6 @@ function Widgets({
       entry.placement !== undefined
   )
 
-  // Walks the action the way the board would, so a link can be checked without
-  // one. next/previous move relative to the screen being edited.
-  const followAction = (action: WidgetAction | undefined): void => {
-    if (!action || action.type === 'none') return
-    const screens = screensOf(configuration)
-    if (screens.length === 0) return
-    if (action.type === 'goto_screen') {
-      const index = screens.findIndex((entry) => entry.id === action.screen)
-      if (index >= 0) setActiveScreen(index)
-      return
-    }
-    const delta = action.type === 'next_screen' ? 1 : screens.length - 1
-    setActiveScreen((activeScreenIndex + delta) % screens.length)
-  }
-
   const viewWidth = display.width / view.zoom
   const viewHeight = display.height / view.zoom
   const band = marquee ? marqueeBounds(marquee) : undefined
@@ -848,34 +851,53 @@ function Widgets({
     >
       <rect width={display.width} height={display.height} fill={screenBackground} />
       {view.snapToGrid ? <GridOverlay display={display} size={view.gridSize} zoom={view.zoom} /> : null}
+      {/* Drawn before the widgets, so a widget always wins the pointer over the
+          group behind it. The border is a wide invisible band rather than the
+          1px dash, because grabbing a hairline is not an interaction; and once a
+          group is selected — or when it is empty, and so has nothing else to
+          grab — its whole body drags, which is what makes a tap zone usable at
+          all. An unselected populated group leaves its middle transparent so
+          rubber-band selection still starts there. */}
       {groups.map((group) => {
         const box = completePlacement(group.placement)
-        return box ? (
-          <rect
-            key={`group-${group.id}`}
-            {...box}
-            fill="none"
-            stroke={group.action && group.action.type !== 'none' ? '#38F5A8' : '#A78BFA'}
-            strokeWidth={1 / view.zoom}
-            strokeDasharray={`${2 / view.zoom} ${4 / view.zoom}`}
-            // Only the outline takes the pointer, so clicking inside a group
-            // still reaches the widget under the cursor. An empty group is all
-            // outline, which is what makes a tap zone selectable.
-            pointerEvents="stroke"
-            style={{ cursor: 'move' }}
-            onPointerDown={(event) => {
-              if (!group.id || !box) return
-              beginInteraction(event, { type: 'group', id: group.id }, 'move', box)
-            }}
-            onDoubleClick={() => followAction(group.action)}
-          />
-        ) : null
+        if (!box) return null
+        const active = selection?.type === 'group' && selection.id === group.id
+        const empty = widgetsOf(group).length === 0
+        return (
+          <g key={`group-${group.id}`}>
+            <rect
+              {...box}
+              fill="none"
+              stroke={group.action && group.action.type !== 'none' ? '#38F5A8' : '#A78BFA'}
+              strokeWidth={(active ? 2 : 1) / view.zoom}
+              strokeDasharray={`${2 / view.zoom} ${4 / view.zoom}`}
+              pointerEvents="none"
+            />
+            <rect
+              {...box}
+              fill="transparent"
+              stroke="transparent"
+              strokeWidth={GROUP_GRAB_PX / view.zoom}
+              pointerEvents={active || empty ? 'all' : 'stroke'}
+              style={{ cursor: 'move' }}
+              onPointerDown={(event) => {
+                if (!group.id) return
+                beginInteraction(event, { type: 'group', id: group.id }, 'move', box)
+              }}
+            />
+          </g>
+        )
       })}
       {groups.map((group) => {
         const box = completePlacement(group.placement)
+        // The clip is resolved in the coordinate system of the element that
+        // references it, and that element already carries the group's
+        // translate — so the rect is the group's own box at the origin, not its
+        // position on the display. Using display coordinates here shifts the
+        // clip by the offset a second time and hides the group's contents.
         return box ? (
           <clipPath key={`clip-${group.id}`} id={`group-clip-${group.id}`}>
-            <rect {...box} />
+            <rect x={0} y={0} width={box.width} height={box.height} />
           </clipPath>
         ) : null
       })}
@@ -892,10 +914,7 @@ function Widgets({
             const placement = id ? absolutePlacement(configuration, id) : undefined
             if (!placement || !id || locked[id]) return
             beginInteraction(event, { type: 'widget', id }, 'move', placement)
-          }}
-            // Following an action is the only way to check where it leads while
-            // the canvas has no live device to tap on.
-            onDoubleClick={() => followAction(layer.configuration.action)}>
+          }}>
             {layer.configuration.type === 'bar' ? (
               <BarPreview configuration={layer.configuration} values={values} />
             ) : layer.configuration.type === 'arc' ? (
@@ -1086,6 +1105,9 @@ const NO_GUIDES: Guides = { x: [], y: [] }
 
 // How close an edge has to be before it snaps, in screen pixels.
 const SNAP_TOLERANCE_PX = 6
+// Grab band around a group's border, in logical pixels. The visible dash stays
+// a hairline; this is only what the pointer has to hit.
+const GROUP_GRAB_PX = 10
 
 // Ten frames a second: enough for a colour ramp to read as continuous and for a
 // blink to be legible, without re-rendering the canvas at display rate.

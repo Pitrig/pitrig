@@ -1,4 +1,6 @@
 import {
+  MAXIMUM_ACTIONS,
+  MAXIMUM_GROUPS,
   MAXIMUM_PAYLOAD_SIZE,
   MAXIMUM_SCREENS,
   SCHEMA_CHILD_TYPES,
@@ -7,8 +9,8 @@ import {
   TEXT_CAPACITIES,
   WIDGET_TYPES
 } from './configuration-schema'
-import type { ApplicationConfiguration } from './configuration-schema'
-import { allWidgetsOf, isTextWidget } from './configuration-access'
+import type { ApplicationConfiguration, WidgetAction } from './configuration-schema'
+import { allWidgetsOf, groupsOf, isTextWidget, widgetsOf } from './configuration-access'
 import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES, MAXIMUM_FONT_SIZE_PX } from './font-assets'
 
 // The single configuration validator. The renderer, the main process, and file
@@ -146,6 +148,88 @@ function findScreenError(configuration: ApplicationConfiguration): string | unde
   if (!Array.isArray(screens)) return '"dashboard.screens" must be an array of screens.'
   if (screens.length > MAXIMUM_SCREENS) {
     return `A dashboard carries at most ${MAXIMUM_SCREENS} screen(s); this one declares ${screens.length}.`
+  }
+  const screenIds = screens.map((screen) => screen?.id)
+  let actions = 0
+  for (const [screenIndex, screen] of screens.entries()) {
+    const groups = groupsOf(screen)
+    if (groups.length > MAXIMUM_GROUPS) {
+      return `Screen ${screenIndex + 1} carries ${groups.length} groups; the device holds ${MAXIMUM_GROUPS}.`
+    }
+    for (const widget of widgetsOf(screen)) {
+      const error = findActionError(widget.action, screenIds, `widget "${widget.id ?? ''}"`)
+      if (error) return error
+      if (widget.action && widget.action.type !== 'none') actions += 1
+    }
+    for (const group of groups) {
+      const label = `group "${group.id ?? ''}"`
+      const error = findActionError(group.action, screenIds, label)
+      if (error) return error
+      if (group.action && group.action.type !== 'none') actions += 1
+      if ((group.slot ?? 0) > 0 && group.action && group.action.type !== 'none') {
+        return `${label} is in a slot and also navigates; a tap can only mean one of those.`
+      }
+      // The device refuses a widget that does not fit its group at composition
+      // time, which is later than an author wants to hear it.
+      const box = group.placement
+      for (const widget of widgetsOf(group)) {
+        const error = findActionError(widget.action, screenIds, `widget "${widget.id ?? ''}"`)
+        if (error) return error
+        if (widget.action && widget.action.type !== 'none') actions += 1
+        const inner = widget.placement
+        if (
+          box &&
+          inner &&
+          ((inner.x ?? 0) + (inner.width ?? 0) > (box.width ?? 0) ||
+            (inner.y ?? 0) + (inner.height ?? 0) > (box.height ?? 0))
+        ) {
+          return `Widget "${widget.id ?? ''}" does not fit inside ${label}; a grouped widget is placed relative to the group's box.`
+        }
+      }
+    }
+    // Slot rules: one box, one default.
+    const slots = new Set(groups.map((group) => group.slot ?? 0).filter((slot) => slot > 0))
+    for (const slot of slots) {
+      const members = groups.filter((group) => (group.slot ?? 0) === slot)
+      const defaults = members.filter((group) => group.slot_default).length
+      if (defaults !== 1) {
+        return `Slot ${slot} on screen ${screenIndex + 1} needs exactly one group marked as shown first; it has ${defaults}.`
+      }
+      const first = members[0]?.placement
+      if (
+        members.some(
+          (group) =>
+            group.placement?.x !== first?.x ||
+            group.placement?.y !== first?.y ||
+            group.placement?.width !== first?.width ||
+            group.placement?.height !== first?.height
+        )
+      ) {
+        return `The groups of slot ${slot} on screen ${screenIndex + 1} must share one box.`
+      }
+    }
+  }
+  if (actions > MAXIMUM_ACTIONS) {
+    return `This dashboard has ${actions} tap targets; the device binds at most ${MAXIMUM_ACTIONS}.`
+  }
+  return undefined
+}
+
+function findActionError(
+  action: WidgetAction | undefined,
+  screenIds: readonly (string | undefined)[],
+  owner: string
+): string | undefined {
+  if (!action || action.type === 'none') return undefined
+  if (action.type === 'goto_screen') {
+    if (!action.screen) return `${owner} navigates to a screen but names none.`
+    if (!screenIds.includes(action.screen)) {
+      return `${owner} navigates to screen "${action.screen}", which this dashboard does not have.`
+    }
+    return undefined
+  }
+  if (action.screen) {
+    return `${owner} names a screen for ${action.type}, which navigates relatively; drop the screen.`
   }
   return undefined
 }

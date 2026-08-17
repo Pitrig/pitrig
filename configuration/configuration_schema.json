@@ -332,8 +332,7 @@
       "doc": "Navigation a tap performs. Carried by a widget and by a group, so a tap target is either a readout that doubles as a button or a rectangle of the screen — including an empty group, which is an invisible touch zone.",
       "fields": [
         { "name": "type", "kind": "enum", "enum": "WidgetActionType" },
-        { "name": "screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Target screen id for goto_screen. The other action types name no screen, and one that does is rejected rather than ignored." },
-        { "name": "screen_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "The target resolved to an index, written by the composition rather than the parser. Resolving the id once is why a tap performs no name lookup." }
+        { "name": "screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Target screen id for goto_screen. The other action types name no screen, and one that does is rejected rather than ignored. The composition resolves the id to an index once when it binds the tap, so a tap performs no name lookup." }
       ]
     },
 

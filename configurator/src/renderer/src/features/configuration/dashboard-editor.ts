@@ -8,6 +8,7 @@ import {
   widgetsOf
 } from '../../../../shared/configuration-access'
 import {
+  MAXIMUM_ACTIONS,
   MAXIMUM_ARC_WIDGETS,
   MAXIMUM_BAR_WIDGETS,
   MAXIMUM_GRAPH_WIDGETS,
@@ -139,6 +140,12 @@ interface DashboardEditorStore {
   setPreview: (patch: Partial<PreviewPlayback>) => void
   toggleLocked: (id: string) => void
   toggleHidden: (id: string) => void
+  /**
+   * Moves every id-keyed piece of editor state from one id to another. A rename
+   * rewrites the widget's id in the document, and anything still keyed by the
+   * old one — selection, lock, hide — would silently detach from it.
+   */
+  renameId: (from: string, to: string) => void
   resetEditorState: () => void
 }
 
@@ -185,6 +192,27 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
     set((current) => ({ locked: { ...current.locked, [id]: !current.locked[id] } })),
   toggleHidden: (id) =>
     set((current) => ({ hidden: { ...current.hidden, [id]: !current.hidden[id] } })),
+  renameId: (from, to) =>
+    set((current) => {
+      const move = (record: Record<string, boolean>): Record<string, boolean> => {
+        const value = record[from]
+        if (value === undefined) return record
+        const rest = { ...record }
+        delete rest[from]
+        return { ...rest, [to]: value }
+      }
+      const selectedIds = current.selectedIds.map((entry) => (entry === from ? to : entry))
+      const selection =
+        current.selection && current.selection.type !== 'screen' && current.selection.id === from
+          ? { ...current.selection, id: to }
+          : current.selection
+      return {
+        selectedIds,
+        selection,
+        locked: move(current.locked),
+        hidden: move(current.hidden)
+      }
+    }),
   // A different document is a different set of widgets, so what was locked,
   // hidden or selected in the previous one describes nothing.
   resetEditorState: () =>
@@ -440,8 +468,21 @@ export function deleteScreen(index: number): boolean {
   mutateDraftConfiguration((configuration) => {
     const screens = configuration.dashboard?.screens
     if (!screens || index <= 0 || index >= screens.length) return
+    const removed = screens[index]?.id
     screens.splice(index, 1)
     deleted = true
+    // A goto_screen that named the removed screen would fail validation and
+    // the author would learn about it only on apply, so those actions go with
+    // the screen. next/previous keep working: they never named it.
+    if (removed === undefined) return
+    for (const target of [
+      ...allWidgetsOf(configuration),
+      ...screensOf(configuration).flatMap(groupsOf)
+    ]) {
+      if (target.action?.type === 'goto_screen' && target.action.screen === removed) {
+        delete target.action
+      }
+    }
   })
   if (deleted) {
     const editor = useDashboardEditorStore.getState()
@@ -481,9 +522,15 @@ function insertWidget(
   ) {
     return undefined
   }
-  const id = createWidgetId()
-  widgets.push({ ...widget, id })
-  return { type: 'widget', id }
+  // A copy of a tap target is a second tap target, and the device holds
+  // sixteen. Past that the copy is inserted without its action rather than
+  // refused: what was asked for was the widget.
+  const inserted = { ...widget, id: createWidgetId() }
+  if (inserted.action && actionCount(configuration) >= MAXIMUM_ACTIONS) {
+    delete inserted.action
+  }
+  widgets.push(inserted)
+  return { type: 'widget', id: inserted.id }
 }
 
 // The device rasterizes any size from an installed family, so a new widget
@@ -670,7 +717,12 @@ export function duplicateWidget(
   mutateDraftConfiguration((configuration) => {
     const source = findWidget(configuration, selection.id)?.widget
     if (!source) return
-    added = insertWidget(configuration, offsetWidget(source, display))
+    // The copy lands on the screen whatever the source was in, so a widget
+    // authored inside a group is lifted to absolute coordinates first — its
+    // relative box would otherwise be read against the display.
+    const box = absolutePlacement(configuration, selection.id)
+    const lifted = box ? { ...source, placement: box } : source
+    added = insertWidget(configuration, offsetWidget(lifted, display))
   })
   return added
 }
@@ -702,10 +754,15 @@ export async function copyWidget(
   selection: WidgetSelection | undefined
 ): Promise<boolean> {
   const widget = selectedWidget(configuration, selection)
-  if (!widget) return false
-  internalClipboard = structuredClone(widget)
+  if (!widget || selection?.type !== 'widget') return false
+  // The clipboard carries the widget as it would sit on a screen: a paste has
+  // no way to know which group the copy came from, so a relative box would be
+  // read against the display.
+  const box = absolutePlacement(configuration, selection.id)
+  const lifted = box ? { ...widget, placement: box } : widget
+  internalClipboard = structuredClone(lifted)
   try {
-    await navigator.clipboard.writeText(JSON.stringify(widget, null, 2))
+    await navigator.clipboard.writeText(JSON.stringify(lifted, null, 2))
   } catch {
     // A denied or unavailable system clipboard still leaves the in-app copy.
   }
@@ -900,7 +957,7 @@ export function alignWidgets(ids: readonly string[], edge: AlignmentEdge): void 
     const right = Math.max(...placed.map(({ placement }) => placement.x + placement.width))
     const top = Math.min(...placed.map(({ placement }) => placement.y))
     const bottom = Math.max(...placed.map(({ placement }) => placement.y + placement.height))
-    for (const { widget, placement } of placed) {
+    for (const { widget, placement, offset } of placed) {
       const next = { ...placement }
       if (edge === 'left') next.x = left
       else if (edge === 'right') next.x = right - placement.width
@@ -908,7 +965,7 @@ export function alignWidgets(ids: readonly string[], edge: AlignmentEdge): void 
       else if (edge === 'top') next.y = top
       else if (edge === 'bottom') next.y = bottom - placement.height
       else next.y = Math.round((top + bottom - placement.height) / 2)
-      widget.placement = next
+      writePlacement(widget, next, offset)
     }
   })
 }
@@ -938,26 +995,54 @@ export function distributeWidgets(ids: readonly string[], axis: DistributionAxis
     )
     const gap = (span - occupied) / (ordered.length - 1)
     let cursor = horizontal ? first.x : first.y
-    for (const { widget, placement } of ordered) {
-      widget.placement = horizontal
-        ? { ...placement, x: Math.round(cursor) }
-        : { ...placement, y: Math.round(cursor) }
+    for (const { widget, placement, offset } of ordered) {
+      writePlacement(
+        widget,
+        horizontal
+          ? { ...placement, x: Math.round(cursor) }
+          : { ...placement, y: Math.round(cursor) },
+        offset
+      )
       cursor += (horizontal ? placement.width : placement.height) + gap
     }
   })
 }
 
+/**
+ * The selection in display coordinates, whatever parents the widgets sit in.
+ * Aligning a widget in a group against one on the screen has to compare boxes
+ * in one space; `offset` is what each result subtracts on the way back.
+ */
 function selectedPlacements(
   configuration: DeviceConfiguration,
   ids: readonly string[]
-): { widget: WidgetConfiguration; placement: Required<WidgetPlacement> }[] {
-  const placed: { widget: WidgetConfiguration; placement: Required<WidgetPlacement> }[] = []
+): {
+  widget: WidgetConfiguration
+  placement: Required<WidgetPlacement>
+  offset: { x: number; y: number }
+}[] {
+  const placed: {
+    widget: WidgetConfiguration
+    placement: Required<WidgetPlacement>
+    offset: { x: number; y: number }
+  }[] = []
   for (const id of ids) {
     const widget = findWidget(configuration, id)?.widget
-    const placement = completePlacement(widget?.placement)
-    if (widget && placement) placed.push({ widget, placement })
+    const placement = absolutePlacement(configuration, id)
+    if (widget && placement) {
+      placed.push({ widget, placement, offset: parentOffset(configuration, id) })
+    }
   }
   return placed
+}
+
+/** Writes a display-space box back into the widget's own coordinate space. */
+function writePlacement(
+  widget: WidgetConfiguration,
+  placement: Required<WidgetPlacement>,
+  offset: { x: number; y: number }
+): void {
+  widget.placement = { ...placement, x: placement.x - offset.x, y: placement.y - offset.y }
 }
 
 /**
@@ -987,8 +1072,7 @@ export function renameWidget(id: string, name: string): boolean {
     const widget = findWidget(next, id)?.widget
     if (widget) widget.id = trimmed
   })
-  const editor = useDashboardEditorStore.getState()
-  editor.selectMany(editor.selectedIds.map((entry) => (entry === id ? trimmed : entry)))
+  useDashboardEditorStore.getState().renameId(id, trimmed)
   return true
 }
 
@@ -999,10 +1083,7 @@ export function renameGroup(id: string, name: string): boolean {
   mutateGroup(id, (group) => {
     group.id = trimmed
   })
-  const editor = useDashboardEditorStore.getState()
-  if (editor.selection?.type === 'group' && editor.selection.id === id) {
-    editor.select({ type: 'group', id: trimmed })
-  }
+  useDashboardEditorStore.getState().renameId(id, trimmed)
   return true
 }
 

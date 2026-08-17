@@ -48,8 +48,10 @@ class Controller final {
   // themselves are released.
   void detach();
 
-  // Forgets the actions without touching the swipe handlers, so the composition
-  // can re-bind them onto rebuilt objects.
+  // Unbinds every action without touching the swipe handlers, so the composition
+  // can bind them again onto a mix of surviving and rebuilt objects. Objects
+  // that were rebuilt are already gone; the survivors have their callback
+  // removed here, or a re-bind would stack a second one on them.
   void clear_actions();
 
   [[nodiscard]] std::size_t active_index() const { return active_; }
@@ -59,6 +61,7 @@ class Controller final {
   // handler reaches both the controller and the target without allocating.
   struct Binding {
     Controller* controller{};
+    lv_obj_t* object{};
     configuration::WidgetActionType type{};
     std::uint8_t target{};
   };

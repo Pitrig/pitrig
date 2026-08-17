@@ -42,9 +42,20 @@ void Controller::detach() {
 }
 
 void Controller::clear_actions() {
-  // The objects the callbacks sit on are owned by the composition and are
-  // deleted or rebuilt by it, which takes the callbacks with them; forgetting
-  // the bindings is all this owns.
+  // Only the composition knows which objects survived a rebuild, and it does
+  // not tell this. Removing by (callback, user_data) is safe on a survivor and
+  // is a no-op on nothing else — but a rebuilt object's slot has been freed and
+  // may hold a new object at the same address, so this runs BEFORE that
+  // rebuild, from bind_widget_actions() on the previous document's objects, or
+  // from detach() before anything is deleted.
+  for (std::size_t index = 0; index < action_count_; ++index) {
+    Binding& binding = actions_[index];
+    if (binding.object != nullptr) {
+      (void)lv_obj_remove_event_cb_with_user_data(binding.object, on_action,
+                                                  &binding);
+      lv_obj_remove_flag(binding.object, LV_OBJ_FLAG_CLICKABLE);
+    }
+  }
   actions_ = {};
   action_count_ = 0;
 }
@@ -59,7 +70,7 @@ bool Controller::add_action(lv_obj_t* const object,
     return false;
   }
   Binding& binding = actions_[action_count_];
-  binding = {.controller = this, .type = type, .target = target};
+  binding = {.controller = this, .object = object, .type = type, .target = target};
   ++action_count_;
   // Widgets are built refusing clicks; a tap target is the one place that is
   // undone, and it is the composition rather than the widget type doing it.

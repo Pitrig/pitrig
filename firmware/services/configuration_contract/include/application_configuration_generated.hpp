@@ -263,7 +263,6 @@ struct ColorRamp {
 struct WidgetAction {
   WidgetActionType type{WidgetActionType::none};
   std::array<char, kWidgetIdCapacity> screen{};
-  std::uint8_t screen_index{};
 };
 
 // One styling rule. The first rule whose comparison holds describes the

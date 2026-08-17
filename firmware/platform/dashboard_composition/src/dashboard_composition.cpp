@@ -134,10 +134,21 @@ bool will_render_content(
   (void)configuration;
   return true;
 #else
+  // A screen whose widgets all sit inside groups has an empty reference table
+  // of its own but is anything but empty; counting only screen.widget_count
+  // would leave the splash covering a working dashboard.
   const configuration::ScreenConfiguration& screen =
       active_screen(configuration);
-  return screen.background_color != kDefaultBackgroundColor ||
-         screen.widget_count > 0;
+  if (screen.background_color != kDefaultBackgroundColor ||
+      screen.widget_count > 0) {
+    return true;
+  }
+  for (std::size_t index = 0; index < screen.group_count; ++index) {
+    if (screen.groups[index].widget_count > 0) {
+      return true;
+    }
+  }
+  return false;
 #endif
 }
 
@@ -652,10 +663,13 @@ std::uint8_t resolve_action_target(
 //
 // Re-run after any rebuild: update_instance() replaces a widget's LVGL object,
 // and the replacement carries neither the flag nor the callback.
+// The caller has already unbound the previous actions — create() through
+// navigation.attach(), apply_incremental() through an explicit clear before
+// it rebuilds anything — so this only adds. Ordering matters: a binding holds
+// the object it sits on, and unbinding after a rebuild would touch a freed one.
 bool bind_widget_actions(
     const configuration::ApplicationConfiguration& configuration,
     Dashboard& dashboard) {
-  dashboard.navigation.clear_actions();
   if (!lvgl_port_lock(0)) {
     return false;
   }
@@ -1185,6 +1199,15 @@ bool apply_incremental(
       }
     }
   }
+
+  // Every tap target is unbound now, while the objects it was bound to still
+  // exist; the rebuild below replaces some of them, and the pass at the end
+  // binds onto whatever the document has after that.
+  if (!lvgl_port_lock(0)) {
+    return false;
+  }
+  dashboard.navigation.clear_actions();
+  lvgl_port_unlock();
 
   // Widget contexts point into the document that was active when they were
   // built. Promotion swapped that out, so repoint them before rebuilding.

@@ -387,6 +387,11 @@ export function ConfigurationPanel(): React.JSX.Element {
           <span>{parsed.ok ? `${parsed.payloadBytes} bytes` : 'Invalid JSON'}</span>
           <span>{MAXIMUM_CONFIGURATION_PAYLOAD_SIZE} bytes maximum</span>
         </div>
+        {/* The validator says exactly which property is wrong and why. Showing
+            only "Invalid JSON" left the author to find it themselves. */}
+        {parsed.ok ? null : (
+          <p className="text-[11px] text-red-400">{parsed.error}</p>
+        )}
 
         {connected && (liveApply.pending || liveApply.error) ? (
           <p
