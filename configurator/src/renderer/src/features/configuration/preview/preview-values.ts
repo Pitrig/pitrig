@@ -1,5 +1,5 @@
 import { dashboardBindings } from '../../../../../shared/configuration-access'
-import { type FontSpec } from '../../../../../shared/configuration-schema'
+import { type FontSpec, type TextAlignment } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { LAP_SECONDS, mockTelemetry, mockValue } from '../../../../../shared/mock-telemetry'
 import { TELEMETRY_CATALOG } from '../../../../../shared/telemetry-catalog'
@@ -128,4 +128,77 @@ export function lvglCenterOffset(available: number, size: number): number {
 
 export function normalizeColor(color: string | undefined): string | undefined {
   return color === '#00000000' ? 'transparent' : color
+}
+
+interface Box {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** Where the caption lands, and the frame line it cuts on its way there. */
+export interface CaptionGeometry {
+  x: number
+  y: number
+  /** Absent when the caption crosses no border, or the cut is turned off. */
+  gap?: Box
+}
+
+/**
+ * Mirrors widget_frame.cpp `caption_rect` and `caption_gap_rect` exactly: the
+ * anchor is the widget's outer box rather than its content area, C++ truncation
+ * toward zero is Math.trunc, and the mask is one thin band along the border the
+ * caption actually crosses, clipped to the box so it never paints outside it.
+ */
+export function captionGeometry(
+  box: Box,
+  title: {
+    alignment: TextAlignment
+    offsetX: number
+    offsetY: number
+    borderGap: boolean
+    pad: number
+  },
+  metrics: { width: number; lineHeight: number },
+  borderWidth: number
+): CaptionGeometry {
+  const anchor =
+    title.alignment === 'left'
+      ? 0
+      : title.alignment === 'right'
+        ? box.width - metrics.width
+        : Math.trunc((box.width - metrics.width) / 2)
+  const x = box.x + anchor + title.offsetX
+  const y = box.y - Math.trunc(metrics.lineHeight / 2) + title.offsetY
+  if (!title.borderGap || borderWidth <= 0) return { x, y }
+
+  const left = x - title.pad
+  const right = x + metrics.width + title.pad
+  const top = y - title.pad
+  const bottom = y + metrics.lineHeight + title.pad
+  const boxRight = box.x + box.width
+  const boxBottom = box.y + box.height
+  const spanLeft = Math.max(left, box.x)
+  const spanRight = Math.min(right, boxRight)
+  const spanTop = Math.max(top, box.y)
+  const spanBottom = Math.min(bottom, boxBottom)
+  const thickness = borderWidth + 2
+  const spansX = spanRight > spanLeft
+  const spansY = spanBottom > spanTop
+  // A horizontal border wins a corner, because a caption is a horizontal run of
+  // text and that is the line it reads as breaking.
+  if (spansX && top < box.y + borderWidth && bottom > box.y) {
+    return { x, y, gap: { x: spanLeft, y: box.y, width: spanRight - spanLeft, height: thickness } }
+  }
+  if (spansX && bottom > boxBottom - borderWidth && top < boxBottom) {
+    return { x, y, gap: { x: spanLeft, y: boxBottom - thickness, width: spanRight - spanLeft, height: thickness } }
+  }
+  if (spansY && left < box.x + borderWidth && right > box.x) {
+    return { x, y, gap: { x: box.x, y: spanTop, width: thickness, height: spanBottom - spanTop } }
+  }
+  if (spansY && right > boxRight - borderWidth && left < boxRight) {
+    return { x, y, gap: { x: boxRight - thickness, y: spanTop, width: thickness, height: spanBottom - spanTop } }
+  }
+  return { x, y }
 }

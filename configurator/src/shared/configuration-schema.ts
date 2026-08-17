@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 7
+export const CONFIGURATION_SCHEMA_VERSION = 8
 
 /** Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
 export const MAXIMUM_PAYLOAD_SIZE = 65536
@@ -67,7 +67,7 @@ export const BOARD_ID_VALUES: readonly BoardId[] = ['t_display_s3', 'guition_esp
 export type TelemetryTransportId = 'board_default' | 'native_usb_cdc' | 'uart'
 export const TELEMETRY_TRANSPORT_ID_VALUES: readonly TelemetryTransportId[] = ['board_default', 'native_usb_cdc', 'uart']
 
-/** Horizontal alignment of a text widget value. */
+/** Horizontal alignment: which edge of the box the text is anchored to. Used for a text widget's value inside its content area and for a frame caption along its outer box. */
 export type TextAlignment = 'left' | 'center' | 'right'
 export const TEXT_ALIGNMENT_VALUES: readonly TextAlignment[] = ['left', 'center', 'right']
 
@@ -167,11 +167,16 @@ export interface WidgetBorder {
   radius_px?: number
 }
 
+/** The caption on a widget's frame. It is anchored to an edge of the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing. */
 export interface WidgetTitleStyle {
   text?: string
   font?: FontSpec
   color?: RgbColor
+  alignment?: TextAlignment
+  offset_x_px?: number
   offset_y_px?: number
+  border_gap?: boolean
+  gap_padding_px?: number
 }
 
 export interface WidgetValueStyle {
@@ -491,7 +496,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   WidgetPlacement: ['x', 'y', 'width', 'height'],
   WidgetInsets: ['left', 'top', 'right', 'bottom'],
   WidgetBorder: ['color', 'width_px', 'radius_px'],
-  WidgetTitleStyle: ['text', 'font', 'color', 'offset_y_px'],
+  WidgetTitleStyle: ['text', 'font', 'color', 'alignment', 'offset_x_px', 'offset_y_px', 'border_gap', 'gap_padding_px'],
   WidgetValueStyle: ['font', 'color', 'alignment', 'unavailable_text'],
   ValueTransform: ['type', 'format', 'decimals', 'scale', 'offset', 'prefix', 'suffix'],
   ValueModifier: ['type'],

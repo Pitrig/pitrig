@@ -1,5 +1,5 @@
 {
-  "schema_version": 7,
+  "schema_version": 8,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "limits": {
@@ -159,7 +159,7 @@
     "TextAlignment": {
       "json_values": ["left", "center", "right"],
       "default": "center",
-      "doc": "Horizontal alignment of a text widget value."
+      "doc": "Horizontal alignment: which edge of the box the text is anchored to. Used for a text widget's value inside its content area and for a frame caption along its outer box."
     },
     "ValueTransformType": {
       "json_values": ["none", "time", "number"],
@@ -268,11 +268,16 @@
     },
 
     "WidgetTitleStyle": {
+      "doc": "The caption on a widget's frame. It is anchored to an edge of the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.",
       "fields": [
         { "name": "text", "kind": "text", "capacity": "kWidgetTitleCapacity", "default": "" },
         { "name": "font", "kind": "external", "external": "FontSpec" },
         { "name": "color", "kind": "color", "default": "0xE8E8E8" },
-        { "name": "offset_y_px", "kind": "int16", "default": 0 }
+        { "name": "alignment", "kind": "enum", "enum": "TextAlignment", "doc": "Which edge of the widget's outer box the caption is anchored to before the offsets move it." },
+        { "name": "offset_x_px", "kind": "int16", "default": 0 },
+        { "name": "offset_y_px", "kind": "int16", "default": 0 },
+        { "name": "border_gap", "kind": "bool", "default": true, "doc": "Cuts the border line where the caption crosses it. A caption that crosses no border cuts nothing." },
+        { "name": "gap_padding_px", "kind": "uint16", "default": 4, "doc": "Clear space kept around the caption inside that cut, on every side." }
       ]
     },
 

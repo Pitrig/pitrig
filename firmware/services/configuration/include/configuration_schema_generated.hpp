@@ -123,11 +123,15 @@ inline constexpr std::array<std::string_view, 3> kWidgetBorderKeys{{
     "radius_px",
 }};
 
-inline constexpr std::array<std::string_view, 4> kWidgetTitleStyleKeys{{
+inline constexpr std::array<std::string_view, 8> kWidgetTitleStyleKeys{{
     "text",
     "font",
     "color",
+    "alignment",
+    "offset_x_px",
     "offset_y_px",
+    "border_gap",
+    "gap_padding_px",
 }};
 
 inline constexpr std::array<std::string_view, 4> kWidgetValueStyleKeys{{

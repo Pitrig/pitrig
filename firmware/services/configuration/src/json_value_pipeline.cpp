@@ -220,8 +220,16 @@ namespace {
         !read_text(title, "text", frame.title.text, kTitleName, failure) ||
         !parse_optional_font(title, frame.title.font, failure) ||
         !read_color(title, "color", frame.title.color, kTitleName, failure) ||
+        !read_enum(title, "alignment", frame.title.alignment,
+                   text_alignment_from_name, kTitleName, failure) ||
+        !read_integer(title, "offset_x_px", frame.title.offset_x_px, kTitleName,
+                      failure) ||
         !read_integer(title, "offset_y_px", frame.title.offset_y_px, kTitleName,
-                      failure)) {
+                      failure) ||
+        !read_boolean(title, "border_gap", frame.title.border_gap, kTitleName,
+                      failure) ||
+        !read_integer(title, "gap_padding_px", frame.title.gap_padding_px,
+                      kTitleName, failure)) {
       return false;
     }
   }

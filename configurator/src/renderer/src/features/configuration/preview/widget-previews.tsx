@@ -7,7 +7,7 @@ import { usePreviewAssetStore } from '../preview-assets'
 import { type Placement, markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR, type FramedWidgetConfiguration } from './preview-theme'
 import { backgroundRect, contentArea, gradientPaint } from './preview-geometry-paint'
-import { type PreviewValues, fontMetrics, lvglCenterOffset, normalizeColor, resolvedFont } from './preview-values'
+import { type PreviewValues, captionGeometry, fontMetrics, lvglCenterOffset, normalizeColor, resolvedFont } from './preview-values'
 
 export function GradientDefinition({
   id,
@@ -241,7 +241,8 @@ export function ImagePreview({
 }
 
 // A caption belongs to the frame, so it is drawn the same way for every type
-// that has one: over a gap in the top border.
+// that has one: anchored to an edge of the widget's outer box, and over a gap in
+// whichever border line it ends up crossing.
 export function CaptionPreview({
   configuration,
   behind
@@ -267,26 +268,35 @@ export function CaptionPreview({
   // screen is what shows through.
   const paintsContainer = background !== undefined && background !== 'transparent' && inset === 0
   const maskFill = paintsContainer ? background : behind
-  // The caption straddles the top border: the device puts the label's top half
-  // a line height above the box's edge and masks the border line behind it.
-  const labelTop =
-    placement.y -
-    Math.trunc(metrics.lineHeight / 2) +
-    (configuration.title?.offset_y_px ?? 0)
+  // By default the caption straddles the top border: the device puts the label's
+  // top half a line height above the box's edge and masks the border line behind
+  // it. The anchor and the offsets move it from there, and the mask follows.
+  const geometry = captionGeometry(
+    placement,
+    {
+      alignment: configuration.title?.alignment ?? 'center',
+      offsetX: configuration.title?.offset_x_px ?? 0,
+      offsetY: configuration.title?.offset_y_px ?? 0,
+      borderGap: configuration.title?.border_gap ?? true,
+      pad: configuration.title?.gap_padding_px ?? 4
+    },
+    metrics,
+    borderWidth
+  )
   return (
     <g>
-      {borderWidth > 0 ? (
+      {geometry.gap ? (
         <rect
-          x={placement.x + Math.trunc((placement.width - metrics.width - 8) / 2)}
-          y={placement.y}
-          width={metrics.width + 8}
-          height={borderWidth + 2}
+          x={geometry.gap.x}
+          y={geometry.gap.y}
+          width={geometry.gap.width}
+          height={geometry.gap.height}
           fill={maskFill}
         />
       ) : null}
       <text
-        x={placement.x + Math.trunc((placement.width - metrics.width) / 2)}
-        y={labelTop + metrics.ascent}
+        x={geometry.x}
+        y={geometry.y + metrics.ascent}
         fill={configuration.title?.color ?? DEFAULT_TEXT_COLOR}
         fontFamily={font.family}
         fontSize={font.sizePx}

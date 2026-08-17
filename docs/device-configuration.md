@@ -230,7 +230,7 @@ Example sparse configuration:
 
 Only the properties shown above are present in the project and public payload.
 The text widget supplies its documented defaults for omitted padding, fonts,
-colors, alignment, background, title offset, and unavailable text.
+colors, alignment, background, caption placement, and unavailable text.
 
 Until a value arrives, a widget renders its placeholder. An explicit
 `unavailable_text` is that placeholder; omitting it renders a zero through each
@@ -386,6 +386,41 @@ device does not hold is rejected before it replaces the running dashboard,
 exactly like a missing font family. The package format and its upload protocol
 are defined in [Image asset storage](image-assets.md); installing a package
 requires a reboot before its images can be drawn.
+
+## Widget captions
+
+A `title` labels a widget's frame. Only `text` is required to place one; the
+caption sits half above the top of the widget's box, horizontally centred on it,
+and the frame line behind it is cut so the label reads as a break in the border
+rather than as text laid over it:
+
+```json
+"title": { "text": "WATER", "alignment": "left", "offset_x_px": 12 }
+```
+
+`alignment` picks which edge of the widget's **outer** box the caption is
+anchored to — `left`, `center` or `right`, defaulting to `center` — and
+`offset_x_px` and `offset_y_px` move it from that anchor. An anchor plus two
+offsets reaches any point, so a caption may sit on the bottom border, on a side,
+or inside the widget; nothing constrains it to the box.
+
+The cut follows wherever it lands. `border_gap` turns it off, and
+`gap_padding_px` is the clear space kept around the caption inside it, 4 pixels
+on each side by default. The cut is a thin band along one border line, clipped
+to the widget's box, over whatever paints behind the caption — the widget's own
+background when it has one that reaches the frame, otherwise the screen or group
+behind it. Three consequences are worth knowing when authoring: a caption
+crossing no border cuts nothing, a caption on a corner cuts the horizontal
+border and not the vertical one, and because the band is straight, a caption
+pushed into a rounded corner takes a bite out of the curve — offset it by about
+`radius_px` plus the border width to clear it.
+
+Where the caption is placed is authored, but the room a widget reserves for it
+is not: a widget sized by its contents always reserves the default placement,
+so moving a caption or turning its cut off never resizes the widget.
+
+A caption needs a font as soon as it has text, and family resolution is exact —
+see [Fonts](#fonts).
 
 ## Conditional styling
 
@@ -658,7 +693,8 @@ mapped source uses `minimum` and `maximum`. UART settings use `port`, `tx_pin`,
 `rx_pin`, `baud_rate`, and `silence_esp_logs`. Style properties follow the names
 used in the sparse examples, including `background_color`,
 `background_grad_color`, `background_grad_dir`, `background_inset_px`,
-`fill_color`, `fill_grad_color`, `width_px`, `radius_px`, and `offset_y_px`. The
+`fill_color`, `fill_grad_color`, `width_px`, `radius_px`, `offset_x_px`,
+`offset_y_px`, `border_gap`, and `gap_padding_px`. The
 complete property table is generated into
 [configuration-schema.md](configuration-schema.md).
 

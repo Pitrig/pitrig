@@ -29,8 +29,73 @@ namespace {
   return lv_color_black();
 }
 
-// Creates the caption that breaks the top border, plus the mask that hides the
-// border line behind it. Both sit on the parent so the border can pass behind.
+// Where the caption sits on the widget's outer box. The outer box rather than
+// the content area, because the caption belongs to the frame line and not to
+// what the widget draws inside it.
+[[nodiscard]] Rect caption_rect(const Config& config, const Rect& bounds,
+                                const std::int32_t width,
+                                const std::int32_t height) {
+  std::int32_t x = bounds.x;
+  switch (config.title.alignment) {
+    case configuration::TextAlignment::left:
+      break;
+    case configuration::TextAlignment::center:
+      x += (bounds.width - width) / 2;
+      break;
+    case configuration::TextAlignment::right:
+      x += bounds.width - width;
+      break;
+  }
+  return {.x = x + config.title.offset_x_px,
+          .y = bounds.y - height / 2 + config.title.offset_y_px,
+          .width = width,
+          .height = height};
+}
+
+// The mask that hides the frame line under the caption. It stays a thin band
+// along one border rather than covering the caption's whole box: the mask sits
+// above the container, so anything taller would paint over the widget's own
+// content. It is clipped to the box for the same reason in reverse — the band
+// may cover frame line, never the parent outside it. A caption that crosses no
+// border has nothing to hide, and reports none.
+[[nodiscard]] bool caption_gap_rect(const Config& config, const Rect& bounds,
+                                    const Rect& caption, Rect& gap) {
+  const std::int32_t line = config.border.width_px;
+  if (!config.title.border_gap || line <= 0) {
+    return false;
+  }
+  const std::int32_t pad = config.title.gap_padding_px;
+  const std::int32_t left = caption.x - pad;
+  const std::int32_t right = caption.x + caption.width + pad;
+  const std::int32_t top = caption.y - pad;
+  const std::int32_t bottom = caption.y + caption.height + pad;
+  const std::int32_t box_right = bounds.x + bounds.width;
+  const std::int32_t box_bottom = bounds.y + bounds.height;
+  const std::int32_t span_left = std::max(left, bounds.x);
+  const std::int32_t span_right = std::min(right, box_right);
+  const std::int32_t span_top = std::max(top, bounds.y);
+  const std::int32_t span_bottom = std::min(bottom, box_bottom);
+  const std::int32_t thickness = line + 2;
+  const bool spans_x = span_right > span_left;
+  const bool spans_y = span_bottom > span_top;
+  // A horizontal border wins a corner, because a caption is a horizontal run of
+  // text and that is the line it reads as breaking.
+  if (spans_x && top < bounds.y + line && bottom > bounds.y) {
+    gap = {span_left, bounds.y, span_right - span_left, thickness};
+  } else if (spans_x && bottom > box_bottom - line && top < box_bottom) {
+    gap = {span_left, box_bottom - thickness, span_right - span_left, thickness};
+  } else if (spans_y && left < bounds.x + line && right > bounds.x) {
+    gap = {bounds.x, span_top, thickness, span_bottom - span_top};
+  } else if (spans_y && right > box_right - line && left < box_right) {
+    gap = {box_right - thickness, span_top, thickness, span_bottom - span_top};
+  } else {
+    return false;
+  }
+  return true;
+}
+
+// Creates the caption, plus the mask that hides the border line behind it.
+// Both sit on the parent so the border can pass behind.
 void build_caption(const Config& config, const fonts::Registry& fonts,
                    lv_obj_t* const parent, const Rect& bounds,
                    const bool paints_container, Box& box) {
@@ -41,18 +106,17 @@ void build_caption(const Config& config, const fonts::Registry& fonts,
   if (title_font == nullptr) {
     return;
   }
-  const std::int32_t title_width =
-      text_width(title_font, config.title.text.data());
-  const std::int32_t title_height = lv_font_get_line_height(title_font);
+  const Rect caption =
+      caption_rect(config, bounds, text_width(title_font, config.title.text.data()),
+                   lv_font_get_line_height(title_font));
   const bool has_background =
       config.background_color != configuration::kTransparentColor;
 
-  if (config.border.width_px > 0) {
+  if (Rect gap{}; caption_gap_rect(config, bounds, caption, gap)) {
     box.caption_gap = lv_obj_create(parent);
     lv_obj_remove_style_all(box.caption_gap);
-    lv_obj_set_size(box.caption_gap, title_width + 8, config.border.width_px + 2);
-    lv_obj_set_pos(box.caption_gap,
-                   bounds.x + (bounds.width - title_width - 8) / 2, bounds.y);
+    lv_obj_set_size(box.caption_gap, gap.width, gap.height);
+    lv_obj_set_pos(box.caption_gap, gap.x, gap.y);
     // An inset background leaves the frame line over the parent, not over the
     // widget's own fill, so the mask matches whatever is painted there.
     const lv_color_t gap_color = has_background && paints_container
@@ -72,8 +136,7 @@ void build_caption(const Config& config, const fonts::Registry& fonts,
   lv_obj_set_style_text_font(box.caption, title_font, LV_PART_MAIN);
   lv_obj_set_style_text_color(box.caption, lv_color_hex(config.title.color),
                               LV_PART_MAIN);
-  lv_obj_set_pos(box.caption, bounds.x + (bounds.width - title_width) / 2,
-                 bounds.y - title_height / 2 + config.title.offset_y_px);
+  lv_obj_set_pos(box.caption, caption.x, caption.y);
 }
 
 telemetry::TelemetryRead read_telemetry(void* const context) {
@@ -133,9 +196,12 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
   const std::int32_t title_height =
       has_title ? lv_font_get_line_height(title_font) : 0;
   box.caption_height = title_height;
-  // The caption straddles the top border, so half of it is the widget's own
-  // business and the rest overhangs.
-  const std::int32_t caption_width = has_title ? title_width + 8 : 0;
+  // Where the caption is placed is authored, but the room a widget reserves for
+  // it is not: it is the default placement — straddling the top border, so half
+  // of it is the widget's own business and the rest overhangs — so that moving
+  // the caption or turning its border gap off never resizes the widget.
+  const std::int32_t caption_width =
+      has_title ? title_width + 2 * config.title.gap_padding_px : 0;
   const std::int32_t framed_width = std::max(content_width, caption_width);
   const std::int32_t framed_height = content_height + title_height / 2;
   const std::int32_t horizontal_insets =

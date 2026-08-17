@@ -365,7 +365,12 @@ bool Validator::frame(const WidgetFrame& config) {
   if (!terminated(config.id)) {
     return reject(failure_, ValidationError::invalid_widget, "id");
   }
+  // The gap padding widens the mask that hides the frame line, so it is bounded
+  // like the line itself rather than left to the full range of its type.
   if (!terminated(config.title.text) || !valid_color(config.title.color) ||
+      config.title.alignment < TextAlignment::left ||
+      config.title.alignment > TextAlignment::right ||
+      config.title.gap_padding_px > 240 ||
       (config.title.text.front() != '\0' && !valid_font(config.title.font))) {
     return reject(failure_, ValidationError::invalid_widget, "title");
   }

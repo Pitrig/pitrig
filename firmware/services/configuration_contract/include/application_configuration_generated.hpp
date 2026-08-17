@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 7;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 8;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
@@ -87,7 +87,7 @@ enum class TelemetryTransportId : std::uint8_t {
   uart,
 };
 
-// Horizontal alignment of a text widget value.
+// Horizontal alignment: which edge of the box the text is anchored to. Used for a text widget's value inside its content area and for a frame caption along its outer box.
 enum class TextAlignment : std::uint8_t {
   left,
   center,
@@ -205,11 +205,18 @@ struct WidgetBorder {
   std::uint16_t radius_px{};
 };
 
+// The caption on a widget's frame. It is anchored to an edge of the
+// widget's outer box, moved from there by the offsets, and it cuts the
+// frame line on whichever border it ends up crossing.
 struct WidgetTitleStyle {
   std::array<char, kWidgetTitleCapacity> text{};
   font_assets::FontSpec font{};
   std::uint32_t color{0xE8E8E8};
+  TextAlignment alignment{TextAlignment::center};
+  std::int16_t offset_x_px{};
   std::int16_t offset_y_px{};
+  bool border_gap{true};
+  std::uint16_t gap_padding_px{4};
 };
 
 struct WidgetValueStyle {

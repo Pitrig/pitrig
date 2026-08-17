@@ -159,7 +159,10 @@ indicator divides its strip in whole pixels and leaves an unlit lamp
 transparent without an `off_color`; and a widget's own box clips its contents,
 so an overlong value is cut off here as it is on the board. The caption stays
 outside that clip because the device puts it on the parent, where it overhangs
-the top border.
+the frame; it is placed by the same rule the device uses — anchored to an edge
+of the widget's outer box, moved by the offsets, with the border line cut on
+whichever band its padded box crosses — including the same whole-pixel
+truncation, so the cut lands on the same pixels in both.
 
 Text and images are drawn with the uploaded assets themselves. The configurator
 keeps a copy of every face and every converted bitmap it installs, so the canvas

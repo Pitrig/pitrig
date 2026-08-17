@@ -1,5 +1,5 @@
 import type { FramedWidget } from './types'
-import { COLOR_RAMP_TARGET_VALUES, CONDITION_OPERATOR_VALUES, type ColorRampTarget, type ColorStop, type ConditionOperator, GRADIENT_DIRECTION_VALUES, type GradientDirection, MAXIMUM_COLOR_STOPS, MAXIMUM_WIDGET_CONDITIONS, type WidgetCondition } from '../../../../../shared/configuration-schema'
+import { COLOR_RAMP_TARGET_VALUES, CONDITION_OPERATOR_VALUES, type ColorRampTarget, type ColorStop, type ConditionOperator, GRADIENT_DIRECTION_VALUES, type GradientDirection, MAXIMUM_COLOR_STOPS, MAXIMUM_WIDGET_CONDITIONS, TEXT_ALIGNMENT_VALUES, type TextAlignment, type WidgetCondition, type WidgetTitleStyle } from '../../../../../shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '../../../../../shared/telemetry-catalog'
 import { BOOLEAN_OPERATORS, MAXIMUM_BLINK_MS, MAXIMUM_HOLD_MS, MINIMUM_BLINK_MS } from '../../../../../shared/widget-conditions'
 import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily } from '../dashboard-editor'
@@ -11,9 +11,11 @@ export function TitleEditor({ widget, update }: {
   widget: FramedWidget
   update: (mutation: (next: FramedWidget) => void) => void
 }): React.JSX.Element {
+  const borderWidth = widget.border?.width_px ?? 0
+  const borderGap = widget.title?.border_gap ?? true
   return (
     <Section title="Title">
-      <p className="text-muted-foreground">The caption breaks the top border, which is what gives a panel its label.</p>
+      <p className="text-muted-foreground">The caption is anchored to an edge of the widget&apos;s box and moved from there by the offsets. It cuts the border line wherever it crosses one, which is what gives a panel its label.</p>
       {/* A caption needs a font the moment it has text, and the device rejects
           the whole document over a fontless one. The first family the dashboard
           already uses is one the board is being asked for anyway, so adopting it
@@ -27,7 +29,46 @@ export function TitleEditor({ widget, update }: {
             }
         next.title = { ...next.title, text: value, ...(value ? { font } : {}) }
       })} />
-      {widget.title?.text ? <><FontEditor font={widget.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} /><ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} /><NumberField label="Y offset" value={widget.title.offset_y_px ?? 0} onChange={(value) => update((next) => { next.title = { ...next.title, offset_y_px: value } })} /></> : null}
+      {/* Every control below writes its property only when it differs from the
+          device's own default, so a caption that sits where captions have always
+          sat still costs one `text` and one `font` in the document. */}
+      {widget.title?.text ? (
+        <>
+          <FontEditor font={widget.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} />
+          <ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} />
+          <SelectField label="Alignment" value={widget.title.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} onChange={(value) => update((next) => {
+            const title: WidgetTitleStyle = { ...next.title, alignment: value as TextAlignment }
+            if (title.alignment === 'center') delete title.alignment
+            next.title = title
+          })} />
+          <div className="grid grid-cols-2 gap-2">
+            <NumberField label="X offset" value={widget.title.offset_x_px ?? 0} onChange={(value) => update((next) => {
+              const title: WidgetTitleStyle = { ...next.title, offset_x_px: value }
+              if (value === 0) delete title.offset_x_px
+              next.title = title
+            })} />
+            <NumberField label="Y offset" value={widget.title.offset_y_px ?? 0} onChange={(value) => update((next) => { next.title = { ...next.title, offset_y_px: value } })} />
+          </div>
+          <CheckboxField label="Cut border" checked={borderGap} onChange={(checked) => update((next) => {
+            const title: WidgetTitleStyle = { ...next.title, border_gap: checked }
+            if (checked) delete title.border_gap
+            next.title = title
+          })} />
+          {borderWidth > 0 && borderGap ? (
+            <>
+              <NumberField label="Gap padding" value={widget.title.gap_padding_px ?? 4} min={0} max={240} onChange={(value) => update((next) => {
+                const padding = Math.max(0, Math.round(value))
+                const title: WidgetTitleStyle = { ...next.title, gap_padding_px: padding }
+                if (padding === 4) delete title.gap_padding_px
+                next.title = title
+              })} />
+              {(widget.border?.radius_px ?? 0) > 0 && (widget.title.alignment ?? 'center') !== 'center' ? (
+                <Hint>The cut is a straight band, so a caption pushed into a rounded corner takes a bite out of it. Offset it by about the radius plus the border width to clear the curve.</Hint>
+              ) : null}
+            </>
+          ) : null}
+        </>
+      ) : null}
     </Section>
   )
 }
