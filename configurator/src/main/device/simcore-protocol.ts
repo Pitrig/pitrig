@@ -11,6 +11,7 @@ import {
   type FontAssetDeviceInfo,
   type SimCoreBoardId
 } from '../../shared/device'
+import { describeDeviceError } from '../../shared/device-error-message'
 import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES } from '../../shared/font-assets'
 import {
   IMAGE_ID_PATTERN,
@@ -201,7 +202,7 @@ export function requestResponse(
         finish(
           new DeviceServiceError(
             rejectionCode,
-            `SimCore rejected the request: ${deviceError.slice('@SC:ERR:'.length)}`
+            describeDeviceError(deviceError.slice('@SC:ERR:'.length))
           )
         )
       }

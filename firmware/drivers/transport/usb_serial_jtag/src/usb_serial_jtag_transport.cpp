@@ -46,16 +46,11 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
     return false;
   }
 
-  if (configuration_.silence_esp_logs) {
-    previous_log_output_ = esp_log_set_vprintf(&discard_log_output);
-  }
-
   usb_serial_jtag_driver_config_t driver_configuration{
       .tx_buffer_size = kDriverTxBufferSize,
       .rx_buffer_size = kDriverRxBufferSize,
   };
   if (usb_serial_jtag_driver_install(&driver_configuration) != ESP_OK) {
-    restore_log_output();
     vSemaphoreDelete(stopped_);
     stopped_ = nullptr;
     return false;
@@ -81,7 +76,6 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
     ESP_ERROR_CHECK_WITHOUT_ABORT(usb_serial_jtag_driver_uninstall());
     handler_ = nullptr;
     handler_context_ = nullptr;
-    restore_log_output();
     vSemaphoreDelete(stopped_);
     stopped_ = nullptr;
     return false;
@@ -90,7 +84,13 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
   performance::register_task(performance::TaskMetric::transport, task_);
 #endif
 
+  // Logged before the silencing below, not after: this line is the only
+  // confirmation that the link came up, and silencing first sends it nowhere —
+  // which leaves a build that looks identical to one without the link at all.
   ESP_LOGI(kTag, "USB Serial/JTAG telemetry transport started");
+  if (configuration_.silence_esp_logs) {
+    previous_log_output_ = esp_log_set_vprintf(&discard_log_output);
+  }
   return true;
 }
 

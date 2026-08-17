@@ -40,11 +40,11 @@ export function App(): React.JSX.Element {
       <main className="grid min-h-0 overflow-hidden grid-cols-[21rem_minmax(0,1fr)_20rem]">
         <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-r p-3">
           <ConfigurationPanel key={`configuration-${connectionRevision}`} />
-          <SimHubProfilePanel key={`simhub-${connectionRevision}`} />
           <div className="mt-3 space-y-3">
             <FontAssetsPanel key={`fonts-${connectionRevision}`} />
             <ImageAssetsPanel key={`images-${connectionRevision}`} />
           </div>
+          <SimHubProfilePanel key={`simhub-${connectionRevision}`} />
           <DeviceInfo session={deviceSession} />
         </aside>
 

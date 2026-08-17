@@ -5,7 +5,7 @@ import { type ResolvedStyle } from '../../../../../shared/widget-style'
 import { completePlacement } from '../dashboard-editor'
 import { usePreviewAssetStore } from '../preview-assets'
 import { type Placement, markupId } from './canvas-geometry'
-import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR, type FramedWidgetConfiguration, SCREEN_BACKGROUND } from './preview-theme'
+import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR, type FramedWidgetConfiguration } from './preview-theme'
 import { backgroundRect, contentArea, gradientPaint } from './preview-geometry-paint'
 import { type PreviewValues, fontMetrics, lvglCenterOffset, normalizeColor, resolvedFont } from './preview-values'
 
@@ -243,9 +243,12 @@ export function ImagePreview({
 // A caption belongs to the frame, so it is drawn the same way for every type
 // that has one: over a gap in the top border.
 export function CaptionPreview({
-  configuration
+  configuration,
+  behind
 }: {
   configuration: FramedWidgetConfiguration
+  /** What is painted behind the widget, which is what the mask falls back to. */
+  behind: string
 }): React.JSX.Element | null {
   const uploadedFamilies = usePreviewAssetStore((state) => state.fonts)
   const placement = completePlacement(configuration.placement)
@@ -256,6 +259,14 @@ export function CaptionPreview({
   const borderWidth = configuration.border?.width_px ?? 0
   const background = normalizeColor(configuration.background_color)
   const inset = configuration.background_inset_px ?? 0
+  // A widget only covers its own frame line when it fills the container: a
+  // transparent colour paints nothing, and an inset background paints an inner
+  // rect that leaves the line standing on whatever is behind the widget. The
+  // device resolves that by walking up to the first ancestor that paints
+  // (widget_frame.cpp: background_behind), and a group paints nothing, so the
+  // screen is what shows through.
+  const paintsContainer = background !== undefined && background !== 'transparent' && inset === 0
+  const maskFill = paintsContainer ? background : behind
   // The caption straddles the top border: the device puts the label's top half
   // a line height above the box's edge and masks the border line behind it.
   const labelTop =
@@ -270,7 +281,7 @@ export function CaptionPreview({
           y={placement.y}
           width={metrics.width + 8}
           height={borderWidth + 2}
-          fill={background && inset === 0 ? background : SCREEN_BACKGROUND}
+          fill={maskFill}
         />
       ) : null}
       <text

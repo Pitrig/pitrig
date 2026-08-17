@@ -1,6 +1,7 @@
 import type { SerialPort } from 'serialport'
 
 import type { AssetUploadProgress } from '../../shared/asset-upload'
+import { describeDeviceError } from '../../shared/device-error-message'
 import { crc32 } from './asset-crc'
 
 // The binary upload protocol, which is the same for every asset kind: SCF1
@@ -193,7 +194,11 @@ function exchangeLine(
       }
       const deviceError = lines.find((line) => line.startsWith('@SC:ERR:'))
       if (deviceError) {
-        finish(new DeviceRejectedUploadError(`SimCore rejected the upload: ${deviceError}`))
+        finish(
+          new DeviceRejectedUploadError(
+            describeDeviceError(deviceError.slice('@SC:ERR:'.length))
+          )
+        )
       }
     }
     const onError = (error: Error): void => finish(error)

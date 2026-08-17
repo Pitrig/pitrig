@@ -59,6 +59,25 @@
       }
     },
     {
+      "label": "SimCore: Build Guition JC1060P470C (Second Link)",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${config:idf.currentSetup}/export.sh\" >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-second-link && idf.py -B build-jc1060p470c-second-link -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-second-link -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.second-link\" build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/firmware"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
       "label": "SimCore: Build T-Display-S3 Debug",
       "type": "shell",
       "command": "/bin/zsh",
@@ -145,7 +164,8 @@
         "build-guition",
         "build-guition-debug",
         "build-jc1060p470c",
-        "build-jc1060p470c-debug"
+        "build-jc1060p470c-debug",
+        "build-jc1060p470c-second-link"
       ],
       "default": "build-jc1060p470c-debug"
     }

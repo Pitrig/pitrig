@@ -689,6 +689,20 @@ def generate_typescript(document: dict[str, Any]) -> str:
         )
         lines.append("")
 
+    error_names = [entry["name"] for entry in document["validation_errors"]]
+    lines.append(
+        "/** Reason token a device puts after `@SC:ERR:` when it rejects a document. */"
+    )
+    lines.append(
+        "export type ValidationErrorToken = "
+        + " | ".join(f"'{name}'" for name in error_names)
+    )
+    lines.append(
+        "export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = "
+        f"[{', '.join(chr(39) + name + chr(39) for name in error_names)}]"
+    )
+    lines.append("")
+
     externals = document.get("external_types", {})
     if "FontSpec" in externals:
         lines.extend(

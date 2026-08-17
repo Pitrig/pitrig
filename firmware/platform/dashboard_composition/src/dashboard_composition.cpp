@@ -138,6 +138,31 @@ std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
   return attached;
 }
 
+// Whether this widget's caption mask takes its colour from one of the screens
+// in `recoloured`, and so has to be rebuilt for that colour to reach it.
+//
+// The conditions mirror build_caption() in widget_frame.cpp: the mask object
+// exists only for a captioned widget with a border, and it copies the widget's
+// own background only when the container itself paints it — a transparent
+// colour paints nothing, and an inset background leaves the frame line standing
+// on the parent. Every other case resolves the colour behind the widget, which
+// a group never paints, so the screen is what shows through.
+[[nodiscard]] bool caption_masks_screen(
+    const configuration::WidgetFrame* const frame,
+    const std::uint32_t recoloured) {
+  if (frame == nullptr || frame->title.text.front() == '\0' ||
+      frame->border.width_px == 0) {
+    return false;
+  }
+  const bool paints_container =
+      frame->background_color != configuration::kTransparentColor &&
+      frame->background_inset_px == 0;
+  if (paints_container) {
+    return false;
+  }
+  return (recoloured & (1U << frame->screen_index)) != 0;
+}
+
 }  // namespace
 
 bool show_startup_screen(
@@ -280,6 +305,10 @@ bool apply_incremental(
     storage->dashboard = &after;
   }
 
+  // One bit per screen, and a document holds at most kMaximumScreens of them.
+  std::uint32_t recoloured_screens = 0;
+  static_assert(configuration::kMaximumScreens <= 32,
+                "The recoloured-screen set is one bit per screen");
   for (std::size_t index = 0; index < after.screen_count; ++index) {
     if (before.screens[index].background_color ==
         after.screens[index].background_color) {
@@ -292,6 +321,7 @@ bool apply_incremental(
         dashboard.screens[index],
         lv_color_hex(after.screens[index].background_color), LV_PART_MAIN);
     lvgl_port_unlock();
+    recoloured_screens |= 1U << index;
   }
 
   // Walking the pool rather than the reference tables compares each widget
@@ -306,8 +336,15 @@ bool apply_incremental(
     for (std::uint8_t index = 0; index < count; ++index) {
       const std::span<const std::byte> left = traits.element_bytes(before, index);
       const std::span<const std::byte> right = traits.element_bytes(after, index);
-      if (left.size() == right.size() &&
-          std::memcmp(left.data(), right.data(), left.size()) == 0) {
+      const bool changed =
+          left.size() != right.size() ||
+          std::memcmp(left.data(), right.data(), left.size()) != 0;
+      // A caption mask resolves the colour behind the widget when the widget is
+      // built, so a screen that changes colour leaves every mask standing on it
+      // holding the old one. The widget's own bytes did not change, so the
+      // compare above cannot see it; rebuilding is what re-runs the resolution.
+      if (!changed &&
+          !caption_masks_screen(traits.frame(after, index), recoloured_screens)) {
         continue;
       }
       if (!dashboard.widgets.update_instance(traits.type, index)) {

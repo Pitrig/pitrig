@@ -505,7 +505,7 @@ export function Widgets({
                 <TextWidgetPreview configuration={layer.configuration} values={values} />
               )}
             </g>
-            <CaptionPreview configuration={layer.configuration} />
+            <CaptionPreview configuration={layer.configuration} behind={screenBackground} />
             {id && locked[id] ? null : (
               <HitArea placement={completePlacement(layer.configuration.placement)} />
             )}

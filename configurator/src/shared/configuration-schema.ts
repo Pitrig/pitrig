@@ -107,6 +107,10 @@ export const SHAPE_KIND_VALUES: readonly ShapeKind[] = ['rectangle', 'ellipse']
 export type WidgetType = 'text' | 'shape' | 'bar' | 'arc' | 'indicator' | 'graph' | 'image'
 export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'arc', 'indicator', 'graph', 'image']
 
+/** Reason token a device puts after `@SC:ERR:` when it rejects a document. */
+export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_group' | 'invalid_dashboard' | 'invalid_widget' | 'unknown_property' | 'duplicate_property'
+export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_group', 'invalid_dashboard', 'invalid_widget', 'unknown_property', 'duplicate_property']
+
 export interface FontSpec {
   family?: string
   size_px?: number
