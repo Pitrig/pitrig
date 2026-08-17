@@ -151,6 +151,27 @@ pause and scrubbing, plus a separate "no data" mode for checking
 from-zero rounding, so the preview shows the same strings the board does.
 Conditional rules and the colour ramp are evaluated there as well.
 
+Geometry mirrors it too. Every widget type draws into the container's **content
+area** — the placement less the border and the padding — the way LVGL positions
+a child; the shared frame (background, inset background, gradient, border) is
+drawn for every type rather than only the ones that started with it; the
+indicator divides its strip in whole pixels and leaves an unlit lamp
+transparent without an `off_color`; and a widget's own box clips its contents,
+so an overlong value is cut off here as it is on the board. The caption stays
+outside that clip because the device puts it on the parent, where it overhangs
+the top border.
+
+Text and images are drawn with the uploaded assets themselves. The configurator
+keeps a copy of every face and every converted bitmap it installs, so the canvas
+measures strings with the face the board rasterizes and lays the label out the
+way LVGL does — sized to its text, centred in whole pixels, drawn from its
+baseline — and an `image` widget shows its bitmap, already resized and already
+reduced to its colour format, centred at its own size. What remains is the
+rasterizer: the browser hints and antialiases differently from LVGL's TinyTTF,
+so the preview matches the board's layout rather than its pixels. An asset
+uploaded from another machine has no local copy, and falls back to a stand-in
+face and a named box.
+
 Live telemetry from the game does not exist and is not planned: `@SC:` has no
 command for reading values, and while a session is running the port belongs to
 SimHub.

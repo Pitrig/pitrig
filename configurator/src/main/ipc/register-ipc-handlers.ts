@@ -60,6 +60,8 @@ import {
   IMAGE_UPLOAD_PROGRESS_CHANNEL,
   type ImageUploadRequest
 } from '../../shared/image-assets'
+import { PREVIEW_ASSETS_READ_CHANNEL } from '../../shared/preview-assets'
+import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 
 export function registerIpcHandlers(
@@ -67,7 +69,8 @@ export function registerIpcHandlers(
   fontAssetService: FontAssetService,
   imageAssetService: ImageAssetService,
   simHubProfileService: SimHubProfileService,
-  configurationFileService: ConfigurationFileService
+  configurationFileService: ConfigurationFileService,
+  previewAssetCache: PreviewAssetCache
 ): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
@@ -116,7 +119,13 @@ export function registerIpcHandlers(
     fontAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
   )
   ipcMain.handle(FONT_CANCEL_UPLOAD_CHANNEL, () => fontAssetService.cancel())
-  ipcMain.handle(FONT_CLEAR_CHANNEL, () => deviceService.clearFonts())
+  // The cache stands for what the board holds, so it is emptied with it rather
+  // than left describing faces the device no longer has.
+  ipcMain.handle(FONT_CLEAR_CHANNEL, async () => {
+    const result = await deviceService.clearFonts()
+    if (result.ok) await previewAssetCache.clearFonts().catch(() => undefined)
+    return result
+  })
   ipcMain.handle(FONT_UPLOAD_CHANNEL, (_event, request: unknown) => {
     if (!isFontUploadRequest(request)) {
       const result: FontAssetResult<void> = {
@@ -131,7 +140,12 @@ export function registerIpcHandlers(
     imageAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
   )
   ipcMain.handle(IMAGE_CANCEL_UPLOAD_CHANNEL, () => imageAssetService.cancel())
-  ipcMain.handle(IMAGE_CLEAR_CHANNEL, () => deviceService.clearImages())
+  ipcMain.handle(IMAGE_CLEAR_CHANNEL, async () => {
+    const result = await deviceService.clearImages()
+    if (result.ok) await previewAssetCache.clearImages().catch(() => undefined)
+    return result
+  })
+  ipcMain.handle(PREVIEW_ASSETS_READ_CHANNEL, () => previewAssetCache.read())
   ipcMain.handle(IMAGE_UPLOAD_CHANNEL, (_event, request: unknown) => {
     if (!isImageUploadRequest(request)) {
       const result: AssetResult<void> = {

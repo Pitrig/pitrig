@@ -12,6 +12,7 @@ import {
   type FontUploadProgress,
   type FontUploadRequest
 } from '../../shared/font-assets'
+import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
 import { buildFontPackage, type FontFamilyAsset } from './font-package'
 
@@ -25,7 +26,8 @@ export class FontAssetService {
 
   constructor(
     private readonly deviceService: DeviceService,
-    private readonly onProgress: (progress: FontUploadProgress) => void
+    private readonly onProgress: (progress: FontUploadProgress) => void,
+    private readonly previewAssets: PreviewAssetCache
   ) {}
 
   async selectSource(owner?: BrowserWindow): Promise<FontAssetResult<FontSourceSelection | null>> {
@@ -118,6 +120,10 @@ export class FontAssetService {
         throw new Error('The connected device changed while the package was built.')
       }
       await this.deviceService.uploadFonts(packageBytes, this.onProgress, operation.signal)
+      // The board keeps no readable copy of a face, so this is the only chance
+      // to keep one for the preview. A cache write that fails costs fidelity,
+      // never the upload that already succeeded.
+      await this.previewAssets.storeFonts(faces).catch(() => undefined)
       this.onProgress({
         stage: 'completed',
         completed: packageBytes.byteLength,

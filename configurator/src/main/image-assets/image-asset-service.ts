@@ -9,6 +9,7 @@ import {
   type ImageSourceSelection,
   type ImageUploadRequest
 } from '../../shared/image-assets'
+import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
 import { buildImagePackage, convertImage, type ConvertedImage } from './image-package'
 
@@ -29,7 +30,8 @@ export class ImageAssetService {
 
   constructor(
     private readonly deviceService: DeviceService,
-    private readonly onProgress: (progress: AssetUploadProgress) => void
+    private readonly onProgress: (progress: AssetUploadProgress) => void,
+    private readonly previewAssets: PreviewAssetCache
   ) {}
 
   async selectSource(owner?: BrowserWindow): Promise<AssetResult<ImageSourceSelection | null>> {
@@ -122,6 +124,9 @@ export class ImageAssetService {
         return failure('device_error', 'The connected device changed during the upload.')
       }
       await this.deviceService.uploadImages(packageBytes, this.onProgress, operation.signal)
+      // The converted pixels are what the board now holds, and nothing reads
+      // them back off it, so the preview's copy is taken here.
+      await this.previewAssets.storeImages(converted).catch(() => undefined)
       this.onProgress({
         stage: 'completed',
         completed: packageBytes.byteLength,

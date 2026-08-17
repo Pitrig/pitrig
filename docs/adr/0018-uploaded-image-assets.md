@@ -93,3 +93,10 @@ while the running dashboard is still intact.
   is told so rather than corrupting the first.
 - The performance overlay reports one upload-task line for both controls, since
   only one of them can be working.
+- The converted pixels are unreachable once uploaded — the device sends nothing
+  back and the picked source is gone with the session — so the configurator
+  keeps its own copy of them for the editor's preview, under the asset cache
+  decided in
+  [ADR 0010](0010-uploaded-font-assets.md#amendment-the-configurator-keeps-a-copy-of-what-it-installs).
+  The preview draws the converted image, so RGB565 banding shows there rather
+  than first on the board.

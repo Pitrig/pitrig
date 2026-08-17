@@ -10,6 +10,7 @@ import {
   broadcastImageUploadProgress,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
+import { PreviewAssetCache } from './assets/preview-asset-cache'
 import { FontAssetService } from './font-assets/font-asset-service'
 import { ImageAssetService } from './image-assets/image-asset-service'
 import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
@@ -19,8 +20,20 @@ const deviceService = new DeviceService(
   broadcastDeviceState,
   isDevelopment ? broadcastDevelopmentSerialTraffic : undefined
 )
-const fontAssetService = new FontAssetService(deviceService, broadcastFontUploadProgress)
-const imageAssetService = new ImageAssetService(deviceService, broadcastImageUploadProgress)
+// Outside the app's own state, because it mirrors what a board holds rather
+// than anything the user authored: deleting it costs the preview its fidelity
+// until the next upload, and nothing else.
+const previewAssetCache = new PreviewAssetCache(join(app.getPath('userData'), 'preview-assets'))
+const fontAssetService = new FontAssetService(
+  deviceService,
+  broadcastFontUploadProgress,
+  previewAssetCache
+)
+const imageAssetService = new ImageAssetService(
+  deviceService,
+  broadcastImageUploadProgress,
+  previewAssetCache
+)
 const simHubProfileService = new SimHubProfileService()
 const configurationFileService = new ConfigurationFileService()
 let quitAfterDeviceCleanup = false
@@ -57,7 +70,8 @@ app.whenReady().then(() => {
     fontAssetService,
     imageAssetService,
     simHubProfileService,
-    configurationFileService
+    configurationFileService,
+    previewAssetCache
   )
   createWindow()
 

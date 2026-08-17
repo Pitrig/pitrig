@@ -43,6 +43,7 @@ import {
   APP_GET_INFO_CHANNEL,
   type SimCoreApi
 } from '../shared/ipc'
+import { PREVIEW_ASSETS_READ_CHANNEL } from '../shared/preview-assets'
 import { SIMHUB_PROFILE_EXPORT_CHANNEL } from '../shared/simhub-profile'
 
 const api: SimCoreApi = {
@@ -71,6 +72,7 @@ const api: SimCoreApi = {
   uploadImageAssets: (request) => ipcRenderer.invoke(IMAGE_UPLOAD_CHANNEL, request),
   cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),
   clearImageAssets: () => ipcRenderer.invoke(IMAGE_CLEAR_CHANNEL),
+  readPreviewAssets: () => ipcRenderer.invoke(PREVIEW_ASSETS_READ_CHANNEL),
   exportSimHubProfile: (request) =>
     ipcRenderer.invoke(SIMHUB_PROFILE_EXPORT_CHANNEL, request),
   onFontUploadProgress: (listener) => {

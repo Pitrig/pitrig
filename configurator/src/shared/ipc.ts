@@ -17,6 +17,7 @@ import type {
   FontUploadRequest
 } from './font-assets'
 import type { SerialTrafficLog } from './development'
+import type { PreviewAssets } from './preview-assets'
 import type {
   ConfigurationFileLoadValue,
   ConfigurationFileResult,
@@ -68,6 +69,8 @@ export interface SimCoreApi {
   uploadImageAssets: (request: ImageUploadRequest) => Promise<AssetResult<void>>
   cancelImageUpload: () => Promise<AssetResult<void>>
   clearImageAssets: () => Promise<DeviceResult<DeviceState>>
+  /** The uploaded faces and converted bitmaps the canvas draws with. */
+  readPreviewAssets: () => Promise<PreviewAssets>
   exportSimHubProfile: (
     request: SimHubProfileExportRequest
   ) => Promise<SimHubProfileResult<SimHubProfileExportValue>>

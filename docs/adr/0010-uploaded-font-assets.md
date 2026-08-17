@@ -143,3 +143,45 @@ takes a claim, synchronously on the task that reads the bytes, inside its
 `BEGIN` handler, and answers `busy` when another kind holds it. Storage moved to
 the shared `asset_storage` contract at the same time; the font package format
 and everything above it are unchanged.
+
+## Amendment: the configurator keeps a copy of what it installs
+
+This ADR moved rasterization onto the board and left the configurator with no
+converter — which also left it with nothing to draw with. A face is uploaded and
+then unreachable: the device rasterizes it and exposes only family names, and
+the picked source file is a path held in memory for the length of one session.
+The editor's preview therefore drew every dashboard in a stand-in system face,
+so string widths, line heights and the caption's gap in the border were
+approximations of the board's, and the same gap applied to images under
+[ADR 0018](0018-uploaded-image-assets.md), which are converted in the
+configurator and then equally unreachable.
+
+**Decision.** The configurator writes a copy of every asset it installs to a
+cache under the app's `userData` directory — the face bytes unchanged, and each
+image re-encoded from the *converted* pixels so the preview carries the resize
+and the colour reduction the upload applied. The renderer registers each face as
+a `FontFace` and measures text with it, so the canvas lays out from the same
+metrics the board does.
+
+The cache mirrors a device package rather than anything the author wrote, so:
+
+- it is replaced whole on upload and emptied on clear, exactly as the package
+  it stands for;
+- nothing depends on it. A missing, stale or unreadable entry costs the preview
+  its fidelity and falls back to the stand-in font and the named image box —
+  never the upload, the document, or validation;
+- it stays out of the saved project. A project is a sparse configuration
+  document, and binding megabytes of asset to it is a separate decision about
+  the project format that this does not take.
+
+**Consequences.**
+
+- Preview fidelity survives restarts and works with no board connected, but only
+  for assets *this* installation uploaded. Opening someone else's project, or
+  one authored on another machine, still draws in the stand-in face until its
+  fonts are uploaded here.
+- Glyph rasterization still differs: the browser and LVGL's TinyTTF hint and
+  antialias differently, so the preview matches the board's layout, not its
+  pixels.
+- Font bytes cross to the renderer as bytes rather than as a `data:` URL, so the
+  renderer's content policy keeps `data:` for images alone.

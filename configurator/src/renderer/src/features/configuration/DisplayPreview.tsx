@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,16 +37,20 @@ import type {
   WidgetAction,
   ImageWidgetConfiguration,
   BarWidgetConfiguration,
+  GradientDirection,
   GraphWidgetConfiguration,
   IndicatorWidgetConfiguration,
   FontSpec,
   ShapeWidgetConfiguration,
   TextWidgetConfiguration,
-  WidgetConfiguration
+  WidgetConfiguration,
+  WidgetInsets
 } from '../../../../shared/configuration-schema'
 import type { DeviceConfiguration, DisplayDescriptor } from '../../../../shared/device'
 import { BOARD_PROFILES } from '../../../../shared/device'
 import type { PreviewPlayback, PreviewValueMode } from './dashboard-editor'
+import { previewFontFamily, usePreviewAssetStore } from './preview-assets'
+import { measureGlyphs, type GlyphMetrics } from './text-metrics'
 import {
   absolutePlacement,
   addScreen,
@@ -102,6 +106,18 @@ export function DisplayPreview(): React.JSX.Element {
     : session?.info.display
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
+  // The cached faces and bitmaps change only when a package is installed or
+  // cleared, which is exactly when the board starts reporting a different set
+  // of them. Reading them at all is what lets the canvas draw with the font the
+  // board rasterizes instead of a stand-in.
+  const refreshPreviewAssets = usePreviewAssetStore((state) => state.refresh)
+  const installedAssets = [
+    ...(session?.fontAssets?.families ?? []),
+    ...(session?.imageAssets?.images ?? []).map((image) => image.name)
+  ].join(' ')
+  useEffect(() => {
+    void refreshPreviewAssets()
+  }, [refreshPreviewAssets, installedAssets])
   const canUndo = useDeviceStore((state) => state.past.length > 0)
   const canRedo = useDeviceStore((state) => state.future.length > 0)
   const undo = useDeviceStore((state) => state.undo)
@@ -773,6 +789,7 @@ function Widgets({
     ...groups.map((group, index) => ({
       kind: 'group' as const,
       group,
+      groupIndex: index,
       zIndex: group.z_index ?? 0,
       configurationOrder: screenWidgets.length + index
     }))
@@ -800,7 +817,8 @@ function Widgets({
         configurationOrder: index,
         offsetX: box?.x ?? 0,
         offsetY: box?.y ?? 0,
-        group: entry.group
+        group: entry.group,
+        groupIndex: entry.groupIndex
       }))
     members.sort((left, right) =>
       left.zIndex - right.zIndex || left.configurationOrder - right.configurationOrder
@@ -888,7 +906,7 @@ function Widgets({
           </g>
         )
       })}
-      {groups.map((group) => {
+      {groups.map((group, index) => {
         const box = completePlacement(group.placement)
         // The clip is resolved in the coordinate system of the element that
         // references it, and that element already carries the group's
@@ -896,40 +914,57 @@ function Widgets({
         // position on the display. Using display coordinates here shifts the
         // clip by the offset a second time and hides the group's contents.
         return box ? (
-          <clipPath key={`clip-${group.id}`} id={`group-clip-${group.id}`}>
+          <clipPath key={`clip-${group.id}`} id={groupClipId(index)}>
             <rect x={0} y={0} width={box.width} height={box.height} />
           </clipPath>
         ) : null
       })}
-      {layers.map((layer) => {
+      {layers.map((layer, layerIndex) => {
         const id = layer.configuration.id
         if (id && hidden[id]) return null
         const grouped = layer.group !== undefined
+        // The widget's own box clips its contents, exactly as its LVGL
+        // container does — a value wider than its widget is cut off on the
+        // board rather than spilling over its neighbours. The caption is left
+        // out of it because the device puts it on the parent, so it may
+        // overhang the top border.
+        const box = completePlacement(layer.configuration.placement)
         return (
           <g
             key={id ?? layer.configurationOrder}
             transform={grouped ? `translate(${layer.offsetX} ${layer.offsetY})` : undefined}
-            clipPath={grouped ? `url(#group-clip-${layer.group?.id})` : undefined}
+            clipPath={
+              grouped && layer.groupIndex !== undefined
+                ? `url(#${groupClipId(layer.groupIndex)})`
+                : undefined
+            }
             onPointerDown={(event) => {
             const placement = id ? absolutePlacement(configuration, id) : undefined
             if (!placement || !id || locked[id]) return
             beginInteraction(event, { type: 'widget', id }, 'move', placement)
           }}>
-            {layer.configuration.type === 'bar' ? (
-              <BarPreview configuration={layer.configuration} values={values} />
-            ) : layer.configuration.type === 'arc' ? (
-              <ArcPreview configuration={layer.configuration} values={values} />
-            ) : layer.configuration.type === 'indicator' ? (
-              <IndicatorPreview configuration={layer.configuration} values={values} />
-            ) : layer.configuration.type === 'graph' ? (
-              <GraphPreview configuration={layer.configuration} values={values} />
-            ) : layer.configuration.type === 'image' ? (
-              <ImagePreview configuration={layer.configuration} values={values} />
-            ) : layer.configuration.type === 'shape' ? (
-              <ShapePreview configuration={layer.configuration} values={values} />
-            ) : (
-              <TextWidgetPreview configuration={layer.configuration} values={values} />
-            )}
+            {box ? (
+              <clipPath id={widgetClipId(layerIndex)}>
+                <rect {...box} />
+              </clipPath>
+            ) : null}
+            <g clipPath={box ? `url(#${widgetClipId(layerIndex)})` : undefined}>
+              {layer.configuration.type === 'bar' ? (
+                <BarPreview configuration={layer.configuration} values={values} />
+              ) : layer.configuration.type === 'arc' ? (
+                <ArcPreview configuration={layer.configuration} values={values} />
+              ) : layer.configuration.type === 'indicator' ? (
+                <IndicatorPreview configuration={layer.configuration} values={values} />
+              ) : layer.configuration.type === 'graph' ? (
+                <GraphPreview configuration={layer.configuration} values={values} />
+              ) : layer.configuration.type === 'image' ? (
+                <ImagePreview configuration={layer.configuration} values={values} />
+              ) : layer.configuration.type === 'shape' ? (
+                <ShapePreview configuration={layer.configuration} values={values} />
+              ) : (
+                <TextWidgetPreview configuration={layer.configuration} values={values} />
+              )}
+            </g>
             <CaptionPreview configuration={layer.configuration} />
             {id && locked[id] ? null : (
               <HitArea placement={completePlacement(layer.configuration.placement)} />
@@ -1029,6 +1064,30 @@ interface PreviewLayer {
   offsetX: number
   offsetY: number
   group?: GroupConfiguration
+  /** Position of the owning group on its screen, which names its clip. */
+  groupIndex?: number
+}
+
+/**
+ * Fragment identifiers referenced from `url(#…)`. They are derived from
+ * positions rather than from ids because a widget or group id is author-
+ * supplied and bounded only in length — a space or a quote in one would produce
+ * markup that silently references nothing.
+ */
+function groupClipId(index: number): string {
+  return `group-clip-${index}`
+}
+
+function widgetClipId(index: number): string {
+  return `widget-clip-${index}`
+}
+
+/**
+ * React's generated ids carry punctuation of their own, which the same
+ * references cannot take either.
+ */
+function markupId(generated: string): string {
+  return generated.replace(/[^A-Za-z0-9_-]/g, '')
 }
 
 /**
@@ -1059,7 +1118,13 @@ function actionLabel(action: WidgetAction | undefined): string {
 // What a screen stacks: its own widgets, and each group as a single entry.
 type ScreenEntry =
   | { kind: 'widget'; widget: WidgetConfiguration; zIndex: number; configurationOrder: number }
-  | { kind: 'group'; group: GroupConfiguration; zIndex: number; configurationOrder: number }
+  | {
+      kind: 'group'
+      group: GroupConfiguration
+      groupIndex: number
+      zIndex: number
+      configurationOrder: number
+    }
 
 type ResizeMode = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 type InteractionMode = 'move' | ResizeMode
@@ -1344,6 +1409,143 @@ function createPreviewValues(
   }
 }
 
+/**
+ * The box a widget draws its content in. LVGL positions every child against the
+ * container's content area, which the border and the padding have already
+ * inset, so the canvas has to inset the same way — otherwise a bordered arc is
+ * drawn at its full placement here and one border narrower on the board.
+ */
+function contentArea(
+  placement: Placement,
+  border: number,
+  padding: WidgetInsets | undefined
+): Placement {
+  const left = padding?.left ?? 0
+  const top = padding?.top ?? 0
+  const right = padding?.right ?? 0
+  const bottom = padding?.bottom ?? 0
+  return {
+    x: placement.x + border + left,
+    y: placement.y + border + top,
+    width: Math.max(0, placement.width - 2 * border - left - right),
+    height: Math.max(0, placement.height - 2 * border - top - bottom)
+  }
+}
+
+/**
+ * Where a widget's own fill lands. An inset background cannot be the
+ * container's fill, which always reaches the border, so the device makes it a
+ * child sized to leave exactly `inset` of frame showing; without an inset it is
+ * the container itself and covers the whole box.
+ */
+function backgroundRect(
+  placement: Placement,
+  border: number,
+  radius: number,
+  inset: number
+): Placement & { rx: number } {
+  const edge = inset > 0 ? border + inset : 0
+  return {
+    x: placement.x + edge,
+    y: placement.y + edge,
+    width: Math.max(0, placement.width - 2 * edge),
+    height: Math.max(0, placement.height - 2 * edge),
+    rx: Math.max(0, radius - inset)
+  }
+}
+
+/**
+ * A linear gradient is two style properties on whichever object paints the
+ * fill, so it is drawn as one: the authored colour is the near stop — which is
+ * what a styling rule replaces — and the gradient colour is the far one.
+ */
+function GradientDefinition({
+  id,
+  from,
+  to,
+  direction
+}: {
+  id: string
+  from: string
+  to: string
+  direction: GradientDirection | undefined
+}): React.JSX.Element {
+  const horizontal = direction === 'horizontal'
+  return (
+    <linearGradient id={id} x1="0" y1="0" x2={horizontal ? '1' : '0'} y2={horizontal ? '0' : '1'}>
+      <stop offset="0%" stopColor={from} />
+      <stop offset="100%" stopColor={to} />
+    </linearGradient>
+  )
+}
+
+/** The paint for a fill that may carry a gradient, and the definition it needs. */
+function gradientPaint(
+  id: string,
+  color: string,
+  gradientColor: string | undefined
+): { paint: string; definition: boolean } {
+  const far = normalizeColor(gradientColor)
+  const gradient = far !== undefined && far !== 'transparent' && color !== 'transparent'
+  return { paint: gradient ? `url(#${id})` : color, definition: gradient }
+}
+
+/**
+ * The box every widget type carries: the fill the frame paints and the border
+ * drawn inside the bounds. The device applies both from the shared frame before
+ * a widget draws anything of its own, so this is drawn for every type — an arc
+ * with a background used to show one on the board and nothing here.
+ */
+function WidgetFrameShape({
+  placement,
+  configuration,
+  style,
+  radius
+}: {
+  placement: Placement
+  configuration: FramedWidgetConfiguration
+  style: ResolvedStyle
+  /** Half the shorter side for an ellipse; the authored corner otherwise. */
+  radius?: number
+}): React.JSX.Element {
+  const gradientId = markupId(useId())
+  const borderWidth = configuration.border?.width_px ?? 0
+  const corner = radius ?? configuration.border?.radius_px ?? 0
+  const background = normalizeColor(style.backgroundColor) ?? 'transparent'
+  const box = backgroundRect(
+    placement,
+    borderWidth,
+    corner,
+    configuration.background_inset_px ?? 0
+  )
+  const fill = gradientPaint(gradientId, background, configuration.background_grad_color)
+  return (
+    <>
+      {fill.definition ? (
+        <GradientDefinition
+          id={gradientId}
+          from={background}
+          to={configuration.background_grad_color as string}
+          direction={configuration.background_grad_dir}
+        />
+      ) : null}
+      {background !== 'transparent' ? <rect {...box} fill={fill.paint} /> : null}
+      {borderWidth > 0 ? (
+        <rect
+          x={placement.x + borderWidth / 2}
+          y={placement.y + borderWidth / 2}
+          width={placement.width - borderWidth}
+          height={placement.height - borderWidth}
+          rx={Math.max(0, corner - borderWidth / 2)}
+          fill="none"
+          stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
+          strokeWidth={borderWidth}
+        />
+      ) : null}
+    </>
+  )
+}
+
 function TextWidgetPreview({
   configuration,
   values
@@ -1351,77 +1553,50 @@ function TextWidgetPreview({
   configuration: TextWidgetConfiguration
   values: PreviewValues
 }): React.JSX.Element | null {
+  const uploadedFamilies = usePreviewAssetStore((state) => state.fonts)
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
 
   const borderWidth = configuration.border?.width_px ?? 0
-  const borderRadius = configuration.border?.radius_px ?? 0
-  // An inset background leaves the frame clear, so it starts inside the border.
-  const backgroundInset = configuration.background_inset_px ?? 0
-  const backgroundEdge = backgroundInset > 0 ? borderWidth + backgroundInset : 0
   const title = configuration.title?.text ?? ''
-  const titleFont = resolvedFont(configuration.title?.font, 10)
-  const valueFont = resolvedFont(configuration.value?.font, 48)
-  const padding = {
-    left: configuration.padding?.left ?? 0,
-    top: configuration.padding?.top ?? 0,
-    right: configuration.padding?.right ?? 0,
-    bottom: configuration.padding?.bottom ?? 0
-  }
-  const contentLeft = placement.x + borderWidth + padding.left
-  const contentRight = placement.x + placement.width - borderWidth - padding.right
-  const contentTop = placement.y + borderWidth + padding.top
-  const contentBottom = placement.y + placement.height - borderWidth - padding.bottom
+  const titleFont = resolvedFont(configuration.title?.font, 10, uploadedFamilies)
+  const valueFont = resolvedFont(configuration.value?.font, 48, uploadedFamilies)
+  const content = contentArea(placement, borderWidth, configuration.padding)
   const style = values.styleFor(configuration, {
     color: configuration.value?.color ?? DEFAULT_TEXT_COLOR,
     backgroundColor: configuration.background_color,
     borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
   })
   if (!style.visible) return null
-  const alignment = configuration.value?.alignment ?? 'center'
-  const valueX = alignment === 'left'
-    ? contentLeft
-    : alignment === 'right'
-      ? contentRight
-      : (contentLeft + contentRight) / 2
-  const valueAnchor = alignment === 'left' ? 'start' : alignment === 'right' ? 'end' : 'middle'
-  const valueY = (contentTop + contentBottom) / 2 + (title ? titleFont.sizePx / 4 : 0)
   const previewValue = composedText(configuration, values)
-  const backgroundColor = normalizeColor(style.backgroundColor) ?? 'transparent'
+
+  // The device sizes the label to its text and aligns that inside the content
+  // area, so the box the glyphs sit in is the string's own width by the font's
+  // line height — not the widget's box. Everything below places that label the
+  // way LVGL does, then draws from its baseline.
+  const metrics = fontMetrics(previewValue, valueFont)
+  const alignment = configuration.value?.alignment ?? 'center'
+  const valueX =
+    alignment === 'left'
+      ? content.x
+      : alignment === 'right'
+        ? content.x + content.width - metrics.width
+        : content.x + lvglCenterOffset(content.width, metrics.width)
+  // A titled widget pushes its value down by a quarter of the caption's line
+  // height, which is the room the caption takes out of the top of the box.
+  const titleDrop = title ? Math.trunc(fontMetrics(title, titleFont).lineHeight / 4) : 0
+  const labelTop = content.y + lvglCenterOffset(content.height, metrics.lineHeight) + titleDrop
 
   return (
     <g>
-      {backgroundColor !== 'transparent' ? (
-        <rect
-          x={placement.x + backgroundEdge}
-          y={placement.y + backgroundEdge}
-          width={Math.max(0, placement.width - 2 * backgroundEdge)}
-          height={Math.max(0, placement.height - 2 * backgroundEdge)}
-          rx={Math.max(0, borderRadius - backgroundInset)}
-          fill={backgroundColor}
-        />
-      ) : null}
-      {borderWidth > 0 ? (
-        <rect
-          x={placement.x + borderWidth / 2}
-          y={placement.y + borderWidth / 2}
-          width={placement.width - borderWidth}
-          height={placement.height - borderWidth}
-          rx={Math.max(0, borderRadius - borderWidth / 2)}
-          fill="none"
-          stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
-          strokeWidth={borderWidth}
-        />
-      ) : null}
+      <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
       <text
         x={valueX}
-        y={valueY}
+        y={labelTop + metrics.ascent}
         fill={style.color ?? DEFAULT_TEXT_COLOR}
         fontFamily={valueFont.family}
         fontSize={valueFont.sizePx}
         fontWeight={valueFont.weight}
-        textAnchor={valueAnchor}
-        dominantBaseline="middle"
       >
         {previewValue}
       </text>
@@ -1456,6 +1631,7 @@ function BarPreview({
   configuration: BarWidgetConfiguration
   values: PreviewValues
 }): React.JSX.Element | null {
+  const fillGradientId = markupId(useId())
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
   const style = values.styleFor(configuration, {
@@ -1465,17 +1641,11 @@ function BarPreview({
   })
   if (!style.visible) return null
   const borderWidth = configuration.border?.width_px ?? 0
-  const track = normalizeColor(style.backgroundColor) ?? 'transparent'
   const radius = configuration.border?.radius_px ?? 0
 
   // The same geometry the device fills with: the bar runs between its origin
   // and its value, so a signed window with a zero origin reads from the centre.
-  const inner = {
-    x: placement.x + borderWidth + (configuration.padding?.left ?? 0),
-    y: placement.y + borderWidth + (configuration.padding?.top ?? 0),
-    width: Math.max(0, placement.width - 2 * borderWidth - (configuration.padding?.left ?? 0) - (configuration.padding?.right ?? 0)),
-    height: Math.max(0, placement.height - 2 * borderWidth - (configuration.padding?.top ?? 0) - (configuration.padding?.bottom ?? 0))
-  }
+  const inner = contentArea(placement, borderWidth, configuration.padding)
   const horizontal = (configuration.orientation ?? 'horizontal') === 'horizontal'
   const span = horizontal ? inner.width : inner.height
   const fraction = rangeFraction(values.numberFor(configuration.source), configuration.minimum, configuration.maximum)
@@ -1486,17 +1656,22 @@ function BarPreview({
   const length = Math.round(span * Math.max(originFraction, fraction)) - offset
   const fromAxisStart = horizontal !== (configuration.inverted ?? false)
   const leading = fromAxisStart ? offset : span - offset - length
+  const fillColor = style.color ?? '#38BDF8'
+  // The device runs the fill's gradient along the bar's own axis, so it reads
+  // as depth on the fill rather than as a second colour crossing it.
+  const fillPaint = gradientPaint(fillGradientId, fillColor, configuration.fill_grad_color)
 
   return (
     <g>
-      {track !== 'transparent' ? (
-        <rect
-          x={placement.x}
-          y={placement.y}
-          width={placement.width}
-          height={placement.height}
-          rx={radius}
-          fill={track}
+      {/* The frame's background is the track the fill runs over, so a bar needs
+          no track colour of its own. */}
+      <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
+      {fillPaint.definition ? (
+        <GradientDefinition
+          id={fillGradientId}
+          from={fillColor}
+          to={configuration.fill_grad_color as string}
+          direction={horizontal ? 'horizontal' : 'vertical'}
         />
       ) : null}
       {length > 0 ? (
@@ -1506,19 +1681,7 @@ function BarPreview({
           width={horizontal ? length : inner.width}
           height={horizontal ? inner.height : length}
           rx={Math.max(0, radius - borderWidth)}
-          fill={style.color ?? '#38BDF8'}
-        />
-      ) : null}
-      {borderWidth > 0 ? (
-        <rect
-          x={placement.x + borderWidth / 2}
-          y={placement.y + borderWidth / 2}
-          width={placement.width - borderWidth}
-          height={placement.height - borderWidth}
-          rx={Math.max(0, radius - borderWidth / 2)}
-          fill="none"
-          stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
-          strokeWidth={borderWidth}
+          fill={fillPaint.paint}
         />
       ) : null}
     </g>
@@ -1543,9 +1706,12 @@ function ArcPreview({
   const thickness = configuration.thickness_px ?? 8
   const start = configuration.start_angle_deg ?? 135
   const sweep = Math.min(configuration.sweep_deg ?? 270, 360)
-  const radius = Math.max(0, Math.min(placement.width, placement.height) / 2 - thickness / 2)
-  const centerX = placement.x + placement.width / 2
-  const centerY = placement.y + placement.height / 2
+  // The arc object is sized to the container's content area, so the border and
+  // the padding shrink the circle and move its centre.
+  const plot = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
+  const radius = Math.max(0, Math.min(plot.width, plot.height) / 2 - thickness / 2)
+  const centerX = plot.x + plot.width / 2
+  const centerY = plot.y + plot.height / 2
   const track = normalizeColor(configuration.track_color)
   const value = values.numberFor(configuration.source)
   const fraction = rangeFraction(value, configuration.minimum, configuration.maximum)
@@ -1555,6 +1721,7 @@ function ArcPreview({
 
   return (
     <g>
+      <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
       {track && track !== 'transparent' ? (
         <path
           d={arcPath(centerX, centerY, radius, start, sweep)}
@@ -1616,8 +1783,12 @@ function IndicatorPreview({
   if (!style.visible) return null
   const horizontal = (configuration.orientation ?? 'horizontal') === 'horizontal'
   const gap = configuration.segment_gap_px ?? 4
-  const span = horizontal ? placement.width : placement.height
-  const length = (span - gap * (segments.length - 1)) / segments.length
+  // The lamps are laid out in the container's content area, and the device
+  // divides it in whole pixels — so the strip ends short of the content edge by
+  // whatever the division leaves over, rather than filling it exactly.
+  const strip = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
+  const span = horizontal ? strip.width : strip.height
+  const length = Math.floor((span - gap * (segments.length - 1)) / segments.length)
   if (length <= 0) return null
   const off = normalizeColor(configuration.off_color)
   const value = values.numberFor(configuration.source)
@@ -1629,26 +1800,30 @@ function IndicatorPreview({
     value !== undefined && blinkMs > 0 && fraction >= (configuration.blink_threshold ?? 2)
   const lampsVisible = !blinking || values.blinkPhase(blinkMs)
 
+  const unlitPainted = off !== undefined && off !== 'transparent'
+
   return (
     <g>
+      <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
       {segments.map((segment, index) => {
         const offset = index * (length + gap)
         // Thresholds do not decrease, so the lit lamps are a prefix and the
         // first one not reached ends the strip.
         const lit = value !== undefined && fraction >= (segment.threshold ?? 0) && lampsVisible
-        const unlitFill = off && off !== 'transparent' ? off : (segment.color ?? '#00C853')
+        // Without an off colour the device leaves an unlit lamp fully
+        // transparent, so a strip at rest is the screen behind it.
+        if (!lit && !unlitPainted) return null
         return (
           <rect
             key={index}
-            x={horizontal ? placement.x + offset : placement.x}
+            x={horizontal ? strip.x + offset : strip.x}
             // A vertical strip lights from the bottom up, so the first segment
             // is the lowest one.
-            y={horizontal ? placement.y : placement.y + placement.height - offset - length}
-            width={horizontal ? length : placement.width}
-            height={horizontal ? placement.height : length}
+            y={horizontal ? strip.y : strip.y + strip.height - offset - length}
+            width={horizontal ? length : strip.width}
+            height={horizontal ? strip.height : length}
             rx={configuration.segment_radius_px ?? 0}
-            fill={lit ? (segment.color ?? '#00C853') : unlitFill}
-            fillOpacity={lit || (off && off !== 'transparent') ? 1 : 0.25}
+            fill={lit ? (segment.color ?? '#00C853') : (off as string)}
           />
         )
       })}
@@ -1671,29 +1846,25 @@ function GraphPreview({
     borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
   })
   if (!style.visible) return null
-  const background = normalizeColor(style.backgroundColor)
   const points = Math.min(configuration.point_count ?? 64, MAXIMUM_GRAPH_POINTS)
   const trace = values.traceFor(configuration.source, points, configuration.sample_interval_ms ?? 100)
+  // The trace is drawn in the container's content area, and the device places
+  // each point on a whole pixel: the horizontal step truncates and the vertical
+  // one rounds into the plot.
+  const plot = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
+  const span = Math.max(points - 1, 1)
 
   return (
     <g>
-      {background && background !== 'transparent' ? (
-        <rect
-          x={placement.x}
-          y={placement.y}
-          width={placement.width}
-          height={placement.height}
-          rx={configuration.border?.radius_px ?? 0}
-          fill={background}
-        />
-      ) : null}
+      <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
       {trace ? (
         <polyline
           points={trace
             .map((sample, index) => {
-              const x = placement.x + (placement.width * index) / Math.max(points - 1, 1)
-              const y = placement.y + placement.height * (1 - rangeFraction(sample, configuration.minimum, configuration.maximum))
-              return `${x.toFixed(1)},${y.toFixed(1)}`
+              const x = plot.x + Math.trunc((plot.width * index) / span)
+              const fraction = rangeFraction(sample, configuration.minimum, configuration.maximum)
+              const y = Math.round(plot.height * (1 - fraction))
+              return `${x},${plot.y + clamp(y, 0, plot.height)}`
             })
             .join(' ')}
           fill="none"
@@ -1703,10 +1874,10 @@ function GraphPreview({
         />
       ) : (
         <line
-          x1={placement.x}
-          y1={placement.y + placement.height / 2}
-          x2={placement.x + placement.width}
-          y2={placement.y + placement.height / 2}
+          x1={plot.x}
+          y1={plot.y + plot.height / 2}
+          x2={plot.x + plot.width}
+          y2={plot.y + plot.height / 2}
           stroke={style.color ?? '#38BDF8'}
           strokeWidth={configuration.line_width_px ?? 2}
           strokeOpacity={0.35}
@@ -1716,9 +1887,12 @@ function GraphPreview({
   )
 }
 
-// The image itself lives on the board, so the preview draws the box it occupies
-// and names it. That is the layout question the canvas can answer; whether the
-// artwork is right is answered by looking at the display.
+/**
+ * The bitmap the board holds, drawn where the board draws it: centred in the
+ * content area at the size it was converted to, because the device neither
+ * scales nor rotates. An image the configurator has no copy of falls back to
+ * the named box, which is the layout question the canvas can still answer.
+ */
 function ImagePreview({
   configuration,
   values
@@ -1726,6 +1900,10 @@ function ImagePreview({
   configuration: ImageWidgetConfiguration
   values: PreviewValues
 }): React.JSX.Element | null {
+  const recolorId = markupId(useId())
+  const bitmap = usePreviewAssetStore((state) =>
+    configuration.image ? state.images[configuration.image] : undefined
+  )
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
   const style = values.styleFor(configuration, {
@@ -1735,32 +1913,65 @@ function ImagePreview({
   })
   if (!style.visible) return null
   const tint = normalizeColor(style.color)
+  if (!bitmap) {
+    return (
+      <g>
+        <rect
+          x={placement.x}
+          y={placement.y}
+          width={placement.width}
+          height={placement.height}
+          rx={configuration.border?.radius_px ?? 0}
+          fill={tint && tint !== 'transparent' ? tint : '#334155'}
+          fillOpacity={tint && tint !== 'transparent' ? 0.5 : 0.35}
+          stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
+          strokeOpacity={0.6}
+          strokeDasharray="4 3"
+          strokeWidth={configuration.border?.width_px || 1}
+        />
+        <text
+          x={placement.x + placement.width / 2}
+          y={placement.y + placement.height / 2}
+          fill={DEFAULT_TEXT_COLOR}
+          fontFamily="Arial, sans-serif"
+          fontSize={Math.max(8, Math.min(placement.height / 4, 14))}
+          textAnchor="middle"
+          dominantBaseline="middle"
+        >
+          {configuration.image || 'no image'}
+        </text>
+      </g>
+    )
+  }
+  const content = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
+  const x = content.x + lvglCenterOffset(content.width, bitmap.width)
+  const y = content.y + lvglCenterOffset(content.height, bitmap.height)
+  // A recolour mixes the bitmap towards one colour without touching its alpha,
+  // so it is the same pixels flooded and laid back over at the configured
+  // strength.
+  const recolored = tint !== undefined && tint !== 'transparent'
+  const recolorOpacity = (configuration.recolor_opa ?? 255) / 255
   return (
     <g>
-      <rect
-        x={placement.x}
-        y={placement.y}
-        width={placement.width}
-        height={placement.height}
-        rx={configuration.border?.radius_px ?? 0}
-        fill={tint && tint !== 'transparent' ? tint : '#334155'}
-        fillOpacity={tint && tint !== 'transparent' ? 0.5 : 0.35}
-        stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
-        strokeOpacity={0.6}
-        strokeDasharray="4 3"
-        strokeWidth={configuration.border?.width_px || 1}
-      />
-      <text
-        x={placement.x + placement.width / 2}
-        y={placement.y + placement.height / 2}
-        fill={DEFAULT_TEXT_COLOR}
-        fontFamily="Arial, sans-serif"
-        fontSize={Math.max(8, Math.min(placement.height / 4, 14))}
-        textAnchor="middle"
-        dominantBaseline="middle"
-      >
-        {configuration.image || 'no image'}
-      </text>
+      <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
+      <image href={bitmap.dataUrl} x={x} y={y} width={bitmap.width} height={bitmap.height} />
+      {recolored ? (
+        <>
+          <filter id={recolorId}>
+            <feFlood floodColor={tint} result="flood" />
+            <feComposite in="flood" in2="SourceAlpha" operator="in" />
+          </filter>
+          <image
+            href={bitmap.dataUrl}
+            x={x}
+            y={y}
+            width={bitmap.width}
+            height={bitmap.height}
+            filter={`url(#${recolorId})`}
+            opacity={recolorOpacity}
+          />
+        </>
+      ) : null}
     </g>
   )
 }
@@ -1772,34 +1983,39 @@ function CaptionPreview({
 }: {
   configuration: FramedWidgetConfiguration
 }): React.JSX.Element | null {
+  const uploadedFamilies = usePreviewAssetStore((state) => state.fonts)
   const placement = completePlacement(configuration.placement)
   const title = configuration.title?.text
   if (!placement || !title) return null
-  const font = resolvedFont(configuration.title?.font, 12)
+  const font = resolvedFont(configuration.title?.font, 12, uploadedFamilies)
+  const metrics = fontMetrics(title, font)
   const borderWidth = configuration.border?.width_px ?? 0
-  const width = estimateTextWidth(title, font.sizePx)
   const background = normalizeColor(configuration.background_color)
   const inset = configuration.background_inset_px ?? 0
+  // The caption straddles the top border: the device puts the label's top half
+  // a line height above the box's edge and masks the border line behind it.
+  const labelTop =
+    placement.y -
+    Math.trunc(metrics.lineHeight / 2) +
+    (configuration.title?.offset_y_px ?? 0)
   return (
     <g>
       {borderWidth > 0 ? (
         <rect
-          x={placement.x + (placement.width - width - 8) / 2}
+          x={placement.x + Math.trunc((placement.width - metrics.width - 8) / 2)}
           y={placement.y}
-          width={width + 8}
+          width={metrics.width + 8}
           height={borderWidth + 2}
           fill={background && inset === 0 ? background : SCREEN_BACKGROUND}
         />
       ) : null}
       <text
-        x={placement.x + placement.width / 2}
-        y={placement.y + (configuration.title?.offset_y_px ?? 0)}
+        x={placement.x + Math.trunc((placement.width - metrics.width) / 2)}
+        y={labelTop + metrics.ascent}
         fill={configuration.title?.color ?? DEFAULT_TEXT_COLOR}
         fontFamily={font.family}
         fontSize={font.sizePx}
         fontWeight={font.weight}
-        textAnchor="middle"
-        dominantBaseline="middle"
       >
         {title}
       </text>
@@ -1823,60 +2039,72 @@ function ShapePreview({
     borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
   })
   if (!style.visible) return null
-  const borderWidth = configuration.border?.width_px ?? 0
-  const background = normalizeColor(style.backgroundColor) ?? 'transparent'
-  const inset = configuration.background_inset_px ?? 0
-  const edge = inset > 0 ? borderWidth + inset : 0
   // An ellipse is a radius of half the shorter side, which is what the device
   // gets from LV_RADIUS_CIRCLE.
-  const radius = configuration.kind === 'ellipse'
-    ? Math.min(placement.width, placement.height) / 2
-    : configuration.border?.radius_px ?? 0
+  const radius =
+    configuration.kind === 'ellipse'
+      ? Math.min(placement.width, placement.height) / 2
+      : undefined
   return (
     <g>
-      {background !== 'transparent' ? (
-        <rect
-          x={placement.x + edge}
-          y={placement.y + edge}
-          width={Math.max(0, placement.width - 2 * edge)}
-          height={Math.max(0, placement.height - 2 * edge)}
-          rx={Math.max(0, radius - inset)}
-          fill={background}
-        />
-      ) : null}
-      {borderWidth > 0 ? (
-        <rect
-          x={placement.x + borderWidth / 2}
-          y={placement.y + borderWidth / 2}
-          width={placement.width - borderWidth}
-          height={placement.height - borderWidth}
-          rx={Math.max(0, radius - borderWidth / 2)}
-          fill="none"
-          stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
-          strokeWidth={borderWidth}
-        />
-      ) : null}
+      <WidgetFrameShape
+        placement={placement}
+        configuration={configuration}
+        style={style}
+        radius={radius}
+      />
     </g>
   )
 }
 
+interface PreviewFont {
+  family: string
+  sizePx: number
+  weight: number
+  /** Whether this is the face the board rasterizes rather than a stand-in. */
+  uploaded: boolean
+}
+
+/**
+ * The face to draw one font spec with. The uploaded face is used when the
+ * configurator still holds the copy it installed; otherwise this falls back to
+ * a system face picked to look roughly like it, and the layout it produces is
+ * an approximation of the board's.
+ */
 function resolvedFont(
   font: FontSpec | undefined,
-  defaultSizePx: number
-): { family: string; sizePx: number; weight: number } {
+  defaultSizePx: number,
+  uploadedFamilies: Readonly<Record<string, boolean>>
+): PreviewFont {
   const identifier = font?.family ?? 'custom_font'
+  const sizePx = font?.size_px ?? defaultSizePx
+  if (uploadedFamilies[identifier]) {
+    // The face carries its own weight; asking for a heavier one would have the
+    // browser synthesize a thicker version of glyphs the board draws as they
+    // are.
+    return { family: previewFontFamily(identifier), sizePx, weight: 400, uploaded: true }
+  }
   const black = identifier.includes('black')
   return {
     family: identifier.startsWith('roboto')
       ? 'Roboto, Arial, sans-serif'
       : 'Arial, sans-serif',
-    sizePx: font?.size_px ?? defaultSizePx,
-    weight: black ? 900 : 600
+    sizePx,
+    weight: black ? 900 : 600,
+    uploaded: false
   }
 }
 
-function estimateTextWidth(text: string, fontSize: number): number {
-  return text.length * fontSize * 0.62
+function fontMetrics(text: string, font: PreviewFont): GlyphMetrics {
+  return measureGlyphs(text, font.family, font.sizePx, font.weight)
+}
+
+/**
+ * LVGL centres in whole pixels and truncates each half separately, so a box and
+ * its contents can land one pixel off what an exact midpoint would give.
+ */
+function lvglCenterOffset(available: number, size: number): number {
+  return Math.trunc(available / 2) - Math.trunc(size / 2)
 }
 
 function normalizeColor(color: string | undefined): string | undefined {
