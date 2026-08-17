@@ -65,7 +65,7 @@ import {
   addShapeWidget,
   addTextWidget,
   completePlacement,
-  DEFAULT_WIDGET_FONT_SIZE_PX,
+  draftValueFont,
   alignWidgets,
   deleteWidget,
   distributeWidgets,
@@ -106,12 +106,12 @@ export function DisplayPreview(): React.JSX.Element {
   const canRedo = useDeviceStore((state) => state.future.length > 0)
   const undo = useDeviceStore((state) => state.undo)
   const redo = useDeviceStore((state) => state.redo)
-  // Any size of an installed family renders, so a new widget starts at a
-  // readable default rather than at whatever size happens to be installed.
-  const installedFamily = session?.fontAssets?.families[0]
-  const defaultFont = installedFamily
-    ? { family: installedFamily, size_px: DEFAULT_WIDGET_FONT_SIZE_PX }
-    : undefined
+  // A new reading takes the font the dashboard already draws with. Reading it
+  // from the connected board instead meant a widget landed in whichever family
+  // happened to be installed first, at a fixed size unrelated to its
+  // neighbours — and with no board connected it got no font at all, which the
+  // validator then rejected the whole document over.
+  const defaultFont = draftValueFont(configuration, session?.fontAssets?.families[0])
   // Widget storage is a dashboard-wide pool, so the cap counts every screen.
   const textWidgetCount = allWidgetsOf(configuration).filter(
     (widget) => widget.type === 'text'

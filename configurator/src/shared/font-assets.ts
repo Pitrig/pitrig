@@ -17,6 +17,16 @@ export const MAXIMUM_FONT_SIZE_PX = 255
 export const MAXIMUM_FONT_PACKAGE_SIZE = 2 * 1024 * 1024
 export const FONT_FAMILY_PATTERN = /^[a-z0-9_-]{1,31}$/
 
+/**
+ * The family a dashboard starts with when it names none yet. A family is an
+ * author-chosen identifier that an uploaded face is bound to, so a document
+ * with nothing in it still has to name one — the alternative is a widget with
+ * no font, which the device rejects the whole document over. Naming it here
+ * puts it straight into the font panel as required-but-missing, which is the
+ * state the author can act on.
+ */
+export const DEFAULT_FONT_FAMILY = 'display'
+
 export interface FontSourceSelection {
   id: string
   name: string

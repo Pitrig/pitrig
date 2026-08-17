@@ -35,21 +35,74 @@ void stop_lap_timer(void* const context) {
   }
 }
 
+// A text source and a mapped source are separate structs that agree on the
+// modifier list, so this reads either.
+template <typename Source>
+[[nodiscard]] bool uses_lap_timer(const Source& source) {
+  for (std::size_t index = 0; index < source.modifier_count; ++index) {
+    if (source.modifiers[index].type ==
+        configuration::ValueModifierType::lap_timer) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Every place a modifier can be authored, not only the text sources. A bar,
+// arc, indicator or graph binds one the same way, and so does the source a
+// styling rule watches or a group activates on. Counting one of those places
+// and not the others left the module stopped behind a reader that would then
+// never report a value — the modifier looked configured and did nothing.
 bool has_lap_timer_modifier(
     const configuration::ApplicationConfiguration& configuration) {
   const auto& dashboard = configuration.dashboard;
-  for (std::size_t widget_index = 0;
-       widget_index < dashboard.text_widget_count; ++widget_index) {
-    const auto& widget = dashboard.text_widgets[widget_index];
-    for (std::size_t source_index = 0; source_index < widget.source_count;
-         ++source_index) {
-      const auto& source = widget.sources[source_index];
-      for (std::size_t modifier_index = 0;
-           modifier_index < source.modifier_count; ++modifier_index) {
-        if (source.modifiers[modifier_index].type ==
-            configuration::ValueModifierType::lap_timer) {
-          return true;
-        }
+
+  const auto conditioned = [](const auto& widgets, const std::size_t count) {
+    for (std::size_t index = 0; index < count; ++index) {
+      if (uses_lap_timer(widgets[index].frame.condition_source)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  const auto mapped = [](const auto& widgets, const std::size_t count) {
+    for (std::size_t index = 0; index < count; ++index) {
+      if (uses_lap_timer(widgets[index].source)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
+    const auto& widget = dashboard.text_widgets[index];
+    for (std::size_t source = 0; source < widget.source_count; ++source) {
+      if (uses_lap_timer(widget.sources[source])) {
+        return true;
+      }
+    }
+  }
+  if (mapped(dashboard.bar_widgets, dashboard.bar_widget_count) ||
+      mapped(dashboard.arc_widgets, dashboard.arc_widget_count) ||
+      mapped(dashboard.indicator_widgets, dashboard.indicator_widget_count) ||
+      mapped(dashboard.graph_widgets, dashboard.graph_widget_count)) {
+    return true;
+  }
+  if (conditioned(dashboard.text_widgets, dashboard.text_widget_count) ||
+      conditioned(dashboard.shape_widgets, dashboard.shape_widget_count) ||
+      conditioned(dashboard.bar_widgets, dashboard.bar_widget_count) ||
+      conditioned(dashboard.arc_widgets, dashboard.arc_widget_count) ||
+      conditioned(dashboard.indicator_widgets,
+                  dashboard.indicator_widget_count) ||
+      conditioned(dashboard.graph_widgets, dashboard.graph_widget_count) ||
+      conditioned(dashboard.image_widgets, dashboard.image_widget_count)) {
+    return true;
+  }
+  for (std::size_t screen = 0; screen < dashboard.screen_count; ++screen) {
+    const auto& groups = dashboard.screens[screen];
+    for (std::size_t index = 0; index < groups.group_count; ++index) {
+      if (uses_lap_timer(groups.groups[index].condition_source)) {
+        return true;
       }
     }
   }

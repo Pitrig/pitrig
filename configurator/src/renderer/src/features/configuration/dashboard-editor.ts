@@ -29,6 +29,7 @@ import type {
   WidgetPlacement
 } from '../../../../shared/configuration-schema'
 import { validateConfigurationDocument } from '../../../../shared/configuration-validate'
+import { DEFAULT_FONT_FAMILY } from '../../../../shared/font-assets'
 import { BOARD_PROFILES } from '../../../../shared/device'
 import type { DeviceConfiguration } from '../../../../shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -536,6 +537,67 @@ function insertWidget(
 // The device rasterizes any size from an installed family, so a new widget
 // picks a readable size rather than inheriting one that happens to be installed.
 export const DEFAULT_WIDGET_FONT_SIZE_PX = 24
+// A caption labels a widget rather than competing with it, so it does not
+// inherit the reading's size.
+export const DEFAULT_CAPTION_FONT_SIZE_PX = 16
+
+/** The value that occurs most often, ties going to the one seen first. */
+function commonest<T>(values: readonly T[]): T | undefined {
+  const tally = new Map<T, number>()
+  for (const value of values) tally.set(value, (tally.get(value) ?? 0) + 1)
+  let best: T | undefined
+  let bestCount = 0
+  for (const [value, count] of tally) {
+    if (count > bestCount) {
+      best = value
+      bestCount = count
+    }
+  }
+  return best
+}
+
+function draftFonts(configuration: DeviceConfiguration | undefined): FontSpec[] {
+  const fonts: FontSpec[] = []
+  for (const widget of allWidgetsOf(configuration)) {
+    if (widget.title?.text && widget.title.font) fonts.push(widget.title.font)
+    if ('value' in widget && widget.value?.font) fonts.push(widget.value.font)
+  }
+  return fonts
+}
+
+/**
+ * The family the dashboard already draws with. A new widget in some other
+ * family stands out for no reason the author asked for, and — since the device
+ * holds one face per family — it also adds a family to the upload. Falling back
+ * to the connected board's first installed family, and then to the default
+ * name, keeps a new widget from having no font at all, which the device rejects
+ * the whole document over.
+ */
+export function draftFontFamily(
+  configuration: DeviceConfiguration | undefined,
+  installedFamily?: string
+): string {
+  const families = draftFonts(configuration)
+    .map((font) => font.family)
+    .filter((family): family is string => Boolean(family))
+  return commonest(families) ?? installedFamily ?? DEFAULT_FONT_FAMILY
+}
+
+/**
+ * The font a new reading should take: the dashboard's family at the size its
+ * other readings already use, so a widget added beside them matches them.
+ */
+export function draftValueFont(
+  configuration: DeviceConfiguration | undefined,
+  installedFamily?: string
+): FontSpec {
+  const family = draftFontFamily(configuration, installedFamily)
+  const sizes = draftFonts(configuration)
+    .filter((font) => font.family === family)
+    .map((font) => font.size_px)
+    .filter((size): size is number => typeof size === 'number' && size > 0)
+  return { family, size_px: commonest(sizes) ?? DEFAULT_WIDGET_FONT_SIZE_PX }
+}
 
 // A widget with no font is rejected by the device as a whole-document error,
 // so a newly added one adopts an installed family when the board has any.

@@ -72,6 +72,8 @@ import {
 import {
   actionCount,
   completePlacement,
+  DEFAULT_CAPTION_FONT_SIZE_PX,
+  draftFontFamily,
   groupById,
   mutateActiveScreen,
   mutateGroup,
@@ -753,6 +755,7 @@ function TextEditor({ selection, widget }: { selection: WidgetSelection; widget:
           </button>
         ) : null}
       </Section>
+      <TitleEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
       <Section title="Value">
         <FontEditor font={widget.value?.font} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
@@ -772,7 +775,19 @@ function TitleEditor({ widget, update }: {
   return (
     <Section title="Title">
       <p className="text-muted-foreground">The caption breaks the top border, which is what gives a panel its label.</p>
-      <TextField label="Text" value={widget.title?.text ?? ''} onChange={(value) => update((next) => { next.title = { ...next.title, text: value } })} />
+      {/* A caption needs a font the moment it has text, and the device rejects
+          the whole document over a fontless one. The first family the dashboard
+          already uses is one the board is being asked for anyway, so adopting it
+          keeps a new caption from invalidating the draft. */}
+      <TextField label="Text" value={widget.title?.text ?? ''} onChange={(value) => update((next) => {
+        const font = next.title?.font?.family
+          ? next.title.font
+          : {
+              family: draftFontFamily(useDeviceStore.getState().draft),
+              size_px: DEFAULT_CAPTION_FONT_SIZE_PX
+            }
+        next.title = { ...next.title, text: value, ...(value ? { font } : {}) }
+      })} />
       {widget.title?.text ? <><FontEditor font={widget.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} /><ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} /><NumberField label="Y offset" value={widget.title.offset_y_px ?? 0} onChange={(value) => update((next) => { next.title = { ...next.title, offset_y_px: value } })} /></> : null}
     </Section>
   )
@@ -869,6 +884,32 @@ function ConditionsEditor({ widget, update }: {
           rule.value = (rule.value ?? 0) >= 1 ? 1 : 0
         }
       })} />
+      {/* The value sources have carried a modifier since the lap timer existed;
+          the watched source could only ever be a raw field, so a rule could not
+          be written against lap time at all. */}
+      {watched ? (
+        <SelectField
+          label="Modifier"
+          value={
+            widget.condition_source?.modifiers?.some(({ type }) => type === 'lap_timer')
+              ? 'lap_timer'
+              : 'none'
+          }
+          options={['none', 'lap_timer']}
+          onChange={(value) =>
+            update((next) => {
+              if (value === 'lap_timer') {
+                next.condition_source = {
+                  binding: 'session.lap.current_time',
+                  modifiers: [{ type: 'lap_timer' }]
+                }
+              } else if (next.condition_source) {
+                delete next.condition_source.modifiers
+              }
+            })
+          }
+        />
+      ) : null}
       {watched ? (
         <>
           <ColorRampEditor widget={widget} update={update} unit={field?.unit && field.unit !== 'source' ? field.unit : undefined} />
