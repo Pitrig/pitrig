@@ -19,19 +19,27 @@ export function TitleEditor({ widget, update }: {
   const inCorner = anchor.column !== 'center' && anchor.row !== 'middle'
   return (
     <Section title="Title">
-      <p className="text-muted-foreground">The caption is anchored to a point on the widget&apos;s box and moved from there by the offsets. The top and bottom rows straddle their border line and cut it, which is what gives a panel its label; the middle row sits inside the box and cuts nothing.</p>
+      <p className="text-muted-foreground">Optional. A caption is anchored to a point on the widget&apos;s box and moved from there by the offsets; the top and bottom rows straddle their border line and cut it, while the middle row sits inside the box and cuts nothing. A panel used as a container or a tap zone usually wants none.</p>
       {/* A caption needs a font the moment it has text, and the device rejects
           the whole document over a fontless one. The first family the dashboard
           already uses is one the board is being asked for anyway, so adopting it
-          keeps a new caption from invalidating the draft. */}
+          keeps a new caption from invalidating the draft.
+
+          Clearing the text drops the whole object rather than leaving an empty
+          one behind: the title is optional, and a sparse document should say so
+          by its absence. */}
       <TextField label="Text" value={widget.title?.text ?? ''} onChange={(value) => update((next) => {
+        if (!value) {
+          delete next.title
+          return
+        }
         const font = next.title?.font?.family
           ? next.title.font
           : {
               family: draftFontFamily(useDeviceStore.getState().draft),
               size_px: DEFAULT_CAPTION_FONT_SIZE_PX
             }
-        next.title = { ...next.title, text: value, ...(value ? { font } : {}) }
+        next.title = { ...next.title, text: value, font }
       })} />
       {/* Every control below writes its property only when it differs from the
           device's own default, so a caption that sits where captions have always

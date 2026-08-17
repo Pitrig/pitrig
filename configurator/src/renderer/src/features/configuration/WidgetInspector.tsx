@@ -1,9 +1,9 @@
 import { screenWidgetsOf, screensOf } from '../../../../shared/configuration-access'
 import type { WidgetConfiguration } from '../../../../shared/configuration-schema'
-import { completePlacement, mutateSelectedWidget, selectedGroupId, selectedWidget, useDashboardEditorStore } from './dashboard-editor'
+import { completePlacement, mutateSelectedWidget, selectedWidget, useDashboardEditorStore } from './dashboard-editor'
 import { Hint } from './inspector/fields'
 import { parseSelection, selectionValue } from './inspector/selection-value'
-import { ActionEditor, GeometryEditor, GroupEditor, ScreenEditor } from './inspector/section-editors'
+import { ActionEditor, GeometryEditor, ScreenEditor } from './inspector/section-editors'
 import { ArcEditor, BarEditor, GraphEditor, ImageEditor, IndicatorEditor, ShapeEditor, TextEditor } from './inspector/widget-editors'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -16,7 +16,6 @@ export function WidgetInspector(): React.JSX.Element {
   const widget = selectedWidget(configuration, selection)
   // Everything the inspector offers belongs to the screen being edited, and the
   // subscribed index is what makes it follow a screen change.
-  const groupId = selectedGroupId(configuration, selection)
   const screen = screensOf(configuration)[activeScreenIndex]
   const widgets = screenWidgetsOf(screen)
 
@@ -49,9 +48,6 @@ export function WidgetInspector(): React.JSX.Element {
           <ScreenEditor configuration={configuration} />
         ) : null}
         {configuration && selection?.type === 'widget' && !widget ? <Hint>Select an existing widget on the display.</Hint> : null}
-        {configuration && selection?.type === 'group' && groupId ? (
-          <GroupEditor groupId={groupId} configuration={configuration} />
-        ) : null}
         {configuration && widget && selection?.type === 'widget' ? (
           <>
             <GeometryEditor selection={selection} placement={completePlacement(widget.placement)} zIndex={widget.z_index ?? 0} />
@@ -81,7 +77,6 @@ export function WidgetInspector(): React.JSX.Element {
                 })
               }
             />
-            {groupId ? <GroupEditor groupId={groupId} configuration={configuration} /> : null}
           </>
         ) : null}
       </CardContent>

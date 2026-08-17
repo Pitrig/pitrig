@@ -1,9 +1,9 @@
-import { screensOf } from '../../../../../shared/configuration-access'
-import { CONDITION_OPERATOR_VALUES, type ConditionOperator, MAXIMUM_ACTIONS, MAXIMUM_SLOTS, MAXIMUM_WIDGET_CONDITIONS, type ValueSourceConfiguration, WIDGET_ACTION_TYPE_VALUES, type WidgetAction, type WidgetActionType, type WidgetPlacement } from '../../../../../shared/configuration-schema'
+import { screensOf, widgetsOf } from '../../../../../shared/configuration-access'
+import { CONDITION_OPERATOR_VALUES, type ConditionOperator, MAXIMUM_ACTIONS, MAXIMUM_SLOTS, MAXIMUM_WIDGET_CONDITIONS, type ShapeWidgetConfiguration, type ValueSourceConfiguration, WIDGET_ACTION_TYPE_VALUES, type WidgetAction, type WidgetActionType, type WidgetPlacement } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { TELEMETRY_CATALOG } from '../../../../../shared/telemetry-catalog'
 import { MAXIMUM_HOLD_MS } from '../../../../../shared/widget-conditions'
-import { type WidgetSelection, actionCount, groupById, mutateActiveScreen, mutateGroup, mutateSelectedWidget, renameGroup, renameScreen, useDashboardEditorStore } from '../dashboard-editor'
+import { type WidgetSelection, actionCount, mutateActiveScreen, mutateSelectedWidget, renameScreen, useDashboardEditorStore } from '../dashboard-editor'
 import { TelemetryBindingField } from './TelemetryBindingField'
 import { CheckboxField, ColorField, IdField, NumberField, Section, SelectField } from './fields'
 
@@ -112,84 +112,42 @@ export function ActionEditor({
 }
 
 /**
- * The group the selected widget belongs to. A group is reached through its
- * widgets rather than through a selection type of its own: what the author
- * clicks on is always a widget, and the group is the parent behind it.
- *
- * Nothing shows for a widget on the screen itself, which is what "not in a
- * group" looks like.
+ * What a shape gains by holding widgets: the slot it takes part in, and the
+ * rules that decide when it is the one shown. Its name, box, stacking and
+ * action are ordinary widget properties and are edited where every widget's
+ * are, which is most of what a group used to need its own panel for.
  */
-export function GroupEditor({
-  groupId,
-  configuration
+export function ContainerEditor({
+  widget,
+  update
 }: {
-  groupId: string
-  configuration: DeviceConfiguration
-}): React.JSX.Element | null {
-  const group = groupById(configuration, groupId)
-  if (!group) return null
-  const box = group.placement ?? {}
-  const slot = group.slot ?? 0
+  widget: ShapeWidgetConfiguration
+  update: (mutation: (next: ShapeWidgetConfiguration) => void) => void
+}): React.JSX.Element {
+  const slot = widget.slot ?? 0
+  const children = widgetsOf(widget).length
   return (
-    <Section title="Group">
-      <IdField
-        key={group.id ?? groupId}
-        label="Name"
-        value={group.id ?? ''}
-        onCommit={(name) => renameGroup(groupId, name)}
-      />
-      <div className="grid grid-cols-2 gap-2">
-        {(['x', 'y', 'width', 'height'] as const).map((key) => (
-          <NumberField
-            key={key}
-            label={key}
-            value={box[key] ?? 0}
-            onChange={(value) =>
-              mutateGroup(groupId, (target) => {
-                target.placement = { ...target.placement, [key]: value }
-              })
-            }
-          />
-        ))}
-      </div>
-      <NumberField
-        label="Stacking (z-index among the screen's widgets)"
-        value={group.z_index ?? 0}
-        onChange={(z_index) =>
-          mutateGroup(groupId, (target) => {
-            if (z_index === 0) delete target.z_index
-            else target.z_index = z_index
-          })
-        }
-      />
+    <Section title="Container">
+      <p className="text-muted-foreground">
+        {children === 0
+          ? 'This shape holds no widgets. Select some and wrap them to make it a container; an empty one with an action is an invisible tap zone.'
+          : `Holds ${children} widget(s), placed relative to this box. They are drawn even where they overhang it.`}
+      </p>
       <NumberField
         label="Slot (0 = always visible)"
         value={slot}
         min={0}
         max={MAXIMUM_SLOTS}
         onChange={(value) =>
-          mutateGroup(groupId, (target) => {
+          update((target) => {
             if (value <= 0) {
               delete target.slot
               delete target.slot_default
+              delete target.slot_source
+              delete target.slot_conditions
               return
             }
             target.slot = value
-          })
-        }
-      />
-      <ActionEditor
-        configuration={configuration}
-        action={group.action}
-        disabledReason={
-          slot > 0
-            ? 'A group in a slot spends its tap on cycling, so it cannot navigate as well.'
-            : undefined
-        }
-        onChange={(action) =>
-          mutateGroup(groupId, (target) => {
-            if (action) target.action = action
-            else delete target.action
           })
         }
       />
@@ -197,39 +155,39 @@ export function GroupEditor({
         <>
           <CheckboxField
             label="Shown first in this slot"
-            checked={group.slot_default === true}
+            checked={widget.slot_default === true}
             onChange={(checked) =>
-              mutateGroup(groupId, (target) => {
+              update((target) => {
                 if (checked) target.slot_default = true
                 else delete target.slot_default
               })
             }
           />
           <p className="text-muted-foreground">
-            Groups sharing a slot must share this box, and exactly one of them must be shown
-            first. Tapping the slot on the board cycles to the next group; a matching rule below
-            overrides that while it holds.
+            Shapes sharing a slot must share one parent and this box, and exactly one of them must
+            be shown first. Tapping the slot on the board cycles to the next one; a matching rule
+            below overrides that while it holds.
           </p>
           <TelemetryBindingField
-            value={group.condition_source?.binding ?? ''}
+            value={widget.slot_source?.binding ?? ''}
             onChange={(binding) =>
-              mutateGroup(groupId, (target) => {
-                if (!binding) delete target.condition_source
-                else target.condition_source = { ...target.condition_source, binding }
+              update((target) => {
+                if (!binding) delete target.slot_source
+                else target.slot_source = { ...target.slot_source, binding }
               })
             }
           />
-          {(group.conditions ?? []).map((rule, index) => (
+          {(widget.slot_conditions ?? []).map((rule, index) => (
             <div key={index} className="grid grid-cols-[6rem_1fr_5rem_auto] items-end gap-2">
               <SelectField
                 label="When"
                 value={rule.op ?? 'above'}
                 options={CONDITION_OPERATOR_VALUES}
                 onChange={(op) =>
-                  mutateGroup(groupId, (target) => {
-                    const rules = target.conditions ?? []
+                  update((target) => {
+                    const rules = target.slot_conditions ?? []
                     rules[index] = { ...rules[index], op: op as ConditionOperator }
-                    target.conditions = rules
+                    target.slot_conditions = rules
                   })
                 }
               />
@@ -238,10 +196,10 @@ export function GroupEditor({
                 value={rule.value ?? 0}
                 step="any"
                 onChange={(value) =>
-                  mutateGroup(groupId, (target) => {
-                    const rules = target.conditions ?? []
+                  update((target) => {
+                    const rules = target.slot_conditions ?? []
                     rules[index] = { ...rules[index], value }
-                    target.conditions = rules
+                    target.slot_conditions = rules
                   })
                 }
               />
@@ -251,10 +209,10 @@ export function GroupEditor({
                 min={0}
                 max={MAXIMUM_HOLD_MS}
                 onChange={(hold_ms) =>
-                  mutateGroup(groupId, (target) => {
-                    const rules = target.conditions ?? []
+                  update((target) => {
+                    const rules = target.slot_conditions ?? []
                     rules[index] = { ...rules[index], hold_ms }
-                    target.conditions = rules
+                    target.slot_conditions = rules
                   })
                 }
               />
@@ -262,10 +220,10 @@ export function GroupEditor({
                 type="button"
                 className="h-8 rounded-md border px-2 hover:bg-muted"
                 onClick={() =>
-                  mutateGroup(groupId, (target) => {
-                    const rules = (target.conditions ?? []).filter((_, at) => at !== index)
-                    if (rules.length === 0) delete target.conditions
-                    else target.conditions = rules
+                  update((target) => {
+                    const rules = (target.slot_conditions ?? []).filter((_, at) => at !== index)
+                    if (rules.length === 0) delete target.slot_conditions
+                    else target.slot_conditions = rules
                   })
                 }
               >
@@ -273,13 +231,16 @@ export function GroupEditor({
               </button>
             </div>
           ))}
-          {(group.conditions ?? []).length < MAXIMUM_WIDGET_CONDITIONS ? (
+          {(widget.slot_conditions ?? []).length < MAXIMUM_WIDGET_CONDITIONS ? (
             <button
               type="button"
               className="h-8 rounded-md border px-2 hover:bg-muted"
               onClick={() =>
-                mutateGroup(groupId, (target) => {
-                  target.conditions = [...(target.conditions ?? []), { op: 'above', value: 0 }]
+                update((target) => {
+                  target.slot_conditions = [
+                    ...(target.slot_conditions ?? []),
+                    { op: 'above', value: 0 }
+                  ]
                 })
               }
             >

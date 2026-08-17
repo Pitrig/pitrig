@@ -1,6 +1,6 @@
-import { allWidgetsOf, groupsOf, screensOf } from '../../../../../shared/configuration-access'
+import { allWidgetsOf, screensOf } from '../../../../../shared/configuration-access'
 import { WIDGET_ID_CAPACITY } from '../../../../../shared/configuration-schema'
-import { findWidget, mutateDraftConfiguration, mutateGroup } from './document'
+import { findWidget, mutateDraftConfiguration } from './document'
 import { useDashboardEditorStore } from './store'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -10,17 +10,6 @@ export function renameWidget(id: string, name: string): boolean {
   mutateDraftConfiguration((next) => {
     const widget = findWidget(next, id)?.widget
     if (widget) widget.id = trimmed
-  })
-  useDashboardEditorStore.getState().renameId(id, trimmed)
-  return true
-}
-
-/** Renames a group, which shares its id namespace with the widgets. */
-export function renameGroup(id: string, name: string): boolean {
-  const trimmed = usableId(name, id)
-  if (!trimmed) return false
-  mutateGroup(id, (group) => {
-    group.id = trimmed
   })
   useDashboardEditorStore.getState().renameId(id, trimmed)
   return true
@@ -44,10 +33,7 @@ export function renameScreen(index: number, name: string): boolean {
     const screen = next.dashboard?.screens?.[index]
     if (!screen) return
     screen.id = trimmed
-    for (const target of [
-      ...allWidgetsOf(next),
-      ...screensOf(next).flatMap(groupsOf)
-    ]) {
+    for (const target of allWidgetsOf(next)) {
       if (target.action?.type === 'goto_screen' && target.action.screen === current) {
         target.action = { ...target.action, screen: trimmed }
       }
@@ -57,18 +43,15 @@ export function renameScreen(index: number, name: string): boolean {
 }
 
 /**
- * A name a widget or a group may take: non-empty, within what the device
- * stores, and not already used by either. The two share one namespace because
- * both are addressed by id in selection, the layer tree and undo history.
+ * A name a widget may take: non-empty, within what the device stores, and not
+ * already used. Containers are widgets, so one namespace covers everything that
+ * selection, the layer tree and undo history address by id.
  */
 function usableId(name: string, current: string): string | undefined {
   const trimmed = name.trim()
   const configuration = useDeviceStore.getState().draft
   if (!configuration || trimmed.length === 0 || trimmed === current) return undefined
   if (new TextEncoder().encode(trimmed).byteLength >= WIDGET_ID_CAPACITY) return undefined
-  const taken = [
-    ...allWidgetsOf(configuration).map((widget) => widget.id),
-    ...screensOf(configuration).flatMap(groupsOf).map((group) => group.id)
-  ]
+  const taken = allWidgetsOf(configuration).map((widget) => widget.id)
   return taken.includes(trimmed) ? undefined : trimmed
 }

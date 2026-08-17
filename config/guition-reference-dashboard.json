@@ -454,6 +454,62 @@
               },
               "color": "#FF3030"
             }
+          },
+          {
+            "type": "shape",
+            "id": "oil-panel",
+            "placement": {
+              "x": 340,
+              "y": 300,
+              "width": 132,
+              "height": 90
+            },
+            "border": {
+              "color": "#00E5FF",
+              "width_px": 2,
+              "radius_px": 8
+            },
+            "widgets": [
+              {
+                "type": "text",
+                "id": "oil-temp",
+                "placement": {
+                  "x": 8,
+                  "y": 0,
+                  "width": 116,
+                  "height": 90
+                },
+                "border": {
+                  "color": "#00E5FF",
+                  "width_px": 2,
+                  "radius_px": 6
+                },
+                "title": {
+                  "text": "OIL",
+                  "font": {
+                    "family": "roboto-black",
+                    "size_px": 16
+                  }
+                },
+                "sources": [
+                  {
+                    "binding": "engine.oil_temperature",
+                    "transform": {
+                      "type": "number",
+                      "decimals": 0,
+                      "suffix": "C"
+                    }
+                  }
+                ],
+                "value": {
+                  "font": {
+                    "family": "roboto-black",
+                    "size_px": 28
+                  },
+                  "color": "#E8E8E8"
+                }
+              }
+            ]
           }
         ]
       }

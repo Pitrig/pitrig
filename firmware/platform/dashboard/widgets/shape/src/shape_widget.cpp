@@ -59,7 +59,8 @@ bool Collection::create(const Layout& layout,
                         const std::span<const Config> configurations,
                         const std::span<const frame::ValueReadCallback> reads,
                         const std::span<void* const> read_contexts,
-                        const fonts::Registry& fonts) {
+                        const fonts::Registry& fonts,
+                        const std::span<lv_obj_t*> containers) {
   if (layout.display == nullptr || configurations.size() > states_.size() ||
       reads.size() != configurations.size() ||
       read_contexts.size() != configurations.size() || created_ ||
@@ -68,6 +69,9 @@ bool Collection::create(const Layout& layout,
   }
 
   created_ = true;
+  containers_ = containers;
+  // Built in pool order, which the parser made parent-before-child, so a
+  // container's object exists by the time anything inside it resolves a parent.
   for (std::size_t widget = 0; widget < configurations.size(); ++widget) {
     if (!build(states_[count_], layout, configurations[widget], reads[widget],
                read_contexts[widget], fonts)) {
@@ -75,6 +79,9 @@ bool Collection::create(const Layout& layout,
       created_ = false;
       lvgl_port_unlock();
       return false;
+    }
+    if (count_ < containers_.size()) {
+      containers_[count_] = states_[count_].container;
     }
     ++count_;
   }
@@ -130,8 +137,14 @@ void Collection::clear_objects() {
     lv_timer_delete(timer_);
     timer_ = nullptr;
   }
-  for (std::size_t index = 0; index < count_; ++index) {
-    release(states_[index]);
+  // Deepest first. The pool is ordered parent-before-child, and deleting an
+  // LVGL object deletes its descendants — so releasing forward would delete a
+  // container and then delete its already-destroyed children a second time.
+  for (std::size_t index = count_; index > 0; --index) {
+    if (index - 1 < containers_.size()) {
+      containers_[index - 1] = nullptr;
+    }
+    release(states_[index - 1]);
   }
   count_ = 0;
   created_ = false;
@@ -141,10 +154,12 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
                           const Config& configuration,
                           const frame::ValueReadCallback read,
                           void* const read_context,
-                          const fonts::Registry& fonts) {
+                          const fonts::Registry& fonts,
+                          const std::span<lv_obj_t*> containers) {
   if (!created_ || index >= count_ || !lvgl_port_lock(0)) {
     return false;
   }
+  containers_ = containers;
   State& state = states_[index];
   release(state);
   const bool built =
@@ -153,6 +168,9 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
     state.painter.render();
   } else {
     release(state);
+  }
+  if (index < containers_.size()) {
+    containers_[index] = built ? state.container : nullptr;
   }
   lvgl_port_unlock();
   return built;

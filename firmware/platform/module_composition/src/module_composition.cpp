@@ -50,7 +50,7 @@ template <typename Source>
 
 // Every place a modifier can be authored, not only the text sources. A bar,
 // arc, indicator or graph binds one the same way, and so does the source a
-// styling rule watches or a group activates on. Counting one of those places
+// styling rule watches or a slot activates on. Counting one of those places
 // and not the others left the module stopped behind a reader that would then
 // never report a value — the modifier looked configured and did nothing.
 bool has_lap_timer_modifier(
@@ -98,12 +98,12 @@ bool has_lap_timer_modifier(
       conditioned(dashboard.image_widgets, dashboard.image_widget_count)) {
     return true;
   }
-  for (std::size_t screen = 0; screen < dashboard.screen_count; ++screen) {
-    const auto& groups = dashboard.screens[screen];
-    for (std::size_t index = 0; index < groups.group_count; ++index) {
-      if (uses_lap_timer(groups.groups[index].condition_source)) {
-        return true;
-      }
+  // A slot rule watches its own source, separate from the styling rules the
+  // sweep above covers, so a lap_timer modifier there would otherwise leave the
+  // module unstarted and the slot never switching.
+  for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
+    if (uses_lap_timer(dashboard.shape_widgets[index].slot_source)) {
+      return true;
     }
   }
   return false;

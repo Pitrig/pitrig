@@ -2,90 +2,63 @@ import { useState } from 'react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
-import { groupsOf, screensOf, widgetsOf } from '../../../../shared/configuration-access'
+import { screensOf, stackOrder, widgetsOf } from '../../../../shared/configuration-access'
 import { WIDGET_ID_CAPACITY } from '../../../../shared/configuration-schema'
 import type { WidgetConfiguration } from '../../../../shared/configuration-schema'
 import {
+  type DropRelation,
+  canMoveWidget,
+  moveWidget,
   renameWidget,
-  reorderWidgets,
-  ungroupWidgets,
+  unwrapShape,
   useDashboardEditorStore
 } from './dashboard-editor'
 
 // The stack, top layer first — the order things are drawn in, read the way they
-// are looked at. Reordering rewrites `z_index`; locking and hiding are editor
-// state and never reach the document, because the device would reject the
-// unknown properties and a hidden layer is not a hidden widget.
+// are looked at. Locking and hiding are editor state and never reach the
+// document, because the device would reject the unknown properties and a hidden
+// layer is not a hidden widget.
 //
-// A group is a parent on the device as well as in the list, so its members are
-// stacked within it and restacking never moves a widget across parents.
+// A container is a parent on the device as well as in the list, so its children
+// are stacked within it. Dragging a row onto the middle of a container's row
+// moves the widget into it; the top and bottom of a row restack beside it.
 export function LayersPanel(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
   const [dragged, setDragged] = useState<string>()
   const [renaming, setRenaming] = useState<string>()
+  // Where the drop would land, so the row can show it. One object at panel level
+  // rather than a flag per row: there is only ever one, and clearing it is then
+  // one assignment instead of every row racing to unset its own.
+  const [dropTarget, setDropTarget] = useState<{ id: string; band: DropRelation }>()
 
   // Read through the subscribed index rather than the store getter, so the list
   // re-renders when the screen being edited changes.
   const screen = screensOf(draft)[activeScreenIndex]
-  const groups = groupsOf(screen)
   const widgets = widgetsOf(screen)
 
-  const rowProps = { dragged, setDragged, renaming, setRenaming }
+  const rowProps = { dragged, setDragged, renaming, setRenaming, dropTarget, setDropTarget }
 
   return (
     <Card>
       <CardHeader className="py-3">
         <CardTitle>Layers</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1 px-3 pb-3 text-xs">
-        {widgets.length === 0 && groups.length === 0 ? (
+      <CardContent
+        className="space-y-1 px-3 pb-3 text-xs"
+        // One handler for the whole panel: a per-row dragleave fires on every hop
+        // between a row's own buttons, which flickers the indicator constantly.
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            setDropTarget(undefined)
+          }
+        }}
+      >
+        {widgets.length === 0 ? (
           <p className="text-muted-foreground">No widgets yet.</p>
         ) : null}
-        {groups.map((group) => (
-          <div key={group.id} className="rounded-md border border-violet-500/40 p-1">
-            <div className="flex items-center gap-1 px-1 pb-1">
-              <button
-                type="button"
-                className="min-w-0 flex-1 truncate text-left font-medium"
-                title="Widget group · click to edit its box, slot and action"
-                onClick={() =>
-                  useDashboardEditorStore
-                    .getState()
-                    .select({ type: 'group', id: group.id ?? '' })
-                }
-              >
-                {group.id ?? 'group'}
-              </button>
-              {group.action && group.action.type !== 'none' ? (
-                <span className="flex-none text-emerald-400" title="Tapping this area navigates">
-                  tap
-                </span>
-              ) : null}
-              {group.slot ? (
-                <span className="flex-none text-muted-foreground" title="Slot this group switches in">
-                  {`slot ${group.slot}`}
-                </span>
-              ) : null}
-              <button
-                type="button"
-                className="flex-none px-1 text-muted-foreground hover:text-foreground"
-                title="Ungroup, putting the widgets back on the screen"
-                onClick={() => {
-                  const released = ungroupWidgets(group.id ?? '')
-                  if (released.length > 0) {
-                    useDashboardEditorStore.getState().selectMany(released)
-                  }
-                }}
-              >
-                ⤴
-              </button>
-            </div>
-            <LayerList widgets={widgetsOf(group)} {...rowProps} />
-          </div>
-        ))}
         <LayerList widgets={widgets} {...rowProps} />
-        {widgets.length > 0 || groups.length > 0 ? (
+        {widgets.length > 0 ? (
           <p className="pt-1 text-muted-foreground">
             Hiding and locking apply to this editing session only; the board draws every widget.
           </p>
@@ -100,19 +73,22 @@ interface RowState {
   setDragged: (id?: string) => void
   renaming?: string
   setRenaming: (id?: string) => void
+  dropTarget?: { id: string; band: DropRelation }
+  setDropTarget: (target?: { id: string; band: DropRelation }) => void
 }
 
 /**
- * One parent's stack. Dragging reorders within this list only, which is what
- * keeps a restack from silently reparenting a widget into or out of a group.
+ * One parent's stack. A row is three drop bands: its top and bottom restack
+ * beside it, its middle moves the dragged widget inside it. The middle band only
+ * exists where the move is legal — a container that would nest too deep, is
+ * full, or is the dragged widget's own descendant offers two bands instead of
+ * three, so no band is ever a drop that quietly does nothing.
  */
 function LayerList({
   widgets,
-  dragged,
-  setDragged,
-  renaming,
-  setRenaming
+  ...rowState
 }: { widgets: WidgetConfiguration[] } & RowState): React.JSX.Element {
+  const { dragged, setDragged, renaming, setRenaming, dropTarget, setDropTarget } = rowState
   const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
   const select = useDashboardEditorStore((state) => state.select)
   const extendSelection = useDashboardEditorStore((state) => state.extendSelection)
@@ -122,24 +98,27 @@ function LayerList({
   const toggleHidden = useDashboardEditorStore((state) => state.toggleHidden)
 
   // Back to front is what z_index means, so the list reverses it.
-  const backToFront = [...widgets]
-    .map((widget, order) => ({ widget, order }))
-    .sort(
-      (left, right) =>
-        (left.widget.z_index ?? 0) - (right.widget.z_index ?? 0) || left.order - right.order
-    )
+  const topFirst = stackOrder(widgets)
     .map(({ widget }) => widget)
-  const topFirst = [...backToFront].reverse()
+    .reverse()
 
-  const dropOn = (targetId: string): void => {
-    if (!dragged || dragged === targetId) return
-    const order = backToFront.map((widget) => widget.id).filter((id): id is string => Boolean(id))
-    const from = order.indexOf(dragged)
-    const to = order.indexOf(targetId)
-    // A drag that started in another parent has no place in this order.
-    if (from < 0 || to < 0) return
-    order.splice(to, 0, ...order.splice(from, 1))
-    reorderWidgets(order)
+  // Which band the pointer is over, or undefined when no drop is legal there.
+  const bandAt = (
+    event: React.DragEvent<HTMLElement>,
+    id: string,
+    isContainer: boolean
+  ): DropRelation | undefined => {
+    if (!dragged) return undefined
+    const box = event.currentTarget.getBoundingClientRect()
+    const position = box.height > 0 ? (event.clientY - box.top) / box.height : 0.5
+    const legal = (band: DropRelation): DropRelation | undefined =>
+      canMoveWidget(dragged, band, id) ? band : undefined
+    if (isContainer && canMoveWidget(dragged, 'inside', id)) {
+      if (position < 0.25) return legal('above')
+      if (position > 0.75) return legal('below')
+      return 'inside'
+    }
+    return legal(position < 0.5 ? 'above' : 'below')
   }
 
   return (
@@ -148,22 +127,63 @@ function LayerList({
         const id = widget.id
         if (!id) return null
         const selected = selectedIds.includes(id)
+        // A container is a widget, so its contents are the same list nested
+        // rather than a second kind of entry.
+        const children = widget.type === 'shape' ? widgetsOf(widget) : []
+        const band = dropTarget?.id === id ? dropTarget.band : undefined
         return (
+          <div key={id}>
           <div
-            key={id}
             draggable
-            onDragStart={() => setDragged(id)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => {
-              dropOn(id)
-              setDragged(undefined)
+            onDragStart={(event) => {
+              setDragged(id)
+              event.dataTransfer.effectAllowed = 'move'
             }}
-            onDragEnd={() => setDragged(undefined)}
-            className={`flex items-center gap-1 rounded-md border px-2 py-1 ${
+            onDragOver={(event) => {
+              const over = bandAt(event, id, widget.type === 'shape')
+              // Leaving preventDefault uncalled is what shows the no-drop cursor
+              // and keeps onDrop from firing at all — the refusal costs nothing.
+              if (!over) return
+              event.preventDefault()
+              event.dataTransfer.dropEffect = 'move'
+              // Only on a change: dragover fires continuously, and writing state
+              // every time would re-render the whole panel dozens of times a second.
+              if (dropTarget?.id !== id || dropTarget.band !== over) {
+                setDropTarget({ id, band: over })
+              }
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              // Recomputed from the drop itself: the stored band is a render behind.
+              const over = bandAt(event, id, widget.type === 'shape')
+              if (dragged && over) moveWidget(dragged, over, id)
+              setDragged(undefined)
+              setDropTarget(undefined)
+            }}
+            onDragEnd={() => {
+              setDragged(undefined)
+              setDropTarget(undefined)
+            }}
+            className={`relative flex items-center gap-1 rounded-md border px-2 py-1 ${
               selected ? 'border-sky-500 bg-sky-500/10' : 'border-transparent hover:bg-muted'
-            } ${dragged === id ? 'opacity-50' : ''}`}
+            } ${dragged === id ? 'opacity-50' : ''} ${
+              band === 'inside' ? 'ring-2 ring-inset ring-sky-400' : ''
+            }`}
           >
-            <span className="cursor-grab text-muted-foreground" title="Drag to restack">
+            {/* Absolute and click-through: an element under the cursor would
+                swallow the dragover this indicator exists to reflect. */}
+            {band === 'above' || band === 'below' ? (
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute inset-x-0 h-0.5 bg-sky-400 ${
+                  band === 'above' ? '-top-px' : '-bottom-px'
+                }`}
+              />
+            ) : null}
+            <span
+              className="cursor-grab text-muted-foreground"
+              title="Drag to restack, or onto the middle of a container to move it inside"
+            >
               ⠿
             </span>
             {renaming === id ? (
@@ -198,6 +218,33 @@ function LayerList({
             >
               {hidden[id] ? '🙈' : '👁'}
             </button>
+          </div>
+            {children.length > 0 ? (
+              <div className="ml-3 border-l border-violet-500/40 pl-1">
+                <div className="flex items-center gap-1 px-1 text-muted-foreground">
+                  <span className="min-w-0 flex-1 truncate">{`${children.length} inside`}</span>
+                  {widget.type === 'shape' && widget.slot ? (
+                    <span className="flex-none" title="Slot this container switches in">
+                      {`slot ${widget.slot}`}
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="flex-none px-1 hover:text-foreground"
+                    title="Unwrap, putting the widgets back beside this one"
+                    onClick={() => {
+                      const released = unwrapShape(id)
+                      if (released.length > 0) {
+                        useDashboardEditorStore.getState().selectMany(released)
+                      }
+                    }}
+                  >
+                    ⤴
+                  </button>
+                </div>
+                <LayerList widgets={children} {...rowState} />
+              </div>
+            ) : null}
           </div>
         )
       })}

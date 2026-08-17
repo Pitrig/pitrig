@@ -2,26 +2,26 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 8
+export const CONFIGURATION_SCHEMA_VERSION = 9
 
 /** Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
 export const MAXIMUM_PAYLOAD_SIZE = 65536
 /** Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM. */
 export const MAXIMUM_SCREENS = 4
 /** Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. */
-export const MAXIMUM_WIDGETS_PER_SCREEN = 94
-/** Widget groups per screen. A group is one LVGL container, so it costs its own reference table rather than widget storage. */
-export const MAXIMUM_GROUPS = 8
-/** Ordered widget references inside one group. A group is an area of a screen rather than a screen, so it needs far fewer than a screen does. */
-export const MAXIMUM_WIDGETS_PER_GROUP = 16
+export const MAXIMUM_WIDGETS_PER_SCREEN = 102
+/** Ordered widget references inside one container shape. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does. */
+export const MAXIMUM_WIDGETS_PER_CONTAINER = 16
+/** How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference. */
+export const MAXIMUM_NESTING_DEPTH = 4
 /** Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list. */
 export const MAXIMUM_ACTIONS = 16
-/** Slots for the whole dashboard. A slot is a box whose groups are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a group is not in one. */
+/** Slots for the whole dashboard. A slot is a box whose container shapes are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a shape is not in one. */
 export const MAXIMUM_SLOTS = 4
 /** Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. */
 export const MAXIMUM_TEXT_WIDGETS = 32
-/** Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap. */
-export const MAXIMUM_SHAPE_WIDGETS = 24
+/** Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and are also the only widget that holds other widgets, so this is the most generous cap: every container spends one. */
+export const MAXIMUM_SHAPE_WIDGETS = 32
 /** Bar widget storage for the whole dashboard. */
 export const MAXIMUM_BAR_WIDGETS = 16
 /** Arc widget storage for the whole dashboard. */
@@ -87,7 +87,7 @@ export const COLOR_RAMP_TARGET_VALUES: readonly ColorRampTarget[] = ['content', 
 export type ConditionOperator = 'above' | 'at_or_above' | 'below' | 'at_or_below' | 'equal' | 'not_equal'
 export const CONDITION_OPERATOR_VALUES: readonly ConditionOperator[] = ['above', 'at_or_above', 'below', 'at_or_below', 'equal', 'not_equal']
 
-/** What a tap on a widget or a group does. none is the default and leaves the object refusing input, which is what every widget did before actions existed. */
+/** What a tap on a widget does. none is the default and leaves the object refusing input, which is what every widget did before actions existed. */
 export type WidgetActionType = 'none' | 'next_screen' | 'previous_screen' | 'goto_screen'
 export const WIDGET_ACTION_TYPE_VALUES: readonly WidgetActionType[] = ['none', 'next_screen', 'previous_screen', 'goto_screen']
 
@@ -108,8 +108,8 @@ export type WidgetType = 'text' | 'shape' | 'bar' | 'arc' | 'indicator' | 'graph
 export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'arc', 'indicator', 'graph', 'image']
 
 /** Reason token a device puts after `@SC:ERR:` when it rejects a document. */
-export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_group' | 'invalid_dashboard' | 'invalid_widget' | 'unknown_property' | 'duplicate_property'
-export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_group', 'invalid_dashboard', 'invalid_widget', 'unknown_property', 'duplicate_property']
+export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'unknown_property' | 'duplicate_property'
+export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_dashboard', 'invalid_widget', 'unknown_property', 'duplicate_property']
 
 export interface FontSpec {
   family?: string
@@ -215,7 +215,7 @@ export interface ColorRamp {
   stops?: ColorStop[]
 }
 
-/** Navigation a tap performs. Carried by a widget and by a group, so a tap target is either a readout that doubles as a button or a rectangle of the screen — including an empty group, which is an invisible touch zone. */
+/** Navigation a tap performs. Carried by every widget, so a tap target is either a readout that doubles as a button or a rectangle of the screen — including an empty transparent shape, which is an invisible touch zone. */
 export interface WidgetAction {
   type?: WidgetActionType
   screen?: string
@@ -230,6 +230,13 @@ export interface WidgetCondition {
   border_color?: RgbColor
   hidden?: boolean
   blink_ms?: number
+  hold_ms?: number
+}
+
+/** One activation rule for a container shape in a slot. The first rule whose comparison holds shows its shape, and the hold keeps it up for that long after the match ends so a momentary event stays readable. Kept separate from a widget's styling rules because selection and appearance watch different fields. */
+export interface SlotCondition {
+  op?: ConditionOperator
+  value?: number
   hold_ms?: number
 }
 
@@ -423,7 +430,7 @@ export interface ImageWidgetConfiguration {
   recolor_opa?: number
 }
 
-/** Panels, dividers and backing plates: the frame is the whole widget. It binds no telemetry of its own, but its styling rules can still hide it or flash it. A line is a thin rectangle. */
+/** Panels, dividers and backing plates, and the only widget that holds other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box, and they are drawn even where they overhang it. Shapes sharing a slot occupy the same box with one of them visible at a time. */
 export interface ShapeWidgetConfiguration {
   type: 'shape'
   id?: string
@@ -441,33 +448,17 @@ export interface ShapeWidgetConfiguration {
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
   kind?: ShapeKind
-}
-
-/** One activation rule for a group in a slot. The first rule whose comparison holds shows its group, and the hold keeps it up for that long after the match ends so a momentary event stays readable. */
-export interface GroupCondition {
-  op?: ConditionOperator
-  value?: number
-  hold_ms?: number
-}
-
-/** A rectangle of a screen with widgets authored inside it. A widget in a group is placed relative to this box and clipped to it; the group performs no layout of its own. Groups sharing a slot occupy the same box with one of them visible at a time. */
-export interface GroupConfiguration {
-  id?: string
-  placement?: WidgetPlacement
-  z_index?: number
   slot?: number
   slot_default?: boolean
-  action?: WidgetAction
-  condition_source?: ValueSourceConfiguration
-  conditions?: GroupCondition[]
+  slot_source?: ValueSourceConfiguration
+  slot_conditions?: SlotCondition[]
   widgets?: WidgetConfiguration[]
 }
 
-/** One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference. Widgets authored directly on the screen appear in its own reference table, and widgets authored inside a group appear in that group's. */
+/** One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference. Widgets authored directly on the screen appear in its own reference table, and widgets authored inside a container shape appear in that shape's. */
 export interface ScreenConfiguration {
   id?: string
   background_color?: RgbColor
-  groups?: GroupConfiguration[]
   widgets?: WidgetConfiguration[]
 }
 
@@ -505,6 +496,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ColorRamp: ['target', 'stops'],
   WidgetAction: ['type', 'screen'],
   WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'hidden', 'blink_ms', 'hold_ms'],
+  SlotCondition: ['op', 'value', 'hold_ms'],
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
   WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions'],
   TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'sources', 'value'],
@@ -515,16 +507,24 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'segment_gap_px', 'segment_radius_px', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
   GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px'],
   ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'image', 'recolor', 'recolor_opa'],
-  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind'],
-  GroupCondition: ['op', 'value', 'hold_ms'],
-  GroupConfiguration: ['id', 'placement', 'z_index', 'slot', 'slot_default', 'action', 'condition_source', 'conditions', 'widgets'],
-  ScreenConfiguration: ['id', 'background_color', 'groups', 'widgets'],
+  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind', 'slot', 'slot_default', 'slot_source', 'slot_conditions', 'widgets'],
+  ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'dashboard'],
 }
 
 /** Struct that carries each widget variant, keyed by its discriminator. */
 export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = { text: 'TextWidgetConfiguration', bar: 'BarWidgetConfiguration', arc: 'ArcWidgetConfiguration', indicator: 'IndicatorWidgetConfiguration', graph: 'GraphWidgetConfiguration', image: 'ImageWidgetConfiguration', shape: 'ShapeWidgetConfiguration' }
+
+/**
+ * Properties holding a heterogeneous widget array, per struct that has one.
+ * A validator walks these rather than naming the container structs, so a new
+ * kind of parent cannot be silently skipped.
+ */
+export const SCHEMA_VARIANT_ARRAYS: Record<string, readonly string[]> = {
+  ShapeWidgetConfiguration: ['widgets'],
+  ScreenConfiguration: ['widgets'],
+}
 
 /**
  * Nested object type for each property, so a validator can walk an unknown
@@ -544,9 +544,7 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   IndicatorWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', segments: 'IndicatorSegment' },
   GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
   ImageWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
-  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
-  GroupConfiguration: { placement: 'WidgetPlacement', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', conditions: 'GroupCondition' },
-  ScreenConfiguration: { groups: 'GroupConfiguration' },
+  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', slot_source: 'ValueSourceConfiguration', slot_conditions: 'SlotCondition' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
   ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', dashboard: 'DashboardConfiguration' },
 }
@@ -569,6 +567,5 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ImageWidgetConfiguration.id': 16,
   'ImageWidgetConfiguration.image': 32,
   'ShapeWidgetConfiguration.id': 16,
-  'GroupConfiguration.id': 16,
   'ScreenConfiguration.id': 16,
 }

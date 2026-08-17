@@ -53,7 +53,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] Value-driven colour ramps and linear gradients (rotation, opacity and
       animation curves are excluded by decision)
 - [*] Uploaded image asset pipeline and image widgets
-- [*] Widget groups and slots (an area of a screen that switches what it shows)
+- [*] Container shapes and slots (an area of a screen that switches what it shows)
 - [ ] Button Matrix
 - [ ] RGB
 

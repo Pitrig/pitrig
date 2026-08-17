@@ -134,7 +134,7 @@ components → interfaces ← drivers
   `SCF1` upload engine; `font_asset_control` and `image_asset_control` are thin per-kind
   wrappers over it that supply the protocol tag and the body of the `INFO` reply.
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
-  `dashboard` (LVGL widgets, plus `navigation` for screen swiping and `slots` for group
+  `dashboard` (LVGL widgets, plus `navigation` for screen swiping and `slots` for container
   switching), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
   `partition_asset_storage`, `telemetry_transport`, `external_memory`.
 - `utils/` — dependency-free helpers (`binary`, `transformers/number_transform`,
@@ -167,11 +167,15 @@ configurator must not depend on it.
 
 Sparse JSON, used unchanged for both configurator projects and the device wire payload — omitted
 properties are *not* expanded through board profiles. Widget geometry is absolute logical display
-pixels, except inside a **group**, where it is relative to the group's box (ADR 0021). A dashboard
-holds up to four screens, swiped between on a board with touch (ADR 0020), and a screen may hold
-groups; groups sharing a `slot` share one box and only one is visible, cycled by a tap or selected
-by a telemetry rule. A widget or a group may also carry an `action`, so a tap navigates to the next,
-previous, or a named screen; an empty group with an action is an invisible touch zone. Bounded limits (64 KB payload, per-type widget caps, 4 modifiers per
+pixels, except inside a **container**, where it is relative to the container's box (ADR 0021). A
+**shape** widget is the container: it may hold widgets, including other shapes, nested up to
+`kMaximumNestingDepth`. A container does **not** clip its children — a caption or a widget that
+overhangs it is drawn, and only the display still bounds a box. A dashboard holds up to four
+screens, swiped between on a board with touch (ADR 0020); containers sharing a `slot` share one box
+and only one is visible, cycled by a tap or selected by that container's own `slot_conditions` over
+its `slot_source` (kept separate from the styling `conditions` every widget has). Any widget may
+carry an `action`, so a tap navigates to the next, previous, or a named screen; an empty
+transparent shape with an action is an invisible touch zone. Bounded limits (64 KB payload, per-type widget caps, 4 modifiers per
 source, byte limits on strings) and the full property table are in
 [docs/device-configuration.md](docs/device-configuration.md) — read it before touching config code on
 either side. The contract itself lives in the `configuration_contract` service component (no storage,

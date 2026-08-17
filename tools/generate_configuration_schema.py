@@ -818,6 +818,28 @@ def generate_typescript(document: dict[str, Any]) -> str:
             f"{{ {rendered_variants} }}",
             "",
             "/**",
+            " * Properties holding a heterogeneous widget array, per struct that has one.",
+            " * A validator walks these rather than naming the container structs, so a new",
+            " * kind of parent cannot be silently skipped.",
+            " */",
+            "export const SCHEMA_VARIANT_ARRAYS: Record<string, readonly string[]> = {",
+        ]
+    )
+    for name, body in document["structs"].items():
+        arrays = [
+            json_key(field)
+            for field in body["fields"]
+            if field["kind"] == "array" and field.get("json_variants")
+        ]
+        if not arrays:
+            continue
+        rendered = ", ".join(f"'{key}'" for key in arrays)
+        lines.append(f"  {name}: [{rendered}],")
+    lines.extend(
+        [
+            "}",
+            "",
+            "/**",
             " * Nested object type for each property, so a validator can walk an unknown",
             " * document without a hand-maintained mapping.",
             " */",

@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 8;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 9;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
@@ -23,19 +23,19 @@ inline constexpr std::size_t kMaximumPayloadSize = 65536;
 // Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM.
 inline constexpr std::size_t kMaximumScreens = 4;
 // Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize.
-inline constexpr std::size_t kMaximumWidgetsPerScreen = 94;
-// Widget groups per screen. A group is one LVGL container, so it costs its own reference table rather than widget storage.
-inline constexpr std::size_t kMaximumGroups = 8;
-// Ordered widget references inside one group. A group is an area of a screen rather than a screen, so it needs far fewer than a screen does.
-inline constexpr std::size_t kMaximumWidgetsPerGroup = 16;
+inline constexpr std::size_t kMaximumWidgetsPerScreen = 102;
+// Ordered widget references inside one container shape. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does.
+inline constexpr std::size_t kMaximumWidgetsPerContainer = 16;
+// How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference.
+inline constexpr std::size_t kMaximumNestingDepth = 4;
 // Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list.
 inline constexpr std::size_t kMaximumActions = 16;
-// Slots for the whole dashboard. A slot is a box whose groups are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a group is not in one.
+// Slots for the whole dashboard. A slot is a box whose container shapes are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a shape is not in one.
 inline constexpr std::size_t kMaximumSlots = 4;
 // Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts.
 inline constexpr std::size_t kMaximumTextWidgets = 32;
-// Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap.
-inline constexpr std::size_t kMaximumShapeWidgets = 24;
+// Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and are also the only widget that holds other widgets, so this is the most generous cap: every container spends one.
+inline constexpr std::size_t kMaximumShapeWidgets = 32;
 // Bar widget storage for the whole dashboard.
 inline constexpr std::size_t kMaximumBarWidgets = 16;
 // Arc widget storage for the whole dashboard.
@@ -130,7 +130,7 @@ enum class ConditionOperator : std::uint8_t {
   not_equal,
 };
 
-// What a tap on a widget or a group does. none is the default and leaves the object refusing input, which is what every widget did before actions existed.
+// What a tap on a widget does. none is the default and leaves the object refusing input, which is what every widget did before actions existed.
 enum class WidgetActionType : std::uint8_t {
   none,
   next_screen,
@@ -271,9 +271,9 @@ struct ColorRamp {
   std::array<ColorStop, kMaximumColorStops> stops{};
 };
 
-// Navigation a tap performs. Carried by a widget and by a group, so a tap
-// target is either a readout that doubles as a button or a rectangle of the
-// screen — including an empty group, which is an invisible touch zone.
+// Navigation a tap performs. Carried by every widget, so a tap target is
+// either a readout that doubles as a button or a rectangle of the screen —
+// including an empty transparent shape, which is an invisible touch zone.
 struct WidgetAction {
   WidgetActionType type{WidgetActionType::none};
   std::array<char, kWidgetIdCapacity> screen{};
@@ -291,6 +291,28 @@ struct WidgetCondition {
   bool hidden{false};
   std::uint16_t blink_ms{};
   std::uint16_t hold_ms{};
+};
+
+// One activation rule for a container shape in a slot. The first rule whose
+// comparison holds shows its shape, and the hold keeps it up for that long
+// after the match ends so a momentary event stays readable. Kept separate
+// from a widget's styling rules because selection and appearance watch
+// different fields.
+struct SlotCondition {
+  ConditionOperator op{ConditionOperator::at_or_above};
+  float value{};
+  std::uint16_t hold_ms{};
+};
+
+// Declaration-order reference into the typed widget storage, held by
+// whichever parent declared the widget. Carries the ordering keys so
+// compositing needs no widget-type knowledge: z_index ascending, authored
+// array order breaking ties. Declared before the widget structs because a
+// container shape holds an array of these.
+struct WidgetReference {
+  WidgetType type{WidgetType::text};
+  std::uint8_t index{};
+  std::int16_t z_index{};
 };
 
 // One canonical telemetry source of a text widget, consumed through a
@@ -322,8 +344,8 @@ struct WidgetFrame {
   ColorRamp color_ramp{};
   std::uint8_t condition_count{};
   std::uint8_t screen_index{};
-  std::uint8_t group_index{};
-  bool group_present{false};
+  std::uint8_t parent_index{};
+  bool parent_present{false};
   std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
 };
 
@@ -419,61 +441,33 @@ struct ImageWidgetConfiguration {
   std::uint8_t recolor_opa{255};
 };
 
-// Panels, dividers and backing plates: the frame is the whole widget. It
-// binds no telemetry of its own, but its styling rules can still hide it or
-// flash it. A line is a thin rectangle.
+// Panels, dividers and backing plates, and the only widget that holds other
+// widgets. The frame is the whole widget: it binds no telemetry of its own,
+// but its styling rules can still hide it or flash it, and a line is a thin
+// rectangle. A shape with widgets is a container — its children are placed
+// relative to its box, and they are drawn even where they overhang it.
+// Shapes sharing a slot occupy the same box with one of them visible at a
+// time.
 struct ShapeWidgetConfiguration {
   WidgetFrame frame{};
   ShapeKind kind{ShapeKind::rectangle};
-};
-
-// Declaration-order reference into the typed widget storage of one screen.
-// Carries the ordering keys so compositing needs no widget-type knowledge:
-// z_index ascending, authored array order breaking ties.
-struct WidgetReference {
-  WidgetType type{WidgetType::text};
-  std::uint8_t index{};
-  std::int16_t z_index{};
-};
-
-// One activation rule for a group in a slot. The first rule whose
-// comparison holds shows its group, and the hold keeps it up for that long
-// after the match ends so a momentary event stays readable.
-struct GroupCondition {
-  ConditionOperator op{ConditionOperator::at_or_above};
-  float value{};
-  std::uint16_t hold_ms{};
-};
-
-// A rectangle of a screen with widgets authored inside it. A widget in a
-// group is placed relative to this box and clipped to it; the group
-// performs no layout of its own. Groups sharing a slot occupy the same box
-// with one of them visible at a time.
-struct GroupConfiguration {
-  std::array<char, kWidgetIdCapacity> id{};
-  WidgetPlacement placement{};
-  std::int16_t z_index{};
   std::uint8_t slot{};
   bool slot_default{false};
-  WidgetAction action{};
-  ValueSourceConfiguration condition_source{};
-  std::uint8_t condition_count{};
-  std::uint8_t screen_index{};
-  std::array<GroupCondition, kMaximumWidgetConditions> conditions{};
+  ValueSourceConfiguration slot_source{};
+  std::uint8_t slot_condition_count{};
+  std::array<SlotCondition, kMaximumWidgetConditions> slot_conditions{};
   std::uint8_t widget_count{};
-  std::array<WidgetReference, kMaximumWidgetsPerGroup> widgets{};
+  std::array<WidgetReference, kMaximumWidgetsPerContainer> widgets{};
 };
 
 // One dashboard screen: the coordinate space its widgets are placed in, and
 // the order they stack in. The widgets themselves live in the dashboard's
 // pool; a screen names them by reference. Widgets authored directly on the
 // screen appear in its own reference table, and widgets authored inside a
-// group appear in that group's.
+// container shape appear in that shape's.
 struct ScreenConfiguration {
   std::array<char, kWidgetIdCapacity> id{};
   std::uint32_t background_color{0x000000};
-  std::uint8_t group_count{};
-  std::array<GroupConfiguration, kMaximumGroups> groups{};
   std::uint8_t widget_count{};
   std::array<WidgetReference, kMaximumWidgetsPerScreen> widgets{};
 };

@@ -17,8 +17,8 @@ namespace {
 
 constexpr std::uint32_t kDefaultBackgroundColor = 0x000000;
 
-// A screen and a group are both containers for absolutely placed widgets, so
-// neither may scroll, pad, or paint a border of its own.
+// A screen holds absolutely placed widgets, so it may not scroll, pad, or paint
+// a border of its own.
 void make_container(lv_obj_t* const object) {
   lv_obj_remove_flag(object, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_pad_all(object, 0, LV_PART_MAIN);
@@ -46,46 +46,6 @@ std::size_t create_screens(
   return created;
 }
 
-// One transparent container per configured group, parented to its screen and
-// sized to the group's box. LVGL then gives relative child coordinates and
-// clipping for free, which is the whole reason a group is an object rather
-// than arithmetic in the layout.
-void create_groups(
-    const configuration::ApplicationConfiguration& configuration,
-    const std::span<lv_obj_t* const> screens,
-    const std::span<lv_obj_t*> groups) {
-  for (std::size_t screen_index = 0; screen_index < screens.size();
-       ++screen_index) {
-    if (screen_index >= configuration.dashboard.screen_count) {
-      break;
-    }
-    lv_obj_t* const parent = screens[screen_index];
-    const configuration::ScreenConfiguration& screen =
-        configuration.dashboard.screens[screen_index];
-    for (std::size_t index = 0; index < screen.group_count; ++index) {
-      const configuration::GroupConfiguration& group = screen.groups[index];
-      const std::size_t slot =
-          screen_index * configuration::kMaximumGroups + index;
-      if (parent == nullptr || slot >= groups.size()) {
-        continue;
-      }
-      lv_obj_t* const container = lv_obj_create(parent);
-      if (container == nullptr) {
-        continue;
-      }
-      make_container(container);
-      lv_obj_set_style_radius(container, 0, LV_PART_MAIN);
-      // A group paints nothing of its own: it is a parent and a clip, and the
-      // screen behind it shows through.
-      lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, LV_PART_MAIN);
-      lv_obj_set_pos(container, group.placement.x, group.placement.y);
-      lv_obj_set_size(container, group.placement.width,
-                      group.placement.height);
-      groups[slot] = container;
-    }
-  }
-}
-
 const configuration::ScreenConfiguration& active_screen(
     const configuration::ApplicationConfiguration& configuration) {
   static const configuration::ScreenConfiguration kEmptyScreen{};
@@ -109,18 +69,15 @@ struct WidgetLayer {
 };
 
 // Stacking is an order among one LVGL parent's children, so this runs once per
-// parent: a screen, whose children are its own widgets and its group
-// containers, and then each of those groups over its own reference table. The
-// scratch table is reused between parents, which is why more of them cost no
-// more stack.
+// parent — a screen, or a container shape — over that parent's own reference
+// table. A container is one child of its own parent, ordered there by its own
+// z_index, and orders its children separately within itself; that is why depth
+// costs nothing here. The scratch table is reused between parents, which is why
+// more of them cost no more stack.
 bool apply_parent_z_order(
     const std::span<const configuration::WidgetReference> references,
-    const std::size_t reference_count,
-    const std::span<const configuration::GroupConfiguration> groups,
-    const std::size_t screen_index, Dashboard& dashboard) {
-  std::array<WidgetLayer, configuration::kMaximumWidgetsPerScreen +
-                              configuration::kMaximumGroups>
-      layers{};
+    const std::size_t reference_count, Dashboard& dashboard) {
+  std::array<WidgetLayer, configuration::kMaximumWidgetsPerScreen> layers{};
   std::size_t count{};
   // Authored order breaks z_index ties, and the reference table is that order.
   for (std::size_t index = 0; index < reference_count; ++index) {
@@ -132,20 +89,6 @@ bool apply_parent_z_order(
           .object = object,
           .z_index = reference.z_index,
           .configuration_order = static_cast<std::uint8_t>(index),
-      };
-    }
-  }
-  // A group is one child of its screen, ordered among the screen's widgets by
-  // its own z_index. Its children are ordered separately, within it.
-  for (std::size_t index = 0; index < groups.size(); ++index) {
-    lv_obj_t* const container =
-        dashboard.groups[screen_index * configuration::kMaximumGroups + index];
-    if (container != nullptr) {
-      layers[count++] = {
-          .object = container,
-          .z_index = groups[index].z_index,
-          .configuration_order =
-              static_cast<std::uint8_t>(reference_count + index),
       };
     }
   }
@@ -172,6 +115,32 @@ bool apply_parent_z_order(
   }
   lvgl_port_unlock();
   return true;
+}
+
+// How far this container's children reach past it, reported to LVGL whenever it
+// recomputes the extra draw size. lv_event_set_ext_draw_size keeps the larger of
+// what it is told, so this coexists with LVGL's own handler rather than
+// replacing it. The measurement is static after composition; the pointer is into
+// the dashboard's own array, which outlives the object it is attached to.
+void report_container_overflow(lv_event_t* const event) {
+  const auto* const overflow =
+      static_cast<const std::int32_t*>(lv_event_get_user_data(event));
+  if (overflow != nullptr) {
+    lv_event_set_ext_draw_size(event, *overflow);
+  }
+}
+
+// How far one child reaches beyond its own box. Only a container does, and only
+// by the amount this pass already measured for it, so the answer is a lookup in
+// the table rather than a second measurement.
+[[nodiscard]] std::int32_t child_overflow(const Dashboard& dashboard,
+                                          const lv_obj_t* const object) {
+  for (std::size_t index = 0; index < dashboard.containers.size(); ++index) {
+    if (dashboard.containers[index] == object) {
+      return dashboard.container_overflow[index];
+    }
+  }
+  return 0;
 }
 
 // The screen an action names, resolved once here so a tap performs no lookup.
@@ -210,7 +179,8 @@ std::size_t create(lv_display_t* const display,
                    const configuration::ApplicationConfiguration& configuration,
                    Dashboard& dashboard) {
   dashboard.screens = {};
-  dashboard.groups = {};
+  dashboard.containers = {};
+  dashboard.container_overflow = {};
   if (!lvgl_port_lock(0)) {
     log::error("dashboard", "Failed to lock LVGL for dashboard screens");
     return 0;
@@ -224,8 +194,6 @@ std::size_t create(lv_display_t* const display,
         LV_PART_MAIN);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
   }
-  create_groups(configuration, std::span{dashboard.screens}.first(count),
-                dashboard.groups);
   lvgl_port_unlock();
   return count;
 }
@@ -236,22 +204,64 @@ bool will_render_content(
   (void)configuration;
   return true;
 #else
-  // A screen whose widgets all sit inside groups has an empty reference table
-  // of its own but is anything but empty; counting only screen.widget_count
-  // would leave the splash covering a working dashboard.
+  // A container is a widget in its screen's own reference table, so a screen
+  // holding nothing but one full container still counts as non-empty here.
   const configuration::ScreenConfiguration& screen =
       active_screen(configuration);
-  if (screen.background_color != kDefaultBackgroundColor ||
-      screen.widget_count > 0) {
-    return true;
-  }
-  for (std::size_t index = 0; index < screen.group_count; ++index) {
-    if (screen.groups[index].widget_count > 0) {
-      return true;
-    }
-  }
-  return false;
+  return screen.background_color != kDefaultBackgroundColor ||
+         screen.widget_count > 0;
 #endif
+}
+
+bool unclip_containers(
+    const configuration::ApplicationConfiguration& configuration,
+    Dashboard& dashboard) {
+  const configuration::DashboardConfiguration& document = configuration.dashboard;
+  if (!lvgl_port_lock(0)) {
+    return false;
+  }
+  // Reverse pool order, so a nested container's own extra draw size is already
+  // final when the container above it folds that in. The pool is ordered
+  // parent-before-child, which is what makes one pass exact at any depth.
+  for (std::size_t index = document.shape_widget_count; index > 0; --index) {
+    const std::size_t slot = index - 1;
+    lv_obj_t* const container = dashboard.containers[slot];
+    if (container == nullptr || document.shape_widgets[slot].widget_count == 0) {
+      continue;
+    }
+    lv_area_t box{};
+    lv_obj_get_coords(container, &box);
+    std::int32_t overflow = 0;
+    // LVGL children rather than the reference table: a caption and its border
+    // mask are parented to the container and appear in no table, and a clipped
+    // caption is the whole reason this pass exists.
+    const std::uint32_t children = lv_obj_get_child_count(container);
+    for (std::uint32_t child = 0; child < children; ++child) {
+      lv_obj_t* const object = lv_obj_get_child(container, child);
+      if (object == nullptr) {
+        continue;
+      }
+      lv_area_t reach{};
+      lv_obj_get_coords(object, &reach);
+      // What this child in turn lets through. Read from what this pass already
+      // measured rather than from LVGL, whose accessor is private — and this
+      // walks the pool backwards precisely so a nested container's own figure
+      // is final by the time its parent folds it in. Anything else contributes
+      // nothing: no widget here draws a shadow or an outline outside its box.
+      const std::int32_t own = child_overflow(dashboard, object);
+      overflow = std::max({overflow, box.x1 - (reach.x1 - own),
+                           (reach.x2 + own) - box.x2, box.y1 - (reach.y1 - own),
+                           (reach.y2 + own) - box.y2});
+    }
+    dashboard.container_overflow[slot] = std::max<std::int32_t>(overflow, 0);
+    lv_obj_add_flag(container, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    lv_obj_add_event_cb(container, report_container_overflow,
+                        LV_EVENT_REFR_EXT_DRAW_SIZE,
+                        &dashboard.container_overflow[slot]);
+    lv_obj_refresh_ext_draw_size(container);
+  }
+  lvgl_port_unlock();
+  return true;
 }
 
 bool apply_z_order(
@@ -263,17 +273,19 @@ bool apply_z_order(
        ++index) {
     const configuration::ScreenConfiguration& screen =
         dashboard_configuration.screens[index];
-    if (!apply_parent_z_order(screen.widgets, screen.widget_count,
-                              {screen.groups.data(), screen.group_count}, index,
-                              dashboard)) {
+    if (!apply_parent_z_order(screen.widgets, screen.widget_count, dashboard)) {
       return false;
     }
-    for (std::size_t group = 0; group < screen.group_count; ++group) {
-      if (!apply_parent_z_order(screen.groups[group].widgets,
-                                screen.groups[group].widget_count, {}, index,
-                                dashboard)) {
-        return false;
-      }
+  }
+  // Then every container, flat over the pool. Each is one parent's ordering,
+  // and a container's own place among its siblings was settled above.
+  for (std::size_t index = 0;
+       index < dashboard_configuration.shape_widget_count; ++index) {
+    const configuration::ShapeWidgetConfiguration& shape =
+        dashboard_configuration.shape_widgets[index];
+    if (shape.widget_count > 0 &&
+        !apply_parent_z_order(shape.widgets, shape.widget_count, dashboard)) {
+      return false;
     }
   }
   return true;
@@ -297,8 +309,9 @@ bool bind_actions(const configuration::ApplicationConfiguration& configuration,
     }
   };
   // Widget roots come through the same accessor the z-order pass uses, so this
-  // knows no widget types; a group's container is a tap target in its own
-  // right, which is what makes an empty group an invisible touch zone.
+  // knows no widget types. A container shape is a widget like any other, so an
+  // empty one with an action is an invisible touch zone and needs no case of
+  // its own.
   const auto bind_references =
       [&](const std::span<const configuration::WidgetReference> references,
           const std::size_t count) {
@@ -319,28 +332,25 @@ bool bind_actions(const configuration::ApplicationConfiguration& configuration,
     const configuration::ScreenConfiguration& screen =
         configuration.dashboard.screens[screen_index];
     bind_references(screen.widgets, screen.widget_count);
-    for (std::size_t index = 0; index < screen.group_count; ++index) {
-      const configuration::GroupConfiguration& group = screen.groups[index];
-      bind_references(group.widgets, group.widget_count);
-      bind(dashboard.groups[screen_index * configuration::kMaximumGroups +
-                            index],
-           group.action);
-    }
+  }
+  // Then every container's own table, flat over the pool: validation guarantees
+  // each widget is referenced by exactly one parent, so nothing is bound twice.
+  for (std::size_t index = 0;
+       index < configuration.dashboard.shape_widget_count; ++index) {
+    const configuration::ShapeWidgetConfiguration& shape =
+        configuration.dashboard.shape_widgets[index];
+    bind_references(shape.widgets, shape.widget_count);
   }
   lvgl_port_unlock();
   return bound;
 }
 
 void release(Dashboard& dashboard) {
-  // Group containers die with the screens that own them, except on screen
-  // zero, which the display keeps.
-  for (lv_obj_t*& group : dashboard.groups) {
-    if (group != nullptr && dashboard.screens[0] != nullptr &&
-        lv_obj_get_screen(group) == dashboard.screens[0]) {
-      lv_obj_delete(group);
-    }
-    group = nullptr;
-  }
+  // Containers are widgets now, so the shape collection owns and deletes them.
+  // What is left here is the view of them, and the overflow the ext-draw-size
+  // event reads back — a stale entry would outlive the object it describes.
+  dashboard.containers = {};
+  dashboard.container_overflow = {};
   // Index zero belongs to the display and outlives every dashboard; the rest
   // were created by screen_object() and are deleted here. LVGL refuses to
   // delete the screen that is loaded, so the display's own screen is loaded

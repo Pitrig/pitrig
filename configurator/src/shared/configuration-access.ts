@@ -1,8 +1,8 @@
 import { WIDGET_TYPES } from './configuration-schema'
 import type {
   ApplicationConfiguration,
-  GroupConfiguration,
   ScreenConfiguration,
+  ShapeWidgetConfiguration,
   TextWidgetConfiguration,
   ValueSourceConfiguration,
   WidgetConfiguration
@@ -19,26 +19,52 @@ export function screensOf(
   return Array.isArray(screens) ? screens.filter(isRecord) : []
 }
 
-/** The widgets authored directly on a screen, without the ones inside its groups. */
+/**
+ * The widgets authored directly inside one parent, without their own children.
+ * A screen and a container shape hold the same array, which is why one function
+ * answers for both.
+ */
 export function widgetsOf(
-  screen: ScreenConfiguration | GroupConfiguration | undefined
+  parent: ScreenConfiguration | ShapeWidgetConfiguration | undefined
 ): WidgetConfiguration[] {
-  const widgets = screen?.widgets
+  const widgets = parent?.widgets
   return Array.isArray(widgets) ? widgets.filter(isWidget) : []
 }
 
-export function groupsOf(screen: ScreenConfiguration | undefined): GroupConfiguration[] {
-  const groups = screen?.groups
-  return Array.isArray(groups) ? groups.filter(isRecord) : []
+/**
+ * One parent's children back to front: `z_index` ascending, authored array order
+ * breaking ties. That is the rule the firmware applies within one LVGL parent,
+ * so the layer list, the canvas and every restack answer it from here rather
+ * than each keeping its own copy.
+ *
+ * Takes the raw array rather than `widgetsOf`, because a caller that writes the
+ * result back must not silently drop whatever `widgetsOf` filtered out.
+ */
+export function stackOrder(
+  widgets: readonly WidgetConfiguration[] | undefined
+): { widget: WidgetConfiguration; index: number }[] {
+  return (Array.isArray(widgets) ? widgets : [])
+    .map((widget, index) => ({ widget, index }))
+    .sort(
+      (left, right) =>
+        (left.widget.z_index ?? 0) - (right.widget.z_index ?? 0) || left.index - right.index
+    )
+}
+
+/** One widget and everything nested inside it, parent before children. */
+export function descendantsOf(widget: WidgetConfiguration): WidgetConfiguration[] {
+  return widget.type === 'shape'
+    ? [widget, ...widgetsOf(widget).flatMap(descendantsOf)]
+    : [widget]
 }
 
 /**
- * Every widget of one screen in authored order, its groups' children included.
+ * Every widget of one screen in authored order, nested children included.
  * Anything that asks "what does this screen read, draw, or need a font for"
  * wants this rather than `widgetsOf`, which is the parenting question.
  */
 export function screenWidgetsOf(screen: ScreenConfiguration | undefined): WidgetConfiguration[] {
-  return [...widgetsOf(screen), ...groupsOf(screen).flatMap(widgetsOf)]
+  return widgetsOf(screen).flatMap(descendantsOf)
 }
 
 /** Every widget on every screen, in authored order. */
@@ -98,10 +124,10 @@ export function createWidgetId(): string {
 }
 
 /**
- * Assigns an id to every widget, group, and screen that lacks one. Ids are
+ * Assigns an id to every widget and screen that lacks one, at any depth. Ids are
  * optional in the schema, so an imported or hand-written document may arrive
- * without them. Widgets and groups share one namespace: both are addressed by id
- * in selection, the layer tree, and undo history.
+ * without them, and everything is addressed by id in selection, the layer tree
+ * and undo history.
  */
 export function withWidgetIds(
   configuration: ApplicationConfiguration
@@ -114,14 +140,16 @@ export function withWidgetIds(
     used.add(value)
     return value
   }
-  const withIds = <T extends { widgets?: unknown }>(owner: T): T =>
+  // Recursive because a container is just a widget that holds more of them, so
+  // one walk names every level rather than one pass per level of nesting.
+  const withIds = <T extends ScreenConfiguration | ShapeWidgetConfiguration>(owner: T): T =>
     owner.widgets
       ? {
           ...owner,
-          widgets: widgetsOf(owner as ScreenConfiguration).map((widget) => ({
-            ...widget,
-            id: unique(widget.id)
-          }))
+          widgets: widgetsOf(owner).map((widget) => {
+            const named = { ...widget, id: unique(widget.id) }
+            return named.type === 'shape' ? withIds(named) : named
+          })
         }
       : owner
   return {
@@ -130,15 +158,7 @@ export function withWidgetIds(
       ...configuration.dashboard,
       screens: screens.map((screen, index) => ({
         ...withIds(screen),
-        id: screen.id ?? `screen${index + 1}`,
-        ...(screen.groups
-          ? {
-              groups: groupsOf(screen).map((group) => ({
-                ...withIds(group),
-                id: unique(group.id)
-              }))
-            }
-          : {})
+        id: screen.id ?? `screen${index + 1}`
       }))
     }
   }

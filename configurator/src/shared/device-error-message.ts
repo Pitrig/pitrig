@@ -29,10 +29,9 @@ const VALIDATION_MESSAGES: Record<ValidationErrorToken, string> = {
   invalid_uart: 'The UART pins or baud rate are not valid for this board.',
   invalid_module: 'A module setting is outside the range the device accepts.',
   invalid_screen: 'A screen is malformed, or the configuration has more screens than the device allows.',
-  invalid_group:
-    'A group is malformed, sits outside its screen, or breaks a slot rule: groups sharing a slot must share a box, and exactly one of them must be the slot default.',
   invalid_dashboard: 'The dashboard is malformed, or it uses a module that is not enabled.',
-  invalid_widget: 'A widget property is malformed, out of range, or falls outside the screen.',
+  invalid_widget:
+    'A widget property is malformed, out of range, sits entirely off the display, is nested too deeply, or breaks a slot rule: containers sharing a slot must share a parent and a box, and exactly one of them must be the slot default.',
   unknown_property: 'The configuration contains a property this firmware version does not know.',
   duplicate_property: 'The same property appears twice within one object.'
 }

@@ -8,15 +8,15 @@ import {
   absolutePlacement,
   activeScreen,
   copyWidget,
-  deleteGroup,
   deleteWidget,
   duplicateWidget,
-  groupWidgets,
+  wrapInShape,
   mutateSelectedWidget,
   parentOffset,
   pasteWidget,
-  selectedGroupId,
-  ungroupWidgets,
+  parentContainerId,
+  selectedWidget,
+  unwrapShape,
   useDashboardEditorStore
 } from './dashboard-editor'
 import type { WidgetSelection } from './dashboard-editor'
@@ -87,23 +87,25 @@ export function useEditorShortcuts(): void {
         )
         return
       }
-      // Grouping is a document edit — the device switches an area by group —
-      // so it goes through the draft like any other, in one history entry.
+      // Wrapping is a document edit — the device switches an area by container
+      // — so it goes through the draft like any other, in one history entry.
       if (accelerator && event.key.toLowerCase() === 'g') {
         event.preventDefault()
         if (event.shiftKey) {
-          // Reachable from either end: the group itself, or a widget inside it.
-          const groupId = selectedGroupId(configuration, selection)
-          if (groupId) {
-            const released = ungroupWidgets(groupId)
+          // Unwrap whichever container the selection points at: the container
+          // itself when it is selected, otherwise the one holding the widget.
+          const target =
+            selection?.type === 'widget' && selectedWidget(configuration, selection)?.type === 'shape'
+              ? selection.id
+              : parentContainerId(configuration, selection)
+          if (target) {
+            const released = unwrapShape(target)
             if (released.length > 0) editor.selectMany(released)
           }
           return
         }
-        // groupWidgets returns a group id, and a group is selected as a group:
-        // selecting it as a widget would point the inspector at nothing.
-        const created = groupWidgets(editor.selectedIds)
-        if (created) editor.select({ type: 'group', id: created })
+        const created = wrapInShape(editor.selectedIds)
+        if (created) editor.select({ type: 'widget', id: created })
         return
       }
       // Screens are switched by number, the way the driver swipes between them.
@@ -112,18 +114,12 @@ export function useEditorShortcuts(): void {
         editor.setActiveScreen(Number(event.key) - 1)
         return
       }
+      // A child sits above its parent in draw order, so clicking a full
+      // container always lands on a child. Escape walks back up to it, and
+      // clears the selection once there is nothing above.
       if (event.key === 'Escape') {
-        editor.select(undefined)
-        return
-      }
-      // A selected group has no entry in selectedIds — it is not a widget — so
-      // deleting one is its own case rather than a loop over the selection.
-      if (
-        selection?.type === 'group' &&
-        (event.key === 'Delete' || event.key === 'Backspace')
-      ) {
-        event.preventDefault()
-        if (deleteGroup(selection.id)) editor.select(undefined)
+        const parent = parentContainerId(configuration, selection)
+        editor.select(parent ? { type: 'widget', id: parent } : undefined)
         return
       }
       const selected = editor.selectedIds
@@ -196,7 +192,7 @@ function nudge(
 ): void {
   if (selection.type !== 'widget') return
   // Clamped in display space the same way dragging is, so the keyboard cannot
-  // place a widget where the pointer could not; a widget in a group is then
+  // place a widget where the pointer could not; a widget in a container is then
   // written back in its group's space.
   const placement = absolutePlacement(configuration, selection.id)
   if (!placement) return

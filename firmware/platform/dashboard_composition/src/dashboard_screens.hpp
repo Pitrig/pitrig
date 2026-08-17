@@ -13,9 +13,10 @@ namespace simcore::configuration {
 struct ApplicationConfiguration;
 }
 
-// Everything that makes a configuration's screens and groups exist as LVGL
-// objects, and everything that orders or makes them touchable afterwards. The
-// composition above owns the widgets; this owns what they are parented to.
+// Everything that makes a configuration's screens exist as LVGL objects, and
+// everything that orders, un-clips or makes the tree touchable afterwards. The
+// composition above owns the widgets; this owns what they are parented to and
+// what happens to the tree once it stands.
 namespace simcore::dashboard_composition::screens {
 
 // Resolving a configured screen to an LVGL screen happens here and nowhere
@@ -26,9 +27,10 @@ namespace simcore::dashboard_composition::screens {
 // release(), which deletes only what this created.
 [[nodiscard]] lv_obj_t* screen_object(lv_display_t* display, std::size_t index);
 
-// Creates every configured screen with its background, and a container per
-// group within it. Returns the number of screens created, zero when the
-// display could not be prepared. Takes the LVGL lock itself.
+// Creates every configured screen with its background. Returns the number of
+// screens created, zero when the display could not be prepared. Takes the LVGL
+// lock itself. Container shapes are widgets, so they are built by the widget
+// manager rather than here.
 [[nodiscard]] std::size_t create(
     lv_display_t* display,
     const configuration::ApplicationConfiguration& configuration,
@@ -38,6 +40,16 @@ namespace simcore::dashboard_composition::screens {
 // splash may hand over to it.
 [[nodiscard]] bool will_render_content(
     const configuration::ApplicationConfiguration& configuration);
+
+// Lets every container's children draw where they land instead of being cut at
+// its edge. Measures how far each one actually reaches — a caption overhanging
+// a border is the common case — and gives LVGL that as the container's extra
+// draw size, which widens drawing, hit-testing and invalidation together. Run
+// after every widget exists and before z-ordering. Caller holds no lock; this
+// takes it.
+[[nodiscard]] bool unclip_containers(
+    const configuration::ApplicationConfiguration& configuration,
+    Dashboard& dashboard);
 
 // Orders each parent's children by z_index, authored order breaking ties.
 [[nodiscard]] bool apply_z_order(
@@ -53,8 +65,9 @@ namespace simcore::dashboard_composition::screens {
     const configuration::ApplicationConfiguration& configuration,
     Dashboard& dashboard);
 
-// Deletes the group containers and the screens this created, and loads the
-// display's own screen back. Caller holds the LVGL lock.
+// Deletes the screens this created and loads the display's own screen back,
+// and drops the view of the containers the shape collection owns. Caller holds
+// the LVGL lock.
 void release(Dashboard& dashboard);
 
 }  // namespace simcore::dashboard_composition::screens

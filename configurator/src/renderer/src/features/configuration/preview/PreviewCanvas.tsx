@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { groupsOf, screensOf, widgetsOf } from '../../../../../shared/configuration-access'
+import { screenWidgetsOf, screensOf, stackOrder, widgetsOf } from '../../../../../shared/configuration-access'
+import { type ScreenConfiguration, type ShapeWidgetConfiguration } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration, type DisplayDescriptor } from '../../../../../shared/device'
 import { LAP_SECONDS } from '../../../../../shared/mock-telemetry'
-import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findGroup, findWidget, mutateDraftConfiguration, parentOffset, useDashboardEditorStore } from '../dashboard-editor'
-import { type Follower, GROUP_GRAB_PX, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, type ResizeMode, SNAP_TOLERANCE_PX, type ScreenEntry, type SnapTargets, actionLabel, clamp, clampPan, collectSnapTargets, groupClipId, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleInSlot, widgetClipId } from './canvas-geometry'
+import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOffset, useDashboardEditorStore } from '../dashboard-editor'
+import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, type ResizeMode, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clamp, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleInSlot, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
 import { createPreviewValues } from './preview-values'
@@ -54,32 +55,17 @@ export function Widgets({
   const values = createPreviewValues(configuration, playback, clockMs)
   const screen = screensOf(configuration)[activeScreenIndex]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
-  const allGroups = groupsOf(screen)
-  // The board shows one group per slot; the canvas has to author all of them,
-  // so it draws the one picked in the toolbar and leaves the rest out rather
-  // than stacking a slot's groups on top of each other.
-  const groups = allGroups.filter((group) => visibleInSlot(allGroups, group, previewSlots))
-  // The canvas works entirely in display coordinates. Geometry inside a group
-  // is relative to the group's box, so it is translated here on the way out and
-  // translated back before anything is written to the document.
-  const widgets = [...widgetsOf(screen), ...groups.flatMap(widgetsOf)]
-
-  const selectedGroupPlacement =
-    selection?.type === 'group'
-      ? completePlacement(findGroup(configuration, selection.id)?.group.placement)
-      : undefined
-  const selectedPlacements = [
-    ...selectedIds
-      .map((id) => absolutePlacement(configuration, id))
-      .filter((placement): placement is Placement => placement !== undefined),
-    ...(selectedGroupPlacement ? [selectedGroupPlacement] : [])
-  ]
-  // A group resizes like a widget: its box is the thing being dragged, and its
-  // children keep the offsets they were authored with.
+  // The canvas works entirely in display coordinates. Geometry inside a
+  // container is relative to that container's box, so it is translated here on
+  // the way out and translated back before anything is written to the document.
+  const widgets = screenWidgetsOf(screen)
+  const selectedPlacements = selectedIds
+    .map((id) => absolutePlacement(configuration, id))
+    .filter((placement): placement is Placement => placement !== undefined)
+  // A container resizes like the widget it is: its box is the thing being
+  // dragged, and its children keep the offsets they were authored with.
   const primaryPlacement =
-    selection?.type === 'widget'
-      ? absolutePlacement(configuration, selection.id)
-      : selectedGroupPlacement
+    selection?.type === 'widget' ? absolutePlacement(configuration, selection.id) : undefined
 
   const beginInteraction = (
     event: React.PointerEvent<SVGElement>,
@@ -186,13 +172,6 @@ export function Widgets({
       const shiftX = resolved.placement.x - interaction.placement.x
       const shiftY = resolved.placement.y - interaction.placement.y
       mutateDraftConfiguration((draft) => {
-        // A group's box is already in display coordinates, so it takes the
-        // resolved placement as-is and has no followers to shift.
-        if (interaction.target.type === 'group') {
-          const group = findGroup(draft, interaction.target.id)?.group
-          if (group) group.placement = resolved.placement
-          return
-        }
         const primaryId = interaction.target.type === 'widget' ? interaction.target.id : ''
         const primary = findWidget(draft, primaryId)
         if (primary) {
@@ -316,60 +295,45 @@ export function Widgets({
   }
 
   // Same rule the firmware applies: z_index ascending, authored array order
-  // breaking ties. A group is one entry at screen level and orders its own
-  // children within itself, exactly as one LVGL parent orders its children.
-  const screenWidgets = widgetsOf(screen)
-  const entries: ScreenEntry[] = [
-    ...screenWidgets.map((widget, index) => ({
-      kind: 'widget' as const,
-      widget,
-      zIndex: widget.z_index ?? 0,
-      configurationOrder: index
-    })),
-    ...groups.map((group, index) => ({
-      kind: 'group' as const,
-      group,
-      groupIndex: index,
-      zIndex: group.z_index ?? 0,
-      configurationOrder: screenWidgets.length + index
-    }))
-  ]
-  entries.sort((left, right) =>
-    left.zIndex - right.zIndex || left.configurationOrder - right.configurationOrder
-  )
-  const layers: PreviewLayer[] = entries.flatMap((entry) => {
-    if (entry.kind === 'widget') {
-      return [
-        {
-          configuration: entry.widget,
-          zIndex: entry.zIndex,
-          configurationOrder: entry.configurationOrder,
-          offsetX: 0,
-          offsetY: 0
-        }
-      ]
-    }
-    const box = completePlacement(entry.group.placement)
-    const members = widgetsOf(entry.group)
-      .map((widget, index) => ({
+  // breaking ties, one parent at a time. A container is one entry among its own
+  // siblings and orders its children within itself, so emitting each container
+  // immediately followed by its children reproduces LVGL's draw order at any
+  // depth — a parent, then what is inside it, then the parent's later siblings.
+  const emit = (
+    parent: ScreenConfiguration | ShapeWidgetConfiguration,
+    offsetX: number,
+    offsetY: number
+  ): PreviewLayer[] => {
+    const siblings = widgetsOf(parent)
+    // The board shows one container per slot; the canvas has to author all of
+    // them, so it draws the one picked in the toolbar and leaves the rest out
+    // rather than stacking a slot's members on top of each other.
+    const containers = siblings.filter(
+      (widget): widget is ShapeWidgetConfiguration => widget.type === 'shape'
+    )
+    // Sorted first and filtered after — order-equivalent, and it keeps the one
+    // stacking rule in one place rather than restating it here.
+    const ordered = stackOrder(siblings).filter(
+      ({ widget }) => widget.type !== 'shape' || visibleInSlot(containers, widget, previewSlots)
+    )
+    return ordered.flatMap(({ widget, index }) => {
+      const layer: PreviewLayer = {
         configuration: widget,
         zIndex: widget.z_index ?? 0,
         configurationOrder: index,
-        offsetX: box?.x ?? 0,
-        offsetY: box?.y ?? 0,
-        group: entry.group,
-        groupIndex: entry.groupIndex
-      }))
-    members.sort((left, right) =>
-      left.zIndex - right.zIndex || left.configurationOrder - right.configurationOrder
-    )
-    return members
-  })
+        offsetX,
+        offsetY
+      }
+      if (widget.type !== 'shape') return [layer]
+      const box = completePlacement(widget.placement)
+      return [layer, ...emit(widget, offsetX + (box?.x ?? 0), offsetY + (box?.y ?? 0))]
+    })
+  }
+  const layers: PreviewLayer[] = screen ? emit(screen, 0, 0) : []
 
-  // Widgets carry their action on the frame and groups carry it on themselves,
-  // so both are collected the same way and drawn in display coordinates.
-  const tapTargets = [
-    ...layers
+  // Every tap target is a widget now — a container carries its action on the
+  // frame like any other — so one pass collects them all in display coordinates.
+  const tapTargets = layers
       .filter((layer) => layer.configuration.action?.type && layer.configuration.action.type !== 'none')
       .map((layer) => ({
         id: layer.configuration.id ?? '',
@@ -377,15 +341,8 @@ export function Widgets({
           ? absolutePlacement(configuration, layer.configuration.id)
           : undefined,
         label: actionLabel(layer.configuration.action)
-      })),
-    ...groups
-      .filter((group) => group.action?.type && group.action.type !== 'none')
-      .map((group) => ({
-        id: group.id ?? '',
-        placement: completePlacement(group.placement),
-        label: actionLabel(group.action)
       }))
-  ].filter(
+  .filter(
     (entry): entry is { id: string; placement: Placement; label: string } =>
       entry.placement !== undefined
   )
@@ -409,73 +366,50 @@ export function Widgets({
     >
       <rect width={display.width} height={display.height} fill={screenBackground} />
       {view.snapToGrid ? <GridOverlay display={display} size={view.gridSize} zoom={view.zoom} /> : null}
-      {/* Drawn before the widgets, so a widget always wins the pointer over the
-          group behind it. The border is a wide invisible band rather than the
-          1px dash, because grabbing a hairline is not an interaction; and once a
-          group is selected — or when it is empty, and so has nothing else to
-          grab — its whole body drags, which is what makes a tap zone usable at
-          all. An unselected populated group leaves its middle transparent so
-          rubber-band selection still starts there. */}
-      {groups.map((group) => {
-        const box = completePlacement(group.placement)
+      {/* A container is a visible widget with its own hit area, so all it needs
+          here is a hint that it holds things — drawn under the widgets, and
+          only on the outline so it never steals a click from a child. Reaching
+          a full container is Escape, which walks up from whatever child was
+          clicked; a child is drawn above its parent, so there is no point on it
+          that a click could otherwise land on. */}
+      {layers.map((layer) => {
+        if (layer.configuration.type !== 'shape') return null
+        if (widgetsOf(layer.configuration).length === 0) return null
+        const box = completePlacement(layer.configuration.placement)
         if (!box) return null
-        const active = selection?.type === 'group' && selection.id === group.id
-        const empty = widgetsOf(group).length === 0
+        const id = layer.configuration.id
         return (
-          <g key={`group-${group.id}`}>
-            <rect
-              {...box}
-              fill="none"
-              stroke={group.action && group.action.type !== 'none' ? '#38F5A8' : '#A78BFA'}
-              strokeWidth={(active ? 2 : 1) / view.zoom}
-              strokeDasharray={`${2 / view.zoom} ${4 / view.zoom}`}
-              pointerEvents="none"
-            />
-            <rect
-              {...box}
-              fill="transparent"
-              stroke="transparent"
-              strokeWidth={GROUP_GRAB_PX / view.zoom}
-              pointerEvents={active || empty ? 'all' : 'stroke'}
-              style={{ cursor: 'move' }}
-              onPointerDown={(event) => {
-                if (!group.id) return
-                beginInteraction(event, { type: 'group', id: group.id }, 'move', box)
-              }}
-            />
-          </g>
+          <rect
+            key={`container-${id}`}
+            x={box.x + layer.offsetX}
+            y={box.y + layer.offsetY}
+            width={box.width}
+            height={box.height}
+            fill="none"
+            stroke={selection?.type === 'widget' && selection.id === id ? '#A78BFA' : '#A78BFA80'}
+            strokeWidth={1 / view.zoom}
+            strokeDasharray={`${2 / view.zoom} ${4 / view.zoom}`}
+            pointerEvents="none"
+          />
         )
-      })}
-      {groups.map((group, index) => {
-        const box = completePlacement(group.placement)
-        // The clip is resolved in the coordinate system of the element that
-        // references it, and that element already carries the group's
-        // translate — so the rect is the group's own box at the origin, not its
-        // position on the display. Using display coordinates here shifts the
-        // clip by the offset a second time and hides the group's contents.
-        return box ? (
-          <clipPath key={`clip-${group.id}`} id={groupClipId(index)}>
-            <rect x={0} y={0} width={box.width} height={box.height} />
-          </clipPath>
-        ) : null
       })}
       {layers.map((layer, layerIndex) => {
         const id = layer.configuration.id
         if (id && hidden[id]) return null
-        const grouped = layer.group !== undefined
         // The widget's own box clips its contents, exactly as its LVGL
         // container does — a value wider than its widget is cut off on the
         // board rather than spilling over its neighbours. The caption is left
         // out of it because the device puts it on the parent, so it may
-        // overhang the top border.
+        // overhang the frame. Nothing clips a widget to its container: the
+        // device stopped doing that too, which is what lets a caption or an
+        // overhanging readout be drawn at all.
         const box = completePlacement(layer.configuration.placement)
         return (
           <g
             key={id ?? layer.configurationOrder}
-            transform={grouped ? `translate(${layer.offsetX} ${layer.offsetY})` : undefined}
-            clipPath={
-              grouped && layer.groupIndex !== undefined
-                ? `url(#${groupClipId(layer.groupIndex)})`
+            transform={
+              layer.offsetX || layer.offsetY
+                ? `translate(${layer.offsetX} ${layer.offsetY})`
                 : undefined
             }
             onPointerDown={(event) => {
@@ -513,7 +447,7 @@ export function Widgets({
         )
       })}
       {/* A tap target is only a tap target on the board, so the canvas says so:
-          an empty group would otherwise be an invisible rectangle. */}
+          an empty transparent shape would otherwise be an invisible rectangle. */}
       {tapTargets.map(({ id, placement, label }) => (
         <g key={`action-${id}`} pointerEvents="none">
           <rect

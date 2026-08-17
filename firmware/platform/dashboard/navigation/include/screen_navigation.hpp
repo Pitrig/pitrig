@@ -16,7 +16,7 @@ namespace simcore::dashboard::navigation {
 
 // Moves between the screens a dashboard composed, in configuration order and
 // wrapping at both ends. The order and the gesture stay unauthored — the
-// contract carries nothing for them — but a widget or a group may declare a tap
+// contract carries nothing for them — but any widget may declare a tap
 // that navigates, and those bindings live here because this already owns the
 // screens and the active index.
 //

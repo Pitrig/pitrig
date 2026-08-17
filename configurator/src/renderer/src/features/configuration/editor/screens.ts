@@ -1,4 +1,4 @@
-import { allWidgetsOf, groupsOf, screensOf } from '../../../../../shared/configuration-access'
+import { allWidgetsOf } from '../../../../../shared/configuration-access'
 import { MAXIMUM_SCREENS, type ScreenConfiguration } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { mutateDraftConfiguration } from './document'
@@ -59,10 +59,7 @@ export function deleteScreen(index: number): boolean {
     // the author would learn about it only on apply, so those actions go with
     // the screen. next/previous keep working: they never named it.
     if (removed === undefined) return
-    for (const target of [
-      ...allWidgetsOf(configuration),
-      ...screensOf(configuration).flatMap(groupsOf)
-    ]) {
+    for (const target of allWidgetsOf(configuration)) {
       if (target.action?.type === 'goto_screen' && target.action.screen === removed) {
         delete target.action
       }

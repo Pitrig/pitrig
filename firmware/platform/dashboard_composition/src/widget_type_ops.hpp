@@ -114,10 +114,11 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
 };
 
 // Types that bind no telemetry of their own — only their styling rules watch
-// one: shape and image. Image additionally draws from the image registry, which
-// is why its collection calls take one more argument; that is the whole of the
-// difference, so it is a compile-time branch on the storage rather than a third
-// template.
+// one: shape and image. Each carries one extra argument the other does not:
+// image draws from the image registry, and shape publishes the containers it
+// built so children can be parented to them. Both are the whole of the
+// difference, so both are compile-time branches on the storage rather than
+// separate templates.
 template <typename Storage>
 struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
   using Common = WidgetOpsCommon<Storage>;
@@ -133,6 +134,11 @@ struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
         return widgets.collection.create(
             widgets.layout, configurations, widgets.binder.reads(),
             widgets.binder.contexts(), *widgets.fonts, *widgets.images);
+      } else if constexpr (requires { widgets.container_slots; }) {
+        return widgets.collection.create(
+            widgets.layout, configurations, widgets.binder.reads(),
+            widgets.binder.contexts(), *widgets.fonts,
+            widgets.container_slots);
       } else {
         return widgets.collection.create(
             widgets.layout, configurations, widgets.binder.reads(),
@@ -155,6 +161,11 @@ struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
           index, widgets.layout, configurations[index],
           widgets.binder.reads()[index], widgets.binder.contexts()[index],
           *widgets.fonts, *widgets.images);
+    } else if constexpr (requires { widgets.container_slots; }) {
+      return widgets.collection.recreate(
+          index, widgets.layout, configurations[index],
+          widgets.binder.reads()[index], widgets.binder.contexts()[index],
+          *widgets.fonts, widgets.container_slots);
     } else {
       return widgets.collection.recreate(
           index, widgets.layout, configurations[index],

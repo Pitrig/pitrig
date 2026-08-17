@@ -22,30 +22,32 @@ void apply_outline(lv_obj_t* const object, const std::uint32_t color_rgb) {
 
 bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
                            const std::uint8_t screen_index,
-                           const std::uint8_t group_index,
-                           const bool group_present,
+                           const std::uint8_t parent_index,
+                           const bool parent_present,
                            const std::int32_t intrinsic_width,
                            const std::int32_t intrinsic_height,
                            const bool fill_available_width, lv_obj_t*& parent,
                            Rect& bounds) {
   lv_obj_t* const owner =
-      layout.parent(screen_index, group_index, group_present);
-  if (layout.display == nullptr || owner == nullptr || intrinsic_width <= 0 ||
-      intrinsic_height <= 0 || placement.x < 0 || placement.y < 0 ||
-      placement.width < 0 || placement.height < 0) {
+      layout.parent(screen_index, parent_index, parent_present);
+  // Zero intrinsic is an answer, not a failure: a shape asks for no content of
+  // its own, so a container with no caption, border or padding needs exactly
+  // nothing — and that is the ordinary container. What refuses a widget with no
+  // size is the bounds test below, once the placement has had its say.
+  if (layout.display == nullptr || owner == nullptr || intrinsic_width < 0 ||
+      intrinsic_height < 0 || placement.width < 0 || placement.height < 0) {
     return false;
   }
 
   parent = owner;
-  // Geometry inside a group is relative to the group's box, so what bounds a
-  // widget is its parent rather than the display. A group is sized before its
-  // children are built, so this is its final size.
+  // Filling means filling the parent, so a container still supplies the size an
+  // unsized widget takes. It is built before its children, so this is final.
   const std::int32_t parent_width =
-      group_present ? lv_obj_get_width(owner)
-                    : lv_display_get_horizontal_resolution(layout.display);
+      parent_present ? lv_obj_get_width(owner)
+                     : lv_display_get_horizontal_resolution(layout.display);
   const std::int32_t parent_height =
-      group_present ? lv_obj_get_height(owner)
-                    : lv_display_get_vertical_resolution(layout.display);
+      parent_present ? lv_obj_get_height(owner)
+                     : lv_display_get_vertical_resolution(layout.display);
 
   const std::int32_t requested_width =
       placement.width > 0
@@ -58,12 +60,22 @@ bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
             .y = placement.y,
             .width = requested_width,
             .height = requested_height};
-  if (bounds.width <= 0 || bounds.height <= 0 ||
-      bounds.x + bounds.width > parent_width ||
-      bounds.y + bounds.height > parent_height) {
+  if (bounds.width <= 0 || bounds.height <= 0) {
     return false;
   }
-  return true;
+  // A container does not bound its children — they are drawn where they land,
+  // overhang included. The display is the one edge with nothing beyond it, so a
+  // box entirely outside it is the only geometry refused here. LVGL keeps
+  // `coords` absolute, so the parent's own position is the whole conversion and
+  // no walk up the parent chain is needed; a screen sits at (0,0), which is why
+  // the unparented case needs no branch.
+  lv_area_t parent_box{};
+  lv_obj_get_coords(owner, &parent_box);
+  const std::int32_t left = parent_box.x1 + bounds.x;
+  const std::int32_t top = parent_box.y1 + bounds.y;
+  return left + bounds.width > 0 && top + bounds.height > 0 &&
+         left < lv_display_get_horizontal_resolution(layout.display) &&
+         top < lv_display_get_vertical_resolution(layout.display);
 }
 
 #if SIMCORE_LAYOUT_DEBUG

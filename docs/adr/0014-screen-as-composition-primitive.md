@@ -62,7 +62,9 @@ scope here and require their own decision.
   refusal of implicit layout containers from ADR 0007 all remain in force.
 - A pool slot belongs to exactly one screen, because an LVGL object has one
   parent. Sharing one widget across screens would need an object per screen and
-  is deliberately not expressible.
+  is deliberately not expressible. Since ADR 0021 that one parent is a screen
+  **or a container shape**, addressed by its own pool index; the widget still has
+  exactly one.
 - Adding a screen costs its reference table rather than a full set of widget
   arrays, so the screen count is bounded by what navigation can usefully drive
   rather than by RAM.

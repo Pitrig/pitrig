@@ -3,9 +3,6 @@ import { create } from 'zustand'
 export type WidgetSelection =
   | { type: 'screen' }
   | { type: 'widget'; id: string }
-  // A group is selectable in its own right because an empty one — a tap zone —
-  // has no widget to reach it through.
-  | { type: 'group'; id: string }
 
 /**
  * How the canvas is being looked at, and which widgets are set aside while

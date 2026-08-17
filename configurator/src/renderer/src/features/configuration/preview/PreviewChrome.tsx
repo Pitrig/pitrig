@@ -1,7 +1,8 @@
-import { groupsOf, screensOf } from '../../../../../shared/configuration-access'
+import { screenWidgetsOf, screensOf } from '../../../../../shared/configuration-access'
+import { type ShapeWidgetConfiguration } from '../../../../../shared/configuration-schema'
 import { type DisplayDescriptor } from '../../../../../shared/device'
 import { LAP_SECONDS } from '../../../../../shared/mock-telemetry'
-import { type AlignmentEdge, MAXIMUM_SCREENS, MAXIMUM_ZOOM, MINIMUM_ZOOM, type PreviewValueMode, addScreen, addTapZone, alignWidgets, deleteScreen, distributeWidgets, groupWidgets, useDashboardEditorStore } from '../dashboard-editor'
+import { type AlignmentEdge, MAXIMUM_SCREENS, MAXIMUM_ZOOM, MINIMUM_ZOOM, type PreviewValueMode, addScreen, addTapZone, alignWidgets, deleteScreen, distributeWidgets, wrapInShape, useDashboardEditorStore } from '../dashboard-editor'
 import { clampPan, visibleInSlot } from './canvas-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -69,14 +70,18 @@ function SlotTabs(): React.JSX.Element | null {
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
   const previewSlots = useDashboardEditorStore((state) => state.previewSlots)
   const setPreviewSlot = useDashboardEditorStore((state) => state.setPreviewSlot)
-  const groups = groupsOf(screensOf(configuration)[activeScreenIndex])
-  const slots = [...new Set(groups.map((group) => group.slot ?? 0))].filter((slot) => slot > 0)
+  // Containers nest, so a slot member can be at any depth: the whole screen is
+  // swept rather than one array.
+  const containers = screenWidgetsOf(screensOf(configuration)[activeScreenIndex]).filter(
+    (widget): widget is ShapeWidgetConfiguration => widget.type === 'shape'
+  )
+  const slots = [...new Set(containers.map((shape) => shape.slot ?? 0))].filter((slot) => slot > 0)
   if (slots.length === 0) return null
   return (
     <>
       {slots.map((slot) => {
-        const members = groups.filter((group) => (group.slot ?? 0) === slot)
-        const shown = members.find((group) => visibleInSlot(groups, group, previewSlots))
+        const members = containers.filter((shape) => (shape.slot ?? 0) === slot)
+        const shown = members.find((shape) => visibleInSlot(containers, shape, previewSlots))
         return (
           <label key={slot} className="flex items-center gap-1 text-muted-foreground">
             <span>{`slot ${slot}`}</span>
@@ -85,9 +90,9 @@ function SlotTabs(): React.JSX.Element | null {
               value={shown?.id ?? ''}
               onChange={(event) => setPreviewSlot(slot, event.target.value)}
             >
-              {members.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.id}
+              {members.map((shape) => (
+                <option key={shape.id} value={shape.id}>
+                  {shape.id}
                 </option>
               ))}
             </select>
@@ -101,7 +106,7 @@ function SlotTabs(): React.JSX.Element | null {
 /**
  * Arrangement acts on the selection and the view controls act on the canvas, so
  * neither belongs with the buttons that add widgets. Alignment appears only
- * once there is a group to align, which is also when it starts meaning
+ * once there is a selection to align, which is also when it starts meaning
  * anything.
  */
 export function ArrangeToolbar({ display }: { display: DisplayDescriptor }): React.JSX.Element {
@@ -119,14 +124,14 @@ export function ArrangeToolbar({ display }: { display: DisplayDescriptor }): Rea
         <>
           <button
             type="button"
-            title="Group the selection (Cmd/Ctrl+G)"
+            title="Wrap the selection in a container (Cmd/Ctrl+G)"
             className="h-7 rounded-md border px-2 hover:bg-muted"
             onClick={() => {
-              const id = groupWidgets(selectedIds)
-              if (id) useDashboardEditorStore.getState().select({ type: 'group', id })
+              const id = wrapInShape(selectedIds)
+              if (id) useDashboardEditorStore.getState().select({ type: 'widget', id })
             }}
           >
-            Group
+            Wrap
           </button>
           <span className="mx-1 h-4 w-px bg-border" />
         </>
@@ -137,7 +142,7 @@ export function ArrangeToolbar({ display }: { display: DisplayDescriptor }): Rea
         className="h-7 rounded-md border px-2 hover:bg-muted"
         onClick={() => {
           const id = addTapZone(display)
-          if (id) useDashboardEditorStore.getState().select({ type: 'group', id })
+          if (id) useDashboardEditorStore.getState().select({ type: 'widget', id })
         }}
       >
         Tap zone

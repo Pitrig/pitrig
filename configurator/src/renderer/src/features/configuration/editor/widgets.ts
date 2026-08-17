@@ -1,8 +1,8 @@
-import { allWidgetsOf, createWidgetId, groupsOf, screensOf } from '../../../../../shared/configuration-access'
-import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_GROUPS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
+import { allWidgetsOf, createWidgetId } from '../../../../../shared/configuration-access'
+import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { DEFAULT_FONT_FAMILY } from '../../../../../shared/font-assets'
-import { absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, widgetArrayOf } from './document'
+import { absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOf, widgetArrayOf } from './document'
 import { ensureScreen } from './screens'
 import { type WidgetSelection } from './store'
 
@@ -258,18 +258,16 @@ export function deleteWidget(selection: WidgetSelection): boolean {
     const location = findWidget(configuration, selection.id)
     if (!location) return
     const widgets = widgetArrayOf(configuration, location)
-    if (!widgets) return
-    widgets.splice(location.widgetIndex, 1)
+    const index = location.path[location.path.length - 1]
+    if (!widgets || index === undefined) return
+    widgets.splice(index, 1)
     deleted = true
+    // An emptied array is dropped rather than left as `[]`, which the sparse
+    // document has no use for. Its owner is the screen for a top-level widget
+    // and the container above it otherwise.
     if (widgets.length > 0) return
-    const screen = configuration.dashboard?.screens?.[location.screenIndex]
-    if (!screen) return
-    if (location.groupIndex === undefined) {
-      delete screen.widgets
-      return
-    }
-    const group = screen.groups?.[location.groupIndex]
-    if (group) delete group.widgets
+    const owner = parentOf(configuration, location)
+    if (owner) delete owner.widgets
   })
   return deleted
 }
@@ -291,7 +289,7 @@ export function duplicateWidget(
     const source = findWidget(configuration, selection.id)?.widget
     if (!source) return
     // The copy lands on the screen whatever the source was in, so a widget
-    // authored inside a group is lifted to absolute coordinates first — its
+    // authored inside a container is lifted to absolute coordinates first — its
     // relative box would otherwise be read against the display.
     const box = absolutePlacement(configuration, selection.id)
     const lifted = box ? { ...source, placement: box } : source
@@ -317,38 +315,31 @@ export function offsetWidget(
 }
 
 export function actionCount(configuration: DeviceConfiguration | undefined): number {
-  const targets = [
-    ...allWidgetsOf(configuration),
-    ...screensOf(configuration).flatMap(groupsOf)
-  ]
-  return targets.filter((target) => target.action && target.action.type !== 'none').length
+  // Containers are widgets, so allWidgetsOf already reaches every tap target.
+  return allWidgetsOf(configuration).filter(
+    (target) => target.action && target.action.type !== 'none'
+  ).length
 }
 
 /**
- * An empty group is an invisible rectangle that takes a tap — the cheapest way
- * to say "this corner of the screen goes back" without a widget to press.
+ * An empty transparent shape is an invisible rectangle that takes a tap — the
+ * cheapest way to say "this corner of the screen goes back" without a widget to
+ * press.
  */
 export function addTapZone(display: { width: number; height: number }): string | undefined {
-  const id = createWidgetId()
   let created: string | undefined
   mutateDraftConfiguration((configuration) => {
-    const screen = ensureScreen(configuration)
-    const groups = (screen.groups ??= [])
-    if (groups.length >= MAXIMUM_GROUPS) return
-    groups.push({ id, placement: centeredPlacement(display, TAP_ZONE_PX, TAP_ZONE_PX) })
-    created = id
+    // Through the one insertion path, so the shape pool cap and the fresh id
+    // are handled where every other widget handles them.
+    const selection = insertWidget(configuration, {
+      type: 'shape',
+      kind: 'rectangle',
+      placement: centeredPlacement(display, TAP_ZONE_PX, TAP_ZONE_PX)
+    })
+    created = selection?.type === 'widget' ? selection.id : undefined
   })
   return created
 }
 
 const TAP_ZONE_PX = 96
 
-/**
- * Wraps the selected widgets in a group sized to their bounds, rewriting their
- * geometry to be relative to it. Grouping is a document edit rather than an
- * editor annotation, because the device needs the group to switch what an area
- * of the screen shows — see ADR 0021.
- *
- * Only ungrouped widgets on one screen can be grouped: a group has one parent,
- * and moving a widget between groups is a separate edit.
- */

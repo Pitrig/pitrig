@@ -143,14 +143,24 @@ constexpr std::uint16_t kMaximumHoldMs = 10'000;
   return true;
 }
 
-[[nodiscard]] bool valid_placement(const WidgetPlacement& placement,
-                                   const std::int32_t display_width,
-                                   const std::int32_t display_height) {
-  return placement.x >= 0 && placement.y >= 0 && placement.width >= 0 &&
-         placement.height >= 0 && placement.x <= display_width &&
-         placement.y <= display_height &&
-         placement.width <= display_width - placement.x &&
-         placement.height <= display_height - placement.y;
+// A box is refused only when it is *entirely* off the display, never for
+// leaving its container. A caption already overhangs its widget's border by
+// design, and an author may legitimately let a readout hang past the panel it
+// belongs to; the display is the one edge that has no pixels beyond it.
+// `origin` is where the widget's parent sits, so `placement` stays the relative
+// geometry the document authored.
+[[nodiscard]] bool on_display(const std::int32_t origin_x,
+                              const std::int32_t origin_y,
+                              const WidgetPlacement& placement,
+                              const std::int32_t display_width,
+                              const std::int32_t display_height) {
+  if (placement.width < 0 || placement.height < 0) {
+    return false;
+  }
+  const std::int32_t left = origin_x + placement.x;
+  const std::int32_t top = origin_y + placement.y;
+  return left + placement.width > 0 && top + placement.height > 0 &&
+         left < display_width && top < display_height;
 }
 
 // A target that names no screen would send a tap nowhere, and a screen named by
@@ -196,23 +206,18 @@ template <std::size_t Size>
 class Validator final {
  public:
   Validator(const ValidationContext& profile, ValidationFailure& failure)
-      : profile_(profile),
-        failure_(failure),
-        parent_width_(profile.display.width),
-        parent_height_(profile.display.height) {}
+      : profile_(profile), failure_(failure) {}
 
-  // The box a widget's geometry is expressed in: its screen, or the group that
-  // declared it. Set before validating the widgets of one parent and restored
-  // to the display afterwards.
-  void set_parent_bounds(const std::int32_t width, const std::int32_t height) {
-    parent_width_ = width;
-    parent_height_ = height;
-  }
-  void reset_parent_bounds() {
-    set_parent_bounds(profile_.display.width, profile_.display.height);
+  // Where the parent of the widgets being validated sits on the display. Widget
+  // geometry is relative to its container, so this is what turns it into
+  // something the display bound can be applied to. A screen's origin is (0,0),
+  // which is why a widget straight on a screen needs no special handling.
+  void set_parent_origin(const std::int32_t x, const std::int32_t y) {
+    origin_x_ = x;
+    origin_y_ = y;
   }
 
-  [[nodiscard]] bool group_conditions(const GroupConfiguration& config);
+  [[nodiscard]] bool slot_conditions(const ShapeWidgetConfiguration& config);
   [[nodiscard]] bool text_widget(const TextWidgetConfiguration& config);
   [[nodiscard]] bool shape_widget(const ShapeWidgetConfiguration& config);
   [[nodiscard]] bool bar_widget(const BarWidgetConfiguration& config);
@@ -228,14 +233,11 @@ class Validator final {
   [[nodiscard]] bool text_source(const TextSourceConfiguration& config);
   [[nodiscard]] bool conditions(const WidgetFrame& config);
 
-  [[nodiscard]] std::int32_t width() const { return parent_width_; }
-  [[nodiscard]] std::int32_t height() const { return parent_height_; }
-
   const telemetry::TelemetryRegistry registry_{};
   const ValidationContext& profile_;
   ValidationFailure& failure_;
-  std::int32_t parent_width_{};
-  std::int32_t parent_height_{};
+  std::int32_t origin_x_{};
+  std::int32_t origin_y_{};
 };
 
 bool Validator::text_source(const TextSourceConfiguration& config) {
@@ -332,11 +334,16 @@ bool Validator::conditions(const WidgetFrame& config) {
 // Geometry, box and styling rules belong to every widget type, so each one
 // validates them here rather than repeating the same checks.
 bool Validator::frame(const WidgetFrame& config) {
-  if (!valid_placement(config.placement, width(), height())) {
+  if (!on_display(origin_x_, origin_y_, config.placement,
+                  profile_.display.width, profile_.display.height)) {
     return reject(failure_, ValidationError::invalid_widget, "placement");
   }
-  if (config.padding.left > width() || config.padding.right > width() ||
-      config.padding.top > height() || config.padding.bottom > height()) {
+  // Bounded by the display rather than by the container: padding eats into the
+  // widget's own box, and a container is no longer what limits a widget.
+  if (config.padding.left > profile_.display.width ||
+      config.padding.right > profile_.display.width ||
+      config.padding.top > profile_.display.height ||
+      config.padding.bottom > profile_.display.height) {
     return reject(failure_, ValidationError::invalid_widget, "padding");
   }
   if (!valid_color(config.border.color) || config.border.width_px > 240 ||
@@ -379,30 +386,29 @@ bool Validator::frame(const WidgetFrame& config) {
 
 // A widget that maps one source through a window needs a resolvable binding
 // and a window with something in it.
-// A group's rules select which group of a slot is shown rather than restyling
+// A slot's rules select which shape of that slot is shown rather than restyling
 // anything, so the operator and the watched source are all there is to check.
-// Rules on a group outside a slot would select nothing, which is authoring
+// Rules on a shape outside a slot would select nothing, which is authoring
 // intent that cannot take effect and is therefore refused.
-bool Validator::group_conditions(const GroupConfiguration& config) {
-  if (config.condition_count == 0) {
+bool Validator::slot_conditions(const ShapeWidgetConfiguration& config) {
+  if (config.slot_condition_count == 0) {
     return true;
   }
   if (config.slot == 0) {
-    return reject(failure_, ValidationError::invalid_group, "conditions");
+    return reject(failure_, ValidationError::invalid_widget, "slot_conditions");
   }
-  for (std::size_t index = 0; index < config.condition_count; ++index) {
-    const GroupCondition& rule = config.conditions[index];
+  for (std::size_t index = 0; index < config.slot_condition_count; ++index) {
+    const SlotCondition& rule = config.slot_conditions[index];
     if (!std::isfinite(rule.value) || rule.op < ConditionOperator::above ||
         rule.op > ConditionOperator::not_equal) {
-      return reject(failure_, ValidationError::invalid_group, "conditions");
+      return reject(failure_, ValidationError::invalid_widget,
+                    "slot_conditions");
     }
   }
-  if (!registry_.resolve(value_binding_view(config.condition_source.binding))
+  if (!registry_.resolve(value_binding_view(config.slot_source.binding))
            .valid() ||
-      config.condition_source.modifier_count >
-          config.condition_source.modifiers.size()) {
-    return reject(failure_, ValidationError::invalid_group,
-                  "condition_source");
+      config.slot_source.modifier_count > config.slot_source.modifiers.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "slot_source");
   }
   return true;
 }
@@ -534,7 +540,26 @@ bool Validator::shape_widget(const ShapeWidgetConfiguration& config) {
   if (config.kind < ShapeKind::rectangle || config.kind > ShapeKind::ellipse) {
     return reject(failure_, ValidationError::invalid_widget, "kind");
   }
-  return frame(config.frame);
+  if (config.slot > kMaximumSlots) {
+    return reject(failure_, ValidationError::invalid_widget, "slot");
+  }
+  // A shape in a slot spends its tap on cycling, so it cannot also navigate.
+  if (config.slot != 0 && config.frame.action.type != WidgetActionType::none) {
+    return reject(failure_, ValidationError::invalid_widget, "action");
+  }
+  // Slot membership and a hiding rule both write the same LVGL flag, so one
+  // would fight the other every refresh. The slot already decides visibility.
+  if (config.slot != 0) {
+    for (std::size_t index = 0; index < config.frame.condition_count; ++index) {
+      if (config.frame.conditions[index].hidden) {
+        return reject(failure_, ValidationError::invalid_widget, "conditions");
+      }
+    }
+  }
+  if (config.widget_count > config.widgets.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "widgets");
+  }
+  return slot_conditions(config) && frame(config.frame);
 }
 
 bool Validator::text_widget(const TextWidgetConfiguration& config) {
@@ -590,15 +615,15 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
   return true;
 }
 
-// One ordered reference table, whether it belongs to a screen or to a group.
-// Each entry must name a filled pool slot whose widget agrees about the parent
-// that declared it, so a document cannot point two parents at one widget or
-// leave a widget claiming a parent that never referenced it.
+// One ordered reference table, whether it belongs to a screen or to a container
+// shape. Each entry must name a filled pool slot whose widget agrees about the
+// parent that declared it, so a document cannot point two parents at one widget
+// or leave a widget claiming a parent that never referenced it.
 [[nodiscard]] bool validate_references(
     const DashboardConfiguration& dashboard,
     const std::span<const WidgetReference> references, const std::size_t count,
-    const std::size_t screen_index, const std::uint8_t group_index,
-    const bool group_present, Validator& validator, std::size_t& action_count,
+    const std::size_t screen_index, const std::uint8_t parent_index,
+    const bool parent_present, Validator& validator, std::size_t& action_count,
     ValidationFailure& failure) {
   // Parenting and the tap action are both facts about the frame, so one probe
   // decides whether the reference is sound before the type-specific checks run.
@@ -607,8 +632,8 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
       ++action_count;
     }
     return frame.screen_index == screen_index &&
-           frame.group_present == group_present &&
-           (!group_present || frame.group_index == group_index) &&
+           frame.parent_present == parent_present &&
+           (!parent_present || frame.parent_index == parent_index) &&
            valid_action(frame.action, dashboard);
   };
   for (std::size_t index = 0; index < count && index < references.size();
@@ -734,102 +759,103 @@ ValidationFailure validate_configuration(
       failure.screen_index = static_cast<std::int16_t>(screen_index);
       return failure;
     }
-    // Groups first: a group is a parent, so its box has to be sound before the
-    // widgets expressed inside it can be checked against it.
-    if (screen.group_count > screen.groups.size()) {
-      (void)reject(failure, ValidationError::invalid_group, "groups");
-      failure.screen_index = static_cast<std::int16_t>(screen_index);
-      return failure;
-    }
-    for (std::size_t group_index = 0; group_index < screen.group_count;
-         ++group_index) {
-      const GroupConfiguration& group = screen.groups[group_index];
-      if (!terminated(group.id) || group.screen_index != screen_index ||
-          group.slot > kMaximumSlots ||
-          group.condition_count > group.conditions.size() ||
-          group.widget_count > group.widgets.size() ||
-          !valid_placement(group.placement, profile.display.width,
-                           profile.display.height) ||
-          group.placement.width <= 0 || group.placement.height <= 0) {
-        (void)reject(failure, ValidationError::invalid_group, "groups");
-        failure.screen_index = static_cast<std::int16_t>(screen_index);
-        return failure;
-      }
-      if (!validator.group_conditions(group)) {
-        failure.screen_index = static_cast<std::int16_t>(screen_index);
-        return failure;
-      }
-      // A group in a slot already spends its tap on cycling, so one that also
-      // navigates would give a single tap two meanings.
-      if (!valid_action(group.action, dashboard) ||
-          (group.slot != 0 && group.action.type != WidgetActionType::none)) {
-        (void)reject(failure, ValidationError::invalid_group, "action");
-        failure.screen_index = static_cast<std::int16_t>(screen_index);
-        return failure;
-      }
-      if (group.action.type != WidgetActionType::none) {
-        ++action_count;
-      }
-    }
-    // A slot is one box with one starting group, so groups that disagree on
-    // either are two overlapping areas rather than one that switches.
-    for (std::uint8_t slot = 1; slot <= kMaximumSlots; ++slot) {
-      const GroupConfiguration* first{};
-      std::size_t defaults{};
-      std::size_t members{};
-      for (std::size_t index = 0; index < screen.group_count; ++index) {
-        const GroupConfiguration& group = screen.groups[index];
-        if (group.slot != slot) {
-          continue;
-        }
-        ++members;
-        if (group.slot_default) {
-          ++defaults;
-        }
-        if (first == nullptr) {
-          first = &group;
-        } else if (!same_box(first->placement, group.placement)) {
-          (void)reject(failure, ValidationError::invalid_group, "placement");
-          failure.screen_index = static_cast<std::int16_t>(screen_index);
-          return failure;
-        }
-      }
-      if (members > 0 && defaults != 1) {
-        (void)reject(failure, ValidationError::invalid_group, "slot_default");
-        failure.screen_index = static_cast<std::int16_t>(screen_index);
-        return failure;
-      }
-    }
-
     referenced_widgets += screen.widget_count;
-    for (std::size_t index = 0; index < screen.group_count; ++index) {
-      referenced_widgets += screen.groups[index].widget_count;
-    }
-
-    // Widgets authored on the screen, then the widgets of each group. The two
-    // differ only in the parent whose box their geometry is expressed in.
-    validator.reset_parent_bounds();
+    validator.set_parent_origin(0, 0);
     if (!validate_references(dashboard, screen.widgets, screen.widget_count,
                              screen_index, 0, false, validator, action_count,
                              failure)) {
       failure.screen_index = static_cast<std::int16_t>(screen_index);
       return failure;
     }
-    for (std::size_t group_index = 0; group_index < screen.group_count;
-         ++group_index) {
-      const GroupConfiguration& group = screen.groups[group_index];
-      validator.set_parent_bounds(group.placement.width,
-                                  group.placement.height);
-      if (!validate_references(dashboard, group.widgets, group.widget_count,
-                               screen_index,
-                               static_cast<std::uint8_t>(group_index), true,
-                               validator, action_count, failure)) {
-        failure.screen_index = static_cast<std::int16_t>(screen_index);
+  }
+
+  // Where every container sits on the display, so a child's relative geometry
+  // can be checked against the one edge that still bounds it. The pool is
+  // ordered parent-before-child by construction, so one forward pass resolves
+  // any depth — and a parent index that is not lower than its own is the shape
+  // of a cycle, which is refused here rather than assumed impossible.
+  std::array<std::int32_t, kMaximumShapeWidgets> origin_x{};
+  std::array<std::int32_t, kMaximumShapeWidgets> origin_y{};
+  std::array<std::uint8_t, kMaximumShapeWidgets> depth{};
+  for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
+    const WidgetFrame& frame = dashboard.shape_widgets[index].frame;
+    if (!frame.parent_present) {
+      origin_x[index] = 0;
+      origin_y[index] = 0;
+      depth[index] = 0;
+      continue;
+    }
+    if (frame.parent_index >= index) {
+      (void)reject(failure, ValidationError::invalid_widget, "widgets");
+      return failure;
+    }
+    origin_x[index] =
+        origin_x[frame.parent_index] +
+        dashboard.shape_widgets[frame.parent_index].frame.placement.x;
+    origin_y[index] =
+        origin_y[frame.parent_index] +
+        dashboard.shape_widgets[frame.parent_index].frame.placement.y;
+    depth[index] = static_cast<std::uint8_t>(depth[frame.parent_index] + 1);
+    if (depth[index] >= kMaximumNestingDepth) {
+      (void)reject(failure, ValidationError::invalid_widget, "widgets");
+      return failure;
+    }
+  }
+
+  // A slot is one box with one starting shape, so members that disagree on
+  // either are two overlapping areas rather than one that switches. They must
+  // also share a parent: coordinates under different containers are in
+  // different spaces, so "the same box" would not mean the same pixels.
+  for (std::uint8_t slot = 1; slot <= kMaximumSlots; ++slot) {
+    const ShapeWidgetConfiguration* first{};
+    std::size_t defaults{};
+    std::size_t members{};
+    for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
+      const ShapeWidgetConfiguration& shape = dashboard.shape_widgets[index];
+      if (shape.slot != slot) {
+        continue;
+      }
+      ++members;
+      if (shape.slot_default) {
+        ++defaults;
+      }
+      if (first == nullptr) {
+        first = &shape;
+      } else if (!same_box(first->frame.placement, shape.frame.placement) ||
+                 first->frame.screen_index != shape.frame.screen_index ||
+                 first->frame.parent_present != shape.frame.parent_present ||
+                 (shape.frame.parent_present &&
+                  first->frame.parent_index != shape.frame.parent_index)) {
+        (void)reject(failure, ValidationError::invalid_widget, "placement");
         return failure;
       }
     }
-    validator.reset_parent_bounds();
+    if (members > 0 && defaults != 1) {
+      (void)reject(failure, ValidationError::invalid_widget, "slot_default");
+      return failure;
+    }
   }
+
+  // Each container's own table, flat over the pool: ordering only ever happens
+  // among one parent's children, so depth costs nothing here.
+  for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
+    const ShapeWidgetConfiguration& shape = dashboard.shape_widgets[index];
+    if (shape.widget_count == 0) {
+      continue;
+    }
+    referenced_widgets += shape.widget_count;
+    validator.set_parent_origin(origin_x[index] + shape.frame.placement.x,
+                                origin_y[index] + shape.frame.placement.y);
+    if (!validate_references(dashboard, shape.widgets, shape.widget_count,
+                             shape.frame.screen_index,
+                             static_cast<std::uint8_t>(index), true, validator,
+                             action_count, failure)) {
+      failure.screen_index =
+          static_cast<std::int16_t>(shape.frame.screen_index);
+      return failure;
+    }
+  }
+  validator.set_parent_origin(0, 0);
 
   for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
     const TextWidgetConfiguration& widget = dashboard.text_widgets[index];

@@ -49,90 +49,6 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   return uart == nullptr || parse_uart(uart, transport.uart, failure);
 }
 
-// A group activates on the same comparison a widget restyles on, so this reads
-// the same watched source and the same operator; what a match does with it is
-// all that differs.
-[[nodiscard]] bool parse_group_conditions(const cJSON* const object,
-                                          GroupConfiguration& group,
-                                          ValidationFailure& failure) {
-  constexpr std::string_view kName = "group.conditions";
-  if (const cJSON* const source = member(object, "condition_source");
-      source != nullptr) {
-    constexpr std::string_view kSourceName = "group.condition_source";
-    if (!valid_object(source, schema::kValueSourceConfigurationKeys,
-                      kSourceName, failure) ||
-        !read_text(source, "binding", group.condition_source.binding,
-                   kSourceName, failure) ||
-        !parse_modifiers(source, group.condition_source, failure)) {
-      return false;
-    }
-  }
-
-  const cJSON* const conditions = member(object, "conditions");
-  if (conditions == nullptr) {
-    return true;
-  }
-  const int count =
-      cJSON_IsArray(conditions) ? cJSON_GetArraySize(conditions) : -1;
-  if (count < 0 || count > static_cast<int>(group.conditions.size())) {
-    return reject(failure, ValidationError::invalid_group, kName);
-  }
-  for (int index = 0; index < count; ++index) {
-    const cJSON* const rule = cJSON_GetArrayItem(conditions, index);
-    GroupCondition& parsed = group.conditions[index];
-    if (!valid_object(rule, schema::kGroupConditionKeys, kName, failure) ||
-        !read_enum(rule, "op", parsed.op, condition_operator_from_name, kName,
-                   failure) ||
-        !read_float(rule, "value", parsed.value, kName, failure) ||
-        !read_integer(rule, "hold_ms", parsed.hold_ms, kName, failure)) {
-      return false;
-    }
-  }
-  group.condition_count = static_cast<std::uint8_t>(count);
-  return true;
-}
-
-[[nodiscard]] bool parse_group(const cJSON* const object,
-                               DashboardConfiguration& dashboard,
-                               ScreenConfiguration& screen,
-                               const std::uint8_t screen_index,
-                               const std::uint8_t group_index,
-                               ValidationFailure& failure) {
-  GroupConfiguration& group = screen.groups[group_index];
-  constexpr std::string_view kName = "group";
-  if (!valid_object(object, schema::kGroupConfigurationKeys, kName, failure) ||
-      !read_text(object, "id", group.id, kName, failure) ||
-      !parse_optional_placement(object, group.placement, failure) ||
-      !read_integer(object, "z_index", group.z_index, kName, failure) ||
-      !read_integer(object, "slot", group.slot, kName, failure) ||
-      !read_boolean(object, "slot_default", group.slot_default, kName,
-                    failure) ||
-      !parse_action(object, group.action, "group.action", failure) ||
-      !parse_group_conditions(object, group, failure)) {
-    return false;
-  }
-  group.screen_index = screen_index;
-
-  const cJSON* const widgets = member(object, "widgets");
-  if (widgets == nullptr) {
-    return true;
-  }
-  if (!cJSON_IsArray(widgets) ||
-      cJSON_GetArraySize(widgets) > static_cast<int>(group.widgets.size())) {
-    return reject(failure, ValidationError::invalid_group, kName, "widgets");
-  }
-  const int count = cJSON_GetArraySize(widgets);
-  for (int index = 0; index < count; ++index) {
-    if (!parse_widget(cJSON_GetArrayItem(widgets, index), dashboard,
-                      ReferenceTable{group.widgets, &group.widget_count},
-                      screen_index, group_index, true, failure)) {
-      failure.widget_index = static_cast<std::int16_t>(index);
-      return false;
-    }
-  }
-  return true;
-}
-
 [[nodiscard]] bool parse_screen(const cJSON* const object,
                                 DashboardConfiguration& dashboard,
                                 const std::uint8_t screen_index,
@@ -144,24 +60,6 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
       !read_color(object, "background_color", screen.background_color, kName,
                   failure)) {
     return false;
-  }
-
-  if (const cJSON* const groups = member(object, "groups"); groups != nullptr) {
-    if (!cJSON_IsArray(groups) ||
-        cJSON_GetArraySize(groups) > static_cast<int>(screen.groups.size())) {
-      return reject(failure, ValidationError::invalid_group, kName, "groups");
-    }
-    const int count = cJSON_GetArraySize(groups);
-    // Counted up front: a group's widgets are parsed before the loop ends, and
-    // validation walks the groups a widget's group_index points into.
-    screen.group_count = static_cast<std::uint8_t>(count);
-    for (int index = 0; index < count; ++index) {
-      if (!parse_group(cJSON_GetArrayItem(groups, index), dashboard, screen,
-                       screen_index, static_cast<std::uint8_t>(index),
-                       failure)) {
-        return false;
-      }
-    }
   }
 
   const cJSON* const widgets = member(object, "widgets");
@@ -177,8 +75,10 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   for (int index = 0; index < count; ++index) {
     if (!parse_widget(cJSON_GetArrayItem(widgets, index), dashboard,
                       ReferenceTable{screen.widgets, &screen.widget_count},
-                      screen_index, 0, false, failure)) {
-      failure.widget_index = static_cast<std::int16_t>(index);
+                      screen_index, 0, false, 0, failure)) {
+      if (failure.widget_index < 0) {
+        failure.widget_index = static_cast<std::int16_t>(index);
+      }
       return false;
     }
   }

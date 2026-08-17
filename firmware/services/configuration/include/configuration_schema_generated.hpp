@@ -21,14 +21,13 @@ enum class ValidationError : std::uint8_t {
   invalid_uart,
   invalid_module,
   invalid_screen,
-  invalid_group,
   invalid_dashboard,
   invalid_widget,
   unknown_property,
   duplicate_property,
 };
 
-inline constexpr std::array<std::string_view, 15> kValidationErrorNames{{
+inline constexpr std::array<std::string_view, 14> kValidationErrorNames{{
     "none",
     "malformed",
     "unsupported_schema",
@@ -39,7 +38,6 @@ inline constexpr std::array<std::string_view, 15> kValidationErrorNames{{
     "invalid_uart",
     "invalid_module",
     "invalid_screen",
-    "invalid_group",
     "invalid_dashboard",
     "invalid_widget",
     "unknown_property",
@@ -183,6 +181,12 @@ inline constexpr std::array<std::string_view, 8> kWidgetConditionKeys{{
     "border_color",
     "hidden",
     "blink_ms",
+    "hold_ms",
+}};
+
+inline constexpr std::array<std::string_view, 3> kSlotConditionKeys{{
+    "op",
+    "value",
     "hold_ms",
 }};
 
@@ -366,7 +370,7 @@ inline constexpr std::array<std::string_view, 18> kImageWidgetConfigurationKeys{
     "recolor_opa",
 }};
 
-inline constexpr std::array<std::string_view, 16> kShapeWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 21> kShapeWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -383,30 +387,16 @@ inline constexpr std::array<std::string_view, 16> kShapeWidgetConfigurationKeys{
     "color_ramp",
     "conditions",
     "kind",
-}};
-
-inline constexpr std::array<std::string_view, 3> kGroupConditionKeys{{
-    "op",
-    "value",
-    "hold_ms",
-}};
-
-inline constexpr std::array<std::string_view, 9> kGroupConfigurationKeys{{
-    "id",
-    "placement",
-    "z_index",
     "slot",
     "slot_default",
-    "action",
-    "condition_source",
-    "conditions",
+    "slot_source",
+    "slot_conditions",
     "widgets",
 }};
 
-inline constexpr std::array<std::string_view, 4> kScreenConfigurationKeys{{
+inline constexpr std::array<std::string_view, 3> kScreenConfigurationKeys{{
     "id",
     "background_color",
-    "groups",
     "widgets",
 }};
 

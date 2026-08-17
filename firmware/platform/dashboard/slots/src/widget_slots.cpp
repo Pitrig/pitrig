@@ -15,7 +15,7 @@ constexpr std::uint32_t kEvaluationPeriodMs = LV_DEF_REFR_PERIOD;
 Controller::~Controller() { clear(); }
 
 bool Controller::add(lv_obj_t* const container,
-                     const configuration::GroupConfiguration& group,
+                     const configuration::ShapeWidgetConfiguration& shape,
                      const telemetry::ITelemetryRegistry& registry,
                      const telemetry::ITelemetryReader& telemetry,
                      const frame::ModifierReader lap_timer_modifier) {
@@ -25,25 +25,24 @@ bool Controller::add(lv_obj_t* const container,
   Member& member = members_[count_];
   member = {};
   member.container = container;
-  member.slot = group.slot;
-  member.is_default = group.slot_default;
-  member.condition_count =
-      static_cast<std::uint8_t>(group.condition_count > group.conditions.size()
-                                    ? group.conditions.size()
-                                    : group.condition_count);
+  member.slot = shape.slot;
+  member.is_default = shape.slot_default;
+  member.condition_count = static_cast<std::uint8_t>(
+      shape.slot_condition_count > shape.slot_conditions.size()
+          ? shape.slot_conditions.size()
+          : shape.slot_condition_count);
   // Copied for the reason a widget copies its rules: applying a configuration
-  // can swap the document out from under a group that did not itself change.
+  // can swap the document out from under a shape that did not itself change.
   for (std::size_t index = 0; index < member.condition_count; ++index) {
-    member.conditions[index] = group.conditions[index];
+    member.conditions[index] = shape.slot_conditions[index];
   }
 
   if (member.condition_count > 0) {
     bool fast_updates{};
     if (!frame::bind_source(
-            configuration::value_binding_view(group.condition_source.binding),
-            group.condition_source.modifier_count,
-            group.condition_source.modifiers, registry, telemetry,
-            lap_timer_modifier, member.source, member.read,
+            configuration::value_binding_view(shape.slot_source.binding),
+            shape.slot_source.modifier_count, shape.slot_source.modifiers,
+            registry, telemetry, lap_timer_modifier, member.source, member.read,
             member.read_context, fast_updates)) {
       member = {};
       return false;
@@ -58,11 +57,9 @@ bool Controller::start() {
   bool watches_telemetry = false;
   for (std::size_t index = 0; index < count_; ++index) {
     Member& member = members_[index];
-    if (member.slot == 0) {
-      continue;
-    }
-    // The only clickable object in the dashboard. Widgets all refuse clicks, so
-    // a tap on any of a group's children reaches its container.
+    // The only clickable object in the dashboard. Widgets all refuse clicks as
+    // they build, so a tap on any of a container's children reaches it — and
+    // this runs after they are built, which is what puts the flag back.
     lv_obj_add_flag(member.container, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(member.container, on_click, LV_EVENT_CLICKED, this);
     watches_telemetry = watches_telemetry || member.read != nullptr;
@@ -153,7 +150,7 @@ std::uint8_t Controller::selection(const std::uint8_t slot) {
     if (member.read == nullptr || member.condition_count == 0) {
       continue;
     }
-    // The same comparison a styling rule makes, deciding which group of the
+    // The same comparison a styling rule makes, deciding which shape of the
     // slot is shown rather than how a widget is painted. Declaration order
     // decides, exactly as it does among one widget's rules.
     const std::optional<double> value =
@@ -162,7 +159,7 @@ std::uint8_t Controller::selection(const std::uint8_t slot) {
     std::uint16_t hold_ms = 0;
     if (value.has_value()) {
       for (std::size_t rule = 0; rule < member.condition_count; ++rule) {
-        const configuration::GroupCondition& condition = member.conditions[rule];
+        const configuration::SlotCondition& condition = member.conditions[rule];
         if (conditions::condition_holds(condition.op, *value,
                                         static_cast<double>(condition.value))) {
           holds = true;
@@ -199,9 +196,6 @@ void Controller::refresh() {
   }
   for (std::size_t index = 0; index < count_; ++index) {
     const Member& member = members_[index];
-    if (member.slot == 0) {
-      continue;
-    }
     const bool visible = showing[member.slot - 1] == index;
     if (visible) {
       lv_obj_remove_flag(member.container, LV_OBJ_FLAG_HIDDEN);

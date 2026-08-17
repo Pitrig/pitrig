@@ -1,4 +1,4 @@
-import { type GroupConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '../../../../../shared/configuration-schema'
+import { type ShapeWidgetConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '../../../../../shared/configuration-schema'
 import { type DisplayDescriptor } from '../../../../../shared/device'
 import { type WidgetSelection, completePlacement } from '../dashboard-editor'
 
@@ -6,24 +6,20 @@ export interface PreviewLayer {
   configuration: WidgetConfiguration
   zIndex: number
   configurationOrder: number
-  /** The group's origin on the display, or zero for a widget on the screen. */
+  /**
+   * Where this widget's parent sits on the display — the sum of every container
+   * above it — or zero for a widget on the screen.
+   */
   offsetX: number
   offsetY: number
-  group?: GroupConfiguration
-  /** Position of the owning group on its screen, which names its clip. */
-  groupIndex?: number
 }
 
 /**
  * Fragment identifiers referenced from `url(#…)`. They are derived from
- * positions rather than from ids because a widget or group id is author-
- * supplied and bounded only in length — a space or a quote in one would produce
+ * positions rather than from ids because a widget id is author-supplied and
+ * bounded only in length — a space or a quote in one would produce
  * markup that silently references nothing.
  */
-export function groupClipId(index: number): string {
-  return `group-clip-${index}`
-}
-
 export function widgetClipId(index: number): string {
   return `widget-clip-${index}`
 }
@@ -37,22 +33,22 @@ export function markupId(generated: string): string {
 }
 
 /**
- * Whether a group is the one its slot is currently being looked at through.
- * A group outside a slot is always drawn; inside one, the picked group wins and
+ * Whether a container is the one its slot is currently being looked at through.
+ * A shape outside a slot is always drawn; inside one, the picked shape wins and
  * the slot default stands in until something is picked.
  */
 export function visibleInSlot(
-  groups: GroupConfiguration[],
-  group: GroupConfiguration,
+  containers: ShapeWidgetConfiguration[],
+  container: ShapeWidgetConfiguration,
   picked: Record<number, string>
 ): boolean {
-  const slot = group.slot ?? 0
+  const slot = container.slot ?? 0
   if (slot === 0) return true
   const chosen = picked[slot]
-  if (chosen !== undefined) return group.id === chosen
-  const members = groups.filter((entry) => (entry.slot ?? 0) === slot)
+  if (chosen !== undefined) return container.id === chosen
+  const members = containers.filter((entry) => (entry.slot ?? 0) === slot)
   const fallback = members.find((entry) => entry.slot_default) ?? members[0]
-  return group.id === fallback?.id
+  return container.id === fallback?.id
 }
 
 export function actionLabel(action: WidgetAction | undefined): string {
@@ -61,16 +57,6 @@ export function actionLabel(action: WidgetAction | undefined): string {
   return action.type === 'next_screen' ? '→ next' : '→ prev'
 }
 
-
-export type ScreenEntry =
-  | { kind: 'widget'; widget: WidgetConfiguration; zIndex: number; configurationOrder: number }
-  | {
-      kind: 'group'
-      group: GroupConfiguration
-      groupIndex: number
-      zIndex: number
-      configurationOrder: number
-    }
 
 export type ResizeMode = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 export type InteractionMode = 'move' | ResizeMode
@@ -116,9 +102,6 @@ export const NO_GUIDES: Guides = { x: [], y: [] }
 
 // How close an edge has to be before it snaps, in screen pixels.
 export const SNAP_TOLERANCE_PX = 6
-// Grab band around a group's border, in logical pixels. The visible dash stays
-// a hairline; this is only what the pointer has to hit.
-export const GROUP_GRAB_PX = 10
 
 // Ten frames a second: enough for a colour ramp to read as continuous and for a
 // blink to be legible, without re-rendering the canvas at display rate.

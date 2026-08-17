@@ -90,6 +90,10 @@ struct ShapeWidgets : WidgetStorage {
                                     dashboard::shape_widget::kMaximumInstances>
       binder;
   dashboard::shape_widget::Collection collection;
+  // The only type that can be a parent, so the only one that publishes the
+  // objects it built. Written per pool index as each shape is created, which is
+  // what lets a child resolve the container it was authored inside.
+  std::span<lv_obj_t*> container_slots{};
 };
 
 struct BarWidgets : WidgetStorage {
@@ -160,14 +164,18 @@ struct Dashboard {
   // parented by the index its frame carries, so this is what makes the shared
   // widget pool addressable.
   std::array<lv_obj_t*, configuration::kMaximumScreens> screens{};
-  // Group containers, flattened as screen_index * kMaximumGroups +
-  // group_index. A widget authored inside a group is parented to one of these
-  // and is therefore placed relative to it.
-  std::array<lv_obj_t*,
-             configuration::kMaximumScreens * configuration::kMaximumGroups>
-      groups{};
-  // Decides which group of each slot is visible. Owns no LVGL object: the
-  // containers belong to the screens above.
+  // The LVGL object of each shape in the pool, indexed by its pool slot. A
+  // widget authored inside a container is parented to one of these and is
+  // therefore placed relative to it.
+  std::array<lv_obj_t*, configuration::kMaximumShapeWidgets> containers{};
+  // How far each container's children reach past its own box, so the frame line
+  // is not what decides whether they are drawn. Measured once after composition
+  // and read back by the ext-draw-size event, so the addresses must be stable —
+  // which is what makes this an array here rather than a local.
+  std::array<std::int32_t, configuration::kMaximumShapeWidgets>
+      container_overflow{};
+  // Decides which shape of each slot is visible. Owns no LVGL object: the
+  // containers belong to the shape collection.
   dashboard::slots::Controller slots;
   // Loads one of those screens on a swipe. Holds a view of `screens`, so it is
   // detached before they are released.

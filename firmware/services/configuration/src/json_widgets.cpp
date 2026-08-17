@@ -138,6 +138,53 @@ namespace {
                       failure);
 }
 
+// A shape in a slot activates on the same comparison a widget restyles on, so
+// this reads the same watched source and the same operator; what a match does
+// with it is all that differs. The source is its own rather than the frame's,
+// because which shape a slot shows and how that shape is painted are different
+// questions about different fields.
+[[nodiscard]] bool parse_slot_conditions(const cJSON* const object,
+                                         ShapeWidgetConfiguration& config,
+                                         ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.shape.slot_conditions";
+  if (const cJSON* const source = member(object, "slot_source");
+      source != nullptr) {
+    constexpr std::string_view kSourceName = "widget.shape.slot_source";
+    if (!valid_object(source, schema::kValueSourceConfigurationKeys,
+                      kSourceName, failure) ||
+        !read_text(source, "binding", config.slot_source.binding, kSourceName,
+                   failure) ||
+        !parse_modifiers(source, config.slot_source, failure)) {
+      return false;
+    }
+  }
+
+  const cJSON* const conditions = member(object, "slot_conditions");
+  if (conditions == nullptr) {
+    return true;
+  }
+  const int count =
+      cJSON_IsArray(conditions) ? cJSON_GetArraySize(conditions) : -1;
+  if (count < 0 || count > static_cast<int>(config.slot_conditions.size())) {
+    return reject(failure, ValidationError::invalid_widget, kName);
+  }
+  for (int index = 0; index < count; ++index) {
+    const cJSON* const rule = cJSON_GetArrayItem(conditions, index);
+    SlotCondition& parsed = config.slot_conditions[index];
+    if (!valid_object(rule, schema::kSlotConditionKeys, kName, failure) ||
+        !read_enum(rule, "op", parsed.op, condition_operator_from_name, kName,
+                   failure) ||
+        !read_float(rule, "value", parsed.value, kName, failure) ||
+        !read_integer(rule, "hold_ms", parsed.hold_ms, kName, failure)) {
+      return false;
+    }
+  }
+  config.slot_condition_count = static_cast<std::uint8_t>(count);
+  return true;
+}
+
+// The shape's own properties only. Its `widgets` are parsed by parse_widget,
+// which owns parenting, so a widget type still knows nothing about who holds it.
 [[nodiscard]] bool parse_shape_widget(const cJSON* const object,
                                       ShapeWidgetConfiguration& config,
                                       ValidationFailure& failure) {
@@ -146,7 +193,11 @@ namespace {
                       failure) &&
          parse_frame(object, config.frame, kName, failure) &&
          read_enum(object, "kind", config.kind, shape_kind_from_name, kName,
-                   failure);
+                   failure) &&
+         read_integer(object, "slot", config.slot, kName, failure) &&
+         read_boolean(object, "slot_default", config.slot_default, kName,
+                      failure) &&
+         parse_slot_conditions(object, config, failure);
 }
 
 [[nodiscard]] bool parse_text_widget(const cJSON* const object,
@@ -218,11 +269,14 @@ constexpr std::array<WidgetParser, kWidgetTypeTraits.size()> kWidgetParsers{{
 
 bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
                   const ReferenceTable& owner, const std::uint8_t screen_index,
-                  const std::uint8_t group_index, const bool group_present,
-                  ValidationFailure& failure) {
+                  const std::uint8_t parent_index, const bool parent_present,
+                  const std::uint8_t depth, ValidationFailure& failure) {
   constexpr std::string_view kName = "widget";
   if (!cJSON_IsObject(object)) {
     return reject(failure, ValidationError::invalid_widget, kName);
+  }
+  if (depth >= kMaximumNestingDepth) {
+    return reject(failure, ValidationError::invalid_widget, kName, "widgets");
   }
   const cJSON* const type = member(object, "type");
   WidgetType widget_type{};
@@ -232,9 +286,9 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
     return reject(failure, ValidationError::invalid_widget, kName, "type");
   }
   if (*owner.count >= owner.entries.size()) {
-    return group_present
-               ? reject(failure, ValidationError::invalid_group, "group",
-                        "widgets")
+    return parent_present
+               ? reject(failure, ValidationError::invalid_widget,
+                        "widget.shape", "widgets")
                : reject(failure, ValidationError::invalid_screen, "screen",
                         "widgets");
   }
@@ -254,11 +308,11 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
   traits.set_count(dashboard, static_cast<std::uint8_t>(storage_index + 1));
 
   // Parenting is stamped once after the variant is parsed, so a widget type
-  // knows nothing about screens or groups.
+  // knows nothing about screens or containers.
   WidgetFrame* const frame = traits.mutable_frame(dashboard, storage_index);
   frame->screen_index = screen_index;
-  frame->group_index = group_index;
-  frame->group_present = group_present;
+  frame->parent_index = parent_index;
+  frame->parent_present = parent_present;
   // Carrying the ordering key on the reference keeps compositing free of
   // widget-type knowledge.
   owner.entries[*owner.count] = {
@@ -267,6 +321,38 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
       .z_index = frame->z_index,
   };
   ++*owner.count;
+
+  if (widget_type != WidgetType::shape) {
+    return true;
+  }
+  const cJSON* const children = member(object, "widgets");
+  if (children == nullptr) {
+    return true;
+  }
+  // Recursing last is what orders the pool: this shape is already counted, so
+  // every widget below it takes a higher pool index than its parent, and a
+  // cycle becomes unrepresentable rather than merely rejected. The reference
+  // below stays valid across the call because the pool is a fixed-size array
+  // that nothing here can grow or move.
+  ShapeWidgetConfiguration& container = dashboard.shape_widgets[storage_index];
+  const int count = cJSON_IsArray(children) ? cJSON_GetArraySize(children) : -1;
+  if (count < 0 || count > static_cast<int>(container.widgets.size())) {
+    return reject(failure, ValidationError::invalid_widget, "widget.shape",
+                  "widgets");
+  }
+  for (int index = 0; index < count; ++index) {
+    if (!parse_widget(cJSON_GetArrayItem(children, index), dashboard,
+                      ReferenceTable{container.widgets, &container.widget_count},
+                      screen_index, storage_index, true,
+                      static_cast<std::uint8_t>(depth + 1), failure)) {
+      // Only the innermost failure names its position; an outer level would
+      // otherwise overwrite it with its own, which is the less useful one.
+      if (failure.widget_index < 0) {
+        failure.widget_index = static_cast<std::int16_t>(index);
+      }
+      return false;
+    }
+  }
   return true;
 }
 

@@ -75,12 +75,17 @@ std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
     return false;
   }
   dashboard.widgets.clear();
+  // Shape first, and that is a correctness requirement rather than a style
+  // choice: a shape may be a parent, create_all() builds in this order so every
+  // container exists before a child resolves it, and destroy_all() walks it
+  // backwards so children delete their own objects before the container that
+  // would otherwise take them down with it.
   const bool registered =
-      dashboard.widgets.add(
-          widget_descriptor<ValueWidgetOps<TextWidgets>>(dashboard.text)) &&
       dashboard.widgets.add(
           widget_descriptor<ConditionWidgetOps<ShapeWidgets>>(
               dashboard.shape)) &&
+      dashboard.widgets.add(
+          widget_descriptor<ValueWidgetOps<TextWidgets>>(dashboard.text)) &&
       dashboard.widgets.add(
           widget_descriptor<ValueWidgetOps<BarWidgets>>(dashboard.bar)) &&
       dashboard.widgets.add(
@@ -101,10 +106,14 @@ std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
 
 // Slots and navigation are attached last, so a tap or a gesture can only arrive
 // at screens that are fully built. A rebuilt dashboard has new screen objects,
-// so this also returns to the first screen and to each slot's authored group.
+// so this also returns to the first screen and to each slot's authored shape.
+//
+// Running after create_all() is also what keeps the slot container clickable:
+// every widget removes that flag as it builds, and this puts it back on the
+// containers a slot cycles.
 [[nodiscard]] bool attach_slots_and_navigation(
     const configuration::ApplicationConfiguration& configuration,
-    const dashboard::Layout& layout, const std::size_t screen_count,
+    const dashboard::Layout& layout,
     const dashboard::frame::ModifierReader lap_timer_modifier,
     Dashboard& dashboard, const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry) {
@@ -113,20 +122,22 @@ std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
     return true;
   }
   bool attached = true;
-  for (std::size_t screen_index = 0; screen_index < screen_count;
-       ++screen_index) {
-    const configuration::ScreenConfiguration& screen =
-        configuration.dashboard.screens[screen_index];
-    for (std::size_t index = 0; index < screen.group_count; ++index) {
-      lv_obj_t* const container =
-          layout.group(static_cast<std::uint8_t>(screen_index),
-                       static_cast<std::uint8_t>(index));
-      if (container != nullptr &&
-          !dashboard.slots.add(container, screen.groups[index], registry,
-                               telemetry, lap_timer_modifier)) {
-        log::error(kTag, "Failed to bind group activation source");
-        attached = false;
-      }
+  // Only shapes that are in a slot: a plain container never hides and never
+  // takes a tap, so registering one would spend a member entry on nothing.
+  for (std::size_t index = 0;
+       index < configuration.dashboard.shape_widget_count; ++index) {
+    const configuration::ShapeWidgetConfiguration& shape =
+        configuration.dashboard.shape_widgets[index];
+    if (shape.slot == 0) {
+      continue;
+    }
+    lv_obj_t* const container = layout.parent(
+        shape.frame.screen_index, static_cast<std::uint8_t>(index), true);
+    if (container != nullptr &&
+        !dashboard.slots.add(container, shape, registry, telemetry,
+                             lap_timer_modifier)) {
+      log::error(kTag, "Failed to bind slot activation source");
+      attached = false;
     }
   }
   if (!dashboard.slots.start()) {
@@ -146,7 +157,8 @@ std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
 // own background only when the container itself paints it — a transparent
 // colour paints nothing, and an inset background leaves the frame line standing
 // on the parent. Every other case resolves the colour behind the widget, which
-// a group never paints, so the screen is what shows through.
+// a container never paints unless it was authored with a background, so the
+// screen is what shows through.
 [[nodiscard]] bool caption_masks_screen(
     const configuration::WidgetFrame* const frame,
     const std::uint32_t recoloured) {
@@ -193,7 +205,7 @@ bool create(lv_display_t* const display,
   const dashboard::Layout layout{
       .display = display,
       .screens = std::span{dashboard_state.screens}.first(screen_count),
-      .groups = dashboard_state.groups};
+      .containers = dashboard_state.containers};
   if (!assets::prepare_fonts(configuration, dashboard_state.fonts)) {
     log::error(kTag, "One or more configured fonts could not be created");
     return false;
@@ -217,16 +229,25 @@ bool create(lv_display_t* const display,
     storage->lap_timer_modifier = lap_timer_modifier;
   }
   dashboard_state.image.images = &dashboard_state.images;
+  dashboard_state.shape.container_slots = dashboard_state.containers;
 
   bool initialized = register_widget_types(dashboard_state);
   if (initialized && !dashboard_state.widgets.create_all()) {
+    initialized = false;
+  }
+  // Measured once every widget stands, and before the z-order pass moves any of
+  // them: what a container has to let through is a fact about the objects, not
+  // about their stacking.
+  if (initialized && !screens::unclip_containers(configuration,
+                                                 dashboard_state)) {
+    log::error(kTag, "Failed to release container clipping");
     initialized = false;
   }
   if (!screens::apply_z_order(configuration, dashboard_state)) {
     log::error(kTag, "Failed to apply dashboard widget Z order");
     initialized = false;
   }
-  if (!attach_slots_and_navigation(configuration, layout, screen_count,
+  if (!attach_slots_and_navigation(configuration, layout,
                                    lap_timer_modifier, dashboard_state,
                                    telemetry_registry, telemetry)) {
     initialized = false;
@@ -276,17 +297,6 @@ bool apply_incremental(
                     after_screen.widget_count *
                         sizeof(configuration::WidgetReference)) != 0) {
       return false;
-    }
-    // A group is a parent and a slot member, so anything about it beyond its
-    // widgets' own properties changes composition rather than a widget.
-    if (before_screen.group_count != after_screen.group_count) {
-      return false;
-    }
-    for (std::size_t group = 0; group < after_screen.group_count; ++group) {
-      if (std::memcmp(&before_screen.groups[group], &after_screen.groups[group],
-                      sizeof(configuration::GroupConfiguration)) != 0) {
-        return false;
-      }
     }
   }
 
@@ -346,6 +356,20 @@ bool apply_incremental(
       if (!changed &&
           !caption_masks_screen(traits.frame(after, index), recoloured_screens)) {
         continue;
+      }
+      // Rebuilding a shape deletes its LVGL object, and LVGL takes the
+      // descendants with it — children owned by other collections, and the slot
+      // controller's pointer to this container. Those are structural, so a
+      // shape that holds either role goes the full-recomposition route. The
+      // test is its role rather than what changed: a colour edit trips the byte
+      // compare above just the same, and would delete the children just the
+      // same. A plain backing plate, which is most shapes, keeps the fast path.
+      if (traits.type == configuration::WidgetType::shape) {
+        const configuration::ShapeWidgetConfiguration& shape =
+            after.shape_widgets[index];
+        if (shape.widget_count > 0 || shape.slot != 0) {
+          return false;
+        }
       }
       if (!dashboard.widgets.update_instance(traits.type, index)) {
         return false;

@@ -16,7 +16,7 @@ using lv_event_t = _lv_event_t;
 
 namespace simcore::dashboard::slots {
 
-// Groups that share a slot share a box, and exactly one of them is visible.
+// Container shapes that share a slot share a box, and exactly one is visible.
 // Two things select which: a rule over telemetry, and a tap on the slot.
 //
 // Telemetry wins while it matches, which is the model conditional styling
@@ -24,22 +24,22 @@ namespace simcore::dashboard::slots {
 // behind. With nothing matching, the slot shows whatever the driver last
 // tapped, or the authored default before any tap.
 //
-// Groups outside a slot are registered too. They never hide and never take a
-// tap, which keeps the composition from branching on whether a group is in one.
+// Only shapes that are in a slot are registered. A plain container never hides
+// and never takes a tap, so a member entry spent on one would buy nothing.
 class Controller final {
  public:
   static constexpr std::size_t kMaximumMembers =
-      configuration::kMaximumScreens * configuration::kMaximumGroups;
+      configuration::kMaximumShapeWidgets;
 
   Controller() = default;
   ~Controller();
   Controller(const Controller&) = delete;
   Controller& operator=(const Controller&) = delete;
 
-  // Registers one group container and binds the source its rules watch. Called
-  // with the LVGL lock held, once per group, before start().
+  // Registers one container shape and binds the source its slot rules watch.
+  // Called with the LVGL lock held, once per slot member, before start().
   [[nodiscard]] bool add(lv_obj_t* container,
-                         const configuration::GroupConfiguration& group,
+                         const configuration::ShapeWidgetConfiguration& shape,
                          const telemetry::ITelemetryRegistry& registry,
                          const telemetry::ITelemetryReader& telemetry,
                          frame::ModifierReader lap_timer_modifier);
@@ -55,11 +55,11 @@ class Controller final {
  private:
   struct Member {
     lv_obj_t* container{};
-    // 1..kMaximumSlots, or 0 for a group that is not in a slot.
+    // 1..kMaximumSlots. A shape outside a slot is never registered.
     std::uint8_t slot{};
     bool is_default{};
     std::uint8_t condition_count{};
-    std::array<configuration::GroupCondition,
+    std::array<configuration::SlotCondition,
                configuration::kMaximumWidgetConditions>
         conditions{};
     frame::SourceContext source{};

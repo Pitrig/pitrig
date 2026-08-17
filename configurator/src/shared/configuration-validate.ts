@@ -1,16 +1,32 @@
 import {
   MAXIMUM_ACTIONS,
-  MAXIMUM_GROUPS,
+  MAXIMUM_ARC_WIDGETS,
+  MAXIMUM_BAR_WIDGETS,
+  MAXIMUM_GRAPH_WIDGETS,
+  MAXIMUM_IMAGE_WIDGETS,
+  MAXIMUM_INDICATOR_WIDGETS,
+  MAXIMUM_NESTING_DEPTH,
   MAXIMUM_PAYLOAD_SIZE,
   MAXIMUM_SCREENS,
+  MAXIMUM_SHAPE_WIDGETS,
+  MAXIMUM_TEXT_WIDGETS,
+  MAXIMUM_WIDGETS_PER_CONTAINER,
+  MAXIMUM_WIDGETS_PER_SCREEN,
   SCHEMA_CHILD_TYPES,
   SCHEMA_OBJECT_KEYS,
+  SCHEMA_VARIANT_ARRAYS,
   SCHEMA_WIDGET_STRUCTS,
   TEXT_CAPACITIES,
   WIDGET_TYPES
 } from './configuration-schema'
-import type { ApplicationConfiguration, WidgetAction } from './configuration-schema'
-import { allWidgetsOf, groupsOf, isTextWidget, widgetsOf } from './configuration-access'
+import type {
+  ApplicationConfiguration,
+  ScreenConfiguration,
+  ShapeWidgetConfiguration,
+  WidgetAction
+} from './configuration-schema'
+import { allWidgetsOf, isTextWidget, widgetsOf } from './configuration-access'
+import { BOARD_PROFILES, type SimCoreBoardId } from './device'
 import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES, MAXIMUM_FONT_SIZE_PX } from './font-assets'
 
 // The single configuration validator. The renderer, the main process, and file
@@ -18,6 +34,28 @@ import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES, MAXIMUM_FONT_SIZE_PX } from
 // allow-lists come from the same generated schema the firmware parser uses — so
 // the configurator can no longer ship a payload the device answers with
 // `unknown_property`.
+
+// The pool a widget type is stored in on the device. Counted across the whole
+// document rather than per screen, because the pool is dashboard-wide.
+const WIDGET_POOL_CAPS: Record<string, number> = {
+  text: MAXIMUM_TEXT_WIDGETS,
+  shape: MAXIMUM_SHAPE_WIDGETS,
+  bar: MAXIMUM_BAR_WIDGETS,
+  arc: MAXIMUM_ARC_WIDGETS,
+  indicator: MAXIMUM_INDICATOR_WIDGETS,
+  graph: MAXIMUM_GRAPH_WIDGETS,
+  image: MAXIMUM_IMAGE_WIDGETS
+}
+
+// Undefined for a document naming no board, or one this configurator has no
+// profile for; the display bound is then simply not checked here and the device
+// answers instead.
+function boardDisplay(
+  configuration: ApplicationConfiguration
+): { width: number; height: number } | undefined {
+  const board = configuration.board as SimCoreBoardId | undefined
+  return board ? BOARD_PROFILES[board]?.display : undefined
+}
 
 export type ValidationResult =
   | { ok: true; configuration: ApplicationConfiguration; payloadBytes: number }
@@ -92,12 +130,10 @@ function findUnknownProperty(
         return `"${here}" is ${bytes} bytes; the device stores at most ${capacity - 1}.`
       }
     }
-    // Widgets nest one level under a screen and two under a group, and both
-    // arrays are the same discriminated union.
-    if (
-      (structName === 'ScreenConfiguration' || structName === 'GroupConfiguration') &&
-      key === 'widgets'
-    ) {
+    // Widget arrays nest to any depth and are the same discriminated union
+    // wherever they appear. Which properties hold one is generated, so a new
+    // kind of parent cannot be silently skipped here.
+    if (SCHEMA_VARIANT_ARRAYS[structName]?.includes(key)) {
       const error = checkWidgets(child, here)
       if (error) return error
       continue
@@ -150,63 +186,106 @@ function findScreenError(configuration: ApplicationConfiguration): string | unde
     return `A dashboard carries at most ${MAXIMUM_SCREENS} screen(s); this one declares ${screens.length}.`
   }
   const screenIds = screens.map((screen) => screen?.id)
+  const display = boardDisplay(configuration)
   let actions = 0
-  for (const [screenIndex, screen] of screens.entries()) {
-    const groups = groupsOf(screen)
-    if (groups.length > MAXIMUM_GROUPS) {
-      return `Screen ${screenIndex + 1} carries ${groups.length} groups; the device holds ${MAXIMUM_GROUPS}.`
+  const pool = new Map<string, number>()
+  const containers: ShapeWidgetConfiguration[] = []
+
+  // One walk carrying where this parent sits and how deep it is, because both
+  // are facts about the path rather than about the widget.
+  const walk = (
+    parent: ScreenConfiguration | ShapeWidgetConfiguration,
+    screenIndex: number,
+    originX: number,
+    originY: number,
+    depth: number
+  ): string | undefined => {
+    const widgets = widgetsOf(parent)
+    const cap = depth === 0 ? MAXIMUM_WIDGETS_PER_SCREEN : MAXIMUM_WIDGETS_PER_CONTAINER
+    if (widgets.length > cap) {
+      const where = depth === 0 ? `Screen ${screenIndex + 1}` : 'A container'
+      return `${where} holds ${widgets.length} widgets; the device holds ${cap}.`
     }
-    for (const widget of widgetsOf(screen)) {
-      const error = findActionError(widget.action, screenIds, `widget "${widget.id ?? ''}"`)
+    if (depth >= MAXIMUM_NESTING_DEPTH) {
+      return `Containers are nested ${depth + 1} deep; the device nests ${MAXIMUM_NESTING_DEPTH}.`
+    }
+    for (const widget of widgets) {
+      const label = `widget "${widget.id ?? ''}"`
+      const error = findActionError(widget.action, screenIds, label)
       if (error) return error
       if (widget.action && widget.action.type !== 'none') actions += 1
-    }
-    for (const group of groups) {
-      const label = `group "${group.id ?? ''}"`
-      const error = findActionError(group.action, screenIds, label)
-      if (error) return error
-      if (group.action && group.action.type !== 'none') actions += 1
-      if ((group.slot ?? 0) > 0 && group.action && group.action.type !== 'none') {
-        return `${label} is in a slot and also navigates; a tap can only mean one of those.`
-      }
-      // The device refuses a widget that does not fit its group at composition
-      // time, which is later than an author wants to hear it.
-      const box = group.placement
-      for (const widget of widgetsOf(group)) {
-        const error = findActionError(widget.action, screenIds, `widget "${widget.id ?? ''}"`)
-        if (error) return error
-        if (widget.action && widget.action.type !== 'none') actions += 1
-        const inner = widget.placement
+      pool.set(widget.type, (pool.get(widget.type) ?? 0) + 1)
+
+      // The one bound left: a container does not clip its children, so what a
+      // box must still do is reach the display. Mirrors on_display() in
+      // configuration_validation.cpp — reject only a box entirely outside it.
+      const box = widget.placement
+      if (box && display) {
+        const left = originX + (box.x ?? 0)
+        const top = originY + (box.y ?? 0)
         if (
-          box &&
-          inner &&
-          ((inner.x ?? 0) + (inner.width ?? 0) > (box.width ?? 0) ||
-            (inner.y ?? 0) + (inner.height ?? 0) > (box.height ?? 0))
+          left + (box.width ?? 0) <= 0 ||
+          top + (box.height ?? 0) <= 0 ||
+          left >= display.width ||
+          top >= display.height
         ) {
-          return `Widget "${widget.id ?? ''}" does not fit inside ${label}; a grouped widget is placed relative to the group's box.`
+          return `Widget "${widget.id ?? ''}" sits entirely off the display.`
         }
       }
+
+      if (widget.type !== 'shape') continue
+      if ((widget.slot ?? 0) > 0 && widget.action && widget.action.type !== 'none') {
+        return `${label} is in a slot and also navigates; a tap can only mean one of those.`
+      }
+      if ((widget.slot ?? 0) > 0 && widget.conditions?.some((rule) => rule.hidden)) {
+        return `${label} is in a slot and also has a rule that hides it; the slot already decides that.`
+      }
+      containers.push(widget)
+      const nested = walk(
+        widget,
+        screenIndex,
+        originX + (box?.x ?? 0),
+        originY + (box?.y ?? 0),
+        depth + 1
+      )
+      if (nested) return nested
     }
-    // Slot rules: one box, one default.
-    const slots = new Set(groups.map((group) => group.slot ?? 0).filter((slot) => slot > 0))
-    for (const slot of slots) {
-      const members = groups.filter((group) => (group.slot ?? 0) === slot)
-      const defaults = members.filter((group) => group.slot_default).length
-      if (defaults !== 1) {
-        return `Slot ${slot} on screen ${screenIndex + 1} needs exactly one group marked as shown first; it has ${defaults}.`
-      }
-      const first = members[0]?.placement
-      if (
-        members.some(
-          (group) =>
-            group.placement?.x !== first?.x ||
-            group.placement?.y !== first?.y ||
-            group.placement?.width !== first?.width ||
-            group.placement?.height !== first?.height
-        )
-      ) {
-        return `The groups of slot ${slot} on screen ${screenIndex + 1} must share one box.`
-      }
+    return undefined
+  }
+
+  for (const [screenIndex, screen] of screens.entries()) {
+    const error = walk(screen, screenIndex, 0, 0, 0)
+    if (error) return error
+  }
+
+  // Slot rules: one parent, one box, one default. Members under different
+  // parents cannot share a box, because their coordinates are in different
+  // spaces.
+  const slots = new Set(containers.map((shape) => shape.slot ?? 0).filter((slot) => slot > 0))
+  for (const slot of slots) {
+    const members = containers.filter((shape) => (shape.slot ?? 0) === slot)
+    const defaults = members.filter((shape) => shape.slot_default).length
+    if (defaults !== 1) {
+      return `Slot ${slot} needs exactly one container marked as shown first; it has ${defaults}.`
+    }
+    const first = members[0]?.placement
+    if (
+      members.some(
+        (shape) =>
+          shape.placement?.x !== first?.x ||
+          shape.placement?.y !== first?.y ||
+          shape.placement?.width !== first?.width ||
+          shape.placement?.height !== first?.height
+      )
+    ) {
+      return `The containers of slot ${slot} must share one box.`
+    }
+  }
+
+  for (const [type, count] of pool) {
+    const cap = WIDGET_POOL_CAPS[type]
+    if (cap !== undefined && count > cap) {
+      return `This dashboard uses ${count} ${type} widgets; the device stores ${cap}.`
     }
   }
   if (actions > MAXIMUM_ACTIONS) {

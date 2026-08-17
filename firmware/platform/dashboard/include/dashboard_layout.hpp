@@ -27,16 +27,16 @@ struct Rect {
 
 using Placement = configuration::WidgetPlacement;
 
-// The screens a dashboard renders on, the group containers within them, and the
+// The screens a dashboard renders on, the container shapes within them, and the
 // display they belong to. Widget storage is one dashboard-wide pool, so a widget
 // names the parent it belongs to and that parent is resolved per widget rather
 // than per collection.
 struct Layout {
   lv_display_t* display{};
   std::span<lv_obj_t* const> screens{};
-  // Group containers flattened as screen_index * kMaximumGroups + group_index,
-  // so one span addresses every group of every screen.
-  std::span<lv_obj_t* const> groups{};
+  // One entry per shape pool slot, filled as each shape is built. A container is
+  // a widget like any other, so its own pool index is what addresses it.
+  std::span<lv_obj_t* const> containers{};
 
   // Null for an index no screen was created for, which the caller reports as a
   // failed placement rather than parenting the widget somewhere arbitrary.
@@ -44,21 +44,18 @@ struct Layout {
     return index < screens.size() ? screens[index] : nullptr;
   }
 
-  [[nodiscard]] lv_obj_t* group(const std::uint8_t screen_index,
-                                const std::uint8_t group_index) const {
-    const std::size_t index =
-        static_cast<std::size_t>(screen_index) * configuration::kMaximumGroups +
-        group_index;
-    return index < groups.size() ? groups[index] : nullptr;
-  }
-
   // The LVGL object a widget is parented to, and therefore the box its
-  // geometry is expressed in.
+  // geometry is expressed in. Null when the container failed to build, which
+  // refuses the child rather than silently reparenting it to the screen — where
+  // its relative coordinates would mean somewhere else entirely.
   [[nodiscard]] lv_obj_t* parent(const std::uint8_t screen_index,
-                                 const std::uint8_t group_index,
-                                 const bool group_present) const {
-    return group_present ? group(screen_index, group_index)
-                         : screen(screen_index);
+                                 const std::uint8_t parent_index,
+                                 const bool parent_present) const {
+    if (!parent_present) {
+      return screen(screen_index);
+    }
+    return parent_index < containers.size() ? containers[parent_index]
+                                            : nullptr;
   }
 };
 

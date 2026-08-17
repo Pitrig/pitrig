@@ -1,6 +1,6 @@
 # Device configuration
 
-This document defines the schema 7 configuration contract implemented by the
+This document defines the schema 9 configuration contract implemented by the
 firmware and read by the desktop configurator. Earlier schemas are
 intentionally not part of the current contract.
 
@@ -109,49 +109,53 @@ Colors use `"#RRGGBB"`.
 
 A dashboard owns a bounded `screens` array of up to four screens, and the driver
 swipes between them on a board with a touch panel. Each screen carries its own
-`id`, `background_color`, an ordered `widgets` array discriminated by a `type`
-property, and an optional `groups` array. Every widget also carries a stable
-`id`. A screen's `id` is what a `goto_screen` action names, so it is worth
-setting to something the dashboard means rather than leaving as the generated
-default.
+`id`, `background_color`, and an ordered `widgets` array discriminated by a
+`type` property. Every widget also carries a stable `id`. A screen's `id` is
+what a `goto_screen` action names, so it is worth setting to something the
+dashboard means rather than leaving as the generated default.
 
-A **group** is a rectangle of a screen with widgets authored inside it. Its
-`placement` is absolute screen pixels; the geometry of the widgets inside it is
-relative to that box, and they are clipped to it. A group performs no layout of
-its own — it is a parent and a clip, nothing more.
+A **shape** widget may hold widgets of its own, which makes it a container. The
+geometry of the widgets inside it is relative to its box, and they nest up to
+four levels deep. A container performs no layout — it is a parent and a
+rectangle. It is a widget first, so it draws its own frame, stacks among its
+siblings and can take a tap like any other; the shape you would once have put
+behind a group is the container now.
 
-A group may name a `slot` (1..4). Groups sharing a slot must agree on their box,
-exactly one of them must carry `slot_default`, and only one is visible at a
-time. Tapping the slot on the board cycles to the next group; a group whose
-`conditions` match over its `condition_source` is shown instead while it
-matches, with `hold_ms` keeping a momentary trigger readable. See
-[ADR 0021](adr/0021-widget-groups-and-slots.md).
+**A container does not clip its children.** A caption overhanging its widget's
+border is drawn, and so is a widget nudged past the container's edge. The only
+geometry refused is a box that falls entirely off the display.
 
-| Group property | Shape | Meaning |
+A container may name a `slot` (1..4). Shapes sharing a slot must agree on their
+parent and their box, exactly one of them must carry `slot_default`, and only one
+is visible at a time. Tapping the slot on the board cycles to the next one; a
+shape whose `slot_conditions` match over its `slot_source` is shown instead while
+they match, with `hold_ms` keeping a momentary trigger readable. Those rules are
+deliberately separate from the styling `conditions` every widget has: which shape
+a slot shows and how that shape is painted are different questions about
+different fields. See [ADR 0021](adr/0021-widget-groups-and-slots.md).
+
+| Container property | Shape | Meaning |
 | --- | --- | --- |
-| `id` | string, ≤15 bytes | Stable identifier. |
-| `placement` | object | `x`, `y`, `width`, `height` in screen pixels. |
-| `z_index` | int16 | Where the group stacks among its screen's own widgets. |
-| `slot` | 0..4 | Slot the group switches in. Omitted leaves it always visible. |
-| `slot_default` | bool | Shown before anything selects another group in the slot. |
-| `condition_source` | object | Telemetry binding the activation rules watch. |
-| `conditions` | array ≤4 | `op`, `value`, `hold_ms`. First match shows this group. |
-| `action` | object | Navigation a tap on this area performs. Refused together with `slot`. |
-| `widgets` | array ≤16 | Widgets parented to the group, placed relative to its box. |
+| `widgets` | array ≤16 | Widgets parented to this shape, placed relative to its box. |
+| `slot` | 0..4 | Slot this shape switches in. Omitted leaves it always visible. |
+| `slot_default` | bool | Shown before anything selects another shape in the slot. |
+| `slot_source` | object | Telemetry binding the activation rules watch. |
+| `slot_conditions` | array ≤4 | `op`, `value`, `hold_ms`. First match shows this shape. |
 
-Every widget and every group may carry one `action`, and a tap on it navigates.
-Sixteen tap targets across the dashboard is the bound.
+Every widget may carry one `action`, and a tap on it navigates. Sixteen tap
+targets across the dashboard is the bound.
 
 | Action property | Shape | Meaning |
 | --- | --- | --- |
 | `type` | `none`, `next_screen`, `previous_screen`, `goto_screen` | What the tap does. Omitted leaves the object refusing input. |
 | `screen` | string | Target screen `id`, for `goto_screen` only. The other types name no screen, and one that does is rejected rather than ignored. |
 
-An empty group with an action is an invisible rectangle that takes a tap — that
-is how a corner of the screen becomes a back button without a widget to press. A
-group in a slot already spends its tap on cycling, so carrying both is rejected;
-a widget with an action inside such a group consumes the tap and the slot does
-not cycle. See [ADR 0020](adr/0020-screen-navigation.md).
+An empty transparent shape with an action is an invisible rectangle that takes a
+tap — that is how a corner of the screen becomes a back button without a widget
+to press. A shape in a slot already spends its tap on cycling, so carrying both
+is rejected; a widget with an action inside such a container consumes the tap and
+the slot does not cycle, and a nested slot takes the tap before the one around
+it. See [ADR 0020](adr/0020-screen-navigation.md).
 
 Widgets live in a dashboard-wide pool, one per type, and a screen names them by
 reference — so a cap is a budget across every screen rather than a per-screen
@@ -421,7 +425,8 @@ The cut follows wherever it lands. `border_gap` turns it off, and
 `gap_padding_px` is the clear space kept around the caption inside it, 4 pixels
 on each side by default. The cut is a thin band along one border line, clipped
 to the widget's box, over whatever paints behind the caption — the widget's own
-background when it has one that reaches the frame, otherwise the screen or group
+background when it has one that reaches the frame, otherwise the screen or the
+container
 behind it. Three consequences are worth knowing when authoring: a caption
 crossing no border cuts nothing, a caption on a corner cuts the horizontal
 border and not the vertical one, and because the band is straight, a caption
@@ -582,7 +587,7 @@ the control protocol carries none and SimHub owns the port while a session runs.
 
 Widgets are selected one at a time, by shift-clicking to add to the selection,
 or by dragging a rubber band across the canvas. A selection of two or more can
-be aligned to the group's own bounds and, from three, spread so the gaps between
+be aligned to the selection's own bounds and, from three, spread so the gaps between
 them match. Dragging is snapped to the other widgets' edges and centres and to
 the display's, and optionally to a grid; the canvas magnifies up to eight times
 and pans with the middle button. A layer list shows the stack top first, restacks

@@ -270,7 +270,8 @@ export function CaptionPreview({
   // transparent colour paints nothing, and an inset background paints an inner
   // rect that leaves the line standing on whatever is behind the widget. The
   // device resolves that by walking up to the first ancestor that paints
-  // (widget_frame.cpp: background_behind), and a group paints nothing, so the
+  // (widget_frame.cpp: background_behind), and a container with no background of
+  // its own paints nothing, so the
   // screen is what shows through.
   const paintsContainer = background !== undefined && background !== 'transparent' && inset === 0
   const maskFill = paintsContainer ? background : behind

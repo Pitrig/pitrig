@@ -54,7 +54,7 @@ struct Resolution {
     std::optional<double> value);
 
 // Whether one comparison holds. Exposed so a second mechanism that switches on
-// the same operators — a group activating in its slot — compares the way the
+// the same operators — a container activating in its slot — compares the way the
 // styling rules do rather than restating the operator table.
 [[nodiscard]] bool condition_holds(configuration::ConditionOperator op,
                                    double value, double threshold);
