@@ -27,17 +27,38 @@ struct Rect {
 
 using Placement = configuration::WidgetPlacement;
 
-// The screens a dashboard renders on, and the display they belong to. Widget
-// storage is one dashboard-wide pool, so a widget names the screen it belongs
-// to and the parent is resolved per widget rather than per collection.
+// The screens a dashboard renders on, the group containers within them, and the
+// display they belong to. Widget storage is one dashboard-wide pool, so a widget
+// names the parent it belongs to and that parent is resolved per widget rather
+// than per collection.
 struct Layout {
   lv_display_t* display{};
   std::span<lv_obj_t* const> screens{};
+  // Group containers flattened as screen_index * kMaximumGroups + group_index,
+  // so one span addresses every group of every screen.
+  std::span<lv_obj_t* const> groups{};
 
   // Null for an index no screen was created for, which the caller reports as a
   // failed placement rather than parenting the widget somewhere arbitrary.
   [[nodiscard]] lv_obj_t* screen(const std::uint8_t index) const {
     return index < screens.size() ? screens[index] : nullptr;
+  }
+
+  [[nodiscard]] lv_obj_t* group(const std::uint8_t screen_index,
+                                const std::uint8_t group_index) const {
+    const std::size_t index =
+        static_cast<std::size_t>(screen_index) * configuration::kMaximumGroups +
+        group_index;
+    return index < groups.size() ? groups[index] : nullptr;
+  }
+
+  // The LVGL object a widget is parented to, and therefore the box its
+  // geometry is expressed in.
+  [[nodiscard]] lv_obj_t* parent(const std::uint8_t screen_index,
+                                 const std::uint8_t group_index,
+                                 const bool group_present) const {
+    return group_present ? group(screen_index, group_index)
+                         : screen(screen_index);
   }
 };
 

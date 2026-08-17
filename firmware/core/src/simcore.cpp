@@ -12,6 +12,7 @@
 #include "external_memory_buffer.hpp"
 #include "font_asset_service.hpp"
 #include "image_asset_service.hpp"
+#include "input.hpp"
 #include "logger.hpp"
 #include "nvs_config_storage.hpp"
 #include "partition_asset_storage.hpp"
@@ -209,6 +210,11 @@ void run() {
   application.telemetry_transport = telemetry_transport;
   lv_display_t* display = display::initialize(board.display);
   application.display = display;
+  // A board without a digitizer leaves this null. The pointer device is never
+  // torn down, so nothing else in the firmware learns which case it is in.
+  if (board.input != nullptr) {
+    (void)input::initialize(*board.input, display);
+  }
   if (!dashboard_composition::show_startup_screen(display, configuration)) {
     log::warn(kTag, "Startup screen is unavailable for this display");
   }

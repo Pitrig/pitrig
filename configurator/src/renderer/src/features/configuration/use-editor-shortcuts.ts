@@ -3,16 +3,20 @@ import { useEffect } from 'react'
 import { BOARD_PROFILES } from '../../../../shared/device'
 import type { DeviceConfiguration } from '../../../../shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
-import { widgetsOf } from '../../../../shared/configuration-access'
+import { screenWidgetsOf } from '../../../../shared/configuration-access'
 import {
   activeScreen,
   completePlacement,
   copyWidget,
+  deleteGroup,
   deleteWidget,
   duplicateWidget,
   findWidget,
+  groupWidgets,
   mutateSelectedWidget,
   pasteWidget,
+  selectedGroupId,
+  ungroupWidgets,
   useDashboardEditorStore
 } from './dashboard-editor'
 import type { WidgetSelection } from './dashboard-editor'
@@ -77,14 +81,47 @@ export function useEditorShortcuts(): void {
       if (accelerator && event.key.toLowerCase() === 'a') {
         event.preventDefault()
         editor.selectMany(
-          widgetsOf(activeScreen(configuration))
+          screenWidgetsOf(activeScreen(configuration))
             .map((widget) => widget.id)
             .filter((id): id is string => Boolean(id))
         )
         return
       }
+      // Grouping is a document edit — the device switches an area by group —
+      // so it goes through the draft like any other, in one history entry.
+      if (accelerator && event.key.toLowerCase() === 'g') {
+        event.preventDefault()
+        if (event.shiftKey) {
+          // Reachable from either end: the group itself, or a widget inside it.
+          const groupId = selectedGroupId(configuration, selection)
+          if (groupId) {
+            const released = ungroupWidgets(groupId)
+            if (released.length > 0) editor.selectMany(released)
+          }
+          return
+        }
+        const created = groupWidgets(editor.selectedIds)
+        if (created) editor.select({ type: 'widget', id: created })
+        return
+      }
+      // Screens are switched by number, the way the driver swipes between them.
+      if (accelerator && /^[1-9]$/.test(event.key)) {
+        event.preventDefault()
+        editor.setActiveScreen(Number(event.key) - 1)
+        return
+      }
       if (event.key === 'Escape') {
         editor.select(undefined)
+        return
+      }
+      // A selected group has no entry in selectedIds — it is not a widget — so
+      // deleting one is its own case rather than a loop over the selection.
+      if (
+        selection?.type === 'group' &&
+        (event.key === 'Delete' || event.key === 'Backspace')
+      ) {
+        event.preventDefault()
+        if (deleteGroup(selection.id)) editor.select(undefined)
         return
       }
       const selected = editor.selectedIds

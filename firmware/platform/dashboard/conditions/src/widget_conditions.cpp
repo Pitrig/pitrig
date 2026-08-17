@@ -23,8 +23,10 @@ namespace {
   return blended;
 }
 
-[[nodiscard]] bool holds(const configuration::ConditionOperator op,
-                         const double value, const double threshold) {
+}  // namespace
+
+bool condition_holds(const configuration::ConditionOperator op,
+                     const double value, const double threshold) {
   switch (op) {
     case configuration::ConditionOperator::above:
       return value > threshold;
@@ -41,8 +43,6 @@ namespace {
   }
   return false;
 }
-
-}  // namespace
 
 float range_fraction(const double value,
                      const configuration::ValueRange& range) {
@@ -96,7 +96,7 @@ Resolution resolve(const std::span<const configuration::WidgetCondition> rules,
     return {.style = fallback};
   }
   for (const configuration::WidgetCondition& rule : rules) {
-    if (!holds(rule.op, *value, static_cast<double>(rule.value))) {
+    if (!condition_holds(rule.op, *value, static_cast<double>(rule.value))) {
       continue;
     }
     ResolvedStyle style = fallback;

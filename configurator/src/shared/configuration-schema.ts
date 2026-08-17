@@ -2,14 +2,22 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 5
+export const CONFIGURATION_SCHEMA_VERSION = 7
 
 /** Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
 export const MAXIMUM_PAYLOAD_SIZE = 65536
-/** Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table. */
-export const MAXIMUM_SCREENS = 1
+/** Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM. */
+export const MAXIMUM_SCREENS = 4
 /** Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. */
 export const MAXIMUM_WIDGETS_PER_SCREEN = 94
+/** Widget groups per screen. A group is one LVGL container, so it costs its own reference table rather than widget storage. */
+export const MAXIMUM_GROUPS = 8
+/** Ordered widget references inside one group. A group is an area of a screen rather than a screen, so it needs far fewer than a screen does. */
+export const MAXIMUM_WIDGETS_PER_GROUP = 16
+/** Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list. */
+export const MAXIMUM_ACTIONS = 16
+/** Slots for the whole dashboard. A slot is a box whose groups are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a group is not in one. */
+export const MAXIMUM_SLOTS = 4
 /** Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. */
 export const MAXIMUM_TEXT_WIDGETS = 32
 /** Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap. */
@@ -78,6 +86,10 @@ export const COLOR_RAMP_TARGET_VALUES: readonly ColorRampTarget[] = ['content', 
 /** Comparison a styling rule applies to the numeric value of its condition source. */
 export type ConditionOperator = 'above' | 'at_or_above' | 'below' | 'at_or_below' | 'equal' | 'not_equal'
 export const CONDITION_OPERATOR_VALUES: readonly ConditionOperator[] = ['above', 'at_or_above', 'below', 'at_or_below', 'equal', 'not_equal']
+
+/** What a tap on a widget or a group does. none is the default and leaves the object refusing input, which is what every widget did before actions existed. */
+export type WidgetActionType = 'none' | 'next_screen' | 'previous_screen' | 'goto_screen'
+export const WIDGET_ACTION_TYPE_VALUES: readonly WidgetActionType[] = ['none', 'next_screen', 'previous_screen', 'goto_screen']
 
 /** Stateful value processing implemented by a module behind the pipeline callback. */
 export type ValueModifierType = 'lap_timer'
@@ -194,6 +206,12 @@ export interface ColorRamp {
   stops?: ColorStop[]
 }
 
+/** Navigation a tap performs. Carried by a widget and by a group, so a tap target is either a readout that doubles as a button or a rectangle of the screen — including an empty group, which is an invisible touch zone. */
+export interface WidgetAction {
+  type?: WidgetActionType
+  screen?: string
+}
+
 /** One styling rule. The first rule whose comparison holds describes the widget; whatever it leaves unset stays as the widget's static style, and a transparent colour means unset rather than see-through. */
 export interface WidgetCondition {
   op?: ConditionOperator
@@ -225,6 +243,7 @@ export interface WidgetFrame {
   background_grad_color?: RgbColor
   background_grad_dir?: GradientDirection
   background_inset_px?: number
+  action?: WidgetAction
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
@@ -243,6 +262,7 @@ export interface TextWidgetConfiguration {
   background_grad_color?: RgbColor
   background_grad_dir?: GradientDirection
   background_inset_px?: number
+  action?: WidgetAction
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
@@ -269,6 +289,7 @@ export interface BarWidgetConfiguration {
   background_grad_color?: RgbColor
   background_grad_dir?: GradientDirection
   background_inset_px?: number
+  action?: WidgetAction
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
@@ -295,6 +316,7 @@ export interface ArcWidgetConfiguration {
   background_grad_color?: RgbColor
   background_grad_dir?: GradientDirection
   background_inset_px?: number
+  action?: WidgetAction
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
@@ -328,6 +350,7 @@ export interface IndicatorWidgetConfiguration {
   background_grad_color?: RgbColor
   background_grad_dir?: GradientDirection
   background_inset_px?: number
+  action?: WidgetAction
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
@@ -356,6 +379,7 @@ export interface GraphWidgetConfiguration {
   background_grad_color?: RgbColor
   background_grad_dir?: GradientDirection
   background_inset_px?: number
+  action?: WidgetAction
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
@@ -381,6 +405,7 @@ export interface ImageWidgetConfiguration {
   background_grad_color?: RgbColor
   background_grad_dir?: GradientDirection
   background_inset_px?: number
+  action?: WidgetAction
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
@@ -402,16 +427,38 @@ export interface ShapeWidgetConfiguration {
   background_grad_color?: RgbColor
   background_grad_dir?: GradientDirection
   background_inset_px?: number
+  action?: WidgetAction
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
   kind?: ShapeKind
 }
 
-/** One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference. */
+/** One activation rule for a group in a slot. The first rule whose comparison holds shows its group, and the hold keeps it up for that long after the match ends so a momentary event stays readable. */
+export interface GroupCondition {
+  op?: ConditionOperator
+  value?: number
+  hold_ms?: number
+}
+
+/** A rectangle of a screen with widgets authored inside it. A widget in a group is placed relative to this box and clipped to it; the group performs no layout of its own. Groups sharing a slot occupy the same box with one of them visible at a time. */
+export interface GroupConfiguration {
+  id?: string
+  placement?: WidgetPlacement
+  z_index?: number
+  slot?: number
+  slot_default?: boolean
+  action?: WidgetAction
+  condition_source?: ValueSourceConfiguration
+  conditions?: GroupCondition[]
+  widgets?: WidgetConfiguration[]
+}
+
+/** One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference. Widgets authored directly on the screen appear in its own reference table, and widgets authored inside a group appear in that group's. */
 export interface ScreenConfiguration {
   id?: string
   background_color?: RgbColor
+  groups?: GroupConfiguration[]
   widgets?: WidgetConfiguration[]
 }
 
@@ -447,19 +494,22 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ValueSourceConfiguration: ['binding', 'modifiers'],
   ColorStop: ['at', 'color'],
   ColorRamp: ['target', 'stops'],
+  WidgetAction: ['type', 'screen'],
   WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'hidden', 'blink_ms', 'hold_ms'],
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
-  WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions'],
-  TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'sources', 'value'],
+  WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions'],
+  TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'sources', 'value'],
   ValueRange: ['minimum', 'maximum'],
-  BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'origin', 'orientation', 'inverted', 'fill_color', 'fill_grad_color'],
-  ArcWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'start_angle_deg', 'sweep_deg', 'thickness_px', 'track_color', 'fill_color', 'inverted'],
+  BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'origin', 'orientation', 'inverted', 'fill_color', 'fill_grad_color'],
+  ArcWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'start_angle_deg', 'sweep_deg', 'thickness_px', 'track_color', 'fill_color', 'inverted'],
   IndicatorSegment: ['threshold', 'color'],
-  IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'segment_gap_px', 'segment_radius_px', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
-  GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px'],
-  ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'image', 'recolor', 'recolor_opa'],
-  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'condition_source', 'color_ramp', 'conditions', 'kind'],
-  ScreenConfiguration: ['id', 'background_color', 'widgets'],
+  IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'segment_gap_px', 'segment_radius_px', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
+  GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px'],
+  ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'image', 'recolor', 'recolor_opa'],
+  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind'],
+  GroupCondition: ['op', 'value', 'hold_ms'],
+  GroupConfiguration: ['id', 'placement', 'z_index', 'slot', 'slot_default', 'action', 'condition_source', 'conditions', 'widgets'],
+  ScreenConfiguration: ['id', 'background_color', 'groups', 'widgets'],
   DashboardConfiguration: ['screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'dashboard'],
 }
@@ -478,14 +528,16 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   ValueSourceConfiguration: { modifiers: 'ValueModifier' },
   ColorRamp: { stops: 'ColorStop' },
   TextSourceConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform' },
-  WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
-  TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', value: 'WidgetValueStyle' },
-  BarWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
-  ArcWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
-  IndicatorWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', segments: 'IndicatorSegment' },
-  GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
-  ImageWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
-  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
+  WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
+  TextWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', sources: 'TextSourceConfiguration', value: 'WidgetValueStyle' },
+  BarWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  ArcWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  IndicatorWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', segments: 'IndicatorSegment' },
+  GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  ImageWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
+  ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
+  GroupConfiguration: { placement: 'WidgetPlacement', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', conditions: 'GroupCondition' },
+  ScreenConfiguration: { groups: 'GroupConfiguration' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
   ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', dashboard: 'DashboardConfiguration' },
 }
@@ -497,6 +549,7 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ValueTransform.prefix': 16,
   'ValueTransform.suffix': 16,
   'ValueSourceConfiguration.binding': 40,
+  'WidgetAction.screen': 16,
   'TextSourceConfiguration.binding': 40,
   'WidgetFrame.id': 16,
   'TextWidgetConfiguration.id': 16,
@@ -507,5 +560,6 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'ImageWidgetConfiguration.id': 16,
   'ImageWidgetConfiguration.image': 32,
   'ShapeWidgetConfiguration.id': 16,
+  'GroupConfiguration.id': 16,
   'ScreenConfiguration.id': 16,
 }

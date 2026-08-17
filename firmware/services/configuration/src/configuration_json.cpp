@@ -404,6 +404,24 @@ template <typename Source>
   return true;
 }
 
+// Navigation a tap performs. Optional everywhere it appears; without it the
+// object keeps refusing input, which is what every widget did before actions
+// existed. The target screen stays a name here — the composition resolves it
+// once, so a tap looks nothing up.
+[[nodiscard]] bool parse_action(const cJSON* const object,
+                                WidgetAction& action,
+                                const std::string_view name,
+                                ValidationFailure& failure) {
+  const cJSON* const value = member(object, "action");
+  if (value == nullptr) {
+    return true;
+  }
+  return valid_object(value, schema::kWidgetActionKeys, name, failure) &&
+         read_enum(value, "type", action.type, widget_action_type_from_name,
+                   name, failure) &&
+         read_text(value, "screen", action.screen, name, failure);
+}
+
 // Styling rules and the source they watch. Both are optional; a widget with
 // neither renders its authored colours and nothing evaluates at render time.
 // The ramp sits beside the rules because both read the same watched source; it
@@ -509,6 +527,7 @@ template <typename Source>
                  gradient_direction_from_name, name, failure) ||
       !read_integer(object, "background_inset_px", frame.background_inset_px,
                     name, failure) ||
+      !parse_action(object, frame.action, "widget.action", failure) ||
       !parse_conditions(object, frame, failure)) {
     return false;
   }
@@ -742,10 +761,15 @@ template <typename Source>
 // Widgets are authored inside a screen but stored in the dashboard-wide pool,
 // so this writes the configuration into the pool and leaves the screen holding
 // a reference to that slot.
+// `owner` is the screen or the group the widget was authored in: both keep an
+// ordered reference table into the pool, and which one it is decides the
+// widget's LVGL parent and therefore whether its geometry is absolute.
+template <typename Owner>
 [[nodiscard]] bool parse_widget(const cJSON* const object,
-                                DashboardConfiguration& dashboard,
-                                ScreenConfiguration& screen,
+                                DashboardConfiguration& dashboard, Owner& owner,
                                 const std::uint8_t screen_index,
+                                const std::uint8_t group_index,
+                                const bool group_present,
                                 ValidationFailure& failure) {
   constexpr std::string_view kName = "widget";
   if (!cJSON_IsObject(object)) {
@@ -758,15 +782,18 @@ template <typename Source>
                              widget_type)) {
     return reject(failure, ValidationError::invalid_widget, kName, "type");
   }
-  if (screen.widget_count >= screen.widgets.size()) {
-    return reject(failure, ValidationError::invalid_screen, "screen",
-                  "widgets");
+  if (owner.widget_count >= owner.widgets.size()) {
+    return group_present
+               ? reject(failure, ValidationError::invalid_group, "group",
+                        "widgets")
+               : reject(failure, ValidationError::invalid_screen, "screen",
+                        "widgets");
   }
 
   std::uint8_t storage_index{};
-  // Carrying the ordering key here keeps compositing free of widget-type
-  // knowledge, so each variant reports it as it parses.
-  std::int16_t z_index{};
+  // Parenting is stamped once after the variant is parsed, so a widget type
+  // knows nothing about screens or groups.
+  WidgetFrame* frame{};
   switch (widget_type) {
     case WidgetType::text:
       if (dashboard.text_widget_count >= dashboard.text_widgets.size()) {
@@ -778,9 +805,7 @@ template <typename Source>
                              failure)) {
         return false;
       }
-      dashboard.text_widgets[storage_index].frame.screen_index =
-          screen_index;
-      z_index = dashboard.text_widgets[storage_index].frame.z_index;
+      frame = &dashboard.text_widgets[storage_index].frame;
       ++dashboard.text_widget_count;
       break;
     case WidgetType::shape:
@@ -793,9 +818,7 @@ template <typename Source>
                               failure)) {
         return false;
       }
-      dashboard.shape_widgets[storage_index].frame.screen_index =
-          screen_index;
-      z_index = dashboard.shape_widgets[storage_index].frame.z_index;
+      frame = &dashboard.shape_widgets[storage_index].frame;
       ++dashboard.shape_widget_count;
       break;
     case WidgetType::bar:
@@ -808,9 +831,7 @@ template <typename Source>
                             failure)) {
         return false;
       }
-      dashboard.bar_widgets[storage_index].frame.screen_index =
-          screen_index;
-      z_index = dashboard.bar_widgets[storage_index].frame.z_index;
+      frame = &dashboard.bar_widgets[storage_index].frame;
       ++dashboard.bar_widget_count;
       break;
     case WidgetType::arc:
@@ -823,8 +844,7 @@ template <typename Source>
                             failure)) {
         return false;
       }
-      dashboard.arc_widgets[storage_index].frame.screen_index = screen_index;
-      z_index = dashboard.arc_widgets[storage_index].frame.z_index;
+      frame = &dashboard.arc_widgets[storage_index].frame;
       ++dashboard.arc_widget_count;
       break;
     case WidgetType::indicator:
@@ -838,9 +858,7 @@ template <typename Source>
               object, dashboard.indicator_widgets[storage_index], failure)) {
         return false;
       }
-      dashboard.indicator_widgets[storage_index].frame.screen_index =
-          screen_index;
-      z_index = dashboard.indicator_widgets[storage_index].frame.z_index;
+      frame = &dashboard.indicator_widgets[storage_index].frame;
       ++dashboard.indicator_widget_count;
       break;
     case WidgetType::image:
@@ -853,8 +871,7 @@ template <typename Source>
                               failure)) {
         return false;
       }
-      dashboard.image_widgets[storage_index].frame.screen_index = screen_index;
-      z_index = dashboard.image_widgets[storage_index].frame.z_index;
+      frame = &dashboard.image_widgets[storage_index].frame;
       ++dashboard.image_widget_count;
       break;
     case WidgetType::graph:
@@ -867,18 +884,105 @@ template <typename Source>
                               failure)) {
         return false;
       }
-      dashboard.graph_widgets[storage_index].frame.screen_index = screen_index;
-      z_index = dashboard.graph_widgets[storage_index].frame.z_index;
+      frame = &dashboard.graph_widgets[storage_index].frame;
       ++dashboard.graph_widget_count;
       break;
   }
 
-  screen.widgets[screen.widget_count] = {
+  frame->screen_index = screen_index;
+  frame->group_index = group_index;
+  frame->group_present = group_present;
+  // Carrying the ordering key on the reference keeps compositing free of
+  // widget-type knowledge.
+  owner.widgets[owner.widget_count] = {
       .type = widget_type,
       .index = storage_index,
-      .z_index = z_index,
+      .z_index = frame->z_index,
   };
-  ++screen.widget_count;
+  ++owner.widget_count;
+  return true;
+}
+
+// A group activates on the same comparison a widget restyles on, so this reads
+// the same watched source and the same operator; what a match does with it is
+// all that differs.
+[[nodiscard]] bool parse_group_conditions(const cJSON* const object,
+                                          GroupConfiguration& group,
+                                          ValidationFailure& failure) {
+  constexpr std::string_view kName = "group.conditions";
+  if (const cJSON* const source = member(object, "condition_source");
+      source != nullptr) {
+    constexpr std::string_view kSourceName = "group.condition_source";
+    if (!valid_object(source, schema::kValueSourceConfigurationKeys,
+                      kSourceName, failure) ||
+        !read_text(source, "binding", group.condition_source.binding,
+                   kSourceName, failure) ||
+        !parse_modifiers(source, group.condition_source, failure)) {
+      return false;
+    }
+  }
+
+  const cJSON* const conditions = member(object, "conditions");
+  if (conditions == nullptr) {
+    return true;
+  }
+  const int count =
+      cJSON_IsArray(conditions) ? cJSON_GetArraySize(conditions) : -1;
+  if (count < 0 || count > static_cast<int>(group.conditions.size())) {
+    return reject(failure, ValidationError::invalid_group, kName);
+  }
+  for (int index = 0; index < count; ++index) {
+    const cJSON* const rule = cJSON_GetArrayItem(conditions, index);
+    GroupCondition& parsed = group.conditions[index];
+    if (!valid_object(rule, schema::kGroupConditionKeys, kName, failure) ||
+        !read_enum(rule, "op", parsed.op, condition_operator_from_name, kName,
+                   failure) ||
+        !read_float(rule, "value", parsed.value, kName, failure) ||
+        !read_integer(rule, "hold_ms", parsed.hold_ms, kName, failure)) {
+      return false;
+    }
+  }
+  group.condition_count = static_cast<std::uint8_t>(count);
+  return true;
+}
+
+[[nodiscard]] bool parse_group(const cJSON* const object,
+                               DashboardConfiguration& dashboard,
+                               ScreenConfiguration& screen,
+                               const std::uint8_t screen_index,
+                               const std::uint8_t group_index,
+                               ValidationFailure& failure) {
+  GroupConfiguration& group = screen.groups[group_index];
+  constexpr std::string_view kName = "group";
+  if (!valid_object(object, schema::kGroupConfigurationKeys, kName, failure) ||
+      !read_text(object, "id", group.id, kName, failure) ||
+      !parse_optional_placement(object, group.placement, failure) ||
+      !read_integer(object, "z_index", group.z_index, kName, failure) ||
+      !read_integer(object, "slot", group.slot, kName, failure) ||
+      !read_boolean(object, "slot_default", group.slot_default, kName,
+                    failure) ||
+      !parse_action(object, group.action, "group.action", failure) ||
+      !parse_group_conditions(object, group, failure)) {
+    return false;
+  }
+  group.screen_index = screen_index;
+
+  const cJSON* const widgets = member(object, "widgets");
+  if (widgets == nullptr) {
+    return true;
+  }
+  if (!cJSON_IsArray(widgets) ||
+      cJSON_GetArraySize(widgets) > static_cast<int>(group.widgets.size())) {
+    return reject(failure, ValidationError::invalid_group, kName, "widgets");
+  }
+  const int count = cJSON_GetArraySize(widgets);
+  for (int index = 0; index < count; ++index) {
+    if (!parse_widget(cJSON_GetArrayItem(widgets, index), dashboard, group,
+                      screen_index, group_index, true, failure)) {
+      failure.widget_index = static_cast<std::int16_t>(index);
+      return false;
+    }
+  }
   return true;
 }
 
@@ -894,6 +998,25 @@ template <typename Source>
                   failure)) {
     return false;
   }
+
+  if (const cJSON* const groups = member(object, "groups"); groups != nullptr) {
+    if (!cJSON_IsArray(groups) ||
+        cJSON_GetArraySize(groups) > static_cast<int>(screen.groups.size())) {
+      return reject(failure, ValidationError::invalid_group, kName, "groups");
+    }
+    const int count = cJSON_GetArraySize(groups);
+    // Counted up front: a group's widgets are parsed before the loop ends, and
+    // validation walks the groups a widget's group_index points into.
+    screen.group_count = static_cast<std::uint8_t>(count);
+    for (int index = 0; index < count; ++index) {
+      if (!parse_group(cJSON_GetArrayItem(groups, index), dashboard, screen,
+                       screen_index, static_cast<std::uint8_t>(index),
+                       failure)) {
+        return false;
+      }
+    }
+  }
+
   const cJSON* const widgets = member(object, "widgets");
   if (widgets == nullptr) {
     return true;
@@ -906,7 +1029,7 @@ template <typename Source>
   const int count = cJSON_GetArraySize(widgets);
   for (int index = 0; index < count; ++index) {
     if (!parse_widget(cJSON_GetArrayItem(widgets, index), dashboard, screen,
-                      screen_index, failure)) {
+                      screen_index, 0, false, failure)) {
       failure.widget_index = static_cast<std::int16_t>(index);
       return false;
     }

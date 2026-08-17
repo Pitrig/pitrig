@@ -1,16 +1,20 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 5. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 7. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 5.
+Schema version: 7.
 
 ## Limits
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
 | `kMaximumPayloadSize` | 65536 | Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. |
-| `kMaximumScreens` | 1 | Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table. |
+| `kMaximumScreens` | 4 | Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM. |
 | `kMaximumWidgetsPerScreen` | 94 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. |
+| `kMaximumGroups` | 8 | Widget groups per screen. A group is one LVGL container, so it costs its own reference table rather than widget storage. |
+| `kMaximumWidgetsPerGroup` | 16 | Ordered widget references inside one group. A group is an area of a screen rather than a screen, so it needs far fewer than a screen does. |
+| `kMaximumActions` | 16 | Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list. |
+| `kMaximumSlots` | 4 | Slots for the whole dashboard. A slot is a box whose groups are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a group is not in one. |
 | `kMaximumTextWidgets` | 32 | Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. |
 | `kMaximumShapeWidgets` | 24 | Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap. |
 | `kMaximumBarWidgets` | 16 | Bar widget storage for the whole dashboard. |
@@ -43,6 +47,7 @@ Schema version: 5.
 | `GradientDirection` | `horizontal`, `vertical` | Axis a linear gradient runs along. Only used when a gradient colour is set. |
 | `ColorRampTarget` | `content`, `background`, `border` | Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill. |
 | `ConditionOperator` | `above`, `at_or_above`, `below`, `at_or_below`, `equal`, `not_equal` | Comparison a styling rule applies to the numeric value of its condition source. |
+| `WidgetActionType` | `none`, `next_screen`, `previous_screen`, `goto_screen` | What a tap on a widget or a group does. none is the default and leaves the object refusing input, which is what every widget did before actions existed. |
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
 | `BarOrientation` | `horizontal`, `vertical` | Axis a bar fills along. A vertical bar grows upwards unless it is inverted. |
 | `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
@@ -166,6 +171,15 @@ A colour interpolated from the watched source rather than switched by a threshol
 | `target` | `ColorRampTarget` | `content` |
 | `stops` | array of [`ColorStop`](#colorstop), max 4 | absent |
 
+### WidgetAction
+
+Navigation a tap performs. Carried by a widget and by a group, so a tap target is either a readout that doubles as a button or a rectangle of the screen — including an empty group, which is an invisible touch zone.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetActionType` | `none` |
+| `screen` | string, max 15 bytes | empty |
+
 ### WidgetCondition
 
 One styling rule. The first rule whose comparison holds describes the widget; whatever it leaves unset stays as the widget's static style, and a transparent colour means unset rather than see-through.
@@ -207,6 +221,7 @@ What every widget type owns regardless of what it draws: where it sits, how it i
 | `background_grad_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `background_grad_dir` | `GradientDirection` | `vertical` |
 | `background_inset_px` | integer, 0..65535 | `0` |
+| `action` | [`WidgetAction`](#widgetaction) | absent |
 | `condition_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `color_ramp` | [`ColorRamp`](#colorramp) | absent |
 | `conditions` | array of [`WidgetCondition`](#widgetcondition), max 4 | absent |
@@ -331,14 +346,41 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | `type` | `WidgetType`, fixed `shape` | required |
 | `kind` | `ShapeKind` | `rectangle` |
 
+### GroupCondition
+
+One activation rule for a group in a slot. The first rule whose comparison holds shows its group, and the hold keeps it up for that long after the match ends so a momentary event stays readable.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `op` | `ConditionOperator` | `at_or_above` |
+| `value` | number | `0` |
+| `hold_ms` | integer, 0..65535 | `0` |
+
+### GroupConfiguration
+
+A rectangle of a screen with widgets authored inside it. A widget in a group is placed relative to this box and clipped to it; the group performs no layout of its own. Groups sharing a slot occupy the same box with one of them visible at a time.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `id` | string, max 15 bytes | empty |
+| `placement` | [`WidgetPlacement`](#widgetplacement) | absent |
+| `z_index` | integer, -32768..32767 | `0` |
+| `slot` | integer, 0..255 | `0` |
+| `slot_default` | boolean | `false` |
+| `action` | [`WidgetAction`](#widgetaction) | absent |
+| `condition_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `conditions` | array of [`GroupCondition`](#groupcondition), max 4 | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 16, discriminated by `type` | absent |
+
 ### ScreenConfiguration
 
-One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference.
+One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference. Widgets authored directly on the screen appear in its own reference table, and widgets authored inside a group appear in that group's.
 
 | Property | Type | Default |
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
+| `groups` | array of [`GroupConfiguration`](#groupconfiguration), max 8 | absent |
 | `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 94, discriminated by `type` | absent |
 
 ### DashboardConfiguration
@@ -347,7 +389,7 @@ Owns the typed widget storage as one pool shared by every screen; a screen holds
 
 | Property | Type | Default |
 | --- | --- | --- |
-| `screens` | array of [`ScreenConfiguration`](#screenconfiguration), max 1 | absent |
+| `screens` | array of [`ScreenConfiguration`](#screenconfiguration), max 4 | absent |
 
 ### ApplicationConfiguration
 
@@ -373,6 +415,7 @@ Also carries the properties of [`BoardConfiguration`](#boardconfiguration), flat
 | `invalid_uart` | UART pins do not match the board or baud rate is out of range. |
 | `invalid_module` | Module section value out of range. |
 | `invalid_screen` | Screen section is malformed or the screen count is out of range. |
+| `invalid_group` | Group is malformed, outside its screen, or breaks a slot rule: groups sharing a slot must share a box and exactly one of them must be the slot default. |
 | `invalid_dashboard` | Dashboard section is malformed or references an absent module. |
 | `invalid_widget` | Widget property is malformed, out of range, or outside the screen bounds. |
 | `unknown_property` | Property name is not part of this schema version. |

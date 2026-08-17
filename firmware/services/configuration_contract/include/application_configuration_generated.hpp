@@ -12,17 +12,25 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 5;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 7;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
 // Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory.
 inline constexpr std::size_t kMaximumPayloadSize = 65536;
-// Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table.
-inline constexpr std::size_t kMaximumScreens = 1;
+// Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM.
+inline constexpr std::size_t kMaximumScreens = 4;
 // Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize.
 inline constexpr std::size_t kMaximumWidgetsPerScreen = 94;
+// Widget groups per screen. A group is one LVGL container, so it costs its own reference table rather than widget storage.
+inline constexpr std::size_t kMaximumGroups = 8;
+// Ordered widget references inside one group. A group is an area of a screen rather than a screen, so it needs far fewer than a screen does.
+inline constexpr std::size_t kMaximumWidgetsPerGroup = 16;
+// Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list.
+inline constexpr std::size_t kMaximumActions = 16;
+// Slots for the whole dashboard. A slot is a box whose groups are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a group is not in one.
+inline constexpr std::size_t kMaximumSlots = 4;
 // Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts.
 inline constexpr std::size_t kMaximumTextWidgets = 32;
 // Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout, so this is the most generous cap.
@@ -113,6 +121,14 @@ enum class ConditionOperator : std::uint8_t {
   at_or_below,
   equal,
   not_equal,
+};
+
+// What a tap on a widget or a group does. none is the default and leaves the object refusing input, which is what every widget did before actions existed.
+enum class WidgetActionType : std::uint8_t {
+  none,
+  next_screen,
+  previous_screen,
+  goto_screen,
 };
 
 // Stateful value processing implemented by a module behind the pipeline callback.
@@ -241,6 +257,15 @@ struct ColorRamp {
   std::array<ColorStop, kMaximumColorStops> stops{};
 };
 
+// Navigation a tap performs. Carried by a widget and by a group, so a tap
+// target is either a readout that doubles as a button or a rectangle of the
+// screen — including an empty group, which is an invisible touch zone.
+struct WidgetAction {
+  WidgetActionType type{WidgetActionType::none};
+  std::array<char, kWidgetIdCapacity> screen{};
+  std::uint8_t screen_index{};
+};
+
 // One styling rule. The first rule whose comparison holds describes the
 // widget; whatever it leaves unset stays as the widget's static style, and
 // a transparent colour means unset rather than see-through.
@@ -279,10 +304,13 @@ struct WidgetFrame {
   std::uint32_t background_grad_color{kTransparentColor};
   GradientDirection background_grad_dir{GradientDirection::vertical};
   std::uint16_t background_inset_px{};
+  WidgetAction action{};
   ValueSourceConfiguration condition_source{};
   ColorRamp color_ramp{};
   std::uint8_t condition_count{};
   std::uint8_t screen_index{};
+  std::uint8_t group_index{};
+  bool group_present{false};
   std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
 };
 
@@ -395,12 +423,44 @@ struct WidgetReference {
   std::int16_t z_index{};
 };
 
+// One activation rule for a group in a slot. The first rule whose
+// comparison holds shows its group, and the hold keeps it up for that long
+// after the match ends so a momentary event stays readable.
+struct GroupCondition {
+  ConditionOperator op{ConditionOperator::at_or_above};
+  float value{};
+  std::uint16_t hold_ms{};
+};
+
+// A rectangle of a screen with widgets authored inside it. A widget in a
+// group is placed relative to this box and clipped to it; the group
+// performs no layout of its own. Groups sharing a slot occupy the same box
+// with one of them visible at a time.
+struct GroupConfiguration {
+  std::array<char, kWidgetIdCapacity> id{};
+  WidgetPlacement placement{};
+  std::int16_t z_index{};
+  std::uint8_t slot{};
+  bool slot_default{false};
+  WidgetAction action{};
+  ValueSourceConfiguration condition_source{};
+  std::uint8_t condition_count{};
+  std::uint8_t screen_index{};
+  std::array<GroupCondition, kMaximumWidgetConditions> conditions{};
+  std::uint8_t widget_count{};
+  std::array<WidgetReference, kMaximumWidgetsPerGroup> widgets{};
+};
+
 // One dashboard screen: the coordinate space its widgets are placed in, and
 // the order they stack in. The widgets themselves live in the dashboard's
-// pool; a screen names them by reference.
+// pool; a screen names them by reference. Widgets authored directly on the
+// screen appear in its own reference table, and widgets authored inside a
+// group appear in that group's.
 struct ScreenConfiguration {
   std::array<char, kWidgetIdCapacity> id{};
   std::uint32_t background_color{0x000000};
+  std::uint8_t group_count{};
+  std::array<GroupConfiguration, kMaximumGroups> groups{};
   std::uint8_t widget_count{};
   std::array<WidgetReference, kMaximumWidgetsPerScreen> widgets{};
 };
@@ -590,6 +650,29 @@ inline constexpr std::array<std::string_view, 6> kConditionOperatorNames{{
   for (std::size_t index = 0; index < kConditionOperatorNames.size(); ++index) {
     if (kConditionOperatorNames[index] == name) {
       value = static_cast<ConditionOperator>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 4> kWidgetActionTypeNames{{
+    "none",
+    "next_screen",
+    "previous_screen",
+    "goto_screen",
+}};
+
+[[nodiscard]] inline std::string_view widget_action_type_name(const WidgetActionType value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kWidgetActionTypeNames.size() ? kWidgetActionTypeNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool widget_action_type_from_name(const std::string_view name,
+                                                  WidgetActionType& value) {
+  for (std::size_t index = 0; index < kWidgetActionTypeNames.size(); ++index) {
+    if (kWidgetActionTypeNames[index] == name) {
+      value = static_cast<WidgetActionType>(index);
       return true;
     }
   }

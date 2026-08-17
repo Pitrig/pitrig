@@ -90,7 +90,12 @@ function findUnknownProperty(
         return `"${here}" is ${bytes} bytes; the device stores at most ${capacity - 1}.`
       }
     }
-    if (structName === 'ScreenConfiguration' && key === 'widgets') {
+    // Widgets nest one level under a screen and two under a group, and both
+    // arrays are the same discriminated union.
+    if (
+      (structName === 'ScreenConfiguration' || structName === 'GroupConfiguration') &&
+      key === 'widgets'
+    ) {
       const error = checkWidgets(child, here)
       if (error) return error
       continue

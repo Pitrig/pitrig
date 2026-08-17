@@ -106,7 +106,7 @@ The firmware should avoid device-specific code paths.
                     |                             |
                Display Drivers               Input Drivers
                     |                             |
-              T-Display-S3...              Buttons, Encoder...
+              T-Display-S3...              GT911 touch, Buttons...
 ```
 
 ---
@@ -202,11 +202,17 @@ Components expose reusable hardware capabilities to the core and modules.
 Examples include:
 
 - Display
+- Touch Input
 - LED Strip
 - LED Matrix
 - Buttons
 - Encoders
-- Touch Input
+
+Display and Touch Input exist; the rest are still owed. The input component
+registers the board's pointer with the LVGL port and nothing else — the board
+descriptor carries its input driver as a nullable pointer, so a board with no
+digitizer is a board fact rather than a special case in the core
+([ADR 0019](adr/0019-input-interface-and-touch.md)).
 
 Components own capability-level behavior but do not access board-specific hardware directly.
 

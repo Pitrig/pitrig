@@ -1,5 +1,5 @@
 {
-  "schema_version": 5,
+  "schema_version": 7,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "limits": {
@@ -8,12 +8,28 @@
       "doc": "Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory."
     },
     "kMaximumScreens": {
-      "value": 1,
-      "doc": "Dashboard screens. Widget storage is a dashboard-wide pool, so a screen costs only its reference table."
+      "value": 4,
+      "doc": "Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM."
     },
     "kMaximumWidgetsPerScreen": {
       "value": 94,
       "doc": "Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize."
+    },
+    "kMaximumGroups": {
+      "value": 8,
+      "doc": "Widget groups per screen. A group is one LVGL container, so it costs its own reference table rather than widget storage."
+    },
+    "kMaximumWidgetsPerGroup": {
+      "value": 16,
+      "doc": "Ordered widget references inside one group. A group is an area of a screen rather than a screen, so it needs far fewer than a screen does."
+    },
+    "kMaximumActions": {
+      "value": 16,
+      "doc": "Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list."
+    },
+    "kMaximumSlots": {
+      "value": 4,
+      "doc": "Slots for the whole dashboard. A slot is a box whose groups are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a group is not in one."
     },
     "kMaximumTextWidgets": {
       "value": 32,
@@ -165,6 +181,11 @@
       "default": "at_or_above",
       "doc": "Comparison a styling rule applies to the numeric value of its condition source."
     },
+    "WidgetActionType": {
+      "json_values": ["none", "next_screen", "previous_screen", "goto_screen"],
+      "default": "none",
+      "doc": "What a tap on a widget or a group does. none is the default and leaves the object refusing input, which is what every widget did before actions existed."
+    },
     "ValueModifierType": {
       "json_values": ["lap_timer"],
       "default": "lap_timer",
@@ -307,6 +328,15 @@
       ]
     },
 
+    "WidgetAction": {
+      "doc": "Navigation a tap performs. Carried by a widget and by a group, so a tap target is either a readout that doubles as a button or a rectangle of the screen — including an empty group, which is an invisible touch zone.",
+      "fields": [
+        { "name": "type", "kind": "enum", "enum": "WidgetActionType" },
+        { "name": "screen", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Target screen id for goto_screen. The other action types name no screen, and one that does is rejected rather than ignored." },
+        { "name": "screen_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "The target resolved to an index, written by the composition rather than the parser. Resolving the id once is why a tap performs no name lookup." }
+      ]
+    },
+
     "WidgetCondition": {
       "doc": "One styling rule. The first rule whose comparison holds describes the widget; whatever it leaves unset stays as the widget's static style, and a transparent colour means unset rather than see-through.",
       "fields": [
@@ -344,10 +374,13 @@
         { "name": "background_grad_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Far end of a linear gradient across the background. Omitted paints the background flat." },
         { "name": "background_grad_dir", "kind": "enum", "enum": "GradientDirection" },
         { "name": "background_inset_px", "kind": "uint16", "default": 0, "doc": "Gap between the border and the painted background, so a filled widget keeps its frame visible. Applies to the authored background and to one a rule paints." },
+        { "name": "action", "kind": "struct", "struct": "WidgetAction" },
         { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "color_ramp", "kind": "struct", "struct": "ColorRamp" },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "screen_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "Screen this widget is parented to, written by the parser from the screen that declared it. An LVGL object has one parent, so a pool slot belongs to exactly one screen." },
+        { "name": "group_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "Group within that screen this widget is parented to, written by the parser from the group that declared it. Meaningful only when group_present is set." },
+        { "name": "group_present", "kind": "bool", "default": false, "serialized": false, "doc": "Whether the widget was authored inside a group. Unset means the screen is its parent and its geometry is absolute." },
         { "name": "conditions", "kind": "array", "struct": "WidgetCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" }
       ]
     },
@@ -473,11 +506,56 @@
       ]
     },
 
+    "GroupCondition": {
+      "doc": "One activation rule for a group in a slot. The first rule whose comparison holds shows its group, and the hold keeps it up for that long after the match ends so a momentary event stays readable.",
+      "fields": [
+        { "name": "op", "kind": "enum", "enum": "ConditionOperator" },
+        { "name": "value", "kind": "float", "default": 0 },
+        { "name": "hold_ms", "kind": "uint16", "default": 0, "doc": "Keeps this group shown for this long after its rule stops matching. 0 shows it only while the rule matches." }
+      ]
+    },
+
+    "GroupConfiguration": {
+      "doc": "A rectangle of a screen with widgets authored inside it. A widget in a group is placed relative to this box and clipped to it; the group performs no layout of its own. Groups sharing a slot occupy the same box with one of them visible at a time.",
+      "fields": [
+        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "placement", "kind": "struct", "struct": "WidgetPlacement" },
+        { "name": "z_index", "kind": "int16", "default": 0, "doc": "Where the group's container stacks among its screen's own widgets. Its children stack within it." },
+        { "name": "slot", "kind": "uint8", "default": 0, "doc": "Slot this group belongs to, 1..kMaximumSlots. Omitted leaves the group a plain container that is always visible." },
+        { "name": "slot_default", "kind": "bool", "default": false, "doc": "Shows this group before anything has selected another one. Exactly one group per slot must carry it." },
+        { "name": "action", "kind": "struct", "struct": "WidgetAction", "doc": "Navigation a tap on this area performs. A group in a slot already spends its tap on cycling, so carrying both is rejected." },
+        { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration" },
+        { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "screen_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "Screen this group is parented to, written by the parser from the screen that declared it." },
+        { "name": "conditions", "kind": "array", "struct": "GroupCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
+        { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        {
+          "name": "widgets",
+          "kind": "array",
+          "struct": "WidgetReference",
+          "capacity": "kMaximumWidgetsPerGroup",
+          "count_field": "widget_count",
+          "json_variants": {
+            "text": "TextWidgetConfiguration",
+            "shape": "ShapeWidgetConfiguration",
+            "bar": "BarWidgetConfiguration",
+            "arc": "ArcWidgetConfiguration",
+            "indicator": "IndicatorWidgetConfiguration",
+            "graph": "GraphWidgetConfiguration",
+            "image": "ImageWidgetConfiguration"
+          },
+          "doc": "Widgets authored inside this group, parsed into the dashboard pool exactly as a screen's are. Their geometry is relative to the group's box."
+        }
+      ]
+    },
+
     "ScreenConfiguration": {
-      "doc": "One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference.",
+      "doc": "One dashboard screen: the coordinate space its widgets are placed in, and the order they stack in. The widgets themselves live in the dashboard's pool; a screen names them by reference. Widgets authored directly on the screen appear in its own reference table, and widgets authored inside a group appear in that group's.",
       "fields": [
         { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
         { "name": "background_color", "kind": "color", "default": "0x000000" },
+        { "name": "group_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "groups", "kind": "array", "struct": "GroupConfiguration", "capacity": "kMaximumGroups", "count_field": "group_count" },
         { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
         {
           "name": "widgets",
@@ -544,6 +622,7 @@
     { "name": "invalid_uart", "doc": "UART pins do not match the board or baud rate is out of range." },
     { "name": "invalid_module", "doc": "Module section value out of range." },
     { "name": "invalid_screen", "doc": "Screen section is malformed or the screen count is out of range." },
+    { "name": "invalid_group", "doc": "Group is malformed, outside its screen, or breaks a slot rule: groups sharing a slot must share a box and exactly one of them must be the slot default." },
     { "name": "invalid_dashboard", "doc": "Dashboard section is malformed or references an absent module." },
     { "name": "invalid_widget", "doc": "Widget property is malformed, out of range, or outside the screen bounds." },
     { "name": "unknown_property", "doc": "Property name is not part of this schema version." },

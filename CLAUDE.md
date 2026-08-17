@@ -112,11 +112,13 @@ components → interfaces ← drivers
 - `core/` — static composition root: startup, config load, bounded module lifecycle, event dispatch.
   Contains no hardware-specific and no feature-specific code. `core/module_manager` holds
   compile-time descriptors (function pointers + explicit contexts); no allocation, no name lookup.
-- `interfaces/` — small contracts (`display`, `transport`) implemented by drivers.
-- `components/` — reusable hardware capabilities (`display`, `simcore_config`); depend on interfaces,
-  never on concrete drivers.
+- `interfaces/` — small contracts (`display`, `input`, `transport`) implemented by drivers. The
+  `display` and `input` contracts live in one `interfaces` component; `transport` is its own.
+- `components/` — reusable hardware capabilities (`display`, `input`, `simcore_config`); depend on
+  interfaces, never on concrete drivers.
 - `drivers/` — board/hardware implementations (`t_display_s3`, `guition_esp32_4848s040`,
-  `guition_jc1060p470c`, `transport/uart`, `transport/usb_cdc`). No application logic.
+  `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`). No application
+  logic. A board with no digitizer leaves `BoardDefinition::input` null.
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
 - `services/` — shared infrastructure (`asset_storage`, `binary_session`, `configuration`,
@@ -124,7 +126,8 @@ components → interfaces ← drivers
   `font_asset_control`, `font_contract`, `image_assets`, `image_asset_control`, `image_contract`,
   `logger`, `performance`, `telemetry` + `telemetry/protocols/simhub`).
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
-  `dashboard` (LVGL widgets), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
+  `dashboard` (LVGL widgets, plus `navigation` for screen swiping and `slots` for group
+  switching), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
   `partition_asset_storage`, `telemetry_transport`, `external_memory`.
 - `utils/` — dependency-free helpers (`binary`, `transformers/number_transform`,
   `transformers/text_writer`, `transformers/time_transform`).
@@ -156,7 +159,11 @@ configurator must not depend on it.
 
 Sparse JSON, used unchanged for both configurator projects and the device wire payload — omitted
 properties are *not* expanded through board profiles. Widget geometry is absolute logical display
-pixels (no regions/anchors). Bounded limits (64 KB payload, per-type widget caps, 4 modifiers per
+pixels, except inside a **group**, where it is relative to the group's box (ADR 0021). A dashboard
+holds up to four screens, swiped between on a board with touch (ADR 0020), and a screen may hold
+groups; groups sharing a `slot` share one box and only one is visible, cycled by a tap or selected
+by a telemetry rule. A widget or a group may also carry an `action`, so a tap navigates to the next,
+previous, or a named screen; an empty group with an action is an invisible touch zone. Bounded limits (64 KB payload, per-type widget caps, 4 modifiers per
 source, byte limits on strings) and the full property table are in
 [docs/device-configuration.md](docs/device-configuration.md) — read it before touching config code on
 either side. The contract itself lives in the `configuration_contract` service component (no storage,

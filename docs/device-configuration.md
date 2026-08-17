@@ -107,10 +107,49 @@ Colors use `"#RRGGBB"`.
 
 ## Modules and widgets
 
-A dashboard owns a bounded `screens` array; `dashboard.screens[0]` is the only
-screen composed today. Each screen carries its own `id`, `background_color`, and
-one ordered `widgets` array discriminated by a `type` property. Every widget also
-carries a stable `id`.
+A dashboard owns a bounded `screens` array of up to four screens, and the driver
+swipes between them on a board with a touch panel. Each screen carries its own
+`id`, `background_color`, an ordered `widgets` array discriminated by a `type`
+property, and an optional `groups` array. Every widget also carries a stable
+`id`.
+
+A **group** is a rectangle of a screen with widgets authored inside it. Its
+`placement` is absolute screen pixels; the geometry of the widgets inside it is
+relative to that box, and they are clipped to it. A group performs no layout of
+its own — it is a parent and a clip, nothing more.
+
+A group may name a `slot` (1..4). Groups sharing a slot must agree on their box,
+exactly one of them must carry `slot_default`, and only one is visible at a
+time. Tapping the slot on the board cycles to the next group; a group whose
+`conditions` match over its `condition_source` is shown instead while it
+matches, with `hold_ms` keeping a momentary trigger readable. See
+[ADR 0021](adr/0021-widget-groups-and-slots.md).
+
+| Group property | Shape | Meaning |
+| --- | --- | --- |
+| `id` | string, ≤15 bytes | Stable identifier. |
+| `placement` | object | `x`, `y`, `width`, `height` in screen pixels. |
+| `z_index` | int16 | Where the group stacks among its screen's own widgets. |
+| `slot` | 0..4 | Slot the group switches in. Omitted leaves it always visible. |
+| `slot_default` | bool | Shown before anything selects another group in the slot. |
+| `condition_source` | object | Telemetry binding the activation rules watch. |
+| `conditions` | array ≤4 | `op`, `value`, `hold_ms`. First match shows this group. |
+| `action` | object | Navigation a tap on this area performs. Refused together with `slot`. |
+| `widgets` | array ≤16 | Widgets parented to the group, placed relative to its box. |
+
+Every widget and every group may carry one `action`, and a tap on it navigates.
+Sixteen tap targets across the dashboard is the bound.
+
+| Action property | Shape | Meaning |
+| --- | --- | --- |
+| `type` | `none`, `next_screen`, `previous_screen`, `goto_screen` | What the tap does. Omitted leaves the object refusing input. |
+| `screen` | string | Target screen `id`, for `goto_screen` only. The other types name no screen, and one that does is rejected rather than ignored. |
+
+An empty group with an action is an invisible rectangle that takes a tap — that
+is how a corner of the screen becomes a back button without a widget to press. A
+group in a slot already spends its tap on cycling, so carrying both is rejected;
+a widget with an action inside such a group consumes the tap and the slot does
+not cycle. See [ADR 0020](adr/0020-screen-navigation.md).
 
 Widgets live in a dashboard-wide pool, one per type, and a screen names them by
 reference — so a cap is a budget across every screen rather than a per-screen
@@ -609,7 +648,7 @@ Top-level properties:
 | `board` | string, required | Immutable compatible board identifier. |
 | `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
 | `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
-| `dashboard.screens` | array, optional | Bounded screen list; currently at most one entry. |
+| `dashboard.screens` | array, optional | Bounded screen list, at most four entries. |
 
 Nested property names use snake case. Placement uses `x`, `y`, `width`, and
 `height`; widget stacking uses `z_index`; font uses `family` and `size_px`; a

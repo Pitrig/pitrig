@@ -3,8 +3,10 @@
 #include "sdkconfig.h"
 #if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
 #include "guition_jc1060p470c_display_driver.hpp"
+#include "guition_jc1060p470c_input_driver.hpp"
 #elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
 #include "guition_display_driver.hpp"
+#include "guition_input_driver.hpp"
 #else
 #include "t_display_s3_display_driver.hpp"
 #endif
@@ -24,6 +26,7 @@ const BoardDefinition& factory_board() {
           .native_usb_cdc_supported = true,
       },
       .display = display::drivers::guition_jc1060p470c::get(),
+      .input = &input::drivers::guition_jc1060p470c::get(),
       .default_telemetry_transport =
           configuration::TelemetryTransportId::native_usb_cdc,
       .factory_configuration_json =
@@ -41,6 +44,7 @@ const BoardDefinition& factory_board() {
           .native_usb_cdc_supported = false,
       },
       .display = display::drivers::guition_esp32_4848s040::get(),
+      .input = &input::drivers::guition_esp32_4848s040::get(),
       .default_telemetry_transport =
           configuration::TelemetryTransportId::uart,
       .factory_configuration_json =
@@ -58,6 +62,7 @@ const BoardDefinition& factory_board() {
           .native_usb_cdc_supported = true,
       },
       .display = display::drivers::t_display_s3::get(),
+      .input = nullptr,
       .default_telemetry_transport =
           configuration::TelemetryTransportId::native_usb_cdc,
       .factory_configuration_json = R"({"board":"t_display_s3"})",

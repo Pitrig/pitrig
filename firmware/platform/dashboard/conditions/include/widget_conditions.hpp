@@ -53,6 +53,12 @@ struct Resolution {
     std::span<const configuration::ColorStop> stops,
     std::optional<double> value);
 
+// Whether one comparison holds. Exposed so a second mechanism that switches on
+// the same operators — a group activating in its slot — compares the way the
+// styling rules do rather than restating the operator table.
+[[nodiscard]] bool condition_holds(configuration::ConditionOperator op,
+                                   double value, double threshold);
+
 // The first rule whose comparison holds describes the widget. Without a value
 // no rule can match, so an unavailable condition source resolves to the
 // fallback rather than latching the last match.

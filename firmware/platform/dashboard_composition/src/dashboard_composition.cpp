@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string_view>
 
 #include "application_configuration.hpp"
 #include "boot_splash.hpp"
@@ -28,12 +29,25 @@ constexpr std::uint32_t kMinimumStartupScreenDurationMs = 1'000;
 constexpr std::uint32_t kDefaultBackgroundColor = 0x000000;
 
 // Resolving a configured screen to an LVGL screen happens here and nowhere
-// else. Navigation does not exist yet, so the first screen renders on the
-// display's active LVGL screen; additional screens will be created here and
-// swapped by a future navigation path, and nothing above this function needs to
-// know which of those is happening.
+// else. Index zero stays the display's active screen, which is what keeps the
+// boot splash, the initial black paint, and the forced-refresh invalidation
+// correct without a second mechanism; every screen above it is created and owned
+// here. Nothing above this function knows which of the two a screen is, except
+// destroy(), which deletes only what this created.
 lv_obj_t* screen_object(lv_display_t* const display, const std::size_t index) {
-  return index == 0 ? lv_display_get_screen_active(display) : nullptr;
+  if (index == 0) {
+    return lv_display_get_screen_active(display);
+  }
+  lv_obj_t* const screen = lv_obj_create(nullptr);
+  if (screen == nullptr) {
+    return nullptr;
+  }
+  // A screen is a container for widgets that place themselves absolutely, so it
+  // must not scroll or paint a border of its own.
+  lv_obj_remove_flag(screen, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_style_pad_all(screen, 0, LV_PART_MAIN);
+  lv_obj_set_style_border_width(screen, 0, LV_PART_MAIN);
+  return screen;
 }
 
 // The screens a configuration asks for, in configuration order. An empty
@@ -55,6 +69,47 @@ std::size_t create_screens(
     ++created;
   }
   return created;
+}
+
+// One transparent container per configured group, parented to its screen and
+// sized to the group's box. LVGL then gives relative child coordinates and
+// clipping for free, which is the whole reason a group is an object rather
+// than arithmetic in the layout.
+void create_groups(
+    const configuration::ApplicationConfiguration& configuration,
+    const std::span<lv_obj_t* const> screens, const std::span<lv_obj_t*> groups) {
+  for (std::size_t screen_index = 0; screen_index < screens.size();
+       ++screen_index) {
+    if (screen_index >= configuration.dashboard.screen_count) {
+      break;
+    }
+    lv_obj_t* const parent = screens[screen_index];
+    const configuration::ScreenConfiguration& screen =
+        configuration.dashboard.screens[screen_index];
+    for (std::size_t index = 0; index < screen.group_count; ++index) {
+      const configuration::GroupConfiguration& group = screen.groups[index];
+      const std::size_t slot =
+          screen_index * configuration::kMaximumGroups + index;
+      if (parent == nullptr || slot >= groups.size()) {
+        continue;
+      }
+      lv_obj_t* const container = lv_obj_create(parent);
+      if (container == nullptr) {
+        continue;
+      }
+      lv_obj_remove_flag(container, LV_OBJ_FLAG_SCROLLABLE);
+      lv_obj_set_style_pad_all(container, 0, LV_PART_MAIN);
+      lv_obj_set_style_border_width(container, 0, LV_PART_MAIN);
+      lv_obj_set_style_radius(container, 0, LV_PART_MAIN);
+      // A group paints nothing of its own: it is a parent and a clip, and the
+      // screen behind it shows through.
+      lv_obj_set_style_bg_opa(container, LV_OPA_TRANSP, LV_PART_MAIN);
+      lv_obj_set_pos(container, group.placement.x, group.placement.y);
+      lv_obj_set_size(container, group.placement.width,
+                      group.placement.height);
+      groups[slot] = container;
+    }
+  }
 }
 
 const configuration::ScreenConfiguration& active_screen(
@@ -469,16 +524,22 @@ struct WidgetLayer {
 };
 
 // Stacking is an order among one LVGL parent's children, so this runs once per
-// screen over that screen's own reference table. The scratch table is reused
-// between screens, which is why more screens cost no more stack.
-bool apply_screen_z_order(const configuration::ScreenConfiguration& screen,
-                          Dashboard& dashboard) {
-  std::array<WidgetLayer, configuration::kMaximumWidgetsPerScreen> layers{};
+// parent: a screen, whose children are its own widgets and its group
+// containers, and then each of those groups over its own reference table. The
+// scratch table is reused between parents, which is why more of them cost no
+// more stack.
+bool apply_parent_z_order(
+    const std::span<const configuration::WidgetReference> references,
+    const std::size_t reference_count,
+    const std::span<const configuration::GroupConfiguration> groups,
+    const std::size_t screen_index, Dashboard& dashboard) {
+  std::array<WidgetLayer, configuration::kMaximumWidgetsPerScreen +
+                              configuration::kMaximumGroups>
+      layers{};
   std::size_t count{};
-  // Authored order breaks z_index ties, and the screen's reference table is
-  // that order.
-  for (std::size_t index = 0; index < screen.widget_count; ++index) {
-    const configuration::WidgetReference& reference = screen.widgets[index];
+  // Authored order breaks z_index ties, and the reference table is that order.
+  for (std::size_t index = 0; index < reference_count; ++index) {
+    const configuration::WidgetReference& reference = references[index];
     lv_obj_t* const object =
         dashboard.widgets.root_object(reference.type, reference.index);
     if (object != nullptr) {
@@ -486,6 +547,20 @@ bool apply_screen_z_order(const configuration::ScreenConfiguration& screen,
           .object = object,
           .z_index = reference.z_index,
           .configuration_order = static_cast<std::uint8_t>(index),
+      };
+    }
+  }
+  // A group is one child of its screen, ordered among the screen's widgets by
+  // its own z_index. Its children are ordered separately, within it.
+  for (std::size_t index = 0; index < groups.size(); ++index) {
+    lv_obj_t* const container =
+        dashboard.groups[screen_index * configuration::kMaximumGroups + index];
+    if (container != nullptr) {
+      layers[count++] = {
+          .object = container,
+          .z_index = groups[index].z_index,
+          .configuration_order =
+              static_cast<std::uint8_t>(reference_count + index),
       };
     }
   }
@@ -514,14 +589,139 @@ bool apply_screen_z_order(const configuration::ScreenConfiguration& screen,
   return true;
 }
 
+// The frame behind one reference. The pool is typed, so reaching a property
+// every widget shares still needs the discriminator once.
+const configuration::WidgetFrame* widget_frame(
+    const configuration::DashboardConfiguration& dashboard,
+    const configuration::WidgetReference& reference) {
+  switch (reference.type) {
+    case configuration::WidgetType::text:
+      return reference.index < dashboard.text_widget_count
+                 ? &dashboard.text_widgets[reference.index].frame
+                 : nullptr;
+    case configuration::WidgetType::shape:
+      return reference.index < dashboard.shape_widget_count
+                 ? &dashboard.shape_widgets[reference.index].frame
+                 : nullptr;
+    case configuration::WidgetType::bar:
+      return reference.index < dashboard.bar_widget_count
+                 ? &dashboard.bar_widgets[reference.index].frame
+                 : nullptr;
+    case configuration::WidgetType::arc:
+      return reference.index < dashboard.arc_widget_count
+                 ? &dashboard.arc_widgets[reference.index].frame
+                 : nullptr;
+    case configuration::WidgetType::indicator:
+      return reference.index < dashboard.indicator_widget_count
+                 ? &dashboard.indicator_widgets[reference.index].frame
+                 : nullptr;
+    case configuration::WidgetType::graph:
+      return reference.index < dashboard.graph_widget_count
+                 ? &dashboard.graph_widgets[reference.index].frame
+                 : nullptr;
+    case configuration::WidgetType::image:
+      return reference.index < dashboard.image_widget_count
+                 ? &dashboard.image_widgets[reference.index].frame
+                 : nullptr;
+  }
+  return nullptr;
+}
+
+// The screen an action names, resolved once here so a tap performs no lookup.
+// A name that matches nothing was already refused by validation; falling back to
+// the current screen keeps a hand-built document from navigating somewhere
+// arbitrary.
+std::uint8_t resolve_action_target(
+    const configuration::ApplicationConfiguration& configuration,
+    const configuration::WidgetAction& action) {
+  const std::string_view target = configuration::text_view(action.screen);
+  for (std::size_t index = 0; index < configuration.dashboard.screen_count;
+       ++index) {
+    if (configuration::text_view(configuration.dashboard.screens[index].id) ==
+        target) {
+      return static_cast<std::uint8_t>(index);
+    }
+  }
+  return 0;
+}
+
+// Makes every authored tap target clickable. Widget roots come through the same
+// accessor the z-order pass uses, so this knows no widget types; a group's
+// container is a tap target in its own right, which is what makes an empty
+// group an invisible touch zone.
+//
+// Re-run after any rebuild: update_instance() replaces a widget's LVGL object,
+// and the replacement carries neither the flag nor the callback.
+bool bind_widget_actions(
+    const configuration::ApplicationConfiguration& configuration,
+    Dashboard& dashboard) {
+  dashboard.navigation.clear_actions();
+  if (!lvgl_port_lock(0)) {
+    return false;
+  }
+  bool bound = true;
+  const auto bind = [&](lv_obj_t* const object,
+                        const configuration::WidgetAction& action) {
+    if (action.type == configuration::WidgetActionType::none) {
+      return;
+    }
+    if (!dashboard.navigation.add_action(
+            object, action.type,
+            resolve_action_target(configuration, action))) {
+      bound = false;
+    }
+  };
+  const auto bind_references =
+      [&](const std::span<const configuration::WidgetReference> references,
+          const std::size_t count) {
+        for (std::size_t index = 0; index < count; ++index) {
+          const configuration::WidgetReference& reference = references[index];
+          const configuration::WidgetFrame* const frame =
+              widget_frame(configuration.dashboard, reference);
+          if (frame != nullptr) {
+            bind(dashboard.widgets.root_object(reference.type, reference.index),
+                 frame->action);
+          }
+        }
+      };
+
+  for (std::size_t screen_index = 0;
+       screen_index < configuration.dashboard.screen_count; ++screen_index) {
+    const configuration::ScreenConfiguration& screen =
+        configuration.dashboard.screens[screen_index];
+    bind_references(screen.widgets, screen.widget_count);
+    for (std::size_t index = 0; index < screen.group_count; ++index) {
+      const configuration::GroupConfiguration& group = screen.groups[index];
+      bind_references(group.widgets, group.widget_count);
+      bind(dashboard.groups[screen_index * configuration::kMaximumGroups +
+                            index],
+           group.action);
+    }
+  }
+  lvgl_port_unlock();
+  return bound;
+}
+
 bool apply_widget_z_order(
     const configuration::ApplicationConfiguration& configuration,
     Dashboard& dashboard) {
-  const configuration::DashboardConfiguration& screens =
+  const configuration::DashboardConfiguration& dashboard_configuration =
       configuration.dashboard;
-  for (std::size_t index = 0; index < screens.screen_count; ++index) {
-    if (!apply_screen_z_order(screens.screens[index], dashboard)) {
+  for (std::size_t index = 0;
+       index < dashboard_configuration.screen_count; ++index) {
+    const configuration::ScreenConfiguration& screen =
+        dashboard_configuration.screens[index];
+    if (!apply_parent_z_order(screen.widgets, screen.widget_count,
+                              {screen.groups.data(), screen.group_count}, index,
+                              dashboard)) {
       return false;
+    }
+    for (std::size_t group = 0; group < screen.group_count; ++group) {
+      if (!apply_parent_z_order(screen.groups[group].widgets,
+                                screen.groups[group].widget_count, {}, index,
+                                dashboard)) {
+        return false;
+      }
     }
   }
   return true;
@@ -629,15 +829,13 @@ bool create(lv_display_t* const display,
     return false;
   }
   dashboard_state.screens = {};
-  const std::size_t screen_count =
-      create_screens(display, configuration, dashboard_state.screens);
-  const dashboard::Layout layout{
-      .display = display,
-      .screens = std::span{dashboard_state.screens}.first(screen_count)};
+  dashboard_state.groups = {};
   if (!lvgl_port_lock(0)) {
-    log::error(kTag, "Failed to lock LVGL for dashboard background");
+    log::error(kTag, "Failed to lock LVGL for dashboard screens");
     return false;
   }
+  const std::size_t screen_count =
+      create_screens(display, configuration, dashboard_state.screens);
   for (std::size_t index = 0; index < screen_count; ++index) {
     lv_obj_t* const screen = dashboard_state.screens[index];
     lv_obj_set_style_bg_color(
@@ -645,7 +843,14 @@ bool create(lv_display_t* const display,
         LV_PART_MAIN);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
   }
+  create_groups(configuration,
+                std::span{dashboard_state.screens}.first(screen_count),
+                dashboard_state.groups);
   lvgl_port_unlock();
+  const dashboard::Layout layout{
+      .display = display,
+      .screens = std::span{dashboard_state.screens}.first(screen_count),
+      .groups = dashboard_state.groups};
   if (screen_count == 0) {
     log::error(kTag, "Dashboard screen is unavailable");
     return false;
@@ -793,6 +998,52 @@ bool create(lv_display_t* const display,
     }
   }
 
+  // Slots and navigation are attached last, so a tap or a gesture can only
+  // arrive at screens that are fully built. A rebuilt dashboard has new screen
+  // objects, so this also returns to the first screen and to each slot's
+  // authored group.
+  if (lvgl_port_lock(0)) {
+    // Same module reader the widgets bind through; the text widget names the
+    // type in its own namespace, so it is restated rather than copied across.
+    const dashboard::frame::ModifierReader lap_timer_modifier{
+        .read = modules.lap_timer_started ? &read_lap_timer_modifier : nullptr,
+        .context = modules.lap_timer_started
+                       ? static_cast<void*>(&modules.lap_timer)
+                       : nullptr,
+    };
+    for (std::size_t screen_index = 0; screen_index < screen_count;
+         ++screen_index) {
+      const configuration::ScreenConfiguration& screen =
+          configuration.dashboard.screens[screen_index];
+      for (std::size_t index = 0; index < screen.group_count; ++index) {
+        lv_obj_t* const container = layout.group(
+            static_cast<std::uint8_t>(screen_index),
+            static_cast<std::uint8_t>(index));
+        if (container != nullptr &&
+            !dashboard_state.slots.add(container, screen.groups[index],
+                                       telemetry_registry, telemetry,
+                                       lap_timer_modifier)) {
+          log::error(kTag, "Failed to bind group activation source");
+          initialized = false;
+        }
+      }
+    }
+    if (!dashboard_state.slots.start()) {
+      log::error(kTag, "Failed to start dashboard slots");
+      initialized = false;
+    }
+    dashboard_state.navigation.attach(layout.screens);
+    lvgl_port_unlock();
+  } else {
+    log::warn(kTag, "Failed to lock LVGL for slots and screen navigation");
+  }
+
+  // After attach(), which resets the controller and therefore the bindings.
+  if (!bind_widget_actions(configuration, dashboard_state)) {
+    log::error(kTag, "Failed to bind dashboard tap actions");
+    initialized = false;
+  }
+
 #if SIMCORE_DEBUG
   if (!dashboard_state.performance_overlay.create(display,
                                                   telemetry_transport)) {
@@ -918,6 +1169,21 @@ bool apply_incremental(
                         sizeof(configuration::WidgetReference)) != 0) {
       return false;
     }
+    // A group is a parent and a slot member, so anything about it beyond its
+    // widgets' own properties changes composition rather than a widget.
+    if (before_screen.group_count != after_screen.group_count) {
+      return false;
+    }
+    for (std::size_t group = 0; group < after_screen.group_count; ++group) {
+      const configuration::GroupConfiguration& before_group =
+          before_screen.groups[group];
+      const configuration::GroupConfiguration& after_group =
+          after_screen.groups[group];
+      if (std::memcmp(&before_group, &after_group,
+                      sizeof(configuration::GroupConfiguration)) != 0) {
+        return false;
+      }
+    }
   }
 
   // Widget contexts point into the document that was active when they were
@@ -988,15 +1254,41 @@ bool apply_incremental(
   }
 
   // Rebuilt widgets are new LVGL children, so they sit on top until the
-  // configured order is applied again.
-  return apply_widget_z_order(next, dashboard);
+  // configured order is applied again — and they are new objects, so their tap
+  // actions have to be bound onto them again.
+  return apply_widget_z_order(next, dashboard) &&
+         bind_widget_actions(next, dashboard);
 }
 
 void destroy(Dashboard& dashboard) {
   // Cleared under the LVGL lock for the same reason create() assembles the
   // table under it: the render trigger may be walking it.
   if (lvgl_port_lock(0)) {
+    dashboard.navigation.detach();
+    dashboard.slots.clear();
     dashboard.widgets.clear();
+    // Group containers die with the screens that own them, except on screen
+    // zero, which the display keeps.
+    for (lv_obj_t*& group : dashboard.groups) {
+      if (group != nullptr && dashboard.screens[0] != nullptr &&
+          lv_obj_get_screen(group) == dashboard.screens[0]) {
+        lv_obj_delete(group);
+      }
+      group = nullptr;
+    }
+    // Index zero belongs to the display and outlives every dashboard; the rest
+    // were created by screen_object() and are deleted here. LVGL refuses to
+    // delete the screen that is loaded, so the display's own screen is loaded
+    // back first — which is also where the next create() starts.
+    if (dashboard.screens[0] != nullptr) {
+      lv_screen_load(dashboard.screens[0]);
+    }
+    for (std::size_t index = 1; index < dashboard.screens.size(); ++index) {
+      if (dashboard.screens[index] != nullptr) {
+        lv_obj_delete(dashboard.screens[index]);
+        dashboard.screens[index] = nullptr;
+      }
+    }
     lvgl_port_unlock();
   }
   dashboard.performance_overlay.destroy();

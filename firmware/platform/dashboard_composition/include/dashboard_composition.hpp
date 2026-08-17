@@ -15,8 +15,10 @@
 #include "image_widget.hpp"
 #include "indicator_widget.hpp"
 #include "render_trigger.hpp"
+#include "screen_navigation.hpp"
 #include "shape_widget.hpp"
 #include "text_widget.hpp"
+#include "widget_slots.hpp"
 #include "widget_binding.hpp"
 #include "widget_descriptor.hpp"
 
@@ -147,6 +149,18 @@ struct Dashboard {
   // parented by the index its frame carries, so this is what makes the shared
   // widget pool addressable.
   std::array<lv_obj_t*, configuration::kMaximumScreens> screens{};
+  // Group containers, flattened as screen_index * kMaximumGroups +
+  // group_index. A widget authored inside a group is parented to one of these
+  // and is therefore placed relative to it.
+  std::array<lv_obj_t*,
+             configuration::kMaximumScreens * configuration::kMaximumGroups>
+      groups{};
+  // Decides which group of each slot is visible. Owns no LVGL object: the
+  // containers belong to the screens above.
+  dashboard::slots::Controller slots;
+  // Loads one of those screens on a swipe. Holds a view of `screens`, so it is
+  // detached before they are released.
+  dashboard::navigation::Controller navigation;
   dashboard::performance_overlay_widget::View performance_overlay;
   dashboard::WidgetManager widgets;
   TextWidgets text;

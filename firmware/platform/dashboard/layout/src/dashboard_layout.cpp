@@ -22,27 +22,35 @@ void apply_outline(lv_obj_t* const object, const std::uint32_t color_rgb) {
 
 bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
                            const std::uint8_t screen_index,
+                           const std::uint8_t group_index,
+                           const bool group_present,
                            const std::int32_t intrinsic_width,
                            const std::int32_t intrinsic_height,
                            const bool fill_available_width, lv_obj_t*& parent,
                            Rect& bounds) {
-  lv_obj_t* const screen = layout.screen(screen_index);
-  if (layout.display == nullptr || screen == nullptr || intrinsic_width <= 0 ||
+  lv_obj_t* const owner =
+      layout.parent(screen_index, group_index, group_present);
+  if (layout.display == nullptr || owner == nullptr || intrinsic_width <= 0 ||
       intrinsic_height <= 0 || placement.x < 0 || placement.y < 0 ||
       placement.width < 0 || placement.height < 0) {
     return false;
   }
 
-  parent = screen;
-  const std::int32_t display_width =
-      lv_display_get_horizontal_resolution(layout.display);
-  const std::int32_t display_height =
-      lv_display_get_vertical_resolution(layout.display);
+  parent = owner;
+  // Geometry inside a group is relative to the group's box, so what bounds a
+  // widget is its parent rather than the display. A group is sized before its
+  // children are built, so this is its final size.
+  const std::int32_t parent_width =
+      group_present ? lv_obj_get_width(owner)
+                    : lv_display_get_horizontal_resolution(layout.display);
+  const std::int32_t parent_height =
+      group_present ? lv_obj_get_height(owner)
+                    : lv_display_get_vertical_resolution(layout.display);
 
   const std::int32_t requested_width =
       placement.width > 0
           ? placement.width
-          : (fill_available_width ? display_width - placement.x
+          : (fill_available_width ? parent_width - placement.x
                                   : intrinsic_width);
   const std::int32_t requested_height =
       placement.height > 0 ? placement.height : intrinsic_height;
@@ -50,9 +58,9 @@ bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
             .y = placement.y,
             .width = requested_width,
             .height = requested_height};
-  if (parent == nullptr || bounds.width <= 0 || bounds.height <= 0 ||
-      bounds.x + bounds.width > display_width ||
-      bounds.y + bounds.height > display_height) {
+  if (bounds.width <= 0 || bounds.height <= 0 ||
+      bounds.x + bounds.width > parent_width ||
+      bounds.y + bounds.height > parent_height) {
     return false;
   }
   return true;

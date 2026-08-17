@@ -1,7 +1,7 @@
-idf_component_register(SRCS "src/display_driver.cpp"
+idf_component_register(SRCS "src/display_driver.cpp" "src/input_driver.cpp"
                        INCLUDE_DIRS "include"
                        REQUIRES interfaces
-                       PRIV_REQUIRES esp_driver_gpio esp_lcd
+                       PRIV_REQUIRES esp_driver_gpio esp_lcd gt911
                                      espressif__esp_lcd_panel_io_additions
                                      espressif__esp_lcd_st7701)
 

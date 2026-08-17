@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <span>
 #include <string_view>
 
 #include "configuration_json.hpp"
@@ -152,6 +153,39 @@ constexpr std::uint16_t kMaximumHoldMs = 10'000;
          placement.height <= display_height - placement.y;
 }
 
+// A target that names no screen would send a tap nowhere, and a screen named by
+// an action type that navigates relatively is a property that does nothing —
+// both are authoring mistakes rather than harmless noise, so both are refused.
+// `screens` is the document's screen list, which is what the id must match.
+[[nodiscard]] bool valid_action(const WidgetAction& action,
+                                const DashboardConfiguration& dashboard) {
+  const std::string_view target = text_view(action.screen);
+  switch (action.type) {
+    case WidgetActionType::none:
+      return target.empty();
+    case WidgetActionType::next_screen:
+    case WidgetActionType::previous_screen:
+      return target.empty();
+    case WidgetActionType::goto_screen:
+      break;
+  }
+  if (target.empty()) {
+    return false;
+  }
+  for (std::size_t index = 0; index < dashboard.screen_count; ++index) {
+    if (text_view(dashboard.screens[index].id) == target) {
+      return true;
+    }
+  }
+  return false;
+}
+
+[[nodiscard]] bool same_box(const WidgetPlacement& left,
+                           const WidgetPlacement& right) {
+  return left.x == right.x && left.y == right.y && left.width == right.width &&
+         left.height == right.height;
+}
+
 template <std::size_t Size>
 [[nodiscard]] bool terminated(const std::array<char, Size>& value) {
   return std::find(value.begin(), value.end(), '\0') != value.end();
@@ -162,8 +196,23 @@ template <std::size_t Size>
 class Validator final {
  public:
   Validator(const ValidationContext& profile, ValidationFailure& failure)
-      : profile_(profile), failure_(failure) {}
+      : profile_(profile),
+        failure_(failure),
+        parent_width_(profile.display.width),
+        parent_height_(profile.display.height) {}
 
+  // The box a widget's geometry is expressed in: its screen, or the group that
+  // declared it. Set before validating the widgets of one parent and restored
+  // to the display afterwards.
+  void set_parent_bounds(const std::int32_t width, const std::int32_t height) {
+    parent_width_ = width;
+    parent_height_ = height;
+  }
+  void reset_parent_bounds() {
+    set_parent_bounds(profile_.display.width, profile_.display.height);
+  }
+
+  [[nodiscard]] bool group_conditions(const GroupConfiguration& config);
   [[nodiscard]] bool text_widget(const TextWidgetConfiguration& config);
   [[nodiscard]] bool shape_widget(const ShapeWidgetConfiguration& config);
   [[nodiscard]] bool bar_widget(const BarWidgetConfiguration& config);
@@ -179,12 +228,14 @@ class Validator final {
   [[nodiscard]] bool text_source(const TextSourceConfiguration& config);
   [[nodiscard]] bool conditions(const WidgetFrame& config);
 
-  [[nodiscard]] std::int32_t width() const { return profile_.display.width; }
-  [[nodiscard]] std::int32_t height() const { return profile_.display.height; }
+  [[nodiscard]] std::int32_t width() const { return parent_width_; }
+  [[nodiscard]] std::int32_t height() const { return parent_height_; }
 
   const telemetry::TelemetryRegistry registry_{};
   const ValidationContext& profile_;
   ValidationFailure& failure_;
+  std::int32_t parent_width_{};
+  std::int32_t parent_height_{};
 };
 
 bool Validator::text_source(const TextSourceConfiguration& config) {
@@ -323,6 +374,34 @@ bool Validator::frame(const WidgetFrame& config) {
 
 // A widget that maps one source through a window needs a resolvable binding
 // and a window with something in it.
+// A group's rules select which group of a slot is shown rather than restyling
+// anything, so the operator and the watched source are all there is to check.
+// Rules on a group outside a slot would select nothing, which is authoring
+// intent that cannot take effect and is therefore refused.
+bool Validator::group_conditions(const GroupConfiguration& config) {
+  if (config.condition_count == 0) {
+    return true;
+  }
+  if (config.slot == 0) {
+    return reject(failure_, ValidationError::invalid_group, "conditions");
+  }
+  for (std::size_t index = 0; index < config.condition_count; ++index) {
+    const GroupCondition& rule = config.conditions[index];
+    if (!std::isfinite(rule.value) || rule.op < ConditionOperator::above ||
+        rule.op > ConditionOperator::not_equal) {
+      return reject(failure_, ValidationError::invalid_group, "conditions");
+    }
+  }
+  if (!registry_.resolve(value_binding_view(config.condition_source.binding))
+           .valid() ||
+      config.condition_source.modifier_count >
+          config.condition_source.modifiers.size()) {
+    return reject(failure_, ValidationError::invalid_group,
+                  "condition_source");
+  }
+  return true;
+}
+
 bool Validator::value_source(const ValueSourceConfiguration& config) {
   if (!registry_.resolve(value_binding_view(config.binding)).valid()) {
     return reject(failure_, ValidationError::invalid_widget, "source");
@@ -506,6 +585,81 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
   return true;
 }
 
+// One ordered reference table, whether it belongs to a screen or to a group.
+// Each entry must name a filled pool slot whose widget agrees about the parent
+// that declared it, so a document cannot point two parents at one widget or
+// leave a widget claiming a parent that never referenced it.
+[[nodiscard]] bool validate_references(
+    const DashboardConfiguration& dashboard,
+    const std::span<const WidgetReference> references, const std::size_t count,
+    const std::size_t screen_index, const std::uint8_t group_index,
+    const bool group_present, Validator& validator, std::size_t& action_count,
+    ValidationFailure& failure) {
+  // Parenting and the tap action are both facts about the frame, so one probe
+  // decides whether the reference is sound before the type-specific checks run.
+  const auto parented = [&](const WidgetFrame& frame) {
+    if (frame.action.type != WidgetActionType::none) {
+      ++action_count;
+    }
+    return frame.screen_index == screen_index &&
+           frame.group_present == group_present &&
+           (!group_present || frame.group_index == group_index) &&
+           valid_action(frame.action, dashboard);
+  };
+  for (std::size_t index = 0; index < count && index < references.size();
+       ++index) {
+    const WidgetReference& reference = references[index];
+    bool valid = false;
+    switch (reference.type) {
+      case WidgetType::text:
+        valid = reference.index < dashboard.text_widget_count &&
+                parented(dashboard.text_widgets[reference.index].frame) &&
+                validator.text_widget(dashboard.text_widgets[reference.index]);
+        break;
+      case WidgetType::shape:
+        valid =
+            reference.index < dashboard.shape_widget_count &&
+            parented(dashboard.shape_widgets[reference.index].frame) &&
+            validator.shape_widget(dashboard.shape_widgets[reference.index]);
+        break;
+      case WidgetType::bar:
+        valid = reference.index < dashboard.bar_widget_count &&
+                parented(dashboard.bar_widgets[reference.index].frame) &&
+                validator.bar_widget(dashboard.bar_widgets[reference.index]);
+        break;
+      case WidgetType::arc:
+        valid = reference.index < dashboard.arc_widget_count &&
+                parented(dashboard.arc_widgets[reference.index].frame) &&
+                validator.arc_widget(dashboard.arc_widgets[reference.index]);
+        break;
+      case WidgetType::indicator:
+        valid = reference.index < dashboard.indicator_widget_count &&
+                parented(dashboard.indicator_widgets[reference.index].frame) &&
+                validator.indicator_widget(
+                    dashboard.indicator_widgets[reference.index]);
+        break;
+      case WidgetType::image:
+        valid =
+            reference.index < dashboard.image_widget_count &&
+            parented(dashboard.image_widgets[reference.index].frame) &&
+            validator.image_widget(dashboard.image_widgets[reference.index]);
+        break;
+      case WidgetType::graph:
+        valid =
+            reference.index < dashboard.graph_widget_count &&
+            parented(dashboard.graph_widgets[reference.index].frame) &&
+            validator.graph_widget(dashboard.graph_widgets[reference.index]);
+        break;
+    }
+    if (!valid) {
+      (void)reject(failure, ValidationError::invalid_widget, "widgets");
+      failure.widget_index = static_cast<std::int16_t>(index);
+      return false;
+    }
+  }
+  return true;
+}
+
 }  // namespace
 
 ValidationFailure validate_configuration(
@@ -560,6 +714,7 @@ ValidationFailure validate_configuration(
   Validator validator(profile, failure);
   std::size_t lap_timer_modifier_count{};
   std::size_t referenced_widgets{};
+  std::size_t action_count{};
 
   for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
        ++screen_index) {
@@ -574,65 +729,101 @@ ValidationFailure validate_configuration(
       failure.screen_index = static_cast<std::int16_t>(screen_index);
       return failure;
     }
-    referenced_widgets += screen.widget_count;
-    for (std::size_t index = 0; index < screen.widget_count; ++index) {
-      const WidgetReference& reference = screen.widgets[index];
-      bool valid = false;
-      switch (reference.type) {
-        case WidgetType::text:
-          valid = reference.index < dashboard.text_widget_count &&
-                  dashboard.text_widgets[reference.index]
-                          .frame.screen_index == screen_index &&
-                  validator.text_widget(dashboard.text_widgets[reference.index]);
-          break;
-        case WidgetType::shape:
-          valid = reference.index < dashboard.shape_widget_count &&
-                  dashboard.shape_widgets[reference.index]
-                          .frame.screen_index == screen_index &&
-                  validator.shape_widget(dashboard.shape_widgets[reference.index]);
-          break;
-        case WidgetType::bar:
-          valid = reference.index < dashboard.bar_widget_count &&
-                  dashboard.bar_widgets[reference.index]
-                          .frame.screen_index == screen_index &&
-                  validator.bar_widget(dashboard.bar_widgets[reference.index]);
-          break;
-        case WidgetType::arc:
-          valid = reference.index < dashboard.arc_widget_count &&
-                  dashboard.arc_widgets[reference.index]
-                          .frame.screen_index == screen_index &&
-                  validator.arc_widget(dashboard.arc_widgets[reference.index]);
-          break;
-        case WidgetType::indicator:
-          valid = reference.index < dashboard.indicator_widget_count &&
-                  dashboard.indicator_widgets[reference.index]
-                          .frame.screen_index == screen_index &&
-                  validator.indicator_widget(
-                      dashboard.indicator_widgets[reference.index]);
-          break;
-        case WidgetType::image:
-          valid = reference.index < dashboard.image_widget_count &&
-                  dashboard.image_widgets[reference.index]
-                          .frame.screen_index == screen_index &&
-                  validator.image_widget(
-                      dashboard.image_widgets[reference.index]);
-          break;
-        case WidgetType::graph:
-          valid = reference.index < dashboard.graph_widget_count &&
-                  dashboard.graph_widgets[reference.index]
-                          .frame.screen_index == screen_index &&
-                  validator.graph_widget(
-                      dashboard.graph_widgets[reference.index]);
-          break;
-      }
-      if (!valid) {
-        (void)reject(failure, ValidationError::invalid_widget, "widgets");
+    // Groups first: a group is a parent, so its box has to be sound before the
+    // widgets expressed inside it can be checked against it.
+    if (screen.group_count > screen.groups.size()) {
+      (void)reject(failure, ValidationError::invalid_group, "groups");
+      failure.screen_index = static_cast<std::int16_t>(screen_index);
+      return failure;
+    }
+    for (std::size_t group_index = 0; group_index < screen.group_count;
+         ++group_index) {
+      const GroupConfiguration& group = screen.groups[group_index];
+      if (!terminated(group.id) || group.screen_index != screen_index ||
+          group.slot > kMaximumSlots ||
+          group.condition_count > group.conditions.size() ||
+          group.widget_count > group.widgets.size() ||
+          !valid_placement(group.placement, profile.display.width,
+                           profile.display.height) ||
+          group.placement.width <= 0 || group.placement.height <= 0) {
+        (void)reject(failure, ValidationError::invalid_group, "groups");
         failure.screen_index = static_cast<std::int16_t>(screen_index);
-        failure.widget_index = static_cast<std::int16_t>(index);
+        return failure;
+      }
+      if (!validator.group_conditions(group)) {
+        failure.screen_index = static_cast<std::int16_t>(screen_index);
+        return failure;
+      }
+      // A group in a slot already spends its tap on cycling, so one that also
+      // navigates would give a single tap two meanings.
+      if (!valid_action(group.action, dashboard) ||
+          (group.slot != 0 && group.action.type != WidgetActionType::none)) {
+        (void)reject(failure, ValidationError::invalid_group, "action");
+        failure.screen_index = static_cast<std::int16_t>(screen_index);
+        return failure;
+      }
+      if (group.action.type != WidgetActionType::none) {
+        ++action_count;
+      }
+    }
+    // A slot is one box with one starting group, so groups that disagree on
+    // either are two overlapping areas rather than one that switches.
+    for (std::uint8_t slot = 1; slot <= kMaximumSlots; ++slot) {
+      const GroupConfiguration* first{};
+      std::size_t defaults{};
+      std::size_t members{};
+      for (std::size_t index = 0; index < screen.group_count; ++index) {
+        const GroupConfiguration& group = screen.groups[index];
+        if (group.slot != slot) {
+          continue;
+        }
+        ++members;
+        if (group.slot_default) {
+          ++defaults;
+        }
+        if (first == nullptr) {
+          first = &group;
+        } else if (!same_box(first->placement, group.placement)) {
+          (void)reject(failure, ValidationError::invalid_group, "placement");
+          failure.screen_index = static_cast<std::int16_t>(screen_index);
+          return failure;
+        }
+      }
+      if (members > 0 && defaults != 1) {
+        (void)reject(failure, ValidationError::invalid_group, "slot_default");
+        failure.screen_index = static_cast<std::int16_t>(screen_index);
         return failure;
       }
     }
 
+    referenced_widgets += screen.widget_count;
+    for (std::size_t index = 0; index < screen.group_count; ++index) {
+      referenced_widgets += screen.groups[index].widget_count;
+    }
+
+    // Widgets authored on the screen, then the widgets of each group. The two
+    // differ only in the parent whose box their geometry is expressed in.
+    validator.reset_parent_bounds();
+    if (!validate_references(dashboard, screen.widgets, screen.widget_count,
+                             screen_index, 0, false, validator, action_count,
+                             failure)) {
+      failure.screen_index = static_cast<std::int16_t>(screen_index);
+      return failure;
+    }
+    for (std::size_t group_index = 0; group_index < screen.group_count;
+         ++group_index) {
+      const GroupConfiguration& group = screen.groups[group_index];
+      validator.set_parent_bounds(group.placement.width,
+                                  group.placement.height);
+      if (!validate_references(dashboard, group.widgets, group.widget_count,
+                               screen_index,
+                               static_cast<std::uint8_t>(group_index), true,
+                               validator, action_count, failure)) {
+        failure.screen_index = static_cast<std::int16_t>(screen_index);
+        return failure;
+      }
+    }
+    validator.reset_parent_bounds();
   }
 
   for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
@@ -658,6 +849,12 @@ ValidationFailure validate_configuration(
           dashboard.arc_widget_count + dashboard.indicator_widget_count +
           dashboard.graph_widget_count + dashboard.image_widget_count) {
     (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
+    return failure;
+  }
+
+  // Each action makes one object clickable and holds one binding at runtime.
+  if (action_count > kMaximumActions) {
+    (void)reject(failure, ValidationError::invalid_widget, "action");
     return failure;
   }
 

@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import {
   allWidgetsOf,
   createWidgetId,
+  groupsOf,
   screensOf,
   widgetsOf
 } from '../../../../shared/configuration-access'
@@ -10,8 +11,10 @@ import {
   MAXIMUM_ARC_WIDGETS,
   MAXIMUM_BAR_WIDGETS,
   MAXIMUM_GRAPH_WIDGETS,
+  MAXIMUM_GROUPS,
   MAXIMUM_IMAGE_WIDGETS,
   MAXIMUM_INDICATOR_WIDGETS,
+  MAXIMUM_SCREENS,
   MAXIMUM_SHAPE_WIDGETS,
   MAXIMUM_TEXT_WIDGETS,
   MAXIMUM_WIDGETS_PER_SCREEN,
@@ -19,6 +22,7 @@ import {
 } from '../../../../shared/configuration-schema'
 import type {
   FontSpec,
+  GroupConfiguration,
   ScreenConfiguration,
   WidgetConfiguration,
   WidgetPlacement
@@ -32,6 +36,8 @@ export {
   MAXIMUM_ARC_WIDGETS,
   MAXIMUM_BAR_WIDGETS,
   MAXIMUM_GRAPH_WIDGETS,
+  MAXIMUM_GROUPS,
+  MAXIMUM_SCREENS,
   MAXIMUM_IMAGE_WIDGETS,
   MAXIMUM_INDICATOR_WIDGETS,
   MAXIMUM_SHAPE_WIDGETS,
@@ -43,6 +49,9 @@ export {
 export type WidgetSelection =
   | { type: 'screen' }
   | { type: 'widget'; id: string }
+  // A group is selectable in its own right because an empty one — a tap zone —
+  // has no widget to reach it through.
+  | { type: 'group'; id: string }
 
 /**
  * How the canvas is being looked at, and which widgets are set aside while
@@ -103,15 +112,29 @@ interface DashboardEditorStore {
    */
   selection?: WidgetSelection
   selectedIds: string[]
+  /**
+   * The screen the canvas, the layer list and the inspector are working on.
+   * Editor-only: which screen is being authored says nothing about the
+   * dashboard, and the device always starts at the first one.
+   */
+  activeScreenIndex: number
   view: EditorView
   preview: PreviewPlayback
   /** Editor-only, keyed by widget id: neither reaches the document. */
   locked: Record<string, boolean>
   hidden: Record<string, boolean>
+  /**
+   * Which group of each slot the canvas draws, keyed by slot number. The board
+   * shows one at a time and picks it from a tap or a rule; the editor has to
+   * author all of them, so it picks one to look at instead.
+   */
+  previewSlots: Record<number, string>
   select: (selection?: WidgetSelection) => void
   /** Adds or removes one widget, keeping it primary when it stays selected. */
   extendSelection: (id: string) => void
   selectMany: (ids: readonly string[]) => void
+  setActiveScreen: (index: number) => void
+  setPreviewSlot: (slot: number, groupId: string) => void
   setView: (patch: Partial<EditorView>) => void
   setPreview: (patch: Partial<PreviewPlayback>) => void
   toggleLocked: (id: string) => void
@@ -121,10 +144,12 @@ interface DashboardEditorStore {
 
 export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   selectedIds: [],
+  activeScreenIndex: 0,
   view: DEFAULT_EDITOR_VIEW,
   preview: DEFAULT_PREVIEW_PLAYBACK,
   locked: {},
   hidden: {},
+  previewSlots: {},
   select: (selection) =>
     set({
       selection,
@@ -148,6 +173,12 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
       selection:
         ids.length === 0 ? { type: 'screen' } : { type: 'widget', id: ids[ids.length - 1]! }
     }),
+  // Selection belongs to one screen, so switching screens drops it rather than
+  // leaving the inspector editing something the canvas no longer draws.
+  setActiveScreen: (index) =>
+    set({ activeScreenIndex: Math.max(index, 0), selection: undefined, selectedIds: [] }),
+  setPreviewSlot: (slot, groupId) =>
+    set((current) => ({ previewSlots: { ...current.previewSlots, [slot]: groupId } })),
   setView: (patch) => set((current) => ({ view: { ...current.view, ...patch } })),
   setPreview: (patch) => set((current) => ({ preview: { ...current.preview, ...patch } })),
   toggleLocked: (id) =>
@@ -160,8 +191,10 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
     set({
       selection: undefined,
       selectedIds: [],
+      activeScreenIndex: 0,
       locked: {},
       hidden: {},
+      previewSlots: {},
       view: DEFAULT_EDITOR_VIEW,
       preview: DEFAULT_PREVIEW_PLAYBACK
     })
@@ -169,14 +202,22 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
 
 export interface WidgetLocation {
   screenIndex: number
+  /** Absent for a widget authored directly on the screen. */
+  groupIndex?: number
   widgetIndex: number
   widget: WidgetConfiguration
+}
+
+export interface GroupLocation {
+  screenIndex: number
+  groupIndex: number
+  group: GroupConfiguration
 }
 
 export function activeScreen(
   configuration: DeviceConfiguration | undefined
 ): ScreenConfiguration | undefined {
-  return screensOf(configuration)[0]
+  return screensOf(configuration)[useDashboardEditorStore.getState().activeScreenIndex]
 }
 
 export function findWidget(
@@ -185,21 +226,86 @@ export function findWidget(
 ): WidgetLocation | undefined {
   const screens = screensOf(configuration)
   for (let screenIndex = 0; screenIndex < screens.length; ++screenIndex) {
-    const widgets = widgetsOf(screens[screenIndex])
+    const screen = screens[screenIndex]
+    const widgets = widgetsOf(screen)
     const widgetIndex = widgets.findIndex((widget) => widget.id === id)
     const widget = widgets[widgetIndex]
     if (widgetIndex >= 0 && widget) {
       return { screenIndex, widgetIndex, widget }
     }
+    const groups = groupsOf(screen)
+    for (let groupIndex = 0; groupIndex < groups.length; ++groupIndex) {
+      const members = widgetsOf(groups[groupIndex])
+      const memberIndex = members.findIndex((member) => member.id === id)
+      const member = members[memberIndex]
+      if (memberIndex >= 0 && member) {
+        return { screenIndex, groupIndex, widgetIndex: memberIndex, widget: member }
+      }
+    }
   }
   return undefined
+}
+
+export function findGroup(
+  configuration: DeviceConfiguration | undefined,
+  id: string
+): GroupLocation | undefined {
+  const screens = screensOf(configuration)
+  for (let screenIndex = 0; screenIndex < screens.length; ++screenIndex) {
+    const groups = groupsOf(screens[screenIndex])
+    const groupIndex = groups.findIndex((group) => group.id === id)
+    const group = groups[groupIndex]
+    if (groupIndex >= 0 && group) {
+      return { screenIndex, groupIndex, group }
+    }
+  }
+  return undefined
+}
+
+/** The array a widget lives in, which is what an edit has to splice. */
+function widgetArrayOf(
+  configuration: DeviceConfiguration,
+  location: WidgetLocation
+): WidgetConfiguration[] | undefined {
+  const screen = configuration.dashboard?.screens?.[location.screenIndex]
+  if (!screen) return undefined
+  return location.groupIndex === undefined
+    ? screen.widgets
+    : screen.groups?.[location.groupIndex]?.widgets
+}
+
+/**
+ * Where a widget's parent sits on the display. Geometry inside a group is
+ * relative to the group's box, so the canvas — which works entirely in display
+ * coordinates — adds this on the way out and subtracts it on the way in.
+ */
+export function parentOffset(
+  configuration: DeviceConfiguration | undefined,
+  id: string
+): { x: number; y: number } {
+  const location = findWidget(configuration, id)
+  if (!configuration || !location || location.groupIndex === undefined) return { x: 0, y: 0 }
+  const group = screensOf(configuration)[location.screenIndex]?.groups?.[location.groupIndex]
+  const box = completePlacement(group?.placement)
+  return box ? { x: box.x, y: box.y } : { x: 0, y: 0 }
+}
+
+/** A widget's box in display coordinates, whatever parent it was authored in. */
+export function absolutePlacement(
+  configuration: DeviceConfiguration | undefined,
+  id: string
+): Required<WidgetPlacement> | undefined {
+  const box = completePlacement(findWidget(configuration, id)?.widget.placement)
+  if (!box) return undefined
+  const offset = parentOffset(configuration, id)
+  return { ...box, x: box.x + offset.x, y: box.y + offset.y }
 }
 
 export function selectedWidget(
   configuration: DeviceConfiguration | undefined,
   selection: WidgetSelection | undefined
 ): WidgetConfiguration | undefined {
-  if (!selection || selection.type === 'screen') return undefined
+  if (selection?.type !== 'widget') return undefined
   return findWidget(configuration, selection.id)?.widget
 }
 
@@ -229,6 +335,63 @@ export function mutateSelectedWidget(
   })
 }
 
+/**
+ * Edits the group that owns a widget. The inspector reaches a group through the
+ * selection rather than through a selection type of its own: a group is a
+ * parent, and what the author is looking at is always one of its widgets.
+ */
+export function mutateGroup(
+  id: string,
+  mutation: (group: GroupConfiguration) => void
+): void {
+  mutateDraftConfiguration((configuration) => {
+    const location = findGroup(configuration, id)
+    if (!location) return
+    const group = configuration.dashboard?.screens?.[location.screenIndex]?.groups?.[
+      location.groupIndex
+    ]
+    if (group) mutation(group)
+  })
+}
+
+/**
+ * The group a selection refers to: the group itself when one is selected, and
+ * the owning group when a widget inside one is. One inspector serves both.
+ */
+export function selectedGroupId(
+  configuration: DeviceConfiguration | undefined,
+  selection: WidgetSelection | undefined
+): string | undefined {
+  if (!selection || selection.type === 'screen') return undefined
+  if (selection.type === 'group') return selection.id
+  const location = findWidget(configuration, selection.id)
+  if (!location || location.groupIndex === undefined) return undefined
+  return screensOf(configuration)[location.screenIndex]?.groups?.[location.groupIndex]?.id
+}
+
+export function groupById(
+  configuration: DeviceConfiguration | undefined,
+  id: string | undefined
+): GroupConfiguration | undefined {
+  return id ? findGroup(configuration, id)?.group : undefined
+}
+
+/** Removes a group and everything in it. */
+export function deleteGroup(id: string): boolean {
+  let deleted = false
+  mutateDraftConfiguration((configuration) => {
+    const location = findGroup(configuration, id)
+    const groups = configuration.dashboard?.screens?.[location?.screenIndex ?? -1]?.groups
+    if (!location || !groups) return
+    groups.splice(location.groupIndex, 1)
+    if (groups.length === 0) {
+      delete configuration.dashboard!.screens![location.screenIndex]!.groups
+    }
+    deleted = true
+  })
+  return deleted
+}
+
 export function mutateActiveScreen(
   mutation: (screen: ScreenConfiguration, configuration: DeviceConfiguration) => void
 ): void {
@@ -238,15 +401,54 @@ export function mutateActiveScreen(
   })
 }
 
-/** Returns the first screen, creating the dashboard section if it is absent. */
-function ensureScreen(configuration: DeviceConfiguration): ScreenConfiguration {
+/**
+ * Returns the screen being edited, creating the dashboard section and every
+ * screen up to it if they are absent. A document is sparse, so the array can be
+ * shorter than the index the editor is pointing at.
+ */
+function ensureScreen(
+  configuration: DeviceConfiguration,
+  index = useDashboardEditorStore.getState().activeScreenIndex
+): ScreenConfiguration {
   const dashboard = (configuration.dashboard ??= {})
   const screens = (dashboard.screens ??= [])
-  const existing = screens[0]
-  if (existing) return existing
-  const created: ScreenConfiguration = { id: 'screen1' }
-  screens.push(created)
-  return created
+  const bounded = Math.min(Math.max(index, 0), MAXIMUM_SCREENS - 1)
+  while (screens.length <= bounded) {
+    screens.push({ id: `screen${screens.length + 1}` })
+  }
+  return screens[bounded]!
+}
+
+export function addScreen(): number | undefined {
+  let added: number | undefined
+  mutateDraftConfiguration((configuration) => {
+    const screens = ((configuration.dashboard ??= {}).screens ??= [])
+    if (screens.length >= MAXIMUM_SCREENS) return
+    screens.push({ id: `screen${screens.length + 1}` })
+    added = screens.length - 1
+  })
+  return added
+}
+
+/**
+ * Removes a screen with everything on it. The first screen cannot go: a
+ * dashboard with no screen has nothing to compose, and the editor would have no
+ * canvas to draw.
+ */
+export function deleteScreen(index: number): boolean {
+  let deleted = false
+  mutateDraftConfiguration((configuration) => {
+    const screens = configuration.dashboard?.screens
+    if (!screens || index <= 0 || index >= screens.length) return
+    screens.splice(index, 1)
+    deleted = true
+  })
+  if (deleted) {
+    const editor = useDashboardEditorStore.getState()
+    editor.select(undefined)
+    editor.setActiveScreen(Math.max(index - 1, 0))
+  }
+  return deleted
 }
 
 // Widget storage is a dashboard-wide pool, so a per-type cap is a budget across
@@ -435,11 +637,19 @@ export function deleteWidget(selection: WidgetSelection): boolean {
   mutateDraftConfiguration((configuration) => {
     const location = findWidget(configuration, selection.id)
     if (!location) return
-    const screen = configuration.dashboard?.screens?.[location.screenIndex]
-    if (!screen?.widgets) return
-    screen.widgets.splice(location.widgetIndex, 1)
+    const widgets = widgetArrayOf(configuration, location)
+    if (!widgets) return
+    widgets.splice(location.widgetIndex, 1)
     deleted = true
-    if (screen.widgets.length === 0) delete screen.widgets
+    if (widgets.length > 0) return
+    const screen = configuration.dashboard?.screens?.[location.screenIndex]
+    if (!screen) return
+    if (location.groupIndex === undefined) {
+      delete screen.widgets
+      return
+    }
+    const group = screen.groups?.[location.groupIndex]
+    if (group) delete group.widgets
   })
   return deleted
 }
@@ -542,6 +752,135 @@ function isPasteableWidget(value: unknown): value is WidgetConfiguration {
   return validateConfigurationDocument(probe, {
     supportedBoards: Object.keys(BOARD_PROFILES)
   }).ok
+}
+
+/**
+ * Every tap target in the document — widgets and groups alike. The device binds
+ * one clickable object per action and the table is bounded, so the editor
+ * refuses the one that would not fit rather than letting the board reject the
+ * whole document.
+ */
+export function actionCount(configuration: DeviceConfiguration | undefined): number {
+  const targets = [
+    ...allWidgetsOf(configuration),
+    ...screensOf(configuration).flatMap(groupsOf)
+  ]
+  return targets.filter((target) => target.action && target.action.type !== 'none').length
+}
+
+/**
+ * An empty group is an invisible rectangle that takes a tap — the cheapest way
+ * to say "this corner of the screen goes back" without a widget to press.
+ */
+export function addTapZone(display: { width: number; height: number }): string | undefined {
+  const id = createWidgetId()
+  let created: string | undefined
+  mutateDraftConfiguration((configuration) => {
+    const screen = ensureScreen(configuration)
+    const groups = (screen.groups ??= [])
+    if (groups.length >= MAXIMUM_GROUPS) return
+    groups.push({ id, placement: centeredPlacement(display, TAP_ZONE_PX, TAP_ZONE_PX) })
+    created = id
+  })
+  return created
+}
+
+const TAP_ZONE_PX = 96
+
+/**
+ * Wraps the selected widgets in a group sized to their bounds, rewriting their
+ * geometry to be relative to it. Grouping is a document edit rather than an
+ * editor annotation, because the device needs the group to switch what an area
+ * of the screen shows — see ADR 0021.
+ *
+ * Only ungrouped widgets on one screen can be grouped: a group has one parent,
+ * and moving a widget between groups is a separate edit.
+ */
+export function groupWidgets(ids: readonly string[]): string | undefined {
+  if (ids.length === 0) return undefined
+  const configuration = useDeviceStore.getState().draft
+  if (!configuration) return undefined
+  const locations = ids
+    .map((id) => findWidget(configuration, id))
+    .filter((location): location is WidgetLocation => location !== undefined)
+  if (locations.length !== ids.length) return undefined
+  const screenIndex = locations[0]!.screenIndex
+  if (
+    locations.some(
+      (location) => location.screenIndex !== screenIndex || location.groupIndex !== undefined
+    )
+  ) {
+    return undefined
+  }
+  // A widget with no usable box has nothing to contribute to the group's
+  // bounds, so grouping is refused rather than guessed at.
+  const boxes = locations.map(({ widget }) => completePlacement(widget.placement))
+  if (boxes.some((box) => box === undefined)) return undefined
+  const placed = boxes as Required<WidgetPlacement>[]
+  const left = Math.min(...placed.map((box) => box.x))
+  const top = Math.min(...placed.map((box) => box.y))
+  const right = Math.max(...placed.map((box) => box.x + box.width))
+  const bottom = Math.max(...placed.map((box) => box.y + box.height))
+  if (right <= left || bottom <= top) return undefined
+
+  const id = createWidgetId()
+  let created: string | undefined
+  mutateDraftConfiguration((next) => {
+    const screen = next.dashboard?.screens?.[screenIndex]
+    if (!screen?.widgets) return
+    const groups = (screen.groups ??= [])
+    if (groups.length >= MAXIMUM_GROUPS) return
+    const members: WidgetConfiguration[] = []
+    for (const memberId of ids) {
+      const index = screen.widgets.findIndex((widget) => widget.id === memberId)
+      const widget = screen.widgets[index]
+      if (index < 0 || !widget) continue
+      screen.widgets.splice(index, 1)
+      const box = completePlacement(widget.placement)
+      if (!box) continue
+      members.push({
+        ...widget,
+        placement: { ...box, x: box.x - left, y: box.y - top }
+      })
+    }
+    if (members.length === 0) return
+    if (screen.widgets.length === 0) delete screen.widgets
+    groups.push({
+      id,
+      placement: { x: left, y: top, width: right - left, height: bottom - top },
+      widgets: members
+    })
+    created = id
+  })
+  return created
+}
+
+/** Puts a group's widgets back on its screen with absolute geometry. */
+export function ungroupWidgets(id: string): string[] {
+  const released: string[] = []
+  mutateDraftConfiguration((configuration) => {
+    const location = findGroup(configuration, id)
+    if (!location) return
+    const screen = configuration.dashboard?.screens?.[location.screenIndex]
+    const groups = screen?.groups
+    if (!screen || !groups) return
+    const box = completePlacement(location.group.placement)
+    if (!box) return
+    const widgets = (screen.widgets ??= [])
+    for (const member of widgetsOf(groups[location.groupIndex])) {
+      const memberBox = completePlacement(member.placement)
+      widgets.push({
+        ...member,
+        ...(memberBox
+          ? { placement: { ...memberBox, x: memberBox.x + box.x, y: memberBox.y + box.y } }
+          : {})
+      })
+      if (member.id) released.push(member.id)
+    }
+    groups.splice(location.groupIndex, 1)
+    if (groups.length === 0) delete screen.groups
+  })
+  return released
 }
 
 export type AlignmentEdge = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom'

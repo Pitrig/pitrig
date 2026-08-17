@@ -21,13 +21,14 @@ enum class ValidationError : std::uint8_t {
   invalid_uart,
   invalid_module,
   invalid_screen,
+  invalid_group,
   invalid_dashboard,
   invalid_widget,
   unknown_property,
   duplicate_property,
 };
 
-inline constexpr std::array<std::string_view, 14> kValidationErrorNames{{
+inline constexpr std::array<std::string_view, 15> kValidationErrorNames{{
     "none",
     "malformed",
     "unsupported_schema",
@@ -38,6 +39,7 @@ inline constexpr std::array<std::string_view, 14> kValidationErrorNames{{
     "invalid_uart",
     "invalid_module",
     "invalid_screen",
+    "invalid_group",
     "invalid_dashboard",
     "invalid_widget",
     "unknown_property",
@@ -164,6 +166,11 @@ inline constexpr std::array<std::string_view, 2> kColorRampKeys{{
     "stops",
 }};
 
+inline constexpr std::array<std::string_view, 2> kWidgetActionKeys{{
+    "type",
+    "screen",
+}};
+
 inline constexpr std::array<std::string_view, 8> kWidgetConditionKeys{{
     "op",
     "value",
@@ -181,7 +188,7 @@ inline constexpr std::array<std::string_view, 3> kTextSourceConfigurationKeys{{
     "transform",
 }};
 
-inline constexpr std::array<std::string_view, 13> kWidgetFrameKeys{{
+inline constexpr std::array<std::string_view, 14> kWidgetFrameKeys{{
     "id",
     "placement",
     "z_index",
@@ -192,12 +199,13 @@ inline constexpr std::array<std::string_view, 13> kWidgetFrameKeys{{
     "background_grad_color",
     "background_grad_dir",
     "background_inset_px",
+    "action",
     "condition_source",
     "color_ramp",
     "conditions",
 }};
 
-inline constexpr std::array<std::string_view, 16> kTextWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 17> kTextWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -209,6 +217,7 @@ inline constexpr std::array<std::string_view, 16> kTextWidgetConfigurationKeys{{
     "background_grad_color",
     "background_grad_dir",
     "background_inset_px",
+    "action",
     "condition_source",
     "color_ramp",
     "conditions",
@@ -221,7 +230,7 @@ inline constexpr std::array<std::string_view, 2> kValueRangeKeys{{
     "maximum",
 }};
 
-inline constexpr std::array<std::string_view, 22> kBarWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 23> kBarWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -233,6 +242,7 @@ inline constexpr std::array<std::string_view, 22> kBarWidgetConfigurationKeys{{
     "background_grad_color",
     "background_grad_dir",
     "background_inset_px",
+    "action",
     "condition_source",
     "color_ramp",
     "conditions",
@@ -246,7 +256,7 @@ inline constexpr std::array<std::string_view, 22> kBarWidgetConfigurationKeys{{
     "fill_grad_color",
 }};
 
-inline constexpr std::array<std::string_view, 23> kArcWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 24> kArcWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -258,6 +268,7 @@ inline constexpr std::array<std::string_view, 23> kArcWidgetConfigurationKeys{{
     "background_grad_color",
     "background_grad_dir",
     "background_inset_px",
+    "action",
     "condition_source",
     "color_ramp",
     "conditions",
@@ -277,7 +288,7 @@ inline constexpr std::array<std::string_view, 2> kIndicatorSegmentKeys{{
     "color",
 }};
 
-inline constexpr std::array<std::string_view, 24> kIndicatorWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 25> kIndicatorWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -289,6 +300,7 @@ inline constexpr std::array<std::string_view, 24> kIndicatorWidgetConfigurationK
     "background_grad_color",
     "background_grad_dir",
     "background_inset_px",
+    "action",
     "condition_source",
     "color_ramp",
     "conditions",
@@ -304,7 +316,7 @@ inline constexpr std::array<std::string_view, 24> kIndicatorWidgetConfigurationK
     "segments",
 }};
 
-inline constexpr std::array<std::string_view, 21> kGraphWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 22> kGraphWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -316,6 +328,7 @@ inline constexpr std::array<std::string_view, 21> kGraphWidgetConfigurationKeys{
     "background_grad_color",
     "background_grad_dir",
     "background_inset_px",
+    "action",
     "condition_source",
     "color_ramp",
     "conditions",
@@ -328,7 +341,7 @@ inline constexpr std::array<std::string_view, 21> kGraphWidgetConfigurationKeys{
     "line_width_px",
 }};
 
-inline constexpr std::array<std::string_view, 17> kImageWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 18> kImageWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -340,6 +353,7 @@ inline constexpr std::array<std::string_view, 17> kImageWidgetConfigurationKeys{
     "background_grad_color",
     "background_grad_dir",
     "background_inset_px",
+    "action",
     "condition_source",
     "color_ramp",
     "conditions",
@@ -348,7 +362,7 @@ inline constexpr std::array<std::string_view, 17> kImageWidgetConfigurationKeys{
     "recolor_opa",
 }};
 
-inline constexpr std::array<std::string_view, 15> kShapeWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 16> kShapeWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -360,15 +374,35 @@ inline constexpr std::array<std::string_view, 15> kShapeWidgetConfigurationKeys{
     "background_grad_color",
     "background_grad_dir",
     "background_inset_px",
+    "action",
     "condition_source",
     "color_ramp",
     "conditions",
     "kind",
 }};
 
-inline constexpr std::array<std::string_view, 3> kScreenConfigurationKeys{{
+inline constexpr std::array<std::string_view, 3> kGroupConditionKeys{{
+    "op",
+    "value",
+    "hold_ms",
+}};
+
+inline constexpr std::array<std::string_view, 9> kGroupConfigurationKeys{{
+    "id",
+    "placement",
+    "z_index",
+    "slot",
+    "slot_default",
+    "action",
+    "condition_source",
+    "conditions",
+    "widgets",
+}};
+
+inline constexpr std::array<std::string_view, 4> kScreenConfigurationKeys{{
     "id",
     "background_color",
+    "groups",
     "widgets",
 }};
 

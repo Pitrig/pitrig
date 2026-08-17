@@ -2,7 +2,9 @@
 
 Status: Accepted; supersedes the single-coordinate-space decision in ADR 0007.
 Amended in schema 5: widget storage moved from the screen to a dashboard-wide
-pool, which removed the reason the screen count was expensive.
+pool, which removed the reason the screen count was expensive. The navigation
+left out of scope here is decided in ADR 0020, and ADR 0021 adds a second parent
+level below the screen.
 
 ## Context
 

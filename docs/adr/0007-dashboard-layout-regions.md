@@ -2,7 +2,9 @@
 
 Status: Accepted; supersedes the original region-based decision. The
 single-coordinate-space rule is superseded by ADR 0014 and the fixed widget-type
-list by ADR 0015. Absolute placement and z_index ordering remain in force.
+list by ADR 0015. The explicit composition primitive reserved here for shared
+visual grouping is taken up by ADR 0021, which makes geometry relative inside a
+group; absolute placement outside one, and z_index ordering, remain in force.
 
 ## Context
 

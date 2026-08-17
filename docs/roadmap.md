@@ -26,7 +26,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [ ] SPI
 - [ ] I2C
 - [*] Display interface
-- [ ] Input interface
+- [*] Input interface (pointer; buttons and encoders still owed)
 
 # Phase 3 — Drivers
 
@@ -34,7 +34,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] ST7701(S) RGB (Guition ESP32-4848S040)
 - [*] JD9165 MIPI-DSI (Guition JC1060P470C, ESP32-P4)
 - [ ] GC9A01
-- [ ] Touch controller
+- [*] GT911 touch controller (both Guition boards)
 - [ ] Buttons
 - [ ] Encoder
 
@@ -53,6 +53,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] Value-driven colour ramps and linear gradients (rotation, opacity and
       animation curves are excluded by decision)
 - [*] Uploaded image asset pipeline and image widgets
+- [*] Widget groups and slots (an area of a screen that switches what it shows)
 - [ ] Button Matrix
 - [ ] RGB
 
@@ -61,8 +62,8 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 Each item needs its own architectural decision before implementation; the
 foundation for them landed in Phase 1.
 
-- [ ] Touch input subsystem
-- [ ] Multiple dashboard screens with navigation
+- [*] Touch input subsystem
+- [*] Multiple dashboard screens with swipe navigation
 - [*] Applying a configuration without restarting
 - [*] Configurator undo and redo
 - [*] Configurator copy, paste and duplicate

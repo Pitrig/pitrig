@@ -31,6 +31,11 @@ editor).
   board without a reboot.
 - Uploaded images, converted in the configurator to the layout and the size the
   device draws.
+- Up to four screens, swiped between on a board with a touch panel, or reached by
+  a tap on a widget or on an area authored as a touch zone.
+- Widget groups: a rectangle of a screen whose widgets are placed relative to
+  it, and slots, where several groups share one box and one is shown at a time —
+  cycled by a tap, or selected by a telemetry rule.
 - Live apply rebuilds the dashboard on a connected board without writing flash
   and without a reboot — SimHub has no direct equivalent.
 
@@ -81,11 +86,24 @@ curves and triggers.
 
 ### 4. Multiple screens and navigation
 
-`kMaximumScreens` is 1. The `screens` array already exists as a composition
-primitive ([ADR 0014](adr/0014-screen-as-composition-primitive.md)), so the
-structure is ready, but there is no second screen and no switching by telemetry,
-button or touch. This is blocked by the input subsystem rather than by the
-editor.
+Done. `kMaximumScreens` is 4 and the driver swipes between them
+([ADR 0020](adr/0020-screen-navigation.md)); the editor authors one screen at a
+time through a tab strip. Navigation is not authorable: the order is the order
+the screens are declared in and it wraps at both ends, so there is nothing in
+the contract for it.
+
+It rests on the input subsystem that arrived with it: a GT911 pointer behind a
+new `interfaces/input` contract on both Guition boards
+([ADR 0019](adr/0019-input-interface-and-touch.md)). **The T-Display-S3 has no
+digitizer**, so on that board a second screen is authored, validated, and never
+reachable. Buttons and encoders are still owed.
+
+A tap navigates as well: a widget or a group may carry `next_screen`,
+`previous_screen` or `goto_screen`, and an empty group is an invisible touch
+zone. The order of the screens, the swipe and the transition stay unauthored.
+
+Missing: authored transitions, vertical navigation, and switching a screen from
+telemetry.
 
 ### 5. Graphical assets
 
@@ -108,9 +126,18 @@ even distribution, snapping to a grid and to neighbouring edges with guides,
 zoom with panning, and a layer panel with drag reordering, renaming and
 lock/hide.
 
-Missing: grouping (as a separate document entity).
+Grouping is done, but not as this section predicted: it is a document entity
+rather than an editor annotation, because the device needs it. A group is a
+rectangle of a screen with its widgets authored inside it, relative to its box,
+and groups sharing a **slot** occupy that box one at a time — the SimHub
+"dashboard area switch". A tap cycles the slot and a telemetry rule overrides
+that while it matches ([ADR 0021](adr/0021-widget-groups-and-slots.md)).
 
-This whole group is pure configurator work: no schema and no firmware changes.
+Missing: dragging a widget between groups on the canvas, and restacking across
+parents.
+
+The rest of this section is pure configurator work: no schema and no firmware
+changes.
 Editor state (locks, hiding, grid, zoom) deliberately stays out of the document:
 the validator rejects unknown properties, and a hidden layer is not a hidden
 widget.
@@ -167,8 +194,8 @@ raising a particular cap is a decision about the RAM budget.
 3. ~~**Bar, arc/gauge, indicator strip**~~ Done, plus `shape` and `graph`.
 4. ~~**Editor UX**~~ Done.
 5. ~~**Images**~~ Done: the uploaded image pipeline and the `image` widget.
-6. **Multiple screens** — a large stage of its own, with its own ADR, blocked by
-   the input subsystem.
-
-Item 6 changes `configuration/configuration_schema.json` and the firmware, so it
-needs an ADR (or an update to an existing one) before implementation.
+6. ~~**Multiple screens**~~ Done, with the touch input it needed and with widget
+   groups and slots, in schema 6 (ADRs 0019, 0020, 0021).
+7. **Cross-board layout transfer and a template library** — the largest
+   remaining difference for a user, and the one item on this list that needs no
+   firmware.

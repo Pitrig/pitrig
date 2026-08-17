@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
-import { widgetsOf } from '../../../../shared/configuration-access'
+import { screensOf, screenWidgetsOf } from '../../../../shared/configuration-access'
 import {
   BAR_ORIENTATION_VALUES,
   COLOR_RAMP_TARGET_VALUES,
@@ -11,8 +11,11 @@ import {
   MAXIMUM_GRAPH_POINTS,
   MAXIMUM_INDICATOR_SEGMENTS,
   MAXIMUM_TEXT_SOURCES,
+  MAXIMUM_ACTIONS,
+  MAXIMUM_SLOTS,
   MAXIMUM_WIDGET_CONDITIONS,
   SHAPE_KIND_VALUES,
+  WIDGET_ACTION_TYPE_VALUES,
   type ArcWidgetConfiguration,
   type BarOrientation,
   type BarWidgetConfiguration,
@@ -30,6 +33,8 @@ import {
   type TextWidgetConfiguration,
   type ValueSourceConfiguration,
   type ValueTransform,
+  type WidgetAction,
+  type WidgetActionType,
   type WidgetCondition,
   type WidgetConfiguration,
   type WidgetPlacement
@@ -61,10 +66,13 @@ import {
   MINIMUM_BLINK_MS
 } from '../../../../shared/widget-conditions'
 import {
-  activeScreen,
+  actionCount,
   completePlacement,
+  groupById,
   mutateActiveScreen,
+  mutateGroup,
   mutateSelectedWidget,
+  selectedGroupId,
   selectedWidget,
   useDashboardEditorStore,
   type WidgetSelection
@@ -74,8 +82,13 @@ export function WidgetInspector(): React.JSX.Element {
   const configuration = useDeviceStore((state) => state.draft)
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
+  const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
   const widget = selectedWidget(configuration, selection)
-  const widgets = widgetsOf(activeScreen(configuration))
+  // Everything the inspector offers belongs to the screen being edited, and the
+  // subscribed index is what makes it follow a screen change.
+  const groupId = selectedGroupId(configuration, selection)
+  const screen = screensOf(configuration)[activeScreenIndex]
+  const widgets = screenWidgetsOf(screen)
 
   return (
     <Card>
@@ -106,6 +119,9 @@ export function WidgetInspector(): React.JSX.Element {
           <ScreenEditor configuration={configuration} />
         ) : null}
         {configuration && selection?.type === 'widget' && !widget ? <Hint>Select an existing widget on the display.</Hint> : null}
+        {configuration && selection?.type === 'group' && groupId ? (
+          <GroupEditor groupId={groupId} configuration={configuration} />
+        ) : null}
         {configuration && widget && selection?.type === 'widget' ? (
           <>
             <GeometryEditor selection={selection} placement={completePlacement(widget.placement)} zIndex={widget.z_index ?? 0} />
@@ -124,6 +140,18 @@ export function WidgetInspector(): React.JSX.Element {
             ) : (
               <TextEditor selection={selection} widget={widget} />
             )}
+            <ActionEditor
+              configuration={configuration}
+              action={widget.action}
+              disabledReason={undefined}
+              onChange={(action) =>
+                mutateSelectedWidget(selection, (target) => {
+                  if (action) target.action = action
+                  else delete target.action
+                })
+              }
+            />
+            {groupId ? <GroupEditor groupId={groupId} configuration={configuration} /> : null}
           </>
         ) : null}
       </CardContent>
@@ -357,12 +385,244 @@ function ShapeEditor({ selection, widget }: { selection: WidgetSelection; widget
   )
 }
 
-function ScreenEditor({ configuration }: { configuration: DeviceConfiguration }): React.JSX.Element {
+/**
+ * What a tap does. Carried by widgets and by groups alike, so the editor for it
+ * is one component: a readout that doubles as a button and a rectangle of the
+ * screen are the same thing to the device.
+ *
+ * The board reaches this only where there is a digitizer, which the hint says
+ * rather than the editor hiding the section on those boards — a document is
+ * authored for the dashboard, not for the plate it is being edited on.
+ */
+function ActionEditor({
+  configuration,
+  action,
+  disabledReason,
+  onChange
+}: {
+  configuration: DeviceConfiguration
+  action?: WidgetAction
+  disabledReason?: string
+  onChange: (action: WidgetAction | undefined) => void
+}): React.JSX.Element {
+  const type = action?.type ?? 'none'
+  const screens = screensOf(configuration)
+  const atCapacity = actionCount(configuration) >= MAXIMUM_ACTIONS && type === 'none'
   return (
-    <Section title="Screen">
+    <Section title="Action">
+      {disabledReason ? (
+        <p className="text-muted-foreground">{disabledReason}</p>
+      ) : (
+        <>
+          <SelectField
+            label="On tap"
+            value={type}
+            options={WIDGET_ACTION_TYPE_VALUES}
+            onChange={(next) => {
+              if (next === 'none') {
+                onChange(undefined)
+                return
+              }
+              if (next === 'goto_screen') {
+                onChange({ type: 'goto_screen', screen: screens[0]?.id ?? '' })
+                return
+              }
+              // The other types name no screen, and one that does is rejected
+              // by the device rather than ignored.
+              onChange({ type: next as WidgetActionType })
+            }}
+          />
+          {type === 'goto_screen' ? (
+            <SelectField
+              label="Go to screen"
+              value={action?.screen ?? ''}
+              options={screens.map((screen, index) => screen.id ?? `screen${index + 1}`)}
+              onChange={(screen) => onChange({ type: 'goto_screen', screen })}
+            />
+          ) : null}
+          {atCapacity ? (
+            <p className="text-muted-foreground">
+              {`This dashboard already uses all ${MAXIMUM_ACTIONS} tap targets.`}
+            </p>
+          ) : null}
+        </>
+      )}
+    </Section>
+  )
+}
+
+/**
+ * The group the selected widget belongs to. A group is reached through its
+ * widgets rather than through a selection type of its own: what the author
+ * clicks on is always a widget, and the group is the parent behind it.
+ *
+ * Nothing shows for a widget on the screen itself, which is what "not in a
+ * group" looks like.
+ */
+function GroupEditor({
+  groupId,
+  configuration
+}: {
+  groupId: string
+  configuration: DeviceConfiguration
+}): React.JSX.Element | null {
+  const group = groupById(configuration, groupId)
+  if (!group) return null
+  const box = group.placement ?? {}
+  const slot = group.slot ?? 0
+  return (
+    <Section title={`Group · ${group.id ?? ''}`}>
+      <div className="grid grid-cols-2 gap-2">
+        {(['x', 'y', 'width', 'height'] as const).map((key) => (
+          <NumberField
+            key={key}
+            label={key}
+            value={box[key] ?? 0}
+            onChange={(value) =>
+              mutateGroup(groupId, (target) => {
+                target.placement = { ...target.placement, [key]: value }
+              })
+            }
+          />
+        ))}
+      </div>
+      <NumberField
+        label="Slot (0 = always visible)"
+        value={slot}
+        min={0}
+        max={MAXIMUM_SLOTS}
+        onChange={(value) =>
+          mutateGroup(groupId, (target) => {
+            if (value <= 0) {
+              delete target.slot
+              delete target.slot_default
+              return
+            }
+            target.slot = value
+          })
+        }
+      />
+      <ActionEditor
+        configuration={configuration}
+        action={group.action}
+        disabledReason={
+          slot > 0
+            ? 'A group in a slot spends its tap on cycling, so it cannot navigate as well.'
+            : undefined
+        }
+        onChange={(action) =>
+          mutateGroup(groupId, (target) => {
+            if (action) target.action = action
+            else delete target.action
+          })
+        }
+      />
+      {slot > 0 ? (
+        <>
+          <CheckboxField
+            label="Shown first in this slot"
+            checked={group.slot_default === true}
+            onChange={(checked) =>
+              mutateGroup(groupId, (target) => {
+                if (checked) target.slot_default = true
+                else delete target.slot_default
+              })
+            }
+          />
+          <p className="text-muted-foreground">
+            Groups sharing a slot must share this box, and exactly one of them must be shown
+            first. Tapping the slot on the board cycles to the next group; a matching rule below
+            overrides that while it holds.
+          </p>
+          <TelemetryBindingField
+            value={group.condition_source?.binding ?? ''}
+            onChange={(binding) =>
+              mutateGroup(groupId, (target) => {
+                if (!binding) delete target.condition_source
+                else target.condition_source = { ...target.condition_source, binding }
+              })
+            }
+          />
+          {(group.conditions ?? []).map((rule, index) => (
+            <div key={index} className="grid grid-cols-[6rem_1fr_5rem_auto] items-end gap-2">
+              <SelectField
+                label="When"
+                value={rule.op ?? 'above'}
+                options={CONDITION_OPERATOR_VALUES}
+                onChange={(op) =>
+                  mutateGroup(groupId, (target) => {
+                    const rules = target.conditions ?? []
+                    rules[index] = { ...rules[index], op: op as ConditionOperator }
+                    target.conditions = rules
+                  })
+                }
+              />
+              <NumberField
+                label="Value"
+                value={rule.value ?? 0}
+                step="any"
+                onChange={(value) =>
+                  mutateGroup(groupId, (target) => {
+                    const rules = target.conditions ?? []
+                    rules[index] = { ...rules[index], value }
+                    target.conditions = rules
+                  })
+                }
+              />
+              <NumberField
+                label="Hold ms"
+                value={rule.hold_ms ?? 0}
+                min={0}
+                max={MAXIMUM_HOLD_MS}
+                onChange={(hold_ms) =>
+                  mutateGroup(groupId, (target) => {
+                    const rules = target.conditions ?? []
+                    rules[index] = { ...rules[index], hold_ms }
+                    target.conditions = rules
+                  })
+                }
+              />
+              <button
+                type="button"
+                className="h-8 rounded-md border px-2 hover:bg-muted"
+                onClick={() =>
+                  mutateGroup(groupId, (target) => {
+                    const rules = (target.conditions ?? []).filter((_, at) => at !== index)
+                    if (rules.length === 0) delete target.conditions
+                    else target.conditions = rules
+                  })
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          {(group.conditions ?? []).length < MAXIMUM_WIDGET_CONDITIONS ? (
+            <button
+              type="button"
+              className="h-8 rounded-md border px-2 hover:bg-muted"
+              onClick={() =>
+                mutateGroup(groupId, (target) => {
+                  target.conditions = [...(target.conditions ?? []), { op: 'above', value: 0 }]
+                })
+              }
+            >
+              Add activation rule
+            </button>
+          ) : null}
+        </>
+      ) : null}
+    </Section>
+  )
+}
+
+function ScreenEditor({ configuration }: { configuration: DeviceConfiguration }): React.JSX.Element {
+  const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
+  return (
+    <Section title={`Screen ${activeScreenIndex + 1}`}>
       <ColorField
         label="Background color"
-        value={activeScreen(configuration)?.background_color ?? '#000000'}
+        value={screensOf(configuration)[activeScreenIndex]?.background_color ?? '#000000'}
         onChange={(background_color) =>
           mutateActiveScreen((screen) => {
             screen.background_color = background_color

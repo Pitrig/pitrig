@@ -6,6 +6,7 @@ import { useDeviceStore } from '@/features/device/device-store'
 import {
   allWidgetsOf,
   dashboardBindings,
+  groupsOf,
   screensOf,
   widgetsOf
 } from '../../../../shared/configuration-access'
@@ -32,6 +33,8 @@ import {
 import { MAXIMUM_GRAPH_POINTS } from '../../../../shared/configuration-schema'
 import type {
   ArcWidgetConfiguration,
+  GroupConfiguration,
+  WidgetAction,
   ImageWidgetConfiguration,
   BarWidgetConfiguration,
   GraphWidgetConfiguration,
@@ -45,6 +48,13 @@ import type { DeviceConfiguration, DisplayDescriptor } from '../../../../shared/
 import { BOARD_PROFILES } from '../../../../shared/device'
 import type { PreviewPlayback, PreviewValueMode } from './dashboard-editor'
 import {
+  absolutePlacement,
+  addScreen,
+  addTapZone,
+  deleteScreen,
+  groupWidgets,
+  MAXIMUM_SCREENS,
+  parentOffset,
   addArcWidget,
   addBarWidget,
   addGraphWidget,
@@ -200,6 +210,99 @@ export function DisplayPreview(): React.JSX.Element {
 }
 
 /**
+ * Which screen is being authored. The device always starts at the first one and
+ * the driver swipes between them, so this is an editor view rather than a
+ * document property — there is nothing here to save.
+ */
+function ScreenTabs(): React.JSX.Element {
+  const configuration = useDeviceStore((state) => state.draft)
+  const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
+  const setActiveScreen = useDashboardEditorStore((state) => state.setActiveScreen)
+  const screens = screensOf(configuration)
+  const count = Math.max(screens.length, 1)
+  return (
+    <>
+      {Array.from({ length: count }, (_, index) => (
+        <button
+          key={screens[index]?.id ?? index}
+          type="button"
+          title={`Edit screen ${index + 1}`}
+          aria-pressed={index === activeScreenIndex}
+          className={`h-7 rounded-md border px-2 hover:bg-muted ${
+            index === activeScreenIndex ? 'bg-muted font-medium' : ''
+          }`}
+          onClick={() => setActiveScreen(index)}
+        >
+          {index + 1}
+        </button>
+      ))}
+      {count < MAXIMUM_SCREENS ? (
+        <button
+          type="button"
+          title="Add a screen"
+          className="h-7 rounded-md border px-2 hover:bg-muted"
+          onClick={() => {
+            const index = addScreen()
+            if (index !== undefined) setActiveScreen(index)
+          }}
+        >
+          +
+        </button>
+      ) : null}
+      {activeScreenIndex > 0 ? (
+        <button
+          type="button"
+          title="Delete this screen and everything on it"
+          className="h-7 rounded-md border px-2 hover:bg-muted"
+          onClick={() => deleteScreen(activeScreenIndex)}
+        >
+          −
+        </button>
+      ) : null}
+    </>
+  )
+}
+
+/**
+ * One picker per slot on the screen being edited. The board decides which group
+ * a slot shows from a tap or a rule, so this is purely a way to look at the
+ * others while authoring them.
+ */
+function SlotTabs(): React.JSX.Element | null {
+  const configuration = useDeviceStore((state) => state.draft)
+  const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
+  const previewSlots = useDashboardEditorStore((state) => state.previewSlots)
+  const setPreviewSlot = useDashboardEditorStore((state) => state.setPreviewSlot)
+  const groups = groupsOf(screensOf(configuration)[activeScreenIndex])
+  const slots = [...new Set(groups.map((group) => group.slot ?? 0))].filter((slot) => slot > 0)
+  if (slots.length === 0) return null
+  return (
+    <>
+      {slots.map((slot) => {
+        const members = groups.filter((group) => (group.slot ?? 0) === slot)
+        const shown = members.find((group) => visibleInSlot(groups, group, previewSlots))
+        return (
+          <label key={slot} className="flex items-center gap-1 text-muted-foreground">
+            <span>{`slot ${slot}`}</span>
+            <select
+              className="h-7 rounded-md border bg-background px-1 text-foreground"
+              value={shown?.id ?? ''}
+              onChange={(event) => setPreviewSlot(slot, event.target.value)}
+            >
+              {members.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.id}
+                </option>
+              ))}
+            </select>
+          </label>
+        )
+      })}
+    </>
+  )
+}
+
+/**
  * Arrangement acts on the selection and the view controls act on the canvas, so
  * neither belongs with the buttons that add widgets. Alignment appears only
  * once there is a group to align, which is also when it starts meaning
@@ -213,6 +316,37 @@ function ArrangeToolbar({ display }: { display: DisplayDescriptor }): React.JSX.
   const zoomTo = (zoom: number): void => setView({ zoom, ...clampPan(view, display, zoom) })
   return (
     <div className="flex flex-wrap items-center gap-1 text-xs">
+      <ScreenTabs />
+      <SlotTabs />
+      <span className="mx-1 h-4 w-px bg-border" />
+      {selectedIds.length >= 2 ? (
+        <>
+          <button
+            type="button"
+            title="Group the selection (Cmd/Ctrl+G)"
+            className="h-7 rounded-md border px-2 hover:bg-muted"
+            onClick={() => {
+              const id = groupWidgets(selectedIds)
+              if (id) useDashboardEditorStore.getState().select({ type: 'widget', id })
+            }}
+          >
+            Group
+          </button>
+          <span className="mx-1 h-4 w-px bg-border" />
+        </>
+      ) : null}
+      <button
+        type="button"
+        title="Add an invisible rectangle that takes a tap"
+        className="h-7 rounded-md border px-2 hover:bg-muted"
+        onClick={() => {
+          const id = addTapZone(display)
+          if (id) useDashboardEditorStore.getState().select({ type: 'widget', id })
+        }}
+      >
+        Tap zone
+      </button>
+      <span className="mx-1 h-4 w-px bg-border" />
       {selectedIds.length >= 2 ? (
         <>
           <span className="mr-1 text-muted-foreground">{`${selectedIds.length} selected`}</span>
@@ -332,6 +466,9 @@ function Widgets({
   const select = useDashboardEditorStore((state) => state.select)
   const extendSelection = useDashboardEditorStore((state) => state.extendSelection)
   const selectMany = useDashboardEditorStore((state) => state.selectMany)
+  const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
+  const setActiveScreen = useDashboardEditorStore((state) => state.setActiveScreen)
+  const previewSlots = useDashboardEditorStore((state) => state.previewSlots)
   const view = useDashboardEditorStore((state) => state.view)
   const locked = useDashboardEditorStore((state) => state.locked)
   const hidden = useDashboardEditorStore((state) => state.hidden)
@@ -359,16 +496,24 @@ function Widgets({
     return () => clearInterval(timer)
   }, [playback.mode, playing])
   const values = createPreviewValues(configuration, playback, clockMs)
-  const screen = screensOf(configuration)[0]
+  const screen = screensOf(configuration)[activeScreenIndex]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
-  const widgets = widgetsOf(screen)
+  const allGroups = groupsOf(screen)
+  // The board shows one group per slot; the canvas has to author all of them,
+  // so it draws the one picked in the toolbar and leaves the rest out rather
+  // than stacking a slot's groups on top of each other.
+  const groups = allGroups.filter((group) => visibleInSlot(allGroups, group, previewSlots))
+  // The canvas works entirely in display coordinates. Geometry inside a group
+  // is relative to the group's box, so it is translated here on the way out and
+  // translated back before anything is written to the document.
+  const widgets = [...widgetsOf(screen), ...groups.flatMap(widgetsOf)]
 
   const selectedPlacements = selectedIds
-    .map((id) => completePlacement(findWidget(configuration, id)?.widget.placement))
+    .map((id) => absolutePlacement(configuration, id))
     .filter((placement): placement is Placement => placement !== undefined)
   const primaryPlacement =
     selection?.type === 'widget'
-      ? completePlacement(findWidget(configuration, selection.id)?.widget.placement)
+      ? absolutePlacement(configuration, selection.id)
       : undefined
 
   const beginInteraction = (
@@ -405,10 +550,7 @@ function Widgets({
         mode === 'move'
           ? group
               .filter((id) => id !== (target.type === 'widget' ? target.id : ''))
-              .map((id) => ({
-                id,
-                placement: completePlacement(findWidget(configuration, id)?.widget.placement)
-              }))
+              .map((id) => ({ id, placement: absolutePlacement(configuration, id) }))
               .filter((entry): entry is Follower => entry.placement !== undefined)
           : []
     })
@@ -464,15 +606,28 @@ function Widgets({
       const shiftX = resolved.placement.x - interaction.placement.x
       const shiftY = resolved.placement.y - interaction.placement.y
       mutateDraftConfiguration((draft) => {
-        const primary = findWidget(draft, interaction.target.type === 'widget' ? interaction.target.id : '')
-        if (primary) primary.widget.placement = resolved.placement
+        const primaryId = interaction.target.type === 'widget' ? interaction.target.id : ''
+        const primary = findWidget(draft, primaryId)
+        if (primary) {
+          const offset = parentOffset(draft, primaryId)
+          primary.widget.placement = {
+            ...resolved.placement,
+            x: resolved.placement.x - offset.x,
+            y: resolved.placement.y - offset.y
+          }
+        }
         for (const follower of interaction.followers) {
           const widget = findWidget(draft, follower.id)?.widget
           if (!widget) continue
+          const offset = parentOffset(draft, follower.id)
           widget.placement = {
             ...follower.placement,
-            x: Math.round(clamp(follower.placement.x + shiftX, 0, display.width - follower.placement.width)),
-            y: Math.round(clamp(follower.placement.y + shiftY, 0, display.height - follower.placement.height))
+            x: Math.round(
+              clamp(follower.placement.x + shiftX, 0, display.width - follower.placement.width)
+            ) - offset.x,
+            y: Math.round(
+              clamp(follower.placement.y + shiftY, 0, display.height - follower.placement.height)
+            ) - offset.y
           }
         }
       })
@@ -495,7 +650,7 @@ function Widgets({
         const caught = widgets
           .filter((widget) => widget.id && !hidden[widget.id] && !locked[widget.id])
           .filter((widget) => {
-            const placement = completePlacement(widget.placement)
+            const placement = absolutePlacement(configuration, widget.id as string)
             return placement !== undefined && intersects(placement, bounds)
           })
           .map((widget) => widget.id as string)
@@ -570,15 +725,92 @@ function Widgets({
   }
 
   // Same rule the firmware applies: z_index ascending, authored array order
-  // breaking ties.
-  const layers: PreviewLayer[] = widgets.map((widget, index) => ({
-    configuration: widget,
-    zIndex: widget.z_index ?? 0,
-    configurationOrder: index
-  }))
-  layers.sort((left, right) =>
+  // breaking ties. A group is one entry at screen level and orders its own
+  // children within itself, exactly as one LVGL parent orders its children.
+  const screenWidgets = widgetsOf(screen)
+  const entries: ScreenEntry[] = [
+    ...screenWidgets.map((widget, index) => ({
+      kind: 'widget' as const,
+      widget,
+      zIndex: widget.z_index ?? 0,
+      configurationOrder: index
+    })),
+    ...groups.map((group, index) => ({
+      kind: 'group' as const,
+      group,
+      zIndex: group.z_index ?? 0,
+      configurationOrder: screenWidgets.length + index
+    }))
+  ]
+  entries.sort((left, right) =>
     left.zIndex - right.zIndex || left.configurationOrder - right.configurationOrder
   )
+  const layers: PreviewLayer[] = entries.flatMap((entry) => {
+    if (entry.kind === 'widget') {
+      return [
+        {
+          configuration: entry.widget,
+          zIndex: entry.zIndex,
+          configurationOrder: entry.configurationOrder,
+          offsetX: 0,
+          offsetY: 0
+        }
+      ]
+    }
+    const box = completePlacement(entry.group.placement)
+    const members = widgetsOf(entry.group)
+      .map((widget, index) => ({
+        configuration: widget,
+        zIndex: widget.z_index ?? 0,
+        configurationOrder: index,
+        offsetX: box?.x ?? 0,
+        offsetY: box?.y ?? 0,
+        group: entry.group
+      }))
+    members.sort((left, right) =>
+      left.zIndex - right.zIndex || left.configurationOrder - right.configurationOrder
+    )
+    return members
+  })
+
+  // Widgets carry their action on the frame and groups carry it on themselves,
+  // so both are collected the same way and drawn in display coordinates.
+  const tapTargets = [
+    ...layers
+      .filter((layer) => layer.configuration.action?.type && layer.configuration.action.type !== 'none')
+      .map((layer) => ({
+        id: layer.configuration.id ?? '',
+        placement: layer.configuration.id
+          ? absolutePlacement(configuration, layer.configuration.id)
+          : undefined,
+        label: actionLabel(layer.configuration.action)
+      })),
+    ...groups
+      .filter((group) => group.action?.type && group.action.type !== 'none')
+      .map((group) => ({
+        id: group.id ?? '',
+        placement: completePlacement(group.placement),
+        label: actionLabel(group.action)
+      }))
+  ].filter(
+    (entry): entry is { id: string; placement: Placement; label: string } =>
+      entry.placement !== undefined
+  )
+
+  // Walks the action the way the board would, so a link can be checked without
+  // one. next/previous move relative to the screen being edited.
+  const followAction = (action: WidgetAction | undefined): void => {
+    if (!action || action.type === 'none') return
+    const screens = screensOf(configuration)
+    if (screens.length === 0) return
+    if (action.type === 'goto_screen') {
+      const index = screens.findIndex((entry) => entry.id === action.screen)
+      if (index >= 0) setActiveScreen(index)
+      return
+    }
+    const delta = action.type === 'next_screen' ? 1 : screens.length - 1
+    setActiveScreen((activeScreenIndex + delta) % screens.length)
+  }
 
   const viewWidth = display.width / view.zoom
   const viewHeight = display.height / view.zoom
@@ -599,15 +831,54 @@ function Widgets({
     >
       <rect width={display.width} height={display.height} fill={screenBackground} />
       {view.snapToGrid ? <GridOverlay display={display} size={view.gridSize} zoom={view.zoom} /> : null}
+      {groups.map((group) => {
+        const box = completePlacement(group.placement)
+        return box ? (
+          <rect
+            key={`group-${group.id}`}
+            {...box}
+            fill="none"
+            stroke={group.action && group.action.type !== 'none' ? '#38F5A8' : '#A78BFA'}
+            strokeWidth={1 / view.zoom}
+            strokeDasharray={`${2 / view.zoom} ${4 / view.zoom}`}
+            // Only the outline takes the pointer, so clicking inside a group
+            // still reaches the widget under the cursor. An empty group is all
+            // outline, which is what makes a tap zone selectable.
+            pointerEvents="stroke"
+            style={{ cursor: 'pointer' }}
+            onPointerDown={(event) => {
+              event.stopPropagation()
+              select({ type: 'group', id: group.id ?? '' })
+            }}
+            onDoubleClick={() => followAction(group.action)}
+          />
+        ) : null
+      })}
+      {groups.map((group) => {
+        const box = completePlacement(group.placement)
+        return box ? (
+          <clipPath key={`clip-${group.id}`} id={`group-clip-${group.id}`}>
+            <rect {...box} />
+          </clipPath>
+        ) : null
+      })}
       {layers.map((layer) => {
         const id = layer.configuration.id
         if (id && hidden[id]) return null
+        const grouped = layer.group !== undefined
         return (
-          <g key={id ?? layer.configurationOrder} onPointerDown={(event) => {
-            const placement = completePlacement(layer.configuration.placement)
+          <g
+            key={id ?? layer.configurationOrder}
+            transform={grouped ? `translate(${layer.offsetX} ${layer.offsetY})` : undefined}
+            clipPath={grouped ? `url(#group-clip-${layer.group?.id})` : undefined}
+            onPointerDown={(event) => {
+            const placement = id ? absolutePlacement(configuration, id) : undefined
             if (!placement || !id || locked[id]) return
             beginInteraction(event, { type: 'widget', id }, 'move', placement)
-          }}>
+          }}
+            // Following an action is the only way to check where it leads while
+            // the canvas has no live device to tap on.
+            onDoubleClick={() => followAction(layer.configuration.action)}>
             {layer.configuration.type === 'bar' ? (
               <BarPreview configuration={layer.configuration} values={values} />
             ) : layer.configuration.type === 'arc' ? (
@@ -630,6 +901,27 @@ function Widgets({
           </g>
         )
       })}
+      {/* A tap target is only a tap target on the board, so the canvas says so:
+          an empty group would otherwise be an invisible rectangle. */}
+      {tapTargets.map(({ id, placement, label }) => (
+        <g key={`action-${id}`} pointerEvents="none">
+          <rect
+            {...placement}
+            fill="none"
+            stroke="#38F5A8"
+            strokeWidth={1 / view.zoom}
+            strokeDasharray={`${5 / view.zoom} ${3 / view.zoom}`}
+          />
+          <text
+            x={placement.x + 2 / view.zoom}
+            y={placement.y + 10 / view.zoom}
+            fill="#38F5A8"
+            fontSize={9 / view.zoom}
+          >
+            {label}
+          </text>
+        </g>
+      ))}
       {/* Every selected widget is outlined; only the primary one carries the
           resize handles, because a resize has one anchor. */}
       {selectedPlacements.map((placement, index) => (
@@ -697,7 +989,41 @@ interface PreviewLayer {
   configuration: WidgetConfiguration
   zIndex: number
   configurationOrder: number
+  /** The group's origin on the display, or zero for a widget on the screen. */
+  offsetX: number
+  offsetY: number
+  group?: GroupConfiguration
 }
+
+/**
+ * Whether a group is the one its slot is currently being looked at through.
+ * A group outside a slot is always drawn; inside one, the picked group wins and
+ * the slot default stands in until something is picked.
+ */
+function visibleInSlot(
+  groups: GroupConfiguration[],
+  group: GroupConfiguration,
+  picked: Record<number, string>
+): boolean {
+  const slot = group.slot ?? 0
+  if (slot === 0) return true
+  const chosen = picked[slot]
+  if (chosen !== undefined) return group.id === chosen
+  const members = groups.filter((entry) => (entry.slot ?? 0) === slot)
+  const fallback = members.find((entry) => entry.slot_default) ?? members[0]
+  return group.id === fallback?.id
+}
+
+function actionLabel(action: WidgetAction | undefined): string {
+  if (!action || action.type === 'none') return ''
+  if (action.type === 'goto_screen') return `→ ${action.screen ?? ''}`
+  return action.type === 'next_screen' ? '→ next' : '→ prev'
+}
+
+// What a screen stacks: its own widgets, and each group as a single entry.
+type ScreenEntry =
+  | { kind: 'widget'; widget: WidgetConfiguration; zIndex: number; configurationOrder: number }
+  | { kind: 'group'; group: GroupConfiguration; zIndex: number; configurationOrder: number }
 
 type ResizeMode = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 type InteractionMode = 'move' | ResizeMode

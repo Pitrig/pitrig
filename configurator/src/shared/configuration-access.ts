@@ -1,6 +1,7 @@
 import { WIDGET_TYPES } from './configuration-schema'
 import type {
   ApplicationConfiguration,
+  GroupConfiguration,
   ScreenConfiguration,
   TextWidgetConfiguration,
   ValueSourceConfiguration,
@@ -18,16 +19,33 @@ export function screensOf(
   return Array.isArray(screens) ? screens.filter(isRecord) : []
 }
 
-export function widgetsOf(screen: ScreenConfiguration | undefined): WidgetConfiguration[] {
+/** The widgets authored directly on a screen, without the ones inside its groups. */
+export function widgetsOf(
+  screen: ScreenConfiguration | GroupConfiguration | undefined
+): WidgetConfiguration[] {
   const widgets = screen?.widgets
   return Array.isArray(widgets) ? widgets.filter(isWidget) : []
+}
+
+export function groupsOf(screen: ScreenConfiguration | undefined): GroupConfiguration[] {
+  const groups = screen?.groups
+  return Array.isArray(groups) ? groups.filter(isRecord) : []
+}
+
+/**
+ * Every widget of one screen in authored order, its groups' children included.
+ * Anything that asks "what does this screen read, draw, or need a font for"
+ * wants this rather than `widgetsOf`, which is the parenting question.
+ */
+export function screenWidgetsOf(screen: ScreenConfiguration | undefined): WidgetConfiguration[] {
+  return [...widgetsOf(screen), ...groupsOf(screen).flatMap(widgetsOf)]
 }
 
 /** Every widget on every screen, in authored order. */
 export function allWidgetsOf(
   configuration: ApplicationConfiguration | undefined
 ): WidgetConfiguration[] {
-  return screensOf(configuration).flatMap(widgetsOf)
+  return screensOf(configuration).flatMap(screenWidgetsOf)
 }
 
 // Several variants carry a frame, so anything reading text properties narrows
@@ -80,8 +98,10 @@ export function createWidgetId(): string {
 }
 
 /**
- * Assigns an id to every widget and screen that lacks one. Ids are optional in
- * the schema, so an imported or hand-written document may arrive without them.
+ * Assigns an id to every widget, group, and screen that lacks one. Ids are
+ * optional in the schema, so an imported or hand-written document may arrive
+ * without them. Widgets and groups share one namespace: both are addressed by id
+ * in selection, the layer tree, and undo history.
  */
 export function withWidgetIds(
   configuration: ApplicationConfiguration
@@ -94,18 +114,28 @@ export function withWidgetIds(
     used.add(value)
     return value
   }
+  const withIds = <T extends { widgets?: unknown }>(owner: T): T =>
+    owner.widgets
+      ? {
+          ...owner,
+          widgets: widgetsOf(owner as ScreenConfiguration).map((widget) => ({
+            ...widget,
+            id: unique(widget.id)
+          }))
+        }
+      : owner
   return {
     ...configuration,
     dashboard: {
       ...configuration.dashboard,
       screens: screens.map((screen, index) => ({
-        ...screen,
+        ...withIds(screen),
         id: screen.id ?? `screen${index + 1}`,
-        ...(screen.widgets
+        ...(screen.groups
           ? {
-              widgets: widgetsOf(screen).map((widget) => ({
-                ...widget,
-                id: unique(widget.id)
+              groups: groupsOf(screen).map((group) => ({
+                ...withIds(group),
+                id: unique(group.id)
               }))
             }
           : {})
@@ -139,7 +169,7 @@ function sortKeys(value: unknown): unknown {
   return Object.fromEntries(entries.map(([key, item]) => [key, sortKeys(item)]))
 }
 
-function isRecord(value: unknown): value is ScreenConfiguration {
+function isRecord<T>(value: unknown): value is T {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 

@@ -11,6 +11,12 @@
 // primitives that were always underneath it: a text widget reading
 // `session.lap.delta` through the signed duration transform, plus a bar for the
 // scale it used to draw itself.
+//
+// Schema 5 → 6: widget groups and slots were added. Purely additive — a schema-5
+// document has no `groups`, parses unchanged, and needs no step here.
+//
+// Schema 6 → 7: widgets and groups gained an optional `action`, so a tap can
+// navigate. Additive for the same reason, and likewise needs no step.
 
 import { createWidgetId } from './configuration-access'
 

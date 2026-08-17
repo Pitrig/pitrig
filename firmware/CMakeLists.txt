@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/core"
      "${CMAKE_CURRENT_LIST_DIR}/core/module_manager"
+     "${CMAKE_CURRENT_LIST_DIR}/drivers/touch/gt911"
      "${CMAKE_CURRENT_LIST_DIR}/drivers/transport/uart"
      "${CMAKE_CURRENT_LIST_DIR}/drivers/transport/usb_cdc"
      "${CMAKE_CURRENT_LIST_DIR}/interfaces"
