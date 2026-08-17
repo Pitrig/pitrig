@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { type FontSpec, type RgbColor, WIDGET_ID_CAPACITY } from '../../../../../shared/configuration-schema'
+import { dashboardPalette } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
 
 export function Section({ title, children }: { title: string; children: React.ReactNode }): React.JSX.Element { return <section className="space-y-2 border-t pt-3"><h3 className="font-medium">{title}</h3>{children}</section> }
@@ -16,7 +17,35 @@ export function SelectField({ label, value, options, onChange }: { label: string
 export function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: RgbColor) => void }): React.JSX.Element {
   const [local, change, flush] = useLiveCommit(value, (next) => onChange(next as RgbColor))
   const opaque = /^#[0-9A-Fa-f]{6}$/.test(local)
-  return <label className="flex items-end gap-2 text-muted-foreground"><span className="min-w-0 flex-1 space-y-1"><span className="block">{label}</span><input className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} onChange={(event) => change(event.target.value)} onBlur={flush} /></span><input aria-label={`${label} picker`} type="color" className="h-8 w-10 rounded border bg-background p-1" value={opaque ? local : '#000000'} onChange={(event) => onChange(event.target.value as RgbColor)} /></label>
+  // The browser draws the native picker's popup itself, so the colours already
+  // on the dashboard cannot be put inside it. They go under the field instead,
+  // where reaching one is a click rather than a trip through the picker.
+  const palette = dashboardPalette(useDeviceStore((state) => state.draft))
+  return (
+    <div className="space-y-1">
+      <label className="flex items-end gap-2 text-muted-foreground">
+        <span className="min-w-0 flex-1 space-y-1"><span className="block">{label}</span><input className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} onChange={(event) => change(event.target.value)} onBlur={flush} /></span>
+        <input aria-label={`${label} picker`} type="color" className="h-8 w-10 rounded border bg-background p-1" value={opaque ? local : '#000000'} onChange={(event) => change(event.target.value)} />
+      </label>
+      {palette.length > 0 ? (
+        <div className="flex flex-wrap gap-1" role="group" aria-label={`${label} colors already on the dashboard`}>
+          {palette.map((color) => (
+            <button
+              key={color}
+              type="button"
+              // The hex is the whole label: a swatch names itself by the colour
+              // it shows, and a screen reader has nothing else to go on.
+              title={color}
+              aria-label={color}
+              className="h-5 w-5 rounded border"
+              style={{ backgroundColor: color }}
+              onClick={() => change(color)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 export function CheckboxField({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }): React.JSX.Element { return <label className="flex items-center gap-2 text-muted-foreground"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /><span>{label}</span></label> }
 
