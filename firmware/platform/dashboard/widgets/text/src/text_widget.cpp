@@ -43,12 +43,24 @@ constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
 // label with the same text alignment.
 [[nodiscard]] lv_align_t lv_alignment(const Alignment alignment) {
   switch (alignment) {
+    case Alignment::top_left:
+      return LV_ALIGN_TOP_LEFT;
+    case Alignment::top_center:
+      return LV_ALIGN_TOP_MID;
+    case Alignment::top_right:
+      return LV_ALIGN_TOP_RIGHT;
     case Alignment::left:
       return LV_ALIGN_LEFT_MID;
     case Alignment::center:
       return LV_ALIGN_CENTER;
     case Alignment::right:
       return LV_ALIGN_RIGHT_MID;
+    case Alignment::bottom_left:
+      return LV_ALIGN_BOTTOM_LEFT;
+    case Alignment::bottom_center:
+      return LV_ALIGN_BOTTOM_MID;
+    case Alignment::bottom_right:
+      return LV_ALIGN_BOTTOM_RIGHT;
   }
   return LV_ALIGN_CENTER;
 }

@@ -1,4 +1,4 @@
-import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarOrientation, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeKind, type ShapeWidgetConfiguration, type TextWidgetConfiguration } from '../../../../../shared/configuration-schema'
+import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarOrientation, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeKind, type ShapeWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextAlignment, type TextWidgetConfiguration } from '../../../../../shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '../../../../../shared/telemetry-catalog'
 import { MAXIMUM_BLINK_MS } from '../../../../../shared/widget-conditions'
 import { type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
@@ -249,7 +249,7 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
       <ConditionsEditor widget={widget} update={update} />
       <Section title="Value">
         <FontEditor font={widget.value?.font} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
-        <SelectField label="Alignment" value={widget.value?.alignment ?? 'center'} options={['left', 'center', 'right']} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value as 'left' | 'center' | 'right' } })} />
+        <SelectField label="Alignment" value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value as TextAlignment } })} />
         <TextField label="Unavailable text" value={widget.value?.unavailable_text ?? ''} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
         <ColorField label="Color" value={widget.value?.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
       </Section>

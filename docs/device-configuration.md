@@ -390,19 +390,32 @@ requires a reboot before its images can be drawn.
 ## Widget captions
 
 A `title` labels a widget's frame. Only `text` is required to place one; the
-caption sits half above the top of the widget's box, horizontally centred on it,
-and the frame line behind it is cut so the label reads as a break in the border
-rather than as text laid over it:
+caption then sits half above the top of the widget's box, horizontally centred
+on it, and the frame line behind it is cut so the label reads as a break in the
+border rather than as text laid over it:
 
 ```json
-"title": { "text": "WATER", "alignment": "left", "offset_x_px": 12 }
+"title": { "text": "WATER", "alignment": "top_left", "offset_x_px": 12 }
 ```
 
-`alignment` picks which edge of the widget's **outer** box the caption is
-anchored to — `left`, `center` or `right`, defaulting to `center` — and
-`offset_x_px` and `offset_y_px` move it from that anchor. An anchor plus two
-offsets reaches any point, so a caption may sit on the bottom border, on a side,
-or inside the widget; nothing constrains it to the box.
+`alignment` picks which point of the widget's **outer** box the caption is
+anchored to, on both axes, and `offset_x_px` and `offset_y_px` move it from
+there. An anchor plus two offsets reaches any point, so a caption may sit on any
+border, in a corner, or inside the widget; nothing constrains it to the box.
+
+The anchor is one of nine names arranged as a grid, and the unprefixed row is
+the vertically centred one:
+
+| | left | centre | right |
+| --- | --- | --- | --- |
+| **top** | `top_left` | `top_center` | `top_right` |
+| **middle** | `left` | `center` | `right` |
+| **bottom** | `bottom_left` | `bottom_center` | `bottom_right` |
+
+A caption defaults to `top_center`, which is where captions have always sat. The
+top and bottom rows straddle their border line — half the caption above it, half
+below — which is what lets the caption break it. The middle row sits inside the
+box like any other content and crosses no border.
 
 The cut follows wherever it lands. `border_gap` turns it off, and
 `gap_padding_px` is the clear space kept around the caption inside it, 4 pixels
@@ -421,6 +434,13 @@ so moving a caption or turning its cut off never resizes the widget.
 
 A caption needs a font as soon as it has text, and family resolution is exact —
 see [Fonts](#fonts).
+
+The same nine anchor names position a text widget's `value` label, there against
+the widget's **content area** — the box less its border and padding — rather
+than its outer box, and without straddling anything. That property defaults to
+`center`, and the three unprefixed names are what it accepted before the other
+six existed, so a value authored as `left`, `center` or `right` still sits
+vertically centred.
 
 ## Conditional styling
 

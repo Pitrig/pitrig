@@ -42,7 +42,7 @@ Schema version: 8.
 | --- | --- | --- |
 | `BoardId` | `t_display_s3`, `guition_esp32_4848s040`, `guition_jc1060p470c` | Immutable hardware identity. Must match the firmware build or the configuration is rejected. |
 | `TelemetryTransportId` | `board_default`, `native_usb_cdc`, `uart` | Telemetry transport selection. board_default defers to the immutable board descriptor. |
-| `TextAlignment` | `left`, `center`, `right` | Horizontal alignment: which edge of the box the text is anchored to. Used for a text widget's value inside its content area and for a frame caption along its outer box. |
+| `TextAlignment` | `top_left`, `top_center`, `top_right`, `left`, `center`, `right`, `bottom_left`, `bottom_center`, `bottom_right` | Which point of a box the text is anchored to, on both axes. The unprefixed names are the middle row, so left, center and right sit vertically centred. Used for a text widget's value inside its content area and for a frame caption on its outer box. |
 | `ValueTransformType` | `none`, `time`, `number` | Presentation transform applied after the modifier pipeline. |
 | `GradientDirection` | `horizontal`, `vertical` | Axis a linear gradient runs along. Only used when a gradient colour is set. |
 | `ColorRampTarget` | `content`, `background`, `border` | Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill. |
@@ -108,14 +108,14 @@ Absolute geometry in logical screen pixels.
 
 ### WidgetTitleStyle
 
-The caption on a widget's frame. It is anchored to an edge of the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.
+The caption on a widget's frame. It is anchored to a point on the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.
 
 | Property | Type | Default |
 | --- | --- | --- |
 | `text` | string, max 15 bytes | empty |
 | `font` | `FontSpec` | absent |
 | `color` | string `#RRGGBB` | `#E8E8E8` |
-| `alignment` | `TextAlignment` | `center` |
+| `alignment` | `TextAlignment` | `top_center` |
 | `offset_x_px` | integer, -32768..32767 | `0` |
 | `offset_y_px` | integer, -32768..32767 | `0` |
 | `border_gap` | boolean | `true` |

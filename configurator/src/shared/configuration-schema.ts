@@ -67,9 +67,9 @@ export const BOARD_ID_VALUES: readonly BoardId[] = ['t_display_s3', 'guition_esp
 export type TelemetryTransportId = 'board_default' | 'native_usb_cdc' | 'uart'
 export const TELEMETRY_TRANSPORT_ID_VALUES: readonly TelemetryTransportId[] = ['board_default', 'native_usb_cdc', 'uart']
 
-/** Horizontal alignment: which edge of the box the text is anchored to. Used for a text widget's value inside its content area and for a frame caption along its outer box. */
-export type TextAlignment = 'left' | 'center' | 'right'
-export const TEXT_ALIGNMENT_VALUES: readonly TextAlignment[] = ['left', 'center', 'right']
+/** Which point of a box the text is anchored to, on both axes. The unprefixed names are the middle row, so left, center and right sit vertically centred. Used for a text widget's value inside its content area and for a frame caption on its outer box. */
+export type TextAlignment = 'top_left' | 'top_center' | 'top_right' | 'left' | 'center' | 'right' | 'bottom_left' | 'bottom_center' | 'bottom_right'
+export const TEXT_ALIGNMENT_VALUES: readonly TextAlignment[] = ['top_left', 'top_center', 'top_right', 'left', 'center', 'right', 'bottom_left', 'bottom_center', 'bottom_right']
 
 /** Presentation transform applied after the modifier pipeline. */
 export type ValueTransformType = 'none' | 'time' | 'number'
@@ -167,7 +167,7 @@ export interface WidgetBorder {
   radius_px?: number
 }
 
-/** The caption on a widget's frame. It is anchored to an edge of the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing. */
+/** The caption on a widget's frame. It is anchored to a point on the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing. */
 export interface WidgetTitleStyle {
   text?: string
   font?: FontSpec

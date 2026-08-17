@@ -157,9 +157,9 @@
       "doc": "Telemetry transport selection. board_default defers to the immutable board descriptor."
     },
     "TextAlignment": {
-      "json_values": ["left", "center", "right"],
+      "json_values": ["top_left", "top_center", "top_right", "left", "center", "right", "bottom_left", "bottom_center", "bottom_right"],
       "default": "center",
-      "doc": "Horizontal alignment: which edge of the box the text is anchored to. Used for a text widget's value inside its content area and for a frame caption along its outer box."
+      "doc": "Which point of a box the text is anchored to, on both axes. The unprefixed names are the middle row, so left, center and right sit vertically centred. Used for a text widget's value inside its content area and for a frame caption on its outer box."
     },
     "ValueTransformType": {
       "json_values": ["none", "time", "number"],
@@ -268,12 +268,12 @@
     },
 
     "WidgetTitleStyle": {
-      "doc": "The caption on a widget's frame. It is anchored to an edge of the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.",
+      "doc": "The caption on a widget's frame. It is anchored to a point on the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.",
       "fields": [
         { "name": "text", "kind": "text", "capacity": "kWidgetTitleCapacity", "default": "" },
         { "name": "font", "kind": "external", "external": "FontSpec" },
         { "name": "color", "kind": "color", "default": "0xE8E8E8" },
-        { "name": "alignment", "kind": "enum", "enum": "TextAlignment", "doc": "Which edge of the widget's outer box the caption is anchored to before the offsets move it." },
+        { "name": "alignment", "kind": "enum", "enum": "TextAlignment", "default": "top_center", "doc": "Which point of the widget's outer box the caption is anchored to before the offsets move it. The top and bottom rows straddle their border line, so the caption breaks it; the middle row sits inside the box and breaks nothing." },
         { "name": "offset_x_px", "kind": "int16", "default": 0 },
         { "name": "offset_y_px", "kind": "int16", "default": 0 },
         { "name": "border_gap", "kind": "bool", "default": true, "doc": "Cuts the border line where the caption crosses it. A caption that crosses no border cuts nothing." },
@@ -285,7 +285,7 @@
       "fields": [
         { "name": "font", "kind": "external", "external": "FontSpec" },
         { "name": "color", "kind": "color", "default": "0xE8E8E8" },
-        { "name": "alignment", "kind": "enum", "enum": "TextAlignment" },
+        { "name": "alignment", "kind": "enum", "enum": "TextAlignment", "doc": "Which point of the widget's content area the value label is anchored to." },
         { "name": "unavailable_text", "kind": "text", "capacity": "kUnavailableTextCapacity", "doc": "Shown while the bound value is unavailable. Empty renders a zero through the widget's own transform, so a plain value reads 0 and a time value keeps its format." }
       ]
     },

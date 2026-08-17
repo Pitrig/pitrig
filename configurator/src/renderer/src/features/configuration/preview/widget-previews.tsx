@@ -7,7 +7,7 @@ import { usePreviewAssetStore } from '../preview-assets'
 import { type Placement, markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR, type FramedWidgetConfiguration } from './preview-theme'
 import { backgroundRect, contentArea, gradientPaint } from './preview-geometry-paint'
-import { type PreviewValues, captionGeometry, fontMetrics, lvglCenterOffset, normalizeColor, resolvedFont } from './preview-values'
+import { type PreviewValues, alignmentAnchor, captionGeometry, fontMetrics, lvglCenterOffset, normalizeColor, resolvedFont } from './preview-values'
 
 export function GradientDefinition({
   id,
@@ -108,17 +108,23 @@ export function TextWidgetPreview({
   // line height — not the widget's box. Everything below places that label the
   // way LVGL does, then draws from its baseline.
   const metrics = fontMetrics(previewValue, valueFont)
-  const alignment = configuration.value?.alignment ?? 'center'
+  const { column, row } = alignmentAnchor(configuration.value?.alignment ?? 'center')
   const valueX =
-    alignment === 'left'
+    column === 'left'
       ? content.x
-      : alignment === 'right'
+      : column === 'right'
         ? content.x + content.width - metrics.width
         : content.x + lvglCenterOffset(content.width, metrics.width)
   // A titled widget pushes its value down by a quarter of the caption's line
   // height, which is the room the caption takes out of the top of the box.
   const titleDrop = title ? Math.trunc(fontMetrics(title, titleFont).lineHeight / 4) : 0
-  const labelTop = content.y + lvglCenterOffset(content.height, metrics.lineHeight) + titleDrop
+  const valueY =
+    row === 'top'
+      ? content.y
+      : row === 'bottom'
+        ? content.y + content.height - metrics.lineHeight
+        : content.y + lvglCenterOffset(content.height, metrics.lineHeight)
+  const labelTop = valueY + titleDrop
 
   return (
     <g>
@@ -274,7 +280,7 @@ export function CaptionPreview({
   const geometry = captionGeometry(
     placement,
     {
-      alignment: configuration.title?.alignment ?? 'center',
+      alignment: configuration.title?.alignment ?? 'top_center',
       offsetX: configuration.title?.offset_x_px ?? 0,
       offsetY: configuration.title?.offset_y_px ?? 0,
       borderGap: configuration.title?.border_gap ?? true,

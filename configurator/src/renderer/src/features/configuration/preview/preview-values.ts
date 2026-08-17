@@ -137,6 +137,37 @@ interface Box {
   height: number
 }
 
+/**
+ * The two axes of a nine-point anchor. Mirrors `anchor_of` in widget_frame.cpp:
+ * spelled out rather than derived from the enum's order, which the contract is
+ * free to change.
+ */
+export function alignmentAnchor(alignment: TextAlignment): {
+  column: 'left' | 'center' | 'right'
+  row: 'top' | 'middle' | 'bottom'
+} {
+  switch (alignment) {
+    case 'top_left':
+      return { column: 'left', row: 'top' }
+    case 'top_center':
+      return { column: 'center', row: 'top' }
+    case 'top_right':
+      return { column: 'right', row: 'top' }
+    case 'left':
+      return { column: 'left', row: 'middle' }
+    case 'right':
+      return { column: 'right', row: 'middle' }
+    case 'bottom_left':
+      return { column: 'left', row: 'bottom' }
+    case 'bottom_center':
+      return { column: 'center', row: 'bottom' }
+    case 'bottom_right':
+      return { column: 'right', row: 'bottom' }
+    default:
+      return { column: 'center', row: 'middle' }
+  }
+}
+
 /** Where the caption lands, and the frame line it cuts on its way there. */
 export interface CaptionGeometry {
   x: number
@@ -163,14 +194,23 @@ export function captionGeometry(
   metrics: { width: number; lineHeight: number },
   borderWidth: number
 ): CaptionGeometry {
-  const anchor =
-    title.alignment === 'left'
+  const { column, row } = alignmentAnchor(title.alignment)
+  const columnOffset =
+    column === 'left'
       ? 0
-      : title.alignment === 'right'
+      : column === 'right'
         ? box.width - metrics.width
         : Math.trunc((box.width - metrics.width) / 2)
-  const x = box.x + anchor + title.offsetX
-  const y = box.y - Math.trunc(metrics.lineHeight / 2) + title.offsetY
+  // The top and bottom rows straddle their border line, which is what lets the
+  // caption break it. The middle row sits inside the box and breaks nothing.
+  const rowY =
+    row === 'top'
+      ? box.y - Math.trunc(metrics.lineHeight / 2)
+      : row === 'bottom'
+        ? box.y + box.height - Math.trunc(metrics.lineHeight / 2)
+        : box.y + Math.trunc((box.height - metrics.lineHeight) / 2)
+  const x = box.x + columnOffset + title.offsetX
+  const y = rowY + title.offsetY
   if (!title.borderGap || borderWidth <= 0) return { x, y }
 
   const left = x - title.pad

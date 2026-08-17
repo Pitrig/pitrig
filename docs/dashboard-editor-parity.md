@@ -167,7 +167,7 @@ truncation, so the cut lands on the same pixels in both.
 Text and images are drawn with the uploaded assets themselves. The configurator
 keeps a copy of every face and every converted bitmap it installs, so the canvas
 measures strings with the face the board rasterizes and lays the label out the
-way LVGL does — sized to its text, centred in whole pixels, drawn from its
+way LVGL does — sized to its text, anchored in whole pixels, drawn from its
 baseline — and an `image` widget shows its bitmap, already resized and already
 reduced to its colour format, centred at its own size. What remains is the
 rasterizer: the browser hints and antialiases differently from LVGL's TinyTTF,

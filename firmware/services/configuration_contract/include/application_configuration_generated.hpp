@@ -87,11 +87,17 @@ enum class TelemetryTransportId : std::uint8_t {
   uart,
 };
 
-// Horizontal alignment: which edge of the box the text is anchored to. Used for a text widget's value inside its content area and for a frame caption along its outer box.
+// Which point of a box the text is anchored to, on both axes. The unprefixed names are the middle row, so left, center and right sit vertically centred. Used for a text widget's value inside its content area and for a frame caption on its outer box.
 enum class TextAlignment : std::uint8_t {
+  top_left,
+  top_center,
+  top_right,
   left,
   center,
   right,
+  bottom_left,
+  bottom_center,
+  bottom_right,
 };
 
 // Presentation transform applied after the modifier pipeline.
@@ -205,14 +211,14 @@ struct WidgetBorder {
   std::uint16_t radius_px{};
 };
 
-// The caption on a widget's frame. It is anchored to an edge of the
+// The caption on a widget's frame. It is anchored to a point on the
 // widget's outer box, moved from there by the offsets, and it cuts the
 // frame line on whichever border it ends up crossing.
 struct WidgetTitleStyle {
   std::array<char, kWidgetTitleCapacity> text{};
   font_assets::FontSpec font{};
   std::uint32_t color{0xE8E8E8};
-  TextAlignment alignment{TextAlignment::center};
+  TextAlignment alignment{TextAlignment::top_center};
   std::int16_t offset_x_px{};
   std::int16_t offset_y_px{};
   bool border_gap{true};
@@ -551,10 +557,16 @@ inline constexpr std::array<std::string_view, 3> kTelemetryTransportIdNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 3> kTextAlignmentNames{{
+inline constexpr std::array<std::string_view, 9> kTextAlignmentNames{{
+    "top_left",
+    "top_center",
+    "top_right",
     "left",
     "center",
     "right",
+    "bottom_left",
+    "bottom_center",
+    "bottom_right",
 }};
 
 [[nodiscard]] inline std::string_view text_alignment_name(const TextAlignment value) {

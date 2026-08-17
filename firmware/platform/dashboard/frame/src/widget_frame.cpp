@@ -29,25 +29,76 @@ namespace {
   return lv_color_black();
 }
 
+// The two axes of a nine-point anchor, so a placement rule can be written once
+// per axis instead of once per anchor. Spelled out rather than derived from the
+// enum's order, which the contract is free to change.
+enum class Column : std::uint8_t { left, center, right };
+enum class Row : std::uint8_t { top, middle, bottom };
+
+struct Anchor {
+  Column column{};
+  Row row{};
+};
+
+[[nodiscard]] Anchor anchor_of(const configuration::TextAlignment alignment) {
+  using A = configuration::TextAlignment;
+  switch (alignment) {
+    case A::top_left:
+      return {Column::left, Row::top};
+    case A::top_center:
+      return {Column::center, Row::top};
+    case A::top_right:
+      return {Column::right, Row::top};
+    case A::left:
+      return {Column::left, Row::middle};
+    case A::center:
+      return {Column::center, Row::middle};
+    case A::right:
+      return {Column::right, Row::middle};
+    case A::bottom_left:
+      return {Column::left, Row::bottom};
+    case A::bottom_center:
+      return {Column::center, Row::bottom};
+    case A::bottom_right:
+      return {Column::right, Row::bottom};
+  }
+  return {Column::center, Row::middle};
+}
+
 // Where the caption sits on the widget's outer box. The outer box rather than
 // the content area, because the caption belongs to the frame line and not to
 // what the widget draws inside it.
 [[nodiscard]] Rect caption_rect(const Config& config, const Rect& bounds,
                                 const std::int32_t width,
                                 const std::int32_t height) {
+  const Anchor anchor = anchor_of(config.title.alignment);
   std::int32_t x = bounds.x;
-  switch (config.title.alignment) {
-    case configuration::TextAlignment::left:
+  switch (anchor.column) {
+    case Column::left:
       break;
-    case configuration::TextAlignment::center:
+    case Column::center:
       x += (bounds.width - width) / 2;
       break;
-    case configuration::TextAlignment::right:
+    case Column::right:
       x += bounds.width - width;
       break;
   }
+  // The top and bottom rows straddle their border line, which is what lets the
+  // caption break it. The middle row sits inside the box like any content, so a
+  // caption anchored there breaks nothing.
+  std::int32_t y = bounds.y - height / 2;
+  switch (anchor.row) {
+    case Row::top:
+      break;
+    case Row::middle:
+      y = bounds.y + (bounds.height - height) / 2;
+      break;
+    case Row::bottom:
+      y = bounds.y + bounds.height - height / 2;
+      break;
+  }
   return {.x = x + config.title.offset_x_px,
-          .y = bounds.y - height / 2 + config.title.offset_y_px,
+          .y = y + config.title.offset_y_px,
           .width = width,
           .height = height};
 }

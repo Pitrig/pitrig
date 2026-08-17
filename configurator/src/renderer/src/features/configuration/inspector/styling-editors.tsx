@@ -5,6 +5,7 @@ import { BOOLEAN_OPERATORS, MAXIMUM_BLINK_MS, MAXIMUM_HOLD_MS, MINIMUM_BLINK_MS 
 import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily } from '../dashboard-editor'
 import { TelemetryBindingField } from './TelemetryBindingField'
 import { CheckboxField, ColorField, FontEditor, Hint, NumberField, OptionalColorField, Section, SelectField, TextField } from './fields'
+import { alignmentAnchor } from '../preview/preview-values'
 import { useDeviceStore } from '@/features/device/device-store'
 
 export function TitleEditor({ widget, update }: {
@@ -13,9 +14,12 @@ export function TitleEditor({ widget, update }: {
 }): React.JSX.Element {
   const borderWidth = widget.border?.width_px ?? 0
   const borderGap = widget.title?.border_gap ?? true
+  // A corner anchor is the one that can land the straight cut on the curve.
+  const anchor = alignmentAnchor(widget.title?.alignment ?? 'top_center')
+  const inCorner = anchor.column !== 'center' && anchor.row !== 'middle'
   return (
     <Section title="Title">
-      <p className="text-muted-foreground">The caption is anchored to an edge of the widget&apos;s box and moved from there by the offsets. It cuts the border line wherever it crosses one, which is what gives a panel its label.</p>
+      <p className="text-muted-foreground">The caption is anchored to a point on the widget&apos;s box and moved from there by the offsets. The top and bottom rows straddle their border line and cut it, which is what gives a panel its label; the middle row sits inside the box and cuts nothing.</p>
       {/* A caption needs a font the moment it has text, and the device rejects
           the whole document over a fontless one. The first family the dashboard
           already uses is one the board is being asked for anyway, so adopting it
@@ -36,9 +40,9 @@ export function TitleEditor({ widget, update }: {
         <>
           <FontEditor font={widget.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} />
           <ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} />
-          <SelectField label="Alignment" value={widget.title.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} onChange={(value) => update((next) => {
+          <SelectField label="Alignment" value={widget.title.alignment ?? 'top_center'} options={TEXT_ALIGNMENT_VALUES} onChange={(value) => update((next) => {
             const title: WidgetTitleStyle = { ...next.title, alignment: value as TextAlignment }
-            if (title.alignment === 'center') delete title.alignment
+            if (title.alignment === 'top_center') delete title.alignment
             next.title = title
           })} />
           <div className="grid grid-cols-2 gap-2">
@@ -62,7 +66,7 @@ export function TitleEditor({ widget, update }: {
                 if (padding === 4) delete title.gap_padding_px
                 next.title = title
               })} />
-              {(widget.border?.radius_px ?? 0) > 0 && (widget.title.alignment ?? 'center') !== 'center' ? (
+              {(widget.border?.radius_px ?? 0) > 0 && inCorner ? (
                 <Hint>The cut is a straight band, so a caption pushed into a rounded corner takes a bite out of it. Offset it by about the radius plus the border width to clear the curve.</Hint>
               ) : null}
             </>
