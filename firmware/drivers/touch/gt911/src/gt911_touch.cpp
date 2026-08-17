@@ -4,11 +4,68 @@
 #include "esp_err.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_touch_gt911.h"
+#include "esp_log.h"
 
 namespace simcore::input::drivers::gt911 {
 namespace {
 
+constexpr char kTag[] = "gt911";
 constexpr int kGlitchIgnoreCount = 7;
+// The 7-bit range the I2C standard leaves to devices; the rest is reserved.
+constexpr std::uint16_t kFirstScannedAddress = 0x08;
+constexpr std::uint16_t kLastScannedAddress = 0x77;
+constexpr int kProbeTimeoutMs = 10;
+
+// Handing the component one of these is what makes it drive reset and interrupt
+// itself and so decide the address, instead of trusting whatever the controller
+// latched at power-on. The primary address is tried first; the backup covers a
+// board that leaves reset unmanaged, where the sequence cannot run at all.
+esp_lcd_touch_io_gt911_config_t kAddressCandidates[] = {
+    {.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS},
+    {.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP},
+};
+
+std::uint64_t pin_mask(gpio_num_t pin) {
+  return pin == GPIO_NUM_NC ? 0ULL : 1ULL << static_cast<int>(pin);
+}
+
+// Diagnostic only. The controller latches 0x5D or 0x14 from the level of its
+// interrupt line when reset is released, so "nothing on the bus" and "the
+// controller is at the other address" are different faults behind the same
+// failed read. Both the scan and the idle pin levels tell them apart.
+void log_bus(i2c_master_bus_handle_t bus, const Pins& pins) {
+  const std::uint64_t mask = pin_mask(pins.reset) | pin_mask(pins.interrupt);
+  if (mask != 0ULL) {
+    gpio_config_t input_configuration = {};
+    input_configuration.pin_bit_mask = mask;
+    input_configuration.mode = GPIO_MODE_INPUT;
+    input_configuration.pull_up_en = GPIO_PULLUP_DISABLE;
+    input_configuration.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    input_configuration.intr_type = GPIO_INTR_DISABLE;
+    if (gpio_config(&input_configuration) == ESP_OK) {
+      ESP_LOGW(kTag, "Idle levels: reset(%d)=%d interrupt(%d)=%d",
+               static_cast<int>(pins.reset),
+               pins.reset == GPIO_NUM_NC ? -1 : gpio_get_level(pins.reset),
+               static_cast<int>(pins.interrupt),
+               pins.interrupt == GPIO_NUM_NC ? -1
+                                             : gpio_get_level(pins.interrupt));
+    }
+  }
+
+  ESP_LOGW(kTag, "Scanning I2C bus on sda=%d scl=%d (GT911 answers at 0x%02X or 0x%02X)",
+           static_cast<int>(pins.sda), static_cast<int>(pins.scl),
+           ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS,
+           ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP);
+  int found = 0;
+  for (std::uint16_t address = kFirstScannedAddress;
+       address <= kLastScannedAddress; ++address) {
+    if (i2c_master_probe(bus, address, kProbeTimeoutMs) == ESP_OK) {
+      ESP_LOGW(kTag, "  device answered at 0x%02X", address);
+      ++found;
+    }
+  }
+  ESP_LOGW(kTag, "Scan complete: %d device(s) answered", found);
+}
 
 }  // namespace
 
@@ -22,21 +79,11 @@ driver::Configuration create(const Panel& panel) {
   bus_configuration.flags.enable_internal_pullup = true;
 
   i2c_master_bus_handle_t bus = nullptr;
-  ESP_ERROR_CHECK(i2c_new_master_bus(&bus_configuration, &bus));
-
-  // The vendor macro carries the controller's address and control phases and
-  // leaves the rest of the struct alone, which this build treats as an error.
-  // Suppressed here rather than restated, so the address stays the component's
-  // to define.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-  esp_lcd_panel_io_i2c_config_t io_configuration =
-      ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
-#pragma GCC diagnostic pop
-  io_configuration.scl_speed_hz = panel.clock_hz;
-
-  esp_lcd_panel_io_handle_t io = nullptr;
-  ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(bus, &io_configuration, &io));
+  if (i2c_new_master_bus(&bus_configuration, &bus) != ESP_OK) {
+    ESP_LOGE(kTag, "I2C bus on sda=%d scl=%d is unavailable",
+             static_cast<int>(panel.pins.sda), static_cast<int>(panel.pins.scl));
+    return {.touch = nullptr};
+  }
 
   esp_lcd_touch_config_t touch_configuration = {};
   touch_configuration.x_max = panel.horizontal_resolution;
@@ -49,9 +96,41 @@ driver::Configuration create(const Panel& panel) {
   touch_configuration.flags.mirror_x = panel.mirror_x ? 1U : 0U;
   touch_configuration.flags.mirror_y = panel.mirror_y ? 1U : 0U;
 
-  esp_lcd_touch_handle_t touch = nullptr;
-  ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_gt911(io, &touch_configuration, &touch));
-  return {.touch = touch};
+  // Each candidate needs its own panel IO, because the address the master talks
+  // to lives in the IO configuration while the address the controller answers
+  // on is latched during the reset the component performs.
+  for (esp_lcd_touch_io_gt911_config_t& candidate : kAddressCandidates) {
+    // The vendor macro carries the controller's address and control phases and
+    // leaves the rest of the struct alone, which this build treats as an error.
+    // Suppressed here rather than restated, so the address stays the
+    // component's to define.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+    esp_lcd_panel_io_i2c_config_t io_configuration =
+        ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
+#pragma GCC diagnostic pop
+    io_configuration.scl_speed_hz = panel.clock_hz;
+    io_configuration.dev_addr = candidate.dev_addr;
+
+    esp_lcd_panel_io_handle_t io = nullptr;
+    if (esp_lcd_new_panel_io_i2c(bus, &io_configuration, &io) != ESP_OK) {
+      continue;
+    }
+
+    touch_configuration.driver_data = &candidate;
+    esp_lcd_touch_handle_t touch = nullptr;
+    if (esp_lcd_touch_new_i2c_gt911(io, &touch_configuration, &touch) ==
+        ESP_OK) {
+      ESP_LOGI(kTag, "GT911 ready at 0x%02X", candidate.dev_addr);
+      return {.touch = touch};
+    }
+    (void)esp_lcd_panel_io_del(io);
+  }
+
+  ESP_LOGE(kTag, "GT911 did not answer at any known address");
+  log_bus(bus, panel.pins);
+  (void)i2c_del_master_bus(bus);
+  return {.touch = nullptr};
 }
 
 }  // namespace simcore::input::drivers::gt911

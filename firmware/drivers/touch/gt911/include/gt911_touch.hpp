@@ -30,9 +30,14 @@ struct Panel {
   bool mirror_y;
 };
 
-// Brings up an I2C master bus and the GT911 on it. Aborts on failure, as the
-// display drivers do: a board that declares a touch panel it cannot reach is
-// misconfigured rather than degraded.
+// Brings up an I2C master bus and the GT911 on it, driving the reset and
+// interrupt lines so the controller's I2C address is decided here rather than
+// latched from the power-on state of those pins.
+//
+// Returns a null touch handle when the controller cannot be reached, and logs a
+// scan of the bus on the way out. A panel that does not answer costs the board
+// its pointer, not its boot: the dashboard and the configuration link stay up,
+// the way they do on a board that carries no digitizer at all.
 [[nodiscard]] driver::Configuration create(const Panel& panel);
 
 }  // namespace simcore::input::drivers::gt911

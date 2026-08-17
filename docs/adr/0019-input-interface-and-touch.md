@@ -45,6 +45,22 @@ boards and parameterized by pins, in the same way one UART transport driver
 serves every board that has a UART. The board driver supplies its own pins; the
 controller sequence stays in one place.
 
+That sequence owns the controller's I2C address. A GT911 latches one of two
+addresses from the level of its interrupt line when reset is released, so a
+driver that only resets the part and then reads at the default address is
+reading at whichever address the board's pull-ups happened to select. The driver
+therefore drives reset and interrupt itself for a chosen address, and tries the
+second address before giving up — a board that leaves reset unmanaged cannot run
+the sequence at all, and there the second attempt is the whole answer.
+
+A digitizer that does not answer is **not** fatal. The board keeps its display,
+its dashboard, and its configuration link, and loses only the pointer, which is
+exactly the position a board with no digitizer is in — so the failure resolves
+into a case the firmware already handles instead of a boot loop that takes the
+serial link down with it. The driver returns a null handle, the input component
+returns a null device, and the core logs it. Nothing above the core learns that
+a board can lose input any more than it learns that a board can lack it.
+
 `components/input` owns the LVGL binding and nothing else: one function that
 takes a driver and returns an `lv_indev_t*` through `lvgl_port_add_touch`. The
 core calls it directly after `display::initialize`, guarded by the null check,
@@ -75,6 +91,10 @@ the same contract, but an encoder additionally needs a focus model — `lv_group
   digitizer. Features that must work on every board have to be reachable from
   telemetry as well as from a finger.
 - The core stays free of hardware switches: one null check, no board identity.
+- Touch is best-effort at startup: unreachable hardware is logged, including a
+  scan of the I2C bus, and the firmware continues. The cost is that a wiring
+  mistake no longer announces itself as a crash and has to be read out of the
+  log.
 - A touch controller on a future board is a driver plus one line in its board
   descriptor.
 - The `esp_lcd_touch_gt911` dependency enters both dependency locks, and the

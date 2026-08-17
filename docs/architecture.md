@@ -211,7 +211,8 @@ Examples include:
 Display and Touch Input exist; the rest are still owed. The input component
 registers the board's pointer with the LVGL port and nothing else — the board
 descriptor carries its input driver as a nullable pointer, so a board with no
-digitizer is a board fact rather than a special case in the core
+digitizer is a board fact rather than a special case in the core, and a
+digitizer that fails to answer is logged and survived rather than fatal
 ([ADR 0019](adr/0019-input-interface-and-touch.md)).
 
 Components own capability-level behavior but do not access board-specific hardware directly.

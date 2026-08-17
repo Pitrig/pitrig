@@ -211,9 +211,11 @@ void run() {
   lv_display_t* display = display::initialize(board.display);
   application.display = display;
   // A board without a digitizer leaves this null. The pointer device is never
-  // torn down, so nothing else in the firmware learns which case it is in.
-  if (board.input != nullptr) {
-    (void)input::initialize(*board.input, display);
+  // torn down, so nothing else in the firmware learns which case it is in, and
+  // a declared panel that fails to answer lands in the same place.
+  if (board.input != nullptr &&
+      input::initialize(*board.input, display) == nullptr) {
+    log::warn(kTag, "Touch input unavailable; running without a pointer");
   }
   if (!dashboard_composition::show_startup_screen(display, configuration)) {
     log::warn(kTag, "Startup screen is unavailable for this display");
