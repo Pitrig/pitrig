@@ -8,19 +8,29 @@
 
 namespace simcore::transport {
 
+#if SIMCORE_SECOND_TELEMETRY_LINK
+std::size_t TelemetryComposition::select(
+    const board_registry::BoardDefinition& board,
+    const configuration::ApplicationConfiguration& configuration,
+    const std::span<ITransport*> links) {
+  if (links.empty()) {
+    return 0;
+  }
+#else
 ITransport* TelemetryComposition::select(
     const board_registry::BoardDefinition& board,
     const configuration::ApplicationConfiguration& configuration) {
+#endif
+  ITransport* primary = nullptr;
   switch (board_registry::telemetry_transport_id(board, configuration)) {
     case configuration::TelemetryTransportId::native_usb_cdc:
 #if !CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
-      return &usb_cdc_;
-#else
-      return nullptr;
+      primary = &usb_cdc_;
 #endif
+      break;
     case configuration::TelemetryTransportId::uart:
 #if !CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
-      if (!uart_.configure({
+      if (uart_.configure({
               .port = static_cast<uart_port_t>(
                   configuration.telemetry_transport.uart.port),
               .tx_pin = configuration.telemetry_transport.uart.tx_pin,
@@ -29,16 +39,32 @@ ITransport* TelemetryComposition::select(
               .silence_esp_logs =
                   configuration.telemetry_transport.uart.silence_esp_logs,
           })) {
-        return nullptr;
+        primary = &uart_;
       }
-      return &uart_;
-#else
-      return nullptr;
 #endif
+      break;
     case configuration::TelemetryTransportId::board_default:
-      return nullptr;
+      break;
   }
-  return nullptr;
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  if (primary == nullptr) {
+    return 0;
+  }
+  links[0] = primary;
+  std::size_t count = 1;
+  // Development only, and deliberately unconditional: this is the port the
+  // board is flashed over, so it is always present, and no configuration
+  // property decides whether it also carries data.
+  if (count < links.size() &&
+      usb_serial_jtag_.configure({
+          .silence_esp_logs = SIMCORE_SECOND_TELEMETRY_LINK_SILENCE_LOGS != 0,
+      })) {
+    links[count++] = &usb_serial_jtag_;
+  }
+  return count;
+#else
+  return primary;
+#endif
 }
 
 }  // namespace simcore::transport

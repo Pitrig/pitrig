@@ -7,6 +7,7 @@
 #include <span>
 
 #include "configuration_service.hpp"
+#include "simcore_features.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -41,7 +42,14 @@ class ConfigurationControl {
 
   // Queues a line that starts with "@SC:" and has no line terminator. Parsing,
   // validation, and NVS operations run in the dedicated control task.
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  // With more than one link attached the answer goes back out on the link the
+  // line arrived on, so the transport is a property of the request.
+  void consume(std::span<const std::uint8_t> line,
+               transport::ITransport& reply);
+#else
   void consume(std::span<const std::uint8_t> line);
+#endif
 
  private:
   enum class RequestState : std::uint8_t {
@@ -59,9 +67,24 @@ class ConfigurationControl {
   void send_text(const char* text);
   void send_error(const ValidationFailure& failure);
   void send_payload(std::span<const std::uint8_t> payload);
+  // Where the answer to the request being handled goes. With one link that is
+  // the only link there is, which is why every send path below reads the same
+  // in both builds.
+  [[nodiscard]] transport::ITransport* reply() const {
+#if SIMCORE_SECOND_TELEMETRY_LINK
+    return reply_;
+#else
+    return transport_;
+#endif
+  }
 
   ConfigurationService* service_{};
   transport::ITransport* transport_{};
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  // Written under the request state below and read only while it is held, so
+  // the reply cannot be redirected mid-answer by a request on another link.
+  transport::ITransport* reply_{};
+#endif
   RebootHandler reboot_handler_{};
   ApplyHandler apply_handler_{};
   void* apply_context_{};

@@ -47,7 +47,8 @@ list(APPEND EXTRA_COMPONENT_DIRS
 
 if(IDF_TARGET STREQUAL "esp32p4")
     list(APPEND EXTRA_COMPONENT_DIRS
-         "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_jc1060p470c")
+         "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_jc1060p470c"
+         "${CMAKE_CURRENT_LIST_DIR}/drivers/transport/usb_serial_jtag")
 else()
     list(APPEND EXTRA_COMPONENT_DIRS
          "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_esp32_4848s040"

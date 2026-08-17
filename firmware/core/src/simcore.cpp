@@ -2,6 +2,9 @@
 
 #include <cstring>
 #include <span>
+#if SIMCORE_SECOND_TELEMETRY_LINK
+#include <array>
+#endif
 
 #include "application_configuration.hpp"
 #include "board_registry.hpp"
@@ -62,8 +65,26 @@ struct Application {
   communication::Composition communication{services.telemetry_registry};
   dashboard_composition::Dashboard dashboard;
   lv_display_t* display{};
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  // In priority order: the board's configured transport, then the development
+  // link attached behind it.
+  std::array<transport::ITransport*,
+             communication::Composition::kMaximumLinks>
+      telemetry_transports{};
+  std::size_t telemetry_link_count{};
+#else
   transport::ITransport* telemetry_transport{};
+#endif
 };
+
+// The overlay reads transport diagnostics from the board's own link.
+transport::ITransport& primary_transport(Application& application) {
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  return *application.telemetry_transports[0];
+#else
+  return *application.telemetry_transport;
+#endif
+}
 
 // Rebuilds module lifecycle and the dashboard from the active configuration.
 bool recompose(Application& application) {
@@ -79,8 +100,7 @@ bool recompose(Application& application) {
   const bool dashboard_created = dashboard_composition::create(
       application.display, configuration, application.modules,
       application.dashboard, application.services.telemetry_registry,
-      application.services.telemetry_state,
-      *application.telemetry_transport);
+      application.services.telemetry_state, primary_transport(application));
   return modules_started && dashboard_created;
 }
 
@@ -159,7 +179,8 @@ ConfigurationBuffers reserve_configuration_memory(Application& application) {
       configuration::ConfigurationService::kPayloadBufferSize +
       configuration::ConfigurationService::kConfigurationBufferSize +
       configuration::ConfigurationControl::kIoBufferSize +
-      communication::Router::kControlLineBufferSize;
+      communication::Composition::kMaximumLinks *
+          communication::Router::kControlLineBufferSize;
   ESP_ERROR_CHECK(application.platform.configuration_memory.initialize(
                       kConfigurationMemorySize)
                       ? ESP_OK
@@ -176,7 +197,8 @@ ConfigurationBuffers reserve_configuration_memory(Application& application) {
       .current_payload =
           take(configuration::ConfigurationService::kPayloadBufferSize),
       .control_io = take(configuration::ConfigurationControl::kIoBufferSize),
-      .control_line = take(communication::Router::kControlLineBufferSize),
+      .control_line = take(communication::Composition::kMaximumLinks *
+                           communication::Router::kControlLineBufferSize),
       .configuration =
           take(configuration::ConfigurationService::kConfigurationBufferSize),
   };
@@ -266,7 +288,7 @@ void compose(Application& application,
           application.display, configuration, application.modules,
           application.dashboard, application.services.telemetry_registry,
           application.services.telemetry_state,
-          *application.telemetry_transport)) {
+          primary_transport(application))) {
     log::error(kTag, "Dashboard composition is incomplete");
   }
   if (!dashboard_composition::start_render_trigger(
@@ -283,8 +305,15 @@ void start_communication(Application& application,
           application.services.configuration,
           application.services.font_assets, application.services.image_assets,
           application.services.telemetry_provider,
-          *application.telemetry_transport, &apply_configuration, &application,
-          buffers.control_io, buffers.control_line)) {
+#if SIMCORE_SECOND_TELEMETRY_LINK
+          std::span<transport::ITransport* const>(
+              application.telemetry_transports.data(),
+              application.telemetry_link_count),
+#else
+          *application.telemetry_transport,
+#endif
+          &apply_configuration, &application, buffers.control_io,
+          buffers.control_line)) {
     log::error(kTag, "Communication composition is incomplete");
   }
 }
@@ -301,11 +330,19 @@ void run() {
 
   const configuration::ApplicationConfiguration& configuration =
       application.services.configuration.current();
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  application.telemetry_link_count =
+      application.platform.telemetry_transport.select(
+          board, configuration, application.telemetry_transports);
+  ESP_ERROR_CHECK(application.telemetry_link_count == 0 ? ESP_ERR_NOT_SUPPORTED
+                                                        : ESP_OK);
+#else
   application.telemetry_transport =
       application.platform.telemetry_transport.select(board, configuration);
   ESP_ERROR_CHECK(application.telemetry_transport == nullptr
                       ? ESP_ERR_NOT_SUPPORTED
                       : ESP_OK);
+#endif
 
   log::info(kTag, "SimCore starting");
 #if SIMCORE_DEBUG

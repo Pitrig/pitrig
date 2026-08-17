@@ -42,6 +42,12 @@ Debug builds append `;sdkconfig.defaults.debug` to `SDKCONFIG_DEFAULTS`, which s
 [docs/runtime-performance.md](docs/runtime-performance.md)). The same VS Code tasks exist in
 [.vscode/tasks.json](.vscode/tasks.json) ("SimCore: Build …").
 
+A P4 build may append `;sdkconfig.defaults.second-link` as well, which selects
+`CONFIG_SIMCORE_SECOND_TELEMETRY_LINK` and runs telemetry, `@SC:` control, and asset upload on the
+USB-Serial-JTAG port too. It is a development aid: the configuration contract has no property for
+it, and with the option off the flashed sections are byte-identical to a build without it. See
+[docs/simhub-custom-serial.md](docs/simhub-custom-serial.md).
+
 Flash and monitor use the same `-B` build directory, e.g.
 `idf.py -B build-t-display -p <port> flash monitor`.
 

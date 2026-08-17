@@ -11,6 +11,7 @@
 #include "performance.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "simcore_features.hpp"
 #include "transport.hpp"
 
 namespace simcore::asset_control {
@@ -107,7 +108,13 @@ class AssetControl final {
   static constexpr std::size_t kCommandCapacity = 32;
 
   // Queues an ASCII `@SC:<tag>` command without its line terminator.
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  // With more than one link attached it is answered on the link it arrived on.
+  void consume_command(std::span<const std::uint8_t> line,
+                       transport::ITransport& reply);
+#else
   void consume_command(std::span<const std::uint8_t> line);
+#endif
   // Consumes binary upload frames while active() is true.
   void consume(std::span<const std::uint8_t> bytes);
 
@@ -128,15 +135,40 @@ class AssetControl final {
   [[nodiscard]] bool send_ack(std::uint32_t sequence);
   void reset_session();
   [[nodiscard]] bool ready() const;
+  // Where the reply to the request being handled goes. With one link that is
+  // the only link there is, which is why every send path reads the same in
+  // both builds.
+  [[nodiscard]] transport::ITransport* replies_to() const {
+#if SIMCORE_SECOND_TELEMETRY_LINK
+    return reply_;
+#else
+    return transport_;
+#endif
+  }
 
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  static void consume_command_entry(void* context,
+                                    std::span<const std::uint8_t> line,
+                                    transport::ITransport& reply);
+#else
   static void consume_command_entry(void* context,
                                     std::span<const std::uint8_t> line);
+#endif
   static void consume_entry(void* context,
                             std::span<const std::uint8_t> bytes);
 
   Traits traits_{};
   Operations operations_{};
   transport::ITransport* transport_{};
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  // Written by a reading task under the request state, then snapshotted by the
+  // worker into `reply_` when it takes the request. The worker releases the
+  // request state before it answers — so that the next frame can already be
+  // arriving — and the snapshot is what keeps that answer pointed at the link
+  // that asked rather than at one that queued a command meanwhile.
+  transport::ITransport* requested_reply_{};
+  transport::ITransport* reply_{};
+#endif
   binary_session::Claim* claim_{};
   binary_session::Session session_{};
   std::array<char, kCommandCapacity> command_prefix_{};

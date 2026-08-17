@@ -62,6 +62,9 @@ void ConfigurationControl::stop() {
   request_size_ = 0;
   service_ = nullptr;
   transport_ = nullptr;
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  reply_ = nullptr;
+#endif
   reboot_handler_ = nullptr;
   reboot_context_ = nullptr;
   apply_handler_ = nullptr;
@@ -69,8 +72,12 @@ void ConfigurationControl::stop() {
   io_buffer_ = {};
 }
 
+#if SIMCORE_SECOND_TELEMETRY_LINK
 void ConfigurationControl::consume(
-    const std::span<const std::uint8_t> line) {
+    const std::span<const std::uint8_t> line, transport::ITransport& reply) {
+#else
+void ConfigurationControl::consume(const std::span<const std::uint8_t> line) {
+#endif
   if (service_ == nullptr || transport_ == nullptr ||
       task_ == nullptr || line.size() > io_buffer_.size() ||
       line.size() < kPrefix.size() ||
@@ -85,6 +92,9 @@ void ConfigurationControl::consume(
   }
   std::copy(line.begin(), line.end(), io_buffer_.begin());
   request_size_ = line.size();
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  reply_ = &reply;
+#endif
   request_state_.store(RequestState::ready, std::memory_order_release);
   xTaskNotifyGive(task_);
 }
@@ -129,7 +139,7 @@ void ConfigurationControl::handle(
         static_cast<unsigned long>(status.generation),
         status.storage_available ? 1U : 0U);
     if (written > 0 && static_cast<std::size_t>(written) < io_buffer_.size()) {
-      transport_->write(
+      reply()->write(
           std::span<const std::uint8_t>(io_buffer_.data(), written));
     }
     return;
@@ -206,7 +216,7 @@ void ConfigurationControl::handle(
 }
 
 void ConfigurationControl::send_text(const char* const text) {
-  transport_->write(std::span<const std::uint8_t>(
+  reply()->write(std::span<const std::uint8_t>(
       reinterpret_cast<const std::uint8_t*>(text), std::strlen(text)));
 }
 
@@ -223,7 +233,7 @@ void ConfigurationControl::send_error(const ValidationFailure& failure) {
       static_cast<int>(failure.widget_index),
       static_cast<int>(path.size()), path.data());
   if (written > 0 && static_cast<std::size_t>(written) < io_buffer_.size()) {
-    transport_->write(
+    reply()->write(
         std::span<const std::uint8_t>(io_buffer_.data(), written));
   }
 }
@@ -242,7 +252,7 @@ void ConfigurationControl::send_payload(
   std::copy(payload.begin(), payload.end(), io_buffer_.begin() + position);
   position += payload.size();
   io_buffer_[position++] = '\n';
-  transport_->write(
+  reply()->write(
       std::span<const std::uint8_t>(io_buffer_.data(), position));
 }
 
