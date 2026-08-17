@@ -1,19 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { type FontSpec, type RgbColor, WIDGET_ID_CAPACITY } from '../../../../../shared/configuration-schema'
+import { useDeviceStore } from '@/features/device/device-store'
 
 export function Section({ title, children }: { title: string; children: React.ReactNode }): React.JSX.Element { return <section className="space-y-2 border-t pt-3"><h3 className="font-medium">{title}</h3>{children}</section> }
 export function Hint({ children }: { children: React.ReactNode }): React.JSX.Element { return <p className="rounded-md border p-2 text-muted-foreground">{children}</p> }
 export function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }): React.JSX.Element {
-  const [local, change, flush] = useDebouncedCommit(value, onChange)
+  const [local, change, flush] = useLiveCommit(value, onChange)
   return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><input className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} onChange={(event) => change(event.target.value)} onBlur={flush} /></label>
 }
 export function NumberField({ label, value, min, max, step, onChange }: { label: string; value: number; min?: number; max?: number; step?: number | 'any'; onChange: (value: number) => void }): React.JSX.Element {
-  const [local, change, flush] = useDebouncedCommit(value, onChange)
+  const [local, change, flush] = useLiveCommit(value, onChange)
   return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><input type="number" className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} min={min} max={max} step={step} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) change(next) }} onBlur={flush} /></label>
 }
 export function SelectField({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (value: string) => void }): React.JSX.Element { return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><select className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={value} onChange={(event) => onChange(event.target.value)}>{value === '' ? <option value="">Not set</option> : null}{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label> }
 export function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: RgbColor) => void }): React.JSX.Element {
-  const [local, change, flush] = useDebouncedCommit(value, (next) => onChange(next as RgbColor))
+  const [local, change, flush] = useLiveCommit(value, (next) => onChange(next as RgbColor))
   const opaque = /^#[0-9A-Fa-f]{6}$/.test(local)
   return <label className="flex items-end gap-2 text-muted-foreground"><span className="min-w-0 flex-1 space-y-1"><span className="block">{label}</span><input className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} onChange={(event) => change(event.target.value)} onBlur={flush} /></span><input aria-label={`${label} picker`} type="color" className="h-8 w-10 rounded border bg-background p-1" value={opaque ? local : '#000000'} onChange={(event) => onChange(event.target.value as RgbColor)} /></label>
 }
@@ -29,13 +30,33 @@ export function OptionalColorField({ label, value, onChange }: { label: string; 
 }
 
 /**
- * Keeps typing local and commits on a trailing delay or on blur. Without this
- * every keystroke rewrote the whole configuration document.
+ * How long after the last change the field stops owning the value and starts
+ * following the document again. It exists so a value the document normalizes —
+ * a negative padding clamped to zero — does not rewrite what is still being
+ * typed; it no longer gates when the edit becomes visible.
  */
-function useDebouncedCommit<T>(value: T, commit: (value: T) => void, delay = 200): [T, (next: T) => void, () => void] {
+const SETTLE_MS = 200
+
+/**
+ * Keeps typing local while pushing every change into the document on the next
+ * animation frame, so the canvas follows a held stepper button or a dragged
+ * colour picker as it moves rather than once the interaction ends.
+ *
+ * Commits are coalesced to one per frame because each one rewrites the whole
+ * document — the same bargain the canvas makes for a drag (see PreviewCanvas).
+ * A connected device is rationed separately and much harder, on its own
+ * trailing delay in use-live-apply, so this never costs a round trip per frame.
+ *
+ * The interaction is also one edit group, again like a drag: a held stepper
+ * button commits every frame but is a single step for undo, rather than the
+ * hundred entries that would otherwise bury what came before it.
+ */
+function useLiveCommit<T>(value: T, commit: (value: T) => void): [T, (next: T) => void, () => void] {
   const [local, setLocal] = useState(value)
   const editing = useRef(false)
+  const grouped = useRef(false)
   const latest = useRef(commit)
+  const frame = useRef<number | undefined>(undefined)
 
   useEffect(() => {
     latest.current = commit
@@ -45,23 +66,62 @@ function useDebouncedCommit<T>(value: T, commit: (value: T) => void, delay = 200
     if (!editing.current) setLocal(value)
   }, [value])
 
+  const cancelFrame = (): void => {
+    if (frame.current === undefined) return
+    cancelAnimationFrame(frame.current)
+    frame.current = undefined
+  }
+  // Balanced in every exit from an interaction — settling, blur and unmount —
+  // because an unmatched beginEdit would group every later edit as well.
+  const endGroup = (): void => {
+    if (!grouped.current) return
+    grouped.current = false
+    useDeviceStore.getState().endEdit()
+  }
+
   useEffect(() => {
     if (!editing.current) return
-    const timer = setTimeout(() => {
-      editing.current = false
+    // Superseded by the next change if one lands first, which is what collapses
+    // a burst of steps into one commit per frame.
+    frame.current = requestAnimationFrame(() => {
+      frame.current = undefined
       latest.current(local)
-    }, delay)
-    return () => clearTimeout(timer)
-  }, [local, delay])
+    })
+    const settle = window.setTimeout(() => {
+      editing.current = false
+      endGroup()
+    }, SETTLE_MS)
+    return () => {
+      cancelFrame()
+      window.clearTimeout(settle)
+    }
+  }, [local])
+
+  useEffect(
+    () => () => {
+      cancelFrame()
+      endGroup()
+    },
+    []
+  )
 
   const change = (next: T): void => {
+    if (!grouped.current) {
+      grouped.current = true
+      useDeviceStore.getState().beginEdit()
+    }
     editing.current = true
     setLocal(next)
   }
+  // Leaving the field within the same frame as the last change would otherwise
+  // lose it, since unmounting cancels the pending frame.
   const flush = (): void => {
-    if (!editing.current) return
-    editing.current = false
-    latest.current(local)
+    cancelFrame()
+    if (editing.current) {
+      editing.current = false
+      latest.current(local)
+    }
+    endGroup()
   }
   return [local, change, flush]
 }
