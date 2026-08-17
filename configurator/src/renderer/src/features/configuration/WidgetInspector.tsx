@@ -13,9 +13,11 @@ import {
   MAXIMUM_TEXT_SOURCES,
   MAXIMUM_ACTIONS,
   MAXIMUM_SLOTS,
+  GRADIENT_DIRECTION_VALUES,
   MAXIMUM_WIDGET_CONDITIONS,
   SHAPE_KIND_VALUES,
   WIDGET_ACTION_TYPE_VALUES,
+  WIDGET_ID_CAPACITY,
   type ArcWidgetConfiguration,
   type BarOrientation,
   type BarWidgetConfiguration,
@@ -26,6 +28,7 @@ import {
   type IndicatorWidgetConfiguration,
   type ConditionOperator,
   type FontSpec,
+  type GradientDirection,
   type RgbColor,
   type ShapeKind,
   type ShapeWidgetConfiguration,
@@ -71,6 +74,8 @@ import {
   groupById,
   mutateActiveScreen,
   mutateGroup,
+  renameGroup,
+  renameScreen,
   mutateSelectedWidget,
   selectedGroupId,
   selectedWidget,
@@ -359,6 +364,18 @@ function BarEditor({ selection, widget }: { selection: WidgetSelection; widget: 
         <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value as BarOrientation })} />
         <CheckboxField label="Fill from the far end" checked={widget.inverted ?? false} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
         <ColorField label="Fill color" value={widget.fill_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.fill_color = value })} />
+        {/* The fill's gradient runs along the bar's own axis, so it needs no
+            direction of its own. */}
+        <OptionalColorField
+          label="Fill gradient to"
+          value={widget.fill_grad_color}
+          onChange={(value) =>
+            update((next) => {
+              if (value) next.fill_grad_color = value
+              else delete next.fill_grad_color
+            })
+          }
+        />
         <p className="text-muted-foreground">The box background below is the track the fill runs over.</p>
       </Section>
       <TitleEditor widget={widget} update={update} />
@@ -471,7 +488,13 @@ function GroupEditor({
   const box = group.placement ?? {}
   const slot = group.slot ?? 0
   return (
-    <Section title={`Group · ${group.id ?? ''}`}>
+    <Section title="Group">
+      <IdField
+        key={group.id ?? groupId}
+        label="Name"
+        value={group.id ?? ''}
+        onCommit={(name) => renameGroup(groupId, name)}
+      />
       <div className="grid grid-cols-2 gap-2">
         {(['x', 'y', 'width', 'height'] as const).map((key) => (
           <NumberField
@@ -486,6 +509,16 @@ function GroupEditor({
           />
         ))}
       </div>
+      <NumberField
+        label="Stacking (z-index among the screen's widgets)"
+        value={group.z_index ?? 0}
+        onChange={(z_index) =>
+          mutateGroup(groupId, (target) => {
+            if (z_index === 0) delete target.z_index
+            else target.z_index = z_index
+          })
+        }
+      />
       <NumberField
         label="Slot (0 = always visible)"
         value={slot}
@@ -618,8 +651,18 @@ function GroupEditor({
 
 function ScreenEditor({ configuration }: { configuration: DeviceConfiguration }): React.JSX.Element {
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
+  const screen = screensOf(configuration)[activeScreenIndex]
   return (
     <Section title={`Screen ${activeScreenIndex + 1}`}>
+      {/* A screen's name is what a goto_screen action points at, so it is worth
+          setting to something the dashboard means. Renaming repoints every
+          action that named it. */}
+      <IdField
+        key={screen?.id ?? activeScreenIndex}
+        label="Name"
+        value={screen?.id ?? `screen${activeScreenIndex + 1}`}
+        onCommit={(name) => renameScreen(activeScreenIndex, name)}
+      />
       <ColorField
         label="Background color"
         value={screensOf(configuration)[activeScreenIndex]?.background_color ?? '#000000'}
@@ -729,6 +772,39 @@ function BoxEditor({ widget, update }: {
         else next.background_inset_px = inset
       })} />
       <ColorField label="Border color" value={widget.border?.color ?? '#AEAEAE'} onChange={(value) => update((next) => { next.border = { ...next.border, color: value } })} />
+      {/* A gradient is the far end of the background plus an axis; without a
+          background there is nothing for it to run across, so it only appears
+          once one is set. On the ESP32-P4 a gradient fill falls back to the
+          software renderer — a performance note, not a correctness one. */}
+      {widget.background_color ? (
+        <>
+          <OptionalColorField
+            label="Background gradient to"
+            value={widget.background_grad_color}
+            onChange={(value) =>
+              update((next) => {
+                if (value) next.background_grad_color = value
+                else {
+                  delete next.background_grad_color
+                  delete next.background_grad_dir
+                }
+              })
+            }
+          />
+          {widget.background_grad_color ? (
+            <SelectField
+              label="Gradient axis"
+              value={widget.background_grad_dir ?? 'vertical'}
+              options={GRADIENT_DIRECTION_VALUES}
+              onChange={(value) =>
+                update((next) => {
+                  next.background_grad_dir = value as GradientDirection
+                })
+              }
+            />
+          ) : null}
+        </>
+      ) : null}
     </Section>
   )
 }
@@ -1027,6 +1103,51 @@ function pruneTransform(source: TextSourceConfiguration): void {
 }
 
 function FontEditor({ font, onChange }: { font?: FontSpec; onChange: (font: FontSpec) => void }): React.JSX.Element { return <div className="grid grid-cols-[minmax(0,1fr)_5rem] gap-2"><TextField label="Font family" value={font?.family ?? ''} onChange={(family) => onChange({ ...font, family })} /><NumberField label="Size" value={font?.size_px ?? 16} min={1} max={255} onChange={(size_px) => onChange({ ...font, size_px })} /></div> }
+/**
+ * An identifier the device stores and never draws. A rename that would collide
+ * or overflow is refused rather than silently adjusted, and the field reverts so
+ * the refusal is visible instead of the edit vanishing.
+ */
+function IdField({
+  label,
+  value,
+  onCommit
+}: {
+  label: string
+  value: string
+  onCommit: (name: string) => boolean
+}): React.JSX.Element {
+  // Keyed on the committed value by its callers, so a rename elsewhere remounts
+  // this instead of being synced into it.
+  const [draft, setDraft] = useState(value)
+  const [rejected, setRejected] = useState(false)
+  const commit = (): void => {
+    if (draft === value) return
+    if (!onCommit(draft)) {
+      setRejected(true)
+      setDraft(value)
+    }
+  }
+  return (
+    <label className="block space-y-1 text-muted-foreground">
+      <span>{label}</span>
+      <input
+        value={draft}
+        maxLength={WIDGET_ID_CAPACITY - 1}
+        className={`h-8 w-full rounded-md border bg-background px-2 text-foreground ${rejected ? 'border-red-500' : ''}`}
+        onChange={(event) => {
+          setDraft(event.target.value)
+          setRejected(false)
+        }}
+        onBlur={commit}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') commit()
+        }}
+      />
+    </label>
+  )
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }): React.JSX.Element { return <section className="space-y-2 border-t pt-3"><h3 className="font-medium">{title}</h3>{children}</section> }
 function Hint({ children }: { children: React.ReactNode }): React.JSX.Element { return <p className="rounded-md border p-2 text-muted-foreground">{children}</p> }
 function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }): React.JSX.Element {

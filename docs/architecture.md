@@ -244,7 +244,17 @@ Platform code adapts modules and components to framework-specific presentation a
 
 Dashboard widgets are platform-specific UI. Reusable widgets receive a pre-bound typed value
 pipeline from a startup-only widget binder and own only bounded transform
-configuration and LVGL presentation state. Stateful modifiers, including Lap
+configuration and LVGL presentation state.
+
+The dashboard composes up to four screens, each of which may hold widget groups:
+a group is one LVGL container, so the widgets inside it are placed relative to
+its box and clipped to it. Groups that share a slot occupy one box with one of
+them visible, selected by a tap or by a telemetry rule
+([ADR 0021](adr/0021-widget-groups-and-slots.md)). Screen loading, the swipe, and
+the tap targets that navigate all live in one navigation controller
+([ADR 0020](adr/0020-screen-navigation.md)); widgets are built refusing input and
+the composition makes only the authored tap targets clickable, so no widget type
+knows about input. Stateful modifiers, including Lap
 Timer, are implemented by modules and hidden behind the pipeline callback. Pure
 transforms live under `utils/transformers` and do not depend on dashboard or LVGL.
 Widgets do not know protocol identifiers or telemetry field names and do not
@@ -302,7 +312,10 @@ device holds no decoder. See [Image asset storage](image-assets.md) and
 The desktop configurator edits dashboard widgets directly in the logical
 display coordinate space. Canvas selection, dragging, resizing, property
 inspection, and the advanced JSON editor all mutate the same sparse
-local draft; there is no second editor-only layout model to reconcile. The
+local draft; there is no second editor-only layout model to reconcile. Which
+screen is being edited, and which group of a slot is being looked at, are
+editor state rather than document properties — the device always starts at the
+first screen and picks a slot's group for itself. The
 draft owns its target board identity and therefore resolves the immutable local
 board profile and display geometry even while no device is connected. Device
 connection state and the local authoring draft have independent lifetimes.

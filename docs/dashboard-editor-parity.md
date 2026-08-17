@@ -195,7 +195,8 @@ raising a particular cap is a decision about the RAM budget.
 4. ~~**Editor UX**~~ Done.
 5. ~~**Images**~~ Done: the uploaded image pipeline and the `image` widget.
 6. ~~**Multiple screens**~~ Done, with the touch input it needed and with widget
-   groups and slots, in schema 6 (ADRs 0019, 0020, 0021).
+   groups and slots in schema 6, and tap-driven navigation in schema 7
+   (ADRs 0019, 0020, 0021).
 7. **Cross-board layout transfer and a template library** — the largest
    remaining difference for a user, and the one item on this list that needs no
    firmware.

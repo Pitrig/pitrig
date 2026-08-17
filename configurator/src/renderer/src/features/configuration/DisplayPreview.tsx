@@ -51,6 +51,7 @@ import {
   absolutePlacement,
   addScreen,
   addTapZone,
+  findGroup,
   deleteScreen,
   groupWidgets,
   MAXIMUM_SCREENS,
@@ -508,13 +509,22 @@ function Widgets({
   // translated back before anything is written to the document.
   const widgets = [...widgetsOf(screen), ...groups.flatMap(widgetsOf)]
 
-  const selectedPlacements = selectedIds
-    .map((id) => absolutePlacement(configuration, id))
-    .filter((placement): placement is Placement => placement !== undefined)
+  const selectedGroupPlacement =
+    selection?.type === 'group'
+      ? completePlacement(findGroup(configuration, selection.id)?.group.placement)
+      : undefined
+  const selectedPlacements = [
+    ...selectedIds
+      .map((id) => absolutePlacement(configuration, id))
+      .filter((placement): placement is Placement => placement !== undefined),
+    ...(selectedGroupPlacement ? [selectedGroupPlacement] : [])
+  ]
+  // A group resizes like a widget: its box is the thing being dragged, and its
+  // children keep the offsets they were authored with.
   const primaryPlacement =
     selection?.type === 'widget'
       ? absolutePlacement(configuration, selection.id)
-      : undefined
+      : selectedGroupPlacement
 
   const beginInteraction = (
     event: React.PointerEvent<SVGElement>,
@@ -606,6 +616,13 @@ function Widgets({
       const shiftX = resolved.placement.x - interaction.placement.x
       const shiftY = resolved.placement.y - interaction.placement.y
       mutateDraftConfiguration((draft) => {
+        // A group's box is already in display coordinates, so it takes the
+        // resolved placement as-is and has no followers to shift.
+        if (interaction.target.type === 'group') {
+          const group = findGroup(draft, interaction.target.id)?.group
+          if (group) group.placement = resolved.placement
+          return
+        }
         const primaryId = interaction.target.type === 'widget' ? interaction.target.id : ''
         const primary = findWidget(draft, primaryId)
         if (primary) {
@@ -845,10 +862,10 @@ function Widgets({
             // still reaches the widget under the cursor. An empty group is all
             // outline, which is what makes a tap zone selectable.
             pointerEvents="stroke"
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'move' }}
             onPointerDown={(event) => {
-              event.stopPropagation()
-              select({ type: 'group', id: group.id ?? '' })
+              if (!group.id || !box) return
+              beginInteraction(event, { type: 'group', id: group.id }, 'move', box)
             }}
             onDoubleClick={() => followAction(group.action)}
           />

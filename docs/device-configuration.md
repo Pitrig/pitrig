@@ -1,6 +1,6 @@
 # Device configuration
 
-This document defines the schema 5 configuration contract implemented by the
+This document defines the schema 7 configuration contract implemented by the
 firmware and read by the desktop configurator. Earlier schemas are
 intentionally not part of the current contract.
 
@@ -111,7 +111,9 @@ A dashboard owns a bounded `screens` array of up to four screens, and the driver
 swipes between them on a board with a touch panel. Each screen carries its own
 `id`, `background_color`, an ordered `widgets` array discriminated by a `type`
 property, and an optional `groups` array. Every widget also carries a stable
-`id`.
+`id`. A screen's `id` is what a `goto_screen` action names, so it is worth
+setting to something the dashboard means rather than leaving as the generated
+default.
 
 A **group** is a rectangle of a screen with widgets authored inside it. Its
 `placement` is absolute screen pixels; the geometry of the widgets inside it is
