@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { childArraysOf, pagesOf, screensOf, widgetsOf } from '@shared/configuration-access'
 import { type DeviceConfiguration, type DisplayDescriptor } from '@shared/device'
 import { LAP_SECONDS } from '@shared/mock-telemetry'
-import { clamp, clampToDisplay } from '../editor/placement'
+import { clamp } from '../editor/placement'
 import { GridOverlay, GuideOverlay, HitArea, SelectionFrame } from './CanvasOverlays'
 import { ImagePreview } from './ImagePreview'
 import { TextWidgetPreview } from './TextPreview'
+import { moveSelection } from '../editor/geometry-commands'
 import { flattenScreen } from './preview-layers'
-import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOffset, useDashboardEditorStore } from '../dashboard-editor'
+import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, useDashboardEditorStore } from '../dashboard-editor'
 import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
@@ -178,35 +179,13 @@ export function Widgets({
       setGuides(resolved.guides)
       const shiftX = resolved.placement.x - interaction.placement.x
       const shiftY = resolved.placement.y - interaction.placement.y
-      mutateDraftConfiguration((draft) => {
-        const primaryId = interaction.target.type === 'widget' ? interaction.target.id : ''
-        const primary = findWidget(draft, primaryId)
-        if (primary) {
-          const offset = parentOffset(draft, primaryId)
-          primary.widget.placement = {
-            ...resolved.placement,
-            x: resolved.placement.x - offset.x,
-            y: resolved.placement.y - offset.y
-          }
-        }
-        for (const follower of interaction.followers) {
-          const widget = findWidget(draft, follower.id)?.widget
-          if (!widget) continue
-          const offset = parentOffset(draft, follower.id)
-          const onDisplay = clampToDisplay(
-            follower.placement.x + shiftX,
-            follower.placement.y + shiftY,
-            follower.placement.width,
-            follower.placement.height,
-            display
-          )
-          widget.placement = {
-            ...follower.placement,
-            x: onDisplay.x - offset.x,
-            y: onDisplay.y - offset.y
-          }
-        }
-      })
+      moveSelection(
+        interaction.target.type === 'widget' ? interaction.target.id : '',
+        resolved.placement,
+        { x: shiftX, y: shiftY },
+        interaction.followers,
+        display
+      )
     }
     pendingFrame.current = requestAnimationFrame(() => {
       pendingFrame.current = undefined
