@@ -147,9 +147,19 @@ struct Anchor {
 
 // Creates the caption, plus the mask that hides the border line behind it.
 // Both sit on the parent so the border can pass behind.
+}  // namespace
+
+bool caption_mask_reads_parent(const Config& config) {
+  const bool paints_own_fill =
+      config.background_color != configuration::kTransparentColor &&
+      config.background_inset_px == 0;
+  return !paints_own_fill;
+}
+
+namespace {
+
 void build_caption(const Config& config, const fonts::Registry& fonts,
-                   lv_obj_t* const parent, const Rect& bounds,
-                   const bool paints_container, Box& box) {
+                   lv_obj_t* const parent, const Rect& bounds, Box& box) {
   if (config.title.text.front() == '\0') {
     return;
   }
@@ -160,9 +170,6 @@ void build_caption(const Config& config, const fonts::Registry& fonts,
   const Rect caption =
       caption_rect(config, bounds, text_width(title_font, config.title.text.data()),
                    lv_font_get_line_height(title_font));
-  const bool has_background =
-      config.background_color != configuration::kTransparentColor;
-
   if (Rect gap{}; caption_gap_rect(config, bounds, caption, gap)) {
     box.caption_gap = lv_obj_create(parent);
     lv_obj_remove_style_all(box.caption_gap);
@@ -170,9 +177,10 @@ void build_caption(const Config& config, const fonts::Registry& fonts,
     lv_obj_set_pos(box.caption_gap, gap.x, gap.y);
     // An inset background leaves the frame line over the parent, not over the
     // widget's own fill, so the mask matches whatever is painted there.
-    const lv_color_t gap_color = has_background && paints_container
-                                     ? lv_color_hex(config.background_color)
-                                     : background_behind(parent);
+    const lv_color_t gap_color =
+        caption_mask_reads_parent(config)
+            ? background_behind(parent)
+            : lv_color_hex(config.background_color);
     lv_obj_set_style_bg_color(box.caption_gap, gap_color, LV_PART_MAIN);
     lv_obj_set_style_bg_opa(box.caption_gap, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_remove_flag(box.caption_gap, LV_OBJ_FLAG_SCROLLABLE);
@@ -329,7 +337,7 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
   apply_debug_widget_outline(box.container);
 
   if (paints_container) {
-    build_caption(config, fonts, parent, bounds, paints_container, box);
+    build_caption(config, fonts, parent, bounds, box);
     return true;
   }
   // Created before any content so it stays behind it. LVGL places a child
@@ -359,7 +367,7 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
                           LV_PART_MAIN);
   lv_obj_remove_flag(box.background_fill, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(box.background_fill, LV_OBJ_FLAG_CLICKABLE);
-  build_caption(config, fonts, parent, bounds, paints_container, box);
+  build_caption(config, fonts, parent, bounds, box);
   return true;
 }
 

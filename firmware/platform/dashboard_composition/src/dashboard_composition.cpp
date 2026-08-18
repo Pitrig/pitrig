@@ -153,26 +153,14 @@ std::array<WidgetStorage*, 8> storages(Dashboard& dashboard) {
 }
 
 // Whether this widget's caption mask takes its colour from one of the screens
-// in `recoloured`, and so has to be rebuilt for that colour to reach it.
-//
-// The conditions mirror build_caption() in widget_frame.cpp: the mask object
-// exists only for a captioned widget with a border, and it copies the widget's
-// own background only when the container itself paints it — a transparent
-// colour paints nothing, and an inset background leaves the frame line standing
-// on the parent. Every other case resolves the colour behind the widget, which
-// a container never paints unless it was authored with a background, so the
-// screen is what shows through.
+// in `recoloured`, and so has to be rebuilt for that colour to reach it. The
+// rule for which masks read the parent belongs to the frame that builds them.
 [[nodiscard]] bool caption_masks_screen(
     const configuration::WidgetFrame* const frame,
     const std::uint32_t recoloured) {
   if (frame == nullptr || frame->title.text.front() == '\0' ||
-      frame->border.width_px == 0) {
-    return false;
-  }
-  const bool paints_container =
-      frame->background_color != configuration::kTransparentColor &&
-      frame->background_inset_px == 0;
-  if (paints_container) {
+      frame->border.width_px == 0 ||
+      !dashboard::frame::caption_mask_reads_parent(*frame)) {
     return false;
   }
   return (recoloured & (1U << frame->screen_index)) != 0;
