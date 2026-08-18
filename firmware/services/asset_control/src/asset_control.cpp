@@ -7,40 +7,11 @@
 
 #include "binary_codec.hpp"
 #include "crc32.hpp"
+#include "scf1_frame.hpp"
 #include "simcore_features.hpp"
 
 namespace simcore::asset_control {
 namespace {
-
-constexpr std::array<std::uint8_t, 4> kFrameMagic{'S', 'C', 'F', '1'};
-constexpr std::size_t kFrameTypeOffset = 4;
-constexpr std::size_t kFrameReservedByteOffset = 5;
-constexpr std::size_t kFrameSequenceOffset = 6;
-constexpr std::size_t kFramePayloadLengthOffset = 10;
-constexpr std::size_t kFrameReservedWordOffset = 12;
-
-enum class FrameType : std::uint8_t {
-  data = 1,
-  commit = 2,
-  cancel = 3,
-};
-
-[[nodiscard]] bool valid_header(const std::span<const std::uint8_t> header) {
-  if (header.size() != 14 ||
-      !std::equal(kFrameMagic.begin(), kFrameMagic.end(), header.begin()) ||
-      header[kFrameReservedByteOffset] != 0 ||
-      binary::read_u16_le(header, kFrameReservedWordOffset) != 0) {
-    return false;
-  }
-  const auto type = static_cast<FrameType>(header[kFrameTypeOffset]);
-  const std::size_t payload_size =
-      binary::read_u16_le(header, kFramePayloadLengthOffset);
-  if (type == FrameType::data) {
-    return payload_size > 0 && payload_size <= kUploadMaximumChunkSize;
-  }
-  return (type == FrameType::commit || type == FrameType::cancel) &&
-         payload_size == 0;
-}
 
 [[nodiscard]] bool matches(const std::span<const std::uint8_t> line,
                            const std::string_view command) {
@@ -223,13 +194,13 @@ void AssetControl::consume(const std::span<const std::uint8_t> bytes) {
     if (frame_size_ == kFrameHeaderSize) {
       const auto header =
           std::span<const std::uint8_t>(frame_.data(), kFrameHeaderSize);
-      if (!valid_header(header)) {
+      if (!scf1::valid_header(header)) {
         queue_request(RequestType::invalid_frame);
         return;
       }
       expected_frame_size_ =
           kFrameHeaderSize +
-          binary::read_u16_le(header, kFramePayloadLengthOffset) +
+          binary::read_u16_le(header, scf1::kPayloadLengthOffset) +
           kFrameCrcSize;
     }
     if (expected_frame_size_ != 0 && frame_size_ == expected_frame_size_) {
@@ -346,7 +317,7 @@ void AssetControl::handle_frame() {
       std::span<const std::uint8_t>(frame_.data(), request_frame_size_);
   const std::size_t content_size = frame.size() - kFrameCrcSize;
   const std::uint32_t sequence =
-      binary::read_u32_le(frame, kFrameSequenceOffset);
+      binary::read_u32_le(frame, scf1::kSequenceOffset);
   const std::uint32_t supplied_crc = binary::read_u32_le(frame, content_size);
   if (supplied_crc != binary::crc32(frame.first(content_size))) {
     finish_with_error("frame_crc");
@@ -357,15 +328,15 @@ void AssetControl::handle_frame() {
     return;
   }
 
-  const auto type = static_cast<FrameType>(frame[kFrameTypeOffset]);
-  if (type == FrameType::cancel) {
+  const auto type = static_cast<scf1::FrameType>(frame[scf1::kTypeOffset]);
+  if (type == scf1::FrameType::cancel) {
     operations_.cancel_update(operations_.service);
     release_request();
     reset_session();
     (void)send_ok("CANCELLED");
     return;
   }
-  if (type == FrameType::commit) {
+  if (type == scf1::FrameType::commit) {
     if (received_size_ != package_size_) {
       finish_with_error("incomplete_package");
       return;
@@ -382,7 +353,7 @@ void AssetControl::handle_frame() {
   }
 
   const std::size_t payload_size =
-      binary::read_u16_le(frame, kFramePayloadLengthOffset);
+      binary::read_u16_le(frame, scf1::kPayloadLengthOffset);
   if (payload_size > package_size_ - received_size_) {
     finish_with_error("invalid_size");
     return;
@@ -437,42 +408,6 @@ void AssetControl::finish_with_error(const char* const error,
   (void)send_error(error);
 }
 
-bool AssetControl::send_text(const char* const text) {
-  return replies_to() != nullptr &&
-         replies_to()->write(std::span<const std::uint8_t>(
-             reinterpret_cast<const std::uint8_t*>(text), std::strlen(text)));
-}
-
-// Every reply names the kind in the same position, so the tag is written here
-// and the caller supplies only what follows it.
-bool AssetControl::send_ok(const char* const rest) {
-  const int written =
-      std::snprintf(response_.data(), response_.size(), "@SC:OK:%.*s:%s\n",
-                    static_cast<int>(traits_.tag.size()), traits_.tag.data(),
-                    rest);
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
-}
-
-bool AssetControl::send_error(const char* const word) {
-  const int written =
-      std::snprintf(response_.data(), response_.size(), "@SC:ERR:%.*s:%s\n",
-                    static_cast<int>(traits_.tag.size()), traits_.tag.data(),
-                    word);
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
-}
-
-bool AssetControl::send_ack(const std::uint32_t sequence) {
-  const int written = std::snprintf(
-      response_.data(), response_.size(),
-      "@SC:OK:%.*s:ACK:sequence=%lu,received=%lu\n",
-      static_cast<int>(traits_.tag.size()), traits_.tag.data(),
-      static_cast<unsigned long>(sequence),
-      static_cast<unsigned long>(received_size_));
-  return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
-         send_text(response_.data());
-}
 
 void AssetControl::reset_session() {
   package_size_ = 0;
