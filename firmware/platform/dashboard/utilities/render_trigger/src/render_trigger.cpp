@@ -4,7 +4,8 @@
 
 namespace simcore::dashboard::render_trigger {
 
-bool Trigger::start(const WakeHandler handler, void* const context) {
+bool Trigger::start(const WakeHandler handler, void* const context,
+                    TaskStorage& task_storage) {
   if (task_ != nullptr || handler == nullptr) {
     return false;
   }
@@ -12,8 +13,8 @@ bool Trigger::start(const WakeHandler handler, void* const context) {
   context_ = context;
   pending_.store(false, std::memory_order_relaxed);
   task_ = xTaskCreateStatic(&Trigger::task_entry, "render_trigger",
-                            task_stack_.size(), this, kTaskPriority,
-                            task_stack_.data(), &task_state_);
+                            task_storage.stack.size(), this, kTaskPriority,
+                            task_storage.stack.data(), &task_storage.state);
   if (task_ == nullptr) {
     handler_ = nullptr;
     context_ = nullptr;

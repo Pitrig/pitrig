@@ -189,7 +189,11 @@ the controllers over them — in an internal header. The core holds no member fo
 it and takes it from `dashboard_composition::instance()`. It is statically
 allocated exactly as everything else the root owns; it simply lives in the
 component that knows its type, so the core neither links against LVGL nor
-recompiles when a widget type changes.
+recompiles when a widget type changes. It is also the one static the firmware
+places in external RAM: some 68 KB of widget-state pools whose per-frame
+working set is a few kilobytes, kept out of the internal RAM the draw buffers
+and the LVGL heap need. Only the render trigger's task stack and control
+block, which FreeRTOS requires internal, sit beside it in internal `.bss`.
 
 Responsibilities include:
 

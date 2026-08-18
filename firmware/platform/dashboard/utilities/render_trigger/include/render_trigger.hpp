@@ -27,16 +27,27 @@ using WakeHandler = void (*)(void* context);
 // The trigger has firmware lifetime: it is started once and never stopped.
 class Trigger final {
  public:
+  static constexpr std::size_t kTaskStackSize = 3072;
+
+  // The task's control block and stack. FreeRTOS requires both in internal
+  // RAM, so they are not members of the Trigger — which lives in external RAM
+  // with the rest of the dashboard — but are handed in from internal storage
+  // the composition keeps for the firmware lifetime.
+  struct TaskStorage {
+    StaticTask_t state{};
+    std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> stack{};
+  };
+
   Trigger() = default;
   Trigger(const Trigger&) = delete;
   Trigger& operator=(const Trigger&) = delete;
 
-  [[nodiscard]] bool start(WakeHandler handler, void* context);
+  [[nodiscard]] bool start(WakeHandler handler, void* context,
+                           TaskStorage& task_storage);
   [[nodiscard]] bool started() const { return task_ != nullptr; }
   void request();
 
  private:
-  static constexpr std::size_t kTaskStackSize = 3072;
   // Equal to the LVGL task and below the transport task, so a whole received
   // chunk is parsed before the pass it triggers.
   static constexpr UBaseType_t kTaskPriority = 4;
@@ -47,8 +58,6 @@ class Trigger final {
   WakeHandler handler_{};
   void* context_{};
   TaskHandle_t task_{};
-  StaticTask_t task_state_{};
-  std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
   std::atomic<bool> pending_{};
 };
 

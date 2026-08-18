@@ -19,6 +19,7 @@
 #include "dashboard_state.hpp"
 #include "dashboard_storages.hpp"
 #include "widget_type_ops.hpp"
+#include "esp_attr.h"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
@@ -152,7 +153,15 @@ Dashboard::Dashboard() = default;
 
 // One display, one dashboard. Firmware-lifetime, like everything the
 // composition root owns; it lives here so its type need not be public.
-Dashboard g_dashboard;
+//
+// It lives in external RAM: ~68 KB of widget-state pools whose per-frame
+// working set is a few kilobytes and stays in the cache, and which internal
+// RAM — the draw buffers' and LVGL's heap — is too short of on the ESP32-S3
+// to hold. The one part that cannot be there is the render trigger's task
+// stack and control block, which FreeRTOS requires internal, so those sit
+// beside it in internal .bss.
+EXT_RAM_BSS_ATTR Dashboard g_dashboard;
+dashboard::render_trigger::Trigger::TaskStorage g_render_trigger_task;
 
 Dashboard& instance() { return g_dashboard; }
 
@@ -270,7 +279,8 @@ bool start_render_trigger(Dashboard& dashboard, events::EventBus& event_bus) {
   if (dashboard.render_trigger.started()) {
     return false;
   }
-  if (!dashboard.render_trigger.start(&wake_widgets, &dashboard)) {
+  if (!dashboard.render_trigger.start(&wake_widgets, &dashboard,
+                                      g_render_trigger_task)) {
     log::error(kTag, "Failed to start the render trigger task");
     return false;
   }
