@@ -168,145 +168,102 @@ export function draftValueFont(
 // A widget with no font is rejected by the device as a whole-document error,
 // so a newly added one adopts an installed family when the board has any.
 // Without fonts installed it is created bare and the validator explains why.
-export function addTextWidget(
-  display: { width: number; height: number },
-  font?: FontSpec
-): WidgetSelection | undefined {
-  let added: WidgetSelection | undefined
-  mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, {
-      type: 'text',
-      // A text widget renders its sources, so it always has at least one. The
-      // empty source takes the schema default binding.
-      sources: [{}],
-      ...(font ? { value: { font } } : {}),
-      placement: centeredPlacement(display, 120, 64)
-    })
-  })
-  return added
-}
-
-export function addShapeWidget(
-  display: { width: number; height: number }
-): WidgetSelection | undefined {
-  let added: WidgetSelection | undefined
-  mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, {
-      type: 'shape',
-      // A shape with nothing painted would be invisible, so it starts as a
-      // visible plate the author can restyle.
-      background_color: '#1E293B',
-      placement: centeredPlacement(display, 160, 80)
-    })
-  })
-  return added
-}
-
 /**
- * A slot starts with two pages in the loop, because one page that switches to
- * nothing is not a slot — the pair is the smallest thing that shows what the
- * widget is for. It is created bare: a slot draws nothing, and the device
- * refuses one that tries to.
+ * What a new widget of each type starts as. Eight near-identical factories used
+ * to wrap these literals, each one a twelve-line `let added;
+ * mutateDraftConfiguration(...); return added` differing only in what it put
+ * inside. Adding a widget type is one entry here now, rather than a new
+ * function plus a new button handler.
+ *
+ * `extras` carries what the editor knows and a type may want: the family the
+ * dashboard already draws with, and an image that is actually installed.
  */
-export function addSlotWidget(
-  display: { width: number; height: number }
-): WidgetSelection | undefined {
-  let added: WidgetSelection | undefined
-  mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, {
-      type: 'slot',
-      pages: [{}, {}],
-      placement: centeredPlacement(display, 200, 100)
-    })
-  })
-  return added
-}
-
-export function addBarWidget(
-  display: { width: number; height: number }
-): WidgetSelection | undefined {
-  let added: WidgetSelection | undefined
-  mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, {
-      type: 'bar',
-      // The frame background is the track the fill runs over, so a new bar
-      // starts with one; the default 0..1 window suits a normalized source.
-      background_color: '#1E293B',
-      source: { binding: 'vehicle.throttle' },
-      placement: centeredPlacement(display, 200, 24)
-    })
-  })
-  return added
-}
-
-export function addArcWidget(
-  display: { width: number; height: number }
-): WidgetSelection | undefined {
-  let added: WidgetSelection | undefined
-  mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, {
-      type: 'arc',
-      source: { binding: 'engine.rpm_percent' },
-      // A visible track is what makes an empty gauge read as a gauge.
-      track_color: '#1E293B',
-      placement: centeredPlacement(display, 120, 120)
-    })
-  })
-  return added
-}
-
-export function addIndicatorWidget(
-  display: { width: number; height: number }
-): WidgetSelection | undefined {
-  let added: WidgetSelection | undefined
-  mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, {
-      type: 'indicator',
-      source: { binding: 'engine.rpm_percent' },
-      off_color: '#1E293B',
-      // The shift-light ladder every rev strip starts from: green, amber, red.
-      segments: [
-        { threshold: 0.5, color: '#00C853' },
-        { threshold: 0.62, color: '#00C853' },
-        { threshold: 0.74, color: '#FFD200' },
-        { threshold: 0.84, color: '#FFD200' },
-        { threshold: 0.92, color: '#D50000' },
-        { threshold: 0.97, color: '#D50000' }
-      ],
-      placement: centeredPlacement(display, 240, 20)
-    })
-  })
-  return added
-}
-
-export function addImageWidget(
-  display: { width: number; height: number },
+interface NewWidgetExtras {
+  font?: FontSpec
   image?: string
-): WidgetSelection | undefined {
-  let added: WidgetSelection | undefined
-  mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, {
-      type: 'image',
-      // The device draws an image at the size it was uploaded at, so a new
-      // widget starts at that size when one is installed.
-      ...(image ? { image } : {}),
-      placement: centeredPlacement(display, 96, 96)
-    })
-  })
-  return added
 }
 
-export function addGraphWidget(
-  display: { width: number; height: number }
+const WIDGET_DEFAULTS: Record<
+  WidgetConfiguration['type'],
+  (
+    display: { width: number; height: number },
+    extras: NewWidgetExtras
+  ) => WidgetConfiguration
+> = {
+  text: (display, { font }) => ({
+    type: 'text',
+    // A text widget renders its sources, so it always has at least one. The
+    // empty source takes the schema default binding.
+    sources: [{}],
+    ...(font ? { value: { font } } : {}),
+    placement: centeredPlacement(display, 120, 64)
+  }),
+  shape: (display) => ({
+    type: 'shape',
+    // A shape with nothing painted would be invisible, so it starts as a
+    // visible plate the author can restyle.
+    background_color: '#1E293B',
+    placement: centeredPlacement(display, 160, 80)
+  }),
+  slot: (display) => ({
+    type: 'slot',
+    pages: [{}, {}],
+    placement: centeredPlacement(display, 200, 100)
+  }),
+  bar: (display) => ({
+    type: 'bar',
+    // The frame background is the track the fill runs over, so a new bar
+    // starts with one; the default 0..1 window suits a normalized source.
+    background_color: '#1E293B',
+    source: { binding: 'vehicle.throttle' },
+    placement: centeredPlacement(display, 200, 24)
+  }),
+  arc: (display) => ({
+    type: 'arc',
+    source: { binding: 'engine.rpm_percent' },
+    // A visible track is what makes an empty gauge read as a gauge.
+    track_color: '#1E293B',
+    placement: centeredPlacement(display, 120, 120)
+  }),
+  indicator: (display) => ({
+    type: 'indicator',
+    source: { binding: 'engine.rpm_percent' },
+    off_color: '#1E293B',
+    // The shift-light ladder every rev strip starts from: green, amber, red.
+    segments: [
+      { threshold: 0.5, color: '#00C853' },
+      { threshold: 0.62, color: '#00C853' },
+      { threshold: 0.74, color: '#FFD200' },
+      { threshold: 0.84, color: '#FFD200' },
+      { threshold: 0.92, color: '#D50000' },
+      { threshold: 0.97, color: '#D50000' }
+    ],
+    placement: centeredPlacement(display, 240, 20)
+  }),
+  image: (display, { image }) => ({
+    type: 'image',
+    // The device draws an image at the size it was uploaded at, so a new
+    // widget starts at that size when one is installed.
+    ...(image ? { image } : {}),
+    placement: centeredPlacement(display, 96, 96)
+  }),
+  graph: (display) => ({
+    type: 'graph',
+    source: { binding: 'vehicle.speed' },
+    background_color: '#1E293B',
+    placement: centeredPlacement(display, 200, 80)
+  }),
+}
+
+/** Inserts a new widget of `type` wherever the editor is currently pointing. */
+export function addWidget(
+  type: WidgetConfiguration['type'],
+  display: { width: number; height: number },
+  extras: NewWidgetExtras = {}
 ): WidgetSelection | undefined {
   let added: WidgetSelection | undefined
   mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, {
-      type: 'graph',
-      source: { binding: 'vehicle.speed' },
-      background_color: '#1E293B',
-      placement: centeredPlacement(display, 200, 80)
-    })
+    added = insertWidget(configuration, WIDGET_DEFAULTS[type](display, extras))
   })
   return added
 }
