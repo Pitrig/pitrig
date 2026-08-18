@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { childArraysOf, pagesOf, screensOf, widgetsOf } from '@shared/configuration-access'
 import { type DeviceConfiguration, type DisplayDescriptor } from '@shared/device'
 import { LAP_SECONDS } from '@shared/mock-telemetry'
@@ -8,11 +8,11 @@ import { ImagePreview } from './ImagePreview'
 import { TextWidgetPreview } from './TextPreview'
 import { moveSelection } from '../editor/geometry-commands'
 import { flattenScreen } from './preview-layers'
-import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, useDashboardEditorStore } from '../dashboard-editor'
+import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacements, completePlacement, findWidget, useDashboardEditorStore } from '../dashboard-editor'
 import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
-import { createPreviewValues } from './preview-values'
+import { createPreviewValues, previewTelemetry } from './preview-values'
 import { CaptionPreview, ShapePreview, } from './widget-previews'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -59,7 +59,19 @@ export function Widgets({
     }, PREVIEW_TICK_MS)
     return () => clearInterval(timer)
   }, [playback.mode, playing])
-  const values = createPreviewValues(configuration, playback, clockMs)
+  // Both walk the whole document, and an edit replaces it wholesale, so both
+  // are recomputed exactly when it changes rather than on every render — and
+  // the animation clock re-renders this component several times a second.
+  const telemetry = useMemo(
+    () => previewTelemetry(configuration, playback),
+    [configuration, playback]
+  )
+  const values = createPreviewValues(telemetry, playback, clockMs)
+  // Every box in display coordinates, resolved in one walk. Asking per widget
+  // costs two tree searches each, and this render asks for the selection, for
+  // every widget carrying an action, for every layer it draws and again on
+  // each pointer-down.
+  const placements = useMemo(() => absolutePlacements(configuration), [configuration])
   const screen = screensOf(configuration)[activeScreenIndex]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
   const layers: PreviewLayer[] = flattenScreen(screen, slotPage)
@@ -68,12 +80,12 @@ export function Widgets({
   // screen, so treating it as a target would select and align the invisible.
   const widgets = layers.map((layer) => layer.configuration)
   const selectedPlacements = selectedIds
-    .map((id) => absolutePlacement(configuration, id))
+    .map((id) => placements.get(id))
     .filter((placement): placement is Placement => placement !== undefined)
   // A container resizes like the widget it is: its box is the thing being
   // dragged, and its children keep the offsets they were authored with.
   const primaryPlacement =
-    selection?.type === 'widget' ? absolutePlacement(configuration, selection.id) : undefined
+    selection?.type === 'widget' ? placements.get(selection.id) : undefined
 
   const beginInteraction = (
     event: React.PointerEvent<SVGElement>,
@@ -109,7 +121,7 @@ export function Widgets({
         mode === 'move'
           ? group
               .filter((id) => id !== (target.type === 'widget' ? target.id : ''))
-              .map((id) => ({ id, placement: absolutePlacement(configuration, id) }))
+              .map((id) => ({ id, placement: placements.get(id) }))
               .filter((entry): entry is Follower => entry.placement !== undefined)
           : []
     })
@@ -211,7 +223,7 @@ export function Widgets({
         const caught = widgets
           .filter((widget) => widget.id && !hidden[widget.id] && !locked[widget.id])
           .filter((widget) => {
-            const placement = absolutePlacement(configuration, widget.id as string)
+            const placement = placements.get(widget.id as string)
             return placement !== undefined && intersects(placement, bounds)
           })
           .map((widget) => widget.id as string)
@@ -290,7 +302,7 @@ export function Widgets({
       .map((layer) => ({
         id: layer.configuration.id ?? '',
         placement: layer.configuration.id
-          ? absolutePlacement(configuration, layer.configuration.id)
+          ? placements.get(layer.configuration.id)
           : undefined,
         label: actionLabel(layer.configuration.action)
       }))
@@ -307,7 +319,7 @@ export function Widgets({
   // still drawn around it for context but dimmed and inert — the page is the
   // only thing being authored, and a click landing outside it would be an edit
   // to something the author is not looking at.
-  const opened = drillIn ? absolutePlacement(configuration, drillIn) : undefined
+  const opened = drillIn ? placements.get(drillIn) : undefined
   const openedIds = new Set(
     drillIn
       ? (() => {
@@ -394,7 +406,7 @@ export function Widgets({
                 : undefined
             }
             onPointerDown={(event) => {
-            const placement = id ? absolutePlacement(configuration, id) : undefined
+            const placement = id ? placements.get(id) : undefined
             if (!placement || !id || locked[id]) return
             beginInteraction(event, { type: 'widget', id }, 'move', placement)
           }}

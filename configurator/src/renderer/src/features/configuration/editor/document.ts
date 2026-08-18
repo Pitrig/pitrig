@@ -162,6 +162,49 @@ export function absolutePlacement(
 }
 
 /**
+ * Every widget's box in display coordinates, from one walk of the document.
+ *
+ * `absolutePlacement` answers for one widget and costs two tree searches to do
+ * it, so a canvas that asks per selected widget, per widget with an action and
+ * again for every layer it draws pays O(n) walks per render. Same inputs, same
+ * answers, one walk — this is a cheaper route to the identical result, not a
+ * different rule.
+ *
+ * The two subtleties it shares with the per-widget walk: a container whose own
+ * box is incomplete contributes nothing to its children's offset, and a slot
+ * page contributes nothing at all because the slot above it already did.
+ */
+export function absolutePlacements(
+  configuration: DeviceConfiguration | undefined
+): Map<string, Required<WidgetPlacement>> {
+  const placements = new Map<string, Required<WidgetPlacement>>()
+  const visit = (parent: WidgetParent, offset: { x: number; y: number }): void => {
+    for (const widget of parent.widgets ?? []) {
+      if (!widget) continue
+      const box = completePlacement(widget.placement)
+      // First match wins, as the search does: a duplicated id resolves to the
+      // widget the rest of the editor would have found.
+      if (box && widget.id !== undefined && !placements.has(widget.id)) {
+        placements.set(widget.id, { ...box, x: box.x + offset.x, y: box.y + offset.y })
+      }
+      if (widget.type !== 'shape' && widget.type !== 'slot') continue
+      const inside = box ? { x: offset.x + box.x, y: offset.y + box.y } : offset
+      if (widget.type === 'shape') {
+        visit(widget, inside)
+        continue
+      }
+      for (const page of widget.pages ?? []) {
+        if (page) visit(page, inside)
+      }
+    }
+  }
+  for (const screen of screensOf(configuration)) {
+    if (screen) visit(screen, { x: 0, y: 0 })
+  }
+  return placements
+}
+
+/**
  * The container holding whatever is selected, or undefined at screen level.
  * A child is drawn above its parent, so clicking a full container always lands
  * on a child; this is what lets the editor walk back up to the parent.

@@ -21,7 +21,7 @@ export {
 export type { PreviewPlayback, PreviewValueMode, WidgetSelection } from './editor/store'
 export { MAXIMUM_ZOOM, MINIMUM_ZOOM, useDashboardEditorStore } from './editor/store'
 export type { WidgetLocation } from './editor/document'
-export { absolutePlacement, activeScreen, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, mutateSelectedWidget, parentContainerId, parentOf, parentOffset, selectedWidget, widgetArrayOf, writePlacement } from './editor/document'
+export { absolutePlacement, absolutePlacements, activeScreen, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, mutateSelectedWidget, parentContainerId, parentOf, parentOffset, selectedWidget, widgetArrayOf, writePlacement } from './editor/document'
 export { addScreen, deleteScreen, ensureScreen, mutateActiveScreen } from './editor/screens'
 export { DEFAULT_CAPTION_FONT_SIZE_PX, actionCount, addTapZone, addWidget, deleteWidget, draftFontFamily, draftValueFont, duplicateWidget, insertWidget, offsetWidget } from './editor/widgets'
 export { addSlotPage, deleteSlotPage, mutateSlotPage } from './editor/slots'
