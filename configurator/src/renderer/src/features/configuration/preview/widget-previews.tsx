@@ -3,7 +3,7 @@ import { type GradientDirection, type ImageWidgetConfiguration, type ShapeWidget
 import { placeholderBody, transformedBody, withAffixes } from '@shared/value-format'
 import { type ResolvedStyle } from '@shared/widget-style'
 import { completePlacement } from '../dashboard-editor'
-import { usePreviewAssetStore } from '../preview-assets'
+import { usePreviewAssetStore } from './preview-assets'
 import { type Placement, markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR, type FramedWidgetConfiguration } from './preview-theme'
 import { backgroundRect, contentArea, gradientPaint } from './preview-geometry-paint'

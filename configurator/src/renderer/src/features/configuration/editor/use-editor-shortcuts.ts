@@ -18,8 +18,8 @@ import {
   selectedWidget,
   unwrapShape,
   useDashboardEditorStore
-} from './dashboard-editor'
-import type { WidgetSelection } from './dashboard-editor'
+} from '../dashboard-editor'
+import type { WidgetSelection } from '../dashboard-editor'
 
 // The whole window listens, because the canvas is an SVG that nothing focuses
 // and the shortcuts are about the selected widget rather than about whatever

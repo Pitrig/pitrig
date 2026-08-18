@@ -266,9 +266,10 @@ state in `store.ts`, access and mutation in `document.ts`, and one module per fa
 (`widgets`, `screens`, `arrange`, `slots`, `clipboard`, `naming`, `palette`).
 `dashboard-editor.ts` re-exports `editor/` as one surface, so panels keep a single import.
 
-Not everything has landed in that split yet: `ConfigurationPanel.tsx`, `DisplayPreview.tsx`,
-`LayersPanel.tsx`, `WidgetInspector.tsx`, `use-editor-shortcuts.ts`, `preview-assets.ts` and
-`text-metrics.ts` still sit at the feature root.
+What stays at the feature root is what belongs to none of the three: `ConfigurationPanel.tsx`
+(board, file and device controls), `LayersPanel.tsx`, and the `dashboard-editor.ts` barrel. The
+canvas shell, the inspector shell and the keyboard commands live in `preview/`, `inspector/` and
+`editor/` with the rest of their halves.
 
 ## Conventions
 

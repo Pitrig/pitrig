@@ -6,8 +6,8 @@ import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { type TelemetryValue, UNAVAILABLE, conditionValue } from '@shared/telemetry-value'
 import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, resolveWidgetStyle } from '@shared/widget-style'
 import { type PreviewPlayback } from '../dashboard-editor'
-import { previewFontFamily } from '../preview-assets'
-import { type GlyphMetrics, measureGlyphs } from '../text-metrics'
+import { previewFontFamily } from './preview-assets'
+import { type GlyphMetrics, measureGlyphs } from './text-metrics'
 
 /**
  * What the previews ask about a value. Wrapping the map keeps every renderer
