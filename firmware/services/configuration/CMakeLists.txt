@@ -3,6 +3,7 @@ idf_component_register(
        "src/json_readers.cpp"
        "src/json_value_pipeline.cpp"
        "src/json_widgets.cpp"
+       "src/json_widget_variants.cpp"
        "src/configuration_validation.cpp"
        "src/validation/value_rules.cpp"
        "src/validation/widget_validator.cpp"
