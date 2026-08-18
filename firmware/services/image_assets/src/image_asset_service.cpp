@@ -11,18 +11,6 @@ namespace {
 
 // "SCIA". The header layout is byte-for-byte the font package's, so the two
 // formats stay readable side by side and only the magic tells them apart.
-constexpr std::uint32_t kMagic = 0x4149'4353U;
-constexpr std::size_t kManifestOffset = kHeaderSize;
-constexpr std::size_t kHeaderMagicOffset = 0;
-constexpr std::size_t kHeaderFormatVersionOffset = 4;
-constexpr std::size_t kHeaderSizeOffset = 6;
-constexpr std::size_t kHeaderReservedWordOffset = 8;
-constexpr std::size_t kHeaderEntryCountOffset = 12;
-constexpr std::size_t kHeaderReservedOffset = 14;
-constexpr std::size_t kHeaderPayloadSizeOffset = 16;
-constexpr std::size_t kHeaderManifestCrcOffset = 20;
-constexpr std::size_t kHeaderPayloadCrcOffset = 24;
-constexpr std::size_t kHeaderCrcOffset = 28;
 
 // The manifest entry is where the two formats part company: a face describes
 // its own geometry, a bitmap does not.
@@ -97,7 +85,7 @@ bool Service::initialize(IStorage& storage) {
 
   status_.package_available = true;
   status_.format_version = kFormatVersion;
-  status_.image_count = package_.image_count;
+  status_.entry_count = package_.image_count;
   status_.package_size = package_.package_size;
   for (std::size_t index = 0; index < package_.image_count; ++index) {
     const ImageAsset& asset = package_.images[index];
@@ -190,7 +178,8 @@ UpdateError Service::commit_update() {
   const bool valid =
       validate_package(candidate_mapping, update_header_, package_);
   storage_->unmap();
-  if (!valid || binary::read_u32_le(update_header_, kHeaderPayloadSizeOffset) !=
+  if (!valid || binary::read_u32_le(update_header_,
+                          asset_package::kHeaderPayloadSizeOffset) !=
                     update_size_) {
     package_ = {};
     reset_update();
@@ -214,7 +203,7 @@ UpdateError Service::commit_update() {
   storage_->unmap();
   status_.package_available = true;
   status_.format_version = kFormatVersion;
-  status_.image_count = package_.image_count;
+  status_.entry_count = package_.image_count;
   status_.package_size = package_.package_size;
   image_catalog_ = {};
   for (std::size_t index = 0; index < package_.image_count; ++index) {
@@ -258,44 +247,27 @@ void Service::cancel_update() {
   reset_update();
 }
 
-bool Service::validate_package(const std::span<const std::uint8_t> storage_bytes,
-                               const std::span<const std::uint8_t> header_override,
-                               ParsedPackage& parsed) const {
+bool Service::validate_package(
+    const std::span<const std::uint8_t> storage_bytes,
+    const std::span<const std::uint8_t> header_override,
+    ParsedPackage& parsed) const {
   parsed = {};
-  if (storage_bytes.size() != kStorageSize ||
-      (!header_override.empty() && header_override.size() != kHeaderSize)) {
+  constexpr asset_package::Format kFormat{
+      .magic = 0x4149'4353U,
+      .version = kFormatVersion,
+      .manifest_entry_size = kManifestEntrySize,
+      .maximum_entries = kMaximumImages,
+      .data_offset = kAssetDataOffset,
+      .storage_size = kStorageSize,
+  };
+  asset_package::Header header{};
+  if (!asset_package::validate_header(kFormat, storage_bytes, header_override,
+                                      header)) {
     return false;
   }
-  const auto header =
-      header_override.empty() ? storage_bytes.first(kHeaderSize) : header_override;
-  const std::uint16_t entry_count =
-      binary::read_u16_le(header, kHeaderEntryCountOffset);
-  const std::uint32_t payload_size =
-      binary::read_u32_le(header, kHeaderPayloadSizeOffset);
-  const std::size_t manifest_size =
-      static_cast<std::size_t>(entry_count) * kManifestEntrySize;
-  if (binary::read_u32_le(header, kHeaderMagicOffset) != kMagic ||
-      binary::read_u16_le(header, kHeaderFormatVersionOffset) != kFormatVersion ||
-      binary::read_u16_le(header, kHeaderSizeOffset) != kHeaderSize ||
-      binary::read_u32_le(header, kHeaderReservedWordOffset) != 0 ||
-      entry_count > kMaximumImages ||
-      binary::read_u16_le(header, kHeaderReservedOffset) != 0 ||
-      kManifestOffset + manifest_size > kAssetDataOffset ||
-      payload_size < kAssetDataOffset || payload_size > storage_bytes.size() ||
-      binary::read_u32_le(header, kHeaderCrcOffset) !=
-          binary::crc32(header.first(kHeaderCrcOffset))) {
-    return false;
-  }
-
-  const auto manifest = storage_bytes.subspan(kManifestOffset, manifest_size);
-  if (binary::read_u32_le(header, kHeaderManifestCrcOffset) !=
-          binary::crc32(manifest) ||
-      binary::read_u32_le(header, kHeaderPayloadCrcOffset) !=
-          binary::crc32(storage_bytes.subspan(kAssetDataOffset,
-                                              payload_size - kAssetDataOffset))) {
-    return false;
-  }
-
+  const std::uint16_t entry_count = header.entry_count;
+  const std::uint32_t payload_size = header.payload_size;
+  const std::span<const std::uint8_t> manifest = header.manifest;
   parsed.image_count = entry_count;
   parsed.package_size = payload_size;
   for (std::size_t index = 0; index < entry_count; ++index) {
@@ -351,7 +323,7 @@ void Service::clear_package_status() {
   status_.package_available = false;
   status_.reboot_required = false;
   status_.format_version = 0;
-  status_.image_count = 0;
+  status_.entry_count = 0;
   status_.package_size = 0;
   image_catalog_ = {};
 }
@@ -360,30 +332,9 @@ void Service::reset_update() {
   update_in_progress_ = false;
   update_size_ = 0;
   update_received_ = 0;
-  update_header_ = {};
+  update_header_.fill(0xFFU);
 }
 
-const char* update_error_name(const UpdateError error) {
-  switch (error) {
-    case UpdateError::none:
-      return "none";
-    case UpdateError::unavailable:
-      return "unavailable";
-    case UpdateError::busy:
-      return "busy";
-    case UpdateError::invalid_size:
-      return "invalid_size";
-    case UpdateError::invalid_state:
-      return "invalid_state";
-    case UpdateError::invalid_package:
-      return "invalid_package";
-    case UpdateError::reboot_required:
-      return "reboot_required";
-    case UpdateError::storage_failure:
-      return "storage_failure";
-  }
-  return "unknown";
-}
 
 const char* color_format_name(const ColorFormat format) {
   switch (format) {

@@ -5,13 +5,14 @@
 #include <cstdint>
 #include <span>
 
+#include "asset_package.hpp"
 #include "asset_storage.hpp"
 #include "font_asset_types.hpp"
 
 namespace simcore::font_assets {
 
 inline constexpr std::size_t kStorageSize = 2U * 1024U * 1024U;
-inline constexpr std::size_t kHeaderSize = 32;
+inline constexpr std::size_t kHeaderSize = asset_package::kHeaderSize;
 inline constexpr std::size_t kManifestEntrySize = 48;
 inline constexpr std::size_t kAssetDataOffset = 4096;
 inline constexpr std::uint16_t kFormatVersion = 3;
@@ -27,25 +28,9 @@ struct FamilyAsset {
   std::span<const std::uint8_t> bytes{};
 };
 
-struct Status {
-  bool storage_available{};
-  bool package_available{};
-  bool reboot_required{};
-  std::uint16_t format_version{};
-  std::uint16_t family_count{};
-  std::uint32_t package_size{};
-};
+using Status = asset_package::Status;
+using UpdateError = asset_package::UpdateError;
 
-enum class UpdateError : std::uint8_t {
-  none,
-  unavailable,
-  busy,
-  invalid_size,
-  invalid_state,
-  invalid_package,
-  reboot_required,
-  storage_failure,
-};
 
 class Service final {
  public:
@@ -60,7 +45,7 @@ class Service final {
     return {package_.families.data(), package_.family_count};
   }
   [[nodiscard]] std::span<const FamilyId> family_catalog() const {
-    return {family_catalog_.data(), status_.family_count};
+    return {family_catalog_.data(), status_.entry_count};
   }
   // Bytes a consumer must reserve to copy every face out of the mapping, each
   // face aligned to four bytes.
@@ -101,6 +86,6 @@ class Service final {
   std::array<std::uint8_t, kHeaderSize> update_header_{};
 };
 
-[[nodiscard]] const char* update_error_name(UpdateError error);
+using asset_package::update_error_name;
 
 }  // namespace simcore::font_assets

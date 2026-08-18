@@ -45,7 +45,7 @@ int write_info_body(void* const service, char* const out,
       "storage=%u,package=%u,format=%u,images=%u,size=%lu,reboot_required=%u,entries=",
       status.storage_available ? 1U : 0U, status.package_available ? 1U : 0U,
       static_cast<unsigned>(status.format_version),
-      static_cast<unsigned>(status.image_count),
+      static_cast<unsigned>(status.entry_count),
       static_cast<unsigned long>(status.package_size),
       status.reboot_required ? 1U : 0U);
   if (written <= 0 || static_cast<std::size_t>(written) >= size) {

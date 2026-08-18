@@ -29,6 +29,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/event_bus"
      "${CMAKE_CURRENT_LIST_DIR}/services/font_asset_control"
      "${CMAKE_CURRENT_LIST_DIR}/services/asset_control"
+     "${CMAKE_CURRENT_LIST_DIR}/services/asset_package"
      "${CMAKE_CURRENT_LIST_DIR}/services/asset_storage"
      "${CMAKE_CURRENT_LIST_DIR}/services/binary_session"
      "${CMAKE_CURRENT_LIST_DIR}/services/font_assets"
