@@ -15,14 +15,21 @@ export {
   MAXIMUM_TEXT_WIDGETS
 } from '@shared/configuration-schema'
 
-export * from './editor/store'
-export * from './editor/document'
-export * from './editor/screens'
-export * from './editor/widgets'
-export * from './editor/slots'
-export * from './editor/clipboard'
-export * from './editor/alignment'
-export * from './editor/grouping'
-export * from './editor/reparent'
-export * from './editor/naming'
-export * from './editor/palette'
+// One line per module, names spelled out. `export *` hid four constants that
+// no longer had a reader outside their own file; an explicit list makes the
+// next one visible instead of carrying it forever.
+export type { PreviewPlayback, PreviewValueMode, WidgetSelection } from './editor/store'
+export { MAXIMUM_ZOOM, MINIMUM_ZOOM, useDashboardEditorStore } from './editor/store'
+export type { WidgetLocation } from './editor/document'
+export { absolutePlacement, activeScreen, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, mutateSelectedWidget, parentContainerId, parentOf, parentOffset, selectedWidget, widgetArrayOf, writePlacement } from './editor/document'
+export { addScreen, deleteScreen, ensureScreen, mutateActiveScreen } from './editor/screens'
+export { DEFAULT_CAPTION_FONT_SIZE_PX, actionCount, addTapZone, addWidget, deleteWidget, draftFontFamily, draftValueFont, duplicateWidget, insertWidget, offsetWidget } from './editor/widgets'
+export { addSlotPage, deleteSlotPage, mutateSlotPage } from './editor/slots'
+export { copyWidget, pasteWidget } from './editor/clipboard'
+export type { AlignmentEdge } from './editor/alignment'
+export { alignWidgets, distributeWidgets } from './editor/alignment'
+export { unwrapShape, wrapInShape } from './editor/grouping'
+export type { DropRelation } from './editor/reparent'
+export { canMoveWidget, moveWidget } from './editor/reparent'
+export { renameScreen, renameWidget } from './editor/naming'
+export { dashboardPalette } from './editor/palette'

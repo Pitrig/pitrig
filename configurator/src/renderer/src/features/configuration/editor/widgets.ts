@@ -107,7 +107,7 @@ export function insertWidget(
 
 // The device rasterizes any size from an installed family, so a new widget
 // picks a readable size rather than inheriting one that happens to be installed.
-export const DEFAULT_WIDGET_FONT_SIZE_PX = 24
+const DEFAULT_WIDGET_FONT_SIZE_PX = 24
 // A caption labels a widget rather than competing with it, so it does not
 // inherit the reading's size.
 export const DEFAULT_CAPTION_FONT_SIZE_PX = 16

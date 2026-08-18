@@ -38,13 +38,13 @@ export interface PreviewPlayback {
   phase: number
 }
 
-export const DEFAULT_PREVIEW_PLAYBACK: PreviewPlayback = {
+const DEFAULT_PREVIEW_PLAYBACK: PreviewPlayback = {
   mode: 'placeholders',
   playing: true,
   phase: 0
 }
 
-export const DEFAULT_EDITOR_VIEW: EditorView = {
+const DEFAULT_EDITOR_VIEW: EditorView = {
   zoom: 1,
   panX: 0,
   panY: 0,
