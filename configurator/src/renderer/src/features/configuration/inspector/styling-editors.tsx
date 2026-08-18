@@ -1,5 +1,5 @@
 import type { FramedWidget } from './types'
-import { COLOR_RAMP_TARGET_VALUES, CONDITION_OPERATOR_VALUES, type ColorRampTarget, type ColorStop, type ConditionOperator, GRADIENT_DIRECTION_VALUES, type GradientDirection, MAXIMUM_COLOR_STOPS, MAXIMUM_WIDGET_CONDITIONS, TEXT_ALIGNMENT_VALUES, type TextAlignment, type WidgetCondition, type WidgetTitleStyle } from '@shared/configuration-schema'
+import { COLOR_RAMP_TARGET_VALUES, CONDITION_OPERATOR_VALUES, type ColorStop, GRADIENT_DIRECTION_VALUES, type GradientDirection, MAXIMUM_COLOR_STOPS, MAXIMUM_WIDGET_CONDITIONS, TEXT_ALIGNMENT_VALUES, type WidgetCondition, type WidgetTitleStyle } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { BOOLEAN_OPERATORS, MAXIMUM_BLINK_MS, MAXIMUM_HOLD_MS, MINIMUM_BLINK_MS } from '@shared/widget-conditions'
 import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily } from '../dashboard-editor'
@@ -49,7 +49,7 @@ export function TitleEditor({ widget, update }: {
           <FontEditor font={widget.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} />
           <ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} />
           <SelectField label="Alignment" value={widget.title.alignment ?? 'top_center'} options={TEXT_ALIGNMENT_VALUES} onChange={(value) => update((next) => {
-            const title: WidgetTitleStyle = { ...next.title, alignment: value as TextAlignment }
+            const title: WidgetTitleStyle = { ...next.title, alignment: value }
             if (title.alignment === 'top_center') delete title.alignment
             next.title = title
           })} />
@@ -217,7 +217,7 @@ export function ConditionsEditor({ widget, update }: {
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <SelectField label="When value is" value={rule.op ?? 'at_or_above'} options={operators} onChange={(value) => changeRule(index, (next) => { next.op = value as ConditionOperator })} />
+                <SelectField label="When value is" value={rule.op ?? 'at_or_above'} options={operators} onChange={(value) => changeRule(index, (next) => { next.op = value })} />
                 {boolean ? (
                   <SelectField label="State" value={(rule.value ?? 0) >= 1 ? 'true' : 'false'} options={['true', 'false']} onChange={(value) => changeRule(index, (next) => { next.value = value === 'true' ? 1 : 0 })} />
                 ) : (
@@ -284,7 +284,7 @@ function ColorRampEditor({ widget, update, unit }: {
       {stops.length > 0 ? (
         <>
           <SelectField label="Paints" value={widget.color_ramp?.target ?? 'content'} options={COLOR_RAMP_TARGET_VALUES} onChange={(value) => update((next) => {
-            next.color_ramp = { ...next.color_ramp, target: value as ColorRampTarget }
+            next.color_ramp = { ...next.color_ramp, target: value }
           })} />
           {stops.map((stop, index) => (
             <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">

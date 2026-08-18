@@ -13,7 +13,10 @@ export function NumberField({ label, value, min, max, step, onChange }: { label:
   const [local, change, flush] = useLiveCommit(value, onChange)
   return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><input type="number" className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={local} min={min} max={max} step={step} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) change(next) }} onBlur={flush} /></label>
 }
-export function SelectField({ label, value, options, onChange }: { label: string; value: string; options: readonly string[]; onChange: (value: string) => void }): React.JSX.Element { return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><select className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={value} onChange={(event) => onChange(event.target.value)}>{value === '' ? <option value="">Not set</option> : null}{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label> }
+// Generic over the option type, so a caller that passes the schema's own value
+// list gets that type back in onChange instead of a bare string it has to cast.
+// Thirteen `value as SomeEnum` casts existed only because this said string.
+export function SelectField<T extends string>({ label, value, options, onChange }: { label: string; value: string; options: readonly T[]; onChange: (value: T) => void }): React.JSX.Element { return <label className="block space-y-1 text-muted-foreground"><span>{label}</span><select className="h-8 w-full rounded-md border bg-background px-2 text-foreground" value={value} onChange={(event) => onChange(event.target.value as T)}>{value === '' ? <option value="">Not set</option> : null}{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label> }
 export function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (value: RgbColor) => void }): React.JSX.Element {
   const [local, change, flush] = useLiveCommit(value, (next) => onChange(next as RgbColor))
   const opaque = /^#[0-9A-Fa-f]{6}$/.test(local)
