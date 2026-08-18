@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { childArraysOf, pagesOf, screensOf, stackOrder, widgetsOf, type WidgetParent } from '@shared/configuration-access'
 import { type DeviceConfiguration, type DisplayDescriptor } from '@shared/device'
 import { LAP_SECONDS } from '@shared/mock-telemetry'
+import { clamp, clampToDisplay } from '../editor/placement'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOffset, useDashboardEditorStore } from '../dashboard-editor'
-import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, type ResizeMode, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clamp, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
+import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, type ResizeMode, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
 import { createPreviewValues } from './preview-values'
@@ -217,14 +218,17 @@ export function Widgets({
           const widget = findWidget(draft, follower.id)?.widget
           if (!widget) continue
           const offset = parentOffset(draft, follower.id)
+          const onDisplay = clampToDisplay(
+            follower.placement.x + shiftX,
+            follower.placement.y + shiftY,
+            follower.placement.width,
+            follower.placement.height,
+            display
+          )
           widget.placement = {
             ...follower.placement,
-            x: Math.round(
-              clamp(follower.placement.x + shiftX, 0, display.width - follower.placement.width)
-            ) - offset.x,
-            y: Math.round(
-              clamp(follower.placement.y + shiftY, 0, display.height - follower.placement.height)
-            ) - offset.y
+            x: onDisplay.x - offset.x,
+            y: onDisplay.y - offset.y
           }
         }
       })

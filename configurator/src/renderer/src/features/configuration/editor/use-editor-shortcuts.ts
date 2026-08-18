@@ -19,6 +19,7 @@ import {
   unwrapShape,
   useDashboardEditorStore
 } from '../dashboard-editor'
+import { clampToDisplay } from './placement'
 import type { WidgetSelection } from '../dashboard-editor'
 
 // The whole window listens, because the canvas is an SVG that nothing focuses
@@ -203,17 +204,19 @@ function nudge(
   if (!placement) return
   const offset = parentOffset(configuration, selection.id)
   const distance = coarse ? COARSE_NUDGE_PX : NUDGE_PX
-  const x = clamp(placement.x + step.x * distance, 0, display.width - placement.width)
-  const y = clamp(placement.y + step.y * distance, 0, display.height - placement.height)
+  const { x, y } = clampToDisplay(
+    placement.x + step.x * distance,
+    placement.y + step.y * distance,
+    placement.width,
+    placement.height,
+    display
+  )
   if (x === placement.x && y === placement.y) return
   mutateSelectedWidget(selection, (widget) => {
     widget.placement = { ...placement, x: x - offset.x, y: y - offset.y }
   })
 }
 
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum))
-}
 
 function displayOf(
   configuration: DeviceConfiguration
