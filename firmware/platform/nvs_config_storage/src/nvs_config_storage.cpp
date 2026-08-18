@@ -46,12 +46,20 @@ bool NvsConfigurationStorage::read(
   }
   std::size_t required{};
   esp_err_t result = nvs_get_blob(handle, key_for(slot), nullptr, &required);
-  if (result == ESP_OK && required <= destination.size()) {
+  if (result == ESP_OK && required > destination.size()) {
+    // A record this build cannot hold is not a record it can read. Falling
+    // through here would leave result at ESP_OK and report success with a size
+    // of zero, which the caller cannot tell from a genuinely short record.
+    result = ESP_ERR_NVS_INVALID_LENGTH;
+  }
+  if (result == ESP_OK) {
     size = required;
-    result =
-        nvs_get_blob(handle, key_for(slot), destination.data(), &size);
+    result = nvs_get_blob(handle, key_for(slot), destination.data(), &size);
   }
   nvs_close(handle);
+  if (result != ESP_OK) {
+    size = 0;
+  }
   return result == ESP_OK;
 }
 

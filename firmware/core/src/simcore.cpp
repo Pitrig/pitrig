@@ -1,5 +1,10 @@
 #include "simcore.hpp"
 
+// Ahead of everything else: the feature macros below gate includes, and a
+// second-link build that reads them before they are defined silently takes the
+// single-link branch.
+#include "simcore_features.hpp"
+
 #include <cstring>
 #include <span>
 #if SIMCORE_SECOND_TELEMETRY_LINK
@@ -10,23 +15,22 @@
 #include "board_registry.hpp"
 #include "communication_composition.hpp"
 #include "configuration_service.hpp"
+#include "dashboard_composition.hpp"
 #include "display.hpp"
+#include "esp_err.h"
 #include "event_bus.hpp"
 #include "external_memory_buffer.hpp"
 #include "font_asset_service.hpp"
 #include "image_asset_service.hpp"
 #include "input.hpp"
 #include "logger.hpp"
+#include "module_composition.hpp"
 #include "nvs_config_storage.hpp"
 #include "partition_asset_storage.hpp"
-#include "dashboard_composition.hpp"
-#include "module_composition.hpp"
-#include "simcore_features.hpp"
 #include "telemetry_provider.hpp"
 #include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
 #include "telemetry_transport_composition.hpp"
-#include "esp_err.h"
 #if SIMCORE_DEBUG
 #include "performance.hpp"
 #endif

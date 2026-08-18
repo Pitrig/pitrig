@@ -64,9 +64,13 @@ class ConfigurationControl {
   static void task_entry(void* context);
   void process();
   void handle(std::span<const std::uint8_t> line);
-  void send_text(const char* text);
-  void send_error(const ValidationFailure& failure);
-  void send_payload(std::span<const std::uint8_t> payload);
+  // Every reply goes out through write_reply, which is the one place that
+  // knows the link may be absent. They return whether the answer actually
+  // reached the host so a caller that can still act on the failure may.
+  bool write_reply(std::span<const std::uint8_t> data);
+  bool send_text(const char* text);
+  bool send_error(const ValidationFailure& failure);
+  bool send_payload(std::span<const std::uint8_t> payload);
   // Where the answer to the request being handled goes. With one link that is
   // the only link there is, which is why every send path below reads the same
   // in both builds.
