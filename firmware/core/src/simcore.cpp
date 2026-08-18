@@ -70,6 +70,41 @@ ConfigurationBuffers reserve_configuration_memory(Application& application) {
   };
 }
 
+// A stored slot that was read and not loaded is worth a line: a device that
+// boots on the factory dashboard after a firmware update looks exactly like one
+// that was never configured, and INFO's `source=factory` does not say why.
+void report_slot(const char name, const configuration::SlotStatus& status) {
+  using configuration::SlotOutcome;
+  switch (status.outcome) {
+    case SlotOutcome::unchecked:
+    case SlotOutcome::absent:
+    case SlotOutcome::valid:
+      return;
+    case SlotOutcome::malformed_record:
+      log::warn(kTag, "Configuration slot %c holds a malformed record; ignored",
+                name);
+      return;
+    case SlotOutcome::unsupported_schema:
+      log::warn(kTag,
+                "Configuration slot %c was written for another schema version; "
+                "ignored",
+                name);
+      return;
+    case SlotOutcome::corrupt_payload:
+      log::warn(kTag, "Configuration slot %c failed its checksum; ignored",
+                name);
+      return;
+    case SlotOutcome::rejected: {
+      const std::string_view reason =
+          configuration::validation_error_name(status.failure.error);
+      log::warn(kTag, "Configuration slot %c rejected: %.*s at %s; ignored",
+                name, static_cast<int>(reason.size()), reason.data(),
+                status.failure.path.data());
+      return;
+    }
+  }
+}
+
 void load_configuration(Application& application,
                         const board_registry::BoardDefinition& board,
                         const ConfigurationBuffers& buffers) {
@@ -82,6 +117,23 @@ void load_configuration(Application& application,
           buffers.record, buffers.current_payload, buffers.configuration)) {
     log::warn(kTag,
               "Configuration storage unavailable; using factory defaults");
+  }
+  const configuration::ConfigurationStatus status =
+      application.services.configuration.status();
+  report_slot('A', status.slot_a);
+  report_slot('B', status.slot_b);
+  switch (status.source) {
+    case configuration::ConfigurationSource::slot_a:
+    case configuration::ConfigurationSource::slot_b:
+      log::info(kTag, "Configuration loaded from slot %c, generation %lu",
+                status.source == configuration::ConfigurationSource::slot_a
+                    ? 'A'
+                    : 'B',
+                static_cast<unsigned long>(status.generation));
+      break;
+    case configuration::ConfigurationSource::factory:
+      log::info(kTag, "No stored configuration; using factory defaults");
+      break;
   }
   if (!application.services.font_assets.initialize(
           application.platform.font_asset_storage)) {

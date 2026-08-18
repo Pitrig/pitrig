@@ -47,9 +47,10 @@ dashboard composition's existing `destroy` and `create` rather than a second
 composition route. Beside it, the dashboard composition offers
 `apply_incremental()`, which keeps every widget whose bytes did not change and
 rebuilds only what differs; it is taken when the two documents differ in the
-dashboard alone, and it falls back to the full recompose whenever it cannot
-answer for the difference (a container shape holding children, a font it has
-not created).
+dashboard alone, creates any font the new document names before rebuilding and
+releases the ones only the old document named after, and it falls back to the
+full recompose whenever it cannot answer for the difference (a container shape
+holding children, a font registry with no room for old and new side by side).
 
 Any path that applies a configuration at runtime must observe one ordering
 constraint: parse into scratch, validate, promote, then rebuild. The

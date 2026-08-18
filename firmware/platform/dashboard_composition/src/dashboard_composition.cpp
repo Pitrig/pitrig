@@ -186,7 +186,11 @@ bool create(lv_display_t* const display,
       .screens = std::span{dashboard_state.screens}.first(screen_count),
       .containers = dashboard_state.containers,
       .pages = dashboard_state.pages};
-  if (!assets::prepare_fonts(configuration, dashboard_state.fonts)) {
+  // The previous widgets are gone, so nothing points at a font any more:
+  // release first, so a document that swaps every font is not refused for a
+  // registry still full of the old ones.
+  assets::release_unused_fonts(configuration, dashboard_state.fonts);
+  if (!assets::acquire_fonts(configuration, dashboard_state.fonts)) {
     log::error(kTag, "One or more configured fonts could not be created");
     return false;
   }

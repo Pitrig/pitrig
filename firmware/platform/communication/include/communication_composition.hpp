@@ -90,8 +90,9 @@ class Composition final {
 
   static void submit_update(const telemetry::TelemetryUpdate& update,
                             void* context);
-  static void receive_telemetry_data(
-      std::span<const std::uint8_t> data, void* context);
+  // One assembled telemetry line from a link's router, terminator stripped.
+  static void receive_telemetry_line(
+      std::span<const std::uint8_t> line, void* context);
   static void receive_transport_data(
       std::span<const std::uint8_t> data, void* context);
   static void reboot(void* context);

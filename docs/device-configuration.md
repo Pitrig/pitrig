@@ -809,8 +809,12 @@ writes and verifies the inactive slot before selecting it.
 
 Configurator code must not reproduce or depend on this NVS record format.
 
-Schema 0 and schema 1 records are unsupported and are not migrated. They fall
-back to another valid slot or the board-only factory configuration.
+Records of any earlier schema are unsupported and are not migrated. They fall
+back to another valid slot or the board-only factory configuration. A slot that
+was read but not loaded — another schema version, a malformed record, a failed
+checksum, or a document this firmware rejects — is named in the boot log with
+its reason, so a device that comes up on the factory dashboard after a firmware
+update can be told apart from one that was never configured.
 
 ## Legacy tooling
 

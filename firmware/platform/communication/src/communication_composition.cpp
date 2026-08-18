@@ -85,7 +85,7 @@ bool Composition::start(
     link.transport = transports[index];
     link.router.initialize(
         configuration_control_, binary_claim_, sessions,
-        &receive_telemetry_data, &link,
+        &receive_telemetry_line, &link,
         control_line_buffers.subspan(index * Router::kControlLineBufferSize,
                                      Router::kControlLineBufferSize),
         *link.transport);
@@ -134,10 +134,10 @@ void Composition::submit_update(const telemetry::TelemetryUpdate& update,
   }
 }
 
-void Composition::receive_telemetry_data(
-    const std::span<const std::uint8_t> data, void* const context) {
+void Composition::receive_telemetry_line(
+    const std::span<const std::uint8_t> line, void* const context) {
   auto& link = *static_cast<Link*>(context);
-  link.protocol.consume(data, &submit_update, link.owner);
+  link.protocol.consume_line(line, &submit_update, link.owner);
 }
 
 void Composition::receive_transport_data(

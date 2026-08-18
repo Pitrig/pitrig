@@ -80,35 +80,6 @@ bool SimHubProtocol::initialized() const {
   return initialized_;
 }
 
-void SimHubProtocol::consume(const std::span<const std::uint8_t> data,
-                             const telemetry::UpdateHandler handler,
-                             void* const context) {
-  if (!initialized_) {
-    return;
-  }
-  for (const std::uint8_t byte : data) {
-    if (byte == '\n') {
-      if (!discard_until_newline_ && line_length_ > 0) {
-        process_line(
-            std::span<const char>{line_buffer_.data(), line_length_},
-            handler, context);
-      }
-      line_length_ = 0;
-      discard_until_newline_ = false;
-      continue;
-    }
-    if (discard_until_newline_ || byte == '\r') {
-      continue;
-    }
-    if (line_length_ == line_buffer_.size()) {
-      line_length_ = 0;
-      discard_until_newline_ = true;
-      continue;
-    }
-    line_buffer_[line_length_++] = static_cast<char>(byte);
-  }
-}
-
 telemetry::Handle SimHubProtocol::resolve_identifier(
     const std::span<const char> identifier) const {
   const std::uint16_t key = identifier_key(identifier);
@@ -123,30 +94,35 @@ telemetry::Handle SimHubProtocol::resolve_identifier(
   return handles_[entry->binding_index];
 }
 
-void SimHubProtocol::process_line(const std::span<const char> line,
+void SimHubProtocol::consume_line(const std::span<const std::uint8_t> line,
                                   const telemetry::UpdateHandler handler,
-                                  void* const context) const {
-  if (handler == nullptr || line.size() < 2) {
+                                  void* const context) {
+  // `<id>;<value>`: a one- or two-character identifier, the separator, and
+  // the value. Anything shorter names nothing.
+  if (!initialized_ || handler == nullptr || line.size() < 2 ||
+      line.size() > telemetry::kMaximumTelemetryLineLength) {
     return;
   }
+  const std::span<const char> text(
+      reinterpret_cast<const char*>(line.data()), line.size());
 
   std::size_t separator{};
-  if (line[1] == ';') {
+  if (text[1] == ';') {
     separator = 1;
-  } else if (line.size() >= 3 && line[2] == ';') {
+  } else if (text.size() >= 3 && text[2] == ';') {
     separator = 2;
   } else {
     return;
   }
 
   telemetry::TelemetryUpdate update{
-      .handle = resolve_identifier(line.first(separator)),
+      .handle = resolve_identifier(text.first(separator)),
   };
   if (!update.handle.valid()) {
     return;
   }
 
-  const std::span<const char> value = line.subspan(separator + 1);
+  const std::span<const char> value = text.subspan(separator + 1);
   if (value.empty()) {
     handler(update, context);
     return;

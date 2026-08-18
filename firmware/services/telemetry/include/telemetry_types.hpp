@@ -9,6 +9,10 @@ namespace simcore::telemetry {
 
 inline constexpr std::size_t kMaximumFields = 256;
 inline constexpr std::size_t kTelemetryTextCapacity = 64;
+// The longest telemetry line a protocol is handed, terminator excluded. The
+// link's router assembles lines against this bound; a protocol decodes one
+// complete line and keeps no assembly state of its own (ADR 0006).
+inline constexpr std::size_t kMaximumTelemetryLineLength = 127;
 using TextValue = std::array<char, kTelemetryTextCapacity>;
 
 enum class ValueType : std::uint8_t {

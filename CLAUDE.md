@@ -134,9 +134,9 @@ components → interfaces ← drivers
   on concrete drivers.
 - `drivers/` — board/hardware implementations (`t_display_s3`, `guition_esp32_4848s040`,
   `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`,
-  `transport/usb_serial_jtag`, plus `transport/transport_common` for the read counters and log
-  silencing every link shares). No application logic. A board with no digitizer leaves
-  `BoardDefinition::input` null.
+  `transport/usb_serial_jtag`, plus `transport/transport_common` for the read counters every link
+  shares and the log silencing the two console-port links use). No application logic. A board with
+  no digitizer leaves `BoardDefinition::input` null.
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
 - `services/` — shared infrastructure (`asset_control`, `asset_package`, `asset_storage`,
@@ -272,7 +272,8 @@ directory. `preview/` draws the canvas: `PreviewCanvas` and its chrome, the pure
 shell dispatches by widget type into `widget-editors`, over shared `section-editors`,
 `styling-editors` and form primitives in `fields.tsx`. `editor/` is the document layer — view
 state in `store.ts`, access and mutation in `document.ts`, and one module per family of commands
-(`widgets`, `screens`, `arrange`, `slots`, `clipboard`, `naming`, `palette`).
+(`widgets`, `screens`, `slots`, `clipboard`, `naming`, `palette`, and the arrange family split by
+what it arranges: `alignment`, `geometry-commands`, `grouping`, `placement`, `reparent`).
 `dashboard-editor.ts` re-exports `editor/` as one surface, so panels keep a single import.
 
 What stays at the feature root is what belongs to none of the three: `ConfigurationPanel.tsx`

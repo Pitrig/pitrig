@@ -85,26 +85,16 @@ void for_each_configured_font(
 
 namespace assets {
 
-bool prepare_fonts(
+bool acquire_fonts(
     const configuration::ApplicationConfiguration& configuration,
     dashboard::fonts::Registry& fonts) {
-  // Destroying and creating font objects, and rasterizing their glyphs, are
-  // LVGL calls, and this runs while the LVGL task is drawing: the boot splash
-  // at startup, the previous dashboard during a live apply.
+  // Creating font objects and rasterizing their glyphs are LVGL calls, and
+  // this runs while the LVGL task is drawing: the boot splash at startup, the
+  // running dashboard during a live apply.
   if (!lvgl_port_lock(0)) {
-    log::error(kTag, "Failed to lock LVGL for font preparation");
+    log::error(kTag, "Failed to lock LVGL for font creation");
     return false;
   }
-  fonts.retain_if([&configuration](const font_assets::FontSpec& spec) {
-    bool used = false;
-    for_each_configured_font(
-        configuration, [&spec, &used](const font_assets::FontSpec& candidate,
-                                      const std::span<const char>) {
-          used = used || candidate == spec;
-        });
-    return used;
-  });
-
   bool complete = true;
   for_each_configured_font(
       configuration, [&fonts, &complete](const font_assets::FontSpec& spec,
@@ -117,6 +107,27 @@ bool prepare_fonts(
       });
   lvgl_port_unlock();
   return complete;
+}
+
+void release_unused_fonts(
+    const configuration::ApplicationConfiguration& configuration,
+    dashboard::fonts::Registry& fonts) {
+  if (!lvgl_port_lock(0)) {
+    // Keeping a font that nothing draws with costs its cache and nothing else;
+    // the next release gets it.
+    log::warn(kTag, "Failed to lock LVGL for font release");
+    return;
+  }
+  fonts.retain_if([&configuration](const font_assets::FontSpec& spec) {
+    bool used = false;
+    for_each_configured_font(
+        configuration, [&spec, &used](const font_assets::FontSpec& candidate,
+                                      const std::span<const char>) {
+          used = used || candidate == spec;
+        });
+    return used;
+  });
+  lvgl_port_unlock();
 }
 
 }  // namespace assets

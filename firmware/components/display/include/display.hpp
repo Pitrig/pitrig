@@ -13,6 +13,8 @@ namespace simcore::display {
 [[nodiscard]] lv_display_t* initialize(const driver::Driver& driver);
 
 // Invalidates the display and waits for the LVGL task to finish one refresh.
+// Serves one caller at a time — startup uses it in sequence — and refuses
+// before initialize() has run.
 [[nodiscard]] bool refresh_and_wait(lv_display_t* display,
                                     std::uint32_t timeout_ms);
 

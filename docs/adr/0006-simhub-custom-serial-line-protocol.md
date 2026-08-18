@@ -37,7 +37,11 @@ export uses an explicit draft UART baud rate when present and otherwise uses
 921600. Game-specific property mappings remain outside the repository.
 
 Keep parser storage fixed. A telemetry value has 64 bytes including its null
-terminator, and a complete line has a 127-byte bound.
+terminator, and a complete line has a 127-byte bound
+(`telemetry::kMaximumTelemetryLineLength`). The link's router assembles lines
+against that bound and the protocol decodes one complete line at a time, so
+the bound and the assembly state exist once per link rather than once per
+layer.
 
 ## Consequences
 

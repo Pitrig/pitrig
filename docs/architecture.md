@@ -429,6 +429,12 @@ Possible transports include:
 - Wi-Fi
 - Future protocols
 
+Each link's router owns line assembly for both line-oriented concerns: it
+splits the byte stream once, hands `@SC:` lines to configuration control and
+every other complete line — terminator stripped, bounded at
+`telemetry::kMaximumTelemetryLineLength` — to the telemetry protocol, which
+decodes it and holds no partial line of its own.
+
 Telemetry ingestion is split into an immutable registry and mutable state. The
 registry defines protocol-neutral field names and types. Protocols bind source
 identifiers to registry handles once during startup. The state stores current

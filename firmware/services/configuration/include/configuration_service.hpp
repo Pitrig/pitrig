@@ -16,10 +16,30 @@ enum class ConfigurationSource : std::uint8_t {
   slot_b,
 };
 
+// What became of one stored slot at boot. A device that comes up on the factory
+// dashboard after a firmware update looks exactly like one that was never
+// configured; this is how the composition root tells the two apart and says so.
+enum class SlotOutcome : std::uint8_t {
+  unchecked,           // never read: the other slot was valid and active
+  absent,              // nothing stored, or the storage read failed
+  malformed_record,    // wrong magic, record version, or sizes
+  unsupported_schema,  // written by a firmware with another schema version
+  corrupt_payload,     // payload CRC does not match
+  rejected,            // parsed, but validation refused it — see `failure`
+  valid,
+};
+
+struct SlotStatus {
+  SlotOutcome outcome{SlotOutcome::unchecked};
+  ValidationFailure failure{};  // meaningful for `rejected` only
+};
+
 struct ConfigurationStatus {
   ConfigurationSource source{ConfigurationSource::factory};
   std::uint32_t generation{};
   bool storage_available{};
+  SlotStatus slot_a{};
+  SlotStatus slot_b{};
 };
 
 class ConfigurationService {
@@ -91,6 +111,7 @@ class ConfigurationService {
   struct LoadedRecord {
     std::uint32_t generation{};
     bool valid{};
+    SlotStatus status{};
   };
 
   [[nodiscard]] LoadedRecord load_slot(
