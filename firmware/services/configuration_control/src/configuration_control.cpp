@@ -62,9 +62,7 @@ void ConfigurationControl::stop() {
   request_size_ = 0;
   service_ = nullptr;
   transport_ = nullptr;
-#if SIMCORE_SECOND_TELEMETRY_LINK
   reply_ = nullptr;
-#endif
   reboot_handler_ = nullptr;
   reboot_context_ = nullptr;
   apply_handler_ = nullptr;
@@ -72,12 +70,8 @@ void ConfigurationControl::stop() {
   io_buffer_ = {};
 }
 
-#if SIMCORE_SECOND_TELEMETRY_LINK
 void ConfigurationControl::consume(
     const std::span<const std::uint8_t> line, transport::ITransport& reply) {
-#else
-void ConfigurationControl::consume(const std::span<const std::uint8_t> line) {
-#endif
   if (service_ == nullptr || transport_ == nullptr ||
       task_ == nullptr || line.size() > io_buffer_.size() ||
       line.size() < kPrefix.size() ||
@@ -92,9 +86,7 @@ void ConfigurationControl::consume(const std::span<const std::uint8_t> line) {
   }
   std::copy(line.begin(), line.end(), io_buffer_.begin());
   request_size_ = line.size();
-#if SIMCORE_SECOND_TELEMETRY_LINK
   reply_ = &reply;
-#endif
   request_state_.store(RequestState::ready, std::memory_order_release);
   xTaskNotifyGive(task_);
 }

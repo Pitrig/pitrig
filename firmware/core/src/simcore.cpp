@@ -1,15 +1,12 @@
 #include "simcore.hpp"
 
-// Ahead of everything else: the feature macros below gate includes, and a
-// second-link build that reads them before they are defined silently takes the
-// single-link branch.
+// Ahead of everything else: the feature macros below gate includes, and reading
+// one before it is defined silently takes the wrong branch.
 #include "simcore_features.hpp"
 
+#include <array>
 #include <cstring>
 #include <span>
-#if SIMCORE_SECOND_TELEMETRY_LINK
-#include <array>
-#endif
 
 #include "application_configuration.hpp"
 #include "board_registry.hpp"
@@ -69,25 +66,17 @@ struct Application {
   communication::Composition communication{services.telemetry_registry};
   dashboard_composition::Dashboard dashboard;
   lv_display_t* display{};
-#if SIMCORE_SECOND_TELEMETRY_LINK
-  // In priority order: the board's configured transport, then the development
+  // In priority order: the board's configured transport, then any development
   // link attached behind it.
   std::array<transport::ITransport*,
              communication::Composition::kMaximumLinks>
       telemetry_transports{};
   std::size_t telemetry_link_count{};
-#else
-  transport::ITransport* telemetry_transport{};
-#endif
 };
 
 // The overlay reads transport diagnostics from the board's own link.
 transport::ITransport& primary_transport(Application& application) {
-#if SIMCORE_SECOND_TELEMETRY_LINK
   return *application.telemetry_transports[0];
-#else
-  return *application.telemetry_transport;
-#endif
 }
 
 // Rebuilds module lifecycle and the dashboard from the active configuration.
@@ -309,13 +298,9 @@ void start_communication(Application& application,
           application.services.configuration,
           application.services.font_assets, application.services.image_assets,
           application.services.telemetry_provider,
-#if SIMCORE_SECOND_TELEMETRY_LINK
           std::span<transport::ITransport* const>(
               application.telemetry_transports.data(),
               application.telemetry_link_count),
-#else
-          *application.telemetry_transport,
-#endif
           &apply_configuration, &application, buffers.control_io,
           buffers.control_line)) {
     log::error(kTag, "Communication composition is incomplete");
@@ -334,19 +319,11 @@ void run() {
 
   const configuration::ApplicationConfiguration& configuration =
       application.services.configuration.current();
-#if SIMCORE_SECOND_TELEMETRY_LINK
   application.telemetry_link_count =
       application.platform.telemetry_transport.select(
           board, configuration, application.telemetry_transports);
   ESP_ERROR_CHECK(application.telemetry_link_count == 0 ? ESP_ERR_NOT_SUPPORTED
                                                         : ESP_OK);
-#else
-  application.telemetry_transport =
-      application.platform.telemetry_transport.select(board, configuration);
-  ESP_ERROR_CHECK(application.telemetry_transport == nullptr
-                      ? ESP_ERR_NOT_SUPPORTED
-                      : ESP_OK);
-#endif
 
   log::info(kTag, "SimCore starting");
 #if SIMCORE_DEBUG

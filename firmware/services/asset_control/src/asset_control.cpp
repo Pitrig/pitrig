@@ -66,18 +66,11 @@ std::string_view compose(std::array<char, 32>& storage,
 
 AssetControl::~AssetControl() { stop(); }
 
-#if SIMCORE_SECOND_TELEMETRY_LINK
 void AssetControl::consume_command_entry(
     void* const context, const std::span<const std::uint8_t> line,
     transport::ITransport& reply) {
   static_cast<AssetControl*>(context)->consume_command(line, reply);
 }
-#else
-void AssetControl::consume_command_entry(
-    void* const context, const std::span<const std::uint8_t> line) {
-  static_cast<AssetControl*>(context)->consume_command(line);
-}
-#endif
 
 void AssetControl::consume_entry(void* const context,
                                  const std::span<const std::uint8_t> bytes) {
@@ -147,10 +140,8 @@ void AssetControl::stop() {
   request_frame_size_ = 0;
   operations_ = {};
   transport_ = nullptr;
-#if SIMCORE_SECOND_TELEMETRY_LINK
   requested_reply_ = nullptr;
   reply_ = nullptr;
-#endif
 }
 
 bool AssetControl::ready() const {
@@ -158,12 +149,8 @@ bool AssetControl::ready() const {
          task_ != nullptr;
 }
 
-#if SIMCORE_SECOND_TELEMETRY_LINK
 void AssetControl::consume_command(const std::span<const std::uint8_t> line,
                                    transport::ITransport& reply) {
-#else
-void AssetControl::consume_command(const std::span<const std::uint8_t> line) {
-#endif
   if (!ready() || active()) {
     return;
   }
@@ -175,9 +162,7 @@ void AssetControl::consume_command(const std::span<const std::uint8_t> line) {
     return;
   }
 
-#if SIMCORE_SECOND_TELEMETRY_LINK
   requested_reply_ = &reply;
-#endif
   const std::string_view begin_prefix{
       begin_command_.data(), std::strlen(begin_command_.data())};
   requested_package_size_ = 0;
@@ -200,13 +185,9 @@ void AssetControl::consume_command(const std::span<const std::uint8_t> line) {
     // Taken here, on the task that reads the bytes, so a second upload
     // arriving mid-handshake finds the stream owned rather than a flag that
     // has not been set yet.
-#if SIMCORE_SECOND_TELEMETRY_LINK
     // The reply transport identifies the link, so the upload's binary frames
     // are only accepted from the one that opened it.
     if (claim_ != nullptr && !claim_->try_claim(&session_, &reply)) {
-#else
-    if (claim_ != nullptr && !claim_->try_claim(&session_)) {
-#endif
       request_type_ = RequestType::busy;
     } else {
       session_active_.store(true, std::memory_order_release);
@@ -282,11 +263,9 @@ void AssetControl::process() {
       }
       continue;
     }
-#if SIMCORE_SECOND_TELEMETRY_LINK
     // Taken while the request is still held, so every reply below — including
     // the ones sent after the state is released — goes to the link that asked.
     reply_ = requested_reply_;
-#endif
     if (request_type_ == RequestType::begin) {
       handle_begin();
     } else if (request_type_ == RequestType::info) {

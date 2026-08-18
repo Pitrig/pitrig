@@ -8,7 +8,6 @@
 
 namespace simcore::transport {
 
-#if SIMCORE_SECOND_TELEMETRY_LINK
 std::size_t TelemetryComposition::select(
     const board_registry::BoardDefinition& board,
     const configuration::ApplicationConfiguration& configuration,
@@ -16,11 +15,6 @@ std::size_t TelemetryComposition::select(
   if (links.empty()) {
     return 0;
   }
-#else
-ITransport* TelemetryComposition::select(
-    const board_registry::BoardDefinition& board,
-    const configuration::ApplicationConfiguration& configuration) {
-#endif
   ITransport* primary = nullptr;
   switch (board_registry::telemetry_transport_id(board, configuration)) {
     case configuration::TelemetryTransportId::native_usb_cdc:
@@ -46,12 +40,12 @@ ITransport* TelemetryComposition::select(
     case configuration::TelemetryTransportId::board_default:
       break;
   }
-#if SIMCORE_SECOND_TELEMETRY_LINK
   if (primary == nullptr) {
     return 0;
   }
   links[0] = primary;
   std::size_t count = 1;
+#if SIMCORE_SECOND_TELEMETRY_LINK
   // Development only, and deliberately unconditional: this is the port the
   // board is flashed over, so it is always present, and no configuration
   // property decides whether it also carries data.
@@ -61,10 +55,8 @@ ITransport* TelemetryComposition::select(
       })) {
     links[count++] = &usb_serial_jtag_;
   }
-  return count;
-#else
-  return primary;
 #endif
+  return count;
 }
 
 }  // namespace simcore::transport
