@@ -8,10 +8,8 @@
 #include <system_error>
 
 #include "dashboard_fonts.hpp"
-#include "dashboard_layout_internal.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
-#include "logger.hpp"
 #include "number_transform.hpp"
 #include "text_writer.hpp"
 #include "time_transform.hpp"

@@ -25,10 +25,6 @@ inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumTextWidgets;
 inline constexpr std::size_t kMaximumSources =
     configuration::kMaximumTextSources;
-inline constexpr std::size_t kMaximumConditions =
-    configuration::kMaximumWidgetConditions;
-inline constexpr std::size_t kTitleCapacity =
-    configuration::kWidgetTitleCapacity;
 
 struct WidgetBinding;
 

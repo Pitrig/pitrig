@@ -11,13 +11,12 @@ struct FieldDescriptor {
   ValueType type;
 };
 
-// Module composition binds these two by name. Every other field reaches a
+// Module composition binds this one by name. Every other field reaches a
 // widget through the binding string in configuration, resolved against the
 // generated catalog below, so this is not a catalog of its own.
 namespace fields {
 
 inline constexpr std::string_view kCurrentLapTime = "session.lap.current_time";
-inline constexpr std::string_view kLapDelta = "session.lap.delta";
 
 }  // namespace fields
 

@@ -119,7 +119,6 @@ bool start(Modules& modules, events::EventBus& event_bus,
            const telemetry::ITelemetryRegistry& telemetry_registry,
            const telemetry::ITelemetryReader& telemetry,
            const configuration::ApplicationConfiguration& configuration) {
-  const bool widgets_enabled = true;
   modules.manager.clear();
   modules.lap_timer_started = false;
   modules.lap_timer_binding = {
@@ -130,7 +129,7 @@ bool start(Modules& modules, events::EventBus& event_bus,
       .started = &modules.lap_timer_started,
   };
   const bool registered = modules.manager.add({
-      .enabled = widgets_enabled && has_lap_timer_modifier(configuration),
+      .enabled = has_lap_timer_modifier(configuration),
       .start = &start_lap_timer,
       .stop = &stop_lap_timer,
       .context = &modules.lap_timer_binding,

@@ -54,8 +54,6 @@ class Controller final {
   // removed here, or a re-bind would stack a second one on them.
   void clear_actions();
 
-  [[nodiscard]] std::size_t active_index() const { return active_; }
-
  private:
   // One tap target. The event carries a pointer to its own entry, so the
   // handler reaches both the controller and the target without allocating.
