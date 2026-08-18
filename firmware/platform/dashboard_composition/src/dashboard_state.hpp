@@ -178,6 +178,16 @@ struct ImageWidgets : WidgetStorage {
 };
 
 struct Dashboard {
+  // Declared here and defaulted out of line on purpose. The widget pools embed
+  // WidgetCondition arrays, and the contract gives those meaningful non-zero
+  // defaults — kTransparentColor, at_or_above — so a constant-initialised
+  // Dashboard would be ~67 KB of non-zero image in .data, paid for in flash.
+  // A user-provided constructor makes initialisation dynamic instead, which
+  // puts the object in .bss and runs the same initialisers at startup. That is
+  // what it did while it was a member of the core's Application, which needed
+  // dynamic initialisation for its own reasons.
+  Dashboard();
+
   dashboard::fonts::Registry fonts;
   dashboard::images::Registry images;
   // One LVGL screen per configured screen, in configuration order. A widget is

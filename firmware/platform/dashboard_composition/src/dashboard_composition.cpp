@@ -149,12 +149,13 @@ void on_telemetry_updated(const events::Event&, void* const context) {
 // Whether this widget's caption mask takes its colour from one of the screens
 }  // namespace
 
-Dashboard& instance() {
-  // One display, one dashboard. Firmware-lifetime, like everything the
-  // composition root owns; it lives here so its type need not be public.
-  static Dashboard dashboard;
-  return dashboard;
-}
+Dashboard::Dashboard() = default;
+
+// One display, one dashboard. Firmware-lifetime, like everything the
+// composition root owns; it lives here so its type need not be public.
+Dashboard g_dashboard;
+
+Dashboard& instance() { return g_dashboard; }
 
 bool show_startup_screen(
     lv_display_t* const display,
