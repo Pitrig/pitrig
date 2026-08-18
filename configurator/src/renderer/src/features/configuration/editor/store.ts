@@ -75,17 +75,25 @@ interface DashboardEditorStore {
   locked: Record<string, boolean>
   hidden: Record<string, boolean>
   /**
-   * Which group of each slot the canvas draws, keyed by slot number. The board
-   * shows one at a time and picks it from a tap or a rule; the editor has to
-   * author all of them, so it picks one to look at instead.
+   * Which page of each slot the canvas draws, keyed by the slot's widget id. The
+   * board shows one at a time and picks it from a tap or a trigger; the editor
+   * has to author all of them, so it picks one to look at instead.
    */
-  previewSlots: Record<number, string>
+  slotPage: Record<string, number>
+  /**
+   * The slot whose pages are being edited, if any. A slot is an area that
+   * switches, so authoring it means looking at one page at a time inside its own
+   * box — which is a way of looking at the document, not a property of it.
+   */
+  drillIn?: string
   select: (selection?: WidgetSelection) => void
   /** Adds or removes one widget, keeping it primary when it stays selected. */
   extendSelection: (id: string) => void
   selectMany: (ids: readonly string[]) => void
   setActiveScreen: (index: number) => void
-  setPreviewSlot: (slot: number, groupId: string) => void
+  setSlotPage: (slotId: string, page: number) => void
+  /** Enters a slot's pages, or leaves them when given nothing. */
+  setDrillIn: (slotId?: string) => void
   setView: (patch: Partial<EditorView>) => void
   setPreview: (patch: Partial<PreviewPlayback>) => void
   toggleLocked: (id: string) => void
@@ -106,7 +114,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   preview: DEFAULT_PREVIEW_PLAYBACK,
   locked: {},
   hidden: {},
-  previewSlots: {},
+  slotPage: {},
   select: (selection) =>
     set({
       selection,
@@ -132,10 +140,24 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
     }),
   // Selection belongs to one screen, so switching screens drops it rather than
   // leaving the inspector editing something the canvas no longer draws.
+  // A slot belongs to one screen, so leaving the screen also leaves the slot.
   setActiveScreen: (index) =>
-    set({ activeScreenIndex: Math.max(index, 0), selection: undefined, selectedIds: [] }),
-  setPreviewSlot: (slot, groupId) =>
-    set((current) => ({ previewSlots: { ...current.previewSlots, [slot]: groupId } })),
+    set({
+      activeScreenIndex: Math.max(index, 0),
+      selection: undefined,
+      selectedIds: [],
+      drillIn: undefined
+    }),
+  setSlotPage: (slotId, page) =>
+    set((current) => ({ slotPage: { ...current.slotPage, [slotId]: Math.max(page, 0) } })),
+  // Leaving a slot selects it, so the inspector lands on the thing just left
+  // rather than on nothing.
+  setDrillIn: (slotId) =>
+    set(
+      slotId === undefined
+        ? { drillIn: undefined }
+        : { drillIn: slotId, selection: { type: 'widget', id: slotId }, selectedIds: [slotId] }
+    ),
   setView: (patch) => set((current) => ({ view: { ...current.view, ...patch } })),
   setPreview: (patch) => set((current) => ({ preview: { ...current.preview, ...patch } })),
   toggleLocked: (id) =>
@@ -172,7 +194,8 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
       activeScreenIndex: 0,
       locked: {},
       hidden: {},
-      previewSlots: {},
+      slotPage: {},
+      drillIn: undefined,
       view: DEFAULT_EDITOR_VIEW,
       preview: DEFAULT_PREVIEW_PLAYBACK
     })

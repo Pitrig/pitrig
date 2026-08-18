@@ -34,8 +34,9 @@ editor).
 - Up to four screens, swiped between on a board with a touch panel, or reached by
   a tap on a widget or on an area authored as a touch zone.
 - Container shapes: a shape whose widgets are placed relative to it and nest
-  inside it, and slots, where several containers share one box and one is shown
-  at a time — cycled by a tap, or selected by a telemetry rule.
+  inside it, and slots, an area holding pages of widgets that share one box with
+  one shown at a time — cycled by a tap, or raised for a time by a telemetry
+  trigger.
 - Live apply rebuilds the dashboard on a connected board without writing flash
   and without a reboot — SimHub has no direct equivalent.
 
@@ -129,9 +130,10 @@ renaming and lock/hide.
 Grouping is done, but not as this section predicted: it is a document entity
 rather than an editor annotation, because the device needs it. A container is a
 rectangle of a screen with its widgets authored inside it, relative to its box,
-and containers sharing a **slot** occupy that box one at a time — the SimHub
-"dashboard area switch". A tap cycles the slot and a telemetry rule overrides
-that while it matches ([ADR 0021](adr/0021-widget-groups-and-slots.md)).
+and a **slot** is an area holding pages that occupy its box one at a time — the
+SimHub "dashboard area switch". A tap cycles the pages in the loop, and a page
+whose telemetry trigger fires is raised over them for a bounded time
+([ADR 0021](adr/0021-widget-groups-and-slots.md)).
 
 Missing: dragging a widget between containers on the *canvas*; the layer panel
 does it, by dropping a row onto a container's row.

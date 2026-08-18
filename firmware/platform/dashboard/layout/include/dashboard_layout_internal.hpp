@@ -7,10 +7,8 @@
 namespace simcore::dashboard {
 
 [[nodiscard]] bool resolve_widget_bounds(const Layout& layout,
+                                         const configuration::WidgetFrame& frame,
                                          const Placement& placement,
-                                         std::uint8_t screen_index,
-                                         std::uint8_t parent_index,
-                                         bool parent_present,
                                          std::int32_t intrinsic_width,
                                          std::int32_t intrinsic_height,
                                          bool fill_available_width,

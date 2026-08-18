@@ -16,7 +16,10 @@ function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
     case 'indicator':
     case 'graph':
     case 'image':
-      // None of these draw text of their own, so none requires a font.
+    case 'slot':
+      // None of these draw text of their own, so none requires a font. A slot
+      // draws nothing at all, and the widgets on its pages answer for
+      // themselves — allWidgetsOf already reaches them.
       return []
     default: {
       const exhaustive: never = widget

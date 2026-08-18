@@ -15,54 +15,86 @@ constexpr std::uint32_t kEvaluationPeriodMs = LV_DEF_REFR_PERIOD;
 Controller::~Controller() { clear(); }
 
 bool Controller::add(lv_obj_t* const container,
-                     const configuration::ShapeWidgetConfiguration& shape,
+                     const std::span<lv_obj_t* const> pages,
+                     const configuration::SlotWidgetConfiguration& config,
                      const telemetry::ITelemetryRegistry& registry,
                      const telemetry::ITelemetryReader& telemetry,
                      const frame::ModifierReader lap_timer_modifier) {
-  if (container == nullptr || count_ >= members_.size()) {
+  const std::size_t page_count =
+      config.page_count < pages.size() ? config.page_count : pages.size();
+  if (container == nullptr || count_ >= slots_.size() || page_count == 0 ||
+      page_count_ + page_count > pages_.size()) {
     return false;
   }
-  Member& member = members_[count_];
-  member = {};
-  member.container = container;
-  member.slot = shape.slot;
-  member.is_default = shape.slot_default;
-  member.condition_count = static_cast<std::uint8_t>(
-      shape.slot_condition_count > shape.slot_conditions.size()
-          ? shape.slot_conditions.size()
-          : shape.slot_condition_count);
-  // Copied for the reason a widget copies its rules: applying a configuration
-  // can swap the document out from under a shape that did not itself change.
-  for (std::size_t index = 0; index < member.condition_count; ++index) {
-    member.conditions[index] = shape.slot_conditions[index];
-  }
 
-  if (member.condition_count > 0) {
-    bool fast_updates{};
-    if (!frame::bind_source(
-            configuration::value_binding_view(shape.slot_source.binding),
-            shape.slot_source.modifier_count, shape.slot_source.modifiers,
-            registry, telemetry, lap_timer_modifier, member.source, member.read,
-            member.read_context, fast_updates)) {
-      member = {};
+  Slot& slot = slots_[count_];
+  slot = {};
+  slot.container = container;
+  slot.first_page = static_cast<std::uint8_t>(page_count_);
+  slot.loop_page = kNoPage;
+
+  for (std::size_t index = 0; index < page_count; ++index) {
+    const configuration::SlotPageConfiguration& source = config.pages[index];
+    if (pages[index] == nullptr) {
       return false;
     }
+    Page& page = pages_[page_count_ + index];
+    page = {};
+    page.object = pages[index];
+    page.in_loop = source.in_loop;
+    page.trigger = source.trigger;
+    page.duration_ms = source.duration_ms;
+    page.condition_count = static_cast<std::uint8_t>(
+        source.condition_count > source.conditions.size()
+            ? source.conditions.size()
+            : source.condition_count);
+    // Copied for the reason a widget copies its rules: applying a configuration
+    // can swap the document out from under a slot that did not itself change.
+    for (std::size_t rule = 0; rule < page.condition_count; ++rule) {
+      page.conditions[rule] = source.conditions[rule];
+    }
+
+    if (page.trigger != configuration::SlotTrigger::none) {
+      bool fast_updates{};
+      if (!frame::bind_source(
+              configuration::value_binding_view(source.source.binding),
+              source.source.modifier_count, source.source.modifiers, registry,
+              telemetry, lap_timer_modifier, page.source, page.read,
+              page.read_context, fast_updates)) {
+        page = {};
+        return false;
+      }
+    }
+    // The first page in the loop is where the slot starts. Validation
+    // guarantees there is one; falling back to the first page of all keeps a
+    // hand-built document from showing an empty box.
+    if (page.in_loop && slot.loop_page == kNoPage) {
+      slot.loop_page = static_cast<std::uint8_t>(page_count_ + index);
+    }
   }
+
+  if (slot.loop_page == kNoPage) {
+    slot.loop_page = slot.first_page;
+  }
+  slot.page_count = static_cast<std::uint8_t>(page_count);
+  page_count_ += page_count;
   ++count_;
   return true;
 }
 
 bool Controller::start() {
-  manual_.fill(kNoMember);
   bool watches_telemetry = false;
   for (std::size_t index = 0; index < count_; ++index) {
-    Member& member = members_[index];
-    // The only clickable object in the dashboard. Widgets all refuse clicks as
-    // they build, so a tap on any of a container's children reaches it — and
-    // this runs after they are built, which is what puts the flag back.
-    lv_obj_add_flag(member.container, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(member.container, on_click, LV_EVENT_CLICKED, this);
-    watches_telemetry = watches_telemetry || member.read != nullptr;
+    // The only clickable objects in the dashboard besides the authored tap
+    // targets. Widgets all refuse clicks as they build, so a tap anywhere in a
+    // slot reaches it — and this runs after they are built, which is what puts
+    // the flag back.
+    lv_obj_add_flag(slots_[index].container, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(slots_[index].container, on_click, LV_EVENT_CLICKED,
+                        this);
+  }
+  for (std::size_t index = 0; index < page_count_; ++index) {
+    watches_telemetry = watches_telemetry || pages_[index].read != nullptr;
   }
   refresh();
   if (!watches_telemetry) {
@@ -77,10 +109,12 @@ void Controller::clear() {
     lv_timer_delete(timer_);
     timer_ = nullptr;
   }
-  // The containers are deleted with their screens, which takes their event
+  // The objects are deleted with their screens, which takes their event
   // callbacks with them; forgetting them here is all this owns.
   count_ = 0;
-  members_ = {};
+  page_count_ = 0;
+  slots_ = {};
+  pages_ = {};
 }
 
 void Controller::evaluate(lv_timer_t* const timer) {
@@ -99,108 +133,116 @@ void Controller::on_click(lv_event_t* const event) {
     return;
   }
   for (std::size_t index = 0; index < controller->count_; ++index) {
-    const Member& member = controller->members_[index];
-    if (member.container == target && member.slot != 0) {
-      controller->advance(member.slot);
+    if (controller->slots_[index].container == target) {
+      controller->advance(index);
       controller->refresh();
       return;
     }
   }
 }
 
-void Controller::advance(const std::uint8_t slot) {
-  const std::uint8_t showing = selection(slot);
-  bool passed = showing == kNoMember;
-  std::uint8_t first = kNoMember;
-  std::uint8_t next = kNoMember;
-  for (std::size_t index = 0; index < count_; ++index) {
-    if (members_[index].slot != slot) {
-      continue;
+void Controller::advance(const std::size_t index) {
+  Slot& slot = slots_[index];
+  // An event owns the slot while it lasts, so the tap is not a way around it.
+  // Stepping the loop underneath would also be invisible, which is worse than
+  // doing nothing.
+  for (std::uint8_t offset = 0; offset < slot.page_count; ++offset) {
+    if (pages_[slot.first_page + offset].event_active) {
+      return;
     }
-    const auto candidate = static_cast<std::uint8_t>(index);
-    if (first == kNoMember) {
-      first = candidate;
-    }
-    if (passed) {
-      next = candidate;
-      break;
-    }
-    passed = candidate == showing;
   }
-  // Wrapping: past the last member the slot starts again at the first.
-  manual_[slot - 1] = next != kNoMember ? next : first;
+  // The next page in the loop after the one showing, wrapping past the last.
+  // Walking the whole ring from the current page is what makes the wrap fall
+  // out rather than needing a case of its own.
+  const std::uint8_t current =
+      static_cast<std::uint8_t>(slot.loop_page - slot.first_page);
+  for (std::uint8_t step = 1; step <= slot.page_count; ++step) {
+    const auto offset =
+        static_cast<std::uint8_t>((current + step) % slot.page_count);
+    if (pages_[slot.first_page + offset].in_loop) {
+      slot.loop_page = static_cast<std::uint8_t>(slot.first_page + offset);
+      return;
+    }
+  }
 }
 
-std::uint8_t Controller::selection(const std::uint8_t slot) {
-  const std::uint32_t now = lv_tick_get();
-  std::uint8_t matched = kNoMember;
-  std::uint8_t authored = kNoMember;
-  std::uint8_t first = kNoMember;
-  for (std::size_t index = 0; index < count_; ++index) {
-    Member& member = members_[index];
-    if (member.slot != slot) {
-      continue;
-    }
-    if (first == kNoMember) {
-      first = static_cast<std::uint8_t>(index);
-    }
-    if (member.is_default) {
-      authored = static_cast<std::uint8_t>(index);
-    }
-    if (member.read == nullptr || member.condition_count == 0) {
-      continue;
-    }
-    // The same comparison a styling rule makes, deciding which shape of the
-    // slot is shown rather than how a widget is painted. Declaration order
-    // decides, exactly as it does among one widget's rules.
-    const std::optional<double> value =
-        conditions::condition_value(member.read(member.read_context));
-    bool holds = false;
-    std::uint16_t hold_ms = 0;
-    if (value.has_value()) {
-      for (std::size_t rule = 0; rule < member.condition_count; ++rule) {
-        const configuration::SlotCondition& condition = member.conditions[rule];
+bool Controller::raised(Page& page) {
+  if (page.read == nullptr ||
+      page.trigger == configuration::SlotTrigger::none) {
+    return false;
+  }
+  const std::optional<double> value =
+      conditions::condition_value(page.read(page.read_context));
+
+  bool fires = false;
+  if (value.has_value()) {
+    if (page.trigger == configuration::SlotTrigger::value_changed) {
+      // The first reading is what a change is measured against, not a change in
+      // itself — otherwise every slot would flash its alert pages at startup.
+      fires = page.has_last && *value != page.last_value;
+      page.last_value = *value;
+      page.has_last = true;
+    } else {
+      // The same comparison a styling rule makes, deciding which page of the
+      // slot is shown rather than how a widget is painted. Declaration order
+      // decides, exactly as it does among one widget's rules.
+      for (std::size_t rule = 0; rule < page.condition_count; ++rule) {
+        const configuration::SlotCondition& condition = page.conditions[rule];
         if (conditions::condition_holds(condition.op, *value,
                                         static_cast<double>(condition.value))) {
-          holds = true;
-          hold_ms = condition.hold_ms;
+          fires = true;
           break;
         }
       }
     }
-    if (holds) {
-      member.held = hold_ms > 0;
-      member.hold_until_ms = now + hold_ms;
-    } else if (member.held && now >= member.hold_until_ms) {
-      member.held = false;
+  } else if (page.trigger == configuration::SlotTrigger::value_changed) {
+    // A source that went away is not a change back when it returns.
+    page.has_last = false;
+  }
+
+  if (fires) {
+    // Re-firing restarts the duration, so a trigger that keeps going keeps its
+    // page up rather than letting it lapse mid-event.
+    page.event_active = true;
+    page.started = lv_tick_get();
+    return true;
+  }
+  if (!page.event_active) {
+    return false;
+  }
+  // With no duration a rule holds its page exactly as long as it matches, which
+  // is what makes a duration the thing that outlives a momentary trigger.
+  if (page.duration_ms == 0 || lv_tick_elaps(page.started) >= page.duration_ms) {
+    page.event_active = false;
+  }
+  return page.event_active;
+}
+
+std::uint8_t Controller::selection(const Slot& slot) {
+  std::uint8_t event = kNoPage;
+  for (std::uint8_t offset = 0; offset < slot.page_count; ++offset) {
+    const std::uint8_t index = static_cast<std::uint8_t>(slot.first_page + offset);
+    // Every page is evaluated even once one has won, because each owns its own
+    // duration and change history: skipping the rest would leave a page's next
+    // event measured against a value from before the one that beat it.
+    if (raised(pages_[index]) && event == kNoPage) {
+      event = index;
     }
-    if ((holds || member.held) && matched == kNoMember) {
-      matched = static_cast<std::uint8_t>(index);
-    }
   }
-  if (matched != kNoMember) {
-    return matched;
-  }
-  if (const std::uint8_t chosen = manual_[slot - 1]; chosen != kNoMember) {
-    return chosen;
-  }
-  // Validation guarantees a default per populated slot; falling back to the
-  // first member keeps a hand-built document from showing an empty box.
-  return authored != kNoMember ? authored : first;
+  return event != kNoPage ? event : slot.loop_page;
 }
 
 void Controller::refresh() {
-  std::array<std::uint8_t, configuration::kMaximumSlots> showing{};
-  for (std::uint8_t slot = 1; slot <= configuration::kMaximumSlots; ++slot) {
-    showing[slot - 1] = selection(slot);
-  }
   for (std::size_t index = 0; index < count_; ++index) {
-    const Member& member = members_[index];
-    const bool visible = showing[member.slot - 1] == index;
-    if (visible) {
-      lv_obj_remove_flag(member.container, LV_OBJ_FLAG_HIDDEN);
-    } else {
-      lv_obj_add_flag(member.container, LV_OBJ_FLAG_HIDDEN);
+    const Slot& slot = slots_[index];
+    const std::uint8_t showing = selection(slot);
+    for (std::uint8_t offset = 0; offset < slot.page_count; ++offset) {
+      const std::uint8_t page = static_cast<std::uint8_t>(slot.first_page + offset);
+      if (page == showing) {
+        lv_obj_remove_flag(pages_[page].object, LV_OBJ_FLAG_HIDDEN);
+      } else {
+        lv_obj_add_flag(pages_[page].object, LV_OBJ_FLAG_HIDDEN);
+      }
     }
   }
 }

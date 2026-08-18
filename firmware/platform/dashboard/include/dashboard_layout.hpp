@@ -27,7 +27,7 @@ struct Rect {
 
 using Placement = configuration::WidgetPlacement;
 
-// The screens a dashboard renders on, the container shapes within them, and the
+// The screens a dashboard renders on, the containers within them, and the
 // display they belong to. Widget storage is one dashboard-wide pool, so a widget
 // names the parent it belongs to and that parent is resolved per widget rather
 // than per collection.
@@ -37,6 +37,10 @@ struct Layout {
   // One entry per shape pool slot, filled as each shape is built. A container is
   // a widget like any other, so its own pool index is what addresses it.
   std::span<lv_obj_t* const> containers{};
+  // One entry per slot page, flat: a slot's pool index times kMaximumSlotPages
+  // plus the page. A page is not a widget and has no pool of its own, so the
+  // arithmetic is what addresses it — no counter and no per-slot base.
+  std::span<lv_obj_t* const> pages{};
 
   // Null for an index no screen was created for, which the caller reports as a
   // failed placement rather than parenting the widget somewhere arbitrary.
@@ -48,14 +52,23 @@ struct Layout {
   // geometry is expressed in. Null when the container failed to build, which
   // refuses the child rather than silently reparenting it to the screen — where
   // its relative coordinates would mean somewhere else entirely.
-  [[nodiscard]] lv_obj_t* parent(const std::uint8_t screen_index,
-                                 const std::uint8_t parent_index,
-                                 const bool parent_present) const {
-    if (!parent_present) {
-      return screen(screen_index);
+  //
+  // Takes the whole frame because which table parent_index addresses is the
+  // frame's own business: a caller that had to pass the kind alongside the index
+  // could pass a mismatched pair.
+  [[nodiscard]] lv_obj_t* parent(const configuration::WidgetFrame& frame) const {
+    switch (frame.parent_kind) {
+      case configuration::WidgetParentKind::shape:
+        return frame.parent_index < containers.size()
+                   ? containers[frame.parent_index]
+                   : nullptr;
+      case configuration::WidgetParentKind::slot_page:
+        return frame.parent_index < pages.size() ? pages[frame.parent_index]
+                                                 : nullptr;
+      case configuration::WidgetParentKind::screen:
+        break;
     }
-    return parent_index < containers.size() ? containers[parent_index]
-                                            : nullptr;
+    return screen(frame.screen_index);
   }
 };
 

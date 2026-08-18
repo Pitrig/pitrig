@@ -190,12 +190,6 @@ constexpr std::uint16_t kMaximumHoldMs = 10'000;
   return false;
 }
 
-[[nodiscard]] bool same_box(const WidgetPlacement& left,
-                           const WidgetPlacement& right) {
-  return left.x == right.x && left.y == right.y && left.width == right.width &&
-         left.height == right.height;
-}
-
 template <std::size_t Size>
 [[nodiscard]] bool terminated(const std::array<char, Size>& value) {
   return std::find(value.begin(), value.end(), '\0') != value.end();
@@ -217,7 +211,6 @@ class Validator final {
     origin_y_ = y;
   }
 
-  [[nodiscard]] bool slot_conditions(const ShapeWidgetConfiguration& config);
   [[nodiscard]] bool text_widget(const TextWidgetConfiguration& config);
   [[nodiscard]] bool shape_widget(const ShapeWidgetConfiguration& config);
   [[nodiscard]] bool bar_widget(const BarWidgetConfiguration& config);
@@ -225,8 +218,10 @@ class Validator final {
   [[nodiscard]] bool indicator_widget(const IndicatorWidgetConfiguration& config);
   [[nodiscard]] bool graph_widget(const GraphWidgetConfiguration& config);
   [[nodiscard]] bool image_widget(const ImageWidgetConfiguration& config);
+  [[nodiscard]] bool slot_widget(const SlotWidgetConfiguration& config);
 
  private:
+  [[nodiscard]] bool slot_page(const SlotPageConfiguration& config);
   [[nodiscard]] bool frame(const WidgetFrame& config);
   [[nodiscard]] bool value_source(const ValueSourceConfiguration& config);
   [[nodiscard]] bool value_range(const ValueRange& range);
@@ -384,33 +379,101 @@ bool Validator::frame(const WidgetFrame& config) {
   return conditions(config);
 }
 
-// A widget that maps one source through a window needs a resolvable binding
-// and a window with something in it.
-// A slot's rules select which shape of that slot is shown rather than restyling
+// A page's rules select which page of the slot is shown rather than restyling
 // anything, so the operator and the watched source are all there is to check.
-// Rules on a shape outside a slot would select nothing, which is authoring
-// intent that cannot take effect and is therefore refused.
-bool Validator::slot_conditions(const ShapeWidgetConfiguration& config) {
-  if (config.slot_condition_count == 0) {
-    return true;
+// What each trigger requires is stated per trigger rather than loosely for all
+// three: a binding, a rule or a duration that nothing reads is how an author
+// comes to believe an alert works.
+bool Validator::slot_page(const SlotPageConfiguration& config) {
+  if (config.condition_count > config.conditions.size() ||
+      config.widget_count > config.widgets.size()) {
+    return reject(failure_, ValidationError::invalid_slot_page, "conditions");
   }
-  if (config.slot == 0) {
-    return reject(failure_, ValidationError::invalid_widget, "slot_conditions");
+  // The same bound a styling hold takes: past it a page stops reading as a
+  // reaction to the car and starts reading as a stuck dashboard.
+  if (config.duration_ms > kMaximumHoldMs) {
+    return reject(failure_, ValidationError::invalid_slot_page, "duration_ms");
   }
-  for (std::size_t index = 0; index < config.slot_condition_count; ++index) {
-    const SlotCondition& rule = config.slot_conditions[index];
-    if (!std::isfinite(rule.value) || rule.op < ConditionOperator::above ||
-        rule.op > ConditionOperator::not_equal) {
-      return reject(failure_, ValidationError::invalid_widget,
-                    "slot_conditions");
-    }
+  const bool bound =
+      registry_.resolve(value_binding_view(config.source.binding)).valid();
+  switch (config.trigger) {
+    case SlotTrigger::none:
+      if (bound || config.condition_count != 0 || config.duration_ms != 0) {
+        return reject(failure_, ValidationError::invalid_slot_page, "trigger");
+      }
+      return true;
+    case SlotTrigger::value_changed:
+      // Without a duration the page would be raised and dropped inside one
+      // evaluation, which is a page that never appears.
+      if (config.duration_ms == 0 || config.condition_count != 0) {
+        return reject(failure_, ValidationError::invalid_slot_page,
+                      "duration_ms");
+      }
+      break;
+    case SlotTrigger::conditions:
+      if (config.condition_count == 0) {
+        return reject(failure_, ValidationError::invalid_slot_page,
+                      "conditions");
+      }
+      for (std::size_t index = 0; index < config.condition_count; ++index) {
+        const SlotCondition& rule = config.conditions[index];
+        if (!std::isfinite(rule.value) || rule.op < ConditionOperator::above ||
+            rule.op > ConditionOperator::not_equal) {
+          return reject(failure_, ValidationError::invalid_slot_page,
+                        "conditions");
+        }
+      }
+      break;
+    default:
+      return reject(failure_, ValidationError::invalid_slot_page, "trigger");
   }
-  if (!registry_.resolve(value_binding_view(config.slot_source.binding))
-           .valid() ||
-      config.slot_source.modifier_count > config.slot_source.modifiers.size()) {
-    return reject(failure_, ValidationError::invalid_widget, "slot_source");
+  if (!bound || config.source.modifier_count > config.source.modifiers.size()) {
+    return reject(failure_, ValidationError::invalid_slot_page, "source");
   }
   return true;
+}
+
+// A slot draws nothing — it is an area that switches what it shows. Every
+// property that would paint it is refused rather than ignored, so an author who
+// wants a panel there learns to put a shape behind the slot instead of
+// wondering why a background never appeared.
+bool Validator::slot_widget(const SlotWidgetConfiguration& config) {
+  const WidgetFrame& box = config.frame;
+  if (box.background_color != kTransparentColor ||
+      box.background_grad_color != kTransparentColor) {
+    return reject(failure_, ValidationError::invalid_slot, "background_color");
+  }
+  if (box.border.width_px != 0 || box.border.radius_px != 0) {
+    return reject(failure_, ValidationError::invalid_slot, "border");
+  }
+  if (box.title.text.front() != '\0') {
+    return reject(failure_, ValidationError::invalid_slot, "title");
+  }
+  if (box.condition_count != 0 || box.color_ramp.stop_count != 0 ||
+      !value_binding_view(box.condition_source.binding).empty()) {
+    return reject(failure_, ValidationError::invalid_slot, "conditions");
+  }
+  // A tap here already means "next page", so an action would give one tap two
+  // meanings. Refused rather than ranked.
+  if (box.action.type != WidgetActionType::none) {
+    return reject(failure_, ValidationError::invalid_slot, "action");
+  }
+  if (config.page_count == 0 || config.page_count > config.pages.size()) {
+    return reject(failure_, ValidationError::invalid_slot, "pages");
+  }
+  bool loop{};
+  for (std::size_t index = 0; index < config.page_count; ++index) {
+    if (!slot_page(config.pages[index])) {
+      return false;
+    }
+    loop = loop || config.pages[index].in_loop;
+  }
+  // With only event pages a slot would show nothing at all once its events
+  // pass, and nothing the driver could do would bring anything back.
+  if (!loop) {
+    return reject(failure_, ValidationError::invalid_slot, "in_loop");
+  }
+  return frame(config.frame);
 }
 
 bool Validator::value_source(const ValueSourceConfiguration& config) {
@@ -540,26 +603,10 @@ bool Validator::shape_widget(const ShapeWidgetConfiguration& config) {
   if (config.kind < ShapeKind::rectangle || config.kind > ShapeKind::ellipse) {
     return reject(failure_, ValidationError::invalid_widget, "kind");
   }
-  if (config.slot > kMaximumSlots) {
-    return reject(failure_, ValidationError::invalid_widget, "slot");
-  }
-  // A shape in a slot spends its tap on cycling, so it cannot also navigate.
-  if (config.slot != 0 && config.frame.action.type != WidgetActionType::none) {
-    return reject(failure_, ValidationError::invalid_widget, "action");
-  }
-  // Slot membership and a hiding rule both write the same LVGL flag, so one
-  // would fight the other every refresh. The slot already decides visibility.
-  if (config.slot != 0) {
-    for (std::size_t index = 0; index < config.frame.condition_count; ++index) {
-      if (config.frame.conditions[index].hidden) {
-        return reject(failure_, ValidationError::invalid_widget, "conditions");
-      }
-    }
-  }
   if (config.widget_count > config.widgets.size()) {
     return reject(failure_, ValidationError::invalid_widget, "widgets");
   }
-  return slot_conditions(config) && frame(config.frame);
+  return frame(config.frame);
 }
 
 bool Validator::text_widget(const TextWidgetConfiguration& config) {
@@ -615,16 +662,17 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
   return true;
 }
 
-// One ordered reference table, whether it belongs to a screen or to a container
-// shape. Each entry must name a filled pool slot whose widget agrees about the
-// parent that declared it, so a document cannot point two parents at one widget
-// or leave a widget claiming a parent that never referenced it.
+// One ordered reference table, whether it belongs to a screen, a container shape
+// or one page of a slot. Each entry must name a filled pool slot whose widget
+// agrees about the parent that declared it, so a document cannot point two
+// parents at one widget or leave a widget claiming a parent that never
+// referenced it.
 [[nodiscard]] bool validate_references(
     const DashboardConfiguration& dashboard,
     const std::span<const WidgetReference> references, const std::size_t count,
-    const std::size_t screen_index, const std::uint8_t parent_index,
-    const bool parent_present, Validator& validator, std::size_t& action_count,
-    ValidationFailure& failure) {
+    const std::size_t screen_index, const WidgetParentKind parent_kind,
+    const std::uint8_t parent_index, Validator& validator,
+    std::size_t& action_count, ValidationFailure& failure) {
   // Parenting and the tap action are both facts about the frame, so one probe
   // decides whether the reference is sound before the type-specific checks run.
   const auto parented = [&](const WidgetFrame& frame) {
@@ -632,8 +680,9 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
       ++action_count;
     }
     return frame.screen_index == screen_index &&
-           frame.parent_present == parent_present &&
-           (!parent_present || frame.parent_index == parent_index) &&
+           frame.parent_kind == parent_kind &&
+           (parent_kind == WidgetParentKind::screen ||
+            frame.parent_index == parent_index) &&
            valid_action(frame.action, dashboard);
   };
   for (std::size_t index = 0; index < count && index < references.size();
@@ -679,6 +728,11 @@ bool Validator::text_widget(const TextWidgetConfiguration& config) {
             reference.index < dashboard.graph_widget_count &&
             parented(dashboard.graph_widgets[reference.index].frame) &&
             validator.graph_widget(dashboard.graph_widgets[reference.index]);
+        break;
+      case WidgetType::slot:
+        valid = reference.index < dashboard.slot_widget_count &&
+                parented(dashboard.slot_widgets[reference.index].frame) &&
+                validator.slot_widget(dashboard.slot_widgets[reference.index]);
         break;
     }
     if (!valid) {
@@ -726,7 +780,8 @@ ValidationFailure validate_configuration(
       dashboard.arc_widget_count > dashboard.arc_widgets.size() ||
       dashboard.indicator_widget_count > dashboard.indicator_widgets.size() ||
       dashboard.graph_widget_count > dashboard.graph_widgets.size() ||
-      dashboard.image_widget_count > dashboard.image_widgets.size()) {
+      dashboard.image_widget_count > dashboard.image_widgets.size() ||
+      dashboard.slot_widget_count > dashboard.slot_widgets.size()) {
     (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
     return failure;
   }
@@ -740,6 +795,9 @@ ValidationFailure validate_configuration(
   static_assert(kMaximumIndicatorWidgets <= 255);
   static_assert(kMaximumGraphWidgets <= 255);
   static_assert(kMaximumImageWidgets <= 255);
+  // A page is addressed by arithmetic over the slot pool rather than by a pool
+  // of its own, so it is the product that has to stay inside a std::uint8_t.
+  static_assert(kMaximumSlotWidgets * kMaximumSlotPages <= 255);
 
   Validator validator(profile, failure);
   std::size_t lap_timer_modifier_count{};
@@ -762,16 +820,32 @@ ValidationFailure validate_configuration(
     referenced_widgets += screen.widget_count;
     validator.set_parent_origin(0, 0);
     if (!validate_references(dashboard, screen.widgets, screen.widget_count,
-                             screen_index, 0, false, validator, action_count,
-                             failure)) {
+                             screen_index, WidgetParentKind::screen, 0,
+                             validator, action_count, failure)) {
       failure.screen_index = static_cast<std::int16_t>(screen_index);
       return failure;
     }
   }
 
-  // Where every container sits on the display, so a child's relative geometry
-  // can be checked against the one edge that still bounds it. The pool is
-  // ordered parent-before-child by construction, so one forward pass resolves
+  // Where every page sits on the display. A slot is only ever authored on a
+  // screen, so a page's box is the slot's own and nothing has to be resolved
+  // before it — which is also why this runs before the shape pass, whose
+  // containers may sit on a page.
+  constexpr std::size_t kPageTableSize = kMaximumSlotWidgets * kMaximumSlotPages;
+  std::array<std::int32_t, kPageTableSize> page_origin_x{};
+  std::array<std::int32_t, kPageTableSize> page_origin_y{};
+  for (std::size_t index = 0; index < dashboard.slot_widget_count; ++index) {
+    const SlotWidgetConfiguration& slot = dashboard.slot_widgets[index];
+    for (std::size_t page = 0; page < slot.page_count; ++page) {
+      const std::size_t flat = index * kMaximumSlotPages + page;
+      page_origin_x[flat] = slot.frame.placement.x;
+      page_origin_y[flat] = slot.frame.placement.y;
+    }
+  }
+
+  // Where every container shape sits on the display, so a child's relative
+  // geometry can be checked against the one edge that still bounds it. The pool
+  // is ordered parent-before-child by construction, so one forward pass resolves
   // any depth — and a parent index that is not lower than its own is the shape
   // of a cycle, which is refused here rather than assumed impossible.
   std::array<std::int32_t, kMaximumShapeWidgets> origin_x{};
@@ -779,59 +853,41 @@ ValidationFailure validate_configuration(
   std::array<std::uint8_t, kMaximumShapeWidgets> depth{};
   for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
     const WidgetFrame& frame = dashboard.shape_widgets[index].frame;
-    if (!frame.parent_present) {
-      origin_x[index] = 0;
-      origin_y[index] = 0;
-      depth[index] = 0;
-      continue;
+    switch (frame.parent_kind) {
+      case WidgetParentKind::screen:
+        origin_x[index] = 0;
+        origin_y[index] = 0;
+        depth[index] = 0;
+        continue;
+      case WidgetParentKind::shape:
+        if (frame.parent_index >= index) {
+          (void)reject(failure, ValidationError::invalid_widget, "widgets");
+          return failure;
+        }
+        origin_x[index] =
+            origin_x[frame.parent_index] +
+            dashboard.shape_widgets[frame.parent_index].frame.placement.x;
+        origin_y[index] =
+            origin_y[frame.parent_index] +
+            dashboard.shape_widgets[frame.parent_index].frame.placement.y;
+        depth[index] = static_cast<std::uint8_t>(depth[frame.parent_index] + 1);
+        break;
+      case WidgetParentKind::slot_page:
+        if (frame.parent_index >= kPageTableSize) {
+          (void)reject(failure, ValidationError::invalid_widget, "widgets");
+          return failure;
+        }
+        // The page table already holds the absolute box, and a slot is always
+        // authored on a screen, so the depth is fixed: the slot sits at 0 and
+        // its pages cost nothing, which leaves this shape at 1 — exactly where
+        // it would be inside a container shape on the same screen.
+        origin_x[index] = page_origin_x[frame.parent_index];
+        origin_y[index] = page_origin_y[frame.parent_index];
+        depth[index] = 1;
+        break;
     }
-    if (frame.parent_index >= index) {
-      (void)reject(failure, ValidationError::invalid_widget, "widgets");
-      return failure;
-    }
-    origin_x[index] =
-        origin_x[frame.parent_index] +
-        dashboard.shape_widgets[frame.parent_index].frame.placement.x;
-    origin_y[index] =
-        origin_y[frame.parent_index] +
-        dashboard.shape_widgets[frame.parent_index].frame.placement.y;
-    depth[index] = static_cast<std::uint8_t>(depth[frame.parent_index] + 1);
     if (depth[index] >= kMaximumNestingDepth) {
       (void)reject(failure, ValidationError::invalid_widget, "widgets");
-      return failure;
-    }
-  }
-
-  // A slot is one box with one starting shape, so members that disagree on
-  // either are two overlapping areas rather than one that switches. They must
-  // also share a parent: coordinates under different containers are in
-  // different spaces, so "the same box" would not mean the same pixels.
-  for (std::uint8_t slot = 1; slot <= kMaximumSlots; ++slot) {
-    const ShapeWidgetConfiguration* first{};
-    std::size_t defaults{};
-    std::size_t members{};
-    for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
-      const ShapeWidgetConfiguration& shape = dashboard.shape_widgets[index];
-      if (shape.slot != slot) {
-        continue;
-      }
-      ++members;
-      if (shape.slot_default) {
-        ++defaults;
-      }
-      if (first == nullptr) {
-        first = &shape;
-      } else if (!same_box(first->frame.placement, shape.frame.placement) ||
-                 first->frame.screen_index != shape.frame.screen_index ||
-                 first->frame.parent_present != shape.frame.parent_present ||
-                 (shape.frame.parent_present &&
-                  first->frame.parent_index != shape.frame.parent_index)) {
-        (void)reject(failure, ValidationError::invalid_widget, "placement");
-        return failure;
-      }
-    }
-    if (members > 0 && defaults != 1) {
-      (void)reject(failure, ValidationError::invalid_widget, "slot_default");
       return failure;
     }
   }
@@ -847,12 +903,36 @@ ValidationFailure validate_configuration(
     validator.set_parent_origin(origin_x[index] + shape.frame.placement.x,
                                 origin_y[index] + shape.frame.placement.y);
     if (!validate_references(dashboard, shape.widgets, shape.widget_count,
-                             shape.frame.screen_index,
-                             static_cast<std::uint8_t>(index), true, validator,
+                             shape.frame.screen_index, WidgetParentKind::shape,
+                             static_cast<std::uint8_t>(index), validator,
                              action_count, failure)) {
       failure.screen_index =
           static_cast<std::int16_t>(shape.frame.screen_index);
       return failure;
+    }
+  }
+
+  // Every page's own table. A page is not a widget and holds no reference of its
+  // own, so its widgets are counted here rather than through the slot.
+  for (std::size_t index = 0; index < dashboard.slot_widget_count; ++index) {
+    const SlotWidgetConfiguration& slot = dashboard.slot_widgets[index];
+    for (std::size_t page = 0; page < slot.page_count; ++page) {
+      const SlotPageConfiguration& config = slot.pages[page];
+      if (config.widget_count == 0) {
+        continue;
+      }
+      const std::size_t flat = index * kMaximumSlotPages + page;
+      referenced_widgets += config.widget_count;
+      validator.set_parent_origin(page_origin_x[flat], page_origin_y[flat]);
+      if (!validate_references(dashboard, config.widgets, config.widget_count,
+                               slot.frame.screen_index,
+                               WidgetParentKind::slot_page,
+                               static_cast<std::uint8_t>(flat), validator,
+                               action_count, failure)) {
+        failure.screen_index =
+            static_cast<std::int16_t>(slot.frame.screen_index);
+        return failure;
+      }
     }
   }
   validator.set_parent_origin(0, 0);
@@ -878,7 +958,8 @@ ValidationFailure validate_configuration(
       static_cast<std::size_t>(dashboard.text_widget_count) +
           dashboard.shape_widget_count + dashboard.bar_widget_count +
           dashboard.arc_widget_count + dashboard.indicator_widget_count +
-          dashboard.graph_widget_count + dashboard.image_widget_count) {
+          dashboard.graph_widget_count + dashboard.image_widget_count +
+          dashboard.slot_widget_count) {
     (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
     return failure;
   }

@@ -31,7 +31,11 @@ const VALIDATION_MESSAGES: Record<ValidationErrorToken, string> = {
   invalid_screen: 'A screen is malformed, or the configuration has more screens than the device allows.',
   invalid_dashboard: 'The dashboard is malformed, or it uses a module that is not enabled.',
   invalid_widget:
-    'A widget property is malformed, out of range, sits entirely off the display, is nested too deeply, or breaks a slot rule: containers sharing a slot must share a parent and a box, and exactly one of them must be the slot default.',
+    'A widget property is malformed, out of range, sits entirely off the display, or is nested too deeply.',
+  invalid_slot:
+    'A slot carries an appearance it has none of, was authored inside a container instead of on a screen, or holds no page the tap can reach.',
+  invalid_slot_page:
+    'A slot page is malformed, or its trigger disagrees with the telemetry, rules and duration it carries.',
   unknown_property: 'The configuration contains a property this firmware version does not know.',
   duplicate_property: 'The same property appears twice within one object.'
 }

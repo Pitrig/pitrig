@@ -1,5 +1,5 @@
 {
-  "schema_version": 9,
+  "schema_version": 10,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "limits": {
@@ -12,24 +12,24 @@
       "doc": "Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM."
     },
     "kMaximumWidgetsPerScreen": {
-      "value": 102,
+      "value": 106,
       "doc": "Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize."
     },
     "kMaximumWidgetsPerContainer": {
       "value": 16,
-      "doc": "Ordered widget references inside one container shape. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does."
+      "doc": "Ordered widget references inside one container: a shape, or one page of a slot. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does."
     },
     "kMaximumNestingDepth": {
       "value": 4,
-      "doc": "How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference."
+      "doc": "How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference — and why a slot page costs nothing here: it is walked without a recursion of its own, so a slot spends exactly what a container shape spends."
     },
     "kMaximumActions": {
       "value": 16,
       "doc": "Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list."
     },
-    "kMaximumSlots": {
-      "value": 4,
-      "doc": "Slots for the whole dashboard. A slot is a box whose container shapes are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a shape is not in one."
+    "kMaximumSlotPages": {
+      "value": 8,
+      "doc": "Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries."
     },
     "kMaximumTextWidgets": {
       "value": 32,
@@ -37,7 +37,11 @@
     },
     "kMaximumShapeWidgets": {
       "value": 32,
-      "doc": "Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and are also the only widget that holds other widgets, so this is the most generous cap: every container spends one."
+      "doc": "Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap: every container spends one."
+    },
+    "kMaximumSlotWidgets": {
+      "value": 4,
+      "doc": "Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool."
     },
     "kMaximumBarWidgets": {
       "value": 16,
@@ -201,10 +205,20 @@
       "default": "rectangle",
       "doc": "Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own."
     },
+    "SlotTrigger": {
+      "json_values": ["none", "value_changed", "conditions"],
+      "default": "none",
+      "doc": "How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds."
+    },
+    "WidgetParentKind": {
+      "json_values": ["screen", "shape", "slot_page"],
+      "default": "screen",
+      "doc": "Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot."
+    },
     "WidgetType": {
-      "json_values": ["text", "shape", "bar", "arc", "indicator", "graph", "image"],
+      "json_values": ["text", "shape", "bar", "arc", "indicator", "graph", "image", "slot"],
       "default": "text",
-      "doc": "Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget."
+      "doc": "Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted."
     }
   },
 
@@ -356,11 +370,10 @@
     },
 
     "SlotCondition": {
-      "doc": "One activation rule for a container shape in a slot. The first rule whose comparison holds shows its shape, and the hold keeps it up for that long after the match ends so a momentary event stays readable. Kept separate from a widget's styling rules because selection and appearance watch different fields.",
+      "doc": "One activation rule for a slot page. The first rule whose comparison holds raises the page. Kept separate from a widget's styling rules because selection and appearance watch different fields; how long the page then stays up belongs to the page, not to the rule that raised it.",
       "fields": [
         { "name": "op", "kind": "enum", "enum": "ConditionOperator" },
-        { "name": "value", "kind": "float", "default": 0 },
-        { "name": "hold_ms", "kind": "uint16", "default": 0, "doc": "Keeps this shape shown for this long after its rule stops matching. 0 shows it only while the rule matches." }
+        { "name": "value", "kind": "float", "default": 0 }
       ]
     },
 
@@ -402,8 +415,8 @@
         { "name": "color_ramp", "kind": "struct", "struct": "ColorRamp" },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "screen_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "Screen this widget is parented to, written by the parser from the screen that declared it. An LVGL object has one parent, so a pool slot belongs to exactly one screen." },
-        { "name": "parent_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "Index into the shape pool of the container this widget was authored inside, written by the parser. Meaningful only when parent_present is set. A depth-first parse counts a container before its children, so a nested shape's own index is always higher than its parent's — which is what makes a cycle unrepresentable." },
-        { "name": "parent_present", "kind": "bool", "default": false, "serialized": false, "doc": "Whether the widget was authored inside a container shape. Unset means the screen is its parent and its geometry is absolute." },
+        { "name": "parent_index", "kind": "uint8", "default": 0, "serialized": false, "doc": "Index of the container this widget was authored inside, written by the parser. Which table it indexes is what parent_kind says: the shape pool, or the flat slot page table addressed as slot_pool_index * kMaximumSlotPages + page. A depth-first parse counts a container before its children, so a nested container's own index is always higher than its parent's — which is what makes a cycle unrepresentable." },
+        { "name": "parent_kind", "kind": "enum", "enum": "WidgetParentKind", "serialized": false, "doc": "What owns this widget's coordinate space, written by the parser. screen means its geometry is absolute and parent_index is unused." },
         { "name": "conditions", "kind": "array", "struct": "WidgetCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" }
       ]
     },
@@ -512,15 +525,10 @@
 
     "ShapeWidgetConfiguration": {
       "widget_type": "shape",
-      "doc": "Panels, dividers and backing plates, and the only widget that holds other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box, and they are drawn even where they overhang it. Shapes sharing a slot occupy the same box with one of them visible at a time.",
+      "doc": "Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box, and they are drawn even where they overhang it.",
       "fields": [
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "kind", "kind": "enum", "enum": "ShapeKind" },
-        { "name": "slot", "kind": "uint8", "default": 0, "doc": "Slot this shape belongs to, 1..kMaximumSlots. Omitted leaves it a plain container that is always visible." },
-        { "name": "slot_default", "kind": "bool", "default": false, "doc": "Shows this shape before anything has selected another one. Exactly one shape per slot must carry it." },
-        { "name": "slot_source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the slot rules watch. Separate from the frame's condition_source because which shape a slot shows and how that shape is painted are different questions about different fields." },
-        { "name": "slot_condition_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "slot_conditions", "kind": "array", "struct": "SlotCondition", "capacity": "kMaximumWidgetConditions", "count_field": "slot_condition_count" },
         { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
         {
           "name": "widgets",
@@ -539,6 +547,46 @@
           },
           "doc": "Widgets authored inside this shape, parsed into the dashboard pool exactly as a screen's are. Their geometry is relative to this shape's box. A shape among them nests one level deeper, up to kMaximumNestingDepth."
         }
+      ]
+    },
+
+    "SlotPageConfiguration": {
+      "doc": "One page of a slot: a set of widgets that share the slot's box and are shown or hidden together. A page has no geometry, no frame and no styling of its own — it is the slot's box, and its widgets are placed relative to it. Pages the tap cycles are the loop; a page with a trigger is raised over the loop while its event lasts, and the first such page in this array wins when several fire at once.",
+      "fields": [
+        { "name": "in_loop", "kind": "bool", "default": true, "doc": "Includes this page in the sequence a tap cycles. A page left out of the loop is reachable only through its trigger, which is what an alert page wants." },
+        { "name": "trigger", "kind": "enum", "enum": "SlotTrigger" },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry this page watches. Required by both triggers and rejected without one, so a binding never sits unread." },
+        { "name": "duration_ms", "kind": "uint16", "default": 0, "doc": "How long the page stays up after its event fires, after which the slot returns to whichever loop page was last selected. Required by value_changed, which would otherwise show a single frame; with conditions, 0 keeps the page up only while a rule holds. Bounded like a styling hold at 10000." },
+        { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "conditions", "kind": "array", "struct": "SlotCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
+        { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        {
+          "name": "widgets",
+          "kind": "array",
+          "struct": "WidgetReference",
+          "capacity": "kMaximumWidgetsPerContainer",
+          "count_field": "widget_count",
+          "json_variants": {
+            "text": "TextWidgetConfiguration",
+            "shape": "ShapeWidgetConfiguration",
+            "bar": "BarWidgetConfiguration",
+            "arc": "ArcWidgetConfiguration",
+            "indicator": "IndicatorWidgetConfiguration",
+            "graph": "GraphWidgetConfiguration",
+            "image": "ImageWidgetConfiguration"
+          },
+          "doc": "Widgets authored on this page, parsed into the dashboard pool exactly as a screen's are. Their geometry is relative to the slot's box. A page costs no nesting level of its own, so these sit exactly where a container shape's children would: one below the slot, up to kMaximumNestingDepth."
+        }
+      ]
+    },
+
+    "SlotWidgetConfiguration": {
+      "widget_type": "slot",
+      "doc": "An area of a screen that switches what it shows. It draws nothing of its own — no background, border, caption or styling rules, all of which are rejected rather than ignored — and exists only to hold pages. A tap cycles the pages in the loop; a page whose trigger fires is raised over them for its duration and then hands the slot back to the loop page that was showing. A slot is authored directly on a screen: it holds containers rather than living inside one.",
+      "fields": [
+        { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "page_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "pages", "kind": "array", "struct": "SlotPageConfiguration", "capacity": "kMaximumSlotPages", "count_field": "page_count", "doc": "Pages this slot switches between, in priority order. At least one must be in the loop, so a slot always has something to fall back to." }
       ]
     },
 
@@ -561,9 +609,10 @@
             "arc": "ArcWidgetConfiguration",
             "indicator": "IndicatorWidgetConfiguration",
             "graph": "GraphWidgetConfiguration",
-            "image": "ImageWidgetConfiguration"
+            "image": "ImageWidgetConfiguration",
+            "slot": "SlotWidgetConfiguration"
           },
-          "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the dashboard pool for its variant, and the screen keeps a reference to that slot."
+          "doc": "Heterogeneous widget array discriminated by the type property. Each element is parsed into the dashboard pool for its variant, and the screen keeps a reference to that pool entry. This is the only array a slot may appear in: a slot is built before every container that could hold one, which is what keeps composition to one pass per type."
         }
       ]
     },
@@ -586,7 +635,9 @@
         { "name": "graph_widget_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "graph_widgets", "kind": "array", "struct": "GraphWidgetConfiguration", "capacity": "kMaximumGraphWidgets", "count_field": "graph_widget_count", "serialized": false },
         { "name": "image_widget_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "image_widgets", "kind": "array", "struct": "ImageWidgetConfiguration", "capacity": "kMaximumImageWidgets", "count_field": "image_widget_count", "serialized": false }
+        { "name": "image_widgets", "kind": "array", "struct": "ImageWidgetConfiguration", "capacity": "kMaximumImageWidgets", "count_field": "image_widget_count", "serialized": false },
+        { "name": "slot_widget_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "slot_widgets", "kind": "array", "struct": "SlotWidgetConfiguration", "capacity": "kMaximumSlotWidgets", "count_field": "slot_widget_count", "serialized": false }
       ]
     },
 
@@ -614,7 +665,9 @@
     { "name": "invalid_module", "doc": "Module section value out of range." },
     { "name": "invalid_screen", "doc": "Screen section is malformed or the screen count is out of range." },
     { "name": "invalid_dashboard", "doc": "Dashboard section is malformed or references an absent module." },
-    { "name": "invalid_widget", "doc": "Widget property is malformed, out of range, entirely off the display, nested deeper than kMaximumNestingDepth, or breaks a slot rule: shapes sharing a slot must share a parent and a box, and exactly one of them must be the slot default." },
+    { "name": "invalid_widget", "doc": "Widget property is malformed, out of range, entirely off the display, or nested deeper than kMaximumNestingDepth." },
+    { "name": "invalid_slot", "doc": "Slot widget carries an appearance it has none of, was authored somewhere other than a screen, or holds no page the tap can reach." },
+    { "name": "invalid_slot_page", "doc": "Slot page is malformed, or its trigger and its source, rules and duration do not agree." },
     { "name": "unknown_property", "doc": "Property name is not part of this schema version." },
     { "name": "duplicate_property", "doc": "Property appears more than once in the same object." }
   ]

@@ -9,6 +9,8 @@ import {
   MAXIMUM_PAYLOAD_SIZE,
   MAXIMUM_SCREENS,
   MAXIMUM_SHAPE_WIDGETS,
+  MAXIMUM_SLOT_PAGES,
+  MAXIMUM_SLOT_WIDGETS,
   MAXIMUM_TEXT_WIDGETS,
   MAXIMUM_WIDGETS_PER_CONTAINER,
   MAXIMUM_WIDGETS_PER_SCREEN,
@@ -21,13 +23,19 @@ import {
 } from './configuration-schema'
 import type {
   ApplicationConfiguration,
-  ScreenConfiguration,
-  ShapeWidgetConfiguration,
+  SlotWidgetConfiguration,
   WidgetAction
 } from './configuration-schema'
-import { allWidgetsOf, isTextWidget, widgetsOf } from './configuration-access'
+import {
+  allWidgetsOf,
+  isTextWidget,
+  pagesOf,
+  widgetsOf,
+  type WidgetParent
+} from './configuration-access'
 import { BOARD_PROFILES, type SimCoreBoardId } from './device'
 import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES, MAXIMUM_FONT_SIZE_PX } from './font-assets'
+import { MAXIMUM_HOLD_MS } from './widget-conditions'
 
 // The single configuration validator. The renderer, the main process, and file
 // import all use this instead of keeping their own partial copies, and the key
@@ -44,7 +52,8 @@ const WIDGET_POOL_CAPS: Record<string, number> = {
   arc: MAXIMUM_ARC_WIDGETS,
   indicator: MAXIMUM_INDICATOR_WIDGETS,
   graph: MAXIMUM_GRAPH_WIDGETS,
-  image: MAXIMUM_IMAGE_WIDGETS
+  image: MAXIMUM_IMAGE_WIDGETS,
+  slot: MAXIMUM_SLOT_WIDGETS
 }
 
 // Undefined for a document naming no board, or one this configurator has no
@@ -189,12 +198,11 @@ function findScreenError(configuration: ApplicationConfiguration): string | unde
   const display = boardDisplay(configuration)
   let actions = 0
   const pool = new Map<string, number>()
-  const containers: ShapeWidgetConfiguration[] = []
 
   // One walk carrying where this parent sits and how deep it is, because both
   // are facts about the path rather than about the widget.
   const walk = (
-    parent: ScreenConfiguration | ShapeWidgetConfiguration,
+    parent: WidgetParent,
     screenIndex: number,
     originX: number,
     originY: number,
@@ -233,22 +241,40 @@ function findScreenError(configuration: ApplicationConfiguration): string | unde
         }
       }
 
-      if (widget.type !== 'shape') continue
-      if ((widget.slot ?? 0) > 0 && widget.action && widget.action.type !== 'none') {
-        return `${label} is in a slot and also navigates; a tap can only mean one of those.`
+      if (widget.type === 'shape') {
+        const nested = walk(
+          widget,
+          screenIndex,
+          originX + (box?.x ?? 0),
+          originY + (box?.y ?? 0),
+          depth + 1
+        )
+        if (nested) return nested
+        continue
       }
-      if ((widget.slot ?? 0) > 0 && widget.conditions?.some((rule) => rule.hidden)) {
-        return `${label} is in a slot and also has a rule that hides it; the slot already decides that.`
+
+      if (widget.type !== 'slot') continue
+      // A slot is built before every container that could hold one, so it is
+      // only ever authored on a screen — the same rule the firmware parser
+      // enforces, stated here so the editor says so before the device does.
+      if (depth > 0) {
+        return `${label} is a slot inside a container; a slot sits directly on a screen.`
       }
-      containers.push(widget)
-      const nested = walk(
-        widget,
-        screenIndex,
-        originX + (box?.x ?? 0),
-        originY + (box?.y ?? 0),
-        depth + 1
-      )
-      if (nested) return nested
+      const slotError = findSlotError(widget, label)
+      if (slotError) return slotError
+      for (const page of pagesOf(widget)) {
+        // A page costs no nesting level, so its widgets sit exactly where a
+        // container shape's would: one below the slot. The bound is about the
+        // firmware parser's recursion, and a page adds none.
+        const nested = walk(
+          page,
+          screenIndex,
+          originX + (box?.x ?? 0),
+          originY + (box?.y ?? 0),
+          depth + 1
+        )
+        if (nested) return nested
+      }
     }
     return undefined
   }
@@ -256,30 +282,6 @@ function findScreenError(configuration: ApplicationConfiguration): string | unde
   for (const [screenIndex, screen] of screens.entries()) {
     const error = walk(screen, screenIndex, 0, 0, 0)
     if (error) return error
-  }
-
-  // Slot rules: one parent, one box, one default. Members under different
-  // parents cannot share a box, because their coordinates are in different
-  // spaces.
-  const slots = new Set(containers.map((shape) => shape.slot ?? 0).filter((slot) => slot > 0))
-  for (const slot of slots) {
-    const members = containers.filter((shape) => (shape.slot ?? 0) === slot)
-    const defaults = members.filter((shape) => shape.slot_default).length
-    if (defaults !== 1) {
-      return `Slot ${slot} needs exactly one container marked as shown first; it has ${defaults}.`
-    }
-    const first = members[0]?.placement
-    if (
-      members.some(
-        (shape) =>
-          shape.placement?.x !== first?.x ||
-          shape.placement?.y !== first?.y ||
-          shape.placement?.width !== first?.width ||
-          shape.placement?.height !== first?.height
-      )
-    ) {
-      return `The containers of slot ${slot} must share one box.`
-    }
   }
 
   for (const [type, count] of pool) {
@@ -290,6 +292,68 @@ function findScreenError(configuration: ApplicationConfiguration): string | unde
   }
   if (actions > MAXIMUM_ACTIONS) {
     return `This dashboard has ${actions} tap targets; the device binds at most ${MAXIMUM_ACTIONS}.`
+  }
+  return undefined
+}
+
+/**
+ * Mirrors Validator::slot_widget and Validator::slot_page in
+ * configuration_validation.cpp. A slot draws nothing, so anything that would
+ * paint it is refused rather than ignored; and what a page's trigger needs is
+ * stated per trigger, because a binding or a duration that nothing reads is how
+ * an author comes to believe an alert works.
+ */
+function findSlotError(widget: SlotWidgetConfiguration, label: string): string | undefined {
+  const painted =
+    widget.background_color !== undefined ||
+    widget.background_grad_color !== undefined ||
+    (widget.border?.width_px ?? 0) > 0 ||
+    (widget.border?.radius_px ?? 0) > 0 ||
+    Boolean(widget.title?.text) ||
+    (widget.conditions?.length ?? 0) > 0 ||
+    Boolean(widget.condition_source?.binding)
+  if (painted) {
+    return `${label} is a slot with an appearance; a slot draws nothing, so put a shape behind it.`
+  }
+  if (widget.action && widget.action.type !== 'none') {
+    return `${label} is a slot and also navigates; its tap already means "next page".`
+  }
+  const pages = pagesOf(widget)
+  if (pages.length === 0) {
+    return `${label} is a slot with no pages.`
+  }
+  if (pages.length > MAXIMUM_SLOT_PAGES) {
+    return `${label} has ${pages.length} pages; the device holds ${MAXIMUM_SLOT_PAGES}.`
+  }
+  if (!pages.some((page) => page.in_loop !== false)) {
+    return `${label} has no page in the loop, so nothing would bring one back after an event.`
+  }
+  for (const [index, page] of pages.entries()) {
+    const where = `Page ${index + 1} of ${label}`
+    const duration = page.duration_ms ?? 0
+    const rules = page.conditions?.length ?? 0
+    if (duration > MAXIMUM_HOLD_MS) {
+      return `${where} stays up for ${duration} ms; the device holds one for ${MAXIMUM_HOLD_MS}.`
+    }
+    const trigger = page.trigger ?? 'none'
+    if (trigger === 'none') {
+      if (page.source?.binding || rules > 0 || duration > 0) {
+        return `${where} has no trigger, so its telemetry, rules and duration would never be read.`
+      }
+      continue
+    }
+    if (!page.source?.binding) {
+      return `${where} has a trigger but watches no telemetry.`
+    }
+    if (trigger === 'value_changed' && duration === 0) {
+      return `${where} appears on a change but for no time at all; give it a duration.`
+    }
+    if (trigger === 'value_changed' && rules > 0) {
+      return `${where} appears on a change, so its comparison rules would never be read.`
+    }
+    if (trigger === 'conditions' && rules === 0) {
+      return `${where} appears on a comparison but has no rule to compare.`
+    }
   }
   return undefined
 }

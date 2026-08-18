@@ -250,9 +250,10 @@ configuration and LVGL presentation state.
 The dashboard composes up to four screens, whose shape widgets may hold widgets
 of their own: a container is one LVGL object, so the widgets inside it are placed
 relative to its box — and drawn even where they overhang it, which costs an
-explicit overflow flag and a measured extra draw size. Containers that share a
-slot occupy one box with one of them visible, selected by a tap or by a telemetry
-rule
+explicit overflow flag and a measured extra draw size. A slot widget is an area
+that switches what it shows: it draws nothing, holds pages of widgets sharing its
+box, and shows one of them — cycled by a tap, or raised over that loop for a
+bounded time by a telemetry trigger
 ([ADR 0021](adr/0021-widget-groups-and-slots.md)). Screen loading, the swipe, and
 the tap targets that navigate all live in one navigation controller
 ([ADR 0020](adr/0020-screen-navigation.md)); widgets are built refusing input and
@@ -327,9 +328,9 @@ The desktop configurator edits dashboard widgets directly in the logical
 display coordinate space. Canvas selection, dragging, resizing, property
 inspection, and the advanced JSON editor all mutate the same sparse
 local draft; there is no second editor-only layout model to reconcile. Which
-screen is being edited, and which container of a slot is being looked at, are
-editor state rather than document properties — the device always starts at the
-first screen and picks a slot's container for itself. The
+screen is being edited, which slot is open, and which of its pages is being
+looked at, are editor state rather than document properties — the device always
+starts at the first screen and picks a slot's page for itself. The
 draft owns its target board identity and therefore resolves the immutable local
 board profile and display geometry even while no device is connected. Device
 connection state and the local authoring draft have independent lifetimes.

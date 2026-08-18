@@ -1,4 +1,5 @@
-import { type ShapeWidgetConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '../../../../../shared/configuration-schema'
+import { pagesOf } from '../../../../../shared/configuration-access'
+import { type SlotWidgetConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '../../../../../shared/configuration-schema'
 import { type DisplayDescriptor } from '../../../../../shared/device'
 import { type WidgetSelection, completePlacement } from '../dashboard-editor'
 
@@ -33,22 +34,18 @@ export function markupId(generated: string): string {
 }
 
 /**
- * Whether a container is the one its slot is currently being looked at through.
- * A shape outside a slot is always drawn; inside one, the picked shape wins and
- * the slot default stands in until something is picked.
+ * Which page of a slot the canvas draws. The tabs pick one; before anything is
+ * picked it is the first page in the loop, which is where the device starts too.
  */
-export function visibleInSlot(
-  containers: ShapeWidgetConfiguration[],
-  container: ShapeWidgetConfiguration,
-  picked: Record<number, string>
-): boolean {
-  const slot = container.slot ?? 0
-  if (slot === 0) return true
-  const chosen = picked[slot]
-  if (chosen !== undefined) return container.id === chosen
-  const members = containers.filter((entry) => (entry.slot ?? 0) === slot)
-  const fallback = members.find((entry) => entry.slot_default) ?? members[0]
-  return container.id === fallback?.id
+export function visibleSlotPage(
+  widget: SlotWidgetConfiguration,
+  picked: Record<string, number>
+): number {
+  const pages = pagesOf(widget)
+  const chosen = widget.id === undefined ? undefined : picked[widget.id]
+  if (chosen !== undefined && chosen < pages.length) return chosen
+  const loop = pages.findIndex((page) => page.in_loop !== false)
+  return loop < 0 ? 0 : loop
 }
 
 export function actionLabel(action: WidgetAction | undefined): string {

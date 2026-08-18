@@ -1,5 +1,5 @@
-import { screensOf, widgetsOf } from '../../../../../shared/configuration-access'
-import { type ScreenConfiguration, type ShapeWidgetConfiguration, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
+import { screensOf, type WidgetParent } from '../../../../../shared/configuration-access'
+import { type ScreenConfiguration, type SlotPageConfiguration, type SlotWidgetConfiguration, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { type WidgetSelection, useDashboardEditorStore } from './store'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -9,7 +9,9 @@ export interface WidgetLocation {
   /**
    * Index chain from the screen's own widget array down to this widget: one
    * entry for a widget on the screen, one more for every container it sits
-   * inside. A container is a widget, so depth is a path rather than a flag.
+   * inside — and, directly after a slot, one for the page, because a slot holds
+   * its widgets a level down. A container is a widget, so depth is a path rather
+   * than a flag, and the widget type at each step says how the next entry reads.
    */
   path: number[]
   widget: WidgetConfiguration
@@ -21,17 +23,50 @@ export function activeScreen(
   return screensOf(configuration)[useDashboardEditorStore.getState().activeScreenIndex]
 }
 
+/**
+ * The owners between a screen and the widget a path names, and the containers
+ * entered on the way. Walks the raw arrays rather than the filtered read
+ * helpers, because a path index has to mean the same thing to a write as to the
+ * search that produced it.
+ */
+function walkPath(
+  screen: ScreenConfiguration,
+  path: readonly number[]
+): { owner: WidgetParent; containers: WidgetConfiguration[] } | undefined {
+  const containers: WidgetConfiguration[] = []
+  let owner: WidgetParent = screen
+  let step = 0
+  // Every entry but the last names a container to descend into; the last names
+  // the widget itself, which is the caller's business.
+  while (step < path.length - 1) {
+    const widget: WidgetConfiguration | undefined = owner.widgets?.[path[step] as number]
+    step += 1
+    if (widget?.type === 'shape') {
+      owner = widget
+    } else if (widget?.type === 'slot') {
+      const page: SlotPageConfiguration | undefined = widget.pages?.[path[step] as number]
+      if (!page) return undefined
+      step += 1
+      owner = page
+    } else {
+      return undefined
+    }
+    containers.push(widget)
+  }
+  return { owner, containers }
+}
+
 export function findWidget(
   configuration: DeviceConfiguration | undefined,
   id: string
 ): WidgetLocation | undefined {
   const screens = screensOf(configuration)
   const search = (
-    parent: ScreenConfiguration | ShapeWidgetConfiguration,
+    parent: WidgetParent,
     screenIndex: number,
     prefix: number[]
   ): WidgetLocation | undefined => {
-    const widgets = widgetsOf(parent)
+    const widgets = parent.widgets ?? []
     for (let index = 0; index < widgets.length; ++index) {
       const widget: WidgetConfiguration | undefined = widgets[index]
       if (!widget) continue
@@ -40,6 +75,14 @@ export function findWidget(
       if (widget.type === 'shape') {
         const nested = search(widget, screenIndex, path)
         if (nested) return nested
+      } else if (widget.type === 'slot') {
+        const pages = widget.pages ?? []
+        for (let page = 0; page < pages.length; ++page) {
+          const inside = pages[page]
+          if (!inside) continue
+          const nested = search(inside, screenIndex, [...path, page])
+          if (nested) return nested
+        }
       }
     }
     return undefined
@@ -57,38 +100,37 @@ export function findWidget(
 export function ancestorsOf(
   configuration: DeviceConfiguration | undefined,
   location: WidgetLocation
-): ShapeWidgetConfiguration[] {
+): WidgetConfiguration[] {
   const screen = screensOf(configuration)[location.screenIndex]
-  if (!screen) return []
-  const chain: ShapeWidgetConfiguration[] = []
-  let parent: ScreenConfiguration | ShapeWidgetConfiguration = screen
-  for (const index of location.path.slice(0, -1)) {
-    const widget: WidgetConfiguration | undefined = widgetsOf(parent)[index]
-    if (widget?.type !== 'shape') break
-    chain.push(widget)
-    parent = widget
-  }
-  return chain
+  return screen ? walkPath(screen, location.path)?.containers ?? [] : []
 }
 
 /**
- * The parent a widget is authored in: its screen, or the container above it.
- * This is the live record inside `configuration`, so an edit may write through
- * it — which is what makes it the one walk every structural edit shares.
+ * The parent a widget is authored in: its screen, the container above it, or the
+ * slot page it sits on. This is the live record inside `configuration`, so an
+ * edit may write through it — which is what makes it the one walk every
+ * structural edit shares.
  */
 export function parentOf(
   configuration: DeviceConfiguration,
   location: WidgetLocation
-): ScreenConfiguration | ShapeWidgetConfiguration | undefined {
+): WidgetParent | undefined {
   const screen = configuration.dashboard?.screens?.[location.screenIndex]
-  if (!screen) return undefined
-  let owner: ScreenConfiguration | ShapeWidgetConfiguration = screen
-  for (const index of location.path.slice(0, -1)) {
-    const widget: WidgetConfiguration | undefined = owner.widgets?.[index]
-    if (!widget || widget.type !== 'shape') return undefined
-    owner = widget
-  }
-  return owner
+  return screen ? walkPath(screen, location.path)?.owner : undefined
+}
+
+/** The slot page a widget sits on, or undefined when it is not on one. */
+export function slotPageOf(
+  configuration: DeviceConfiguration | undefined,
+  id: string
+): { slot: SlotWidgetConfiguration; page: number } | undefined {
+  const location = findWidget(configuration, id)
+  if (!location) return undefined
+  const parent = ancestorsOf(configuration, location).at(-1)
+  if (parent?.type !== 'slot') return undefined
+  // The page index is the second-to-last entry: the path enters the slot, names
+  // the page, then names the widget.
+  return { slot: parent, page: location.path.at(-2) ?? 0 }
 }
 
 /** The array a widget lives in, which is what an edit has to splice. */
@@ -104,7 +146,8 @@ export function widgetArrayOf(
  * relative to that container's box, so the canvas — which works entirely in
  * display coordinates — adds this on the way out and subtracts it on the way
  * in. Containers nest, so this is the sum of the whole chain rather than one
- * box.
+ * box. A slot page contributes nothing of its own: it is the slot's box, and
+ * the slot is already in the chain.
  */
 export function parentOffset(
   configuration: DeviceConfiguration | undefined,

@@ -81,120 +81,182 @@
             "fill_color": "#FFE04A"
           },
           {
-            "type": "shape",
-            "id": "slotA-tyres",
+            "type": "slot",
+            "id": "lower",
             "placement": {
               "x": 20,
               "y": 200,
               "width": 440,
               "height": 240
             },
-            "slot": 1,
-            "slot_default": true,
-            "widgets": [
+            "pages": [
               {
-                "type": "text",
-                "id": "tyre-fl",
-                "placement": {
-                  "x": 0,
-                  "y": 0,
-                  "width": 210,
-                  "height": 110
-                },
-                "sources": [
+                "widgets": [
                   {
-                    "binding": "tyre.front_left.temperature",
-                    "transform": {
-                      "type": "number",
-                      "decimals": 0,
-                      "suffix": "C"
+                    "type": "text",
+                    "id": "tyre-fl",
+                    "placement": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 210,
+                      "height": 110
+                    },
+                    "sources": [
+                      {
+                        "binding": "tyre.front_left.temperature",
+                        "transform": {
+                          "type": "number",
+                          "decimals": 0,
+                          "suffix": "C"
+                        }
+                      }
+                    ],
+                    "value": {
+                      "font": {
+                        "family": "display",
+                        "size_px": 40
+                      },
+                      "color": "#E8E8E8"
+                    }
+                  },
+                  {
+                    "type": "text",
+                    "id": "tyre-fr",
+                    "placement": {
+                      "x": 230,
+                      "y": 0,
+                      "width": 210,
+                      "height": 110
+                    },
+                    "sources": [
+                      {
+                        "binding": "tyre.front_right.temperature",
+                        "transform": {
+                          "type": "number",
+                          "decimals": 0,
+                          "suffix": "C"
+                        }
+                      }
+                    ],
+                    "value": {
+                      "font": {
+                        "family": "display",
+                        "size_px": 40
+                      },
+                      "color": "#E8E8E8"
                     }
                   }
-                ],
-                "value": {
-                  "font": {
-                    "family": "display",
-                    "size_px": 40
-                  },
-                  "color": "#E8E8E8"
-                }
+                ]
               },
               {
-                "type": "text",
-                "id": "tyre-fr",
-                "placement": {
-                  "x": 230,
-                  "y": 0,
-                  "width": 210,
-                  "height": 110
-                },
-                "sources": [
+                "widgets": [
                   {
-                    "binding": "tyre.front_right.temperature",
-                    "transform": {
-                      "type": "number",
-                      "decimals": 0,
-                      "suffix": "C"
+                    "type": "text",
+                    "id": "fuel-left",
+                    "placement": {
+                      "x": 0,
+                      "y": 0,
+                      "width": 440,
+                      "height": 110
+                    },
+                    "sources": [
+                      {
+                        "binding": "vehicle.fuel.level",
+                        "transform": {
+                          "type": "number",
+                          "decimals": 1,
+                          "suffix": "L"
+                        }
+                      }
+                    ],
+                    "value": {
+                      "font": {
+                        "family": "display",
+                        "size_px": 56
+                      },
+                      "color": "#7BE38A"
                     }
                   }
-                ],
-                "value": {
-                  "font": {
-                    "family": "display",
-                    "size_px": 40
-                  },
-                  "color": "#E8E8E8"
-                }
-              }
-            ]
-          },
-          {
-            "type": "shape",
-            "id": "slotA-fuel",
-            "placement": {
-              "x": 20,
-              "y": 200,
-              "width": 440,
-              "height": 240
-            },
-            "slot": 1,
-            "slot_source": {
-              "binding": "vehicle.pit_limiter.enabled"
-            },
-            "slot_conditions": [
+                ]
+              },
               {
-                "op": "at_or_above",
-                "value": 1,
-                "hold_ms": 2000
-              }
-            ],
-            "widgets": [
-              {
-                "type": "text",
-                "id": "fuel-left",
-                "placement": {
-                  "x": 0,
-                  "y": 0,
-                  "width": 440,
-                  "height": 110
+                "in_loop": false,
+                "trigger": "value_changed",
+                "source": {
+                  "binding": "vehicle.aids.traction_control_active"
                 },
-                "sources": [
+                "duration_ms": 1500,
+                "widgets": [
                   {
-                    "binding": "vehicle.fuel.level",
-                    "transform": {
-                      "type": "number",
-                      "decimals": 1,
-                      "suffix": "L"
+                    "type": "text",
+                    "id": "tc-flash",
+                    "placement": {
+                      "x": 0,
+                      "y": 20,
+                      "width": 440,
+                      "height": 120
+                    },
+                    "sources": [
+                      {
+                        "binding": "vehicle.aids.traction_control_level",
+                        "transform": {
+                          "type": "none",
+                          "prefix": "TC "
+                        }
+                      }
+                    ],
+                    "value": {
+                      "font": {
+                        "family": "display",
+                        "size_px": 72
+                      },
+                      "color": "#FFE04A"
                     }
                   }
+                ]
+              },
+              {
+                "in_loop": false,
+                "trigger": "conditions",
+                "source": {
+                  "binding": "vehicle.pit_limiter.enabled"
+                },
+                "conditions": [
+                  {
+                    "op": "at_or_above",
+                    "value": 1
+                  }
                 ],
-                "value": {
-                  "font": {
-                    "family": "display",
-                    "size_px": 56
-                  },
-                  "color": "#7BE38A"
-                }
+                "duration_ms": 2000,
+                "widgets": [
+                  {
+                    "type": "text",
+                    "id": "pit-limiter",
+                    "placement": {
+                      "x": 0,
+                      "y": 20,
+                      "width": 440,
+                      "height": 120
+                    },
+                    "sources": [
+                      {
+                        "binding": "vehicle.speed",
+                        "transform": {
+                          "type": "number",
+                          "decimals": 0,
+                          "prefix": "PIT "
+                        }
+                      }
+                    ],
+                    "value": {
+                      "font": {
+                        "family": "display",
+                        "size_px": 72
+                      },
+                      "color": "#38BDF8"
+                    }
+                  }
+                ]
               }
             ]
           }

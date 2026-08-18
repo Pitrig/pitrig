@@ -1,9 +1,9 @@
-import { screenWidgetsOf, screensOf } from '../../../../../shared/configuration-access'
-import { type ShapeWidgetConfiguration } from '../../../../../shared/configuration-schema'
+import { pagesOf, screenWidgetsOf, screensOf } from '../../../../../shared/configuration-access'
+import { type SlotWidgetConfiguration } from '../../../../../shared/configuration-schema'
 import { type DisplayDescriptor } from '../../../../../shared/device'
 import { LAP_SECONDS } from '../../../../../shared/mock-telemetry'
-import { type AlignmentEdge, MAXIMUM_SCREENS, MAXIMUM_ZOOM, MINIMUM_ZOOM, type PreviewValueMode, addScreen, addTapZone, alignWidgets, deleteScreen, distributeWidgets, wrapInShape, useDashboardEditorStore } from '../dashboard-editor'
-import { clampPan, visibleInSlot } from './canvas-geometry'
+import { type AlignmentEdge, MAXIMUM_SCREENS, MAXIMUM_SLOT_PAGES, MAXIMUM_ZOOM, MINIMUM_ZOOM, type PreviewValueMode, addScreen, addSlotPage, addTapZone, alignWidgets, deleteScreen, distributeWidgets, wrapInShape, useDashboardEditorStore } from '../dashboard-editor'
+import { clampPan, visibleSlotPage } from './canvas-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
 
 /**
@@ -61,45 +61,85 @@ function ScreenTabs(): React.JSX.Element {
 }
 
 /**
- * One picker per slot on the screen being edited. The board decides which group
- * a slot shows from a tap or a rule, so this is purely a way to look at the
- * others while authoring them.
+ * One picker per slot on the screen being edited. The board decides which page a
+ * slot shows from a tap or a trigger, so this is purely a way to look at the
+ * others while authoring them — and, while a slot is open, the tabs of the one
+ * being edited stand where the screen tabs do.
  */
 function SlotTabs(): React.JSX.Element | null {
   const configuration = useDeviceStore((state) => state.draft)
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
-  const previewSlots = useDashboardEditorStore((state) => state.previewSlots)
-  const setPreviewSlot = useDashboardEditorStore((state) => state.setPreviewSlot)
-  // Containers nest, so a slot member can be at any depth: the whole screen is
-  // swept rather than one array.
-  const containers = screenWidgetsOf(screensOf(configuration)[activeScreenIndex]).filter(
-    (widget): widget is ShapeWidgetConfiguration => widget.type === 'shape'
+  const slotPage = useDashboardEditorStore((state) => state.slotPage)
+  const setSlotPage = useDashboardEditorStore((state) => state.setSlotPage)
+  const drillIn = useDashboardEditorStore((state) => state.drillIn)
+  // A slot is authored on a screen, but the sweep is over the whole screen
+  // anyway: it costs nothing and it does not depend on where a slot may sit.
+  const slots = screenWidgetsOf(screensOf(configuration)[activeScreenIndex]).filter(
+    (widget): widget is SlotWidgetConfiguration => widget.type === 'slot'
   )
-  const slots = [...new Set(containers.map((shape) => shape.slot ?? 0))].filter((slot) => slot > 0)
-  if (slots.length === 0) return null
+  const shown = drillIn ? slots.filter((slot) => slot.id === drillIn) : slots
+  if (shown.length === 0) return null
   return (
     <>
-      {slots.map((slot) => {
-        const members = containers.filter((shape) => (shape.slot ?? 0) === slot)
-        const shown = members.find((shape) => visibleInSlot(containers, shape, previewSlots))
+      {shown.map((slot) => {
+        const id = slot.id ?? ''
+        const pages = pagesOf(slot)
+        const current = visibleSlotPage(slot, slotPage)
         return (
-          <label key={slot} className="flex items-center gap-1 text-muted-foreground">
-            <span>{`slot ${slot}`}</span>
-            <select
-              className="h-7 rounded-md border bg-background px-1 text-foreground"
-              value={shown?.id ?? ''}
-              onChange={(event) => setPreviewSlot(slot, event.target.value)}
-            >
-              {members.map((shape) => (
-                <option key={shape.id} value={shape.id}>
-                  {shape.id}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div key={id} className="flex items-center gap-1">
+            <span className="text-muted-foreground">{id}</span>
+            {pages.map((page, index) => (
+              <button
+                key={index}
+                type="button"
+                title={
+                  page.trigger && page.trigger !== 'none'
+                    ? `Page ${index + 1}, shown by ${page.source?.binding || 'telemetry'}`
+                    : `Page ${index + 1}`
+                }
+                aria-pressed={index === current}
+                className={`h-7 rounded-md border px-2 hover:bg-muted ${
+                  index === current ? 'bg-muted font-medium' : ''
+                }`}
+                onClick={() => setSlotPage(id, index)}
+              >
+                {/* A page reached only by a trigger is not part of the loop, and
+                    saying so here is what makes the tap order readable. */}
+                {page.in_loop === false ? `${index + 1}*` : index + 1}
+              </button>
+            ))}
+            {drillIn === id && pages.length < MAXIMUM_SLOT_PAGES ? (
+              <button
+                type="button"
+                title="Add a page to this slot"
+                className="h-7 rounded-md border px-2 hover:bg-muted"
+                onClick={() => addSlotPage(id)}
+              >
+                +
+              </button>
+            ) : null}
+          </div>
         )
       })}
     </>
+  )
+}
+
+/** Where in the document the canvas is looking, and the way back out. */
+function DrillInCrumbs(): React.JSX.Element | null {
+  const drillIn = useDashboardEditorStore((state) => state.drillIn)
+  const setDrillIn = useDashboardEditorStore((state) => state.setDrillIn)
+  const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
+  if (!drillIn) return null
+  return (
+    <button
+      type="button"
+      title="Leave this slot (Escape)"
+      className="h-7 rounded-md border px-2 hover:bg-muted"
+      onClick={() => setDrillIn(undefined)}
+    >
+      {`← Screen ${activeScreenIndex + 1}`}
+    </button>
   )
 }
 
@@ -113,11 +153,15 @@ export function ArrangeToolbar({ display }: { display: DisplayDescriptor }): Rea
   const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
   const view = useDashboardEditorStore((state) => state.view)
   const setView = useDashboardEditorStore((state) => state.setView)
+  const drillIn = useDashboardEditorStore((state) => state.drillIn)
   const distributable = selectedIds.length >= 3
   const zoomTo = (zoom: number): void => setView({ zoom, ...clampPan(view, display, zoom) })
   return (
     <div className="flex flex-wrap items-center gap-1 text-xs">
-      <ScreenTabs />
+      {/* Inside a slot the pages take the place of the screens: switching screens
+          would leave the slot anyway, so offering both would be two ways to say
+          one thing. */}
+      {drillIn ? <DrillInCrumbs /> : <ScreenTabs />}
       <SlotTabs />
       <span className="mx-1 h-4 w-px bg-border" />
       {selectedIds.length >= 2 ? (

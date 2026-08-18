@@ -1,6 +1,6 @@
 # Device configuration
 
-This document defines the schema 9 configuration contract implemented by the
+This document defines the schema 10 configuration contract implemented by the
 firmware and read by the desktop configurator. Earlier schemas are
 intentionally not part of the current contract.
 
@@ -125,22 +125,47 @@ behind a group is the container now.
 border is drawn, and so is a widget nudged past the container's edge. The only
 geometry refused is a box that falls entirely off the display.
 
-A container may name a `slot` (1..4). Shapes sharing a slot must agree on their
-parent and their box, exactly one of them must carry `slot_default`, and only one
-is visible at a time. Tapping the slot on the board cycles to the next one; a
-shape whose `slot_conditions` match over its `slot_source` is shown instead while
-they match, with `hold_ms` keeping a momentary trigger readable. Those rules are
-deliberately separate from the styling `conditions` every widget has: which shape
-a slot shows and how that shape is painted are different questions about
-different fields. See [ADR 0021](adr/0021-widget-groups-and-slots.md).
-
 | Container property | Shape | Meaning |
 | --- | --- | --- |
 | `widgets` | array ≤16 | Widgets parented to this shape, placed relative to its box. |
-| `slot` | 0..4 | Slot this shape switches in. Omitted leaves it always visible. |
-| `slot_default` | bool | Shown before anything selects another shape in the slot. |
-| `slot_source` | object | Telemetry binding the activation rules watch. |
-| `slot_conditions` | array ≤4 | `op`, `value`, `hold_ms`. First match shows this shape. |
+
+A **slot** widget is an area of a screen that switches what it shows. It holds up
+to eight `pages`, one of which is visible; the widgets on a page are placed
+relative to the slot's box, exactly as a container's children are. A slot draws
+nothing at all — a background, border, radius, caption or styling rule on one is
+rejected rather than ignored, so a plate behind the area is an ordinary shape
+under it. A slot is authored directly on a screen and never inside a container,
+which is what keeps composition to one build pass per widget type.
+
+Tapping the slot cycles the pages that are `in_loop`. A page with a `trigger` is
+raised over the loop while its event lasts, and then the slot returns to the loop
+page that was showing. While an event is up the tap does nothing. When several
+pages are triggered at once the earlier one in the array wins, so page order is
+priority. See [ADR 0021](adr/0021-widget-groups-and-slots.md).
+
+| Slot property | Shape | Meaning |
+| --- | --- | --- |
+| `pages` | array ≤8 | Pages this slot switches between, in priority order. At least one must be in the loop. |
+
+| Page property | Shape | Meaning |
+| --- | --- | --- |
+| `widgets` | array ≤16 | Widgets on this page, placed relative to the slot's box. A page costs no nesting level, so they sit one below the slot — exactly where a container shape's children would. |
+| `in_loop` | bool | Included in the sequence a tap cycles. Omitted means it is; `false` leaves it reachable only by its trigger. |
+| `trigger` | `none`, `value_changed`, `conditions` | How telemetry raises this page. `none` needs no source, rules or duration, and carrying any is rejected. |
+| `source` | object | Telemetry binding the trigger watches. Required by both triggers. |
+| `conditions` | array ≤4 | `op`, `value`. First match raises the page. For `trigger: conditions` only. |
+| `duration_ms` | 0..10000 | How long the page stays up after its event fires. Required by `value_changed`; with `conditions`, 0 holds the page only while a rule matches. |
+
+`value_changed` raises the page whenever the watched value differs from the last
+one seen, which is what makes a momentary aid such as ABS or traction control
+readable without naming a threshold. The comparison is exact, so it suits
+booleans and discrete levels rather than a float that drifts. The first reading
+is what a change is measured against rather than a change in itself, so a slot
+does not flash its alerts at startup.
+
+These rules are deliberately separate from the styling `conditions` every widget
+has: which page a slot shows and how a widget is painted are different questions
+about different fields.
 
 Every widget may carry one `action`, and a tap on it navigates. Sixteen tap
 targets across the dashboard is the bound.
@@ -152,10 +177,9 @@ targets across the dashboard is the bound.
 
 An empty transparent shape with an action is an invisible rectangle that takes a
 tap — that is how a corner of the screen becomes a back button without a widget
-to press. A shape in a slot already spends its tap on cycling, so carrying both
-is rejected; a widget with an action inside such a container consumes the tap and
-the slot does not cycle, and a nested slot takes the tap before the one around
-it. See [ADR 0020](adr/0020-screen-navigation.md).
+to press. A slot already spends its tap on cycling its pages, so carrying both is
+rejected; a widget with an action on one of its pages consumes the tap and the
+slot does not cycle. See [ADR 0020](adr/0020-screen-navigation.md).
 
 Widgets live in a dashboard-wide pool, one per type, and a screen names them by
 reference — so a cap is a budget across every screen rather than a per-screen
@@ -164,12 +188,13 @@ allowance. The production firmware supports these widget types:
 | Type | Cap | Draws |
 | --- | --- | --- |
 | `text` | 32 | up to three telemetry sources composed into one string |
-| `shape` | 24 | a rectangle or ellipse; no telemetry of its own |
+| `shape` | 32 | a rectangle or ellipse; no telemetry of its own |
 | `bar` | 16 | one telemetry source as a filled track, optionally from a configured origin |
 | `arc` | 8 | one telemetry source swept around an arc |
 | `indicator` | 4 | up to 16 lamps lighting as one source climbs its range |
 | `graph` | 2 | a rolling trace of one source, sampled on its own timer |
 | `image` | 8 | an uploaded image, optionally tinted |
+| `slot` | 4 | nothing of its own; an area that switches between its pages |
 
 `kMaximumWidgetsPerScreen` is the sum of those caps, so a single screen can
 reference the whole pool; what bounds a document overall is the payload size.
@@ -641,7 +666,7 @@ it lets a configuration replace the running dashboard.
 
 ```text
 @SC:INFO
-@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=5,source=factory,generation=0,storage=1
+@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=10,source=factory,generation=0,storage=1
 ```
 
 Fields:

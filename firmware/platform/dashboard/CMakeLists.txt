@@ -15,6 +15,7 @@ set(component_sources
     "widgets/image/src/image_widget.cpp"
     "widgets/indicator/src/indicator_widget.cpp"
     "widgets/shape/src/shape_widget.cpp"
+    "widgets/slot/src/slot_widget.cpp"
     "widgets/text/src/text_widget.cpp"
     "widgets/text/src/widget_binding.cpp"
     "widgets/performance_overlay/src/performance_overlay_widget.cpp"
@@ -36,6 +37,7 @@ set(component_include_dirs
     "widgets/image/include"
     "widgets/indicator/include"
     "widgets/shape/include"
+    "widgets/slot/include"
     "widgets/text/include"
     "widgets/performance_overlay/include")
 

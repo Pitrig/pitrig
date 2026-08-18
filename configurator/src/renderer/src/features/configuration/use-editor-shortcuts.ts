@@ -116,9 +116,14 @@ export function useEditorShortcuts(): void {
       }
       // A child sits above its parent in draw order, so clicking a full
       // container always lands on a child. Escape walks back up to it, and
-      // clears the selection once there is nothing above.
+      // clears the selection once there is nothing above. Inside an open slot
+      // it leaves the slot first, which is the level above everything in it.
       if (event.key === 'Escape') {
         const parent = parentContainerId(configuration, selection)
+        if (editor.drillIn && (parent === undefined || parent === editor.drillIn)) {
+          editor.setDrillIn(undefined)
+          return
+        }
         editor.select(parent ? { type: 'widget', id: parent } : undefined)
         return
       }

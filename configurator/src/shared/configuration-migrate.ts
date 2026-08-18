@@ -17,8 +17,23 @@
 //
 // Schema 6 → 7: widgets and groups gained an optional `action`, so a tap can
 // navigate. Additive for the same reason, and likewise needs no step.
+//
+// Schema 9 → 10: the slot became a widget type holding pages of its own, and the
+// `slot*` properties left the shape. The two models do not correspond — several
+// shapes agreeing on a box are not one slot with several pages, and a rule that
+// held a shape up is not a page with a duration — so the properties are dropped
+// rather than guessed at. The shapes stay exactly where they were, as ordinary
+// containers, and the author rebuilds the switching with a slot.
 
 import { createWidgetId } from './configuration-access'
+
+/** Properties a schema-9 container shape carried, all owned by the slot now. */
+const LEGACY_SLOT_KEYS = [
+  'slot',
+  'slot_default',
+  'slot_source',
+  'slot_conditions'
+] as const
 
 const LEGACY_SOURCE_KEYS = ['binding', 'modifiers', 'transform'] as const
 
@@ -38,9 +53,11 @@ export function migrateConfigurationDocument(document: unknown): unknown {
     for (const screen of dashboard.screens) {
       if (!isObject(screen) || !Array.isArray(screen.widgets)) continue
       for (const widget of screen.widgets) migrateTextWidget(widget)
-      screen.widgets = screen.widgets.flatMap((widget) =>
+      const widgets = screen.widgets.flatMap((widget) =>
         migrateDeltaTimeWidget(widget, module)
       )
+      for (const widget of widgets) dropLegacySlot(widget)
+      screen.widgets = widgets
     }
   }
   // The module section has no consumer left, and leaving it would fail
@@ -63,6 +80,20 @@ function migrateTextWidget(widget: unknown): void {
     delete widget[key]
   }
   widget.sources = [source]
+}
+
+/**
+ * Strips the schema-9 slot properties from a shape at any depth. Leaving them
+ * would fail validation as unknown properties, so this runs on every document
+ * rather than only on ones known to be old — a schema-10 shape has none of them
+ * and passes through untouched.
+ */
+function dropLegacySlot(widget: unknown): void {
+  if (!isObject(widget)) return
+  for (const key of LEGACY_SLOT_KEYS) delete widget[key]
+  if (Array.isArray(widget.widgets)) {
+    for (const child of widget.widgets) dropLegacySlot(child)
+  }
 }
 
 /**

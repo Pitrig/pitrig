@@ -58,11 +58,11 @@ void on_telemetry_updated(const events::Event&, void* const context) {
 
 // Every type's storage, in the order the descriptors are registered. Anything
 // that treats the storage uniformly — wiring a document in, repointing it after
-// a promotion — walks this rather than naming the seven members.
-std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
-  return {&dashboard.text,      &dashboard.shape, &dashboard.bar,
-          &dashboard.arc,       &dashboard.indicator, &dashboard.graph,
-          &dashboard.image};
+// a promotion — walks this rather than naming the eight members.
+std::array<WidgetStorage*, 8> storages(Dashboard& dashboard) {
+  return {&dashboard.slot,  &dashboard.shape,     &dashboard.text,
+          &dashboard.bar,   &dashboard.arc,       &dashboard.indicator,
+          &dashboard.graph, &dashboard.image};
 }
 
 // Assembles the descriptor table. Widget presence in the configuration decides
@@ -75,12 +75,17 @@ std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
     return false;
   }
   dashboard.widgets.clear();
-  // Shape first, and that is a correctness requirement rather than a style
-  // choice: a shape may be a parent, create_all() builds in this order so every
-  // container exists before a child resolves it, and destroy_all() walks it
-  // backwards so children delete their own objects before the container that
-  // would otherwise take them down with it.
+  // Slot first, then shape, and that is a correctness requirement rather than a
+  // style choice. Both types can be parents, create_all() builds in this order
+  // so every container exists before a child resolves it, and destroy_all()
+  // walks it backwards so children delete their own objects before the container
+  // that would otherwise take them down with it. Slot leads because a slot is
+  // only ever authored on a screen while a shape may sit on one of its pages, so
+  // this order is the one that satisfies both — which is why the parser refuses
+  // a slot anywhere but a screen.
   const bool registered =
+      dashboard.widgets.add(
+          widget_descriptor<SlotWidgetOps<SlotWidgets>>(dashboard.slot)) &&
       dashboard.widgets.add(
           widget_descriptor<ConditionWidgetOps<ShapeWidgets>>(
               dashboard.shape)) &&
@@ -106,11 +111,10 @@ std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
 
 // Slots and navigation are attached last, so a tap or a gesture can only arrive
 // at screens that are fully built. A rebuilt dashboard has new screen objects,
-// so this also returns to the first screen and to each slot's authored shape.
+// so this also returns to the first screen and to each slot's first loop page.
 //
-// Running after create_all() is also what keeps the slot container clickable:
-// every widget removes that flag as it builds, and this puts it back on the
-// containers a slot cycles.
+// Running after create_all() is also what keeps the slot clickable: every widget
+// removes that flag as it builds, and this puts it back on the slots themselves.
 [[nodiscard]] bool attach_slots_and_navigation(
     const configuration::ApplicationConfiguration& configuration,
     const dashboard::Layout& layout,
@@ -122,21 +126,20 @@ std::array<WidgetStorage*, 7> storages(Dashboard& dashboard) {
     return true;
   }
   bool attached = true;
-  // Only shapes that are in a slot: a plain container never hides and never
-  // takes a tap, so registering one would spend a member entry on nothing.
-  for (std::size_t index = 0;
-       index < configuration.dashboard.shape_widget_count; ++index) {
-    const configuration::ShapeWidgetConfiguration& shape =
-        configuration.dashboard.shape_widgets[index];
-    if (shape.slot == 0) {
-      continue;
-    }
-    lv_obj_t* const container = layout.parent(
-        shape.frame.screen_index, static_cast<std::uint8_t>(index), true);
+  for (std::size_t index = 0; index < configuration.dashboard.slot_widget_count;
+       ++index) {
+    const configuration::SlotWidgetConfiguration& config =
+        configuration.dashboard.slot_widgets[index];
+    lv_obj_t* const container =
+        dashboard.slot.collection.root_object(index);
+    const std::span<lv_obj_t* const> pages =
+        std::span{dashboard.pages}
+            .subspan(index * configuration::kMaximumSlotPages,
+                     configuration::kMaximumSlotPages);
     if (container != nullptr &&
-        !dashboard.slots.add(container, shape, registry, telemetry,
+        !dashboard.slots.add(container, pages, config, registry, telemetry,
                              lap_timer_modifier)) {
-      log::error(kTag, "Failed to bind slot activation source");
+      log::error(kTag, "Failed to bind slot page source");
       attached = false;
     }
   }
@@ -205,7 +208,8 @@ bool create(lv_display_t* const display,
   const dashboard::Layout layout{
       .display = display,
       .screens = std::span{dashboard_state.screens}.first(screen_count),
-      .containers = dashboard_state.containers};
+      .containers = dashboard_state.containers,
+      .pages = dashboard_state.pages};
   if (!assets::prepare_fonts(configuration, dashboard_state.fonts)) {
     log::error(kTag, "One or more configured fonts could not be created");
     return false;
@@ -230,6 +234,7 @@ bool create(lv_display_t* const display,
   }
   dashboard_state.image.images = &dashboard_state.images;
   dashboard_state.shape.container_slots = dashboard_state.containers;
+  dashboard_state.slot.page_slots = dashboard_state.pages;
 
   bool initialized = register_widget_types(dashboard_state);
   if (initialized && !dashboard_state.widgets.create_all()) {
@@ -357,19 +362,17 @@ bool apply_incremental(
           !caption_masks_screen(traits.frame(after, index), recoloured_screens)) {
         continue;
       }
-      // Rebuilding a shape deletes its LVGL object, and LVGL takes the
+      // Rebuilding a container deletes its LVGL object, and LVGL takes the
       // descendants with it — children owned by other collections, and the slot
-      // controller's pointer to this container. Those are structural, so a
-      // shape that holds either role goes the full-recomposition route. The
-      // test is its role rather than what changed: a colour edit trips the byte
-      // compare above just the same, and would delete the children just the
-      // same. A plain backing plate, which is most shapes, keeps the fast path.
-      if (traits.type == configuration::WidgetType::shape) {
-        const configuration::ShapeWidgetConfiguration& shape =
-            after.shape_widgets[index];
-        if (shape.widget_count > 0 || shape.slot != 0) {
-          return false;
-        }
+      // controller's pointers to the pages. Those are structural, so a shape
+      // that holds children goes the full-recomposition route. The test is its
+      // role rather than what changed: a colour edit trips the byte compare
+      // above just the same, and would delete the children just the same. A
+      // plain backing plate, which is most shapes, keeps the fast path. A slot
+      // is always a container, and its own update_instance refuses outright.
+      if (traits.type == configuration::WidgetType::shape &&
+          after.shape_widgets[index].widget_count > 0) {
+        return false;
       }
       if (!dashboard.widgets.update_instance(traits.type, index)) {
         return false;
@@ -377,6 +380,14 @@ bool apply_incremental(
     }
   }
 
+  // What a container has to let through is a fact about where its children
+  // ended up, so moving or resizing one changes it — and that is exactly the
+  // edit this path takes. Without re-measuring, the overflow stays whatever the
+  // last full composition saw, and LVGL clips a widget dragged past its
+  // container's edge to a box that no longer describes it.
+  if (!screens::unclip_containers(next, dashboard)) {
+    return false;
+  }
   // Rebuilt widgets are new LVGL children, so they sit on top until the
   // configured order is applied again — and they are new objects, so their tap
   // actions have to be bound onto them again.

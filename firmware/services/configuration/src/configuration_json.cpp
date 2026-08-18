@@ -75,7 +75,7 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   for (int index = 0; index < count; ++index) {
     if (!parse_widget(cJSON_GetArrayItem(widgets, index), dashboard,
                       ReferenceTable{screen.widgets, &screen.widget_count},
-                      screen_index, 0, false, 0, failure)) {
+                      screen_index, ParentRef{}, 0, failure)) {
       if (failure.widget_index < 0) {
         failure.widget_index = static_cast<std::int16_t>(index);
       }

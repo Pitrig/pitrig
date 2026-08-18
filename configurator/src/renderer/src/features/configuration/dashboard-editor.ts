@@ -10,6 +10,8 @@ export {
   MAXIMUM_IMAGE_WIDGETS,
   MAXIMUM_INDICATOR_WIDGETS,
   MAXIMUM_SHAPE_WIDGETS,
+  MAXIMUM_SLOT_PAGES,
+  MAXIMUM_SLOT_WIDGETS,
   MAXIMUM_TEXT_WIDGETS
 } from '../../../../shared/configuration-schema'
 
@@ -17,6 +19,7 @@ export * from './editor/store'
 export * from './editor/document'
 export * from './editor/screens'
 export * from './editor/widgets'
+export * from './editor/slots'
 export * from './editor/clipboard'
 export * from './editor/arrange'
 export * from './editor/naming'

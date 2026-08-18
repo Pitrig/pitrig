@@ -1,10 +1,10 @@
-import { allWidgetsOf, createWidgetId } from '../../../../../shared/configuration-access'
-import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
+import { allWidgetsOf, createWidgetId, pagesOf } from '../../../../../shared/configuration-access'
+import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_SLOT_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { DEFAULT_FONT_FAMILY } from '../../../../../shared/font-assets'
 import { absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOf, widgetArrayOf } from './document'
 import { ensureScreen } from './screens'
-import { type WidgetSelection } from './store'
+import { useDashboardEditorStore, type WidgetSelection } from './store'
 
 const WIDGET_CAPACITIES: Record<WidgetConfiguration['type'], number> = {
   text: MAXIMUM_TEXT_WIDGETS,
@@ -13,7 +13,61 @@ const WIDGET_CAPACITIES: Record<WidgetConfiguration['type'], number> = {
   arc: MAXIMUM_ARC_WIDGETS,
   indicator: MAXIMUM_INDICATOR_WIDGETS,
   graph: MAXIMUM_GRAPH_WIDGETS,
-  image: MAXIMUM_IMAGE_WIDGETS
+  image: MAXIMUM_IMAGE_WIDGETS,
+  slot: MAXIMUM_SLOT_WIDGETS
+}
+
+/**
+ * Where a new widget lands: the page being edited while a slot is open, and the
+ * active screen otherwise. Adding a widget while looking inside a slot has to
+ * put it where the author is looking, and a page is the only other array a
+ * widget can be authored in.
+ */
+function insertionTarget(
+  configuration: DeviceConfiguration
+): {
+  widgets: WidgetConfiguration[]
+  cap: number
+  box?: Required<WidgetPlacement>
+} | undefined {
+  const { drillIn, slotPage } = useDashboardEditorStore.getState()
+  if (drillIn) {
+    const slot = findWidget(configuration, drillIn)?.widget
+    if (slot?.type === 'slot') {
+      const page = pagesOf(slot)[slotPage[drillIn] ?? 0]
+      if (page) {
+        return {
+          widgets: (page.widgets ??= []),
+          cap: MAXIMUM_WIDGETS_PER_CONTAINER,
+          box: completePlacement(slot.placement)
+        }
+      }
+    }
+  }
+  const screen = ensureScreen(configuration)
+  return { widgets: (screen.widgets ??= []), cap: MAXIMUM_WIDGETS_PER_SCREEN }
+}
+
+/**
+ * A display-space box read as one inside a container. Callers build a placement
+ * against the display, because that is what a new widget is centred on, so
+ * landing it on a page means subtracting the container's origin. A box that
+ * misses the container entirely was never about this container — a widget just
+ * created in the middle of the screen — so it is centred in it instead.
+ */
+function intoContainer(
+  placement: WidgetPlacement | undefined,
+  box: Required<WidgetPlacement>
+): WidgetPlacement | undefined {
+  const absolute = completePlacement(placement)
+  if (!absolute) return placement
+  const relative = { ...absolute, x: absolute.x - box.x, y: absolute.y - box.y }
+  const misses =
+    relative.x + relative.width <= 0 ||
+    relative.y + relative.height <= 0 ||
+    relative.x >= box.width ||
+    relative.y >= box.height
+  return misses ? centeredPlacement(box, absolute.width, absolute.height) : relative
 }
 
 /**
@@ -25,19 +79,24 @@ export function insertWidget(
   configuration: DeviceConfiguration,
   widget: WidgetConfiguration
 ): WidgetSelection | undefined {
-  const screen = ensureScreen(configuration)
-  const widgets = (screen.widgets ??= [])
+  const target = insertionTarget(configuration)
+  if (!target) return undefined
+  const { widgets, cap, box } = target
+  // A slot is built before every container that could hold one, so it is only
+  // ever authored on a screen.
+  if (box && widget.type === 'slot') return undefined
   const pooled = allWidgetsOf(configuration).filter(({ type }) => type === widget.type).length
-  if (
-    pooled >= WIDGET_CAPACITIES[widget.type] ||
-    widgets.length >= MAXIMUM_WIDGETS_PER_SCREEN
-  ) {
+  if (pooled >= WIDGET_CAPACITIES[widget.type] || widgets.length >= cap) {
     return undefined
   }
   // A copy of a tap target is a second tap target, and the device holds
   // sixteen. Past that the copy is inserted without its action rather than
   // refused: what was asked for was the widget.
-  const inserted = { ...widget, id: createWidgetId() }
+  const inserted = {
+    ...widget,
+    id: createWidgetId(),
+    ...(box ? { placement: intoContainer(widget.placement, box) } : {})
+  }
   if (inserted.action && actionCount(configuration) >= MAXIMUM_ACTIONS) {
     delete inserted.action
   }
@@ -142,6 +201,26 @@ export function addShapeWidget(
       // visible plate the author can restyle.
       background_color: '#1E293B',
       placement: centeredPlacement(display, 160, 80)
+    })
+  })
+  return added
+}
+
+/**
+ * A slot starts with two pages in the loop, because one page that switches to
+ * nothing is not a slot — the pair is the smallest thing that shows what the
+ * widget is for. It is created bare: a slot draws nothing, and the device
+ * refuses one that tries to.
+ */
+export function addSlotWidget(
+  display: { width: number; height: number }
+): WidgetSelection | undefined {
+  let added: WidgetSelection | undefined
+  mutateDraftConfiguration((configuration) => {
+    added = insertWidget(configuration, {
+      type: 'slot',
+      pages: [{}, {}],
+      placement: centeredPlacement(display, 200, 100)
     })
   })
   return added

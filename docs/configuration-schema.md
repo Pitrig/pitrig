@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 9. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 10. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 9.
+Schema version: 10.
 
 ## Limits
 
@@ -10,13 +10,14 @@ Schema version: 9.
 | --- | --- | --- |
 | `kMaximumPayloadSize` | 65536 | Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. |
 | `kMaximumScreens` | 4 | Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM. |
-| `kMaximumWidgetsPerScreen` | 102 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. |
-| `kMaximumWidgetsPerContainer` | 16 | Ordered widget references inside one container shape. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does. |
-| `kMaximumNestingDepth` | 4 | How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference. |
+| `kMaximumWidgetsPerScreen` | 106 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. |
+| `kMaximumWidgetsPerContainer` | 16 | Ordered widget references inside one container: a shape, or one page of a slot. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does. |
+| `kMaximumNestingDepth` | 4 | How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference — and why a slot page costs nothing here: it is walked without a recursion of its own, so a slot spends exactly what a container shape spends. |
 | `kMaximumActions` | 16 | Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list. |
-| `kMaximumSlots` | 4 | Slots for the whole dashboard. A slot is a box whose container shapes are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a shape is not in one. |
+| `kMaximumSlotPages` | 8 | Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries. |
 | `kMaximumTextWidgets` | 32 | Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. |
-| `kMaximumShapeWidgets` | 32 | Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and are also the only widget that holds other widgets, so this is the most generous cap: every container spends one. |
+| `kMaximumShapeWidgets` | 32 | Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap: every container spends one. |
+| `kMaximumSlotWidgets` | 4 | Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool. |
 | `kMaximumBarWidgets` | 16 | Bar widget storage for the whole dashboard. |
 | `kMaximumArcWidgets` | 8 | Arc widget storage for the whole dashboard. |
 | `kMaximumIndicatorWidgets` | 4 | Indicator strip storage for the whole dashboard. |
@@ -51,7 +52,9 @@ Schema version: 9.
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
 | `BarOrientation` | `horizontal`, `vertical` | Axis a bar fills along. A vertical bar grows upwards unless it is inverted. |
 | `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
-| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. |
+| `SlotTrigger` | `none`, `value_changed`, `conditions` | How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds. |
+| `WidgetParentKind` | `screen`, `shape`, `slot_page` | Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot. |
+| `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image`, `slot` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. |
 
 ## Objects
 
@@ -203,13 +206,12 @@ One styling rule. The first rule whose comparison holds describes the widget; wh
 
 ### SlotCondition
 
-One activation rule for a container shape in a slot. The first rule whose comparison holds shows its shape, and the hold keeps it up for that long after the match ends so a momentary event stays readable. Kept separate from a widget's styling rules because selection and appearance watch different fields.
+One activation rule for a slot page. The first rule whose comparison holds raises the page. Kept separate from a widget's styling rules because selection and appearance watch different fields; how long the page then stays up belongs to the page, not to the rule that raised it.
 
 | Property | Type | Default |
 | --- | --- | --- |
 | `op` | `ConditionOperator` | `at_or_above` |
 | `value` | number | `0` |
-| `hold_ms` | integer, 0..65535 | `0` |
 
 ### TextSourceConfiguration
 
@@ -353,7 +355,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 
 ### ShapeWidgetConfiguration
 
-Panels, dividers and backing plates, and the only widget that holds other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box, and they are drawn even where they overhang it. Shapes sharing a slot occupy the same box with one of them visible at a time.
+Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box, and they are drawn even where they overhang it.
 
 Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
 
@@ -361,11 +363,31 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `shape` | required |
 | `kind` | `ShapeKind` | `rectangle` |
-| `slot` | integer, 0..255 | `0` |
-| `slot_default` | boolean | `false` |
-| `slot_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
-| `slot_conditions` | array of [`SlotCondition`](#slotcondition), max 4 | absent |
 | `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 16, discriminated by `type` | absent |
+
+### SlotPageConfiguration
+
+One page of a slot: a set of widgets that share the slot's box and are shown or hidden together. A page has no geometry, no frame and no styling of its own — it is the slot's box, and its widgets are placed relative to it. Pages the tap cycles are the loop; a page with a trigger is raised over the loop while its event lasts, and the first such page in this array wins when several fire at once.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `in_loop` | boolean | `true` |
+| `trigger` | `SlotTrigger` | `none` |
+| `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `duration_ms` | integer, 0..65535 | `0` |
+| `conditions` | array of [`SlotCondition`](#slotcondition), max 4 | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 16, discriminated by `type` | absent |
+
+### SlotWidgetConfiguration
+
+An area of a screen that switches what it shows. It draws nothing of its own — no background, border, caption or styling rules, all of which are rejected rather than ignored — and exists only to hold pages. A tap cycles the pages in the loop; a page whose trigger fires is raised over them for its duration and then hands the slot back to the loop page that was showing. A slot is authored directly on a screen: it holds containers rather than living inside one.
+
+Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `type` | `WidgetType`, fixed `slot` | required |
+| `pages` | array of [`SlotPageConfiguration`](#slotpageconfiguration), max 8 | absent |
 
 ### ScreenConfiguration
 
@@ -375,7 +397,7 @@ One dashboard screen: the coordinate space its widgets are placed in, and the or
 | --- | --- | --- |
 | `id` | string, max 15 bytes | empty |
 | `background_color` | string `#RRGGBB` | `#000000` |
-| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 102, discriminated by `type` | absent |
+| `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), [`SlotWidgetConfiguration`](#slotwidgetconfiguration), max 106, discriminated by `type` | absent |
 
 ### DashboardConfiguration
 
@@ -410,6 +432,8 @@ Also carries the properties of [`BoardConfiguration`](#boardconfiguration), flat
 | `invalid_module` | Module section value out of range. |
 | `invalid_screen` | Screen section is malformed or the screen count is out of range. |
 | `invalid_dashboard` | Dashboard section is malformed or references an absent module. |
-| `invalid_widget` | Widget property is malformed, out of range, entirely off the display, nested deeper than kMaximumNestingDepth, or breaks a slot rule: shapes sharing a slot must share a parent and a box, and exactly one of them must be the slot default. |
+| `invalid_widget` | Widget property is malformed, out of range, entirely off the display, or nested deeper than kMaximumNestingDepth. |
+| `invalid_slot` | Slot widget carries an appearance it has none of, was authored somewhere other than a screen, or holds no page the tap can reach. |
+| `invalid_slot_page` | Slot page is malformed, or its trigger and its source, rules and duration do not agree. |
 | `unknown_property` | Property name is not part of this schema version. |
 | `duplicate_property` | Property appears more than once in the same object. |

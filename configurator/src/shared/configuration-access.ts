@@ -3,10 +3,15 @@ import type {
   ApplicationConfiguration,
   ScreenConfiguration,
   ShapeWidgetConfiguration,
+  SlotPageConfiguration,
+  SlotWidgetConfiguration,
   TextWidgetConfiguration,
   ValueSourceConfiguration,
   WidgetConfiguration
 } from './configuration-schema'
+
+/** Anything that holds an ordered widget array: a screen, a shape, a slot page. */
+export type WidgetParent = ScreenConfiguration | ShapeWidgetConfiguration | SlotPageConfiguration
 
 // Read helpers over the sparse configuration document. Every section is
 // optional at every level, so these keep the `?.`/`??` chains in one place
@@ -21,14 +26,34 @@ export function screensOf(
 
 /**
  * The widgets authored directly inside one parent, without their own children.
- * A screen and a container shape hold the same array, which is why one function
- * answers for both.
+ * A screen, a container shape and a slot page all hold the same array, which is
+ * why one function answers for all three.
  */
-export function widgetsOf(
-  parent: ScreenConfiguration | ShapeWidgetConfiguration | undefined
-): WidgetConfiguration[] {
+export function widgetsOf(parent: WidgetParent | undefined): WidgetConfiguration[] {
   const widgets = parent?.widgets
   return Array.isArray(widgets) ? widgets.filter(isWidget) : []
+}
+
+/** The pages of a slot, in authored order — which is also priority order. */
+export function pagesOf(widget: SlotWidgetConfiguration | undefined): SlotPageConfiguration[] {
+  const pages = widget?.pages
+  return Array.isArray(pages) ? pages.filter(isRecord) : []
+}
+
+/**
+ * Whether this widget holds other widgets, and the arrays it holds them in. A
+ * shape has one; a slot has one per page. Everything that walks the tree asks
+ * this rather than testing for a type, so a container type added later is not a
+ * dozen forgotten `=== 'shape'` comparisons.
+ */
+export function childArraysOf(widget: WidgetConfiguration): WidgetConfiguration[][] {
+  if (widget.type === 'shape') return [widgetsOf(widget)]
+  if (widget.type === 'slot') return pagesOf(widget).map((page) => widgetsOf(page))
+  return []
+}
+
+export function isContainer(widget: WidgetConfiguration): boolean {
+  return widget.type === 'shape' || widget.type === 'slot'
 }
 
 /**
@@ -53,9 +78,7 @@ export function stackOrder(
 
 /** One widget and everything nested inside it, parent before children. */
 export function descendantsOf(widget: WidgetConfiguration): WidgetConfiguration[] {
-  return widget.type === 'shape'
-    ? [widget, ...widgetsOf(widget).flatMap(descendantsOf)]
-    : [widget]
+  return [widget, ...childArraysOf(widget).flat().flatMap(descendantsOf)]
 }
 
 /**
@@ -110,7 +133,13 @@ export function widgetSources(widget: WidgetConfiguration): ValueSourceConfigura
   return [
     ...(isTextWidget(widget) ? widget.sources ?? [] : []),
     ...('source' in widget && widget.source ? [widget.source] : []),
-    ...(widget.condition_source ? [widget.condition_source] : [])
+    ...(widget.condition_source ? [widget.condition_source] : []),
+    // A slot page watches a field the slot itself never shows, so it is invisible
+    // to every probe above — and a binding missing from this list is a binding
+    // SimHub is never asked for, which is a page whose trigger never fires.
+    ...(widget.type === 'slot'
+      ? pagesOf(widget).flatMap((page) => (page.source ? [page.source] : []))
+      : [])
   ]
 }
 
@@ -142,22 +171,23 @@ export function withWidgetIds(
   }
   // Recursive because a container is just a widget that holds more of them, so
   // one walk names every level rather than one pass per level of nesting.
-  const withIds = <T extends ScreenConfiguration | ShapeWidgetConfiguration>(owner: T): T =>
-    owner.widgets
-      ? {
-          ...owner,
-          widgets: widgetsOf(owner).map((widget) => {
-            const named = { ...widget, id: unique(widget.id) }
-            return named.type === 'shape' ? withIds(named) : named
-          })
-        }
-      : owner
+  const named = (widget: WidgetConfiguration): WidgetConfiguration => {
+    const withId = { ...widget, id: unique(widget.id) }
+    if (withId.type === 'slot') {
+      // A page carries no id of its own — it is addressed by its position, which
+      // is also what orders it against the other pages.
+      return { ...withId, ...(withId.pages ? { pages: pagesOf(withId).map(withIds) } : {}) }
+    }
+    return withId.type === 'shape' ? withIds(withId) : withId
+  }
+  const withIds = <T extends WidgetParent>(owner: T): T =>
+    owner.widgets ? { ...owner, widgets: widgetsOf(owner).map(named) } : owner
   return {
     ...configuration,
     dashboard: {
       ...configuration.dashboard,
       screens: screens.map((screen, index) => ({
-        ...withIds(screen),
+        ...withIds<ScreenConfiguration>(screen),
         id: screen.id ?? `screen${index + 1}`
       }))
     }

@@ -1,10 +1,11 @@
-import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarOrientation, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeKind, type ShapeWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextAlignment, type TextWidgetConfiguration } from '../../../../../shared/configuration-schema'
+import { pagesOf } from '../../../../../shared/configuration-access'
+import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarOrientation, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeKind, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextAlignment, type TextWidgetConfiguration } from '../../../../../shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '../../../../../shared/telemetry-catalog'
 import { MAXIMUM_BLINK_MS } from '../../../../../shared/widget-conditions'
 import { type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
 import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
 import { CheckboxField, ColorField, FontEditor, Hint, NumberField, OptionalColorField, Section, SelectField, TextField } from './fields'
-import { SourceRangeSection } from './section-editors'
+import { ContainerEditor, SlotPagesEditor, SourceRangeSection } from './section-editors'
 import { BoxEditor, ConditionsEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -190,6 +191,9 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
         <SelectField label="Kind" value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} onChange={(value) => update((next) => { next.kind = value as ShapeKind })} />
         <p className="text-muted-foreground">A line is a thin rectangle: give it a small height or width.</p>
       </Section>
+      {/* A shape holds widgets, so it gets the section that says what holding
+          them means. */}
+      <ContainerEditor widget={widget} />
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
@@ -198,9 +202,28 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
 }
 
 /**
- * What a tap does. Carried by widgets and by groups alike, so the editor for it
- * is one component: a readout that doubles as a button and a rectangle of the
- * screen are the same thing to the device.
+ * A slot is an area that switches what it shows. It draws nothing, so it has no
+ * frame editors at all — the device refuses a slot with an appearance — and its
+ * only properties are its box and its pages.
+ */
+export function SlotEditor({ widget }: { widget: SlotWidgetConfiguration }): React.JSX.Element {
+  const pages = pagesOf(widget)
+  return (
+    <>
+      <Section title="Slot">
+        <p className="text-muted-foreground">
+          {`Switches between ${pages.length} page(s) in this box. A tap on the board cycles the pages in the loop; a page with a trigger is raised over them while its event lasts. The slot itself draws nothing — put a shape behind it for a background.`}
+        </p>
+      </Section>
+      {widget.id ? <SlotPagesEditor slotId={widget.id} pages={pages} /> : null}
+    </>
+  )
+}
+
+/**
+ * What a tap does. Carried by every widget, so the editor for it is one
+ * component: a readout that doubles as a button and a rectangle of the screen
+ * are the same thing to the device.
  *
  * The board reaches this only where there is a digitizer, which the hint says
  * rather than the editor hiding the section on those boards — a document is

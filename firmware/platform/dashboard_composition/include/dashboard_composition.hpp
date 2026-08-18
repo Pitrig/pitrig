@@ -17,6 +17,7 @@
 #include "render_trigger.hpp"
 #include "screen_navigation.hpp"
 #include "shape_widget.hpp"
+#include "slot_widget.hpp"
 #include "text_widget.hpp"
 #include "widget_slots.hpp"
 #include "widget_binding.hpp"
@@ -90,10 +91,25 @@ struct ShapeWidgets : WidgetStorage {
                                     dashboard::shape_widget::kMaximumInstances>
       binder;
   dashboard::shape_widget::Collection collection;
-  // The only type that can be a parent, so the only one that publishes the
-  // objects it built. Written per pool index as each shape is created, which is
-  // what lets a child resolve the container it was authored inside.
+  // One of the two types that can be a parent, so one of the two that publishes
+  // the objects it built. Written per pool index as each shape is created, which
+  // is what lets a child resolve the container it was authored inside.
   std::span<lv_obj_t*> container_slots{};
+};
+
+struct SlotWidgets : WidgetStorage {
+  using Config = configuration::SlotWidgetConfiguration;
+  static constexpr auto kType = configuration::WidgetType::slot;
+  static constexpr auto kPool =
+      &configuration::DashboardConfiguration::slot_widgets;
+
+  // The only type with no binder at all: a slot draws nothing, and what its
+  // pages watch is bound by the slots controller rather than by the widget.
+  dashboard::slot_widget::Collection collection;
+  // The other parent-publishing type. Written per flat page index, so a widget
+  // authored on a page resolves the page the same way a nested widget resolves
+  // its container.
+  std::span<lv_obj_t*> page_slots{};
 };
 
 struct BarWidgets : WidgetStorage {
@@ -174,8 +190,17 @@ struct Dashboard {
   // which is what makes this an array here rather than a local.
   std::array<std::int32_t, configuration::kMaximumShapeWidgets>
       container_overflow{};
-  // Decides which shape of each slot is visible. Owns no LVGL object: the
-  // containers belong to the shape collection.
+  // The LVGL object of each slot page, flat: a slot's pool index times
+  // kMaximumSlotPages plus the page. A widget authored on a page is parented to
+  // one of these and is therefore placed relative to the slot's box.
+  std::array<lv_obj_t*, dashboard::slot_widget::kMaximumPages> pages{};
+  // What each page and each slot has to let through, measured and read back
+  // exactly as a container's is.
+  std::array<std::int32_t, dashboard::slot_widget::kMaximumPages>
+      page_overflow{};
+  std::array<std::int32_t, configuration::kMaximumSlotWidgets> slot_overflow{};
+  // Decides which page of each slot is visible. Owns no LVGL object: the slots
+  // and their pages belong to the slot collection.
   dashboard::slots::Controller slots;
   // Loads one of those screens on a swipe. Holds a view of `screens`, so it is
   // detached before they are released.
@@ -184,6 +209,7 @@ struct Dashboard {
   dashboard::WidgetManager widgets;
   TextWidgets text;
   ShapeWidgets shape;
+  SlotWidgets slot;
   BarWidgets bar;
   ArcWidgets arc;
   IndicatorWidgets indicator;

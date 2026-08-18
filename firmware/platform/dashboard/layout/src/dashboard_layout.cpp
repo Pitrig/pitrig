@@ -20,16 +20,19 @@ void apply_outline(lv_obj_t* const object, const std::uint32_t color_rgb) {
 
 }  // namespace
 
-bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
-                           const std::uint8_t screen_index,
-                           const std::uint8_t parent_index,
-                           const bool parent_present,
+bool resolve_widget_bounds(const Layout& layout,
+                           const configuration::WidgetFrame& frame,
+                           const Placement& placement,
                            const std::int32_t intrinsic_width,
                            const std::int32_t intrinsic_height,
                            const bool fill_available_width, lv_obj_t*& parent,
                            Rect& bounds) {
-  lv_obj_t* const owner =
-      layout.parent(screen_index, parent_index, parent_present);
+  lv_obj_t* const owner = layout.parent(frame);
+  // A container supplies the size an unsized widget fills, and the display does
+  // so for a widget the screen owns. Which of the two applies is the one thing
+  // the parent kind decides here.
+  const bool contained =
+      frame.parent_kind != configuration::WidgetParentKind::screen;
   // Zero intrinsic is an answer, not a failure: a shape asks for no content of
   // its own, so a container with no caption, border or padding needs exactly
   // nothing — and that is the ordinary container. What refuses a widget with no
@@ -43,11 +46,11 @@ bool resolve_widget_bounds(const Layout& layout, const Placement& placement,
   // Filling means filling the parent, so a container still supplies the size an
   // unsized widget takes. It is built before its children, so this is final.
   const std::int32_t parent_width =
-      parent_present ? lv_obj_get_width(owner)
-                     : lv_display_get_horizontal_resolution(layout.display);
+      contained ? lv_obj_get_width(owner)
+                : lv_display_get_horizontal_resolution(layout.display);
   const std::int32_t parent_height =
-      parent_present ? lv_obj_get_height(owner)
-                     : lv_display_get_vertical_resolution(layout.display);
+      contained ? lv_obj_get_height(owner)
+                : lv_display_get_vertical_resolution(layout.display);
 
   const std::int32_t requested_width =
       placement.width > 0

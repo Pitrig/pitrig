@@ -168,12 +168,14 @@ configurator must not depend on it.
 Sparse JSON, used unchanged for both configurator projects and the device wire payload — omitted
 properties are *not* expanded through board profiles. Widget geometry is absolute logical display
 pixels, except inside a **container**, where it is relative to the container's box (ADR 0021). A
-**shape** widget is the container: it may hold widgets, including other shapes, nested up to
+**shape** widget is the drawing container: it may hold widgets, including other shapes, nested up to
 `kMaximumNestingDepth`. A container does **not** clip its children — a caption or a widget that
 overhangs it is drawn, and only the display still bounds a box. A dashboard holds up to four
-screens, swiped between on a board with touch (ADR 0020); containers sharing a `slot` share one box
-and only one is visible, cycled by a tap or selected by that container's own `slot_conditions` over
-its `slot_source` (kept separate from the styling `conditions` every widget has). Any widget may
+screens, swiped between on a board with touch (ADR 0020). A **slot** widget is an area that switches
+what it shows: it draws nothing, is authored only on a screen, and holds up to `kMaximumSlotPages`
+pages of which one is visible — a tap cycles the pages that are `in_loop`, and a page whose
+`trigger` fires (`conditions` over `source`, or `value_changed`) is raised over the loop for its
+`duration_ms`, first page in the array winning. Any widget may
 carry an `action`, so a tap navigates to the next, previous, or a named screen; an empty
 transparent shape with an action is an invisible touch zone. Bounded limits (64 KB payload, per-type widget caps, 4 modifiers per
 source, byte limits on strings) and the full property table are in

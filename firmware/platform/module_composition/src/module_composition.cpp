@@ -95,15 +95,19 @@ bool has_lap_timer_modifier(
       conditioned(dashboard.indicator_widgets,
                   dashboard.indicator_widget_count) ||
       conditioned(dashboard.graph_widgets, dashboard.graph_widget_count) ||
-      conditioned(dashboard.image_widgets, dashboard.image_widget_count)) {
+      conditioned(dashboard.image_widgets, dashboard.image_widget_count) ||
+      conditioned(dashboard.slot_widgets, dashboard.slot_widget_count)) {
     return true;
   }
-  // A slot rule watches its own source, separate from the styling rules the
+  // A slot page watches its own source, separate from the styling rules the
   // sweep above covers, so a lap_timer modifier there would otherwise leave the
-  // module unstarted and the slot never switching.
-  for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
-    if (uses_lap_timer(dashboard.shape_widgets[index].slot_source)) {
-      return true;
+  // module unstarted and the page never appearing.
+  for (std::size_t index = 0; index < dashboard.slot_widget_count; ++index) {
+    const auto& widget = dashboard.slot_widgets[index];
+    for (std::size_t page = 0; page < widget.page_count; ++page) {
+      if (uses_lap_timer(widget.pages[page].source)) {
+        return true;
+      }
     }
   }
   return false;

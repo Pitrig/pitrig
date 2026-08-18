@@ -259,8 +259,7 @@ bool build(const Layout& layout, const Config& config, const char* const tag,
       2 * config.border.width_px + config.padding.left + config.padding.right;
   const std::int32_t vertical_insets =
       2 * config.border.width_px + config.padding.top + config.padding.bottom;
-  if (!resolve_widget_bounds(layout, config.placement, config.screen_index,
-                             config.parent_index, config.parent_present,
+  if (!resolve_widget_bounds(layout, config, config.placement,
                              framed_width + horizontal_insets,
                              framed_height + vertical_insets,
                              fill_available_width, parent, bounds) ||

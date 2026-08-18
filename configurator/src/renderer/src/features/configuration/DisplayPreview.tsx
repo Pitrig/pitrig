@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { allWidgetsOf } from '../../../../shared/configuration-access'
 import type { FontSpec } from '../../../../shared/configuration-schema'
 import { BOARD_PROFILES } from '../../../../shared/device'
-import { type WidgetSelection, MAXIMUM_TEXT_WIDGETS, addArcWidget, addBarWidget, addGraphWidget, addImageWidget, addIndicatorWidget, addShapeWidget, addTextWidget, deleteWidget, draftValueFont, duplicateWidget, findWidget, useDashboardEditorStore } from './dashboard-editor'
+import { type WidgetSelection, MAXIMUM_TEXT_WIDGETS, addArcWidget, addBarWidget, addGraphWidget, addImageWidget, addIndicatorWidget, addShapeWidget, addSlotWidget, addTextWidget, deleteWidget, draftValueFont, duplicateWidget, findWidget, useDashboardEditorStore } from './dashboard-editor'
 import { usePreviewAssetStore } from './preview-assets'
 import { Widgets } from './preview/PreviewCanvas'
 import { ArrangeToolbar } from './preview/PreviewChrome'
@@ -29,7 +29,8 @@ const ADD_WIDGET_BUTTONS: {
   { label: 'Arc', width: 'w-20', add: (display) => addArcWidget(display) },
   { label: 'Lights', width: 'w-24', add: (display) => addIndicatorWidget(display) },
   { label: 'Graph', width: 'w-20', add: (display) => addGraphWidget(display) },
-  { label: 'Image', width: 'w-20', add: (display, { image }) => addImageWidget(display, image) }
+  { label: 'Image', width: 'w-20', add: (display, { image }) => addImageWidget(display, image) },
+  { label: 'Slot', width: 'w-20', add: (display) => addSlotWidget(display) }
 ]
 
 export function DisplayPreview(): React.JSX.Element {

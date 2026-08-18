@@ -2,7 +2,8 @@ import { useState } from 'react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
-import { screensOf, stackOrder, widgetsOf } from '../../../../shared/configuration-access'
+import { pagesOf, screensOf, stackOrder, widgetsOf } from '../../../../shared/configuration-access'
+import { visibleSlotPage } from './preview/canvas-geometry'
 import { WIDGET_ID_CAPACITY } from '../../../../shared/configuration-schema'
 import type { WidgetConfiguration } from '../../../../shared/configuration-schema'
 import {
@@ -96,6 +97,7 @@ function LayerList({
   const hidden = useDashboardEditorStore((state) => state.hidden)
   const toggleLocked = useDashboardEditorStore((state) => state.toggleLocked)
   const toggleHidden = useDashboardEditorStore((state) => state.toggleHidden)
+  const slotPage = useDashboardEditorStore((state) => state.slotPage)
 
   // Back to front is what z_index means, so the list reverses it.
   const topFirst = stackOrder(widgets)
@@ -128,8 +130,16 @@ function LayerList({
         if (!id) return null
         const selected = selectedIds.includes(id)
         // A container is a widget, so its contents are the same list nested
-        // rather than a second kind of entry.
-        const children = widget.type === 'shape' ? widgetsOf(widget) : []
+        // rather than a second kind of entry. A slot holds its widgets on a
+        // page, so the list shows the page the tabs are looking at — the same
+        // one the canvas draws and a drop lands on.
+        const page = widget.type === 'slot' ? visibleSlotPage(widget, slotPage) : undefined
+        const children =
+          widget.type === 'shape'
+            ? widgetsOf(widget)
+            : widget.type === 'slot'
+              ? widgetsOf(pagesOf(widget)[page ?? 0])
+              : []
         const band = dropTarget?.id === id ? dropTarget.band : undefined
         return (
           <div key={id}>
@@ -140,7 +150,7 @@ function LayerList({
               event.dataTransfer.effectAllowed = 'move'
             }}
             onDragOver={(event) => {
-              const over = bandAt(event, id, widget.type === 'shape')
+              const over = bandAt(event, id, widget.type === 'shape' || widget.type === 'slot')
               // Leaving preventDefault uncalled is what shows the no-drop cursor
               // and keeps onDrop from firing at all — the refusal costs nothing.
               if (!over) return
@@ -155,7 +165,7 @@ function LayerList({
             onDrop={(event) => {
               event.preventDefault()
               // Recomputed from the drop itself: the stored band is a render behind.
-              const over = bandAt(event, id, widget.type === 'shape')
+              const over = bandAt(event, id, widget.type === 'shape' || widget.type === 'slot')
               if (dragged && over) moveWidget(dragged, over, id)
               setDragged(undefined)
               setDropTarget(undefined)
@@ -222,25 +232,28 @@ function LayerList({
             {children.length > 0 ? (
               <div className="ml-3 border-l border-violet-500/40 pl-1">
                 <div className="flex items-center gap-1 px-1 text-muted-foreground">
-                  <span className="min-w-0 flex-1 truncate">{`${children.length} inside`}</span>
-                  {widget.type === 'shape' && widget.slot ? (
-                    <span className="flex-none" title="Slot this container switches in">
-                      {`slot ${widget.slot}`}
-                    </span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {page === undefined
+                      ? `${children.length} inside`
+                      : `${children.length} on page ${page + 1}`}
+                  </span>
+                  {/* A slot's widgets belong to a page, so releasing them beside
+                      the slot would have to pick one and lose the rest. */}
+                  {widget.type === 'shape' ? (
+                    <button
+                      type="button"
+                      className="flex-none px-1 hover:text-foreground"
+                      title="Unwrap, putting the widgets back beside this one"
+                      onClick={() => {
+                        const released = unwrapShape(id)
+                        if (released.length > 0) {
+                          useDashboardEditorStore.getState().selectMany(released)
+                        }
+                      }}
+                    >
+                      ⤴
+                    </button>
                   ) : null}
-                  <button
-                    type="button"
-                    className="flex-none px-1 hover:text-foreground"
-                    title="Unwrap, putting the widgets back beside this one"
-                    onClick={() => {
-                      const released = unwrapShape(id)
-                      if (released.length > 0) {
-                        useDashboardEditorStore.getState().selectMany(released)
-                      }
-                    }}
-                  >
-                    ⤴
-                  </button>
                 </div>
                 <LayerList widgets={children} {...rowState} />
               </div>

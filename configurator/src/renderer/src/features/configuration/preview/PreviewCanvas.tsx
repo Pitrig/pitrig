@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { screenWidgetsOf, screensOf, stackOrder, widgetsOf } from '../../../../../shared/configuration-access'
-import { type ScreenConfiguration, type ShapeWidgetConfiguration } from '../../../../../shared/configuration-schema'
+import { childArraysOf, pagesOf, screensOf, stackOrder, widgetsOf, type WidgetParent } from '../../../../../shared/configuration-access'
 import { type DeviceConfiguration, type DisplayDescriptor } from '../../../../../shared/device'
 import { LAP_SECONDS } from '../../../../../shared/mock-telemetry'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOffset, useDashboardEditorStore } from '../dashboard-editor'
-import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, type ResizeMode, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clamp, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleInSlot, widgetClipId } from './canvas-geometry'
+import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, type ResizeMode, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clamp, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
 import { createPreviewValues } from './preview-values'
@@ -25,7 +24,9 @@ export function Widgets({
   const extendSelection = useDashboardEditorStore((state) => state.extendSelection)
   const selectMany = useDashboardEditorStore((state) => state.selectMany)
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
-  const previewSlots = useDashboardEditorStore((state) => state.previewSlots)
+  const slotPage = useDashboardEditorStore((state) => state.slotPage)
+  const drillIn = useDashboardEditorStore((state) => state.drillIn)
+  const setDrillIn = useDashboardEditorStore((state) => state.setDrillIn)
   const view = useDashboardEditorStore((state) => state.view)
   const locked = useDashboardEditorStore((state) => state.locked)
   const hidden = useDashboardEditorStore((state) => state.hidden)
@@ -58,7 +59,37 @@ export function Widgets({
   // The canvas works entirely in display coordinates. Geometry inside a
   // container is relative to that container's box, so it is translated here on
   // the way out and translated back before anything is written to the document.
-  const widgets = screenWidgetsOf(screen)
+  //
+  // Same rule the firmware applies: z_index ascending, authored array order
+  // breaking ties, one parent at a time. A container is one entry among its own
+  // siblings and orders its children within itself, so emitting each container
+  // immediately followed by its children reproduces LVGL's draw order at any
+  // depth — a parent, then what is inside it, then the parent's later siblings.
+  const emit = (parent: WidgetParent, offsetX: number, offsetY: number): PreviewLayer[] =>
+    stackOrder(widgetsOf(parent)).flatMap(({ widget, index }) => {
+      const layer: PreviewLayer = {
+        configuration: widget,
+        zIndex: widget.z_index ?? 0,
+        configurationOrder: index,
+        offsetX,
+        offsetY
+      }
+      const box = completePlacement(widget.placement)
+      const inside = (owner: WidgetParent): PreviewLayer[] =>
+        emit(owner, offsetX + (box?.x ?? 0), offsetY + (box?.y ?? 0))
+      if (widget.type === 'shape') return [layer, ...inside(widget)]
+      if (widget.type !== 'slot') return [layer]
+      // The board shows one page of a slot; the canvas has to author all of
+      // them, so it draws the one the tabs are looking at and leaves the rest
+      // out rather than stacking a slot's pages on top of each other.
+      const page = pagesOf(widget)[visibleSlotPage(widget, slotPage)]
+      return page ? [layer, ...inside(page)] : [layer]
+    })
+  const layers: PreviewLayer[] = screen ? emit(screen, 0, 0) : []
+  // What the canvas is actually showing, which is what a marquee may catch and
+  // what a drag may snap to: a widget on a page nobody is looking at is not on
+  // screen, so treating it as a target would select and align the invisible.
+  const widgets = layers.map((layer) => layer.configuration)
   const selectedPlacements = selectedIds
     .map((id) => absolutePlacement(configuration, id))
     .filter((placement): placement is Placement => placement !== undefined)
@@ -294,43 +325,6 @@ export function Widgets({
     })
   }
 
-  // Same rule the firmware applies: z_index ascending, authored array order
-  // breaking ties, one parent at a time. A container is one entry among its own
-  // siblings and orders its children within itself, so emitting each container
-  // immediately followed by its children reproduces LVGL's draw order at any
-  // depth — a parent, then what is inside it, then the parent's later siblings.
-  const emit = (
-    parent: ScreenConfiguration | ShapeWidgetConfiguration,
-    offsetX: number,
-    offsetY: number
-  ): PreviewLayer[] => {
-    const siblings = widgetsOf(parent)
-    // The board shows one container per slot; the canvas has to author all of
-    // them, so it draws the one picked in the toolbar and leaves the rest out
-    // rather than stacking a slot's members on top of each other.
-    const containers = siblings.filter(
-      (widget): widget is ShapeWidgetConfiguration => widget.type === 'shape'
-    )
-    // Sorted first and filtered after — order-equivalent, and it keeps the one
-    // stacking rule in one place rather than restating it here.
-    const ordered = stackOrder(siblings).filter(
-      ({ widget }) => widget.type !== 'shape' || visibleInSlot(containers, widget, previewSlots)
-    )
-    return ordered.flatMap(({ widget, index }) => {
-      const layer: PreviewLayer = {
-        configuration: widget,
-        zIndex: widget.z_index ?? 0,
-        configurationOrder: index,
-        offsetX,
-        offsetY
-      }
-      if (widget.type !== 'shape') return [layer]
-      const box = completePlacement(widget.placement)
-      return [layer, ...emit(widget, offsetX + (box?.x ?? 0), offsetY + (box?.y ?? 0))]
-    })
-  }
-  const layers: PreviewLayer[] = screen ? emit(screen, 0, 0) : []
-
   // Every tap target is a widget now — a container carries its action on the
   // frame like any other — so one pass collects them all in display coordinates.
   const tapTargets = layers
@@ -350,6 +344,28 @@ export function Widgets({
   const viewWidth = display.width / view.zoom
   const viewHeight = display.height / view.zoom
   const band = marquee ? marqueeBounds(marquee) : undefined
+
+  // Working inside a slot means looking at its box, with the rest of the screen
+  // still drawn around it for context but dimmed and inert — the page is the
+  // only thing being authored, and a click landing outside it would be an edit
+  // to something the author is not looking at.
+  const opened = drillIn ? absolutePlacement(configuration, drillIn) : undefined
+  const openedIds = new Set(
+    drillIn
+      ? (() => {
+          const slot = findWidget(configuration, drillIn)?.widget
+          if (slot?.type !== 'slot') return []
+          const page = pagesOf(slot)[visibleSlotPage(slot, slotPage)]
+          return (page ? widgetsOf(page).flatMap((widget) => [widget, ...childArraysOf(widget).flat()]) : [])
+            .map((widget) => widget.id)
+            .filter((id): id is string => id !== undefined)
+        })()
+      : []
+  )
+  const dimmed = (layer: PreviewLayer): boolean =>
+    opened !== undefined &&
+    layer.configuration.id !== drillIn &&
+    !openedIds.has(layer.configuration.id ?? '')
 
   return (
     <svg
@@ -373,11 +389,15 @@ export function Widgets({
           clicked; a child is drawn above its parent, so there is no point on it
           that a click could otherwise land on. */}
       {layers.map((layer) => {
-        if (layer.configuration.type !== 'shape') return null
-        if (widgetsOf(layer.configuration).length === 0) return null
-        const box = completePlacement(layer.configuration.placement)
+        const widget = layer.configuration
+        // A slot draws nothing at all, so its outline is not a hint but the only
+        // thing that says where it is — an empty one still gets it.
+        if (widget.type !== 'slot' && childArraysOf(widget).flat().length === 0) return null
+        const box = completePlacement(widget.placement)
         if (!box) return null
-        const id = layer.configuration.id
+        const id = widget.id
+        const picked = selection?.type === 'widget' && selection.id === id
+        const stroke = widget.type === 'slot' ? '#38BDF8' : '#A78BFA'
         return (
           <rect
             key={`container-${id}`}
@@ -386,7 +406,7 @@ export function Widgets({
             width={box.width}
             height={box.height}
             fill="none"
-            stroke={selection?.type === 'widget' && selection.id === id ? '#A78BFA' : '#A78BFA80'}
+            stroke={picked || drillIn === id ? stroke : `${stroke}80`}
             strokeWidth={1 / view.zoom}
             strokeDasharray={`${2 / view.zoom} ${4 / view.zoom}`}
             pointerEvents="none"
@@ -404,9 +424,12 @@ export function Widgets({
         // device stopped doing that too, which is what lets a caption or an
         // overhanging readout be drawn at all.
         const box = completePlacement(layer.configuration.placement)
+        const faded = dimmed(layer)
         return (
           <g
             key={id ?? layer.configurationOrder}
+            opacity={faded ? 0.25 : undefined}
+            pointerEvents={faded ? 'none' : undefined}
             transform={
               layer.offsetX || layer.offsetY
                 ? `translate(${layer.offsetX} ${layer.offsetY})`
@@ -416,7 +439,15 @@ export function Widgets({
             const placement = id ? absolutePlacement(configuration, id) : undefined
             if (!placement || !id || locked[id]) return
             beginInteraction(event, { type: 'widget', id }, 'move', placement)
-          }}>
+          }}
+            // A slot is authored one page at a time inside its own box, which is
+            // what opening it means — and double-click is how a container has
+            // always been opened.
+            onDoubleClick={
+              layer.configuration.type === 'slot' && id
+                ? () => setDrillIn(id)
+                : undefined
+            }>
             {box ? (
               <clipPath id={widgetClipId(layerIndex)}>
                 <rect {...box} />
@@ -435,11 +466,13 @@ export function Widgets({
                 <ImagePreview configuration={layer.configuration} values={values} />
               ) : layer.configuration.type === 'shape' ? (
                 <ShapePreview configuration={layer.configuration} values={values} />
-              ) : (
+              ) : layer.configuration.type === 'slot' ? null : (
                 <TextWidgetPreview configuration={layer.configuration} values={values} />
               )}
             </g>
-            <CaptionPreview configuration={layer.configuration} behind={screenBackground} />
+            {layer.configuration.type === 'slot' ? null : (
+              <CaptionPreview configuration={layer.configuration} behind={screenBackground} />
+            )}
             {id && locked[id] ? null : (
               <HitArea placement={completePlacement(layer.configuration.placement)} />
             )}

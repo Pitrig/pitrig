@@ -1,8 +1,9 @@
-import { allWidgetsOf, createWidgetId, stackOrder, widgetsOf } from '../../../../../shared/configuration-access'
-import { MAXIMUM_NESTING_DEPTH, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type ScreenConfiguration, type ShapeWidgetConfiguration, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
+import { childArraysOf, createWidgetId, pagesOf, stackOrder, widgetsOf, type WidgetParent } from '../../../../../shared/configuration-access'
+import { MAXIMUM_NESTING_DEPTH, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { type WidgetLocation, absolutePlacement, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, parentOf, parentOffset, widgetArrayOf } from './document'
 import { useDashboardEditorStore } from './store'
+import { visibleSlotPage } from '../preview/canvas-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
 
 /**
@@ -222,8 +223,8 @@ export type DropRelation = 'above' | 'below' | 'inside'
 
 interface MovePlan {
   widget: WidgetConfiguration
-  sourceOwner: ScreenConfiguration | ShapeWidgetConfiguration
-  destinationOwner: ScreenConfiguration | ShapeWidgetConfiguration
+  sourceOwner: WidgetParent
+  destinationOwner: WidgetParent
   /** The destination's children back to front, with the widget already in place. */
   order: WidgetConfiguration[]
   /** The widget's box on the display before the move, so it can stay put. */
@@ -236,10 +237,14 @@ interface MovePlan {
 
 /** Levels of container this widget adds below the array it is placed in, or undefined for a leaf. */
 function containerHeight(widget: WidgetConfiguration): number | undefined {
-  if (widget.type !== 'shape') return undefined
-  const below = widgetsOf(widget)
+  const arrays = childArraysOf(widget)
+  if (arrays.length === 0) return undefined
+  const below = arrays
+    .flat()
     .map(containerHeight)
     .filter((level): level is number => level !== undefined)
+  // A slot's pages cost no level, so a slot is exactly as tall as a shape
+  // holding the same widgets.
   return below.length === 0 ? 0 : 1 + Math.max(...below)
 }
 
@@ -274,20 +279,37 @@ function planMove(
   // Dropping beside a descendant is the same containment error as dropping
   // inside one, so one test covers both relations.
   if (ancestorsOf(configuration, target).some((ancestor) => ancestor.id === id)) return undefined
-  if (relation === 'inside' && target.widget.type !== 'shape') return undefined
+  const into = relation === 'inside' ? target.widget : undefined
+  if (into !== undefined && into.type !== 'shape' && into.type !== 'slot') return undefined
+  // Dropping into a slot means dropping onto the page being looked at: a slot
+  // holds nothing directly, and the page tabs are already where the author says
+  // which one they mean.
+  const intoPage =
+    into?.type === 'slot'
+      ? visibleSlotPage(into, useDashboardEditorStore.getState().slotPage)
+      : undefined
 
   const sourceOwner = parentOf(configuration, moved)
   const destinationOwner =
-    relation === 'inside'
-      ? (target.widget as ShapeWidgetConfiguration)
-      : parentOf(configuration, target)
+    into === undefined
+      ? parentOf(configuration, target)
+      : into.type === 'slot'
+        ? pagesOf(into)[intoPage ?? 0]
+        : into
   if (!sourceOwner || !destinationOwner) return undefined
   const sameParent = sourceOwner === destinationOwner
 
   // The depth the validator walks the destination array at, mirroring its own
-  // walk: a container's array is one deeper than the array the container sits in.
-  const depth = relation === 'inside' ? target.path.length : target.path.length - 1
+  // walk: a container's array is one deeper than the array the container sits
+  // in, and a slot page is one deeper again.
+  // Counted from the container chain rather than from the path, because a path
+  // carries an extra entry for a slot page and a page costs no level. One
+  // ancestor is one level, whether it is a shape or a slot.
+  const depth = ancestorsOf(configuration, target).length + (into === undefined ? 0 : 1)
   if (!sameParent) {
+    // A slot is built before every container that could hold one, so it is only
+    // ever authored on a screen.
+    if (moved.widget.type === 'slot' && depth > 0) return undefined
     // What has to fit is the subtree's own tallest container, not just the
     // widget: a container of containers dropped two deep pushes its own past the
     // cap even though the widget itself would fit.
@@ -295,19 +317,6 @@ function planMove(
     if (height !== undefined && depth + height + 2 > MAXIMUM_NESTING_DEPTH) return undefined
     const capacity = depth === 0 ? MAXIMUM_WIDGETS_PER_SCREEN : MAXIMUM_WIDGETS_PER_CONTAINER
     if ((destinationOwner.widgets?.length ?? 0) >= capacity) return undefined
-    // A slot is one box under one parent, and the device compares the parent as
-    // well as the box. Pulling one member out of the parent it shares with its
-    // peers redefines the slot rather than moving a widget, and the configurator's
-    // own validator would not catch it. A lone member has nothing to strand.
-    const slot = moved.widget.type === 'shape' ? (moved.widget.slot ?? 0) : 0
-    if (
-      slot > 0 &&
-      allWidgetsOf(configuration).filter(
-        (other) => other.type === 'shape' && (other.slot ?? 0) === slot
-      ).length > 1
-    ) {
-      return undefined
-    }
   }
 
   const stack = stackOrder(destinationOwner.widgets).map(({ widget }) => widget)
@@ -380,22 +389,27 @@ export function canMoveWidget(id: string, relation: DropRelation, targetId: stri
  */
 export function moveWidget(id: string, relation: DropRelation, targetId: string): boolean {
   if (!planMove(useDeviceStore.getState().draft, id, relation, targetId)?.changed) return false
-  const reveal: { slot: number; id: string }[] = []
+  const reveal: { slot: string; page: number }[] = []
   mutateDraftConfiguration((configuration) => {
     const plan = planMove(configuration, id, relation, targetId)
     if (!plan) return
     applyMove(plan)
     const landed = findWidget(configuration, id)
-    for (const ancestor of landed ? ancestorsOf(configuration, landed) : []) {
-      if ((ancestor.slot ?? 0) > 0 && ancestor.id) {
-        reveal.push({ slot: ancestor.slot as number, id: ancestor.id })
-      }
+    if (!landed) return
+    // A path entry per ancestor, and one more after a slot for the page it
+    // holds the widget on — so the cursor is walked rather than derived.
+    let cursor = 0
+    for (const ancestor of ancestorsOf(configuration, landed)) {
+      cursor += 1
+      if (ancestor.type !== 'slot') continue
+      if (ancestor.id) reveal.push({ slot: ancestor.id, page: landed.path[cursor] ?? 0 })
+      cursor += 1
     }
   })
-  // A container in a slot the toolbar is not looking at is not drawn, so a widget
-  // dropped into one would vanish on release and read as a delete.
-  for (const { slot, id: container } of reveal) {
-    useDashboardEditorStore.getState().setPreviewSlot(slot, container)
+  // A page the tabs are not looking at is not drawn, so a widget dropped onto one
+  // would vanish on release and read as a delete.
+  for (const { slot, page } of reveal) {
+    useDashboardEditorStore.getState().setSlotPage(slot, page)
   }
   return true
 }

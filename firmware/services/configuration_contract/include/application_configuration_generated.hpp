@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 9;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 10;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
@@ -23,19 +23,21 @@ inline constexpr std::size_t kMaximumPayloadSize = 65536;
 // Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM.
 inline constexpr std::size_t kMaximumScreens = 4;
 // Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize.
-inline constexpr std::size_t kMaximumWidgetsPerScreen = 102;
-// Ordered widget references inside one container shape. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does.
+inline constexpr std::size_t kMaximumWidgetsPerScreen = 106;
+// Ordered widget references inside one container: a shape, or one page of a slot. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does.
 inline constexpr std::size_t kMaximumWidgetsPerContainer = 16;
-// How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference.
+// How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference — and why a slot page costs nothing here: it is walked without a recursion of its own, so a slot spends exactly what a container shape spends.
 inline constexpr std::size_t kMaximumNestingDepth = 4;
 // Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list.
 inline constexpr std::size_t kMaximumActions = 16;
-// Slots for the whole dashboard. A slot is a box whose container shapes are mutually exclusive; slot numbers run 1..kMaximumSlots and 0 means a shape is not in one.
-inline constexpr std::size_t kMaximumSlots = 4;
+// Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries.
+inline constexpr std::size_t kMaximumSlotPages = 8;
 // Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts.
 inline constexpr std::size_t kMaximumTextWidgets = 32;
-// Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and are also the only widget that holds other widgets, so this is the most generous cap: every container spends one.
+// Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap: every container spends one.
 inline constexpr std::size_t kMaximumShapeWidgets = 32;
+// Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool.
+inline constexpr std::size_t kMaximumSlotWidgets = 4;
 // Bar widget storage for the whole dashboard.
 inline constexpr std::size_t kMaximumBarWidgets = 16;
 // Arc widget storage for the whole dashboard.
@@ -155,7 +157,21 @@ enum class ShapeKind : std::uint8_t {
   ellipse,
 };
 
-// Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget.
+// How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds.
+enum class SlotTrigger : std::uint8_t {
+  none,
+  value_changed,
+  conditions,
+};
+
+// Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot.
+enum class WidgetParentKind : std::uint8_t {
+  screen,
+  shape,
+  slot_page,
+};
+
+// Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted.
 enum class WidgetType : std::uint8_t {
   text,
   shape,
@@ -164,6 +180,7 @@ enum class WidgetType : std::uint8_t {
   indicator,
   graph,
   image,
+  slot,
 };
 
 struct BoardConfiguration {
@@ -293,15 +310,13 @@ struct WidgetCondition {
   std::uint16_t hold_ms{};
 };
 
-// One activation rule for a container shape in a slot. The first rule whose
-// comparison holds shows its shape, and the hold keeps it up for that long
-// after the match ends so a momentary event stays readable. Kept separate
-// from a widget's styling rules because selection and appearance watch
-// different fields.
+// One activation rule for a slot page. The first rule whose comparison
+// holds raises the page. Kept separate from a widget's styling rules
+// because selection and appearance watch different fields; how long the
+// page then stays up belongs to the page, not to the rule that raised it.
 struct SlotCondition {
   ConditionOperator op{ConditionOperator::at_or_above};
   float value{};
-  std::uint16_t hold_ms{};
 };
 
 // Declaration-order reference into the typed widget storage, held by
@@ -345,7 +360,7 @@ struct WidgetFrame {
   std::uint8_t condition_count{};
   std::uint8_t screen_index{};
   std::uint8_t parent_index{};
-  bool parent_present{false};
+  WidgetParentKind parent_kind{WidgetParentKind::screen};
   std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
 };
 
@@ -441,23 +456,47 @@ struct ImageWidgetConfiguration {
   std::uint8_t recolor_opa{255};
 };
 
-// Panels, dividers and backing plates, and the only widget that holds other
-// widgets. The frame is the whole widget: it binds no telemetry of its own,
-// but its styling rules can still hide it or flash it, and a line is a thin
-// rectangle. A shape with widgets is a container — its children are placed
-// relative to its box, and they are drawn even where they overhang it.
-// Shapes sharing a slot occupy the same box with one of them visible at a
-// time.
+// Panels, dividers and backing plates, and the widget that draws while
+// holding other widgets. The frame is the whole widget: it binds no
+// telemetry of its own, but its styling rules can still hide it or flash
+// it, and a line is a thin rectangle. A shape with widgets is a container —
+// its children are placed relative to its box, and they are drawn even
+// where they overhang it.
 struct ShapeWidgetConfiguration {
   WidgetFrame frame{};
   ShapeKind kind{ShapeKind::rectangle};
-  std::uint8_t slot{};
-  bool slot_default{false};
-  ValueSourceConfiguration slot_source{};
-  std::uint8_t slot_condition_count{};
-  std::array<SlotCondition, kMaximumWidgetConditions> slot_conditions{};
   std::uint8_t widget_count{};
   std::array<WidgetReference, kMaximumWidgetsPerContainer> widgets{};
+};
+
+// One page of a slot: a set of widgets that share the slot's box and are
+// shown or hidden together. A page has no geometry, no frame and no styling
+// of its own — it is the slot's box, and its widgets are placed relative to
+// it. Pages the tap cycles are the loop; a page with a trigger is raised
+// over the loop while its event lasts, and the first such page in this
+// array wins when several fire at once.
+struct SlotPageConfiguration {
+  bool in_loop{true};
+  SlotTrigger trigger{SlotTrigger::none};
+  ValueSourceConfiguration source{};
+  std::uint16_t duration_ms{};
+  std::uint8_t condition_count{};
+  std::array<SlotCondition, kMaximumWidgetConditions> conditions{};
+  std::uint8_t widget_count{};
+  std::array<WidgetReference, kMaximumWidgetsPerContainer> widgets{};
+};
+
+// An area of a screen that switches what it shows. It draws nothing of its
+// own — no background, border, caption or styling rules, all of which are
+// rejected rather than ignored — and exists only to hold pages. A tap
+// cycles the pages in the loop; a page whose trigger fires is raised over
+// them for its duration and then hands the slot back to the loop page that
+// was showing. A slot is authored directly on a screen: it holds containers
+// rather than living inside one.
+struct SlotWidgetConfiguration {
+  WidgetFrame frame{};
+  std::uint8_t page_count{};
+  std::array<SlotPageConfiguration, kMaximumSlotPages> pages{};
 };
 
 // One dashboard screen: the coordinate space its widgets are placed in, and
@@ -493,6 +532,8 @@ struct DashboardConfiguration {
   std::array<GraphWidgetConfiguration, kMaximumGraphWidgets> graph_widgets{};
   std::uint8_t image_widget_count{};
   std::array<ImageWidgetConfiguration, kMaximumImageWidgets> image_widgets{};
+  std::uint8_t slot_widget_count{};
+  std::array<SlotWidgetConfiguration, kMaximumSlotWidgets> slot_widgets{};
 };
 
 struct ApplicationConfiguration {
@@ -754,7 +795,51 @@ inline constexpr std::array<std::string_view, 2> kShapeKindNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 7> kWidgetTypeNames{{
+inline constexpr std::array<std::string_view, 3> kSlotTriggerNames{{
+    "none",
+    "value_changed",
+    "conditions",
+}};
+
+[[nodiscard]] inline std::string_view slot_trigger_name(const SlotTrigger value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kSlotTriggerNames.size() ? kSlotTriggerNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool slot_trigger_from_name(const std::string_view name,
+                                                  SlotTrigger& value) {
+  for (std::size_t index = 0; index < kSlotTriggerNames.size(); ++index) {
+    if (kSlotTriggerNames[index] == name) {
+      value = static_cast<SlotTrigger>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 3> kWidgetParentKindNames{{
+    "screen",
+    "shape",
+    "slot_page",
+}};
+
+[[nodiscard]] inline std::string_view widget_parent_kind_name(const WidgetParentKind value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kWidgetParentKindNames.size() ? kWidgetParentKindNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool widget_parent_kind_from_name(const std::string_view name,
+                                                  WidgetParentKind& value) {
+  for (std::size_t index = 0; index < kWidgetParentKindNames.size(); ++index) {
+    if (kWidgetParentKindNames[index] == name) {
+      value = static_cast<WidgetParentKind>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 8> kWidgetTypeNames{{
     "text",
     "shape",
     "bar",
@@ -762,6 +847,7 @@ inline constexpr std::array<std::string_view, 7> kWidgetTypeNames{{
     "indicator",
     "graph",
     "image",
+    "slot",
 }};
 
 [[nodiscard]] inline std::string_view widget_type_name(const WidgetType value) {
@@ -807,7 +893,7 @@ struct WidgetTypeTraits {
                                               std::uint8_t){};
 };
 
-inline constexpr std::array<WidgetTypeTraits, 7> kWidgetTypeTraits{{
+inline constexpr std::array<WidgetTypeTraits, 8> kWidgetTypeTraits{{
     {
         .type = WidgetType::text,
         .name = "text",
@@ -1030,6 +1116,38 @@ inline constexpr std::array<WidgetTypeTraits, 7> kWidgetTypeTraits{{
             return {};
           }
           return std::as_bytes(std::span{&dashboard.image_widgets[index], 1});
+        },
+    },
+    {
+        .type = WidgetType::slot,
+        .name = "slot",
+        .storage_key = "slot_widgets",
+        .capacity = kMaximumSlotWidgets,
+        .count = [](const DashboardConfiguration& dashboard)
+            -> std::uint8_t { return dashboard.slot_widget_count; },
+        .set_count = [](DashboardConfiguration& dashboard,
+                        const std::uint8_t value) {
+          dashboard.slot_widget_count = value;
+        },
+        .frame = [](const DashboardConfiguration& dashboard,
+                    const std::uint8_t index) -> const WidgetFrame* {
+          return index < dashboard.slot_widget_count
+                     ? &dashboard.slot_widgets[index].frame
+                     : nullptr;
+        },
+        .mutable_frame = [](DashboardConfiguration& dashboard,
+                            const std::uint8_t index) -> WidgetFrame* {
+          return index < dashboard.slot_widget_count
+                     ? &dashboard.slot_widgets[index].frame
+                     : nullptr;
+        },
+        .element_bytes =
+            [](const DashboardConfiguration& dashboard,
+               const std::uint8_t index) -> std::span<const std::byte> {
+          if (index >= dashboard.slot_widget_count) {
+            return {};
+          }
+          return std::as_bytes(std::span{&dashboard.slot_widgets[index], 1});
         },
     },
 }};

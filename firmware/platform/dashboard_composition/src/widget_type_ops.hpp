@@ -18,12 +18,15 @@ namespace simcore::dashboard_composition {
 // knowledge lives here, in one template, rather than in seven copies of the
 // same five functions.
 //
-// Two shapes exist because two shapes of collection exist: a type that draws a
-// value takes the resolved bindings, while a type that only restyles takes the
-// reads its rules watch. They share everything else through WidgetOpsCommon.
+// Three shapes exist because three shapes of collection exist: a type that
+// draws a value takes the resolved bindings, a type that only restyles takes the
+// reads its rules watch, and the slot takes neither because it draws nothing at
+// all. They share everything else through WidgetOpsCommon.
 
-// Destroying, reaching a root object and waking are the same calls whatever
-// the type draws, so they are written here and inherited by both shapes.
+// Destroying and reaching a root object are the same calls whatever the type
+// draws, so they are written here and inherited by all three. Waking is not:
+// it belongs to a render timer, and the type with nothing to re-render has
+// none — which is exactly what makes the descriptor's wake entry optional.
 template <typename Storage>
 struct WidgetOpsCommon {
   static void destroy(void* const context) {
@@ -33,8 +36,6 @@ struct WidgetOpsCommon {
   static lv_obj_t* root_object(void* const context, const std::uint8_t index) {
     return storage(context).collection.root_object(index);
   }
-
-  static void wake(void* const context) { storage(context).collection.wake(); }
 
  protected:
   static Storage& storage(void* const context) {
@@ -85,6 +86,10 @@ template <typename Storage>
 struct ValueWidgetOps : WidgetOpsCommon<Storage> {
   using Common = WidgetOpsCommon<Storage>;
 
+  static void wake(void* const context) {
+    Common::storage(context).collection.wake();
+  }
+
   [[nodiscard]] static bool create(void* const context) {
     Storage& widgets = Common::storage(context);
     const auto configurations = Common::configurations(widgets);
@@ -122,6 +127,10 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
 template <typename Storage>
 struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
   using Common = WidgetOpsCommon<Storage>;
+
+  static void wake(void* const context) {
+    Common::storage(context).collection.wake();
+  }
 
   [[nodiscard]] static bool create(void* const context) {
     Storage& widgets = Common::storage(context);
@@ -175,11 +184,35 @@ struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
   }
 };
 
+// The slot: the only type that neither draws nor binds anything of its own. It
+// builds the objects and stops there — which page of them is visible, and what
+// telemetry raises it, belong to the slots controller. So there is no binder to
+// rebind, no timer to wake, and rebuilding one instance is not possible at all:
+// a slot's pages hold other widgets, and deleting the slot deletes them with it.
+template <typename Storage>
+struct SlotWidgetOps : WidgetOpsCommon<Storage> {
+  using Common = WidgetOpsCommon<Storage>;
+
+  [[nodiscard]] static bool create(void* const context) {
+    Storage& widgets = Common::storage(context);
+    if (!widgets.collection.create(widgets.layout,
+                                   Common::configurations(widgets),
+                                   *widgets.fonts, widgets.page_slots)) {
+      return Common::report_create_failure();
+    }
+    return true;
+  }
+
+  [[nodiscard]] static bool update_instance(void*, std::uint8_t) {
+    return false;
+  }
+};
+
 // One descriptor for one type's storage. `enabled` follows the document: a type
 // the configuration never uses is registered but never built.
 template <typename Ops, typename Storage>
 [[nodiscard]] dashboard::WidgetDescriptor widget_descriptor(Storage& widgets) {
-  return {
+  dashboard::WidgetDescriptor descriptor{
       .type = Storage::kType,
       .enabled = configuration::widget_traits(Storage::kType)
                      .count(*widgets.dashboard) > 0,
@@ -187,9 +220,15 @@ template <typename Ops, typename Storage>
       .destroy = &Ops::destroy,
       .root_object = &Ops::root_object,
       .update_instance = &Ops::update_instance,
-      .wake = &Ops::wake,
+      .wake = nullptr,
       .context = &widgets,
   };
+  // A type with nothing to re-render provides no wake, which the manager
+  // already treats as an optional entry.
+  if constexpr (requires { &Ops::wake; }) {
+    descriptor.wake = &Ops::wake;
+  }
+  return descriptor;
 }
 
 }  // namespace simcore::dashboard_composition

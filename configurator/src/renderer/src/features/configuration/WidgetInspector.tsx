@@ -4,7 +4,7 @@ import { completePlacement, mutateSelectedWidget, selectedWidget, useDashboardEd
 import { Hint } from './inspector/fields'
 import { parseSelection, selectionValue } from './inspector/selection-value'
 import { ActionEditor, GeometryEditor, ScreenEditor } from './inspector/section-editors'
-import { ArcEditor, BarEditor, GraphEditor, ImageEditor, IndicatorEditor, ShapeEditor, TextEditor } from './inspector/widget-editors'
+import { ArcEditor, BarEditor, GraphEditor, ImageEditor, IndicatorEditor, ShapeEditor, SlotEditor, TextEditor } from './inspector/widget-editors'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -63,9 +63,14 @@ export function WidgetInspector(): React.JSX.Element {
               <ImageEditor selection={selection} widget={widget} />
             ) : widget.type === 'shape' ? (
               <ShapeEditor selection={selection} widget={widget} />
+            ) : widget.type === 'slot' ? (
+              <SlotEditor widget={widget} />
             ) : (
               <TextEditor selection={selection} widget={widget} />
             )}
+            {/* A slot's tap already means "next page", so it carries no action
+                and the device refuses one that does. */}
+            {widget.type === 'slot' ? null : (
             <ActionEditor
               configuration={configuration}
               action={widget.action}
@@ -77,6 +82,7 @@ export function WidgetInspector(): React.JSX.Element {
                 })
               }
             />
+            )}
           </>
         ) : null}
       </CardContent>
@@ -100,6 +106,8 @@ function widgetLabel(widget: WidgetConfiguration, index: number): string {
       return `Graph ${index + 1}: ${widget.source?.binding || 'Unbound'}`
     case 'image':
       return `Image ${index + 1}: ${widget.image || 'Unassigned'}`
+    case 'slot':
+      return `Slot ${index + 1}: ${widget.pages?.length ?? 0} page(s)`
     case 'text':
       return `Text ${index + 1}: ${widget.title?.text || widget.sources?.[0]?.binding || 'Untitled'}`
   }

@@ -23,11 +23,13 @@ enum class ValidationError : std::uint8_t {
   invalid_screen,
   invalid_dashboard,
   invalid_widget,
+  invalid_slot,
+  invalid_slot_page,
   unknown_property,
   duplicate_property,
 };
 
-inline constexpr std::array<std::string_view, 14> kValidationErrorNames{{
+inline constexpr std::array<std::string_view, 16> kValidationErrorNames{{
     "none",
     "malformed",
     "unsupported_schema",
@@ -40,6 +42,8 @@ inline constexpr std::array<std::string_view, 14> kValidationErrorNames{{
     "invalid_screen",
     "invalid_dashboard",
     "invalid_widget",
+    "invalid_slot",
+    "invalid_slot_page",
     "unknown_property",
     "duplicate_property",
 }};
@@ -184,10 +188,9 @@ inline constexpr std::array<std::string_view, 8> kWidgetConditionKeys{{
     "hold_ms",
 }};
 
-inline constexpr std::array<std::string_view, 3> kSlotConditionKeys{{
+inline constexpr std::array<std::string_view, 2> kSlotConditionKeys{{
     "op",
     "value",
-    "hold_ms",
 }};
 
 inline constexpr std::array<std::string_view, 3> kTextSourceConfigurationKeys{{
@@ -370,7 +373,7 @@ inline constexpr std::array<std::string_view, 18> kImageWidgetConfigurationKeys{
     "recolor_opa",
 }};
 
-inline constexpr std::array<std::string_view, 21> kShapeWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 17> kShapeWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -387,11 +390,35 @@ inline constexpr std::array<std::string_view, 21> kShapeWidgetConfigurationKeys{
     "color_ramp",
     "conditions",
     "kind",
-    "slot",
-    "slot_default",
-    "slot_source",
-    "slot_conditions",
     "widgets",
+}};
+
+inline constexpr std::array<std::string_view, 6> kSlotPageConfigurationKeys{{
+    "in_loop",
+    "trigger",
+    "source",
+    "duration_ms",
+    "conditions",
+    "widgets",
+}};
+
+inline constexpr std::array<std::string_view, 16> kSlotWidgetConfigurationKeys{{
+    "type",
+    "id",
+    "placement",
+    "z_index",
+    "padding",
+    "border",
+    "title",
+    "background_color",
+    "background_grad_color",
+    "background_grad_dir",
+    "background_inset_px",
+    "action",
+    "condition_source",
+    "color_ramp",
+    "conditions",
+    "pages",
 }};
 
 inline constexpr std::array<std::string_view, 3> kScreenConfigurationKeys{{

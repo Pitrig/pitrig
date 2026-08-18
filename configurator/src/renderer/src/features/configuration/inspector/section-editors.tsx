@@ -1,9 +1,9 @@
 import { screensOf, widgetsOf } from '../../../../../shared/configuration-access'
-import { CONDITION_OPERATOR_VALUES, type ConditionOperator, MAXIMUM_ACTIONS, MAXIMUM_SLOTS, MAXIMUM_WIDGET_CONDITIONS, type ShapeWidgetConfiguration, type ValueSourceConfiguration, WIDGET_ACTION_TYPE_VALUES, type WidgetAction, type WidgetActionType, type WidgetPlacement } from '../../../../../shared/configuration-schema'
+import { CONDITION_OPERATOR_VALUES, type ConditionOperator, MAXIMUM_ACTIONS, MAXIMUM_SLOT_PAGES, MAXIMUM_WIDGET_CONDITIONS, type ShapeWidgetConfiguration, SLOT_TRIGGER_VALUES, type SlotPageConfiguration, type SlotTrigger, type ValueSourceConfiguration, WIDGET_ACTION_TYPE_VALUES, type WidgetAction, type WidgetActionType, type WidgetPlacement } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { TELEMETRY_CATALOG } from '../../../../../shared/telemetry-catalog'
 import { MAXIMUM_HOLD_MS } from '../../../../../shared/widget-conditions'
-import { type WidgetSelection, actionCount, mutateActiveScreen, mutateSelectedWidget, renameScreen, useDashboardEditorStore } from '../dashboard-editor'
+import { type WidgetSelection, actionCount, addSlotPage, deleteSlotPage, mutateActiveScreen, mutateSelectedWidget, mutateSlotPage, renameScreen, useDashboardEditorStore } from '../dashboard-editor'
 import { TelemetryBindingField } from './TelemetryBindingField'
 import { CheckboxField, ColorField, IdField, NumberField, Section, SelectField } from './fields'
 
@@ -112,19 +112,16 @@ export function ActionEditor({
 }
 
 /**
- * What a shape gains by holding widgets: the slot it takes part in, and the
- * rules that decide when it is the one shown. Its name, box, stacking and
- * action are ordinary widget properties and are edited where every widget's
- * are, which is most of what a group used to need its own panel for.
+ * What a shape gains by holding widgets. Its name, box, stacking and action are
+ * ordinary widget properties and are edited where every widget's are, so all
+ * that is left here is what containment itself means. Switching what an area
+ * shows is the slot widget's business now, not the shape's.
  */
 export function ContainerEditor({
-  widget,
-  update
+  widget
 }: {
   widget: ShapeWidgetConfiguration
-  update: (mutation: (next: ShapeWidgetConfiguration) => void) => void
 }): React.JSX.Element {
-  const slot = widget.slot ?? 0
   const children = widgetsOf(widget).length
   return (
     <Section title="Container">
@@ -133,120 +130,207 @@ export function ContainerEditor({
           ? 'This shape holds no widgets. Select some and wrap them to make it a container; an empty one with an action is an invisible tap zone.'
           : `Holds ${children} widget(s), placed relative to this box. They are drawn even where they overhang it.`}
       </p>
-      <NumberField
-        label="Slot (0 = always visible)"
-        value={slot}
-        min={0}
-        max={MAXIMUM_SLOTS}
-        onChange={(value) =>
-          update((target) => {
-            if (value <= 0) {
-              delete target.slot
-              delete target.slot_default
-              delete target.slot_source
-              delete target.slot_conditions
-              return
-            }
-            target.slot = value
-          })
-        }
-      />
-      {slot > 0 ? (
+    </Section>
+  )
+}
+
+/**
+ * The pages of a slot: which of them the tap cycles, and what telemetry raises
+ * one over the others. The widgets on a page are authored in the canvas rather
+ * than here — a page is an area of the screen, so it is edited by looking at it.
+ */
+export function SlotPagesEditor({
+  slotId,
+  pages
+}: {
+  slotId: string
+  pages: SlotPageConfiguration[]
+}): React.JSX.Element {
+  const current = useDashboardEditorStore((state) => state.slotPage[slotId] ?? 0)
+  const setSlotPage = useDashboardEditorStore((state) => state.setSlotPage)
+  const drillIn = useDashboardEditorStore((state) => state.drillIn)
+  const setDrillIn = useDashboardEditorStore((state) => state.setDrillIn)
+  const page = pages[current]
+  const trigger = page?.trigger ?? 'none'
+  const change = (mutation: (next: SlotPageConfiguration) => void): void =>
+    mutateSlotPage(slotId, current, mutation)
+
+  return (
+    <Section title="Pages">
+      <div className="flex flex-wrap items-center gap-1">
+        {pages.map((_, index) => (
+          <button
+            key={index}
+            type="button"
+            className={`h-8 rounded-md border px-2 ${index === current ? 'bg-muted' : 'hover:bg-muted'}`}
+            onClick={() => setSlotPage(slotId, index)}
+          >
+            {index + 1}
+          </button>
+        ))}
+        {pages.length < MAXIMUM_SLOT_PAGES ? (
+          <button
+            type="button"
+            className="h-8 rounded-md border px-2 hover:bg-muted"
+            onClick={() => addSlotPage(slotId)}
+          >
+            Add page
+          </button>
+        ) : null}
+        {pages.length > 1 ? (
+          <button
+            type="button"
+            className="h-8 rounded-md border px-2 hover:bg-muted"
+            onClick={() => deleteSlotPage(slotId, current)}
+          >
+            Delete page
+          </button>
+        ) : null}
+      </div>
+      <p className="text-muted-foreground">
+        Page order is priority: when two pages are triggered at once the device shows the earlier
+        one.
+      </p>
+      <button
+        type="button"
+        className="h-8 rounded-md border px-2 hover:bg-muted"
+        onClick={() => setDrillIn(drillIn === slotId ? undefined : slotId)}
+      >
+        {drillIn === slotId ? 'Close this slot' : 'Edit pages on the canvas'}
+      </button>
+      {page ? (
         <>
           <CheckboxField
-            label="Shown first in this slot"
-            checked={widget.slot_default === true}
+            label="In the tap loop"
+            checked={page.in_loop !== false}
             onChange={(checked) =>
-              update((target) => {
-                if (checked) target.slot_default = true
-                else delete target.slot_default
+              change((next) => {
+                if (checked) delete next.in_loop
+                else next.in_loop = false
               })
             }
           />
-          <p className="text-muted-foreground">
-            Shapes sharing a slot must share one parent and this box, and exactly one of them must
-            be shown first. Tapping the slot on the board cycles to the next one; a matching rule
-            below overrides that while it holds.
-          </p>
-          <TelemetryBindingField
-            value={widget.slot_source?.binding ?? ''}
-            onChange={(binding) =>
-              update((target) => {
-                if (!binding) delete target.slot_source
-                else target.slot_source = { ...target.slot_source, binding }
+          <SelectField
+            label="Shown by telemetry"
+            value={trigger}
+            options={SLOT_TRIGGER_VALUES}
+            onChange={(value) =>
+              change((next) => {
+                const chosen = value as SlotTrigger
+                if (chosen === 'none') {
+                  // The device refuses a binding, a rule or a duration nothing
+                  // reads, so dropping the trigger drops what it was reading.
+                  delete next.trigger
+                  delete next.source
+                  delete next.conditions
+                  delete next.duration_ms
+                  return
+                }
+                next.trigger = chosen
+                if (chosen === 'value_changed') delete next.conditions
+                if (chosen === 'value_changed' && !next.duration_ms) next.duration_ms = 2000
+                if (chosen === 'conditions' && !next.conditions?.length) {
+                  next.conditions = [{ op: 'at_or_above', value: 1 }]
+                }
               })
             }
           />
-          {(widget.slot_conditions ?? []).map((rule, index) => (
-            <div key={index} className="grid grid-cols-[6rem_1fr_5rem_auto] items-end gap-2">
-              <SelectField
-                label="When"
-                value={rule.op ?? 'above'}
-                options={CONDITION_OPERATOR_VALUES}
-                onChange={(op) =>
-                  update((target) => {
-                    const rules = target.slot_conditions ?? []
-                    rules[index] = { ...rules[index], op: op as ConditionOperator }
-                    target.slot_conditions = rules
+          {trigger === 'none' ? (
+            <p className="text-muted-foreground">
+              Reached only by tapping the slot. Give it a trigger to have the device raise it over
+              the loop on its own.
+            </p>
+          ) : (
+            <>
+              <TelemetryBindingField
+                value={page.source?.binding ?? ''}
+                onChange={(binding) =>
+                  change((next) => {
+                    if (!binding) delete next.source
+                    else next.source = { ...next.source, binding }
                   })
                 }
               />
               <NumberField
-                label="Value"
-                value={rule.value ?? 0}
-                step="any"
-                onChange={(value) =>
-                  update((target) => {
-                    const rules = target.slot_conditions ?? []
-                    rules[index] = { ...rules[index], value }
-                    target.slot_conditions = rules
-                  })
-                }
-              />
-              <NumberField
-                label="Hold ms"
-                value={rule.hold_ms ?? 0}
+                label="Shown for (ms)"
+                value={page.duration_ms ?? 0}
                 min={0}
                 max={MAXIMUM_HOLD_MS}
-                onChange={(hold_ms) =>
-                  update((target) => {
-                    const rules = target.slot_conditions ?? []
-                    rules[index] = { ...rules[index], hold_ms }
-                    target.slot_conditions = rules
+                onChange={(duration_ms) =>
+                  change((next) => {
+                    if (duration_ms <= 0) delete next.duration_ms
+                    else next.duration_ms = Math.min(MAXIMUM_HOLD_MS, duration_ms)
                   })
                 }
               />
-              <button
-                type="button"
-                className="h-8 rounded-md border px-2 hover:bg-muted"
-                onClick={() =>
-                  update((target) => {
-                    const rules = (target.slot_conditions ?? []).filter((_, at) => at !== index)
-                    if (rules.length === 0) delete target.slot_conditions
-                    else target.slot_conditions = rules
-                  })
-                }
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-          {(widget.slot_conditions ?? []).length < MAXIMUM_WIDGET_CONDITIONS ? (
-            <button
-              type="button"
-              className="h-8 rounded-md border px-2 hover:bg-muted"
-              onClick={() =>
-                update((target) => {
-                  target.slot_conditions = [
-                    ...(target.slot_conditions ?? []),
-                    { op: 'above', value: 0 }
-                  ]
-                })
-              }
-            >
-              Add activation rule
-            </button>
-          ) : null}
+              <p className="text-muted-foreground">
+                {trigger === 'value_changed'
+                  ? 'Shown whenever the value differs from the last one seen — which is what makes a momentary aid such as ABS readable. It needs a time to stay up for.'
+                  : 'Shown while a rule below holds. Zero shows it only while one holds; a time keeps it up for that long after the last match.'}
+              </p>
+              {trigger === 'conditions' ? (
+                <>
+                  {(page.conditions ?? []).map((rule, index) => (
+                    <div key={index} className="grid grid-cols-[6rem_1fr_auto] items-end gap-2">
+                      <SelectField
+                        label="When"
+                        value={rule.op ?? 'at_or_above'}
+                        options={CONDITION_OPERATOR_VALUES}
+                        onChange={(op) =>
+                          change((next) => {
+                            const rules = next.conditions ?? []
+                            rules[index] = { ...rules[index], op: op as ConditionOperator }
+                            next.conditions = rules
+                          })
+                        }
+                      />
+                      <NumberField
+                        label="Value"
+                        value={rule.value ?? 0}
+                        step="any"
+                        onChange={(value) =>
+                          change((next) => {
+                            const rules = next.conditions ?? []
+                            rules[index] = { ...rules[index], value }
+                            next.conditions = rules
+                          })
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="h-8 rounded-md border px-2 hover:bg-muted"
+                        disabled={(page.conditions ?? []).length <= 1}
+                        onClick={() =>
+                          change((next) => {
+                            const rules = (next.conditions ?? []).filter((_, at) => at !== index)
+                            if (rules.length > 0) next.conditions = rules
+                          })
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {(page.conditions ?? []).length < MAXIMUM_WIDGET_CONDITIONS ? (
+                    <button
+                      type="button"
+                      className="h-8 rounded-md border px-2 hover:bg-muted"
+                      onClick={() =>
+                        change((next) => {
+                          next.conditions = [
+                            ...(next.conditions ?? []),
+                            { op: 'at_or_above', value: 1 }
+                          ]
+                        })
+                      }
+                    >
+                      Add activation rule
+                    </button>
+                  ) : null}
+                </>
+              ) : null}
+            </>
+          )}
         </>
       ) : null}
     </Section>
