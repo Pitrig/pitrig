@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
-import { allWidgetsOf } from '../../../../shared/configuration-access'
-import type { FontSpec } from '../../../../shared/configuration-schema'
-import { BOARD_PROFILES } from '../../../../shared/device'
-import { type WidgetSelection, MAXIMUM_TEXT_WIDGETS, addArcWidget, addBarWidget, addGraphWidget, addImageWidget, addIndicatorWidget, addShapeWidget, addSlotWidget, addTextWidget, deleteWidget, draftValueFont, duplicateWidget, findWidget, useDashboardEditorStore } from './dashboard-editor'
+import { allWidgetsOf } from '@shared/configuration-access'
+import type { WidgetConfiguration } from '@shared/configuration-schema'
+import { BOARD_PROFILES } from '@shared/device'
+import { MAXIMUM_TEXT_WIDGETS, addWidget, deleteWidget, draftValueFont, duplicateWidget, findWidget, useDashboardEditorStore } from '../dashboard-editor'
 import { usePreviewAssetStore } from './preview-assets'
-import { Widgets } from './preview/PreviewCanvas'
-import { ArrangeToolbar } from './preview/PreviewChrome'
+import { Widgets } from './PreviewCanvas'
+import { ArrangeToolbar } from './PreviewChrome'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -18,19 +18,16 @@ import { useDeviceStore } from '@/features/device/device-store'
 const ADD_WIDGET_BUTTONS: {
   label: string
   width: string
-  add: (
-    display: { width: number; height: number },
-    defaults: { font?: FontSpec; image?: string }
-  ) => WidgetSelection | undefined
+  type: WidgetConfiguration['type']
 }[] = [
-  { label: 'Text', width: 'w-20', add: (display, { font }) => addTextWidget(display, font) },
-  { label: 'Shape', width: 'w-20', add: (display) => addShapeWidget(display) },
-  { label: 'Bar', width: 'w-20', add: (display) => addBarWidget(display) },
-  { label: 'Arc', width: 'w-20', add: (display) => addArcWidget(display) },
-  { label: 'Lights', width: 'w-24', add: (display) => addIndicatorWidget(display) },
-  { label: 'Graph', width: 'w-20', add: (display) => addGraphWidget(display) },
-  { label: 'Image', width: 'w-20', add: (display, { image }) => addImageWidget(display, image) },
-  { label: 'Slot', width: 'w-20', add: (display) => addSlotWidget(display) }
+  { label: 'Text', width: 'w-20', type: 'text' },
+  { label: 'Shape', width: 'w-20', type: 'shape' },
+  { label: 'Bar', width: 'w-20', type: 'bar' },
+  { label: 'Arc', width: 'w-20', type: 'arc' },
+  { label: 'Lights', width: 'w-24', type: 'indicator' },
+  { label: 'Graph', width: 'w-20', type: 'graph' },
+  { label: 'Image', width: 'w-20', type: 'image' },
+  { label: 'Slot', width: 'w-20', type: 'slot' }
 ]
 
 export function DisplayPreview(): React.JSX.Element {
@@ -85,7 +82,7 @@ export function DisplayPreview(): React.JSX.Element {
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Display preview</CardTitle>
           <div className="flex flex-wrap justify-end gap-2">
-            {ADD_WIDGET_BUTTONS.map(({ label, width, add }) => {
+            {ADD_WIDGET_BUTTONS.map(({ label, width, type }) => {
               const atCapacity = label === 'Text' && textWidgetCount >= MAXIMUM_TEXT_WIDGETS
               return (
                 <Button
@@ -96,7 +93,10 @@ export function DisplayPreview(): React.JSX.Element {
                   title={atCapacity ? `Maximum of ${MAXIMUM_TEXT_WIDGETS} text widgets reached.` : undefined}
                   onClick={() => {
                     if (!display) return
-                    const added = add(display, { font: defaultFont, image: session?.imageAssets?.images[0]?.name })
+                    const added = addWidget(type, display, {
+                      font: defaultFont,
+                      image: session?.imageAssets?.images[0]?.name
+                    })
                     if (added) select(added)
                   }}
                 >

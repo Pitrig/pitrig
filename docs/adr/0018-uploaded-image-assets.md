@@ -88,6 +88,12 @@ the body of its `INFO` reply; nothing else about the transfer is per-kind. The
 engine is plain data rather than a template, so the binary carries one copy of
 the state machine.
 
+The package format is shared on the same terms. Both kinds write the same
+32-byte header and commit it the same way, so `services/asset_package` holds
+that header, its validation, and the update status and error types. A kind keeps
+its magic and version, its manifest entry decoder, and its catalog — a font face
+describes itself and a bitmap does not, which is the whole of the difference.
+
 ## Consequences
 
 - A new image needs an upload and a restart, not a new firmware.

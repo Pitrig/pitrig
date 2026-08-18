@@ -8,7 +8,6 @@
 #include "binary_session.hpp"
 #include "configuration_control.hpp"
 #include "configuration_json.hpp"
-#include "simcore_features.hpp"
 #include "transport.hpp"
 
 namespace simcore::communication {
@@ -31,9 +30,9 @@ class Router final {
       16 + configuration::kMaximumPayloadSize;
   static constexpr std::size_t kMaximumBinarySessions = 2;
 
-#if SIMCORE_SECOND_TELEMETRY_LINK
   // `transport` is this router's link: where its answers go, and the identity
-  // the shared claim records when an upload takes the stream.
+  // the shared claim records when an upload takes the stream. A product build
+  // has one, which is why the parameter is unconditional.
   void initialize(configuration::ConfigurationControl& control,
                   binary_session::Claim& claim,
                   std::span<const binary_session::Session* const> sessions,
@@ -41,14 +40,6 @@ class Router final {
                   void* telemetry_context,
                   std::span<std::uint8_t> control_line_buffer,
                   transport::ITransport& transport);
-#else
-  void initialize(configuration::ConfigurationControl& control,
-                  binary_session::Claim& claim,
-                  std::span<const binary_session::Session* const> sessions,
-                  transport::DataHandler telemetry_handler,
-                  void* telemetry_context,
-                  std::span<std::uint8_t> control_line_buffer);
-#endif
   void reset();
   void consume(std::span<const std::uint8_t> data);
 
@@ -58,9 +49,7 @@ class Router final {
   void dispatch();
 
   configuration::ConfigurationControl* control_{};
-#if SIMCORE_SECOND_TELEMETRY_LINK
   transport::ITransport* transport_{};
-#endif
   binary_session::Claim* claim_{};
   std::array<const binary_session::Session*, kMaximumBinarySessions> sessions_{};
   std::size_t session_count_{};

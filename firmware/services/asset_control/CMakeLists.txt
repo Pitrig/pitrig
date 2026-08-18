@@ -1,6 +1,8 @@
 idf_component_register(
   SRCS "src/asset_control.cpp"
+       "src/asset_replies.cpp"
   INCLUDE_DIRS "include"
+  PRIV_INCLUDE_DIRS "src"
   REQUIRES binary_session freertos performance transport
   PRIV_REQUIRES binary simcore_config)
 

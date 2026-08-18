@@ -70,6 +70,39 @@ bool reject(ValidationFailure& failure, ValidationError error,
                                        font_assets::FontSpec& font,
                                        ValidationFailure& failure);
 
+// One bounded array, which is the shape every list in the document takes:
+// absent means empty, anything that is not an array or does not fit is
+// rejected, and each element is read by `read_element(item, destination)`. The
+// count is only written once every element has been accepted, so a rejected
+// array leaves the configuration describing none of it.
+//
+// This was open-coded six times, and each copy had its own chance to get the
+// bound wrong.
+template <typename Element, std::size_t Capacity, typename ReadElement>
+[[nodiscard]] bool read_array(const cJSON* const object, const char* const key,
+                              std::array<Element, Capacity>& destination,
+                              std::uint8_t& count, const std::string_view name,
+                              const ValidationError error,
+                              ValidationFailure& failure,
+                              ReadElement&& read_element,
+                              const std::string_view rejected_key = {}) {
+  const cJSON* const array = member(object, key);
+  if (array == nullptr) {
+    return true;
+  }
+  const int size = cJSON_IsArray(array) ? cJSON_GetArraySize(array) : -1;
+  if (size < 0 || size > static_cast<int>(destination.size())) {
+    return reject(failure, error, name, rejected_key);
+  }
+  for (int index = 0; index < size; ++index) {
+    if (!read_element(cJSON_GetArrayItem(array, index), destination[index])) {
+      return false;
+    }
+  }
+  count = static_cast<std::uint8_t>(size);
+  return true;
+}
+
 template <typename Integer>
 [[nodiscard]] bool read_integer(const cJSON* const object,
                                 const char* const key, Integer& output,

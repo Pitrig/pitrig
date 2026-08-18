@@ -11,10 +11,6 @@ namespace {
 
 constexpr char kTag[] = "bar_widget";
 
-// Telemetry changes wake the render timer early through the dashboard's render
-// trigger, so this is the fallback poll and the blink cadence.
-constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
-
 // Where a rule's value colour lands for this widget type.
 void apply_fill_color(void* const context, const std::uint32_t rgb) {
   lv_obj_set_style_bg_color(static_cast<lv_obj_t*>(context), lv_color_hex(rgb),
@@ -22,16 +18,6 @@ void apply_fill_color(void* const context, const std::uint32_t rgb) {
 }
 
 }  // namespace
-
-Collection::~Collection() { destroy(); }
-
-void Collection::destroy() {
-  if (!created_ || !lvgl_port_lock(0)) {
-    return;
-  }
-  clear_objects();
-  lvgl_port_unlock();
-}
 
 bool Collection::build(State& state, const Layout& layout, const Config& config,
                        const frame::ValueBinding& binding,
@@ -108,53 +94,14 @@ bool Collection::create(const Layout& layout,
                         const std::span<const Config> configurations,
                         const std::span<const frame::ValueBinding> bindings,
                         const fonts::Registry& fonts) {
-  if (layout.display == nullptr || bindings.size() > states_.size() ||
-      configurations.size() != bindings.size() || created_ ||
-      !lvgl_port_lock(0)) {
+  if (layout.display == nullptr || configurations.size() != bindings.size()) {
     return false;
   }
-
-  created_ = true;
-  for (std::size_t widget = 0; widget < bindings.size(); ++widget) {
-    if (bindings[widget].read == nullptr ||
-        bindings[widget].read_context == nullptr ||
-        !build(states_[count_], layout, configurations[widget],
-               bindings[widget], fonts)) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-    ++count_;
-  }
-
-  render();
-  if (count_ > 0) {
-    timer_ = lv_timer_create(update, kRenderPeriodMs, this);
-    if (timer_ == nullptr) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-  }
-
-  lvgl_port_unlock();
-  return true;
-}
-
-void Collection::update(lv_timer_t* const timer) {
-  auto* const collection =
-      static_cast<Collection*>(lv_timer_get_user_data(timer));
-  if (collection != nullptr) {
-    collection->render();
-  }
-}
-
-void Collection::wake() {
-  if (timer_ != nullptr) {
-    lv_timer_ready(timer_);
-  }
+  return build_all(bindings.size(), [&](State& state, const std::size_t index) {
+    return bindings[index].read != nullptr &&
+           bindings[index].read_context != nullptr &&
+           build(state, layout, configurations[index], bindings[index], fonts);
+  });
 }
 
 void Collection::render_state(State& state) {
@@ -212,53 +159,16 @@ void Collection::render_state(State& state) {
   }
 }
 
-void Collection::render() {
-  if (!created_) {
-    return;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    render_state(states_[index]);
-  }
-}
-
-void Collection::release(State& state) {
-  state.painter.release();
-  if (state.container != nullptr) {
-    lv_obj_delete(state.container);
-  }
-  state = {};
-}
-
-void Collection::clear_objects() {
-  if (timer_ != nullptr) {
-    lv_timer_delete(timer_);
-    timer_ = nullptr;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    release(states_[index]);
-  }
-  count_ = 0;
-  created_ = false;
-}
-
 bool Collection::recreate(const std::size_t index, const Layout& layout,
                           const Config& configuration,
                           const frame::ValueBinding& binding,
-                       const fonts::Registry& fonts) {
-  if (!created_ || index >= count_ || binding.read == nullptr ||
-      binding.read_context == nullptr || !lvgl_port_lock(0)) {
+                          const fonts::Registry& fonts) {
+  if (binding.read == nullptr || binding.read_context == nullptr) {
     return false;
   }
-  State& state = states_[index];
-  release(state);
-  const bool built = build(state, layout, configuration, binding, fonts);
-  if (built) {
-    render_state(state);
-  } else {
-    release(state);
-  }
-  lvgl_port_unlock();
-  return built;
+  return rebuild_one(index, [&](State& state) {
+    return build(state, layout, configuration, binding, fonts);
+  });
 }
 
 }  // namespace simcore::dashboard::bar_widget

@@ -10,9 +10,6 @@ namespace {
 
 constexpr char kTag[] = "image_widget";
 
-// An image has nothing to poll: it re-renders only so a blink phase can advance
-// and a held rule can run out, both of which follow the display cadence.
-constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
 
 // Where a rule's value colour lands for this widget type. A bitmap cannot take
 // a colour outright, so it takes a tint.
@@ -22,16 +19,6 @@ void apply_recolor(void* const context, const std::uint32_t rgb) {
 }
 
 }  // namespace
-
-Collection::~Collection() { destroy(); }
-
-void Collection::destroy() {
-  if (!created_ || !lvgl_port_lock(0)) {
-    return;
-  }
-  clear_objects();
-  lvgl_port_unlock();
-}
 
 bool Collection::build(State& state, const Layout& layout, const Config& config,
                        const frame::ValueReadCallback read,
@@ -76,87 +63,23 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   return true;
 }
 
+
 bool Collection::create(const Layout& layout,
                         const std::span<const Config> configurations,
                         const std::span<const frame::ValueReadCallback> reads,
                         const std::span<void* const> read_contexts,
                         const fonts::Registry& fonts,
                         const images::Registry& images) {
-  if (layout.display == nullptr || configurations.size() > states_.size() ||
-      reads.size() != configurations.size() ||
-      read_contexts.size() != configurations.size() || created_ ||
-      !lvgl_port_lock(0)) {
+  if (layout.display == nullptr || reads.size() != configurations.size() ||
+      read_contexts.size() != configurations.size()) {
     return false;
   }
-
-  created_ = true;
-  for (std::size_t widget = 0; widget < configurations.size(); ++widget) {
-    if (!build(states_[count_], layout, configurations[widget], reads[widget],
-               read_contexts[widget], fonts, images)) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-    ++count_;
-  }
-
-  render();
-  if (count_ > 0) {
-    timer_ = lv_timer_create(update, kRenderPeriodMs, this);
-    if (timer_ == nullptr) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-  }
-
-  lvgl_port_unlock();
-  return true;
-}
-
-void Collection::update(lv_timer_t* const timer) {
-  auto* const collection =
-      static_cast<Collection*>(lv_timer_get_user_data(timer));
-  if (collection != nullptr) {
-    collection->render();
-  }
-}
-
-void Collection::wake() {
-  if (timer_ != nullptr) {
-    lv_timer_ready(timer_);
-  }
-}
-
-void Collection::render() {
-  if (!created_) {
-    return;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    states_[index].painter.render();
-  }
-}
-
-void Collection::release(State& state) {
-  state.painter.release();
-  if (state.container != nullptr) {
-    lv_obj_delete(state.container);
-  }
-  state = {};
-}
-
-void Collection::clear_objects() {
-  if (timer_ != nullptr) {
-    lv_timer_delete(timer_);
-    timer_ = nullptr;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    release(states_[index]);
-  }
-  count_ = 0;
-  created_ = false;
+  return build_all(configurations.size(),
+                   [&](State& state, const std::size_t index) {
+                     return build(state, layout, configurations[index],
+                                  reads[index], read_contexts[index], fonts,
+                                  images);
+                   });
 }
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
@@ -165,20 +88,10 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
                           void* const read_context,
                           const fonts::Registry& fonts,
                           const images::Registry& images) {
-  if (!created_ || index >= count_ || !lvgl_port_lock(0)) {
-    return false;
-  }
-  State& state = states_[index];
-  release(state);
-  const bool built =
-      build(state, layout, configuration, read, read_context, fonts, images);
-  if (built) {
-    state.painter.render();
-  } else {
-    release(state);
-  }
-  lvgl_port_unlock();
-  return built;
+  return rebuild_one(index, [&](State& state) {
+    return build(state, layout, configuration, read, read_context, fonts,
+                 images);
+  });
 }
 
 }  // namespace simcore::dashboard::image_widget

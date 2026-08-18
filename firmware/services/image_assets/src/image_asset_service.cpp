@@ -7,61 +7,6 @@
 #include "crc32.hpp"
 
 namespace simcore::image_assets {
-namespace {
-
-// "SCIA". The header layout is byte-for-byte the font package's, so the two
-// formats stay readable side by side and only the magic tells them apart.
-constexpr std::uint32_t kMagic = 0x4149'4353U;
-constexpr std::size_t kManifestOffset = kHeaderSize;
-constexpr std::size_t kHeaderMagicOffset = 0;
-constexpr std::size_t kHeaderFormatVersionOffset = 4;
-constexpr std::size_t kHeaderSizeOffset = 6;
-constexpr std::size_t kHeaderReservedWordOffset = 8;
-constexpr std::size_t kHeaderEntryCountOffset = 12;
-constexpr std::size_t kHeaderReservedOffset = 14;
-constexpr std::size_t kHeaderPayloadSizeOffset = 16;
-constexpr std::size_t kHeaderManifestCrcOffset = 20;
-constexpr std::size_t kHeaderPayloadCrcOffset = 24;
-constexpr std::size_t kHeaderCrcOffset = 28;
-
-// The manifest entry is where the two formats part company: a face describes
-// its own geometry, a bitmap does not.
-constexpr std::size_t kEntryIdOffset = 0;
-constexpr std::size_t kEntryWidthOffset = 32;
-constexpr std::size_t kEntryHeightOffset = 34;
-constexpr std::size_t kEntryFormatOffset = 36;
-constexpr std::size_t kEntryReservedByteOffset = 37;
-constexpr std::size_t kEntryStrideOffset = 38;
-constexpr std::size_t kEntryDataOffset = 40;
-constexpr std::size_t kEntryLengthOffset = 44;
-constexpr std::size_t kEntryCrcOffset = 48;
-constexpr std::size_t kEntryPaletteOffset = 52;
-constexpr std::size_t kEntryPaletteCountOffset = 56;
-constexpr std::size_t kEntryReservedWordOffset = 58;
-constexpr std::size_t kEntryReservedTailOffset = 60;
-
-[[nodiscard]] bool known_format(const std::uint8_t value, ColorFormat& format) {
-  switch (value) {
-    case static_cast<std::uint8_t>(ColorFormat::rgb565):
-    case static_cast<std::uint8_t>(ColorFormat::rgb565a8):
-    case static_cast<std::uint8_t>(ColorFormat::indexed8):
-    case static_cast<std::uint8_t>(ColorFormat::alpha8):
-      format = static_cast<ColorFormat>(value);
-      return true;
-    default:
-      return false;
-  }
-}
-
-[[nodiscard]] bool ranges_overlap(const ImageAsset& lhs, const ImageAsset& rhs) {
-  const auto* const lhs_begin = lhs.bytes.data();
-  const auto* const lhs_end = lhs_begin + lhs.bytes.size();
-  const auto* const rhs_begin = rhs.bytes.data();
-  const auto* const rhs_end = rhs_begin + rhs.bytes.size();
-  return lhs_begin < rhs_end && rhs_begin < lhs_end;
-}
-
-}  // namespace
 
 Service::~Service() {
   if (storage_ != nullptr) {
@@ -97,7 +42,7 @@ bool Service::initialize(IStorage& storage) {
 
   status_.package_available = true;
   status_.format_version = kFormatVersion;
-  status_.image_count = package_.image_count;
+  status_.entry_count = package_.image_count;
   status_.package_size = package_.package_size;
   for (std::size_t index = 0; index < package_.image_count; ++index) {
     const ImageAsset& asset = package_.images[index];
@@ -190,7 +135,8 @@ UpdateError Service::commit_update() {
   const bool valid =
       validate_package(candidate_mapping, update_header_, package_);
   storage_->unmap();
-  if (!valid || binary::read_u32_le(update_header_, kHeaderPayloadSizeOffset) !=
+  if (!valid || binary::read_u32_le(update_header_,
+                          asset_package::kHeaderPayloadSizeOffset) !=
                     update_size_) {
     package_ = {};
     reset_update();
@@ -214,7 +160,7 @@ UpdateError Service::commit_update() {
   storage_->unmap();
   status_.package_available = true;
   status_.format_version = kFormatVersion;
-  status_.image_count = package_.image_count;
+  status_.entry_count = package_.image_count;
   status_.package_size = package_.package_size;
   image_catalog_ = {};
   for (std::size_t index = 0; index < package_.image_count; ++index) {
@@ -258,100 +204,11 @@ void Service::cancel_update() {
   reset_update();
 }
 
-bool Service::validate_package(const std::span<const std::uint8_t> storage_bytes,
-                               const std::span<const std::uint8_t> header_override,
-                               ParsedPackage& parsed) const {
-  parsed = {};
-  if (storage_bytes.size() != kStorageSize ||
-      (!header_override.empty() && header_override.size() != kHeaderSize)) {
-    return false;
-  }
-  const auto header =
-      header_override.empty() ? storage_bytes.first(kHeaderSize) : header_override;
-  const std::uint16_t entry_count =
-      binary::read_u16_le(header, kHeaderEntryCountOffset);
-  const std::uint32_t payload_size =
-      binary::read_u32_le(header, kHeaderPayloadSizeOffset);
-  const std::size_t manifest_size =
-      static_cast<std::size_t>(entry_count) * kManifestEntrySize;
-  if (binary::read_u32_le(header, kHeaderMagicOffset) != kMagic ||
-      binary::read_u16_le(header, kHeaderFormatVersionOffset) != kFormatVersion ||
-      binary::read_u16_le(header, kHeaderSizeOffset) != kHeaderSize ||
-      binary::read_u32_le(header, kHeaderReservedWordOffset) != 0 ||
-      entry_count > kMaximumImages ||
-      binary::read_u16_le(header, kHeaderReservedOffset) != 0 ||
-      kManifestOffset + manifest_size > kAssetDataOffset ||
-      payload_size < kAssetDataOffset || payload_size > storage_bytes.size() ||
-      binary::read_u32_le(header, kHeaderCrcOffset) !=
-          binary::crc32(header.first(kHeaderCrcOffset))) {
-    return false;
-  }
-
-  const auto manifest = storage_bytes.subspan(kManifestOffset, manifest_size);
-  if (binary::read_u32_le(header, kHeaderManifestCrcOffset) !=
-          binary::crc32(manifest) ||
-      binary::read_u32_le(header, kHeaderPayloadCrcOffset) !=
-          binary::crc32(storage_bytes.subspan(kAssetDataOffset,
-                                              payload_size - kAssetDataOffset))) {
-    return false;
-  }
-
-  parsed.image_count = entry_count;
-  parsed.package_size = payload_size;
-  for (std::size_t index = 0; index < entry_count; ++index) {
-    const auto entry =
-        manifest.subspan(index * kManifestEntrySize, kManifestEntrySize);
-    ImageAsset& asset = parsed.images[index];
-    std::copy_n(entry.begin() + kEntryIdOffset, asset.id.size(), asset.id.begin());
-    asset.width = binary::read_u16_le(entry, kEntryWidthOffset);
-    asset.height = binary::read_u16_le(entry, kEntryHeightOffset);
-    asset.stride = binary::read_u16_le(entry, kEntryStrideOffset);
-    asset.palette_count = binary::read_u16_le(entry, kEntryPaletteCountOffset);
-    const std::uint32_t offset = binary::read_u32_le(entry, kEntryDataOffset);
-    const std::uint32_t length = binary::read_u32_le(entry, kEntryLengthOffset);
-    if (!valid_image_id(asset.id) || !known_format(entry[kEntryFormatOffset], asset.format) ||
-        entry[kEntryReservedByteOffset] != 0 ||
-        binary::read_u16_le(entry, kEntryReservedWordOffset) != 0 ||
-        binary::read_u32_le(entry, kEntryReservedTailOffset) != 0 ||
-        asset.width == 0 || asset.height == 0 ||
-        asset.width > kMaximumImageDimension ||
-        asset.height > kMaximumImageDimension ||
-        offset < kAssetDataOffset || offset > payload_size ||
-        (offset & (kImageAlignment - 1)) != 0 || length == 0 ||
-        length > payload_size - offset) {
-      return false;
-    }
-    // The geometry check is what the sfnt signature is for a face: it catches a
-    // malformed asset at commit rather than inside a draw, where a short buffer
-    // would be read past its end.
-    if (asset.stride != color_stride(asset.format, asset.width) ||
-        length != image_bytes(asset.format, asset.width, asset.height,
-                              asset.palette_count) ||
-        (asset.format == ColorFormat::indexed8) != (asset.palette_count > 0) ||
-        asset.palette_count > 256 ||
-        binary::read_u32_le(entry, kEntryPaletteOffset) !=
-            (asset.format == ColorFormat::indexed8 ? offset : 0U)) {
-      return false;
-    }
-    asset.bytes = storage_bytes.subspan(offset, length);
-    if (binary::read_u32_le(entry, kEntryCrcOffset) != binary::crc32(asset.bytes)) {
-      return false;
-    }
-    for (std::size_t previous = 0; previous < index; ++previous) {
-      if (asset.id == parsed.images[previous].id ||
-          ranges_overlap(asset, parsed.images[previous])) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
 void Service::clear_package_status() {
   status_.package_available = false;
   status_.reboot_required = false;
   status_.format_version = 0;
-  status_.image_count = 0;
+  status_.entry_count = 0;
   status_.package_size = 0;
   image_catalog_ = {};
 }
@@ -360,43 +217,7 @@ void Service::reset_update() {
   update_in_progress_ = false;
   update_size_ = 0;
   update_received_ = 0;
-  update_header_ = {};
-}
-
-const char* update_error_name(const UpdateError error) {
-  switch (error) {
-    case UpdateError::none:
-      return "none";
-    case UpdateError::unavailable:
-      return "unavailable";
-    case UpdateError::busy:
-      return "busy";
-    case UpdateError::invalid_size:
-      return "invalid_size";
-    case UpdateError::invalid_state:
-      return "invalid_state";
-    case UpdateError::invalid_package:
-      return "invalid_package";
-    case UpdateError::reboot_required:
-      return "reboot_required";
-    case UpdateError::storage_failure:
-      return "storage_failure";
-  }
-  return "unknown";
-}
-
-const char* color_format_name(const ColorFormat format) {
-  switch (format) {
-    case ColorFormat::rgb565:
-      return "rgb565";
-    case ColorFormat::rgb565a8:
-      return "rgb565a8";
-    case ColorFormat::indexed8:
-      return "indexed8";
-    case ColorFormat::alpha8:
-      return "alpha8";
-  }
-  return "unknown";
+  update_header_.fill(0xFFU);
 }
 
 }  // namespace simcore::image_assets

@@ -1,5 +1,9 @@
 # ADR 0002: Display Driver Boundary and Runtime Selection
 
+Status: Accepted; the original "every supported display driver is linked into
+the firmware" wording was corrected once the P4 target began linking only its
+own board drivers.
+
 ## Context
 
 SimCore needs to render with LVGL on boards using different display transports,
@@ -14,9 +18,10 @@ display size.
 
 ## Decision
 
-Keep board initialization in dedicated drivers. Every supported display driver
-is linked into the firmware and exposes only its stable name, initialization
-callback, and display-ready callback. Panel initialization resolution remains
+Keep board initialization in dedicated drivers. Each driver exposes only its
+stable name, initialization callback, and display-ready callback. A build links
+the drivers its target can carry — `firmware/CMakeLists.txt` selects them per
+`IDF_TARGET` — and the factory board identity picks one of those. Panel initialization resolution remains
 internal to the concrete driver. The board registry keeps separate private
 logical display bounds only for configuration validation; they are not added
 to the driver descriptor, device configuration, or control protocol.

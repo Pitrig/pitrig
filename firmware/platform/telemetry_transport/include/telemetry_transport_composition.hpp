@@ -2,10 +2,9 @@
 
 #include "sdkconfig.h"
 #include "simcore_features.hpp"
-#if SIMCORE_SECOND_TELEMETRY_LINK
+
 #include <cstddef>
 #include <span>
-#endif
 #if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
 #include "usb_cdc_transport.hpp"
 #if SIMCORE_SECOND_TELEMETRY_LINK
@@ -32,22 +31,16 @@ namespace simcore::transport {
 // board and exposes only the neutral transport interface to the core.
 class TelemetryComposition final {
  public:
-#if SIMCORE_SECOND_TELEMETRY_LINK
   // Fills `links` with the transports this build attaches, in priority order,
   // and returns how many. Zero means the board does not support the selection.
+  // A product build fills one.
   //
-  // The second link is a property of the build rather than of the
-  // configuration, so it is appended here and appears nowhere in the
-  // configuration contract.
+  // A second link is a property of the build rather than of the configuration,
+  // so it is appended here and appears nowhere in the configuration contract.
   [[nodiscard]] std::size_t select(
       const board_registry::BoardDefinition& board,
       const configuration::ApplicationConfiguration& configuration,
       std::span<ITransport*> links);
-#else
-  [[nodiscard]] ITransport* select(
-      const board_registry::BoardDefinition& board,
-      const configuration::ApplicationConfiguration& configuration);
-#endif
 
  private:
 #if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C

@@ -96,3 +96,22 @@ function isFontFace(bytes: Uint8Array): boolean {
 function align4(value: number): number {
   return (value + 3) & ~3
 }
+
+/**
+ * The family names a built package declares, read back from its manifest.
+ * The device service needs them to describe what it has just installed, and
+ * reading them here keeps the header offsets in the one file that writes them
+ * — it had been decoding 32 and 48 as literals from the other side of the
+ * codebase.
+ */
+export function readPackageFamilies(packageBytes: Uint8Array): string[] {
+  const view = new DataView(packageBytes.buffer, packageBytes.byteOffset, packageBytes.byteLength)
+  const count = view.getUint16(12, true)
+  const decoder = new TextDecoder('ascii')
+  return Array.from({ length: count }, (_, index) => {
+    const offset = HEADER_SIZE + index * MANIFEST_ENTRY_SIZE
+    const familyBytes = packageBytes.subarray(offset, offset + 32)
+    const terminator = familyBytes.indexOf(0)
+    return decoder.decode(familyBytes.subarray(0, terminator < 0 ? 32 : terminator))
+  })
+}

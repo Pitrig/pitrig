@@ -8,13 +8,12 @@
 #include <system_error>
 
 #include "dashboard_fonts.hpp"
-#include "dashboard_layout_internal.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
-#include "logger.hpp"
 #include "number_transform.hpp"
 #include "text_writer.hpp"
 #include "time_transform.hpp"
+#include "value_text.hpp"
 #include "widget_binding.hpp"
 
 namespace simcore::dashboard::text_widget {
@@ -72,170 +71,6 @@ void apply_value_color(void* const context, const std::uint32_t rgb) {
                               lv_color_hex(rgb), LV_PART_MAIN);
 }
 
-template <std::size_t DestinationSize, std::size_t SourceSize>
-void copy_text(std::array<char, DestinationSize>& destination,
-               const std::array<char, SourceSize>& source) {
-  destination.fill('\0');
-  const auto terminator = std::find(source.begin(), source.end(), '\0');
-  const std::size_t source_length =
-      static_cast<std::size_t>(std::distance(source.begin(), terminator));
-  const std::size_t length = std::min(DestinationSize - 1, source_length);
-  std::copy_n(source.begin(), length, destination.begin());
-}
-
-[[nodiscard]] bool source_text(
-    const telemetry::TelemetryRead& value,
-    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
-  if (!value.available) {
-    return false;
-  }
-  if (value.value.source_text.front() != '\0' ||
-      value.handle.type == telemetry::ValueType::text) {
-    output = value.value.source_text;
-    return true;
-  }
-  if (value.handle.type == telemetry::ValueType::boolean) {
-    constexpr std::array<char, 6> kTrue{'t', 'r', 'u', 'e', '\0', '\0'};
-    constexpr std::array<char, 6> kFalse{'f', 'a', 'l', 's', 'e', '\0'};
-    copy_text(output,
-              value.value.typed.boolean_value ? kTrue : kFalse);
-    return true;
-  }
-  std::to_chars_result result{};
-  switch (value.handle.type) {
-    case telemetry::ValueType::uint32:
-      result = std::to_chars(output.data(), output.data() + output.size() - 1,
-                             value.value.typed.uint32_value);
-      break;
-    case telemetry::ValueType::int32:
-      result = std::to_chars(output.data(), output.data() + output.size() - 1,
-                             value.value.typed.int32_value);
-      break;
-    case telemetry::ValueType::float32:
-      result = std::to_chars(output.data(), output.data() + output.size() - 1,
-                             value.value.typed.float32_value);
-      break;
-    case telemetry::ValueType::text:
-    case telemetry::ValueType::boolean:
-      return false;
-  }
-  if (result.ec != std::errc{}) {
-    return false;
-  }
-  *result.ptr = '\0';
-  return true;
-}
-
-// The value a transform produces, before its affixes.
-[[nodiscard]] bool transform_body(
-    const configuration::ValueTransform& transform,
-    const telemetry::TelemetryRead& value,
-    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
-  switch (transform.type) {
-    case configuration::ValueTransformType::none:
-      return source_text(value, output);
-    case configuration::ValueTransformType::time:
-      if (value.handle.type == telemetry::ValueType::uint32) {
-        return transformers::time_transform::apply(
-            transform.time, value.value.typed.uint32_value, output);
-      }
-      if (value.handle.type == telemetry::ValueType::int32) {
-        return transformers::time_transform::apply(
-            transform.time, value.value.typed.int32_value, output);
-      }
-      return false;
-    case configuration::ValueTransformType::number:
-      switch (value.handle.type) {
-        case telemetry::ValueType::uint32:
-          return transformers::number_transform::apply(
-              transform.number, value.value.typed.uint32_value, output);
-        case telemetry::ValueType::int32:
-          return transformers::number_transform::apply(
-              transform.number, value.value.typed.int32_value, output);
-        case telemetry::ValueType::float32:
-          return transformers::number_transform::apply(
-              transform.number, value.value.typed.float32_value, output);
-        case telemetry::ValueType::text:
-          // Sources that format their number on the PC stay usable; a source
-          // that is not a number renders the placeholder instead.
-          return transformers::number_transform::apply(
-              transform.number, transformers::text_view(value.value.source_text),
-              output);
-        case telemetry::ValueType::boolean:
-          return false;
-      }
-      return false;
-  }
-  return false;
-}
-
-// Wraps a rendered body in its affixes. They belong to the transform rather
-// than to one of its types, so an untransformed value can carry a unit too.
-[[nodiscard]] bool compose(
-    const configuration::ValueTransform& transform, const std::string_view body,
-    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
-  transformers::TextWriter writer(output);
-  if (writer.append(transformers::text_view(transform.prefix)) &&
-      writer.append(body) &&
-      writer.append(transformers::text_view(transform.suffix))) {
-    return true;
-  }
-  // The value outranks its decoration: a source string long enough to crowd
-  // out the affixes keeps its own text rather than losing everything.
-  transformers::TextWriter value_only(output);
-  return value_only.append(body);
-}
-
-// The zero a widget renders while its value is unavailable, run through the
-// widget's own transform.
-[[nodiscard]] bool zero_body(
-    const configuration::ValueTransform& transform,
-    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
-  switch (transform.type) {
-    case configuration::ValueTransformType::none:
-      return false;
-    case configuration::ValueTransformType::time:
-      return transform.time.format ==
-                     transformers::time_transform::Format::signed_duration_ms
-                 ? transformers::time_transform::apply(
-                       transform.time, std::int32_t{0}, output)
-                 : transformers::time_transform::apply(
-                       transform.time, std::uint32_t{0}, output);
-    case configuration::ValueTransformType::number:
-      return transformers::number_transform::apply(
-          transform.number, std::uint32_t{0}, output);
-  }
-  return false;
-}
-
-// The zero one source shows while it has no value: rendered through its own
-// transform, so a plain value reads 0 and a time value keeps its format with
-// every field zeroed.
-void placeholder_value(
-    const configuration::ValueTransform& transform,
-    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
-  std::array<char, telemetry::kTelemetryTextCapacity> body{};
-  if (!zero_body(transform, body)) {
-    constexpr std::array<char, 2> kZero{'0', '\0'};
-    copy_text(body, kZero);
-  }
-  if (!compose(transform, transformers::text_view(body), output)) {
-    output = body;
-  }
-}
-
-[[nodiscard]] bool transform_value(
-    const configuration::ValueTransform& transform,
-    const telemetry::TelemetryRead& value,
-    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
-  if (!value.available) {
-    return false;
-  }
-  std::array<char, telemetry::kTelemetryTextCapacity> body{};
-  return transform_body(transform, value, body) &&
-         compose(transform, transformers::text_view(body), output);
-}
-
 // A binding is usable only once every source resolved to a callback.
 [[nodiscard]] bool complete(const WidgetBinding& binding) {
   if (binding.count == 0 || binding.count > binding.sources.size()) {
@@ -256,8 +91,8 @@ void source_text_for(
     const configuration::ValueTransform& transform,
     const telemetry::TelemetryRead& value,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
-  if (!transform_value(transform, value, output)) {
-    placeholder_value(transform, output);
+  if (!value_text::transform_value(transform, value, output)) {
+    value_text::placeholder_value(transform, output);
   }
 }
 
@@ -268,13 +103,13 @@ void unavailable_text(
     const Config& config,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
   if (config.value.unavailable_text.front() != '\0') {
-    copy_text(output, config.value.unavailable_text);
+    value_text::copy_text(output, config.value.unavailable_text);
     return;
   }
   transformers::TextWriter writer(output);
   for (std::size_t index = 0; index < config.source_count; ++index) {
     std::array<char, telemetry::kTelemetryTextCapacity> part{};
-    placeholder_value(config.sources[index].transform, part);
+    value_text::placeholder_value(config.sources[index].transform, part);
     if (!writer.append(transformers::text_view(part))) {
       return;
     }
@@ -283,19 +118,6 @@ void unavailable_text(
 
 }  // namespace
 
-Collection::~Collection() { destroy(); }
-
-void Collection::destroy() {
-  if (!created_ || !lvgl_port_lock(0)) {
-    return;
-  }
-  clear_objects();
-  lvgl_port_unlock();
-}
-
-// Builds the LVGL objects for one widget into an already-cleared state.
-// Callers hold the LVGL lock. On failure the state is left partially built
-// and the caller must release it.
 bool Collection::build(State& state, const Layout& layout,
                       const Config& config, const WidgetBinding& binding,
                       const fonts::Registry& fonts) {
@@ -354,63 +176,6 @@ bool Collection::build(State& state, const Layout& layout,
   return true;
 }
 
-bool Collection::create(
-    const Layout& layout, const std::span<const Config> configurations,
-    const std::span<const WidgetBinding> bindings,
-    const fonts::Registry& fonts) {
-  if (layout.display == nullptr || bindings.size() > states_.size() ||
-      configurations.size() != bindings.size() || created_ ||
-      !lvgl_port_lock(0)) {
-    return false;
-  }
-
-  created_ = true;
-  for (std::size_t widget = 0; widget < bindings.size(); ++widget) {
-    const WidgetBinding& binding = bindings[widget];
-    if (!complete(binding) ||
-        !build(states_[count_], layout, configurations[widget], binding,
-               fonts)) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-    ++count_;
-  }
-
-  render();
-  if (count_ > 0) {
-    timer_ = lv_timer_create(update, kRenderPeriodMs, this);
-    if (timer_ == nullptr) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-  }
-
-  lvgl_port_unlock();
-  return true;
-}
-
-void Collection::update(lv_timer_t* const timer) {
-  auto* const collection =
-      static_cast<Collection*>(lv_timer_get_user_data(timer));
-  if (collection != nullptr) {
-    collection->render();
-  }
-}
-
-void Collection::wake() {
-  // timer_ is created, deleted, and read only under the LVGL lock, which the
-  // caller holds, so this cannot observe a timer mid-teardown.
-  if (timer_ != nullptr) {
-    lv_timer_ready(timer_);
-  }
-}
-
-
-
 void Collection::render_state(State& state) {
   // A telemetry slot advances its revision only when the stored value really
   // changed, so a widget whose sources all stood still needs no transform,
@@ -464,56 +229,33 @@ void Collection::render_state(State& state) {
   lv_label_set_text_static(state.value_label, state.displayed_text.data());
 }
 
-void Collection::render() {
-  if (!created_) {
-    return;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    render_state(states_[index]);
-  }
-}
 
-void Collection::release(State& state) {
-  state.painter.release();
-  if (state.container != nullptr) {
-    lv_obj_delete(state.container);
+bool Collection::create(
+    const Layout& layout, const std::span<const Config> configurations,
+    const std::span<const WidgetBinding> bindings,
+    const fonts::Registry& fonts) {
+  if (layout.display == nullptr || configurations.size() != bindings.size()) {
+    return false;
   }
-  state = {};
-}
-
-void Collection::clear_objects() {
-  if (timer_ != nullptr) {
-    lv_timer_delete(timer_);
-    timer_ = nullptr;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    release(states_[index]);
-  }
-  count_ = 0;
-  created_ = false;
+  return build_all(bindings.size(), [&](State& state, const std::size_t index) {
+    return complete(bindings[index]) &&
+           build(state, layout, configurations[index], bindings[index], fonts);
+  });
 }
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
                           const Config& configuration,
                           const WidgetBinding& binding,
                           const fonts::Registry& fonts) {
-  if (!created_ || index >= count_ || !complete(binding) ||
-      !lvgl_port_lock(0)) {
+  if (!complete(binding)) {
     return false;
   }
-  State& state = states_[index];
-  release(state);
-  const bool built = build(state, layout, configuration, binding, fonts);
-  if (built) {
-    // A fresh lv_label carries LVGL's placeholder text until something sets it.
-    // Rendering before the lock is released keeps that from reaching the
-    // display between a rebuild and the next timer tick.
-    render_state(state);
-  } else {
-    release(state);
-  }
-  lvgl_port_unlock();
-  return built;
+  // rebuild_one renders before releasing the lock, which keeps LVGL's
+  // placeholder label text from reaching the display between a rebuild and the
+  // next timer tick.
+  return rebuild_one(index, [&](State& state) {
+    return build(state, layout, configuration, binding, fonts);
+  });
 }
 
 }  // namespace simcore::dashboard::text_widget

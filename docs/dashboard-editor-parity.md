@@ -11,7 +11,8 @@ editor).
 
 ## What exists
 
-- Widget types `text`, `shape`, `bar`, `arc`, `indicator`, `graph` and `image`.
+- Widget types `text`, `shape`, `slot`, `bar`, `arc`, `indicator`, `graph` and
+  `image`.
 - Absolute geometry in logical pixels, drag and resize on the preview, stacking
   by `z_index`.
 - A schema-backed inspector plus an advanced JSON editor over the same draft
@@ -44,7 +45,8 @@ editor).
 
 ### 1. Widget types
 
-Available: `text`, `shape`, `bar`, `arc`, `indicator`, `graph` and `image`.
+Available: `text`, `shape`, `slot`, `bar`, `arc`, `indicator`, `graph` and
+`image`.
 There is no dedicated delta widget any more: a delta is authored from a text
 widget with a signed transform plus a bar with a centred `origin`.
 Missing: tables.
@@ -203,11 +205,14 @@ prepared during conversion; a shadow is a per-frame blur in direct mode; and
 auto-fitting fights glyph pre-warming ([ADR 0010](adr/0010-uploaded-font-assets.md)),
 so a widget reports the size it needs instead.
 
-The per-class widget caps for the dashboard (32 text, 24 shape, 16 bar, 8 arc,
-4 indicator, 2 graph, 8 image), 3 sources per widget, 15-byte strings and 4
-modifiers per source are embedded-system limits rather than unfinished work.
-`kMaximumWidgetsPerScreen` equals the sum of the per-class caps, so there is no
-separate per-screen limit. The 64 KB payload and documents in PSRAM are no
+The per-class widget caps for the dashboard, 3 sources per widget, 15-byte
+strings and 4 modifiers per source are embedded-system limits rather than
+unfinished work. `kMaximumWidgetsPerScreen` equals the sum of the per-class
+caps, so there is no separate per-screen limit. The caps themselves live in
+[configuration-schema.md](configuration-schema.md), which is generated from the
+contract — repeating them here is what let this paragraph claim 24 shapes
+against a real cap of 32 and omit slots altogether, breaking the sum it
+asserts. The 64 KB payload and documents in PSRAM are no
 longer the bottleneck; what still is, is internal RAM for widget state, so
 raising a particular cap is a decision about the RAM budget.
 

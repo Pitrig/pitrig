@@ -8,7 +8,7 @@ import {
   MAXIMUM_IMAGES,
   MAXIMUM_IMAGE_DIMENSION,
   type ImageColorFormat
-} from '../../../../shared/image-assets'
+} from '@shared/image-assets'
 import { useImageAssetsStore } from './image-assets-store'
 
 // Uploaded images, which the device stores as one package and replaces whole.

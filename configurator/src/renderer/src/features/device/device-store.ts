@@ -1,12 +1,15 @@
 import { create } from 'zustand'
 
-import { configurationsEqual, withWidgetIds } from '../../../../shared/configuration-access'
+import { configurationsEqual, withWidgetIds } from '@shared/configuration-access'
 import type {
   DeviceConfiguration,
+  DeviceConnection,
+  DeviceError,
+  DeviceScanProgress,
   DeviceSession,
   DeviceState,
   DeviceStatus
-} from '../../../../shared/device'
+} from '@shared/device'
 
 // The draft is a structured document, not a string. Editing, comparison, and
 // the preview all read `draft`; the serialized form exists only for the
@@ -31,6 +34,12 @@ type EditSource = 'structured' | 'raw'
 interface DeviceStore {
   status: DeviceStatus
   session?: DeviceSession
+  // The link's own report, mirrored here rather than kept beside the store in
+  // a component: it is the same DeviceState every other field comes from, and
+  // two copies of it drifted apart as soon as one of them was updated first.
+  connection?: DeviceConnection
+  scan?: DeviceScanProgress
+  error?: DeviceError
   connectionRevision: number
   activeConfiguration?: DeviceConfiguration
   draft?: DeviceConfiguration
@@ -87,8 +96,12 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
   editSource: 'structured',
   applyDeviceState: (state) =>
     set((current) => {
+      // Carried into every branch below. Leaving it out of one of them is
+      // exactly how a stale port name or a cleared error survives a reconnect.
+      const link = { connection: state.connection, scan: state.scan, error: state.error }
       if (state.status !== 'connected' || !state.session) {
         return {
+          ...link,
           status: state.status,
           session: undefined,
           activeConfiguration: undefined,
@@ -106,6 +119,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
 
       if (sameActiveConfiguration) {
         return {
+          ...link,
           status: state.status,
           session: state.session,
           rebootRequired:
@@ -113,6 +127,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
         }
       }
       return {
+        ...link,
         status: state.status,
         session: state.session,
         connectionRevision:

@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 
-import { BOARD_PROFILES } from '../../../../shared/device'
-import type { DeviceConfiguration } from '../../../../shared/device'
+import { BOARD_PROFILES } from '@shared/device'
+import type { DeviceConfiguration } from '@shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
-import { screenWidgetsOf } from '../../../../shared/configuration-access'
+import { withEditGroup } from '@/features/device/edit-group'
+import { screenWidgetsOf } from '@shared/configuration-access'
 import {
   absolutePlacement,
   activeScreen,
@@ -18,8 +19,9 @@ import {
   selectedWidget,
   unwrapShape,
   useDashboardEditorStore
-} from './dashboard-editor'
-import type { WidgetSelection } from './dashboard-editor'
+} from '../dashboard-editor'
+import { clampToDisplay } from './placement'
+import type { WidgetSelection } from '../dashboard-editor'
 
 // The whole window listens, because the canvas is an SVG that nothing focuses
 // and the shortcuts are about the selected widget rather than about whatever
@@ -132,9 +134,9 @@ export function useEditorShortcuts(): void {
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault()
         // One entry for the whole group: deleting four widgets is one edit.
-        store.beginEdit()
-        for (const id of selected) deleteWidget({ type: 'widget', id })
-        store.endEdit()
+        withEditGroup(() => {
+          for (const id of selected) deleteWidget({ type: 'widget', id })
+        })
         editor.select(undefined)
         return
       }
@@ -203,17 +205,19 @@ function nudge(
   if (!placement) return
   const offset = parentOffset(configuration, selection.id)
   const distance = coarse ? COARSE_NUDGE_PX : NUDGE_PX
-  const x = clamp(placement.x + step.x * distance, 0, display.width - placement.width)
-  const y = clamp(placement.y + step.y * distance, 0, display.height - placement.height)
+  const { x, y } = clampToDisplay(
+    placement.x + step.x * distance,
+    placement.y + step.y * distance,
+    placement.width,
+    placement.height,
+    display
+  )
   if (x === placement.x && y === placement.y) return
   mutateSelectedWidget(selection, (widget) => {
     widget.placement = { ...placement, x: x - offset.x, y: y - offset.y }
   })
 }
 
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum))
-}
 
 function displayOf(
   configuration: DeviceConfiguration

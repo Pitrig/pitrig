@@ -6,12 +6,12 @@
 #include <cstdint>
 
 #include "driver/uart.h"
-#include "esp_log_write.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "simcore_features.hpp"
 #include "transport.hpp"
+#include "transport_instrumentation.hpp"
 
 namespace simcore::transport {
 
@@ -55,10 +55,8 @@ class UartTransport final : public ITransport {
   static constexpr UBaseType_t kTaskPriority = 5;
 
   static void task_entry(void* context);
-  static int discard_log_output(const char* format, va_list args);
 
   void process();
-  void restore_log_output();
 
   UartConfiguration configuration_;
   DataHandler handler_{};
@@ -67,15 +65,12 @@ class UartTransport final : public ITransport {
   QueueHandle_t event_queue_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
-  vprintf_like_t previous_log_output_{};
+  LogSilencer log_silencer_{};
+  ReadInstrumentation instrumentation_{};
 #if SIMCORE_DEBUG
-  std::atomic<std::uint64_t> received_bytes_{};
-  std::atomic<std::uint64_t> read_events_{};
+  // What only a UART has to report: the peripheral FIFO and the driver ring.
   std::atomic<std::uint32_t> fifo_overflows_{};
   std::atomic<std::uint32_t> buffer_full_events_{};
-  std::atomic<std::uint32_t> maximum_read_gap_ms_{};
-  std::atomic<std::uint32_t> maximum_handler_time_us_{};
-  std::int64_t last_read_at_us_{};
 #endif
   bool started_{};
 };

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
-import { configurationsEqual } from '../../../../shared/configuration-access'
-import type { DeviceConfiguration } from '../../../../shared/device'
+import { configurationsEqual } from '@shared/configuration-access'
+import type { DeviceConfiguration } from '@shared/device'
 import { formatConfiguration, useDeviceStore } from './device-store'
 
 // Applying rebuilds the dashboard on the device, so it follows the draft on a

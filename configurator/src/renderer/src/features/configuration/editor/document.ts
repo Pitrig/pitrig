@@ -1,6 +1,6 @@
-import { screensOf, type WidgetParent } from '../../../../../shared/configuration-access'
-import { type ScreenConfiguration, type SlotPageConfiguration, type SlotWidgetConfiguration, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
-import { type DeviceConfiguration } from '../../../../../shared/device'
+import { screensOf, type WidgetParent } from '@shared/configuration-access'
+import { type ScreenConfiguration, type SlotPageConfiguration, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
+import { type DeviceConfiguration } from '@shared/device'
 import { type WidgetSelection, useDashboardEditorStore } from './store'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -119,20 +119,6 @@ export function parentOf(
   return screen ? walkPath(screen, location.path)?.owner : undefined
 }
 
-/** The slot page a widget sits on, or undefined when it is not on one. */
-export function slotPageOf(
-  configuration: DeviceConfiguration | undefined,
-  id: string
-): { slot: SlotWidgetConfiguration; page: number } | undefined {
-  const location = findWidget(configuration, id)
-  if (!location) return undefined
-  const parent = ancestorsOf(configuration, location).at(-1)
-  if (parent?.type !== 'slot') return undefined
-  // The page index is the second-to-last entry: the path enters the slot, names
-  // the page, then names the widget.
-  return { slot: parent, page: location.path.at(-2) ?? 0 }
-}
-
 /** The array a widget lives in, which is what an edit has to splice. */
 export function widgetArrayOf(
   configuration: DeviceConfiguration,
@@ -173,6 +159,49 @@ export function absolutePlacement(
   if (!box) return undefined
   const offset = parentOffset(configuration, id)
   return { ...box, x: box.x + offset.x, y: box.y + offset.y }
+}
+
+/**
+ * Every widget's box in display coordinates, from one walk of the document.
+ *
+ * `absolutePlacement` answers for one widget and costs two tree searches to do
+ * it, so a canvas that asks per selected widget, per widget with an action and
+ * again for every layer it draws pays O(n) walks per render. Same inputs, same
+ * answers, one walk — this is a cheaper route to the identical result, not a
+ * different rule.
+ *
+ * The two subtleties it shares with the per-widget walk: a container whose own
+ * box is incomplete contributes nothing to its children's offset, and a slot
+ * page contributes nothing at all because the slot above it already did.
+ */
+export function absolutePlacements(
+  configuration: DeviceConfiguration | undefined
+): Map<string, Required<WidgetPlacement>> {
+  const placements = new Map<string, Required<WidgetPlacement>>()
+  const visit = (parent: WidgetParent, offset: { x: number; y: number }): void => {
+    for (const widget of parent.widgets ?? []) {
+      if (!widget) continue
+      const box = completePlacement(widget.placement)
+      // First match wins, as the search does: a duplicated id resolves to the
+      // widget the rest of the editor would have found.
+      if (box && widget.id !== undefined && !placements.has(widget.id)) {
+        placements.set(widget.id, { ...box, x: box.x + offset.x, y: box.y + offset.y })
+      }
+      if (widget.type !== 'shape' && widget.type !== 'slot') continue
+      const inside = box ? { x: offset.x + box.x, y: offset.y + box.y } : offset
+      if (widget.type === 'shape') {
+        visit(widget, inside)
+        continue
+      }
+      for (const page of widget.pages ?? []) {
+        if (page) visit(page, inside)
+      }
+    }
+  }
+  for (const screen of screensOf(configuration)) {
+    if (screen) visit(screen, { x: 0, y: 0 })
+  }
+  return placements
 }
 
 /**
@@ -239,4 +268,13 @@ export function completePlacement(
     return undefined
   }
   return placement as Required<WidgetPlacement>
+}
+
+/** Writes a display-space box back into the widget's own coordinate space. */
+export function writePlacement(
+  widget: WidgetConfiguration,
+  placement: Required<WidgetPlacement>,
+  offset: { x: number; y: number }
+): void {
+  widget.placement = { ...placement, x: placement.x - offset.x, y: placement.y - offset.y }
 }

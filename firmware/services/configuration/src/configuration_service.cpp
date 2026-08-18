@@ -114,16 +114,16 @@ ValidationFailure ConfigurationService::validate_payload(
                                   (*scratch_));
 }
 
-ValidationFailure ConfigurationService::save(
+ConfigurationService::SaveOutcome ConfigurationService::save(
     const std::span<const std::uint8_t> payload) {
   if (storage_ == nullptr || !status_.storage_available) {
-    return {.error = ValidationError::malformed};
+    return {.storage_failed = true};
   }
   const ValidationFailure parsed =
       parse_configuration_json(payload, validation_profile_,
                                (*scratch_));
   if (!parsed.ok()) {
-    return parsed;
+    return {.failure = parsed};
   }
   const StorageSlot target =
       has_persisted_slot_ ? other(persisted_slot_) : StorageSlot::a;
@@ -133,14 +133,14 @@ ValidationFailure ConfigurationService::save(
       !storage_->write(
           target,
           std::span<const std::uint8_t>(record_buffer_.data(), record_size))) {
-    return {.error = ValidationError::malformed};
+    return {.storage_failed = true};
   }
 
   const LoadedRecord verified =
       load_slot(target, (*scratch_));
   if (!verified.valid || verified.generation != generation ||
       !storage_->set_active(target)) {
-    return {.error = ValidationError::malformed};
+    return {.storage_failed = true};
   }
   persisted_slot_ = target;
   persisted_generation_ = generation;

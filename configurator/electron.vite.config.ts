@@ -6,6 +6,7 @@ import type { Plugin } from 'vite'
 
 export default defineConfig(({ command }) => ({
   main: {
+    resolve: { alias: { '@shared': resolve('src/shared') } },
     build: {
       lib: {
         entry: resolve('src/main/index.ts')
@@ -13,6 +14,7 @@ export default defineConfig(({ command }) => ({
     }
   },
   preload: {
+    resolve: { alias: { '@shared': resolve('src/shared') } },
     build: {
       lib: {
         entry: resolve('src/preload/index.ts'),
@@ -29,7 +31,10 @@ export default defineConfig(({ command }) => ({
     plugins: [developmentCspPlugin(command === 'serve'), react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': resolve('src/renderer/src')
+        '@': resolve('src/renderer/src'),
+        // The renderer sits four and five directories deep, so without this the
+        // boundary types are reached through '../../../../shared/...'.
+        '@shared': resolve('src/shared')
       }
     }
   }

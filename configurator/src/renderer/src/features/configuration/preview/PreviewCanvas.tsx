@@ -1,13 +1,19 @@
-import { useEffect, useRef, useState } from 'react'
-import { childArraysOf, pagesOf, screensOf, stackOrder, widgetsOf, type WidgetParent } from '../../../../../shared/configuration-access'
-import { type DeviceConfiguration, type DisplayDescriptor } from '../../../../../shared/device'
-import { LAP_SECONDS } from '../../../../../shared/mock-telemetry'
-import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOffset, useDashboardEditorStore } from '../dashboard-editor'
-import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, type ResizeMode, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clamp, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { childArraysOf, pagesOf, screensOf, widgetsOf } from '@shared/configuration-access'
+import { type DeviceConfiguration, type DisplayDescriptor } from '@shared/device'
+import { LAP_SECONDS } from '@shared/mock-telemetry'
+import { clamp } from '../editor/placement'
+import { GridOverlay, GuideOverlay, HitArea, SelectionFrame } from './CanvasOverlays'
+import { ImagePreview } from './ImagePreview'
+import { TextWidgetPreview } from './TextPreview'
+import { moveSelection } from '../editor/geometry-commands'
+import { flattenScreen } from './preview-layers'
+import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacements, completePlacement, findWidget, useDashboardEditorStore } from '../dashboard-editor'
+import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
-import { createPreviewValues } from './preview-values'
-import { CaptionPreview, ImagePreview, ShapePreview, TextWidgetPreview } from './widget-previews'
+import { createPreviewValues, previewTelemetry } from './preview-values'
+import { CaptionPreview, ShapePreview, } from './widget-previews'
 import { useDeviceStore } from '@/features/device/device-store'
 
 export function Widgets({
@@ -53,50 +59,33 @@ export function Widgets({
     }, PREVIEW_TICK_MS)
     return () => clearInterval(timer)
   }, [playback.mode, playing])
-  const values = createPreviewValues(configuration, playback, clockMs)
+  // Both walk the whole document, and an edit replaces it wholesale, so both
+  // are recomputed exactly when it changes rather than on every render — and
+  // the animation clock re-renders this component several times a second.
+  const telemetry = useMemo(
+    () => previewTelemetry(configuration, playback),
+    [configuration, playback]
+  )
+  const values = createPreviewValues(telemetry, playback, clockMs)
+  // Every box in display coordinates, resolved in one walk. Asking per widget
+  // costs two tree searches each, and this render asks for the selection, for
+  // every widget carrying an action, for every layer it draws and again on
+  // each pointer-down.
+  const placements = useMemo(() => absolutePlacements(configuration), [configuration])
   const screen = screensOf(configuration)[activeScreenIndex]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
-  // The canvas works entirely in display coordinates. Geometry inside a
-  // container is relative to that container's box, so it is translated here on
-  // the way out and translated back before anything is written to the document.
-  //
-  // Same rule the firmware applies: z_index ascending, authored array order
-  // breaking ties, one parent at a time. A container is one entry among its own
-  // siblings and orders its children within itself, so emitting each container
-  // immediately followed by its children reproduces LVGL's draw order at any
-  // depth — a parent, then what is inside it, then the parent's later siblings.
-  const emit = (parent: WidgetParent, offsetX: number, offsetY: number): PreviewLayer[] =>
-    stackOrder(widgetsOf(parent)).flatMap(({ widget, index }) => {
-      const layer: PreviewLayer = {
-        configuration: widget,
-        zIndex: widget.z_index ?? 0,
-        configurationOrder: index,
-        offsetX,
-        offsetY
-      }
-      const box = completePlacement(widget.placement)
-      const inside = (owner: WidgetParent): PreviewLayer[] =>
-        emit(owner, offsetX + (box?.x ?? 0), offsetY + (box?.y ?? 0))
-      if (widget.type === 'shape') return [layer, ...inside(widget)]
-      if (widget.type !== 'slot') return [layer]
-      // The board shows one page of a slot; the canvas has to author all of
-      // them, so it draws the one the tabs are looking at and leaves the rest
-      // out rather than stacking a slot's pages on top of each other.
-      const page = pagesOf(widget)[visibleSlotPage(widget, slotPage)]
-      return page ? [layer, ...inside(page)] : [layer]
-    })
-  const layers: PreviewLayer[] = screen ? emit(screen, 0, 0) : []
+  const layers: PreviewLayer[] = flattenScreen(screen, slotPage)
   // What the canvas is actually showing, which is what a marquee may catch and
   // what a drag may snap to: a widget on a page nobody is looking at is not on
   // screen, so treating it as a target would select and align the invisible.
   const widgets = layers.map((layer) => layer.configuration)
   const selectedPlacements = selectedIds
-    .map((id) => absolutePlacement(configuration, id))
+    .map((id) => placements.get(id))
     .filter((placement): placement is Placement => placement !== undefined)
   // A container resizes like the widget it is: its box is the thing being
   // dragged, and its children keep the offsets they were authored with.
   const primaryPlacement =
-    selection?.type === 'widget' ? absolutePlacement(configuration, selection.id) : undefined
+    selection?.type === 'widget' ? placements.get(selection.id) : undefined
 
   const beginInteraction = (
     event: React.PointerEvent<SVGElement>,
@@ -132,7 +121,7 @@ export function Widgets({
         mode === 'move'
           ? group
               .filter((id) => id !== (target.type === 'widget' ? target.id : ''))
-              .map((id) => ({ id, placement: absolutePlacement(configuration, id) }))
+              .map((id) => ({ id, placement: placements.get(id) }))
               .filter((entry): entry is Follower => entry.placement !== undefined)
           : []
     })
@@ -202,32 +191,13 @@ export function Widgets({
       setGuides(resolved.guides)
       const shiftX = resolved.placement.x - interaction.placement.x
       const shiftY = resolved.placement.y - interaction.placement.y
-      mutateDraftConfiguration((draft) => {
-        const primaryId = interaction.target.type === 'widget' ? interaction.target.id : ''
-        const primary = findWidget(draft, primaryId)
-        if (primary) {
-          const offset = parentOffset(draft, primaryId)
-          primary.widget.placement = {
-            ...resolved.placement,
-            x: resolved.placement.x - offset.x,
-            y: resolved.placement.y - offset.y
-          }
-        }
-        for (const follower of interaction.followers) {
-          const widget = findWidget(draft, follower.id)?.widget
-          if (!widget) continue
-          const offset = parentOffset(draft, follower.id)
-          widget.placement = {
-            ...follower.placement,
-            x: Math.round(
-              clamp(follower.placement.x + shiftX, 0, display.width - follower.placement.width)
-            ) - offset.x,
-            y: Math.round(
-              clamp(follower.placement.y + shiftY, 0, display.height - follower.placement.height)
-            ) - offset.y
-          }
-        }
-      })
+      moveSelection(
+        interaction.target.type === 'widget' ? interaction.target.id : '',
+        resolved.placement,
+        { x: shiftX, y: shiftY },
+        interaction.followers,
+        display
+      )
     }
     pendingFrame.current = requestAnimationFrame(() => {
       pendingFrame.current = undefined
@@ -253,7 +223,7 @@ export function Widgets({
         const caught = widgets
           .filter((widget) => widget.id && !hidden[widget.id] && !locked[widget.id])
           .filter((widget) => {
-            const placement = absolutePlacement(configuration, widget.id as string)
+            const placement = placements.get(widget.id as string)
             return placement !== undefined && intersects(placement, bounds)
           })
           .map((widget) => widget.id as string)
@@ -332,7 +302,7 @@ export function Widgets({
       .map((layer) => ({
         id: layer.configuration.id ?? '',
         placement: layer.configuration.id
-          ? absolutePlacement(configuration, layer.configuration.id)
+          ? placements.get(layer.configuration.id)
           : undefined,
         label: actionLabel(layer.configuration.action)
       }))
@@ -349,7 +319,7 @@ export function Widgets({
   // still drawn around it for context but dimmed and inert — the page is the
   // only thing being authored, and a click landing outside it would be an edit
   // to something the author is not looking at.
-  const opened = drillIn ? absolutePlacement(configuration, drillIn) : undefined
+  const opened = drillIn ? placements.get(drillIn) : undefined
   const openedIds = new Set(
     drillIn
       ? (() => {
@@ -436,7 +406,7 @@ export function Widgets({
                 : undefined
             }
             onPointerDown={(event) => {
-            const placement = id ? absolutePlacement(configuration, id) : undefined
+            const placement = id ? placements.get(id) : undefined
             if (!placement || !id || locked[id]) return
             beginInteraction(event, { type: 'widget', id }, 'move', placement)
           }}
@@ -533,50 +503,4 @@ export function Widgets({
       ) : null}
     </svg>
   )
-}
-
-function GridOverlay({ display, size, zoom }: { display: DisplayDescriptor; size: number; zoom: number }): React.JSX.Element | null {
-  if (size <= 0) return null
-  // A grid finer than a couple of screen pixels reads as a wash rather than as
-  // a grid, so it is left out until the canvas is magnified enough to show it.
-  const step = size * zoom >= 4 ? size : size * Math.ceil(4 / (size * zoom))
-  const lines: React.JSX.Element[] = []
-  for (let x = step; x < display.width; x += step) {
-    lines.push(<line key={`x${x}`} x1={x} y1={0} x2={x} y2={display.height} stroke="#94A3B8" strokeOpacity={0.18} strokeWidth={1 / zoom} />)
-  }
-  for (let y = step; y < display.height; y += step) {
-    lines.push(<line key={`y${y}`} x1={0} y1={y} x2={display.width} y2={y} stroke="#94A3B8" strokeOpacity={0.18} strokeWidth={1 / zoom} />)
-  }
-  return <g pointerEvents="none">{lines}</g>
-}
-
-function GuideOverlay({ guides, display, zoom }: { guides: Guides; display: DisplayDescriptor; zoom: number }): React.JSX.Element {
-  return (
-    <g pointerEvents="none">
-      {guides.x.map((x) => (
-        <line key={`gx${x}`} x1={x} y1={0} x2={x} y2={display.height} stroke="#F472B6" strokeWidth={1 / zoom} />
-      ))}
-      {guides.y.map((y) => (
-        <line key={`gy${y}`} x1={0} y1={y} x2={display.width} y2={y} stroke="#F472B6" strokeWidth={1 / zoom} />
-      ))}
-    </g>
-  )
-}
-
-
-function HitArea({ placement }: { placement?: Placement }): React.JSX.Element | null {
-  return placement ? <rect {...placement} fill="transparent" className="cursor-move" /> : null
-}
-
-function SelectionFrame({ placement, zoom, onResize }: { placement: Placement; zoom: number; onResize: (event: React.PointerEvent<SVGCircleElement>, mode: ResizeMode) => void }): React.JSX.Element {
-  const points: Array<[ResizeMode, number, number]> = [
-    ['nw', placement.x, placement.y], ['n', placement.x + placement.width / 2, placement.y],
-    ['ne', placement.x + placement.width, placement.y], ['e', placement.x + placement.width, placement.y + placement.height / 2],
-    ['se', placement.x + placement.width, placement.y + placement.height], ['s', placement.x + placement.width / 2, placement.y + placement.height],
-    ['sw', placement.x, placement.y + placement.height], ['w', placement.x, placement.y + placement.height / 2]
-  ]
-  return <g aria-label="Selected widget bounds">
-    <rect {...placement} fill="none" stroke="#38BDF8" strokeWidth={2 / zoom} strokeDasharray={`${5 / zoom} ${3 / zoom}`} pointerEvents="none" />
-    {points.map(([mode, cx, cy]) => <circle key={mode} cx={cx} cy={cy} r={5 / zoom} fill="#0EA5E9" stroke="#E0F2FE" strokeWidth={1.5 / zoom} className="cursor-pointer" onPointerDown={(event) => onResize(event, mode)} />)}
-  </g>
 }

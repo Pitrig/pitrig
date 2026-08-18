@@ -18,21 +18,14 @@ constexpr char kTag[] = "communication";
 
 }  // namespace
 
+Composition::Composition(const telemetry::ITelemetryRegistry& registry)
 #if SIMCORE_SECOND_TELEMETRY_LINK
-
-Composition::Composition(const telemetry::ITelemetryRegistry& registry)
     : links_{Link{registry}, Link{registry}} {}
-
 #else
-
-Composition::Composition(const telemetry::ITelemetryRegistry& registry)
-    : protocol_(registry) {}
-
+    : links_{Link{registry}} {}
 #endif
 
 Composition::~Composition() { stop(); }
-
-#if SIMCORE_SECOND_TELEMETRY_LINK
 
 bool Composition::start(
     configuration::ConfigurationService& configuration,
@@ -134,74 +127,6 @@ void Composition::stop() {
   started_ = false;
 }
 
-#else
-
-bool Composition::start(
-    configuration::ConfigurationService& configuration,
-    font_assets::Service& font_assets,
-    image_assets::Service& image_assets,
-    telemetry::TelemetryProvider& telemetry,
-    transport::ITransport& transport,
-    const configuration::ConfigurationControl::ApplyHandler apply_handler,
-    void* const apply_context,
-    const std::span<std::uint8_t> control_io_buffer,
-    const std::span<std::uint8_t> control_line_buffer) {
-  if (started_ || !protocol_.initialized()) {
-    log::error(kTag, started_ ? "Communication is already running"
-                              : "Failed to bind telemetry protocol fields");
-    return false;
-  }
-  if (!configuration_control_.initialize(configuration, transport, &reboot,
-                                         nullptr, apply_handler, apply_context,
-                                         control_io_buffer)) {
-    log::error(kTag, "Failed to start configuration control task");
-    return false;
-  }
-  if (!font_asset_control_.initialize(font_assets, transport, binary_claim_)) {
-    log::error(kTag, "Failed to start font asset control task");
-    configuration_control_.stop();
-    return false;
-  }
-  if (!image_asset_control_.initialize(image_assets, transport, binary_claim_)) {
-    log::error(kTag, "Failed to start image asset control task");
-    font_asset_control_.stop();
-    configuration_control_.stop();
-    return false;
-  }
-  const std::array<const binary_session::Session*, 2> sessions{
-      &font_asset_control_.session(), &image_asset_control_.session()};
-  router_.initialize(configuration_control_, binary_claim_, sessions,
-                     &receive_telemetry_data, this, control_line_buffer);
-  telemetry_ = &telemetry;
-  if (!transport.start(&receive_transport_data, this)) {
-    log::error(kTag, "Failed to start telemetry transport");
-    router_.reset();
-    image_asset_control_.stop();
-    font_asset_control_.stop();
-    configuration_control_.stop();
-    telemetry_ = nullptr;
-    return false;
-  }
-  transport_ = &transport;
-  started_ = true;
-  return true;
-}
-
-void Composition::stop() {
-  if (transport_ != nullptr) {
-    transport_->stop();
-  }
-  router_.reset();
-  image_asset_control_.stop();
-  font_asset_control_.stop();
-  configuration_control_.stop();
-  telemetry_ = nullptr;
-  transport_ = nullptr;
-  started_ = false;
-}
-
-#endif
-
 void Composition::submit_update(const telemetry::TelemetryUpdate& update,
                                 void* const context) {
   auto& composition = *static_cast<Composition*>(context);
@@ -209,8 +134,6 @@ void Composition::submit_update(const telemetry::TelemetryUpdate& update,
     composition.telemetry_->submit(update);
   }
 }
-
-#if SIMCORE_SECOND_TELEMETRY_LINK
 
 void Composition::receive_telemetry_data(
     const std::span<const std::uint8_t> data, void* const context) {
@@ -222,21 +145,6 @@ void Composition::receive_transport_data(
     const std::span<const std::uint8_t> data, void* const context) {
   static_cast<Link*>(context)->router.consume(data);
 }
-
-#else
-
-void Composition::receive_telemetry_data(
-    const std::span<const std::uint8_t> data, void* const context) {
-  auto& composition = *static_cast<Composition*>(context);
-  composition.protocol_.consume(data, &submit_update, &composition);
-}
-
-void Composition::receive_transport_data(
-    const std::span<const std::uint8_t> data, void* const context) {
-  static_cast<Composition*>(context)->router_.consume(data);
-}
-
-#endif
 
 void Composition::reboot(void*) {
   vTaskDelay(pdMS_TO_TICKS(100));

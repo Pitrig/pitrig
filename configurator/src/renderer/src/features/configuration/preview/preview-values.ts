@@ -1,13 +1,13 @@
-import { dashboardBindings } from '../../../../../shared/configuration-access'
-import { type FontSpec, type TextAlignment } from '../../../../../shared/configuration-schema'
-import { type DeviceConfiguration } from '../../../../../shared/device'
-import { LAP_SECONDS, mockTelemetry, mockValue } from '../../../../../shared/mock-telemetry'
-import { TELEMETRY_CATALOG } from '../../../../../shared/telemetry-catalog'
-import { type TelemetryValue, UNAVAILABLE, conditionValue } from '../../../../../shared/telemetry-value'
-import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, resolveWidgetStyle } from '../../../../../shared/widget-style'
+import { dashboardBindings } from '@shared/configuration-access'
+import { type FontSpec, type TextAlignment } from '@shared/configuration-schema'
+import { type DeviceConfiguration } from '@shared/device'
+import { LAP_SECONDS, mockTelemetry, mockValue } from '@shared/mock-telemetry'
+import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
+import { type TelemetryValue, UNAVAILABLE, conditionValue } from '@shared/telemetry-value'
+import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, resolveWidgetStyle } from '@shared/widget-style'
 import { type PreviewPlayback } from '../dashboard-editor'
-import { previewFontFamily } from '../preview-assets'
-import { type GlyphMetrics, measureGlyphs } from '../text-metrics'
+import { previewFontFamily } from './preview-assets'
+import { type GlyphMetrics, measureGlyphs } from './text-metrics'
 
 /**
  * What the previews ask about a value. Wrapping the map keeps every renderer
@@ -37,15 +37,29 @@ export interface PreviewValues {
   live: boolean
 }
 
-export function createPreviewValues(
+/**
+ * The mock reading for every binding the dashboard uses.
+ *
+ * Split out from the values object because the two have different reasons to
+ * change: this walks the whole document and depends only on the document and
+ * the playback position, while the object around it closes over the animation
+ * clock and is rebuilt on every tick. Together they re-walked the document
+ * several times a second to produce the same map.
+ */
+export function previewTelemetry(
   configuration: DeviceConfiguration,
+  playback: PreviewPlayback
+): Map<string, TelemetryValue> {
+  return playback.mode === 'values'
+    ? mockTelemetry(dashboardBindings(configuration), playback.phase)
+    : new Map<string, TelemetryValue>()
+}
+
+export function createPreviewValues(
+  values: ReadonlyMap<string, TelemetryValue>,
   playback: PreviewPlayback,
   clockMs: number
 ): PreviewValues {
-  const values =
-    playback.mode === 'values'
-      ? mockTelemetry(dashboardBindings(configuration), playback.phase)
-      : new Map<string, TelemetryValue>()
   const read = (binding: string | undefined): TelemetryValue =>
     (binding ? values.get(binding) : undefined) ?? UNAVAILABLE
   return {

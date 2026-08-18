@@ -1,4 +1,4 @@
-import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, type ShapeWidgetConfiguration, type TextWidgetConfiguration } from '../../../../../shared/configuration-schema'
+import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, type ShapeWidgetConfiguration, type TextWidgetConfiguration } from '@shared/configuration-schema'
 
 export type FramedWidgetConfiguration =
   | TextWidgetConfiguration

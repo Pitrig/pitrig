@@ -12,7 +12,7 @@ import {
   type DeviceState,
   type DeviceStatus,
   type SerialPortSummary
-} from '../../../../shared/device'
+} from '@shared/device'
 
 const AUTO_PORT_ID = 'auto'
 const STATUS_BADGE_STYLES: Record<DeviceStatus, { badge: string; indicator: string }> = {
@@ -52,9 +52,12 @@ export function DeviceConnection({
   const [ports, setPorts] = useState<SerialPortSummary[]>([])
   const [selectedPortId, setSelectedPortId] = useState(AUTO_PORT_ID)
   const [selectedBaudRate, setSelectedBaudRate] = useState(String(DEFAULT_BAUD_RATE))
-  const [state, setState] = useState<DeviceState>({ status: 'disconnected' })
   const previousStatus = useRef<DeviceStatus>('disconnected')
   const applyDeviceState = useDeviceStore((store) => store.applyDeviceState)
+  const status = useDeviceStore((store) => store.status)
+  const connection = useDeviceStore((store) => store.connection)
+  const scan = useDeviceStore((store) => store.scan)
+  const error = useDeviceStore((store) => store.error)
 
   const applyPortResult = useCallback((result: DeviceResult<SerialPortSummary[]>): void => {
     writeDevelopmentLog('Serial ports listed', result)
@@ -80,7 +83,6 @@ export function DeviceConnection({
         useFontAssetsStore.getState().resetOperation()
       }
       previousStatus.current = initialState.status
-      setState(initialState)
       applyDeviceState(initialState)
     })
     void window.simcore.listSerialPorts().then(applyPortResult)
@@ -90,16 +92,15 @@ export function DeviceConnection({
         useFontAssetsStore.getState().resetOperation()
       }
       previousStatus.current = nextState.status
-      setState(nextState)
       applyDeviceState(nextState)
     })
   }, [applyDeviceState, applyPortResult])
 
-  const isWorking = ['scanning', 'connecting', 'disconnecting'].includes(state.status)
-  const statusText = formatStatus(state)
-  const statusBadgeStyle = STATUS_BADGE_STYLES[state.status]
+  const isWorking = ['scanning', 'connecting', 'disconnecting'].includes(status)
+  const statusText = formatStatus({ connection, scan, error })
+  const statusBadgeStyle = STATUS_BADGE_STYLES[status]
   const showDetailedStatus =
-    selectedPortId === AUTO_PORT_ID && (state.status === 'connected' || state.status === 'error')
+    selectedPortId === AUTO_PORT_ID && (status === 'connected' || status === 'error')
 
   useEffect(() => {
     onDetailedStatusChange(showDetailedStatus ? statusText : undefined)
@@ -122,15 +123,15 @@ export function DeviceConnection({
   }
 
   const primaryAction = async (): Promise<void> => {
-    if (state.status === 'connected') {
+    if (status === 'connected') {
       writeDevelopmentLog('Disconnect requested')
       const result = await window.simcore.disconnectDevice()
       writeDevelopmentLog('Disconnect completed', result)
-    } else if (state.status === 'error') {
+    } else if (status === 'error') {
       writeDevelopmentLog('Clearing failed device session before retry')
       await window.simcore.disconnectDevice()
       await connect()
-    } else if (state.status === 'scanning' || state.status === 'connecting') {
+    } else if (status === 'scanning' || status === 'connecting') {
       writeDevelopmentLog('Connection cancellation requested')
       const result = await window.simcore.cancelAutoConnect()
       writeDevelopmentLog('Connection cancellation completed', result)
@@ -140,11 +141,11 @@ export function DeviceConnection({
   }
 
   const actionLabel =
-    state.status === 'connected'
+    status === 'connected'
       ? 'Disconnect'
-      : state.status === 'scanning' || state.status === 'connecting'
+      : status === 'scanning' || status === 'connecting'
         ? 'Cancel'
-        : state.status === 'disconnecting'
+        : status === 'disconnecting'
           ? 'Disconnecting…'
           : 'Connect'
 
@@ -154,7 +155,7 @@ export function DeviceConnection({
         aria-label="Serial port"
         className="h-8 w-64 flex-none rounded-md border bg-background px-2 text-xs"
         value={selectedPortId}
-        disabled={isWorking || state.status === 'connected'}
+        disabled={isWorking || status === 'connected'}
         onChange={(event) => setSelectedPortId(event.target.value)}
       >
         <option value={AUTO_PORT_ID}>Auto — detect port and speed</option>
@@ -171,7 +172,7 @@ export function DeviceConnection({
             aria-label="Baud rate"
             className="h-8 w-full rounded-md border bg-background px-2 text-xs"
             value={selectedBaudRate}
-            disabled={isWorking || state.status === 'connected'}
+            disabled={isWorking || status === 'connected'}
             onChange={(event) => setSelectedBaudRate(event.target.value)}
           >
             {SUPPORTED_BAUD_RATES.map((rate) => (
@@ -186,14 +187,14 @@ export function DeviceConnection({
       <Button
         className="w-20 flex-none"
         variant="outline"
-        disabled={isWorking || state.status === 'connected'}
+        disabled={isWorking || status === 'connected'}
         onClick={() => void refreshPorts()}
       >
         Refresh
       </Button>
       <Button
         className="w-28 flex-none"
-        disabled={state.status === 'disconnecting'}
+        disabled={status === 'disconnecting'}
         onClick={() => void primaryAction()}
       >
         {actionLabel}
@@ -206,13 +207,13 @@ export function DeviceConnection({
           aria-hidden="true"
           className={`size-1.5 rounded-full ${statusBadgeStyle.indicator}`}
         />
-        {state.status}
+        {status}
       </Badge>
     </div>
   )
 }
 
-function formatStatus(state: DeviceState): string {
+function formatStatus(state: Pick<DeviceState, 'connection' | 'scan' | 'error'>): string {
   if (state.connection) {
     return `${state.connection.displayName} at ${state.connection.baudRate}`
   }

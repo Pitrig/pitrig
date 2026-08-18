@@ -21,9 +21,14 @@ Key points that change how you should work here:
 
 ### Firmware (ESP-IDF, C++20)
 
-Requires a sourced ESP-IDF environment (`source <idf-path>/export.sh`). Run from `firmware/`. Each
-board is a separate build directory + generated sdkconfig; always pass both `-DSDKCONFIG` and
-`-DSDKCONFIG_DEFAULTS` so board defaults are not lost.
+Requires a sourced ESP-IDF environment: `source tools/idf-env.sh <build-directory>`. It finds the
+installation and takes the Python virtualenv that build directory was configured with — an install
+can carry more than one, and when the running interpreter differs from the recorded one `idf.py`
+refuses to build and suggests `fullclean`, which throws the build away instead of fixing it. Plain
+`source <idf-path>/export.sh` is enough for a build directory that does not exist yet.
+
+Run from `firmware/`. Each board is a separate build directory + generated sdkconfig; always pass
+both `-DSDKCONFIG` and `-DSDKCONFIG_DEFAULTS` so board defaults are not lost.
 
 ```bash
 cd firmware && idf.py -B build-t-display -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.t-display -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.t-display-s3" build
@@ -116,34 +121,47 @@ components → interfaces ← drivers
 ```
 
 - `core/` — static composition root: startup, config load, bounded module lifecycle, event dispatch.
-  Contains no hardware-specific and no feature-specific code. `core/module_manager` holds
+  Contains no hardware-specific and no feature-specific code, and reaches no LVGL header: the
+  dashboard is opaque to it (`dashboard_composition::instance()`), so a widget type change does not
+  recompile it. `application.hpp` holds what it owns, `apply_configuration.cpp` the ADR 0016
+  replacement transaction, `simcore.cpp` the startup phases. `core/module_manager` holds
   compile-time descriptors (function pointers + explicit contexts); no allocation, no name lookup.
 - `interfaces/` — small contracts (`display`, `input`, `transport`) implemented by drivers. The
   `display` and `input` contracts live in one `interfaces` component; `transport` is its own.
-- `components/` — reusable hardware capabilities (`display`, `input`, `simcore_config`); depend on
-  interfaces, never on concrete drivers.
+- `components/` — reusable hardware capabilities (`display`, `input`); depend on interfaces, never
+  on concrete drivers.
 - `drivers/` — board/hardware implementations (`t_display_s3`, `guition_esp32_4848s040`,
-  `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`). No application
-  logic. A board with no digitizer leaves `BoardDefinition::input` null.
+  `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`,
+  `transport/usb_serial_jtag`, plus `transport/transport_common` for the read counters and log
+  silencing every link shares). No application logic. A board with no digitizer leaves
+  `BoardDefinition::input` null.
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
-- `services/` — shared infrastructure (`asset_control`, `asset_storage`, `binary_session`,
-  `configuration`, `configuration_contract`, `configuration_control`, `event_bus`, `font_assets`,
-  `font_asset_control`, `font_contract`, `image_assets`, `image_asset_control`, `image_contract`,
-  `logger`, `performance`, `telemetry` + `telemetry/protocols/simhub`). `asset_control` is the
-  `SCF1` upload engine; `font_asset_control` and `image_asset_control` are thin per-kind
-  wrappers over it that supply the protocol tag and the body of the `INFO` reply.
+- `services/` — shared infrastructure (`asset_control`, `asset_package`, `asset_storage`,
+  `binary_session`, `configuration`, `configuration_contract`, `configuration_control`,
+  `event_bus`, `font_assets`, `font_asset_control`, `font_contract`, `image_assets`,
+  `image_asset_control`, `image_contract`, `logger`, `performance`, `telemetry` +
+  `telemetry/protocols/simhub`). `asset_control` is the `SCF1` upload engine;
+  `font_asset_control` and `image_asset_control` are thin per-kind wrappers over it that supply
+  the protocol tag and the body of the `INFO` reply. `asset_package` holds what the two package
+  formats share — the 32-byte header, its validation, and the update status and error types —
+  while each kind keeps its own magic, manifest entry decoder and catalog.
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
-  `dashboard` (LVGL widgets, plus `navigation` for screen swiping and `slots` for container
-  switching), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
+  `dashboard` (LVGL `widgets` over a shared `frame`, plus `conditions`, `fonts`, `images`,
+  `layout`, `navigation` for screen swiping, `slots` for container switching, and `utilities`),
+  `dashboard_composition`, `module_composition`, `nvs_config_storage`,
   `partition_asset_storage`, `telemetry_transport`, `external_memory`.
-- `utils/` — dependency-free helpers (`binary`, `transformers/number_transform`,
-  `transformers/text_writer`, `transformers/time_transform`).
+- `utils/` — helpers with no dependency on any other layer (`binary`, `simcore_config`,
+  `transformers/number_transform`, `transformers/text_writer`, `transformers/time_transform`).
+  `simcore_config` is the Kconfig surface and the `SIMCORE_*` feature aliases; it lives here
+  because every layer reads it, and it sat under `components/` long enough to give drivers and
+  services a dependency on a component, which the layering forbids.
 
-Every layer directory listed above is a separate ESP-IDF component registered in
-`EXTRA_COMPONENT_DIRS` in [firmware/CMakeLists.txt](firmware/CMakeLists.txt) — **adding a new
-component/module/driver requires adding its path there** (and the P4-vs-S3 branch for board drivers).
-Public headers live in `include/`, sources in `src/`.
+Every layer directory listed above is a separate ESP-IDF component. All of them except
+`components/` are registered in `EXTRA_COMPONENT_DIRS` in
+[firmware/CMakeLists.txt](firmware/CMakeLists.txt) — **adding a new service/module/driver requires
+adding its path there** (and the P4-vs-S3 branch for board drivers). `components/` is ESP-IDF's own
+default search path and needs no entry. Public headers live in `include/`, sources in `src/`.
 
 Extension order: add a module first, reuse existing components/services, add a component only for a
 new hardware capability, add a driver only for new hardware. The core should rarely change.
@@ -233,9 +251,9 @@ reboot.
 ### Configurator (`configurator/src/`)
 
 Standard electron-vite three-way split: `main/` (Node — serial via `serialport`, device service,
-protocol, font upload, config files, SimHub profile export), `preload/`, `renderer/src/` (React +
-Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `font-assets`, `simhub`,
-`development`). `shared/` holds types crossing the boundary; all IPC channels and the `SimCoreApi`
+protocol, font and image upload over one shared `assets/` engine, config files, SimHub profile
+export), `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
+`configuration`, `device`, `font-assets`, `image-assets`, `simhub`, `development`). `shared/` holds types crossing the boundary; all IPC channels and the `SimCoreApi`
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 
@@ -250,8 +268,13 @@ directory. `preview/` draws the canvas: `PreviewCanvas` and its chrome, the pure
 shell dispatches by widget type into `widget-editors`, over shared `section-editors`,
 `styling-editors` and form primitives in `fields.tsx`. `editor/` is the document layer — view
 state in `store.ts`, access and mutation in `document.ts`, and one module per family of commands
-(`widgets`, `screens`, `arrange`, `clipboard`, `naming`). `dashboard-editor.ts` re-exports
-`editor/` as one surface, so panels keep a single import.
+(`widgets`, `screens`, `arrange`, `slots`, `clipboard`, `naming`, `palette`).
+`dashboard-editor.ts` re-exports `editor/` as one surface, so panels keep a single import.
+
+What stays at the feature root is what belongs to none of the three: `ConfigurationPanel.tsx`
+(board, file and device controls), `LayersPanel.tsx`, and the `dashboard-editor.ts` barrel. The
+canvas shell, the inspector shell and the keyboard commands live in `preview/`, `inspector/` and
+`editor/` with the rest of their halves.
 
 ## Conventions
 

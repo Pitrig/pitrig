@@ -1,13 +1,12 @@
 #include "usb_serial_jtag_transport.hpp"
 
-#include <cstdarg>
 #include <span>
 
 #include "driver/usb_serial_jtag.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "simcore_features.hpp"
 #if SIMCORE_DEBUG
-#include "esp_timer.h"
 #include "performance.hpp"
 #endif
 
@@ -56,13 +55,7 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
     return false;
   }
 
-#if SIMCORE_DEBUG
-  received_bytes_.store(0, std::memory_order_relaxed);
-  read_events_.store(0, std::memory_order_relaxed);
-  maximum_read_gap_ms_.store(0, std::memory_order_relaxed);
-  maximum_handler_time_us_.store(0, std::memory_order_relaxed);
-  last_read_at_us_ = 0;
-#endif
+  instrumentation_.reset();
   handler_ = handler;
   handler_context_ = context;
   started_ = true;
@@ -89,7 +82,7 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
   // which leaves a build that looks identical to one without the link at all.
   ESP_LOGI(kTag, "USB Serial/JTAG telemetry transport started");
   if (configuration_.silence_esp_logs) {
-    previous_log_output_ = esp_log_set_vprintf(&discard_log_output);
+    log_silencer_.silence();
   }
   return true;
 }
@@ -117,7 +110,7 @@ void UsbSerialJtagTransport::stop() {
     vSemaphoreDelete(stopped_);
     stopped_ = nullptr;
   }
-  restore_log_output();
+  log_silencer_.restore();
   ESP_LOGI(kTag, "USB Serial/JTAG telemetry transport stopped");
 }
 
@@ -133,13 +126,6 @@ void UsbSerialJtagTransport::task_entry(void* const context) {
   static_cast<UsbSerialJtagTransport*>(context)->process();
 }
 
-int UsbSerialJtagTransport::discard_log_output(const char* const format,
-                                               va_list args) {
-  (void)format;
-  (void)args;
-  return 0;
-}
-
 void UsbSerialJtagTransport::process() {
   std::array<std::uint8_t, kChunkSize> data{};
   while (running_.load(std::memory_order_acquire)) {
@@ -149,32 +135,15 @@ void UsbSerialJtagTransport::process() {
       continue;
     }
 
-#if SIMCORE_DEBUG
-    const std::int64_t read_at_us = esp_timer_get_time();
-    if (last_read_at_us_ != 0) {
-      performance::record_maximum(
-          maximum_read_gap_ms_,
-          static_cast<std::uint32_t>((read_at_us - last_read_at_us_) / 1'000));
-    }
-    last_read_at_us_ = read_at_us;
-    received_bytes_.fetch_add(static_cast<std::uint64_t>(received),
-                              std::memory_order_relaxed);
-    read_events_.fetch_add(1, std::memory_order_relaxed);
-#endif
+    instrumentation_.record_read(static_cast<std::size_t>(received));
 
     if (handler_ != nullptr) {
-#if SIMCORE_DEBUG
-      const std::int64_t handler_started_at_us = esp_timer_get_time();
-#endif
+      const std::int64_t handler_started_at_us =
+          ReadInstrumentation::handler_started();
       handler_(std::span<const std::uint8_t>(
                    data.data(), static_cast<std::size_t>(received)),
                handler_context_);
-#if SIMCORE_DEBUG
-      performance::record_maximum(
-          maximum_handler_time_us_,
-          static_cast<std::uint32_t>(esp_timer_get_time() -
-                                     handler_started_at_us));
-#endif
+      instrumentation_.record_handler(handler_started_at_us);
     }
   }
 
@@ -182,29 +151,10 @@ void UsbSerialJtagTransport::process() {
   vTaskDelete(nullptr);
 }
 
-void UsbSerialJtagTransport::restore_log_output() {
-  if (previous_log_output_ != nullptr) {
-    esp_log_set_vprintf(previous_log_output_);
-    previous_log_output_ = nullptr;
-  }
-}
-
 Diagnostics UsbSerialJtagTransport::diagnostics() const {
-#if SIMCORE_DEBUG
-  return {
-      .received_bytes = received_bytes_.load(std::memory_order_relaxed),
-      .read_events = read_events_.load(std::memory_order_relaxed),
-      .fifo_overflows = 0,
-      .buffer_full_events = 0,
-      .buffered_bytes = 0,
-      .maximum_read_gap_ms =
-          maximum_read_gap_ms_.load(std::memory_order_relaxed),
-      .maximum_handler_time_us =
-          maximum_handler_time_us_.load(std::memory_order_relaxed),
-  };
-#else
-  return {};
-#endif
+  Diagnostics diagnostics{};
+  instrumentation_.fill(diagnostics);
+  return diagnostics;
 }
 
 }  // namespace simcore::transport

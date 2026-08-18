@@ -1,12 +1,12 @@
-import { type RgbColor } from '../../../../../shared/configuration-schema'
-import { type DeviceConfiguration } from '../../../../../shared/device'
+import { type RgbColor } from '@shared/configuration-schema'
+import { type DeviceConfiguration } from '@shared/device'
 
 /**
  * How many swatches a picker offers. Enough to cover a dashboard's real palette
  * — they run to a handful of accents plus their dimmed variants — without the
  * grid growing into something that has to be read rather than glanced at.
  */
-export const MAXIMUM_PALETTE_SWATCHES = 18
+const MAXIMUM_PALETTE_SWATCHES = 18
 
 const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/
 

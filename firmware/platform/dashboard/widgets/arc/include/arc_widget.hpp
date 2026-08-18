@@ -8,6 +8,7 @@
 #include "application_configuration.hpp"
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
+#include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
 struct _lv_obj_t;
@@ -25,60 +26,45 @@ using Config = configuration::ArcWidgetConfiguration;
 // One telemetry source swept around an lv_arc. The arc carries both the track
 // and the fill as its own parts, so a gauge is one object rather than a stack
 // of them, and the sweep is set in per-mille to keep the update integral.
-class Collection final {
- public:
-  Collection() = default;
-  ~Collection();
-  Collection(const Collection&) = delete;
-  Collection& operator=(const Collection&) = delete;
+// One instance: the frame's painter plus the arc-specific draw state.
+struct State {
+  frame::Painter painter{};
+  frame::ValueReadCallback read{};
+  void* read_context{};
+  configuration::ValueRange range{};
+  bool inverted{};
+  bool free_running{};
+  lv_obj_t* container{};
+  lv_obj_t* arc{};
+  std::uint64_t rendered_revision{};
+  bool rendered_available{};
+  // Sweep already on screen, in per-mille of the arc. An unchanged proportion
+  // touches no LVGL, which matters because setting a value invalidates the
+  // whole ring.
+  std::int32_t drawn_per_mille{-1};
+  bool initialized{};
+};
 
+class Collection final
+    : public frame::Collection<Collection, State, kMaximumInstances> {
+ public:
   [[nodiscard]] bool create(const Layout& layout,
                             std::span<const Config> configurations,
                             std::span<const frame::ValueBinding> bindings,
                             const fonts::Registry& fonts);
-  [[nodiscard]] lv_obj_t* root_object(std::size_t index) const {
-    return index < count_ ? states_[index].container : nullptr;
-  }
-  void destroy();
-  void wake();
   [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
                               const Config& configuration,
                               const frame::ValueBinding& binding,
                               const fonts::Registry& fonts);
 
  private:
-  struct State {
-    frame::Painter painter{};
-    frame::ValueReadCallback read{};
-    void* read_context{};
-    configuration::ValueRange range{};
-    bool inverted{};
-    bool free_running{};
-    lv_obj_t* container{};
-    lv_obj_t* arc{};
-    std::uint64_t rendered_revision{};
-    bool rendered_available{};
-    // Sweep already on screen, in per-mille of the arc. An unchanged proportion
-    // touches no LVGL, which matters because setting a value invalidates the
-    // whole ring.
-    std::int32_t drawn_per_mille{-1};
-    bool initialized{};
-  };
+  friend frame::Collection<Collection, State, kMaximumInstances>;
 
-  static void update(lv_timer_t* timer);
-  void render();
   void render_state(State& state);
-  void clear_objects();
-  void release(State& state);
   [[nodiscard]] bool build(State& state, const Layout& layout,
                            const Config& configuration,
                            const frame::ValueBinding& binding,
                            const fonts::Registry& fonts);
-
-  std::array<State, kMaximumInstances> states_{};
-  std::size_t count_{};
-  lv_timer_t* timer_{};
-  bool created_{};
 };
 
 }  // namespace simcore::dashboard::arc_widget

@@ -1,6 +1,7 @@
-import { pagesOf } from '../../../../../shared/configuration-access'
-import { type SlotWidgetConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '../../../../../shared/configuration-schema'
-import { type DisplayDescriptor } from '../../../../../shared/device'
+import { pagesOf } from '@shared/configuration-access'
+import { type SlotWidgetConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '@shared/configuration-schema'
+import { type DisplayDescriptor } from '@shared/device'
+import { clamp, clampToDisplay } from '../editor/placement'
 import { type WidgetSelection, completePlacement } from '../dashboard-editor'
 
 export interface PreviewLayer {
@@ -229,8 +230,8 @@ export function transformedPlacement(
     return {
       placement: {
         ...original,
-        x: Math.round(clamp(horizontal.value, 0, display.width - original.width)),
-        y: Math.round(clamp(vertical.value, 0, display.height - original.height))
+        ...clampToDisplay(horizontal.value, vertical.value, original.width,
+                          original.height, display)
       },
       guides: {
         x: horizontal.guide === undefined ? [] : [horizontal.guide],
@@ -257,4 +258,3 @@ export function transformedPlacement(
   }
 }
 
-export function clamp(value: number, minimum: number, maximum: number): number { return Math.min(maximum, Math.max(minimum, value)) }

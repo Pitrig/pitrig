@@ -4,16 +4,13 @@
 #if SIMCORE_DEBUG
 #include <algorithm>
 #include <array>
-#include <cinttypes>
 #include <cstdint>
-#include <cstdio>
 
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "freertos/task.h"
-#include "logger.hpp"
 #endif
 
 namespace simcore::performance {
@@ -24,7 +21,6 @@ void update();
 
 namespace {
 
-constexpr char kTag[] = "performance";
 constexpr std::uint32_t kUpdatePeriodMs = 1'000;
 constexpr std::uint32_t kTaskStackDepth = 2'048;
 constexpr UBaseType_t kTaskPriority = 1;
@@ -107,28 +103,6 @@ float cpu_usage(configRUN_TIME_COUNTER_TYPE idle_delta,
   return std::clamp(100.0F - idle_percent, 0.0F, 100.0F);
 }
 
-#ifdef SIMCORE_PERFORMANCE_SERIAL
-void print_stats(const PerformanceStats& snapshot) {
-  char output[320];
-  std::snprintf(output, sizeof(output),
-                "\n================================\n"
-                "FPS        : %.1f\n"
-                "CPU0       : %.1f%%\n"
-                "CPU1       : %.1f%%\n"
-                "Render     : %" PRIu32 " us\n"
-                "Flush      : %" PRIu32 " us\n"
-                "Sync       : %" PRIu32 " us\n"
-                "Heap       : %" PRIu32 " KB\n"
-                "Largest    : %" PRIu32 " KB\n"
-                "PSRAM      : %" PRIu32 " KB\n"
-                "================================",
-                static_cast<double>(snapshot.fps), static_cast<double>(snapshot.cpu_core0),
-                static_cast<double>(snapshot.cpu_core1), snapshot.render_time_us,
-                snapshot.flush_time_us, snapshot.sync_time_us, snapshot.free_heap / 1'024,
-                snapshot.largest_heap_block / 1'024, snapshot.free_psram / 1'024);
-  log::info(kTag, output);
-}
-#endif
 
 void sampler_task(void*) {
   TickType_t last_wake_time = xTaskGetTickCount();
@@ -338,10 +312,6 @@ void update() {
   taskENTER_CRITICAL(&state_lock);
   stats = next;
   taskEXIT_CRITICAL(&state_lock);
-
-#ifdef SIMCORE_PERFORMANCE_SERIAL
-  print_stats(next);
-#endif
 }
 
 PerformanceStats get_stats() {

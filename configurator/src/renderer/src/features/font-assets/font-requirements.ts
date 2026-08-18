@@ -1,37 +1,12 @@
-import { allWidgetsOf } from '../../../../shared/configuration-access'
-import type { FontSpec, WidgetConfiguration } from '../../../../shared/configuration-schema'
-import type { DeviceConfiguration } from '../../../../shared/device'
-import type { FontAssetKey } from '../../../../shared/font-assets'
-
-// Every font a widget can reference, in one exhaustive place. A new widget
-// type fails to compile here until its fonts are declared, so the upload flow
-// cannot silently ship a package that is missing them.
-function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
-  switch (widget.type) {
-    case 'text':
-      return [widget.title?.text ? widget.title.font : undefined, widget.value?.font]
-    case 'shape':
-    case 'bar':
-    case 'arc':
-    case 'indicator':
-    case 'graph':
-    case 'image':
-    case 'slot':
-      // None of these draw text of their own, so none requires a font. A slot
-      // draws nothing at all, and the widgets on its pages answer for
-      // themselves — allWidgetsOf already reaches them.
-      return []
-    default: {
-      const exhaustive: never = widget
-      return [exhaustive]
-    }
-  }
-}
+import { documentFonts } from '@shared/document-fonts'
+import type { FontSpec } from '@shared/configuration-schema'
+import type { DeviceConfiguration } from '@shared/device'
+import type { FontAssetKey } from '@shared/font-assets'
 
 export function collectFontRequirements(configuration: DeviceConfiguration): FontAssetKey[] {
-  const fonts = allWidgetsOf(configuration)
-    .flatMap(widgetFonts)
-    .filter((font): font is FontSpec => font !== undefined)
+  const fonts = documentFonts(configuration).filter(
+    (font): font is FontSpec => font !== undefined
+  )
 
   const unique = new Map<string, FontAssetKey>()
   for (const font of fonts) {

@@ -2,7 +2,8 @@
 
 Status: Accepted; the schema 2 document shape is superseded by ADR 0013 and
 the reboot-only application rule by ADR 0016. The two-slot NVS record
-strategy and the bounded payload remain in force.
+strategy and the fact that the payload is bounded remain in force; the bound
+itself lives in the schema rather than here.
 Implementation status: the desktop configurator now supports the complete
 control round trip, and the legacy schema 0 CLI and inheritance profiles have
 been removed. Schema 2 font references are defined by ADR 0010.
@@ -61,7 +62,8 @@ contains magic, record and schema versions, payload size, generation, and
 CRC32. Write and verify the inactive slot before selecting it. These record
 headers and slot mechanics remain private firmware details.
 
-Bound the compact schema 2 JSON payload at 16384 bytes. Size the dedicated
+Bound the compact JSON payload at `kMaximumPayloadSize`, which the generated
+configuration contract defines — 65536 bytes as of schema 10. Size the dedicated
 `simcore_cfg` NVS partition at 64 KiB so both rollback records and NVS metadata
 fit within the partition. The partition keeps its original start offset; the
 following font-assets partition moves and therefore requires font assets to be

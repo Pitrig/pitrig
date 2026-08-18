@@ -62,9 +62,7 @@ void ConfigurationControl::stop() {
   request_size_ = 0;
   service_ = nullptr;
   transport_ = nullptr;
-#if SIMCORE_SECOND_TELEMETRY_LINK
   reply_ = nullptr;
-#endif
   reboot_handler_ = nullptr;
   reboot_context_ = nullptr;
   apply_handler_ = nullptr;
@@ -72,12 +70,8 @@ void ConfigurationControl::stop() {
   io_buffer_ = {};
 }
 
-#if SIMCORE_SECOND_TELEMETRY_LINK
 void ConfigurationControl::consume(
     const std::span<const std::uint8_t> line, transport::ITransport& reply) {
-#else
-void ConfigurationControl::consume(const std::span<const std::uint8_t> line) {
-#endif
   if (service_ == nullptr || transport_ == nullptr ||
       task_ == nullptr || line.size() > io_buffer_.size() ||
       line.size() < kPrefix.size() ||
@@ -92,9 +86,7 @@ void ConfigurationControl::consume(const std::span<const std::uint8_t> line) {
   }
   std::copy(line.begin(), line.end(), io_buffer_.begin());
   request_size_ = line.size();
-#if SIMCORE_SECOND_TELEMETRY_LINK
   reply_ = &reply;
-#endif
   request_state_.store(RequestState::ready, std::memory_order_release);
   xTaskNotifyGive(task_);
 }
@@ -139,7 +131,7 @@ void ConfigurationControl::handle(
         static_cast<unsigned long>(status.generation),
         status.storage_available ? 1U : 0U);
     if (written > 0 && static_cast<std::size_t>(written) < io_buffer_.size()) {
-      reply()->write(
+      (void)write_reply(
           std::span<const std::uint8_t>(io_buffer_.data(), written));
     }
     return;
@@ -147,7 +139,7 @@ void ConfigurationControl::handle(
 
   if (command.size() == 3 &&
       std::equal(command.begin(), command.end(), "GET")) {
-    send_payload(service_->current_payload());
+    (void)send_payload(service_->current_payload());
     return;
   }
 
@@ -155,16 +147,16 @@ void ConfigurationControl::handle(
   if (command.size() >= kApply.size() &&
       std::equal(kApply.begin(), kApply.end(), command.begin())) {
     if (apply_handler_ == nullptr) {
-      send_text("@SC:ERR:unsupported\n");
+      (void)send_text("@SC:ERR:unsupported\n");
       return;
     }
     const ValidationFailure failure =
         apply_handler_(command.subspan(kApply.size()), apply_context_);
     if (!failure.ok()) {
-      send_error(failure);
+      (void)send_error(failure);
       return;
     }
-    send_text("@SC:OK:APPLIED\n");
+    (void)send_text("@SC:OK:APPLIED\n");
     return;
   }
 
@@ -181,46 +173,64 @@ void ConfigurationControl::handle(
         validate ? kValidate.size() : kSet.size();
     const std::span<const std::uint8_t> payload =
         command.subspan(prefix_size);
-    const ValidationFailure failure =
-        validate ? service_->validate_payload(payload)
-                 : service_->save(payload);
-    if (!failure.ok()) {
-      send_error(failure);
+    if (validate) {
+      const ValidationFailure failure = service_->validate_payload(payload);
+      if (!failure.ok()) {
+        (void)send_error(failure);
+        return;
+      }
+      (void)send_text("@SC:OK:VALID\n");
       return;
     }
-    send_text(validate ? "@SC:OK:VALID\n"
-                       : "@SC:OK:SAVED:reboot_required=1\n");
+    const ConfigurationService::SaveOutcome outcome = service_->save(payload);
+    if (outcome.storage_failed) {
+      // The same answer RESET gives when flash refuses it, rather than a
+      // validation error over a document that parsed and validated fine.
+      (void)send_text("@SC:ERR:storage\n");
+      return;
+    }
+    if (!outcome.failure.ok()) {
+      (void)send_error(outcome.failure);
+      return;
+    }
+    (void)send_text("@SC:OK:SAVED:reboot_required=1\n");
     return;
   }
 
   if (command.size() == 5 &&
       std::equal(command.begin(), command.end(), "RESET")) {
     if (service_->reset()) {
-      send_text("@SC:OK:RESET:reboot_required=1\n");
+      (void)send_text("@SC:OK:RESET:reboot_required=1\n");
     } else {
-      send_text("@SC:ERR:storage\n");
+      (void)send_text("@SC:ERR:storage\n");
     }
     return;
   }
 
   if (command.size() == 6 &&
       std::equal(command.begin(), command.end(), "REBOOT")) {
-    send_text("@SC:OK:REBOOTING\n");
+    (void)send_text("@SC:OK:REBOOTING\n");
     if (reboot_handler_ != nullptr) {
       reboot_handler_(reboot_context_);
     }
     return;
   }
 
-  send_text("@SC:ERR:unknown_command\n");
+  (void)send_text("@SC:ERR:unknown_command\n");
 }
 
-void ConfigurationControl::send_text(const char* const text) {
-  reply()->write(std::span<const std::uint8_t>(
+bool ConfigurationControl::write_reply(
+    const std::span<const std::uint8_t> data) {
+  transport::ITransport* const link = reply();
+  return link != nullptr && link->write(data);
+}
+
+bool ConfigurationControl::send_text(const char* const text) {
+  return write_reply(std::span<const std::uint8_t>(
       reinterpret_cast<const std::uint8_t*>(text), std::strlen(text)));
 }
 
-void ConfigurationControl::send_error(const ValidationFailure& failure) {
+bool ConfigurationControl::send_error(const ValidationFailure& failure) {
   // The reason token keeps its position so existing hosts still parse it.
   // Location details follow only when the failure has them.
   const std::string_view reason = validation_error_name(failure.error);
@@ -232,19 +242,20 @@ void ConfigurationControl::send_error(const ValidationFailure& failure) {
       static_cast<int>(failure.screen_index),
       static_cast<int>(failure.widget_index),
       static_cast<int>(path.size()), path.data());
-  if (written > 0 && static_cast<std::size_t>(written) < io_buffer_.size()) {
-    reply()->write(
-        std::span<const std::uint8_t>(io_buffer_.data(), written));
-  }
+  return written > 0 &&
+         static_cast<std::size_t>(written) < io_buffer_.size() &&
+         write_reply(
+             std::span<const std::uint8_t>(io_buffer_.data(), written));
 }
 
-void ConfigurationControl::send_payload(
+bool ConfigurationControl::send_payload(
     const std::span<const std::uint8_t> payload) {
   constexpr char prefix[] = "@SC:OK:CONFIG:";
   constexpr std::size_t prefix_size = sizeof(prefix) - 1;
   if (prefix_size + payload.size() + 1U > io_buffer_.size()) {
-    send_error({.error = ValidationError::malformed});
-    return;
+    // The contract defines malformed as covering an oversized payload, so this
+    // is the documented answer rather than an approximation of one.
+    return send_error({.error = ValidationError::malformed});
   }
   std::copy_n(reinterpret_cast<const std::uint8_t*>(prefix), prefix_size,
               io_buffer_.begin());
@@ -252,7 +263,7 @@ void ConfigurationControl::send_payload(
   std::copy(payload.begin(), payload.end(), io_buffer_.begin() + position);
   position += payload.size();
   io_buffer_[position++] = '\n';
-  reply()->write(
+  return write_reply(
       std::span<const std::uint8_t>(io_buffer_.data(), position));
 }
 

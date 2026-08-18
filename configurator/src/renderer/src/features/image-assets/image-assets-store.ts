@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
-import type { AssetUploadProgress } from '../../../../shared/asset-upload'
-import type { ImageColorFormat, ImageSourceSelection } from '../../../../shared/image-assets'
+import type { AssetUploadProgress } from '@shared/asset-upload'
+import type { ImageColorFormat, ImageSourceSelection } from '@shared/image-assets'
 
 // One row of the upload list: a picked file plus what it should become on the
 // device. The size defaults to the source's own, because the board draws an

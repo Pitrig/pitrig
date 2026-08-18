@@ -3,6 +3,7 @@
 #include <cstdarg>
 
 #include "esp_log.h"
+#include "simcore_features.hpp"
 
 namespace simcore::log {
 namespace {

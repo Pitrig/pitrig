@@ -4,7 +4,7 @@ import {
   NO_PREVIEW_ASSETS,
   type PreviewAssets,
   type PreviewImageAsset
-} from '../../../../shared/preview-assets'
+} from '@shared/preview-assets'
 
 /**
  * The uploaded assets the canvas draws with. The board rasterizes a face and

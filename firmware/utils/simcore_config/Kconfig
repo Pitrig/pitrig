@@ -8,6 +8,14 @@ config SIMCORE_DEBUG
         Enables performance collection, transport diagnostics, and the
         on-screen performance overlay.
 
+config SIMCORE_LOG_MODE_FULL
+    bool "Formatted, level-aware log forwarding"
+    default n
+    help
+        Selects the full ESP-IDF logging mode inside the logger instead of the
+        simple one. The public logging API is identical either way; only which
+        backend call the logger makes changes. See ADR 0001.
+
 config SIMCORE_LAYOUT_DEBUG
     bool "Dashboard layout outlines"
     default n
@@ -20,10 +28,11 @@ choice SIMCORE_FACTORY_BOARD
     default SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
     help
         Selects the immutable hardware identity and the fallback configuration
-        used when neither NVS configuration slot is valid. All supported
-        The P4 build links only its board drivers. ESP32-S3 keeps both board
-        alternatives discoverable because ESP-IDF resolves component
-        requirements before loading this choice on a fresh configure.
+        used when neither NVS configuration slot is valid. A build links only
+        the board drivers its target can carry, so the P4 offers one board and
+        the ESP32-S3 keeps both of its alternatives discoverable — ESP-IDF
+        resolves component requirements before loading this choice on a fresh
+        configure.
 
 config SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
     bool "LilyGO T-Display-S3"

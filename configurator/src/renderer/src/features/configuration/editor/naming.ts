@@ -1,5 +1,5 @@
-import { allWidgetsOf, screensOf } from '../../../../../shared/configuration-access'
-import { WIDGET_ID_CAPACITY } from '../../../../../shared/configuration-schema'
+import { allWidgetsOf, screensOf } from '@shared/configuration-access'
+import { WIDGET_ID_CAPACITY } from '@shared/configuration-schema'
 import { findWidget, mutateDraftConfiguration } from './document'
 import { useDashboardEditorStore } from './store'
 import { useDeviceStore } from '@/features/device/device-store'

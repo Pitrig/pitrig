@@ -54,8 +54,20 @@ class ConfigurationService {
   }
   [[nodiscard]] ValidationFailure validate_payload(
       std::span<const std::uint8_t> payload) const;
-  [[nodiscard]] ValidationFailure save(
-      std::span<const std::uint8_t> payload);
+  // A save fails two ways that mean different things to the host: the document
+  // was rejected, or the flash write failed. Reporting the second as a
+  // validation error sends the author looking for a fault in JSON that is
+  // perfectly good, so the two are kept apart here rather than flattened into
+  // one ValidationError.
+  struct SaveOutcome {
+    ValidationFailure failure{};
+    bool storage_failed{};
+
+    [[nodiscard]] bool ok() const {
+      return failure.ok() && !storage_failed;
+    }
+  };
+  [[nodiscard]] SaveOutcome save(std::span<const std::uint8_t> payload);
   [[nodiscard]] bool reset();
 
   // Runtime application without persistence. `stage` parses and validates a

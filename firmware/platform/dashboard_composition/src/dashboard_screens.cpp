@@ -1,4 +1,5 @@
 #include "dashboard_screens.hpp"
+#include "dashboard_state.hpp"
 
 #include <algorithm>
 #include <array>
@@ -62,160 +63,6 @@ std::uint32_t screen_background(
              : kDefaultBackgroundColor;
 }
 
-struct WidgetLayer {
-  lv_obj_t* object{};
-  std::int16_t z_index{};
-  std::uint8_t configuration_order{};
-};
-
-// Stacking is an order among one LVGL parent's children, so this runs once per
-// parent — a screen, or a container shape — over that parent's own reference
-// table. A container is one child of its own parent, ordered there by its own
-// z_index, and orders its children separately within itself; that is why depth
-// costs nothing here. The scratch table is reused between parents, which is why
-// more of them cost no more stack.
-bool apply_parent_z_order(
-    const std::span<const configuration::WidgetReference> references,
-    const std::size_t reference_count, Dashboard& dashboard) {
-  std::array<WidgetLayer, configuration::kMaximumWidgetsPerScreen> layers{};
-  std::size_t count{};
-  // Authored order breaks z_index ties, and the reference table is that order.
-  for (std::size_t index = 0; index < reference_count; ++index) {
-    const configuration::WidgetReference& reference = references[index];
-    lv_obj_t* const object =
-        dashboard.widgets.root_object(reference.type, reference.index);
-    if (object != nullptr) {
-      layers[count++] = {
-          .object = object,
-          .z_index = reference.z_index,
-          .configuration_order = static_cast<std::uint8_t>(index),
-      };
-    }
-  }
-
-  for (std::size_t index = 1; index < count; ++index) {
-    const WidgetLayer layer = layers[index];
-    std::size_t insertion = index;
-    while (insertion > 0 &&
-           (layer.z_index < layers[insertion - 1].z_index ||
-            (layer.z_index == layers[insertion - 1].z_index &&
-             layer.configuration_order <
-                 layers[insertion - 1].configuration_order))) {
-      layers[insertion] = layers[insertion - 1];
-      --insertion;
-    }
-    layers[insertion] = layer;
-  }
-
-  if (!lvgl_port_lock(0)) {
-    return false;
-  }
-  for (std::size_t index = 0; index < count; ++index) {
-    lv_obj_move_to_index(layers[index].object, static_cast<std::int32_t>(index));
-  }
-  lvgl_port_unlock();
-  return true;
-}
-
-// How far this container's children reach past it, reported to LVGL whenever it
-// recomputes the extra draw size. lv_event_set_ext_draw_size keeps the larger of
-// what it is told, so this coexists with LVGL's own handler rather than
-// replacing it. The measurement is static after composition; the pointer is into
-// the dashboard's own array, which outlives the object it is attached to.
-void report_container_overflow(lv_event_t* const event) {
-  const auto* const overflow =
-      static_cast<const std::int32_t*>(lv_event_get_user_data(event));
-  if (overflow != nullptr) {
-    lv_event_set_ext_draw_size(event, *overflow);
-  }
-}
-
-// How far one child reaches beyond its own box. Only a container does — a shape
-// holding widgets, or one page of a slot — and only by the amount this pass
-// already measured for it, so the answer is a lookup in the table rather than a
-// second measurement. A slot itself is never a child of anything measured here,
-// because a slot is only ever authored on a screen.
-[[nodiscard]] std::int32_t child_overflow(const Dashboard& dashboard,
-                                          const lv_obj_t* const object) {
-  for (std::size_t index = 0; index < dashboard.containers.size(); ++index) {
-    if (dashboard.containers[index] == object) {
-      return dashboard.container_overflow[index];
-    }
-  }
-  for (std::size_t index = 0; index < dashboard.pages.size(); ++index) {
-    if (dashboard.pages[index] == object) {
-      return dashboard.page_overflow[index];
-    }
-  }
-  return 0;
-}
-
-// How far one container's own children reach past its box. Written once because
-// a container shape, a slot page and a slot all answer it the same way.
-//
-// LVGL children rather than the reference table: a caption and its border mask
-// are parented to the container and appear in no table, and a clipped caption is
-// the whole reason this measurement exists.
-[[nodiscard]] std::int32_t measure_overflow(const Dashboard& dashboard,
-                                            lv_obj_t* const container) {
-  lv_area_t box{};
-  lv_obj_get_coords(container, &box);
-  std::int32_t overflow = 0;
-  const std::uint32_t children = lv_obj_get_child_count(container);
-  for (std::uint32_t child = 0; child < children; ++child) {
-    lv_obj_t* const object = lv_obj_get_child(container, child);
-    if (object == nullptr) {
-      continue;
-    }
-    lv_area_t reach{};
-    lv_obj_get_coords(object, &reach);
-    // What this child in turn lets through. Read from what this pass already
-    // measured rather than from LVGL, whose accessor is private — and the
-    // caller orders its containers deepest-first precisely so a nested one's
-    // figure is final by the time its parent folds it in. Anything else
-    // contributes nothing: no widget here draws a shadow or an outline outside
-    // its box.
-    const std::int32_t own = child_overflow(dashboard, object);
-    overflow = std::max({overflow, box.x1 - (reach.x1 - own),
-                         (reach.x2 + own) - box.x2, box.y1 - (reach.y1 - own),
-                         (reach.y2 + own) - box.y2});
-  }
-  return std::max<std::int32_t>(overflow, 0);
-}
-
-// Lets a container draw outside its box by the amount measured for it. The
-// pointer is into the dashboard's own array, which outlives the object.
-//
-// Idempotent, because an incremental apply re-measures containers that were
-// never rebuilt: the handler is dropped before it is attached again, so running
-// this twice on one object leaves one handler rather than two.
-void unclip(lv_obj_t* const container, std::int32_t& overflow) {
-  lv_obj_add_flag(container, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
-  (void)lv_obj_remove_event_cb_with_user_data(
-      container, report_container_overflow, &overflow);
-  lv_obj_add_event_cb(container, report_container_overflow,
-                      LV_EVENT_REFR_EXT_DRAW_SIZE, &overflow);
-  lv_obj_refresh_ext_draw_size(container);
-}
-
-// The screen an action names, resolved once here so a tap performs no lookup.
-// A name that matches nothing was already refused by validation; falling back
-// to the current screen keeps a hand-built document from navigating somewhere
-// arbitrary.
-std::uint8_t resolve_action_target(
-    const configuration::ApplicationConfiguration& configuration,
-    const configuration::WidgetAction& action) {
-  const std::string_view target = configuration::text_view(action.screen);
-  for (std::size_t index = 0; index < configuration.dashboard.screen_count;
-       ++index) {
-    if (configuration::text_view(configuration.dashboard.screens[index].id) ==
-        target) {
-      return static_cast<std::uint8_t>(index);
-    }
-  }
-  return 0;
-}
-
 }  // namespace
 
 lv_obj_t* screen_object(lv_display_t* const display, const std::size_t index) {
@@ -228,6 +75,21 @@ lv_obj_t* screen_object(lv_display_t* const display, const std::size_t index) {
   }
   make_container(screen);
   return screen;
+}
+
+bool will_render_content(
+    const configuration::ApplicationConfiguration& configuration) {
+#if SIMCORE_DEBUG
+  (void)configuration;
+  return true;
+#else
+  // A container is a widget in its screen's own reference table, so a screen
+  // holding nothing but one full container still counts as non-empty here.
+  const configuration::ScreenConfiguration& screen =
+      active_screen(configuration);
+  return screen.background_color != kDefaultBackgroundColor ||
+         screen.widget_count > 0;
+#endif
 }
 
 std::size_t create(lv_display_t* const display,
@@ -256,109 +118,28 @@ std::size_t create(lv_display_t* const display,
   return count;
 }
 
-bool will_render_content(
-    const configuration::ApplicationConfiguration& configuration) {
-#if SIMCORE_DEBUG
-  (void)configuration;
-  return true;
-#else
-  // A container is a widget in its screen's own reference table, so a screen
-  // holding nothing but one full container still counts as non-empty here.
-  const configuration::ScreenConfiguration& screen =
-      active_screen(configuration);
-  return screen.background_color != kDefaultBackgroundColor ||
-         screen.widget_count > 0;
-#endif
-}
+namespace {
 
-bool unclip_containers(
+// The screen an action names, resolved once here so a tap performs no lookup.
+// A name that matches nothing was already refused by validation; falling back
+// to the current screen keeps a hand-built document from navigating somewhere
+// arbitrary.
+std::uint8_t resolve_action_target(
     const configuration::ApplicationConfiguration& configuration,
-    Dashboard& dashboard) {
-  const configuration::DashboardConfiguration& document = configuration.dashboard;
-  if (!lvgl_port_lock(0)) {
-    return false;
-  }
-  // Deepest first, so a nested container's own extra draw size is already final
-  // when the container above it folds that in. Shapes come first in reverse pool
-  // order — the pool is ordered parent-before-child, which is what makes one
-  // pass exact at any depth — then the pages that may hold them, then the slots
-  // that hold the pages.
-  for (std::size_t index = document.shape_widget_count; index > 0; --index) {
-    const std::size_t slot = index - 1;
-    lv_obj_t* const container = dashboard.containers[slot];
-    if (container == nullptr || document.shape_widgets[slot].widget_count == 0) {
-      continue;
-    }
-    dashboard.container_overflow[slot] = measure_overflow(dashboard, container);
-    unclip(container, dashboard.container_overflow[slot]);
-  }
-  for (std::size_t index = 0; index < document.slot_widget_count; ++index) {
-    const configuration::SlotWidgetConfiguration& widget =
-        document.slot_widgets[index];
-    lv_obj_t* const container = dashboard.slot.collection.root_object(index);
-    if (container == nullptr) {
-      continue;
-    }
-    for (std::size_t page = 0; page < widget.page_count; ++page) {
-      const std::size_t flat = index * configuration::kMaximumSlotPages + page;
-      lv_obj_t* const object = dashboard.pages[flat];
-      if (object == nullptr) {
-        continue;
-      }
-      // The page already refuses to clip — the slot collection sets that as it
-      // builds — so what is added here is the measured size, without which LVGL
-      // would invalidate only the page's own box.
-      dashboard.page_overflow[flat] = measure_overflow(dashboard, object);
-      unclip(object, dashboard.page_overflow[flat]);
-    }
-    dashboard.slot_overflow[index] = measure_overflow(dashboard, container);
-    unclip(container, dashboard.slot_overflow[index]);
-  }
-  lvgl_port_unlock();
-  return true;
-}
-
-bool apply_z_order(
-    const configuration::ApplicationConfiguration& configuration,
-    Dashboard& dashboard) {
-  const configuration::DashboardConfiguration& dashboard_configuration =
-      configuration.dashboard;
-  for (std::size_t index = 0; index < dashboard_configuration.screen_count;
+    const configuration::WidgetAction& action) {
+  const std::string_view target = configuration::text_view(action.screen);
+  for (std::size_t index = 0; index < configuration.dashboard.screen_count;
        ++index) {
-    const configuration::ScreenConfiguration& screen =
-        dashboard_configuration.screens[index];
-    if (!apply_parent_z_order(screen.widgets, screen.widget_count, dashboard)) {
-      return false;
+    if (configuration::text_view(configuration.dashboard.screens[index].id) ==
+        target) {
+      return static_cast<std::uint8_t>(index);
     }
   }
-  // Then every container, flat over the pool. Each is one parent's ordering,
-  // and a container's own place among its siblings was settled above.
-  for (std::size_t index = 0;
-       index < dashboard_configuration.shape_widget_count; ++index) {
-    const configuration::ShapeWidgetConfiguration& shape =
-        dashboard_configuration.shape_widgets[index];
-    if (shape.widget_count > 0 &&
-        !apply_parent_z_order(shape.widgets, shape.widget_count, dashboard)) {
-      return false;
-    }
-  }
-  // A slot page is a parent like any other. The pages themselves need no order
-  // among each other: exactly one is ever visible.
-  for (std::size_t index = 0;
-       index < dashboard_configuration.slot_widget_count; ++index) {
-    const configuration::SlotWidgetConfiguration& widget =
-        dashboard_configuration.slot_widgets[index];
-    for (std::size_t page = 0; page < widget.page_count; ++page) {
-      const configuration::SlotPageConfiguration& config = widget.pages[page];
-      if (config.widget_count > 0 &&
-          !apply_parent_z_order(config.widgets, config.widget_count,
-                                dashboard)) {
-        return false;
-      }
-    }
-  }
-  return true;
+  return 0;
 }
+
+}  // namespace
+
 
 bool bind_actions(const configuration::ApplicationConfiguration& configuration,
                   Dashboard& dashboard) {

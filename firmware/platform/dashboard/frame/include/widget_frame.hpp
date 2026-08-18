@@ -184,6 +184,17 @@ struct Box {
 // `content_*` is the smallest size the widget's own content needs; the frame
 // adds its own insets before resolving the placement. Logs what the widget
 // would have taken when it does not fit.
+// Whether a caption's mask has to resolve the colour behind the widget rather
+// than copy the widget's own fill. A mask copies the fill only when the
+// container itself paints it: a transparent colour paints nothing, and an inset
+// background leaves the frame line standing on the parent.
+//
+// The incremental apply pass has to answer the same question — a screen
+// recolour reaches a widget only through a mask that reads the parent — so the
+// rule is stated here once instead of being mirrored there, where it had
+// drifted out of sight of the code it describes.
+[[nodiscard]] bool caption_mask_reads_parent(const Config& config);
+
 [[nodiscard]] bool build(const Layout& layout, const Config& config,
                          const char* tag, std::int32_t content_width,
                          std::int32_t content_height,

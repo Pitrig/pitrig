@@ -1,10 +1,9 @@
-import { pagesOf } from '../../../../../shared/configuration-access'
 import {
   MAXIMUM_SLOT_PAGES,
   type SlotPageConfiguration,
   type SlotWidgetConfiguration
-} from '../../../../../shared/configuration-schema'
-import { type DeviceConfiguration } from '../../../../../shared/device'
+} from '@shared/configuration-schema'
+import { type DeviceConfiguration } from '@shared/device'
 import { findWidget, mutateDraftConfiguration } from './document'
 import { useDashboardEditorStore } from './store'
 
@@ -19,15 +18,6 @@ function slotOf(
 ): SlotWidgetConfiguration | undefined {
   const widget = findWidget(configuration, slotId)?.widget
   return widget?.type === 'slot' ? widget : undefined
-}
-
-export function slotPagesOf(
-  configuration: DeviceConfiguration | undefined,
-  slotId: string | undefined
-): SlotPageConfiguration[] {
-  if (!configuration || !slotId) return []
-  const widget = findWidget(configuration, slotId)?.widget
-  return widget?.type === 'slot' ? pagesOf(widget) : []
 }
 
 /** Adds a page at the end and looks at it, which is what adding one is for. */
@@ -54,22 +44,6 @@ export function deleteSlotPage(slotId: string, page: number): void {
     if (!pages || pages.length <= 1 || page < 0 || page >= pages.length) return
     pages.splice(page, 1)
     useDashboardEditorStore.getState().setSlotPage(slotId, Math.min(page, pages.length - 1))
-  })
-}
-
-/**
- * Moves a page within the slot. Order is priority: when two pages fire at once
- * the device shows the earlier one, so reordering is how that is authored.
- */
-export function moveSlotPage(slotId: string, from: number, to: number): void {
-  mutateDraftConfiguration((configuration) => {
-    const pages = slotOf(configuration, slotId)?.pages
-    if (!pages || from === to) return
-    const moved = pages[from]
-    if (!moved || to < 0 || to >= pages.length) return
-    pages.splice(from, 1)
-    pages.splice(to, 0, moved)
-    useDashboardEditorStore.getState().setSlotPage(slotId, to)
   })
 }
 

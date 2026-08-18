@@ -1,5 +1,7 @@
 #include "usb_cdc_transport.hpp"
 
+#include "usb_descriptors.hpp"
+
 #include <span>
 
 #include "esp_err.h"
@@ -20,76 +22,6 @@ constexpr char kTag[] = "usb_cdc_transport";
 static_assert(CFG_TUD_CDC == 1,
               "The SimCore USB descriptor defines exactly one CDC function");
 
-constexpr std::uint16_t kUsbVendorId = TINYUSB_ESPRESSIF_VID;
-constexpr std::uint16_t kUsbProductId = 0x4001;
-constexpr std::uint16_t kUsbDeviceVersion = 0x0100;
-constexpr std::uint8_t kUsbInterfaceCount = 2;
-constexpr std::uint8_t kUsbCdcInterface = 0;
-constexpr std::uint8_t kUsbCdcStringIndex = 4;
-constexpr std::uint8_t kUsbCdcNotificationEndpoint = 0x81;
-constexpr std::uint8_t kUsbCdcOutputEndpoint = 0x02;
-constexpr std::uint8_t kUsbCdcInputEndpoint = 0x82;
-constexpr std::uint16_t kUsbConfigurationLength =
-    TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN;
-
-const tusb_desc_device_t kUsbDeviceDescriptor{
-    .bLength = sizeof(tusb_desc_device_t),
-    .bDescriptorType = TUSB_DESC_DEVICE,
-    .bcdUSB = 0x0200,
-    .bDeviceClass = TUSB_CLASS_MISC,
-    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
-    .bDeviceProtocol = MISC_PROTOCOL_IAD,
-    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
-    .idVendor = kUsbVendorId,
-    .idProduct = kUsbProductId,
-    .bcdDevice = kUsbDeviceVersion,
-    .iManufacturer = 1,
-    .iProduct = 2,
-    .iSerialNumber = 3,
-    .bNumConfigurations = 1,
-};
-
-const std::uint8_t kUsbFullSpeedConfiguration[] = {
-    TUD_CONFIG_DESCRIPTOR(1, kUsbInterfaceCount, 0, kUsbConfigurationLength,
-                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    TUD_CDC_DESCRIPTOR(kUsbCdcInterface, kUsbCdcStringIndex,
-                       kUsbCdcNotificationEndpoint, 8,
-                       kUsbCdcOutputEndpoint, kUsbCdcInputEndpoint, 64),
-};
-
-#if TUD_OPT_HIGH_SPEED
-const tusb_desc_device_qualifier_t kUsbDeviceQualifier{
-    .bLength = sizeof(tusb_desc_device_qualifier_t),
-    .bDescriptorType = TUSB_DESC_DEVICE_QUALIFIER,
-    .bcdUSB = 0x0200,
-    .bDeviceClass = TUSB_CLASS_MISC,
-    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
-    .bDeviceProtocol = MISC_PROTOCOL_IAD,
-    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
-    .bNumConfigurations = 1,
-    .bReserved = 0,
-};
-
-const std::uint8_t kUsbHighSpeedConfiguration[] = {
-    TUD_CONFIG_DESCRIPTOR(1, kUsbInterfaceCount, 0, kUsbConfigurationLength,
-                          TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    TUD_CDC_DESCRIPTOR(kUsbCdcInterface, kUsbCdcStringIndex,
-                       kUsbCdcNotificationEndpoint, 8,
-                       kUsbCdcOutputEndpoint, kUsbCdcInputEndpoint, 512),
-};
-#endif
-
-constexpr char kUsbLanguageEnglish[] = {'\x09', '\x04'};
-const char* kUsbStringDescriptors[] = {
-    kUsbLanguageEnglish,
-    CONFIG_TINYUSB_DESC_MANUFACTURER_STRING,
-    CONFIG_TINYUSB_DESC_PRODUCT_STRING,
-    CONFIG_TINYUSB_DESC_SERIAL_STRING,
-    CONFIG_TINYUSB_DESC_CDC_STRING,
-};
-constexpr int kUsbStringDescriptorCount =
-    static_cast<int>(sizeof(kUsbStringDescriptors) /
-                     sizeof(kUsbStringDescriptors[0]));
 #if CONFIG_IDF_TARGET_ESP32P4
 constexpr tinyusb_port_t kUsbPort = TINYUSB_PORT_HIGH_SPEED_0;
 #else
@@ -119,14 +51,10 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
 
   handler_ = handler;
   handler_context_ = context;
+  instrumentation_.reset();
 #if SIMCORE_DEBUG
-  received_bytes_.store(0, std::memory_order_relaxed);
-  read_events_.store(0, std::memory_order_relaxed);
   queue_overflows_.store(0, std::memory_order_relaxed);
   queued_bytes_.store(0, std::memory_order_relaxed);
-  maximum_read_gap_ms_.store(0, std::memory_order_relaxed);
-  maximum_handler_time_us_.store(0, std::memory_order_relaxed);
-  last_read_at_us_ = 0;
 #endif
   active_transport.store(this, std::memory_order_release);
 
@@ -146,17 +74,17 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
           },
       .descriptor =
           {
-              .device = &kUsbDeviceDescriptor,
+              .device = &usb_descriptors::kDevice,
 #if TUD_OPT_HIGH_SPEED
-              .qualifier = &kUsbDeviceQualifier,
+              .qualifier = &usb_descriptors::kQualifier,
 #else
               .qualifier = nullptr,
 #endif
-              .string = kUsbStringDescriptors,
-              .string_count = kUsbStringDescriptorCount,
-              .full_speed_config = kUsbFullSpeedConfiguration,
+              .string = usb_descriptors::kStrings,
+              .string_count = usb_descriptors::kStringCount,
+              .full_speed_config = usb_descriptors::kFullSpeedConfiguration,
 #if TUD_OPT_HIGH_SPEED
-              .high_speed_config = kUsbHighSpeedConfiguration,
+              .high_speed_config = usb_descriptors::kHighSpeedConfiguration,
 #else
               .high_speed_config = nullptr,
 #endif
@@ -298,18 +226,8 @@ void UsbCdcTransport::receive() {
 #if SIMCORE_DEBUG
   queued_bytes_.fetch_add(static_cast<std::uint32_t>(received),
                           std::memory_order_relaxed);
-  received_bytes_.fetch_add(static_cast<std::uint64_t>(received),
-                            std::memory_order_relaxed);
-  read_events_.fetch_add(1, std::memory_order_relaxed);
-
-  const std::int64_t read_at_us = esp_timer_get_time();
-  if (last_read_at_us_ != 0) {
-    performance::record_maximum(
-        maximum_read_gap_ms_,
-        static_cast<std::uint32_t>((read_at_us - last_read_at_us_) / 1'000));
-  }
-  last_read_at_us_ = read_at_us;
 #endif
+  instrumentation_.record_read(static_cast<std::size_t>(received));
 }
 
 void UsbCdcTransport::process() {
@@ -320,37 +238,25 @@ void UsbCdcTransport::process() {
 #if SIMCORE_DEBUG
       queued_bytes_.fetch_sub(static_cast<std::uint32_t>(chunk.size),
                               std::memory_order_relaxed);
-      const std::int64_t handler_started_at_us = esp_timer_get_time();
 #endif
+      const std::int64_t handler_started_at_us =
+          ReadInstrumentation::handler_started();
       handler_(std::span<const std::uint8_t>(chunk.data.data(), chunk.size),
                handler_context_);
-#if SIMCORE_DEBUG
-      performance::record_maximum(
-          maximum_handler_time_us_,
-          static_cast<std::uint32_t>(esp_timer_get_time() -
-                                     handler_started_at_us));
-#endif
+      instrumentation_.record_handler(handler_started_at_us);
     }
   }
 }
 
 Diagnostics UsbCdcTransport::diagnostics() const {
+  Diagnostics diagnostics{};
+  instrumentation_.fill(diagnostics);
 #if SIMCORE_DEBUG
-  return {
-      .received_bytes = received_bytes_.load(std::memory_order_relaxed),
-      .read_events = read_events_.load(std::memory_order_relaxed),
-      .fifo_overflows = 0,
-      .buffer_full_events =
-          queue_overflows_.load(std::memory_order_relaxed),
-      .buffered_bytes = queued_bytes_.load(std::memory_order_relaxed),
-      .maximum_read_gap_ms =
-          maximum_read_gap_ms_.load(std::memory_order_relaxed),
-      .maximum_handler_time_us =
-          maximum_handler_time_us_.load(std::memory_order_relaxed),
-  };
-#else
-  return {};
+  diagnostics.buffer_full_events =
+      queue_overflows_.load(std::memory_order_relaxed);
+  diagnostics.buffered_bytes = queued_bytes_.load(std::memory_order_relaxed);
 #endif
+  return diagnostics;
 }
 
 }  // namespace simcore::transport

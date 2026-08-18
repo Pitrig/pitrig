@@ -1,11 +1,12 @@
 import { useId } from 'react'
-import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS } from '../../../../../shared/configuration-schema'
-import { rangeFraction } from '../../../../../shared/telemetry-value'
+import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS } from '@shared/configuration-schema'
+import { rangeFraction } from '@shared/telemetry-value'
 import { completePlacement } from '../dashboard-editor'
-import { clamp, markupId } from './canvas-geometry'
+import { clamp } from '../editor/placement'
+import { markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR } from './preview-theme'
 import { type PreviewValues, normalizeColor } from './preview-values'
-import { GradientDefinition, WidgetFrameShape } from './widget-previews'
+import { GradientDefinition, WidgetFrameShape } from './frame-shape'
 import { contentArea, gradientPaint } from './preview-geometry-paint'
 
 export function BarPreview({

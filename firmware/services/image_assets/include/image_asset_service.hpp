@@ -5,13 +5,14 @@
 #include <cstdint>
 #include <span>
 
+#include "asset_package.hpp"
 #include "asset_storage.hpp"
 #include "image_asset_types.hpp"
 
 namespace simcore::image_assets {
 
 inline constexpr std::size_t kStorageSize = 4U * 1024U * 1024U;
-inline constexpr std::size_t kHeaderSize = 32;
+inline constexpr std::size_t kHeaderSize = asset_package::kHeaderSize;
 inline constexpr std::size_t kManifestEntrySize = 64;
 inline constexpr std::size_t kAssetDataOffset = 4096;
 inline constexpr std::uint16_t kFormatVersion = 1;
@@ -41,25 +42,9 @@ struct ImageInfo {
   std::uint16_t height{};
 };
 
-struct Status {
-  bool storage_available{};
-  bool package_available{};
-  bool reboot_required{};
-  std::uint16_t format_version{};
-  std::uint16_t image_count{};
-  std::uint32_t package_size{};
-};
+using Status = asset_package::Status;
+using UpdateError = asset_package::UpdateError;
 
-enum class UpdateError : std::uint8_t {
-  none,
-  unavailable,
-  busy,
-  invalid_size,
-  invalid_state,
-  invalid_package,
-  reboot_required,
-  storage_failure,
-};
 
 /**
  * The uploaded image package: parse, validate, and replace as a whole. The
@@ -84,7 +69,7 @@ class Service final {
     return {package_.images.data(), package_.image_count};
   }
   [[nodiscard]] std::span<const ImageInfo> image_catalog() const {
-    return {image_catalog_.data(), status_.image_count};
+    return {image_catalog_.data(), status_.entry_count};
   }
   /** Bytes a consumer must reserve to copy every image, each one aligned. */
   [[nodiscard]] std::size_t image_bytes_total() const;
@@ -120,7 +105,8 @@ class Service final {
   std::array<std::uint8_t, kHeaderSize> update_header_{};
 };
 
-[[nodiscard]] const char* update_error_name(UpdateError error);
+using asset_package::update_error_name;
+
 [[nodiscard]] const char* color_format_name(ColorFormat format);
 
 }  // namespace simcore::image_assets

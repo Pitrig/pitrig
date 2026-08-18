@@ -1,12 +1,14 @@
-import { pagesOf } from '../../../../../shared/configuration-access'
-import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarOrientation, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeKind, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextAlignment, type TextWidgetConfiguration } from '../../../../../shared/configuration-schema'
-import { TELEMETRY_CATALOG } from '../../../../../shared/telemetry-catalog'
-import { MAXIMUM_BLINK_MS } from '../../../../../shared/widget-conditions'
+import { ConditionsEditor } from './ConditionsEditor'
+import { SlotPagesEditor } from './SlotPagesEditor'
+import { pagesOf } from '@shared/configuration-access'
+import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
+import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
+import { MAXIMUM_BLINK_MS } from '@shared/widget-conditions'
 import { type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
 import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
 import { CheckboxField, ColorField, FontEditor, Hint, NumberField, OptionalColorField, Section, SelectField, TextField } from './fields'
-import { ContainerEditor, SlotPagesEditor, SourceRangeSection } from './section-editors'
-import { BoxEditor, ConditionsEditor, TitleEditor } from './styling-editors'
+import { ContainerEditor, SourceRangeSection } from './section-editors'
+import { BoxEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
 
 export function ArcEditor({ selection, widget }: { selection: WidgetSelection; widget: ArcWidgetConfiguration }): React.JSX.Element {
@@ -39,7 +41,7 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
     <>
       <SourceRangeSection widget={widget} update={update} />
       <Section title="Strip">
-        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value as BarOrientation })} />
+        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value })} />
         <div className="grid grid-cols-2 gap-2">
           <NumberField label="Gap (px)" value={widget.segment_gap_px ?? 4} min={0} onChange={(value) => update((next) => { next.segment_gap_px = value })} />
           <NumberField label="Radius (px)" value={widget.segment_radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.segment_radius_px = value })} />
@@ -157,7 +159,7 @@ export function BarEditor({ selection, widget }: { selection: WidgetSelection; w
         ) : null}
       </Section>
       <Section title="Bar">
-        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value as BarOrientation })} />
+        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value })} />
         <CheckboxField label="Fill from the far end" checked={widget.inverted ?? false} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
         <ColorField label="Fill color" value={widget.fill_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.fill_color = value })} />
         {/* The fill's gradient runs along the bar's own axis, so it needs no
@@ -188,7 +190,7 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
   return (
     <>
       <Section title="Shape">
-        <SelectField label="Kind" value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} onChange={(value) => update((next) => { next.kind = value as ShapeKind })} />
+        <SelectField label="Kind" value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} onChange={(value) => update((next) => { next.kind = value })} />
         <p className="text-muted-foreground">A line is a thin rectangle: give it a small height or width.</p>
       </Section>
       {/* A shape holds widgets, so it gets the section that says what holding
@@ -272,7 +274,7 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
       <ConditionsEditor widget={widget} update={update} />
       <Section title="Value">
         <FontEditor font={widget.value?.font} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
-        <SelectField label="Alignment" value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value as TextAlignment } })} />
+        <SelectField label="Alignment" value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value } })} />
         <TextField label="Unavailable text" value={widget.value?.unavailable_text ?? ''} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
         <ColorField label="Color" value={widget.value?.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
       </Section>

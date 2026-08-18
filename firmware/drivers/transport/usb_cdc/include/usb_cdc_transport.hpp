@@ -12,6 +12,7 @@
 #include "simcore_features.hpp"
 #include "tinyusb_cdc_acm.h"
 #include "transport.hpp"
+#include "transport_instrumentation.hpp"
 
 namespace simcore::transport {
 
@@ -57,14 +58,12 @@ class UsbCdcTransport final : public ITransport {
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
+  ReadInstrumentation instrumentation_{};
 #if SIMCORE_DEBUG
-  std::atomic<std::uint64_t> received_bytes_{};
-  std::atomic<std::uint64_t> read_events_{};
+  // What only this link has to report: the depth of the queue between the
+  // receive callback and the task that drains it.
   std::atomic<std::uint32_t> queue_overflows_{};
   std::atomic<std::uint32_t> queued_bytes_{};
-  std::atomic<std::uint32_t> maximum_read_gap_ms_{};
-  std::atomic<std::uint32_t> maximum_handler_time_us_{};
-  std::int64_t last_read_at_us_{};
 #endif
   bool started_{};
 };

@@ -22,6 +22,7 @@ import {
   success,
   toDeviceError
 } from './device-errors'
+import { readPackageFamilies } from '../font-assets/font-package'
 import { uploadAssetPackage } from './asset-upload'
 import { prepareDeviceConfigurationJson } from './configuration-json'
 import { isBluetoothPort, PortRegistry, type PortRecord } from './port-registry'
@@ -224,11 +225,7 @@ export class DeviceService {
   }
 
   async readConfiguration(): Promise<DeviceResult<DeviceState>> {
-    const active = this.getActiveDevice()
-    if (!active.ok) return failure(active.error)
-    const { port, session, traffic } = active.value
-    this.deviceOperationActive = true
-    try {
+    return this.runOperation(async ({ port, session, traffic }) => {
       const configuration = await readConfiguration(
         port,
         session.info.boardId,
@@ -237,16 +234,9 @@ export class DeviceService {
       if (this.activePort !== port || this.state.session !== session) {
         throw new DeviceServiceError('serial_error', 'The connected device changed during read.')
       }
-      this.setState({
-        ...this.state,
-        session: { ...session, configuration }
-      })
+      this.setState({ ...this.state, session: { ...session, configuration } })
       return success(this.state)
-    } catch (error) {
-      return failure(toDeviceError(error))
-    } finally {
-      this.deviceOperationActive = false
-    }
+    })
   }
 
   // Live apply competes with nothing: it is rejected while another device
@@ -255,65 +245,36 @@ export class DeviceService {
   async applyConfiguration(
     json: string
   ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
-    const active = this.getActiveDevice()
-    if (!active.ok) return failure(active.error)
-    const prepared = this.prepareConfiguration(json, active.value.session)
-    if (!prepared.ok) return prepared
-    this.deviceOperationActive = true
-    try {
-      await applyConfiguration(
-        active.value.port,
-        prepared.value.payload,
-        this.operationTraffic(active.value.traffic)
-      )
+    return this.runOperation(async ({ port, session, traffic }) => {
+      const prepared = this.prepareConfiguration(json, session)
+      if (!prepared.ok) return prepared
+      await applyConfiguration(port, prepared.value.payload, this.operationTraffic(traffic))
       return success({ configuration: prepared.value.configuration })
-    } catch (error) {
-      return failure(toDeviceError(error))
-    } finally {
-      this.deviceOperationActive = false
-    }
+    })
   }
 
   async saveConfiguration(
     json: string
   ): Promise<DeviceResult<DeviceConfigurationSaveResult>> {
-    const active = this.getActiveDevice()
-    if (!active.ok) return failure(active.error)
-    const prepared = this.prepareConfiguration(json, active.value.session)
-    if (!prepared.ok) return prepared
-    this.deviceOperationActive = true
-    try {
-      await saveConfiguration(
-        active.value.port,
-        prepared.value.payload,
-        this.operationTraffic(active.value.traffic)
-      )
+    return this.runOperation(async ({ port, session, traffic }) => {
+      const prepared = this.prepareConfiguration(json, session)
+      if (!prepared.ok) return prepared
+      await saveConfiguration(port, prepared.value.payload, this.operationTraffic(traffic))
       return success({
         configuration: prepared.value.configuration,
         rebootRequired: true
       })
-    } catch (error) {
-      return failure(toDeviceError(error))
-    } finally {
-      this.deviceOperationActive = false
-    }
+    })
   }
 
   async resetConfiguration(): Promise<DeviceResult<DeviceConfigurationResetResult>> {
-    const active = this.getActiveDevice()
-    if (!active.ok) return failure(active.error)
-    this.deviceOperationActive = true
-    try {
-      await resetConfiguration(active.value.port, this.operationTraffic(active.value.traffic))
+    return this.runOperation(async ({ port, session, traffic }) => {
+      await resetConfiguration(port, this.operationTraffic(traffic))
       return success({
-        configuration: { board: active.value.session.info.boardId },
+        configuration: { board: session.info.boardId },
         rebootRequired: true
       })
-    } catch (error) {
-      return failure(toDeviceError(error))
-    } finally {
-      this.deviceOperationActive = false
-    }
+    })
   }
 
   async clearImages(): Promise<DeviceResult<DeviceState>> {
@@ -372,25 +333,17 @@ export class DeviceService {
     ) => Promise<void>,
     advance: (session: DeviceSession) => DeviceSession
   ): Promise<DeviceResult<DeviceState>> {
-    const active = this.getActiveDevice()
-    if (!active.ok) return failure(active.error)
-    const { port, session, traffic } = active.value
-    if (!supported(session)) {
-      return failure({ code: 'not_simcore', message: unsupportedMessage })
-    }
-    this.deviceOperationActive = true
-    try {
+    return this.runOperation(async ({ port, session, traffic }) => {
+      if (!supported(session)) {
+        return failure({ code: 'not_simcore', message: unsupportedMessage })
+      }
       await clear(port, this.operationTraffic(traffic))
       if (this.activePort !== port || this.state.session !== session) {
         throw new DeviceServiceError('serial_error', changedMessage)
       }
       this.setState({ ...this.state, session: advance(session) })
       return success(this.state)
-    } catch (error) {
-      return failure(toDeviceError(error))
-    } finally {
-      this.deviceOperationActive = false
-    }
+    })
   }
 
   private async closeDevicePorts(): Promise<void> {
@@ -465,7 +418,7 @@ export class DeviceService {
             packageAvailable: true,
             formatVersion: view.getUint16(4, true),
             familyCount: view.getUint16(12, true),
-            families: readPackageFontFamilies(bytes),
+            families: readPackageFamilies(bytes),
             packageSize: bytes.byteLength,
             rebootRequired: true
           }
@@ -553,6 +506,27 @@ export class DeviceService {
 
   private async refreshPortRegistry(): Promise<PortRecord[]> {
     return this.portRegistry.refresh()
+  }
+
+  /**
+   * Every device command is the same shape: take the connected device, hold
+   * the operation lock, do the work, release the lock whatever happens, and
+   * report a failure as a DeviceError rather than a thrown one. Seven commands
+   * spelled that out in full, which is seven chances to leave the lock held.
+   */
+  private async runOperation<T>(
+    work: (device: OpenedDevice) => Promise<DeviceResult<T>>
+  ): Promise<DeviceResult<T>> {
+    const active = this.getActiveDevice()
+    if (!active.ok) return failure(active.error)
+    this.deviceOperationActive = true
+    try {
+      return await work(active.value)
+    } catch (error) {
+      return failure(toDeviceError(error))
+    } finally {
+      this.deviceOperationActive = false
+    }
   }
 
   private getActiveDevice(): DeviceResult<OpenedDevice> {
@@ -694,16 +668,4 @@ export class DeviceService {
     this.state = state
     this.onStateChanged(state)
   }
-}
-
-function readPackageFontFamilies(packageBytes: Uint8Array): string[] {
-  const view = new DataView(packageBytes.buffer, packageBytes.byteOffset, packageBytes.byteLength)
-  const count = view.getUint16(12, true)
-  const decoder = new TextDecoder('ascii')
-  return Array.from({ length: count }, (_, index) => {
-    const offset = 32 + index * 48
-    const familyBytes = packageBytes.subarray(offset, offset + 32)
-    const terminator = familyBytes.indexOf(0)
-    return decoder.decode(familyBytes.subarray(0, terminator < 0 ? 32 : terminator))
-  })
 }

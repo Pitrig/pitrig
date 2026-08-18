@@ -1,6 +1,6 @@
-import { allWidgetsOf } from '../../../../../shared/configuration-access'
-import { MAXIMUM_SCREENS, type ScreenConfiguration } from '../../../../../shared/configuration-schema'
-import { type DeviceConfiguration } from '../../../../../shared/device'
+import { allWidgetsOf } from '@shared/configuration-access'
+import { MAXIMUM_SCREENS, type ScreenConfiguration } from '@shared/configuration-schema'
+import { type DeviceConfiguration } from '@shared/device'
 import { mutateDraftConfiguration } from './document'
 import { useDashboardEditorStore } from './store'
 

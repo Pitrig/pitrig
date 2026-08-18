@@ -9,6 +9,21 @@ namespace {
 
 constexpr std::uint32_t kTransitionMs = 200;
 
+// Whether the press being released was a swipe rather than a tap.
+//
+// A gesture reaches the screen even when it starts on a widget: LVGL sets
+// GESTURE_BUBBLE on every object that has a parent, so it walks up to the
+// screen, which has none and handles it. The press still ends in
+// LV_EVENT_CLICKED though — LVGL suppresses a click for scrolling, not for a
+// gesture — so
+// without this a single swipe across a tap target navigates twice, once by
+// direction and once by the action. The direction is cleared on the next
+// press, so it says exactly "a gesture happened during this press".
+bool gesture_in_progress() {
+  const lv_indev_t* const indev = lv_indev_active();
+  return indev != nullptr && lv_indev_get_gesture_dir(indev) != LV_DIR_NONE;
+}
+
 }  // namespace
 
 Controller::~Controller() { detach(); }
@@ -80,6 +95,9 @@ bool Controller::add_action(lv_obj_t* const object,
 }
 
 void Controller::on_action(lv_event_t* const event) {
+  if (gesture_in_progress()) {
+    return;
+  }
   auto* const binding = static_cast<Binding*>(lv_event_get_user_data(event));
   if (binding == nullptr || binding->controller == nullptr) {
     return;

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
+import { bridgeErrorMessage, operationErrorMessage } from '@/features/device/bridge-errors'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { writeDevelopmentLog } from '@/features/development/development-log'
@@ -9,11 +10,11 @@ import {
   parseConfiguration,
   useDeviceStore
 } from '@/features/device/device-store'
-import { configurationsEqual } from '../../../../shared/configuration-access'
+import { configurationsEqual } from '@shared/configuration-access'
 import {
   validateConfigurationDocument,
   type ValidationResult
-} from '../../../../shared/configuration-validate'
+} from '@shared/configuration-validate'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { useLiveApply, type LiveApplyState } from '@/features/device/use-live-apply'
 import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
@@ -28,7 +29,7 @@ import {
   type DeviceConfiguration,
   type DeviceResult,
   type SimCoreBoardId
-} from '../../../../shared/device'
+} from '@shared/device'
 
 type Operation =
   | 'idle'
@@ -449,28 +450,6 @@ export function ConfigurationPanel(): React.JSX.Element {
       </CardContent>
     </Card>
   )
-}
-
-function operationErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error)
-  if (
-    message.includes('saveDeviceConfiguration') ||
-    message.includes('No handler registered')
-  ) {
-    return 'The configuration bridge is not loaded. Fully restart SimCore Configurator and reconnect the board.'
-  }
-  return message || 'The configuration operation failed.'
-}
-
-function bridgeErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error)
-  if (
-    message.includes('not a function') ||
-    message.includes('No handler registered')
-  ) {
-    return 'The Electron bridge is outdated. Fully restart SimCore Configurator.'
-  }
-  return message || 'The configuration file operation failed.'
 }
 
 function parseDraft(

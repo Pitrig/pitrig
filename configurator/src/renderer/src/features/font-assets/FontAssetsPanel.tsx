@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { writeDevelopmentLog } from '@/features/development/development-log'
 import { useDeviceStore } from '@/features/device/device-store'
-import type { FontUploadProgress } from '../../../../shared/font-assets'
+import type { FontUploadProgress } from '@shared/font-assets'
 import { useFontAssetsStore } from './font-assets-store'
 import {
   collectFontRequirements,
