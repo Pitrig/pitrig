@@ -2,10 +2,10 @@ import { useState } from 'react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
-import { isContainer, pagesOf, screensOf, stackOrder, widgetsOf } from '../../../../shared/configuration-access'
+import { isContainer, pagesOf, screensOf, stackOrder, widgetsOf } from '@shared/configuration-access'
 import { visibleSlotPage } from './preview/canvas-geometry'
-import { WIDGET_ID_CAPACITY } from '../../../../shared/configuration-schema'
-import type { WidgetConfiguration } from '../../../../shared/configuration-schema'
+import { WIDGET_ID_CAPACITY } from '@shared/configuration-schema'
+import type { WidgetConfiguration } from '@shared/configuration-schema'
 import {
   type DropRelation,
   canMoveWidget,

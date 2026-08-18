@@ -9,11 +9,11 @@ import {
   parseConfiguration,
   useDeviceStore
 } from '@/features/device/device-store'
-import { configurationsEqual } from '../../../../shared/configuration-access'
+import { configurationsEqual } from '@shared/configuration-access'
 import {
   validateConfigurationDocument,
   type ValidationResult
-} from '../../../../shared/configuration-validate'
+} from '@shared/configuration-validate'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { useLiveApply, type LiveApplyState } from '@/features/device/use-live-apply'
 import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
@@ -28,7 +28,7 @@ import {
   type DeviceConfiguration,
   type DeviceResult,
   type SimCoreBoardId
-} from '../../../../shared/device'
+} from '@shared/device'
 
 type Operation =
   | 'idle'

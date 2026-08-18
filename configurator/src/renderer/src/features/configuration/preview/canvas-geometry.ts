@@ -1,6 +1,6 @@
-import { pagesOf } from '../../../../../shared/configuration-access'
-import { type SlotWidgetConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '../../../../../shared/configuration-schema'
-import { type DisplayDescriptor } from '../../../../../shared/device'
+import { pagesOf } from '@shared/configuration-access'
+import { type SlotWidgetConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '@shared/configuration-schema'
+import { type DisplayDescriptor } from '@shared/device'
 import { type WidgetSelection, completePlacement } from '../dashboard-editor'
 
 export interface PreviewLayer {

@@ -1,5 +1,5 @@
-import { type RgbColor } from '../../../../../shared/configuration-schema'
-import { type DeviceConfiguration } from '../../../../../shared/device'
+import { type RgbColor } from '@shared/configuration-schema'
+import { type DeviceConfiguration } from '@shared/device'
 
 /**
  * How many swatches a picker offers. Enough to cover a dashboard's real palette

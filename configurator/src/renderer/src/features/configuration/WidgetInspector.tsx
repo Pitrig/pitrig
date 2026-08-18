@@ -1,5 +1,5 @@
-import { screenWidgetsOf, screensOf } from '../../../../shared/configuration-access'
-import type { WidgetConfiguration } from '../../../../shared/configuration-schema'
+import { screenWidgetsOf, screensOf } from '@shared/configuration-access'
+import type { WidgetConfiguration } from '@shared/configuration-schema'
 import { completePlacement, mutateSelectedWidget, selectedWidget, useDashboardEditorStore } from './dashboard-editor'
 import { Hint } from './inspector/fields'
 import { parseSelection, selectionValue } from './inspector/selection-value'

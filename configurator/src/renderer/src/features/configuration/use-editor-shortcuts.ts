@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 
-import { BOARD_PROFILES } from '../../../../shared/device'
-import type { DeviceConfiguration } from '../../../../shared/device'
+import { BOARD_PROFILES } from '@shared/device'
+import type { DeviceConfiguration } from '@shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
-import { screenWidgetsOf } from '../../../../shared/configuration-access'
+import { screenWidgetsOf } from '@shared/configuration-access'
 import {
   absolutePlacement,
   activeScreen,

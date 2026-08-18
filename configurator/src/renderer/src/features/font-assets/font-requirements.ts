@@ -1,7 +1,7 @@
-import { documentFonts } from '../../../../shared/document-fonts'
-import type { FontSpec } from '../../../../shared/configuration-schema'
-import type { DeviceConfiguration } from '../../../../shared/device'
-import type { FontAssetKey } from '../../../../shared/font-assets'
+import { documentFonts } from '@shared/document-fonts'
+import type { FontSpec } from '@shared/configuration-schema'
+import type { DeviceConfiguration } from '@shared/device'
+import type { FontAssetKey } from '@shared/font-assets'
 
 export function collectFontRequirements(configuration: DeviceConfiguration): FontAssetKey[] {
   const fonts = documentFonts(configuration).filter(

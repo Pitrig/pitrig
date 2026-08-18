@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { FontSourceSelection, FontUploadProgress } from '../../../../shared/font-assets'
+import type { FontSourceSelection, FontUploadProgress } from '@shared/font-assets'
 
 interface FontAssetsStore {
   sources: Record<string, FontSourceSelection | undefined>

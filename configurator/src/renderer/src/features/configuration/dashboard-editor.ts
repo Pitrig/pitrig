@@ -13,7 +13,7 @@ export {
   MAXIMUM_SLOT_PAGES,
   MAXIMUM_SLOT_WIDGETS,
   MAXIMUM_TEXT_WIDGETS
-} from '../../../../shared/configuration-schema'
+} from '@shared/configuration-schema'
 
 export * from './editor/store'
 export * from './editor/document'

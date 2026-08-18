@@ -1,4 +1,4 @@
-import type { WidgetInsets } from '../../../../../shared/configuration-schema'
+import type { WidgetInsets } from '@shared/configuration-schema'
 import { normalizeColor } from './preview-values'
 import type { Placement } from './canvas-geometry'
 

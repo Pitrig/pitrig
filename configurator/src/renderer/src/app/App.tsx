@@ -12,8 +12,8 @@ import { useDeviceStore } from '@/features/device/device-store'
 import { FontAssetsPanel } from '@/features/font-assets/FontAssetsPanel'
 import { ImageAssetsPanel } from '@/features/image-assets/ImageAssetsPanel'
 import { SimHubProfilePanel } from '@/features/simhub/SimHubProfilePanel'
-import type { DeviceSession } from '../../../shared/device'
-import type { AppInfo } from '../../../shared/ipc'
+import type { DeviceSession } from '@shared/device'
+import type { AppInfo } from '@shared/ipc'
 
 export function App(): React.JSX.Element {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null)

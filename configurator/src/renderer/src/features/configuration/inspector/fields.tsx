@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { type FontSpec, type RgbColor, WIDGET_ID_CAPACITY } from '../../../../../shared/configuration-schema'
+import { type FontSpec, type RgbColor, WIDGET_ID_CAPACITY } from '@shared/configuration-schema'
 import { dashboardPalette } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
 

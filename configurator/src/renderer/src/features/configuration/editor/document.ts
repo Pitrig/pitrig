@@ -1,6 +1,6 @@
-import { screensOf, type WidgetParent } from '../../../../../shared/configuration-access'
-import { type ScreenConfiguration, type SlotPageConfiguration, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
-import { type DeviceConfiguration } from '../../../../../shared/device'
+import { screensOf, type WidgetParent } from '@shared/configuration-access'
+import { type ScreenConfiguration, type SlotPageConfiguration, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
+import { type DeviceConfiguration } from '@shared/device'
 import { type WidgetSelection, useDashboardEditorStore } from './store'
 import { useDeviceStore } from '@/features/device/device-store'
 

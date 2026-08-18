@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { type TextSourceConfiguration, type ValueTransform } from '../../../../../shared/configuration-schema'
-import { TELEMETRY_CATALOG, type TelemetryCatalogEntry } from '../../../../../shared/telemetry-catalog'
-import { MAXIMUM_TRANSFORM_DECIMALS, unitPresetsFor } from '../../../../../shared/value-transform'
+import { type TextSourceConfiguration, type ValueTransform } from '@shared/configuration-schema'
+import { TELEMETRY_CATALOG, type TelemetryCatalogEntry } from '@shared/telemetry-catalog'
+import { MAXIMUM_TRANSFORM_DECIMALS, unitPresetsFor } from '@shared/value-transform'
 import { NumberField, SelectField, TextField } from './fields'
 
 export function SourceEditor({ source, index, removable, onChange, onRemove }: {

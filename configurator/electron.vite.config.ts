@@ -29,7 +29,10 @@ export default defineConfig(({ command }) => ({
     plugins: [developmentCspPlugin(command === 'serve'), react(), tailwindcss()],
     resolve: {
       alias: {
-        '@': resolve('src/renderer/src')
+        '@': resolve('src/renderer/src'),
+        // The renderer sits four and five directories deep, so without this the
+        // boundary types are reached through '../../../../shared/...'.
+        '@shared': resolve('src/shared')
       }
     }
   }

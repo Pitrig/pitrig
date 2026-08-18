@@ -9,7 +9,7 @@ import {
   collectDashboardTelemetry,
   effectiveSimHubBaudRate,
   type SimHubProfileMode
-} from '../../../../shared/simhub-profile'
+} from '@shared/simhub-profile'
 
 type Feedback = { kind: 'success' | 'error'; message: string }
 

@@ -12,7 +12,7 @@ import {
   type DeviceState,
   type DeviceStatus,
   type SerialPortSummary
-} from '../../../../shared/device'
+} from '@shared/device'
 
 const AUTO_PORT_ID = 'auto'
 const STATUS_BADGE_STYLES: Record<DeviceStatus, { badge: string; indicator: string }> = {

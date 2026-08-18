@@ -1,12 +1,12 @@
 import { create } from 'zustand'
 
-import { configurationsEqual, withWidgetIds } from '../../../../shared/configuration-access'
+import { configurationsEqual, withWidgetIds } from '@shared/configuration-access'
 import type {
   DeviceConfiguration,
   DeviceSession,
   DeviceState,
   DeviceStatus
-} from '../../../../shared/device'
+} from '@shared/device'
 
 // The draft is a structured document, not a string. Editing, comparison, and
 // the preview all read `draft`; the serialized form exists only for the

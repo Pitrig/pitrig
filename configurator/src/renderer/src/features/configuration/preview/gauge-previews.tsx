@@ -1,6 +1,6 @@
 import { useId } from 'react'
-import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS } from '../../../../../shared/configuration-schema'
-import { rangeFraction } from '../../../../../shared/telemetry-value'
+import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS } from '@shared/configuration-schema'
+import { rangeFraction } from '@shared/telemetry-value'
 import { completePlacement } from '../dashboard-editor'
 import { clamp, markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR } from './preview-theme'

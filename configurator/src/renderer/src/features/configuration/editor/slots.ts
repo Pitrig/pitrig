@@ -2,8 +2,8 @@ import {
   MAXIMUM_SLOT_PAGES,
   type SlotPageConfiguration,
   type SlotWidgetConfiguration
-} from '../../../../../shared/configuration-schema'
-import { type DeviceConfiguration } from '../../../../../shared/device'
+} from '@shared/configuration-schema'
+import { type DeviceConfiguration } from '@shared/device'
 import { findWidget, mutateDraftConfiguration } from './document'
 import { useDashboardEditorStore } from './store'
 
