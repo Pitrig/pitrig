@@ -162,5 +162,5 @@ Three consequences are worth knowing before enabling it:
   off when reading logs matters more than a clean second stream.
 
 Only one upload may own the binary stream at a time, whichever link opens it;
-a `BEGIN` arriving on the other link is answered `busy`, and that link keeps
-parsing its own lines meanwhile.
+a `BEGIN`, `INFO` or `CLEAR` for either asset kind arriving on the other link
+is answered `busy`, and that link keeps parsing its own lines meanwhile.

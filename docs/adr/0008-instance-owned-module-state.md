@@ -13,6 +13,11 @@ Bus subscription inside a non-copyable module instance. The application core
 owns module instances for the firmware lifetime and explicitly starts them.
 Stopping or destroying a started module removes its subscription.
 
+Synchronization is a member for the same reason the state is: a module is
+updated on the task that publishes telemetry and read on the LVGL task, and the
+lock that reconciles the two (a `std::mutex` in the Lap Timer) belongs to the
+instance whose state it guards.
+
 Platform composition provides module instances to the adapters that consume
 them, either a dedicated widget or a pre-bound value-pipeline callback. Module
 instances use fixed object storage and do not require dynamic allocation.

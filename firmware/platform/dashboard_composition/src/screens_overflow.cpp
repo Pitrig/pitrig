@@ -1,18 +1,13 @@
 #include "dashboard_screens.hpp"
-#include "dashboard_state.hpp"
 
 #include <algorithm>
-#include <array>
+#include <cstddef>
 #include <cstdint>
-#include <span>
-#include <string_view>
 
 #include "application_configuration.hpp"
-#include "logger.hpp"
-#include "simcore_features.hpp"
+#include "dashboard_state.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
-#include "dashboard_screens.hpp"
 
 // A container does not clip its children: a caption or a widget that overhangs
 // its box is still drawn, and only the display bounds it. LVGL clips by

@@ -6,20 +6,12 @@
 #include <span>
 
 #include "application_configuration.hpp"
-#include "boot_splash.hpp"
-#include "dashboard_assets.hpp"
-#include "dashboard_layout.hpp"
 #include "dashboard_screens.hpp"
 #include "dashboard_state.hpp"
-#include "display.hpp"
-#include "logger.hpp"
-#include "module_composition.hpp"
-#include "simcore_features.hpp"
-#include "telemetry_events.hpp"
-#include "telemetry_registry.hpp"
-#include "widget_type_ops.hpp"
+#include "dashboard_storages.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
+#include "widget_frame.hpp"
 
 // Applying a replacement document without rebuilding the dashboard. A widget
 // whose bytes are unchanged keeps its LVGL object; only what actually differs
@@ -27,11 +19,10 @@
 // screen recolour reaches a widget only through a caption mask that reads the
 // parent, a container shape cannot be rebuilt in place — that they are worth
 // reading apart from the full composition they fall back to.
-#include "dashboard_storages.hpp"
-
 namespace simcore::dashboard_composition {
 namespace {
 
+// Whether this widget's caption mask takes its colour from one of the screens
 // in `recoloured`, and so has to be rebuilt for that colour to reach it. The
 // rule for which masks read the parent belongs to the frame that builds them.
 [[nodiscard]] bool caption_masks_screen(

@@ -7,7 +7,6 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #if SIMCORE_DEBUG
-#include "esp_timer.h"
 #include "performance.hpp"
 #endif
 #include "sdkconfig.h"

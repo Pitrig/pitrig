@@ -49,9 +49,11 @@ The transition is LVGL's own animated screen load, which does not delete the
 screen it leaves. Screens outlive navigation; only a configuration replacement
 destroys them.
 
-Applying a configuration returns to screen zero. A rebuilt dashboard has new
+A full recomposition returns to screen zero. A rebuilt dashboard has new
 screen objects, and continuing to show "screen three" across a document that may
-no longer have one is a way to display a screen the author is not editing.
+no longer have one is a way to display a screen the author is not editing. An
+incremental apply (ADR 0016) keeps the screen objects and so keeps the screen
+being shown, which is what a live preview of an edit on that screen wants.
 
 Widgets on screens that are not loaded are not drawn, and nothing in the
 dashboard has to arrange that. LVGL drops an invalidation whose object belongs to
@@ -134,6 +136,7 @@ callback.
 - Hidden screens cost memory and their widgets' value computation, but no draw
   time. A widget that has been off-screen shows the current value on return
   rather than a stale one.
-- Applying a configuration is visible as a jump back to the first screen.
+- Applying a configuration that needs a full recomposition is visible as a jump
+  back to the first screen; an incremental apply stays on the current one.
 - Transitions are LVGL's stock animations. An authored transition, per-screen
   duration, or vertical navigation would each be an extension of this decision.

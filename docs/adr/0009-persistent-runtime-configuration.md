@@ -64,10 +64,11 @@ headers and slot mechanics remain private firmware details.
 
 Bound the compact JSON payload at `kMaximumPayloadSize`, which the generated
 configuration contract defines — 65536 bytes as of schema 10. Size the dedicated
-`simcore_cfg` NVS partition at 64 KiB so both rollback records and NVS metadata
-fit within the partition. The partition keeps its original start offset; the
-following font-assets partition moves and therefore requires font assets to be
-uploaded again after installing the updated partition table.
+`simcore_cfg` NVS partition at 256 KiB (`0x40000`) so two full-size records,
+the copy NVS keeps while it rewrites one, and NVS's own page metadata all fit.
+The partition keeps its original start offset; the following font-assets
+partition moves and therefore requires font assets to be uploaded again after
+installing the updated partition table.
 
 Parse the sparse JSON into a concrete bounded runtime configuration during
 startup and before accepting a replacement. JSON parsing is confined to the

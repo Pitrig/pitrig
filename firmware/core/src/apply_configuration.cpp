@@ -1,38 +1,13 @@
-#include "simcore.hpp"
+#include "application.hpp"
 
-// Ahead of everything else: the feature macros below gate includes, and reading
-// one before it is defined silently takes the wrong branch.
-#include "simcore_features.hpp"
-
-#include <array>
 #include <cstring>
 #include <span>
 
 #include "application_configuration.hpp"
-#include "board_registry.hpp"
-#include "communication_composition.hpp"
 #include "configuration_service.hpp"
 #include "dashboard_composition.hpp"
-#include "display.hpp"
-#include "esp_err.h"
-#include "event_bus.hpp"
-#include "external_memory_buffer.hpp"
-#include "font_asset_service.hpp"
-#include "image_asset_service.hpp"
-#include "input.hpp"
 #include "logger.hpp"
 #include "module_composition.hpp"
-#include "nvs_config_storage.hpp"
-#include "partition_asset_storage.hpp"
-#include "telemetry_provider.hpp"
-#include "telemetry_registry.hpp"
-#include "telemetry_state.hpp"
-#include "telemetry_transport_composition.hpp"
-#if SIMCORE_DEBUG
-#include "performance.hpp"
-#endif
-
-#include "application.hpp"
 
 namespace simcore {
 namespace {

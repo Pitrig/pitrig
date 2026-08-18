@@ -179,11 +179,6 @@ struct Box {
   std::int32_t caption_height{};
 };
 
-// Creates the box for one widget: placement, border, radius, padding and the
-// background, inset from the frame when the configuration asks for it.
-// `content_*` is the smallest size the widget's own content needs; the frame
-// adds its own insets before resolving the placement. Logs what the widget
-// would have taken when it does not fit.
 // Whether a caption's mask has to resolve the colour behind the widget rather
 // than copy the widget's own fill. A mask copies the fill only when the
 // container itself paints it: a transparent colour paints nothing, and an inset
@@ -195,6 +190,11 @@ struct Box {
 // drifted out of sight of the code it describes.
 [[nodiscard]] bool caption_mask_reads_parent(const Config& config);
 
+// Creates the box for one widget: placement, border, radius, padding and the
+// background, inset from the frame when the configuration asks for it.
+// `content_*` is the smallest size the widget's own content needs; the frame
+// adds its own insets before resolving the placement. Logs what the widget
+// would have taken when it does not fit.
 [[nodiscard]] bool build(const Layout& layout, const Config& config,
                          const char* tag, std::int32_t content_width,
                          std::int32_t content_height,

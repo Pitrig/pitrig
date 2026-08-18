@@ -10,7 +10,10 @@
 #include "time_transform.hpp"
 
 namespace simcore::dashboard::value_text {
+namespace {
 
+// The source's own text, before any transform: its string if it carries one,
+// "true"/"false" for a boolean, digits otherwise. False when unavailable.
 [[nodiscard]] bool source_text(
     const telemetry::TelemetryRead& value,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
@@ -135,6 +138,8 @@ namespace simcore::dashboard::value_text {
   }
   return false;
 }
+
+}  // namespace
 
 // The zero one source shows while it has no value: rendered through its own
 // transform, so a plain value reads 0 and a time value keeps its format with

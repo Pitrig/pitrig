@@ -28,7 +28,9 @@ refuses to build and suggests `fullclean`, which throws the build away instead o
 `source <idf-path>/export.sh` is enough for a build directory that does not exist yet.
 
 Run from `firmware/`. Each board is a separate build directory + generated sdkconfig; always pass
-both `-DSDKCONFIG` and `-DSDKCONFIG_DEFAULTS` so board defaults are not lost.
+both `-DSDKCONFIG` and `-DSDKCONFIG_DEFAULTS` so board defaults are not lost. ESP-IDF also applies
+`sdkconfig.defaults.<IDF_TARGET>` (`.esp32s3` / `.esp32p4`) on its own, which is where the
+target-wide settings such as PSRAM mode and the P4 DSI/PPA options live.
 
 ```bash
 cd firmware && idf.py -B build-t-display -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.t-display -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.t-display-s3" build
@@ -148,7 +150,9 @@ components → interfaces ← drivers
   while each kind keeps its own magic, manifest entry decoder and catalog.
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
   `dashboard` (LVGL `widgets` over a shared `frame`, plus `conditions`, `fonts`, `images`,
-  `layout`, `navigation` for screen swiping, `slots` for container switching, and `utilities`),
+  `layout`, `navigation` for screen swiping, `slots` for container switching, `value_text` for
+  turning one value into the text a widget draws, `utilities`, and the embedded boot-splash
+  `assets`),
   `dashboard_composition`, `module_composition`, `nvs_config_storage`,
   `partition_asset_storage`, `telemetry_transport`, `external_memory`.
 - `utils/` — helpers with no dependency on any other layer (`binary`, `simcore_config`,
@@ -171,7 +175,7 @@ new hardware capability, add a driver only for new hardware. The core should rar
 A firmware build owns exactly one immutable `BoardDefinition` selected by
 `CONFIG_SIMCORE_FACTORY_BOARD_*` (set by the `sdkconfig.defaults.<board>` file). It binds board id,
 display driver, default telemetry transport, factory payload, and private validation metadata
-(display bounds, allowed UART pins). Firmware reports only the stable board identifier; the
+(display bounds, the board's UART pin pair). Firmware reports only the stable board identifier; the
 configurator maps it to a local board profile for logical display dimensions. User configuration must
 carry a matching `board` or it is rejected. Saving requires a reboot; `APPLY` rebuilds the running dashboard from a document without writing
 storage, which is what the configurator's live preview uses.

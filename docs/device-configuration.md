@@ -686,9 +686,12 @@ unknown board is incompatible until the configurator adds an explicit board
 profile. Boards without a built-in display require a separately documented
 profile before they are supported.
 
-`SET` and `RESET` update persistent state but do not change `INFO` or `GET`
-until reboot. This keeps both operations consistent with the configuration
-currently used by modules and widgets.
+`INFO` and `GET` describe the configuration the device loaded at boot. `SET`
+and `RESET` update persistent state but do not change either until reboot,
+which keeps them consistent with the configuration currently used by modules
+and widgets. `APPLY` does not change them either: it replaces what the dashboard
+renders, not what was loaded, so `GET` keeps returning the boot payload and
+`source` and `generation` keep naming the boot record.
 
 ## Control commands
 
@@ -697,9 +700,14 @@ telemetry serial transport. Asset upload temporarily switches that same
 transport into a binary stop-and-wait mode: `@SC:FONT:` for font packages
 (see [Font asset storage](font-assets.md)) and `@SC:IMAGE:` for image packages
 (see [Image asset storage](image-assets.md)). The two share one binary session,
-so an upload that starts while another is running is answered `busy` rather than
-interleaved. Neither is a configuration command, and their bytes are never
-stored in configuration NVS.
+so only one upload owns the stream at a time. On the link an upload owns there
+are no more commands until it ends: every byte is a frame, so a second `BEGIN`
+sent mid-upload is not a command but a bad frame, and it ends the running
+upload with `invalid_frame`. A `BEGIN`, `INFO` or `CLEAR` for either kind that
+arrives on another link while an upload runs is answered `busy` (see
+[SimHub custom serial](simhub-custom-serial.md) for the development build that
+attaches a second link). Neither is a configuration command, and their bytes
+are never stored in configuration NVS.
 
 | Request | Successful response | Purpose |
 | --- | --- | --- |
@@ -711,11 +719,20 @@ stored in configuration NVS.
 | `@SC:RESET` | `@SC:OK:RESET:reboot_required=1` | Remove saved configuration. |
 | `@SC:REBOOT` | `@SC:OK:REBOOTING` | Restart the device. |
 
-Errors use `@SC:ERR:<reason>:screen=<n>,widget=<n>,path=<property>`. The reason
-token keeps its position, so a host that only reads the reason is unaffected.
-`screen` and `widget` are `-1` when the failure is not inside a widget, and
-`path` names the property that caused it. The reason tokens are listed in
-[configuration-schema.md](configuration-schema.md).
+Validation errors use `@SC:ERR:<reason>:screen=<n>,widget=<n>,path=<property>`.
+The reason token keeps its position, so a host that only reads the reason is
+unaffected. `screen` and `widget` are `-1` when the failure is not inside a
+widget, and `path` names the property that caused it. The reason tokens are
+listed in [configuration-schema.md](configuration-schema.md).
+
+Three errors are about the request rather than the document and carry no
+location suffix:
+
+| Response | When |
+| --- | --- |
+| `@SC:ERR:unknown_command` | The line starts with `@SC:` but names no command above. A host probes for a capability this way. |
+| `@SC:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler. |
+| `@SC:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. |
 
 After reset and reboot, `GET` returns the board-only factory configuration and
 the board-provided display remains enabled with an empty dashboard.

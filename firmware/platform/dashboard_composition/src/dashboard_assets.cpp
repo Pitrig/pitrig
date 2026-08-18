@@ -88,6 +88,13 @@ namespace assets {
 bool prepare_fonts(
     const configuration::ApplicationConfiguration& configuration,
     dashboard::fonts::Registry& fonts) {
+  // Destroying and creating font objects, and rasterizing their glyphs, are
+  // LVGL calls, and this runs while the LVGL task is drawing: the boot splash
+  // at startup, the previous dashboard during a live apply.
+  if (!lvgl_port_lock(0)) {
+    log::error(kTag, "Failed to lock LVGL for font preparation");
+    return false;
+  }
   fonts.retain_if([&configuration](const font_assets::FontSpec& spec) {
     bool used = false;
     for_each_configured_font(
@@ -108,6 +115,7 @@ bool prepare_fonts(
         }
         fonts.warm(spec, text);
       });
+  lvgl_port_unlock();
   return complete;
 }
 

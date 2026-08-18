@@ -28,10 +28,11 @@ class Controller final {
   Controller(const Controller&) = delete;
   Controller& operator=(const Controller&) = delete;
 
-  // Attaches the swipe handler to every screen and shows the first one. Safe to
-  // call with a single screen, in which case navigation is inert. The caller
-  // holds the LVGL lock; `screens` must outlive the controller or be replaced by
-  // another attach()/detach() pair.
+  // Attaches the swipe handler to every screen and takes the first one as the
+  // active screen; loading it is the composition's business. Safe to call with
+  // a single screen, in which case navigation is inert. The caller holds the
+  // LVGL lock; `screens` must outlive the controller or be replaced by another
+  // attach()/detach() pair.
   void attach(std::span<lv_obj_t* const> screens);
 
   // Makes one object a tap target. `target` is the resolved screen index and is

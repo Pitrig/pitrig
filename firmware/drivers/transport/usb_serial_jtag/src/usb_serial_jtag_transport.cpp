@@ -17,10 +17,6 @@ constexpr char kTag[] = "usb_serial_jtag_transport";
 
 }  // namespace
 
-UsbSerialJtagTransport::UsbSerialJtagTransport(
-    const UsbSerialJtagConfiguration configuration)
-    : configuration_(configuration) {}
-
 UsbSerialJtagTransport::~UsbSerialJtagTransport() {
   stop();
 }

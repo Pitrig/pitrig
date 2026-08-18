@@ -16,8 +16,8 @@ constexpr char kTag[] = "dashboard_fonts";
 constexpr std::size_t kGlyphCacheEntries = 128;
 
 // Every character the periodic path can emit without the configuration saying
-// so: telemetry digits, the time transform's MM:SS.mmm and +S.mmm, the Delta
-// Time sign, and the punctuation a prefix or title is likely to carry.
+// so: telemetry digits, the time transform's MM:SS.mmm and its signed +S.mmm,
+// and the punctuation a prefix or title is likely to carry.
 constexpr std::string_view kBaseWarmCharacters =
     "0123456789.:+- ,;/%()'\"";
 

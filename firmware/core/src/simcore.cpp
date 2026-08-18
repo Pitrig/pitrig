@@ -4,10 +4,12 @@
 // one before it is defined silently takes the wrong branch.
 #include "simcore_features.hpp"
 
-#include <array>
-#include <cstring>
+#include <cstddef>
+#include <cstdint>
 #include <span>
+#include <string_view>
 
+#include "application.hpp"
 #include "application_configuration.hpp"
 #include "board_registry.hpp"
 #include "communication_composition.hpp"
@@ -27,7 +29,6 @@
 #include "telemetry_provider.hpp"
 #include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
-#include "application.hpp"
 #include "telemetry_transport_composition.hpp"
 #if SIMCORE_DEBUG
 #include "performance.hpp"

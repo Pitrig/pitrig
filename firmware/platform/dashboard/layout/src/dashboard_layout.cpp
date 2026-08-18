@@ -43,14 +43,11 @@ bool resolve_widget_bounds(const Layout& layout,
   }
 
   parent = owner;
-  // Filling means filling the parent, so a container still supplies the size an
-  // unsized widget takes. It is built before its children, so this is final.
+  // Filling means filling the parent, so a container still supplies the width
+  // an unsized widget takes. It is built before its children, so this is final.
   const std::int32_t parent_width =
       contained ? lv_obj_get_width(owner)
                 : lv_display_get_horizontal_resolution(layout.display);
-  const std::int32_t parent_height =
-      contained ? lv_obj_get_height(owner)
-                : lv_display_get_vertical_resolution(layout.display);
 
   const std::int32_t requested_width =
       placement.width > 0

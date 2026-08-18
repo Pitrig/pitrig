@@ -30,8 +30,9 @@ class ConfigurationControl {
   using ApplyHandler = ValidationFailure (*)(
       std::span<const std::uint8_t> payload, void* context);
 
+  // Every reply goes to the link the request arrived on, so no transport is
+  // taken here: consume() learns which link that is from each line.
   [[nodiscard]] bool initialize(ConfigurationService& service,
-                                transport::ITransport& transport,
                                 RebootHandler reboot_handler,
                                 void* reboot_context,
                                 ApplyHandler apply_handler,
@@ -71,7 +72,6 @@ class ConfigurationControl {
   [[nodiscard]] transport::ITransport* reply() const { return reply_; }
 
   ConfigurationService* service_{};
-  transport::ITransport* transport_{};
   // Written under the request state below and read only while it is held, so
   // the reply cannot be redirected mid-answer by a request on another link.
   transport::ITransport* reply_{};

@@ -4,7 +4,6 @@
 #include <array>
 #include <cstddef>
 #include <iterator>
-#include <string_view>
 
 #include "application_configuration.hpp"
 #include "telemetry_types.hpp"
@@ -21,22 +20,8 @@ namespace simcore::dashboard::value_text {
 
 using Buffer = std::array<char, telemetry::kTelemetryTextCapacity>;
 
-// The source's own text, before any transform: its string if it carries one,
-// "true"/"false" for a boolean, digits otherwise. False when unavailable.
-[[nodiscard]] bool source_text(const telemetry::TelemetryRead& value,
-                               Buffer& output);
-
-// The value a transform produces, before its affixes.
-[[nodiscard]] bool transform_body(
-    const configuration::ValueTransform& transform,
-    const telemetry::TelemetryRead& value, Buffer& output);
-
-// Wraps a rendered body in its affixes. They belong to the transform rather
-// than to one of its types, so an untransformed value can carry a unit too.
-[[nodiscard]] bool compose(const configuration::ValueTransform& transform,
-                           std::string_view body, Buffer& output);
-
-// The whole of one value: transformed and wrapped. False when unavailable.
+// The whole of one value: the source's own representation, transformed, and
+// wrapped in the transform's affixes. False when unavailable.
 [[nodiscard]] bool transform_value(
     const configuration::ValueTransform& transform,
     const telemetry::TelemetryRead& value, Buffer& output);

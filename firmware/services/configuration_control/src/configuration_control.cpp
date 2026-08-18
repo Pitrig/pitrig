@@ -20,16 +20,14 @@ constexpr std::string_view kPrefix = "@SC:";
 ConfigurationControl::~ConfigurationControl() { stop(); }
 
 bool ConfigurationControl::initialize(
-    ConfigurationService& service, transport::ITransport& transport,
-    const RebootHandler reboot_handler, void* const reboot_context,
-    const ApplyHandler apply_handler, void* const apply_context,
-    const std::span<std::uint8_t> io_buffer) {
+    ConfigurationService& service, const RebootHandler reboot_handler,
+    void* const reboot_context, const ApplyHandler apply_handler,
+    void* const apply_context, const std::span<std::uint8_t> io_buffer) {
   if (task_ != nullptr || io_buffer.size() < kIoBufferSize) {
     return false;
   }
   io_buffer_ = io_buffer.first(kIoBufferSize);
   service_ = &service;
-  transport_ = &transport;
   reboot_handler_ = reboot_handler;
   reboot_context_ = reboot_context;
   apply_handler_ = apply_handler;
@@ -61,7 +59,6 @@ void ConfigurationControl::stop() {
   request_state_.store(RequestState::idle, std::memory_order_release);
   request_size_ = 0;
   service_ = nullptr;
-  transport_ = nullptr;
   reply_ = nullptr;
   reboot_handler_ = nullptr;
   reboot_context_ = nullptr;
@@ -72,8 +69,8 @@ void ConfigurationControl::stop() {
 
 void ConfigurationControl::consume(
     const std::span<const std::uint8_t> line, transport::ITransport& reply) {
-  if (service_ == nullptr || transport_ == nullptr ||
-      task_ == nullptr || line.size() > io_buffer_.size() ||
+  if (service_ == nullptr || task_ == nullptr ||
+      line.size() > io_buffer_.size() ||
       line.size() < kPrefix.size() ||
       !std::equal(kPrefix.begin(), kPrefix.end(), line.begin())) {
     return;

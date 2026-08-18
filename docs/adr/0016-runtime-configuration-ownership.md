@@ -41,9 +41,15 @@ Let the binder own everything it produces. `BoundConfig` holds no pointer into
 the configuration document; configurations travel to widget creation as a
 parallel span instead.
 
-Provide `rebuild()` in the dashboard composition, tearing the dashboard down and
-composing it again from a supplied document. It reuses the existing destroy and
-create paths rather than adding a second composition route.
+Let the composition root recompose from the promoted document by tearing the
+dashboard down and composing it again — `recompose()` in the core, over the
+dashboard composition's existing `destroy` and `create` rather than a second
+composition route. Beside it, the dashboard composition offers
+`apply_incremental()`, which keeps every widget whose bytes did not change and
+rebuilds only what differs; it is taken when the two documents differ in the
+dashboard alone, and it falls back to the full recompose whenever it cannot
+answer for the difference (a container shape holding children, a font it has
+not created).
 
 Any path that applies a configuration at runtime must observe one ordering
 constraint: parse into scratch, validate, promote, then rebuild. The
@@ -65,8 +71,10 @@ cannot be applied without one. Revisiting that belongs to ADR 0010.
   configuration document's.
 - The `APPLY` control command drives this path. It stages, validates, promotes,
   and recomposes without writing storage, and it is rejected rather than queued
-  while another device operation holds the single-slot lock. `rebuild()` remains
-  the unused full-teardown variant; the incremental path is what `APPLY` uses.
+  while another device operation holds the single-slot lock. A dashboard-only
+  difference takes the incremental path; anything else, or an incremental apply
+  that cannot complete, takes the full recompose, and a recompose that fails
+  reverts to the previous document and recomposes from that.
 - The parse-validate-promote-rebuild order is a real constraint on future code
   and is not enforced by the type system.
 - A live apply is complete for any document whose font families are installed.

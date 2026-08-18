@@ -146,7 +146,6 @@ void on_telemetry_updated(const events::Event&, void* const context) {
   return attached;
 }
 
-// Whether this widget's caption mask takes its colour from one of the screens
 }  // namespace
 
 Dashboard::Dashboard() = default;

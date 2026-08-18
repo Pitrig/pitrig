@@ -1,12 +1,10 @@
 #include "uart_transport.hpp"
 
-#include <cstdarg>
 #include <span>
 
 #include "esp_err.h"
 #include "esp_log.h"
 #if SIMCORE_DEBUG
-#include "esp_timer.h"
 #include "performance.hpp"
 #endif
 
@@ -16,9 +14,6 @@ namespace {
 constexpr char kTag[] = "uart_transport";
 
 }  // namespace
-
-UartTransport::UartTransport(const UartConfiguration configuration)
-    : configuration_(configuration) {}
 
 bool UartTransport::configure(const UartConfiguration configuration) {
   if (started_) {

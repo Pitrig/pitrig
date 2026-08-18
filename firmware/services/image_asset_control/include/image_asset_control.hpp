@@ -3,12 +3,8 @@
 #include "asset_control.hpp"
 #include "binary_session.hpp"
 #include "image_asset_service.hpp"
-#include "transport.hpp"
 
 namespace simcore::image_assets {
-
-inline constexpr std::size_t kUploadMaximumChunkSize =
-    asset_control::kUploadMaximumChunkSize;
 
 // The image side of the shared `SCF1` upload engine. An image package arrives
 // exactly as a font package does — the risky parts are the flash choreography
@@ -18,7 +14,6 @@ inline constexpr std::size_t kUploadMaximumChunkSize =
 class ImageAssetControl final {
  public:
   [[nodiscard]] bool initialize(Service& service,
-                                transport::ITransport& transport,
                                 binary_session::Claim& claim);
 
   // Registered with the router, which routes by prefix and by who holds the
@@ -27,7 +22,6 @@ class ImageAssetControl final {
     return control_.session();
   }
   void stop() { control_.stop(); }
-  [[nodiscard]] bool active() const { return control_.active(); }
 
  private:
   asset_control::AssetControl control_;

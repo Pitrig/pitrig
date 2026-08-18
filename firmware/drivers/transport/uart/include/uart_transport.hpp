@@ -26,7 +26,6 @@ struct UartConfiguration {
 class UartTransport final : public ITransport {
  public:
   UartTransport() = default;
-  explicit UartTransport(UartConfiguration configuration);
   ~UartTransport() override;
 
   UartTransport(const UartTransport&) = delete;

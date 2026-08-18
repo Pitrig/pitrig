@@ -47,6 +47,9 @@ std::size_t create_screens(
   return created;
 }
 
+#if !SIMCORE_DEBUG
+// Only will_render_content() asks, and a debug build answers it without
+// looking: the overlay always draws.
 const configuration::ScreenConfiguration& active_screen(
     const configuration::ApplicationConfiguration& configuration) {
   static const configuration::ScreenConfiguration kEmptyScreen{};
@@ -54,6 +57,7 @@ const configuration::ScreenConfiguration& active_screen(
              ? configuration.dashboard.screens[0]
              : kEmptyScreen;
 }
+#endif
 
 std::uint32_t screen_background(
     const configuration::ApplicationConfiguration& configuration,
