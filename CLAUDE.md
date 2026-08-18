@@ -120,11 +120,13 @@ components → interfaces ← drivers
   compile-time descriptors (function pointers + explicit contexts); no allocation, no name lookup.
 - `interfaces/` — small contracts (`display`, `input`, `transport`) implemented by drivers. The
   `display` and `input` contracts live in one `interfaces` component; `transport` is its own.
-- `components/` — reusable hardware capabilities (`display`, `input`, `simcore_config`); depend on
-  interfaces, never on concrete drivers.
+- `components/` — reusable hardware capabilities (`display`, `input`); depend on interfaces, never
+  on concrete drivers.
 - `drivers/` — board/hardware implementations (`t_display_s3`, `guition_esp32_4848s040`,
   `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`,
-  `transport/usb_serial_jtag`). No application logic. A board with no digitizer leaves `BoardDefinition::input` null.
+  `transport/usb_serial_jtag`, plus `transport/transport_common` for the read counters and log
+  silencing every link shares). No application logic. A board with no digitizer leaves
+  `BoardDefinition::input` null.
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
 - `services/` — shared infrastructure (`asset_control`, `asset_package`, `asset_storage`,
@@ -141,8 +143,11 @@ components → interfaces ← drivers
   `layout`, `navigation` for screen swiping, `slots` for container switching, and `utilities`),
   `dashboard_composition`, `module_composition`, `nvs_config_storage`,
   `partition_asset_storage`, `telemetry_transport`, `external_memory`.
-- `utils/` — dependency-free helpers (`binary`, `transformers/number_transform`,
-  `transformers/text_writer`, `transformers/time_transform`).
+- `utils/` — helpers with no dependency on any other layer (`binary`, `simcore_config`,
+  `transformers/number_transform`, `transformers/text_writer`, `transformers/time_transform`).
+  `simcore_config` is the Kconfig surface and the `SIMCORE_*` feature aliases; it lives here
+  because every layer reads it, and it sat under `components/` long enough to give drivers and
+  services a dependency on a component, which the layering forbids.
 
 Every layer directory listed above is a separate ESP-IDF component. All of them except
 `components/` are registered in `EXTRA_COMPONENT_DIRS` in
