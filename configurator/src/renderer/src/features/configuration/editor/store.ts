@@ -101,7 +101,11 @@ interface DashboardEditorStore {
   /**
    * Moves every id-keyed piece of editor state from one id to another. A rename
    * rewrites the widget's id in the document, and anything still keyed by the
-   * old one — selection, lock, hide — would silently detach from it.
+   * old one — selection, lock, hide, the slot's visible page, the container the
+   * editor has drilled into — would silently detach from it. Missing a field
+   * here is not cosmetic: an orphaned `drillIn` leaves the editor logically
+   * inside a container that no longer exists, and new widgets then land on the
+   * screen instead of inside it.
    */
   renameId: (from: string, to: string) => void
   resetEditorState: () => void
@@ -166,7 +170,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
     set((current) => ({ hidden: { ...current.hidden, [id]: !current.hidden[id] } })),
   renameId: (from, to) =>
     set((current) => {
-      const move = (record: Record<string, boolean>): Record<string, boolean> => {
+      const move = <T,>(record: Record<string, T>): Record<string, T> => {
         const value = record[from]
         if (value === undefined) return record
         const rest = { ...record }
@@ -182,7 +186,9 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
         selectedIds,
         selection,
         locked: move(current.locked),
-        hidden: move(current.hidden)
+        hidden: move(current.hidden),
+        slotPage: move(current.slotPage),
+        drillIn: current.drillIn === from ? to : current.drillIn
       }
     }),
   // A different document is a different set of widgets, so what was locked,
