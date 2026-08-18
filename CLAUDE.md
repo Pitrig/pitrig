@@ -21,9 +21,14 @@ Key points that change how you should work here:
 
 ### Firmware (ESP-IDF, C++20)
 
-Requires a sourced ESP-IDF environment (`source <idf-path>/export.sh`). Run from `firmware/`. Each
-board is a separate build directory + generated sdkconfig; always pass both `-DSDKCONFIG` and
-`-DSDKCONFIG_DEFAULTS` so board defaults are not lost.
+Requires a sourced ESP-IDF environment: `source tools/idf-env.sh <build-directory>`. It finds the
+installation and takes the Python virtualenv that build directory was configured with — an install
+can carry more than one, and when the running interpreter differs from the recorded one `idf.py`
+refuses to build and suggests `fullclean`, which throws the build away instead of fixing it. Plain
+`source <idf-path>/export.sh` is enough for a build directory that does not exist yet.
+
+Run from `firmware/`. Each board is a separate build directory + generated sdkconfig; always pass
+both `-DSDKCONFIG` and `-DSDKCONFIG_DEFAULTS` so board defaults are not lost.
 
 ```bash
 cd firmware && idf.py -B build-t-display -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.t-display -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.t-display-s3" build

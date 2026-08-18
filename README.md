@@ -12,9 +12,11 @@ initializes that display with an empty dashboard. Each build links only the
 drivers its target needs, so the board is chosen at build time rather than at
 runtime.
 
-Build for one board:
+Build for one board (`tools/idf-env.sh` sources ESP-IDF with the interpreter that build directory
+was configured with):
 
 ```sh
+source tools/idf-env.sh firmware/build-t-display
 cd firmware
 idf.py -B build-t-display \
   -DIDF_TARGET=esp32s3 \
