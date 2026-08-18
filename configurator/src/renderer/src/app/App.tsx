@@ -73,7 +73,10 @@ export function App(): React.JSX.Element {
 function DeviceInfo({ session }: { session?: DeviceSession }): React.JSX.Element {
   const [clearingFonts, setClearingFonts] = useState(false)
   const [fontError, setFontError] = useState<string>()
+  const [clearingImages, setClearingImages] = useState(false)
+  const [imageError, setImageError] = useState<string>()
   const fontAssets = session?.fontAssets
+  const imageAssets = session?.imageAssets
 
   const clearFonts = async (): Promise<void> => {
     if (!window.confirm(
@@ -88,6 +91,22 @@ function DeviceInfo({ session }: { session?: DeviceSession }): React.JSX.Element
       setFontError(error instanceof Error ? error.message : 'Failed to clear uploaded fonts.')
     } finally {
       setClearingFonts(false)
+    }
+  }
+
+  const clearImages = async (): Promise<void> => {
+    if (!window.confirm(
+      'Clear all uploaded images from the board? Configurations that reference them will not render correctly after reboot.'
+    )) return
+    setClearingImages(true)
+    setImageError(undefined)
+    try {
+      const result = await window.simcore.clearImageAssets()
+      if (!result.ok) setImageError(result.error.message)
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : 'Failed to clear uploaded images.')
+    } finally {
+      setClearingImages(false)
     }
   }
 
@@ -155,6 +174,50 @@ function DeviceInfo({ session }: { session?: DeviceSession }): React.JSX.Element
                 onClick={() => void clearFonts()}
               >
                 {clearingFonts ? 'Clearing fonts…' : 'Clear uploaded fonts'}
+              </Button>
+            ) : null}
+            <div className="grid gap-1">
+              <span className="text-muted-foreground">Uploaded images</span>
+              {imageAssets ? (
+                imageAssets.images.length > 0 ? (
+                  <div className="space-y-1 rounded-md border bg-muted/20 p-2">
+                    {imageAssets.images.map((image) => (
+                      <div key={image.name} className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate" title={image.name}>{image.name}</span>
+                        <span className="flex-none text-muted-foreground">
+                          {image.width} × {image.height}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="rounded-md border bg-muted/40 px-2 py-1.5 text-muted-foreground">
+                    None
+                  </span>
+                )
+              ) : (
+                <span className="rounded-md border bg-muted/40 px-2 py-1.5 text-muted-foreground">
+                  Unsupported by firmware
+                </span>
+              )}
+            </div>
+            {imageAssets?.rebootRequired ? (
+              <p className="text-amber-400">Reboot required to activate image changes.</p>
+            ) : null}
+            {imageError ? <p className="text-red-400">{imageError}</p> : null}
+            {imageAssets ? (
+              <Button
+                className="w-full text-red-400 hover:text-red-300"
+                disabled={
+                  clearingImages ||
+                  !imageAssets.storageAvailable ||
+                  !imageAssets.packageAvailable ||
+                  imageAssets.rebootRequired
+                }
+                variant="outline"
+                onClick={() => void clearImages()}
+              >
+                {clearingImages ? 'Clearing images…' : 'Clear uploaded images'}
               </Button>
             ) : null}
           </div>

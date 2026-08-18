@@ -1,5 +1,5 @@
 import { screensOf, type WidgetParent } from '../../../../../shared/configuration-access'
-import { type ScreenConfiguration, type SlotPageConfiguration, type SlotWidgetConfiguration, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
+import { type ScreenConfiguration, type SlotPageConfiguration, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
 import { type WidgetSelection, useDashboardEditorStore } from './store'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -117,20 +117,6 @@ export function parentOf(
 ): WidgetParent | undefined {
   const screen = configuration.dashboard?.screens?.[location.screenIndex]
   return screen ? walkPath(screen, location.path)?.owner : undefined
-}
-
-/** The slot page a widget sits on, or undefined when it is not on one. */
-export function slotPageOf(
-  configuration: DeviceConfiguration | undefined,
-  id: string
-): { slot: SlotWidgetConfiguration; page: number } | undefined {
-  const location = findWidget(configuration, id)
-  if (!location) return undefined
-  const parent = ancestorsOf(configuration, location).at(-1)
-  if (parent?.type !== 'slot') return undefined
-  // The page index is the second-to-last entry: the path enters the slot, names
-  // the page, then names the widget.
-  return { slot: parent, page: location.path.at(-2) ?? 0 }
 }
 
 /** The array a widget lives in, which is what an edit has to splice. */

@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
-import { pagesOf, screensOf, stackOrder, widgetsOf } from '../../../../shared/configuration-access'
+import { isContainer, pagesOf, screensOf, stackOrder, widgetsOf } from '../../../../shared/configuration-access'
 import { visibleSlotPage } from './preview/canvas-geometry'
 import { WIDGET_ID_CAPACITY } from '../../../../shared/configuration-schema'
 import type { WidgetConfiguration } from '../../../../shared/configuration-schema'
@@ -150,7 +150,7 @@ function LayerList({
               event.dataTransfer.effectAllowed = 'move'
             }}
             onDragOver={(event) => {
-              const over = bandAt(event, id, widget.type === 'shape' || widget.type === 'slot')
+              const over = bandAt(event, id, isContainer(widget))
               // Leaving preventDefault uncalled is what shows the no-drop cursor
               // and keeps onDrop from firing at all — the refusal costs nothing.
               if (!over) return
@@ -165,7 +165,7 @@ function LayerList({
             onDrop={(event) => {
               event.preventDefault()
               // Recomputed from the drop itself: the stored band is a render behind.
-              const over = bandAt(event, id, widget.type === 'shape' || widget.type === 'slot')
+              const over = bandAt(event, id, isContainer(widget))
               if (dragged && over) moveWidget(dragged, over, id)
               setDragged(undefined)
               setDropTarget(undefined)
