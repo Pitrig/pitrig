@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { BOARD_PROFILES } from '@shared/device'
 import type { DeviceConfiguration } from '@shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
+import { withEditGroup } from '@/features/device/edit-group'
 import { screenWidgetsOf } from '@shared/configuration-access'
 import {
   absolutePlacement,
@@ -133,9 +134,9 @@ export function useEditorShortcuts(): void {
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault()
         // One entry for the whole group: deleting four widgets is one edit.
-        store.beginEdit()
-        for (const id of selected) deleteWidget({ type: 'widget', id })
-        store.endEdit()
+        withEditGroup(() => {
+          for (const id of selected) deleteWidget({ type: 'widget', id })
+        })
         editor.select(undefined)
         return
       }
