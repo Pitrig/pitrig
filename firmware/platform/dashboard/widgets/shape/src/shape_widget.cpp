@@ -8,21 +8,7 @@ namespace {
 
 constexpr char kTag[] = "shape_widget";
 
-// A shape has nothing to poll: it re-renders only so a blink phase can advance
-// and a held rule can run out, both of which follow the display cadence.
-constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
-
 }  // namespace
-
-Collection::~Collection() { destroy(); }
-
-void Collection::destroy() {
-  if (!created_ || !lvgl_port_lock(0)) {
-    return;
-  }
-  clear_objects();
-  lvgl_port_unlock();
-}
 
 bool Collection::build(State& state, const Layout& layout,
                        const Config& config,
@@ -55,99 +41,31 @@ bool Collection::build(State& state, const Layout& layout,
   return true;
 }
 
+
 bool Collection::create(const Layout& layout,
                         const std::span<const Config> configurations,
                         const std::span<const frame::ValueReadCallback> reads,
                         const std::span<void* const> read_contexts,
                         const fonts::Registry& fonts,
                         const std::span<lv_obj_t*> containers) {
-  if (layout.display == nullptr || configurations.size() > states_.size() ||
-      reads.size() != configurations.size() ||
-      read_contexts.size() != configurations.size() || created_ ||
-      !lvgl_port_lock(0)) {
+  if (layout.display == nullptr || reads.size() != configurations.size() ||
+      read_contexts.size() != configurations.size()) {
     return false;
   }
-
-  created_ = true;
   containers_ = containers;
   // Built in pool order, which the parser made parent-before-child, so a
   // container's object exists by the time anything inside it resolves a parent.
-  for (std::size_t widget = 0; widget < configurations.size(); ++widget) {
-    if (!build(states_[count_], layout, configurations[widget], reads[widget],
-               read_contexts[widget], fonts)) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-    if (count_ < containers_.size()) {
-      containers_[count_] = states_[count_].container;
-    }
-    ++count_;
-  }
-
-  render();
-  if (count_ > 0) {
-    timer_ = lv_timer_create(update, kRenderPeriodMs, this);
-    if (timer_ == nullptr) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-  }
-
-  lvgl_port_unlock();
-  return true;
-}
-
-void Collection::update(lv_timer_t* const timer) {
-  auto* const collection =
-      static_cast<Collection*>(lv_timer_get_user_data(timer));
-  if (collection != nullptr) {
-    collection->render();
-  }
-}
-
-void Collection::wake() {
-  if (timer_ != nullptr) {
-    lv_timer_ready(timer_);
-  }
-}
-
-void Collection::render() {
-  if (!created_) {
-    return;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    states_[index].painter.render();
-  }
-}
-
-void Collection::release(State& state) {
-  state.painter.release();
-  if (state.container != nullptr) {
-    lv_obj_delete(state.container);
-  }
-  state = {};
-}
-
-void Collection::clear_objects() {
-  if (timer_ != nullptr) {
-    lv_timer_delete(timer_);
-    timer_ = nullptr;
-  }
-  // Deepest first. The pool is ordered parent-before-child, and deleting an
-  // LVGL object deletes its descendants — so releasing forward would delete a
-  // container and then delete its already-destroyed children a second time.
-  for (std::size_t index = count_; index > 0; --index) {
-    if (index - 1 < containers_.size()) {
-      containers_[index - 1] = nullptr;
-    }
-    release(states_[index - 1]);
-  }
-  count_ = 0;
-  created_ = false;
+  return build_all(configurations.size(),
+                   [&](State& state, const std::size_t index) {
+                     if (!build(state, layout, configurations[index],
+                                reads[index], read_contexts[index], fonts)) {
+                       return false;
+                     }
+                     if (index < containers_.size()) {
+                       containers_[index] = state.container;
+                     }
+                     return true;
+                   });
 }
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
@@ -156,23 +74,13 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
                           void* const read_context,
                           const fonts::Registry& fonts,
                           const std::span<lv_obj_t*> containers) {
-  if (!created_ || index >= count_ || !lvgl_port_lock(0)) {
-    return false;
-  }
   containers_ = containers;
-  State& state = states_[index];
-  release(state);
-  const bool built =
-      build(state, layout, configuration, read, read_context, fonts);
-  if (built) {
-    state.painter.render();
-  } else {
-    release(state);
-  }
+  const bool built = rebuild_one(index, [&](State& state) {
+    return build(state, layout, configuration, read, read_context, fonts);
+  });
   if (index < containers_.size()) {
-    containers_[index] = built ? state.container : nullptr;
+    containers_[index] = built ? root_object(index) : nullptr;
   }
-  lvgl_port_unlock();
   return built;
 }
 

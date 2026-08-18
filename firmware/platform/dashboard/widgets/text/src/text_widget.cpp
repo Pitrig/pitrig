@@ -281,19 +281,6 @@ void unavailable_text(
 
 }  // namespace
 
-Collection::~Collection() { destroy(); }
-
-void Collection::destroy() {
-  if (!created_ || !lvgl_port_lock(0)) {
-    return;
-  }
-  clear_objects();
-  lvgl_port_unlock();
-}
-
-// Builds the LVGL objects for one widget into an already-cleared state.
-// Callers hold the LVGL lock. On failure the state is left partially built
-// and the caller must release it.
 bool Collection::build(State& state, const Layout& layout,
                       const Config& config, const WidgetBinding& binding,
                       const fonts::Registry& fonts) {
@@ -352,63 +339,6 @@ bool Collection::build(State& state, const Layout& layout,
   return true;
 }
 
-bool Collection::create(
-    const Layout& layout, const std::span<const Config> configurations,
-    const std::span<const WidgetBinding> bindings,
-    const fonts::Registry& fonts) {
-  if (layout.display == nullptr || bindings.size() > states_.size() ||
-      configurations.size() != bindings.size() || created_ ||
-      !lvgl_port_lock(0)) {
-    return false;
-  }
-
-  created_ = true;
-  for (std::size_t widget = 0; widget < bindings.size(); ++widget) {
-    const WidgetBinding& binding = bindings[widget];
-    if (!complete(binding) ||
-        !build(states_[count_], layout, configurations[widget], binding,
-               fonts)) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-    ++count_;
-  }
-
-  render();
-  if (count_ > 0) {
-    timer_ = lv_timer_create(update, kRenderPeriodMs, this);
-    if (timer_ == nullptr) {
-      clear_objects();
-      created_ = false;
-      lvgl_port_unlock();
-      return false;
-    }
-  }
-
-  lvgl_port_unlock();
-  return true;
-}
-
-void Collection::update(lv_timer_t* const timer) {
-  auto* const collection =
-      static_cast<Collection*>(lv_timer_get_user_data(timer));
-  if (collection != nullptr) {
-    collection->render();
-  }
-}
-
-void Collection::wake() {
-  // timer_ is created, deleted, and read only under the LVGL lock, which the
-  // caller holds, so this cannot observe a timer mid-teardown.
-  if (timer_ != nullptr) {
-    lv_timer_ready(timer_);
-  }
-}
-
-
-
 void Collection::render_state(State& state) {
   // A telemetry slot advances its revision only when the stored value really
   // changed, so a widget whose sources all stood still needs no transform,
@@ -462,56 +392,33 @@ void Collection::render_state(State& state) {
   lv_label_set_text_static(state.value_label, state.displayed_text.data());
 }
 
-void Collection::render() {
-  if (!created_) {
-    return;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    render_state(states_[index]);
-  }
-}
 
-void Collection::release(State& state) {
-  state.painter.release();
-  if (state.container != nullptr) {
-    lv_obj_delete(state.container);
+bool Collection::create(
+    const Layout& layout, const std::span<const Config> configurations,
+    const std::span<const WidgetBinding> bindings,
+    const fonts::Registry& fonts) {
+  if (layout.display == nullptr || configurations.size() != bindings.size()) {
+    return false;
   }
-  state = {};
-}
-
-void Collection::clear_objects() {
-  if (timer_ != nullptr) {
-    lv_timer_delete(timer_);
-    timer_ = nullptr;
-  }
-  for (std::size_t index = 0; index < count_; ++index) {
-    release(states_[index]);
-  }
-  count_ = 0;
-  created_ = false;
+  return build_all(bindings.size(), [&](State& state, const std::size_t index) {
+    return complete(bindings[index]) &&
+           build(state, layout, configurations[index], bindings[index], fonts);
+  });
 }
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
                           const Config& configuration,
                           const WidgetBinding& binding,
                           const fonts::Registry& fonts) {
-  if (!created_ || index >= count_ || !complete(binding) ||
-      !lvgl_port_lock(0)) {
+  if (!complete(binding)) {
     return false;
   }
-  State& state = states_[index];
-  release(state);
-  const bool built = build(state, layout, configuration, binding, fonts);
-  if (built) {
-    // A fresh lv_label carries LVGL's placeholder text until something sets it.
-    // Rendering before the lock is released keeps that from reaching the
-    // display between a rebuild and the next timer tick.
-    render_state(state);
-  } else {
-    release(state);
-  }
-  lvgl_port_unlock();
-  return built;
+  // rebuild_one renders before releasing the lock, which keeps LVGL's
+  // placeholder label text from reaching the display between a rebuild and the
+  // next timer tick.
+  return rebuild_one(index, [&](State& state) {
+    return build(state, layout, configuration, binding, fonts);
+  });
 }
 
 }  // namespace simcore::dashboard::text_widget

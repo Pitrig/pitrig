@@ -1,5 +1,6 @@
 set(component_sources
     "conditions/src/widget_conditions.cpp"
+    "frame/src/widget_collection.cpp"
     "frame/src/widget_frame.cpp"
     "fonts/src/dashboard_fonts.cpp"
     "images/src/dashboard_images.cpp"

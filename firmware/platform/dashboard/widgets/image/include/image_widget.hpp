@@ -8,6 +8,7 @@
 #include "dashboard_fonts.hpp"
 #include "dashboard_images.hpp"
 #include "dashboard_layout.hpp"
+#include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
 struct _lv_obj_t;
@@ -26,24 +27,21 @@ using Config = configuration::ImageWidgetConfiguration;
 // registry and is never copied again, so drawing costs one LVGL object and no
 // allocation; a rule's colour lands on the recolour, which is the only thing a
 // bitmap can be tinted by.
-class Collection final {
- public:
-  Collection() = default;
-  ~Collection();
-  Collection(const Collection&) = delete;
-  Collection& operator=(const Collection&) = delete;
+struct State {
+  frame::Painter painter{};
+  lv_obj_t* container{};
+  lv_obj_t* image{};
+};
 
+class Collection final
+    : public frame::Collection<Collection, State, kMaximumInstances> {
+ public:
   [[nodiscard]] bool create(const Layout& layout,
                             std::span<const Config> configurations,
                             std::span<const frame::ValueReadCallback> reads,
                             std::span<void* const> read_contexts,
                             const fonts::Registry& fonts,
                             const images::Registry& images);
-  [[nodiscard]] lv_obj_t* root_object(std::size_t index) const {
-    return index < count_ ? states_[index].container : nullptr;
-  }
-  void destroy();
-  void wake();
   [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
                               const Config& configuration,
                               frame::ValueReadCallback read, void* read_context,
@@ -51,26 +49,13 @@ class Collection final {
                               const images::Registry& images);
 
  private:
-  struct State {
-    frame::Painter painter{};
-    lv_obj_t* container{};
-    lv_obj_t* image{};
-  };
+  friend frame::Collection<Collection, State, kMaximumInstances>;
 
-  static void update(lv_timer_t* timer);
-  void render();
-  void clear_objects();
-  void release(State& state);
   [[nodiscard]] bool build(State& state, const Layout& layout,
                            const Config& configuration,
                            frame::ValueReadCallback read, void* read_context,
                            const fonts::Registry& fonts,
                            const images::Registry& images);
-
-  std::array<State, kMaximumInstances> states_{};
-  std::size_t count_{};
-  lv_timer_t* timer_{};
-  bool created_{};
 };
 
 }  // namespace simcore::dashboard::image_widget
