@@ -88,6 +88,7 @@ app.on('before-quit', (event) => {
   }
   event.preventDefault()
   fontAssetService.cancel()
+  imageAssetService.cancel()
   void deviceService.dispose().finally(() => {
     quitAfterDeviceCleanup = true
     app.quit()

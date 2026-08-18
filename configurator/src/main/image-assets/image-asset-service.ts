@@ -94,6 +94,9 @@ export class ImageAssetService {
       })
       const converted: ConvertedImage[] = []
       for (const asset of request.assets) {
+        // Conversion is synchronous and can run for a while over several large
+        // images, so the cancel button has to be honoured between them.
+        operation.signal.throwIfAborted()
         const source = this.sources.get(asset.sourceId)
         if (!source) {
           return failure('source_missing', 'Select the image file again and retry.')
@@ -146,12 +149,15 @@ export class ImageAssetService {
       })
       return failure(cancelled ? 'cancelled' : 'device_error', message)
     } finally {
-      this.activeOperation = undefined
+      // A later upload may already own the slot if this one was cancelled and
+      // restarted, and clearing it unconditionally would strand that one.
+      if (this.activeOperation === operation) this.activeOperation = undefined
     }
   }
 
-  cancel(): void {
+  cancel(): AssetResult<void> {
     this.activeOperation?.abort()
+    return success(undefined)
   }
 
   private validateRequest(request: ImageUploadRequest): AssetError | undefined {
