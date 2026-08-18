@@ -61,26 +61,16 @@ namespace {
                                             IndicatorWidgetConfiguration& config,
                                             ValidationFailure& failure) {
   constexpr std::string_view kName = "widget.indicator.segments";
-  const cJSON* const segments = member(object, "segments");
-  if (segments == nullptr) {
-    return true;
-  }
-  const int count =
-      cJSON_IsArray(segments) ? cJSON_GetArraySize(segments) : -1;
-  if (count < 0 || count > static_cast<int>(config.segments.size())) {
-    return reject(failure, ValidationError::malformed, kName);
-  }
-  for (int index = 0; index < count; ++index) {
-    const cJSON* const segment = cJSON_GetArrayItem(segments, index);
-    IndicatorSegment& parsed = config.segments[index];
-    if (!valid_object(segment, schema::kIndicatorSegmentKeys, kName, failure) ||
-        !read_float(segment, "threshold", parsed.threshold, kName, failure) ||
-        !read_color(segment, "color", parsed.color, kName, failure)) {
-      return false;
-    }
-  }
-  config.segment_count = static_cast<std::uint8_t>(count);
-  return true;
+  return read_array(
+      object, "segments", config.segments, config.segment_count, kName,
+      ValidationError::malformed, failure,
+      [&](const cJSON* const segment, IndicatorSegment& parsed) {
+        return valid_object(segment, schema::kIndicatorSegmentKeys, kName,
+                            failure) &&
+               read_float(segment, "threshold", parsed.threshold, kName,
+                          failure) &&
+               read_color(segment, "color", parsed.color, kName, failure);
+      });
 }
 
 [[nodiscard]] bool parse_indicator_widget(const cJSON* const object,
@@ -157,27 +147,15 @@ namespace {
     }
   }
 
-  const cJSON* const conditions = member(object, "conditions");
-  if (conditions == nullptr) {
-    return true;
-  }
-  const int count =
-      cJSON_IsArray(conditions) ? cJSON_GetArraySize(conditions) : -1;
-  if (count < 0 || count > static_cast<int>(config.conditions.size())) {
-    return reject(failure, ValidationError::invalid_slot_page, kName);
-  }
-  for (int index = 0; index < count; ++index) {
-    const cJSON* const rule = cJSON_GetArrayItem(conditions, index);
-    SlotCondition& parsed = config.conditions[index];
-    if (!valid_object(rule, schema::kSlotConditionKeys, kName, failure) ||
-        !read_enum(rule, "op", parsed.op, condition_operator_from_name, kName,
-                   failure) ||
-        !read_float(rule, "value", parsed.value, kName, failure)) {
-      return false;
-    }
-  }
-  config.condition_count = static_cast<std::uint8_t>(count);
-  return true;
+  return read_array(
+      object, "conditions", config.conditions, config.condition_count, kName,
+      ValidationError::invalid_slot_page, failure,
+      [&](const cJSON* const rule, SlotCondition& parsed) {
+        return valid_object(rule, schema::kSlotConditionKeys, kName, failure) &&
+               read_enum(rule, "op", parsed.op, condition_operator_from_name,
+                         kName, failure) &&
+               read_float(rule, "value", parsed.value, kName, failure);
+      });
 }
 
 // One page's own properties. Its `widgets` are parsed by parse_widget, which
@@ -208,22 +186,13 @@ namespace {
       !parse_frame(object, config.frame, kName, failure)) {
     return false;
   }
-  const cJSON* const pages = member(object, "pages");
-  if (pages == nullptr) {
-    return true;
-  }
-  const int count = cJSON_IsArray(pages) ? cJSON_GetArraySize(pages) : -1;
-  if (count < 0 || count > static_cast<int>(config.pages.size())) {
-    return reject(failure, ValidationError::invalid_slot, kName, "pages");
-  }
-  for (int index = 0; index < count; ++index) {
-    if (!parse_slot_page(cJSON_GetArrayItem(pages, index), config.pages[index],
-                         failure)) {
-      return false;
-    }
-  }
-  config.page_count = static_cast<std::uint8_t>(count);
-  return true;
+  return read_array(
+      object, "pages", config.pages, config.page_count, kName,
+      ValidationError::invalid_slot, failure,
+      [&](const cJSON* const page, SlotPageConfiguration& parsed) {
+        return parse_slot_page(page, parsed, failure);
+      },
+      "pages");
 }
 
 // The shape's own properties only. Its `widgets` are parsed by parse_widget,

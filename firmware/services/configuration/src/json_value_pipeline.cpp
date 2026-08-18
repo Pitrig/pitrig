@@ -20,25 +20,14 @@ namespace {
                  color_ramp_target_from_name, kName, failure)) {
     return false;
   }
-  const cJSON* const stops = member(ramp, "stops");
-  if (stops == nullptr) {
-    return true;
-  }
-  const int count = cJSON_IsArray(stops) ? cJSON_GetArraySize(stops) : -1;
-  if (count < 0 || count > static_cast<int>(config.color_ramp.stops.size())) {
-    return reject(failure, ValidationError::malformed, kName);
-  }
-  for (int index = 0; index < count; ++index) {
-    const cJSON* const stop = cJSON_GetArrayItem(stops, index);
-    ColorStop& parsed = config.color_ramp.stops[index];
-    if (!valid_object(stop, schema::kColorStopKeys, kName, failure) ||
-        !read_float(stop, "at", parsed.at, kName, failure) ||
-        !read_color(stop, "color", parsed.color, kName, failure)) {
-      return false;
-    }
-  }
-  config.color_ramp.stop_count = static_cast<std::uint8_t>(count);
-  return true;
+  return read_array(
+      ramp, "stops", config.color_ramp.stops, config.color_ramp.stop_count,
+      kName, ValidationError::malformed, failure,
+      [&](const cJSON* const stop, ColorStop& parsed) {
+        return valid_object(stop, schema::kColorStopKeys, kName, failure) &&
+               read_float(stop, "at", parsed.at, kName, failure) &&
+               read_color(stop, "color", parsed.color, kName, failure);
+      });
 }
 
 [[nodiscard]] bool parse_conditions(const cJSON* const object,
@@ -61,35 +50,25 @@ namespace {
     return false;
   }
 
-  const cJSON* const conditions = member(object, "conditions");
-  if (conditions == nullptr) {
-    return true;
-  }
-  const int count =
-      cJSON_IsArray(conditions) ? cJSON_GetArraySize(conditions) : -1;
-  if (count < 0 || count > static_cast<int>(config.conditions.size())) {
-    return reject(failure, ValidationError::malformed, kName);
-  }
-  for (int index = 0; index < count; ++index) {
-    const cJSON* const rule = cJSON_GetArrayItem(conditions, index);
-    WidgetCondition& parsed = config.conditions[index];
-    if (!valid_object(rule, schema::kWidgetConditionKeys, kName, failure) ||
-        !read_enum(rule, "op", parsed.op, condition_operator_from_name, kName,
-                   failure) ||
-        !read_float(rule, "value", parsed.value, kName, failure) ||
-        !read_color(rule, "color", parsed.color, kName, failure) ||
-        !read_color(rule, "background_color", parsed.background_color, kName,
-                    failure) ||
-        !read_color(rule, "border_color", parsed.border_color, kName,
-                    failure) ||
-        !read_boolean(rule, "hidden", parsed.hidden, kName, failure) ||
-        !read_integer(rule, "blink_ms", parsed.blink_ms, kName, failure) ||
-        !read_integer(rule, "hold_ms", parsed.hold_ms, kName, failure)) {
-      return false;
-    }
-  }
-  config.condition_count = static_cast<std::uint8_t>(count);
-  return true;
+  return read_array(
+      object, "conditions", config.conditions, config.condition_count, kName,
+      ValidationError::malformed, failure,
+      [&](const cJSON* const rule, WidgetCondition& parsed) {
+        return valid_object(rule, schema::kWidgetConditionKeys, kName,
+                            failure) &&
+               read_enum(rule, "op", parsed.op, condition_operator_from_name,
+                         kName, failure) &&
+               read_float(rule, "value", parsed.value, kName, failure) &&
+               read_color(rule, "color", parsed.color, kName, failure) &&
+               read_color(rule, "background_color", parsed.background_color,
+                          kName, failure) &&
+               read_color(rule, "border_color", parsed.border_color, kName,
+                          failure) &&
+               read_boolean(rule, "hidden", parsed.hidden, kName, failure) &&
+               read_integer(rule, "blink_ms", parsed.blink_ms, kName,
+                            failure) &&
+               read_integer(rule, "hold_ms", parsed.hold_ms, kName, failure);
+      });
 }
 
 }  // namespace
