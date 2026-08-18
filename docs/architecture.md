@@ -173,6 +173,15 @@ through explicit references. Concrete display and telemetry transport
 selection stays in platform composition. SimCore does not use a runtime
 Service Registry or service locator.
 
+What the core owns by value stops at types it can see without LVGL. The
+dashboard is the exception it makes: `dashboard_composition` declares
+`Dashboard` and keeps its storage — the widget pools, the LVGL object arrays,
+the controllers over them — in an internal header. The core holds no member for
+it and takes it from `dashboard_composition::instance()`. It is statically
+allocated exactly as everything else the root owns; it simply lives in the
+component that knows its type, so the core neither links against LVGL nor
+recompiles when a widget type changes.
+
 Responsibilities include:
 
 - startup

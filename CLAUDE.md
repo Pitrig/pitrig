@@ -116,7 +116,10 @@ components → interfaces ← drivers
 ```
 
 - `core/` — static composition root: startup, config load, bounded module lifecycle, event dispatch.
-  Contains no hardware-specific and no feature-specific code. `core/module_manager` holds
+  Contains no hardware-specific and no feature-specific code, and reaches no LVGL header: the
+  dashboard is opaque to it (`dashboard_composition::instance()`), so a widget type change does not
+  recompile it. `application.hpp` holds what it owns, `apply_configuration.cpp` the ADR 0016
+  replacement transaction, `simcore.cpp` the startup phases. `core/module_manager` holds
   compile-time descriptors (function pointers + explicit contexts); no allocation, no name lookup.
 - `interfaces/` — small contracts (`display`, `input`, `transport`) implemented by drivers. The
   `display` and `input` contracts live in one `interfaces` component; `transport` is its own.
