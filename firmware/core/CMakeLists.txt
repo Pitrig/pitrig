@@ -1,6 +1,8 @@
 idf_component_register(
   SRCS "src/simcore.cpp"
+       "src/apply_configuration.cpp"
   INCLUDE_DIRS "include"
+  PRIV_INCLUDE_DIRS "src"
   PRIV_REQUIRES board_registry communication configuration dashboard_composition
                 display event_bus external_memory
                 font_assets image_assets input logger nvs_config_storage

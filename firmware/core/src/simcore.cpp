@@ -27,6 +27,7 @@
 #include "telemetry_provider.hpp"
 #include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
+#include "application.hpp"
 #include "telemetry_transport_composition.hpp"
 #if SIMCORE_DEBUG
 #include "performance.hpp"
@@ -36,135 +37,6 @@ namespace simcore {
 namespace {
 
 constexpr char kTag[] = "simcore";
-
-struct PlatformAdapters {
-  configuration::NvsConfigurationStorage configuration_storage;
-  platform::PartitionStorage font_asset_storage{"font_assets",
-                                                font_assets::kStorageSize};
-  platform::PartitionStorage image_asset_storage{"image_assets",
-                                                 image_assets::kStorageSize};
-  transport::TelemetryComposition telemetry_transport;
-  platform::ExternalMemoryBuffer configuration_memory;
-  platform::ExternalMemoryBuffer font_memory;
-  platform::ExternalMemoryBuffer image_memory;
-};
-
-struct ApplicationServices {
-  configuration::ConfigurationService configuration;
-  font_assets::Service font_assets;
-  image_assets::Service image_assets;
-  events::EventBus event_bus;
-  telemetry::TelemetryRegistry telemetry_registry;
-  telemetry::TelemetryStateService telemetry_state{telemetry_registry};
-  telemetry::TelemetryProvider telemetry_provider{telemetry_state, event_bus};
-};
-
-struct Application {
-  PlatformAdapters platform;
-  ApplicationServices services;
-  module_composition::Modules modules;
-  communication::Composition communication{services.telemetry_registry};
-  dashboard_composition::Dashboard dashboard;
-  lv_display_t* display{};
-  // In priority order: the board's configured transport, then any development
-  // link attached behind it.
-  std::array<transport::ITransport*,
-             communication::Composition::kMaximumLinks>
-      telemetry_transports{};
-  std::size_t telemetry_link_count{};
-};
-
-// The overlay reads transport diagnostics from the board's own link.
-transport::ITransport& primary_transport(Application& application) {
-  return *application.telemetry_transports[0];
-}
-
-// Rebuilds module lifecycle and the dashboard from the active configuration.
-bool recompose(Application& application) {
-  const configuration::ApplicationConfiguration& configuration =
-      application.services.configuration.current();
-  // Widgets read module state, so the dashboard goes away before modules are
-  // restarted and is built again afterwards.
-  dashboard_composition::destroy(application.dashboard);
-  const bool modules_started = module_composition::start(
-      application.modules, application.services.event_bus,
-      application.services.telemetry_registry,
-      application.services.telemetry_state, configuration);
-  const bool dashboard_created = dashboard_composition::create(
-      application.display, configuration, application.modules,
-      application.dashboard, application.services.telemetry_registry,
-      application.services.telemetry_state, primary_transport(application));
-  return modules_started && dashboard_created;
-}
-
-// Applies a replacement to the running composition. Runs on the configuration
-// control task, which may take the LVGL lock.
-//
-// The order is the one ADR 0016 requires: stage into the inactive document,
-// establish that it can actually be composed, promote, then recompose. Font
-// availability is checked before anything is torn down, because font assets are
-// installed once per boot and a rejected replacement must leave the running
-// dashboard alone.
-configuration::ValidationFailure apply_configuration(
-    const std::span<const std::uint8_t> payload, void* const context) {
-  auto& application = *static_cast<Application*>(context);
-  configuration::ConfigurationService& service =
-      application.services.configuration;
-
-  const configuration::ValidationFailure staged = service.stage(payload);
-  if (!staged.ok()) {
-    return staged;
-  }
-  if (!dashboard_composition::fonts_available(service.staged(),
-                                              application.dashboard.fonts)) {
-    return {.error = configuration::ValidationError::invalid_widget,
-            .path = {'f', 'o', 'n', 't', '\0'}};
-  }
-  if (!dashboard_composition::images_available(service.staged(),
-                                               application.dashboard.images)) {
-    return {.error = configuration::ValidationError::invalid_widget,
-            .path = {'i', 'm', 'a', 'g', 'e', '\0'}};
-  }
-
-  // Anything outside the dashboard changes module lifecycle or transport, so
-  // only a dashboard-local difference can take the incremental path.
-  const configuration::ApplicationConfiguration& previous = service.current();
-  const configuration::ApplicationConfiguration& candidate = service.staged();
-  const bool dashboard_only =
-      previous.telemetry_transport_present ==
-          candidate.telemetry_transport_present &&
-      std::memcmp(&previous.telemetry_transport,
-                  &candidate.telemetry_transport,
-                  sizeof(previous.telemetry_transport)) == 0;
-
-  service.promote();
-  if (dashboard_only &&
-      dashboard_composition::apply_incremental(previous, candidate,
-                                               application.dashboard)) {
-    return {};
-  }
-  if (recompose(application)) {
-    return {};
-  }
-
-  // Composition failed on the new document. Put the previous one back and
-  // rebuild from it so the device is never left with a broken dashboard.
-  log::error(kTag, "Applying configuration failed; restoring the previous one");
-  service.revert();
-  (void)recompose(application);
-  return {.error = configuration::ValidationError::invalid_dashboard};
-}
-
-// The workspaces the configuration path needs, all carved from one external
-// memory reservation so ~8.5 KiB of bounded documents and line buffers stay off
-// the internal heap.
-struct ConfigurationBuffers {
-  std::span<std::uint8_t> record;
-  std::span<std::uint8_t> current_payload;
-  std::span<std::uint8_t> control_io;
-  std::span<std::uint8_t> control_line;
-  std::span<std::uint8_t> configuration;
-};
 
 ConfigurationBuffers reserve_configuration_memory(Application& application) {
   constexpr std::size_t kConfigurationMemorySize =
