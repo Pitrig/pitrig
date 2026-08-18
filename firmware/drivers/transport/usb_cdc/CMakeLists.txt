@@ -1,6 +1,6 @@
 idf_component_register(SRCS "src/usb_cdc_transport.cpp"
                        INCLUDE_DIRS "include"
-                       REQUIRES esp_tinyusb simcore_config transport
+                       REQUIRES esp_tinyusb simcore_config transport transport_common
                        PRIV_REQUIRES performance)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

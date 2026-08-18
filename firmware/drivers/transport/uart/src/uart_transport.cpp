@@ -38,12 +38,12 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   }
 
   if (configuration_.silence_esp_logs) {
-    previous_log_output_ = esp_log_set_vprintf(&discard_log_output);
+    log_silencer_.silence();
   }
 
   if (uart_is_driver_installed(configuration_.port)) {
     if (uart_driver_delete(configuration_.port) != ESP_OK) {
-      restore_log_output();
+      log_silencer_.restore();
       return false;
     }
   }
@@ -80,18 +80,14 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
       uart_driver_delete(configuration_.port);
     }
     event_queue_ = nullptr;
-    restore_log_output();
+    log_silencer_.restore();
     return false;
   }
 
+  instrumentation_.reset();
 #if SIMCORE_DEBUG
-  received_bytes_.store(0, std::memory_order_relaxed);
-  read_events_.store(0, std::memory_order_relaxed);
   fifo_overflows_.store(0, std::memory_order_relaxed);
   buffer_full_events_.store(0, std::memory_order_relaxed);
-  maximum_read_gap_ms_.store(0, std::memory_order_relaxed);
-  maximum_handler_time_us_.store(0, std::memory_order_relaxed);
-  last_read_at_us_ = 0;
 #endif
   handler_ = handler;
   handler_context_ = context;
@@ -105,7 +101,7 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
     event_queue_ = nullptr;
     handler_ = nullptr;
     handler_context_ = nullptr;
-    restore_log_output();
+    log_silencer_.restore();
     return false;
   }
 #if SIMCORE_DEBUG
@@ -132,7 +128,7 @@ void UartTransport::stop() {
   event_queue_ = nullptr;
   handler_ = nullptr;
   handler_context_ = nullptr;
-  restore_log_output();
+  log_silencer_.restore();
   ESP_LOGI(kTag, "UART telemetry transport stopped");
 }
 
@@ -146,12 +142,6 @@ bool UartTransport::write(const std::span<const std::uint8_t> data) {
 
 void UartTransport::task_entry(void* const context) {
   static_cast<UartTransport*>(context)->process();
-}
-
-int UartTransport::discard_log_output(const char* const format, va_list args) {
-  (void)format;
-  (void)args;
-  return 0;
 }
 
 void UartTransport::process() {
@@ -193,66 +183,35 @@ void UartTransport::process() {
         break;
       }
 
-#if SIMCORE_DEBUG
-      const std::int64_t read_at_us = esp_timer_get_time();
-      if (last_read_at_us_ != 0) {
-        performance::record_maximum(
-            maximum_read_gap_ms_,
-            static_cast<std::uint32_t>((read_at_us - last_read_at_us_) / 1'000));
-      }
-      last_read_at_us_ = read_at_us;
-      received_bytes_.fetch_add(static_cast<std::uint64_t>(received),
-                                std::memory_order_relaxed);
-      read_events_.fetch_add(1, std::memory_order_relaxed);
-#endif
+      instrumentation_.record_read(static_cast<std::size_t>(received));
 
       if (handler_ != nullptr) {
-#if SIMCORE_DEBUG
-        const std::int64_t handler_started_at_us = esp_timer_get_time();
-#endif
+        const std::int64_t handler_started_at_us =
+            ReadInstrumentation::handler_started();
         handler_(std::span<const std::uint8_t>(
                      data.data(), static_cast<std::size_t>(received)),
                  handler_context_);
-#if SIMCORE_DEBUG
-        performance::record_maximum(
-            maximum_handler_time_us_,
-            static_cast<std::uint32_t>(esp_timer_get_time() -
-                                       handler_started_at_us));
-#endif
+        instrumentation_.record_handler(handler_started_at_us);
       }
     }
   }
 }
 
 Diagnostics UartTransport::diagnostics() const {
+  Diagnostics diagnostics{};
+  instrumentation_.fill(diagnostics);
 #if SIMCORE_DEBUG
   std::size_t buffered_bytes = 0;
   if (started_) {
     ESP_ERROR_CHECK_WITHOUT_ABORT(
         uart_get_buffered_data_len(configuration_.port, &buffered_bytes));
   }
-  return {
-      .received_bytes = received_bytes_.load(std::memory_order_relaxed),
-      .read_events = read_events_.load(std::memory_order_relaxed),
-      .fifo_overflows = fifo_overflows_.load(std::memory_order_relaxed),
-      .buffer_full_events =
-          buffer_full_events_.load(std::memory_order_relaxed),
-      .buffered_bytes = static_cast<std::uint32_t>(buffered_bytes),
-      .maximum_read_gap_ms =
-          maximum_read_gap_ms_.load(std::memory_order_relaxed),
-      .maximum_handler_time_us =
-          maximum_handler_time_us_.load(std::memory_order_relaxed),
-  };
-#else
-  return {};
+  diagnostics.fifo_overflows = fifo_overflows_.load(std::memory_order_relaxed);
+  diagnostics.buffer_full_events =
+      buffer_full_events_.load(std::memory_order_relaxed);
+  diagnostics.buffered_bytes = static_cast<std::uint32_t>(buffered_bytes);
 #endif
-}
-
-void UartTransport::restore_log_output() {
-  if (previous_log_output_ != nullptr) {
-    esp_log_set_vprintf(previous_log_output_);
-    previous_log_output_ = nullptr;
-  }
+  return diagnostics;
 }
 
 }  // namespace simcore::transport

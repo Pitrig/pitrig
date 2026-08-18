@@ -5,12 +5,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "esp_log_write.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
-#include "simcore_features.hpp"
 #include "transport.hpp"
+#include "transport_instrumentation.hpp"
 
 namespace simcore::transport {
 
@@ -54,10 +53,8 @@ class UsbSerialJtagTransport final : public ITransport {
   static constexpr TickType_t kReadTimeout = pdMS_TO_TICKS(100);
 
   static void task_entry(void* context);
-  static int discard_log_output(const char* format, va_list args);
 
   void process();
-  void restore_log_output();
 
   UsbSerialJtagConfiguration configuration_;
   DataHandler handler_{};
@@ -70,15 +67,11 @@ class UsbSerialJtagTransport final : public ITransport {
   // being deleted out from under a pending reader.
   SemaphoreHandle_t stopped_{};
   StaticSemaphore_t stopped_state_{};
-  vprintf_like_t previous_log_output_{};
+  LogSilencer log_silencer_{};
   std::atomic<bool> running_{false};
-#if SIMCORE_DEBUG
-  std::atomic<std::uint64_t> received_bytes_{};
-  std::atomic<std::uint64_t> read_events_{};
-  std::atomic<std::uint32_t> maximum_read_gap_ms_{};
-  std::atomic<std::uint32_t> maximum_handler_time_us_{};
-  std::int64_t last_read_at_us_{};
-#endif
+  // This port has no FIFO or queue of its own to report on, so the four counters
+  // every link shares are all it has.
+  ReadInstrumentation instrumentation_{};
   bool started_{};
 };
 

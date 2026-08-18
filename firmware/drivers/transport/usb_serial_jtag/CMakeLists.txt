@@ -10,7 +10,7 @@ endif()
 idf_component_register(SRCS ${second_link_sources}
                        INCLUDE_DIRS "include"
                        REQUIRES esp_driver_usb_serial_jtag simcore_config
-                                transport
+                                transport transport_common
                        PRIV_REQUIRES performance)
 
 if(second_link_sources)
