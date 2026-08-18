@@ -799,6 +799,18 @@ ValidationFailure validate_configuration(
   // of its own, so it is the product that has to stay inside a std::uint8_t.
   static_assert(kMaximumSlotWidgets * kMaximumSlotPages <= 255);
 
+  // Three prose promises the schema makes, turned into build errors. Each was
+  // asserted in two or three documents and enforced nowhere, and the first is
+  // the one that had already gone wrong: dashboard-editor-parity.md claimed a
+  // shape cap of 24 against a real 32 and omitted slots, so the sum it stated
+  // did not hold.
+  static_assert(kMaximumWidgetsPerScreen ==
+                kMaximumTextWidgets + kMaximumShapeWidgets +
+                    kMaximumSlotWidgets + kMaximumBarWidgets +
+                    kMaximumArcWidgets + kMaximumIndicatorWidgets +
+                    kMaximumGraphWidgets + kMaximumImageWidgets);
+  static_assert(kImageIdCapacity == image_assets::kImageIdCapacity);
+
   Validator validator(profile, failure);
   std::size_t lap_timer_modifier_count{};
   std::size_t referenced_widgets{};

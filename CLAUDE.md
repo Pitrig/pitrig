@@ -123,27 +123,32 @@ components → interfaces ← drivers
 - `components/` — reusable hardware capabilities (`display`, `input`, `simcore_config`); depend on
   interfaces, never on concrete drivers.
 - `drivers/` — board/hardware implementations (`t_display_s3`, `guition_esp32_4848s040`,
-  `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`). No application
-  logic. A board with no digitizer leaves `BoardDefinition::input` null.
+  `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`,
+  `transport/usb_serial_jtag`). No application logic. A board with no digitizer leaves `BoardDefinition::input` null.
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
-- `services/` — shared infrastructure (`asset_control`, `asset_storage`, `binary_session`,
-  `configuration`, `configuration_contract`, `configuration_control`, `event_bus`, `font_assets`,
-  `font_asset_control`, `font_contract`, `image_assets`, `image_asset_control`, `image_contract`,
-  `logger`, `performance`, `telemetry` + `telemetry/protocols/simhub`). `asset_control` is the
-  `SCF1` upload engine; `font_asset_control` and `image_asset_control` are thin per-kind
-  wrappers over it that supply the protocol tag and the body of the `INFO` reply.
+- `services/` — shared infrastructure (`asset_control`, `asset_package`, `asset_storage`,
+  `binary_session`, `configuration`, `configuration_contract`, `configuration_control`,
+  `event_bus`, `font_assets`, `font_asset_control`, `font_contract`, `image_assets`,
+  `image_asset_control`, `image_contract`, `logger`, `performance`, `telemetry` +
+  `telemetry/protocols/simhub`). `asset_control` is the `SCF1` upload engine;
+  `font_asset_control` and `image_asset_control` are thin per-kind wrappers over it that supply
+  the protocol tag and the body of the `INFO` reply. `asset_package` holds what the two package
+  formats share — the 32-byte header, its validation, and the update status and error types —
+  while each kind keeps its own magic, manifest entry decoder and catalog.
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
-  `dashboard` (LVGL widgets, plus `navigation` for screen swiping and `slots` for container
-  switching), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
+  `dashboard` (LVGL `widgets` over a shared `frame`, plus `conditions`, `fonts`, `images`,
+  `layout`, `navigation` for screen swiping, `slots` for container switching, and `utilities`),
+  `dashboard_composition`, `module_composition`, `nvs_config_storage`,
   `partition_asset_storage`, `telemetry_transport`, `external_memory`.
 - `utils/` — dependency-free helpers (`binary`, `transformers/number_transform`,
   `transformers/text_writer`, `transformers/time_transform`).
 
-Every layer directory listed above is a separate ESP-IDF component registered in
-`EXTRA_COMPONENT_DIRS` in [firmware/CMakeLists.txt](firmware/CMakeLists.txt) — **adding a new
-component/module/driver requires adding its path there** (and the P4-vs-S3 branch for board drivers).
-Public headers live in `include/`, sources in `src/`.
+Every layer directory listed above is a separate ESP-IDF component. All of them except
+`components/` are registered in `EXTRA_COMPONENT_DIRS` in
+[firmware/CMakeLists.txt](firmware/CMakeLists.txt) — **adding a new service/module/driver requires
+adding its path there** (and the P4-vs-S3 branch for board drivers). `components/` is ESP-IDF's own
+default search path and needs no entry. Public headers live in `include/`, sources in `src/`.
 
 Extension order: add a module first, reuse existing components/services, add a component only for a
 new hardware capability, add a driver only for new hardware. The core should rarely change.
@@ -233,9 +238,9 @@ reboot.
 ### Configurator (`configurator/src/`)
 
 Standard electron-vite three-way split: `main/` (Node — serial via `serialport`, device service,
-protocol, font upload, config files, SimHub profile export), `preload/`, `renderer/src/` (React +
-Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `font-assets`, `simhub`,
-`development`). `shared/` holds types crossing the boundary; all IPC channels and the `SimCoreApi`
+protocol, font and image upload over one shared `assets/` engine, config files, SimHub profile
+export), `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
+`configuration`, `device`, `font-assets`, `image-assets`, `simhub`, `development`). `shared/` holds types crossing the boundary; all IPC channels and the `SimCoreApi`
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 
@@ -250,8 +255,12 @@ directory. `preview/` draws the canvas: `PreviewCanvas` and its chrome, the pure
 shell dispatches by widget type into `widget-editors`, over shared `section-editors`,
 `styling-editors` and form primitives in `fields.tsx`. `editor/` is the document layer — view
 state in `store.ts`, access and mutation in `document.ts`, and one module per family of commands
-(`widgets`, `screens`, `arrange`, `clipboard`, `naming`). `dashboard-editor.ts` re-exports
-`editor/` as one surface, so panels keep a single import.
+(`widgets`, `screens`, `arrange`, `slots`, `clipboard`, `naming`, `palette`).
+`dashboard-editor.ts` re-exports `editor/` as one surface, so panels keep a single import.
+
+Not everything has landed in that split yet: `ConfigurationPanel.tsx`, `DisplayPreview.tsx`,
+`LayersPanel.tsx`, `WidgetInspector.tsx`, `use-editor-shortcuts.ts`, `preview-assets.ts` and
+`text-metrics.ts` still sit at the feature root.
 
 ## Conventions
 
