@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { childArraysOf, pagesOf, screensOf, stackOrder, widgetsOf, type WidgetParent } from '@shared/configuration-access'
+import { childArraysOf, pagesOf, screensOf, widgetsOf } from '@shared/configuration-access'
 import { type DeviceConfiguration, type DisplayDescriptor } from '@shared/device'
 import { LAP_SECONDS } from '@shared/mock-telemetry'
 import { clamp, clampToDisplay } from '../editor/placement'
+import { GridOverlay, GuideOverlay, HitArea, SelectionFrame } from './CanvasOverlays'
+import { flattenScreen } from './preview-layers'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOffset, useDashboardEditorStore } from '../dashboard-editor'
-import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, type ResizeMode, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
+import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
 import { createPreviewValues } from './preview-values'
@@ -57,36 +59,7 @@ export function Widgets({
   const values = createPreviewValues(configuration, playback, clockMs)
   const screen = screensOf(configuration)[activeScreenIndex]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
-  // The canvas works entirely in display coordinates. Geometry inside a
-  // container is relative to that container's box, so it is translated here on
-  // the way out and translated back before anything is written to the document.
-  //
-  // Same rule the firmware applies: z_index ascending, authored array order
-  // breaking ties, one parent at a time. A container is one entry among its own
-  // siblings and orders its children within itself, so emitting each container
-  // immediately followed by its children reproduces LVGL's draw order at any
-  // depth — a parent, then what is inside it, then the parent's later siblings.
-  const emit = (parent: WidgetParent, offsetX: number, offsetY: number): PreviewLayer[] =>
-    stackOrder(widgetsOf(parent)).flatMap(({ widget, index }) => {
-      const layer: PreviewLayer = {
-        configuration: widget,
-        zIndex: widget.z_index ?? 0,
-        configurationOrder: index,
-        offsetX,
-        offsetY
-      }
-      const box = completePlacement(widget.placement)
-      const inside = (owner: WidgetParent): PreviewLayer[] =>
-        emit(owner, offsetX + (box?.x ?? 0), offsetY + (box?.y ?? 0))
-      if (widget.type === 'shape') return [layer, ...inside(widget)]
-      if (widget.type !== 'slot') return [layer]
-      // The board shows one page of a slot; the canvas has to author all of
-      // them, so it draws the one the tabs are looking at and leaves the rest
-      // out rather than stacking a slot's pages on top of each other.
-      const page = pagesOf(widget)[visibleSlotPage(widget, slotPage)]
-      return page ? [layer, ...inside(page)] : [layer]
-    })
-  const layers: PreviewLayer[] = screen ? emit(screen, 0, 0) : []
+  const layers: PreviewLayer[] = flattenScreen(screen, slotPage)
   // What the canvas is actually showing, which is what a marquee may catch and
   // what a drag may snap to: a widget on a page nobody is looking at is not on
   // screen, so treating it as a target would select and align the invisible.
@@ -537,50 +510,4 @@ export function Widgets({
       ) : null}
     </svg>
   )
-}
-
-function GridOverlay({ display, size, zoom }: { display: DisplayDescriptor; size: number; zoom: number }): React.JSX.Element | null {
-  if (size <= 0) return null
-  // A grid finer than a couple of screen pixels reads as a wash rather than as
-  // a grid, so it is left out until the canvas is magnified enough to show it.
-  const step = size * zoom >= 4 ? size : size * Math.ceil(4 / (size * zoom))
-  const lines: React.JSX.Element[] = []
-  for (let x = step; x < display.width; x += step) {
-    lines.push(<line key={`x${x}`} x1={x} y1={0} x2={x} y2={display.height} stroke="#94A3B8" strokeOpacity={0.18} strokeWidth={1 / zoom} />)
-  }
-  for (let y = step; y < display.height; y += step) {
-    lines.push(<line key={`y${y}`} x1={0} y1={y} x2={display.width} y2={y} stroke="#94A3B8" strokeOpacity={0.18} strokeWidth={1 / zoom} />)
-  }
-  return <g pointerEvents="none">{lines}</g>
-}
-
-function GuideOverlay({ guides, display, zoom }: { guides: Guides; display: DisplayDescriptor; zoom: number }): React.JSX.Element {
-  return (
-    <g pointerEvents="none">
-      {guides.x.map((x) => (
-        <line key={`gx${x}`} x1={x} y1={0} x2={x} y2={display.height} stroke="#F472B6" strokeWidth={1 / zoom} />
-      ))}
-      {guides.y.map((y) => (
-        <line key={`gy${y}`} x1={0} y1={y} x2={display.width} y2={y} stroke="#F472B6" strokeWidth={1 / zoom} />
-      ))}
-    </g>
-  )
-}
-
-
-function HitArea({ placement }: { placement?: Placement }): React.JSX.Element | null {
-  return placement ? <rect {...placement} fill="transparent" className="cursor-move" /> : null
-}
-
-function SelectionFrame({ placement, zoom, onResize }: { placement: Placement; zoom: number; onResize: (event: React.PointerEvent<SVGCircleElement>, mode: ResizeMode) => void }): React.JSX.Element {
-  const points: Array<[ResizeMode, number, number]> = [
-    ['nw', placement.x, placement.y], ['n', placement.x + placement.width / 2, placement.y],
-    ['ne', placement.x + placement.width, placement.y], ['e', placement.x + placement.width, placement.y + placement.height / 2],
-    ['se', placement.x + placement.width, placement.y + placement.height], ['s', placement.x + placement.width / 2, placement.y + placement.height],
-    ['sw', placement.x, placement.y + placement.height], ['w', placement.x, placement.y + placement.height / 2]
-  ]
-  return <g aria-label="Selected widget bounds">
-    <rect {...placement} fill="none" stroke="#38BDF8" strokeWidth={2 / zoom} strokeDasharray={`${5 / zoom} ${3 / zoom}`} pointerEvents="none" />
-    {points.map(([mode, cx, cy]) => <circle key={mode} cx={cx} cy={cy} r={5 / zoom} fill="#0EA5E9" stroke="#E0F2FE" strokeWidth={1.5 / zoom} className="cursor-pointer" onPointerDown={(event) => onResize(event, mode)} />)}
-  </g>
 }
