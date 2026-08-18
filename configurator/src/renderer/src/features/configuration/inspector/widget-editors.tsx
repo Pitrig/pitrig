@@ -1,3 +1,4 @@
+import { ConditionsEditor } from './ConditionsEditor'
 import { SlotPagesEditor } from './SlotPagesEditor'
 import { pagesOf } from '@shared/configuration-access'
 import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
@@ -7,7 +8,7 @@ import { type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
 import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
 import { CheckboxField, ColorField, FontEditor, Hint, NumberField, OptionalColorField, Section, SelectField, TextField } from './fields'
 import { ContainerEditor, SourceRangeSection } from './section-editors'
-import { BoxEditor, ConditionsEditor, TitleEditor } from './styling-editors'
+import { BoxEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
 
 export function ArcEditor({ selection, widget }: { selection: WidgetSelection; widget: ArcWidgetConfiguration }): React.JSX.Element {
