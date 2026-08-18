@@ -16,6 +16,7 @@
 #include "simcore_features.hpp"
 #include "telemetry_events.hpp"
 #include "telemetry_registry.hpp"
+#include "dashboard_state.hpp"
 #include "dashboard_storages.hpp"
 #include "widget_type_ops.hpp"
 #include "esp_lvgl_port.h"
@@ -147,6 +148,13 @@ void on_telemetry_updated(const events::Event&, void* const context) {
 
 // Whether this widget's caption mask takes its colour from one of the screens
 }  // namespace
+
+Dashboard& instance() {
+  // One display, one dashboard. Firmware-lifetime, like everything the
+  // composition root owns; it lives here so its type need not be public.
+  static Dashboard dashboard;
+  return dashboard;
+}
 
 bool show_startup_screen(
     lv_display_t* const display,

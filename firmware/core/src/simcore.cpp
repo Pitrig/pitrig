@@ -122,7 +122,7 @@ void load_uploaded_assets(Application& application) {
     if (!application.platform.font_memory.initialize(face_bytes)) {
       log::error(kTag, "Font faces do not fit in external memory");
     } else if (!dashboard_composition::load_fonts(
-                   application.dashboard, application.services.font_assets,
+                   dashboard_composition::instance(), application.services.font_assets,
                    application.platform.font_memory.bytes())) {
       log::error(kTag, "Font faces could not be loaded");
     }
@@ -133,7 +133,7 @@ void load_uploaded_assets(Application& application) {
     if (!application.platform.image_memory.initialize(image_bytes)) {
       log::error(kTag, "Images do not fit in external memory");
     } else if (!dashboard_composition::load_images(
-                   application.dashboard, application.services.image_assets,
+                   dashboard_composition::instance(), application.services.image_assets,
                    application.platform.image_memory.bytes())) {
       log::error(kTag, "Images could not be loaded");
     }
@@ -151,13 +151,13 @@ void compose(Application& application,
   }
   if (!dashboard_composition::create(
           application.display, configuration, application.modules,
-          application.dashboard, application.services.telemetry_registry,
+          dashboard_composition::instance(), application.services.telemetry_registry,
           application.services.telemetry_state,
           primary_transport(application))) {
     log::error(kTag, "Dashboard composition is incomplete");
   }
   if (!dashboard_composition::start_render_trigger(
-          application.dashboard, application.services.event_bus)) {
+          dashboard_composition::instance(), application.services.event_bus)) {
     log::error(kTag,
                "Render trigger is unavailable; widgets fall back to "
                "periodic polling");

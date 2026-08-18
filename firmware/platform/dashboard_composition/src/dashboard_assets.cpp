@@ -5,6 +5,7 @@
 
 #include "application_configuration.hpp"
 #include "dashboard_composition.hpp"
+#include "dashboard_state.hpp"
 #include "font_asset_service.hpp"
 #include "image_asset_service.hpp"
 #include "logger.hpp"
@@ -114,19 +115,19 @@ bool prepare_fonts(
 
 bool fonts_available(
     const configuration::ApplicationConfiguration& configuration,
-    const dashboard::fonts::Registry& fonts) {
+    const Dashboard& state) {
   // The pool is what gets composed, so checking it directly covers every screen
   // and cannot check the same widget twice.
-  return families_installed(configuration.dashboard, fonts);
+  return families_installed(configuration.dashboard, state.fonts);
 }
 
 bool images_available(
     const configuration::ApplicationConfiguration& configuration,
-    const dashboard::images::Registry& images) {
+    const Dashboard& state) {
   const configuration::DashboardConfiguration& dashboard =
       configuration.dashboard;
   for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
-    if (!images.has_image(dashboard.image_widgets[index].image)) {
+    if (!state.images.has_image(dashboard.image_widgets[index].image)) {
       return false;
     }
   }

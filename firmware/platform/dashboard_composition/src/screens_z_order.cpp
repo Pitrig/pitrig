@@ -1,4 +1,5 @@
 #include "dashboard_screens.hpp"
+#include "dashboard_state.hpp"
 
 #include <algorithm>
 #include <array>

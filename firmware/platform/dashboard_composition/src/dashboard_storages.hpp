@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "dashboard_composition.hpp"
+#include "dashboard_state.hpp"
 
 namespace simcore::dashboard_composition {
 

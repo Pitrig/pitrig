@@ -53,14 +53,14 @@ bool recompose(Application& application) {
       application.services.configuration.current();
   // Widgets read module state, so the dashboard goes away before modules are
   // restarted and is built again afterwards.
-  dashboard_composition::destroy(application.dashboard);
+  dashboard_composition::destroy(dashboard_composition::instance());
   const bool modules_started = module_composition::start(
       application.modules, application.services.event_bus,
       application.services.telemetry_registry,
       application.services.telemetry_state, configuration);
   const bool dashboard_created = dashboard_composition::create(
       application.display, configuration, application.modules,
-      application.dashboard, application.services.telemetry_registry,
+      dashboard_composition::instance(), application.services.telemetry_registry,
       application.services.telemetry_state, primary_transport(application));
   return modules_started && dashboard_created;
 }
@@ -84,12 +84,12 @@ configuration::ValidationFailure apply_configuration(
     return staged;
   }
   if (!dashboard_composition::fonts_available(service.staged(),
-                                              application.dashboard.fonts)) {
+                                              dashboard_composition::instance())) {
     return {.error = configuration::ValidationError::invalid_widget,
             .path = {'f', 'o', 'n', 't', '\0'}};
   }
   if (!dashboard_composition::images_available(service.staged(),
-                                               application.dashboard.images)) {
+                                               dashboard_composition::instance())) {
     return {.error = configuration::ValidationError::invalid_widget,
             .path = {'i', 'm', 'a', 'g', 'e', '\0'}};
   }
@@ -108,7 +108,7 @@ configuration::ValidationFailure apply_configuration(
   service.promote();
   if (dashboard_only &&
       dashboard_composition::apply_incremental(previous, candidate,
-                                               application.dashboard)) {
+                                               dashboard_composition::instance())) {
     return {};
   }
   if (recompose(application)) {

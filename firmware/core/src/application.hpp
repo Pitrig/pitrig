@@ -6,7 +6,6 @@
 
 #include "communication_composition.hpp"
 #include "configuration_service.hpp"
-#include "dashboard_composition.hpp"
 #include "event_bus.hpp"
 #include "external_memory_buffer.hpp"
 #include "font_asset_service.hpp"
@@ -53,7 +52,6 @@ struct Application {
   ApplicationServices services;
   module_composition::Modules modules;
   communication::Composition communication{services.telemetry_registry};
-  dashboard_composition::Dashboard dashboard;
   lv_display_t* display{};
   // In priority order: the board's configured transport, then any development
   // link attached behind it.

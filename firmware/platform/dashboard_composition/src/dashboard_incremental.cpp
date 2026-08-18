@@ -10,6 +10,7 @@
 #include "dashboard_assets.hpp"
 #include "dashboard_layout.hpp"
 #include "dashboard_screens.hpp"
+#include "dashboard_state.hpp"
 #include "display.hpp"
 #include "logger.hpp"
 #include "module_composition.hpp"
