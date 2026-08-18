@@ -26,14 +26,9 @@ import type {
   SlotWidgetConfiguration,
   WidgetAction
 } from './configuration-schema'
-import {
-  allWidgetsOf,
-  isTextWidget,
-  pagesOf,
-  widgetsOf,
-  type WidgetParent
-} from './configuration-access'
+import { pagesOf, widgetsOf, type WidgetParent } from './configuration-access'
 import { BOARD_PROFILES, type SimCoreBoardId } from './device'
+import { documentFonts } from './document-fonts'
 import { FONT_FAMILY_PATTERN, MAXIMUM_FONT_FAMILIES, MAXIMUM_FONT_SIZE_PX } from './font-assets'
 import { MAXIMUM_HOLD_MS } from './widget-conditions'
 
@@ -378,13 +373,10 @@ function findActionError(
 }
 
 function findFontError(configuration: ApplicationConfiguration): string | undefined {
-  const fonts: Array<{ family?: string; size_px?: number } | undefined> = []
-  for (const widget of allWidgetsOf(configuration)) {
-    // Only the types that draw text need a font; a shape needs none.
-    if (!isTextWidget(widget)) continue
-    if (widget.title?.text) fonts.push(widget.title.font)
-    fonts.push(widget.value?.font)
-  }
+  // Captions count too, on every widget type — see documentFonts. Counting only
+  // text widgets here used to under-report the family budget and let a captioned
+  // gauge through to a board that rejects it.
+  const fonts = documentFonts(configuration)
   for (const font of fonts) {
     if (
       !font ||

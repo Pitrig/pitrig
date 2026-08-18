@@ -1,6 +1,7 @@
 import { allWidgetsOf, createWidgetId, pagesOf } from '../../../../../shared/configuration-access'
 import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_SLOT_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '../../../../../shared/configuration-schema'
 import { type DeviceConfiguration } from '../../../../../shared/device'
+import { documentFonts } from '../../../../../shared/document-fonts'
 import { DEFAULT_FONT_FAMILY } from '../../../../../shared/font-assets'
 import { absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOf, widgetArrayOf } from './document'
 import { ensureScreen } from './screens'
@@ -127,12 +128,7 @@ function commonest<T>(values: readonly T[]): T | undefined {
 }
 
 function draftFonts(configuration: DeviceConfiguration | undefined): FontSpec[] {
-  const fonts: FontSpec[] = []
-  for (const widget of allWidgetsOf(configuration)) {
-    if (widget.title?.text && widget.title.font) fonts.push(widget.title.font)
-    if ('value' in widget && widget.value?.font) fonts.push(widget.value.font)
-  }
-  return fonts
+  return documentFonts(configuration).filter((font): font is FontSpec => font !== undefined)
 }
 
 /**
