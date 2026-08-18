@@ -57,14 +57,21 @@ bool has_lap_timer_modifier(
     const configuration::ApplicationConfiguration& configuration) {
   const auto& dashboard = configuration.dashboard;
 
-  const auto conditioned = [](const auto& widgets, const std::size_t count) {
-    for (std::size_t index = 0; index < count; ++index) {
-      if (uses_lap_timer(widgets[index].frame.condition_source)) {
+  // Every type carries a frame, and the traits table reaches all eight pools
+  // without naming one — which is what keeps a new widget type from silently
+  // leaving the module unstarted, the way an earlier hand-written sweep did.
+  for (const configuration::WidgetTypeTraits& traits :
+       configuration::kWidgetTypeTraits) {
+    const std::uint8_t count = traits.count(dashboard);
+    for (std::uint8_t index = 0; index < count; ++index) {
+      const configuration::WidgetFrame* const frame =
+          traits.frame(dashboard, index);
+      if (frame != nullptr && uses_lap_timer(frame->condition_source)) {
         return true;
       }
     }
-    return false;
-  };
+  }
+
   const auto mapped = [](const auto& widgets, const std::size_t count) {
     for (std::size_t index = 0; index < count; ++index) {
       if (uses_lap_timer(widgets[index].source)) {
@@ -86,17 +93,6 @@ bool has_lap_timer_modifier(
       mapped(dashboard.arc_widgets, dashboard.arc_widget_count) ||
       mapped(dashboard.indicator_widgets, dashboard.indicator_widget_count) ||
       mapped(dashboard.graph_widgets, dashboard.graph_widget_count)) {
-    return true;
-  }
-  if (conditioned(dashboard.text_widgets, dashboard.text_widget_count) ||
-      conditioned(dashboard.shape_widgets, dashboard.shape_widget_count) ||
-      conditioned(dashboard.bar_widgets, dashboard.bar_widget_count) ||
-      conditioned(dashboard.arc_widgets, dashboard.arc_widget_count) ||
-      conditioned(dashboard.indicator_widgets,
-                  dashboard.indicator_widget_count) ||
-      conditioned(dashboard.graph_widgets, dashboard.graph_widget_count) ||
-      conditioned(dashboard.image_widgets, dashboard.image_widget_count) ||
-      conditioned(dashboard.slot_widgets, dashboard.slot_widget_count)) {
     return true;
   }
   // A slot page watches its own source, separate from the styling rules the
