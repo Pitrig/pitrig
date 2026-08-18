@@ -16,6 +16,7 @@
 #include "simcore_features.hpp"
 #include "telemetry_events.hpp"
 #include "telemetry_registry.hpp"
+#include "dashboard_storages.hpp"
 #include "widget_type_ops.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
@@ -56,14 +57,6 @@ void on_telemetry_updated(const events::Event&, void* const context) {
   static_cast<Dashboard*>(context)->render_trigger.request();
 }
 
-// Every type's storage, in the order the descriptors are registered. Anything
-// that treats the storage uniformly — wiring a document in, repointing it after
-// a promotion — walks this rather than naming the eight members.
-std::array<WidgetStorage*, 8> storages(Dashboard& dashboard) {
-  return {&dashboard.slot,  &dashboard.shape,     &dashboard.text,
-          &dashboard.bar,   &dashboard.arc,       &dashboard.indicator,
-          &dashboard.graph, &dashboard.image};
-}
 
 // Assembles the descriptor table. Widget presence in the configuration decides
 // which descriptors run; the manager itself knows nothing about either widget
@@ -153,19 +146,6 @@ std::array<WidgetStorage*, 8> storages(Dashboard& dashboard) {
 }
 
 // Whether this widget's caption mask takes its colour from one of the screens
-// in `recoloured`, and so has to be rebuilt for that colour to reach it. The
-// rule for which masks read the parent belongs to the frame that builds them.
-[[nodiscard]] bool caption_masks_screen(
-    const configuration::WidgetFrame* const frame,
-    const std::uint32_t recoloured) {
-  if (frame == nullptr || frame->title.text.front() == '\0' ||
-      frame->border.width_px == 0 ||
-      !dashboard::frame::caption_mask_reads_parent(*frame)) {
-    return false;
-  }
-  return (recoloured & (1U << frame->screen_index)) != 0;
-}
-
 }  // namespace
 
 bool show_startup_screen(
@@ -261,128 +241,6 @@ bool create(lv_display_t* const display,
 #endif
   return initialized;
 }
-
-bool apply_incremental(
-    const configuration::ApplicationConfiguration& previous,
-    const configuration::ApplicationConfiguration& next, Dashboard& dashboard) {
-  const configuration::DashboardConfiguration& before = previous.dashboard;
-  const configuration::DashboardConfiguration& after = next.dashboard;
-
-  // A different widget set, order, or storage layout is structural: a screen's
-  // reference table carries type, storage index, and the z_index ordering key,
-  // so equal tables mean compositing cannot have changed either.
-  if (before.screen_count != after.screen_count) {
-    return false;
-  }
-  for (const configuration::WidgetTypeTraits& traits :
-       configuration::kWidgetTypeTraits) {
-    if (traits.count(before) != traits.count(after)) {
-      return false;
-    }
-  }
-  for (std::size_t index = 0; index < after.screen_count; ++index) {
-    const configuration::ScreenConfiguration& before_screen =
-        before.screens[index];
-    const configuration::ScreenConfiguration& after_screen =
-        after.screens[index];
-    if (before_screen.widget_count != after_screen.widget_count ||
-        std::memcmp(before_screen.widgets.data(), after_screen.widgets.data(),
-                    after_screen.widget_count *
-                        sizeof(configuration::WidgetReference)) != 0) {
-      return false;
-    }
-  }
-
-  // Every tap target is unbound now, while the objects it was bound to still
-  // exist; the rebuild below replaces some of them, and the pass at the end
-  // binds onto whatever the document has after that.
-  if (!lvgl_port_lock(0)) {
-    return false;
-  }
-  dashboard.navigation.clear_actions();
-  lvgl_port_unlock();
-
-  // Widget contexts point into the document that was active when they were
-  // built. Promotion swapped that out, so repoint them before rebuilding.
-  for (WidgetStorage* const storage : storages(dashboard)) {
-    storage->dashboard = &after;
-  }
-
-  // One bit per screen, and a document holds at most kMaximumScreens of them.
-  std::uint32_t recoloured_screens = 0;
-  static_assert(configuration::kMaximumScreens <= 32,
-                "The recoloured-screen set is one bit per screen");
-  for (std::size_t index = 0; index < after.screen_count; ++index) {
-    if (before.screens[index].background_color ==
-        after.screens[index].background_color) {
-      continue;
-    }
-    if (!lvgl_port_lock(0)) {
-      return false;
-    }
-    lv_obj_set_style_bg_color(
-        dashboard.screens[index],
-        lv_color_hex(after.screens[index].background_color), LV_PART_MAIN);
-    lvgl_port_unlock();
-    recoloured_screens |= 1U << index;
-  }
-
-  // Walking the pool rather than the reference tables compares each widget
-  // once, whatever screen it belongs to, and cannot pair an index with the
-  // wrong type's storage. Widget configurations are trivially copyable
-  // aggregates, so a byte compare is an exact change test: padding can only
-  // produce a false "changed", costing one extra rebuild, never a false
-  // "unchanged".
-  for (const configuration::WidgetTypeTraits& traits :
-       configuration::kWidgetTypeTraits) {
-    const std::uint8_t count = traits.count(after);
-    for (std::uint8_t index = 0; index < count; ++index) {
-      const std::span<const std::byte> left = traits.element_bytes(before, index);
-      const std::span<const std::byte> right = traits.element_bytes(after, index);
-      const bool changed =
-          left.size() != right.size() ||
-          std::memcmp(left.data(), right.data(), left.size()) != 0;
-      // A caption mask resolves the colour behind the widget when the widget is
-      // built, so a screen that changes colour leaves every mask standing on it
-      // holding the old one. The widget's own bytes did not change, so the
-      // compare above cannot see it; rebuilding is what re-runs the resolution.
-      if (!changed &&
-          !caption_masks_screen(traits.frame(after, index), recoloured_screens)) {
-        continue;
-      }
-      // Rebuilding a container deletes its LVGL object, and LVGL takes the
-      // descendants with it — children owned by other collections, and the slot
-      // controller's pointers to the pages. Those are structural, so a shape
-      // that holds children goes the full-recomposition route. The test is its
-      // role rather than what changed: a colour edit trips the byte compare
-      // above just the same, and would delete the children just the same. A
-      // plain backing plate, which is most shapes, keeps the fast path. A slot
-      // is always a container, and its own update_instance refuses outright.
-      if (traits.type == configuration::WidgetType::shape &&
-          after.shape_widgets[index].widget_count > 0) {
-        return false;
-      }
-      if (!dashboard.widgets.update_instance(traits.type, index)) {
-        return false;
-      }
-    }
-  }
-
-  // What a container has to let through is a fact about where its children
-  // ended up, so moving or resizing one changes it — and that is exactly the
-  // edit this path takes. Without re-measuring, the overflow stays whatever the
-  // last full composition saw, and LVGL clips a widget dragged past its
-  // container's edge to a box that no longer describes it.
-  if (!screens::unclip_containers(next, dashboard)) {
-    return false;
-  }
-  // Rebuilt widgets are new LVGL children, so they sit on top until the
-  // configured order is applied again — and they are new objects, so their tap
-  // actions have to be bound onto them again.
-  return screens::apply_z_order(next, dashboard) &&
-         screens::bind_actions(next, dashboard);
-}
-
 void destroy(Dashboard& dashboard) {
   // Cleared under the LVGL lock for the same reason create() assembles the
   // table under it: the render trigger may be walking it.

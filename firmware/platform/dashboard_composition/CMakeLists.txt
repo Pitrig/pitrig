@@ -1,5 +1,6 @@
 idf_component_register(
   SRCS "src/dashboard_composition.cpp"
+       "src/dashboard_incremental.cpp"
        "src/dashboard_assets.cpp"
        "src/dashboard_screens.cpp"
        "src/screens_overflow.cpp"
