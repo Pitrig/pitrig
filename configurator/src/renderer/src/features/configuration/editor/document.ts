@@ -226,3 +226,12 @@ export function completePlacement(
   }
   return placement as Required<WidgetPlacement>
 }
+
+/** Writes a display-space box back into the widget's own coordinate space. */
+export function writePlacement(
+  widget: WidgetConfiguration,
+  placement: Required<WidgetPlacement>,
+  offset: { x: number; y: number }
+): void {
+  widget.placement = { ...placement, x: placement.x - offset.x, y: placement.y - offset.y }
+}
