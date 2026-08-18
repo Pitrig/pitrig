@@ -7,6 +7,10 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./src/shared/*"]
+    },
     "tsBuildInfoFile": "./out/.tsbuildinfo/node",
     "noEmit": true,
     "types": ["electron-vite/node", "node"]

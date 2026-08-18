@@ -1,7 +1,5 @@
-import { dialog, type BrowserWindow, type OpenDialogOptions } from 'electron'
-import { randomUUID } from 'node:crypto'
+import { type BrowserWindow } from 'electron'
 import { readFile } from 'node:fs/promises'
-import { basename, extname } from 'node:path'
 
 import {
   FONT_FAMILY_PATTERN,
@@ -12,65 +10,55 @@ import {
   type FontUploadProgress,
   type FontUploadRequest
 } from '../../shared/font-assets'
+import {
+  AssetServiceBase,
+  failure,
+  success,
+  type AssetKind,
+  type SourceRecord
+} from '../assets/asset-service-base'
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
 import { buildFontPackage, type FontFamilyAsset } from './font-package'
 
-interface SourceRecord extends FontSourceSelection {
-  path: string
+const kFonts: AssetKind = {
+  sessionKey: 'fontAssets',
+  dialogTitle: 'Select font source',
+  dialogButton: 'Select font',
+  filters: [{ name: 'OpenType fonts', extensions: ['ttf', 'otf'] }],
+  extensions: ['.ttf', '.otf'],
+  wrongExtension: 'Select a TTF or OTF font file.',
+  busy: 'A font upload is already running.',
+  unsupported: 'The connected firmware does not support font asset upload.',
+  storageUnavailable: 'Font asset storage is unavailable on this device.',
+  rebootRequired: 'Restart the device before uploading another font package.'
 }
 
-export class FontAssetService {
-  private readonly sources = new Map<string, SourceRecord>()
-  private activeOperation: AbortController | undefined
-
+export class FontAssetService extends AssetServiceBase {
   constructor(
-    private readonly deviceService: DeviceService,
+    deviceService: DeviceService,
     private readonly onProgress: (progress: FontUploadProgress) => void,
     private readonly previewAssets: PreviewAssetCache
-  ) {}
+  ) {
+    super(deviceService, kFonts)
+  }
 
   async selectSource(owner?: BrowserWindow): Promise<FontAssetResult<FontSourceSelection | null>> {
-    const options: OpenDialogOptions = {
-      title: 'Select font source',
-      buttonLabel: 'Select font',
-      properties: ['openFile'],
-      filters: [{ name: 'OpenType fonts', extensions: ['ttf', 'otf'] }]
-    }
-    const result = owner
-      ? await dialog.showOpenDialog(owner, options)
-      : await dialog.showOpenDialog(options)
-    if (result.canceled) return success(null)
-    const path = result.filePaths[0]
-    if (!path || !['.ttf', '.otf'].includes(extname(path).toLowerCase())) {
-      return failure('invalid_request', 'Select a TTF or OTF font file.')
-    }
-    const source: SourceRecord = { id: randomUUID(), name: basename(path), path }
+    const chosen = await this.chooseSource(owner)
+    if (!chosen.ok) return chosen
+    if (chosen.value === null) return success(null)
+    const source: SourceRecord = chosen.value
     this.sources.set(source.id, source)
     return success({ id: source.id, name: source.name })
   }
 
   async upload(request: FontUploadRequest): Promise<FontAssetResult<void>> {
-    if (this.activeOperation) {
-      return failure('busy', 'A font upload is already running.')
-    }
+    const blocked = this.preflight()
+    if (blocked) return blocked
     const validationError = this.validateRequest(request)
     if (validationError) return { ok: false, error: validationError }
-
     const deviceSession = this.deviceService.getState().session
-    const fontInfo = deviceSession?.fontAssets
-    if (!fontInfo) {
-      return failure(
-        'unsupported_firmware',
-        'The connected firmware does not support font asset upload.'
-      )
-    }
-    if (!fontInfo.storageAvailable) {
-      return failure('device_error', 'Font asset storage is unavailable on this device.')
-    }
-    if (fontInfo.rebootRequired) {
-      return failure('device_error', 'Restart the device before uploading another font package.')
-    }
+
     const operation = new AbortController()
     this.activeOperation = operation
     let stage: 'reading' | 'building' | 'uploading' = 'reading'
@@ -173,12 +161,4 @@ export class FontAssetService {
     }
     return undefined
   }
-}
-
-function success<T>(value: T): FontAssetResult<T> {
-  return { ok: true, value }
-}
-
-function failure<T>(code: FontAssetError['code'], message: string): FontAssetResult<T> {
-  return { ok: false, error: { code, message } }
 }

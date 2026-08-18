@@ -6,6 +6,7 @@ import type { Plugin } from 'vite'
 
 export default defineConfig(({ command }) => ({
   main: {
+    resolve: { alias: { '@shared': resolve('src/shared') } },
     build: {
       lib: {
         entry: resolve('src/main/index.ts')
@@ -13,6 +14,7 @@ export default defineConfig(({ command }) => ({
     }
   },
   preload: {
+    resolve: { alias: { '@shared': resolve('src/shared') } },
     build: {
       lib: {
         entry: resolve('src/preload/index.ts'),

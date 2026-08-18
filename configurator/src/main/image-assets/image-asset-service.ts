@@ -1,6 +1,5 @@
-import { dialog, nativeImage, type BrowserWindow, type OpenDialogOptions } from 'electron'
-import { randomUUID } from 'node:crypto'
-import { basename, extname } from 'node:path'
+import { nativeImage, type BrowserWindow } from 'electron'
+import { basename } from 'node:path'
 
 import type { AssetError, AssetResult, AssetUploadProgress } from '../../shared/asset-upload'
 import {
@@ -9,13 +8,32 @@ import {
   type ImageSourceSelection,
   type ImageUploadRequest
 } from '../../shared/image-assets'
+import {
+  AssetServiceBase,
+  failure,
+  success,
+  type AssetKind
+} from '../assets/asset-service-base'
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
 import { buildImagePackage, convertImage, type ConvertedImage } from './image-package'
 
-const SOURCE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.bmp']
+const kImages: AssetKind = {
+  sessionKey: 'imageAssets',
+  dialogTitle: 'Select image source',
+  dialogButton: 'Select image',
+  filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'bmp'] }],
+  extensions: ['.png', '.jpg', '.jpeg', '.bmp'],
+  wrongExtension: 'Select a PNG, JPEG or BMP image.',
+  busy: 'An image upload is already running.',
+  unsupported: 'The connected firmware does not support image upload.',
+  storageUnavailable: 'Image storage is unavailable on this device.',
+  rebootRequired: 'Restart the device before uploading another image package.'
+}
 
-interface SourceRecord extends ImageSourceSelection {
+// The registered source also carries the decoded size, which the panel offers
+// as the default rather than making the author guess.
+interface ImageSourceRecord extends ImageSourceSelection {
   path: string
 }
 
@@ -24,31 +42,20 @@ interface SourceRecord extends ImageSourceSelection {
  * once, exactly as fonts are: the device stores one package, and a partial
  * update would leave it describing images it no longer holds.
  */
-export class ImageAssetService {
-  private readonly sources = new Map<string, SourceRecord>()
-  private activeOperation: AbortController | undefined
-
+export class ImageAssetService extends AssetServiceBase {
   constructor(
-    private readonly deviceService: DeviceService,
+    deviceService: DeviceService,
     private readonly onProgress: (progress: AssetUploadProgress) => void,
     private readonly previewAssets: PreviewAssetCache
-  ) {}
+  ) {
+    super(deviceService, kImages)
+  }
 
   async selectSource(owner?: BrowserWindow): Promise<AssetResult<ImageSourceSelection | null>> {
-    const options: OpenDialogOptions = {
-      title: 'Select image source',
-      buttonLabel: 'Select image',
-      properties: ['openFile'],
-      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'bmp'] }]
-    }
-    const result = owner
-      ? await dialog.showOpenDialog(owner, options)
-      : await dialog.showOpenDialog(options)
-    if (result.canceled) return success(null)
-    const path = result.filePaths[0]
-    if (!path || !SOURCE_EXTENSIONS.includes(extname(path).toLowerCase())) {
-      return failure('invalid_request', 'Select a PNG, JPEG or BMP image.')
-    }
+    const chosen = await this.chooseSource(owner)
+    if (!chosen.ok) return chosen
+    if (chosen.value === null) return success(null)
+    const { id, name, path } = chosen.value
     // The source size is read now so the panel can offer it as the default
     // rather than making the author guess and then discover a stretched image.
     const decoded = nativeImage.createFromPath(path)
@@ -56,32 +63,17 @@ export class ImageAssetService {
       return failure('source_unreadable', `"${basename(path)}" could not be read as an image.`)
     }
     const { width, height } = decoded.getSize()
-    const source: SourceRecord = { id: randomUUID(), name: basename(path), path, width, height }
+    const source: ImageSourceRecord = { id, name, path, width, height }
     this.sources.set(source.id, source)
-    return success({ id: source.id, name: source.name, width, height })
+    return success({ id, name, width, height })
   }
 
   async upload(request: ImageUploadRequest): Promise<AssetResult<void>> {
-    if (this.activeOperation) {
-      return failure('busy', 'An image upload is already running.')
-    }
+    const blocked = this.preflight()
+    if (blocked) return blocked
     const validationError = this.validateRequest(request)
     if (validationError) return { ok: false, error: validationError }
-
     const session = this.deviceService.getState().session
-    const imageInfo = session?.imageAssets
-    if (!imageInfo) {
-      return failure(
-        'unsupported_firmware',
-        'The connected firmware does not support image upload.'
-      )
-    }
-    if (!imageInfo.storageAvailable) {
-      return failure('device_error', 'Image storage is unavailable on this device.')
-    }
-    if (imageInfo.rebootRequired) {
-      return failure('device_error', 'Restart the device before uploading another image package.')
-    }
 
     const operation = new AbortController()
     this.activeOperation = operation
@@ -185,12 +177,4 @@ export class ImageAssetService {
     }
     return undefined
   }
-}
-
-function success<T>(value: T): AssetResult<T> {
-  return { ok: true, value }
-}
-
-function failure<T>(code: AssetError['code'], message: string): AssetResult<T> {
-  return { ok: false, error: { code, message } }
 }
