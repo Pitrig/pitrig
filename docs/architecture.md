@@ -266,7 +266,7 @@ own telemetry processing, extrapolation, or correction logic.
 
 Platform code may depend on modules and components. Modules must not depend on platform code or UI frameworks.
 
-Temporary development sources, such as mock telemetry, must remain isolated under `platform/` so production communication can replace them without changing module APIs.
+Mock telemetry is the configurator's business, not the firmware's: it lives in `configurator/src/shared/mock-telemetry.ts` and feeds the preview canvas. The firmware carries no development-only telemetry source, and any that is ever added must stay isolated under `platform/` so production communication can replace it without changing module APIs.
 
 ---
 
@@ -319,7 +319,16 @@ cannot know: how to drive its service, and what its `INFO` reply says about an
 installed package. Those arrive as plain data — a `Traits` value and an
 `Operations` table of function pointers — rather than as a template, so the
 binary carries one copy of the machine and `font_asset_control` and
-`image_asset_control` are ~90 lines each. Images are
+`image_asset_control` are ~90 lines each.
+
+The package format under that engine is shared the same way. Both kinds write
+the same 32-byte header and commit it identically — payload first, header last,
+read back what was stored, reboot before the new package is used — so
+`services/asset_package` owns that header, its validation and the update status
+and error types. Each kind keeps only what genuinely differs: its magic and
+version, its manifest entry decoder, and its catalog. A font face describes
+itself and a bitmap does not, which is why an image entry carries geometry and a
+font entry does not. Images are
 converted by the configurator to the layout and size the display draws; the
 device holds no decoder. See [Image asset storage](image-assets.md) and
 [ADR 0018](adr/0018-uploaded-image-assets.md).
