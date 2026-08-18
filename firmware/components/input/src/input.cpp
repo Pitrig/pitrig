@@ -20,6 +20,14 @@ namespace {
 // gesture.
 constexpr std::uint8_t kGestureMinimumVelocityPx = 1;
 
+// How far the finger must travel before the movement is a swipe. LVGL asks for
+// 50 px, which is a tenth of the width of the smallest touch board here and
+// more than a wrist moves comfortably on a device clamped to a wheel. A tap
+// that slides this far is no longer a tap: the handlers ignore a click whose
+// press produced a gesture, so this is also the point where a sloppy tap stops
+// triggering the widget under it.
+constexpr std::uint8_t kGestureMinimumDistancePx = 20;
+
 }  // namespace
 
 namespace simcore::input {
@@ -41,6 +49,7 @@ lv_indev_t* initialize(const driver::Driver& selected_driver,
   lv_indev_t* const pointer = lvgl_port_add_touch(&touch_configuration);
   if (pointer != nullptr) {
     lv_indev_set_gesture_min_velocity(pointer, kGestureMinimumVelocityPx);
+    lv_indev_set_gesture_min_distance(pointer, kGestureMinimumDistancePx);
   }
   return pointer;
 }
