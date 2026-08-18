@@ -1,4 +1,5 @@
 idf_component_register(SRCS "src/image_asset_service.cpp"
+                            "src/image_manifest.cpp"
                        INCLUDE_DIRS "include"
                        REQUIRES asset_package asset_storage image_contract
                        PRIV_REQUIRES binary)
