@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { bridgeErrorMessage } from '@/features/device/bridge-errors'
 import { writeDevelopmentLog } from '@/features/development/development-log'
 import { useDeviceStore } from '@/features/device/device-store'
 import {
@@ -151,10 +152,3 @@ function ProfileModeOption({
   )
 }
 
-
-function bridgeErrorMessage(error: unknown, fallback: string): string {
-  const message = error instanceof Error ? error.message : String(error)
-  return message.includes('exportSimHubProfile') && message.includes('not a function')
-    ? 'The Electron bridge is outdated. Fully restart SimCore Configurator.'
-    : message || fallback
-}
