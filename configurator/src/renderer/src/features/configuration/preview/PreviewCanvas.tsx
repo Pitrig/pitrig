@@ -4,13 +4,15 @@ import { type DeviceConfiguration, type DisplayDescriptor } from '@shared/device
 import { LAP_SECONDS } from '@shared/mock-telemetry'
 import { clamp, clampToDisplay } from '../editor/placement'
 import { GridOverlay, GuideOverlay, HitArea, SelectionFrame } from './CanvasOverlays'
+import { ImagePreview } from './ImagePreview'
+import { TextWidgetPreview } from './TextPreview'
 import { flattenScreen } from './preview-layers'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOffset, useDashboardEditorStore } from '../dashboard-editor'
 import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
 import { createPreviewValues } from './preview-values'
-import { CaptionPreview, ImagePreview, ShapePreview, TextWidgetPreview } from './widget-previews'
+import { CaptionPreview, ShapePreview, } from './widget-previews'
 import { useDeviceStore } from '@/features/device/device-store'
 
 export function Widgets({

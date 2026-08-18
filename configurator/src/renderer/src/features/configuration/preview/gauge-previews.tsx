@@ -6,7 +6,7 @@ import { clamp } from '../editor/placement'
 import { markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR } from './preview-theme'
 import { type PreviewValues, normalizeColor } from './preview-values'
-import { GradientDefinition, WidgetFrameShape } from './widget-previews'
+import { GradientDefinition, WidgetFrameShape } from './frame-shape'
 import { contentArea, gradientPaint } from './preview-geometry-paint'
 
 export function BarPreview({
