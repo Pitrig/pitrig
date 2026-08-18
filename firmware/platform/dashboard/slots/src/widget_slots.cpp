@@ -126,6 +126,13 @@ void Controller::evaluate(lv_timer_t* const timer) {
 }
 
 void Controller::on_click(lv_event_t* const event) {
+  // A swipe that starts on a slot is a screen change, not a page change. The
+  // gesture bubbles up to the screen on its own, but LVGL still ends the press
+  // with a click, which would cycle the page as a side effect of navigating.
+  const lv_indev_t* const indev = lv_indev_active();
+  if (indev != nullptr && lv_indev_get_gesture_dir(indev) != LV_DIR_NONE) {
+    return;
+  }
   auto* const controller =
       static_cast<Controller*>(lv_event_get_user_data(event));
   const lv_obj_t* const target = lv_event_get_current_target_obj(event);
