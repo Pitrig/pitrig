@@ -349,9 +349,11 @@ source-formatted fields such as `vehicle.speed` and `engine.rpm` are converted.
 A source that does not parse renders the placeholder, exactly like an
 unavailable value.
 
-Without `transform`, source text is preserved. Optional `prefix` and `suffix`
-strings belong to the transform rather than to one of its types, so they apply
-to an untransformed value too; each is limited to 15 UTF-8 bytes, and a value
+Without `transform`, source text is preserved; a numeric value that arrived
+with no text of its own — nothing the SimHub line protocol produces — is shown
+as an integer, or as a float to three decimals with trailing zeros dropped.
+Optional `prefix` and `suffix` strings belong to the transform rather than to
+one of its types, so they apply to an untransformed value too; each is limited to 15 UTF-8 bytes, and a value
 long enough to crowd them out keeps its own text. Incompatible binding,
 modifier, and transform types are rejected before the dashboard is created.
 

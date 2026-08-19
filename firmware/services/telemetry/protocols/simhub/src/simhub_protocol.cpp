@@ -2,9 +2,10 @@
 
 #include <algorithm>
 #include <charconv>
-#include <cmath>
 #include <cstdint>
 #include <system_error>
+
+#include "number_transform.hpp"
 
 namespace simcore::protocols {
 namespace {
@@ -23,13 +24,8 @@ template <typename Value>
 
 [[nodiscard]] bool parse_float(const std::span<const char> text,
                                float& value) {
-  if (text.empty()) {
-    return false;
-  }
-  const auto result =
-      std::from_chars(text.data(), text.data() + text.size(), value);
-  return result.ec == std::errc{} &&
-         result.ptr == text.data() + text.size() && std::isfinite(value);
+  return transformers::number_transform::parse({text.data(), text.size()},
+                                               value);
 }
 
 [[nodiscard]] bool parse_boolean(const std::span<const char> text,

@@ -12,8 +12,31 @@
 namespace simcore::dashboard::value_text {
 namespace {
 
+// A float with no text of its own, to three decimals with trailing zeros and a
+// bare point dropped: 12.5 reads "12.5", 3.0 reads "3".
+[[nodiscard]] bool plain_float_text(
+    const float value,
+    std::array<char, telemetry::kTelemetryTextCapacity>& output) {
+  constexpr transformers::number_transform::Config kThreeDecimals{
+      .decimals = 3, .scale = 1.0F, .offset = 0.0F};
+  if (!transformers::number_transform::apply(kThreeDecimals, value, output)) {
+    return false;
+  }
+  const auto end = std::find(output.begin(), output.end(), '\0');
+  auto last = end;
+  while (last != output.begin() && *(last - 1) == '0') {
+    --last;
+  }
+  if (last != output.begin() && *(last - 1) == '.') {
+    --last;
+  }
+  std::fill(last, end, '\0');
+  return true;
+}
+
 // The source's own text, before any transform: its string if it carries one,
-// "true"/"false" for a boolean, digits otherwise. False when unavailable.
+// "true"/"false" for a boolean, digits otherwise — an integer as it is, a
+// float to three decimals. False when unavailable.
 [[nodiscard]] bool source_text(
     const telemetry::TelemetryRead& value,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
@@ -43,9 +66,13 @@ namespace {
                              value.value.typed.int32_value);
       break;
     case telemetry::ValueType::float32:
-      result = std::to_chars(output.data(), output.data() + output.size() - 1,
-                             value.value.typed.float32_value);
-      break;
+      // A float that arrived without its own text — nothing the SimHub line
+      // protocol produces, since it keeps the text it was sent — is shown to
+      // three decimals with the trailing zeros dropped, through the same
+      // fixed-point path the number transform uses. That is what keeps the
+      // shortest-representation float printer, and its tables, out of the
+      // image.
+      return plain_float_text(value.value.typed.float32_value, output);
     case telemetry::ValueType::text:
     case telemetry::ValueType::boolean:
       return false;

@@ -1,10 +1,10 @@
 #include "widget_conditions.hpp"
 
 #include <algorithm>
-#include <charconv>
 #include <cmath>
 #include <string_view>
-#include <system_error>
+
+#include "number_transform.hpp"
 
 namespace simcore::dashboard::conditions {
 namespace {
@@ -78,9 +78,7 @@ std::optional<double> condition_value(const telemetry::TelemetryRead& value) {
           static_cast<std::size_t>(
               terminator - value.value.source_text.begin())};
       float parsed{};
-      const char* const end = text.data() + text.size();
-      const auto result = std::from_chars(text.data(), end, parsed);
-      if (result.ec != std::errc{} || result.ptr != end) {
+      if (!transformers::number_transform::parse(text, parsed)) {
         return std::nullopt;
       }
       return static_cast<double>(parsed);
