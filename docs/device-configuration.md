@@ -782,6 +782,18 @@ modifiers, and transforms, and invalid widget geometry. Validation in the
 configurator improves feedback but does not replace this firmware boundary
 check.
 
+The bound on a single numeric property is stated once, in
+`configuration/configuration_schema.json` beside that property's type and
+default, and generated into all four readers: the firmware validator, the
+configurator's validator, the number fields of the editor, and the accepted
+window printed in [configuration-schema.md](configuration-schema.md). Changing
+such a bound means changing the schema and regenerating — the numbers quoted
+in this guide follow it rather than the other way round. Rules that are not a
+range over one property — a ramp whose stops must climb, an arc whose ring has
+to fit its widget, a slot page whose trigger decides what else it may carry —
+stay hand-written on both sides, because none of them can be stated as two
+numbers.
+
 The configurable `hardware` array currently accepts only an empty array because
 no user-configurable peripheral driver has a complete production contract yet.
 Non-empty entries are rejected rather than guessed. Breaking changes to public

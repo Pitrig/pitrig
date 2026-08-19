@@ -1,5 +1,6 @@
 import { MAXIMUM_PAYLOAD_SIZE, type ApplicationConfiguration } from './configuration-schema'
 import { findFontError } from './validate/fonts'
+import { findRangeError } from './validate/ranges'
 import { findUnknownProperty } from './validate/schema-keys'
 import { findScreenError } from './validate/structure'
 
@@ -9,8 +10,11 @@ import { findScreenError } from './validate/structure'
 // the configurator can no longer ship a payload the device answers with
 // unknown_property.
 //
-// It runs four passes, each in its own file: the board and hardware gate here,
-// then unknown keys, then structure and limits, then fonts.
+// It runs five passes, each in its own file: the board and hardware gate here,
+// then unknown keys, then structure and limits, then scalar ranges, then fonts.
+// The range pass reads the same bounds the firmware validator generates from
+// configuration/configuration_schema.json, so a value this accepts is not
+// refused by the device for being out of range.
 
 export interface ValidateOptions {
   /** Board identifiers this build supports; a document targeting another is rejected. */
@@ -47,6 +51,9 @@ export function validateConfigurationDocument(
 
   const screenError = findScreenError(configuration)
   if (screenError) return { ok: false, error: screenError }
+
+  const rangeError = findRangeError(configuration)
+  if (rangeError) return { ok: false, error: rangeError }
 
   const fontError = findFontError(configuration)
   if (fontError) return { ok: false, error: fontError }

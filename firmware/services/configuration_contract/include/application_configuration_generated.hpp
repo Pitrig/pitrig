@@ -50,6 +50,12 @@ inline constexpr std::size_t kMaximumGraphWidgets = 2;
 inline constexpr std::size_t kMaximumImageWidgets = 8;
 // Segments in one indicator strip.
 inline constexpr std::size_t kMaximumIndicatorSegments = 16;
+// Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal.
+inline constexpr std::size_t kMinimumBlinkMs = 100;
+// Slowest blink period any rule may ask for. Past this the widget spends so long in one phase that it reads as one that failed to update.
+inline constexpr std::size_t kMaximumBlinkMs = 5000;
+// Longest a styling rule, or a slot page raised by an event, may outlive the match that raised it. Past this it stops reading as a reaction to the car and starts reading as a stuck dashboard.
+inline constexpr std::size_t kMaximumHoldMs = 10000;
 // Samples one graph retains. The ring buffer is sized by this whatever point_count asks for.
 inline constexpr std::size_t kMaximumGraphPoints = 128;
 // Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays.

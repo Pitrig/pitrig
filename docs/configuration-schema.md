@@ -24,6 +24,9 @@ Schema version: 10.
 | `kMaximumGraphWidgets` | 2 | Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest. |
 | `kMaximumImageWidgets` | 8 | Image widget storage for the whole dashboard. |
 | `kMaximumIndicatorSegments` | 16 | Segments in one indicator strip. |
+| `kMinimumBlinkMs` | 100 | Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal. |
+| `kMaximumBlinkMs` | 5000 | Slowest blink period any rule may ask for. Past this the widget spends so long in one phase that it reads as one that failed to update. |
+| `kMaximumHoldMs` | 10000 | Longest a styling rule, or a slot page raised by an event, may outlive the match that raised it. Past this it stops reading as a reaction to the car and starts reading as a stuck dashboard. |
 | `kMaximumGraphPoints` | 128 | Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. |
 | `kMaximumTextSources` | 3 | Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. |
 | `kMaximumValueModifiers` | 4 | Value modifiers per text widget source. |
@@ -106,8 +109,8 @@ Absolute geometry in logical screen pixels.
 | Property | Type | Default |
 | --- | --- | --- |
 | `color` | string `#RRGGBB` | `#AEAEAE` |
-| `width_px` | integer, 0..65535 | `0` |
-| `radius_px` | integer, 0..65535 | `0` |
+| `width_px` | integer, 0..240 | `0` |
+| `radius_px` | integer, 0..480 | `0` |
 
 ### WidgetTitleStyle
 
@@ -122,7 +125,7 @@ The caption on a widget's frame. It is anchored to a point on the widget's outer
 | `offset_x_px` | integer, -32768..32767 | `0` |
 | `offset_y_px` | integer, -32768..32767 | `0` |
 | `border_gap` | boolean | `true` |
-| `gap_padding_px` | integer, 0..65535 | `4` |
+| `gap_padding_px` | integer, 0..240 | `4` |
 
 ### WidgetValueStyle
 
@@ -201,8 +204,8 @@ One styling rule. The first rule whose comparison holds describes the widget; wh
 | `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `border_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `hidden` | boolean | `false` |
-| `blink_ms` | integer, 0..65535 | `0` |
-| `hold_ms` | integer, 0..65535 | `0` |
+| `blink_ms` | integer, 0 or 100..5000 | `0` |
+| `hold_ms` | integer, 0..10000 | `0` |
 
 ### SlotCondition
 
@@ -291,9 +294,9 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `arc` | required |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
-| `start_angle_deg` | integer, 0..65535 | `135` |
-| `sweep_deg` | integer, 0..65535 | `270` |
-| `thickness_px` | integer, 0..65535 | `8` |
+| `start_angle_deg` | integer, 0..359 | `135` |
+| `sweep_deg` | integer, 1..360 | `270` |
+| `thickness_px` | integer, 1..65535 | `8` |
 | `track_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `fill_color` | string `#RRGGBB` | `#38BDF8` |
 | `inverted` | boolean | `false` |
@@ -322,7 +325,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | `segment_radius_px` | integer, 0..65535 | `0` |
 | `off_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `blink_threshold` | number | `2` |
-| `blink_ms` | integer, 0..65535 | `0` |
+| `blink_ms` | integer, 0 or 100..5000 | `0` |
 | `segments` | array of [`IndicatorSegment`](#indicatorsegment), max 16 | absent |
 
 ### GraphWidgetConfiguration
@@ -335,10 +338,10 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `graph` | required |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
-| `point_count` | integer, 0..65535 | `64` |
-| `sample_interval_ms` | integer, 0..65535 | `100` |
+| `point_count` | integer, 2..128 | `64` |
+| `sample_interval_ms` | integer, 1..65535 | `100` |
 | `line_color` | string `#RRGGBB` | `#38BDF8` |
-| `line_width_px` | integer, 0..65535 | `2` |
+| `line_width_px` | integer, 1..65535 | `2` |
 
 ### ImageWidgetConfiguration
 
@@ -374,7 +377,7 @@ One page of a slot: a set of widgets that share the slot's box and are shown or 
 | `in_loop` | boolean | `true` |
 | `trigger` | `SlotTrigger` | `none` |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
-| `duration_ms` | integer, 0..65535 | `0` |
+| `duration_ms` | integer, 0..10000 | `0` |
 | `conditions` | array of [`SlotCondition`](#slotcondition), max 4 | absent |
 | `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 16, discriminated by `type` | absent |
 

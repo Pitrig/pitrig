@@ -438,6 +438,97 @@ inline constexpr std::array<std::string_view, 4> kApplicationConfigurationKeys{{
     "dashboard",
 }};
 
+// The authored bounds of every scalar property that has one, in
+// declaration order. Each returns the public path of the first property
+// outside its range, or an empty view when all of them are inside it, so
+// the caller supplies the ValidationError and the rejection stays where
+// the rest of that type's rules are.
+//
+// A flattened struct and an array element are validated through their own
+// overload, because the hand-written validator already reaches both.
+
+[[nodiscard]] inline std::string_view range_error(const WidgetBorder& config) {
+  if (config.width_px > 240) {
+    return "width_px";
+  }
+  if (config.radius_px > 480) {
+    return "radius_px";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const WidgetTitleStyle& config) {
+  if (config.gap_padding_px > 240) {
+    return "gap_padding_px";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const WidgetCondition& config) {
+  if (config.blink_ms != 0 &&
+      (config.blink_ms < kMinimumBlinkMs || config.blink_ms > kMaximumBlinkMs)) {
+    return "blink_ms";
+  }
+  if (config.hold_ms > kMaximumHoldMs) {
+    return "hold_ms";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const WidgetFrame& config) {
+  if (config.border.width_px > 240) {
+    return "border.width_px";
+  }
+  if (config.border.radius_px > 480) {
+    return "border.radius_px";
+  }
+  if (config.title.gap_padding_px > 240) {
+    return "title.gap_padding_px";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const ArcWidgetConfiguration& config) {
+  if (config.start_angle_deg > 359) {
+    return "start_angle_deg";
+  }
+  if (config.sweep_deg < 1 || config.sweep_deg > 360) {
+    return "sweep_deg";
+  }
+  if (config.thickness_px < 1) {
+    return "thickness_px";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const IndicatorWidgetConfiguration& config) {
+  if (config.blink_ms != 0 &&
+      (config.blink_ms < kMinimumBlinkMs || config.blink_ms > kMaximumBlinkMs)) {
+    return "blink_ms";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const GraphWidgetConfiguration& config) {
+  if (config.point_count < 2 || config.point_count > kMaximumGraphPoints) {
+    return "point_count";
+  }
+  if (config.sample_interval_ms < 1) {
+    return "sample_interval_ms";
+  }
+  if (config.line_width_px < 1) {
+    return "line_width_px";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const SlotPageConfiguration& config) {
+  if (config.duration_ms > kMaximumHoldMs) {
+    return "duration_ms";
+  }
+  return {};
+}
+
 }  // namespace schema
 
 }  // namespace simcore::configuration

@@ -57,13 +57,35 @@ reason. Add `unknown_property` and `duplicate_property` as distinct reasons.
 Use one validation implementation in the configurator, driven by the generated
 allow-lists, shared by the renderer, the main process, and file import.
 
+Extend "shape" to include the bound on a single numeric property. A field may
+state `minimum` and `maximum` — a literal, or the name of a limit already
+declared in the same document — and `zero_means_off` for a property a zero
+switches off rather than sets low. From those the generator writes the firmware
+validator's range check, the configurator's range pass, the bounds its number
+fields offer, and the accepted window in the property reference. The blink and
+hold bounds move into the document for the same reason, having been three hand
+copies of one decision.
+
+This covers only what two numbers can express. A rule that reads more than one
+property — a ramp whose stops must climb, an arc whose ring has to fit its
+widget, a slot page whose trigger decides what else it may carry — stays
+hand-written on both sides and stays deliberately paired by comment, because
+generating it would mean describing logic in JSON.
+
 ## Consequences
 
 - A property or widget type is added in one document; C++, TypeScript, parser
-  allow-lists, and the property reference follow.
+  allow-lists, the range checks on both sides, and the property reference
+  follow. A new numeric property is bounded by writing two numbers next to its
+  default rather than by remembering four separate places.
+- The property reference prints the window the device accepts. It previously
+  printed the range of the storage type, which advertised values every one of
+  those properties was rejected for.
 - Firmware and configurator cannot disagree about the contract's shape, because
   neither writes it.
-- The configurator rejects what the device rejects, before transmitting.
+- The configurator rejects what the device rejects, before transmitting —
+  including a value outside its range, which it previously passed on for the
+  device to refuse.
 - A rejection identifies the widget and property that caused it.
 - Adding a widget type no longer touches roughly nineteen sites.
 - Schema 2 documents are rejected; existing device configurations are discarded

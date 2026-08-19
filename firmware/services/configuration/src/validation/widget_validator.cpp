@@ -90,11 +90,12 @@ bool Validator::conditions(const WidgetFrame& config) {
         rule.op > ConditionOperator::not_equal ||
         !std::isfinite(rule.value) || !valid_optional_color(rule.color) ||
         !valid_optional_color(rule.background_color) ||
-        !valid_optional_color(rule.border_color) ||
-        (rule.blink_ms != 0 &&
-         (rule.blink_ms < kMinimumBlinkMs || rule.blink_ms > kMaximumBlinkMs)) ||
-        rule.hold_ms > kMaximumHoldMs) {
+        !valid_optional_color(rule.border_color)) {
       return reject(failure_, ValidationError::invalid_widget, "conditions");
+    }
+    if (const std::string_view out_of_range = schema::range_error(rule);
+        !out_of_range.empty()) {
+      return reject(failure_, ValidationError::invalid_widget, out_of_range);
     }
   }
   return true;
@@ -115,9 +116,15 @@ bool Validator::frame(const WidgetFrame& config) {
       config.padding.bottom > profile_.display.height) {
     return reject(failure_, ValidationError::invalid_widget, "padding");
   }
-  if (!valid_color(config.border.color) || config.border.width_px > 240 ||
-      config.border.radius_px > 480) {
+  if (!valid_color(config.border.color)) {
     return reject(failure_, ValidationError::invalid_widget, "border");
+  }
+  // Everything the schema states as a plain bound, checked from the schema:
+  // the border line, its radius, and the padding around a caption that widens
+  // the mask cutting that line.
+  if (const std::string_view out_of_range = schema::range_error(config);
+      !out_of_range.empty()) {
+    return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
   // The inset eats into the widget from both sides, so it cannot claim more
   // than the box has to give.
@@ -141,12 +148,9 @@ bool Validator::frame(const WidgetFrame& config) {
   if (!terminated(config.id)) {
     return reject(failure_, ValidationError::invalid_widget, "id");
   }
-  // The gap padding widens the mask that hides the frame line, so it is bounded
-  // like the line itself rather than left to the full range of its type.
   if (!terminated(config.title.text) || !valid_color(config.title.color) ||
       config.title.alignment < TextAlignment::top_left ||
       config.title.alignment > TextAlignment::bottom_right ||
-      config.title.gap_padding_px > 240 ||
       (config.title.text.front() != '\0' && !valid_font(config.title.font))) {
     return reject(failure_, ValidationError::invalid_widget, "title");
   }
@@ -163,10 +167,9 @@ bool Validator::slot_page(const SlotPageConfiguration& config) {
       config.widget_count > config.widgets.size()) {
     return reject(failure_, ValidationError::invalid_slot_page, "conditions");
   }
-  // The same bound a styling hold takes: past it a page stops reading as a
-  // reaction to the car and starts reading as a stuck dashboard.
-  if (config.duration_ms > kMaximumHoldMs) {
-    return reject(failure_, ValidationError::invalid_slot_page, "duration_ms");
+  if (const std::string_view out_of_range = schema::range_error(config);
+      !out_of_range.empty()) {
+    return reject(failure_, ValidationError::invalid_slot_page, out_of_range);
   }
   const bool bound =
       registry_.resolve(value_binding_view(config.source.binding)).valid();
@@ -288,19 +291,15 @@ bool Validator::bar_widget(const BarWidgetConfiguration& config) {
 
 // A shape is its frame, so there is nothing else to check.
 bool Validator::arc_widget(const ArcWidgetConfiguration& config) {
-  // A sweep of zero would draw nothing and a sweep past a full turn would wrap
-  // over itself, so both are authoring mistakes rather than degenerate art.
-  if (config.sweep_deg == 0 || config.sweep_deg > 360) {
-    return reject(failure_, ValidationError::invalid_widget, "sweep_deg");
+  if (const std::string_view out_of_range = schema::range_error(config);
+      !out_of_range.empty()) {
+    return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
-  if (config.start_angle_deg >= 360) {
-    return reject(failure_, ValidationError::invalid_widget, "start_angle_deg");
-  }
-  // Two arcs of the configured thickness have to fit across the widget, or the
-  // ring closes into a disc.
+  // Not a plain bound and so not in the schema: two arcs of the configured
+  // thickness have to fit across this widget, or the ring closes into a disc.
   const std::int32_t smallest_side =
       std::min(config.frame.placement.width, config.frame.placement.height);
-  if (config.thickness_px == 0 || 2 * config.thickness_px > smallest_side) {
+  if (2 * config.thickness_px > smallest_side) {
     return reject(failure_, ValidationError::invalid_widget, "thickness_px");
   }
   if (!valid_color(config.fill_color) || !valid_optional_color(config.track_color)) {
@@ -334,9 +333,9 @@ bool Validator::indicator_widget(const IndicatorWidgetConfiguration& config) {
     return reject(failure_, ValidationError::invalid_widget, "blink_threshold");
   }
   // The same window conditions blink in, so one dashboard has one cadence.
-  if (config.blink_ms != 0 &&
-      (config.blink_ms < kMinimumBlinkMs || config.blink_ms > kMaximumBlinkMs)) {
-    return reject(failure_, ValidationError::invalid_widget, "blink_ms");
+  if (const std::string_view out_of_range = schema::range_error(config);
+      !out_of_range.empty()) {
+    return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
   if (!valid_optional_color(config.off_color)) {
     return reject(failure_, ValidationError::invalid_widget, "off_color");
@@ -346,14 +345,11 @@ bool Validator::indicator_widget(const IndicatorWidgetConfiguration& config) {
 }
 
 bool Validator::graph_widget(const GraphWidgetConfiguration& config) {
-  if (config.point_count < 2 || config.point_count > kMaximumGraphPoints) {
-    return reject(failure_, ValidationError::invalid_widget, "point_count");
+  if (const std::string_view out_of_range = schema::range_error(config);
+      !out_of_range.empty()) {
+    return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
-  if (config.sample_interval_ms == 0) {
-    return reject(failure_, ValidationError::invalid_widget,
-                  "sample_interval_ms");
-  }
-  if (config.line_width_px == 0 || !valid_color(config.line_color)) {
+  if (!valid_color(config.line_color)) {
     return reject(failure_, ValidationError::invalid_widget, "line_color");
   }
   return value_source(config.source) && value_range(config.range) &&

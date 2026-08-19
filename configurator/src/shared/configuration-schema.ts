@@ -36,6 +36,12 @@ export const MAXIMUM_GRAPH_WIDGETS = 2
 export const MAXIMUM_IMAGE_WIDGETS = 8
 /** Segments in one indicator strip. */
 export const MAXIMUM_INDICATOR_SEGMENTS = 16
+/** Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal. */
+export const MINIMUM_BLINK_MS = 100
+/** Slowest blink period any rule may ask for. Past this the widget spends so long in one phase that it reads as one that failed to update. */
+export const MAXIMUM_BLINK_MS = 5000
+/** Longest a styling rule, or a slot page raised by an event, may outlive the match that raised it. Past this it stops reading as a reaction to the car and starts reading as a stuck dashboard. */
+export const MAXIMUM_HOLD_MS = 10000
 /** Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. */
 export const MAXIMUM_GRAPH_POINTS = 128
 /** Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. */
@@ -116,6 +122,39 @@ export const WIDGET_PARENT_KIND_VALUES: readonly WidgetParentKind[] = ['screen',
 /** Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. */
 export type WidgetType = 'text' | 'shape' | 'bar' | 'arc' | 'indicator' | 'graph' | 'image' | 'slot'
 export const WIDGET_TYPE_VALUES: readonly WidgetType[] = ['text', 'shape', 'bar', 'arc', 'indicator', 'graph', 'image', 'slot']
+
+/** One scalar property's authored bounds, as a dotted public path. */
+export interface FieldRange {
+  readonly key: string
+  readonly minimum: number
+  readonly maximum: number
+  /** Zero switches the property off, so it is accepted below the minimum. */
+  readonly zeroMeansOff?: boolean
+}
+
+/**
+ * Every bounded property of the objects an author edits, keyed by widget
+ * type and by the element structs that arrive inside an array. The device
+ * checks the same bounds from the same schema, so a document this accepts
+ * is not refused on a range once it gets there.
+ *
+ * A property that authors only one edge takes the other from what its
+ * integer type can hold, which is the window the property table prints.
+ * That is what makes a hand-edited negative a range error here rather than
+ * a parser rejection on the device.
+ */
+export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {
+  text: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
+  bar: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
+  arc: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'start_angle_deg', minimum: 0, maximum: 359 }, { key: 'sweep_deg', minimum: 1, maximum: 360 }, { key: 'thickness_px', minimum: 1, maximum: 65535 }],
+  indicator: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }],
+  graph: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'point_count', minimum: 2, maximum: 128 }, { key: 'sample_interval_ms', minimum: 1, maximum: 65535 }, { key: 'line_width_px', minimum: 1, maximum: 65535 }],
+  image: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
+  shape: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
+  slot: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
+  WidgetCondition: [{ key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }],
+  SlotPageConfiguration: [{ key: 'duration_ms', minimum: 0, maximum: 10000 }],
+}
 
 /** Reason token a device puts after `@SC:ERR:` when it rejects a document. */
 export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'invalid_slot' | 'invalid_slot_page' | 'unknown_property' | 'duplicate_property'

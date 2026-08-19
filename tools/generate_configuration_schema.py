@@ -141,6 +141,16 @@ def validate_schema(document: dict[str, Any]) -> None:
                 fail(f"{struct_name}.{name}: unknown kind '{kind}'")
             if kind == "text" and field.get("capacity") not in limits:
                 fail(f"{struct_name}.{name}: unknown capacity '{field.get('capacity')}'")
+            for edge in ("minimum", "maximum"):
+                bound = field.get(edge)
+                if bound is None:
+                    continue
+                if kind not in SCALAR_RANGES:
+                    fail(f"{struct_name}.{name}: '{edge}' needs a bounded integer kind")
+                if isinstance(bound, str) and bound not in limits:
+                    fail(f"{struct_name}.{name}: '{edge}' names unknown limit '{bound}'")
+            if field.get("zero_means_off") and field.get("minimum") in (None, 0):
+                fail(f"{struct_name}.{name}: 'zero_means_off' needs a minimum above zero")
 
     for name, body in enums.items():
         values = body.get("json_values")
@@ -179,6 +189,99 @@ def struct_order(document: dict[str, Any]) -> list[str]:
     for name in structs:
         visit(name)
     return ordered
+
+
+def bound(
+    field: dict[str, Any], edge: str, document: dict[str, Any]
+) -> tuple[str, int] | None:
+    """An authored bound as the C++ expression naming it and its value.
+
+    A bound is either a literal or the name of a limit, so a cap that already
+    sizes storage is stated once and read here rather than copied as a number.
+    """
+    raw = field.get(edge)
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        return raw, document["limits"][raw]["value"]
+    return str(raw), int(raw)
+
+
+def bounded_fields(
+    document: dict[str, Any],
+    struct_name: str,
+    expand_flatten: bool,
+    path: str = "",
+    accessor: str = "",
+) -> list[dict[str, Any]]:
+    """Every scalar property of one struct that carries an authored bound.
+
+    Paths are the public dotted ones an author would recognise, so a rejection
+    names the property rather than the C++ member that holds it.
+
+    Arrays are never entered. An element struct gets a table of its own, and
+    whatever loops over the array checks it — which is also what keeps one
+    generated function from depending on a count field it cannot see.
+
+    `expand_flatten` is the difference between the two readers. In JSON a
+    flattened struct's properties sit directly on the parent object, so the
+    configurator wants them here; the firmware validator already visits each
+    flattened struct through a function of its own, so following it there would
+    only check the same value twice.
+    """
+    entries: list[dict[str, Any]] = []
+    for field in serialized_fields(document["structs"][struct_name]):
+        name = json_key(field)
+        member = field["name"]
+        if field["kind"] == "struct":
+            if field.get("flatten") and not expand_flatten:
+                continue
+            child_path = path if field.get("flatten") else f"{path}{name}."
+            entries.extend(
+                bounded_fields(
+                    document,
+                    field["struct"],
+                    expand_flatten,
+                    child_path,
+                    f"{accessor}{member}.",
+                )
+            )
+            continue
+        minimum = bound(field, "minimum", document)
+        maximum = bound(field, "maximum", document)
+        if minimum is None and maximum is None:
+            continue
+        entries.append(
+            {
+                "path": f"{path}{name}",
+                "accessor": f"{accessor}{member}",
+                "kind": field["kind"],
+                "minimum": minimum,
+                "maximum": maximum,
+                "zero_means_off": bool(field.get("zero_means_off")),
+            }
+        )
+    return entries
+
+
+def range_roots(document: dict[str, Any]) -> list[str]:
+    """Structs the configurator checks as whole JSON objects.
+
+    Widget variants, plus every element struct of an array that carries bounds
+    — the two shapes a bounded object actually arrives in.
+    """
+    roots = [
+        name for name, body in document["structs"].items() if body.get("widget_type")
+    ]
+    for body in document["structs"].values():
+        for field in body.get("fields", []):
+            if field["kind"] != "array":
+                continue
+            element = field["struct"]
+            if element in roots or not bounded_fields(document, element, True):
+                continue
+            roots.append(element)
+    return roots
 
 
 def serialized_fields(body: dict[str, Any]) -> list[dict[str, Any]]:
@@ -640,6 +743,45 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
         lines.extend(f'    "{key}",' for key in keys)
         lines.append("}};")
         lines.append("")
+    lines.extend(
+        [
+            "// The authored bounds of every scalar property that has one, in",
+            "// declaration order. Each returns the public path of the first property",
+            "// outside its range, or an empty view when all of them are inside it, so",
+            "// the caller supplies the ValidationError and the rejection stays where",
+            "// the rest of that type's rules are.",
+            "//",
+            "// A flattened struct and an array element are validated through their own",
+            "// overload, because the hand-written validator already reaches both.",
+            "",
+        ]
+    )
+    for name in struct_order(document):
+        entries = bounded_fields(document, name, expand_flatten=False)
+        if not entries:
+            continue
+        lines.append(
+            "[[nodiscard]] inline std::string_view range_error("
+            f"const {name}& config) {{"
+        )
+        for entry in entries:
+            member = f"config.{entry['accessor']}"
+            tests = []
+            if entry["minimum"] is not None:
+                tests.append(f"{member} < {entry['minimum'][0]}")
+            if entry["maximum"] is not None:
+                tests.append(f"{member} > {entry['maximum'][0]}")
+            test = " || ".join(tests)
+            if entry["zero_means_off"]:
+                lines.append(f"  if ({member} != 0 &&")
+                lines.append(f"      ({test})) {{")
+            else:
+                lines.append(f"  if ({test}) {{")
+            lines.append(f'    return "{entry["path"]}";')
+            lines.append("  }")
+        lines.append("  return {};")
+        lines.append("}")
+        lines.append("")
     lines.append("}  // namespace schema")
     lines.append("")
     lines.append("}  // namespace simcore::configuration")
@@ -688,6 +830,49 @@ def generate_typescript(document: dict[str, Any]) -> str:
             f"[{', '.join(chr(39) + value + chr(39) for value in body['json_values'])}]"
         )
         lines.append("")
+
+    lines.extend(
+        [
+            "/** One scalar property's authored bounds, as a dotted public path. */",
+            "export interface FieldRange {",
+            "  readonly key: string",
+            "  readonly minimum: number",
+            "  readonly maximum: number",
+            "  /** Zero switches the property off, so it is accepted below the minimum. */",
+            "  readonly zeroMeansOff?: boolean",
+            "}",
+            "",
+            "/**",
+            " * Every bounded property of the objects an author edits, keyed by widget",
+            " * type and by the element structs that arrive inside an array. The device",
+            " * checks the same bounds from the same schema, so a document this accepts",
+            " * is not refused on a range once it gets there.",
+            " *",
+            " * A property that authors only one edge takes the other from what its",
+            " * integer type can hold, which is the window the property table prints.",
+            " * That is what makes a hand-edited negative a range error here rather than",
+            " * a parser rejection on the device.",
+            " */",
+            "export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {",
+        ]
+    )
+    for name in range_roots(document):
+        body = document["structs"][name]
+        key = body.get("widget_type") or name
+        rendered = []
+        for entry in bounded_fields(document, name, expand_flatten=True):
+            low, high = SCALAR_RANGES[entry["kind"]]
+            if entry["minimum"] is not None:
+                low = entry["minimum"][1]
+            if entry["maximum"] is not None:
+                high = entry["maximum"][1]
+            parts = [f"key: '{entry['path']}'", f"minimum: {low}", f"maximum: {high}"]
+            if entry["zero_means_off"]:
+                parts.append("zeroMeansOff: true")
+            rendered.append("{ " + ", ".join(parts) + " }")
+        lines.append(f"  {key}: [{', '.join(rendered)}],")
+    lines.append("}")
+    lines.append("")
 
     error_names = [entry["name"] for entry in document["validation_errors"]]
     lines.append(
@@ -986,6 +1171,18 @@ def markdown_type(field: dict[str, Any], document: dict[str, Any]) -> str:
     if kind == "text":
         capacity = document["limits"][field["capacity"]]["value"]
         return f"string, max {capacity - 1} bytes"
+    if kind in SCALAR_RANGES:
+        low, high = SCALAR_RANGES[kind]
+        minimum = bound(field, "minimum", document)
+        maximum = bound(field, "maximum", document)
+        if minimum is None and maximum is None:
+            return SCALAR_DOC.get(kind, kind)
+        low = minimum[1] if minimum else low
+        high = maximum[1] if maximum else high
+        window = f"{low}..{high}"
+        if field.get("zero_means_off"):
+            window = f"0 or {window}"
+        return f"integer, {window}"
     return SCALAR_DOC.get(kind, kind)
 
 

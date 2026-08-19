@@ -67,6 +67,18 @@
       "value": 16,
       "doc": "Segments in one indicator strip."
     },
+    "kMinimumBlinkMs": {
+      "value": 100,
+      "doc": "Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal."
+    },
+    "kMaximumBlinkMs": {
+      "value": 5000,
+      "doc": "Slowest blink period any rule may ask for. Past this the widget spends so long in one phase that it reads as one that failed to update."
+    },
+    "kMaximumHoldMs": {
+      "value": 10000,
+      "doc": "Longest a styling rule, or a slot page raised by an event, may outlive the match that raised it. Past this it stops reading as a reaction to the car and starts reading as a stuck dashboard."
+    },
     "kMaximumGraphPoints": {
       "value": 128,
       "doc": "Samples one graph retains. The ring buffer is sized by this whatever point_count asks for."
@@ -276,8 +288,8 @@
     "WidgetBorder": {
       "fields": [
         { "name": "color", "kind": "color", "default": "0xAEAEAE" },
-        { "name": "width_px", "kind": "uint16", "default": 0 },
-        { "name": "radius_px", "kind": "uint16", "default": 0 }
+        { "name": "width_px", "kind": "uint16", "default": 0, "maximum": 240 },
+        { "name": "radius_px", "kind": "uint16", "default": 0, "maximum": 480 }
       ]
     },
 
@@ -291,7 +303,7 @@
         { "name": "offset_x_px", "kind": "int16", "default": 0 },
         { "name": "offset_y_px", "kind": "int16", "default": 0 },
         { "name": "border_gap", "kind": "bool", "default": true, "doc": "Cuts the border line where the caption crosses it. A caption that crosses no border cuts nothing." },
-        { "name": "gap_padding_px", "kind": "uint16", "default": 4, "doc": "Clear space kept around the caption inside that cut, on every side." }
+        { "name": "gap_padding_px", "kind": "uint16", "default": 4, "maximum": 240, "doc": "Clear space kept around the caption inside that cut, on every side. Bounded like the line it widens the mask over." }
       ]
     },
 
@@ -364,8 +376,8 @@
         { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor" },
         { "name": "border_color", "kind": "optional_color", "default": "kTransparentColor" },
         { "name": "hidden", "kind": "bool", "default": false },
-        { "name": "blink_ms", "kind": "uint16", "default": 0, "doc": "Full blink period of the widget value. 0 renders steady." },
-        { "name": "hold_ms", "kind": "uint16", "default": 0, "doc": "Keeps this rule applied for this long after it stops matching, so a momentary trigger such as traction control still produces a visible flash. 0 applies the rule only while it matches." }
+        { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of the widget value. 0 renders steady." },
+        { "name": "hold_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "Keeps this rule applied for this long after it stops matching, so a momentary trigger such as traction control still produces a visible flash. 0 applies the rule only while it matches." }
       ]
     },
 
@@ -463,9 +475,9 @@
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
-        { "name": "start_angle_deg", "kind": "uint16", "default": 135, "doc": "Where the sweep begins, in LVGL degrees: zero is three o'clock and the angle grows clockwise." },
-        { "name": "sweep_deg", "kind": "uint16", "default": 270, "doc": "How far the arc runs from its start. An extent rather than an end angle, so the wrap past 360 degrees is never ambiguous." },
-        { "name": "thickness_px", "kind": "uint16", "default": 8 },
+        { "name": "start_angle_deg", "kind": "uint16", "default": 135, "maximum": 359, "doc": "Where the sweep begins, in LVGL degrees: zero is three o'clock and the angle grows clockwise." },
+        { "name": "sweep_deg", "kind": "uint16", "default": 270, "minimum": 1, "maximum": 360, "doc": "How far the arc runs from its start. An extent rather than an end angle, so the wrap past 360 degrees is never ambiguous. A sweep of zero would draw nothing and one past a full turn would wrap over itself." },
+        { "name": "thickness_px", "kind": "uint16", "default": 8, "minimum": 1, "doc": "Ring thickness. Two of these also have to fit across the widget, which the display-aware validator checks separately." },
         { "name": "track_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Unfilled part of the sweep. Omitted leaves it unpainted, which suits an arc drawn over a shape." },
         { "name": "fill_color", "kind": "color", "default": "0x38BDF8" },
         { "name": "inverted", "kind": "bool", "default": false, "doc": "Sweeps from the far end of the arc instead of the near one." }
@@ -492,7 +504,7 @@
         { "name": "segment_radius_px", "kind": "uint16", "default": 0 },
         { "name": "off_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a segment that is not lit. Omitted leaves it unpainted." },
         { "name": "blink_threshold", "kind": "float", "default": 2, "doc": "Range fraction at or above which every lit segment blinks. The default is past the top of the range, which is how a strip says never." },
-        { "name": "blink_ms", "kind": "uint16", "default": 0, "doc": "Blink period once the blink threshold is reached. Zero never blinks." },
+        { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Blink period once the blink threshold is reached. Zero never blinks." },
         { "name": "segment_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "segments", "kind": "array", "struct": "IndicatorSegment", "capacity": "kMaximumIndicatorSegments", "count_field": "segment_count" }
       ]
@@ -505,10 +517,10 @@
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
-        { "name": "point_count", "kind": "uint16", "default": 64, "doc": "Samples the trace shows. The ring buffer is sized by kMaximumGraphPoints whatever this asks for." },
-        { "name": "sample_interval_ms", "kind": "uint16", "default": 100, "doc": "How often a sample is taken, which with point_count sets how far back the trace reaches." },
+        { "name": "point_count", "kind": "uint16", "default": 64, "minimum": 2, "maximum": "kMaximumGraphPoints", "doc": "Samples the trace shows. The ring buffer is sized by kMaximumGraphPoints whatever this asks for." },
+        { "name": "sample_interval_ms", "kind": "uint16", "default": 100, "minimum": 1, "doc": "How often a sample is taken, which with point_count sets how far back the trace reaches." },
         { "name": "line_color", "kind": "color", "default": "0x38BDF8" },
-        { "name": "line_width_px", "kind": "uint16", "default": 2 }
+        { "name": "line_width_px", "kind": "uint16", "default": 2, "minimum": 1 }
       ]
     },
 
@@ -556,7 +568,7 @@
         { "name": "in_loop", "kind": "bool", "default": true, "doc": "Includes this page in the sequence a tap cycles. A page left out of the loop is reachable only through its trigger, which is what an alert page wants." },
         { "name": "trigger", "kind": "enum", "enum": "SlotTrigger" },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry this page watches. Required by both triggers and rejected without one, so a binding never sits unread." },
-        { "name": "duration_ms", "kind": "uint16", "default": 0, "doc": "How long the page stays up after its event fires, after which the slot returns to whichever loop page was last selected. Required by value_changed, which would otherwise show a single frame; with conditions, 0 keeps the page up only while a rule holds. Bounded like a styling hold at 10000." },
+        { "name": "duration_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "How long the page stays up after its event fires, after which the slot returns to whichever loop page was last selected. Required by value_changed, which would otherwise show a single frame; with conditions, 0 keeps the page up only while a rule holds. Bounded like a styling hold." },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "conditions", "kind": "array", "struct": "SlotCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
         { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },

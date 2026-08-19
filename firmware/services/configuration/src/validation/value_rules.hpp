@@ -18,13 +18,10 @@
 // file six things at once.
 namespace simcore::configuration::validation {
 
-// Blink bounds: faster than this is a strobe rather than an indicator, slower
-// reads as a widget that failed to update.
-inline constexpr std::uint16_t kMinimumBlinkMs = 100;
-inline constexpr std::uint16_t kMaximumBlinkMs = 5'000;
-// A rule that outlives its match by more than this stops reading as a reaction
-// to the car and starts reading as a stuck widget.
-inline constexpr std::uint16_t kMaximumHoldMs = 10'000;
+// The blink window and the hold bound moved into
+// configuration/configuration_schema.json, which is where every other authored
+// bound now states itself: the device, the configurator and the property table
+// all read the one value instead of three copies of it.
 
 // Records a rejection with the property that caused it. The first cause wins so
 // an inner reason is not replaced by the generic error its caller would return.

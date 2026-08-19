@@ -2,6 +2,7 @@ import type { FramedWidget } from './types'
 import { GRADIENT_DIRECTION_VALUES, type GradientDirection, TEXT_ALIGNMENT_VALUES, type WidgetTitleStyle } from '@shared/configuration-schema'
 import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily } from '../dashboard-editor'
 import { CheckboxField, ColorField, FontEditor, Hint, NumberField, OptionalColorField, Section, SelectField, TextField } from './fields'
+import { fieldBounds } from '@shared/validate/ranges'
 import { alignmentAnchor } from '../preview/preview-values'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -65,7 +66,7 @@ export function TitleEditor({ widget, update }: {
           })} />
           {borderWidth > 0 && borderGap ? (
             <>
-              <NumberField label="Gap padding" value={widget.title.gap_padding_px ?? 4} min={0} max={240} onChange={(value) => update((next) => {
+              <NumberField label="Gap padding" value={widget.title.gap_padding_px ?? 4} {...fieldBounds(widget.type, 'title.gap_padding_px')} onChange={(value) => update((next) => {
                 const padding = Math.max(0, Math.round(value))
                 const title: WidgetTitleStyle = { ...next.title, gap_padding_px: padding }
                 if (padding === 4) delete title.gap_padding_px
@@ -90,7 +91,7 @@ export function BoxEditor({ widget, update }: {
     <Section title="Box">
       <OptionalColorField label="Background" value={widget.background_color} onChange={(value) => update((next) => { if (value) next.background_color = value; else delete next.background_color })} />
       <div className="grid grid-cols-2 gap-2">{(['left', 'top', 'right', 'bottom'] as const).map((key) => <NumberField key={key} label={`Padding ${key}`} value={widget.padding?.[key] ?? 0} min={0} onChange={(value) => update((next) => { next.padding = { ...next.padding, [key]: value } })} />)}</div>
-      <div className="grid grid-cols-2 gap-2"><NumberField label="Border width" value={widget.border?.width_px ?? 0} min={0} onChange={(value) => update((next) => { next.border = { ...next.border, width_px: value } })} /><NumberField label="Radius" value={widget.border?.radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.border = { ...next.border, radius_px: value } })} /></div>
+      <div className="grid grid-cols-2 gap-2"><NumberField label="Border width" value={widget.border?.width_px ?? 0} {...fieldBounds(widget.type, 'border.width_px')} onChange={(value) => update((next) => { next.border = { ...next.border, width_px: value } })} /><NumberField label="Radius" value={widget.border?.radius_px ?? 0} {...fieldBounds(widget.type, 'border.radius_px')} onChange={(value) => update((next) => { next.border = { ...next.border, radius_px: value } })} /></div>
       <NumberField label="Background inset" value={widget.background_inset_px ?? 0} min={0} onChange={(value) => update((next) => {
         const inset = Math.max(0, Math.round(value))
         if (inset === 0) delete next.background_inset_px

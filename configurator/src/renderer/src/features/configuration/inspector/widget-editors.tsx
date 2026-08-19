@@ -1,9 +1,9 @@
 import { ConditionsEditor } from './ConditionsEditor'
 import { SlotPagesEditor } from './SlotPagesEditor'
 import { pagesOf } from '@shared/configuration-access'
-import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
+import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
-import { MAXIMUM_BLINK_MS } from '@shared/widget-conditions'
+import { fieldBounds } from '@shared/validate/ranges'
 import { type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
 import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
 import { CheckboxField, ColorField, FontEditor, Hint, NumberField, OptionalColorField, Section, SelectField, TextField } from './fields'
@@ -18,11 +18,11 @@ export function ArcEditor({ selection, widget }: { selection: WidgetSelection; w
       <SourceRangeSection widget={widget} update={update} />
       <Section title="Arc">
         <div className="grid grid-cols-2 gap-2">
-          <NumberField label="Start angle (deg)" value={widget.start_angle_deg ?? 135} min={0} max={359} onChange={(value) => update((next) => { next.start_angle_deg = value })} />
-          <NumberField label="Sweep (deg)" value={widget.sweep_deg ?? 270} min={1} max={360} onChange={(value) => update((next) => { next.sweep_deg = value })} />
+          <NumberField label="Start angle (deg)" value={widget.start_angle_deg ?? 135} {...fieldBounds('arc', 'start_angle_deg')} onChange={(value) => update((next) => { next.start_angle_deg = value })} />
+          <NumberField label="Sweep (deg)" value={widget.sweep_deg ?? 270} {...fieldBounds('arc', 'sweep_deg')} onChange={(value) => update((next) => { next.sweep_deg = value })} />
         </div>
         <p className="text-muted-foreground">Zero degrees is three o&apos;clock and the angle grows clockwise, so 135 with a 270 sweep is the usual car gauge.</p>
-        <NumberField label="Thickness (px)" value={widget.thickness_px ?? 8} min={1} onChange={(value) => update((next) => { next.thickness_px = value })} />
+        <NumberField label="Thickness (px)" value={widget.thickness_px ?? 8} {...fieldBounds('arc', 'thickness_px')} onChange={(value) => update((next) => { next.thickness_px = value })} />
         <ColorField label="Fill color" value={widget.fill_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.fill_color = value })} />
         <OptionalColorField label="Track color" value={widget.track_color} onChange={(value) => update((next) => { if (value === undefined) delete next.track_color; else next.track_color = value })} />
         <CheckboxField label="Sweep from the far end" checked={widget.inverted ?? false} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
@@ -49,7 +49,7 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
         <OptionalColorField label="Unlit color" value={widget.off_color} onChange={(value) => update((next) => { if (value === undefined) delete next.off_color; else next.off_color = value })} />
         <div className="grid grid-cols-2 gap-2">
           <NumberField label="Blink from" value={widget.blink_threshold ?? 2} step="any" onChange={(value) => update((next) => { next.blink_threshold = value })} />
-          <NumberField label="Blink (ms)" value={widget.blink_ms ?? 0} min={0} max={MAXIMUM_BLINK_MS} onChange={(value) => update((next) => { next.blink_ms = value })} />
+          <NumberField label="Blink (ms)" value={widget.blink_ms ?? 0} {...fieldBounds('indicator', 'blink_ms')} onChange={(value) => update((next) => { next.blink_ms = value })} />
         </div>
         <p className="text-muted-foreground">Blinking starts at this fraction of the range; above 1 it never blinks, and so does a zero period.</p>
       </Section>
@@ -117,12 +117,12 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
       <SourceRangeSection widget={widget} update={update} />
       <Section title="Trace">
         <div className="grid grid-cols-2 gap-2">
-          <NumberField label="Points" value={points} min={2} max={MAXIMUM_GRAPH_POINTS} onChange={(value) => update((next) => { next.point_count = value })} />
-          <NumberField label="Interval (ms)" value={interval} min={1} onChange={(value) => update((next) => { next.sample_interval_ms = value })} />
+          <NumberField label="Points" value={points} {...fieldBounds('graph', 'point_count')} onChange={(value) => update((next) => { next.point_count = value })} />
+          <NumberField label="Interval (ms)" value={interval} {...fieldBounds('graph', 'sample_interval_ms')} onChange={(value) => update((next) => { next.sample_interval_ms = value })} />
         </div>
         <p className="text-muted-foreground">{`Shows the last ${((points * interval) / 1000).toFixed(1)} s. The trace is the most expensive widget to draw, so keep the point count only as high as it needs to be.`}</p>
         <ColorField label="Line color" value={widget.line_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.line_color = value })} />
-        <NumberField label="Line width (px)" value={widget.line_width_px ?? 2} min={1} onChange={(value) => update((next) => { next.line_width_px = value })} />
+        <NumberField label="Line width (px)" value={widget.line_width_px ?? 2} {...fieldBounds('graph', 'line_width_px')} onChange={(value) => update((next) => { next.line_width_px = value })} />
       </Section>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
