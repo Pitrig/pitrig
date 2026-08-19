@@ -42,6 +42,27 @@ telemetry::TelemetryRead read_lap_timer_modifier(void* const context) {
   return value;
 }
 
+// The modifier table the whole dashboard binds through. This is the one place
+// a concrete module is named — the same role register_widget_types() plays for
+// widget types — so the binders, the slots controller and every widget type
+// resolve a modifier by its enum index and learn nothing about lap timing.
+//
+// A module that did not start leaves its entry empty, and an empty entry fails
+// the bind rather than falling back to the raw telemetry the modifier was
+// meant to replace.
+[[nodiscard]] dashboard::frame::ModifierReaders modifier_readers(
+    module_composition::Modules& modules) {
+  dashboard::frame::ModifierReaders readers{};
+  readers[static_cast<std::size_t>(
+      configuration::ValueModifierType::lap_timer)] = {
+      .read = modules.lap_timer_started ? &read_lap_timer_modifier : nullptr,
+      .context = modules.lap_timer_started
+                     ? static_cast<void*>(&modules.lap_timer)
+                     : nullptr,
+  };
+  return readers;
+}
+
 // Runs on the render-trigger task with the LVGL lock held.
 void wake_widgets(void* const context) {
   static_cast<Dashboard*>(context)->widgets.wake_all();
@@ -113,7 +134,7 @@ void on_telemetry_updated(const events::Event&, void* const context) {
 [[nodiscard]] bool attach_slots_and_navigation(
     const configuration::ApplicationConfiguration& configuration,
     const dashboard::Layout& layout,
-    const dashboard::frame::ModifierReader lap_timer_modifier,
+    const dashboard::frame::ModifierReaders& readers,
     Dashboard& dashboard, const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry) {
   if (!lvgl_port_lock(0)) {
@@ -133,7 +154,7 @@ void on_telemetry_updated(const events::Event&, void* const context) {
                      configuration::kMaximumSlotPages);
     if (container != nullptr &&
         !dashboard.slots.add(container, pages, config, registry, telemetry,
-                             lap_timer_modifier)) {
+                             readers)) {
       log::error(kTag, "Failed to bind slot page source");
       attached = false;
     }
@@ -204,22 +225,16 @@ bool create(lv_display_t* const display,
     return false;
   }
 
-  // The module reader every widget type binds through, and the same one the
-  // slots watch, so a lap-timer modifier resolves identically wherever it is
-  // authored.
-  const dashboard::frame::ModifierReader lap_timer_modifier{
-      .read = modules.lap_timer_started ? &read_lap_timer_modifier : nullptr,
-      .context = modules.lap_timer_started
-                     ? static_cast<void*>(&modules.lap_timer)
-                     : nullptr,
-  };
+  // The modifier readers every widget type binds through, and the same ones the
+  // slots watch, so a modifier resolves identically wherever it is authored.
+  const dashboard::frame::ModifierReaders readers = modifier_readers(modules);
   for (WidgetStorage* const storage : storages(dashboard_state)) {
     storage->layout = layout;
     storage->dashboard = &configuration.dashboard;
     storage->fonts = &dashboard_state.fonts;
     storage->registry = &telemetry_registry;
     storage->telemetry = &telemetry;
-    storage->lap_timer_modifier = lap_timer_modifier;
+    storage->modifier_readers = readers;
   }
   dashboard_state.image.images = &dashboard_state.images;
   dashboard_state.shape.container_slots = dashboard_state.containers;
@@ -241,9 +256,9 @@ bool create(lv_display_t* const display,
     log::error(kTag, "Failed to apply dashboard widget Z order");
     initialized = false;
   }
-  if (!attach_slots_and_navigation(configuration, layout,
-                                   lap_timer_modifier, dashboard_state,
-                                   telemetry_registry, telemetry)) {
+  if (!attach_slots_and_navigation(configuration, layout, readers,
+                                   dashboard_state, telemetry_registry,
+                                   telemetry)) {
     initialized = false;
   }
   // After attach(), which resets the controller and therefore the bindings.

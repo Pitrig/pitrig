@@ -15,10 +15,10 @@ class ITelemetryReader;
 
 namespace simcore::dashboard::text_widget {
 
-// The same module reader every other widget type binds through. A text widget
+// The same modifier table every other widget type binds through. A text widget
 // resolves several sources rather than one, but a modifier replaces a reading
 // identically, so the type is shared rather than restated.
-using ModifierReader = frame::ModifierReader;
+using ModifierReaders = frame::ModifierReaders;
 
 // A resolved value pipeline for one source. It deliberately holds no pointer
 // into the configuration document: the binder owns everything here, and the
@@ -44,7 +44,7 @@ class Binder final {
       std::span<const Config> configurations,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      ModifierReader lap_timer_modifier);
+      const ModifierReaders& modifier_readers);
 
   [[nodiscard]] std::span<const WidgetBinding> bindings() const;
 
@@ -58,7 +58,7 @@ class Binder final {
       const Config& configuration,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      ModifierReader lap_timer_modifier, WidgetBinding& binding);
+      const ModifierReaders& modifier_readers, WidgetBinding& binding);
 
   // Resolves one canonical name plus its modifiers into a read callback. The
   // sources of a widget and the source its rules watch differ only in the
@@ -68,7 +68,7 @@ class Binder final {
       std::span<const configuration::ValueModifier> modifiers,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      ModifierReader lap_timer_modifier, BoundConfig& bound);
+      const ModifierReaders& modifier_readers, BoundConfig& bound);
 
   [[nodiscard]] static telemetry::TelemetryRead read_telemetry(void* context);
 

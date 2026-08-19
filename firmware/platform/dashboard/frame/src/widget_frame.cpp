@@ -214,19 +214,21 @@ bool bind_source(const std::string_view name,
                  const std::span<const configuration::ValueModifier> modifiers,
                  const telemetry::ITelemetryRegistry& registry,
                  const telemetry::ITelemetryReader& telemetry,
-                 const ModifierReader lap_timer_modifier,
+                 const ModifierReaders& modifier_readers,
                  SourceContext& context, ValueReadCallback& read,
                  void*& read_context, bool& fast_updates) {
   const telemetry::Handle handle = registry.resolve(name);
   if (!handle.valid()) {
     return false;
   }
-  const bool lap_timer_modified =
-      modifier_count == 1 &&
-      modifiers.front().type == configuration::ValueModifierType::lap_timer;
-  if (lap_timer_modified) {
-    read = lap_timer_modifier.read;
-    read_context = lap_timer_modifier.context;
+  // Exactly one modifier is what the contract allows today, so a longer list
+  // is not a pipeline here — it reads unmodified, the way it always has.
+  const bool modified = modifier_count == 1;
+  if (modified) {
+    const ModifierReader reader =
+        modifier_reader(modifier_readers, modifiers.front().type);
+    read = reader.read;
+    read_context = reader.context;
   } else {
     context = {
         .telemetry = &telemetry,
@@ -235,7 +237,10 @@ bool bind_source(const std::string_view name,
     read = &read_telemetry;
     read_context = &context;
   }
-  fast_updates = lap_timer_modified;
+  // A module reader produces values between telemetry updates — that is what
+  // makes it a modifier rather than a transform — so anything it feeds renders
+  // on the fast path.
+  fast_updates = modified;
   return read != nullptr && read_context != nullptr;
 }
 

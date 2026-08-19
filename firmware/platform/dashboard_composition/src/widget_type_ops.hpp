@@ -58,7 +58,7 @@ struct WidgetOpsCommon {
       Storage& widgets,
       const std::span<const typename Storage::Config> configurations) {
     return widgets.binder.bind(configurations, *widgets.registry,
-                               *widgets.telemetry, widgets.lap_timer_modifier);
+                               *widgets.telemetry, widgets.modifier_readers);
   }
 
   // The type is named from the traits table rather than baked into a per-type

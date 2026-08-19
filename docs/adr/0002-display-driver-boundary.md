@@ -31,6 +31,17 @@ internal to the concrete driver. The board registry keeps separate private
 logical display bounds only for configuration validation; they are not added
 to the driver descriptor, device configuration, or control protocol.
 
+The display driver is held as a **pointer**, so a board that has no panel is
+expressible without a special case — the same trade ADR 0019 makes for the
+digitizer, and for the same reason: the vision covers button boxes and LED
+modules, which are boards whose descriptor names no display. A null driver
+means the core initializes no display, never starts LVGL, and composes no
+dashboard; configuration storage, the control protocol, telemetry transport and
+modules are untouched, because none of them draws. Every phase after startup
+asks the resolved display rather than the board descriptor, so a declared panel
+that fails to come up lands in exactly the same place as one that was never
+declared.
+
 Select drivers and immutable validation capabilities through the board registry
 using the factory board identity chosen by the firmware build. A user
 configuration must contain the same board identifier, but it does not select
@@ -70,6 +81,11 @@ board or controller.
   the board registry.
 - The current configurator cannot disable, replace, or edit a board-provided
   display driver.
+- A board with no display can be described, but what a dashboard document means
+  on one is not decided here: such a board still validates and stores a
+  configuration, and `APPLY` refuses a document naming a font or image, because
+  nothing loaded them. Authoring for a display-less board needs its own
+  decision alongside the peripheral contract.
 - Modules use the display component and do not depend on the selected driver.
 - Supporting another board requires a firmware driver/board mapping and a
   matching configurator board profile.

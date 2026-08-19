@@ -26,13 +26,21 @@ transport::ITransport& primary_transport(Application& application) {
 bool recompose(Application& application) {
   const configuration::ApplicationConfiguration& configuration =
       application.services.configuration.current();
+  // A board with no panel started no LVGL, so there is no dashboard to take
+  // down or put back — only the modules the document enables.
+  const bool headless = application.display == nullptr;
   // Widgets read module state, so the dashboard goes away before modules are
   // restarted and is built again afterwards.
-  dashboard_composition::destroy(dashboard_composition::instance());
+  if (!headless) {
+    dashboard_composition::destroy(dashboard_composition::instance());
+  }
   const bool modules_started = module_composition::start(
       application.modules, application.services.event_bus,
       application.services.telemetry_registry,
       application.services.telemetry_state, configuration);
+  if (headless) {
+    return modules_started;
+  }
   const bool dashboard_created = dashboard_composition::create(
       application.display, configuration, application.modules,
       dashboard_composition::instance(), application.services.telemetry_registry,
@@ -81,7 +89,9 @@ configuration::ValidationFailure apply_configuration(
                   sizeof(previous.telemetry_transport)) == 0;
 
   service.promote();
-  if (dashboard_only &&
+  // The incremental path rebuilds LVGL objects in place, so it is reachable
+  // only where LVGL is running at all.
+  if (dashboard_only && application.display != nullptr &&
       dashboard_composition::apply_incremental(previous, candidate,
                                                dashboard_composition::instance())) {
     return {};

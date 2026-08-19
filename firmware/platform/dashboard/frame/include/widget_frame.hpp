@@ -31,6 +31,24 @@ struct ModifierReader {
   void* context{};
 };
 
+// One reader per ValueModifierType, indexed by the enum value. The composition
+// root fills the entry of every module it started and leaves the rest empty, so
+// the binding below resolves a modifier by its index and never names a module.
+// Adding a modifier type is then an entry there and a value in the schema;
+// nothing in this file or in the per-type binders changes.
+using ModifierReaders =
+    std::array<ModifierReader, configuration::kValueModifierTypeNames.size()>;
+
+// The reader a modifier type resolves to, or an empty one when the type is out
+// of range. Empty fails the bind, which is what an authored modifier whose
+// module did not start has always done.
+[[nodiscard]] inline ModifierReader modifier_reader(
+    const ModifierReaders& readers,
+    const configuration::ValueModifierType type) {
+  const auto index = static_cast<std::size_t>(type);
+  return index < readers.size() ? readers[index] : ModifierReader{};
+}
+
 // Telemetry read context, owned by the widget type that binds the source. It is
 // deliberately not a pointer into the configuration document, so a replacement
 // cannot leave a widget reading stale storage.
@@ -47,7 +65,7 @@ struct SourceContext {
     std::span<const configuration::ValueModifier> modifiers,
     const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry,
-    ModifierReader lap_timer_modifier, SourceContext& context,
+    const ModifierReaders& modifier_readers, SourceContext& context,
     ValueReadCallback& read, void*& read_context, bool& fast_updates);
 
 // One widget's resolved sources: the value it draws and the source its rules
@@ -67,7 +85,7 @@ class ValueBinder final {
   [[nodiscard]] bool bind(const std::span<const WidgetConfig> configurations,
                           const telemetry::ITelemetryRegistry& registry,
                           const telemetry::ITelemetryReader& telemetry,
-                          const ModifierReader lap_timer_modifier) {
+                          const ModifierReaders& modifier_readers) {
     count_ = 0;
     if (configurations.size() > bindings_.size()) {
       return false;
@@ -78,7 +96,7 @@ class ValueBinder final {
               configuration::value_binding_view(configuration.source.binding),
               configuration.source.modifier_count,
               configuration.source.modifiers, registry, telemetry,
-              lap_timer_modifier, value_contexts_[count_], binding.read,
+              modifier_readers, value_contexts_[count_], binding.read,
               binding.read_context, binding.fast_updates)) {
         count_ = 0;
         return false;
@@ -90,7 +108,7 @@ class ValueBinder final {
                            widget_frame.condition_source.binding),
                        widget_frame.condition_source.modifier_count,
                        widget_frame.condition_source.modifiers, registry,
-                       telemetry, lap_timer_modifier,
+                       telemetry, modifier_readers,
                        condition_contexts_[count_], binding.condition_read,
                        binding.condition_context, condition_fast)) {
         count_ = 0;
@@ -121,7 +139,7 @@ class ConditionBinder final {
   [[nodiscard]] bool bind(const std::span<const WidgetConfig> configurations,
                           const telemetry::ITelemetryRegistry& registry,
                           const telemetry::ITelemetryReader& telemetry,
-                          const ModifierReader lap_timer_modifier) {
+                          const ModifierReaders& modifier_readers) {
     count_ = 0;
     if (configurations.size() > reads_.size()) {
       return false;
@@ -136,7 +154,7 @@ class ConditionBinder final {
                            widget_frame.condition_source.binding),
                        widget_frame.condition_source.modifier_count,
                        widget_frame.condition_source.modifiers, registry,
-                       telemetry, lap_timer_modifier, contexts_[count_], read,
+                       telemetry, modifier_readers, contexts_[count_], read,
                        read_context, fast_updates)) {
         count_ = 0;
         return false;

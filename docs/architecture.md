@@ -459,7 +459,10 @@ absent instead of being expanded through board profiles.
 Firmware builds own one immutable `BoardDefinition`. It binds the board
 identifier, display driver, default telemetry transport, factory payload, and
 private validation metadata for constraints such as logical display bounds and
-the board's UART pin pair. This metadata is not part of the public
+the board's UART pin pair. The display driver and the input driver are both
+nullable: a board without a panel, or without a digitizer, is a board fact
+rather than a special case, and the core reads absence in one place instead of
+carrying board identity. This metadata is not part of the public
 configuration or device-information protocol.
 Firmware reports only the stable board identifier; the configurator maps it to
 a local supported board profile containing read-only authoring metadata such as
@@ -470,7 +473,8 @@ controls supported configurable hardware devices and may be empty.
 The factory user configuration contains only that board identifier. Hardware
 declared as built into the board remains enabled; currently, a board-provided
 display is initialized by default and exposed to the configurator as a
-read-only capability. Additional hardware devices, modules, and widgets are
+read-only capability. A board that declares none starts no LVGL and composes no
+dashboard, and keeps its configuration link, transport and modules unchanged. Additional hardware devices, modules, and widgets are
 created only when present in the validated configuration, so a freshly flashed
 or reset production device has an enabled display with an empty dashboard.
 

@@ -115,6 +115,12 @@ outrun its storage.
   presentation boundary.
 - Adding another modifier requires an explicit bounded pipeline adapter and
   configuration validation; the dashboard does not become a service locator.
+  Which module answers a modifier is a table indexed by `ValueModifierType`,
+  filled once at the dashboard composition root beside the widget-type
+  descriptors. The binders, the slots controller and every widget type resolve a
+  modifier by its index, so they name no module and a second one does not reach
+  them. An entry left empty — its module did not start — fails the bind rather
+  than silently reading the telemetry the modifier was meant to replace.
 - Transform behavior remains reusable outside dashboard code.
 - Transforms share one bounded writer, so the next transform starts at
   formatting instead of at buffer handling.

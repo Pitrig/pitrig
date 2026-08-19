@@ -9,19 +9,21 @@ bool Binder::bind_one(
     const std::span<const configuration::ValueModifier> modifiers,
     const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry,
-    const ModifierReader lap_timer_modifier, BoundConfig& bound) {
+    const ModifierReaders& modifier_readers, BoundConfig& bound) {
   const telemetry::Handle handle = registry.resolve(name);
   if (!handle.valid()) {
     return false;
   }
-  const bool lap_timer_modified =
-      modifier_count == 1 &&
-      modifiers.front().type == configuration::ValueModifierType::lap_timer;
+  // The same rule frame::bind_source states: one modifier is what the contract
+  // allows, and which module answers it is the table's business, not this file's.
+  const bool modified = modifier_count == 1;
   ValueReadCallback read{};
   void* read_context{};
-  if (lap_timer_modified) {
-    read = lap_timer_modifier.read;
-    read_context = lap_timer_modifier.context;
+  if (modified) {
+    const frame::ModifierReader reader =
+        frame::modifier_reader(modifier_readers, modifiers.front().type);
+    read = reader.read;
+    read_context = reader.context;
   } else {
     if (context_count_ >= source_contexts_.size()) {
       return false;
@@ -40,7 +42,7 @@ bool Binder::bind_one(
   bound = {
       .read = read,
       .read_context = read_context,
-      .fast_updates = lap_timer_modified,
+      .fast_updates = modified,
   };
   return true;
 }
@@ -49,7 +51,7 @@ bool Binder::bind_sources(
     const Config& configuration,
     const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry,
-    const ModifierReader lap_timer_modifier, WidgetBinding& binding) {
+    const ModifierReaders& modifier_readers, WidgetBinding& binding) {
   if (configuration.source_count == 0 ||
       configuration.source_count > binding.sources.size()) {
     return false;
@@ -59,7 +61,7 @@ bool Binder::bind_sources(
         configuration.sources[index];
     if (!bind_one(configuration::value_binding_view(source.binding),
                   source.modifier_count, source.modifiers, registry, telemetry,
-                  lap_timer_modifier, binding.sources[index])) {
+                  modifier_readers, binding.sources[index])) {
       return false;
     }
   }
@@ -72,14 +74,14 @@ bool Binder::bind_sources(
       configuration.frame.condition_source;
   return bind_one(configuration::value_binding_view(source.binding),
                   source.modifier_count, source.modifiers, registry, telemetry,
-                  lap_timer_modifier, binding.condition);
+                  modifier_readers, binding.condition);
 }
 
 bool Binder::bind(
     const std::span<const Config> configurations,
     const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry,
-    const ModifierReader lap_timer_modifier) {
+    const ModifierReaders& modifier_readers) {
   count_ = 0;
   context_count_ = 0;
   if (configurations.size() > bindings_.size()) {
@@ -89,7 +91,7 @@ bool Binder::bind(
   for (const Config& configuration : configurations) {
     WidgetBinding& binding = bindings_[count_];
     binding = {};
-    if (!bind_sources(configuration, registry, telemetry, lap_timer_modifier,
+    if (!bind_sources(configuration, registry, telemetry, modifier_readers,
                       binding)) {
       count_ = 0;
       context_count_ = 0;

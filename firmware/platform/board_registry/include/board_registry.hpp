@@ -11,7 +11,11 @@ namespace simcore::board_registry {
 struct BoardDefinition {
   configuration::BoardId id{};
   configuration::ValidationContext validation{};
-  const display::driver::Driver& display;
+  // Null on a board with no panel — a button box or an LED module — which is a
+  // board fact rather than an error, exactly as a missing digitizer is. The
+  // core then initializes no display, brings up no LVGL, and composes no
+  // dashboard; configuration, transport and modules are unaffected.
+  const display::driver::Driver* display{};
   // Null on a board with no digitizer, which is a board fact rather than an
   // error. A pointer rather than a reference is what makes that expressible.
   const input::driver::Driver* input{};

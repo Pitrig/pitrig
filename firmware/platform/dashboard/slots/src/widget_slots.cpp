@@ -19,7 +19,7 @@ bool Controller::add(lv_obj_t* const container,
                      const configuration::SlotWidgetConfiguration& config,
                      const telemetry::ITelemetryRegistry& registry,
                      const telemetry::ITelemetryReader& telemetry,
-                     const frame::ModifierReader lap_timer_modifier) {
+                     const frame::ModifierReaders& modifier_readers) {
   const std::size_t page_count =
       config.page_count < pages.size() ? config.page_count : pages.size();
   if (container == nullptr || count_ >= slots_.size() || page_count == 0 ||
@@ -59,7 +59,7 @@ bool Controller::add(lv_obj_t* const container,
       if (!frame::bind_source(
               configuration::value_binding_view(source.source.binding),
               source.source.modifier_count, source.source.modifiers, registry,
-              telemetry, lap_timer_modifier, page.source, page.read,
+              telemetry, modifier_readers, page.source, page.read,
               page.read_context, fast_updates)) {
         page = {};
         return false;

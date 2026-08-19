@@ -149,7 +149,15 @@ void initialize_display(Application& application,
                         const board_registry::BoardDefinition& board,
                         const configuration::ApplicationConfiguration&
                             configuration) {
-  application.display = display::initialize(board.display);
+  // A board with no panel leaves the display null and takes LVGL with it: the
+  // port is never started, so nothing below may take the LVGL lock. Every
+  // later phase asks `application.display` rather than the board, because a
+  // declared panel that fails to come up has to land in the same place.
+  if (board.display == nullptr) {
+    log::info(kTag, "Board declares no display; running without a dashboard");
+    return;
+  }
+  application.display = display::initialize(*board.display);
   // A board without a digitizer leaves this null. The pointer device is never
   // torn down, so nothing else in the firmware learns which case it is in, and
   // a declared panel that fails to answer lands in the same place.
@@ -169,6 +177,12 @@ void initialize_display(Application& application,
 // the partition. A failure here is not fatal — composition reports it as an
 // unresolved dependency.
 void load_uploaded_assets(Application& application) {
+  // Faces and images are copied out of flash so the dashboard can draw from
+  // them. With no dashboard there is nothing to draw, and the copy would only
+  // spend external memory the device never reads.
+  if (application.display == nullptr) {
+    return;
+  }
   const std::size_t face_bytes =
       application.services.font_assets.face_bytes_total();
   if (face_bytes > 0) {
@@ -201,6 +215,11 @@ void compose(Application& application,
                                  application.services.telemetry_state,
                                  configuration)) {
     log::error(kTag, "One or more configured modules failed to start");
+  }
+  // Modules run on a board with no panel — they answer telemetry, not pixels.
+  // Everything below this point is LVGL.
+  if (application.display == nullptr) {
+    return;
   }
   if (!dashboard_composition::create(
           application.display, configuration, application.modules,

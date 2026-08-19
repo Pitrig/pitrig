@@ -45,7 +45,7 @@ class Controller final {
                          const configuration::SlotWidgetConfiguration& config,
                          const telemetry::ITelemetryRegistry& registry,
                          const telemetry::ITelemetryReader& telemetry,
-                         frame::ModifierReader lap_timer_modifier);
+                         const frame::ModifierReaders& modifier_readers);
 
   // Applies the starting selection, makes each slot clickable, and starts
   // evaluating triggers. LVGL lock held.

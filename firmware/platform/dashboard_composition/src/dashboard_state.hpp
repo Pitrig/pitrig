@@ -67,7 +67,10 @@ struct WidgetStorage {
   const dashboard::fonts::Registry* fonts{};
   const telemetry::ITelemetryRegistry* registry{};
   const telemetry::ITelemetryReader* telemetry{};
-  dashboard::frame::ModifierReader lap_timer_modifier{};
+  // Every modifier a running module can answer, indexed by ValueModifierType.
+  // Held once here for the same reason the rest of this base is: a new modifier
+  // reaches every widget type by being filled in at the composition root.
+  dashboard::frame::ModifierReaders modifier_readers{};
 };
 
 // Each type states its configuration type, its discriminator, and the pool of

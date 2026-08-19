@@ -25,7 +25,7 @@ const BoardDefinition& factory_board() {
           .uart_supported = false,
           .native_usb_cdc_supported = true,
       },
-      .display = display::drivers::guition_jc1060p470c::get(),
+      .display = &display::drivers::guition_jc1060p470c::get(),
       .input = &input::drivers::guition_jc1060p470c::get(),
       .default_telemetry_transport =
           configuration::TelemetryTransportId::native_usb_cdc,
@@ -43,7 +43,7 @@ const BoardDefinition& factory_board() {
           .uart_supported = true,
           .native_usb_cdc_supported = false,
       },
-      .display = display::drivers::guition_esp32_4848s040::get(),
+      .display = &display::drivers::guition_esp32_4848s040::get(),
       .input = &input::drivers::guition_esp32_4848s040::get(),
       .default_telemetry_transport =
           configuration::TelemetryTransportId::uart,
@@ -61,7 +61,7 @@ const BoardDefinition& factory_board() {
           .uart_supported = true,
           .native_usb_cdc_supported = true,
       },
-      .display = display::drivers::t_display_s3::get(),
+      .display = &display::drivers::t_display_s3::get(),
       .input = nullptr,
       .default_telemetry_transport =
           configuration::TelemetryTransportId::native_usb_cdc,
