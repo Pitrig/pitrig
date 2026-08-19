@@ -280,7 +280,10 @@ bounded time by a telemetry trigger
 the tap targets that navigate all live in one navigation controller
 ([ADR 0020](adr/0020-screen-navigation.md)); widgets are built refusing input and
 the composition makes only the authored tap targets clickable, so no widget type
-knows about input. Stateful modifiers, including Lap
+knows about input. The dashboard uses no LVGL theme: every object it creates
+sets what it draws explicitly, so the build selects no theme and compiles only
+the five LVGL classes the widgets are made of (`lv_obj`, `lv_label`,
+`lv_image`, `lv_line`, `lv_arc`). Stateful modifiers, including Lap
 Timer, are implemented by modules and hidden behind the pipeline callback. Pure
 transforms live under `utils/transformers` and do not depend on dashboard or LVGL.
 Widgets do not know protocol identifiers or telemetry field names and do not
