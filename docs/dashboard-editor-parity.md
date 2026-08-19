@@ -49,7 +49,13 @@ Available: `text`, `shape`, `slot`, `bar`, `arc`, `indicator`, `graph` and
 `image`.
 There is no dedicated delta widget any more: a delta is authored from a text
 widget with a signed transform plus a bar with a centred `origin`.
-Missing: tables.
+Missing: tables, and a track map. The map is not an uploaded asset: SimHub
+already generates the outline, so it travels the link once per track and the
+device keeps it in RAM, with the car placed on it by `track.position_percent` —
+the only positional field the catalog carries. That makes it the first payload
+that is neither a telemetry line nor an asset package: what SimHub can be made
+to emit, how the outline is encoded, and when it is dropped (a track change) are
+the ADR's questions.
 
 Every type needs an LVGL implementation, a compile-time descriptor per
 [ADR 0015](adr/0015-widget-descriptors.md) and an entry in the schema. That is
@@ -117,7 +123,10 @@ The device decodes nothing: an image arrives in the layout and at the size it is
 drawn at.
 
 Missing: an indexed palette (the format accepts one, but the configurator does
-not quantize yet) and sprite atlases.
+not quantize yet), sprite atlases, and keeping an image in the format it was
+authored in — a PNG or an SVG the device decodes and scales itself, so one
+upload serves every size and a layout transfer carries it. That last one is the
+opposite of the decision ADR 0018 took, and needs its own.
 
 ### 6. Editor UX
 
@@ -188,9 +197,13 @@ so the preview matches the board's layout rather than its pixels. An asset
 uploaded from another machine has no local copy, and falls back to a stand-in
 face and a named box.
 
-Live telemetry from the game does not exist and is not planned: `@SC:` has no
-command for reading values, and while a session is running the port belongs to
-SimHub.
+Live telemetry is accepted for work, but not by asking the board for it: `@SC:`
+has no command for reading values, and while a session is running the port
+belongs to SimHub. The direction is to put the configurator in the middle — a
+virtual COM port on the PC that SimHub sends to, with the configurator drawing
+the stream on the canvas and forwarding it on to the board — so the same values
+reach both, and the canvas shows conditional rules, ramps, graph traces and real
+string lengths reacting.
 
 ### 8. Templates and portability
 
@@ -221,7 +234,7 @@ destination before it replaces anything ([ADR 0023](adr/0023-dashboard-templates
 
 What a transfer still cannot do: reflow. Neither fit rearranges anything, so a
 layout that wants a different arrangement on a differently shaped display is
-hand work. Image assets do not follow either — the board draws a bitmap at the size it was uploaded at
+hand work; reflow is accepted for work. Image assets do not follow either — the board draws a bitmap at the size it was uploaded at
 ([ADR 0018](adr/0018-uploaded-image-assets.md)) — so the report names each one
 and the size it now needs. A template is a whole dashboard: there is no way to
 save or insert a single screen, and no way to share one as a file without going
@@ -234,14 +247,17 @@ face file.
 
 ## Deliberate limitations
 
-Transparency (colours stay opaque `#RRGGBB`), rotation, shadows and auto-fitting
-text to its box are excluded by decision rather than deferred. Transparency is
-not needed by the product, and packing `#RRGGBBAA` would make `#FFFFFFFF`
-indistinguishable from the `kTransparentColor` sentinel; only `lv_image` can
-rotate and doing so disables the PPA on the ESP32-P4, so a rotated image is
+Rotation, shadows and auto-fitting text to its box are excluded by decision
+rather than deferred. Only `lv_image` can rotate and doing so disables the PPA on the ESP32-P4, so a rotated image is
 prepared during conversion; a shadow is a per-frame blur in direct mode; and
 auto-fitting fights glyph pre-warming ([ADR 0010](adr/0010-uploaded-font-assets.md)),
 so a widget reports the size it needs instead.
+
+Transparency was on this list and is not any more: colours stay opaque
+`#RRGGBB` today, and the obstacle is the encoding rather than the feature —
+packing `#RRGGBBAA` would make `#FFFFFFFF` indistinguishable from the
+`kTransparentColor` sentinel every optional colour uses for "unset". An
+alpha that keeps those apart is what the work is.
 
 The per-class widget caps for the dashboard, 3 sources per widget, 15-byte
 strings and 4 modifiers per source are embedded-system limits rather than
@@ -271,3 +287,18 @@ raising a particular cap is a decision about the RAM budget.
    and saved template library, and the contain-or-stretch scale that both
    applying a template and converting a draft share
    ([ADR 0023](adr/0023-dashboard-templates-and-layout-transfer.md)).
+8. **Preview with live values** — the virtual COM port the configurator sits
+   behind. It comes first among what is left because it is what makes the rest
+   judgeable: a rule, a ramp, a graph trace and a real string length cannot be
+   checked against a placeholder.
+9. **The editor's remaining reach** — dragging into a container on the canvas,
+   saving and inserting a single screen, a template as a file, and a gallery to
+   start from. Configurator only, no schema and no firmware.
+10. **Transparency** — cheap to author and cheap to draw; the work is an alpha
+    encoding that still leaves the `kTransparentColor` sentinel meaning "unset".
+11. **Images that survive a move** — an original-format asset the device scales,
+    and reflow in the transfer. The two together are what makes a dashboard
+    portable rather than merely resized.
+12. **Table and track map** — the widget types still missing. Firmware work:
+    an LVGL implementation, a descriptor and a schema entry each, and the map
+    also needs the one-shot outline message and somewhere to hold it.
