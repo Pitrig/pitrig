@@ -532,6 +532,15 @@ Each subsystem owns the mechanism appropriate to its work:
 A central scheduler requires a separate architectural decision if a future
 cross-subsystem timing requirement cannot be represented by these mechanisms.
 
+On the dual-core targets the two halves of the firmware are pinned apart:
+communication — the transport read tasks, the configuration-control and
+asset-upload tasks, and the render trigger they wake — runs on
+`SIMCORE_COMMUNICATION_CORE`, and the LVGL task alone on `SIMCORE_RENDER_CORE`
+(both in `simcore_features.hpp`). Parsing a telemetry chunk, validating a
+64 KB document, or a live apply therefore never time-slices with a frame, and
+because the render trigger has the lower priority on its core, a received chunk
+is parsed to the end before the single pass it triggers.
+
 Dashboard rendering combines the three so a telemetry change is not delayed by
 a widget timer period. The dashboard composition subscribes to telemetry update
 events; the handler signals a small render-trigger task, which takes the LVGL

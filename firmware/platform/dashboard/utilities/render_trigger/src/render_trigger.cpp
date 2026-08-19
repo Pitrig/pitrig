@@ -1,6 +1,7 @@
 #include "render_trigger.hpp"
 
 #include "esp_lvgl_port.h"
+#include "simcore_features.hpp"
 
 namespace simcore::dashboard::render_trigger {
 
@@ -12,9 +13,10 @@ bool Trigger::start(const WakeHandler handler, void* const context,
   handler_ = handler;
   context_ = context;
   pending_.store(false, std::memory_order_relaxed);
-  task_ = xTaskCreateStatic(&Trigger::task_entry, "render_trigger",
-                            task_storage.stack.size(), this, kTaskPriority,
-                            task_storage.stack.data(), &task_storage.state);
+  task_ = xTaskCreateStaticPinnedToCore(
+      &Trigger::task_entry, "render_trigger", task_storage.stack.size(), this,
+      kTaskPriority, task_storage.stack.data(), &task_storage.state,
+      SIMCORE_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     handler_ = nullptr;
     context_ = nullptr;

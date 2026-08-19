@@ -17,7 +17,7 @@
 namespace simcore::display {
 namespace {
 
-constexpr int kLvglTaskCore = 1;
+constexpr int kLvglTaskCore = SIMCORE_RENDER_CORE;
 constexpr std::uint32_t kInitialFrameTimeoutMs = 1'000;
 #if SIMCORE_DEBUG
 constexpr std::uint32_t kTaskMaxSleepMs = 8;

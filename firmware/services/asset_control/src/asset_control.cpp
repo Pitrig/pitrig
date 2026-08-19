@@ -78,9 +78,10 @@ bool AssetControl::initialize(const Traits& traits,
   };
   reset_session();
   request_state_.store(RequestState::idle, std::memory_order_relaxed);
-  task_ = xTaskCreateStatic(&AssetControl::task_entry, traits_.task_name,
-                            task_stack_.size(), this, kTaskPriority,
-                            task_stack_.data(), &task_state_);
+  task_ = xTaskCreateStaticPinnedToCore(
+      &AssetControl::task_entry, traits_.task_name, task_stack_.size(), this,
+      kTaskPriority, task_stack_.data(), &task_state_,
+      SIMCORE_COMMUNICATION_CORE);
   if (task_ != nullptr) {
 #if SIMCORE_DEBUG
     performance::register_task(traits_.metric, task_);

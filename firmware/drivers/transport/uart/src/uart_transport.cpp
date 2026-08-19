@@ -87,9 +87,10 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   handler_ = handler;
   handler_context_ = context;
   started_ = true;
-  task_ = xTaskCreateStatic(&UartTransport::task_entry, "uart_rx",
-                            task_stack_.size(), this, kTaskPriority,
-                            task_stack_.data(), &task_state_);
+  task_ = xTaskCreateStaticPinnedToCore(
+      &UartTransport::task_entry, "uart_rx", task_stack_.size(), this,
+      kTaskPriority, task_stack_.data(), &task_state_,
+      SIMCORE_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     started_ = false;
     uart_driver_delete(configuration_.port);

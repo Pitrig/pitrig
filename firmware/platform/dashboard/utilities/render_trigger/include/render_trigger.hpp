@@ -48,8 +48,9 @@ class Trigger final {
   void request();
 
  private:
-  // Equal to the LVGL task and below the transport task, so a whole received
-  // chunk is parsed before the pass it triggers.
+  // Below the transport tasks and pinned to their core, so a whole received
+  // chunk is parsed before the pass it triggers: on that core the trigger
+  // cannot run until the transport blocks on its next read.
   static constexpr UBaseType_t kTaskPriority = 4;
 
   static void task_entry(void* context);
