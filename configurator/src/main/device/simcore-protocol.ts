@@ -4,12 +4,10 @@ import {
   type DeviceConfiguration,
   type DeviceErrorCode,
   type DeviceSession,
-  type FontAssetDeviceInfo,
+  MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
   type SimCoreBoardId
 } from '@shared/device'
 import { describeDeviceError } from '@shared/device-error-message'
-import { type FirmwareUpdateState } from '@shared/firmware-update'
-import { type ImageAssetState } from '@shared/image-assets'
 import { parseDeviceConfigurationJson } from './configuration-json'
 import {
   parseDeviceInfo,
@@ -20,7 +18,15 @@ import {
 import { DeviceServiceError } from './device-errors'
 
 const PROBE_TIMEOUT_MS = 1_000
-const MAXIMUM_RESPONSE_BUFFER_SIZE = 8_192
+const CONFIGURATION_RESPONSE_PREFIX = '@SC:OK:CONFIG:'
+// The buffer holds the one line still being received, so it has to keep the
+// longest line the device sends: a GET reply, which is the prefix, a payload up
+// to the contract's bound, and the line ending. A smaller bound cut the head
+// off a long configuration before its newline arrived, and by the time the
+// line was complete the prefix it was waiting for was gone — every dashboard
+// over the old 8 KiB failed the probe as "not a SimCore device".
+const MAXIMUM_RESPONSE_BUFFER_SIZE =
+  CONFIGURATION_RESPONSE_PREFIX.length + MAXIMUM_CONFIGURATION_PAYLOAD_SIZE + '\r\n'.length
 const INFO_REQUEST = '@SC:INFO\n'
 const GET_REQUEST = '@SC:GET\n'
 const IMAGE_INFO_REQUEST = '@SC:IMAGE:INFO\n'
@@ -49,9 +55,27 @@ export async function probeSimCore(
       'The device configuration board does not match the connected hardware.'
     )
   }
-  const fontAssets = await probeFontAssets(port, onTraffic)
-  const imageAssets = await probeImageAssets(port, onTraffic)
-  const firmware = await probeFirmwareUpdate(port, onTraffic)
+  const fontAssets = await probeCapability(
+    port,
+    FONT_INFO_REQUEST,
+    '@SC:OK:FONT:INFO:',
+    parseFontAssetInfo,
+    onTraffic
+  )
+  const imageAssets = await probeCapability(
+    port,
+    IMAGE_INFO_REQUEST,
+    '@SC:OK:IMAGE:INFO:',
+    parseImageAssetInfo,
+    onTraffic
+  )
+  const firmware = await probeCapability(
+    port,
+    FIRMWARE_INFO_REQUEST,
+    '@SC:OK:FW:INFO:',
+    parseFirmwareUpdateInfo,
+    onTraffic
+  )
   return {
     info,
     configuration,
@@ -70,13 +94,15 @@ export async function readConfiguration(
   const line = await requestResponse(
     port,
     GET_REQUEST,
-    '@SC:OK:CONFIG:',
+    CONFIGURATION_RESPONSE_PREFIX,
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
     rejectionCode
   )
   try {
-    const configuration = parseDeviceConfigurationJson(line.slice('@SC:OK:CONFIG:'.length))
+    const configuration = parseDeviceConfigurationJson(
+      line.slice(CONFIGURATION_RESPONSE_PREFIX.length)
+    )
     if (configuration.board !== expectedBoard) {
       throw new Error('The device configuration board does not match the connected hardware.')
     }
@@ -198,12 +224,8 @@ export function requestResponse(
       }
       const deviceError = lines.find((line) => line.startsWith('@SC:ERR:'))
       if (deviceError) {
-        finish(
-          new DeviceServiceError(
-            rejectionCode,
-            describeDeviceError(deviceError.slice('@SC:ERR:'.length))
-          )
-        )
+        const token = deviceError.slice('@SC:ERR:'.length).trim()
+        finish(new DeviceServiceError(rejectionCode, describeDeviceError(token), token))
       }
     }
     const onError = (error: Error): void => finish(error)
@@ -229,86 +251,43 @@ export function requestResponse(
 }
 
 /**
- * Firmware built before the OTA partition layout answers with
- * `unknown_command`, which is a fact about the board rather than a failure —
- * the same graceful degradation the font and image probes use.
+ * A capability the connected firmware may not have. Firmware that does not know
+ * the command answers `unknown_command` — bare from the configuration control,
+ * or under its namespace as `<TAG>:unknown_command` — and that is a fact about
+ * the board rather than a failure, so the probe reports the capability absent
+ * and the panel for it stays away.
+ *
+ * The reason is read from the device's own token rather than from the message:
+ * the message is a translated sentence for the reader, and matching its text
+ * made every probe here reject a board it was meant to accept.
  */
-async function probeFirmwareUpdate(
+async function probeCapability<T>(
   port: SerialPort,
+  request: string,
+  responsePrefix: string,
+  parse: (line: string) => T,
   onTraffic: TrafficCallback
-): Promise<FirmwareUpdateState | undefined> {
+): Promise<T | undefined> {
   try {
     const line = await requestResponse(
       port,
-      FIRMWARE_INFO_REQUEST,
-      '@SC:OK:FW:INFO:',
+      request,
+      responsePrefix,
       PROBE_TIMEOUT_MS,
       onTraffic
     )
-    return parseFirmwareUpdateInfo(line)
+    return parse(line)
   } catch (error) {
-    if (
-      error instanceof DeviceServiceError &&
-      error.code === 'not_simcore' &&
-      error.message.includes('unknown_command')
-    ) {
+    if (isUnknownCommand(error)) {
       return undefined
     }
     throw error
   }
 }
 
-async function probeFontAssets(
-  port: SerialPort,
-  onTraffic: TrafficCallback
-): Promise<FontAssetDeviceInfo | undefined> {
-  try {
-    const line = await requestResponse(
-      port,
-      FONT_INFO_REQUEST,
-      '@SC:OK:FONT:INFO:',
-      PROBE_TIMEOUT_MS,
-      onTraffic
-    )
-    return parseFontAssetInfo(line)
-  } catch (error) {
-    if (
-      error instanceof DeviceServiceError &&
-      error.code === 'not_simcore' &&
-      error.message.includes('unknown_command')
-    ) {
-      return undefined
-    }
-    throw error
+function isUnknownCommand(error: unknown): boolean {
+  if (!(error instanceof DeviceServiceError) || error.token === undefined) {
+    return false
   }
-}
-
-/**
- * Firmware without uploaded images answers with `unknown_command`, which is a
- * fact about the board rather than a failure — the same graceful degradation
- * the font probe uses.
- */
-async function probeImageAssets(
-  port: SerialPort,
-  onTraffic: TrafficCallback
-): Promise<ImageAssetState | undefined> {
-  try {
-    const line = await requestResponse(
-      port,
-      IMAGE_INFO_REQUEST,
-      '@SC:OK:IMAGE:INFO:',
-      PROBE_TIMEOUT_MS,
-      onTraffic
-    )
-    return parseImageAssetInfo(line)
-  } catch (error) {
-    if (
-      error instanceof DeviceServiceError &&
-      error.code === 'not_simcore' &&
-      error.message.includes('unknown_command')
-    ) {
-      return undefined
-    }
-    throw error
-  }
+  return error.token.slice(error.token.lastIndexOf(':') + 1) === 'unknown_command'
 }

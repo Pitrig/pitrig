@@ -74,7 +74,11 @@ const UPLOAD_MESSAGES: Record<string, string> = {
   unknown_command: 'The device did not recognise the upload command.'
 }
 
-const UPLOAD_TAGS: Record<string, string> = { FONT: 'font package', IMAGE: 'image' }
+const UPLOAD_TAGS: Record<string, string> = {
+  FONT: 'font package',
+  IMAGE: 'image',
+  FW: 'firmware image'
+}
 
 const isValidationToken = (value: string): value is ValidationErrorToken =>
   (VALIDATION_ERROR_TOKENS as readonly string[]).includes(value)

@@ -46,6 +46,11 @@ class UsbSerialJtagTransport final : public ITransport {
   // no event queue, so the task simply blocks in a read.
   static constexpr std::size_t kDriverRxBufferSize = 2048;
   static constexpr std::size_t kDriverTxBufferSize = 2048;
+  // The driver queues a write into a byte ring buffer of kDriverTxBufferSize,
+  // and the ring buffer refuses outright anything larger than itself rather
+  // than taking what fits — so a write goes out in pieces no bigger than half
+  // the buffer, which lets the peripheral drain one while the next is queued.
+  static constexpr std::size_t kWriteChunkSize = kDriverTxBufferSize / 2;
   static constexpr TickType_t kWriteTimeout = pdMS_TO_TICKS(1'000);
   // A blocked read still has to notice a stop, so it wakes periodically
   // instead of waiting forever.
@@ -54,6 +59,7 @@ class UsbSerialJtagTransport final : public ITransport {
   static void task_entry(void* context);
 
   void process();
+  void release_rtos_objects();
 
   UsbSerialJtagConfiguration configuration_;
   DataHandler handler_{};
@@ -66,6 +72,10 @@ class UsbSerialJtagTransport final : public ITransport {
   // being deleted out from under a pending reader.
   SemaphoreHandle_t stopped_{};
   StaticSemaphore_t stopped_state_{};
+  // A write is several driver calls now, so one reply must finish before
+  // another task's starts, or two answers interleave on the wire.
+  SemaphoreHandle_t write_mutex_{};
+  StaticSemaphore_t write_mutex_state_{};
   LogSilencer log_silencer_{};
   std::atomic<bool> running_{false};
   // This port has no FIFO or queue of its own to report on, so the four counters

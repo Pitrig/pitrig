@@ -1,5 +1,6 @@
 #include "usb_serial_jtag_transport.hpp"
 
+#include <algorithm>
 #include <span>
 
 #include "driver/usb_serial_jtag.h"
@@ -37,7 +38,9 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
   }
 
   stopped_ = xSemaphoreCreateBinaryStatic(&stopped_state_);
-  if (stopped_ == nullptr) {
+  write_mutex_ = xSemaphoreCreateMutexStatic(&write_mutex_state_);
+  if (stopped_ == nullptr || write_mutex_ == nullptr) {
+    release_rtos_objects();
     return false;
   }
 
@@ -46,8 +49,7 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
       .rx_buffer_size = kDriverRxBufferSize,
   };
   if (usb_serial_jtag_driver_install(&driver_configuration) != ESP_OK) {
-    vSemaphoreDelete(stopped_);
-    stopped_ = nullptr;
+    release_rtos_objects();
     return false;
   }
 
@@ -66,8 +68,7 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
     ESP_ERROR_CHECK_WITHOUT_ABORT(usb_serial_jtag_driver_uninstall());
     handler_ = nullptr;
     handler_context_ = nullptr;
-    vSemaphoreDelete(stopped_);
-    stopped_ = nullptr;
+    release_rtos_objects();
     return false;
   }
 #if SIMCORE_DEBUG
@@ -103,20 +104,50 @@ void UsbSerialJtagTransport::stop() {
   ESP_ERROR_CHECK_WITHOUT_ABORT(usb_serial_jtag_driver_uninstall());
   handler_ = nullptr;
   handler_context_ = nullptr;
-  if (stopped_ != nullptr) {
-    vSemaphoreDelete(stopped_);
-    stopped_ = nullptr;
-  }
+  release_rtos_objects();
   log_silencer_.restore();
   ESP_LOGI(kTag, "USB Serial/JTAG telemetry transport stopped");
 }
 
 bool UsbSerialJtagTransport::write(const std::span<const std::uint8_t> data) {
-  if (!started_ || data.empty()) {
+  if (!started_ || data.empty() || write_mutex_ == nullptr ||
+      xSemaphoreTake(write_mutex_, kWriteTimeout) != pdTRUE) {
     return false;
   }
-  return usb_serial_jtag_write_bytes(data.data(), data.size(), kWriteTimeout) ==
-         static_cast<int>(data.size());
+
+  // Handed over whole, a reply longer than the driver's ring buffer came back
+  // as zero bytes written and never left the board: the configuration a GET
+  // returns was the first one long enough. The pieces share one deadline, so a
+  // stalled host costs a writer the same wait it did before.
+  const TickType_t started_at = xTaskGetTickCount();
+  std::size_t position = 0;
+  while (position < data.size()) {
+    const TickType_t elapsed = xTaskGetTickCount() - started_at;
+    if (elapsed >= kWriteTimeout) {
+      break;
+    }
+    const std::size_t chunk = std::min(kWriteChunkSize, data.size() - position);
+    if (usb_serial_jtag_write_bytes(data.data() + position, chunk,
+                                    kWriteTimeout - elapsed) !=
+        static_cast<int>(chunk)) {
+      break;
+    }
+    position += chunk;
+  }
+
+  xSemaphoreGive(write_mutex_);
+  return position == data.size();
+}
+
+void UsbSerialJtagTransport::release_rtos_objects() {
+  if (stopped_ != nullptr) {
+    vSemaphoreDelete(stopped_);
+    stopped_ = nullptr;
+  }
+  if (write_mutex_ != nullptr) {
+    vSemaphoreDelete(write_mutex_);
+    write_mutex_ = nullptr;
+  }
 }
 
 void UsbSerialJtagTransport::task_entry(void* const context) {
