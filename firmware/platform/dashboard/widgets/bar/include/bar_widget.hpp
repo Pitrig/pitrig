@@ -25,7 +25,7 @@ using Config = configuration::BarWidgetConfiguration;
 
 // One telemetry source drawn as a filled proportion of the widget. The fill is
 // a child rectangle resized per render rather than an lv_bar, so invalidation
-// stays this widget's own business, the way the Delta Time scale already works.
+// stays this widget's own business.
 struct State {
   frame::Painter painter{};
   frame::ValueReadCallback read{};

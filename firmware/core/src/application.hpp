@@ -18,6 +18,12 @@
 #include "telemetry_state.hpp"
 #include "telemetry_transport_composition.hpp"
 
+// The display is an opaque handle here, the same forward declaration the
+// display component and the dashboard composition make: the core holds it and
+// hands it on, and reaches no LVGL header to do so.
+struct _lv_display_t;
+using lv_display_t = _lv_display_t;
+
 // Everything the composition root statically owns, and the two operations that
 // both startup and a runtime replacement need. Startup and the replacement
 // transaction are separate files over this, because they answer different

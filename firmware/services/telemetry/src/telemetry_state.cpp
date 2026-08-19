@@ -1,5 +1,8 @@
 #include "telemetry_state.hpp"
 
+#include <atomic>
+#include <cstdint>
+
 #include "esp_timer.h"
 
 namespace simcore::telemetry {
@@ -55,12 +58,22 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
     };
   }
 
+  // Seqlock write: odd sequence, fields, even sequence. The fences keep the
+  // stores in that order on both cores' memory paths, so a reader that saw an
+  // even sequence on both sides of its copy read either the old fields or the
+  // new ones, never a mix.
+  const std::uint32_t sequence =
+      slot.sequence.load(std::memory_order_relaxed);
+  slot.sequence.store(sequence + 1, std::memory_order_relaxed);
+  std::atomic_thread_fence(std::memory_order_seq_cst);
   slot.available = update.available;
   if (update.available) {
     slot.value = update.value;
   }
   slot.revision = ++revision_;
   slot.last_change_us = esp_timer_get_time();
+  std::atomic_thread_fence(std::memory_order_seq_cst);
+  slot.sequence.store(sequence + 2, std::memory_order_release);
   return {
       .handle = update.handle,
       .revision = revision_,
@@ -69,19 +82,30 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
 }
 
 TelemetryRead TelemetryStateService::read(const Handle handle) const {
-  const std::lock_guard lock(mutex_);
   if (registry_.describe(handle) == nullptr || handle.index >= slots_.size()) {
     return {.handle = handle};
   }
 
+  // Seqlock read: no lock, no wait for a writer. A writer holds the sequence
+  // odd for the few stores above, so a retry is rare and short; the copy is
+  // accepted only when the sequence is the same even value on both sides.
   const Slot& slot = slots_[handle.index];
-  return {
-      .handle = handle,
-      .value = slot.value,
-      .revision = slot.revision,
-      .last_change_us = slot.last_change_us,
-      .available = slot.available,
-  };
+  TelemetryRead result{.handle = handle};
+  for (;;) {
+    const std::uint32_t before =
+        slot.sequence.load(std::memory_order_acquire);
+    if ((before & 1U) != 0U) {
+      continue;
+    }
+    result.value = slot.value;
+    result.revision = slot.revision;
+    result.last_change_us = slot.last_change_us;
+    result.available = slot.available;
+    std::atomic_thread_fence(std::memory_order_acquire);
+    if (slot.sequence.load(std::memory_order_relaxed) == before) {
+      return result;
+    }
+  }
 }
 
 }  // namespace simcore::telemetry

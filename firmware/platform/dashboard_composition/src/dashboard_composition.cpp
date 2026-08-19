@@ -19,6 +19,7 @@
 #include "dashboard_state.hpp"
 #include "dashboard_storages.hpp"
 #include "widget_type_ops.hpp"
+#include "esp_attr.h"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
@@ -146,14 +147,21 @@ void on_telemetry_updated(const events::Event&, void* const context) {
   return attached;
 }
 
-// Whether this widget's caption mask takes its colour from one of the screens
 }  // namespace
 
 Dashboard::Dashboard() = default;
 
 // One display, one dashboard. Firmware-lifetime, like everything the
 // composition root owns; it lives here so its type need not be public.
-Dashboard g_dashboard;
+//
+// It lives in external RAM: ~68 KB of widget-state pools whose per-frame
+// working set is a few kilobytes and stays in the cache, and which internal
+// RAM — the draw buffers' and LVGL's heap — is too short of on the ESP32-S3
+// to hold. The one part that cannot be there is the render trigger's task
+// stack and control block, which FreeRTOS requires internal, so those sit
+// beside it in internal .bss.
+EXT_RAM_BSS_ATTR Dashboard g_dashboard;
+dashboard::render_trigger::Trigger::TaskStorage g_render_trigger_task;
 
 Dashboard& instance() { return g_dashboard; }
 
@@ -187,7 +195,11 @@ bool create(lv_display_t* const display,
       .screens = std::span{dashboard_state.screens}.first(screen_count),
       .containers = dashboard_state.containers,
       .pages = dashboard_state.pages};
-  if (!assets::prepare_fonts(configuration, dashboard_state.fonts)) {
+  // The previous widgets are gone, so nothing points at a font any more:
+  // release first, so a document that swaps every font is not refused for a
+  // registry still full of the old ones.
+  assets::release_unused_fonts(configuration, dashboard_state.fonts);
+  if (!assets::acquire_fonts(configuration, dashboard_state.fonts)) {
     log::error(kTag, "One or more configured fonts could not be created");
     return false;
   }
@@ -267,7 +279,8 @@ bool start_render_trigger(Dashboard& dashboard, events::EventBus& event_bus) {
   if (dashboard.render_trigger.started()) {
     return false;
   }
-  if (!dashboard.render_trigger.start(&wake_widgets, &dashboard)) {
+  if (!dashboard.render_trigger.start(&wake_widgets, &dashboard,
+                                      g_render_trigger_task)) {
     log::error(kTag, "Failed to start the render trigger task");
     return false;
   }

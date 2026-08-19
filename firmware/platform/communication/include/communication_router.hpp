@@ -8,6 +8,7 @@
 #include "binary_session.hpp"
 #include "configuration_control.hpp"
 #include "configuration_json.hpp"
+#include "telemetry_types.hpp"
 #include "transport.hpp"
 
 namespace simcore::communication {
@@ -30,13 +31,15 @@ class Router final {
       16 + configuration::kMaximumPayloadSize;
   static constexpr std::size_t kMaximumBinarySessions = 2;
 
+  // `telemetry_line_handler` receives each assembled telemetry line without
+  // its terminator, at most telemetry::kMaximumTelemetryLineLength bytes.
   // `transport` is this router's link: where its answers go, and the identity
   // the shared claim records when an upload takes the stream. A product build
   // has one, which is why the parameter is unconditional.
   void initialize(configuration::ConfigurationControl& control,
                   binary_session::Claim& claim,
                   std::span<const binary_session::Session* const> sessions,
-                  transport::DataHandler telemetry_handler,
+                  transport::DataHandler telemetry_line_handler,
                   void* telemetry_context,
                   std::span<std::uint8_t> control_line_buffer,
                   transport::ITransport& transport);
@@ -44,7 +47,8 @@ class Router final {
   void consume(std::span<const std::uint8_t> data);
 
  private:
-  static constexpr std::size_t kMaximumTelemetryLineSize = 127;
+  static constexpr std::size_t kMaximumTelemetryLineSize =
+      telemetry::kMaximumTelemetryLineLength;
 
   void dispatch();
 
@@ -53,7 +57,7 @@ class Router final {
   binary_session::Claim* claim_{};
   std::array<const binary_session::Session*, kMaximumBinarySessions> sessions_{};
   std::size_t session_count_{};
-  transport::DataHandler telemetry_handler_{};
+  transport::DataHandler telemetry_line_handler_{};
   void* telemetry_context_{};
   std::array<std::uint8_t, kMaximumTelemetryLineSize> telemetry_line_{};
   std::span<std::uint8_t> control_line_{};

@@ -7,7 +7,6 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #if SIMCORE_DEBUG
-#include "esp_timer.h"
 #include "performance.hpp"
 #endif
 #include "sdkconfig.h"
@@ -70,7 +69,9 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
           {
               .size = TINYUSB_DEFAULT_TASK_SIZE,
               .priority = TINYUSB_DEFAULT_TASK_PRIO,
-              .xCoreID = TINYUSB_DEFAULT_TASK_AFFINITY,
+              // The port's default is the LVGL core; the receive callback
+              // runs on this task, so it belongs with the other transports.
+              .xCoreID = SIMCORE_COMMUNICATION_CORE,
           },
       .descriptor =
           {

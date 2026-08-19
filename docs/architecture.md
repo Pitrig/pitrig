@@ -125,7 +125,9 @@ firmware/
 ├── services/      Shared infrastructure
 ├── platform/      Platform-specific support
 ├── utils/         Generic utilities
-└── main/          ESP-IDF application entry point
+├── main/          ESP-IDF application entry point
+├── cmake/         Build helpers that apply the pinned vendor patches
+└── patches/       Version-pinned patches to managed components
 ```
 
 Each implementation is registered as an ESP-IDF component when it needs independent dependencies or public include paths.
@@ -159,9 +161,16 @@ Dependencies must not point from interfaces or components to a concrete hardware
 The last two edges are narrow and deliberate. The display component and the
 transport drivers depend on the performance service so they can report frame and
 transport instrumentation, and that dependency compiles away entirely when
-`CONFIG_SIMCORE_DEBUG` is off. The configuration-control and font-asset-control
-services depend on the `transport` interface because they answer over it; they
-depend on no concrete driver.
+`CONFIG_SIMCORE_DEBUG` is off. The control services that answer over the serial
+link — configuration control, the shared asset upload engine, and the font and
+image asset controls over it — depend on the `transport` interface because they
+answer over it; they depend on no concrete driver. The debug-only performance
+overlay reads transport counters and so gives the dashboard the same interface
+edge.
+
+Logging follows the layer boundary: drivers log through ESP-IDF's `ESP_LOGx`
+directly, and everything above the driver layer goes through the logger service
+(ADR 0001), whose backend is selected at compile time.
 
 ---
 
@@ -180,7 +189,11 @@ the controllers over them — in an internal header. The core holds no member fo
 it and takes it from `dashboard_composition::instance()`. It is statically
 allocated exactly as everything else the root owns; it simply lives in the
 component that knows its type, so the core neither links against LVGL nor
-recompiles when a widget type changes.
+recompiles when a widget type changes. It is also the one static the firmware
+places in external RAM: some 68 KB of widget-state pools whose per-frame
+working set is a few kilobytes, kept out of the internal RAM the draw buffers
+and the LVGL heap need. Only the render trigger's task stack and control
+block, which FreeRTOS requires internal, sit beside it in internal `.bss`.
 
 Responsibilities include:
 
@@ -267,7 +280,10 @@ bounded time by a telemetry trigger
 the tap targets that navigate all live in one navigation controller
 ([ADR 0020](adr/0020-screen-navigation.md)); widgets are built refusing input and
 the composition makes only the authored tap targets clickable, so no widget type
-knows about input. Stateful modifiers, including Lap
+knows about input. The dashboard uses no LVGL theme: every object it creates
+sets what it draws explicitly, so the build selects no theme and compiles only
+the five LVGL classes the widgets are made of (`lv_obj`, `lv_label`,
+`lv_image`, `lv_line`, `lv_arc`). Stateful modifiers, including Lap
 Timer, are implemented by modules and hidden behind the pipeline callback. Pure
 transforms live under `utils/transformers` and do not depend on dashboard or LVGL.
 Widgets do not know protocol identifiers or telemetry field names and do not
@@ -359,11 +375,13 @@ connection state and the local authoring draft have independent lifetimes.
 
 Drivers implement hardware-specific functionality.
 
-Display drivers also own board-specific display continuity measures. The
-ESP32-P4 MIPI-DSI configuration keeps display interrupts cache-safe during
-flash writes, and the Guition JC1060P470C driver blanks its backlight from an
-ESP-IDF shutdown handler before a software reset. These measures do not leak
-into the generic display interface.
+Board-specific display continuity measures stay out of the generic display
+interface. The Guition JC1060P470C driver blanks its backlight from an ESP-IDF
+shutdown handler before a software reset. Keeping the ESP32-P4 MIPI-DSI display
+interrupts cache-safe during flash writes is a build measure rather than driver
+code: `CONFIG_LCD_DSI_ISR_CACHE_SAFE` in the P4 defaults, plus a version-pinned
+patch to `esp_lvgl_port` under `firmware/patches/` that `firmware/cmake/`
+applies so the port's flush callback honours it.
 
 Examples include:
 
@@ -401,12 +419,14 @@ The communication protocol should be isolated from business logic.
 
 Changing the transport should not require rewriting modules.
 
-The communication composition owns the configuration control endpoint, font
-asset control endpoint, line/binary router, and concrete telemetry protocol.
-A dedicated platform composition owns and configures the concrete transport
-adapters supported by the selected board. The core receives only `ITransport`
-and does not depend on UART, USB CDC, ESP-IDF UART types, SimHub identifiers, or
-protocol classes.
+The communication composition owns the configuration control endpoint, the
+font and image asset control endpoints and the binary-session claim they share,
+the line/binary router, and the concrete telemetry protocol. A dedicated
+platform composition owns and configures the concrete transport adapters
+supported by the selected board. The core receives only `ITransport` and uses
+no UART, USB CDC, ESP-IDF UART type, SimHub identifier, or protocol class; it
+owns the transport composition by value, so its translation units compile
+against those adapters' headers without naming anything in them.
 
 Possible transports include:
 
@@ -415,6 +435,12 @@ Possible transports include:
 - BLE
 - Wi-Fi
 - Future protocols
+
+Each link's router owns line assembly for both line-oriented concerns: it
+splits the byte stream once, hands `@SC:` lines to configuration control and
+every other complete line — terminator stripped, bounded at
+`telemetry::kMaximumTelemetryLineLength` — to the telemetry protocol, which
+decodes it and holds no partial line of its own.
 
 Telemetry ingestion is split into an immutable registry and mutable state. The
 registry defines protocol-neutral field names and types. Protocols bind source
@@ -433,7 +459,7 @@ absent instead of being expanded through board profiles.
 Firmware builds own one immutable `BoardDefinition`. It binds the board
 identifier, display driver, default telemetry transport, factory payload, and
 private validation metadata for constraints such as logical display bounds and
-supported communication pins. This metadata is not part of the public
+the board's UART pin pair. This metadata is not part of the public
 configuration or device-information protocol.
 Firmware reports only the stable board identifier; the configurator maps it to
 a local supported board profile containing read-only authoring metadata such as
@@ -463,9 +489,10 @@ dashboard composition error rather than an implicit fallback, while any pixel
 size is rasterized on the device. Dashboard code owns the runtime font registry:
 it copies each face into external memory, creates one font per family and size
 the active configuration references, and pre-warms their glyph caches during
-composition so periodic frames do not rasterize. Diagnostic builds may compile
-private LVGL fonts for service screens; those fonts are not exposed through the
-dashboard font registry.
+composition so periodic frames do not rasterize. LVGL needs one built-in
+default font to build at all, so every profile compiles the smallest one
+(UNSCII 8); nothing in the dashboard uses it, it is not in the dashboard font
+registry, and only the diagnostic overlay of a debug build draws with it.
 
 Images follow the same rule from the configuration's point of view: a widget
 references a bounded image identifier, an uploaded package supplies the pixels,
@@ -507,6 +534,15 @@ Each subsystem owns the mechanism appropriate to its work:
 
 A central scheduler requires a separate architectural decision if a future
 cross-subsystem timing requirement cannot be represented by these mechanisms.
+
+On the dual-core targets the two halves of the firmware are pinned apart:
+communication — the transport read tasks, the configuration-control and
+asset-upload tasks, and the render trigger they wake — runs on
+`SIMCORE_COMMUNICATION_CORE`, and the LVGL task alone on `SIMCORE_RENDER_CORE`
+(both in `simcore_features.hpp`). Parsing a telemetry chunk, validating a
+64 KB document, or a live apply therefore never time-slices with a frame, and
+because the render trigger has the lower priority on its core, a received chunk
+is parsed to the end before the single pass it triggers.
 
 Dashboard rendering combines the three so a telemetry change is not delayed by
 a widget timer period. The dashboard composition subscribes to telemetry update

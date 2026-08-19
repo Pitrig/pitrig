@@ -1,3 +1,4 @@
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include <span>
@@ -34,6 +35,20 @@ bool AssetControl::send_error(const char* const word) {
                     word);
   return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
          send_text(response_.data());
+}
+
+void AssetControl::send_busy(transport::ITransport& reply) const {
+  // "@SC:ERR:" + tag + ":busy\n": the tag is bounded by the command buffers,
+  // so this fits by construction; the check only guards a truncated write.
+  std::array<char, kCommandCapacity> text{};
+  const int written =
+      std::snprintf(text.data(), text.size(), "@SC:ERR:%.*s:busy\n",
+                    static_cast<int>(traits_.tag.size()), traits_.tag.data());
+  if (written > 0 && static_cast<std::size_t>(written) < text.size()) {
+    (void)reply.write(std::span<const std::uint8_t>(
+        reinterpret_cast<const std::uint8_t*>(text.data()),
+        static_cast<std::size_t>(written)));
+  }
 }
 
 bool AssetControl::send_ack(const std::uint32_t sequence) {

@@ -145,8 +145,6 @@ struct Anchor {
   return true;
 }
 
-// Creates the caption, plus the mask that hides the border line behind it.
-// Both sit on the parent so the border can pass behind.
 }  // namespace
 
 bool caption_mask_reads_parent(const Config& config) {
@@ -158,6 +156,8 @@ bool caption_mask_reads_parent(const Config& config) {
 
 namespace {
 
+// Creates the caption, plus the mask that hides the border line behind it.
+// Both sit on the parent so the border can pass behind.
 void build_caption(const Config& config, const fonts::Registry& fonts,
                    lv_obj_t* const parent, const Rect& bounds, Box& box) {
   if (config.title.text.front() == '\0') {

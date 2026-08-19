@@ -37,6 +37,10 @@ bool reject(ValidationFailure& failure, ValidationError error,
                                    telemetry::ValueType type);
 [[nodiscard]] bool valid_font(const font_assets::FontSpec& font);
 
+// A box is refused only when it is *entirely* off the display, never for
+// leaving its container. A caption already overhangs its widget's border by
+// design, and an author may legitimately let a readout hang past the panel it
+// belongs to; the display is the one edge that has no pixels beyond it.
 // `origin` is where the widget's parent sits, so `placement` stays the relative
 // geometry the document authored.
 [[nodiscard]] bool on_display(std::int32_t origin_x, std::int32_t origin_y,

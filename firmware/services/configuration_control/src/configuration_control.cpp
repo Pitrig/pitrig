@@ -20,24 +20,25 @@ constexpr std::string_view kPrefix = "@SC:";
 ConfigurationControl::~ConfigurationControl() { stop(); }
 
 bool ConfigurationControl::initialize(
-    ConfigurationService& service, transport::ITransport& transport,
-    const RebootHandler reboot_handler, void* const reboot_context,
-    const ApplyHandler apply_handler, void* const apply_context,
-    const std::span<std::uint8_t> io_buffer) {
+    ConfigurationService& service, const RebootHandler reboot_handler,
+    void* const reboot_context, const ApplyHandler apply_handler,
+    void* const apply_context, const std::span<std::uint8_t> io_buffer) {
   if (task_ != nullptr || io_buffer.size() < kIoBufferSize) {
     return false;
   }
   io_buffer_ = io_buffer.first(kIoBufferSize);
   service_ = &service;
-  transport_ = &transport;
   reboot_handler_ = reboot_handler;
   reboot_context_ = reboot_context;
   apply_handler_ = apply_handler;
   apply_context_ = apply_context;
   request_state_.store(RequestState::idle, std::memory_order_relaxed);
-  task_ = xTaskCreateStatic(&ConfigurationControl::task_entry,
-                            "configuration_control", task_stack_.size(), this,
-                            kTaskPriority, task_stack_.data(), &task_state_);
+  // Parsing and validating a 64 KB document, and a live apply, run here; on
+  // the communication core they never time-slice with the LVGL task.
+  task_ = xTaskCreateStaticPinnedToCore(
+      &ConfigurationControl::task_entry, "configuration_control",
+      task_stack_.size(), this, kTaskPriority, task_stack_.data(),
+      &task_state_, SIMCORE_COMMUNICATION_CORE);
   if (task_ != nullptr) {
 #if SIMCORE_DEBUG
     performance::register_task(performance::TaskMetric::configuration_control,
@@ -61,7 +62,6 @@ void ConfigurationControl::stop() {
   request_state_.store(RequestState::idle, std::memory_order_release);
   request_size_ = 0;
   service_ = nullptr;
-  transport_ = nullptr;
   reply_ = nullptr;
   reboot_handler_ = nullptr;
   reboot_context_ = nullptr;
@@ -72,8 +72,8 @@ void ConfigurationControl::stop() {
 
 void ConfigurationControl::consume(
     const std::span<const std::uint8_t> line, transport::ITransport& reply) {
-  if (service_ == nullptr || transport_ == nullptr ||
-      task_ == nullptr || line.size() > io_buffer_.size() ||
+  if (service_ == nullptr || task_ == nullptr ||
+      line.size() > io_buffer_.size() ||
       line.size() < kPrefix.size() ||
       !std::equal(kPrefix.begin(), kPrefix.end(), line.begin())) {
     return;

@@ -17,10 +17,6 @@ constexpr char kTag[] = "usb_serial_jtag_transport";
 
 }  // namespace
 
-UsbSerialJtagTransport::UsbSerialJtagTransport(
-    const UsbSerialJtagConfiguration configuration)
-    : configuration_(configuration) {}
-
 UsbSerialJtagTransport::~UsbSerialJtagTransport() {
   stop();
 }
@@ -60,9 +56,10 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
   handler_context_ = context;
   started_ = true;
   running_.store(true, std::memory_order_release);
-  task_ = xTaskCreateStatic(&UsbSerialJtagTransport::task_entry,
-                            "usb_serial_jtag_rx", task_stack_.size(), this,
-                            kTaskPriority, task_stack_.data(), &task_state_);
+  task_ = xTaskCreateStaticPinnedToCore(
+      &UsbSerialJtagTransport::task_entry, "usb_serial_jtag_rx",
+      task_stack_.size(), this, kTaskPriority, task_stack_.data(),
+      &task_state_, SIMCORE_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     started_ = false;
     running_.store(false, std::memory_order_release);

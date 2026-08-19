@@ -20,7 +20,7 @@ void Router::initialize(
     configuration::ConfigurationControl& control,
     binary_session::Claim& claim,
     const std::span<const binary_session::Session* const> sessions,
-    const transport::DataHandler telemetry_handler,
+    const transport::DataHandler telemetry_line_handler,
     void* const telemetry_context,
     const std::span<std::uint8_t> control_line_buffer,
     transport::ITransport& transport) {
@@ -31,7 +31,7 @@ void Router::initialize(
   for (std::size_t index = 0; index < session_count_; ++index) {
     sessions_[index] = sessions[index];
   }
-  telemetry_handler_ = telemetry_handler;
+  telemetry_line_handler_ = telemetry_line_handler;
   telemetry_context_ = telemetry_context;
   control_line_ = control_line_buffer.first(
       std::min(control_line_buffer.size(), kControlLineBufferSize));
@@ -46,7 +46,7 @@ void Router::reset() {
   claim_ = nullptr;
   sessions_ = {};
   session_count_ = 0;
-  telemetry_handler_ = nullptr;
+  telemetry_line_handler_ = nullptr;
   telemetry_context_ = nullptr;
   control_line_ = {};
   line_size_ = 0;
@@ -132,13 +132,12 @@ void Router::dispatch() {
     }
     return;
   }
-  if (telemetry_handler_ == nullptr) {
+  if (telemetry_line_handler_ == nullptr) {
     return;
   }
-  telemetry_handler_(line, telemetry_context_);
-  constexpr std::uint8_t newline = '\n';
-  telemetry_handler_(std::span<const std::uint8_t>(&newline, 1),
-                     telemetry_context_);
+  // One complete line, terminator stripped: the protocol decodes it as it is
+  // and keeps no assembly state of its own.
+  telemetry_line_handler_(line, telemetry_context_);
 }
 
 }  // namespace simcore::communication

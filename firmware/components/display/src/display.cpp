@@ -17,7 +17,7 @@
 namespace simcore::display {
 namespace {
 
-constexpr int kLvglTaskCore = 1;
+constexpr int kLvglTaskCore = SIMCORE_RENDER_CORE;
 constexpr std::uint32_t kInitialFrameTimeoutMs = 1'000;
 #if SIMCORE_DEBUG
 constexpr std::uint32_t kTaskMaxSleepMs = 8;
@@ -135,13 +135,10 @@ bool rendering_in_progress() {
 
 bool refresh_and_wait(lv_display_t* const display,
                       const std::uint32_t timeout_ms) {
-  if (display == nullptr) {
-    return false;
-  }
-  if (refresh_signal == nullptr) {
-    refresh_signal = xSemaphoreCreateBinaryStatic(&refresh_signal_storage);
-  }
-  if (refresh_signal == nullptr) {
+  // One binary semaphore, created by initialize(): this waits for one refresh
+  // on behalf of one caller at a time, which is what startup needs. Two
+  // concurrent callers would share the signal and one of them would time out.
+  if (display == nullptr || refresh_signal == nullptr) {
     return false;
   }
   (void)xSemaphoreTake(refresh_signal, 0);
@@ -191,6 +188,8 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
   lvgl_config.task_max_sleep_ms = kTaskMaxSleepMs;
   lvgl_config.timer_period_ms = kTimerPeriodMs;
   ESP_ERROR_CHECK(lvgl_port_init(&lvgl_config));
+  refresh_signal = xSemaphoreCreateBinaryStatic(&refresh_signal_storage);
+  ESP_ERROR_CHECK(refresh_signal == nullptr ? ESP_ERR_NO_MEM : ESP_OK);
 #if SIMCORE_DEBUG
   performance::register_task(performance::TaskMetric::lvgl,
                              xTaskGetHandle("taskLVGL"));

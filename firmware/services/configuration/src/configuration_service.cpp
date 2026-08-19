@@ -62,21 +62,28 @@ bool ConfigurationService::initialize(
   StorageSlot active{};
   const bool has_active = storage.read_active(active);
 
+  const auto slot_status = [this](const StorageSlot slot) -> SlotStatus& {
+    return slot == StorageSlot::a ? status_.slot_a : status_.slot_b;
+  };
   StorageSlot selected_slot = StorageSlot::a;
   LoadedRecord selected{};
   if (has_active) {
     selected = load_slot(active, (*scratch_));
+    slot_status(active) = selected.status;
     if (selected.valid) {
       selected_slot = active;
     } else {
       selected_slot = other(active);
       selected = load_slot(selected_slot, (*scratch_));
+      slot_status(selected_slot) = selected.status;
     }
   } else {
     const LoadedRecord slot_a =
         load_slot(StorageSlot::a, (*scratch_));
     const LoadedRecord slot_b =
         load_slot(StorageSlot::b, (*scratch_));
+    status_.slot_a = slot_a.status;
+    status_.slot_b = slot_b.status;
     if (slot_a.valid &&
         (!slot_b.valid || slot_a.generation >= slot_b.generation)) {
       selected_slot = StorageSlot::a;
@@ -161,12 +168,16 @@ bool ConfigurationService::reset() {
 ConfigurationService::LoadedRecord ConfigurationService::load_slot(
     const StorageSlot slot, ApplicationConfiguration& configuration) {
   LoadedRecord loaded;
+  loaded.status.outcome = SlotOutcome::absent;
   if (storage_ == nullptr) {
     return loaded;
   }
   std::size_t size{};
-  if (!storage_->read(slot, record_buffer_, size) ||
-      size < kRecordHeaderSize || size > record_buffer_.size()) {
+  if (!storage_->read(slot, record_buffer_, size) || size == 0) {
+    return loaded;
+  }
+  loaded.status.outcome = SlotOutcome::malformed_record;
+  if (size < kRecordHeaderSize || size > record_buffer_.size()) {
     return loaded;
   }
   const std::span<const std::uint8_t> record(record_buffer_.data(), size);
@@ -174,23 +185,30 @@ ConfigurationService::LoadedRecord ConfigurationService::load_slot(
   const std::uint32_t payload_size = binary::read_u32_le(record, 8);
   if (binary::read_u32_le(record, 0) != kRecordMagic ||
       binary::read_u16_le(record, 4) != kRecordVersion ||
-      !is_supported_configuration_schema(schema_version) ||
-      payload_size == 0 ||
-      payload_size > kMaximumPayloadSize ||
+      payload_size == 0 || payload_size > kMaximumPayloadSize ||
       size != kRecordHeaderSize + payload_size) {
+    return loaded;
+  }
+  if (!is_supported_configuration_schema(schema_version)) {
+    loaded.status.outcome = SlotOutcome::unsupported_schema;
     return loaded;
   }
   const std::span<const std::uint8_t> payload =
       record.subspan(kRecordHeaderSize, payload_size);
   if (binary::crc32(payload) != binary::read_u32_le(record, 16)) {
+    loaded.status.outcome = SlotOutcome::corrupt_payload;
     return loaded;
   }
-  if (!parse_configuration_json(payload, validation_profile_, configuration)
-           .ok()) {
+  const ValidationFailure failure =
+      parse_configuration_json(payload, validation_profile_, configuration);
+  if (!failure.ok()) {
+    loaded.status.outcome = SlotOutcome::rejected;
+    loaded.status.failure = failure;
     return loaded;
   }
   loaded.generation = binary::read_u32_le(record, 12);
   loaded.valid = true;
+  loaded.status.outcome = SlotOutcome::valid;
   return loaded;
 }
 

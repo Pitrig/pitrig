@@ -15,9 +15,14 @@ namespace simcore::dashboard::fonts {
 // One font object per family and pixel size the active configuration asks for.
 // A document cannot reference more than this: a text widget contributes a value
 // font and a caption font, and every other framed type contributes a caption.
+// A slot draws nothing, so validation refuses it a caption and it contributes
+// no font.
 inline constexpr std::size_t kMaximumFonts =
     configuration::kMaximumTextWidgets * 2 +
-    configuration::kMaximumShapeWidgets + configuration::kMaximumBarWidgets;
+    configuration::kMaximumShapeWidgets + configuration::kMaximumBarWidgets +
+    configuration::kMaximumArcWidgets +
+    configuration::kMaximumIndicatorWidgets +
+    configuration::kMaximumGraphWidgets + configuration::kMaximumImageWidgets;
 
 class Registry final {
  public:

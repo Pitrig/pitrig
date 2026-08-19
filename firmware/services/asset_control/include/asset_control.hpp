@@ -60,9 +60,10 @@ class AssetControl final {
  public:
   ~AssetControl();
 
+  // Every reply goes to the link the request arrived on, so no transport is
+  // taken here: the engine learns which link that is from each command.
   [[nodiscard]] bool initialize(const Traits& traits,
                                 const Operations& operations,
-                                transport::ITransport& transport,
                                 binary_session::Claim& claim);
 
   // Registered with the router, which routes by prefix and by who holds the
@@ -89,7 +90,9 @@ class AssetControl final {
     clear,
     invalid_command,
     // A BEGIN that arrived while another asset kind owns the stream. Answered
-    // from the worker task like every other response.
+    // from the worker task like every other response. (A command that arrives
+    // while this kind owns it is answered busy from the reading task instead;
+    // see consume_command.)
     busy,
     frame,
     invalid_frame,
@@ -129,6 +132,10 @@ class AssetControl final {
   [[nodiscard]] bool send_ok(const char* rest);
   [[nodiscard]] bool send_error(const char* word);
   [[nodiscard]] bool send_ack(std::uint32_t sequence);
+  // "@SC:ERR:<tag>:busy\n" to a link other than the one an upload owns. Sent
+  // from the reading task through its own buffer, because the worker task and
+  // response_ are the upload's while it runs.
+  void send_busy(transport::ITransport& reply) const;
   void reset_session();
   [[nodiscard]] bool ready() const;
   // Where the reply to the request being handled goes. With one link attached
@@ -143,7 +150,6 @@ class AssetControl final {
 
   Traits traits_{};
   Operations operations_{};
-  transport::ITransport* transport_{};
   // Written by a reading task under the request state, then snapshotted by the
   // worker into `reply_` when it takes the request. The worker releases the
   // request state before it answers — so that the next frame can already be

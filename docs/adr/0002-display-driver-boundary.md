@@ -19,7 +19,12 @@ display size.
 ## Decision
 
 Keep board initialization in dedicated drivers. Each driver exposes only its
-stable name, initialization callback, and display-ready callback. A build links
+stable name, initialization callback, and display-ready callback. What the
+initialization callback returns is deliberately an ESP-IDF shape — the
+`esp_lcd` panel and panel-IO handles plus the geometry and buffering facts the
+LVGL port needs — because the display component registers exactly that with
+`esp_lvgl_port`; the interface says so, and UI, modules and configuration must
+not depend on it (ADR 0019 makes the same trade for the touch handle). A build links
 the drivers its target can carry — `firmware/CMakeLists.txt` selects them per
 `IDF_TARGET` — and the factory board identity picks one of those. Panel initialization resolution remains
 internal to the concrete driver. The board registry keeps separate private
@@ -50,9 +55,9 @@ The configuration control protocol reports the immutable board identity but
 does not transmit display dimensions. The display component remains the sole
 owner of LVGL and panel initialization.
 
-The display component adapts command-driven and RGB panels to the corresponding
-`esp_lvgl_port` registration path without knowing a concrete board or
-controller.
+The display component adapts command-driven, RGB and MIPI-DSI panels to the
+corresponding `esp_lvgl_port` registration path without knowing a concrete
+board or controller.
 
 ## Consequences
 

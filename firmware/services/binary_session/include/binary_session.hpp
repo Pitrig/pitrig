@@ -74,10 +74,6 @@ class Claim final {
     }
   }
 
-  [[nodiscard]] const Session* owner() const {
-    return owner_.load(std::memory_order_acquire);
-  }
-
   /** The session owning the stream on `link`, or null when `link` is not the
    *  one an upload was opened on. */
   [[nodiscard]] const Session* owner_on(const void* link) const {

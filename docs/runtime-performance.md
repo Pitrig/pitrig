@@ -10,7 +10,7 @@ counters read straight from the active transport.
 
 Runtime diagnostics are disabled in production. They are selected by the
 `CONFIG_SIMCORE_DEBUG` Kconfig option, which
-`firmware/components/simcore_config/include/simcore_features.hpp` aliases to
+`firmware/utils/simcore_config/include/simcore_features.hpp` aliases to
 `SIMCORE_DEBUG`. Checked-in board profiles and IDE tasks are the single source of
 feature selection; no source header is edited.
 

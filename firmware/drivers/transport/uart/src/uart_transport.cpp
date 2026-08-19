@@ -1,12 +1,10 @@
 #include "uart_transport.hpp"
 
-#include <cstdarg>
 #include <span>
 
 #include "esp_err.h"
 #include "esp_log.h"
 #if SIMCORE_DEBUG
-#include "esp_timer.h"
 #include "performance.hpp"
 #endif
 
@@ -16,9 +14,6 @@ namespace {
 constexpr char kTag[] = "uart_transport";
 
 }  // namespace
-
-UartTransport::UartTransport(const UartConfiguration configuration)
-    : configuration_(configuration) {}
 
 bool UartTransport::configure(const UartConfiguration configuration) {
   if (started_) {
@@ -92,9 +87,10 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   handler_ = handler;
   handler_context_ = context;
   started_ = true;
-  task_ = xTaskCreateStatic(&UartTransport::task_entry, "uart_rx",
-                            task_stack_.size(), this, kTaskPriority,
-                            task_stack_.data(), &task_state_);
+  task_ = xTaskCreateStaticPinnedToCore(
+      &UartTransport::task_entry, "uart_rx", task_stack_.size(), this,
+      kTaskPriority, task_stack_.data(), &task_state_,
+      SIMCORE_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     started_ = false;
     uart_driver_delete(configuration_.port);

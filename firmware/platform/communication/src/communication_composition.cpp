@@ -53,23 +53,22 @@ bool Composition::start(
       return false;
     }
   }
-  // The control services answer per request, but they still need one link to
-  // fall back on for a reply with no request behind it, such as an upload
-  // timing out. The first is the board's own configured transport.
-  if (!configuration_control_.initialize(configuration, *transports[0], &reboot,
-                                         nullptr, apply_handler, apply_context,
+  // The control services answer on the link each request arrived on, so they
+  // are given no link of their own: the router hands them one with every line.
+  // Even a reply with no request behind it, such as an upload timing out, goes
+  // to the link that opened the upload.
+  if (!configuration_control_.initialize(configuration, &reboot, nullptr,
+                                         apply_handler, apply_context,
                                          control_io_buffer)) {
     log::error(kTag, "Failed to start configuration control task");
     return false;
   }
-  if (!font_asset_control_.initialize(font_assets, *transports[0],
-                                      binary_claim_)) {
+  if (!font_asset_control_.initialize(font_assets, binary_claim_)) {
     log::error(kTag, "Failed to start font asset control task");
     configuration_control_.stop();
     return false;
   }
-  if (!image_asset_control_.initialize(image_assets, *transports[0],
-                                       binary_claim_)) {
+  if (!image_asset_control_.initialize(image_assets, binary_claim_)) {
     log::error(kTag, "Failed to start image asset control task");
     font_asset_control_.stop();
     configuration_control_.stop();
@@ -86,7 +85,7 @@ bool Composition::start(
     link.transport = transports[index];
     link.router.initialize(
         configuration_control_, binary_claim_, sessions,
-        &receive_telemetry_data, &link,
+        &receive_telemetry_line, &link,
         control_line_buffers.subspan(index * Router::kControlLineBufferSize,
                                      Router::kControlLineBufferSize),
         *link.transport);
@@ -135,10 +134,10 @@ void Composition::submit_update(const telemetry::TelemetryUpdate& update,
   }
 }
 
-void Composition::receive_telemetry_data(
-    const std::span<const std::uint8_t> data, void* const context) {
+void Composition::receive_telemetry_line(
+    const std::span<const std::uint8_t> line, void* const context) {
   auto& link = *static_cast<Link*>(context);
-  link.protocol.consume(data, &submit_update, link.owner);
+  link.protocol.consume_line(line, &submit_update, link.owner);
 }
 
 void Composition::receive_transport_data(

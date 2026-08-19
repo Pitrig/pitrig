@@ -47,7 +47,11 @@ revision. An unavailable update invalidates only that slot.
 The state service is the only owner of mutable canonical values. Storage is a
 fixed array indexed by handle. Each slot retains availability, typed value,
 bounded source text, revision, and last-change timestamp. Consumers read only
-the handles they own instead of copying a complete global snapshot.
+the handles they own instead of copying a complete global snapshot. A slot is a
+seqlock: reads — every widget, every render pass — take no lock and never wait
+for a writer; writers, the transport tasks, serialise among themselves and
+bump the slot's sequence around each change, so a reader that raced a change
+simply copies again.
 
 Modules receive typed handles from startup composition. Widget binding resolves
 configured canonical names to handles before creating LVGL objects. Widgets

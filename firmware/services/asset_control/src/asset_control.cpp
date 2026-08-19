@@ -50,14 +50,12 @@ void AssetControl::consume_entry(void* const context,
 
 bool AssetControl::initialize(const Traits& traits,
                               const Operations& operations,
-                              transport::ITransport& transport,
                               binary_session::Claim& claim) {
   if (task_ != nullptr) {
     return false;
   }
   traits_ = traits;
   operations_ = operations;
-  transport_ = &transport;
   claim_ = &claim;
   // The namespace ends in a colon and carries no command, which is what the
   // router matches a line against before this ever sees it.
@@ -80,9 +78,10 @@ bool AssetControl::initialize(const Traits& traits,
   };
   reset_session();
   request_state_.store(RequestState::idle, std::memory_order_relaxed);
-  task_ = xTaskCreateStatic(&AssetControl::task_entry, traits_.task_name,
-                            task_stack_.size(), this, kTaskPriority,
-                            task_stack_.data(), &task_state_);
+  task_ = xTaskCreateStaticPinnedToCore(
+      &AssetControl::task_entry, traits_.task_name, task_stack_.size(), this,
+      kTaskPriority, task_stack_.data(), &task_state_,
+      SIMCORE_COMMUNICATION_CORE);
   if (task_ != nullptr) {
 #if SIMCORE_DEBUG
     performance::register_task(traits_.metric, task_);
@@ -110,19 +109,25 @@ void AssetControl::stop() {
   expected_frame_size_ = 0;
   request_frame_size_ = 0;
   operations_ = {};
-  transport_ = nullptr;
   requested_reply_ = nullptr;
   reply_ = nullptr;
 }
 
 bool AssetControl::ready() const {
-  return operations_.service != nullptr && transport_ != nullptr &&
-         task_ != nullptr;
+  return operations_.service != nullptr && task_ != nullptr;
 }
 
 void AssetControl::consume_command(const std::span<const std::uint8_t> line,
                                    transport::ITransport& reply) {
-  if (!ready() || active()) {
+  if (!ready()) {
+    return;
+  }
+  // The link an upload owns never gets here — the router hands its bytes to
+  // consume() — so a command that arrives while active() came in on another
+  // link. It is answered from this task, at once: the worker and its response
+  // buffer belong to the upload in progress and must not be touched.
+  if (active()) {
+    send_busy(reply);
     return;
   }
 

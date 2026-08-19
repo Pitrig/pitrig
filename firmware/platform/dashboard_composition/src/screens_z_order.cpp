@@ -1,18 +1,14 @@
 #include "dashboard_screens.hpp"
-#include "dashboard_state.hpp"
 
-#include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <span>
-#include <string_view>
 
 #include "application_configuration.hpp"
-#include "logger.hpp"
-#include "simcore_features.hpp"
+#include "dashboard_state.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
-#include "dashboard_screens.hpp"
 
 // Ordering one parent's children. The firmware sorts within an LVGL parent by
 // z_index with authored array order breaking ties, and every parent — a
@@ -30,8 +26,8 @@ struct WidgetLayer {
 // parent — a screen, or a container shape — over that parent's own reference
 // table. A container is one child of its own parent, ordered there by its own
 // z_index, and orders its children separately within itself; that is why depth
-// costs nothing here. The scratch table is reused between parents, which is why
-// more of them cost no more stack.
+// costs nothing here. The calls are sequential, never nested, so the scratch
+// table below is one frame's worth of stack however many parents there are.
 bool apply_parent_z_order(
     const std::span<const configuration::WidgetReference> references,
     const std::size_t reference_count, Dashboard& dashboard) {
@@ -74,9 +70,6 @@ bool apply_parent_z_order(
   lvgl_port_unlock();
   return true;
 }
-
-// How far this container's children reach past it, reported to LVGL whenever it
-// recomputes the extra draw size. lv_event_set_ext_draw_size keeps the larger of
 
 }  // namespace
 

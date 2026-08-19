@@ -27,7 +27,6 @@ struct UsbSerialJtagConfiguration {
 class UsbSerialJtagTransport final : public ITransport {
  public:
   UsbSerialJtagTransport() = default;
-  explicit UsbSerialJtagTransport(UsbSerialJtagConfiguration configuration);
   ~UsbSerialJtagTransport() override;
 
   UsbSerialJtagTransport(const UsbSerialJtagTransport&) = delete;

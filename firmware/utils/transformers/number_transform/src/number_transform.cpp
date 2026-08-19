@@ -1,10 +1,10 @@
 #include "number_transform.hpp"
 
+#include <algorithm>
 #include <array>
-#include <charconv>
 #include <cmath>
 #include <cstddef>
-#include <system_error>
+#include <cstdlib>
 
 #include "text_writer.hpp"
 
@@ -77,12 +77,35 @@ bool apply(const Config& config, const float value,
 bool apply(const Config& config, const std::string_view value,
            const std::span<char> output) {
   float parsed{};
-  const char* const end = value.data() + value.size();
-  const auto result = std::from_chars(value.data(), end, parsed);
-  if (result.ec != std::errc{} || result.ptr != end) {
+  if (!parse(value, parsed)) {
     return false;
   }
   return write(config, static_cast<double>(parsed), output);
+}
+
+bool parse(const std::string_view text, float& value) {
+  // strtof from the C library, which is already linked and correctly rounded,
+  // rather than std::from_chars, whose float instantiation carries its own
+  // parser and tables. It wants a terminated string, and a number longer than
+  // this is not a number a dashboard shows.
+  std::array<char, 32> terminated{};
+  const auto starts_a_number = [](const char c) {
+    return (c >= '0' && c <= '9') || c == '-' || c == '+' || c == '.';
+  };
+  // strtof would also skip leading blanks and read "inf" and "nan"; a value
+  // starts with a sign, a digit or a point or it is not a number.
+  if (text.empty() || text.size() >= terminated.size() ||
+      !starts_a_number(text.front())) {
+    return false;
+  }
+  std::copy(text.begin(), text.end(), terminated.begin());
+  char* end = nullptr;
+  const float parsed = std::strtof(terminated.data(), &end);
+  if (end != terminated.data() + text.size() || !std::isfinite(parsed)) {
+    return false;
+  }
+  value = parsed;
+  return true;
 }
 
 }  // namespace simcore::transformers::number_transform

@@ -31,4 +31,11 @@ struct Config {
 [[nodiscard]] bool apply(const Config& config, std::string_view value,
                          std::span<char> output);
 
+// Parses a plain decimal number — optional sign, digits, optional fraction and
+// exponent — into a finite float, consuming the whole text. This is the one
+// text-to-number conversion the firmware uses (the SimHub line parser, the
+// condition resolver, and the transform above), so it costs one parser rather
+// than a second one beside the C library's.
+[[nodiscard]] bool parse(std::string_view text, float& value);
+
 }  // namespace simcore::transformers::number_transform

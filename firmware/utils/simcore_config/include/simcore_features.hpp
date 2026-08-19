@@ -26,3 +26,11 @@
 #else
 #define SIMCORE_SECOND_TELEMETRY_LINK_SILENCE_LOGS 0
 #endif
+
+// Which core each half of the firmware runs on. Communication — the transport
+// read tasks, the control and asset-upload tasks, and the render trigger they
+// wake — is on one core, LVGL alone on the other, so parsing and a live apply
+// never preempt a frame. The trigger has the lower priority on its core, so a
+// received chunk is parsed to the end before the single pass it triggers.
+#define SIMCORE_COMMUNICATION_CORE 0
+#define SIMCORE_RENDER_CORE 1

@@ -19,24 +19,16 @@ class SimHubProtocol final : public telemetry::IProtocol {
 
   [[nodiscard]] bool initialized() const;
 
-  void consume(std::span<const std::uint8_t> data,
-               telemetry::UpdateHandler handler,
-               void* context) override;
+  void consume_line(std::span<const std::uint8_t> line,
+                    telemetry::UpdateHandler handler,
+                    void* context) override;
 
  private:
-  static constexpr std::size_t kMaximumLineLength = 127;
-
-  void process_line(std::span<const char> line,
-                    telemetry::UpdateHandler handler,
-                    void* context) const;
   [[nodiscard]] telemetry::Handle resolve_identifier(
       std::span<const char> identifier) const;
 
   std::array<telemetry::Handle, simhub_catalog::kBindings.size()> handles_{};
-  std::array<char, kMaximumLineLength> line_buffer_{};
-  std::size_t line_length_{};
   bool initialized_{};
-  bool discard_until_newline_{};
 };
 
 }  // namespace simcore::protocols

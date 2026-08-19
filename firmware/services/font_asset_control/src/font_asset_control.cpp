@@ -69,7 +69,6 @@ int write_info_body(void* const service, char* const out,
 }  // namespace
 
 bool FontAssetControl::initialize(Service& service,
-                                  transport::ITransport& transport,
                                   binary_session::Claim& claim) {
   return control_.initialize(
       {
@@ -86,7 +85,7 @@ bool FontAssetControl::initialize(Service& service,
           .cancel_update = &cancel_update,
           .write_info_body = &write_info_body,
       },
-      transport, claim);
+      claim);
 }
 
 }  // namespace simcore::font_assets
