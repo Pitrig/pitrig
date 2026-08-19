@@ -52,7 +52,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFE04A"
@@ -97,7 +97,7 @@
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFFFFF",
@@ -128,7 +128,7 @@
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFFFFF",

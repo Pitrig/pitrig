@@ -1,12 +1,8 @@
-import { type BrowserWindow } from 'electron'
-import { readFile } from 'node:fs/promises'
-
 import {
   FONT_FAMILY_PATTERN,
   MAXIMUM_FONT_FAMILIES,
   type FontAssetError,
   type FontAssetResult,
-  type FontSourceSelection,
   type FontUploadProgress,
   type FontUploadRequest
 } from '../../shared/font-assets'
@@ -14,12 +10,11 @@ import {
   AssetServiceBase,
   failure,
   success,
-  type AssetKind,
-  type SourceRecord
+  type AssetKind
 } from '../assets/asset-service-base'
-import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
-import { buildFontPackage, type FontFamilyAsset } from './font-package'
+import { FontLibraryService } from '../font-library/font-library-service'
+import { buildFontPackage, type BuiltFontPackage, type FontFamilyAsset } from './font-package'
 
 const kFonts: AssetKind = {
   sessionKey: 'fontAssets',
@@ -34,85 +29,93 @@ const kFonts: AssetKind = {
   rebootRequired: 'Restart the device before uploading another font package.'
 }
 
+/**
+ * Installs a font package holding exactly the families it is given.
+ *
+ * The faces come from the library rather than from files picked for this
+ * upload: a family identifier *is* a library id, so there is nothing left to
+ * bind and nothing to keep in step for the length of a session. A family the
+ * library cannot answer for is refused here rather than uploaded empty — the
+ * save pipeline resolves first and asks the author for a file, which is the
+ * only place that question belongs.
+ */
 export class FontAssetService extends AssetServiceBase {
   constructor(
     deviceService: DeviceService,
-    private readonly onProgress: (progress: FontUploadProgress) => void,
-    private readonly previewAssets: PreviewAssetCache
+    private readonly library: FontLibraryService
   ) {
     super(deviceService, kFonts)
   }
 
-  async selectSource(owner?: BrowserWindow): Promise<FontAssetResult<FontSourceSelection | null>> {
-    const chosen = await this.chooseSource(owner)
-    if (!chosen.ok) return chosen
-    if (chosen.value === null) return success(null)
-    const source: SourceRecord = chosen.value
-    this.sources.set(source.id, source)
-    return success({ id: source.id, name: source.name })
+  /**
+   * Builds the package for a family set without touching the device, so a save
+   * can compare it against what is installed before deciding to upload at all.
+   */
+  async buildPackage(families: readonly string[]): Promise<FontAssetResult<BuiltFontPackage>> {
+    const invalid = validateFamilies(families)
+    if (invalid) return { ok: false, error: invalid }
+    const faces: FontFamilyAsset[] = []
+    for (const family of families) {
+      const bytes = await this.library.readFace(family)
+      if (!bytes) {
+        return failure('source_missing', `The font library holds no face called "${family}".`)
+      }
+      faces.push({ family, bytes })
+    }
+    try {
+      return success(buildFontPackage(faces))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'The font package could not be built.'
+      return failure(message.includes('2 MiB') ? 'package_too_large' : 'invalid_request', message)
+    }
   }
 
-  async upload(request: FontUploadRequest): Promise<FontAssetResult<void>> {
+  /**
+   * Installs the package. `report` is required because there is no font upload
+   * of its own to report on: the only caller is a save, and the author watches
+   * one bar for the whole sequence rather than one per command inside it.
+   */
+  async upload(
+    request: FontUploadRequest,
+    report: (progress: FontUploadProgress) => void
+  ): Promise<FontAssetResult<void>> {
     const blocked = this.preflight()
     if (blocked) return blocked
-    const validationError = this.validateRequest(request)
-    if (validationError) return { ok: false, error: validationError }
     const deviceSession = this.deviceService.getState().session
 
     const operation = new AbortController()
     this.activeOperation = operation
-    let stage: 'reading' | 'building' | 'uploading' = 'reading'
     try {
-      const faces: FontFamilyAsset[] = []
-      for (let index = 0; index < request.assets.length; ++index) {
-        operation.signal.throwIfAborted()
-        const asset = request.assets[index]
-        if (!asset) continue
-        const source = this.sources.get(asset.sourceId)
-        if (!source) {
-          return failure('source_missing', `Font source for ${asset.family} is no longer available.`)
-        }
-        this.onProgress({
-          stage: 'reading',
-          completed: index,
-          total: request.assets.length,
-          message: `Reading ${source.name}`
-        })
-        const bytes = new Uint8Array(await readFile(source.path))
-        faces.push({ family: asset.family, bytes })
-        this.onProgress({
-          stage: 'reading',
-          completed: index + 1,
-          total: request.assets.length,
-          message: `Read ${source.name}: ${bytes.byteLength} bytes`
-        })
-      }
-
-      stage = 'building'
-      this.onProgress({
+      report({
         stage: 'building',
-        completed: faces.length,
-        total: faces.length,
-        message: `Building one font package from ${faces.length} font families`
+        completed: 0,
+        total: request.families.length,
+        message: `Building one font package from ${request.families.length} font families`
       })
-      const packageBytes = buildFontPackage(faces)
-      this.onProgress({
+      operation.signal.throwIfAborted()
+      const built = await this.buildPackage(request.families)
+      if (!built.ok) {
+        report({ stage: 'error', completed: 0, total: 0, message: built.error.message })
+        return built
+      }
+      const packageBytes = built.value.bytes
+      report({
         stage: 'building',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
         message: `Built font package: ${packageBytes.byteLength} bytes`
       })
 
-      stage = 'uploading'
       if (this.deviceService.getState().session !== deviceSession) {
         throw new Error('The connected device changed while the package was built.')
       }
-      await this.deviceService.uploadFonts(packageBytes, this.onProgress, operation.signal)
-      // The board keeps no readable copy of a face, so this is the only chance
-      // to keep one for the preview. A cache write that fails costs fidelity,
-      // never the upload that already succeeded.
-      await this.previewAssets.storeFonts(faces).catch(() => undefined)
-      this.onProgress({
+      await this.deviceService.uploadFonts(
+        packageBytes,
+        report,
+        operation.signal,
+        built.value.payloadCrc
+      )
+      report({
         stage: 'completed',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
@@ -122,43 +125,38 @@ export class FontAssetService extends AssetServiceBase {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown font asset error.'
       if (operation.signal.aborted) {
-        this.onProgress({ stage: 'cancelled', completed: 0, total: 0, message: 'Font upload cancelled.' })
+        report({ stage: 'cancelled', completed: 0, total: 0, message: 'Font upload cancelled.' })
         return failure('cancelled', 'Font upload was cancelled.')
       }
-      this.onProgress({ stage: 'error', completed: 0, total: 0, message })
-      if (message.includes('2 MiB')) return failure('package_too_large', message)
-      return failure(stage === 'reading' ? 'source_unreadable' : 'device_error', message)
+      report({ stage: 'error', completed: 0, total: 0, message })
+      return failure('device_error', message)
     } finally {
-      if (this.activeOperation === operation) this.activeOperation = undefined
+      this.release(operation)
     }
   }
 
   cancel(): FontAssetResult<void> {
-    if (!this.activeOperation) return success(undefined)
-    this.activeOperation.abort()
+    this.activeOperation?.abort()
     return success(undefined)
   }
+}
 
-  private validateRequest(request: FontUploadRequest): FontAssetError | undefined {
-    if (!Array.isArray(request.assets) || request.assets.length > MAXIMUM_FONT_FAMILIES) {
-      return {
-        code: 'invalid_request',
-        message: `At most ${MAXIMUM_FONT_FAMILIES} font families can be uploaded.`
-      }
+function validateFamilies(families: readonly string[]): FontAssetError | undefined {
+  if (families.length > MAXIMUM_FONT_FAMILIES) {
+    return {
+      code: 'invalid_request',
+      message: `At most ${MAXIMUM_FONT_FAMILIES} font families can be installed.`
     }
-    const families = new Set<string>()
-    for (const asset of request.assets) {
-      if (
-        !asset || typeof asset.sourceId !== 'string' || !this.sources.has(asset.sourceId) ||
-        typeof asset.family !== 'string' || !FONT_FAMILY_PATTERN.test(asset.family)
-      ) {
-        return { code: 'invalid_request', message: 'The font upload request is invalid.' }
-      }
-      if (families.has(asset.family)) {
-        return { code: 'invalid_request', message: `Duplicate font family: ${asset.family}.` }
-      }
-      families.add(asset.family)
-    }
-    return undefined
   }
+  const seen = new Set<string>()
+  for (const family of families) {
+    if (!FONT_FAMILY_PATTERN.test(family)) {
+      return { code: 'invalid_request', message: `Invalid font family identifier: ${family}` }
+    }
+    if (seen.has(family)) {
+      return { code: 'invalid_request', message: `Duplicate font family: ${family}` }
+    }
+    seen.add(family)
+  }
+  return undefined
 }

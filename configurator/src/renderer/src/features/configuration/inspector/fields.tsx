@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { type FontSpec, type RgbColor, WIDGET_ID_CAPACITY } from '@shared/configuration-schema'
+import { MAXIMUM_FONT_SIZE_PX } from '@shared/font-assets'
 import { dashboardPalette } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
+import { FontPicker } from '@/features/font-library/FontPicker'
+import { previewFontFamily, useFontFaceStore } from '@/features/font-library/font-face-store'
+import { findFontEntry, useFontLibraryStore } from '@/features/font-library/font-library-store'
 
 export function Section({ title, children }: { title: string; children: React.ReactNode }): React.JSX.Element { return <section className="space-y-2 border-t pt-3"><h3 className="font-medium">{title}</h3>{children}</section> }
 export function Hint({ children }: { children: React.ReactNode }): React.JSX.Element { return <p className="rounded-md border p-2 text-muted-foreground">{children}</p> }
@@ -158,7 +162,77 @@ function useLiveCommit<T>(value: T, commit: (value: T) => void): [T, (next: T) =
   return [local, change, flush]
 }
 
-export function FontEditor({ font, onChange }: { font?: FontSpec; onChange: (font: FontSpec) => void }): React.JSX.Element { return <div className="grid grid-cols-[minmax(0,1fr)_5rem] gap-2"><TextField label="Font family" value={font?.family ?? ''} onChange={(family) => onChange({ ...font, family })} /><NumberField label="Size" value={font?.size_px ?? 16} min={1} max={255} onChange={(size_px) => onChange({ ...font, size_px })} /></div> }
+/**
+ * A font is chosen, never typed: the family string is the id of a library
+ * entry, so a name that is not one names nothing the board could ever be given.
+ * The button shows the face it stands for, which is also how an unresolved
+ * family announces itself — it is the one that cannot draw itself.
+ */
+/**
+ * The family alone. The board holds one face per family, so a size is a
+ * property of the widget that draws the text and not of the font — the two are
+ * only side by side where a widget is being edited.
+ *
+ * The wrapper is deliberately the same markup NumberField uses, so the control
+ * lines up with a size beside it instead of lining up by coincidence.
+ */
+export function FontFamilyField({ label = 'Font', family, onChange }: { label?: string; family?: string; onChange: (family: string) => void }): React.JSX.Element {
+  const [picking, setPicking] = useState(false)
+  const entries = useFontLibraryStore((state) => state.entries)
+  const loaded = useFontFaceStore((state) => state.loaded)
+  const entry = findFontEntry(entries, family)
+  return (
+    <div className="block space-y-1 text-muted-foreground">
+      <span>{label}</span>
+      <button
+        type="button"
+        onClick={() => setPicking(true)}
+        className={`flex h-8 w-full items-center justify-between gap-2 rounded-md border bg-background px-2 text-left ${entry ? 'text-foreground' : 'text-amber-500'}`}
+        title={entry ? entry.id : family}
+      >
+        <span
+          className="min-w-0 flex-1 truncate"
+          style={family && loaded[family] ? { fontFamily: previewFontFamily(family) } : undefined}
+        >
+          {entry ? entry.name : family ? `Unresolved: ${family}` : 'Choose font…'}
+        </span>
+        {/* Not a caret: this opens a searchable browser, and a dropdown arrow
+            would promise a list that drops down from here. */}
+        <BrowseIcon />
+      </button>
+      {picking ? (
+        <FontPicker
+          value={family}
+          onChoose={(chosen) => { onChange(chosen); setPicking(false) }}
+          onClose={() => setPicking(false)}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function BrowseIcon(): React.JSX.Element {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" className="size-3.5 shrink-0 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+      <circle cx="7" cy="7" r="4.25" />
+      <path d="M10.2 10.2 13.5 13.5" />
+    </svg>
+  )
+}
+
+/**
+ * A font as a widget carries one: the family, and the size that widget draws it
+ * at.
+ */
+export function FontEditor({ font, onChange }: { font?: FontSpec; onChange: (font: FontSpec) => void }): React.JSX.Element {
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_5rem] gap-2">
+      <FontFamilyField family={font?.family} onChange={(family) => onChange({ ...font, family })} />
+      <NumberField label="Size" value={font?.size_px ?? 16} min={1} max={MAXIMUM_FONT_SIZE_PX} onChange={(size_px) => onChange({ ...font, size_px })} />
+    </div>
+  )
+}
+
 /**
  * An identifier the device stores and never draws. A rename that would collide
  * or overflow is refused rather than silently adjusted, and the field reverts so

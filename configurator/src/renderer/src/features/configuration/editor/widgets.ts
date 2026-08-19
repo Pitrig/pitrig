@@ -1,7 +1,7 @@
 import { allWidgetsOf, createWidgetId, pagesOf } from '@shared/configuration-access'
 import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_SLOT_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
-import { documentFonts } from '@shared/document-fonts'
+import { applyFontFamily, documentFonts } from '@shared/document-fonts'
 import { DEFAULT_FONT_FAMILY } from '@shared/font-assets'
 import { absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOf, widgetArrayOf } from './document'
 import { ensureScreen } from './screens'
@@ -132,21 +132,26 @@ function draftFonts(configuration: DeviceConfiguration | undefined): FontSpec[] 
 }
 
 /**
- * The family the dashboard already draws with. A new widget in some other
- * family stands out for no reason the author asked for, and — since the device
- * holds one face per family — it also adds a family to the upload. Falling back
- * to the connected board's first installed family, and then to the default
- * name, keeps a new widget from having no font at all, which the device rejects
- * the whole document over.
+ * The family a new widget should take. The author's chosen dashboard font wins;
+ * failing that, the family the dashboard already draws with, because a new
+ * widget in some other family stands out for no reason the author asked for and
+ * — since the device holds one face per family — also adds a family to the
+ * upload. The bundled default is the floor, so a widget is never created
+ * without a font, which the device rejects the whole document over.
+ *
+ * What is installed on a connected board deliberately plays no part. The
+ * library decides what can be authored; the board only says what has been
+ * delivered so far, and seeding from it would put a family the library cannot
+ * resolve into a brand-new widget.
  */
 export function draftFontFamily(
   configuration: DeviceConfiguration | undefined,
-  installedFamily?: string
+  preferredFamily?: string
 ): string {
   const families = draftFonts(configuration)
     .map((font) => font.family)
     .filter((family): family is string => Boolean(family))
-  return commonest(families) ?? installedFamily ?? DEFAULT_FONT_FAMILY
+  return preferredFamily ?? commonest(families) ?? DEFAULT_FONT_FAMILY
 }
 
 /**
@@ -155,9 +160,9 @@ export function draftFontFamily(
  */
 export function draftValueFont(
   configuration: DeviceConfiguration | undefined,
-  installedFamily?: string
+  preferredFamily?: string
 ): FontSpec {
-  const family = draftFontFamily(configuration, installedFamily)
+  const family = draftFontFamily(configuration, preferredFamily)
   const sizes = draftFonts(configuration)
     .filter((font) => font.family === family)
     .map((font) => font.size_px)
@@ -375,3 +380,14 @@ export function addTapZone(display: { width: number; height: number }): string |
 
 const TAP_ZONE_PX = 96
 
+/**
+ * Puts every font the dashboard already carries into one family, in a single
+ * edit so it is a single undo. Sizes are left alone: a caption and a reading
+ * are deliberately different sizes, and "one font everywhere" is a statement
+ * about the face, not about the scale.
+ */
+export function applyFontFamilyToDashboard(family: string): void {
+  mutateDraftConfiguration((configuration) => {
+    for (const widget of allWidgetsOf(configuration)) applyFontFamily(widget, family)
+  })
+}

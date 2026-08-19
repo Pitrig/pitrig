@@ -61,15 +61,17 @@ bool validate_header(const Format& format,
   }
 
   const auto manifest = storage_bytes.subspan(kManifestOffset, manifest_size);
+  const std::uint32_t payload_crc =
+      binary::read_u32_le(header, kHeaderPayloadCrcOffset);
   if (binary::read_u32_le(header, kHeaderManifestCrcOffset) !=
           binary::crc32(manifest) ||
-      binary::read_u32_le(header, kHeaderPayloadCrcOffset) !=
-          binary::crc32(storage_bytes.subspan(
-              format.data_offset, payload_size - format.data_offset))) {
+      payload_crc != binary::crc32(storage_bytes.subspan(
+                         format.data_offset, payload_size - format.data_offset))) {
     return false;
   }
   parsed = {.entry_count = entry_count,
             .payload_size = payload_size,
+            .payload_crc = payload_crc,
             .manifest = manifest};
   return true;
 }

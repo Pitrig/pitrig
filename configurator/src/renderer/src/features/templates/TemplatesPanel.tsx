@@ -9,7 +9,7 @@ import { draftText, useDeviceStore } from '@/features/device/device-store'
 import {
   collectFontRequirements,
   missingFontFamilies
-} from '@/features/font-assets/font-requirements'
+} from '@/features/font-library/font-requirements'
 import { withWidgetIds } from '@shared/configuration-access'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
 import { BOARD_PROFILES, SIMCORE_BOARD_IDS, type DeviceConfiguration } from '@shared/device'

@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { writeDevelopmentLog } from '@/features/development/development-log'
 import { useDeviceStore } from '@/features/device/device-store'
-import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
 import {
   DEFAULT_BAUD_RATE,
   SUPPORTED_BAUD_RATES,
@@ -52,7 +51,6 @@ export function DeviceConnection({
   const [ports, setPorts] = useState<SerialPortSummary[]>([])
   const [selectedPortId, setSelectedPortId] = useState(AUTO_PORT_ID)
   const [selectedBaudRate, setSelectedBaudRate] = useState(String(DEFAULT_BAUD_RATE))
-  const previousStatus = useRef<DeviceStatus>('disconnected')
   const applyDeviceState = useDeviceStore((store) => store.applyDeviceState)
   const status = useDeviceStore((store) => store.status)
   const connection = useDeviceStore((store) => store.connection)
@@ -79,19 +77,11 @@ export function DeviceConnection({
   useEffect(() => {
     void window.simcore.getDeviceState().then((initialState) => {
       writeDevelopmentLog('Initial device state', initialState)
-      if (initialState.status === 'connected') {
-        useFontAssetsStore.getState().resetOperation()
-      }
-      previousStatus.current = initialState.status
       applyDeviceState(initialState)
     })
     void window.simcore.listSerialPorts().then(applyPortResult)
     return window.simcore.onDeviceStateChanged((nextState) => {
       writeDevelopmentLog('Device state changed', nextState)
-      if (nextState.status === 'connected' && previousStatus.current !== 'connected') {
-        useFontAssetsStore.getState().resetOperation()
-      }
-      previousStatus.current = nextState.status
       applyDeviceState(nextState)
     })
   }, [applyDeviceState, applyPortResult])

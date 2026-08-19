@@ -17,12 +17,12 @@ import {
 } from '@shared/configuration-validate'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { useLiveApply, type LiveApplyState } from '@/features/device/use-live-apply'
-import { useFontAssetsStore } from '@/features/font-assets/font-assets-store'
+import { UnresolvedFontsDialog } from '@/features/font-library/UnresolvedFontsDialog'
 import {
   collectFontRequirements,
-  groupFontRequirements,
   missingFontFamilies
-} from '@/features/font-assets/font-requirements'
+} from '@/features/font-library/font-requirements'
+import { isUnresolvedFonts, type SaveProgress } from '@shared/save-to-board'
 import {
   BOARD_PROFILES,
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
@@ -78,6 +78,10 @@ export function ConfigurationPanel(): React.JSX.Element {
   const setDraft = useDeviceStore((state) => state.setDraft)
   const reloadDraft = useDeviceStore((state) => state.reloadDraft)
   const markSaved = useDeviceStore((state) => state.markConfigurationSaved)
+  // Kept in the store, because a save restarts the board and the reconnect
+  // remounts this panel — local state would not survive to be read.
+  const saveFeedback = useDeviceStore((state) => state.saveFeedback)
+  const setSaveFeedback = useDeviceStore((state) => state.setSaveFeedback)
   const markReset = useDeviceStore((state) => state.markConfigurationReset)
   const [liveApply, setLiveApply] = useState<LiveApplyState>({ pending: false })
   const [operation, setOperation] = useState<Operation>('idle')
@@ -85,6 +89,8 @@ export function ConfigurationPanel(): React.JSX.Element {
   const [offlineBoard, setOfflineBoard] = useState<SimCoreBoardId | ''>('')
   const [report, setReport] = useState<LayoutTransferResult>()
   const [fit, setFit] = useState<LayoutFit>('contain')
+  const [saveProgress, setSaveProgress] = useState<SaveProgress>()
+  const [unresolvedFonts, setUnresolvedFonts] = useState<string[]>()
   // A different document is a different set of widgets, so the selection, the
   // locked and hidden layers and the zoom all describe nothing any more.
   const resetEditorState = useDashboardEditorStore((state) => state.resetEditorState)
@@ -112,8 +118,15 @@ export function ConfigurationPanel(): React.JSX.Element {
     : false
   // Live apply runs only when the device could accept the document anyway:
   // connected, matching board, valid draft, and no other operation in flight.
+  //
+  // A family the board does not hold is the fourth case. Firmware rejects such
+  // a document whole — apply_configuration.cpp answers `invalid_widget` with
+  // `path=font` *before* it tears the running dashboard down — so sending it
+  // would only turn a calm sentence into a red error. Note that apply is
+  // whole-document: while this is suppressed, no edit reaches the board, not
+  // only the font. That is the intent, not an oversight.
   useLiveApply(
-    connected && !busy && parsed.ok && !boardMismatch,
+    connected && !busy && parsed.ok && !boardMismatch && missingFamilies.length === 0,
     setLiveApply
   )
 
@@ -125,7 +138,7 @@ export function ConfigurationPanel(): React.JSX.Element {
         ? parsed.error
         : !session?.info.storageAvailable
           ? 'Persistent configuration storage is unavailable on this board.'
-          : !dirty && missingFamilies.length === 0
+          : !dirty
             ? 'The draft already matches the active or pending configuration.'
             : undefined
 
@@ -238,81 +251,37 @@ export function ConfigurationPanel(): React.JSX.Element {
       setFeedback({ kind: 'error', message: parsed.error })
       return
     }
-    if (missingFamilies.length > 0) {
-      const fontInfo = session?.fontAssets
-      if (!fontInfo) {
-        setFeedback({ kind: 'error', message: 'The connected firmware cannot report installed font assets.' })
-        return
-      }
-      if (!fontInfo.storageAvailable) {
-        setFeedback({ kind: 'error', message: 'Font asset storage is unavailable on this board.' })
-        return
-      }
-      if (fontInfo.rebootRequired) {
-        setFeedback({ kind: 'error', message: 'Restart the board before replacing its font package.' })
-        return
-      }
-      if (!window.confirm(
-        `${missingFamilies.length} required font famil${missingFamilies.length === 1 ? 'y is' : 'ies are'} missing. Upload the complete font set before saving the configuration?`
-      )) return
-
-      const fontStore = useFontAssetsStore.getState()
-      const missingSources = [...groupFontRequirements(requiredFonts).keys()].filter(
-        (family) => !fontStore.sources[family]
-      )
-      if (missingSources.length > 0) {
-        const message = `Choose a TTF or OTF source for: ${missingSources.join(', ')}.`
-        fontStore.setError(message)
-        setFeedback({ kind: 'error', message })
-        return
-      }
-
-      setOperation('save')
-      setFeedback(undefined)
-      fontStore.beginOperation()
-      // The package is replaced whole, so every family the configuration needs
-      // is uploaded, not only the missing ones.
-      const fontRequest = {
-        assets: [...groupFontRequirements(requiredFonts).keys()].map((family) => ({
-          sourceId: fontStore.sources[family]!.id,
-          family
-        }))
-      }
-      writeDevelopmentLog('Automatic font upload requested', fontRequest)
-      let fontResult: Awaited<ReturnType<typeof window.simcore.uploadFontAssets>>
-      try {
-        fontResult = await window.simcore.uploadFontAssets(fontRequest)
-      } catch (error) {
-        const message = operationErrorMessage(error)
-        fontStore.setError(message)
-        setFeedback({ kind: 'error', message })
-        setOperation('idle')
-        return
-      }
-      writeDevelopmentLog('Automatic font upload completed', fontResult)
-      if (!fontResult.ok) {
-        fontStore.setError(fontResult.error.message)
-        setFeedback({ kind: 'error', message: fontResult.error.message })
-        setOperation('idle')
-        return
-      }
-    } else {
-      setOperation('save')
-      setFeedback(undefined)
-    }
-
+    setOperation('save')
+    setFeedback(undefined)
+    setSaveFeedback(undefined)
+    setUnresolvedFonts(undefined)
+    setSaveProgress(undefined)
+    // One call: the main process resolves the fonts, installs the ones the
+    // board lacks, saves, restarts and reconnects. Ordering serial commands
+    // from a React component is what this replaced.
+    const stopProgress = window.simcore.onSaveProgress(setSaveProgress)
     try {
-      const result = await window.simcore.saveDeviceConfiguration({ json: draftJson })
-      writeDevelopmentLog('Configuration save completed', result)
+      const result = await window.simcore.saveToBoard({ json: draftJson })
+      writeDevelopmentLog('Save to board completed', result)
       if (!result.ok) {
-        setFeedback({ kind: 'error', message: result.error.message })
+        if (isUnresolvedFonts(result.error)) setUnresolvedFonts(result.error.families)
+        setSaveFeedback({ kind: 'error', message: result.error.message })
         return
       }
-      markSaved(result.value.configuration)
-      setFeedback({ kind: 'success', message: 'Fonts and configuration saved. Reboot the board to activate them.' })
+      markSaved(result.value.configuration as DeviceConfiguration)
+      setSaveFeedback({
+        kind: result.value.reconnectFailed ? 'error' : 'success',
+        message: result.value.reconnectFailed
+          ? 'Saved, but the board did not come back on its port. Reconnect it by hand.'
+          : result.value.fontsUploaded
+            ? 'Fonts installed and configuration saved. The board is running the new dashboard.'
+            : 'Configuration saved. The board is running the new dashboard.'
+      })
     } catch (error) {
-      setFeedback({ kind: 'error', message: operationErrorMessage(error) })
+      setSaveFeedback({ kind: 'error', message: operationErrorMessage(error) })
     } finally {
+      stopProgress()
+      setSaveProgress(undefined)
       setOperation('idle')
     }
   }
@@ -504,16 +473,39 @@ export function ConfigurationPanel(): React.JSX.Element {
           </p>
         ) : null}
 
-        {feedback ? (
+        {connected && missingFamilies.length > 0 ? (
+          <p className="rounded-md border p-2 text-xs text-muted-foreground">
+            The board is still showing the previous font. This preview is configurator-only until
+            you save.
+          </p>
+        ) : null}
+
+        {/* One stream for the whole sequence: the fonts, the configuration, the
+            restart and the reconnect are one act as far as the author is
+            concerned, so they get one bar. */}
+        {saveProgress ? <SaveProgressBar progress={saveProgress} /> : null}
+
+        {(feedback ?? saveFeedback) ? (
           <p
             className={
-              feedback.kind === 'error'
+              (feedback ?? saveFeedback)?.kind === 'error'
                 ? 'rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300'
                 : 'rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-xs text-emerald-300'
             }
           >
-            {feedback.message}
+            {(feedback ?? saveFeedback)?.message}
           </p>
+        ) : null}
+
+        {unresolvedFonts ? (
+          <UnresolvedFontsDialog
+            families={unresolvedFonts}
+            onRetry={() => {
+              setUnresolvedFonts(undefined)
+              void save()
+            }}
+            onClose={() => setUnresolvedFonts(undefined)}
+          />
         ) : null}
 
         {report ? (
@@ -603,4 +595,48 @@ function parseDraft(
   }
   if (!draft) return { ok: false, error: 'No local configuration.' }
   return validateConfigurationDocument(draft, { supportedBoards: SIMCORE_BOARD_IDS })
+}
+
+/**
+ * The save's own progress. `total` is zero for the stages that are one step, so
+ * those show an indeterminate bar rather than a bar frozen at nothing — only
+ * the upload has real numbers to report, and it reports a lot of them.
+ */
+function SaveProgressBar({ progress }: { progress: SaveProgress }): React.JSX.Element {
+  const percent = progress.total > 0
+    ? Math.min(100, Math.round((progress.completed / progress.total) * 100))
+    : 0
+  return (
+    <div className="space-y-1.5 rounded-md border bg-muted/20 p-2 text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium text-foreground">{SAVE_STAGE_LABELS[progress.stage]}</span>
+        {/* Installing faces is the long part and the only interruptible one:
+            cancelling it fails the save before the configuration is written,
+            which leaves the board exactly as it was. */}
+        {progress.stage === 'uploading' ? (
+          <button
+            type="button"
+            className="text-sky-300/70 hover:text-sky-200"
+            onClick={() => void window.simcore.cancelFontUpload()}
+          >
+            Cancel
+          </button>
+        ) : null}
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div className="h-full bg-sky-500 transition-[width]" style={{ width: `${percent}%` }} />
+      </div>
+      <p className="break-words">{progress.message}</p>
+    </div>
+  )
+}
+
+const SAVE_STAGE_LABELS: Record<SaveProgress['stage'], string> = {
+  preparing: 'Checking fonts',
+  building: 'Building the font package',
+  uploading: 'Installing fonts',
+  saving: 'Saving the configuration',
+  rebooting: 'Restarting the board',
+  reconnecting: 'Reconnecting',
+  completed: 'Saved'
 }

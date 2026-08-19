@@ -67,7 +67,14 @@ export function isBluetoothPort(path: string): boolean {
   return path.toLowerCase().includes('bluetooth')
 }
 
-function serialIdentity(path: string): string {
+/**
+ * The one device behind `/dev/cu.x` and `/dev/tty.x`. Exported because a port
+ * identifier does not survive the device vanishing: `refresh` carries ids over
+ * from the previous listing, so a board that de-enumerates while it reboots
+ * comes back with a new one. Anything that has to recognise the *same physical
+ * port* across a restart has to compare paths, not ids.
+ */
+export function serialIdentity(path: string): string {
   return path
     .replace(/^\/dev\/cu\./, '/dev/serial.')
     .replace(/^\/dev\/tty\./, '/dev/serial.')

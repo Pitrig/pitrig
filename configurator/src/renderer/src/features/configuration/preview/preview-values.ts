@@ -1,7 +1,7 @@
 import { type FontSpec, type TextAlignment } from '@shared/configuration-schema'
 import { type TelemetryValue, UNAVAILABLE, conditionValue } from '@shared/telemetry-value'
 import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, resolveWidgetStyle } from '@shared/widget-style'
-import { previewFontFamily } from './preview-assets'
+import { previewFontFamily } from '@/features/font-library/font-face-store'
 import { type GlyphMetrics, measureGlyphs } from './text-metrics'
 
 /**
@@ -58,27 +58,28 @@ interface PreviewFont {
   sizePx: number
   weight: number
   /** Whether this is the face the board rasterizes rather than a stand-in. */
-  uploaded: boolean
+  resolved: boolean
 }
 
 /**
- * The face to draw one font spec with. The uploaded face is used when the
- * configurator still holds the copy it installed; otherwise this falls back to
- * a system face picked to look roughly like it, and the layout it produces is
- * an approximation of the board's.
+ * The face to draw one font spec with. The library's face is used whenever the
+ * library answers to the identifier — which is any bundled or downloaded font,
+ * on any machine. What falls through is a family nothing answers to: a document
+ * naming a face this installation has never seen, which draws in a system stand-in
+ * and lays out only approximately until the author resolves it.
  */
 export function resolvedFont(
   font: FontSpec | undefined,
   defaultSizePx: number,
-  uploadedFamilies: Readonly<Record<string, boolean>>
+  loadedFamilies: Readonly<Record<string, boolean>>
 ): PreviewFont {
   const identifier = font?.family ?? 'custom_font'
   const sizePx = font?.size_px ?? defaultSizePx
-  if (uploadedFamilies[identifier]) {
+  if (loadedFamilies[identifier]) {
     // The face carries its own weight; asking for a heavier one would have the
     // browser synthesize a thicker version of glyphs the board draws as they
     // are.
-    return { family: previewFontFamily(identifier), sizePx, weight: 400, uploaded: true }
+    return { family: previewFontFamily(identifier), sizePx, weight: 400, resolved: true }
   }
   const black = identifier.includes('black')
   return {
@@ -87,7 +88,7 @@ export function resolvedFont(
       : 'Arial, sans-serif',
     sizePx,
     weight: black ? 900 : 600,
-    uploaded: false
+    resolved: false
   }
 }
 

@@ -58,6 +58,14 @@ interface DeviceStore {
   setRawDraft: (text: string) => void
   replaceLocalDraft: (configuration: DeviceConfiguration, fileName?: string) => void
   reloadDraft: (session: DeviceSession) => void
+  /**
+   * How the last save to a board ended. It lives here rather than in the panel
+   * because a save now restarts the board and reconnects to it, and that
+   * reconnect remounts the panel — the message would be destroyed by the very
+   * operation it is reporting on.
+   */
+  saveFeedback?: { kind: 'success' | 'error'; message: string }
+  setSaveFeedback: (feedback?: { kind: 'success' | 'error'; message: string }) => void
   markConfigurationSaved: (configuration: DeviceConfiguration) => void
   markConfigurationReset: (configuration: DeviceConfiguration) => void
   /**
@@ -186,6 +194,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       rebootRequired: current.rebootRequired || (session.fontAssets?.rebootRequired ?? false),
       ...clearedHistory()
     })),
+  setSaveFeedback: (saveFeedback) => set({ saveFeedback }),
   markConfigurationSaved: (configuration) =>
     set({
       draft: adopt(configuration),
@@ -193,7 +202,9 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       hasLocalDraft: true,
       draftFileName: undefined,
       pendingConfiguration: configuration,
-      rebootRequired: true,
+      // The save restarts the board itself, so what it saved is already
+      // running rather than waiting for the author to do something about it.
+      rebootRequired: false,
       ...clearedHistory()
     }),
   markConfigurationReset: (configuration) =>

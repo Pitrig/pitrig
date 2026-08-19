@@ -1,8 +1,7 @@
-import { dialog, type BrowserWindow, type OpenDialogOptions } from 'electron'
-import { randomUUID } from 'node:crypto'
-import { basename, extname } from 'node:path'
+import type { BrowserWindow, OpenDialogOptions } from 'electron'
 
 import type { AssetError, AssetResult } from '@shared/asset-upload'
+import { chooseFile } from './choose-file'
 import type { DeviceService } from '../device/device-service'
 
 // One selected file on disk, before anything has been built from it.
@@ -52,21 +51,20 @@ export abstract class AssetServiceBase {
   protected async chooseSource(
     owner?: BrowserWindow
   ): Promise<AssetResult<SourceRecord | null>> {
-    const options: OpenDialogOptions = {
-      title: this.kind.dialogTitle,
-      buttonLabel: this.kind.dialogButton,
-      properties: ['openFile'],
-      filters: this.kind.filters
-    }
-    const result = owner
-      ? await dialog.showOpenDialog(owner, options)
-      : await dialog.showOpenDialog(options)
-    if (result.canceled) return success(null)
-    const path = result.filePaths[0]
-    if (!path || !this.kind.extensions.includes(extname(path).toLowerCase())) {
+    const outcome = await chooseFile(
+      {
+        title: this.kind.dialogTitle,
+        buttonLabel: this.kind.dialogButton,
+        filters: this.kind.filters,
+        extensions: this.kind.extensions
+      },
+      owner
+    )
+    if (outcome.kind === 'cancelled') return success(null)
+    if (outcome.kind === 'wrong_extension') {
       return failure('invalid_request', this.kind.wrongExtension)
     }
-    return success({ id: randomUUID(), name: basename(path), path })
+    return success(outcome.file)
   }
 
   /**

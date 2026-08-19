@@ -1,10 +1,10 @@
 import { type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { placeholderBody, transformedBody, withAffixes } from '@shared/value-format'
+import { useFontFaceStore } from '@/features/font-library/font-face-store'
 import { completePlacement } from '../dashboard-editor'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
 import { contentArea } from './preview-geometry-paint'
 import { type PreviewValues, alignmentAnchor, fontMetrics, lvglCenterOffset, resolvedFont } from './preview-values'
-import { usePreviewAssetStore } from './preview-assets'
 import { WidgetFrameShape } from './frame-shape'
 
 export function TextWidgetPreview({
@@ -14,14 +14,14 @@ export function TextWidgetPreview({
   configuration: TextWidgetConfiguration
   values: PreviewValues
 }): React.JSX.Element | null {
-  const uploadedFamilies = usePreviewAssetStore((state) => state.fonts)
+  const loadedFamilies = useFontFaceStore((state) => state.loaded)
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
 
   const borderWidth = configuration.border?.width_px ?? 0
   const title = configuration.title?.text ?? ''
-  const titleFont = resolvedFont(configuration.title?.font, 10, uploadedFamilies)
-  const valueFont = resolvedFont(configuration.value?.font, 48, uploadedFamilies)
+  const titleFont = resolvedFont(configuration.title?.font, 10, loadedFamilies)
+  const valueFont = resolvedFont(configuration.value?.font, 48, loadedFamilies)
   const content = contentArea(placement, borderWidth, configuration.padding)
   const style = values.styleFor(configuration, {
     color: configuration.value?.color ?? DEFAULT_TEXT_COLOR,

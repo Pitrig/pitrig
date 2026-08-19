@@ -2,9 +2,13 @@ import { screensOf, widgetsOf } from '@shared/configuration-access'
 import { type ShapeWidgetConfiguration, type ValueSourceConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
-import { type WidgetSelection, mutateActiveScreen, mutateSelectedWidget, renameScreen, useDashboardEditorStore } from '../dashboard-editor'
+import { documentFonts } from '@shared/document-fonts'
+import { MAXIMUM_FONT_FAMILIES } from '@shared/font-assets'
+import { type WidgetSelection, applyFontFamilyToDashboard, draftFontFamily, mutateActiveScreen, mutateSelectedWidget, renameScreen, useDashboardEditorStore } from '../dashboard-editor'
 import { TelemetryBindingField } from './TelemetryBindingField'
-import { ColorField, IdField, NumberField, Section, SelectField } from './fields'
+import { ColorField, FontFamilyField, IdField, NumberField, Section, SelectField } from './fields'
+import { Button } from '@/components/ui/button'
+import { dashboardFontFootprint, findFontEntry, kilobytes, useFontLibraryStore } from '@/features/font-library/font-library-store'
 
 interface RangedWidget {
   source?: ValueSourceConfiguration
@@ -96,6 +100,70 @@ export function GeometryEditor({ selection, placement, zIndex }: { selection: Wi
       <NumberField label="Z" value={zIndex} min={-32768} max={32767} onChange={(value) => mutateSelectedWidget(selection, (widget) => {
         widget.z_index = Math.min(32767, Math.max(-32768, value))
       })} />
+    </Section>
+  )
+}
+
+/**
+ * The dashboard's own properties, shown when no widget is selected.
+ *
+ * The font here is the editor's, not the document's: the contract declares no
+ * document-level font and the device resolves one per widget, so this seeds
+ * what gets added next and "Apply to every widget" is what changes what is
+ * already there. Keeping it one command keeps it one undo.
+ *
+ * The budget beside it is the real cost of the choices made so far — the board
+ * holds eight faces in two megabytes, and this is where that stops being a
+ * surprise the device delivers at save time.
+ */
+export function DashboardSection({
+  configuration
+}: {
+  configuration: DeviceConfiguration
+}): React.JSX.Element {
+  const entries = useFontLibraryStore((state) => state.entries)
+  const defaultFontFamily = useDashboardEditorStore((state) => state.defaultFontFamily)
+  const setDefaultFontFamily = useDashboardEditorStore((state) => state.setDefaultFontFamily)
+  const family = draftFontFamily(configuration, defaultFontFamily)
+  const used = [
+    ...new Set(
+      documentFonts(configuration)
+        .map((font) => font?.family)
+        .filter((value): value is string => Boolean(value))
+    )
+  ].sort()
+  const footprint = dashboardFontFootprint(entries, used)
+  return (
+    <Section title="Dashboard">
+      {/* Family only. A size belongs to the widget that draws the text — a
+          caption and a reading are deliberately different sizes, so there is no
+          dashboard-wide one to set. */}
+      <FontFamilyField family={family} onChange={setDefaultFontFamily} />
+      <p className="text-muted-foreground">New widgets take this font.</p>
+      <Button
+        variant="outline"
+        className="w-full"
+        disabled={used.length === 0}
+        onClick={() => applyFontFamilyToDashboard(family)}
+      >
+        Apply to every widget
+      </Button>
+      <div className="space-y-1 rounded-md border p-2 text-muted-foreground">
+        <p>
+          {footprint.families} of {MAXIMUM_FONT_FAMILIES} families ·{' '}
+          {kilobytes(footprint.bytes)} of 2 MiB
+        </p>
+        <ul className="space-y-0.5">
+          {used.map((id) => {
+            const entry = findFontEntry(entries, id)
+            return (
+              <li key={id} className={entry ? '' : 'text-amber-500'}>
+                {entry ? entry.name : `${id} — not in the library`}
+              </li>
+            )
+          })}
+        </ul>
+      </div>
     </Section>
   )
 }

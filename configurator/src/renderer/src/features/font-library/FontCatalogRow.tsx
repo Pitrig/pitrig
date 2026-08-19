@@ -1,0 +1,108 @@
+import { useEffect, useRef } from 'react'
+
+import type { FontCatalogFamily, FontVariant } from '@shared/font-library'
+
+import { Badge } from '@/components/ui/badge'
+import { DigitSpecimen } from './DigitSpecimen'
+import { variantLabel } from './font-catalog-store'
+
+/** How long a row has to stay on screen before its face is worth downloading. */
+const DWELL_MS = 150
+
+/**
+ * One catalog family. Its face is fetched when the row has been on screen long
+ * enough to be looked at rather than scrolled past, so browsing a list of two
+ * thousand does not download two thousand files.
+ *
+ * The row shows the family; the weights under it are what actually get chosen,
+ * because the board holds one face per family and each weight is therefore a
+ * font of its own with a slot of its own.
+ */
+export function FontCatalogRow({
+  family,
+  previewFamily,
+  tabularDigits,
+  unavailable,
+  expanded,
+  disabledReason,
+  onVisible,
+  onToggle,
+  onChoose
+}: {
+  family: FontCatalogFamily
+  previewFamily?: string
+  tabularDigits?: boolean
+  unavailable: boolean
+  expanded: boolean
+  disabledReason?: string
+  onVisible: () => void
+  onToggle: () => void
+  onChoose: (variant: FontVariant) => void
+}): React.JSX.Element {
+  const row = useRef<HTMLDivElement>(null)
+  const dwell = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    const element = row.current
+    if (!element) return
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.some((entry) => entry.isIntersecting)
+      if (!visible) {
+        window.clearTimeout(dwell.current)
+        dwell.current = undefined
+        return
+      }
+      dwell.current = window.setTimeout(onVisible, DWELL_MS)
+    })
+    observer.observe(element)
+    return () => {
+      window.clearTimeout(dwell.current)
+      observer.disconnect()
+    }
+  }, [onVisible])
+
+  return (
+    <div ref={row} className="rounded-md border">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted"
+      >
+        <span className="min-w-0 flex-1">
+          <span
+            className="block truncate text-base leading-tight text-foreground"
+            style={previewFamily ? { fontFamily: previewFamily } : undefined}
+          >
+            {family.name}
+          </span>
+          <DigitSpecimen cssFamily={previewFamily} tabularDigits={tabularDigits} />
+          <span className="block truncate text-[0.65rem] text-muted-foreground">
+            {family.category}
+            {unavailable ? ' · preview unavailable' : ''}
+          </span>
+        </span>
+        <Badge variant="outline" className="shrink-0 text-[0.65rem]">
+          {family.variants.length} {family.variants.length === 1 ? 'weight' : 'weights'}
+        </Badge>
+      </button>
+      {expanded ? (
+        <div className="flex flex-wrap gap-1 border-t p-2">
+          {family.variants.map((variant) => (
+            <button
+              key={variant}
+              type="button"
+              disabled={Boolean(disabledReason)}
+              title={disabledReason}
+              onClick={() => onChoose(variant)}
+              className={`rounded-md border px-2 py-1 text-[0.65rem] ${
+                disabledReason ? 'cursor-not-allowed opacity-50' : 'hover:bg-muted'
+              }`}
+            >
+              {variantLabel(variant)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
+}

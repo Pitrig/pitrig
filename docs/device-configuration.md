@@ -653,12 +653,17 @@ The package format and firmware validation rules are defined in
 [Font asset storage](font-assets.md), including its separate bounded serial
 upload protocol. Installing a new package requires a reboot before its families
 can be selected; changing only a `size_px` of an installed family requires
-neither an upload nor a restart. Before applying a configuration, the
-configurator compares its required families with the device catalog. When a
-family is missing it collects one TTF/OTF source per family, replaces the
-complete package, and then saves the configuration. Images are checked the same
-way against the installed image package, and firmware repeats both checks before
-it lets a configuration replace the running dashboard.
+neither an upload nor a restart.
+
+A family identifier is not free text: it is the id of an entry in the
+configurator's font library, which is what lets a document name a face without
+carrying one. Saving to a board resolves every family the document names against
+that library, builds a package holding exactly those, and installs it only when
+the device does not already report the same `crc` and `entries` — then saves the
+configuration and restarts. A family the library cannot resolve stops the save
+before anything is written and asks for a file. Images are checked against the
+installed image package but are still uploaded by hand, and firmware repeats both
+checks before it lets a configuration replace the running dashboard.
 
 ## Device information
 

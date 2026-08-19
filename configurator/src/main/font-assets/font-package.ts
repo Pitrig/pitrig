@@ -20,8 +20,23 @@ export interface FontFamilyAsset {
   bytes: Uint8Array
 }
 
-export function buildFontPackage(assets: FontFamilyAsset[]): Uint8Array {
-  const ordered = [...assets].sort((left, right) => left.family.localeCompare(right.family))
+export interface BuiltFontPackage {
+  bytes: Uint8Array
+  /** The header's payload CRC, which is what `@SC:FONT:INFO` reports back. */
+  payloadCrc: number
+  /** The families it declares, in the order the manifest lists them. */
+  families: string[]
+}
+
+export function buildFontPackage(assets: FontFamilyAsset[]): BuiltFontPackage {
+  // Code-point order, not localeCompare: the same face set has to produce the
+  // same bytes on every machine or the CRC a save compares against the device
+  // means nothing. ICU collation reorders `-` and `_` by locale, which is
+  // exactly the kind of difference that would not show up until someone else
+  // opened the project. See the determinism note in docs/font-assets.md.
+  const ordered = [...assets].sort((left, right) =>
+    left.family < right.family ? -1 : left.family > right.family ? 1 : 0
+  )
   validateAssets(ordered)
 
   const placements: Array<{ asset: FontFamilyAsset; offset: number }> = []
@@ -59,10 +74,11 @@ export function buildFontPackage(assets: FontFamilyAsset[]): Uint8Array {
   }
 
   const manifest = output.subarray(HEADER_SIZE, HEADER_SIZE + ordered.length * MANIFEST_ENTRY_SIZE)
+  const payloadCrc = crc32(output.subarray(ASSET_DATA_OFFSET))
   view.setUint32(20, crc32(manifest), true)
-  view.setUint32(24, crc32(output.subarray(ASSET_DATA_OFFSET)), true)
+  view.setUint32(24, payloadCrc, true)
   view.setUint32(28, crc32(output.subarray(0, 28)), true)
-  return output
+  return { bytes: output, payloadCrc, families: ordered.map((asset) => asset.family) }
 }
 
 

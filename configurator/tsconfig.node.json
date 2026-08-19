@@ -23,5 +23,8 @@
     "src/main/**/*.json",
     "src/preload/**/*.ts",
     "src/shared/**/*.ts"
-  ]
+  ],
+  // Generated data read from disk at runtime, never imported as a module: it is
+  // a megabyte of JSON with no type worth inferring.
+  "exclude": ["src/main/font-library/google-fonts-catalog.json"]
 }

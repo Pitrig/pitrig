@@ -44,6 +44,7 @@ bool Service::initialize(IStorage& storage) {
   status_.format_version = kFormatVersion;
   status_.entry_count = package_.family_count;
   status_.package_size = package_.package_size;
+  payload_crc_ = package_.payload_crc;
   for (std::size_t index = 0; index < package_.family_count; ++index) {
     family_catalog_[index] = package_.families[index].family;
   }
@@ -154,6 +155,7 @@ UpdateError Service::commit_update() {
   status_.format_version = kFormatVersion;
   status_.entry_count = package_.family_count;
   status_.package_size = package_.package_size;
+  payload_crc_ = package_.payload_crc;
   family_catalog_ = {};
   for (std::size_t index = 0; index < package_.family_count; ++index) {
     family_catalog_[index] = package_.families[index].family;
@@ -198,6 +200,7 @@ void Service::clear_package_status() {
   status_.format_version = 0;
   status_.entry_count = 0;
   status_.package_size = 0;
+  payload_crc_ = 0;
   family_catalog_ = {};
 }
 

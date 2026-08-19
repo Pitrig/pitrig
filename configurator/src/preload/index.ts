@@ -40,16 +40,28 @@ import {
 } from '../shared/firmware-update'
 import {
   FONT_CANCEL_UPLOAD_CHANNEL,
-  FONT_CLEAR_CHANNEL,
-  FONT_SELECT_SOURCE_CHANNEL,
-  FONT_UPLOAD_CHANNEL,
-  FONT_UPLOAD_PROGRESS_CHANNEL,
-  type FontUploadProgress
+  FONT_CLEAR_CHANNEL
 } from '../shared/font-assets'
+import {
+  FONT_CATALOG_LIST_CHANNEL,
+  FONT_CATALOG_PREVIEW_CHANNEL,
+  FONT_LIBRARY_ADD_CHANNEL,
+  FONT_LIBRARY_CHANGED_CHANNEL,
+  FONT_LIBRARY_FACES_CHANNEL,
+  FONT_LIBRARY_IMPORT_CHANNEL,
+  FONT_LIBRARY_LIST_CHANNEL,
+  FONT_LIBRARY_REMOVE_CHANNEL,
+  type FontLibrarySnapshot
+} from '../shared/font-library'
 import {
   APP_GET_INFO_CHANNEL,
   type SimCoreApi
 } from '../shared/ipc'
+import {
+  SAVE_PROGRESS_CHANNEL,
+  SAVE_TO_BOARD_CHANNEL,
+  type SaveProgress
+} from '../shared/save-to-board'
 import { PREVIEW_ASSETS_READ_CHANNEL } from '../shared/preview-assets'
 import { SIMHUB_PROFILE_EXPORT_CHANNEL } from '../shared/simhub-profile'
 import {
@@ -79,10 +91,16 @@ const api: SimCoreApi = {
     ipcRenderer.invoke(DEVICE_CONFIGURATION_APPLY_CHANNEL, request),
   saveDeviceConfiguration: (request) =>
     ipcRenderer.invoke(DEVICE_CONFIGURATION_SAVE_CHANNEL, request),
+  saveToBoard: (request) => ipcRenderer.invoke(SAVE_TO_BOARD_CHANNEL, request),
   resetDeviceConfiguration: () => ipcRenderer.invoke(DEVICE_CONFIGURATION_RESET_CHANNEL),
   rebootDevice: () => ipcRenderer.invoke(DEVICE_REBOOT_CHANNEL),
-  selectFontSource: () => ipcRenderer.invoke(FONT_SELECT_SOURCE_CHANNEL),
-  uploadFontAssets: (request) => ipcRenderer.invoke(FONT_UPLOAD_CHANNEL, request),
+  listFontLibrary: () => ipcRenderer.invoke(FONT_LIBRARY_LIST_CHANNEL),
+  readFontFaces: (request) => ipcRenderer.invoke(FONT_LIBRARY_FACES_CHANNEL, request),
+  importFontFace: (request) => ipcRenderer.invoke(FONT_LIBRARY_IMPORT_CHANNEL, request),
+  removeFontFace: (request) => ipcRenderer.invoke(FONT_LIBRARY_REMOVE_CHANNEL, request),
+  listFontCatalog: () => ipcRenderer.invoke(FONT_CATALOG_LIST_CHANNEL),
+  previewFontCatalogFace: (request) => ipcRenderer.invoke(FONT_CATALOG_PREVIEW_CHANNEL, request),
+  addFontFromCatalog: (request) => ipcRenderer.invoke(FONT_LIBRARY_ADD_CHANNEL, request),
   cancelFontUpload: () => ipcRenderer.invoke(FONT_CANCEL_UPLOAD_CHANNEL),
   clearFontAssets: () => ipcRenderer.invoke(FONT_CLEAR_CHANNEL),
   selectFirmwareSource: () => ipcRenderer.invoke(FIRMWARE_SELECT_SOURCE_CHANNEL),
@@ -101,17 +119,22 @@ const api: SimCoreApi = {
     ipcRenderer.on(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, handler)
     return () => ipcRenderer.removeListener(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, handler)
   },
-  onFontUploadProgress: (listener) => {
-    const handler = (_event: IpcRendererEvent, progress: FontUploadProgress): void =>
-      listener(progress)
-    ipcRenderer.on(FONT_UPLOAD_PROGRESS_CHANNEL, handler)
-    return () => ipcRenderer.removeListener(FONT_UPLOAD_PROGRESS_CHANNEL, handler)
-  },
   onImageUploadProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: AssetUploadProgress): void =>
       listener(progress)
     ipcRenderer.on(IMAGE_UPLOAD_PROGRESS_CHANNEL, handler)
     return () => ipcRenderer.removeListener(IMAGE_UPLOAD_PROGRESS_CHANNEL, handler)
+  },
+  onSaveProgress: (listener) => {
+    const handler = (_event: IpcRendererEvent, progress: SaveProgress): void => listener(progress)
+    ipcRenderer.on(SAVE_PROGRESS_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(SAVE_PROGRESS_CHANNEL, handler)
+  },
+  onFontLibraryChanged: (listener) => {
+    const handler = (_event: IpcRendererEvent, snapshot: FontLibrarySnapshot): void =>
+      listener(snapshot)
+    ipcRenderer.on(FONT_LIBRARY_CHANGED_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(FONT_LIBRARY_CHANGED_CHANNEL, handler)
   },
   onDeviceStateChanged: (listener) => {
     const handler = (_event: IpcRendererEvent, state: DeviceState): void => listener(state)

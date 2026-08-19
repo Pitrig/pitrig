@@ -184,7 +184,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 44
                 },
                 "color": "#FFD200"
@@ -243,7 +243,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 34
                 },
                 "color": "#FFFFFF",
@@ -252,7 +252,7 @@
               "title": {
                 "text": "SESSION",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",
@@ -282,7 +282,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 34
                 },
                 "color": "#FFFFFF",
@@ -291,7 +291,7 @@
               "title": {
                 "text": "POS",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",
@@ -315,7 +315,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 34
                 },
                 "color": "#FFFFFF",
@@ -324,7 +324,7 @@
               "title": {
                 "text": "LAPS",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",
@@ -350,7 +350,7 @@
               "title": {
                 "text": "TIRES",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 20
                 },
                 "color": "#FFFFFF"
@@ -377,7 +377,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 46
                 },
                 "color": "#FFFFFF",
@@ -406,7 +406,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 26
                 },
                 "color": "#00C8FF",
@@ -449,7 +449,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 46
                 },
                 "color": "#FFFFFF",
@@ -478,7 +478,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 26
                 },
                 "color": "#00C8FF",
@@ -521,7 +521,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 46
                 },
                 "color": "#FFFFFF",
@@ -550,7 +550,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 26
                 },
                 "color": "#00C8FF",
@@ -593,7 +593,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 46
                 },
                 "color": "#FFFFFF",
@@ -622,7 +622,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 26
                 },
                 "color": "#00C8FF",
@@ -678,7 +678,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 160
                 },
                 "color": "#FFFFFF",
@@ -719,7 +719,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 36
                 },
                 "color": "#8A8A8A",
@@ -787,7 +787,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 44
                 },
                 "color": "#000000",
@@ -831,7 +831,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 22
                 },
                 "color": "#8A8A8A",
@@ -857,7 +857,7 @@
               "title": {
                 "text": "LAP TIMES",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 20
                 },
                 "color": "#FFFFFF"
@@ -884,7 +884,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 58
                 },
                 "color": "#FFD200",
@@ -893,7 +893,7 @@
               "title": {
                 "text": "ESTIMATED LAP",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",
@@ -921,7 +921,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 58
                 },
                 "color": "#FF00E0",
@@ -930,7 +930,7 @@
               "title": {
                 "text": "LAST LAP",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",
@@ -958,7 +958,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 58
                 },
                 "color": "#00E000",
@@ -967,7 +967,7 @@
               "title": {
                 "text": "BEST LAP",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",
@@ -991,7 +991,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 50
                 },
                 "color": "#00C8FF",
@@ -1000,7 +1000,7 @@
               "title": {
                 "text": "TC",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 20
                 },
                 "color": "#00C8FF"
@@ -1029,7 +1029,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 50
                 },
                 "color": "#00C8FF",
@@ -1038,7 +1038,7 @@
               "title": {
                 "text": "TC CUT",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 20
                 },
                 "color": "#00C8FF"
@@ -1067,7 +1067,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 50
                 },
                 "color": "#FFD200",
@@ -1076,7 +1076,7 @@
               "title": {
                 "text": "ABS",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 20
                 },
                 "color": "#FFD200"
@@ -1105,7 +1105,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 50
                 },
                 "color": "#FF0000",
@@ -1114,7 +1114,7 @@
               "title": {
                 "text": "BB",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 20
                 },
                 "color": "#FF0000"
@@ -1143,7 +1143,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 50
                 },
                 "color": "#00E000",
@@ -1152,7 +1152,7 @@
               "title": {
                 "text": "MAP",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 20
                 },
                 "color": "#00E000"
@@ -1183,7 +1183,7 @@
               "title": {
                 "text": "FUEL",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 20
                 },
                 "color": "#FFFFFF"
@@ -1210,7 +1210,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 36
                 },
                 "color": "#FFFFFF",
@@ -1219,7 +1219,7 @@
               "title": {
                 "text": "LITERS",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",
@@ -1243,7 +1243,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 36
                 },
                 "color": "#FFFFFF",
@@ -1252,7 +1252,7 @@
               "title": {
                 "text": "AVG",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",
@@ -1280,7 +1280,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 36
                 },
                 "color": "#FFFFFF",
@@ -1289,7 +1289,7 @@
               "title": {
                 "text": "LAPS",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 18
                 },
                 "color": "#8A8A8A",

@@ -3,6 +3,8 @@ import { allWidgetsOf } from '@shared/configuration-access'
 import type { WidgetConfiguration } from '@shared/configuration-schema'
 import { BOARD_PROFILES } from '@shared/device'
 import { MAXIMUM_TEXT_WIDGETS, addWidget, deleteWidget, draftValueFont, duplicateWidget, findWidget, useDashboardEditorStore } from '../dashboard-editor'
+import { documentFonts } from '@shared/document-fonts'
+import { useFontFaceStore } from '@/features/font-library/font-face-store'
 import { usePreviewAssetStore } from './preview-assets'
 import { Widgets } from './PreviewCanvas'
 import { ArrangeToolbar } from './PreviewChrome'
@@ -40,28 +42,40 @@ export function DisplayPreview(): React.JSX.Element {
     : session?.info.display
   const selection = useDashboardEditorStore((state) => state.selection)
   const select = useDashboardEditorStore((state) => state.select)
-  // The cached faces and bitmaps change only when a package is installed or
-  // cleared, which is exactly when the board starts reporting a different set
-  // of them. Reading them at all is what lets the canvas draw with the font the
-  // board rasterizes instead of a stand-in.
+  // The cached bitmaps change only when a package is installed or cleared,
+  // which is exactly when the board starts reporting a different set of them.
   const refreshPreviewAssets = usePreviewAssetStore((state) => state.refresh)
-  const installedAssets = [
-    ...(session?.fontAssets?.families ?? []),
-    ...(session?.imageAssets?.images ?? []).map((image) => image.name)
-  ].join(' ')
+  const installedImages = (session?.imageAssets?.images ?? [])
+    .map((image) => image.name)
+    .join(' ')
   useEffect(() => {
     void refreshPreviewAssets()
-  }, [refreshPreviewAssets, installedAssets])
+  }, [refreshPreviewAssets, installedImages])
+  // Faces follow the *document*, not the board: the library holds them whether
+  // or not anything was ever uploaded, so the canvas draws a font the moment it
+  // is chosen rather than after a save.
+  const ensureFaces = useFontFaceStore((state) => state.ensureFaces)
+  const documentFamilies = [
+    ...new Set(
+      documentFonts(configuration)
+        .map((font) => font?.family)
+        .filter((family): family is string => Boolean(family))
+    )
+  ]
+    .sort()
+    .join(' ')
+  useEffect(() => {
+    void ensureFaces(documentFamilies ? documentFamilies.split(' ') : [])
+  }, [ensureFaces, documentFamilies])
   const canUndo = useDeviceStore((state) => state.past.length > 0)
   const canRedo = useDeviceStore((state) => state.future.length > 0)
   const undo = useDeviceStore((state) => state.undo)
   const redo = useDeviceStore((state) => state.redo)
-  // A new reading takes the font the dashboard already draws with. Reading it
-  // from the connected board instead meant a widget landed in whichever family
-  // happened to be installed first, at a fixed size unrelated to its
-  // neighbours — and with no board connected it got no font at all, which the
-  // validator then rejected the whole document over.
-  const defaultFont = draftValueFont(configuration, session?.fontAssets?.families[0])
+  // A new reading takes the dashboard font the author chose, or failing that
+  // the font the dashboard already draws with, at the size its other readings
+  // already use.
+  const defaultFontFamily = useDashboardEditorStore((state) => state.defaultFontFamily)
+  const defaultFont = draftValueFont(configuration, defaultFontFamily)
   // Widget storage is a dashboard-wide pool, so the cap counts every screen.
   const textWidgetCount = allWidgetsOf(configuration).filter(
     (widget) => widget.type === 'text'

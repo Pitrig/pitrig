@@ -59,6 +59,15 @@ interface DashboardEditorStore {
    * box — which is a way of looking at the document, not a property of it.
    */
   drillIn?: string
+  /**
+   * The family a new widget takes. Editor-only, and deliberately so: the device
+   * resolves a font per widget and the contract declares no document-level one,
+   * so a default that lived in the document would be a property the board
+   * rejects. Choosing one here seeds what is added next; "apply to every
+   * widget" is what changes what is already there.
+   */
+  defaultFontFamily?: string
+  setDefaultFontFamily: (family: string) => void
   select: (selection?: WidgetSelection) => void
   /** Adds or removes one widget, keeping it primary when it stays selected. */
   extendSelection: (id: string) => void
@@ -90,6 +99,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   locked: {},
   hidden: {},
   slotPage: {},
+  setDefaultFontFamily: (family) => set({ defaultFontFamily: family }),
   select: (selection) =>
     set({
       selection,
@@ -172,6 +182,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
       hidden: {},
       slotPage: {},
       drillIn: undefined,
+      defaultFontFamily: undefined,
       view: DEFAULT_EDITOR_VIEW,
     })
 }))

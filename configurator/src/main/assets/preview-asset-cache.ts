@@ -2,49 +2,37 @@ import { nativeImage } from 'electron'
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { FONT_FAMILY_PATTERN } from '../../shared/font-assets'
 import { IMAGE_ID_PATTERN } from '../../shared/image-assets'
 import {
   NO_PREVIEW_ASSETS,
   type PreviewAssets,
-  type PreviewFontAsset,
   type PreviewImageAsset
 } from '../../shared/preview-assets'
 import type { ConvertedImage } from '../image-assets/image-package'
 
 /**
- * A copy of every asset the configurator installs, so the editor can draw what
+ * A copy of every image the configurator installs, so the editor can draw what
  * the board draws.
  *
- * Neither asset can be recovered otherwise: the device rasterizes a face and
- * stores no readable copy, an image arrives already converted, and the picked
- * source file is only a path held in memory for the length of one session. The
- * canvas would otherwise fall back to a stand-in system font and a named box
- * for the rest of the project's life.
+ * A converted bitmap exists nowhere else: it arrives at the device already
+ * resized and already reduced to its colour format, and the picked source file
+ * is only a path held in memory for the length of one session. Without this the
+ * canvas would fall back to a named box for the rest of the project's life.
+ *
+ * Faces are deliberately not here. They were, back when uploading was the only
+ * way the configurator ever held one; the font library owns them now, and it
+ * answers whether or not a board was ever given them.
  *
  * A package is replaced whole on the device, so the cache is replaced whole
- * too; anything else would leave it describing assets the board no longer
+ * too; anything else would leave it describing images the board no longer
  * holds. It is a cache and nothing depends on it: a missing or unreadable entry
  * costs the preview its fidelity, never its correctness.
  */
 export class PreviewAssetCache {
-  private readonly fontDirectory: string
   private readonly imageDirectory: string
 
   constructor(directory: string) {
-    this.fontDirectory = join(directory, 'fonts')
     this.imageDirectory = join(directory, 'images')
-  }
-
-  /** Replaces the cached faces with the ones just uploaded. */
-  async storeFonts(faces: readonly { family: string; bytes: Uint8Array }[]): Promise<void> {
-    await replaceDirectory(this.fontDirectory)
-    for (const face of faces) {
-      // The family is what names the file, so a family that could escape the
-      // directory is one that never gets written.
-      if (!FONT_FAMILY_PATTERN.test(face.family)) continue
-      await writeFile(join(this.fontDirectory, `${face.family}.font`), face.bytes)
-    }
   }
 
   /** Replaces the cached bitmaps with the ones just uploaded. */
@@ -57,35 +45,16 @@ export class PreviewAssetCache {
     }
   }
 
-  async clearFonts(): Promise<void> {
-    await rm(this.fontDirectory, { recursive: true, force: true })
-  }
-
   async clearImages(): Promise<void> {
     await rm(this.imageDirectory, { recursive: true, force: true })
   }
 
   async read(): Promise<PreviewAssets> {
     try {
-      return {
-        fonts: await this.readFonts(),
-        images: await this.readImages()
-      }
+      return { images: await this.readImages() }
     } catch {
       return NO_PREVIEW_ASSETS
     }
-  }
-
-  private async readFonts(): Promise<PreviewFontAsset[]> {
-    const fonts: PreviewFontAsset[] = []
-    for (const entry of await listDirectory(this.fontDirectory)) {
-      if (!entry.endsWith('.font')) continue
-      const family = entry.slice(0, -'.font'.length)
-      if (!FONT_FAMILY_PATTERN.test(family)) continue
-      const bytes = await readFile(join(this.fontDirectory, entry))
-      fonts.push({ family, bytes: new Uint8Array(bytes) })
-    }
-    return fonts
   }
 
   private async readImages(): Promise<PreviewImageAsset[]> {

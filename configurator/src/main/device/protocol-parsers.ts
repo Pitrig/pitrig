@@ -67,6 +67,8 @@ interface AssetStatus {
   count: number
   packageSize: number
   entries: string | undefined
+  /** Raw, because only fonts report one; the kind decides what it means. */
+  crc: string | undefined
 }
 
 function parseAssetStatus(line: string, limits: AssetStatusLimits): AssetStatus {
@@ -100,7 +102,8 @@ function parseAssetStatus(line: string, limits: AssetStatusLimits): AssetStatus 
     formatVersion,
     count,
     packageSize,
-    entries: fields.get('entries')
+    entries: fields.get('entries'),
+    crc: fields.get('crc')
   }
 }
 
@@ -229,6 +232,7 @@ export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   if (status.entries !== undefined && families.length !== status.count) {
     throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
   }
+  const payloadCrc = parsePayloadCrc(status.crc)
   return {
     storageAvailable: status.storageAvailable,
     packageAvailable: status.packageAvailable,
@@ -236,8 +240,23 @@ export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
     familyCount: status.count,
     families,
     packageSize: status.packageSize,
+    ...(payloadCrc === undefined ? {} : { payloadCrc }),
     rebootRequired: status.rebootRequired
   }
+}
+
+/**
+ * The stored package's payload CRC. Firmware that predates the key leaves it
+ * absent, which reads as "cannot tell" and therefore as "upload anyway" — so an
+ * older board still works, it just never skips a font upload.
+ */
+function parsePayloadCrc(value: string | undefined): number | undefined {
+  if (value === undefined) return undefined
+  const crc = Number(value)
+  if (!Number.isSafeInteger(crc) || crc < 0 || crc > 0xffff_ffff) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
+  }
+  return crc
 }
 
 function parseFontFamilies(value: string | undefined): string[] {

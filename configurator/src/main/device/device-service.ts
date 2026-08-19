@@ -25,7 +25,7 @@ import {
 import { readPackageFamilies } from '../font-assets/font-package'
 import { uploadAssetPackage } from './asset-upload'
 import { prepareDeviceConfigurationJson } from './configuration-json'
-import { isBluetoothPort, PortRegistry, type PortRecord } from './port-registry'
+import { isBluetoothPort, PortRegistry, serialIdentity, type PortRecord } from './port-registry'
 import { closePort, openPort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
 import {
@@ -38,6 +38,25 @@ import {
   applyConfiguration,
   saveConfiguration,
 } from './simcore-protocol'
+
+/**
+ * Coming back after a restart, paced so the board is left alone while it boots.
+ *
+ * Opening a serial port asserts DTR, which on these boards is a reset line — so
+ * an eager reconnect does not merely fail, it resets a board that was halfway
+ * through starting, and a tight retry loop can hold one in that state. Hence a
+ * settle window before the port is touched at all, a poll that only *looks* for
+ * the port, and a real pause between attempts that actually open it.
+ */
+const RECONNECT_SETTLE_MS = 2_500
+const RECONNECT_TIMEOUT_MS = 30_000
+const RECONNECT_POLL_MS = 750
+const RECONNECT_RETRY_MS = 2_000
+const RECONNECT_MAXIMUM_ATTEMPTS = 5
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+}
 
 interface Match {
   record: PortRecord
@@ -59,6 +78,13 @@ export class DeviceService {
   private pendingPort: SerialPort | undefined
   private operationToken = 0
   private deviceOperationActive = false
+  /**
+   * Held for a whole save-to-board pipeline, which is several device commands
+   * with the author's document riding on all of them. `deviceOperationActive`
+   * is released between each of those, and live apply is automatic — without
+   * this, a debounced apply lands between the font upload and the save.
+   */
+  private pipelineActive = false
 
   constructor(
     private readonly onStateChanged: (state: DeviceState) => void,
@@ -82,6 +108,18 @@ export class DeviceService {
     if (this.isBusy()) {
       return failure({ code: 'busy', message: 'Another device operation is already running.' })
     }
+    return this.openConnection(portId, baudRate)
+  }
+
+  /**
+   * Connecting without the pipeline check, because a save's own reconnect runs
+   * *inside* the pipeline: asking `connect` would have it refuse itself.
+   */
+  private async openConnection(
+    portId: string,
+    baudRate: number,
+    quiet = false
+  ): Promise<DeviceResult<DeviceState>> {
     if (this.activePort?.isOpen) {
       return failure({ code: 'busy', message: 'A device is already connected.' })
     }
@@ -92,7 +130,7 @@ export class DeviceService {
         code: 'port_missing',
         message: 'The selected serial port is no longer available. Refresh the port list.'
       }
-      this.setState({ status: 'error', error })
+      if (!quiet) this.setState({ status: 'error', error })
       return failure(error)
     }
 
@@ -103,6 +141,9 @@ export class DeviceService {
       this.attachActivePort(opened, record, baudRate)
       return success(this.state)
     } catch (error) {
+      // A quiet attempt is one of several: reporting each failure would flash
+      // an error the next attempt is about to disprove.
+      if (quiet) return failure(toDeviceError(error))
       return this.finishFailedOperation(error, token)
     }
   }
@@ -241,10 +282,14 @@ export class DeviceService {
 
   // Live apply competes with nothing: it is rejected while another device
   // operation holds the lock rather than queued, because the caller sends a
-  // fresh document moments later anyway.
+  // fresh document moments later anyway. The pipeline flag is checked here and
+  // not in getActiveDevice, because a save's own commands run inside it.
   async applyConfiguration(
     json: string
   ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
+    if (this.pipelineActive) {
+      return failure({ code: 'busy', message: 'A save is running on the connected device.' })
+    }
     return this.runOperation(async ({ port, session, traffic }) => {
       const prepared = this.prepareConfiguration(json, session)
       if (!prepared.ok) return prepared
@@ -401,7 +446,9 @@ export class DeviceService {
   async uploadFonts(
     packageBytes: Uint8Array,
     onProgress: (progress: FontUploadProgress) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
+    /** The package's payload CRC, so a second save this session can skip. */
+    payloadCrc?: number
   ): Promise<void> {
     return this.uploadAssets(
       { command: 'FONT', label: 'font' },
@@ -420,6 +467,9 @@ export class DeviceService {
             familyCount: view.getUint16(12, true),
             families: readPackageFamilies(bytes),
             packageSize: bytes.byteLength,
+            // The board reports what it holds only after a restart, so this
+            // moves the session on from what was just sent.
+            payloadCrc: payloadCrc ?? view.getUint32(24, true),
             rebootRequired: true
           }
         }
@@ -682,8 +732,75 @@ export class DeviceService {
   }
 
   private isBusy(): boolean {
-    return this.deviceOperationActive ||
+    return this.deviceOperationActive || this.pipelineActive ||
       ['scanning', 'connecting', 'disconnecting'].includes(this.state.status)
+  }
+
+  /**
+   * Runs a multi-command sequence with every other device caller locked out.
+   * Nested single commands still take `deviceOperationActive` for themselves;
+   * this only keeps anything *else* from getting in between them.
+   */
+  async runPipeline<T>(work: () => Promise<T>): Promise<T> {
+    this.pipelineActive = true
+    try {
+      return await work()
+    } finally {
+      this.pipelineActive = false
+    }
+  }
+
+  /**
+   * Restarts the board and waits for it to come back on the same port.
+   *
+   * A font package and a saved configuration both become active only after a
+   * restart, so this is the last step of a save rather than something the
+   * author is asked to remember. USB-CDC re-enumeration takes as long as it
+   * takes, and a board that never reappears is not a failed save — the flash is
+   * already written — so the caller is told to reconnect by hand instead.
+   */
+  async rebootAndReconnect(): Promise<DeviceResult<DeviceState>> {
+    const connection = this.state.connection
+    const rebooted = await this.reboot()
+    if (!rebooted.ok || !connection) return rebooted
+
+    // Nothing touches the port until the board has had time to boot on its own.
+    this.setState({ status: 'connecting' })
+    await delay(RECONNECT_SETTLE_MS)
+
+    // By path, not by identifier: the board's port identifier does not survive
+    // the device disappearing, so the one we started with is gone the moment it
+    // reboots.
+    const wanted = serialIdentity(connection.path)
+    const deadline = Date.now() + RECONNECT_TIMEOUT_MS
+    let attempts = 0
+    while (Date.now() < deadline && attempts < RECONNECT_MAXIMUM_ATTEMPTS) {
+      let record: PortRecord | undefined
+      try {
+        record = (await this.refreshPortRegistry()).find(
+          (candidate) => serialIdentity(candidate.path) === wanted
+        )
+      } catch {
+        record = undefined
+      }
+      if (!record) {
+        // Looking costs the board nothing, so this can be frequent.
+        await delay(RECONNECT_POLL_MS)
+        continue
+      }
+      attempts += 1
+      const connected = await this.openConnection(record.summary.id, connection.baudRate, true)
+      // The port is enumerated before the firmware answers `@SC:`, so a refused
+      // probe means "not yet", not "not a SimCore board".
+      if (connected.ok) return connected
+      await delay(RECONNECT_RETRY_MS)
+    }
+    const error: DeviceError = {
+      code: 'port_missing',
+      message: 'The board restarted but did not come back on its port. Reconnect it by hand.'
+    }
+    this.setState({ status: 'error', error })
+    return failure(error)
   }
 
   private setState(state: DeviceState): void {

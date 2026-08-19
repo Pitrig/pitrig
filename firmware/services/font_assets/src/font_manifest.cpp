@@ -77,6 +77,7 @@ bool Service::validate_package(
   const std::span<const std::uint8_t> manifest = header.manifest;
   parsed.family_count = entry_count;
   parsed.package_size = payload_size;
+  parsed.payload_crc = header.payload_crc;
   for (std::size_t index = 0; index < entry_count; ++index) {
     const auto entry = manifest.subspan(index * kManifestEntrySize,
                                         kManifestEntrySize);

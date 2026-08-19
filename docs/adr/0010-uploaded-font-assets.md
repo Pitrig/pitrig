@@ -120,10 +120,14 @@ two places.
 - An interrupted update can remove the previous package; there is no second
   slot or rollback generation.
 - The configurator must retain source fonts in its local project and upload the
-  complete family set before expecting custom rendering.
+  complete family set before expecting custom rendering. *(Superseded: the font
+  library holds the faces, and a document names library ids rather than
+  travelling with files.)*
 - The configurator derives the target package from configuration dependencies,
   asks for one source per family, uploads the complete package, and only then
-  saves the configuration. It no longer carries a font converter.
+  saves the configuration. It no longer carries a font converter. *(Superseded:
+  it resolves the families from the library and asks for a file only when one
+  cannot be resolved.)*
 - Every device connection performs a fresh configuration and font manifest
   probe. Reconnecting clears transient validation and upload feedback before
   the configurator evaluates the newly reported device state.
@@ -153,6 +157,11 @@ the shared `asset_storage` contract at the same time; the font package format
 and everything above it are unchanged.
 
 ## Amendment: the configurator keeps a copy of what it installs
+
+Superseded for fonts by the library amendment below, which gives the
+configurator the face bytes whether or not any board was ever given them. The
+images half of this decision stands unchanged: an image is converted before
+upload and the converted pixels exist nowhere else.
 
 This ADR moved rasterization onto the board and left the configurator with no
 converter — which also left it with nothing to draw with. A face is uploaded and
@@ -193,3 +202,66 @@ The cache mirrors a device package rather than anything the author wrote, so:
   pixels.
 - Font bytes cross to the renderer as bytes rather than as a `data:` URL, so the
   renderer's content policy keeps `data:` for images alone.
+
+## Amendment: a family is chosen from a library, not named
+
+The identifier above was authored as free text. Nothing suggested one, nothing
+validated one, and binding a face to it was a second, manual act in a different
+panel — so the common path to a working dashboard ran through naming a thing
+that did not exist yet and then explaining to the configurator what it was.
+
+**Decision.** A family identifier is *derived* from an entry in a font library
+the configurator owns, and never typed. The library has three origins: a curated
+set bundled with the application, faces downloaded on demand from a checked-in
+Google Fonts catalog, and files the author imports. Installed operating-system
+fonts are deliberately not a fourth: a system face cannot be re-derived on
+another machine from the document alone, and the document is the only thing that
+travels.
+
+A weight or a style is its own library entry, its own family identifier and one
+of the eight slots — the device holds one face per family, so `roboto` and
+`roboto-bold` are two families and the editor says so before the author spends
+the second slot.
+
+The document's `family` string *is* the library id. There are no aliases, no
+per-project mapping and no change to the configuration contract; renaming a font
+is not a concept, because a different face is a different family. Identifier
+derivation is therefore pure — a slug of the name, then `_` and a word for the
+variant, truncated with a short content hash when it would exceed the 31-byte
+field — so two installations derive the same identifier for the same face and a
+document authored anywhere resolves anywhere the library can answer.
+
+The underscore is not cosmetic. A slug maps everything outside `[a-z0-9]` to
+`-`, so a slug can never contain one, and that is what stops a family *name*
+from being read as a variant: with `-` as the separator, the family "Archivo
+Black" and the family "Archivo" at weight 900 both derive `archivo-black`, and
+two faces sharing one identifier makes the document key unsound. The catalog
+generator checks every identifier it could produce for exactly this and refuses
+to write a catalog that contains a collision.
+
+The library is the author's; the package is the board's; they meet only at save.
+Saving to a board resolves every family the document names, builds a package
+holding exactly those and no more, compares it against what the device reports,
+uploads only on a difference, saves the configuration, and reboots. A family the
+library cannot answer for stops the save before a byte is written and asks for a
+file. Live apply is suppressed while the draft names a family the board does not
+hold, because firmware rejects such a document whole; the canvas shows the new
+face and says so.
+
+**Consequences.**
+
+- Preview fidelity no longer depends on *this* installation having uploaded the
+  face. It depends on the library resolving the identifier, which a bundled or a
+  Google identifier does on any machine. Only an imported face is local.
+- The eight slots are spent by the author's choices in the editor, including the
+  dashboard default, and the editor reports the cost as it is spent rather than
+  at the device's refusal.
+- Pruning to exactly what the document names means one board serving two projects
+  loses the other project's families on every save. That follows from replacing
+  the package whole and is not worked around.
+- The Google Fonts catalog is a checked-in snapshot, so a face added upstream
+  needs the generator re-run and the result committed — the same trade the
+  telemetry catalog already makes.
+- Nothing parses the face. An imported file's real family name and weight are
+  unknown to the configurator, so an imported entry is named from the file and
+  its variant is the author's claim rather than a verified fact.

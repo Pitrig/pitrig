@@ -47,7 +47,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFE04A"
@@ -89,14 +89,14 @@
               "title": {
                 "text": "SPEED",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#A0A0A0"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFFFFF"
@@ -123,14 +123,14 @@
               "title": {
                 "text": "RPM",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#A0A0A0"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFFFFF"
@@ -157,14 +157,14 @@
               "title": {
                 "text": "FUEL",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#A0A0A0"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFFFFF"
@@ -191,14 +191,14 @@
               "title": {
                 "text": "AVG FUEL",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#A0A0A0"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFFFFF"
@@ -225,14 +225,14 @@
               "title": {
                 "text": "GEAR",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#A0A0A0"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 144
                 },
                 "color": "#FFFFFF"
@@ -264,14 +264,14 @@
               "title": {
                 "text": "ESTIMATED",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#A0A0A0"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFE04A"
@@ -307,14 +307,14 @@
               "title": {
                 "text": "CURRENT LAP",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#A0A0A0"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#E000E8"
@@ -345,14 +345,14 @@
               "title": {
                 "text": "BEST LAP",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#A0A0A0"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#00F020"
@@ -379,14 +379,14 @@
               "title": {
                 "text": "TC",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#00CFFF"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#00CFFF"
@@ -413,14 +413,14 @@
               "title": {
                 "text": "ABS",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#FFE04A"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FFE04A"
@@ -447,14 +447,14 @@
               "title": {
                 "text": "BB",
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 14
                 },
                 "color": "#FF3030"
               },
               "value": {
                 "font": {
-                  "family": "roboto-black",
+                  "family": "roboto_black",
                   "size_px": 32
                 },
                 "color": "#FF3030"
@@ -492,7 +492,7 @@
                   "title": {
                     "text": "OIL",
                     "font": {
-                      "family": "roboto-black",
+                      "family": "roboto_black",
                       "size_px": 16
                     }
                   },
@@ -508,7 +508,7 @@
                   ],
                   "value": {
                     "font": {
-                      "family": "roboto-black",
+                      "family": "roboto_black",
                       "size_px": 28
                     },
                     "color": "#E8E8E8"

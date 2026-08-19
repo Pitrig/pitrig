@@ -4,7 +4,7 @@ import type { WidgetConfiguration } from '@shared/configuration-schema'
 import { completePlacement, mutateSelectedWidget, selectedWidget, useDashboardEditorStore } from '../dashboard-editor'
 import { Hint } from './fields'
 import { parseSelection, selectionValue } from './selection-value'
-import { GeometryEditor, ScreenEditor } from './section-editors'
+import { DashboardSection, GeometryEditor, ScreenEditor } from './section-editors'
 import { ArcEditor, BarEditor, GraphEditor, ImageEditor, IndicatorEditor, ShapeEditor, SlotEditor, TextEditor } from './widget-editors'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -45,6 +45,7 @@ export function WidgetInspector(): React.JSX.Element {
         </label>
 
         {!configuration ? <Hint>Fix the JSON draft before using the visual editor.</Hint> : null}
+        {configuration && !selection ? <DashboardSection configuration={configuration} /> : null}
         {configuration && selection?.type === 'screen' ? (
           <ScreenEditor configuration={configuration} />
         ) : null}

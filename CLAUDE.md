@@ -79,7 +79,7 @@ cd configurator && pnpm run lint
 
 ### Generated contracts (never hand-edit outputs)
 
-Two generators own checked-in code. Both accept `--check`, which reports staleness without
+Three generators own checked-in code. All accept `--check`, which reports staleness without
 writing.
 
 `configuration/configuration_schema.json` is the configuration contract:
@@ -105,6 +105,21 @@ Outputs: `firmware/services/telemetry/include/telemetry_catalog_generated.hpp`,
 `firmware/services/telemetry/protocols/simhub/include/simhub_catalog_generated.hpp`,
 `configurator/src/shared/telemetry-catalog.ts`, `configurator/src/shared/simhub-profile-data.ts`,
 `docs/telemetry-catalog.md`, `simhub/SimCore-telemetry.shsds`.
+
+### Google Fonts catalog
+
+`fonts/google_fonts_snapshot.json` (fetched from Google, no API key) and
+`fonts/google_fonts_selection.json` (the curation rules) are the sources:
+
+```bash
+python3 tools/generate_font_catalog.py
+```
+
+Output: `configurator/src/main/font-library/google-fonts-catalog.json`, read lazily in the main
+process and never bundled into JS. `--refresh` re-fetches the snapshot; without it the generator is
+offline and deterministic. The generator derives no family ids — `fontFamilyId()` in
+`configurator/src/shared/font-library.ts` is the single implementation and the generator only checks
+that every derivable id is valid and unique.
 
 ## Architecture
 
@@ -263,13 +278,24 @@ pre-warmed during composition. The configurator uploads the chosen file unchange
 whole package before saving a configuration that needs a new family; installing a package requires a
 reboot.
 
+The author never types a family. `family` **is** the id of an entry in the configurator's font
+library (`main/font-library/`), which holds faces from three origins — bundled with the app,
+downloaded from the checked-in Google Fonts catalog, or imported from a file — and a weight is its
+own entry, its own family and one of the eight slots. "Save to board" resolves the document's
+families against that library, builds a package holding exactly those, skips the upload when
+`@SC:FONT:INFO` reports the same `crc` and `entries`, saves, and reboots. An unresolvable family
+stops the save and asks for a file; live apply is suppressed while the board lacks a family, because
+firmware rejects the document whole. See
+[docs/adr/0010-uploaded-font-assets.md](docs/adr/0010-uploaded-font-assets.md).
+
 ### Configurator (`configurator/src/`)
 
 Standard electron-vite three-way split: `main/` (Node — serial via `serialport`, device service,
-protocol, font, image and firmware upload over one shared `assets/` engine, config files,
+protocol, font, image and firmware upload over one shared `assets/` engine, the `font-library/`
+face store and Google Fonts catalog, the `save-to-board/` orchestrator, config files,
 the dashboard `templates/` library, SimHub profile export), `preload/`, `renderer/src/` (React +
 Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `firmware-update`,
-`font-assets`, `image-assets`, `simhub`, `templates`, `development`). `shared/` holds types
+`font-library`, `image-assets`, `simhub`, `templates`, `development`). `shared/` holds types
 crossing the boundary; all IPC channels and the `SimCoreApi`
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.

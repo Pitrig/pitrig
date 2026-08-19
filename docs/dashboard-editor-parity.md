@@ -28,8 +28,9 @@ editor).
   border colour, hiding and blinking.
 - Value-driven colour ramps (up to four stops over the same watched source) and
   linear gradients for the frame background and the bar fill.
-- Fonts: one uploaded face per family, and any `size_px` is rasterized on the
-  board without a reboot.
+- Fonts: chosen from a library of bundled faces, Google Fonts and imported
+  files; one face per family, any `size_px` rasterized on the board without a
+  reboot, and delivery handled by saving rather than by a separate upload step.
 - Uploaded images, converted in the configurator to the layout and the size the
   device draws.
 - Up to four screens, swiped between on a board with a touch panel, or reached by
@@ -186,16 +187,17 @@ of the widget's outer box, moved by the offsets, with the border line cut on
 whichever band its padded box crosses — including the same whole-pixel
 truncation, so the cut lands on the same pixels in both.
 
-Text and images are drawn with the uploaded assets themselves. The configurator
-keeps a copy of every face and every converted bitmap it installs, so the canvas
-measures strings with the face the board rasterizes and lays the label out the
-way LVGL does — sized to its text, anchored in whole pixels, drawn from its
+Text and images are drawn with the assets themselves. Faces come from the
+configurator's font library and converted bitmaps from the copy it keeps of what
+it installs, so the canvas measures strings with the face the board rasterizes
+and lays the label out the way LVGL does — sized to its text, anchored in whole pixels, drawn from its
 baseline — and an `image` widget shows its bitmap, already resized and already
 reduced to its colour format, centred at its own size. What remains is the
 rasterizer: the browser hints and antialiases differently from LVGL's TinyTTF,
-so the preview matches the board's layout rather than its pixels. An asset
-uploaded from another machine has no local copy, and falls back to a stand-in
-face and a named box.
+so the preview matches the board's layout rather than its pixels. A font carries
+across machines, because the family identifier names a library entry any
+installation can resolve; an *imported* face and an image uploaded elsewhere do
+not, and fall back to a stand-in face and a named box.
 
 Live telemetry is accepted for work, but not by asking the board for it: `@SC:`
 has no command for reading values, and while a session is running the port

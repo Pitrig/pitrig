@@ -1,6 +1,6 @@
 import { type ShapeWidgetConfiguration } from '@shared/configuration-schema'
+import { useFontFaceStore } from '@/features/font-library/font-face-store'
 import { completePlacement } from '../dashboard-editor'
-import { usePreviewAssetStore } from './preview-assets'
 import { WidgetFrameShape } from './frame-shape'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR, type FramedWidgetConfiguration } from './preview-theme'
 import { type PreviewValues, captionGeometry, fontMetrics, normalizeColor, resolvedFont } from './preview-values'
@@ -13,11 +13,11 @@ export function CaptionPreview({
   /** What is painted behind the widget, which is what the mask falls back to. */
   behind: string
 }): React.JSX.Element | null {
-  const uploadedFamilies = usePreviewAssetStore((state) => state.fonts)
+  const loadedFamilies = useFontFaceStore((state) => state.loaded)
   const placement = completePlacement(configuration.placement)
   const title = configuration.title?.text
   if (!placement || !title) return null
-  const font = resolvedFont(configuration.title?.font, 12, uploadedFamilies)
+  const font = resolvedFont(configuration.title?.font, 12, loadedFamilies)
   const metrics = fontMetrics(title, font)
   const borderWidth = configuration.border?.width_px ?? 0
   const background = normalizeColor(configuration.background_color)

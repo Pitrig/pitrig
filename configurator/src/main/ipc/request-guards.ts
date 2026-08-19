@@ -2,11 +2,13 @@ import {
   IMAGE_COLOR_FORMATS,
   type ImageUploadRequest
 } from '@shared/image-assets'
-import {
-  MAXIMUM_FONT_FAMILIES,
-  type FontAssetInput,
-  type FontUploadRequest
-} from '@shared/font-assets'
+import type {
+  FontCatalogPreviewRequest,
+  FontFacesRequest,
+  FontLibraryAddRequest,
+  FontLibraryIdRequest,
+  FontLibraryImportRequest
+} from '@shared/font-library'
 import { type FirmwareUploadRequest } from '@shared/firmware-update'
 import type { ConnectDeviceRequest, DeviceConfigurationRequest, DeviceResult } from '@shared/device'
 import type { ConfigurationFileSaveRequest } from '@shared/configuration-files'
@@ -107,25 +109,51 @@ export function invalidConfigurationRequest(): DeviceResult<never> {
   }
 }
 
-export function isFontUploadRequest(value: unknown): value is FontUploadRequest {
+// The library re-validates every identifier before it names a file, so these
+// only have to keep a malformed payload from reaching it.
+export function isFontFacesRequest(value: unknown): value is FontFacesRequest {
   if (!value || typeof value !== 'object') return false
-  const request = value as Partial<FontUploadRequest>
+  const request = value as Partial<FontFacesRequest>
   return (
-    Array.isArray(request.assets) &&
-    request.assets.length <= MAXIMUM_FONT_FAMILIES &&
-    request.assets.every(isFontAssetInput)
+    Array.isArray(request.ids) &&
+    request.ids.length <= 64 &&
+    request.ids.every((id) => typeof id === 'string' && id.length > 0 && id.length <= 31)
   )
 }
 
-// Shape only: the family rules and the source lookup belong to the service,
-// which re-validates every request before it touches a device.
-export function isFontAssetInput(value: unknown): value is FontAssetInput {
+export function isFontLibraryImportRequest(value: unknown): value is FontLibraryImportRequest {
   if (!value || typeof value !== 'object') return false
-  const asset = value as Partial<FontAssetInput>
+  const request = value as Partial<FontLibraryImportRequest>
+  return request.id === undefined || (typeof request.id === 'string' && request.id.length <= 31)
+}
+
+export function isFontCatalogPreviewRequest(
+  value: unknown
+): value is FontCatalogPreviewRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<FontCatalogPreviewRequest>
+  return typeof request.family === 'string' && request.family.length > 0 &&
+    request.family.length <= 128
+}
+
+// The family and variant name a row on the catalog, and the catalog is what
+// supplies the URL — so a request can only ever ask for something already
+// checked in, never for a download target of its own.
+export function isFontLibraryAddRequest(value: unknown): value is FontLibraryAddRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<FontLibraryAddRequest>
   return (
-    typeof asset.sourceId === 'string' && asset.sourceId.length > 0 &&
-    asset.sourceId.length <= 128 && typeof asset.family === 'string'
+    typeof request.family === 'string' && request.family.length > 0 &&
+    request.family.length <= 128 &&
+    typeof request.variant === 'string' && request.variant.length <= 16 &&
+    (request.category === undefined || typeof request.category === 'string')
   )
+}
+
+export function isFontLibraryIdRequest(value: unknown): value is FontLibraryIdRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<FontLibraryIdRequest>
+  return typeof request.id === 'string' && request.id.length > 0 && request.id.length <= 31
 }
 
 export function isFirmwareUploadRequest(value: unknown): value is FirmwareUploadRequest {

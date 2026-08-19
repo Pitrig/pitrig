@@ -7,14 +7,17 @@ import {
   broadcastDevelopmentSerialTraffic,
   broadcastDeviceState,
   broadcastFirmwareUploadProgress,
-  broadcastFontUploadProgress,
   broadcastImageUploadProgress,
+  broadcastSaveProgress,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
 import { PreviewAssetCache } from './assets/preview-asset-cache'
 import { FirmwareUpdateService } from './firmware-update/firmware-update-service'
 import { FontAssetService } from './font-assets/font-asset-service'
+import { FontCatalogService } from './font-library/font-catalog-service'
+import { FontLibraryService } from './font-library/font-library-service'
 import { ImageAssetService } from './image-assets/image-asset-service'
+import { SaveToBoardService } from './save-to-board/save-to-board-service'
 import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
 import { TemplateService } from './templates/template-service'
 
@@ -27,10 +30,26 @@ const deviceService = new DeviceService(
 // than anything the user authored: deleting it costs the preview its fidelity
 // until the next upload, and nothing else.
 const previewAssetCache = new PreviewAssetCache(join(app.getPath('userData'), 'preview-assets'))
-const fontAssetService = new FontAssetService(
+// The author's own faces, plus the ones bundled with the application. It also
+// adopts the faces older versions cached to draw a preview with, so a project
+// authored before the library keeps rendering the way it did.
+const fontLibraryService = new FontLibraryService(
+  join(app.getPath('userData'), 'font-library'),
+  join(app.getPath('userData'), 'preview-assets', 'fonts')
+)
+// Browsing the catalog downloads faces the author may never choose, so its
+// cache is separate from the library and can be deleted at any time.
+const fontCatalogService = new FontCatalogService(
+  join(app.getPath('userData'), 'font-catalog-cache')
+)
+const fontAssetService = new FontAssetService(deviceService, fontLibraryService)
+// Saving is one sequence over the serial link, so it owns the order the other
+// services run in rather than being assembled in a React component.
+const saveToBoardService = new SaveToBoardService(
   deviceService,
-  broadcastFontUploadProgress,
-  previewAssetCache
+  fontAssetService,
+  fontLibraryService,
+  broadcastSaveProgress
 )
 const imageAssetService = new ImageAssetService(
   deviceService,
@@ -82,7 +101,10 @@ app.whenReady().then(() => {
     simHubProfileService,
     configurationFileService,
     previewAssetCache,
-    templateService
+    templateService,
+    fontLibraryService,
+    fontCatalogService,
+    saveToBoardService
   )
   createWindow()
 

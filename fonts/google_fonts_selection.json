@@ -1,0 +1,15 @@
+{
+  "_comment": [
+    "What of the Google Fonts snapshot reaches the configurator's picker.",
+    "The snapshot is everything Google serves; this is the part worth offering",
+    "for a dashboard, and the reason each cut is made."
+  ],
+  "include_italic": false,
+  "_include_italic": "A dashboard reads at a glance and italics cost a slot each; an author who wants one imports the file.",
+  "weights": ["300", "400", "500", "600", "700", "800", "900"],
+  "_weights": "Thin and ExtraLight disappear at the sizes a board draws.",
+  "exclude_categories": [],
+  "exclude": [],
+  "maximum_families": 0,
+  "_maximum_families": "Zero keeps every family; the picker searches, so length costs nothing."
+}

@@ -68,6 +68,11 @@ struct Format {
 struct Header {
   std::uint16_t entry_count{};
   std::uint32_t payload_size{};
+  // Already verified against the stored bytes by validate_header. It is carried
+  // out so a kind can report it: a host that knows the CRC of the package it
+  // would upload can tell that the device already holds exactly those bytes and
+  // skip a transfer that costs a reboot.
+  std::uint32_t payload_crc{};
   std::span<const std::uint8_t> manifest{};
 };
 

@@ -10,7 +10,8 @@ import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FirmwareUpdatePanel } from '@/features/firmware-update/FirmwareUpdatePanel'
-import { FontAssetsPanel } from '@/features/font-assets/FontAssetsPanel'
+import { FontLibraryPanel } from '@/features/font-library/FontLibraryPanel'
+import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
 import { ImageAssetsPanel } from '@/features/image-assets/ImageAssetsPanel'
 import { SimHubProfilePanel } from '@/features/simhub/SimHubProfilePanel'
 import { TemplatesPanel } from '@/features/templates/TemplatesPanel'
@@ -29,6 +30,10 @@ export function App(): React.JSX.Element {
     void window.simcore.getAppInfo().then(setAppInfo)
   }, [])
 
+  // The library outlives any connection, so it is read once here rather than
+  // keyed on the device the way the panels below are.
+  useEffect(() => subscribeToFontLibrary(), [])
+
   return (
     <div className="grid h-screen overflow-hidden grid-rows-[3.5rem_minmax(0,1fr)_2.5rem] bg-background text-foreground">
       <header className="flex items-center justify-between border-b px-5">
@@ -44,7 +49,7 @@ export function App(): React.JSX.Element {
           <ConfigurationPanel key={`configuration-${connectionRevision}`} />
           <TemplatesPanel key={`templates-${connectionRevision}`} />
           <div className="mt-3 space-y-3">
-            <FontAssetsPanel key={`fonts-${connectionRevision}`} />
+            <FontLibraryPanel key={`fonts-${connectionRevision}`} />
             <ImageAssetsPanel key={`images-${connectionRevision}`} />
             <FirmwareUpdatePanel key={`firmware-${connectionRevision}`} />
           </div>

@@ -122,7 +122,7 @@
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && ESPBAUD=921600 idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION flash"
+        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && ESPBAUD=460800 idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION flash"
       ],
       "options": { "cwd": "${workspaceFolder}/firmware" },
       "problemMatcher": [],
@@ -146,7 +146,7 @@
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && ESPBAUD=921600 idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION flash monitor"
+        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && ESPBAUD=460800 idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION flash monitor"
       ],
       "options": { "cwd": "${workspaceFolder}/firmware" },
       "problemMatcher": [],

@@ -50,6 +50,13 @@ class Service final {
   // Bytes a consumer must reserve to copy every face out of the mapping, each
   // face aligned to four bytes.
   [[nodiscard]] std::size_t face_bytes_total() const;
+  // The installed package's payload CRC, or zero when none is installed. A host
+  // that builds packages deterministically can compare it with the one it would
+  // upload and skip a transfer the device would only have to reboot for. It is
+  // font-local rather than part of the shared Status because images report no
+  // CRC, and a shared struct half-filled by one kind is the drift asset_package
+  // exists to prevent.
+  [[nodiscard]] std::uint32_t payload_crc() const { return payload_crc_; }
 
   [[nodiscard]] UpdateError begin_update(std::size_t package_size);
   [[nodiscard]] UpdateError write_update(
@@ -62,6 +69,7 @@ class Service final {
   struct ParsedPackage {
     std::uint16_t family_count{};
     std::uint32_t package_size{};
+    std::uint32_t payload_crc{};
     std::array<FamilyAsset, kMaximumFamilies> families{};
   };
 
@@ -74,6 +82,7 @@ class Service final {
 
   IStorage* storage_{};
   Status status_{};
+  std::uint32_t payload_crc_{};
   std::span<const std::uint8_t> package_mapping_{};
   // Indexes the active mapping at boot and acts as update-validation scratch
   // after that mapping has been released.

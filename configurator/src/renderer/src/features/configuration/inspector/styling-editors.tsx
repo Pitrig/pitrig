@@ -1,6 +1,6 @@
 import type { FramedWidget } from './types'
 import { GRADIENT_DIRECTION_VALUES, type GradientDirection, TEXT_ALIGNMENT_VALUES, type WidgetTitleStyle } from '@shared/configuration-schema'
-import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily } from '../dashboard-editor'
+import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily, useDashboardEditorStore } from '../dashboard-editor'
 import { CheckboxField, ColorField, FontEditor, Hint, NumberField, OptionalColorField, Section, SelectField, TextField } from './fields'
 import { fieldBounds } from '@shared/validate/ranges'
 import { alignmentAnchor } from '../preview/preview-values'
@@ -34,7 +34,10 @@ export function TitleEditor({ widget, update }: {
         const font = next.title?.font?.family
           ? next.title.font
           : {
-              family: draftFontFamily(useDeviceStore.getState().draft),
+              family: draftFontFamily(
+                useDeviceStore.getState().draft,
+                useDashboardEditorStore.getState().defaultFontFamily
+              ),
               size_px: DEFAULT_CAPTION_FONT_SIZE_PX
             }
         next.title = { ...next.title, text: value, font }

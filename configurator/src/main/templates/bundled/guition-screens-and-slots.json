@@ -27,7 +27,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "display",
+                  "family": "roboto",
                   "size_px": 96
                 },
                 "color": "#FFFFFF"
@@ -54,7 +54,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "display",
+                  "family": "roboto",
                   "size_px": 24
                 },
                 "color": "#7BE38A"
@@ -118,7 +118,7 @@
                       ],
                       "value": {
                         "font": {
-                          "family": "display",
+                          "family": "roboto",
                           "size_px": 40
                         },
                         "color": "#E8E8E8"
@@ -145,7 +145,7 @@
                       ],
                       "value": {
                         "font": {
-                          "family": "display",
+                          "family": "roboto",
                           "size_px": 40
                         },
                         "color": "#E8E8E8"
@@ -176,7 +176,7 @@
                       ],
                       "value": {
                         "font": {
-                          "family": "display",
+                          "family": "roboto",
                           "size_px": 56
                         },
                         "color": "#7BE38A"
@@ -212,7 +212,7 @@
                       ],
                       "value": {
                         "font": {
-                          "family": "display",
+                          "family": "roboto",
                           "size_px": 72
                         },
                         "color": "#FFE04A"
@@ -255,7 +255,7 @@
                       ],
                       "value": {
                         "font": {
-                          "family": "display",
+                          "family": "roboto",
                           "size_px": 72
                         },
                         "color": "#38BDF8"
@@ -291,7 +291,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "display",
+                  "family": "roboto",
                   "size_px": 72
                 },
                 "color": "#FFFFFF"
@@ -317,7 +317,7 @@
               ],
               "value": {
                 "font": {
-                  "family": "display",
+                  "family": "roboto",
                   "size_px": 56
                 },
                 "color": "#E8E8E8"

@@ -16,12 +16,25 @@ import type {
   FirmwareUploadProgress,
   FirmwareUploadRequest
 } from './firmware-update'
+import type { FontAssetResult } from './font-assets'
 import type {
-  FontAssetResult,
-  FontSourceSelection,
-  FontUploadProgress,
-  FontUploadRequest
-} from './font-assets'
+  FontCatalogFamily,
+  FontCatalogPreview,
+  FontCatalogPreviewRequest,
+  FontFaceBytes,
+  FontFacesRequest,
+  FontLibraryAddRequest,
+  FontLibraryEntry,
+  FontLibraryIdRequest,
+  FontLibraryImportRequest,
+  FontLibraryResult,
+  FontLibrarySnapshot
+} from './font-library'
+import type {
+  SaveProgress,
+  SaveToBoardRequest,
+  SaveToBoardResult
+} from './save-to-board'
 import type { SerialTrafficLog } from './development'
 import type { PreviewAssets } from './preview-assets'
 import type {
@@ -81,10 +94,27 @@ export interface SimCoreApi {
   saveDeviceConfiguration: (
     request: DeviceConfigurationRequest
   ) => Promise<DeviceResult<DeviceConfigurationSaveResult>>
+  /** Resolve fonts, install what the board lacks, save, restart, reconnect. */
+  saveToBoard: (request: SaveToBoardRequest) => Promise<SaveToBoardResult>
   resetDeviceConfiguration: () => Promise<DeviceResult<DeviceConfigurationResetResult>>
   rebootDevice: () => Promise<DeviceResult<DeviceState>>
-  selectFontSource: () => Promise<FontAssetResult<FontSourceSelection | null>>
-  uploadFontAssets: (request: FontUploadRequest) => Promise<FontAssetResult<void>>
+  listFontLibrary: () => Promise<FontLibrarySnapshot>
+  /** Face bytes for the ids the canvas is about to draw with. */
+  readFontFaces: (request: FontFacesRequest) => Promise<FontFaceBytes[]>
+  importFontFace: (
+    request: FontLibraryImportRequest
+  ) => Promise<FontLibraryResult<FontLibraryEntry | null>>
+  removeFontFace: (request: FontLibraryIdRequest) => Promise<FontLibraryResult<void>>
+  /** Every family the checked-in Google Fonts catalog offers. Face URLs stay in main. */
+  listFontCatalog: () => Promise<FontCatalogFamily[]>
+  /** One catalog family's first face, so a picker row can draw itself. */
+  previewFontCatalogFace: (
+    request: FontCatalogPreviewRequest
+  ) => Promise<FontCatalogPreview | null>
+  /** Downloads one catalog face and puts it in the library. */
+  addFontFromCatalog: (
+    request: FontLibraryAddRequest
+  ) => Promise<FontLibraryResult<FontLibraryEntry>>
   cancelFontUpload: () => Promise<FontAssetResult<void>>
   clearFontAssets: () => Promise<DeviceResult<DeviceState>>
   selectFirmwareSource: () => Promise<FirmwareUpdateResult<FirmwareSourceSelection | null>>
@@ -94,16 +124,17 @@ export interface SimCoreApi {
   uploadImageAssets: (request: ImageUploadRequest) => Promise<AssetResult<void>>
   cancelImageUpload: () => Promise<AssetResult<void>>
   clearImageAssets: () => Promise<DeviceResult<DeviceState>>
-  /** The uploaded faces and converted bitmaps the canvas draws with. */
+  /** The converted bitmaps the canvas draws with. Faces come from the library. */
   readPreviewAssets: () => Promise<PreviewAssets>
   exportSimHubProfile: (
     request: SimHubProfileExportRequest
   ) => Promise<SimHubProfileResult<SimHubProfileExportValue>>
-  onFontUploadProgress: (listener: (progress: FontUploadProgress) => void) => () => void
   onImageUploadProgress: (listener: (progress: AssetUploadProgress) => void) => () => void
   onFirmwareUploadProgress: (
     listener: (progress: FirmwareUploadProgress) => void
   ) => () => void
+  onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
+  onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
   onDevelopmentSerialTraffic?: (listener: (log: SerialTrafficLog) => void) => () => void
 }

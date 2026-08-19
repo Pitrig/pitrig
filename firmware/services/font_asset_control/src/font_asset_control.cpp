@@ -40,13 +40,18 @@ void cancel_update(void* const service) { service_of(service).cancel_update(); }
 int write_info_body(void* const service, char* const out,
                     const std::size_t size) {
   const Status& status = service_of(service).status();
+  // `crc` is the stored payload CRC. It is what lets a host decide the package
+  // it would upload is already installed, which saves a transfer and the reboot
+  // that follows one.
   int written = std::snprintf(
       out, size,
-      "storage=%u,package=%u,format=%u,families=%u,size=%lu,reboot_required=%u,entries=",
+      "storage=%u,package=%u,format=%u,families=%u,size=%lu,crc=%lu,"
+      "reboot_required=%u,entries=",
       status.storage_available ? 1U : 0U, status.package_available ? 1U : 0U,
       static_cast<unsigned>(status.format_version),
       static_cast<unsigned>(status.entry_count),
       static_cast<unsigned long>(status.package_size),
+      static_cast<unsigned long>(service_of(service).payload_crc()),
       status.reboot_required ? 1U : 0U);
   if (written <= 0 || static_cast<std::size_t>(written) >= size) {
     return -1;

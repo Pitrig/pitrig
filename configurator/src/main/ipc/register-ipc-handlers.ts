@@ -5,7 +5,11 @@ import {
   invalidConfigurationRequest,
   isConnectRequest,
   isFirmwareUploadRequest,
-  isFontUploadRequest,
+  isFontCatalogPreviewRequest,
+  isFontFacesRequest,
+  isFontLibraryAddRequest,
+  isFontLibraryIdRequest,
+  isFontLibraryImportRequest,
   isImageUploadRequest,
   isJsonDocumentRequest,
   isSimHubProfileExportRequest,
@@ -48,14 +52,27 @@ import {
 } from '../../shared/firmware-update'
 import {
   FONT_CANCEL_UPLOAD_CHANNEL,
-  FONT_CLEAR_CHANNEL,
-  FONT_SELECT_SOURCE_CHANNEL,
-  FONT_UPLOAD_CHANNEL,
-  FONT_UPLOAD_PROGRESS_CHANNEL,
-  type FontAssetResult,
-  type FontUploadProgress
+  FONT_CLEAR_CHANNEL
 } from '../../shared/font-assets'
+import {
+  FONT_CATALOG_LIST_CHANNEL,
+  FONT_CATALOG_PREVIEW_CHANNEL,
+  FONT_LIBRARY_ADD_CHANNEL,
+  FONT_LIBRARY_CHANGED_CHANNEL,
+  FONT_LIBRARY_FACES_CHANNEL,
+  FONT_LIBRARY_IMPORT_CHANNEL,
+  FONT_LIBRARY_LIST_CHANNEL,
+  FONT_LIBRARY_REMOVE_CHANNEL,
+  type FontLibraryResult,
+  type FontLibrarySnapshot
+} from '../../shared/font-library'
 import { APP_GET_INFO_CHANNEL, type AppInfo } from '../../shared/ipc'
+import {
+  SAVE_PROGRESS_CHANNEL,
+  SAVE_TO_BOARD_CHANNEL,
+  type SaveProgress,
+  type SaveToBoardResult
+} from '../../shared/save-to-board'
 import {
   SIMHUB_PROFILE_EXPORT_CHANNEL,
   type SimHubProfileResult
@@ -64,6 +81,9 @@ import { DeviceService } from '../device/device-service'
 import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
 import { FirmwareUpdateService } from '../firmware-update/firmware-update-service'
 import { FontAssetService } from '../font-assets/font-asset-service'
+import { FontCatalogService } from '../font-library/font-catalog-service'
+import { FontLibraryService } from '../font-library/font-library-service'
+import { SaveToBoardService } from '../save-to-board/save-to-board-service'
 import { ImageAssetService } from '../image-assets/image-asset-service'
 import type { AssetResult, AssetUploadProgress } from '../../shared/asset-upload'
 import {
@@ -93,7 +113,10 @@ export function registerIpcHandlers(
   simHubProfileService: SimHubProfileService,
   configurationFileService: ConfigurationFileService,
   previewAssetCache: PreviewAssetCache,
-  templateService: TemplateService
+  templateService: TemplateService,
+  fontLibraryService: FontLibraryService,
+  fontCatalogService: FontCatalogService,
+  saveToBoardService: SaveToBoardService
 ): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
@@ -151,27 +174,68 @@ export function registerIpcHandlers(
     return deviceService.saveConfiguration(request.json)
   })
   ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.reboot())
-  ipcMain.handle(FONT_SELECT_SOURCE_CHANNEL, (event) =>
-    fontAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
-  )
-  ipcMain.handle(FONT_CANCEL_UPLOAD_CHANNEL, () => fontAssetService.cancel())
-  // The cache stands for what the board holds, so it is emptied with it rather
-  // than left describing faces the device no longer has.
-  ipcMain.handle(FONT_CLEAR_CHANNEL, async () => {
-    const result = await deviceService.clearFonts()
-    if (result.ok) await previewAssetCache.clearFonts().catch(() => undefined)
-    return result
-  })
-  ipcMain.handle(FONT_UPLOAD_CHANNEL, (_event, request: unknown) => {
-    if (!isFontUploadRequest(request)) {
-      const result: FontAssetResult<void> = {
+  ipcMain.handle(SAVE_TO_BOARD_CHANNEL, (_event, request: unknown) => {
+    if (!isJsonDocumentRequest(request)) {
+      const result: SaveToBoardResult = {
         ok: false,
-        error: { code: 'invalid_request', message: 'Invalid font upload request.' }
+        error: { code: 'invalid_configuration', message: 'Invalid save request.' }
       }
       return result
     }
-    return fontAssetService.upload(request)
+    return saveToBoardService.save({ json: request.json })
   })
+  ipcMain.handle(FONT_LIBRARY_LIST_CHANNEL, () => fontLibraryService.list())
+  ipcMain.handle(FONT_LIBRARY_FACES_CHANNEL, (_event, request: unknown) =>
+    isFontFacesRequest(request) ? fontLibraryService.readFaces(request.ids) : []
+  )
+  // The library changed under the renderer's feet, so it is told rather than
+  // left to notice: the canvas draws from it and the picker lists it.
+  ipcMain.handle(FONT_LIBRARY_IMPORT_CHANNEL, async (event, request: unknown) => {
+    if (!isFontLibraryImportRequest(request)) return invalidFontLibraryRequest()
+    const result = await fontLibraryService.import(
+      request.id,
+      BrowserWindow.fromWebContents(event.sender) ?? undefined
+    )
+    if (result.ok && result.value) await broadcastFontLibrary(fontLibraryService)
+    return result
+  })
+  ipcMain.handle(FONT_CATALOG_LIST_CHANNEL, () => fontCatalogService.list())
+  ipcMain.handle(FONT_CATALOG_PREVIEW_CHANNEL, async (_event, request: unknown) =>
+    isFontCatalogPreviewRequest(request)
+      ? ((await fontCatalogService.preview(request.family)) ?? null)
+      : null
+  )
+  ipcMain.handle(FONT_LIBRARY_ADD_CHANNEL, async (_event, request: unknown) => {
+    if (!isFontLibraryAddRequest(request)) return invalidFontLibraryRequest()
+    const face = await fontCatalogService.faceFor(request.family, request.variant)
+    if (!face) {
+      return {
+        ok: false as const,
+        error: {
+          code: 'download_failed' as const,
+          message: `${request.family} could not be downloaded. Check the connection, or import the file.`
+        }
+      }
+    }
+    const added = await fontLibraryService.addDownloaded(
+      request.family,
+      request.variant,
+      request.category ?? face.category,
+      face.bytes
+    )
+    if (added.ok) await broadcastFontLibrary(fontLibraryService)
+    return added
+  })
+  ipcMain.handle(FONT_LIBRARY_REMOVE_CHANNEL, async (_event, request: unknown) => {
+    if (!isFontLibraryIdRequest(request)) return invalidFontLibraryRequest()
+    const result = await fontLibraryService.remove(request.id)
+    if (result.ok) await broadcastFontLibrary(fontLibraryService)
+    return result
+  })
+  ipcMain.handle(FONT_CANCEL_UPLOAD_CHANNEL, () => fontAssetService.cancel())
+  // Erasing the board's package says nothing about the author's library, so
+  // nothing local is cleared with it — the canvas keeps drawing what it drew.
+  ipcMain.handle(FONT_CLEAR_CHANNEL, () => deviceService.clearFonts())
   ipcMain.handle(FIRMWARE_SELECT_SOURCE_CHANNEL, (event) =>
     firmwareUpdateService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
   )
@@ -231,6 +295,21 @@ export function registerIpcHandlers(
   })
 }
 
+function invalidFontLibraryRequest(): FontLibraryResult<never> {
+  return {
+    ok: false,
+    error: { code: 'invalid_request', message: 'Invalid font library request.' }
+  }
+}
+
+async function broadcastFontLibrary(service: FontLibraryService): Promise<void> {
+  broadcastFontLibraryChanged(await service.list())
+}
+
+export function broadcastFontLibraryChanged(snapshot: FontLibrarySnapshot): void {
+  broadcastToWindows(FONT_LIBRARY_CHANGED_CHANNEL, snapshot)
+}
+
 function invalidTemplateRequest(): TemplateResult<never> {
   return { ok: false, error: { code: 'invalid_template', message: 'Invalid template request.' } }
 }
@@ -239,13 +318,12 @@ export function broadcastImageUploadProgress(progress: AssetUploadProgress): voi
   broadcastToWindows(IMAGE_UPLOAD_PROGRESS_CHANNEL, progress)
 }
 
-/** Shape-checked like every other payload: the renderer is not trusted. */
-export function broadcastFontUploadProgress(progress: FontUploadProgress): void {
-  broadcastToWindows(FONT_UPLOAD_PROGRESS_CHANNEL, progress)
-}
-
 export function broadcastFirmwareUploadProgress(progress: FirmwareUploadProgress): void {
   broadcastToWindows(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, progress)
+}
+
+export function broadcastSaveProgress(progress: SaveProgress): void {
+  broadcastToWindows(SAVE_PROGRESS_CHANNEL, progress)
 }
 
 export function broadcastDeviceState(state: DeviceState): void {

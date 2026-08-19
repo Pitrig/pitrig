@@ -106,14 +106,20 @@ The host can query persisted asset state without starting an upload:
 
 ```text
 @SC:FONT:INFO
-@SC:OK:FONT:INFO:storage=1,package=1,format=3,families=2,size=311296,reboot_required=0,entries=inter;roboto-black
+@SC:OK:FONT:INFO:storage=1,package=1,format=3,families=2,size=311296,crc=2748106441,reboot_required=0,entries=inter;roboto-black
 ```
 
 `storage` reports whether the partition is available. `package` reports
-whether a valid package is stored. `format`, `families`, and `size` describe
-that package and are zero when none is valid. `reboot_required` is set after a
-successful commit until restart. `entries` contains the semicolon-separated
-family identifiers and is empty for a package without faces.
+whether a valid package is stored. `format`, `families`, `size`, and `crc`
+describe that package and are zero when none is valid; `crc` is the stored
+header's payload CRC, which lets a host decide that the package it would upload
+is already installed. `reboot_required` is set after a successful commit until
+restart. `entries` contains the semicolon-separated family identifiers and is
+empty for a package without faces.
+
+The payload CRC covers `[0x1000, payload_size)` and therefore not the manifest:
+a host comparing packages must compare `entries` as well, or a family renamed
+over an identical face compares equal.
 
 The host can erase the complete installed package outside an upload session:
 
@@ -181,6 +187,15 @@ telemetry input resume after commit, cancel, timeout, or error.
 
 The configurator uploads the selected TTF or OTF file unchanged; there is no
 conversion step and no glyph range to choose.
+
+## Package determinism
+
+A host that skips a redundant upload by comparing `crc` needs the same face set
+to produce the same bytes. Manifest entries are ordered by ascending family
+identifier, faces are laid out in that order starting at `0x1000` with each
+following face at the next four-byte boundary, and every reserved byte is zero.
+Nothing in the package records a time, a host, or an order of selection, so two
+hosts holding the same faces build the same package and the same payload CRC.
 
 ## Runtime rasterization
 

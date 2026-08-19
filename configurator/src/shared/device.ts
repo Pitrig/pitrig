@@ -132,6 +132,15 @@ export interface FontAssetDeviceInfo {
   // a configuration only has to match a family.
   families: string[]
   packageSize: number
+  /**
+   * The stored package's payload CRC, when the firmware reports one. It lets a
+   * save skip an upload whose bytes the board already holds. Older firmware
+   * omits the key, which reads as "cannot tell" and so as "upload anyway".
+   *
+   * The CRC covers the face data and not the manifest, so comparing it answers
+   * only half the question — `families` answers the other half.
+   */
+  payloadCrc?: number
   rebootRequired: boolean
 }
 
