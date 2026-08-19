@@ -13,6 +13,7 @@ import { FirmwareUpdatePanel } from '@/features/firmware-update/FirmwareUpdatePa
 import { FontAssetsPanel } from '@/features/font-assets/FontAssetsPanel'
 import { ImageAssetsPanel } from '@/features/image-assets/ImageAssetsPanel'
 import { SimHubProfilePanel } from '@/features/simhub/SimHubProfilePanel'
+import { TemplatesPanel } from '@/features/templates/TemplatesPanel'
 import type { DeviceSession } from '@shared/device'
 import type { AppInfo } from '@shared/ipc'
 
@@ -41,6 +42,7 @@ export function App(): React.JSX.Element {
       <main className="grid min-h-0 overflow-hidden grid-cols-[21rem_minmax(0,1fr)_20rem]">
         <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-r p-3">
           <ConfigurationPanel key={`configuration-${connectionRevision}`} />
+          <TemplatesPanel key={`templates-${connectionRevision}`} />
           <div className="mt-3 space-y-3">
             <FontAssetsPanel key={`fonts-${connectionRevision}`} />
             <ImageAssetsPanel key={`images-${connectionRevision}`} />

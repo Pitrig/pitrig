@@ -291,7 +291,7 @@ own telemetry processing, extrapolation, or correction logic.
 
 Platform code may depend on modules and components. Modules must not depend on platform code or UI frameworks.
 
-Mock telemetry is the configurator's business, not the firmware's: it lives in `configurator/src/shared/mock-telemetry.ts` and feeds the preview canvas. The firmware carries no development-only telemetry source, and any that is ever added must stay isolated under `platform/` so production communication can replace it without changing module APIs.
+Neither side simulates telemetry. The configurator receives none — the control protocol carries no command for reading values and SimHub owns the port while a session runs — so its preview draws every source as unavailable and shows the placeholders the device itself draws. The firmware carries no development-only telemetry source either, and any that is ever added must stay isolated under `platform/` so production communication can replace it without changing module APIs.
 
 ---
 

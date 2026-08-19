@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { childArraysOf, pagesOf, screensOf, widgetsOf } from '@shared/configuration-access'
 import { type DeviceConfiguration, type DisplayDescriptor } from '@shared/device'
-import { LAP_SECONDS } from '@shared/mock-telemetry'
 import { clamp } from '../editor/placement'
 import { GridOverlay, GuideOverlay, HitArea, SelectionFrame } from './CanvasOverlays'
 import { ImagePreview } from './ImagePreview'
@@ -9,10 +8,10 @@ import { TextWidgetPreview } from './TextPreview'
 import { moveSelection } from '../editor/geometry-commands'
 import { flattenScreen } from './preview-layers'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacements, completePlacement, findWidget, useDashboardEditorStore } from '../dashboard-editor'
-import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, PREVIEW_TICK_MS, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
+import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
-import { createPreviewValues, previewTelemetry } from './preview-values'
+import { createPreviewValues } from './preview-values'
 import { CaptionPreview, ShapePreview, } from './widget-previews'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -40,33 +39,9 @@ export function Widgets({
   const [marquee, setMarquee] = useState<Marquee>()
   const [pan, setPan] = useState<Pan>()
   const [guides, setGuides] = useState<Guides>(NO_GUIDES)
-  const playback = useDashboardEditorStore((state) => state.preview)
-  // Blink runs off the wall clock rather than off the lap, the way the device
-  // runs it off ticks: it is a property of the frame being drawn, not of the
-  // value, so scrubbing to a paused phase still shows the widget flashing.
-  const [clockMs, setClockMs] = useState(0)
-  const playing = playback.playing && playback.mode === 'values'
-  useEffect(() => {
-    if (playback.mode !== 'values') return
-    const started = Date.now()
-    const timer = setInterval(() => {
-      setClockMs(Date.now() - started)
-      // The lap advances only while playing; the clock keeps running either way
-      // so a paused frame still blinks.
-      if (!playing) return
-      const { preview, setPreview } = useDashboardEditorStore.getState()
-      setPreview({ phase: (preview.phase + PREVIEW_TICK_MS / (LAP_SECONDS * 1000)) % 1 })
-    }, PREVIEW_TICK_MS)
-    return () => clearInterval(timer)
-  }, [playback.mode, playing])
-  // Both walk the whole document, and an edit replaces it wholesale, so both
-  // are recomputed exactly when it changes rather than on every render — and
-  // the animation clock re-renders this component several times a second.
-  const telemetry = useMemo(
-    () => previewTelemetry(configuration, playback),
-    [configuration, playback]
-  )
-  const values = createPreviewValues(telemetry, playback, clockMs)
+  // Every reading is unavailable — the configurator receives no telemetry — so
+  // this holds nothing and is built once rather than per frame.
+  const values = createPreviewValues()
   // Every box in display coordinates, resolved in one walk. Asking per widget
   // costs two tree searches each, and this render asks for the selection, for
   // every widget carrying an action, for every layer it draws and again on

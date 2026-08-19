@@ -1,0 +1,143 @@
+{
+  "format": "simcore-dashboard-template",
+  "format_version": 1,
+  "name": "T-Display lap timer",
+  "description": "Lap and delta readouts sized for the 320 x 170 strip.",
+  "configuration": {
+    "board": "t_display_s3",
+    "dashboard": {
+      "screens": [
+        {
+          "widgets": [
+            {
+              "type": "bar",
+              "id": "wmsw2jdjs118",
+              "placement": {
+                "x": 32,
+                "y": 56,
+                "width": 256,
+                "height": 58
+              },
+              "z_index": 0,
+              "source": {
+                "binding": "session.lap.delta"
+              },
+              "minimum": -5000,
+              "maximum": 5000,
+              "origin": 0,
+              "fill_color": "#FFE04A",
+              "border": {
+                "width_px": 2,
+                "radius_px": 10,
+                "color": "#FFE04A"
+              }
+            },
+            {
+              "type": "text",
+              "placement": {
+                "x": 32,
+                "y": 56,
+                "width": 256,
+                "height": 58
+              },
+              "z_index": 1,
+              "sources": [
+                {
+                  "binding": "session.lap.delta",
+                  "transform": {
+                    "type": "time",
+                    "format": "signed_duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto-black",
+                  "size_px": 32
+                },
+                "color": "#FFE04A"
+              },
+              "condition_source": {
+                "binding": "session.lap.delta"
+              },
+              "conditions": [
+                {
+                  "op": "below",
+                  "value": 0,
+                  "color": "#00F020"
+                },
+                {
+                  "op": "above",
+                  "value": 0,
+                  "color": "#FF4040"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "sources": [
+                {
+                  "binding": "session.lap.current_time",
+                  "modifiers": [
+                    {
+                      "type": "lap_timer"
+                    }
+                  ],
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "placement": {
+                "x": 8,
+                "y": 8,
+                "width": 304,
+                "height": 42
+              },
+              "value": {
+                "font": {
+                  "family": "roboto-black",
+                  "size_px": 32
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "text",
+              "sources": [
+                {
+                  "binding": "session.lap.estimated_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "placement": {
+                "x": 8,
+                "y": 122,
+                "width": 304,
+                "height": 40
+              },
+              "border": {
+                "color": "#FFE04A",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "value": {
+                "font": {
+                  "family": "roboto-black",
+                  "size_px": 32
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

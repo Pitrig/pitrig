@@ -19,6 +19,15 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
   } catch {
     throw new Error('Configuration JSON is malformed.')
   }
+  return parseDeviceConfigurationValue(value)
+}
+
+/**
+ * The same parse for a document that has already been decoded — a template
+ * carries its configuration as a member of its envelope rather than as text, so
+ * it would otherwise have to be re-serialized just to be read back.
+ */
+export function parseDeviceConfigurationValue(value: unknown): DeviceConfiguration {
   // Documents authored against an older schema are brought forward before
   // validation, so opening a project saved by an earlier build just works.
   const result = validateConfigurationDocument(migrateConfigurationDocument(value), {

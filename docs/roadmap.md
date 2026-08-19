@@ -69,8 +69,8 @@ foundation for them landed in Phase 1.
 - [*] Configurator copy, paste and duplicate
 - [*] Configurator multi-select, alignment and grid snapping
 - [*] Configurator layer panel with reordering, lock and hide
-- [*] Dashboard preview with mock telemetry values
-- [ ] Dashboard templates and cross-board layout transfer
+- [*] Dashboard preview with placeholder values
+- [*] Dashboard templates and cross-board layout transfer
 
 # Phase 6 — Field maintenance
 

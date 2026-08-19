@@ -11,6 +11,14 @@ import { type FirmwareUploadRequest } from '@shared/firmware-update'
 import type { ConnectDeviceRequest, DeviceConfigurationRequest, DeviceResult } from '@shared/device'
 import type { ConfigurationFileSaveRequest } from '@shared/configuration-files'
 import type { SimHubProfileExportRequest } from '@shared/simhub-profile'
+import {
+  BUNDLED_TEMPLATE_PREFIX,
+  MAXIMUM_TEMPLATE_DESCRIPTION,
+  MAXIMUM_TEMPLATE_NAME,
+  TEMPLATE_ID_PATTERN,
+  type TemplateIdRequest,
+  type TemplateSaveRequest
+} from '@shared/templates'
 
 // Everything arriving over IPC is untrusted: the renderer is separate code and
 // a handler must not take its word for the shape of a request. These are the
@@ -59,6 +67,37 @@ export function isJsonDocumentRequest(
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<DeviceConfigurationRequest>
   return typeof request.json === 'string' && request.json.length <= 64 * 1024
+}
+
+/**
+ * The envelope's own fields plus the document as text, bounded the same way a
+ * configuration file request is. Shape only — the service parses and validates
+ * the document itself.
+ */
+export function isTemplateSaveRequest(value: unknown): value is TemplateSaveRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<TemplateSaveRequest>
+  if (typeof request.name !== 'string' || request.name.length > MAXIMUM_TEMPLATE_NAME) return false
+  if (
+    request.description !== undefined &&
+    (typeof request.description !== 'string' ||
+      request.description.length > MAXIMUM_TEMPLATE_DESCRIPTION)
+  ) {
+    return false
+  }
+  return typeof request.json === 'string' && request.json.length <= 64 * 1024
+}
+
+/**
+ * A saved template's identifier names a file, so nothing outside the pattern
+ * reaches the service. A starter's identifier carries a prefix the pattern
+ * rejects, which is exactly what keeps it from ever naming one.
+ */
+export function isTemplateIdRequest(value: unknown): value is TemplateIdRequest {
+  if (!value || typeof value !== 'object') return false
+  const id = (value as Partial<TemplateIdRequest>).id
+  if (typeof id !== 'string' || id.length > 96) return false
+  return TEMPLATE_ID_PATTERN.test(id) || id.startsWith(BUNDLED_TEMPLATE_PREFIX)
 }
 
 export function invalidConfigurationRequest(): DeviceResult<never> {

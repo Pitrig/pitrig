@@ -18,32 +18,6 @@ export interface EditorView {
   snapToGrid: boolean
 }
 
-/**
- * What the canvas draws in place of telemetry. The configurator never receives
- * any: the control protocol has no command for it and the port belongs to
- * SimHub while a session is running, so `values` plays a synthetic lap
- * generated in the renderer.
- *
- * `unavailable` is not the same as `placeholders`: it is what the dashboard
- * looks like when the game stops sending, which is the state `unavailable_text`
- * and a hiding rule exist for, and which the live mode would otherwise make
- * impossible to see.
- */
-export type PreviewValueMode = 'placeholders' | 'values' | 'unavailable'
-
-export interface PreviewPlayback {
-  mode: PreviewValueMode
-  playing: boolean
-  /** Position in the synthetic lap, 0 to 1. */
-  phase: number
-}
-
-const DEFAULT_PREVIEW_PLAYBACK: PreviewPlayback = {
-  mode: 'placeholders',
-  playing: true,
-  phase: 0
-}
-
 const DEFAULT_EDITOR_VIEW: EditorView = {
   zoom: 1,
   panX: 0,
@@ -70,7 +44,6 @@ interface DashboardEditorStore {
    */
   activeScreenIndex: number
   view: EditorView
-  preview: PreviewPlayback
   /** Editor-only, keyed by widget id: neither reaches the document. */
   locked: Record<string, boolean>
   hidden: Record<string, boolean>
@@ -95,7 +68,6 @@ interface DashboardEditorStore {
   /** Enters a slot's pages, or leaves them when given nothing. */
   setDrillIn: (slotId?: string) => void
   setView: (patch: Partial<EditorView>) => void
-  setPreview: (patch: Partial<PreviewPlayback>) => void
   toggleLocked: (id: string) => void
   toggleHidden: (id: string) => void
   /**
@@ -115,7 +87,6 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   selectedIds: [],
   activeScreenIndex: 0,
   view: DEFAULT_EDITOR_VIEW,
-  preview: DEFAULT_PREVIEW_PLAYBACK,
   locked: {},
   hidden: {},
   slotPage: {},
@@ -163,7 +134,6 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
         : { drillIn: slotId, selection: { type: 'widget', id: slotId }, selectedIds: [slotId] }
     ),
   setView: (patch) => set((current) => ({ view: { ...current.view, ...patch } })),
-  setPreview: (patch) => set((current) => ({ preview: { ...current.preview, ...patch } })),
   toggleLocked: (id) =>
     set((current) => ({ locked: { ...current.locked, [id]: !current.locked[id] } })),
   toggleHidden: (id) =>
@@ -203,6 +173,5 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
       slotPage: {},
       drillIn: undefined,
       view: DEFAULT_EDITOR_VIEW,
-      preview: DEFAULT_PREVIEW_PLAYBACK
     })
 }))

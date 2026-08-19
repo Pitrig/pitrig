@@ -1,8 +1,7 @@
 import { pagesOf, screenWidgetsOf, screensOf } from '@shared/configuration-access'
 import { type SlotWidgetConfiguration } from '@shared/configuration-schema'
 import { type DisplayDescriptor } from '@shared/device'
-import { LAP_SECONDS } from '@shared/mock-telemetry'
-import { type AlignmentEdge, MAXIMUM_SCREENS, MAXIMUM_SLOT_PAGES, MAXIMUM_ZOOM, MINIMUM_ZOOM, type PreviewValueMode, addScreen, addSlotPage, addTapZone, alignWidgets, deleteScreen, distributeWidgets, wrapInShape, useDashboardEditorStore } from '../dashboard-editor'
+import { type AlignmentEdge, MAXIMUM_SCREENS, MAXIMUM_SLOT_PAGES, MAXIMUM_ZOOM, MINIMUM_ZOOM, addScreen, addSlotPage, addTapZone, alignWidgets, deleteScreen, distributeWidgets, wrapInShape, useDashboardEditorStore } from '../dashboard-editor'
 import { clampPan, visibleSlotPage } from './canvas-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -224,68 +223,12 @@ export function ArrangeToolbar({ display }: { display: DisplayDescriptor }): Rea
         onChange={(event) => setView({ gridSize: Math.max(1, Math.round(Number(event.target.value) || 1)) })}
       />
       <span className="mx-1 h-4 w-px bg-border" />
-      <PreviewValuesControls />
-      <span className="mx-1 h-4 w-px bg-border" />
       <button type="button" title="Zoom out" className="h-7 rounded-md border px-2 hover:bg-muted" onClick={() => zoomTo(Math.max(MINIMUM_ZOOM, view.zoom / 2))}>−</button>
       <span className="w-10 text-center text-muted-foreground">{`${Math.round(view.zoom * 100)}%`}</span>
       <button type="button" title="Zoom in" className="h-7 rounded-md border px-2 hover:bg-muted" onClick={() => zoomTo(Math.min(MAXIMUM_ZOOM, view.zoom * 2))}>+</button>
       <button type="button" title="Fit the whole display" className="h-7 rounded-md border px-2 hover:bg-muted" onClick={() => setView({ zoom: 1, panX: 0, panY: 0 })}>Fit</button>
       {view.zoom > 1 ? <span className="text-muted-foreground">middle-drag to pan</span> : null}
     </div>
-  )
-}
-
-/**
- * The configurator never receives telemetry — the control protocol has no
- * command for it and SimHub owns the port while a session runs — so the canvas
- * plays a synthetic lap instead. `Unavailable` is a mode of its own because the
- * live mode resolves every source, which would otherwise leave no way to see
- * what a dashboard looks like when the game stops sending.
- */
-function PreviewValuesControls(): React.JSX.Element {
-  const preview = useDashboardEditorStore((state) => state.preview)
-  const setPreview = useDashboardEditorStore((state) => state.setPreview)
-  const live = preview.mode === 'values'
-  return (
-    <>
-      <select
-        aria-label="Preview values"
-        className="h-7 rounded-md border bg-transparent px-1"
-        value={preview.mode}
-        onChange={(event) => setPreview({ mode: event.target.value as PreviewValueMode })}
-      >
-        <option value="placeholders">Placeholders</option>
-        <option value="values">Live values</option>
-        <option value="unavailable">Unavailable</option>
-      </select>
-      {live ? (
-        <>
-          <button
-            type="button"
-            title={preview.playing ? 'Pause the lap' : 'Play the lap'}
-            className="h-7 rounded-md border px-2 hover:bg-muted"
-            onClick={() => setPreview({ playing: !preview.playing })}
-          >
-            {preview.playing ? '❙❙' : '▶'}
-          </button>
-          <input
-            aria-label="Lap position"
-            type="range"
-            min={0}
-            max={1}
-            step={0.001}
-            value={preview.phase}
-            className="w-24"
-            // Scrubbing is a way to stop on a state worth judging — the limiter,
-            // the braking zone — so it pauses rather than fighting the clock.
-            onChange={(event) => setPreview({ phase: Number(event.target.value), playing: false })}
-          />
-          <span className="w-10 text-right text-muted-foreground">
-            {`${(preview.phase * LAP_SECONDS).toFixed(0)}s`}
-          </span>
-        </>
-      ) : null}
-    </>
   )
 }
 

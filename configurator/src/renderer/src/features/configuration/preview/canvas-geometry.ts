@@ -101,10 +101,6 @@ export const NO_GUIDES: Guides = { x: [], y: [] }
 // How close an edge has to be before it snaps, in screen pixels.
 export const SNAP_TOLERANCE_PX = 6
 
-// Ten frames a second: enough for a colour ramp to read as continuous and for a
-// blink to be legible, without re-rendering the canvas at display rate.
-export const PREVIEW_TICK_MS = 100
-
 export interface SnapTargets {
   x: number[]
   y: number[]

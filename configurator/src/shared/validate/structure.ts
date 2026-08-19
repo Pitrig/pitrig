@@ -47,15 +47,6 @@ function boardDisplay(
   return board ? BOARD_PROFILES[board]?.display : undefined
 }
 
-export type ValidationResult =
-  | { ok: true; configuration: ApplicationConfiguration; payloadBytes: number }
-  | { ok: false; error: string }
-
-export interface ValidateOptions {
-  /** Board identifiers this build supports; a document targeting another is rejected. */
-  supportedBoards: readonly string[]
-}
-
 export function findScreenError(configuration: ApplicationConfiguration): string | undefined {
   const screens = configuration.dashboard?.screens
   if (screens === undefined) return undefined

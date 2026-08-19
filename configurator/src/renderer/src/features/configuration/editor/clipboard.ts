@@ -73,10 +73,3 @@ function isPasteableWidget(value: unknown): value is WidgetConfiguration {
     supportedBoards: Object.keys(BOARD_PROFILES)
   }).ok
 }
-
-/**
- * Every tap target in the document — widgets and groups alike. The device binds
- * one clickable object per action and the table is bounded, so the editor
- * refuses the one that would not fit rather than letting the board reject the
- * whole document.
- */

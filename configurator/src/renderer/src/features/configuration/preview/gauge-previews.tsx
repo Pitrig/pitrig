@@ -1,8 +1,7 @@
 import { useId } from 'react'
-import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_POINTS } from '@shared/configuration-schema'
+import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type IndicatorWidgetConfiguration } from '@shared/configuration-schema'
 import { rangeFraction } from '@shared/telemetry-value'
 import { completePlacement } from '../dashboard-editor'
-import { clamp } from '../editor/placement'
 import { markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR } from './preview-theme'
 import { type PreviewValues, normalizeColor } from './preview-values'
@@ -178,13 +177,6 @@ export function IndicatorPreview({
   const off = normalizeColor(configuration.off_color)
   const value = values.numberFor(configuration.source)
   const fraction = rangeFraction(value, configuration.minimum, configuration.maximum)
-  // The device blinks every lit lamp once the value passes the blink threshold,
-  // on the same clock the frame's own blink runs on.
-  const blinkMs = configuration.blink_ms ?? 0
-  const blinking =
-    value !== undefined && blinkMs > 0 && fraction >= (configuration.blink_threshold ?? 2)
-  const lampsVisible = !blinking || values.blinkPhase(blinkMs)
-
   const unlitPainted = off !== undefined && off !== 'transparent'
 
   return (
@@ -194,7 +186,7 @@ export function IndicatorPreview({
         const offset = index * (length + gap)
         // Thresholds do not decrease, so the lit lamps are a prefix and the
         // first one not reached ends the strip.
-        const lit = value !== undefined && fraction >= (segment.threshold ?? 0) && lampsVisible
+        const lit = value !== undefined && fraction >= (segment.threshold ?? 0)
         // Without an off colour the device leaves an unlit lamp fully
         // transparent, so a strip at rest is the screen behind it.
         if (!lit && !unlitPainted) return null
@@ -231,43 +223,24 @@ export function GraphPreview({
     borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
   })
   if (!style.visible) return null
-  const points = Math.min(configuration.point_count ?? 64, MAXIMUM_GRAPH_POINTS)
-  const trace = values.traceFor(configuration.source, points, configuration.sample_interval_ms ?? 100)
-  // The trace is drawn in the container's content area, and the device places
-  // each point on a whole pixel: the horizontal step truncates and the vertical
-  // one rounds into the plot.
+  // A graph draws the samples it has collected, and the configurator collects
+  // none: it receives no telemetry. So the preview answers the question it can
+  // — where the plot sits inside the frame, and how thick and what colour its
+  // line will be — with a baseline across the content area.
   const plot = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
-  const span = Math.max(points - 1, 1)
 
   return (
     <g>
       <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
-      {trace ? (
-        <polyline
-          points={trace
-            .map((sample, index) => {
-              const x = plot.x + Math.trunc((plot.width * index) / span)
-              const fraction = rangeFraction(sample, configuration.minimum, configuration.maximum)
-              const y = Math.round(plot.height * (1 - fraction))
-              return `${x},${plot.y + clamp(y, 0, plot.height)}`
-            })
-            .join(' ')}
-          fill="none"
-          stroke={style.color ?? '#38BDF8'}
-          strokeWidth={configuration.line_width_px ?? 2}
-          strokeLinejoin="round"
-        />
-      ) : (
-        <line
-          x1={plot.x}
-          y1={plot.y + plot.height / 2}
-          x2={plot.x + plot.width}
-          y2={plot.y + plot.height / 2}
-          stroke={style.color ?? '#38BDF8'}
-          strokeWidth={configuration.line_width_px ?? 2}
-          strokeOpacity={0.35}
-        />
-      )}
+      <line
+        x1={plot.x}
+        y1={plot.y + plot.height / 2}
+        x2={plot.x + plot.width}
+        y2={plot.y + plot.height / 2}
+        stroke={style.color ?? '#38BDF8'}
+        strokeWidth={configuration.line_width_px ?? 2}
+        strokeOpacity={0.35}
+      />
     </g>
   )
 }

@@ -24,12 +24,15 @@ import {
   missingFontFamilies
 } from '@/features/font-assets/font-requirements'
 import {
+  BOARD_PROFILES,
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
   SIMCORE_BOARD_IDS,
   type DeviceConfiguration,
   type DeviceResult,
   type SimCoreBoardId
 } from '@shared/device'
+import { transferConfiguration, type LayoutFit, type LayoutTransferResult } from '@shared/layout-transfer'
+import { transferReportLines } from '@/features/configuration/transfer-report'
 
 type Operation =
   | 'idle'
@@ -41,11 +44,24 @@ type Operation =
   | 'reboot'
 type Feedback = { kind: 'success' | 'error'; message: string }
 
-const BOARD_OPTIONS: Array<{ id: SimCoreBoardId; label: string }> = [
-  { id: 't_display_s3', label: 'T-Display S3 · 320 × 170' },
-  { id: 'guition_esp32_4848s040', label: 'Guition 4848S040 · 480 × 480' },
-  { id: 'guition_jc1060p470c', label: 'Guition JC1060P470C · 1024 × 600' }
-]
+// The contract identifies a board; only the marketing name is ours to keep.
+// The dimensions come from the board profile rather than being retyped here,
+// because a label that disagrees with the geometry a transfer scales to is a
+// label that will eventually mislead somebody.
+const BOARD_NAMES: Record<SimCoreBoardId, string> = {
+  t_display_s3: 'T-Display S3',
+  guition_esp32_4848s040: 'Guition 4848S040',
+  guition_jc1060p470c: 'Guition JC1060P470C'
+}
+
+function boardLabel(board: SimCoreBoardId): string {
+  const { width, height } = BOARD_PROFILES[board].display
+  return `${BOARD_NAMES[board]} · ${width} × ${height}`
+}
+
+const BOARD_OPTIONS: Array<{ id: SimCoreBoardId; label: string }> = SIMCORE_BOARD_IDS.map(
+  (id) => ({ id, label: boardLabel(id) })
+)
 
 export function ConfigurationPanel(): React.JSX.Element {
   const status = useDeviceStore((state) => state.status)
@@ -59,6 +75,7 @@ export function ConfigurationPanel(): React.JSX.Element {
   const rebootRequired = useDeviceStore((state) => state.rebootRequired)
   const setRawDraft = useDeviceStore((state) => state.setRawDraft)
   const replaceLocalDraft = useDeviceStore((state) => state.replaceLocalDraft)
+  const setDraft = useDeviceStore((state) => state.setDraft)
   const reloadDraft = useDeviceStore((state) => state.reloadDraft)
   const markSaved = useDeviceStore((state) => state.markConfigurationSaved)
   const markReset = useDeviceStore((state) => state.markConfigurationReset)
@@ -66,10 +83,12 @@ export function ConfigurationPanel(): React.JSX.Element {
   const [operation, setOperation] = useState<Operation>('idle')
   const [feedback, setFeedback] = useState<Feedback>()
   const [offlineBoard, setOfflineBoard] = useState<SimCoreBoardId | ''>('')
+  const [report, setReport] = useState<LayoutTransferResult>()
+  const [fit, setFit] = useState<LayoutFit>('contain')
   // A different document is a different set of widgets, so the selection, the
   // locked and hidden layers and the zoom all describe nothing any more.
   const resetEditorState = useDashboardEditorStore((state) => state.resetEditorState)
-  const selectedNewBoard = session?.info.boardId ?? offlineBoard
+  const targetBoard = session?.info.boardId ?? offlineBoard
 
   const draftJson = draftText({ rawDraft, draft })
   const parsed = useMemo(
@@ -101,7 +120,7 @@ export function ConfigurationPanel(): React.JSX.Element {
   const saveBlockedReason = !connected
     ? 'Connect a SimCore board before saving.'
     : boardMismatch
-      ? `Local configuration targets ${parsed.ok ? parsed.configuration.board : 'another board'}, but the connected board is ${session?.info.boardId}.`
+      ? `Local configuration targets ${parsed.ok ? parsed.configuration.board : 'another board'}, but the connected board is ${session?.info.boardId}. Convert the draft to move the layout across.`
       : !parsed.ok
         ? parsed.error
         : !session?.info.storageAvailable
@@ -117,6 +136,7 @@ export function ConfigurationPanel(): React.JSX.Element {
   ): Promise<void> => {
     setOperation(nextOperation)
     setFeedback(undefined)
+    setReport(undefined)
     try {
       const result = await action()
       writeDevelopmentLog(`Configuration ${nextOperation} completed`, result)
@@ -135,16 +155,17 @@ export function ConfigurationPanel(): React.JSX.Element {
   }
 
   const newConfiguration = (): void => {
-    if (!selectedNewBoard) {
+    if (!targetBoard) {
       setFeedback({ kind: 'error', message: 'Select a board before creating a configuration.' })
       return
     }
     if (hasLocalDraft && !window.confirm('Discard the current local draft and create a new configuration?')) {
       return
     }
-    replaceLocalDraft({ board: selectedNewBoard })
+    replaceLocalDraft({ board: targetBoard })
     resetEditorState()
-    setFeedback({ kind: 'success', message: `New ${selectedNewBoard} configuration created locally.` })
+    setReport(undefined)
+    setFeedback({ kind: 'success', message: `New ${targetBoard} configuration created locally.` })
   }
 
   const loadFile = async (): Promise<void> => {
@@ -153,6 +174,7 @@ export function ConfigurationPanel(): React.JSX.Element {
     }
     setOperation('load_file')
     setFeedback(undefined)
+    setReport(undefined)
     try {
       const result = await window.simcore.loadConfigurationFile()
       writeDevelopmentLog('Configuration file load completed', result)
@@ -177,6 +199,7 @@ export function ConfigurationPanel(): React.JSX.Element {
     }
     setOperation('save_file')
     setFeedback(undefined)
+    setReport(undefined)
     try {
       const result = await window.simcore.saveConfigurationFile({ json: draftJson })
       writeDevelopmentLog('Configuration file save completed', result)
@@ -304,6 +327,46 @@ export function ConfigurationPanel(): React.JSX.Element {
     })
   }
 
+  // Offered only when the draft and the chosen board disagree — which, while a
+  // board is connected, is exactly the mismatch that blocks saving.
+  const convertTarget =
+    parsed.ok && targetBoard && parsed.configuration.board !== targetBoard ? targetBoard : undefined
+
+  const convert = (target: SimCoreBoardId): void => {
+    if (!parsed.ok) return
+    const from = BOARD_PROFILES[parsed.configuration.board].display
+    const to = session?.info.display ?? BOARD_PROFILES[target].display
+    if (!window.confirm(`Convert the draft from ${from.width} × ${from.height} to ${to.width} × ${to.height}? ${fitOutcome(from, to, fit)}`)) {
+      return
+    }
+    const transferred = transferConfiguration(parsed.configuration, {
+      board: target,
+      // The connected board answers for its own display; the profile is what
+      // the editor falls back to when nothing is plugged in.
+      display: session?.info.display,
+      fit
+    })
+    setReport(transferred)
+    const validated = validateConfigurationDocument(transferred.configuration, {
+      supportedBoards: SIMCORE_BOARD_IDS
+    })
+    if (!validated.ok) {
+      setFeedback({
+        kind: 'error',
+        message: `The converted layout would not be accepted, so the draft was left alone. ${validated.error}`
+      })
+      return
+    }
+    // setDraft rather than replaceLocalDraft, which is what every other
+    // document-replacing handler here uses: this records history, so the
+    // conversion is undoable, and a transfer preserves every widget and screen
+    // id — so the selection, the locked and hidden layers and the open slot
+    // page all still address real widgets. Resetting the editor would throw
+    // away state that is still correct.
+    setDraft(validated.configuration)
+    setFeedback({ kind: 'success', message: `Converted to ${boardLabel(target)}.` })
+  }
+
   const reboot = async (): Promise<void> => {
     if (!window.confirm('Reboot the connected SimCore board now?')) return
     await run('reboot', () => window.simcore.rebootDevice(), () => 'Board is rebooting.')
@@ -324,16 +387,16 @@ export function ConfigurationPanel(): React.JSX.Element {
             </Badge>
           ) : null}
         </div>
-        <CardDescription>Visual edits and advanced JSON share the same schema 3 draft.</CardDescription>
+        <CardDescription>Visual edits and advanced JSON share the same draft.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="space-y-2 rounded-md border p-2">
           <label className="block space-y-1 text-[11px] text-muted-foreground">
-            <span>New configuration board</span>
+            <span>Board</span>
             <select
               className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
               disabled={busy || connected}
-              value={selectedNewBoard}
+              value={targetBoard}
               onChange={(event) => setOfflineBoard(event.target.value as SimCoreBoardId | '')}
             >
               <option value="">Select board</option>
@@ -345,7 +408,7 @@ export function ConfigurationPanel(): React.JSX.Element {
           <div className="grid grid-cols-3 gap-2">
             <Button
               variant="outline"
-              disabled={busy || !selectedNewBoard}
+              disabled={busy || !targetBoard}
               onClick={newConfiguration}
             >
               New
@@ -364,6 +427,39 @@ export function ConfigurationPanel(): React.JSX.Element {
           <p className="truncate text-[11px] text-muted-foreground">
             {draftFileName ?? (hasLocalDraft ? 'Unsaved local draft' : 'No local configuration')}
           </p>
+          {convertTarget ? (
+            <div className="space-y-2 rounded-md border border-dashed p-2">
+              <label className="block space-y-1 text-[11px] text-muted-foreground">
+                <span>Fit to the new display</span>
+                <select
+                  className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
+                  disabled={busy}
+                  value={fit}
+                  onChange={(event) => setFit(event.target.value as LayoutFit)}
+                >
+                  <option value="contain">Keep proportions, centre</option>
+                  <option value="stretch">Stretch to fill the display</option>
+                </select>
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                {parsed.ok
+                  ? fitOutcome(
+                      BOARD_PROFILES[parsed.configuration.board].display,
+                      session?.info.display ?? BOARD_PROFILES[convertTarget].display,
+                      fit
+                    )
+                  : null}
+              </p>
+              <Button
+                className="w-full"
+                variant="outline"
+                disabled={busy}
+                onClick={() => convert(convertTarget)}
+              >
+                {`Convert draft to ${BOARD_NAMES[convertTarget]}…`}
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         <details className="rounded-md border">
@@ -420,6 +516,26 @@ export function ConfigurationPanel(): React.JSX.Element {
           </p>
         ) : null}
 
+        {report ? (
+          <div className="space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-medium">Layout transfer</span>
+              <button
+                className="text-sky-300/70 hover:text-sky-200"
+                type="button"
+                onClick={() => setReport(undefined)}
+              >
+                Dismiss
+              </button>
+            </div>
+            <ul className="list-disc space-y-0.5 pl-4">
+              {transferReportLines(report).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" disabled={!connected || busy} onClick={() => void read()}>
             {operation === 'read' ? 'Reading…' : 'Reload board'}
@@ -450,6 +566,28 @@ export function ConfigurationPanel(): React.JSX.Element {
       </CardContent>
     </Card>
   )
+}
+
+/**
+ * What the chosen fit will actually do to this pair of displays, in numbers.
+ * "Keep proportions" says nothing about how much of a 480 x 480 board a
+ * 1024 x 600 layout will leave empty; the resulting size does.
+ */
+function fitOutcome(
+  from: { width: number; height: number },
+  to: { width: number; height: number },
+  fit: LayoutFit
+): string {
+  if (from.width === to.width && from.height === to.height) {
+    return 'The display is the same size, so nothing moves.'
+  }
+  if (fit === 'stretch') {
+    return `Each axis is scaled on its own, so the layout fills all ${to.width} × ${to.height}. Round shapes become oval.`
+  }
+  const scale = Math.min(to.width / from.width, to.height / from.height)
+  const width = Math.round(from.width * scale)
+  const height = Math.round(from.height * scale)
+  return `One factor for both axes, centred: the layout becomes ${width} × ${height} on a ${to.width} × ${to.height} display.`
 }
 
 function parseDraft(

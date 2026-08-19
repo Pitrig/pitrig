@@ -267,9 +267,10 @@ reboot.
 
 Standard electron-vite three-way split: `main/` (Node — serial via `serialport`, device service,
 protocol, font, image and firmware upload over one shared `assets/` engine, config files,
-SimHub profile export), `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
-`configuration`, `device`, `firmware-update`, `font-assets`, `image-assets`, `simhub`,
-`development`). `shared/` holds types crossing the boundary; all IPC channels and the `SimCoreApi`
+the dashboard `templates/` library, SimHub profile export), `preload/`, `renderer/src/` (React +
+Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `firmware-update`,
+`font-assets`, `image-assets`, `simhub`, `templates`, `development`). `shared/` holds types
+crossing the boundary; all IPC channels and the `SimCoreApi`
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 
@@ -277,6 +278,14 @@ The editor mutates one sparse draft document; canvas drag/resize, the inspector,
 JSON editor all write the same document — there is no separate editor-only layout model. The draft
 owns its board identity, so it works fully disconnected; device connection and draft have independent
 lifetimes ("Reload board" is the explicit discard).
+
+A dashboard moves to another board through `shared/layout-transfer.ts`: every pixel-valued property
+scaled, either `contain` (one factor, centred, keeps proportions) or `stretch` (a factor per axis,
+fills the display) as the author picks, plus a report of what did not carry (image bitmaps above
+all, which the device never rescales). Both entry points use it — "Convert draft to <board>" and applying a
+template authored elsewhere. A template is a whole document inside an envelope, because the
+configuration itself may hold no property the contract does not declare. See
+[docs/adr/0023-dashboard-templates-and-layout-transfer.md](docs/adr/0023-dashboard-templates-and-layout-transfer.md).
 
 Inside `features/configuration/`, the editor is split three ways and each part has its own
 directory. `preview/` draws the canvas: `PreviewCanvas` and its chrome, the pure geometry in
@@ -301,4 +310,6 @@ canvas shell, the inspector shell and the keyboard commands live in `preview/`, 
   heap churn in periodic paths, and blocking work outside dedicated FreeRTOS tasks.
 - No central application scheduler: FreeRTOS tasks for blocking work, LVGL timers for rendering,
   event bus callbacks for short module updates.
-- `config/*.json` are example sparse configurations, not inheritance profiles.
+- The example sparse configurations live in `configurator/src/main/templates/bundled/`,
+  wrapped in the template envelope and inlined into the main bundle. They are starting
+  points offered by the template library, not inheritance profiles.

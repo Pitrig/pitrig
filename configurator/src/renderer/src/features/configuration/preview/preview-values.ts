@@ -1,85 +1,48 @@
-import { dashboardBindings } from '@shared/configuration-access'
 import { type FontSpec, type TextAlignment } from '@shared/configuration-schema'
-import { type DeviceConfiguration } from '@shared/device'
-import { LAP_SECONDS, mockTelemetry, mockValue } from '@shared/mock-telemetry'
-import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { type TelemetryValue, UNAVAILABLE, conditionValue } from '@shared/telemetry-value'
 import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, resolveWidgetStyle } from '@shared/widget-style'
-import { type PreviewPlayback } from '../dashboard-editor'
 import { previewFontFamily } from './preview-assets'
 import { type GlyphMetrics, measureGlyphs } from './text-metrics'
 
 /**
- * What the previews ask about a value. Wrapping the map keeps every renderer
- * from repeating the "read the binding, take its numeric view, resolve the
- * frame" chain, and keeps the placeholders mode from needing a second code
- * path — it simply answers "unavailable" to everything.
+ * What the previews ask about a value.
+ *
+ * The configurator never receives telemetry: the control protocol has no
+ * command for reading it, and while a session is running the port belongs to
+ * SimHub. So every reading is unavailable, and the canvas draws what the device
+ * draws when nothing is arriving — each source's own placeholder, or the
+ * widget's `unavailable_text` when it has one. That is a real state of the
+ * dashboard rather than a stand-in for one, which is why it is the only state
+ * previewed: a synthetic lap invented here would be judged as if it were the
+ * game's, and its shape is the one thing the configurator cannot know.
+ *
+ * Wrapping it still earns its place: it keeps every renderer from repeating the
+ * "read the binding, take its numeric view, resolve the frame" chain, and it is
+ * the seam a real telemetry source would arrive through.
  */
 export interface PreviewValues {
   read: (binding: string | undefined) => TelemetryValue
   /** Numeric view of what a widget's own source reads, for a fill or a sweep. */
   numberFor: (source: { binding?: string } | undefined) => number | undefined
-  /** Authored style with the ramp and the rules applied, plus blink visibility. */
+  /** Authored style with the ramp and the rules applied. */
   styleFor: (frame: StyledFrame, authored: AuthoredStyle) => ResolvedStyle & { visible: boolean }
-  /** Whether a lamp is lit on this frame, for a widget that blinks by itself. */
-  blinkPhase: (blinkMs: number) => boolean
-  /**
-   * The samples a graph would be holding right now. The mock is a pure function
-   * of the lap phase, so the trace is the real thing rather than a sketch: it is
-   * the same signal evaluated at the phases that came before this one.
-   */
-  traceFor: (
-    source: { binding?: string } | undefined,
-    points: number,
-    sampleIntervalMs: number
-  ) => number[] | undefined
-  /** Whether any value is being played at all. */
-  live: boolean
 }
 
-/**
- * The mock reading for every binding the dashboard uses.
- *
- * Split out from the values object because the two have different reasons to
- * change: this walks the whole document and depends only on the document and
- * the playback position, while the object around it closes over the animation
- * clock and is rebuilt on every tick. Together they re-walked the document
- * several times a second to produce the same map.
- */
-export function previewTelemetry(
-  configuration: DeviceConfiguration,
-  playback: PreviewPlayback
-): Map<string, TelemetryValue> {
-  return playback.mode === 'values'
-    ? mockTelemetry(dashboardBindings(configuration), playback.phase)
-    : new Map<string, TelemetryValue>()
-}
-
-export function createPreviewValues(
-  values: ReadonlyMap<string, TelemetryValue>,
-  playback: PreviewPlayback,
-  clockMs: number
-): PreviewValues {
-  const read = (binding: string | undefined): TelemetryValue =>
-    (binding ? values.get(binding) : undefined) ?? UNAVAILABLE
+export function createPreviewValues(): PreviewValues {
+  const read = (): TelemetryValue => UNAVAILABLE
   return {
     read,
-    numberFor: (source) => conditionValue(read(source?.binding)),
+    numberFor: () => conditionValue(read()),
     styleFor: (frame, authored) => {
-      const style = resolveWidgetStyle(frame, authored, conditionValue(read(frame.condition_source?.binding)))
-      return { ...style, visible: blinkVisible(style, clockMs) }
-    },
-    blinkPhase: (blinkMs) => blinkMs <= 0 || clockMs % blinkMs < blinkMs / 2,
-    traceFor: (source, points, sampleIntervalMs) => {
-      if (playback.mode !== 'values' || !source?.binding || points < 2) return undefined
-      const entry = TELEMETRY_CATALOG.find(({ name }) => name === source.binding)
-      if (!entry) return undefined
-      const step = sampleIntervalMs / (LAP_SECONDS * 1000)
-      return Array.from({ length: points }, (_, index) =>
-        conditionValue(mockValue(entry, playback.phase - (points - 1 - index) * step)) ?? 0
-      )
-    },
-    live: playback.mode === 'values'
+      // No reading means no rule matches, so this is the authored appearance —
+      // resolved through the same function the device uses rather than read off
+      // the widget, so a ramp or a rule that needs no value still applies.
+      const style = resolveWidgetStyle(frame, authored, conditionValue(read()))
+      // There is no clock to blink against, so a widget that would blink is
+      // drawn in its lit half. This still goes through blinkVisible rather than
+      // answering true, because that is also where hiding is decided.
+      return { ...style, visible: blinkVisible(style, 0) }
+    }
   }
 }
 

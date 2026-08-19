@@ -603,14 +603,12 @@ explicit configuration in the inspector; a new image widget is the one exception
 and starts on the first installed image, because an image widget without one has
 nothing to draw.
 
-The preview can draw a synthetic lap in place of telemetry, which is what makes
-conditional styling and colour ramps visible while authoring: the values are
-generated in the configurator, coherently — the gear follows the speed, the
-engine speed follows the gear — and the lap can be paused and scrubbed to stop
-on a state worth judging. A third mode renders every source as unavailable, so
-`unavailable_text` and a hiding rule can be checked too. None of the three
-modes touches the document; the configurator never receives telemetry, because
-the control protocol carries none and SimHub owns the port while a session runs.
+The preview draws no telemetry values. The configurator never receives any —
+the control protocol carries no command for reading them and SimHub owns the
+port while a session runs — so every source reads unavailable and the canvas
+shows what the board shows in that state: each source's own placeholder, or the
+widget's `unavailable_text` where it has one. Nothing about this touches the
+document.
 
 Widgets are selected one at a time, by shift-clicking to add to the selection,
 or by dragging a rubber band across the canvas. A selection of two or more can

@@ -16,6 +16,7 @@ import { FirmwareUpdateService } from './firmware-update/firmware-update-service
 import { FontAssetService } from './font-assets/font-asset-service'
 import { ImageAssetService } from './image-assets/image-asset-service'
 import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
+import { TemplateService } from './templates/template-service'
 
 const isDevelopment = import.meta.env.DEV
 const deviceService = new DeviceService(
@@ -42,6 +43,8 @@ const firmwareUpdateService = new FirmwareUpdateService(
 )
 const simHubProfileService = new SimHubProfileService()
 const configurationFileService = new ConfigurationFileService()
+// The author's own saved dashboards, beside the app's other user data.
+const templateService = new TemplateService(join(app.getPath('userData'), 'templates'))
 let quitAfterDeviceCleanup = false
 
 function createWindow(): void {
@@ -78,7 +81,8 @@ app.whenReady().then(() => {
     firmwareUpdateService,
     simHubProfileService,
     configurationFileService,
-    previewAssetCache
+    previewAssetCache,
+    templateService
   )
   createWindow()
 

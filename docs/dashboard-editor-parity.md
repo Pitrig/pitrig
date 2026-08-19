@@ -146,14 +146,23 @@ Editor state (locks, hiding, grid, zoom) deliberately stays out of the document:
 the validator rejects unknown properties, and a hidden layer is not a hidden
 widget.
 
-### 7. Preview with live values
+### 7. Preview values
 
-A playback mode exists: the canvas runs a synthetic lap in which the fields are
-coherent with each other (speed follows gear, engine speed follows gear), with
-pause and scrubbing, plus a separate "no data" mode for checking
-`unavailable_text`. Value formatting mirrors the firmware, including half-away-
-from-zero rounding, so the preview shows the same strings the board does.
-Conditional rules and the colour ramp are evaluated there as well.
+The canvas shows no values, because the configurator has none: every source
+reads unavailable, so each one draws its own placeholder and a widget with an
+`unavailable_text` draws that instead. That is a state the dashboard really has
+rather than a stand-in for one, and it is the state `unavailable_text` and a
+hiding rule exist for. Value formatting mirrors the firmware, including
+half-away-from-zero rounding, so the placeholder and the affixes around it are
+the strings the board draws.
+
+What this costs is that conditional rules and the colour ramp cannot be seen
+reacting: no reading means no rule matches, so the canvas shows the authored
+appearance. A graph shows the frame and a baseline rather than a trace, and an
+indicator shows its unlit lamps. The configurator previously invented a
+synthetic lap to fill the gap; a value the game never sent is judged as though
+it had, and the shape of the real signal is the one thing the configurator
+cannot know.
 
 Geometry mirrors it too. Every widget type draws into the container's **content
 area** — the placement less the border and the padding — the way LVGL positions
@@ -185,9 +194,38 @@ SimHub.
 
 ### 8. Templates and portability
 
-There is no dashboard template library and no way to move a dashboard between
-boards. Geometry is absolute pixels, so a 320×170 layout has to be redone by
-hand for 1024×600.
+A dashboard moves between boards in one action, and a new one starts from a
+library rather than from an empty screen. The library holds the starters that
+ship with the application beside whatever the author has saved, one file each
+under the user data directory; a template is a whole configuration document
+inside an envelope that carries its name, because the document itself may hold
+nothing the contract does not declare.
+
+Moving a layout scales every pixel-valued property, and the author chooses how
+it lands. **Keep proportions** applies the smaller of the two display ratios to
+both axes and centres the result, so nothing distorts and a display of a
+different shape keeps a margin. **Stretch to fill** gives each axis its own
+ratio, so the layout uses the whole display and round shapes become oval. A font
+size, a corner radius and a ring thickness follow the smaller ratio under both,
+because a glyph has one size. Neither reflows: no widget moves relative to its
+neighbours.
+
+The choice matters more than it sounds. A 1024×600 race layout contained onto a
+480×480 board covers 56% of it and stretched covers 96%. Contain is the default,
+because it is the one that cannot distort.
+
+One engine serves both entry points — "Convert draft to <board>" and applying a
+template authored for another board. What did not carry cleanly is reported
+rather than left to be discovered, and the result is checked against the
+destination before it replaces anything ([ADR 0023](adr/0023-dashboard-templates-and-layout-transfer.md)).
+
+What a transfer still cannot do: reflow. Neither fit rearranges anything, so a
+layout that wants a different arrangement on a differently shaped display is
+hand work. Image assets do not follow either — the board draws a bitmap at the size it was uploaded at
+([ADR 0018](adr/0018-uploaded-image-assets.md)) — so the report names each one
+and the size it now needs. A template is a whole dashboard: there is no way to
+save or insert a single screen, and no way to share one as a file without going
+through the user data folder.
 
 ### 9. Style details
 
@@ -229,6 +267,7 @@ raising a particular cap is a decision about the RAM budget.
    groups and slots in schema 6, tap-driven navigation in schema 7, and
    containers replacing groups in schema 9
    (ADRs 0019, 0020, 0021).
-7. **Cross-board layout transfer and a template library** — the largest
-   remaining difference for a user, and the one item on this list that needs no
-   firmware.
+7. ~~**Cross-board layout transfer and a template library**~~ Done: the bundled
+   and saved template library, and the contain-or-stretch scale that both
+   applying a template and converting a draft share
+   ([ADR 0023](adr/0023-dashboard-templates-and-layout-transfer.md)).

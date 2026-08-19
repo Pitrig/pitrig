@@ -13,11 +13,14 @@
     },
     "tsBuildInfoFile": "./out/.tsbuildinfo/node",
     "noEmit": true,
+    // The bundled dashboard templates are imported as JSON and inlined by Vite.
+    "resolveJsonModule": true,
     "types": ["electron-vite/node", "node"]
   },
   "include": [
     "electron.vite.config.ts",
     "src/main/**/*.ts",
+    "src/main/**/*.json",
     "src/preload/**/*.ts",
     "src/shared/**/*.ts"
   ]

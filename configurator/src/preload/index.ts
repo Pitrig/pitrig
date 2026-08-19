@@ -52,12 +52,22 @@ import {
 } from '../shared/ipc'
 import { PREVIEW_ASSETS_READ_CHANNEL } from '../shared/preview-assets'
 import { SIMHUB_PROFILE_EXPORT_CHANNEL } from '../shared/simhub-profile'
+import {
+  TEMPLATE_DELETE_CHANNEL,
+  TEMPLATE_LIST_CHANNEL,
+  TEMPLATE_READ_CHANNEL,
+  TEMPLATE_SAVE_CHANNEL
+} from '../shared/templates'
 
 const api: SimCoreApi = {
   getAppInfo: () => ipcRenderer.invoke(APP_GET_INFO_CHANNEL),
   loadConfigurationFile: () => ipcRenderer.invoke(CONFIGURATION_FILE_LOAD_CHANNEL),
   saveConfigurationFile: (request) =>
     ipcRenderer.invoke(CONFIGURATION_FILE_SAVE_CHANNEL, request),
+  listDashboardTemplates: () => ipcRenderer.invoke(TEMPLATE_LIST_CHANNEL),
+  readDashboardTemplate: (request) => ipcRenderer.invoke(TEMPLATE_READ_CHANNEL, request),
+  saveDashboardTemplate: (request) => ipcRenderer.invoke(TEMPLATE_SAVE_CHANNEL, request),
+  deleteDashboardTemplate: (request) => ipcRenderer.invoke(TEMPLATE_DELETE_CHANNEL, request),
   listSerialPorts: () => ipcRenderer.invoke(DEVICE_LIST_PORTS_CHANNEL),
   getDeviceState: () => ipcRenderer.invoke(DEVICE_GET_STATE_CHANNEL),
   connectDevice: (request) => ipcRenderer.invoke(DEVICE_CONNECT_CHANNEL, request),

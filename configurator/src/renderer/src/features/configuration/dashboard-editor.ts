@@ -18,7 +18,7 @@ export {
 // One line per module, names spelled out. `export *` hid four constants that
 // no longer had a reader outside their own file; an explicit list makes the
 // next one visible instead of carrying it forever.
-export type { PreviewPlayback, PreviewValueMode, WidgetSelection } from './editor/store'
+export type { WidgetSelection } from './editor/store'
 export { MAXIMUM_ZOOM, MINIMUM_ZOOM, useDashboardEditorStore } from './editor/store'
 export type { WidgetLocation } from './editor/document'
 export { absolutePlacement, absolutePlacements, activeScreen, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, mutateSelectedWidget, parentContainerId, parentOf, parentOffset, selectedWidget, widgetArrayOf, writePlacement } from './editor/document'

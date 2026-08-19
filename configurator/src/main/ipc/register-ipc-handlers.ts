@@ -8,7 +8,9 @@ import {
   isFontUploadRequest,
   isImageUploadRequest,
   isJsonDocumentRequest,
-  isSimHubProfileExportRequest
+  isSimHubProfileExportRequest,
+  isTemplateIdRequest,
+  isTemplateSaveRequest
 } from './request-guards'
 
 import {
@@ -72,6 +74,14 @@ import {
   IMAGE_UPLOAD_PROGRESS_CHANNEL
 } from '../../shared/image-assets'
 import { PREVIEW_ASSETS_READ_CHANNEL } from '../../shared/preview-assets'
+import {
+  TEMPLATE_DELETE_CHANNEL,
+  TEMPLATE_LIST_CHANNEL,
+  TEMPLATE_READ_CHANNEL,
+  TEMPLATE_SAVE_CHANNEL,
+  type TemplateResult
+} from '../../shared/templates'
+import { TemplateService } from '../templates/template-service'
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 
@@ -82,7 +92,8 @@ export function registerIpcHandlers(
   firmwareUpdateService: FirmwareUpdateService,
   simHubProfileService: SimHubProfileService,
   configurationFileService: ConfigurationFileService,
-  previewAssetCache: PreviewAssetCache
+  previewAssetCache: PreviewAssetCache,
+  templateService: TemplateService
 ): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
@@ -106,6 +117,19 @@ export function registerIpcHandlers(
       request.json,
       BrowserWindow.fromWebContents(event.sender) ?? undefined
     )
+  })
+  ipcMain.handle(TEMPLATE_LIST_CHANNEL, () => templateService.list())
+  ipcMain.handle(TEMPLATE_READ_CHANNEL, (_event, request: unknown) => {
+    if (!isTemplateIdRequest(request)) return invalidTemplateRequest()
+    return templateService.read(request.id)
+  })
+  ipcMain.handle(TEMPLATE_SAVE_CHANNEL, (_event, request: unknown) => {
+    if (!isTemplateSaveRequest(request)) return invalidTemplateRequest()
+    return templateService.save(request)
+  })
+  ipcMain.handle(TEMPLATE_DELETE_CHANNEL, (_event, request: unknown) => {
+    if (!isTemplateIdRequest(request)) return invalidTemplateRequest()
+    return templateService.remove(request.id)
   })
   ipcMain.handle(DEVICE_LIST_PORTS_CHANNEL, () => deviceService.listPorts())
   ipcMain.handle(DEVICE_GET_STATE_CHANNEL, () => deviceService.getState())
@@ -205,6 +229,10 @@ export function registerIpcHandlers(
     }
     return deviceService.connect(request.portId, request.baudRate)
   })
+}
+
+function invalidTemplateRequest(): TemplateResult<never> {
+  return { ok: false, error: { code: 'invalid_template', message: 'Invalid template request.' } }
 }
 
 export function broadcastImageUploadProgress(progress: AssetUploadProgress): void {

@@ -35,6 +35,14 @@ import type {
   SimHubProfileExportValue,
   SimHubProfileResult
 } from './simhub-profile'
+import type {
+  DashboardTemplateDocument,
+  DashboardTemplateLibrary,
+  DashboardTemplateSummary,
+  TemplateIdRequest,
+  TemplateResult,
+  TemplateSaveRequest
+} from './templates'
 
 export const APP_GET_INFO_CHANNEL = 'app:get-info' as const
 
@@ -50,6 +58,14 @@ export interface SimCoreApi {
   saveConfigurationFile: (
     request: ConfigurationFileSaveRequest
   ) => Promise<ConfigurationFileResult<ConfigurationFileSaveValue>>
+  listDashboardTemplates: () => Promise<TemplateResult<DashboardTemplateLibrary>>
+  readDashboardTemplate: (
+    request: TemplateIdRequest
+  ) => Promise<TemplateResult<DashboardTemplateDocument>>
+  saveDashboardTemplate: (
+    request: TemplateSaveRequest
+  ) => Promise<TemplateResult<DashboardTemplateSummary>>
+  deleteDashboardTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<void>>
   listSerialPorts: () => Promise<DeviceResult<SerialPortSummary[]>>
   getDeviceState: () => Promise<DeviceState>
   connectDevice: (
