@@ -5,6 +5,11 @@
   "description": "One of every widget type on a 480 x 480 square display.",
   "configuration": {
     "board": "guition_esp32_4848s040",
+    "telemetry_transport": {
+      "uart": {
+        "baud_rate": 460800
+      }
+    },
     "dashboard": {
       "screens": [
         {

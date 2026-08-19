@@ -47,8 +47,14 @@ const BoardDefinition& factory_board() {
       .input = &input::drivers::guition_esp32_4848s040::get(),
       .default_telemetry_transport =
           configuration::TelemetryTransportId::uart,
+      // Telemetry on this board runs over the same CH340 bridge it is flashed
+      // over, and that bridge does not hold the contract default of 921600. An
+      // omitted property expands identically on every board, so the rate has
+      // to be named here too: a board with no saved configuration would
+      // otherwise answer at a speed the host cannot open.
       .factory_configuration_json =
-          R"({"board":"guition_esp32_4848s040"})",
+          R"({"board":"guition_esp32_4848s040",)"
+          R"("telemetry_transport":{"uart":{"baud_rate":460800}}})",
   };
 #else
   static const BoardDefinition board{

@@ -15,7 +15,9 @@ The desktop configurator's **SimHub profile** panel provides two export modes:
 
 The export uses the current configuration draft. Its explicit
 `telemetry_transport.uart.baud_rate` is used when present; otherwise the baud
-rate is 921600. A dashboard-only export is blocked when the draft contains an
+rate is 921600. A Guition ESP32-4848S040 draft carries `460800` explicitly, so
+its export already matches the board and the checked-in complete profile does
+not. A dashboard-only export is blocked when the draft contains an
 unknown telemetry binding or requires no telemetry.
 
 As an alternative, download the checked-in complete
@@ -28,7 +30,8 @@ settings** action, then select the SimCore serial port.
 
 Devices that already have a saved UART configuration may retain the previous
 115200 baud value. Set `telemetry_transport.uart.baud_rate` to `921600` in the
-device configuration before connecting the generated profile.
+device configuration before connecting the generated profile — or to `460800`
+on a Guition ESP32-4848S040, whose bridge does not hold `921600`.
 
 Update frequencies follow the catalog metadata:
 

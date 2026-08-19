@@ -27,7 +27,16 @@ const CONFIGURATION_RESPONSE_PREFIX = '@SC:OK:CONFIG:'
 // over the old 8 KiB failed the probe as "not a SimCore device".
 const MAXIMUM_RESPONSE_BUFFER_SIZE =
   CONFIGURATION_RESPONSE_PREFIX.length + MAXIMUM_CONFIGURATION_PAYLOAD_SIZE + '\r\n'.length
-const INFO_REQUEST = '@SC:INFO\n'
+// The probe is the first thing written to a freshly opened port, and it opens
+// with a newline of its own. A scan walks the baud rates in turn, and a request
+// written at the wrong rate still reaches the device — as bytes that decode
+// into garbage carrying no line ending. The next request, correct rate and all,
+// is appended to that remnant and read as one unknown line, so the attempt that
+// should have succeeded is the one that is lost. The leading newline closes the
+// ruined line, which the device discards unrecognised, and leaves the request on
+// a line of its own. Only a board reached over a USB-serial bridge ever shows
+// this: a native USB link has no wrong rate to be probed at.
+const INFO_REQUEST = '\n@SC:INFO\n'
 const GET_REQUEST = '@SC:GET\n'
 const IMAGE_INFO_REQUEST = '@SC:IMAGE:INFO\n'
 const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'

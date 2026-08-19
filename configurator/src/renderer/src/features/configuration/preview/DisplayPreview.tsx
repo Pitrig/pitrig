@@ -85,13 +85,9 @@ export function DisplayPreview(): React.JSX.Element {
   const displayRatio = display
     ? display.width / display.height
     : 16 / 9
-  const surfaceMaximumWidth = `max(8rem, calc((100vh - 13rem) * ${displayRatio}))`
 
   return (
-    <Card
-      className="flex max-h-full w-full flex-col bg-background/70"
-      style={{ maxWidth: `calc(${surfaceMaximumWidth} + 2rem)` }}
-    >
+    <Card className="flex h-full w-full flex-col bg-background/70">
       <CardHeader className="flex-none py-3">
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Display preview</CardTitle>
@@ -138,11 +134,24 @@ export function DisplayPreview(): React.JSX.Element {
             : 'Create, load, or connect a configuration to start editing.'}
         </CardDescription>
       </CardHeader>
-      <CardContent className="min-h-0 flex-1 px-4 pb-4">
+      {/* A size container, so the surface can be measured against the space it
+          actually has rather than against a guess. The header above it grows
+          and shrinks as the toolbar wraps, and the old bound subtracted a fixed
+          13rem from the *viewport* height — which ignored both the wrapping and
+          the fact that the card is one cell of a grid, so a square board
+          overflowed the card and had its lower widgets cut off. Size
+          containment also decouples this box from its content, which is what
+          keeps the measurement from chasing itself. */}
+      <CardContent
+        className="flex min-h-0 flex-1 items-center justify-center px-4 pb-4"
+        style={{ containerType: 'size' }}
+      >
         <div
-          className="relative mx-auto w-full max-w-full overflow-hidden rounded-md border bg-black shadow-2xl"
+          className="relative overflow-hidden rounded-md border bg-black shadow-2xl"
           style={{
-            maxWidth: surfaceMaximumWidth,
+            // The smaller of the two fits: as wide as the box, or as wide as
+            // its height allows at this board's proportions.
+            width: `min(100cqw, calc(100cqh * ${displayRatio}))`,
             aspectRatio: display
               ? `${display.width} / ${display.height}`
               : '16 / 9'

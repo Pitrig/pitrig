@@ -12,7 +12,12 @@ import {
 } from '@/features/font-library/font-requirements'
 import { withWidgetIds } from '@shared/configuration-access'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
-import { BOARD_PROFILES, SIMCORE_BOARD_IDS, type DeviceConfiguration } from '@shared/device'
+import {
+  applyBoardTransportDefaults,
+  BOARD_PROFILES,
+  SIMCORE_BOARD_IDS,
+  type DeviceConfiguration
+} from '@shared/device'
 import { transferConfiguration, type LayoutFit, type LayoutTransferResult } from '@shared/layout-transfer'
 import {
   MAXIMUM_TEMPLATE_DESCRIPTION,
@@ -90,7 +95,11 @@ export function TemplatesPanel(): React.JSX.Element {
         fit
       })
       setReport(transferred)
-      const adopted = withWidgetIds(keepDraftTransport(transferred.configuration, draft))
+      // Draft transport first, then the template's, then whatever the target
+      // board cannot leave to the contract default.
+      const adopted = applyBoardTransportDefaults(
+        withWidgetIds(keepDraftTransport(transferred.configuration, draft))
+      )
       const validated = validateConfigurationDocument(adopted, {
         supportedBoards: SIMCORE_BOARD_IDS
       })

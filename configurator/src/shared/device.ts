@@ -99,6 +99,13 @@ export interface DisplayDescriptor {
 
 export interface BoardProfile {
   display: DisplayDescriptor
+  /**
+   * Written into a document for this board instead of being left to the
+   * contract default of 921600. A sparse document is never expanded through a
+   * board profile, so a rate a board cannot hold has to travel in the document
+   * itself. Absent means the contract default stands.
+   */
+  telemetryUartBaudRate?: number
 }
 
 export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
@@ -106,10 +113,37 @@ export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
     display: { width: 320, height: 170, configurable: false }
   },
   guition_esp32_4848s040: {
-    display: { width: 480, height: 480, configurable: false }
+    display: { width: 480, height: 480, configurable: false },
+    // The only board whose telemetry runs over UART by default, and it reaches
+    // the PC through the same CH340 bridge it is flashed over. That bridge does
+    // not hold 921600 on this host: esptool cannot even verify the flash chip
+    // after switching to it, so telemetry and `@SC:` would fare no better.
+    telemetryUartBaudRate: 460_800
   },
   guition_jc1060p470c: {
     display: { width: 1024, height: 600, configurable: false }
+  }
+}
+
+/**
+ * Fills in the transport properties the contract default cannot supply for a
+ * board, leaving an authored value alone. Called wherever a document is created
+ * or moved onto a board — the document is the only carrier, because firmware
+ * expands an omitted property the same way for every board.
+ */
+export function applyBoardTransportDefaults(
+  configuration: ApplicationConfiguration
+): ApplicationConfiguration {
+  const baudRate = BOARD_PROFILES[configuration.board]?.telemetryUartBaudRate
+  if (baudRate === undefined || configuration.telemetry_transport?.uart?.baud_rate !== undefined) {
+    return configuration
+  }
+  return {
+    ...configuration,
+    telemetry_transport: {
+      ...configuration.telemetry_transport,
+      uart: { ...configuration.telemetry_transport?.uart, baud_rate: baudRate }
+    }
   }
 }
 

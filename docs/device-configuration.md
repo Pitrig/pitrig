@@ -96,6 +96,13 @@ Presence rules:
 - A missing telemetry transport uses the immutable board default.
 - The default telemetry UART baud rate is `921600` and matches the checked-in
   complete SimHub profile and the configurator profile generator's fallback.
+- The Guition ESP32-4848S040 is the exception, and it is expressed in documents
+  rather than in the default: its telemetry runs over the board's CH340 bridge,
+  which does not hold `921600`, so the configurator writes
+  `telemetry_transport.uart.baud_rate` of `460800` into every document it
+  creates, converts or applies a template onto for that board, and the board's
+  factory payload names the same rate. A sparse document is never expanded
+  through a board profile, so the property has to be present to have an effect.
 - Unknown properties are rejected.
 - Loading a preset inserts only the properties explicitly present in that
   preset.

@@ -24,6 +24,7 @@ import {
 } from '@/features/font-library/font-requirements'
 import { isUnresolvedFonts, type SaveProgress } from '@shared/save-to-board'
 import {
+  applyBoardTransportDefaults,
   BOARD_PROFILES,
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
   SIMCORE_BOARD_IDS,
@@ -175,7 +176,7 @@ export function ConfigurationPanel(): React.JSX.Element {
     if (hasLocalDraft && !window.confirm('Discard the current local draft and create a new configuration?')) {
       return
     }
-    replaceLocalDraft({ board: targetBoard })
+    replaceLocalDraft(applyBoardTransportDefaults({ board: targetBoard }))
     resetEditorState()
     setReport(undefined)
     setFeedback({ kind: 'success', message: `New ${targetBoard} configuration created locally.` })
@@ -316,7 +317,10 @@ export function ConfigurationPanel(): React.JSX.Element {
       fit
     })
     setReport(transferred)
-    const validated = validateConfigurationDocument(transferred.configuration, {
+    // The transfer scales geometry and rewrites the board identifier; the rate
+    // the new board needs is not layout, so it is filled in here.
+    const converted = applyBoardTransportDefaults(transferred.configuration)
+    const validated = validateConfigurationDocument(converted, {
       supportedBoards: SIMCORE_BOARD_IDS
     })
     if (!validated.ok) {

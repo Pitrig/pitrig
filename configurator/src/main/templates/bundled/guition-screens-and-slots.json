@@ -5,6 +5,11 @@
   "description": "Two screens with a slot that switches what it shows on a trigger.",
   "configuration": {
     "board": "guition_esp32_4848s040",
+    "telemetry_transport": {
+      "uart": {
+        "baud_rate": 460800
+      }
+    },
     "dashboard": {
       "screens": [
         {

@@ -57,7 +57,11 @@ export function App(): React.JSX.Element {
           <DeviceInfo session={deviceSession} />
         </aside>
 
-        <section className="flex min-h-0 min-w-0 items-center justify-center overflow-hidden bg-muted/30 p-3">
+        {/* No `items-center`: the preview card fills the cell, so its content
+            box has a height of its own. Hugging its content instead made the
+            card's height depend on the surface and the surface's size depend on
+            the card — the circular case, which collapses. */}
+        <section className="flex min-h-0 min-w-0 justify-center overflow-hidden bg-muted/30 p-3">
           <DisplayPreview />
         </section>
 
