@@ -27,12 +27,14 @@ flash for the decoder, a decode buffer in external RAM, and time inside a
 frame; scaling there would also drop the ESP32-P4 off its accelerated path,
 which refuses any transform. So the pixels arrive ready to draw.
 
-**One 4 MiB `image_assets` partition at `0x450000`**, immediately after
-`font_assets`, so nothing already installed moves. A full-screen 1024×600
-RGB565A8 background is 1.8 MiB, which is why 2 MiB would have been tight. That
-leaves 7.6 MiB of the 16 MiB flash unallocated, reserved for the Phase 6 OTA
-layout — a dual-OTA arrangement at the current app size needs about 4 MiB, so
-the remaining space is deliberate rather than incidental.
+**One 4 MiB `image_assets` partition**, immediately after `font_assets`, so
+nothing already installed moves. A full-screen 1024×600 RGB565A8 background is
+1.8 MiB, which is why 2 MiB would have been tight. That left 7.6 MiB of the
+16 MiB flash unallocated, reserved for the Phase 6 OTA layout — a dual-OTA
+arrangement at the current app size needs about 4 MiB, so the remaining space
+was deliberate rather than incidental. [ADR 0022](0022-over-the-air-firmware-updates.md)
+spent it, and moved this partition to `0x710000` in the process; the current
+offsets are in [ota.md](../ota.md).
 
 **The `SCIA` package mirrors `SCFA` where it can and diverges where it must.**
 The 32-byte header is byte-for-byte identical — magic, format, entry count,

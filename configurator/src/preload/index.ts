@@ -32,6 +32,13 @@ import {
   type DeviceState
 } from '../shared/device'
 import {
+  FIRMWARE_CANCEL_UPLOAD_CHANNEL,
+  FIRMWARE_SELECT_SOURCE_CHANNEL,
+  FIRMWARE_UPLOAD_CHANNEL,
+  FIRMWARE_UPLOAD_PROGRESS_CHANNEL,
+  type FirmwareUploadProgress
+} from '../shared/firmware-update'
+import {
   FONT_CANCEL_UPLOAD_CHANNEL,
   FONT_CLEAR_CHANNEL,
   FONT_SELECT_SOURCE_CHANNEL,
@@ -68,6 +75,9 @@ const api: SimCoreApi = {
   uploadFontAssets: (request) => ipcRenderer.invoke(FONT_UPLOAD_CHANNEL, request),
   cancelFontUpload: () => ipcRenderer.invoke(FONT_CANCEL_UPLOAD_CHANNEL),
   clearFontAssets: () => ipcRenderer.invoke(FONT_CLEAR_CHANNEL),
+  selectFirmwareSource: () => ipcRenderer.invoke(FIRMWARE_SELECT_SOURCE_CHANNEL),
+  uploadFirmware: (request) => ipcRenderer.invoke(FIRMWARE_UPLOAD_CHANNEL, request),
+  cancelFirmwareUpload: () => ipcRenderer.invoke(FIRMWARE_CANCEL_UPLOAD_CHANNEL),
   selectImageSource: () => ipcRenderer.invoke(IMAGE_SELECT_SOURCE_CHANNEL),
   uploadImageAssets: (request) => ipcRenderer.invoke(IMAGE_UPLOAD_CHANNEL, request),
   cancelImageUpload: () => ipcRenderer.invoke(IMAGE_CANCEL_UPLOAD_CHANNEL),
@@ -75,6 +85,12 @@ const api: SimCoreApi = {
   readPreviewAssets: () => ipcRenderer.invoke(PREVIEW_ASSETS_READ_CHANNEL),
   exportSimHubProfile: (request) =>
     ipcRenderer.invoke(SIMHUB_PROFILE_EXPORT_CHANNEL, request),
+  onFirmwareUploadProgress: (listener) => {
+    const handler = (_event: IpcRendererEvent, progress: FirmwareUploadProgress): void =>
+      listener(progress)
+    ipcRenderer.on(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, handler)
+  },
   onFontUploadProgress: (listener) => {
     const handler = (_event: IpcRendererEvent, progress: FontUploadProgress): void =>
       listener(progress)

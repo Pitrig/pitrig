@@ -236,10 +236,18 @@ void compose(Application& application,
   }
 }
 
-void start_communication(Application& application,
+bool start_communication(Application& application,
+                         const board_registry::BoardDefinition& board,
                          const ConfigurationBuffers& buffers) {
+  // An uploaded image has to name the board it was built for: ESP-IDF refuses
+  // an image for another chip, but two of the supported boards are the same
+  // chip, and the wrong one of those pair boots with the wrong display driver.
+  if (!application.services.firmware_update.initialize(board.id)) {
+    log::warn(kTag, "No firmware slot to update into");
+  }
   if (!application.communication.start(
           application.services.configuration,
+          application.services.firmware_update,
           application.services.font_assets, application.services.image_assets,
           application.services.telemetry_provider,
           std::span<transport::ITransport* const>(
@@ -248,7 +256,9 @@ void start_communication(Application& application,
           &apply_configuration, &application, buffers.control_io,
           buffers.control_line)) {
     log::error(kTag, "Communication composition is incomplete");
+    return false;
   }
+  return true;
 }
 
 }  // namespace
@@ -276,7 +286,13 @@ void run() {
   initialize_display(application, board, configuration);
   load_uploaded_assets(application);
   compose(application, configuration);
-  start_communication(application, buffers);
+  if (start_communication(application, board, buffers)) {
+    // Everything a firmware image has to prove has now happened: the
+    // configuration loaded, the display came up, the dashboard composed and the
+    // link answers. A freshly installed image that cannot reach this line is
+    // undone by the bootloader on the next reset.
+    application.services.firmware_update.mark_running_image_valid();
+  }
 }
 
 }

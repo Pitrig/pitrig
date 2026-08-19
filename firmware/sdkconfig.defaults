@@ -81,6 +81,11 @@ CONFIG_TINYUSB_DESC_PRODUCT_STRING="SimCore"
 CONFIG_TINYUSB_DESC_CDC_STRING="SimCore CDC"
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+# There is no factory partition to fall back on, so a firmware that cannot
+# finish startup must be undone by the bootloader rather than by a cable. The
+# image boots pending verification and core marks it valid once the dashboard
+# and the serial link are up; anything short of that rolls back on reset.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 CONFIG_CJSON_NESTING_LIMIT=16
 # CONFIG_SIMCORE_DEBUG is not set
 # CONFIG_SIMCORE_LAYOUT_DEBUG is not set

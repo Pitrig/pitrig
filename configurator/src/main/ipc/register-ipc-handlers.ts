@@ -4,6 +4,7 @@ import { broadcastToWindows } from './broadcast'
 import {
   invalidConfigurationRequest,
   isConnectRequest,
+  isFirmwareUploadRequest,
   isFontUploadRequest,
   isImageUploadRequest,
   isJsonDocumentRequest,
@@ -36,6 +37,14 @@ import {
   type DeviceState
 } from '../../shared/device'
 import {
+  FIRMWARE_CANCEL_UPLOAD_CHANNEL,
+  FIRMWARE_SELECT_SOURCE_CHANNEL,
+  FIRMWARE_UPLOAD_CHANNEL,
+  FIRMWARE_UPLOAD_PROGRESS_CHANNEL,
+  type FirmwareUpdateResult,
+  type FirmwareUploadProgress
+} from '../../shared/firmware-update'
+import {
   FONT_CANCEL_UPLOAD_CHANNEL,
   FONT_CLEAR_CHANNEL,
   FONT_SELECT_SOURCE_CHANNEL,
@@ -51,6 +60,7 @@ import {
 } from '../../shared/simhub-profile'
 import { DeviceService } from '../device/device-service'
 import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
+import { FirmwareUpdateService } from '../firmware-update/firmware-update-service'
 import { FontAssetService } from '../font-assets/font-asset-service'
 import { ImageAssetService } from '../image-assets/image-asset-service'
 import type { AssetResult, AssetUploadProgress } from '../../shared/asset-upload'
@@ -69,6 +79,7 @@ export function registerIpcHandlers(
   deviceService: DeviceService,
   fontAssetService: FontAssetService,
   imageAssetService: ImageAssetService,
+  firmwareUpdateService: FirmwareUpdateService,
   simHubProfileService: SimHubProfileService,
   configurationFileService: ConfigurationFileService,
   previewAssetCache: PreviewAssetCache
@@ -137,6 +148,20 @@ export function registerIpcHandlers(
     }
     return fontAssetService.upload(request)
   })
+  ipcMain.handle(FIRMWARE_SELECT_SOURCE_CHANNEL, (event) =>
+    firmwareUpdateService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
+  )
+  ipcMain.handle(FIRMWARE_CANCEL_UPLOAD_CHANNEL, () => firmwareUpdateService.cancel())
+  ipcMain.handle(FIRMWARE_UPLOAD_CHANNEL, (_event, request: unknown) => {
+    if (!isFirmwareUploadRequest(request)) {
+      const result: FirmwareUpdateResult<void> = {
+        ok: false,
+        error: { code: 'invalid_request', message: 'Invalid firmware upload request.' }
+      }
+      return result
+    }
+    return firmwareUpdateService.upload(request)
+  })
   ipcMain.handle(IMAGE_SELECT_SOURCE_CHANNEL, (event) =>
     imageAssetService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
   )
@@ -189,6 +214,10 @@ export function broadcastImageUploadProgress(progress: AssetUploadProgress): voi
 /** Shape-checked like every other payload: the renderer is not trusted. */
 export function broadcastFontUploadProgress(progress: FontUploadProgress): void {
   broadcastToWindows(FONT_UPLOAD_PROGRESS_CHANNEL, progress)
+}
+
+export function broadcastFirmwareUploadProgress(progress: FirmwareUploadProgress): void {
+  broadcastToWindows(FIRMWARE_UPLOAD_PROGRESS_CHANNEL, progress)
 }
 
 export function broadcastDeviceState(state: DeviceState): void {

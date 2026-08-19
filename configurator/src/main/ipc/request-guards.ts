@@ -7,6 +7,7 @@ import {
   type FontAssetInput,
   type FontUploadRequest
 } from '@shared/font-assets'
+import { type FirmwareUploadRequest } from '@shared/firmware-update'
 import type { ConnectDeviceRequest, DeviceConfigurationRequest, DeviceResult } from '@shared/device'
 import type { ConfigurationFileSaveRequest } from '@shared/configuration-files'
 import type { SimHubProfileExportRequest } from '@shared/simhub-profile'
@@ -85,6 +86,16 @@ export function isFontAssetInput(value: unknown): value is FontAssetInput {
   return (
     typeof asset.sourceId === 'string' && asset.sourceId.length > 0 &&
     asset.sourceId.length <= 128 && typeof asset.family === 'string'
+  )
+}
+
+export function isFirmwareUploadRequest(value: unknown): value is FirmwareUploadRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<FirmwareUploadRequest>
+  return (
+    typeof request.sourceId === 'string' &&
+    request.sourceId.length > 0 &&
+    request.sourceId.length <= 128
   )
 }
 

@@ -123,14 +123,16 @@ configurator does not produce it yet.
 ## Serial upload protocol
 
 The upload protocol shares the selected telemetry serial transport and reuses
-the font upload's frames verbatim under the `@SC:IMAGE:` command namespace. Both
-kinds share one binary session: the claim is taken on the task that reads the
-bytes, inside the handler for the command that opens the session, so a second
-upload cannot race the first. On the link the upload owns there are no more
-commands until it ends — a `BEGIN` sent there mid-upload is a bad frame and ends
-the running upload with `invalid_frame`. A `BEGIN`, `INFO` or `CLEAR` arriving
-on another link while an upload runs is answered `@SC:ERR:IMAGE:busy` (or
-`@SC:ERR:FONT:busy`), whichever kind owns the stream.
+the font upload's frames verbatim under the `@SC:IMAGE:` command namespace. All
+three uploaded kinds — fonts, images and firmware
+([Firmware updates over serial](ota.md)) — share one binary session: the claim is
+taken on the task that reads the bytes, inside the handler for the command that
+opens the session, so a second upload cannot race the first. On the link the
+upload owns there are no more commands until it ends — a `BEGIN` sent there
+mid-upload is a bad frame and ends the running upload with `invalid_frame`. A
+`BEGIN`, `INFO` or `CLEAR` arriving on another link while an upload runs is
+answered `@SC:ERR:IMAGE:busy` (or `@SC:ERR:FONT:busy`, or `@SC:ERR:FW:busy`),
+whichever kind owns the stream.
 
 The host can query persisted asset state without starting an upload:
 

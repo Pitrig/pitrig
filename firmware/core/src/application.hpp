@@ -8,6 +8,7 @@
 #include "configuration_service.hpp"
 #include "event_bus.hpp"
 #include "external_memory_buffer.hpp"
+#include "firmware_update_service.hpp"
 #include "font_asset_service.hpp"
 #include "image_asset_service.hpp"
 #include "module_composition.hpp"
@@ -45,6 +46,7 @@ struct PlatformAdapters {
 
 struct ApplicationServices {
   configuration::ConfigurationService configuration;
+  firmware_update::Service firmware_update;
   font_assets::Service font_assets;
   image_assets::Service image_assets;
   events::EventBus event_bus;

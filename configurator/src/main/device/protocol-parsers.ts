@@ -10,6 +10,7 @@ import {
   type ImageAssetState,
   type InstalledImage
 } from '@shared/image-assets'
+import { type FirmwareUpdateState } from '@shared/firmware-update'
 import {
   BOARD_PROFILES,
   CONFIGURATION_SCHEMA_VERSION,
@@ -135,6 +136,36 @@ export function parseDeviceInfo(line: string): DeviceInfo {
     configurationSource: source,
     generation,
     storageAvailable: fields.get('storage') === '1'
+  }
+}
+
+/**
+ * Firmware status reports two slots rather than a package: which one is running,
+ * which one the next upload lands in, and whether either is waiting on a
+ * restart. It shares no shape with the asset kinds, so it shares no parser.
+ */
+export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
+  const fields = parseFields(line, '@SC:OK:FW:INFO:', 'firmware status')
+  const running = fields.get('running')
+  const target = fields.get('target')
+  const version = fields.get('version')
+  if (
+    !isBooleanField(fields.get('storage')) ||
+    !isBooleanField(fields.get('pending_verify')) ||
+    !isBooleanField(fields.get('reboot_required')) ||
+    running === undefined ||
+    target === undefined ||
+    version === undefined
+  ) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed firmware status.')
+  }
+  return {
+    storageAvailable: fields.get('storage') === '1',
+    running,
+    target,
+    version,
+    pendingVerify: fields.get('pending_verify') === '1',
+    rebootRequired: fields.get('reboot_required') === '1'
   }
 }
 

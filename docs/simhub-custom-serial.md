@@ -124,14 +124,20 @@ field is not exposed by every simulation.
 
 Configuration control frames begin with `@SC:` and share the same serial
 connection. The configuration router consumes those frames before telemetry,
-so they are never interpreted as telemetry values.
+so they are never interpreted as telemetry values. Three namespaces under that
+prefix open a binary upload session instead of answering a line — `@SC:FONT:`
+([Font asset storage](font-assets.md)), `@SC:IMAGE:`
+([Image asset storage](image-assets.md)) and `@SC:FW:`
+([Firmware updates over serial](ota.md)) — and only one of them may own the link
+at a time.
 
 ## Development second link (ESP32-P4)
 
 A build of the Guition JC1060P470C may attach a second serial link on the
 board's USB-Serial-JTAG port — the one it is flashed over — in addition to the
 native USB CDC port the configuration selects. Both then carry the same three
-things: SimHub telemetry, the `@SC:` control protocol, and asset upload. A host
+things: SimHub telemetry, the `@SC:` control protocol, and asset or firmware
+upload. A host
 can be attached to either, or to both at once, which is what makes it possible
 to leave SimHub streaming while the configurator uploads.
 

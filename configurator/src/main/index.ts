@@ -6,11 +6,13 @@ import { ConfigurationFileService } from './configuration-files/configuration-fi
 import {
   broadcastDevelopmentSerialTraffic,
   broadcastDeviceState,
+  broadcastFirmwareUploadProgress,
   broadcastFontUploadProgress,
   broadcastImageUploadProgress,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
 import { PreviewAssetCache } from './assets/preview-asset-cache'
+import { FirmwareUpdateService } from './firmware-update/firmware-update-service'
 import { FontAssetService } from './font-assets/font-asset-service'
 import { ImageAssetService } from './image-assets/image-asset-service'
 import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
@@ -33,6 +35,10 @@ const imageAssetService = new ImageAssetService(
   deviceService,
   broadcastImageUploadProgress,
   previewAssetCache
+)
+const firmwareUpdateService = new FirmwareUpdateService(
+  deviceService,
+  broadcastFirmwareUploadProgress
 )
 const simHubProfileService = new SimHubProfileService()
 const configurationFileService = new ConfigurationFileService()
@@ -69,6 +75,7 @@ app.whenReady().then(() => {
     deviceService,
     fontAssetService,
     imageAssetService,
+    firmwareUpdateService,
     simHubProfileService,
     configurationFileService,
     previewAssetCache
@@ -89,6 +96,7 @@ app.on('before-quit', (event) => {
   event.preventDefault()
   fontAssetService.cancel()
   imageAssetService.cancel()
+  firmwareUpdateService.cancel()
   void deviceService.dispose().finally(() => {
     quitAfterDeviceCleanup = true
     app.quit()

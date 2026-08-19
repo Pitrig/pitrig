@@ -97,9 +97,10 @@ restart.
 
 The upload protocol shares the selected telemetry serial transport. It also
 shares one binary session with the image upload defined in
-[Image asset storage](image-assets.md), which reuses these frames under the
-`@SC:IMAGE:` namespace: whichever kind claims the stream first owns it, and the
-other is answered `busy`.
+[Image asset storage](image-assets.md) and the firmware update defined in
+[Firmware updates over serial](ota.md), which reuse these frames under the
+`@SC:IMAGE:` and `@SC:FW:` namespaces: whichever kind claims the stream first
+owns it, and the others are answered `busy`.
 
 The host can query persisted asset state without starting an upload:
 

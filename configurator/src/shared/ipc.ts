@@ -11,6 +11,12 @@ import type {
   SerialPortSummary
 } from './device'
 import type {
+  FirmwareSourceSelection,
+  FirmwareUpdateResult,
+  FirmwareUploadProgress,
+  FirmwareUploadRequest
+} from './firmware-update'
+import type {
   FontAssetResult,
   FontSourceSelection,
   FontUploadProgress,
@@ -65,6 +71,9 @@ export interface SimCoreApi {
   uploadFontAssets: (request: FontUploadRequest) => Promise<FontAssetResult<void>>
   cancelFontUpload: () => Promise<FontAssetResult<void>>
   clearFontAssets: () => Promise<DeviceResult<DeviceState>>
+  selectFirmwareSource: () => Promise<FirmwareUpdateResult<FirmwareSourceSelection | null>>
+  uploadFirmware: (request: FirmwareUploadRequest) => Promise<FirmwareUpdateResult<void>>
+  cancelFirmwareUpload: () => Promise<FirmwareUpdateResult<void>>
   selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>
   uploadImageAssets: (request: ImageUploadRequest) => Promise<AssetResult<void>>
   cancelImageUpload: () => Promise<AssetResult<void>>
@@ -76,6 +85,9 @@ export interface SimCoreApi {
   ) => Promise<SimHubProfileResult<SimHubProfileExportValue>>
   onFontUploadProgress: (listener: (progress: FontUploadProgress) => void) => () => void
   onImageUploadProgress: (listener: (progress: AssetUploadProgress) => void) => () => void
+  onFirmwareUploadProgress: (
+    listener: (progress: FirmwareUploadProgress) => void
+  ) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
   onDevelopmentSerialTraffic?: (listener: (log: SerialTrafficLog) => void) => () => void
 }

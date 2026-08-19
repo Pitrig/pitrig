@@ -1,3 +1,4 @@
+import type { FirmwareUpdateState } from './firmware-update'
 import type { ImageAssetState } from './image-assets'
 import {
   BOARD_ID_VALUES,
@@ -144,6 +145,9 @@ export interface DeviceSession {
   // support is reported: an older board answers the probe with an unknown
   // command rather than an error worth showing.
   imageAssets?: ImageAssetState
+  // Absent on a board flashed before the OTA partition layout, which has one
+  // application partition and no slot to update into.
+  firmware?: FirmwareUpdateState
 }
 
 export interface DeviceScanProgress {

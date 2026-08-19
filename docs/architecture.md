@@ -339,12 +339,22 @@ They also share the upload engine itself. A package arrives the same way
 whatever it contains — the same `SCF1` framing, the same stop-and-wait sequence
 and CRC, the same inactivity timeout, the same worker task and claim — so that
 state machine lives once in `services/asset_control`. A kind supplies only its
-protocol tag (`FONT`, `IMAGE`), its task identity, and two things the engine
-cannot know: how to drive its service, and what its `INFO` reply says about an
-installed package. Those arrive as plain data — a `Traits` value and an
+protocol tag (`FONT`, `IMAGE`, `FW`), its task identity, and two things the
+engine cannot know: how to drive its service, and what its `INFO` reply says
+about an installed package. Those arrive as plain data — a `Traits` value and an
 `Operations` table of function pointers — rather than as a template, so the
 binary carries one copy of the machine and `font_asset_control` and
 `image_asset_control` are ~90 lines each.
+
+Firmware is the third kind on that engine. `services/firmware_update` receives
+an uploaded application image into the inactive OTA slot, streaming it through
+`esp_ota_write` rather than through `asset_storage` — nothing maps a firmware
+image, so the storage contract under the other two has nothing to offer it. It
+is also one component rather than a service and a wrapper over it: fonts and
+images split that way because the dashboard reads faces and bitmaps, and nothing
+reads a firmware image at runtime. See
+[Firmware updates over serial](ota.md) and
+[ADR 0022](adr/0022-over-the-air-firmware-updates.md).
 
 The package format under that engine is shared the same way. Both kinds write
 the same 32-byte header and commit it identically — payload first, header last,

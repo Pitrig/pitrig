@@ -4,6 +4,7 @@
 
 #include "configuration_service.hpp"
 #include "esp_system.h"
+#include "firmware_update_service.hpp"
 #include "font_asset_service.hpp"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -29,6 +30,7 @@ Composition::~Composition() { stop(); }
 
 bool Composition::start(
     configuration::ConfigurationService& configuration,
+    firmware_update::Service& firmware_update,
     font_assets::Service& font_assets,
     image_assets::Service& image_assets,
     telemetry::TelemetryProvider& telemetry,
@@ -74,8 +76,16 @@ bool Composition::start(
     configuration_control_.stop();
     return false;
   }
-  const std::array<const binary_session::Session*, 2> sessions{
-      &font_asset_control_.session(), &image_asset_control_.session()};
+  if (!firmware_update_control_.initialize(firmware_update, binary_claim_)) {
+    log::error(kTag, "Failed to start firmware update task");
+    image_asset_control_.stop();
+    font_asset_control_.stop();
+    configuration_control_.stop();
+    return false;
+  }
+  const std::array<const binary_session::Session*, 3> sessions{
+      &font_asset_control_.session(), &image_asset_control_.session(),
+      &firmware_update_control_.session()};
 
   telemetry_ = &telemetry;
   link_count_ = transports.size();
@@ -119,6 +129,7 @@ void Composition::stop() {
     link.owner = nullptr;
   }
   link_count_ = 0;
+  firmware_update_control_.stop();
   image_asset_control_.stop();
   font_asset_control_.stop();
   configuration_control_.stop();

@@ -74,4 +74,4 @@ foundation for them landed in Phase 1.
 
 # Phase 6 — Field maintenance
 
-- [ ] OTA partition layout and update path
+- [*] OTA partition layout and update path

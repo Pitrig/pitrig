@@ -8,10 +8,12 @@ import {
   type SimCoreBoardId
 } from '@shared/device'
 import { describeDeviceError } from '@shared/device-error-message'
+import { type FirmwareUpdateState } from '@shared/firmware-update'
 import { type ImageAssetState } from '@shared/image-assets'
 import { parseDeviceConfigurationJson } from './configuration-json'
 import {
   parseDeviceInfo,
+  parseFirmwareUpdateInfo,
   parseFontAssetInfo,
   parseImageAssetInfo
 } from './protocol-parsers'
@@ -23,6 +25,7 @@ const INFO_REQUEST = '@SC:INFO\n'
 const GET_REQUEST = '@SC:GET\n'
 const IMAGE_INFO_REQUEST = '@SC:IMAGE:INFO\n'
 const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
+const FIRMWARE_INFO_REQUEST = '@SC:FW:INFO\n'
 const CONFIGURATION_TIMEOUT_MS = 2_000
 
 type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
@@ -48,11 +51,13 @@ export async function probeSimCore(
   }
   const fontAssets = await probeFontAssets(port, onTraffic)
   const imageAssets = await probeImageAssets(port, onTraffic)
+  const firmware = await probeFirmwareUpdate(port, onTraffic)
   return {
     info,
     configuration,
     ...(fontAssets ? { fontAssets } : {}),
-    ...(imageAssets ? { imageAssets } : {})
+    ...(imageAssets ? { imageAssets } : {}),
+    ...(firmware ? { firmware } : {})
   }
 }
 
@@ -221,6 +226,36 @@ export function requestResponse(
     }, timeoutMs)
     port.flush(() => sendRequest())
   })
+}
+
+/**
+ * Firmware built before the OTA partition layout answers with
+ * `unknown_command`, which is a fact about the board rather than a failure —
+ * the same graceful degradation the font and image probes use.
+ */
+async function probeFirmwareUpdate(
+  port: SerialPort,
+  onTraffic: TrafficCallback
+): Promise<FirmwareUpdateState | undefined> {
+  try {
+    const line = await requestResponse(
+      port,
+      FIRMWARE_INFO_REQUEST,
+      '@SC:OK:FW:INFO:',
+      PROBE_TIMEOUT_MS,
+      onTraffic
+    )
+    return parseFirmwareUpdateInfo(line)
+  } catch (error) {
+    if (
+      error instanceof DeviceServiceError &&
+      error.code === 'not_simcore' &&
+      error.message.includes('unknown_command')
+    ) {
+      return undefined
+    }
+    throw error
+  }
 }
 
 async function probeFontAssets(

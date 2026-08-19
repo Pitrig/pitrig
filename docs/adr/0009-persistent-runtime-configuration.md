@@ -64,11 +64,17 @@ headers and slot mechanics remain private firmware details.
 
 Bound the compact JSON payload at `kMaximumPayloadSize`, which the generated
 configuration contract defines — 65536 bytes as of schema 10. Size the dedicated
-`simcore_cfg` NVS partition at 256 KiB (`0x40000`) so two full-size records,
-the copy NVS keeps while it rewrites one, and NVS's own page metadata all fit.
-The partition keeps its original start offset; the following font-assets
-partition moves and therefore requires font assets to be uploaded again after
-installing the updated partition table.
+`simcore_cfg` NVS partition at 1 MiB (`0x100000`). Two full-size records, the
+copy NVS keeps while it rewrites one, and NVS's own page metadata fit in a
+quarter of that; the rest is deliberate headroom for storing several
+configurations rather than one, which is planned and would otherwise force a
+second flash migration. The slots themselves stay a pair — `StorageSlot{a, b}`
+is how one record is replaced atomically, not how profiles are kept.
+
+The partition was 256 KiB at `0x210000` until ADR 0022 rebuilt the table around
+two application slots. Growing it moves everything after it, so installing
+either change is one full erase: configuration, fonts and images are all
+re-uploaded afterwards.
 
 Parse the sparse JSON into a concrete bounded runtime configuration during
 startup and before accepting a replacement. JSON parsing is confined to the

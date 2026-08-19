@@ -24,6 +24,7 @@ enum class TaskMetric : std::uint8_t {
   configuration_control,
   font_asset_control,
   image_asset_control,
+  firmware_update,
   sampler,
   count,
 };

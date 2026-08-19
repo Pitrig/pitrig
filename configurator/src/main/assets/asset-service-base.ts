@@ -17,8 +17,8 @@ export interface SourceRecord {
 // device cannot take is the same for both — and was written twice, which is how
 // they came to disagree about cancelling and about clearing the operation.
 export interface AssetKind {
-  /** Which half of the device session reports on this kind. */
-  readonly sessionKey: 'fontAssets' | 'imageAssets'
+  /** Which part of the device session reports on this kind. */
+  readonly sessionKey: 'fontAssets' | 'imageAssets' | 'firmware'
   readonly dialogTitle: string
   readonly dialogButton: string
   readonly filters: OpenDialogOptions['filters']

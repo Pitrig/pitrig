@@ -458,12 +458,34 @@ export class DeviceService {
   }
 
   /**
+   * Uploads an application image into the inactive firmware slot. The device
+   * refuses one built for another board, so the package that reaches here
+   * already carries the board it was wrapped for.
+   */
+  async uploadFirmware(
+    packageBytes: Uint8Array,
+    onProgress: (progress: AssetUploadProgress) => void,
+    signal: AbortSignal
+  ): Promise<void> {
+    return this.uploadAssets(
+      { command: 'FW', label: 'firmware' },
+      packageBytes,
+      onProgress,
+      signal,
+      (session) =>
+        session.firmware
+          ? { ...session, firmware: { ...session.firmware, rebootRequired: true } }
+          : undefined
+    )
+  }
+
+  /**
    * One package upload, whatever the kind. The device reports the installed set
    * only after a restart, so `advance` moves the session on from what was just
    * sent rather than re-probing; returning undefined leaves it untouched.
    */
   private async uploadAssets(
-    namespace: { command: 'FONT' | 'IMAGE'; label: string },
+    namespace: { command: 'FONT' | 'IMAGE' | 'FW'; label: string },
     packageBytes: Uint8Array,
     onProgress: (progress: AssetUploadProgress) => void,
     signal: AbortSignal,

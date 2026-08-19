@@ -71,7 +71,11 @@ export async function uploadAssetPackage(
         port,
         createFrame(1, sequence, payload),
         `@SC:OK:${namespace.command}:ACK:`,
-        FRAME_TIMEOUT_MS,
+        // A kind may still be preparing storage when the first chunk lands:
+        // firmware defers erasing its slot until the package header has named
+        // the board, so that erase is paid for here rather than at BEGIN, and
+        // erasing 2 MiB outlasts a normal frame budget.
+        sequence === 0 ? BEGIN_TIMEOUT_MS : FRAME_TIMEOUT_MS,
         callbacks,
         signal
       )

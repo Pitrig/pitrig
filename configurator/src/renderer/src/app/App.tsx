@@ -9,6 +9,7 @@ import { WidgetInspector } from '@/features/configuration/inspector/WidgetInspec
 import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { useDeviceStore } from '@/features/device/device-store'
+import { FirmwareUpdatePanel } from '@/features/firmware-update/FirmwareUpdatePanel'
 import { FontAssetsPanel } from '@/features/font-assets/FontAssetsPanel'
 import { ImageAssetsPanel } from '@/features/image-assets/ImageAssetsPanel'
 import { SimHubProfilePanel } from '@/features/simhub/SimHubProfilePanel'
@@ -43,6 +44,7 @@ export function App(): React.JSX.Element {
           <div className="mt-3 space-y-3">
             <FontAssetsPanel key={`fonts-${connectionRevision}`} />
             <ImageAssetsPanel key={`images-${connectionRevision}`} />
+            <FirmwareUpdatePanel key={`firmware-${connectionRevision}`} />
           </div>
           <SimHubProfilePanel key={`simhub-${connectionRevision}`} />
           <DeviceInfo session={deviceSession} />

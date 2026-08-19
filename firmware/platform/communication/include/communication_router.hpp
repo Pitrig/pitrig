@@ -29,7 +29,9 @@ class Router final {
  public:
   static constexpr std::size_t kControlLineBufferSize =
       16 + configuration::kMaximumPayloadSize;
-  static constexpr std::size_t kMaximumBinarySessions = 2;
+  // Fonts, images and firmware. One claim decides which of them owns the
+  // stream, so the count bounds what may be registered, not what may run.
+  static constexpr std::size_t kMaximumBinarySessions = 3;
 
   // `telemetry_line_handler` receives each assembled telemetry line without
   // its terminator, at most telemetry::kMaximumTelemetryLineLength bytes.

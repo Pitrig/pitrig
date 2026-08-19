@@ -141,11 +141,13 @@ components → interfaces ← drivers
   code or LVGL, and must not touch hardware directly.
 - `services/` — shared infrastructure (`asset_control`, `asset_package`, `asset_storage`,
   `binary_session`, `configuration`, `configuration_contract`, `configuration_control`,
-  `event_bus`, `font_assets`, `font_asset_control`, `font_contract`, `image_assets`,
-  `image_asset_control`, `image_contract`, `logger`, `performance`, `telemetry` +
+  `event_bus`, `firmware_update`, `font_assets`, `font_asset_control`, `font_contract`,
+  `image_assets`, `image_asset_control`, `image_contract`, `logger`, `performance`, `telemetry` +
   `telemetry/protocols/simhub`). `asset_control` is the `SCF1` upload engine;
-  `font_asset_control` and `image_asset_control` are thin per-kind wrappers over it that supply
-  the protocol tag and the body of the `INFO` reply. `asset_package` holds what the two package
+  `font_asset_control`, `image_asset_control` and `firmware_update` are thin per-kind wrappers
+  over it that supply the protocol tag and the body of the `INFO` reply. `firmware_update` is one
+  component rather than a service plus a wrapper, because nothing reads a firmware image at
+  runtime the way the dashboard reads faces and bitmaps. `asset_package` holds what the package
   formats share — the 32-byte header, its validation, and the update status and error types —
   while each kind keeps its own magic, manifest entry decoder and catalog.
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
@@ -228,7 +230,7 @@ stop-and-wait mode for font package upload. `core` receives only `ITransport` an
 UART, USB CDC, or SimHub. See [docs/simhub-custom-serial.md](docs/simhub-custom-serial.md) and
 [docs/font-assets.md](docs/font-assets.md).
 
-### Uploaded assets
+### Uploaded assets and firmware
 
 Fonts and images are both uploaded, never compiled in, and they share everything
 except their package format: one 4 MiB `image_assets` partition beside the 2 MiB
@@ -239,6 +241,15 @@ rather than raced. Images are converted **in the configurator** to the LVGL
 layout and the size they are drawn at; the device holds no decoder and neither
 scales nor rotates. See [docs/image-assets.md](docs/image-assets.md) and
 [docs/adr/0018-uploaded-image-assets.md](docs/adr/0018-uploaded-image-assets.md).
+
+Firmware travels the same way under `@SC:FW:` and takes the same claim. The
+partition table carries two 2 MiB application slots and no `factory`: an upload
+fills the one that is not running, `@SC:REBOOT` starts it, and rollback returns
+to the previous slot if startup does not finish. The image is wrapped in the
+same 32-byte header with a manifest naming the `BoardId`, because ESP-IDF checks
+the chip and both S3 boards are the same chip. Changing the partition table is a
+full `erase-flash`. See [docs/ota.md](docs/ota.md) and
+[docs/adr/0022-over-the-air-firmware-updates.md](docs/adr/0022-over-the-air-firmware-updates.md).
 
 ### Fonts
 
@@ -255,9 +266,10 @@ reboot.
 ### Configurator (`configurator/src/`)
 
 Standard electron-vite three-way split: `main/` (Node — serial via `serialport`, device service,
-protocol, font and image upload over one shared `assets/` engine, config files, SimHub profile
-export), `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
-`configuration`, `device`, `font-assets`, `image-assets`, `simhub`, `development`). `shared/` holds types crossing the boundary; all IPC channels and the `SimCoreApi`
+protocol, font, image and firmware upload over one shared `assets/` engine, config files,
+SimHub profile export), `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
+`configuration`, `device`, `firmware-update`, `font-assets`, `image-assets`, `simhub`,
+`development`). `shared/` holds types crossing the boundary; all IPC channels and the `SimCoreApi`
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 

@@ -1,0 +1,107 @@
+# ADR 0022: Over-the-Air Firmware Updates
+
+Status: Accepted
+
+## Context
+
+Every SimCore board is updated by cable. The partition table carried a single
+`factory` application partition, the firmware contained no `esp_ota_*` call, and
+installing a new build meant `idf.py flash` from a checkout of the source. That
+is fine for the person writing the firmware and useless for anyone else running
+one.
+
+The device is already attached to a PC by USB whenever it is used at all —
+that is where telemetry comes from — and it already accepts two kinds of large
+uploaded payload over that link. Firmware is a third payload of the same shape,
+so this is mostly a question of partition layout and of what may be trusted.
+
+Two constraints shaped the layout. The ESP32-P4 bootloader has 1 296 bytes of
+its 24 KiB left, which decides whether rollback support fits at all; and the
+`simcore_cfg` partition needed to grow from 256 KiB to 1 MiB at the same time
+(ADR 0009), which meant one migration rather than two.
+
+## Decision
+
+**Two application slots and no `factory`.** The partition table becomes
+`ota_0` and `ota_1`, 2 MiB each, with an `otadata` partition selecting between
+them. Nothing falls back to a compiled-in image: if both slots are unusable the
+device is recovered over USB. That is an acceptable floor precisely because the
+device is a USB peripheral — a SimCore board with no cable attached is not
+running a session either. The alternative, `factory` plus one OTA slot, spends
+2 MiB to protect against a case where the user already has the cable in hand.
+
+**The layout is contiguous and every data partition moves.** Installing it
+requires `erase-flash`, which discards the stored configuration, the font
+package and the image package. Preserving the asset partitions at their old
+offsets was possible and was rejected: it left a 256 KiB hole in the table and
+kept a layout shaped by history rather than by what is stored. ADR 0009 made the
+same trade when the configuration partition first appeared.
+
+The default `nvs` partition shrinks from 24 KiB to 16 KiB. Nothing reads it —
+the configuration lives in `simcore_cfg` and no other component opens NVS — and
+at 16 KiB the partitions before the first application slot end exactly at
+`0x10000`, where a 64 KiB-aligned application partition has to start. At its old
+size the alignment would have cost 56 KiB in a gap.
+
+**Rollback is on.** `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` costs 128 bytes of
+the P4 bootloader and 64 of the S3 one, both of which fit. A freshly installed
+image boots pending verification; `core` clears it after `start_communication`
+returns, which is the point where the configuration has loaded, the display has
+come up, the dashboard has composed and the link answers. An image that cannot
+reach that line is undone by the bootloader on the next reset instead of leaving
+a board that has to be opened up. A timed criterion — *N* seconds of successful
+rendering — was considered and dropped: it adds state to carry and asserts less
+than reaching the end of startup already does.
+
+**Firmware is the third consumer of the `SCF1` upload engine.** The `@SC:FW:`
+namespace joins `@SC:FONT:` and `@SC:IMAGE:` over the same frames, the same
+stop-and-wait sequence, the same inactivity timeout and the same
+`binary_session::Claim` — so a firmware upload beginning while a font package is
+in flight is answered `busy` rather than raced. `services/firmware_update`
+supplies the protocol tag, the `INFO` body and operations that map onto
+`esp_ota_begin` / `esp_ota_write` / `esp_ota_end` and
+`esp_ota_set_boot_partition`.
+
+It is one component rather than the service-and-wrapper pair that fonts and
+images use. Those two split because their services have a consumer outside the
+protocol — the dashboard reads faces and bitmaps — while nothing reads a
+firmware image at runtime, so the second component would exist for a single
+caller.
+
+**The image is wrapped, and the wrapper names the board.** ESP-IDF rejects an
+image built for another chip, but the T-Display-S3 and the Guition
+ESP32-4848S040 are both ESP32-S3: swapping their images produces a board that
+boots and drives the wrong display. So an application image travels inside the
+same 32-byte package header the other two kinds use — magic `SCFW`, format
+version, sizes, manifest CRC, payload CRC, header CRC — with a manifest of one
+entry holding the `BoardId`. The header is validated **before** `esp_ota_begin`
+is called, so an image for the wrong board never reaches flash.
+
+The board identity is passed into the service rather than read from
+`board_registry`, which is platform code a service may not depend on.
+
+`CLEAR` is answered `invalid_state`: the only images on the device are the one
+running and the one it would fall back to, and neither is erasable on request.
+
+## Consequences
+
+- Updating a board no longer needs a toolchain, a checkout, or `idf.py`.
+- Installing this partition table is a one-time full erase. Configuration must be
+  re-saved and the font and image packages re-uploaded.
+- Flash use grows from 8.31 MiB to 11.06 MiB of the 16 MiB part, leaving
+  4.94 MiB unallocated.
+- The application image grew by about 18 KiB, which is what `app_update` and the
+  new service cost. Every board keeps more than half of its slot free.
+- The P4 bootloader now has 1 296 bytes of headroom. Anything that adds to it —
+  secure boot, flash encryption, anti-rollback — will need
+  `CONFIG_PARTITION_TABLE_OFFSET` moved past `0x8000` first.
+- A rollback to older firmware finds a configuration written by the newer one.
+  Records of an unknown schema are already treated as unsupported and fall back
+  to another slot or to the factory configuration, so the board comes up on the
+  factory dashboard and names the reason in its boot log. The two slots share one
+  `simcore_cfg` (ADR 0009); giving each its own would have avoided this and was
+  rejected because it makes the common case worse — a configuration saved before
+  an update would vanish after it.
+- Updating over a network is still out of scope. WiFi is not enabled in any
+  build and the ESP32-P4 has no radio of its own, so the serial link is the only
+  path.

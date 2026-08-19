@@ -6,6 +6,7 @@
 #include "configuration_control.hpp"
 #include "communication_router.hpp"
 #include "binary_session.hpp"
+#include "firmware_update_control.hpp"
 #include "font_asset_control.hpp"
 #include "image_asset_control.hpp"
 #include "simcore_features.hpp"
@@ -65,6 +66,7 @@ class Composition final {
   // one Router::kControlLineBufferSize block per link.
   [[nodiscard]] bool start(
       configuration::ConfigurationService& configuration,
+      firmware_update::Service& firmware_update,
       font_assets::Service& font_assets,
       image_assets::Service& image_assets,
       telemetry::TelemetryProvider& telemetry,
@@ -98,6 +100,7 @@ class Composition final {
   static void reboot(void* context);
 
   configuration::ConfigurationControl configuration_control_;
+  firmware_update::FirmwareUpdateControl firmware_update_control_;
   font_assets::FontAssetControl font_asset_control_;
   image_assets::ImageAssetControl image_asset_control_;
   // However many links are attached, only one of them may own the binary
