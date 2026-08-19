@@ -62,6 +62,15 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [ ] Uploaded images kept in their original format (PNG or SVG) instead of
       converted, so the device scales them and a layout transfer carries them —
       the format and what decodes it are undecided
+- [ ] Indexed-colour images — the `indexed8` the package format and the firmware
+      already accept but the converter does not produce: a palette of up to 256
+      colours plus one byte per pixel, which halves an RGB565 image and thirds
+      one carrying alpha. The work is the quantisation, since a palette chosen
+      badly looks worse than RGB565
+- [ ] Sprite atlases — many small pictures in one image with a table of their
+      rectangles, a widget drawing one rectangle of it. Spends one of the 32
+      package entries rather than one per icon, and lets a single widget switch
+      its picture from telemetry instead of stacking one widget per state
 - [ ] Button Matrix
 - [ ] RGB
 
@@ -79,6 +88,7 @@ foundation for them landed in Phase 1.
 - [*] Configurator layer panel with reordering, lock and hide
 - [*] Dashboard preview with placeholder values
 - [*] Dashboard templates and cross-board layout transfer
+- [ ] Font library, font picker and automatic font delivery on save
 - [ ] Dragging a widget into a container on the canvas (the layer panel already
       reparents)
 - [ ] Preview with live values — a virtual COM port on the PC, with the
