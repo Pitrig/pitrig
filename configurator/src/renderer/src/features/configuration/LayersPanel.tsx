@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Eye, EyeOff, Lock, LockOpen } from 'lucide-react'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -386,21 +387,38 @@ function LayerList({
                 ⤴
               </button>
             ) : null}
+            {/* Drawn rather than typed: an emoji padlock is a colour bitmap at
+                whatever weight the platform font gives it, which is the one
+                thing in these rows that does not follow the text around it. The
+                set state is the stronger colour, so a locked or hidden layer
+                reads at a glance instead of on hover. */}
             <button
               type="button"
-              className="flex-none px-1 text-muted-foreground hover:text-foreground"
+              className={`flex-none px-1 hover:text-foreground ${
+                locked[id] ? 'text-foreground' : 'text-muted-foreground'
+              }`}
               title={locked[id] ? 'Unlock' : 'Lock so the canvas cannot move it'}
               onClick={() => toggleLocked(id)}
             >
-              {locked[id] ? '🔒' : '🔓'}
+              {locked[id] ? (
+                <Lock aria-hidden className="size-3" />
+              ) : (
+                <LockOpen aria-hidden className="size-3" />
+              )}
             </button>
             <button
               type="button"
-              className="flex-none px-1 text-muted-foreground hover:text-foreground"
+              className={`flex-none px-1 hover:text-foreground ${
+                hidden[id] ? 'text-foreground' : 'text-muted-foreground'
+              }`}
               title={hidden[id] ? 'Show in the editor' : 'Hide in the editor only'}
               onClick={() => toggleHidden(id)}
             >
-              {hidden[id] ? '🙈' : '👁'}
+              {hidden[id] ? (
+                <EyeOff aria-hidden className="size-3" />
+              ) : (
+                <Eye aria-hidden className="size-3" />
+              )}
             </button>
           </div>
             {open ? (
