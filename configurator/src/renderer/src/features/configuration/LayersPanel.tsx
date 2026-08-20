@@ -90,8 +90,8 @@ export function LayersPanel(): React.JSX.Element {
   const rowProps = { dragged, setDragged, renaming, setRenaming, dropTarget, setDropTarget }
 
   return (
-    <Card>
-      <CardHeader className="py-3">
+    <Card className="flex h-full min-h-0 flex-col">
+      <CardHeader className="flex-none py-3">
         <div className="flex items-center justify-between gap-2">
           <CardTitle>Layers</CardTitle>
           <div className="flex items-center gap-1 text-xs">
@@ -116,10 +116,10 @@ export function LayersPanel(): React.JSX.Element {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-3 pb-3 text-xs">
+      <CardContent className="flex min-h-0 flex-1 flex-col px-3 pb-3 text-xs">
         <div
           ref={body}
-          className="max-h-80 space-y-1 overflow-y-auto"
+          className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain"
           // One handler for the whole panel: a per-row dragleave fires on every
           // hop between a row's own buttons, which flickers the indicator
           // constantly.

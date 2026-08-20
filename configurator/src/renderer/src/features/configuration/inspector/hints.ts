@@ -1,0 +1,136 @@
+/**
+ * Every explanation the inspector shows behind a ⓘ.
+ *
+ * They live together rather than beside the fields they explain because they
+ * are prose, not markup: keeping them in one file is what makes it possible to
+ * read the panel's whole vocabulary at once and notice where two properties
+ * were described in two different ways.
+ *
+ * What is *not* here: anything computed from the current document — a trace's
+ * time window, an image's pixel size, the font budget — and anything that warns
+ * about the document being wrong. Both stay in the panel where they can be seen
+ * without asking.
+ */
+export const HINTS = {
+  geometry: {
+    position:
+      'The top-left corner in logical display pixels. Inside a container this is measured from the container box rather than from the screen.',
+    size: 'Width and height in logical display pixels.',
+    z: 'Drawing order among siblings: a higher value is drawn later, so it covers a lower one. Widgets with the same value keep the order of the layer list.'
+  },
+  data: {
+    binding:
+      'The telemetry field this widget reads. Names come from the catalog, so the device binds them once at startup and never looks one up while drawing.',
+    modifier:
+      'A stateful reading of the field, computed on the device. The lap timer turns the current lap time into one that keeps running between the updates SimHub sends.',
+    range:
+      'The window the value is read against: the widget shows where the value sits between the two, clamped at both ends. The unit is the one the bound field reports.'
+  },
+  text: {
+    sources:
+      'Sources are rendered in order, each through its own transform, into one string. The prefix and suffix are what separate one from the next, so "P 3/24" is a position source followed by a participants source prefixed with "/".',
+    transform:
+      'How the raw value becomes text. A number is scaled, offset and rounded; a duration is formatted as a lap time. Only the transforms the bound field supports are offered.',
+    preset:
+      'A ready scale, offset and suffix for the usual unit conversions of this field — kph to mph, celsius to fahrenheit.',
+    scale:
+      'Applied before the offset: the drawn number is value × scale + offset, rounded to the decimals set beside it.',
+    affix:
+      'Literal text drawn immediately before and after this source. With several sources this is the only separator between them.',
+    alignment: 'Where the text sits inside the widget box, after the padding is taken off.',
+    fallback:
+      'Drawn while the field has no value yet — before the first telemetry frame arrives, or when the game does not report it. Empty draws nothing.'
+  },
+  title: {
+    text: 'A caption drawn on the widget box. Clearing the text removes the caption entirely, which is what a panel used as a container or a tap zone usually wants.',
+    font: 'The family comes from the font library and the size is this caption’s alone — the board holds one face per family and rasterizes any size from it.',
+    alignment:
+      'The point on the widget box the caption is anchored to. The top and bottom rows straddle their border line; the middle row sits inside the box.',
+    offset: 'Moves the caption from its anchor, in pixels. Positive is right and down.',
+    cut: 'A caption on the top or bottom row breaks the border line it sits on instead of being drawn over it. Turn this off to draw the border straight through.',
+    gap: 'How much clear space the cut leaves on each side of the caption.'
+  },
+  box: {
+    background:
+      'The fill behind the widget. Unset draws nothing, which is what leaves the screen background showing through.',
+    gradient:
+      'The far end of the background fill. On the ESP32-P4 a gradient falls back to the software renderer, which costs frame time.',
+    axis: 'The direction the background gradient runs in.',
+    padding: 'Keeps the contents this far inside the box on each side. It does not move the box itself.',
+    border: 'The outline drawn on the box edge. A zero width draws none.',
+    radius: 'Rounds the box corners, border and background alike.',
+    inset:
+      'Shrinks the background fill inside the border by this much, so a thick border and its fill do not overlap on the curve.'
+  },
+  conditions: {
+    source:
+      'The field the rules are read against. It is independent of what the widget shows, so a gear readout can turn red on engine speed.',
+    ramp: 'Moves the colour smoothly with the value between the stops. Rules paint over it; a ramp alone needs at least two stops.',
+    rampTarget: 'Which part of the widget the ramp colours.',
+    rule: 'The first rule that holds wins. Anything a rule leaves unset stays as authored, so a rule may change only the colour and nothing else.',
+    blink: 'Alternates the widget on and off while the rule holds. Zero leaves it steady.',
+    hold: 'Keeps the rule applied for this long after it stops holding, so a momentary event stays readable. Zero applies it only while it holds.'
+  },
+  action: {
+    tap: 'What a tap on this widget does on a board with a digitizer. An empty transparent shape with an action is an invisible tap zone.',
+    screen: 'The screen a tap goes to, named rather than numbered — renaming a screen repoints every action that names it.'
+  },
+  container: {
+    clip: 'Whether the contents end at this box. With it off, a widget inside is drawn where it lands even past the box, which is what a caption straddling a child’s top border needs.'
+  },
+  arc: {
+    angles:
+      'Zero degrees is three o’clock and the angle grows clockwise, so a start of 135 with a 270 sweep is the usual car gauge.',
+    thickness: 'How thick the arc band is, drawn inward from the widget box.',
+    track: 'The unfilled part of the arc. Unset leaves it undrawn.',
+    inverted: 'Fills from the far end of the sweep instead of from the start angle.'
+  },
+  bar: {
+    origin:
+      'The fill runs between this value and the current one instead of from the minimum, so a signed window with a zero origin reads as a centred meter.',
+    fill: 'The colour of the filled part. The box background underneath is the track the fill runs over.',
+    inverted: 'Fills from the far end of the bar instead of from the near one.'
+  },
+  strip: {
+    segments:
+      'Each lamp lights at its own fraction of the range, so one strip suits any engine. Thresholds must not decrease down the list.',
+    gap: 'The space left between lamps, and the corner radius of each one.',
+    blink:
+      'Blinking starts at this fraction of the range. A threshold above 1 never blinks, and neither does a zero period.',
+    off: 'The colour of a lamp that is not lit. Unset leaves it undrawn.'
+  },
+  graph: {
+    points:
+      'How many samples the trace keeps and how often one is taken — together they are the window it shows. The trace is the most expensive widget to draw, so keep the point count only as high as it needs to be.'
+  },
+  image: {
+    image:
+      'Images are uploaded to the board and converted in the configurator to the size they are drawn at. The device neither scales nor rotates, so match the widget box to the bitmap.',
+    recolor: 'Tints the bitmap towards this colour, which is how one white icon serves every state.',
+    strength: 'How far the tint goes, from untouched at 0 to fully the tint colour at 255.'
+  },
+  shape: {
+    kind: 'A line is a thin rectangle: give it a small height or width. A shape is also the container other widgets are placed inside.'
+  },
+  slot: {
+    pages:
+      'A tap on the board cycles the pages that are in the loop. Page order is priority: when two are triggered at once the device shows the earlier one.',
+    loop: 'Whether a tap on the slot can reach this page. A page out of the loop is only ever raised by its trigger.',
+    trigger:
+      'What raises this page over the loop on its own. Without one the page is reached only by tapping the slot.',
+    duration:
+      'How long the page stays up. A value-changed trigger needs one; with rules, zero shows the page only while a rule holds.'
+  },
+  dashboard: {
+    font: 'The family new widgets take. It is the editor’s own setting — the device resolves a font per widget, so the document carries no dashboard-wide one.',
+    budget:
+      'What the chosen families cost on the board. Faces are uploaded whole and the partition holds 2 MiB of them.'
+  },
+  screen: {
+    name: 'What a "go to screen" action points at. Renaming repoints every action that names this screen.',
+    background: 'The colour behind every widget on this screen.'
+  },
+  widget: {
+    id: 'The name this widget is known by in the layer list, in the JSON, and to anything that refers to it. The device stores it and never draws it.'
+  }
+} as const

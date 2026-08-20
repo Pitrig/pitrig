@@ -2,7 +2,10 @@ import { screensOf } from '@shared/configuration-access'
 import { MAXIMUM_ACTIONS, WIDGET_ACTION_TYPE_VALUES, type WidgetAction, type WidgetActionType } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import { actionCount, useDashboardEditorStore } from '../dashboard-editor'
-import { Section, SelectField } from './fields'
+import { Group } from './Group'
+import { HINTS } from './hints'
+import { GROUP_ICONS } from './icons'
+import { SelectField } from './fields'
 
 // What a tap on this widget does. An action is bounded per document, so the
 // editor has to say when there is no room for another one.
@@ -24,7 +27,14 @@ export function ActionEditor({
   const screens = screensOf(configuration)
   const atCapacity = actionCount(configuration) >= MAXIMUM_ACTIONS && type === 'none'
   return (
-    <Section title="Action">
+    <Group
+      id="Action"
+      title="Action"
+      icon={GROUP_ICONS.action}
+      hint={HINTS.action.tap}
+      summary={type === 'goto_screen' ? `Go to ${action?.screen || '—'}` : type === 'none' ? 'None' : type}
+      defaultOpen={type !== 'none'}
+    >
       {disabledReason ? (
         <p className="text-muted-foreground">{disabledReason}</p>
       ) : (
@@ -33,6 +43,8 @@ export function ActionEditor({
             label="On tap"
             value={type}
             options={WIDGET_ACTION_TYPE_VALUES}
+            modified={action !== undefined}
+            onReset={() => onChange(undefined)}
             onChange={(next) => {
               if (next === 'none') {
                 onChange(undefined)
@@ -49,7 +61,8 @@ export function ActionEditor({
           />
           {type === 'goto_screen' ? (
             <SelectField
-              label="Go to screen"
+              label="Screen"
+              hint={HINTS.action.screen}
               value={action?.screen ?? ''}
               options={screens.map((screen, index) => screen.id ?? `screen${index + 1}`)}
               onChange={(screen) => onChange({ type: 'goto_screen', screen })}
@@ -60,7 +73,7 @@ export function ActionEditor({
           {type !== 'none' ? (
             <button
               type="button"
-              className="h-8 rounded-md border px-2 hover:bg-muted"
+              className="h-7 w-full rounded-md border px-2 hover:bg-muted"
               onClick={() => {
                 const index =
                   type === 'goto_screen'
@@ -80,13 +93,6 @@ export function ActionEditor({
           ) : null}
         </>
       )}
-    </Section>
+    </Group>
   )
 }
-
-/**
- * What a shape gains by holding widgets. Its name, box, stacking and action are
- * ordinary widget properties and are edited where every widget's are, so all
- * that is left here is what containment itself means. Switching what an area
- * shows is the slot widget's business now, not the shape's.
- */

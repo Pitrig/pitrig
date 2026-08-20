@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { ColumnResizer, RowResizer } from './PanelResizer'
 import { Button } from '@/components/ui/button'
 import { ConfigurationPanel } from '@/features/configuration/ConfigurationPanel'
 import { DisplayPreview } from '@/features/configuration/preview/DisplayPreview'
@@ -9,6 +10,7 @@ import { WidgetInspector } from '@/features/configuration/inspector/WidgetInspec
 import { DevelopmentLog } from '@/features/development/DevelopmentLog'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { useDeviceStore } from '@/features/device/device-store'
+import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
 import { FirmwareUpdatePanel } from '@/features/firmware-update/FirmwareUpdatePanel'
 import { FontLibraryPanel } from '@/features/font-library/FontLibraryPanel'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
@@ -23,6 +25,8 @@ export function App(): React.JSX.Element {
   const [deviceStatusText, setDeviceStatusText] = useState<string>()
   const deviceSession = useDeviceStore((state) => state.session)
   const connectionRevision = useDeviceStore((state) => state.connectionRevision)
+  const inspectorWidth = useEditorPanelStore((state) => state.inspectorWidth)
+  const layersHeight = useEditorPanelStore((state) => state.layersHeight)
 
   useEditorShortcuts()
 
@@ -44,7 +48,7 @@ export function App(): React.JSX.Element {
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 
-      <main className="grid min-h-0 overflow-hidden grid-cols-[21rem_minmax(0,1fr)_20rem]">
+      <main className="grid min-h-0 overflow-hidden grid-cols-[21rem_minmax(0,1fr)_auto]">
         <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-r p-3">
           <ConfigurationPanel key={`configuration-${connectionRevision}`} />
           <TemplatesPanel key={`templates-${connectionRevision}`} />
@@ -65,10 +69,21 @@ export function App(): React.JSX.Element {
           <DisplayPreview />
         </section>
 
-        <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-l p-3">
-          <LayersPanel key={`layers-${connectionRevision}`} />
-          <WidgetInspector key={`inspector-${connectionRevision}`} />
-        </aside>
+        {/* Two panes rather than one scrolling column: the inspector owns its
+            own scroll, so picking another widget can put it back at the top
+            without dragging the layer list along with it. */}
+        <div className="flex min-h-0" style={{ width: inspectorWidth }}>
+          <ColumnResizer />
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 border-l p-3">
+            <div className="min-h-0 flex-none" style={{ height: layersHeight }}>
+              <LayersPanel key={`layers-${connectionRevision}`} />
+            </div>
+            <RowResizer />
+            <div className="min-h-0 flex-1">
+              <WidgetInspector key={`inspector-${connectionRevision}`} />
+            </div>
+          </div>
+        </div>
       </main>
 
       {import.meta.env.DEV ? <DevelopmentLog /> : null}

@@ -1,32 +1,74 @@
+import { Plus, Trash2 } from 'lucide-react'
 import { ConditionsEditor } from './ConditionsEditor'
 import { SlotPagesEditor } from './SlotPagesEditor'
 import { pagesOf, widgetsOf } from '@shared/configuration-access'
 import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
-import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { fieldBounds } from '@shared/validate/ranges'
-import { type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
-import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
-import { CheckboxField, ColorField, FontEditor, Hint, NumberField, OptionalColorField, Section, SelectField, TextField } from './fields'
+import { DEFAULT_WIDGET_FONT_SIZE_PX, type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
+import { SourceEditor } from './TelemetryBindingField'
+import { authored } from './authored'
+import { Advanced, Group } from './Group'
+import { HINTS } from './hints'
+import { GROUP_ICONS } from './icons'
+import { PropertyRow } from './PropertyRow'
+import { CheckboxField, ColorField, ColorSwatchInput, FontEditor, Hint, NumberField, NumberInput, OptionalColorField, SelectField, TextField } from './fields'
 import { ContainerEditor, SourceRangeSection } from './section-editors'
 import { BoxEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
+
+/**
+ * One editor per widget type, each a list of groups in the same order: what it
+ * reads, what it is, what it says, what it looks like, and what a value does to
+ * it. The frame it stands in — its name, its box, its geometry and its action —
+ * is added around these by the inspector, because every type carries it.
+ */
+
+/** The button every list of repeated rows adds with. */
+function AddButton({ label, onClick }: { label: string; onClick: () => void }): React.JSX.Element {
+  return (
+    <button type="button" className="flex h-7 w-full items-center justify-center gap-1 rounded-md border text-foreground hover:bg-muted" onClick={onClick}>
+      <Plus aria-hidden className="size-3" />
+      {label}
+    </button>
+  )
+}
+
+function RemoveButton({ label, disabled, onClick }: { label: string; disabled?: boolean; onClick: () => void }): React.JSX.Element {
+  return (
+    <button type="button" aria-label={label} title={label} disabled={disabled} className="flex-none rounded-md border p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40" onClick={onClick}>
+      <Trash2 aria-hidden className="size-3" />
+    </button>
+  )
+}
 
 export function ArcEditor({ selection, widget }: { selection: WidgetSelection; widget: ArcWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: ArcWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ArcWidgetConfiguration))
   return (
     <>
       <SourceRangeSection widget={widget} update={update} />
-      <Section title="Arc">
-        <div className="grid grid-cols-2 gap-2">
-          <NumberField label="Start angle (deg)" value={widget.start_angle_deg ?? 135} {...fieldBounds('arc', 'start_angle_deg')} onChange={(value) => update((next) => { next.start_angle_deg = value })} />
-          <NumberField label="Sweep (deg)" value={widget.sweep_deg ?? 270} {...fieldBounds('arc', 'sweep_deg')} onChange={(value) => update((next) => { next.sweep_deg = value })} />
-        </div>
-        <p className="text-muted-foreground">Zero degrees is three o&apos;clock and the angle grows clockwise, so 135 with a 270 sweep is the usual car gauge.</p>
-        <NumberField label="Thickness (px)" value={widget.thickness_px ?? 8} {...fieldBounds('arc', 'thickness_px')} onChange={(value) => update((next) => { next.thickness_px = value })} />
-        <ColorField label="Fill color" value={widget.fill_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.fill_color = value })} />
-        <OptionalColorField label="Track color" value={widget.track_color} onChange={(value) => update((next) => { if (value === undefined) delete next.track_color; else next.track_color = value })} />
-        <CheckboxField label="Sweep from the far end" checked={widget.inverted ?? false} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
-      </Section>
+      <Group id="Arc" title="Arc" icon={GROUP_ICONS.arc} summary={`${widget.start_angle_deg ?? 135}° + ${widget.sweep_deg ?? 270}°`}>
+        <PropertyRow
+          label="Angles"
+          hint={HINTS.arc.angles}
+          modified={authored(widget.start_angle_deg, 135) || authored(widget.sweep_deg, 270)}
+          onReset={() => update((next) => {
+            delete next.start_angle_deg
+            delete next.sweep_deg
+          })}
+        >
+          <div className="grid grid-cols-2 gap-1">
+            <NumberInput title="Start angle in degrees" value={widget.start_angle_deg ?? 135} {...fieldBounds('arc', 'start_angle_deg')} onChange={(value) => update((next) => { next.start_angle_deg = value })} />
+            <NumberInput title="Sweep in degrees" value={widget.sweep_deg ?? 270} {...fieldBounds('arc', 'sweep_deg')} onChange={(value) => update((next) => { next.sweep_deg = value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Start</span><span>Sweep</span></div>
+        </PropertyRow>
+        <NumberField label="Thickness" hint={HINTS.arc.thickness} suffix="px" value={widget.thickness_px ?? 8} {...fieldBounds('arc', 'thickness_px')} modified={authored(widget.thickness_px, 8)} onReset={() => update((next) => { delete next.thickness_px })} onChange={(value) => update((next) => { next.thickness_px = value })} />
+        <ColorField label="Fill" value={widget.fill_color ?? '#38BDF8'} modified={authored(widget.fill_color, '#38BDF8')} onReset={() => update((next) => { delete next.fill_color })} onChange={(value) => update((next) => { next.fill_color = value })} />
+        <OptionalColorField label="Track" hint={HINTS.arc.track} value={widget.track_color} onChange={(value) => update((next) => { if (value === undefined) delete next.track_color; else next.track_color = value })} />
+        <Advanced id="Arc" active={authored(widget.inverted, false)}>
+          <CheckboxField label="Invert" hint={HINTS.arc.inverted} checked={widget.inverted ?? false} modified={authored(widget.inverted, false)} onReset={() => update((next) => { delete next.inverted })} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
+        </Advanced>
+      </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
@@ -40,46 +82,82 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
   return (
     <>
       <SourceRangeSection widget={widget} update={update} />
-      <Section title="Strip">
-        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value })} />
-        <div className="grid grid-cols-2 gap-2">
-          <NumberField label="Gap (px)" value={widget.segment_gap_px ?? 4} min={0} onChange={(value) => update((next) => { next.segment_gap_px = value })} />
-          <NumberField label="Radius (px)" value={widget.segment_radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.segment_radius_px = value })} />
-        </div>
-        <OptionalColorField label="Unlit color" value={widget.off_color} onChange={(value) => update((next) => { if (value === undefined) delete next.off_color; else next.off_color = value })} />
-        <div className="grid grid-cols-2 gap-2">
-          <NumberField label="Blink from" value={widget.blink_threshold ?? 2} step="any" onChange={(value) => update((next) => { next.blink_threshold = value })} />
-          <NumberField label="Blink (ms)" value={widget.blink_ms ?? 0} {...fieldBounds('indicator', 'blink_ms')} onChange={(value) => update((next) => { next.blink_ms = value })} />
-        </div>
-        <p className="text-muted-foreground">Blinking starts at this fraction of the range; above 1 it never blinks, and so does a zero period.</p>
-      </Section>
-      <Section title="Segments">
-        <p className="text-muted-foreground">Each lamp lights at its fraction of the range, so one strip suits any engine. Thresholds must not decrease.</p>
-        {segments.map((segment, index) => (
-          <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-            <NumberField label={`Lamp ${index + 1}`} value={segment.threshold ?? 0} step="any" min={0} max={1} onChange={(value) => update((next) => {
-              const list = [...(next.segments ?? [])]
-              list[index] = { ...list[index], threshold: value }
-              next.segments = list
-            })} />
-            <ColorField label="Color" value={segment.color ?? '#00C853'} onChange={(value) => update((next) => {
-              const list = [...(next.segments ?? [])]
-              list[index] = { ...list[index], color: value }
-              next.segments = list
-            })} />
-            <button className="h-8 rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => update((next) => {
-              next.segments = (next.segments ?? []).filter((_, position) => position !== index)
-            })}>Remove</button>
+      <Group id="Strip" title="Strip" icon={GROUP_ICONS.strip} summary={widget.orientation ?? 'horizontal'}>
+        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} modified={authored(widget.orientation, 'horizontal')} onReset={() => update((next) => { delete next.orientation })} onChange={(value) => update((next) => { next.orientation = value })} />
+        <PropertyRow
+          label="Lamps"
+          hint={HINTS.strip.gap}
+          modified={authored(widget.segment_gap_px, 4) || authored(widget.segment_radius_px, 0)}
+          onReset={() => update((next) => {
+            delete next.segment_gap_px
+            delete next.segment_radius_px
+          })}
+        >
+          <div className="grid grid-cols-2 gap-1">
+            <NumberInput title="Gap between lamps in pixels" value={widget.segment_gap_px ?? 4} min={0} onChange={(value) => update((next) => { next.segment_gap_px = value })} />
+            <NumberInput title="Lamp corner radius in pixels" value={widget.segment_radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.segment_radius_px = value })} />
           </div>
+          <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Gap</span><span>Radius</span></div>
+        </PropertyRow>
+        <OptionalColorField label="Unlit" hint={HINTS.strip.off} value={widget.off_color} onChange={(value) => update((next) => { if (value === undefined) delete next.off_color; else next.off_color = value })} />
+        <Advanced id="Strip" active={authored(widget.blink_threshold, 2) || authored(widget.blink_ms, 0)}>
+          <PropertyRow
+            label="Blink"
+            hint={HINTS.strip.blink}
+            modified={authored(widget.blink_threshold, 2) || authored(widget.blink_ms, 0)}
+            onReset={() => update((next) => {
+              delete next.blink_threshold
+              delete next.blink_ms
+            })}
+          >
+            <div className="grid grid-cols-2 gap-1">
+              <NumberInput title="Blink from this fraction of the range" value={widget.blink_threshold ?? 2} step="any" onChange={(value) => update((next) => { next.blink_threshold = value })} />
+              <NumberInput title="Blink period in milliseconds" value={widget.blink_ms ?? 0} {...fieldBounds('indicator', 'blink_ms')} onChange={(value) => update((next) => { next.blink_ms = value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>From</span><span>Period (ms)</span></div>
+          </PropertyRow>
+        </Advanced>
+      </Group>
+      <Group id="Segments" title="Segments" icon={GROUP_ICONS.segments} hint={HINTS.strip.segments} summary={`${segments.length} lamp(s)`}>
+        {segments.map((segment, index) => (
+          <PropertyRow
+            key={index}
+            label={`Lamp ${index + 1}`}
+            modified={authored(segment.threshold, 0) || authored(segment.color, '#00C853')}
+            onReset={() => update((next) => {
+              const list = [...(next.segments ?? [])]
+              const lamp = { ...list[index] }
+              delete lamp.threshold
+              delete lamp.color
+              list[index] = lamp
+              next.segments = list
+            })}
+          >
+            <div className="flex items-center gap-1">
+              <NumberInput title={`Lamp ${index + 1} lights at this fraction of the range`} value={segment.threshold ?? 0} step="any" min={0} max={1} onChange={(value) => update((next) => {
+                const list = [...(next.segments ?? [])]
+                list[index] = { ...list[index], threshold: value }
+                next.segments = list
+              })} />
+              <ColorSwatchInput label={`Lamp ${index + 1} color`} value={segment.color ?? '#00C853'} onChange={(color) => update((next) => {
+                const list = [...(next.segments ?? [])]
+                list[index] = { ...list[index], color }
+                next.segments = list
+              })} />
+              <RemoveButton label={`Remove lamp ${index + 1}`} onClick={() => update((next) => {
+                next.segments = (next.segments ?? []).filter((_, position) => position !== index)
+              })} />
+            </div>
+          </PropertyRow>
         ))}
         {segments.length < MAXIMUM_INDICATOR_SEGMENTS ? (
-          <button className="h-8 rounded-md border px-2 text-xs text-muted-foreground hover:text-foreground" onClick={() => update((next) => {
+          <AddButton label="Add lamp" onClick={() => update((next) => {
             const list = next.segments ?? []
             const previous = list[list.length - 1]
             next.segments = [...list, { threshold: previous?.threshold ?? 0, color: previous?.color ?? '#00C853' }]
-          })}>Add lamp</button>
+          })} />
         ) : <Hint>{`A strip holds at most ${MAXIMUM_INDICATOR_SEGMENTS} lamps.`}</Hint>}
-      </Section>
+      </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
@@ -93,14 +171,14 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
   const known = installed.find(({ name }) => name === widget.image)
   return (
     <>
-      <Section title="Image">
-        <SelectField label="Uploaded image" value={widget.image ?? ''} options={['', ...installed.map(({ name }) => name)]} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
+      <Group id="Image" title="Image" icon={GROUP_ICONS.image} summary={widget.image || 'Unassigned'}>
+        <SelectField label="Bitmap" hint={HINTS.image.image} block value={widget.image ?? ''} options={['', ...installed.map(({ name }) => name)]} modified={authored(widget.image, '')} onReset={() => update((next) => { delete next.image })} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
         {installed.length === 0 ? <Hint>Upload images to the board to choose one here.</Hint> : null}
         {widget.image && !known && installed.length > 0 ? <Hint>{`"${widget.image}" is not installed on the connected board, so the device will refuse this configuration.`}</Hint> : null}
-        {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}. The device draws it at the size it was uploaded at, so match the widget to it.`}</p> : null}
-        <OptionalColorField label="Recolor" value={widget.recolor} onChange={(value) => update((next) => { if (value) next.recolor = value; else { delete next.recolor; delete next.recolor_opa } })} />
-        {widget.recolor ? <NumberField label="Recolor strength (0-255)" value={widget.recolor_opa ?? 255} min={0} max={255} onChange={(value) => update((next) => { next.recolor_opa = Math.min(255, Math.max(0, Math.round(value))) })} /> : null}
-      </Section>
+        {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}`}</p> : null}
+        <OptionalColorField label="Recolor" hint={HINTS.image.recolor} value={widget.recolor} onChange={(value) => update((next) => { if (value) next.recolor = value; else { delete next.recolor; delete next.recolor_opa } })} />
+        {widget.recolor ? <NumberField label="Strength" hint={HINTS.image.strength} value={widget.recolor_opa ?? 255} min={0} max={255} modified={authored(widget.recolor_opa, 255)} onReset={() => update((next) => { delete next.recolor_opa })} onChange={(value) => update((next) => { next.recolor_opa = Math.min(255, Math.max(0, Math.round(value))) })} /> : null}
+      </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
@@ -115,15 +193,26 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
   return (
     <>
       <SourceRangeSection widget={widget} update={update} />
-      <Section title="Trace">
-        <div className="grid grid-cols-2 gap-2">
-          <NumberField label="Points" value={points} {...fieldBounds('graph', 'point_count')} onChange={(value) => update((next) => { next.point_count = value })} />
-          <NumberField label="Interval (ms)" value={interval} {...fieldBounds('graph', 'sample_interval_ms')} onChange={(value) => update((next) => { next.sample_interval_ms = value })} />
-        </div>
-        <p className="text-muted-foreground">{`Shows the last ${((points * interval) / 1000).toFixed(1)} s. The trace is the most expensive widget to draw, so keep the point count only as high as it needs to be.`}</p>
-        <ColorField label="Line color" value={widget.line_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.line_color = value })} />
-        <NumberField label="Line width (px)" value={widget.line_width_px ?? 2} {...fieldBounds('graph', 'line_width_px')} onChange={(value) => update((next) => { next.line_width_px = value })} />
-      </Section>
+      <Group id="Trace" title="Trace" icon={GROUP_ICONS.graph} summary={`${((points * interval) / 1000).toFixed(1)} s`}>
+        <PropertyRow
+          label="Window"
+          hint={HINTS.graph.points}
+          modified={authored(widget.point_count, 64) || authored(widget.sample_interval_ms, 100)}
+          onReset={() => update((next) => {
+            delete next.point_count
+            delete next.sample_interval_ms
+          })}
+        >
+          <div className="grid grid-cols-2 gap-1">
+            <NumberInput title="How many samples the trace keeps" value={points} {...fieldBounds('graph', 'point_count')} onChange={(value) => update((next) => { next.point_count = value })} />
+            <NumberInput title="Milliseconds between samples" value={interval} {...fieldBounds('graph', 'sample_interval_ms')} onChange={(value) => update((next) => { next.sample_interval_ms = value })} />
+          </div>
+          <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Points</span><span>Interval (ms)</span></div>
+        </PropertyRow>
+        <p className="text-muted-foreground">{`Shows the last ${((points * interval) / 1000).toFixed(1)} s.`}</p>
+        <ColorField label="Line" value={widget.line_color ?? '#38BDF8'} modified={authored(widget.line_color, '#38BDF8')} onReset={() => update((next) => { delete next.line_color })} onChange={(value) => update((next) => { next.line_color = value })} />
+        <NumberField label="Line width" suffix="px" value={widget.line_width_px ?? 2} {...fieldBounds('graph', 'line_width_px')} modified={authored(widget.line_width_px, 2)} onReset={() => update((next) => { delete next.line_width_px })} onChange={(value) => update((next) => { next.line_width_px = value })} />
+      </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
@@ -133,39 +222,24 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
 
 export function BarEditor({ selection, widget }: { selection: WidgetSelection; widget: BarWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: BarWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as BarWidgetConfiguration))
-  const binding = TELEMETRY_CATALOG.find(({ name }) => name === widget.source?.binding)
-  const unit = binding?.unit && binding.unit !== 'source' ? ` (${binding.unit})` : ''
   return (
     <>
-      <Section title="Data">
-        <TelemetryBindingField value={widget.source?.binding ?? ''} onChange={(value) => update((next) => {
-          next.source = { ...next.source, binding: value }
-        })} />
-        <SelectField label="Modifier" value={widget.source?.modifiers?.some(({ type }) => type === 'lap_timer') ? 'lap_timer' : 'none'} options={['none', 'lap_timer']} onChange={(value) => update((next) => {
-          if (value === 'lap_timer') next.source = { binding: 'session.lap.current_time', modifiers: [{ type: 'lap_timer' }] }
-          else if (next.source) delete next.source.modifiers
-        })} />
-        <p className="text-muted-foreground">The fill is the value's place in this window, clamped at both ends.</p>
-        <div className="grid grid-cols-2 gap-2">
-          <NumberField label={`Minimum${unit}`} value={widget.minimum ?? 0} step="any" onChange={(value) => update((next) => { next.minimum = value })} />
-          <NumberField label={`Maximum${unit}`} value={widget.maximum ?? 1} step="any" onChange={(value) => update((next) => { next.maximum = value })} />
-        </div>
-        <CheckboxField label="Fill from a value" checked={widget.origin !== undefined} onChange={(checked) => update((next) => { if (checked) next.origin = 0; else delete next.origin })} />
+      {/* A bar is the one gauge that may fill from somewhere other than its
+          minimum, so its data group carries the origin the others have no use
+          for. */}
+      <SourceRangeSection widget={widget} update={update}>
+        <CheckboxField label="From origin" hint={HINTS.bar.origin} checked={widget.origin !== undefined} modified={widget.origin !== undefined} onReset={() => update((next) => { delete next.origin })} onChange={(checked) => update((next) => { if (checked) next.origin = 0; else delete next.origin })} />
         {widget.origin !== undefined ? (
-          <>
-            <NumberField label={`Origin${unit}`} value={widget.origin} step="any" onChange={(value) => update((next) => { next.origin = value })} />
-            <p className="text-muted-foreground">The fill runs between this value and the current one, so a signed window with a zero origin reads as a centred meter.</p>
-          </>
+          <NumberField label="Origin" value={widget.origin} step="any" modified={authored(widget.origin, 0)} onReset={() => update((next) => { next.origin = 0 })} onChange={(value) => update((next) => { next.origin = value })} />
         ) : null}
-      </Section>
-      <Section title="Bar">
-        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} onChange={(value) => update((next) => { next.orientation = value })} />
-        <CheckboxField label="Fill from the far end" checked={widget.inverted ?? false} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
-        <ColorField label="Fill color" value={widget.fill_color ?? '#38BDF8'} onChange={(value) => update((next) => { next.fill_color = value })} />
+      </SourceRangeSection>
+      <Group id="Bar" title="Bar" icon={GROUP_ICONS.bar} summary={widget.orientation ?? 'horizontal'}>
+        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} modified={authored(widget.orientation, 'horizontal')} onReset={() => update((next) => { delete next.orientation })} onChange={(value) => update((next) => { next.orientation = value })} />
+        <ColorField label="Fill" hint={HINTS.bar.fill} value={widget.fill_color ?? '#38BDF8'} modified={authored(widget.fill_color, '#38BDF8')} onReset={() => update((next) => { delete next.fill_color })} onChange={(value) => update((next) => { next.fill_color = value })} />
         {/* The fill's gradient runs along the bar's own axis, so it needs no
             direction of its own. */}
         <OptionalColorField
-          label="Fill gradient to"
+          label="Gradient to"
           value={widget.fill_grad_color}
           onChange={(value) =>
             update((next) => {
@@ -174,8 +248,10 @@ export function BarEditor({ selection, widget }: { selection: WidgetSelection; w
             })
           }
         />
-        <p className="text-muted-foreground">The box background below is the track the fill runs over.</p>
-      </Section>
+        <Advanced id="Bar" active={authored(widget.inverted, false)}>
+          <CheckboxField label="Invert" hint={HINTS.bar.inverted} checked={widget.inverted ?? false} modified={authored(widget.inverted, false)} onReset={() => update((next) => { delete next.inverted })} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
+        </Advanced>
+      </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
@@ -183,31 +259,31 @@ export function BarEditor({ selection, widget }: { selection: WidgetSelection; w
   )
 }
 
-// A shape is its frame, so its own section is one property; the box and the
+// A shape is its frame, so its own group is one property; the box and the
 // styling rules come from the shared frame editors below.
 export function ShapeEditor({ selection, widget }: { selection: WidgetSelection; widget: ShapeWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: ShapeWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ShapeWidgetConfiguration))
+  const held = widgetsOf(widget).length
   return (
     <>
-      <Section title="Shape">
-        <SelectField label="Kind" value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} onChange={(value) => update((next) => { next.kind = value })} />
-        <p className="text-muted-foreground">A line is a thin rectangle: give it a small height or width.</p>
-      </Section>
-      {/* A shape holds widgets, so it gets the section that says what holding
+      <Group id="Shape" title="Shape" icon={GROUP_ICONS.shape} summary={widget.kind ?? 'rectangle'}>
+        <SelectField label="Kind" hint={HINTS.shape.kind} value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} modified={authored(widget.kind, 'rectangle')} onReset={() => update((next) => { delete next.kind })} onChange={(value) => update((next) => { next.kind = value })} />
+      </Group>
+      <TitleEditor widget={widget} update={update} />
+      <BoxEditor widget={widget} update={update} />
+      <ConditionsEditor widget={widget} update={update} />
+      {/* A shape holds widgets, so it gets the group that says what holding
           them means. */}
       <ContainerEditor
         widget={widget}
         update={update}
-        count={widgetsOf(widget).length}
+        count={held}
         summary={
-          widgetsOf(widget).length === 0
+          held === 0
             ? 'This shape holds no widgets. Select some and wrap them to make it a container; an empty one with an action is an invisible tap zone.'
-            : `Holds ${widgetsOf(widget).length} widget(s), placed relative to this box.`
+            : `Holds ${held} widget(s), placed relative to this box.`
         }
       />
-      <TitleEditor widget={widget} update={update} />
-      <BoxEditor widget={widget} update={update} />
-      <ConditionsEditor widget={widget} update={update} />
     </>
   )
 }
@@ -222,45 +298,29 @@ export function SlotEditor({ selection, widget }: { selection: WidgetSelection; 
   const pages = pagesOf(widget)
   return (
     <>
-      <Section title="Slot">
-        <p className="text-muted-foreground">
-          {`Switches between ${pages.length} page(s) in this box. A tap on the board cycles the pages in the loop; a page with a trigger is raised over them while its event lasts. The slot itself draws nothing — put a shape behind it for a background.`}
-        </p>
-      </Section>
-      {/* A page holds widgets exactly as a container shape does, so it answers
-          the same question about where they end — once, for every page. */}
       <ContainerEditor
         widget={widget}
         update={update}
         count={pages.reduce((total, page) => total + widgetsOf(page).length, 0)}
-        summary="Every page is this box, and its widgets are placed relative to it."
+        summary="The slot draws nothing itself — put a shape behind it for a background. Every page is this box, and its widgets are placed relative to it."
       />
       {widget.id ? <SlotPagesEditor slotId={widget.id} pages={pages} /> : null}
     </>
   )
 }
 
-/**
- * What a tap does. Carried by every widget, so the editor for it is one
- * component: a readout that doubles as a button and a rectangle of the screen
- * are the same thing to the device.
- *
- * The board reaches this only where there is a digitizer, which the hint says
- * rather than the editor hiding the section on those boards — a document is
- * authored for the dashboard, not for the plate it is being edited on.
- */
-
 export function TextEditor({ selection, widget }: { selection: WidgetSelection; widget: TextWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: TextWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as TextWidgetConfiguration))
   const sources = widget.sources ?? []
   return (
     <>
-      <Section title="Data">
-        <p className="text-muted-foreground">
-          Sources render in order, each through its own transform. A prefix or suffix is what
-          separates one from the next, so {'"P 3/24"'} is a position source followed by a
-          participants source prefixed with {'"/"'}.
-        </p>
+      <Group
+        id="Data"
+        title="Data"
+        icon={GROUP_ICONS.data}
+        hint={HINTS.text.sources}
+        summary={sources.length > 1 ? `${sources.length} sources` : sources[0]?.binding || 'Unbound'}
+      >
         {sources.map((source, index) => (
           <SourceEditor
             key={index}
@@ -277,26 +337,20 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
           />
         ))}
         {sources.length < MAXIMUM_TEXT_SOURCES ? (
-          <button
-            type="button"
-            className="h-8 w-full rounded-md border text-foreground"
-            onClick={() => update((next) => {
-              next.sources = [...(next.sources ?? []), {}]
-            })}
-          >
-            Add source
-          </button>
+          <AddButton label="Add source" onClick={() => update((next) => {
+            next.sources = [...(next.sources ?? []), {}]
+          })} />
         ) : null}
-      </Section>
+      </Group>
+      <Group id="Value" title="Value" icon={GROUP_ICONS.value}>
+        <FontEditor font={widget.value?.font} defaultSizePx={DEFAULT_WIDGET_FONT_SIZE_PX} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
+        <ColorField label="Color" value={widget.value?.color ?? '#E8E8E8'} modified={authored(widget.value?.color, '#E8E8E8')} onReset={() => update((next) => { if (next.value) delete next.value.color })} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
+        <SelectField label="Alignment" hint={HINTS.text.alignment} value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} modified={authored(widget.value?.alignment, 'center')} onReset={() => update((next) => { if (next.value) delete next.value.alignment })} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value } })} />
+        <TextField label="Fallback" hint={HINTS.text.fallback} value={widget.value?.unavailable_text ?? ''} modified={authored(widget.value?.unavailable_text, '')} onReset={() => update((next) => { if (next.value) delete next.value.unavailable_text })} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
+      </Group>
       <TitleEditor widget={widget} update={update} />
-      <ConditionsEditor widget={widget} update={update} />
-      <Section title="Value">
-        <FontEditor font={widget.value?.font} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
-        <SelectField label="Alignment" value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value } })} />
-        <TextField label="Unavailable text" value={widget.value?.unavailable_text ?? ''} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
-        <ColorField label="Color" value={widget.value?.color ?? '#E8E8E8'} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
-      </Section>
       <BoxEditor widget={widget} update={update} />
+      <ConditionsEditor widget={widget} update={update} />
     </>
   )
 }

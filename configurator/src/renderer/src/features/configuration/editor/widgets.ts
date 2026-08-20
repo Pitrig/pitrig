@@ -102,7 +102,7 @@ function intoContainer(
     relative.y + relative.height <= 0 ||
     relative.x >= box.width ||
     relative.y >= box.height
-  return misses ? centeredPlacement(box, absolute.width, absolute.height) : relative
+  return misses ? centeredPlacement(box, absolute) : relative
 }
 
 /**
@@ -145,7 +145,7 @@ export function insertWidget(
 
 // The device rasterizes any size from an installed family, so a new widget
 // picks a readable size rather than inheriting one that happens to be installed.
-const DEFAULT_WIDGET_FONT_SIZE_PX = 24
+export const DEFAULT_WIDGET_FONT_SIZE_PX = 24
 // A caption labels a widget rather than competing with it, so it does not
 // inherit the reading's size.
 export const DEFAULT_CAPTION_FONT_SIZE_PX = 16
@@ -221,6 +221,26 @@ export function draftValueFont(
  * `extras` carries what the editor knows and a type may want: the family the
  * dashboard already draws with, and an image that is actually installed.
  */
+/**
+ * The box a new widget of each type is created at. Named rather than written
+ * into the factories below, because the inspector's "reset size" has to return
+ * a widget to it: the schema's own default is a zero-sized box, which the
+ * editor reads as no placement at all and stops drawing.
+ */
+export const NEW_WIDGET_SIZE: Record<
+  WidgetConfiguration['type'],
+  { width: number; height: number }
+> = {
+  text: { width: 120, height: 64 },
+  shape: { width: 160, height: 80 },
+  slot: { width: 200, height: 100 },
+  bar: { width: 200, height: 24 },
+  arc: { width: 120, height: 120 },
+  indicator: { width: 240, height: 20 },
+  image: { width: 96, height: 96 },
+  graph: { width: 200, height: 80 }
+}
+
 interface NewWidgetExtras {
   font?: FontSpec
   image?: string
@@ -239,19 +259,19 @@ const WIDGET_DEFAULTS: Record<
     // empty source takes the schema default binding.
     sources: [{}],
     ...(font ? { value: { font } } : {}),
-    placement: centeredPlacement(display, 120, 64)
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.text)
   }),
   shape: (display) => ({
     type: 'shape',
     // A shape with nothing painted would be invisible, so it starts as a
     // visible plate the author can restyle.
     background_color: '#1E293B',
-    placement: centeredPlacement(display, 160, 80)
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.shape)
   }),
   slot: (display) => ({
     type: 'slot',
     pages: [{}, {}],
-    placement: centeredPlacement(display, 200, 100)
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.slot)
   }),
   bar: (display) => ({
     type: 'bar',
@@ -259,14 +279,14 @@ const WIDGET_DEFAULTS: Record<
     // starts with one; the default 0..1 window suits a normalized source.
     background_color: '#1E293B',
     source: { binding: 'vehicle.throttle' },
-    placement: centeredPlacement(display, 200, 24)
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.bar)
   }),
   arc: (display) => ({
     type: 'arc',
     source: { binding: 'engine.rpm_percent' },
     // A visible track is what makes an empty gauge read as a gauge.
     track_color: '#1E293B',
-    placement: centeredPlacement(display, 120, 120)
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.arc)
   }),
   indicator: (display) => ({
     type: 'indicator',
@@ -281,20 +301,20 @@ const WIDGET_DEFAULTS: Record<
       { threshold: 0.92, color: '#D50000' },
       { threshold: 0.97, color: '#D50000' }
     ],
-    placement: centeredPlacement(display, 240, 20)
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.indicator)
   }),
   image: (display, { image }) => ({
     type: 'image',
     // The device draws an image at the size it was uploaded at, so a new
     // widget starts at that size when one is installed.
     ...(image ? { image } : {}),
-    placement: centeredPlacement(display, 96, 96)
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.image)
   }),
   graph: (display) => ({
     type: 'graph',
     source: { binding: 'vehicle.speed' },
     background_color: '#1E293B',
-    placement: centeredPlacement(display, 200, 80)
+    placement: centeredPlacement(display, NEW_WIDGET_SIZE.graph)
   }),
 }
 
@@ -313,11 +333,10 @@ export function addWidget(
 
 function centeredPlacement(
   display: { width: number; height: number },
-  preferredWidth: number,
-  preferredHeight: number
+  preferred: { width: number; height: number }
 ): WidgetPlacement {
-  const width = Math.min(preferredWidth, display.width)
-  const height = Math.min(preferredHeight, display.height)
+  const width = Math.min(preferred.width, display.width)
+  const height = Math.min(preferred.height, display.height)
   return {
     x: Math.floor((display.width - width) / 2),
     y: Math.floor((display.height - height) / 2),
@@ -416,7 +435,7 @@ export function addTapZone(display: { width: number; height: number }): string |
     const selection = insertWidget(configuration, {
       type: 'shape',
       kind: 'rectangle',
-      placement: centeredPlacement(display, TAP_ZONE_PX, TAP_ZONE_PX)
+      placement: centeredPlacement(display, { width: TAP_ZONE_PX, height: TAP_ZONE_PX })
     })
     created = selection?.type === 'widget' ? selection.id : undefined
   })

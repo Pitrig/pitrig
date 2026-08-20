@@ -317,8 +317,16 @@ Inside `features/configuration/`, the editor is split three ways and each part h
 directory. `preview/` draws the canvas: `PreviewCanvas` and its chrome, the pure geometry in
 `canvas-geometry.ts`, and one renderer per widget type. `inspector/` is the property panel: the
 shell dispatches by widget type into `widget-editors`, over shared `section-editors`,
-`styling-editors` and form primitives in `fields.tsx`. `editor/` is the document layer — view
-state in `store.ts`, access and mutation in `document.ts`, and one module per family of commands
+`styling-editors` and form primitives in `fields.tsx`. Those are laid out by two components — a
+folding `Group` with a summary of what it holds, and a `PropertyRow` that puts the name left of
+the control, with a dot for a value that differs from the device's own default (`authored.ts`,
+deliberately not "the key is present": every repeated row is created carrying its defaults) — and
+every explanation is a click on the `InfoHint` beside a name, worded once in `hints.ts` rather than
+as prose between the fields. Colours use `ColorPicker` rather than
+`<input type="color">`, because the browser draws its own popup outside the document and the
+dashboard's existing colours have to be reachable from inside the picker. `editor/` is the document layer — view
+state in `store.ts`, panel sizes and group folds in `panel-store.ts` (the only editor state kept
+across restarts), access and mutation in `document.ts`, and one module per family of commands
 (`widgets`, `screens`, `slots`, `clipboard`, `naming`, `palette`, and the arrange family split by
 what it arranges: `alignment`, `geometry-commands`, `grouping`, `placement`, `reparent`).
 `dashboard-editor.ts` re-exports `editor/` as one surface, so panels keep a single import.
