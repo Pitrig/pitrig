@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 10;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 11;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
@@ -466,11 +466,12 @@ struct ImageWidgetConfiguration {
 // holding other widgets. The frame is the whole widget: it binds no
 // telemetry of its own, but its styling rules can still hide it or flash
 // it, and a line is a thin rectangle. A shape with widgets is a container —
-// its children are placed relative to its box, and they are drawn even
-// where they overhang it.
+// its children are placed relative to its box and cut off at it, unless
+// clip_children says otherwise.
 struct ShapeWidgetConfiguration {
   WidgetFrame frame{};
   ShapeKind kind{ShapeKind::rectangle};
+  bool clip_children{true};
   std::uint8_t widget_count{};
   std::array<WidgetReference, kMaximumWidgetsPerContainer> widgets{};
 };
@@ -501,6 +502,7 @@ struct SlotPageConfiguration {
 // rather than living inside one.
 struct SlotWidgetConfiguration {
   WidgetFrame frame{};
+  bool clip_children{true};
   std::uint8_t page_count{};
   std::array<SlotPageConfiguration, kMaximumSlotPages> pages{};
 };

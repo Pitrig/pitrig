@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 10
+export const CONFIGURATION_SCHEMA_VERSION = 11
 
 /** Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
 export const MAXIMUM_PAYLOAD_SIZE = 65536
@@ -478,7 +478,7 @@ export interface ImageWidgetConfiguration {
   recolor_opa?: number
 }
 
-/** Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box, and they are drawn even where they overhang it. */
+/** Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box and cut off at it, unless clip_children says otherwise. */
 export interface ShapeWidgetConfiguration {
   type: 'shape'
   id?: string
@@ -496,6 +496,7 @@ export interface ShapeWidgetConfiguration {
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
   kind?: ShapeKind
+  clip_children?: boolean
   widgets?: WidgetConfiguration[]
 }
 
@@ -526,6 +527,7 @@ export interface SlotWidgetConfiguration {
   condition_source?: ValueSourceConfiguration
   color_ramp?: ColorRamp
   conditions?: WidgetCondition[]
+  clip_children?: boolean
   pages?: SlotPageConfiguration[]
 }
 
@@ -581,9 +583,9 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'segment_gap_px', 'segment_radius_px', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
   GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px'],
   ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'image', 'recolor', 'recolor_opa'],
-  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind', 'widgets'],
+  ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind', 'clip_children', 'widgets'],
   SlotPageConfiguration: ['in_loop', 'trigger', 'source', 'duration_ms', 'conditions', 'widgets'],
-  SlotWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'pages'],
+  SlotWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'clip_children', 'pages'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
   DashboardConfiguration: ['screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'dashboard'],

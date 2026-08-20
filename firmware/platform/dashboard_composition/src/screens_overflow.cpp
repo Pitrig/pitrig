@@ -9,10 +9,12 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
-// A container does not clip its children: a caption or a widget that overhangs
-// its box is still drawn, and only the display bounds it. LVGL clips by
-// default, so the overhang has to be measured and the clip lifted by exactly
-// that much.
+// What a container does with a child that reaches past its box. By default it
+// cuts it off, which is LVGL's own behaviour and the one a panel wants. A
+// container carrying `clip_children: false` draws the overhang instead — a
+// caption straddling a child's top border is the case that asks for it — and
+// that costs code: the reach has to be measured and the clip lifted by exactly
+// that much, because the same figure widens the invalidated area.
 namespace simcore::dashboard_composition::screens {
 namespace {
 
@@ -92,11 +94,38 @@ void unclip(lv_obj_t* const container, std::int32_t& overflow) {
   lv_obj_refresh_ext_draw_size(container);
 }
 
+// Cuts a container's children off at its box, which is where LVGL starts. The
+// stored figure goes back to zero because it is read by the container above as
+// what this one lets through, and a clipping container lets nothing through.
+//
+// Idempotent for the same reason unclip is, and for one more: an incremental
+// apply may reach a container that refused to clip a moment ago, so the flag
+// and the handler are cleared rather than assumed absent.
+void clip(lv_obj_t* const container, std::int32_t& overflow) {
+  overflow = 0;
+  lv_obj_remove_flag(container, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+  (void)lv_obj_remove_event_cb_with_user_data(
+      container, report_container_overflow, &overflow);
+  lv_obj_refresh_ext_draw_size(container);
+}
+
+// One container settled: clipped at its box, or opened up by exactly what its
+// children reach. Written once because a container shape, a slot page and a
+// slot itself all answer it the same way.
+void settle(const Dashboard& dashboard, lv_obj_t* const container,
+            std::int32_t& overflow, const bool clip_children) {
+  if (clip_children) {
+    clip(container, overflow);
+    return;
+  }
+  overflow = measure_overflow(dashboard, container);
+  unclip(container, overflow);
+}
 
 }  // namespace
 
 
-bool unclip_containers(
+bool apply_container_clipping(
     const configuration::ApplicationConfiguration& configuration,
     Dashboard& dashboard) {
   const configuration::DashboardConfiguration& document = configuration.dashboard;
@@ -114,8 +143,8 @@ bool unclip_containers(
     if (container == nullptr || document.shape_widgets[slot].widget_count == 0) {
       continue;
     }
-    dashboard.container_overflow[slot] = measure_overflow(dashboard, container);
-    unclip(container, dashboard.container_overflow[slot]);
+    settle(dashboard, container, dashboard.container_overflow[slot],
+           document.shape_widgets[slot].clip_children);
   }
   for (std::size_t index = 0; index < document.slot_widget_count; ++index) {
     const configuration::SlotWidgetConfiguration& widget =
@@ -130,14 +159,14 @@ bool unclip_containers(
       if (object == nullptr) {
         continue;
       }
-      // The page already refuses to clip — the slot collection sets that as it
-      // builds — so what is added here is the measured size, without which LVGL
-      // would invalidate only the page's own box.
-      dashboard.page_overflow[flat] = measure_overflow(dashboard, object);
-      unclip(object, dashboard.page_overflow[flat]);
+      // A page holds what a container shape's children would, so it takes the
+      // slot's answer rather than one of its own: every page of one slot is the
+      // same box, so they clip or overhang together.
+      settle(dashboard, object, dashboard.page_overflow[flat],
+             widget.clip_children);
     }
-    dashboard.slot_overflow[index] = measure_overflow(dashboard, container);
-    unclip(container, dashboard.slot_overflow[index]);
+    settle(dashboard, container, dashboard.slot_overflow[index],
+           widget.clip_children);
   }
   lvgl_port_unlock();
   return true;

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { allWidgetsOf } from '@shared/configuration-access'
+import { allWidgetsOf, isContainer } from '@shared/configuration-access'
 import type { WidgetConfiguration } from '@shared/configuration-schema'
 import { BOARD_PROFILES } from '@shared/device'
 import { MAXIMUM_TEXT_WIDGETS, addWidget, deleteWidget, draftValueFont, duplicateWidget, findWidget, useDashboardEditorStore } from '../dashboard-editor'
@@ -82,6 +82,19 @@ export function DisplayPreview(): React.JSX.Element {
   ).length
   const selectedExists =
     selection?.type === 'widget' && Boolean(findWidget(configuration, selection.id))
+  // Where the next widget will land. The rule lives in the editor; this only
+  // says it out loud, because a widget appearing inside a panel is otherwise a
+  // surprise the author has to undo to understand.
+  const drillIn = useDashboardEditorStore((state) => state.drillIn)
+  const selectedContainer =
+    selection?.type === 'widget' &&
+    (() => {
+      const widget = findWidget(configuration, selection.id)?.widget
+      return widget !== undefined && isContainer(widget)
+    })()
+      ? selection.id
+      : undefined
+  const landing = drillIn ?? selectedContainer
   const displayRatio = display
     ? display.width / display.height
     : 16 / 9
@@ -100,7 +113,13 @@ export function DisplayPreview(): React.JSX.Element {
                   className={`h-8 ${width}`}
                   variant="outline"
                   disabled={!configuration || atCapacity}
-                  title={atCapacity ? `Maximum of ${MAXIMUM_TEXT_WIDGETS} text widgets reached.` : undefined}
+                  title={
+                    atCapacity
+                      ? `Maximum of ${MAXIMUM_TEXT_WIDGETS} text widgets reached.`
+                      : landing
+                        ? `Adds inside ${landing}`
+                        : undefined
+                  }
                   onClick={() => {
                     if (!display) return
                     const added = addWidget(type, display, {

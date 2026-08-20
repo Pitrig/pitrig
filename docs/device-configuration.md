@@ -1,6 +1,6 @@
 # Device configuration
 
-This document defines the schema 10 configuration contract implemented by the
+This document defines the schema 11 configuration contract implemented by the
 firmware and read by the desktop configurator. Earlier schemas are
 intentionally not part of the current contract.
 
@@ -128,13 +128,22 @@ rectangle. It is a widget first, so it draws its own frame, stacks among its
 siblings and can take a tap like any other; the shape you would once have put
 behind a group is the container now.
 
-**A container does not clip its children.** A caption overhanging its widget's
-border is drawn, and so is a widget nudged past the container's edge. The only
-geometry refused is a box that falls entirely off the display.
+**A container clips its children unless it says otherwise.** What a container
+holds is drawn inside it, and a widget that reaches past its edge is cut off
+there. `clip_children: false` draws the overhang instead, which is what a caption
+straddling a child's top border needs. A container's own border and caption are
+never cut by its own clip: the device draws both on the *parent*, so they belong
+to the box above.
+
+Geometry itself is not bounded by the container either way. The only box refused
+is one that falls entirely off the display; a widget the clip hides is still in
+the document, still selectable in the editor, and drawn again the moment the
+property is turned off.
 
 | Container property | Shape | Meaning |
 | --- | --- | --- |
 | `widgets` | array ≤16 | Widgets parented to this shape, placed relative to its box. |
+| `clip_children` | bool | Cuts those widgets off at this box. Omitted means it does; `false` draws them where they land. |
 
 A **slot** widget is an area of a screen that switches what it shows. It holds up
 to eight `pages`, one of which is visible; the widgets on a page are placed
@@ -153,6 +162,7 @@ priority. See [ADR 0021](adr/0021-widget-groups-and-slots.md).
 | Slot property | Shape | Meaning |
 | --- | --- | --- |
 | `pages` | array ≤8 | Pages this slot switches between, in priority order. At least one must be in the loop. |
+| `clip_children` | bool | Cuts the widgets on every page off at the slot's box. Not an appearance — a slot still draws nothing — so it is accepted where a background or a border is refused. |
 
 | Page property | Shape | Meaning |
 | --- | --- | --- |
@@ -622,20 +632,61 @@ or by dragging a rubber band across the canvas. A selection of two or more can
 be aligned to the selection's own bounds and, from three, spread so the gaps between
 them match. Dragging is snapped to the other widgets' edges and centres and to
 the display's, and optionally to a grid; the canvas magnifies up to eight times
-and pans with the middle button. A layer list shows the stack top first, restacks
-by dragging, renames a widget by editing its `id`, and can lock or hide a layer
-for the editing session — locking and hiding are the editor's own state and
-never reach the document, which the device would reject for the unknown
-properties.
+with `Cmd`/`Ctrl` and the wheel, keeping whatever is under the pointer under it,
+and pans with the middle button.
+
+A click picks the **outermost container** a widget is in, so a full container is
+dragged by any point on it rather than only by its edges. Going deeper is asked
+for: double-click opens a container and makes the level inside it clickable,
+`Cmd`/`Ctrl`-click reaches the deepest widget in one go, and `Escape` steps back
+up one level at a time — the container holding the selection, then out of the
+opened container itself. A breadcrumb above the canvas says where the editor is
+looking and leaves at any level. Opening a **slot** also dims the rest of the
+screen, because a page is one alternative for one box; opening a shape does not,
+because a shape is an ordinary parent.
+
+Dropping a widget on the canvas puts it in the innermost container that holds
+its whole box, and on the screen when none does — so a widget joins a panel by
+being dragged onto it and leaves by being dragged off. The candidate is outlined
+while the drag runs. Holding `Cmd`/`Ctrl` through the drag keeps the current
+parent, which is how a readout is parked over a plate without joining it. A
+multi-widget drag never reparents: moving only the widget under the pointer
+would split the selection between two boxes.
+
+A new widget lands in the container being worked in — the opened one, or the
+selected one — and on the active screen otherwise. `Duplicate` and paste keep
+the copy in the same container as its original.
+
+Screens are authored one at a time through a tab strip, and dragging a tab
+reorders the screens — which is the order the driver swipes through, so it is a
+document edit and undoable like any other. A `goto_screen` action names a screen
+by `id`, so reordering never breaks one.
+
+A layer list shows the stack top first, folds each container, restacks by
+dragging a row or with `Cmd`/`Ctrl` and the bracket keys (`Alt` for one step),
+renames a widget by editing its `id`, and can lock or hide a layer for the
+editing session — locking and hiding are the editor's own state and never reach
+the document, which the device would reject for the unknown properties. A slot
+lists every page, so a widget can be dropped onto a page the canvas is not
+showing. Dragging a row that is part of the selection drags the whole selection.
+Picking a widget on the canvas unfolds its containers in the list and scrolls to
+it.
 
 Editing is undoable, so nothing destructive asks for confirmation. A drag or a
 held arrow key is one entry rather than one per commit, and a raw-JSON editing
 session is one entry rather than one per keystroke; loading a file, reloading
 from the board, saving and resetting each start a new history. Keyboard editing
 works on the selected widget wherever focus is, except inside a text field:
-arrow keys nudge by one logical pixel and by ten with `Shift`, `Delete` removes,
-and `Cmd`/`Ctrl` with `Z`, `Shift+Z`, `C`, `V` and `D` undo, redo, copy, paste
-and duplicate. A copied widget travels as JSON through the system clipboard, so
+arrow keys nudge by one logical pixel and by ten with `Shift`, the same arrows
+with `Cmd`/`Ctrl` and `Alt` resize instead — right and down grow, left and up
+shrink — `Delete` removes, and `Cmd`/`Ctrl` with `Z`, `Shift+Z`, `C`, `V`, `D`,
+`G`, `Shift+G`, `S`, `]` and `[` undo, redo, copy, paste, duplicate, wrap in a
+container, unwrap, save to a file, bring to front and send to back. `Alt` with a
+bracket moves one step instead. `Cmd`/`Ctrl`+`S` saves the document to a file
+and never to the board: saving to the board delivers fonts and restarts it,
+which is not what a keystroke should set off.
+
+A copied widget travels as JSON through the system clipboard, so
 it can be pasted into another project; a pasted fragment is validated against
 the same schema allow-list the device payload uses.
 
@@ -678,7 +729,7 @@ checks before it lets a configuration replace the running dashboard.
 
 ```text
 @SC:INFO
-@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=10,source=factory,generation=0,storage=1
+@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=11,source=factory,generation=0,storage=1
 ```
 
 Fields:

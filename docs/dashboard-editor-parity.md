@@ -35,10 +35,10 @@ editor).
   device draws.
 - Up to four screens, swiped between on a board with a touch panel, or reached by
   a tap on a widget or on an area authored as a touch zone.
-- Container shapes: a shape whose widgets are placed relative to it and nest
-  inside it, and slots, an area holding pages of widgets that share one box with
-  one shown at a time — cycled by a tap, or raised for a time by a telemetry
-  trigger.
+- Container shapes: a shape whose widgets are placed relative to it, nest inside
+  it and are clipped to it unless the shape says otherwise, and slots, an area
+  holding pages of widgets that share one box with one shown at a time — cycled
+  by a tap, or raised for a time by a telemetry trigger.
 - Live apply rebuilds the dashboard on a connected board without writing flash
   and without a reboot — SimHub has no direct equivalent.
 
@@ -98,9 +98,9 @@ curves and triggers.
 
 Done. `kMaximumScreens` is 4 and the driver swipes between them
 ([ADR 0020](adr/0020-screen-navigation.md)); the editor authors one screen at a
-time through a tab strip. Navigation is not authorable: the order is the order
-the screens are declared in and it wraps at both ends, so there is nothing in
-the contract for it.
+time through a tab strip, which also reorders them by dragging. Navigation is
+not authorable: the order is the order the screens are declared in and it wraps
+at both ends, so there is nothing in the contract for it beyond that order.
 
 It rests on the input subsystem that arrived with it: a GT911 pointer behind a
 new `interfaces/input` contract on both Guition boards
@@ -135,9 +135,29 @@ Available: undo/redo with a whole gesture grouped into one entry,
 copy/paste/duplicate (the clipboard is JSON, so it crosses projects), arrow-key
 nudging, keyboard deletion, multi-select by rubber band and Shift, alignment and
 even distribution, snapping to a grid and to neighbouring edges with guides,
-zoom with panning, and a layer panel with drag reordering, drag reparenting —
-dropping a row onto the middle of a container's row moves the widget inside it —
-renaming and lock/hide.
+zoom with panning, restacking from the keyboard, and a layer panel with folding,
+drag reordering, drag reparenting — dropping a row onto the middle of a
+container's row moves the widget inside it, and a slot lists every page so a drop
+can reach one the canvas is not showing — renaming and lock/hide.
+
+Three of those come straight from what SimHub's editor documents and SimCore had
+no equivalent for: reordering screens by dragging their tabs, `Ctrl+S` to save
+the dashboard — to a file, since saving to the board delivers fonts and restarts
+it — and `Ctrl+Alt` with the arrows to resize the selection. `Ctrl+A`, `Ctrl+Z`,
+the arrows and `Del` were already bound, and the padlock that lets a click reach
+what is under a locked component is what our lock has always done. SimHub's zoom
+slider is the one deliberately left alone: the canvas zooms at the pointer with
+the wheel, and a panel over the display would cover the thing being judged.
+
+Containers, on the other hand, are worked with the way they are in Figma and
+Sketch rather than the way SimHub does it, because SimHub has no containers to
+copy: its Dash Studio is
+one flat component list per screen, with a padlock that lets a click reach what
+is underneath (which is what our lock already does). So a click picks the
+outermost container, double-click opens one, `Cmd`/`Ctrl`-click deep-selects,
+`Escape` walks back up, and a widget joins a container by being dragged into it
+on the canvas — with `Cmd`/`Ctrl` held to keep the current parent. A new,
+duplicated or pasted widget lands in the container being worked in.
 
 Grouping is done, but not as this section predicted: it is a document entity
 rather than an editor annotation, because the device needs it. A container is a
@@ -147,8 +167,8 @@ SimHub "dashboard area switch". A tap cycles the pages in the loop, and a page
 whose telemetry trigger fires is raised over them for a bounded time
 ([ADR 0021](adr/0021-widget-groups-and-slots.md)).
 
-Missing: dragging a widget between containers on the *canvas*; the layer panel
-does it, by dropping a row onto a container's row.
+Missing: nothing structural. What is left here is polish — keyboard sibling
+navigation (`Tab`, `Enter`) and a search over the layer list.
 
 The rest of this section is pure configurator work: no schema and no firmware
 changes.
@@ -180,9 +200,12 @@ a child; the shared frame (background, inset background, gradient, border) is
 drawn for every type rather than only the ones that started with it; the
 indicator divides its strip in whole pixels and leaves an unlit lamp
 transparent without an `off_color`; and a widget's own box clips its contents,
-so an overlong value is cut off here as it is on the board. The caption stays
-outside that clip because the device puts it on the parent, where it overhangs
-the frame; it is placed by the same rule the device uses — anchored to an edge
+so an overlong value is cut off here as it is on the board. A container clips
+what it holds, caption included, exactly as `clip_children` says — the one thing
+the canvas leaves unclipped is the invisible hit area, so a widget dragged out of
+a container stays selectable instead of becoming unreachable; it is drawn as a
+faint outline where it went. A widget's own caption stays outside its own clip
+because the device puts it on the parent, where it overhangs the frame; it is placed by the same rule the device uses — anchored to an edge
 of the widget's outer box, moved by the offsets, with the border line cut on
 whichever band its padded box crosses — including the same whole-pixel
 truncation, so the cut lands on the same pixels in both.
@@ -293,9 +316,9 @@ raising a particular cap is a decision about the RAM budget.
    behind. It comes first among what is left because it is what makes the rest
    judgeable: a rule, a ramp, a graph trace and a real string length cannot be
    checked against a placeholder.
-9. **The editor's remaining reach** — dragging into a container on the canvas,
-   saving and inserting a single screen, a template as a file, and a gallery to
-   start from. Configurator only, no schema and no firmware.
+9. **The editor's remaining reach** — saving and inserting a single screen, a
+   template as a file, and a gallery to start from. Configurator only, no schema
+   and no firmware.
 10. **Transparency** — cheap to author and cheap to draw; the work is an alpha
     encoding that still leaves the `kTransparentColor` sentinel meaning "unset".
 11. **Images that survive a move** — an original-format asset the device scales,

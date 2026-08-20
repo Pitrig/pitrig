@@ -63,7 +63,7 @@ CRC32. Write and verify the inactive slot before selecting it. These record
 headers and slot mechanics remain private firmware details.
 
 Bound the compact JSON payload at `kMaximumPayloadSize`, which the generated
-configuration contract defines — 65536 bytes as of schema 10. Size the dedicated
+configuration contract defines — 65536 bytes as of schema 11. Size the dedicated
 `simcore_cfg` NVS partition at 1 MiB (`0x100000`). Two full-size records, the
 copy NVS keeps while it rewrites one, and NVS's own page metadata fit in a
 quarter of that; the rest is deliberate headroom for storing several

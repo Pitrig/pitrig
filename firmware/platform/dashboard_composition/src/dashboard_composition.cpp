@@ -247,9 +247,9 @@ bool create(lv_display_t* const display,
   // Measured once every widget stands, and before the z-order pass moves any of
   // them: what a container has to let through is a fact about the objects, not
   // about their stacking.
-  if (initialized && !screens::unclip_containers(configuration,
-                                                 dashboard_state)) {
-    log::error(kTag, "Failed to release container clipping");
+  if (initialized && !screens::apply_container_clipping(configuration,
+                                                        dashboard_state)) {
+    log::error(kTag, "Failed to apply container clipping");
     initialized = false;
   }
   if (!screens::apply_z_order(configuration, dashboard_state)) {

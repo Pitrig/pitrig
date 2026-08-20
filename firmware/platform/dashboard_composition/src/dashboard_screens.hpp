@@ -41,13 +41,15 @@ namespace simcore::dashboard_composition::screens {
 [[nodiscard]] bool will_render_content(
     const configuration::ApplicationConfiguration& configuration);
 
-// Lets every container's children draw where they land instead of being cut at
-// its edge. Measures how far each one actually reaches — a caption overhanging
-// a border is the common case — and gives LVGL that as the container's extra
-// draw size, which widens drawing, hit-testing and invalidation together. Run
-// after every widget exists and before z-ordering. Caller holds no lock; this
-// takes it.
-[[nodiscard]] bool unclip_containers(
+// Settles what each container does with a child that reaches past its box. The
+// default is LVGL's own: cut it off at the edge. A container carrying
+// `clip_children: false` instead draws it where it lands, which costs a
+// measurement of how far its children actually reach — a caption overhanging a
+// border is the common case — handed to LVGL as that container's extra draw
+// size, widening drawing, hit-testing and invalidation together. Run after
+// every widget exists and before z-ordering. Caller holds no lock; this takes
+// it.
+[[nodiscard]] bool apply_container_clipping(
     const configuration::ApplicationConfiguration& configuration,
     Dashboard& dashboard);
 

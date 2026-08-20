@@ -16,11 +16,14 @@ import {
   parentOffset,
   pasteWidget,
   parentContainerId,
+  restackOrder,
+  restackWidget,
   selectedWidget,
   unwrapShape,
   useDashboardEditorStore
 } from '../dashboard-editor'
-import { clampToDisplay } from './placement'
+import { isTextEntry } from './keyboard'
+import { clamp, clampToDisplay } from './placement'
 import type { WidgetSelection } from '../dashboard-editor'
 
 // The whole window listens, because the canvas is an SVG that nothing focuses
@@ -28,6 +31,9 @@ import type { WidgetSelection } from '../dashboard-editor'
 // happens to have focus. Anything typed into a field is left alone.
 const NUDGE_PX = 1
 const COARSE_NUDGE_PX = 10
+// The floor the pointer resize uses, so neither route can make a box the other
+// would refuse.
+const MINIMUM_SIZE_PX = 8
 
 /**
  * Keyboard editing for the canvas. A held arrow key repeats, so the whole run
@@ -110,20 +116,46 @@ export function useEditorShortcuts(): void {
         if (created) editor.select({ type: 'widget', id: created })
         return
       }
+      // Restacking, on the brackets every drawing editor puts it on. Alt is the
+      // one-step version, as it is in Illustrator and PowerPoint.
+      if (accelerator && (event.key === ']' || event.key === '[')) {
+        event.preventDefault()
+        const forward = event.key === ']'
+        const move = event.altKey
+          ? forward
+            ? 'forward'
+            : 'backward'
+          : forward
+            ? 'front'
+            : 'back'
+        // One entry for the whole selection, the way a multi-delete is one.
+        // The order the moves are applied in is what keeps a group arranged as
+        // it was, so it is asked for rather than assumed.
+        withEditGroup(() => {
+          for (const id of restackOrder(configuration, editor.selectedIds, move)) {
+            restackWidget(id, move)
+          }
+        })
+        return
+      }
       // Screens are switched by number, the way the driver swipes between them.
       if (accelerator && /^[1-9]$/.test(event.key)) {
         event.preventDefault()
         editor.setActiveScreen(Number(event.key) - 1)
         return
       }
-      // A child sits above its parent in draw order, so clicking a full
-      // container always lands on a child. Escape walks back up to it, and
-      // clears the selection once there is nothing above. Inside an open slot
-      // it leaves the slot first, which is the level above everything in it.
+      // Escape is the way back out: it selects the container holding whatever
+      // is selected, and clears the selection once there is nothing above.
+      // Inside an opened container it leaves that first, which is the level
+      // above everything in it.
       if (event.key === 'Escape') {
         const parent = parentContainerId(configuration, selection)
-        if (editor.drillIn && (parent === undefined || parent === editor.drillIn)) {
-          editor.setDrillIn(undefined)
+        // One rung at a time: select the container holding the selection, and
+        // once the opened container is itself what is selected, step out of it
+        // into its own parent. Containers nest, so leaving the innermost is not
+        // the same as leaving them all — that is the crumb marked "Screen".
+        if (editor.drillIn && selection?.type === 'widget' && selection.id === editor.drillIn) {
+          editor.setDrillIn(parent)
           return
         }
         editor.select(parent ? { type: 'widget', id: parent } : undefined)
@@ -141,20 +173,26 @@ export function useEditorShortcuts(): void {
         return
       }
 
-      const step = nudgeStep(event.key)
+      const step = arrowStep(event.key)
       if (!step || !display) return
       event.preventDefault()
       if (!nudging) {
         nudging = true
         store.beginEdit()
       }
+      // Same key, same run-grouping, two writes: the arrows move the selection
+      // and the accelerator with Alt resizes it, which is the pair SimHub binds.
+      // Right and down grow, left and up shrink.
+      const resizing = accelerator && event.altKey
       for (const id of selected) {
-        nudge({ type: 'widget', id }, configuration, display, step, event.shiftKey)
+        const target: WidgetSelection = { type: 'widget', id }
+        if (resizing) resize(target, configuration, display, step, event.shiftKey)
+        else nudge(target, configuration, display, step, event.shiftKey)
       }
     }
 
     const onKeyUp = (event: KeyboardEvent): void => {
-      if (nudgeStep(event.key)) endNudge()
+      if (arrowStep(event.key)) endNudge()
     }
 
     window.addEventListener('keydown', onKeyDown)
@@ -175,7 +213,7 @@ function selectIfAdded(added: WidgetSelection | undefined): void {
   if (added) useDashboardEditorStore.getState().select(added)
 }
 
-function nudgeStep(key: string): { x: number; y: number } | undefined {
+function arrowStep(key: string): { x: number; y: number } | undefined {
   switch (key) {
     case 'ArrowLeft':
       return { x: -1, y: 0 }
@@ -188,6 +226,46 @@ function nudgeStep(key: string): { x: number; y: number } | undefined {
     default:
       return undefined
   }
+}
+
+/**
+ * Grows or shrinks one widget from its bottom-right corner, which is what a
+ * keyboard resize can mean without an anchor to pick. Bounded exactly as the
+ * pointer resize is in `transformedPlacement`: no smaller than the handles
+ * allow, and never past the display.
+ */
+function resize(
+  selection: WidgetSelection,
+  configuration: DeviceConfiguration,
+  display: { width: number; height: number },
+  step: { x: number; y: number },
+  coarse: boolean
+): void {
+  if (selection.type !== 'widget') return
+  const placement = absolutePlacement(configuration, selection.id)
+  if (!placement) return
+  const offset = parentOffset(configuration, selection.id)
+  const distance = coarse ? COARSE_NUDGE_PX : NUDGE_PX
+  const width = clamp(
+    placement.width + step.x * distance,
+    MINIMUM_SIZE_PX,
+    Math.max(MINIMUM_SIZE_PX, display.width - placement.x)
+  )
+  const height = clamp(
+    placement.height + step.y * distance,
+    MINIMUM_SIZE_PX,
+    Math.max(MINIMUM_SIZE_PX, display.height - placement.y)
+  )
+  if (width === placement.width && height === placement.height) return
+  mutateSelectedWidget(selection, (widget) => {
+    widget.placement = {
+      ...placement,
+      x: placement.x - offset.x,
+      y: placement.y - offset.y,
+      width,
+      height
+    }
+  })
 }
 
 function nudge(
@@ -225,12 +303,3 @@ function displayOf(
   return BOARD_PROFILES[configuration.board]?.display
 }
 
-function isTextEntry(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
-}

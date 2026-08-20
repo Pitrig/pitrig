@@ -76,6 +76,13 @@ export function wrapInShape(ids: readonly string[]): string | undefined {
       type: 'shape',
       kind: 'rectangle',
       id,
+      // Wrapping is grouping, and a group does not cut anything off — the box
+      // is the members' own bounds, so the only thing a clip could reach is
+      // what already overhangs one of them, a caption above all. That is the
+      // frame/group split Figma and Sketch make: a container drawn on purpose
+      // clips, a container wrapped around a selection does not. Ticking "Clip
+      // contents" turns it into the other kind.
+      clip_children: false,
       placement: { x: left, y: top, width: right - left, height: bottom - top },
       widgets: members
     })

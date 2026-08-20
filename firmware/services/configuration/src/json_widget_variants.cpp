@@ -184,7 +184,9 @@ namespace {
   constexpr std::string_view kName = "widget.slot";
   if (!valid_object(object, schema::kSlotWidgetConfigurationKeys, kName,
                     failure) ||
-      !parse_frame(object, config.frame, kName, failure)) {
+      !parse_frame(object, config.frame, kName, failure) ||
+      !read_boolean(object, "clip_children", config.clip_children, kName,
+                    failure)) {
     return false;
   }
   return read_array(
@@ -206,7 +208,9 @@ namespace {
                       failure) &&
          parse_frame(object, config.frame, kName, failure) &&
          read_enum(object, "kind", config.kind, shape_kind_from_name, kName,
-                   failure);
+                   failure) &&
+         read_boolean(object, "clip_children", config.clip_children, kName,
+                      failure);
 }
 
 [[nodiscard]] bool parse_text_widget(const cJSON* const object,

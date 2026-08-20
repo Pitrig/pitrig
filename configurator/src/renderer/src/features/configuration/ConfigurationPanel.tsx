@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { bridgeErrorMessage, operationErrorMessage } from '@/features/device/bridge-errors'
@@ -16,6 +16,7 @@ import {
   type ValidationResult
 } from '@shared/configuration-validate'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
+import { isTextEntry } from '@/features/configuration/editor/keyboard'
 import { useLiveApply, type LiveApplyState } from '@/features/device/use-live-apply'
 import { UnresolvedFontsDialog } from '@/features/font-library/UnresolvedFontsDialog'
 import {
@@ -234,6 +235,35 @@ export function ConfigurationPanel(): React.JSX.Element {
     }
   }
 
+  // Cmd/Ctrl+S saves the dashboard, which is what it does in SimHub's editor —
+  // to a file, not to the board, because saving to the board uploads fonts and
+  // reboots and is not what a keystroke should set off.
+  //
+  // The handler lives here rather than with the canvas shortcuts because
+  // saveFile is this panel's own state; what the two share is the guard that
+  // keeps a keystroke aimed at a field out of it. The ref is what lets one
+  // listener outlive every re-render while still calling the current closure.
+  const saveShortcut = useRef<() => void>(() => {})
+  // Kept current after each render rather than during it, so one listener can
+  // outlive every re-render and still call the latest closure. Refused while an
+  // operation is running, exactly as the button is disabled then: saveFile sets
+  // its own progress state and would otherwise start twice.
+  useEffect(() => {
+    saveShortcut.current = () => {
+      if (!busy) void saveFile()
+    }
+  })
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return
+      if (isTextEntry(event.target)) return
+      event.preventDefault()
+      saveShortcut.current()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   const read = async (): Promise<void> => {
     if (dirty && !window.confirm('Discard local configuration changes and read from the board?')) {
       return
@@ -392,6 +422,7 @@ export function ConfigurationPanel(): React.JSX.Element {
             <Button
               variant="outline"
               disabled={busy || !parsed.ok}
+              title="Save the configuration to a file (Cmd/Ctrl+S)"
               onClick={() => void saveFile()}
             >
               {operation === 'save_file' ? 'Saving…' : 'Save'}

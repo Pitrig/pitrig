@@ -67,10 +67,10 @@ bool Collection::build(State& state, const std::size_t index,
     // reaching past the page would become scrollable content rather than an
     // overhang.
     lv_obj_remove_flag(object, LV_OBJ_FLAG_SCROLLABLE);
-    // A page does not clip its widgets, for the same reason a container shape
-    // does not. How far they actually overhang is measured once by the
-    // composition, which is what keeps the invalidated area honest.
-    lv_obj_add_flag(object, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
+    // Whether a page clips its widgets is the slot's `clip_children`, and the
+    // composition is what applies it — here and on a container shape through
+    // the same pass, so a page and a shape cannot drift apart. A fresh object
+    // clips, which is also the default, so nothing is set here.
     if (base + page < pages_.size()) {
       pages_[base + page] = object;
     }

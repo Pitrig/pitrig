@@ -66,7 +66,7 @@ export function WidgetInspector(): React.JSX.Element {
             ) : widget.type === 'shape' ? (
               <ShapeEditor selection={selection} widget={widget} />
             ) : widget.type === 'slot' ? (
-              <SlotEditor widget={widget} />
+              <SlotEditor selection={selection} widget={widget} />
             ) : (
               <TextEditor selection={selection} widget={widget} />
             )}

@@ -15,7 +15,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] FreeRTOS and LVGL scheduler ownership decision
 - [*] Telemetry catalog, registry and handle-based ingestion
 - [*] Performance service and debug overlay
-- [*] Generated configuration contract (schema 10)
+- [*] Generated configuration contract (schema 11)
 - [*] Screen as an explicit composition primitive
 - [*] Compile-time widget type descriptors
 - [*] Double-buffered runtime configuration ownership
@@ -53,7 +53,8 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] Value-driven colour ramps and linear gradients (rotation and animation
       curves are excluded by decision)
 - [*] Uploaded image asset pipeline and image widgets
-- [*] Container shapes and slots (an area of a screen that switches what it shows)
+- [*] Container shapes and slots (an area of a screen that switches what it
+      shows), with children clipped to the container unless it says otherwise
 - [ ] Additional widget types (table, track map — the outline SimHub itself
       generates, sent over the link once per track and held in RAM rather than
       uploaded as an asset, with the car placed by `track.position_percent`)
@@ -89,8 +90,8 @@ foundation for them landed in Phase 1.
 - [*] Dashboard preview with placeholder values
 - [*] Dashboard templates and cross-board layout transfer
 - [ ] Font library, font picker and automatic font delivery on save
-- [ ] Dragging a widget into a container on the canvas (the layer panel already
-      reparents)
+- [*] Dragging a widget into a container on the canvas, and container clipping
+      as an authored property (schema 11)
 - [ ] Preview with live values — a virtual COM port on the PC, with the
       configurator taking the SimHub stream, drawing it, and forwarding it to the
       board

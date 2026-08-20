@@ -373,7 +373,7 @@ inline constexpr std::array<std::string_view, 18> kImageWidgetConfigurationKeys{
     "recolor_opa",
 }};
 
-inline constexpr std::array<std::string_view, 17> kShapeWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 18> kShapeWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -390,6 +390,7 @@ inline constexpr std::array<std::string_view, 17> kShapeWidgetConfigurationKeys{
     "color_ramp",
     "conditions",
     "kind",
+    "clip_children",
     "widgets",
 }};
 
@@ -402,7 +403,7 @@ inline constexpr std::array<std::string_view, 6> kSlotPageConfigurationKeys{{
     "widgets",
 }};
 
-inline constexpr std::array<std::string_view, 16> kSlotWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 17> kSlotWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -418,6 +419,7 @@ inline constexpr std::array<std::string_view, 16> kSlotWidgetConfigurationKeys{{
     "condition_source",
     "color_ramp",
     "conditions",
+    "clip_children",
     "pages",
 }};
 

@@ -219,6 +219,44 @@ export function parentContainerId(
   return ancestorsOf(configuration, location).at(-1)?.id
 }
 
+/**
+ * Which widget a click actually picks, given what it landed on.
+ *
+ * A child is drawn above its parent, so the object under the pointer is always
+ * the deepest one — which used to be the selection, leaving a full container
+ * grabbable only at its edges. The rule here is the one Figma and Sketch both
+ * use: a click picks the outermost container, and going deeper is asked for,
+ * either by holding the modifier (`deep`) or by having opened a container
+ * (`entered`), in which case the level *inside* it is what a click reaches.
+ *
+ * `blocked` is the editor's own veto — a locked layer — and it is applied per
+ * level rather than to the answer, so a locked container still lets a click
+ * through to what it holds instead of swallowing it. Undefined means every
+ * candidate was blocked, which is a click that should reach the canvas behind.
+ */
+export function selectionTarget(
+  configuration: DeviceConfiguration | undefined,
+  hitId: string,
+  options: {
+    entered?: string
+    deep?: boolean
+    blocked?: (id: string) => boolean
+  } = {}
+): string | undefined {
+  const location = findWidget(configuration, hitId)
+  if (!location) return undefined
+  const chain = [...ancestorsOf(configuration, location), location.widget]
+    .map((widget) => widget.id)
+    .filter((id): id is string => id !== undefined)
+  const entered = options.entered === undefined ? -1 : chain.indexOf(options.entered)
+  const from = options.deep ? chain.length - 1 : entered + 1
+  for (let index = Math.max(from, 0); index < chain.length; ++index) {
+    const candidate = chain[index] as string
+    if (!options.blocked?.(candidate)) return candidate
+  }
+  return undefined
+}
+
 export function selectedWidget(
   configuration: DeviceConfiguration | undefined,
   selection: WidgetSelection | undefined

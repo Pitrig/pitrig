@@ -1,5 +1,5 @@
 {
-  "schema_version": 10,
+  "schema_version": 11,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "limits": {
@@ -537,10 +537,11 @@
 
     "ShapeWidgetConfiguration": {
       "widget_type": "shape",
-      "doc": "Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box, and they are drawn even where they overhang it.",
+      "doc": "Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box and cut off at it, unless clip_children says otherwise.",
       "fields": [
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "kind", "kind": "enum", "enum": "ShapeKind" },
+        { "name": "clip_children", "kind": "bool", "default": true, "doc": "Cuts the widgets inside this shape off at its box, the way a panel holds what is on it. False draws them where they land instead, which is what a caption straddling a child's top border needs; the cost is paid in a wider invalidated area, measured from where the children actually reach. The shape's own border and caption are drawn by its parent and are never cut by this." },
         { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
         {
           "name": "widgets",
@@ -597,6 +598,7 @@
       "doc": "An area of a screen that switches what it shows. It draws nothing of its own — no background, border, caption or styling rules, all of which are rejected rather than ignored — and exists only to hold pages. A tap cycles the pages in the loop; a page whose trigger fires is raised over them for its duration and then hands the slot back to the loop page that was showing. A slot is authored directly on a screen: it holds containers rather than living inside one.",
       "fields": [
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
+        { "name": "clip_children", "kind": "bool", "default": true, "doc": "Cuts the widgets on every page of this slot off at the slot's box. Not an appearance — a slot still draws nothing — but the same choice a container shape makes, because a page is an area of the screen in exactly the same way." },
         { "name": "page_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "pages", "kind": "array", "struct": "SlotPageConfiguration", "capacity": "kMaximumSlotPages", "count_field": "page_count", "doc": "Pages this slot switches between, in priority order. At least one must be in the loop, so a slot always has something to fall back to." }
       ]

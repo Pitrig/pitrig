@@ -468,6 +468,7 @@
             {
               "type": "shape",
               "id": "oil-panel",
+              "clip_children": false,
               "placement": {
                 "x": 340,
                 "y": 300,

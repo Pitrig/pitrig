@@ -44,9 +44,15 @@ interface DashboardEditorStore {
    */
   activeScreenIndex: number
   view: EditorView
-  /** Editor-only, keyed by widget id: neither reaches the document. */
+  /** Editor-only, keyed by widget id: none of these reach the document. */
   locked: Record<string, boolean>
   hidden: Record<string, boolean>
+  /**
+   * Containers whose contents the layer list is not showing. Absent means open,
+   * so a container is expanded until the author folds it — a list that hid its
+   * own contents by default would bury the thing most often looked for.
+   */
+  collapsed: Record<string, boolean>
   /**
    * Which page of each slot the canvas draws, keyed by the slot's widget id. The
    * board shows one at a time and picks it from a tap or a trigger; the editor
@@ -54,9 +60,11 @@ interface DashboardEditorStore {
    */
   slotPage: Record<string, number>
   /**
-   * The slot whose pages are being edited, if any. A slot is an area that
-   * switches, so authoring it means looking at one page at a time inside its own
-   * box — which is a way of looking at the document, not a property of it.
+   * The container being worked inside, if any — a shape, or a slot, in which
+   * case it is one page at a time. What it changes is what a click on the canvas
+   * reaches and where a new widget lands: everything at or below this level is
+   * addressable, everything above it is picked as a whole. A way of looking at
+   * the document, not a property of it.
    */
   drillIn?: string
   /**
@@ -74,11 +82,14 @@ interface DashboardEditorStore {
   selectMany: (ids: readonly string[]) => void
   setActiveScreen: (index: number) => void
   setSlotPage: (slotId: string, page: number) => void
-  /** Enters a slot's pages, or leaves them when given nothing. */
-  setDrillIn: (slotId?: string) => void
+  /** Works inside a container, or leaves every one of them when given nothing. */
+  setDrillIn: (containerId?: string) => void
   setView: (patch: Partial<EditorView>) => void
   toggleLocked: (id: string) => void
   toggleHidden: (id: string) => void
+  toggleCollapsed: (id: string) => void
+  /** Opens every container named, which is how a selection is revealed in the list. */
+  expand: (ids: readonly string[]) => void
   /**
    * Moves every id-keyed piece of editor state from one id to another. A rename
    * rewrites the widget's id in the document, and anything still keyed by the
@@ -98,6 +109,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   view: DEFAULT_EDITOR_VIEW,
   locked: {},
   hidden: {},
+  collapsed: {},
   slotPage: {},
   setDefaultFontFamily: (family) => set({ defaultFontFamily: family }),
   select: (selection) =>
@@ -125,7 +137,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
     }),
   // Selection belongs to one screen, so switching screens drops it rather than
   // leaving the inspector editing something the canvas no longer draws.
-  // A slot belongs to one screen, so leaving the screen also leaves the slot.
+  // A container belongs to one screen, so leaving the screen leaves it too.
   setActiveScreen: (index) =>
     set({
       activeScreenIndex: Math.max(index, 0),
@@ -135,19 +147,32 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
     }),
   setSlotPage: (slotId, page) =>
     set((current) => ({ slotPage: { ...current.slotPage, [slotId]: Math.max(page, 0) } })),
-  // Leaving a slot selects it, so the inspector lands on the thing just left
-  // rather than on nothing.
-  setDrillIn: (slotId) =>
+  // Entering a container selects it, so the inspector lands on the thing just
+  // opened rather than on nothing.
+  setDrillIn: (containerId) =>
     set(
-      slotId === undefined
+      containerId === undefined
         ? { drillIn: undefined }
-        : { drillIn: slotId, selection: { type: 'widget', id: slotId }, selectedIds: [slotId] }
+        : {
+            drillIn: containerId,
+            selection: { type: 'widget', id: containerId },
+            selectedIds: [containerId]
+          }
     ),
   setView: (patch) => set((current) => ({ view: { ...current.view, ...patch } })),
   toggleLocked: (id) =>
     set((current) => ({ locked: { ...current.locked, [id]: !current.locked[id] } })),
   toggleHidden: (id) =>
     set((current) => ({ hidden: { ...current.hidden, [id]: !current.hidden[id] } })),
+  toggleCollapsed: (id) =>
+    set((current) => ({ collapsed: { ...current.collapsed, [id]: !current.collapsed[id] } })),
+  expand: (ids) =>
+    set((current) => {
+      if (ids.every((id) => !current.collapsed[id])) return current
+      const collapsed = { ...current.collapsed }
+      for (const id of ids) delete collapsed[id]
+      return { collapsed }
+    }),
   renameId: (from, to) =>
     set((current) => {
       const move = <T,>(record: Record<string, T>): Record<string, T> => {
@@ -167,6 +192,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
         selection,
         locked: move(current.locked),
         hidden: move(current.hidden),
+        collapsed: move(current.collapsed),
         slotPage: move(current.slotPage),
         drillIn: current.drillIn === from ? to : current.drillIn
       }
@@ -180,6 +206,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
       activeScreenIndex: 0,
       locked: {},
       hidden: {},
+      collapsed: {},
       slotPage: {},
       drillIn: undefined,
       defaultFontFamily: undefined,

@@ -154,12 +154,13 @@ bool apply_incremental(
     }
   }
 
-  // What a container has to let through is a fact about where its children
-  // ended up, so moving or resizing one changes it — and that is exactly the
-  // edit this path takes. Without re-measuring, the overflow stays whatever the
-  // last full composition saw, and LVGL clips a widget dragged past its
-  // container's edge to a box that no longer describes it.
-  if (!screens::unclip_containers(next, dashboard)) {
+  // What a container that refuses to clip has to let through is a fact about
+  // where its children ended up, so moving or resizing one changes it — and
+  // that is exactly the edit this path takes. Without re-measuring, the
+  // overflow stays whatever the last full composition saw, and LVGL clips a
+  // widget dragged past its container's edge to a box that no longer describes
+  // it. The same call settles a container whose clip_children itself changed.
+  if (!screens::apply_container_clipping(next, dashboard)) {
     return false;
   }
   // Rebuilt widgets are new LVGL children, so they sit on top until the

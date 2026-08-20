@@ -15,6 +15,24 @@ import { useDeviceStore } from '@/features/device/device-store'
 /** Where a dropped widget lands relative to the row it was dropped on. */
 export type DropRelation = 'above' | 'below' | 'inside'
 
+/**
+ * Where a move puts the widget. The layer panel always names a row, because
+ * that is what it drops onto; the canvas names a container or, when the widget
+ * was dragged clear of every one of them, the screen it belongs to. Three
+ * spellings of one question — which array, and at what index — so they resolve
+ * into one plan rather than into three commands.
+ */
+type MoveDestination =
+  | { kind: 'beside'; relation: 'above' | 'below'; targetId: string }
+  | { kind: 'inside'; containerId: string; page?: number }
+  | { kind: 'screen'; index: number }
+
+function destinationOf(relation: DropRelation, targetId: string): MoveDestination {
+  return relation === 'inside'
+    ? { kind: 'inside', containerId: targetId }
+    : { kind: 'beside', relation, targetId }
+}
+
 interface MovePlan {
   widget: WidgetConfiguration
   sourceOwner: WidgetParent
@@ -63,33 +81,47 @@ function destinationOrigin(
 function planMove(
   configuration: DeviceConfiguration | undefined,
   id: string,
-  relation: DropRelation,
-  targetId: string
+  destination: MoveDestination
 ): MovePlan | undefined {
-  if (!configuration || id === targetId) return undefined
+  if (!configuration) return undefined
   const moved = findWidget(configuration, id)
-  const target = findWidget(configuration, targetId)
-  if (!moved || !target) return undefined
+  if (!moved) return undefined
+  const anchorId =
+    destination.kind === 'screen'
+      ? undefined
+      : destination.kind === 'inside'
+        ? destination.containerId
+        : destination.targetId
+  if (anchorId === id) return undefined
+  const target = anchorId === undefined ? undefined : findWidget(configuration, anchorId)
+  if (anchorId !== undefined && !target) return undefined
   // Dropping beside a descendant is the same containment error as dropping
   // inside one, so one test covers both relations.
-  if (ancestorsOf(configuration, target).some((ancestor) => ancestor.id === id)) return undefined
-  const into = relation === 'inside' ? target.widget : undefined
+  if (target && ancestorsOf(configuration, target).some((ancestor) => ancestor.id === id)) {
+    return undefined
+  }
+  const into = destination.kind === 'inside' ? target?.widget : undefined
   if (into !== undefined && into.type !== 'shape' && into.type !== 'slot') return undefined
-  // Dropping into a slot means dropping onto the page being looked at: a slot
-  // holds nothing directly, and the page tabs are already where the author says
-  // which one they mean.
+  // A slot holds nothing directly, so dropping into one means dropping onto one
+  // of its pages. The layer list names the page it dropped on; everywhere else
+  // it is the page being looked at, because the page tabs are already where the
+  // author says which one they mean.
   const intoPage =
-    into?.type === 'slot'
-      ? visibleSlotPage(into, useDashboardEditorStore.getState().slotPage)
-      : undefined
+    into?.type !== 'slot'
+      ? undefined
+      : destination.kind === 'inside' && destination.page !== undefined
+        ? destination.page
+        : visibleSlotPage(into, useDashboardEditorStore.getState().slotPage)
 
   const sourceOwner = parentOf(configuration, moved)
   const destinationOwner =
-    into === undefined
-      ? parentOf(configuration, target)
-      : into.type === 'slot'
-        ? pagesOf(into)[intoPage ?? 0]
-        : into
+    destination.kind === 'screen'
+      ? configuration.dashboard?.screens?.[destination.index]
+      : into === undefined
+        ? target && parentOf(configuration, target)
+        : into.type === 'slot'
+          ? pagesOf(into)[intoPage ?? 0]
+          : into
   if (!sourceOwner || !destinationOwner) return undefined
   const sameParent = sourceOwner === destinationOwner
 
@@ -99,7 +131,10 @@ function planMove(
   // Counted from the container chain rather than from the path, because a path
   // carries an extra entry for a slot page and a page costs no level. One
   // ancestor is one level, whether it is a shape or a slot.
-  const depth = ancestorsOf(configuration, target).length + (into === undefined ? 0 : 1)
+  const depth =
+    target === undefined
+      ? 0
+      : ancestorsOf(configuration, target).length + (into === undefined ? 0 : 1)
   if (!sameParent) {
     // A slot is built before every container that could hold one, so it is only
     // ever authored on a screen.
@@ -115,13 +150,17 @@ function planMove(
 
   const stack = stackOrder(destinationOwner.widgets).map(({ widget }) => widget)
   const rest = stack.filter((widget) => widget !== moved.widget)
-  const anchor = rest.indexOf(target.widget)
-  if (relation !== 'inside' && anchor < 0) return undefined
   // The panel lists a stack top first while this sequence is back to front, so
-  // "above the target" is the position *after* it. `inside` takes the back of
-  // back-to-front, which is the top of the container's stack — a widget just
-  // dropped into a container should be visible in it, not buried under it.
-  const at = relation === 'inside' ? rest.length : anchor + (relation === 'above' ? 1 : 0)
+  // "above the target" is the position *after* it. Landing in a container or on
+  // a screen takes the back of back-to-front, which is the top of that stack —
+  // a widget just dropped somewhere should be visible there, not buried under
+  // what was already in it.
+  let at = rest.length
+  if (destination.kind === 'beside') {
+    const beside = rest.indexOf(target?.widget as WidgetConfiguration)
+    if (beside < 0) return undefined
+    at = beside + (destination.relation === 'above' ? 1 : 0)
+  }
   const order = [...rest.slice(0, at), moved.widget, ...rest.slice(at)]
 
   return {
@@ -132,9 +171,11 @@ function planMove(
     absolute: absolutePlacement(configuration, id),
     origin: destinationOrigin(
       configuration,
-      relation === 'inside'
-        ? target.widget.id
-        : ancestorsOf(configuration, target).at(-1)?.id
+      destination.kind === 'screen'
+        ? undefined
+        : into !== undefined
+          ? target?.widget.id
+          : target && ancestorsOf(configuration, target).at(-1)?.id
     ),
     changed:
       !sameParent || order.some((widget, index) => widget !== stack[index])
@@ -168,9 +209,20 @@ function applyMove(plan: MovePlan): void {
   if (source.length === 0) delete plan.sourceOwner.widgets
 }
 
+/** Whether a drop into this container — or onto that page of it — may happen. */
+export function canMoveWidgetInto(id: string, containerId: string, page?: number): boolean {
+  return (
+    planMove(useDeviceStore.getState().draft, id, { kind: 'inside', containerId, page }) !==
+    undefined
+  )
+}
+
 /** Whether the panel should offer this drop at all, and light up the band for it. */
 export function canMoveWidget(id: string, relation: DropRelation, targetId: string): boolean {
-  return planMove(useDeviceStore.getState().draft, id, relation, targetId) !== undefined
+  return (
+    planMove(useDeviceStore.getState().draft, id, destinationOf(relation, targetId)) !==
+    undefined
+  )
 }
 
 /**
@@ -182,10 +234,33 @@ export function canMoveWidget(id: string, relation: DropRelation, targetId: stri
  * an undo entry and throw away the redo branch.
  */
 export function moveWidget(id: string, relation: DropRelation, targetId: string): boolean {
-  if (!planMove(useDeviceStore.getState().draft, id, relation, targetId)?.changed) return false
+  return runMove(id, destinationOf(relation, targetId))
+}
+
+/**
+ * Moves a widget into a container, or back onto its own screen when given none.
+ * This is what a drag on the canvas ends in: the geometry is already where the
+ * author put it, so the move only changes which array holds the widget and
+ * which box its coordinates are read against.
+ */
+export function moveWidgetInto(
+  id: string,
+  containerId: string | undefined,
+  page?: number
+): boolean {
+  if (containerId !== undefined) return runMove(id, { kind: 'inside', containerId, page })
+  // Its own screen rather than the one being edited: they are the same screen
+  // in every path that reaches here, and reading it from the widget cannot put
+  // it somewhere it was never on.
+  const screen = findWidget(useDeviceStore.getState().draft, id)?.screenIndex
+  return screen === undefined ? false : runMove(id, { kind: 'screen', index: screen })
+}
+
+function runMove(id: string, destination: MoveDestination): boolean {
+  if (!planMove(useDeviceStore.getState().draft, id, destination)?.changed) return false
   const reveal: { slot: string; page: number }[] = []
   mutateDraftConfiguration((configuration) => {
-    const plan = planMove(configuration, id, relation, targetId)
+    const plan = planMove(configuration, id, destination)
     if (!plan) return
     applyMove(plan)
     const landed = findWidget(configuration, id)

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { childArraysOf, pagesOf, screensOf, widgetsOf } from '@shared/configuration-access'
+import { childArraysOf, descendantsOf, isContainer, pagesOf, screensOf, widgetsOf } from '@shared/configuration-access'
 import { type DeviceConfiguration, type DisplayDescriptor } from '@shared/device'
 import { clamp } from '../editor/placement'
 import { GridOverlay, GuideOverlay, HitArea, SelectionFrame } from './CanvasOverlays'
@@ -7,8 +7,8 @@ import { ImagePreview } from './ImagePreview'
 import { TextWidgetPreview } from './TextPreview'
 import { moveSelection } from '../editor/geometry-commands'
 import { flattenScreen } from './preview-layers'
-import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacements, completePlacement, findWidget, useDashboardEditorStore } from '../dashboard-editor'
-import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
+import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, absolutePlacements, completePlacement, findWidget, moveWidgetInto, parentContainerId, selectionTarget, useDashboardEditorStore } from '../dashboard-editor'
+import { type Follower, type Guides, type Interaction, type InteractionMode, type Marquee, NO_GUIDES, type Pan, type Placement, type PreviewLayer, SNAP_TOLERANCE_PX, type SnapTargets, actionLabel, clampPan, collectSnapTargets, containerAt, containerClipId, intersection, intersects, logicalPoint, marqueeBounds, transformedPlacement, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
 import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
 import { SCREEN_BACKGROUND } from './preview-theme'
 import { createPreviewValues } from './preview-values'
@@ -36,6 +36,11 @@ export function Widgets({
   const locked = useDashboardEditorStore((state) => state.locked)
   const hidden = useDashboardEditorStore((state) => state.hidden)
   const [interaction, setInteraction] = useState<Interaction>()
+  // The container the widget being dragged would join on release. Held while the
+  // drag runs so the canvas can say where it is about to land, and recomputed
+  // from the document at release rather than trusted, because this is a render
+  // behind the pointer.
+  const [dropContainer, setDropContainer] = useState<string>()
   const [marquee, setMarquee] = useState<Marquee>()
   const [pan, setPan] = useState<Pan>()
   const [guides, setGuides] = useState<Guides>(NO_GUIDES)
@@ -128,6 +133,28 @@ export function Widgets({
   const snapTargets = (): SnapTargets =>
     collectSnapTargets(widgets, display, interaction?.target, hidden)
 
+  /**
+   * The container a dragged widget would join, resolved against the document as
+   * it stands. A widget cannot land in itself or in anything it holds, and a
+   * group drag lands nowhere: reparenting only the widget under the pointer
+   * would split the selection across two boxes.
+   */
+  const dropTargetFor = (
+    moved: string,
+    box: Placement | undefined,
+    followers: number
+  ): string | undefined => {
+    if (!box || followers > 0) return undefined
+    const widget = findWidget(useDeviceStore.getState().draft, moved)?.widget
+    const excluded = new Set(
+      (widget ? descendantsOf(widget) : [])
+        .map((entry) => entry.id)
+        .filter((entry): entry is string => entry !== undefined)
+    )
+    excluded.add(moved)
+    return containerAt(layers, placements, box, excluded, locked, hidden)
+  }
+
   const movePointer = (event: React.PointerEvent<SVGSVGElement>): void => {
     if (pan && event.pointerId === pan.pointerId) {
       const scale = viewportScale(svgRef.current, display, view.zoom)
@@ -164,6 +191,17 @@ export function Widgets({
         targets: snapTargets()
       })
       setGuides(resolved.guides)
+      // ⌘/Ctrl means "ignore the containers" here as it does for selection, so
+      // a widget can be parked over a plate without joining it.
+      setDropContainer(
+        interaction.mode !== 'move' || event.metaKey || event.ctrlKey
+          ? undefined
+          : dropTargetFor(
+              interaction.target.type === 'widget' ? interaction.target.id : '',
+              resolved.placement,
+              interaction.followers.length
+            )
+      )
       const shiftX = resolved.placement.x - interaction.placement.x
       const shiftY = resolved.placement.y - interaction.placement.y
       moveSelection(
@@ -212,8 +250,34 @@ export function Widgets({
     // The last move may still be waiting for a frame; it has to land, and it
     // has to land inside the history group this gesture opened.
     flushPendingCommit()
+    // Where the widget ended up decides what holds it: the innermost container
+    // that contains it whole, or its screen when none does. Resolved from the
+    // committed document rather than from the highlight, which is a render
+    // behind, and run before endEdit so the move and the drag are one undo.
+    if (interaction.mode === 'move' && interaction.target.type === 'widget' &&
+        !event.metaKey && !event.ctrlKey) {
+      const moved = interaction.target.id
+      const draft = useDeviceStore.getState().draft
+      const box = absolutePlacement(draft, moved)
+      const landing = dropTargetFor(moved, box, interaction.followers.length)
+      const parent = parentContainerId(draft, interaction.target)
+      const parentBox = parent === undefined ? undefined : absolutePlacement(draft, parent)
+      // Overhanging is not leaving. A widget that still touches its container
+      // was nudged past its edge — which is exactly what `clip_children: false`
+      // is authored for — so it keeps its parent; only one dragged clear of the
+      // container altogether is released onto the screen.
+      const overhangs =
+        landing === undefined && box !== undefined && parentBox !== undefined &&
+        intersects(box, parentBox)
+      // Same parent is not a move either: dropping a widget back where it came
+      // from would otherwise raise it to the top of its own container's stack.
+      if (!overhangs && landing !== parent) {
+        moveWidgetInto(moved, landing)
+      }
+    }
     useDeviceStore.getState().endEdit()
     setInteraction(undefined)
+    setDropContainer(undefined)
     setGuides(NO_GUIDES)
   }
 
@@ -294,13 +358,17 @@ export function Widgets({
   // still drawn around it for context but dimmed and inert — the page is the
   // only thing being authored, and a click landing outside it would be an edit
   // to something the author is not looking at.
-  const opened = drillIn ? placements.get(drillIn) : undefined
+  //
+  // Only a slot. A page is one of several alternatives for a box, so isolating
+  // it is honest; a container shape is an ordinary parent that draws alongside
+  // everything else, and dimming the screen around it would say the rest had
+  // stopped mattering. Opening one only changes what a click reaches.
+  const openedWidget = drillIn ? findWidget(configuration, drillIn)?.widget : undefined
+  const isolated = openedWidget?.type === 'slot' ? drillIn : undefined
   const openedIds = new Set(
-    drillIn
+    openedWidget?.type === 'slot'
       ? (() => {
-          const slot = findWidget(configuration, drillIn)?.widget
-          if (slot?.type !== 'slot') return []
-          const page = pagesOf(slot)[visibleSlotPage(slot, slotPage)]
+          const page = pagesOf(openedWidget)[visibleSlotPage(openedWidget, slotPage)]
           return (page ? widgetsOf(page).flatMap((widget) => [widget, ...childArraysOf(widget).flat()]) : [])
             .map((widget) => widget.id)
             .filter((id): id is string => id !== undefined)
@@ -308,8 +376,8 @@ export function Widgets({
       : []
   )
   const dimmed = (layer: PreviewLayer): boolean =>
-    opened !== undefined &&
-    layer.configuration.id !== drillIn &&
+    isolated !== undefined &&
+    layer.configuration.id !== isolated &&
     !openedIds.has(layer.configuration.id ?? '')
 
   return (
@@ -336,12 +404,18 @@ export function Widgets({
       {layers.map((layer) => {
         const widget = layer.configuration
         // A slot draws nothing at all, so its outline is not a hint but the only
-        // thing that says where it is — an empty one still gets it.
-        if (widget.type !== 'slot' && childArraysOf(widget).flat().length === 0) return null
+        // thing that says where it is — an empty one still gets it. So does
+        // every container while something is being dragged: an empty shape is
+        // otherwise an invisible place to drop into.
+        const empty = childArraysOf(widget).flat().length === 0
+        if (widget.type !== 'slot' && empty && !(interaction && isContainer(widget))) {
+          return null
+        }
         const box = completePlacement(widget.placement)
         if (!box) return null
         const id = widget.id
         const picked = selection?.type === 'widget' && selection.id === id
+        const landing = dropContainer !== undefined && dropContainer === id
         const stroke = widget.type === 'slot' ? '#38BDF8' : '#A78BFA'
         return (
           <rect
@@ -351,9 +425,11 @@ export function Widgets({
             width={box.width}
             height={box.height}
             fill="none"
-            stroke={picked || drillIn === id ? stroke : `${stroke}80`}
-            strokeWidth={1 / view.zoom}
-            strokeDasharray={`${2 / view.zoom} ${4 / view.zoom}`}
+            stroke={landing ? '#38F5A8' : picked || drillIn === id ? stroke : `${stroke}80`}
+            strokeWidth={(landing ? 2 : 1) / view.zoom}
+            // Solid says the drop lands here; dashed is only a hint that
+            // something holds widgets.
+            strokeDasharray={landing ? undefined : `${2 / view.zoom} ${4 / view.zoom}`}
             pointerEvents="none"
           />
         )
@@ -361,14 +437,26 @@ export function Widgets({
       {layers.map((layer, layerIndex) => {
         const id = layer.configuration.id
         if (id && hidden[id]) return null
-        // The widget's own box clips its contents, exactly as its LVGL
-        // container does — a value wider than its widget is cut off on the
-        // board rather than spilling over its neighbours. The caption is left
-        // out of it because the device puts it on the parent, so it may
-        // overhang the frame. Nothing clips a widget to its container: the
-        // device stopped doing that too, which is what lets a caption or an
-        // overhanging readout be drawn at all.
+        // Two clips, both the device's. The widget's own box clips its
+        // contents, exactly as its LVGL container does — a value wider than its
+        // widget is cut off on the board rather than spilling over its
+        // neighbours — and its caption is left out of that one, because the
+        // device puts the caption on the parent where it overhangs the frame.
+        // The containers above it clip everything it draws, caption included,
+        // which is what `clip_children` says. What is deliberately *not*
+        // clipped is the hit area: a widget dragged out of a container would
+        // otherwise be invisible and unselectable at once, with no way back.
         const box = completePlacement(layer.configuration.placement)
+        // The clip arrives in display coordinates and this group is already
+        // translated by the container chain, so it is read back into local
+        // space rather than the transform being undone around it.
+        const clip = layer.clip
+          ? {
+              ...layer.clip,
+              x: layer.clip.x - layer.offsetX,
+              y: layer.clip.y - layer.offsetY
+            }
+          : undefined
         const faded = dimmed(layer)
         return (
           <g
@@ -381,18 +469,38 @@ export function Widgets({
                 : undefined
             }
             onPointerDown={(event) => {
-            const placement = id ? placements.get(id) : undefined
-            if (!placement || !id || locked[id]) return
-            beginInteraction(event, { type: 'widget', id }, 'move', placement)
+            if (!id) return
+            // The object under the pointer is the deepest one; which widget that
+            // means is the container rule, not this handler's business.
+            const target = selectionTarget(configuration, id, {
+              entered: drillIn,
+              deep: event.metaKey || event.ctrlKey,
+              blocked: (candidate) => Boolean(locked[candidate])
+            })
+            const placement = target ? placements.get(target) : undefined
+            if (!target || !placement) return
+            beginInteraction(event, { type: 'widget', id: target }, 'move', placement)
           }}
-            // A slot is authored one page at a time inside its own box, which is
-            // what opening it means — and double-click is how a container has
-            // always been opened.
-            onDoubleClick={
-              layer.configuration.type === 'slot' && id
-                ? () => setDrillIn(id)
-                : undefined
-            }>
+            // Opening a container is what makes the level below it clickable —
+            // a slot one page at a time inside its own box, a shape its
+            // children. Double-click is how a container has always been opened.
+            onDoubleClick={() => {
+              if (!id) return
+              const target = selectionTarget(configuration, id, { entered: drillIn })
+              const opening = target ? findWidget(configuration, target)?.widget : undefined
+              if (!target || !opening || !isContainer(opening)) return
+              setDrillIn(target)
+              // Land on what was actually double-clicked rather than on the
+              // container just opened, which is where the click was aimed.
+              const inside = selectionTarget(configuration, id, { entered: target })
+              if (inside && inside !== target) select({ type: 'widget', id: inside })
+            }}>
+            {clip ? (
+              <clipPath id={containerClipId(layerIndex)}>
+                <rect {...clip} />
+              </clipPath>
+            ) : null}
+            <g clipPath={clip ? `url(#${containerClipId(layerIndex)})` : undefined}>
             {box ? (
               <clipPath id={widgetClipId(layerIndex)}>
                 <rect {...box} />
@@ -418,10 +526,34 @@ export function Widgets({
             {layer.configuration.type === 'slot' ? null : (
               <CaptionPreview configuration={layer.configuration} behind={screenBackground} />
             )}
+            </g>
             {id && locked[id] ? null : (
               <HitArea placement={completePlacement(layer.configuration.placement)} />
             )}
           </g>
+        )
+      })}
+      {/* A widget its container cuts away entirely draws nothing, here and on
+          the board. Nothing is not something an author can select or drag back,
+          so the editor says where it went — the hit area under this outline is
+          live, which is what makes it recoverable. */}
+      {layers.map((layer) => {
+        const id = layer.configuration.id
+        const placement = id ? placements.get(id) : undefined
+        if (!id || !placement || !layer.clip || hidden[id]) return null
+        const visible = intersection(layer.clip, placement)
+        if (visible.width > 0 && visible.height > 0) return null
+        return (
+          <rect
+            key={`clipped-${id}`}
+            {...placement}
+            fill="none"
+            stroke="#F59E0B"
+            strokeOpacity={0.7}
+            strokeWidth={1 / view.zoom}
+            strokeDasharray={`${2 / view.zoom} ${3 / view.zoom}`}
+            pointerEvents="none"
+          />
         )
       })}
       {/* A tap target is only a tap target on the board, so the canvas says so:

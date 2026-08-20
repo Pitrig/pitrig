@@ -14,6 +14,41 @@ export interface PreviewLayer {
    */
   offsetX: number
   offsetY: number
+  /**
+   * What the containers above this widget cut it down to, in display
+   * coordinates: the intersection of every clipping ancestor's box, or
+   * undefined when nothing above it clips. A container's own frame and caption
+   * are not in it — the device draws both on the parent, so a container never
+   * cuts its own edge off.
+   */
+  clip?: Placement
+}
+
+/**
+ * The part two boxes share. Empty where they miss each other entirely, which is
+ * a widget dragged clean out of the container it belongs to: nothing of it is
+ * drawn, exactly as on the board.
+ */
+export function intersection(outer: Placement, inner: Placement): Placement {
+  const x = Math.max(outer.x, inner.x)
+  const y = Math.max(outer.y, inner.y)
+  return {
+    x,
+    y,
+    width: Math.max(0, Math.min(outer.x + outer.width, inner.x + inner.width) - x),
+    height: Math.max(0, Math.min(outer.y + outer.height, inner.y + inner.height) - y)
+  }
+}
+
+/**
+ * Whether this container cuts its children off at its box. Omitted means it
+ * does, which is the schema default and LVGL's own behaviour; a slot answers
+ * for every one of its pages at once.
+ */
+export function clipsChildren(widget: WidgetConfiguration): boolean {
+  return (
+    (widget.type === 'shape' || widget.type === 'slot') && widget.clip_children !== false
+  )
 }
 
 /**
@@ -24,6 +59,11 @@ export interface PreviewLayer {
  */
 export function widgetClipId(index: number): string {
   return `widget-clip-${index}`
+}
+
+/** The clip the containers above one layer impose, as opposed to its own box. */
+export function containerClipId(index: number): string {
+  return `container-clip-${index}`
 }
 
 /**
@@ -171,6 +211,44 @@ export function marqueeBounds(marquee: Marquee): Placement {
     width: Math.abs(marquee.current.x - marquee.start.x),
     height: Math.abs(marquee.current.y - marquee.start.y)
   }
+}
+
+/**
+ * The container a dragged box would join: the innermost one that holds it
+ * whole. Entirely inside rather than under the pointer, so a readout the author
+ * deliberately hung over the edge of a plate is not swallowed by it, and so the
+ * answer does not change with where on the widget the drag was started.
+ *
+ * `layers` is in draw order — a parent immediately before what is inside it —
+ * so the last container that qualifies is the deepest one, at any nesting.
+ * Locked and hidden layers are not candidates: a drop into something the author
+ * has set aside reads as the widget vanishing.
+ */
+export function containerAt(
+  layers: readonly PreviewLayer[],
+  placements: ReadonlyMap<string, Placement>,
+  box: Placement,
+  excluded: ReadonlySet<string>,
+  locked: Readonly<Record<string, boolean>>,
+  hidden: Readonly<Record<string, boolean>>
+): string | undefined {
+  let found: string | undefined
+  for (const layer of layers) {
+    const id = layer.configuration.id
+    if (!id || excluded.has(id) || locked[id] || hidden[id]) continue
+    if (layer.configuration.type !== 'shape' && layer.configuration.type !== 'slot') continue
+    const container = placements.get(id)
+    if (!container) continue
+    if (
+      box.x >= container.x &&
+      box.y >= container.y &&
+      box.x + box.width <= container.x + container.width &&
+      box.y + box.height <= container.y + container.height
+    ) {
+      found = id
+    }
+  }
+  return found
 }
 
 export function intersects(placement: Placement, bounds: Placement): boolean {

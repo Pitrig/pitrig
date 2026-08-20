@@ -2,8 +2,9 @@
 
 Status: Accepted; takes the extension ADR 0007 reserved and extends ADR 0014 one
 level down. Introduced in schema 6 as a separate `group` primitive; replaced in
-schema 9 by the shape widget, which now holds widgets and no longer clips them;
-the slot separated from the shape into a widget type of its own in schema 10.
+schema 9 by the shape widget, which holds widgets; the slot separated from the
+shape into a widget type of its own in schema 10. Schema 11 returns the clip
+schema 9 had removed, this time as an authored property that is on by default.
 
 ## Superseded decisions
 
@@ -11,8 +12,10 @@ Schema 6 through 8 had `screen.groups`: a list of `GroupConfiguration` records,
 each an invisible rectangle with an id, a box, a slot and its own `widgets`
 array, and a `group_index` on every widget beside its `screen_index`. Everything
 that record did is now done by the shape widget, and `screen.groups` is gone.
-Two decisions from that version are reversed outright and recorded below:
-children were clipped to the container, and nesting was out of scope.
+Two decisions from that version were reversed and are recorded below: children
+were clipped to the container, and nesting was out of scope. Nesting stays in.
+The clip came back in schema 11, but not as the unconditional rule it had been —
+the case that argued against it is real and now has a property of its own.
 
 Schema 9 made a slot a number on a container shape: shapes carrying the same
 `slot` were the alternatives, and validation held them together by refusing any
@@ -88,12 +91,24 @@ an authoring preference. Cycles are unrepresentable rather than merely rejected
 — a depth-first parse counts a container before its children, so a nested shape's
 own pool index is always higher than its parent's, and validation asserts that.
 
-### Children are drawn where they land
+### Children are clipped, unless the container says otherwise
 
-A container does not clip its children. LVGL clips to a parent's box by default,
-so this is a decision that costs code: each container carries
-`LV_OBJ_FLAG_OVERFLOW_VISIBLE` and an extra draw size, which widens drawing,
-hit-testing and invalidation together.
+A container carries `clip_children`, and it is **on** when omitted. Its children
+are cut off at its box: a panel holds what is on it, which is what a container
+looks like it promises and what LVGL does by default. On a slot the property
+answers for every page at once, because every page is the same box.
+
+The first version of this ADR made the opposite unconditional, and the argument
+for it was sound but narrow: a caption straddles its widget's top border by
+design, so a captioned widget at the top of a container lost the top half of its
+label. What that argument missed is what an author sees the rest of the time — a
+readout that outgrew its panel drawn across the neighbouring one, with nothing on
+screen saying which box it belongs to. The narrow case is now the property rather
+than the rule, and it is exactly one tick in the inspector away.
+
+`clip_children: false` restores the old behaviour, and it is the branch that
+costs code: the container carries `LV_OBJ_FLAG_OVERFLOW_VISIBLE` and an extra
+draw size, which widens drawing, hit-testing and invalidation together.
 
 That extra draw size is **measured**, not maximal. LVGL clips a container's
 children to its box grown by that size, and `lv_obj_invalidate` grows the
@@ -109,10 +124,13 @@ them. The measurement is therefore re-run on that path as well, not only on a
 full composition; otherwise a widget dragged past its container's edge is clipped
 to a box that stopped describing it.
 
-The one bound left on geometry is the display. A box is refused only when it is
-entirely outside it, because the display is the only edge with no pixels beyond
-it. Everything else — a caption overhanging a border, a readout hanging past the
-panel it belongs to, a negative relative coordinate — is authoring, not error.
+The one bound left on *geometry* is still the display. A box is refused only when
+it is entirely outside it, because the display is the only edge with no pixels
+beyond it. Everything else — a caption overhanging a border, a readout hanging
+past the panel it belongs to, a negative relative coordinate — is authoring, not
+error. Whether it is *drawn* is the clip's business, and the two questions stay
+separate: a widget the clip hides is still a widget the document holds, still
+selectable in the editor, and still there when the property is unticked.
 
 ### The slot is a widget, and it holds pages
 
@@ -223,11 +241,17 @@ version of this ADR excluded, is now in.
   is the plate, and an area that switches is one widget rather than a set of
   shapes agreeing on a number. Five cross-widget validation rules are gone with
   it, along with the flag both the painter and the slot controller used to write.
-- Children are **not** clipped. A caption overhangs its container the way it
-  overhangs its widget, and a widget may sit partly outside the box it belongs
-  to. Only the display still bounds anything.
-- Hit-testing extends with the drawn overflow, so a container's tap area grows by
-  the same amount its children reach.
+- Children are clipped by default: what a container holds is drawn inside it.
+  `clip_children: false` is what a caption overhanging its container's edge
+  needs, and then a widget may sit partly outside the box it belongs to with
+  only the display bounding anything.
+- Hit-testing follows the drawing. A container that does not clip has a tap area
+  grown by the same amount its children reach; a container that clips does not,
+  and a child outside it is not reachable by a finger either.
+- The clip is a property, so changing it is an ordinary edit: it takes the same
+  incremental apply path any other property change takes, which re-measures the
+  containers that stopped clipping and drops the extra draw size on those that
+  started.
 - Widget geometry is relative to its container and absolute otherwise, at any
   depth. The configurator accumulates the whole chain, and the two coordinate
   spaces are distinguishable only by where a widget sits in the document.
@@ -253,7 +277,12 @@ version of this ADR excluded, is now in.
 - `value_changed` compares exactly, so it is meant for booleans and discrete
   levels. A float that drifts would fire on every reading.
 - A dashboard authored against schema 9 or earlier is not accepted by schema 10
-  firmware, which is what the version bump records. The two slot models do not
+  firmware, which is what that version bump recorded. The two slot models do not
   correspond — several shapes agreeing on a box are not one slot with several
   pages — so migration drops the old properties rather than guessing, and the
   shapes stay as ordinary containers.
+- Schema 11 takes another bump for one added property, because a document
+  carrying it is refused outright by schema 10 firmware and because the default
+  changes what an existing document draws. A board therefore has to be updated
+  before the configurator will talk to it, which is the honest outcome: the
+  alternative is a canvas that clips and a board that does not.

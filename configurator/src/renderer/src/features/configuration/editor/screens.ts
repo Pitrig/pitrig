@@ -73,5 +73,29 @@ export function deleteScreen(index: number): boolean {
   return deleted
 }
 
+/**
+ * Moves a screen to another position in the array, which is the order the
+ * driver swipes through them.
+ *
+ * Nothing has to follow it: a `goto_screen` action names a screen `id`, and the
+ * id travels with the screen. What changes is the sequence, which is the whole
+ * point — the editor then looks at where the moved screen landed rather than at
+ * whatever now sits at the index it came from.
+ */
+export function moveScreen(from: number, to: number): boolean {
+  let moved = false
+  mutateDraftConfiguration((configuration) => {
+    const screens = configuration.dashboard?.screens
+    if (!screens || from === to) return
+    if (from < 0 || from >= screens.length || to < 0 || to >= screens.length) return
+    const [screen] = screens.splice(from, 1)
+    if (!screen) return
+    screens.splice(to, 0, screen)
+    moved = true
+  })
+  if (moved) useDashboardEditorStore.getState().setActiveScreen(to)
+  return moved
+}
+
 // Widget storage is a dashboard-wide pool, so a per-type cap is a budget across
 // every screen rather than a per-screen allowance.

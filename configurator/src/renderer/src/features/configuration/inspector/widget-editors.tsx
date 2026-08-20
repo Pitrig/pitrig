@@ -1,6 +1,6 @@
 import { ConditionsEditor } from './ConditionsEditor'
 import { SlotPagesEditor } from './SlotPagesEditor'
-import { pagesOf } from '@shared/configuration-access'
+import { pagesOf, widgetsOf } from '@shared/configuration-access'
 import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { fieldBounds } from '@shared/validate/ranges'
@@ -195,7 +195,16 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
       </Section>
       {/* A shape holds widgets, so it gets the section that says what holding
           them means. */}
-      <ContainerEditor widget={widget} />
+      <ContainerEditor
+        widget={widget}
+        update={update}
+        count={widgetsOf(widget).length}
+        summary={
+          widgetsOf(widget).length === 0
+            ? 'This shape holds no widgets. Select some and wrap them to make it a container; an empty one with an action is an invisible tap zone.'
+            : `Holds ${widgetsOf(widget).length} widget(s), placed relative to this box.`
+        }
+      />
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
@@ -208,7 +217,8 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
  * frame editors at all — the device refuses a slot with an appearance — and its
  * only properties are its box and its pages.
  */
-export function SlotEditor({ widget }: { widget: SlotWidgetConfiguration }): React.JSX.Element {
+export function SlotEditor({ selection, widget }: { selection: WidgetSelection; widget: SlotWidgetConfiguration }): React.JSX.Element {
+  const update = (mutation: (next: SlotWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as SlotWidgetConfiguration))
   const pages = pagesOf(widget)
   return (
     <>
@@ -217,6 +227,14 @@ export function SlotEditor({ widget }: { widget: SlotWidgetConfiguration }): Rea
           {`Switches between ${pages.length} page(s) in this box. A tap on the board cycles the pages in the loop; a page with a trigger is raised over them while its event lasts. The slot itself draws nothing — put a shape behind it for a background.`}
         </p>
       </Section>
+      {/* A page holds widgets exactly as a container shape does, so it answers
+          the same question about where they end — once, for every page. */}
+      <ContainerEditor
+        widget={widget}
+        update={update}
+        count={pages.reduce((total, page) => total + widgetsOf(page).length, 0)}
+        summary="Every page is this box, and its widgets are placed relative to it."
+      />
       {widget.id ? <SlotPagesEditor slotId={widget.id} pages={pages} /> : null}
     </>
   )

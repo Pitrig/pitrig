@@ -1,12 +1,12 @@
-import { screensOf, widgetsOf } from '@shared/configuration-access'
-import { type ShapeWidgetConfiguration, type ValueSourceConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
+import { screensOf } from '@shared/configuration-access'
+import { type ValueSourceConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { documentFonts } from '@shared/document-fonts'
 import { MAXIMUM_FONT_FAMILIES } from '@shared/font-assets'
 import { type WidgetSelection, applyFontFamilyToDashboard, draftFontFamily, mutateActiveScreen, mutateSelectedWidget, renameScreen, useDashboardEditorStore } from '../dashboard-editor'
 import { TelemetryBindingField } from './TelemetryBindingField'
-import { ColorField, FontFamilyField, IdField, NumberField, Section, SelectField } from './fields'
+import { CheckboxField, ColorField, FontFamilyField, IdField, NumberField, Section, SelectField } from './fields'
 import { Button } from '@/components/ui/button'
 import { dashboardFontFootprint, findFontEntry, kilobytes, useFontLibraryStore } from '@/features/font-library/font-library-store'
 
@@ -37,21 +37,50 @@ export function SourceRangeSection<T extends RangedWidget>({ widget, update }: {
 }
 
 
-export function ContainerEditor({
-  widget
+/**
+ * What holding widgets means. The clip is the one property here rather than in
+ * the styling sections, because it is not an appearance: it says where this
+ * container's contents end, and a slot answers it for every one of its pages at
+ * once.
+ */
+export function ContainerEditor<T extends ClippingWidget>({
+  widget,
+  update,
+  count,
+  summary
 }: {
-  widget: ShapeWidgetConfiguration
+  widget: T
+  update: (mutation: (next: T) => void) => void
+  /** How many widgets it holds, which is what decides whether the clip matters. */
+  count: number
+  summary: string
 }): React.JSX.Element {
-  const children = widgetsOf(widget).length
+  const clips = widget.clip_children !== false
   return (
     <Section title="Container">
-      <p className="text-muted-foreground">
-        {children === 0
-          ? 'This shape holds no widgets. Select some and wrap them to make it a container; an empty one with an action is an invisible tap zone.'
-          : `Holds ${children} widget(s), placed relative to this box. They are drawn even where they overhang it.`}
-      </p>
+      <p className="text-muted-foreground">{summary}</p>
+      <CheckboxField
+        label="Clip contents to this box"
+        checked={clips}
+        onChange={(checked) => update((next) => {
+          // Written only when it differs from the default, so the document stays
+          // as sparse as the author left it.
+          if (checked) delete next.clip_children
+          else next.clip_children = false
+        })}
+      />
+      {count > 0 && !clips ? (
+        <p className="text-muted-foreground">
+          Widgets inside are drawn where they land, including past this box — which
+          is what a caption straddling a child&apos;s top border needs.
+        </p>
+      ) : null}
     </Section>
   )
+}
+
+interface ClippingWidget {
+  clip_children?: boolean
 }
 
 /**

@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 10. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 11. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 10.
+Schema version: 11.
 
 ## Limits
 
@@ -358,7 +358,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 
 ### ShapeWidgetConfiguration
 
-Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box, and they are drawn even where they overhang it.
+Panels, dividers and backing plates, and the widget that draws while holding other widgets. The frame is the whole widget: it binds no telemetry of its own, but its styling rules can still hide it or flash it, and a line is a thin rectangle. A shape with widgets is a container — its children are placed relative to its box and cut off at it, unless clip_children says otherwise.
 
 Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
 
@@ -366,6 +366,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `shape` | required |
 | `kind` | `ShapeKind` | `rectangle` |
+| `clip_children` | boolean | `true` |
 | `widgets` | array of [`TextWidgetConfiguration`](#textwidgetconfiguration), [`ShapeWidgetConfiguration`](#shapewidgetconfiguration), [`BarWidgetConfiguration`](#barwidgetconfiguration), [`ArcWidgetConfiguration`](#arcwidgetconfiguration), [`IndicatorWidgetConfiguration`](#indicatorwidgetconfiguration), [`GraphWidgetConfiguration`](#graphwidgetconfiguration), [`ImageWidgetConfiguration`](#imagewidgetconfiguration), max 16, discriminated by `type` | absent |
 
 ### SlotPageConfiguration
@@ -390,6 +391,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | Property | Type | Default |
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `slot` | required |
+| `clip_children` | boolean | `true` |
 | `pages` | array of [`SlotPageConfiguration`](#slotpageconfiguration), max 8 | absent |
 
 ### ScreenConfiguration

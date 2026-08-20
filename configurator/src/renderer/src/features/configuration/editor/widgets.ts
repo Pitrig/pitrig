@@ -1,9 +1,10 @@
-import { allWidgetsOf, createWidgetId, pagesOf } from '@shared/configuration-access'
-import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_SLOT_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
+import { allWidgetsOf, createWidgetId, isContainer, pagesOf } from '@shared/configuration-access'
+import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_NESTING_DEPTH, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_SLOT_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import { applyFontFamily, documentFonts } from '@shared/document-fonts'
 import { DEFAULT_FONT_FAMILY } from '@shared/font-assets'
-import { absolutePlacement, completePlacement, findWidget, mutateDraftConfiguration, parentOf, widgetArrayOf } from './document'
+import { absolutePlacement, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, parentContainerId, parentOf, widgetArrayOf } from './document'
+import { visibleSlotPage } from '../preview/canvas-geometry'
 import { ensureScreen } from './screens'
 import { useDashboardEditorStore, type WidgetSelection } from './store'
 
@@ -18,35 +19,68 @@ const WIDGET_CAPACITIES: Record<WidgetConfiguration['type'], number> = {
   slot: MAXIMUM_SLOT_WIDGETS
 }
 
-/**
- * Where a new widget lands: the page being edited while a slot is open, and the
- * active screen otherwise. Adding a widget while looking inside a slot has to
- * put it where the author is looking, and a page is the only other array a
- * widget can be authored in.
- */
-function insertionTarget(
-  configuration: DeviceConfiguration
-): {
+interface InsertionTarget {
   widgets: WidgetConfiguration[]
   cap: number
+  /** Where this array measures its children from, absent on a screen. */
   box?: Required<WidgetPlacement>
-} | undefined {
-  const { drillIn, slotPage } = useDashboardEditorStore.getState()
-  if (drillIn) {
-    const slot = findWidget(configuration, drillIn)?.widget
-    if (slot?.type === 'slot') {
-      const page = pagesOf(slot)[slotPage[drillIn] ?? 0]
-      if (page) {
-        return {
-          widgets: (page.widgets ??= []),
-          cap: MAXIMUM_WIDGETS_PER_CONTAINER,
-          box: completePlacement(slot.placement)
-        }
-      }
-    }
+  /** How many containers stand above the array, which bounds what may join it. */
+  depth: number
+}
+
+/** One container's own array: a shape's, or the page of a slot being looked at. */
+function containerTarget(
+  configuration: DeviceConfiguration,
+  containerId: string
+): InsertionTarget | undefined {
+  const location = findWidget(configuration, containerId)
+  const container = location?.widget
+  if (!location || !container) return undefined
+  // Absolute, not the authored box: a nested container's placement is read
+  // against its own parent, so using it directly would land a widget as far off
+  // as the whole chain above it.
+  const box = absolutePlacement(configuration, containerId)
+  const depth = ancestorsOf(configuration, location).length + 1
+  if (container.type === 'shape') {
+    return { widgets: (container.widgets ??= []), cap: MAXIMUM_WIDGETS_PER_CONTAINER, box, depth }
   }
+  if (container.type !== 'slot') return undefined
+  const page = pagesOf(container)[visibleSlotPage(container, useDashboardEditorStore.getState().slotPage)]
+  return page
+    ? { widgets: (page.widgets ??= []), cap: MAXIMUM_WIDGETS_PER_CONTAINER, box, depth }
+    : undefined
+}
+
+/**
+ * Where a new widget lands: the container being worked in, and the active
+ * screen otherwise. "Being worked in" is the one that has been opened, or
+ * failing that the selected container — adding a widget while a panel is
+ * selected means adding it to the panel, which is what every editor with
+ * containers does and what saves a trip through the layer panel afterwards.
+ * A widget *inside* a container is deliberately not enough: the selection would
+ * then decide parenting from something the author only clicked.
+ */
+function insertionTarget(configuration: DeviceConfiguration): InsertionTarget | undefined {
+  const { drillIn, selection } = useDashboardEditorStore.getState()
+  const opened = drillIn ? containerTarget(configuration, drillIn) : undefined
+  if (opened) return opened
+  const picked =
+    selection?.type === 'widget' && isContainerId(configuration, selection.id)
+      ? containerTarget(configuration, selection.id)
+      : undefined
+  if (picked) return picked
+  return screenTarget(configuration)
+}
+
+/** The active screen's own array, which is where a widget with no container goes. */
+function screenTarget(configuration: DeviceConfiguration): InsertionTarget {
   const screen = ensureScreen(configuration)
-  return { widgets: (screen.widgets ??= []), cap: MAXIMUM_WIDGETS_PER_SCREEN }
+  return { widgets: (screen.widgets ??= []), cap: MAXIMUM_WIDGETS_PER_SCREEN, depth: 0 }
+}
+
+function isContainerId(configuration: DeviceConfiguration, id: string): boolean {
+  const widget = findWidget(configuration, id)?.widget
+  return widget !== undefined && isContainer(widget)
 }
 
 /**
@@ -78,14 +112,18 @@ function intoContainer(
  */
 export function insertWidget(
   configuration: DeviceConfiguration,
-  widget: WidgetConfiguration
+  widget: WidgetConfiguration,
+  into: InsertionTarget | undefined = insertionTarget(configuration)
 ): WidgetSelection | undefined {
-  const target = insertionTarget(configuration)
-  if (!target) return undefined
-  const { widgets, cap, box } = target
+  if (!into) return undefined
+  const { widgets, cap, box, depth } = into
   // A slot is built before every container that could hold one, so it is only
   // ever authored on a screen.
   if (box && widget.type === 'slot') return undefined
+  // A container added inside one carries its own level, and the parser recurses
+  // once per level — so this is the same bound the validator applies, checked
+  // where the widget is created rather than after the device refuses it.
+  if (isContainer(widget) && depth + 2 > MAXIMUM_NESTING_DEPTH) return undefined
   const pooled = allWidgetsOf(configuration).filter(({ type }) => type === widget.type).length
   if (pooled >= WIDGET_CAPACITIES[widget.type] || widgets.length >= cap) {
     return undefined
@@ -325,12 +363,19 @@ export function duplicateWidget(
   mutateDraftConfiguration((configuration) => {
     const source = findWidget(configuration, selection.id)?.widget
     if (!source) return
-    // The copy lands on the screen whatever the source was in, so a widget
-    // authored inside a container is lifted to absolute coordinates first — its
-    // relative box would otherwise be read against the display.
+    // The copy stays beside its original, in the same container: a duplicate
+    // that jumped out onto the screen was one the author had to put back every
+    // time. Everything travels in absolute coordinates — offsetting and
+    // clamping are against the display — and the insertion reads it back into
+    // whatever box it lands in.
     const box = absolutePlacement(configuration, selection.id)
     const lifted = box ? { ...source, placement: box } : source
-    added = insertWidget(configuration, offsetWidget(lifted, display))
+    const parent = parentContainerId(configuration, selection)
+    added = insertWidget(
+      configuration,
+      offsetWidget(lifted, display),
+      parent === undefined ? screenTarget(configuration) : containerTarget(configuration, parent)
+    )
   })
   return added
 }
