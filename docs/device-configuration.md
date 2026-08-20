@@ -594,6 +594,35 @@ replaces the near colour while the authored gradient stays.
 
 ## Authoring in the configurator
 
+The window is a rail of workspaces on the left and one page beside it:
+**Dashboard**, **Info**, **Protocol**, **Configs**, **Modules**, **Firmware**
+and **Debug**, reachable with `Cmd`/`Ctrl` and a digit. The rail collapses to
+icons, and marks a draft that differs from the board and a firmware image the
+board has installed but not started.
+
+Dashboard is the workspace with pages of its own — **Canvas**, **Templates**,
+**Fonts**, **Images** — because all four answer the same question, what this
+dashboard is made of. `Save to board` sits above them and applies to the
+document rather than to whichever page is open, and the canvas keyboard
+commands are live only while the canvas is.
+
+Each destructive device action lives beside what it affects: erasing the
+board's font package on the Fonts page, erasing its images on Images, resetting
+the configuration on Configs, restarting the board on Configs and Firmware.
+Info states what the board and the application are and changes nothing.
+
+The canvas names the board it is drawing, at the right of the status bar under
+it, in place of the resolution that row used to print — the board is that
+resolution, so the two were the same fact written twice. A connected board
+fills it in and the control is read-only; with nothing plugged in it is a
+select, and the canvas is sized by it before any document exists — so an empty
+canvas states which display it is an empty canvas *of*, and offers the three
+ways to fill it: a new dashboard, a file, or the template library. Choosing a different board
+while a draft is open is a layout transfer rather than a relabelling, so it
+confirms in the numbers the new display produces; the `Fit`/`Stretch` toggle
+beside the select is the same preference the Configs page and the template
+library use, and it is kept across restarts.
+
 Supported bindings are listed in the generated
 [telemetry catalog](telemetry-catalog.md). The configurator exposes these fields
 through a searchable binding input and shows the selected field's category,
@@ -689,6 +718,26 @@ which is not what a keystroke should set off.
 A copied widget travels as JSON through the system clipboard, so
 it can be pasted into another project; a pasted fragment is validated against
 the same schema allow-list the device payload uses.
+
+### Saving to the board
+
+`Save to board` is one sequence in the main process: resolve the families the
+document names against the font library, build the package, send it only when
+the board does not already hold those exact bytes, and `@SC:SET` the document.
+
+How it ends depends on what it did. A face the board did not have becomes
+usable only after a restart, so installing one ends in `@SC:REBOOT` and a
+reconnect — as does saving onto a board that already owes a restart for a font
+or image package it has accepted. Otherwise the save ends in `@SC:APPLY` with
+the same document, which rebuilds the running dashboard from what was just
+written to NVS. `SET` still answers `reboot_required=1`, because NVS and the
+running dashboard are two different things; the apply is what closes the gap,
+and it is why an ordinary save costs no dark screen.
+
+The Configs page states the difference between the draft and the configuration
+the board has active or pending, property by property, before any of this
+happens. Widgets and screens are matched by `id`, so moving one reads as a move
+rather than as a deletion and an unrelated arrival.
 
 ## Fonts
 

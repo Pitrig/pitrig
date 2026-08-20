@@ -1,6 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Copy, Redo2, Trash2, Undo2 } from 'lucide-react'
-import { BOARD_PROFILES } from '@shared/device'
+import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
+import { useWorkspaceStore } from '@/app/workspace/workspace-store'
+import {
+  createConfiguration,
+  openConfigurationFile
+} from '@/features/configuration/configuration-actions'
+import { BoardChoice } from './BoardPicker'
 import { duplicateWidget, findWidget, useDashboardEditorStore } from '../dashboard-editor'
 import { documentFonts } from '@shared/document-fonts'
 import { useFontFaceStore } from '@/features/font-library/font-face-store'
@@ -11,7 +17,7 @@ import { ArrangeToolbar } from './PreviewChrome'
 import { CanvasStatusBar } from './CanvasStatusBar'
 import { ToolPalette } from './ToolPalette'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
 import { withEditGroup } from '@/features/device/edit-group'
 
@@ -19,10 +25,16 @@ export function DisplayPreview(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const draft = useDeviceStore((state) => state.draft)
   const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
+  const offlineBoard = useDeviceStore((state) => state.offlineBoard)
   const configuration = draft ?? pendingConfiguration ?? session?.configuration
+  // With nothing to draw yet the canvas still has a size: the connected board's,
+  // or the one chosen for working offline. Drawing a 16:9 placeholder instead
+  // was what left an author with no way to tell what display they were about to
+  // author for — which is the whole question the board picker answers.
   const display = configuration
     ? BOARD_PROFILES[configuration.board]?.display
-    : session?.info.display
+    : (session?.info.display ??
+      (offlineBoard ? BOARD_PROFILES[offlineBoard]?.display : undefined))
   const selection = useDashboardEditorStore((state) => state.selection)
   const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
   const select = useDashboardEditorStore((state) => state.select)
@@ -114,12 +126,9 @@ export function DisplayPreview(): React.JSX.Element {
             </Button>
           </div>
         </div>
-        {display ? <ArrangeToolbar /> : null}
-        <CardDescription>
-          {display
-            ? `${configuration?.board ?? 'connected board'} · drag a tool onto the display to add a widget`
-            : 'Create, load, or connect a configuration to start editing.'}
-        </CardDescription>
+        {/* The screen tabs and the arrange controls act on a document; with none
+            open there is nothing for them to name. */}
+        {configuration ? <ArrangeToolbar /> : null}
       </CardHeader>
       {/* A size container, so the surface can be measured against the space it
           actually has rather than against a guess. The header above it grows
@@ -150,15 +159,69 @@ export function DisplayPreview(): React.JSX.Element {
               {display && configuration ? (
                 <Widgets configuration={configuration} display={display} />
               ) : (
-                <div className="flex size-full items-center justify-center text-sm text-zinc-600">
-                  No local configuration
-                </div>
+                <EmptyCanvas />
               )}
             </div>
           </div>
         </div>
-        {display ? <CanvasStatusBar display={display} /> : null}
+        {display && configuration ? <CanvasStatusBar display={display} /> : null}
       </CardContent>
     </Card>
+  )
+}
+
+
+/**
+ * What the canvas shows before there is anything to draw.
+ *
+ * The three ways to get a dashboard — start one, open a file, take a template —
+ * all used to live on other pages, which made an empty canvas a dead end rather
+ * than a starting point. The board comes first because it decides the size
+ * everything after it is placed in.
+ */
+function EmptyCanvas(): React.JSX.Element {
+  const session = useDeviceStore((state) => state.session)
+  const offlineBoard = useDeviceStore((state) => state.offlineBoard)
+  const setOfflineBoard = useDeviceStore((state) => state.setOfflineBoard)
+  const setDashboardView = useWorkspaceStore((state) => state.setDashboardView)
+  const [message, setMessage] = useState<string>()
+  const board = session?.info.boardId ?? offlineBoard ?? ''
+
+  return (
+    <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
+      <p className="text-sm text-zinc-400">No dashboard open</p>
+      {session ? (
+        <p className="max-w-xs text-[11px] text-zinc-500">
+          {`Authoring for the connected ${session.info.boardId}.`}
+        </p>
+      ) : (
+        <BoardChoice
+          value={board as SimCoreBoardId | ''}
+          onChange={(next) => {
+            setOfflineBoard(next || undefined)
+            setMessage(undefined)
+          }}
+        />
+      )}
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Button
+          disabled={!board}
+          title={board ? undefined : 'Choose a board first'}
+          onClick={() => setMessage(createConfiguration(board as SimCoreBoardId).message)}
+        >
+          New dashboard
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => void openConfigurationFile().then((result) => setMessage(result?.message))}
+        >
+          Open file…
+        </Button>
+        <Button variant="outline" onClick={() => setDashboardView('templates')}>
+          Browse templates
+        </Button>
+      </div>
+      {message ? <p className="max-w-xs text-[11px] text-zinc-500">{message}</p> : null}
+    </div>
   )
 }

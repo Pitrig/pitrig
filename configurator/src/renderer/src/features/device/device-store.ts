@@ -8,7 +8,8 @@ import type {
   DeviceScanProgress,
   DeviceSession,
   DeviceState,
-  DeviceStatus
+  DeviceStatus,
+  SimCoreBoardId
 } from '@shared/device'
 
 // The draft is a structured document, not a string. Editing, comparison, and
@@ -47,6 +48,17 @@ interface DeviceStore {
   hasLocalDraft: boolean
   draftFileName?: string
   pendingConfiguration?: DeviceConfiguration
+  /**
+   * The board being authored against while nothing is plugged in.
+   *
+   * A connected board answers this itself, and a draft carries its own `board`
+   * — this is only for the gap before either exists, where "New" has to know
+   * what to create and the canvas has to know how large the display is. It sits
+   * here rather than in one page's local state because the canvas and the
+   * Configs page both offer the choice, and two copies would disagree.
+   */
+  offlineBoard?: SimCoreBoardId
+  setOfflineBoard: (board?: SimCoreBoardId) => void
   rebootRequired: boolean
   past: DeviceConfiguration[]
   future: DeviceConfiguration[]
@@ -194,6 +206,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       rebootRequired: current.rebootRequired || (session.fontAssets?.rebootRequired ?? false),
       ...clearedHistory()
     })),
+  setOfflineBoard: (offlineBoard) => set({ offlineBoard }),
   setSaveFeedback: (saveFeedback) => set({ saveFeedback }),
   markConfigurationSaved: (configuration) =>
     set({
@@ -202,8 +215,9 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       hasLocalDraft: true,
       draftFileName: undefined,
       pendingConfiguration: configuration,
-      // The save restarts the board itself, so what it saved is already
-      // running rather than waiting for the author to do something about it.
+      // A save leaves the board already running what it saved — by applying the
+      // document when nothing needed installing, and by restarting when
+      // something did. Either way there is nothing left for the author to do.
       rebootRequired: false,
       ...clearedHistory()
     }),

@@ -3,7 +3,11 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { broadcastToWindows } from './broadcast'
 import {
   invalidConfigurationRequest,
+  isConfigurationIdRequest,
+  isConfigurationPathRequest,
+  isConfigurationSaveRequest,
   isConnectRequest,
+  isControlCommandRequest,
   isFirmwareUploadRequest,
   isFontCatalogPreviewRequest,
   isFontFacesRequest,
@@ -18,9 +22,20 @@ import {
 } from './request-guards'
 
 import {
-  DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL,
+  CONTROL_COMMAND_CHANNEL,
+  SERIAL_TRAFFIC_CHANNEL,
+  type ControlCommandResult,
   type SerialTrafficLog
-} from '../../shared/development'
+} from '../../shared/debug'
+import {
+  CONFIG_LIBRARY_DELETE_CHANNEL,
+  CONFIG_LIBRARY_LIST_CHANNEL,
+  CONFIG_LIBRARY_READ_CHANNEL,
+  CONFIG_LIBRARY_SAVE_CHANNEL,
+  CONFIG_RECENT_FORGET_CHANNEL,
+  CONFIG_RECENT_READ_CHANNEL,
+  type ConfigLibraryResult
+} from '../../shared/config-library'
 import {
   CONFIGURATION_FILE_LOAD_CHANNEL,
   CONFIGURATION_FILE_SAVE_CHANNEL,
@@ -102,6 +117,7 @@ import {
   type TemplateResult
 } from '../../shared/templates'
 import { TemplateService } from '../templates/template-service'
+import { ConfigLibraryService } from '../configs/config-library-service'
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 
@@ -116,7 +132,8 @@ export function registerIpcHandlers(
   templateService: TemplateService,
   fontLibraryService: FontLibraryService,
   fontCatalogService: FontCatalogService,
-  saveToBoardService: SaveToBoardService
+  saveToBoardService: SaveToBoardService,
+  configLibraryService: ConfigLibraryService
 ): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
@@ -140,6 +157,27 @@ export function registerIpcHandlers(
       request.json,
       BrowserWindow.fromWebContents(event.sender) ?? undefined
     )
+  })
+  ipcMain.handle(CONFIG_LIBRARY_LIST_CHANNEL, () => configLibraryService.list())
+  ipcMain.handle(CONFIG_LIBRARY_READ_CHANNEL, (_event, request: unknown) => {
+    if (!isConfigurationIdRequest(request)) return invalidConfigLibraryRequest()
+    return configLibraryService.read(request.id)
+  })
+  ipcMain.handle(CONFIG_LIBRARY_SAVE_CHANNEL, (_event, request: unknown) => {
+    if (!isConfigurationSaveRequest(request)) return invalidConfigLibraryRequest()
+    return configLibraryService.save(request)
+  })
+  ipcMain.handle(CONFIG_LIBRARY_DELETE_CHANNEL, (_event, request: unknown) => {
+    if (!isConfigurationIdRequest(request)) return invalidConfigLibraryRequest()
+    return configLibraryService.remove(request.id)
+  })
+  ipcMain.handle(CONFIG_RECENT_READ_CHANNEL, (_event, request: unknown) => {
+    if (!isConfigurationPathRequest(request)) return invalidConfigLibraryRequest()
+    return configLibraryService.readRecent(request.path)
+  })
+  ipcMain.handle(CONFIG_RECENT_FORGET_CHANNEL, (_event, request: unknown) => {
+    if (!isConfigurationPathRequest(request)) return invalidConfigLibraryRequest()
+    return configLibraryService.forgetRecent(request.path)
   })
   ipcMain.handle(TEMPLATE_LIST_CHANNEL, () => templateService.list())
   ipcMain.handle(TEMPLATE_READ_CHANNEL, (_event, request: unknown) => {
@@ -174,6 +212,16 @@ export function registerIpcHandlers(
     return deviceService.saveConfiguration(request.json)
   })
   ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.reboot())
+  ipcMain.handle(CONTROL_COMMAND_CHANNEL, (_event, request: unknown) => {
+    if (!isControlCommandRequest(request)) {
+      const result: ControlCommandResult = {
+        ok: false,
+        error: { code: 'invalid_request', message: 'Invalid control command request.' }
+      }
+      return result
+    }
+    return deviceService.sendControlCommand(request.command)
+  })
   ipcMain.handle(SAVE_TO_BOARD_CHANNEL, (_event, request: unknown) => {
     if (!isJsonDocumentRequest(request)) {
       const result: SaveToBoardResult = {
@@ -310,6 +358,13 @@ export function broadcastFontLibraryChanged(snapshot: FontLibrarySnapshot): void
   broadcastToWindows(FONT_LIBRARY_CHANGED_CHANNEL, snapshot)
 }
 
+function invalidConfigLibraryRequest(): ConfigLibraryResult<never> {
+  return {
+    ok: false,
+    error: { code: 'invalid_configuration', message: 'Invalid configuration library request.' }
+  }
+}
+
 function invalidTemplateRequest(): TemplateResult<never> {
   return { ok: false, error: { code: 'invalid_template', message: 'Invalid template request.' } }
 }
@@ -330,6 +385,6 @@ export function broadcastDeviceState(state: DeviceState): void {
   broadcastToWindows(DEVICE_STATE_CHANGED_CHANNEL, state)
 }
 
-export function broadcastDevelopmentSerialTraffic(log: SerialTrafficLog): void {
-  broadcastToWindows(DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL, log)
+export function broadcastSerialTraffic(log: SerialTrafficLog): void {
+  broadcastToWindows(SERIAL_TRAFFIC_CHANNEL, log)
 }

@@ -9,6 +9,14 @@ import type {
   FontLibraryIdRequest,
   FontLibraryImportRequest
 } from '@shared/font-library'
+import {
+  CONFIGURATION_ID_PATTERN,
+  MAXIMUM_CONFIGURATION_NAME,
+  type ConfigurationIdRequest,
+  type ConfigurationPathRequest,
+  type ConfigurationSaveRequest
+} from '@shared/config-library'
+import { MAXIMUM_CONTROL_COMMAND_LENGTH, type ControlCommandRequest } from '@shared/debug'
 import { type FirmwareUploadRequest } from '@shared/firmware-update'
 import type { ConnectDeviceRequest, DeviceConfigurationRequest, DeviceResult } from '@shared/device'
 import type { ConfigurationFileSaveRequest } from '@shared/configuration-files'
@@ -100,6 +108,45 @@ export function isTemplateIdRequest(value: unknown): value is TemplateIdRequest 
   const id = (value as Partial<TemplateIdRequest>).id
   if (typeof id !== 'string' || id.length > 96) return false
   return TEMPLATE_ID_PATTERN.test(id) || id.startsWith(BUNDLED_TEMPLATE_PREFIX)
+}
+
+/**
+ * A saved configuration's identifier names a file, so nothing outside the
+ * pattern reaches the service — which checks it again before it builds a path.
+ */
+export function isConfigurationIdRequest(value: unknown): value is ConfigurationIdRequest {
+  if (!value || typeof value !== 'object') return false
+  const id = (value as Partial<ConfigurationIdRequest>).id
+  return typeof id === 'string' && CONFIGURATION_ID_PATTERN.test(id)
+}
+
+export function isConfigurationSaveRequest(value: unknown): value is ConfigurationSaveRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<ConfigurationSaveRequest>
+  return (
+    typeof request.name === 'string' &&
+    request.name.length <= MAXIMUM_CONFIGURATION_NAME &&
+    typeof request.json === 'string' &&
+    request.json.length <= 64 * 1024
+  )
+}
+
+/**
+ * Shape only. A path is never trusted for being well-formed: the service reads
+ * one only when it is already on the recent list this application wrote, so the
+ * renderer cannot name a file of its own choosing.
+ */
+export function isConfigurationPathRequest(value: unknown): value is ConfigurationPathRequest {
+  if (!value || typeof value !== 'object') return false
+  const path = (value as Partial<ConfigurationPathRequest>).path
+  return typeof path === 'string' && path.length > 0 && path.length <= 4096
+}
+
+/** The console's own refusal list is the authority; this is the size bound. */
+export function isControlCommandRequest(value: unknown): value is ControlCommandRequest {
+  if (!value || typeof value !== 'object') return false
+  const command = (value as Partial<ControlCommandRequest>).command
+  return typeof command === 'string' && command.length <= MAXIMUM_CONTROL_COMMAND_LENGTH
 }
 
 export function invalidConfigurationRequest(): DeviceResult<never> {

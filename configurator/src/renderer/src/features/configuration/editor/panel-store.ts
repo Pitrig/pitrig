@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+import type { LayoutFit } from '@shared/layout-transfer'
+
 /**
  * How the editor's panels are sized, and which property groups are folded.
  *
@@ -24,6 +26,14 @@ interface PersistedPanels {
   inspectorWidth: number
   layersHeight: number
   /**
+   * How a layout is scaled when it moves to another display. It is a
+   * preference rather than a property of any one transfer: the same author
+   * tends to want the same answer every time, and the choice is now offered in
+   * three places — the Configs page, the canvas board picker and the template
+   * library — which would otherwise disagree about what was last chosen.
+   */
+  transferFit: LayoutFit
+  /**
    * Explicit fold state by group key, global rather than per widget: folding
    * "Box" means the author is done with boxes, not done with this arc. A key
    * that is absent leaves the group to decide for itself, which is what lets an
@@ -35,6 +45,7 @@ interface PersistedPanels {
 interface EditorPanelStore extends PersistedPanels {
   setInspectorWidth: (px: number) => void
   setLayersHeight: (px: number) => void
+  setTransferFit: (fit: LayoutFit) => void
   setGroupOpen: (key: string, open: boolean) => void
 }
 
@@ -44,6 +55,7 @@ const clamp = (value: number, low: number, high: number): number =>
 const DEFAULTS: PersistedPanels = {
   inspectorWidth: DEFAULT_INSPECTOR_WIDTH_PX,
   layersHeight: DEFAULT_LAYERS_HEIGHT_PX,
+  transferFit: 'contain',
   groups: {}
 }
 
@@ -63,6 +75,7 @@ function restore(): PersistedPanels {
         MINIMUM_LAYERS_HEIGHT_PX,
         MAXIMUM_LAYERS_HEIGHT_PX
       ),
+      transferFit: stored.transferFit === 'stretch' ? 'stretch' : DEFAULTS.transferFit,
       groups: stored.groups ?? {}
     }
   } catch {
@@ -77,14 +90,15 @@ export const useEditorPanelStore = create<EditorPanelStore>((set) => ({
     set({ inspectorWidth: clamp(px, MINIMUM_INSPECTOR_WIDTH_PX, MAXIMUM_INSPECTOR_WIDTH_PX) }),
   setLayersHeight: (px) =>
     set({ layersHeight: clamp(px, MINIMUM_LAYERS_HEIGHT_PX, MAXIMUM_LAYERS_HEIGHT_PX) }),
+  setTransferFit: (transferFit) => set({ transferFit }),
   setGroupOpen: (key, open) => set((current) => ({ groups: { ...current.groups, [key]: open } }))
 }))
 
-useEditorPanelStore.subscribe(({ inspectorWidth, layersHeight, groups }) => {
+useEditorPanelStore.subscribe(({ inspectorWidth, layersHeight, transferFit, groups }) => {
   try {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ inspectorWidth, layersHeight, groups })
+      JSON.stringify({ inspectorWidth, layersHeight, transferFit, groups })
     )
   } catch {
     // Writing is a convenience; a full or blocked store must not break editing.

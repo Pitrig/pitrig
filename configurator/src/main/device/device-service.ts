@@ -1,6 +1,10 @@
 import { SerialPort } from 'serialport'
 
-import type { SerialTrafficLog } from '../../shared/development'
+import {
+  controlCommandRefusal,
+  type ControlCommandValue,
+  type SerialTrafficLog
+} from '../../shared/debug'
 import {
   AUTOMATIC_BAUD_RATES,
   type DeviceConfiguration,
@@ -37,6 +41,7 @@ import {
   resetConfiguration,
   applyConfiguration,
   saveConfiguration,
+  sendControlCommand,
 } from './simcore-protocol'
 
 /**
@@ -290,6 +295,20 @@ export class DeviceService {
     if (this.pipelineActive) {
       return failure({ code: 'busy', message: 'A save is running on the connected device.' })
     }
+    return this.applyConfigurationNow(json)
+  }
+
+  /**
+   * The same apply, without the pipeline guard above it.
+   *
+   * That guard keeps a *debounced* live apply from landing between a save's own
+   * commands. A save's closing apply — the one that brings the running dashboard
+   * up to the document just written to NVS — is the one call it must not refuse,
+   * and it is issued by the pipeline itself rather than raced into it.
+   */
+  async applyConfigurationNow(
+    json: string
+  ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
     return this.runOperation(async ({ port, session, traffic }) => {
       const prepared = this.prepareConfiguration(json, session)
       if (!prepared.ok) return prepared
@@ -309,6 +328,23 @@ export class DeviceService {
         configuration: prepared.value.configuration,
         rebootRequired: true
       })
+    })
+  }
+
+  /**
+   * One line typed by hand, and whatever the board answers.
+   *
+   * It takes the same operation lock as every other command, so a console
+   * cannot interleave itself with a live apply or a save; and it is refused
+   * before the lock when the line would open a binary session, because that
+   * would leave the router waiting for frames a console cannot send.
+   */
+  async sendControlCommand(command: string): Promise<DeviceResult<ControlCommandValue>> {
+    const refusal = controlCommandRefusal(command)
+    if (refusal) return failure({ code: 'invalid_request', message: refusal })
+    return this.runOperation(async ({ port, traffic }) => {
+      const lines = await sendControlCommand(port, command.trim(), this.operationTraffic(traffic))
+      return success({ lines })
     })
   }
 

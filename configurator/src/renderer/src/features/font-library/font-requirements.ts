@@ -23,7 +23,10 @@ export function collectFontRequirements(configuration: DeviceConfiguration): Fon
 
 // Only families have to be installed: the device rasterizes every size from
 // the uploaded face, so a size it has never rendered needs no upload.
-export function missingFontFamilies(required: FontAssetKey[], installed: string[]): string[] {
+export function missingFontFamilies(
+  required: FontAssetKey[],
+  installed: readonly string[]
+): string[] {
   const present = new Set(installed)
   const missing: string[] = []
   for (const font of required) {

@@ -5,6 +5,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-muted: var(--muted);
@@ -18,6 +20,13 @@
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
+  /* A shade above the card: a menu floats over both the cards and the black
+     display surface, and has to read as a layer on top of either. It was
+     referenced as `bg-popover` before it existed, which Tailwind answers with
+     no declaration at all — hence a context menu with the canvas showing
+     through it. */
+  --popover: oklch(0.245 0 0);
+  --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.269 0 0);

@@ -66,7 +66,7 @@ export function ContextMenu({
     <div
       ref={ref}
       role="menu"
-      className="fixed z-50 min-w-52 rounded-md border bg-popover p-1 text-xs shadow-xl"
+      className="fixed z-50 min-w-52 rounded-md border bg-popover p-1 text-xs text-popover-foreground shadow-xl"
       style={{ left: position.x, top: position.y }}
       onContextMenu={(event) => event.preventDefault()}
     >
@@ -107,7 +107,7 @@ function Entry({
           <span className="text-muted-foreground">▸</span>
         </button>
         {open ? (
-          <div className="absolute left-full top-0 ml-1 min-w-40 rounded-md border bg-popover p-1 shadow-xl">
+          <div className="absolute left-full top-0 ml-1 min-w-40 rounded-md border bg-popover p-1 text-popover-foreground shadow-xl">
             {entry.items.map((item, index) => (
               <Entry key={index} entry={item} open={false} onOpen={() => {}} onClose={onClose} />
             ))}

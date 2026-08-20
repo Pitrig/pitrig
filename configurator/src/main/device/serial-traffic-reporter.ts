@@ -1,4 +1,4 @@
-import type { SerialTrafficLog } from '../../shared/development'
+import type { SerialTrafficLog } from '../../shared/debug'
 
 const MAXIMUM_BUFFERED_TEXT_SIZE = 8_192
 

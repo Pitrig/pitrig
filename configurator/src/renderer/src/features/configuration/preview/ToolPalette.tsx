@@ -18,6 +18,11 @@ import { useDeviceStore } from '@/features/device/device-store'
  * Deliberately without keyboard shortcuts: nine single-letter bindings in a
  * window whose panels are full of fields is a trap, and the same nine kinds are
  * a right-click away on the canvas itself.
+ *
+ * The column scrolls. Ten buttons need some 360 pixels, which a short window
+ * does not always have, and a flex child stretched by its row will happily draw
+ * past the card it lives in rather than admit it does not fit — so it is given
+ * a height of its own to be bounded by, and its own scroll inside that.
  */
 
 const TOOLS: { tool: CanvasTool; label: string; icon: LucideIcon; hint: string }[] = [
@@ -42,7 +47,8 @@ export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Elemen
       role="toolbar"
       aria-label="Widget tools"
       aria-orientation="vertical"
-      className="flex flex-none flex-col gap-1 rounded-md border bg-card/60 p-1"
+      className="flex min-h-0 flex-none flex-col gap-1 overflow-y-auto overscroll-contain rounded-md border bg-card/60 p-1"
+      style={{ scrollbarWidth: 'thin' }}
     >
       {TOOLS.map(({ tool, label, icon: Icon, hint }) => {
         // A tap zone is a shape, so it shares the shape pool and its cap.
@@ -63,7 +69,7 @@ export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Elemen
                   ? hint
                   : `${label} — ${hint}. Drag a box on the display, or click to place one.`
             }
-            className={`flex size-8 items-center justify-center rounded-md border transition-colors disabled:opacity-30 ${
+            className={`flex size-8 flex-none items-center justify-center rounded-md border transition-colors disabled:opacity-30 ${
               active
                 ? 'border-sky-500 bg-sky-500/15 text-sky-300'
                 : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'

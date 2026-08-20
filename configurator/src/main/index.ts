@@ -4,11 +4,11 @@ import { join } from 'node:path'
 import { DeviceService } from './device/device-service'
 import { ConfigurationFileService } from './configuration-files/configuration-file-service'
 import {
-  broadcastDevelopmentSerialTraffic,
   broadcastDeviceState,
   broadcastFirmwareUploadProgress,
   broadcastImageUploadProgress,
   broadcastSaveProgress,
+  broadcastSerialTraffic,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
 import { PreviewAssetCache } from './assets/preview-asset-cache'
@@ -20,12 +20,14 @@ import { ImageAssetService } from './image-assets/image-asset-service'
 import { SaveToBoardService } from './save-to-board/save-to-board-service'
 import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
 import { TemplateService } from './templates/template-service'
+import { ConfigLibraryService } from './configs/config-library-service'
+import { RecentConfigurations } from './configs/recent-configurations'
 
 const isDevelopment = import.meta.env.DEV
-const deviceService = new DeviceService(
-  broadcastDeviceState,
-  isDevelopment ? broadcastDevelopmentSerialTraffic : undefined
-)
+// The traffic log ships in every build: a board that misbehaves in a release is
+// exactly when the debug workspace is wanted, and the renderer holds a bounded
+// buffer rather than the whole session.
+const deviceService = new DeviceService(broadcastDeviceState, broadcastSerialTraffic)
 // Outside the app's own state, because it mirrors what a board holds rather
 // than anything the user authored: deleting it costs the preview its fidelity
 // until the next upload, and nothing else.
@@ -61,7 +63,16 @@ const firmwareUpdateService = new FirmwareUpdateService(
   broadcastFirmwareUploadProgress
 )
 const simHubProfileService = new SimHubProfileService()
-const configurationFileService = new ConfigurationFileService()
+// The files the dialogs touched, wherever they live, and the app's own folder
+// of saved configurations beside the templates one.
+const recentConfigurations = new RecentConfigurations(
+  join(app.getPath('userData'), 'recent-configurations.json')
+)
+const configLibraryService = new ConfigLibraryService(
+  join(app.getPath('userData'), 'configurations'),
+  recentConfigurations
+)
+const configurationFileService = new ConfigurationFileService(recentConfigurations)
 // The author's own saved dashboards, beside the app's other user data.
 const templateService = new TemplateService(join(app.getPath('userData'), 'templates'))
 let quitAfterDeviceCleanup = false
@@ -104,7 +115,8 @@ app.whenReady().then(() => {
     templateService,
     fontLibraryService,
     fontCatalogService,
-    saveToBoardService
+    saveToBoardService,
+    configLibraryService
   )
   createWindow()
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { writeDevelopmentLog } from '@/features/development/development-log'
+import { writeDebugLog } from '@/features/debug/debug-log'
 import { useDeviceStore } from '@/features/device/device-store'
 import {
   DEFAULT_BAUD_RATE,
@@ -58,7 +58,7 @@ export function DeviceConnection({
   const error = useDeviceStore((store) => store.error)
 
   const applyPortResult = useCallback((result: DeviceResult<SerialPortSummary[]>): void => {
-    writeDevelopmentLog('Serial ports listed', result)
+    writeDebugLog('Serial ports listed', result)
     if (!result.ok) {
       return
     }
@@ -76,12 +76,12 @@ export function DeviceConnection({
 
   useEffect(() => {
     void window.simcore.getDeviceState().then((initialState) => {
-      writeDevelopmentLog('Initial device state', initialState)
+      writeDebugLog('Initial device state', initialState)
       applyDeviceState(initialState)
     })
     void window.simcore.listSerialPorts().then(applyPortResult)
     return window.simcore.onDeviceStateChanged((nextState) => {
-      writeDevelopmentLog('Device state changed', nextState)
+      writeDebugLog('Device state changed', nextState)
       applyDeviceState(nextState)
     })
   }, [applyDeviceState, applyPortResult])
@@ -98,33 +98,33 @@ export function DeviceConnection({
 
   const connect = async (): Promise<void> => {
     if (selectedPortId === AUTO_PORT_ID) {
-      writeDevelopmentLog('Auto-connect requested')
+      writeDebugLog('Auto-connect requested')
       const result = await window.simcore.autoConnectDevice()
-      writeDevelopmentLog('Auto-connect completed', result)
+      writeDebugLog('Auto-connect completed', result)
       return
     }
     const request = {
       portId: selectedPortId,
       baudRate: Number(selectedBaudRate)
     }
-    writeDevelopmentLog('Manual connection requested', request)
+    writeDebugLog('Manual connection requested', request)
     const result = await window.simcore.connectDevice(request)
-    writeDevelopmentLog('Manual connection completed', result)
+    writeDebugLog('Manual connection completed', result)
   }
 
   const primaryAction = async (): Promise<void> => {
     if (status === 'connected') {
-      writeDevelopmentLog('Disconnect requested')
+      writeDebugLog('Disconnect requested')
       const result = await window.simcore.disconnectDevice()
-      writeDevelopmentLog('Disconnect completed', result)
+      writeDebugLog('Disconnect completed', result)
     } else if (status === 'error') {
-      writeDevelopmentLog('Clearing failed device session before retry')
+      writeDebugLog('Clearing failed device session before retry')
       await window.simcore.disconnectDevice()
       await connect()
     } else if (status === 'scanning' || status === 'connecting') {
-      writeDevelopmentLog('Connection cancellation requested')
+      writeDebugLog('Connection cancellation requested')
       const result = await window.simcore.cancelAutoConnect()
-      writeDevelopmentLog('Connection cancellation completed', result)
+      writeDebugLog('Connection cancellation completed', result)
     } else {
       await connect()
     }

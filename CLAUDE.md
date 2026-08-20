@@ -194,8 +194,10 @@ A firmware build owns exactly one immutable `BoardDefinition` selected by
 display driver, default telemetry transport, factory payload, and private validation metadata
 (display bounds, the board's UART pin pair). Firmware reports only the stable board identifier; the
 configurator maps it to a local board profile for logical display dimensions. User configuration must
-carry a matching `board` or it is rejected. Saving requires a reboot; `APPLY` rebuilds the running dashboard from a document without writing
-storage, which is what the configurator's live preview uses.
+carry a matching `board` or it is rejected. `SET` writes NVS and answers `reboot_required=1`;
+`APPLY` rebuilds the running dashboard from a document without writing storage, which is what the
+configurator's live preview uses — and what a save pairs with `SET` so an ordinary save costs no
+restart.
 
 Config load order: valid NVS slot A → valid NVS slot B → compiled factory config (board id only,
 which yields an enabled display with an empty dashboard). NVS record format (magic, generation,
@@ -283,9 +285,12 @@ library (`main/font-library/`), which holds faces from three origins — bundled
 downloaded from the checked-in Google Fonts catalog, or imported from a file — and a weight is its
 own entry, its own family and one of the eight slots. "Save to board" resolves the document's
 families against that library, builds a package holding exactly those, skips the upload when
-`@SC:FONT:INFO` reports the same `crc` and `entries`, saves, and reboots. An unresolvable family
-stops the save and asks for a file; live apply is suppressed while the board lacks a family, because
-firmware rejects the document whole. See
+`@SC:FONT:INFO` reports the same `crc` and `entries`, and saves. It restarts the board only when a
+package was actually installed — or when the board already owed a restart for one — because a face
+becomes usable only after a restart; otherwise it closes with `@SC:APPLY`, which brings the running
+dashboard up to what was just written. An unresolvable family stops the save and asks for a file;
+live apply is suppressed while the board lacks a family, because firmware rejects the document
+whole. See
 [docs/adr/0010-uploaded-font-assets.md](docs/adr/0010-uploaded-font-assets.md).
 
 ### Configurator (`configurator/src/`)
@@ -293,12 +298,21 @@ firmware rejects the document whole. See
 Standard electron-vite three-way split: `main/` (Node — serial via `serialport`, device service,
 protocol, font, image and firmware upload over one shared `assets/` engine, the `font-library/`
 face store and Google Fonts catalog, the `save-to-board/` orchestrator, config files,
-the dashboard `templates/` library, SimHub profile export), `preload/`, `renderer/src/` (React +
-Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `firmware-update`,
-`font-library`, `image-assets`, `simhub`, `templates`, `development`). `shared/` holds types
+the dashboard `templates/` library, the `configs/` folder of saved configurations and the recent-files
+list, SimHub profile export), `preload/`, `renderer/src/` (React +
+Zustand + Tailwind 4, organized by feature: `configuration`, `debug`, `device`, `firmware-update`,
+`font-library`, `image-assets`, `modules`, `protocol`, `templates`). `shared/` holds types
 crossing the boundary; all IPC channels and the `SimCoreApi`
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
+
+`app/workspace/` owns the navigation: a collapsible rail (`WorkspaceRail`) over seven workspaces —
+Dashboard, Info, Protocol, Configs, Modules, Firmware, Debug — with the active one, the active
+dashboard page and the rail's width kept across restarts in `workspace-store.ts`, and one page
+chrome (`PageShell`) so the seven read as one application. Only Dashboard has pages of its own
+(`Canvas`, `Templates`, `Fonts`, `Images`), because all four answer what the dashboard is made of.
+What the window owns rather than a page — live apply, the serial traffic log, `Cmd`/`Ctrl`+`S`, the
+unresolved-fonts dialog — is mounted in `App.tsx`, so leaving a page never stops it.
 
 The editor mutates one sparse draft document; canvas drag/resize, the inspector, and the advanced
 JSON editor all write the same document — there is no separate editor-only layout model. The draft
@@ -308,8 +322,12 @@ lifetimes ("Reload board" is the explicit discard).
 A dashboard moves to another board through `shared/layout-transfer.ts`: every pixel-valued property
 scaled, either `contain` (one factor, centred, keeps proportions) or `stretch` (a factor per axis,
 fills the display) as the author picks, plus a report of what did not carry (image bitmaps above
-all, which the device never rescales). Both entry points use it — "Convert draft to <board>" and applying a
-template authored elsewhere. A template is a whole document inside an envelope, because the
+all, which the device never rescales). Every entry point goes through `convertDraftToBoard` in
+`configuration-actions.ts` — the Configs page's "Convert draft to <board>", the canvas board picker,
+and applying a template authored elsewhere — and the fit is one persisted preference in
+`panel-store.ts` rather than three copies of local state. Which board is being authored for while
+nothing is plugged in lives in the device store (`offlineBoard`), because the canvas and the Configs
+page both offer that choice. A template is a whole document inside an envelope, because the
 configuration itself may hold no property the contract does not declare. See
 [docs/adr/0023-dashboard-templates-and-layout-transfer.md](docs/adr/0023-dashboard-templates-and-layout-transfer.md).
 
@@ -337,10 +355,18 @@ in `document.ts`, and one module per family of commands
 what it arranges: `alignment`, `geometry-commands`, `grouping`, `placement`, `reparent`).
 `dashboard-editor.ts` re-exports `editor/` as one surface, so panels keep a single import.
 
-What stays at the feature root is what belongs to none of the three: `ConfigurationPanel.tsx`
-(board, file and device controls), `LayersPanel.tsx`, and the `dashboard-editor.ts` barrel. The
-canvas shell, the inspector shell and the keyboard commands live in `preview/`, `inspector/` and
-`editor/` with the rest of their halves.
+What stays at the feature root is what belongs to none of the three: `DashboardWorkspace.tsx` (the
+four dashboard pages and the toolbar over them), `ConfigsPage.tsx` (files, the saved-configuration
+library, the draft-versus-board diff and the raw JSON), `configuration-actions.ts` (every command
+that replaces the whole document, as plain functions so a keystroke can reach one without a panel
+being mounted), `LayersPanel.tsx`, and the `dashboard-editor.ts` barrel. The canvas shell, the
+inspector shell and the keyboard commands live in `preview/`, `inspector/` and `editor/` with the
+rest of their halves.
+
+Board state that several pages read is a hook or a store rather than one page's local state:
+`features/device/draft-state.ts` answers whether the draft parses, differs from the board and could
+be saved; `save-to-board-store.ts` holds a save that outlives the button that started it — and the
+remount a restart causes; `live-apply-store.ts` holds what the board is currently being told.
 
 ## Conventions
 

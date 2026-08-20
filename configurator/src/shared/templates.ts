@@ -1,5 +1,6 @@
 import type { BoardId } from './configuration-schema'
 import type { DeviceConfiguration } from './device'
+import { LIBRARY_ID_PATTERN, libraryIdFor } from './library-id'
 
 // A dashboard template is a whole configuration document plus a name to find it
 // by. The name cannot live inside the document: the validator walks it against
@@ -85,10 +86,11 @@ export type TemplateResult<T> =
   | { ok: false; error: TemplateError }
 
 /**
- * A user template's identifier is its file's base name. This is also the
- * path-traversal gate: nothing that fails it is ever allowed to name a file.
+ * A user template's identifier is its file's base name, under the scheme the
+ * saved-configuration library shares. This is also the path-traversal gate:
+ * nothing that fails it is ever allowed to name a file.
  */
-export const TEMPLATE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,47}$/
+export const TEMPLATE_ID_PATTERN = LIBRARY_ID_PATTERN
 
 /**
  * Starters that ship with the application. The colon is outside the identifier
@@ -108,16 +110,5 @@ export function isBundledTemplateId(id: string): boolean {
   return id.startsWith(BUNDLED_TEMPLATE_PREFIX)
 }
 
-/**
- * A name reduced to something that can be a file name, the same way an image
- * source's name is reduced to an identifier the device accepts.
- */
-export function templateIdFor(name: string): string | undefined {
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 48)
-    .replace(/-+$/, '')
-  return TEMPLATE_ID_PATTERN.test(slug) ? slug : undefined
-}
+/** A template name reduced to the identifier its file is named by. */
+export const templateIdFor = libraryIdFor

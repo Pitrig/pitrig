@@ -42,8 +42,15 @@ const COARSE_NUDGE_PX = 10
  * Keyboard editing for the canvas. A held arrow key repeats, so the whole run
  * is grouped into one history entry and committed when the key comes back up.
  */
-export function useEditorShortcuts(): void {
+/**
+ * `enabled` is the canvas being on screen. These keys act on the selected
+ * widget — Delete removes it, the arrows nudge it — so they must not be live on
+ * a page where nothing is selected and no canvas is visible to show what they
+ * did.
+ */
+export function useEditorShortcuts(enabled: boolean): void {
   useEffect(() => {
+    if (!enabled) return
     let nudging = false
 
     const endNudge = (): void => {
@@ -247,7 +254,7 @@ export function useEditorShortcuts(): void {
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', endNudge)
     }
-  }, [])
+  }, [enabled])
 }
 
 function selectIfAdded(added: WidgetSelection | undefined): void {

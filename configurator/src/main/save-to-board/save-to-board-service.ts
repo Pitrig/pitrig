@@ -5,6 +5,7 @@ import type {
   SaveToBoardRequest,
   SaveToBoardResult
 } from '../../shared/save-to-board'
+import type { DeviceSession } from '../../shared/device'
 import { DeviceService } from '../device/device-service'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import { FontAssetService } from '../font-assets/font-asset-service'
@@ -17,8 +18,15 @@ import { FontLibraryService } from '../font-library/font-library-service'
  * consequence of what they chose, not a separate errand. So this resolves the
  * families the document names against the library, builds the package the board
  * would need, sends it only when the board does not already hold those exact
- * bytes, saves the configuration, and restarts — because a font package and a
- * saved configuration both become active only after a restart.
+ * bytes, and saves the configuration.
+ *
+ * How it finishes depends on what it did. A font package becomes usable only
+ * after a restart, so installing one ends in a restart and a reconnection — ten
+ * seconds of a dark screen, which is worth paying for a face the board cannot
+ * otherwise rasterize. A configuration does not need one: `@SC:APPLY` rebuilds
+ * the running dashboard from the same document that was just written to NVS,
+ * which is what the live preview does on every keystroke. Saving therefore
+ * restarts the board only when a restart buys something.
  *
  * It stops before writing anything when a family cannot be resolved. That is
  * the one question only the author can answer, and asking it after half the
@@ -96,14 +104,35 @@ export class SaveToBoardService {
       const saved = await this.deviceService.saveConfiguration(request.json)
       if (!saved.ok) return failure('device_error', saved.error.message)
 
-      const reconnected = await this.restart()
+      // Anything the board is still owed a restart for makes the restart worth
+      // taking now: a face or a bitmap it has accepted but not yet mapped is one
+      // the dashboard about to be applied would draw wrong.
+      if (fontsUploaded || assetsAwaitingRestart(this.deviceService.getState().session)) {
+        const reconnected = await this.restart()
+        this.report('completed', 1, 1, 'Saved. The board is running the new dashboard.')
+        return {
+          ok: true,
+          value: {
+            configuration: saved.value.configuration,
+            fontsUploaded,
+            restarted: true,
+            ...(reconnected.ok ? {} : { reconnectFailed: true })
+          }
+        }
+      }
+
+      this.report('applying', 0, 1, 'Applying to the running dashboard')
+      const applied = await this.deviceService.applyConfigurationNow(request.json)
       this.report('completed', 1, 1, 'Saved. The board is running the new dashboard.')
       return {
         ok: true,
         value: {
           configuration: saved.value.configuration,
           fontsUploaded,
-          ...(reconnected.ok ? {} : { reconnectFailed: true })
+          restarted: false,
+          // Flash is already written, so a refused apply is a note: the board
+          // keeps showing what it showed, and starts with the saved document.
+          ...(applied.ok ? {} : { applyFailed: applied.error.message })
         }
       }
     })
@@ -132,6 +161,15 @@ export class SaveToBoardService {
   ): void {
     this.onProgress({ stage, completed, total, message })
   }
+}
+
+/**
+ * Whether the board is holding an asset package it has accepted but cannot use
+ * until it restarts. Fonts and images both report this, and both change what the
+ * dashboard draws, so either is reason enough to take the restart with the save.
+ */
+function assetsAwaitingRestart(session: DeviceSession | undefined): boolean {
+  return Boolean(session?.fontAssets?.rebootRequired || session?.imageAssets?.rebootRequired)
 }
 
 /** The families a document names, deduplicated and in a stable order. */

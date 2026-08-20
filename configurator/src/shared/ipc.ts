@@ -35,7 +35,7 @@ import type {
   SaveToBoardRequest,
   SaveToBoardResult
 } from './save-to-board'
-import type { SerialTrafficLog } from './development'
+import type { ControlCommandRequest, ControlCommandResult, SerialTrafficLog } from './debug'
 import type { PreviewAssets } from './preview-assets'
 import type {
   ConfigurationFileLoadValue,
@@ -48,6 +48,16 @@ import type {
   SimHubProfileExportValue,
   SimHubProfileResult
 } from './simhub-profile'
+import type {
+  ConfigLibraryResult,
+  ConfigurationIdRequest,
+  ConfigurationLibrary,
+  ConfigurationPathRequest,
+  ConfigurationSaveRequest,
+  RecentConfigurationValue,
+  SavedConfigurationDocument,
+  SavedConfigurationSummary
+} from './config-library'
 import type {
   DashboardTemplateDocument,
   DashboardTemplateLibrary,
@@ -71,6 +81,21 @@ export interface SimCoreApi {
   saveConfigurationFile: (
     request: ConfigurationFileSaveRequest
   ) => Promise<ConfigurationFileResult<ConfigurationFileSaveValue>>
+  /** The saved-configuration folder and the recent-files list, in one read. */
+  listConfigurations: () => Promise<ConfigLibraryResult<ConfigurationLibrary>>
+  readSavedConfiguration: (
+    request: ConfigurationIdRequest
+  ) => Promise<ConfigLibraryResult<SavedConfigurationDocument>>
+  saveConfigurationToLibrary: (
+    request: ConfigurationSaveRequest
+  ) => Promise<ConfigLibraryResult<SavedConfigurationSummary>>
+  deleteSavedConfiguration: (request: ConfigurationIdRequest) => Promise<ConfigLibraryResult<void>>
+  readRecentConfiguration: (
+    request: ConfigurationPathRequest
+  ) => Promise<ConfigLibraryResult<RecentConfigurationValue>>
+  forgetRecentConfiguration: (
+    request: ConfigurationPathRequest
+  ) => Promise<ConfigLibraryResult<void>>
   listDashboardTemplates: () => Promise<TemplateResult<DashboardTemplateLibrary>>
   readDashboardTemplate: (
     request: TemplateIdRequest
@@ -98,6 +123,8 @@ export interface SimCoreApi {
   saveToBoard: (request: SaveToBoardRequest) => Promise<SaveToBoardResult>
   resetDeviceConfiguration: () => Promise<DeviceResult<DeviceConfigurationResetResult>>
   rebootDevice: () => Promise<DeviceResult<DeviceState>>
+  /** One hand-typed `@SC:` line, and the lines the board answered with. */
+  sendControlCommand: (request: ControlCommandRequest) => Promise<ControlCommandResult>
   listFontLibrary: () => Promise<FontLibrarySnapshot>
   /** Face bytes for the ids the canvas is about to draw with. */
   readFontFaces: (request: FontFacesRequest) => Promise<FontFaceBytes[]>
@@ -136,5 +163,6 @@ export interface SimCoreApi {
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
-  onDevelopmentSerialTraffic?: (listener: (log: SerialTrafficLog) => void) => () => void
+  /** Every byte over the link, for the debug workspace. Present in every build. */
+  onSerialTraffic: (listener: (log: SerialTrafficLog) => void) => () => void
 }

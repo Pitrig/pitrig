@@ -4,17 +4,21 @@ import type { DisplayDescriptor } from '@shared/device'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, absolutePlacement, useDashboardEditorStore } from '../dashboard-editor'
 import { clamp } from '../editor/placement'
 import { MAXIMUM_GRID_PX, MAXIMUM_TOLERANCE_PX, MINIMUM_GRID_PX, MINIMUM_TOLERANCE_PX, resolveGridSize, useSnapStore } from '../editor/snap-store'
+import { BoardPicker } from './BoardPicker'
 import { clampPan, viewForBox } from './canvas-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
 
 /**
  * The row under the canvas: how it is being looked at, what a gesture will
- * stick to, and what is currently selected.
+ * stick to, what is currently selected, and which display all of it is for.
  *
- * It sits below rather than above because none of it is an edit — the header
- * holds the things that change the document, and this holds the things that
- * change how it is worked on. Which also keeps the header from growing a third
- * row on a narrow window.
+ * It sits below rather than above because the header holds the things that
+ * change the document and this holds the things that describe it — which also
+ * keeps the header from growing a third row on a narrow window. The board is
+ * the one control here that can change the document, and it is here because it
+ * replaced the resolution this row used to print: the board *is* that
+ * resolution, and stating one beside a control choosing the other would have
+ * been the same fact written twice.
  */
 export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): React.JSX.Element {
   const view = useDashboardEditorStore((state) => state.view)
@@ -155,7 +159,7 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
             {`X ${box.x}  Y ${box.y}  W ${box.width}  H ${box.height}`}
           </span>
         ) : null}
-        <span>{`${display.width} × ${display.height}`}</span>
+        <BoardPicker />
       </span>
     </div>
   )

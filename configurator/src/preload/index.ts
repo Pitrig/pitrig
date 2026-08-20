@@ -1,9 +1,18 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 
 import {
-  DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL,
+  CONTROL_COMMAND_CHANNEL,
+  SERIAL_TRAFFIC_CHANNEL,
   type SerialTrafficLog
-} from '../shared/development'
+} from '../shared/debug'
+import {
+  CONFIG_LIBRARY_DELETE_CHANNEL,
+  CONFIG_LIBRARY_LIST_CHANNEL,
+  CONFIG_LIBRARY_READ_CHANNEL,
+  CONFIG_LIBRARY_SAVE_CHANNEL,
+  CONFIG_RECENT_FORGET_CHANNEL,
+  CONFIG_RECENT_READ_CHANNEL
+} from '../shared/config-library'
 import type { AssetUploadProgress } from '../shared/asset-upload'
 import {
   IMAGE_CANCEL_UPLOAD_CHANNEL,
@@ -76,6 +85,14 @@ const api: SimCoreApi = {
   loadConfigurationFile: () => ipcRenderer.invoke(CONFIGURATION_FILE_LOAD_CHANNEL),
   saveConfigurationFile: (request) =>
     ipcRenderer.invoke(CONFIGURATION_FILE_SAVE_CHANNEL, request),
+  listConfigurations: () => ipcRenderer.invoke(CONFIG_LIBRARY_LIST_CHANNEL),
+  readSavedConfiguration: (request) => ipcRenderer.invoke(CONFIG_LIBRARY_READ_CHANNEL, request),
+  saveConfigurationToLibrary: (request) =>
+    ipcRenderer.invoke(CONFIG_LIBRARY_SAVE_CHANNEL, request),
+  deleteSavedConfiguration: (request) => ipcRenderer.invoke(CONFIG_LIBRARY_DELETE_CHANNEL, request),
+  readRecentConfiguration: (request) => ipcRenderer.invoke(CONFIG_RECENT_READ_CHANNEL, request),
+  forgetRecentConfiguration: (request) =>
+    ipcRenderer.invoke(CONFIG_RECENT_FORGET_CHANNEL, request),
   listDashboardTemplates: () => ipcRenderer.invoke(TEMPLATE_LIST_CHANNEL),
   readDashboardTemplate: (request) => ipcRenderer.invoke(TEMPLATE_READ_CHANNEL, request),
   saveDashboardTemplate: (request) => ipcRenderer.invoke(TEMPLATE_SAVE_CHANNEL, request),
@@ -94,6 +111,7 @@ const api: SimCoreApi = {
   saveToBoard: (request) => ipcRenderer.invoke(SAVE_TO_BOARD_CHANNEL, request),
   resetDeviceConfiguration: () => ipcRenderer.invoke(DEVICE_CONFIGURATION_RESET_CHANNEL),
   rebootDevice: () => ipcRenderer.invoke(DEVICE_REBOOT_CHANNEL),
+  sendControlCommand: (request) => ipcRenderer.invoke(CONTROL_COMMAND_CHANNEL, request),
   listFontLibrary: () => ipcRenderer.invoke(FONT_LIBRARY_LIST_CHANNEL),
   readFontFaces: (request) => ipcRenderer.invoke(FONT_LIBRARY_FACES_CHANNEL, request),
   importFontFace: (request) => ipcRenderer.invoke(FONT_LIBRARY_IMPORT_CHANNEL, request),
@@ -141,15 +159,11 @@ const api: SimCoreApi = {
     ipcRenderer.on(DEVICE_STATE_CHANGED_CHANNEL, handler)
     return () => ipcRenderer.removeListener(DEVICE_STATE_CHANGED_CHANNEL, handler)
   },
-  ...(import.meta.env.DEV
-    ? {
-        onDevelopmentSerialTraffic: (listener: (log: SerialTrafficLog) => void) => {
-          const handler = (_event: IpcRendererEvent, log: SerialTrafficLog): void => listener(log)
-          ipcRenderer.on(DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL, handler)
-          return () => ipcRenderer.removeListener(DEVELOPMENT_SERIAL_TRAFFIC_CHANNEL, handler)
-        }
-      }
-    : {})
+  onSerialTraffic: (listener: (log: SerialTrafficLog) => void) => {
+    const handler = (_event: IpcRendererEvent, log: SerialTrafficLog): void => listener(log)
+    ipcRenderer.on(SERIAL_TRAFFIC_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(SERIAL_TRAFFIC_CHANNEL, handler)
+  }
 }
 
 contextBridge.exposeInMainWorld('simcore', api)

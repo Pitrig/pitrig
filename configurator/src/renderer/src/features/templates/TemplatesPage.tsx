@@ -1,8 +1,9 @@
+import { LayoutTemplate } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { transferReportLines } from '@/features/configuration/transfer-report'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { draftText, useDeviceStore } from '@/features/device/device-store'
@@ -18,21 +19,27 @@ import {
   SIMCORE_BOARD_IDS,
   type DeviceConfiguration
 } from '@shared/device'
-import { transferConfiguration, type LayoutFit, type LayoutTransferResult } from '@shared/layout-transfer'
+import { displaySize } from '@/features/configuration/board-labels'
+import {
+  transferConfiguration,
+  type LayoutFit,
+  type LayoutTransferResult
+} from '@shared/layout-transfer'
 import {
   MAXIMUM_TEMPLATE_DESCRIPTION,
   MAXIMUM_TEMPLATE_NAME,
   templateIdFor,
   type DashboardTemplateSummary
 } from '@shared/templates'
+import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
 import { useTemplatesStore } from './templates-store'
 
 // Whole dashboards to start from: the starters that ship with the application
 // and whatever the author has saved. A template authored for another board is
 // not refused — it is scaled to the board in hand on the way in, by the same
-// engine the configuration panel's Convert uses.
+// engine the Configs page's Convert uses.
 
-export function TemplatesPanel(): React.JSX.Element {
+export function TemplatesPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const draft = useDeviceStore((state) => state.draft)
   const rawDraft = useDeviceStore((state) => state.rawDraft)
@@ -50,7 +57,8 @@ export function TemplatesPanel(): React.JSX.Element {
   const [notice, setNotice] = useState<string>()
   const [report, setReport] = useState<LayoutTransferResult>()
   const [missing, setMissing] = useState<readonly string[]>([])
-  const [fit, setFit] = useState<LayoutFit>('contain')
+  const fit = useEditorPanelStore((state) => state.transferFit)
+  const setFit = useEditorPanelStore((state) => state.setTransferFit)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
 
@@ -177,22 +185,47 @@ export function TemplatesPanel(): React.JSX.Element {
   }
 
   return (
-    <Card>
-      <CardHeader className="py-3">
-        <CardTitle>Templates</CardTitle>
-        <CardDescription>
-          Whole dashboards to start from. One authored for another board is scaled to fit this one.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3 px-4 pb-4 text-xs">
+    <PageShell
+      title="Templates"
+      description="Whole dashboards to start from. One authored for another board is scaled to fit this one."
+      actions={
+        anyRescaled ? (
+          <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span>Fit</span>
+            <select
+              className="h-8 rounded-md border bg-background px-2 text-xs text-foreground"
+              disabled={busy}
+              value={fit}
+              onChange={(event) => setFit(event.target.value as LayoutFit)}
+            >
+              <option value="contain">Keep proportions, centre</option>
+              <option value="stretch">Stretch to fill the display</option>
+            </select>
+          </label>
+        ) : null
+      }
+    >
+      <PageSection
+        title="Library"
+        description={
+          targetBoard
+            ? `Applying replaces the draft, scaled to ${displaySize(targetBoard) ?? targetBoard}.`
+            : 'Applying replaces the current draft.'
+        }
+      >
         {loading && templates.length === 0 ? (
           <p className="text-muted-foreground">Reading the library…</p>
         ) : templates.length === 0 ? (
-          <p className="text-muted-foreground">No templates.</p>
+          <EmptyState
+            icon={<LayoutTemplate aria-hidden="true" className="size-6" />}
+            title="No templates"
+          >
+            Save the dashboard you are working on below, and it will be here next time.
+          </EmptyState>
         ) : (
-          <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {templates.map((summary) => (
-              <TemplateRow
+              <TemplateCard
                 key={summary.id}
                 busy={busy}
                 summary={summary}
@@ -203,32 +236,54 @@ export function TemplatesPanel(): React.JSX.Element {
           </div>
         )}
 
-        {anyRescaled ? (
-          <label className="block space-y-1 text-[11px] text-muted-foreground">
-            <span>Fit a template built for another display</span>
-            <select
-              className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
-              disabled={busy}
-              value={fit}
-              onChange={(event) => setFit(event.target.value as LayoutFit)}
-            >
-              <option value="contain">Keep proportions, centre</option>
-              <option value="stretch">Stretch to fill the display</option>
-            </select>
-          </label>
-        ) : null}
-
         {library && library.unreadable > 0 ? (
-          <p className="text-amber-400">
+          <p className="mt-2 text-[11px] text-amber-400">
             {`${library.unreadable} file${library.unreadable === 1 ? '' : 's'} in the template folder could not be read.`}
           </p>
         ) : null}
 
-        <details className="rounded-md border">
-          <summary className="cursor-pointer px-3 py-2 font-medium">
-            Save current as template
-          </summary>
-          <div className="space-y-2 border-t p-2">
+        {error ? (
+          <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 p-2 text-red-300">
+            {error}
+          </p>
+        ) : null}
+        {notice ? (
+          <p className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-300">
+            {notice}
+          </p>
+        ) : null}
+        {missing.length > 0 ? (
+          <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-amber-300">
+            {`Needs font famil${missing.length === 1 ? 'y' : 'ies'} not installed on the board: ${missing.join(', ')}. Choose a source on the Fonts page; saving to the board uploads them.`}
+          </p>
+        ) : null}
+        {report ? (
+          <div className="mt-3 space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
+            <div className="flex items-start justify-between gap-2">
+              <span className="font-medium">Layout transfer</span>
+              <button
+                className="text-sky-300/70 hover:text-sky-200"
+                type="button"
+                onClick={() => setReport(undefined)}
+              >
+                Dismiss
+              </button>
+            </div>
+            <ul className="list-disc space-y-0.5 pl-4">
+              {transferReportLines(report).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </PageSection>
+
+      <PageSection
+        title="Save the current dashboard"
+        description="A template is the whole document plus a name, so it can be applied to any board."
+      >
+        <div className="space-y-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <label className="block space-y-1 text-[11px] text-muted-foreground">
               <span>Name</span>
               <input
@@ -251,65 +306,26 @@ export function TemplatesPanel(): React.JSX.Element {
                 onChange={(event) => setDescription(event.target.value)}
               />
             </label>
-            <Button
-              className="w-full"
-              variant="outline"
-              disabled={busy || !hasLocalDraft || templateIdFor(name.trim()) === undefined}
-              onClick={() => void save()}
-            >
-              Save template
-            </Button>
-            {!hasLocalDraft ? (
-              <p className="text-[11px] text-muted-foreground">
-                Create, load or read a configuration first.
-              </p>
-            ) : null}
           </div>
-        </details>
-
-        {error ? (
-          <p className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-red-300">
-            {error}
-          </p>
-        ) : null}
-
-        {notice ? (
-          <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-300">
-            {notice}
-          </p>
-        ) : null}
-
-        {missing.length > 0 ? (
-          <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-amber-300">
-            {`Needs font famil${missing.length === 1 ? 'y' : 'ies'} not installed on the board: ${missing.join(', ')}. Choose a source in Fonts; saving to the board uploads them.`}
-          </p>
-        ) : null}
-
-        {report ? (
-          <div className="space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
-            <div className="flex items-start justify-between gap-2">
-              <span className="font-medium">Layout transfer</span>
-              <button
-                className="text-sky-300/70 hover:text-sky-200"
-                type="button"
-                onClick={() => setReport(undefined)}
-              >
-                Dismiss
-              </button>
-            </div>
-            <ul className="list-disc space-y-0.5 pl-4">
-              {transferReportLines(report).map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+          <Button
+            variant="outline"
+            disabled={busy || !hasLocalDraft || templateIdFor(name.trim()) === undefined}
+            onClick={() => void save()}
+          >
+            Save template
+          </Button>
+          {!hasLocalDraft ? (
+            <p className="text-[11px] text-muted-foreground">
+              Create, open or read a configuration first.
+            </p>
+          ) : null}
+        </div>
+      </PageSection>
+    </PageShell>
   )
 }
 
-function TemplateRow({
+function TemplateCard({
   summary,
   busy,
   onApply,
@@ -322,8 +338,8 @@ function TemplateRow({
 }): React.JSX.Element {
   const display = BOARD_PROFILES[summary.board].display
   return (
-    <div className="space-y-1 rounded-md border p-2">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col gap-1.5 rounded-md border p-2.5">
+      <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 truncate font-medium" title={summary.name}>
           {summary.name}
         </span>
@@ -339,11 +355,11 @@ function TemplateRow({
         </div>
       </div>
       {summary.description ? (
-        <p className="truncate text-[11px] text-muted-foreground" title={summary.description}>
+        <p className="line-clamp-2 text-[11px] text-muted-foreground" title={summary.description}>
           {summary.description}
         </p>
       ) : null}
-      <div className="flex items-center justify-between gap-2">
+      <div className="mt-auto flex items-center justify-between gap-2 pt-1">
         <span className="text-[11px] text-muted-foreground">
           {`${summary.screenCount} screen${summary.screenCount === 1 ? '' : 's'} · ${summary.widgetCount} widget${summary.widgetCount === 1 ? '' : 's'}`}
         </span>

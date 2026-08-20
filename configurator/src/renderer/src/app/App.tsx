@@ -1,42 +1,59 @@
 import { useEffect, useState } from 'react'
 
-import { ColumnResizer, RowResizer } from './PanelResizer'
-import { Button } from '@/components/ui/button'
-import { ConfigurationPanel } from '@/features/configuration/ConfigurationPanel'
-import { DisplayPreview } from '@/features/configuration/preview/DisplayPreview'
-import { LayersPanel } from '@/features/configuration/LayersPanel'
-import { useEditorShortcuts } from '@/features/configuration/editor/use-editor-shortcuts'
-import { WidgetInspector } from '@/features/configuration/inspector/WidgetInspector'
-import { DevelopmentLog } from '@/features/development/DevelopmentLog'
+import { WorkspaceRail } from './workspace/WorkspaceRail'
+import { useWorkspaceStore } from './workspace/workspace-store'
+import { ConfigsPage } from '@/features/configuration/ConfigsPage'
+import { DashboardWorkspace } from '@/features/configuration/DashboardWorkspace'
+import { saveConfigurationFile } from '@/features/configuration/configuration-actions'
+import { isTextEntry } from '@/features/configuration/editor/keyboard'
+import { DebugPage } from '@/features/debug/DebugPage'
+import { useSerialTraffic } from '@/features/debug/use-serial-traffic'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
+import { useAppInfo } from '@/features/device/app-info'
+import { useDraftState } from '@/features/device/draft-state'
+import { InfoPage } from '@/features/device/InfoPage'
+import { reportLiveApply } from '@/features/device/live-apply-store'
+import { UnresolvedFontsGate } from '@/features/device/save-to-board-ui'
+import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
+import { useLiveApply } from '@/features/device/use-live-apply'
 import { useDeviceStore } from '@/features/device/device-store'
-import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
-import { FirmwareUpdatePanel } from '@/features/firmware-update/FirmwareUpdatePanel'
-import { FontLibraryPanel } from '@/features/font-library/FontLibraryPanel'
+import { FirmwarePage } from '@/features/firmware-update/FirmwarePage'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
-import { ImageAssetsPanel } from '@/features/image-assets/ImageAssetsPanel'
-import { SimHubProfilePanel } from '@/features/simhub/SimHubProfilePanel'
-import { TemplatesPanel } from '@/features/templates/TemplatesPanel'
-import type { DeviceSession } from '@shared/device'
-import type { AppInfo } from '@shared/ipc'
+import { ModulesPage } from '@/features/modules/ModulesPage'
+import { ProtocolPage } from '@/features/protocol/ProtocolPage'
 
 export function App(): React.JSX.Element {
-  const [appInfo, setAppInfo] = useState<AppInfo | null>(null)
   const [deviceStatusText, setDeviceStatusText] = useState<string>()
-  const deviceSession = useDeviceStore((state) => state.session)
+  const appInfo = useAppInfo()
+  const tab = useWorkspaceStore((state) => state.tab)
   const connectionRevision = useDeviceStore((state) => state.connectionRevision)
-  const inspectorWidth = useEditorPanelStore((state) => state.inspectorWidth)
-  const layersHeight = useEditorPanelStore((state) => state.layersHeight)
-
-  useEditorShortcuts()
-
-  useEffect(() => {
-    void window.simcore.getAppInfo().then(setAppInfo)
-  }, [])
+  const saving = useSaveToBoardStore((state) => state.running)
+  const { liveApplyAllowed } = useDraftState()
 
   // The library outlives any connection, so it is read once here rather than
-  // keyed on the device the way the panels below are.
+  // keyed on the device the way the pages below are.
   useEffect(() => subscribeToFontLibrary(), [])
+  useSerialTraffic()
+
+  // Live apply belongs to the window, not to a page: an edit made in the
+  // inspector must still reach the board when the author steps over to Fonts,
+  // and a save owns the link for its whole sequence.
+  useLiveApply(liveApplyAllowed && !saving, reportLiveApply)
+
+  // Cmd/Ctrl+S saves the dashboard, which is what it does in SimHub's editor —
+  // to a file, not to the board, because saving to the board can install fonts
+  // and is not what a keystroke should set off. The guard is the same one the
+  // canvas keys use: a keystroke aimed at a field belongs to the field.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return
+      if (isTextEntry(event.target)) return
+      event.preventDefault()
+      void saveConfigurationFile()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   return (
     <div className="grid h-screen overflow-hidden grid-rows-[3.5rem_minmax(0,1fr)_2.5rem] bg-background text-foreground">
@@ -48,45 +65,15 @@ export function App(): React.JSX.Element {
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 
-      <main className="grid min-h-0 overflow-hidden grid-cols-[21rem_minmax(0,1fr)_auto]">
-        <aside className="min-h-0 space-y-3 overflow-y-auto overscroll-contain border-r p-3">
-          <ConfigurationPanel key={`configuration-${connectionRevision}`} />
-          <TemplatesPanel key={`templates-${connectionRevision}`} />
-          <div className="mt-3 space-y-3">
-            <FontLibraryPanel key={`fonts-${connectionRevision}`} />
-            <ImageAssetsPanel key={`images-${connectionRevision}`} />
-            <FirmwareUpdatePanel key={`firmware-${connectionRevision}`} />
-          </div>
-          <SimHubProfilePanel key={`simhub-${connectionRevision}`} />
-          <DeviceInfo session={deviceSession} />
-        </aside>
-
-        {/* No `items-center`: the preview card fills the cell, so its content
-            box has a height of its own. Hugging its content instead made the
-            card's height depend on the surface and the surface's size depend on
-            the card — the circular case, which collapses. */}
-        <section className="flex min-h-0 min-w-0 justify-center overflow-hidden bg-muted/30 p-3">
-          <DisplayPreview />
-        </section>
-
-        {/* Two panes rather than one scrolling column: the inspector owns its
-            own scroll, so picking another widget can put it back at the top
-            without dragging the layer list along with it. */}
-        <div className="flex min-h-0" style={{ width: inspectorWidth }}>
-          <ColumnResizer />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 border-l p-3">
-            <div className="min-h-0 flex-none" style={{ height: layersHeight }}>
-              <LayersPanel key={`layers-${connectionRevision}`} />
-            </div>
-            <RowResizer />
-            <div className="min-h-0 flex-1">
-              <WidgetInspector key={`inspector-${connectionRevision}`} />
-            </div>
-          </div>
-        </div>
+      <main className="flex min-h-0 overflow-hidden">
+        <WorkspaceRail />
+        {/* Keyed on the connection so a board that comes back — after a save
+            that restarted it, or after being unplugged — starts its pages from
+            the state it actually reports rather than from a stale one. */}
+        <WorkspacePage key={`${tab}-${connectionRevision}`} />
       </main>
 
-      {import.meta.env.DEV ? <DevelopmentLog /> : null}
+      <UnresolvedFontsGate />
 
       <footer className="flex min-w-0 items-center justify-between gap-4 border-t px-5 text-xs text-muted-foreground">
         <span className="min-w-0 truncate">{deviceStatusText ?? 'Application ready'}</span>
@@ -98,168 +85,22 @@ export function App(): React.JSX.Element {
   )
 }
 
-function DeviceInfo({ session }: { session?: DeviceSession }): React.JSX.Element {
-  const [clearingFonts, setClearingFonts] = useState(false)
-  const [fontError, setFontError] = useState<string>()
-  const [clearingImages, setClearingImages] = useState(false)
-  const [imageError, setImageError] = useState<string>()
-  const fontAssets = session?.fontAssets
-  const imageAssets = session?.imageAssets
-
-  const clearFonts = async (): Promise<void> => {
-    if (!window.confirm(
-      'Clear all uploaded fonts from the board? Configurations that reference them will not render correctly after reboot.'
-    )) return
-    setClearingFonts(true)
-    setFontError(undefined)
-    try {
-      const result = await window.simcore.clearFontAssets()
-      if (!result.ok) setFontError(result.error.message)
-    } catch (error) {
-      setFontError(error instanceof Error ? error.message : 'Failed to clear uploaded fonts.')
-    } finally {
-      setClearingFonts(false)
-    }
+function WorkspacePage(): React.JSX.Element {
+  const tab = useWorkspaceStore((state) => state.tab)
+  switch (tab) {
+    case 'dashboard':
+      return <DashboardWorkspace />
+    case 'info':
+      return <InfoPage />
+    case 'protocol':
+      return <ProtocolPage />
+    case 'configs':
+      return <ConfigsPage />
+    case 'modules':
+      return <ModulesPage />
+    case 'firmware':
+      return <FirmwarePage />
+    case 'debug':
+      return <DebugPage />
   }
-
-  const clearImages = async (): Promise<void> => {
-    if (!window.confirm(
-      'Clear all uploaded images from the board? Configurations that reference them will not render correctly after reboot.'
-    )) return
-    setClearingImages(true)
-    setImageError(undefined)
-    try {
-      const result = await window.simcore.clearImageAssets()
-      if (!result.ok) setImageError(result.error.message)
-    } catch (error) {
-      setImageError(error instanceof Error ? error.message : 'Failed to clear uploaded images.')
-    } finally {
-      setClearingImages(false)
-    }
-  }
-
-  return (
-    <details className="rounded-xl border bg-card text-card-foreground shadow-sm">
-      <summary className="cursor-pointer px-6 py-4 text-sm font-semibold">Device info</summary>
-      <div className="border-t">
-        <div className="px-6 py-4 text-xs text-muted-foreground">
-          {session
-            ? 'Detected board capabilities are read-only.'
-            : 'Connect a SimCore device to load its information.'}
-        </div>
-        {session ? (
-          <div className="space-y-3 px-6 pb-6 text-xs">
-            <ReadOnlyField label="Board" value={session.info.boardId} />
-            <ReadOnlyField
-              label="Display"
-              value={`${session.info.display.width} × ${session.info.display.height}`}
-            />
-            <ReadOnlyField label="Firmware" value={session.info.firmwareVersion} />
-            <ReadOnlyField label="Schema" value={String(session.info.schemaVersion)} />
-            <ReadOnlyField label="Configuration" value={session.info.configurationSource} />
-            <ReadOnlyField label="Generation" value={String(session.info.generation)} />
-            <ReadOnlyField
-              label="Persistent storage"
-              value={session.info.storageAvailable ? 'Available' : 'Unavailable'}
-            />
-            <div className="grid gap-1">
-              <span className="text-muted-foreground">Uploaded fonts</span>
-              {fontAssets ? (
-                fontAssets.families.length > 0 ? (
-                  <div className="space-y-1 rounded-md border bg-muted/20 p-2">
-                    {fontAssets.families.map((family) => (
-                      <div key={family} className="flex items-center justify-between gap-2">
-                        <span className="min-w-0 truncate" title={family}>{family}</span>
-                        <span className="flex-none text-muted-foreground">any size</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="rounded-md border bg-muted/40 px-2 py-1.5 text-muted-foreground">
-                    None
-                  </span>
-                )
-              ) : (
-                <span className="rounded-md border bg-muted/40 px-2 py-1.5 text-muted-foreground">
-                  Unsupported by firmware
-                </span>
-              )}
-            </div>
-            {fontAssets?.rebootRequired ? (
-              <p className="text-amber-400">Reboot required to activate font changes.</p>
-            ) : null}
-            {fontError ? <p className="text-red-400">{fontError}</p> : null}
-            {fontAssets ? (
-              <Button
-                className="w-full text-red-400 hover:text-red-300"
-                disabled={
-                  clearingFonts ||
-                  !fontAssets.storageAvailable ||
-                  !fontAssets.packageAvailable ||
-                  fontAssets.rebootRequired
-                }
-                variant="outline"
-                onClick={() => void clearFonts()}
-              >
-                {clearingFonts ? 'Clearing fonts…' : 'Clear uploaded fonts'}
-              </Button>
-            ) : null}
-            <div className="grid gap-1">
-              <span className="text-muted-foreground">Uploaded images</span>
-              {imageAssets ? (
-                imageAssets.images.length > 0 ? (
-                  <div className="space-y-1 rounded-md border bg-muted/20 p-2">
-                    {imageAssets.images.map((image) => (
-                      <div key={image.name} className="flex items-center justify-between gap-2">
-                        <span className="min-w-0 truncate" title={image.name}>{image.name}</span>
-                        <span className="flex-none text-muted-foreground">
-                          {image.width} × {image.height}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="rounded-md border bg-muted/40 px-2 py-1.5 text-muted-foreground">
-                    None
-                  </span>
-                )
-              ) : (
-                <span className="rounded-md border bg-muted/40 px-2 py-1.5 text-muted-foreground">
-                  Unsupported by firmware
-                </span>
-              )}
-            </div>
-            {imageAssets?.rebootRequired ? (
-              <p className="text-amber-400">Reboot required to activate image changes.</p>
-            ) : null}
-            {imageError ? <p className="text-red-400">{imageError}</p> : null}
-            {imageAssets ? (
-              <Button
-                className="w-full text-red-400 hover:text-red-300"
-                disabled={
-                  clearingImages ||
-                  !imageAssets.storageAvailable ||
-                  !imageAssets.packageAvailable ||
-                  imageAssets.rebootRequired
-                }
-                variant="outline"
-                onClick={() => void clearImages()}
-              >
-                {clearingImages ? 'Clearing images…' : 'Clear uploaded images'}
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </details>
-  )
-}
-
-function ReadOnlyField({ label, value }: { label: string; value: string }): React.JSX.Element {
-  return (
-    <div className="grid gap-1">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="truncate rounded-md border bg-muted/40 px-2 py-1.5">{value}</span>
-    </div>
-  )
 }
