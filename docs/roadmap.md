@@ -92,6 +92,9 @@ foundation for them landed in Phase 1.
 - [ ] Font library, font picker and automatic font delivery on save
 - [*] Dragging a widget into a container on the canvas, and container clipping
       as an authored property (schema 11)
+- [*] Drawing a widget with a tool, snapping that reaches the neighbours during a
+      resize as well as a move, equal-gap snapping with measurements, and
+      context menus on the canvas and the layer list
 - [ ] Preview with live values — a virtual COM port on the PC, with the
       configurator taking the SimHub stream, drawing it, and forwarding it to the
       board

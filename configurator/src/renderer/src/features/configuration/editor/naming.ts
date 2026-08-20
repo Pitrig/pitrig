@@ -1,6 +1,7 @@
 import { allWidgetsOf, screensOf } from '@shared/configuration-access'
 import { WIDGET_ID_CAPACITY } from '@shared/configuration-schema'
 import { findWidget, mutateDraftConfiguration } from './document'
+import { ensureScreen } from './screens'
 import { useDashboardEditorStore } from './store'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -30,8 +31,10 @@ export function renameScreen(index: number, name: string): boolean {
   if (new TextEncoder().encode(trimmed).byteLength >= WIDGET_ID_CAPACITY) return false
   if (screens.some((screen) => screen.id === trimmed)) return false
   mutateDraftConfiguration((next) => {
-    const screen = next.dashboard?.screens?.[index]
-    if (!screen) return
+    // Through ensureScreen: a sparse document can be one screen short of the
+    // tab the author is renaming, and naming it is as good a reason to
+    // materialize it as drawing on it.
+    const screen = ensureScreen(next, index)
     screen.id = trimmed
     for (const target of allWidgetsOf(next)) {
       if (target.action?.type === 'goto_screen' && target.action.screen === current) {

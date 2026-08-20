@@ -35,6 +35,11 @@ export function addScreen(): number | undefined {
   let added: number | undefined
   mutateDraftConfiguration((configuration) => {
     const screens = ((configuration.dashboard ??= {}).screens ??= [])
+    // An empty array already stands for a screen — the strip shows a tab for it
+    // and the canvas draws it — so adding means adding a *second* one. Without
+    // this the first press materialized the screen that was already there and
+    // looked like it had done nothing at all.
+    if (screens.length === 0) screens.push({ id: 'screen1' })
     if (screens.length >= MAXIMUM_SCREENS) return
     screens.push({ id: `screen${screens.length + 1}` })
     added = screens.length - 1

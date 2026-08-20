@@ -244,6 +244,21 @@ export const NEW_WIDGET_SIZE: Record<
 interface NewWidgetExtras {
   font?: FontSpec
   image?: string
+  /**
+   * The box the author drew, in display coordinates. Absent means the widget is
+   * centred, which is what a toolbar button with no pointer behind it can mean.
+   */
+  placement?: Required<WidgetPlacement>
+  /**
+   * Where it was drawn: a container's id, or `screen` for a box the pointer put
+   * outside every container. Absent leaves the choice to the editor's own rule
+   * — the container being worked in, or the selected one.
+   *
+   * A drawn box always answers this, because what the author drew is where they
+   * meant it: falling back to the opened container would put a widget somewhere
+   * other than under the rectangle they just dragged.
+   */
+  into?: string | 'screen'
 }
 
 const WIDGET_DEFAULTS: Record<
@@ -318,7 +333,22 @@ const WIDGET_DEFAULTS: Record<
   }),
 }
 
-/** Inserts a new widget of `type` wherever the editor is currently pointing. */
+/**
+ * Whether the dashboard already holds as many widgets of a kind as the device
+ * has room for. The pool is dashboard-wide, so this counts every screen — and
+ * it is asked before a tool is offered rather than after a widget silently
+ * fails to appear.
+ */
+export function atWidgetCapacity(
+  configuration: DeviceConfiguration | undefined,
+  type: WidgetConfiguration['type']
+): boolean {
+  if (!configuration) return false
+  const pooled = allWidgetsOf(configuration).filter((widget) => widget.type === type).length
+  return pooled >= WIDGET_CAPACITIES[type]
+}
+
+/** Inserts a new widget of `type` where the author put it, or where the editor points. */
 export function addWidget(
   type: WidgetConfiguration['type'],
   display: { width: number; height: number },
@@ -326,9 +356,25 @@ export function addWidget(
 ): WidgetSelection | undefined {
   let added: WidgetSelection | undefined
   mutateDraftConfiguration((configuration) => {
-    added = insertWidget(configuration, WIDGET_DEFAULTS[type](display, extras))
+    const widget = WIDGET_DEFAULTS[type](display, extras)
+    if (extras.placement) widget.placement = extras.placement
+    added = insertWidget(configuration, widget, drawnTarget(configuration, extras.into))
   })
   return added
+}
+
+/**
+ * The array a drawn box belongs to. Undefined hands the decision back to
+ * `insertWidget`'s own rule; a container that cannot take the widget — a slot
+ * whose page is missing, a shape that is gone — does the same rather than
+ * dropping it silently.
+ */
+function drawnTarget(
+  configuration: DeviceConfiguration,
+  into: string | 'screen' | undefined
+): InsertionTarget | undefined {
+  if (into === undefined) return undefined
+  return into === 'screen' ? screenTarget(configuration) : containerTarget(configuration, into)
 }
 
 function centeredPlacement(
@@ -427,16 +473,25 @@ export function actionCount(configuration: DeviceConfiguration | undefined): num
  * cheapest way to say "this corner of the screen goes back" without a widget to
  * press.
  */
-export function addTapZone(display: { width: number; height: number }): string | undefined {
+export function addTapZone(
+  display: { width: number; height: number },
+  extras: Pick<NewWidgetExtras, 'placement' | 'into'> = {}
+): string | undefined {
   let created: string | undefined
   mutateDraftConfiguration((configuration) => {
     // Through the one insertion path, so the shape pool cap and the fresh id
     // are handled where every other widget handles them.
-    const selection = insertWidget(configuration, {
-      type: 'shape',
-      kind: 'rectangle',
-      placement: centeredPlacement(display, { width: TAP_ZONE_PX, height: TAP_ZONE_PX })
-    })
+    const selection = insertWidget(
+      configuration,
+      {
+        type: 'shape',
+        kind: 'rectangle',
+        placement:
+          extras.placement ??
+          centeredPlacement(display, { width: TAP_ZONE_PX, height: TAP_ZONE_PX })
+      },
+      drawnTarget(configuration, extras.into)
+    )
     created = selection?.type === 'widget' ? selection.id : undefined
   })
   return created

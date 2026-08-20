@@ -31,13 +31,15 @@ export function flattenScreen(
     parent: WidgetParent,
     offsetX: number,
     offsetY: number,
-    clip: Placement | undefined
+    clip: Placement | undefined,
+    parentId: string | undefined
   ): PreviewLayer[] =>
     stackOrder(widgetsOf(parent)).flatMap(({ widget, index }) => {
       const layer: PreviewLayer = {
         configuration: widget,
         zIndex: widget.z_index ?? 0,
         configurationOrder: index,
+        parentId,
         offsetX,
         offsetY,
         clip
@@ -56,7 +58,7 @@ export function flattenScreen(
           : onDisplay
         : clip
       const inside = (owner: WidgetParent): PreviewLayer[] =>
-        emit(owner, offsetX + (box?.x ?? 0), offsetY + (box?.y ?? 0), within)
+        emit(owner, offsetX + (box?.x ?? 0), offsetY + (box?.y ?? 0), within, widget.id)
       if (widget.type === 'shape') return [layer, ...inside(widget)]
       if (widget.type !== 'slot') return [layer]
       // The board shows one page of a slot; the canvas has to author all of
@@ -65,5 +67,5 @@ export function flattenScreen(
       const page = pagesOf(widget)[visibleSlotPage(widget, slotPage)]
       return page ? [layer, ...inside(page)] : [layer]
     })
-  return screen ? emit(screen, 0, 0, undefined) : []
+  return screen ? emit(screen, 0, 0, undefined, undefined) : []
 }

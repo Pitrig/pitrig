@@ -98,7 +98,11 @@ curves and triggers.
 
 Done. `kMaximumScreens` is 4 and the driver swipes between them
 ([ADR 0020](adr/0020-screen-navigation.md)); the editor authors one screen at a
-time through a tab strip, which also reorders them by dragging. Navigation is
+time through a tab strip, which also reorders them by dragging and renames them
+in place. The tabs carry the screens' names rather than their positions — a
+`goto_screen` action addresses a screen by name anyway, and a position is the
+one label that means something different after a drag, which is precisely when
+the strip has to be readable. Navigation is
 not authorable: the order is the order the screens are declared in and it wraps
 at both ends, so there is nothing in the contract for it beyond that order.
 
@@ -134,11 +138,44 @@ opposite of the decision ADR 0018 took, and needs its own.
 Available: undo/redo with a whole gesture grouped into one entry,
 copy/paste/duplicate (the clipboard is JSON, so it crosses projects), arrow-key
 nudging, keyboard deletion, multi-select by rubber band and Shift, alignment and
-even distribution, snapping to a grid and to neighbouring edges with guides,
-zoom with panning, restacking from the keyboard, and a layer panel with folding,
-drag reordering, drag reparenting — dropping a row onto the middle of a
-container's row moves the widget inside it, and a slot lists every page so a drop
-can reach one the canvas is not showing — renaming and lock/hide.
+even distribution, zoom with panning, restacking from the keyboard, and a layer
+panel with folding, drag reordering, drag reparenting — dropping a row onto the
+middle of a container's row moves the widget inside it, and a slot lists every
+page so a drop can reach one the canvas is not showing — renaming and lock/hide.
+
+A widget is created by drawing it. The tools sit in a column beside the canvas,
+one is picked, and a box dragged on the display becomes the widget — at that
+size, in that place, and inside whatever container the box landed in; a click
+without a drag places the kind's own size at the pointer. The tool is one-shot,
+so the next press edits again. The same kinds are a right-click away: the
+context menu on the canvas adds, pastes and selects, the one on a widget carries
+duplicate, delete, wrap, restack, lock and hide, and the layer list opens the
+same menu with renaming added, since it is the one place that can rename inline.
+
+Snapping is one engine for a move, a resize and a drawn corner, and it answers
+in one order: an edge or centre of a neighbour first, then a gap the row already
+has, then the grid. What it lines up with is the level the box is in — its own
+siblings, its container's box and the area inside its padding — resolved while
+the drag runs, so a widget dragged into a panel starts lining up with that
+panel's contents the moment it is over them. A resized edge reaches for all of
+it, which is the part that used to be missing: an edge could only find the grid,
+so a box could be dragged to within a pixel of the neighbour it was meant to
+meet and left there. Guides cover only the boxes they relate rather than
+crossing the display, gaps are drawn with their measurements, the widget that
+was matched is outlined, and a badge beside the pointer carries the position or
+the size. Holding `Cmd`/`Ctrl` drops the neighbours and keeps the grid — the
+same key that already means "leave this widget in the container it is in" — and
+adding `Shift` drops the grid too. The grid is on by default at a step chosen
+for the board, and how far a box reaches for a line is a setting; both are kept
+across restarts.
+
+A resize acts on one widget or on the box around the whole selection, which
+scales every member and the space between them. `Shift` keeps the proportions
+and `Alt` grows from the centre. Whether a container carries its contents is a
+mode rather than a held key — the four modifier combinations a resize already
+answers to leave nothing free — and with it on the whole subtree scales, fonts,
+radii and thicknesses included, through the same tables a cross-board transfer
+uses.
 
 Three of those come straight from what SimHub's editor documents and SimCore had
 no equivalent for: reordering screens by dragging their tabs, `Ctrl+S` to save
@@ -146,8 +183,12 @@ the dashboard — to a file, since saving to the board delivers fonts and restar
 it — and `Ctrl+Alt` with the arrows to resize the selection. `Ctrl+A`, `Ctrl+Z`,
 the arrows and `Del` were already bound, and the padlock that lets a click reach
 what is under a locked component is what our lock has always done. SimHub's zoom
-slider is the one deliberately left alone: the canvas zooms at the pointer with
-the wheel, and a panel over the display would cover the thing being judged.
+slider ended up under the canvas rather than over it, in a status bar beside the
+snapping switches and the selected widget's box: the canvas zooms at the pointer
+with the wheel and pans with Space or with the wheel alone, and a panel over the
+display would cover the thing being judged. The zoom is a factor over "the whole
+display fits the canvas" — the surface always scales to the space it has — and
+it goes below one to one as well as above it.
 
 Containers, on the other hand, are worked with the way they are in Figma and
 Sketch rather than the way SimHub does it, because SimHub has no containers to

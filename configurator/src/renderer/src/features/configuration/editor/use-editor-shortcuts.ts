@@ -11,6 +11,7 @@ import {
   copyWidget,
   deleteWidget,
   duplicateWidget,
+  findWidget,
   wrapInShape,
   mutateSelectedWidget,
   parentOffset,
@@ -24,6 +25,11 @@ import {
 } from '../dashboard-editor'
 import { isTextEntry } from './keyboard'
 import { clamp, clampToDisplay } from './placement'
+import { scaleWidgets } from './geometry-commands'
+import { useSnapStore } from './snap-store'
+import { MINIMUM_SIZE_PX } from '../preview/snapping'
+import { clampPan, viewForBox } from '../preview/canvas-geometry'
+import { MAXIMUM_ZOOM, MINIMUM_ZOOM } from './store'
 import type { WidgetSelection } from '../dashboard-editor'
 
 // The whole window listens, because the canvas is an SVG that nothing focuses
@@ -31,9 +37,6 @@ import type { WidgetSelection } from '../dashboard-editor'
 // happens to have focus. Anything typed into a field is left alone.
 const NUDGE_PX = 1
 const COARSE_NUDGE_PX = 10
-// The floor the pointer resize uses, so neither route can make a box the other
-// would refuse.
-const MINIMUM_SIZE_PX = 8
 
 /**
  * Keyboard editing for the canvas. A held arrow key repeats, so the whole run
@@ -71,7 +74,7 @@ export function useEditorShortcuts(): void {
       if (!configuration) return
       const display = displayOf(configuration)
 
-      if (accelerator && event.key.toLowerCase() === 'c') {
+      if (accelerator && !event.shiftKey && event.key.toLowerCase() === 'c') {
         event.preventDefault()
         void copyWidget(configuration, selection)
         return
@@ -144,11 +147,49 @@ export function useEditorShortcuts(): void {
         editor.setActiveScreen(Number(event.key) - 1)
         return
       }
+      // Whether a container carries its contents when it is resized. A mode
+      // rather than a held key, so it is bound like one.
+      if (accelerator && event.shiftKey && event.key.toLowerCase() === 'c') {
+        event.preventDefault()
+        useSnapStore.getState().toggleScaleContents()
+        return
+      }
+      if (accelerator && (event.key === '0' || event.key === '=' || event.key === '-')) {
+        event.preventDefault()
+        if (event.key === '0') {
+          // Shift asks for the selection instead of the whole display, which is
+          // the pair every canvas binds — and zero is free where 1 to 9 are not.
+          const box =
+            event.shiftKey && display && selection?.type === 'widget'
+              ? absolutePlacement(configuration, selection.id)
+              : undefined
+          editor.setView(
+            box && display
+              ? viewForBox(box, display, { minimum: MINIMUM_ZOOM, maximum: MAXIMUM_ZOOM })
+              : { zoom: 1, panX: 0, panY: 0 }
+          )
+          return
+        }
+        if (!display) return
+        const zoom = clamp(
+          editor.view.zoom * (event.key === '=' ? 1.25 : 0.8),
+          MINIMUM_ZOOM,
+          MAXIMUM_ZOOM
+        )
+        editor.setView({ zoom, ...clampPan(editor.view, display, zoom) })
+        return
+      }
       // Escape is the way back out: it selects the container holding whatever
       // is selected, and clears the selection once there is nothing above.
       // Inside an opened container it leaves that first, which is the level
       // above everything in it.
       if (event.key === 'Escape') {
+        // A tool is the outermost thing to leave: a press meant to put the
+        // pointer back is not a request to change the selection as well.
+        if (editor.activeTool !== 'select') {
+          editor.setActiveTool('select')
+          return
+        }
         const parent = parentContainerId(configuration, selection)
         // One rung at a time: select the container holding the selection, and
         // once the opened container is itself what is selected, step out of it
@@ -231,8 +272,9 @@ function arrowStep(key: string): { x: number; y: number } | undefined {
 /**
  * Grows or shrinks one widget from its bottom-right corner, which is what a
  * keyboard resize can mean without an anchor to pick. Bounded exactly as the
- * pointer resize is in `transformedPlacement`: no smaller than the handles
- * allow, and never past the display.
+ * pointer resize is: no smaller than the handles allow, and never past the
+ * display — and through the same command, so "scale contents" means the same
+ * thing whichever way the box was resized.
  */
 function resize(
   selection: WidgetSelection,
@@ -242,9 +284,9 @@ function resize(
   coarse: boolean
 ): void {
   if (selection.type !== 'widget') return
+  const location = findWidget(configuration, selection.id)
   const placement = absolutePlacement(configuration, selection.id)
-  if (!placement) return
-  const offset = parentOffset(configuration, selection.id)
+  if (!location || !placement) return
   const distance = coarse ? COARSE_NUDGE_PX : NUDGE_PX
   const width = clamp(
     placement.width + step.x * distance,
@@ -257,15 +299,22 @@ function resize(
     Math.max(MINIMUM_SIZE_PX, display.height - placement.y)
   )
   if (width === placement.width && height === placement.height) return
-  mutateSelectedWidget(selection, (widget) => {
-    widget.placement = {
-      ...placement,
-      x: placement.x - offset.x,
-      y: placement.y - offset.y,
-      width,
-      height
-    }
-  })
+  scaleWidgets(
+    [
+      {
+        id: selection.id,
+        // One keypress is one edit from the document as it stands, so the
+        // widget itself is the state to scale — unlike a drag, which re-derives
+        // every frame from where the gesture began.
+        original: JSON.parse(JSON.stringify(location.widget)),
+        box: placement
+      }
+    ],
+    placement,
+    { ...placement, width, height },
+    display,
+    useSnapStore.getState().scaleContents
+  )
 }
 
 function nudge(

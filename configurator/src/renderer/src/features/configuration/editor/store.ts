@@ -1,8 +1,21 @@
 import { create } from 'zustand'
 
+import type { WidgetConfiguration } from '@shared/configuration-schema'
+
 export type WidgetSelection =
   | { type: 'screen' }
   | { type: 'widget'; id: string }
+
+/**
+ * What a press on the empty canvas does. `select` rubber-bands, and every other
+ * value draws the box a new widget of that kind is created at — the way a
+ * drawing editor works, and the one way to place a widget exactly where it
+ * belongs without correcting it afterwards.
+ *
+ * One-shot: the tool returns to `select` as soon as it has drawn something, so
+ * the next press edits rather than adding a second widget nobody asked for.
+ */
+export type CanvasTool = 'select' | WidgetConfiguration['type'] | 'tap_zone'
 
 /**
  * How the canvas is being looked at, and which widgets are set aside while
@@ -14,19 +27,19 @@ export interface EditorView {
   zoom: number
   panX: number
   panY: number
-  gridSize: number
-  snapToGrid: boolean
 }
 
 const DEFAULT_EDITOR_VIEW: EditorView = {
   zoom: 1,
   panX: 0,
-  panY: 0,
-  gridSize: 8,
-  snapToGrid: false
+  panY: 0
 }
 
-export const MINIMUM_ZOOM = 1
+// Below one to one the whole display fits with room to spare, which is what
+// judging a layout as a whole needs; the grid and the snapping settings that
+// used to sit beside the zoom now live in the snap store, because they outlive
+// the document while the zoom does not.
+export const MINIMUM_ZOOM = 0.25
 export const MAXIMUM_ZOOM = 8
 
 interface DashboardEditorStore {
@@ -75,6 +88,9 @@ interface DashboardEditorStore {
    * widget" is what changes what is already there.
    */
   defaultFontFamily?: string
+  /** The tool a press on the canvas runs, reset to `select` after it draws. */
+  activeTool: CanvasTool
+  setActiveTool: (tool: CanvasTool) => void
   setDefaultFontFamily: (family: string) => void
   select: (selection?: WidgetSelection) => void
   /** Adds or removes one widget, keeping it primary when it stays selected. */
@@ -111,6 +127,8 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   hidden: {},
   collapsed: {},
   slotPage: {},
+  activeTool: 'select',
+  setActiveTool: (tool) => set({ activeTool: tool }),
   setDefaultFontFamily: (family) => set({ defaultFontFamily: family }),
   select: (selection) =>
     set({
@@ -210,6 +228,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
       slotPage: {},
       drillIn: undefined,
       defaultFontFamily: undefined,
+      activeTool: 'select',
       view: DEFAULT_EDITOR_VIEW,
     })
 }))

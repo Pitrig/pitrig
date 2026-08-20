@@ -66,7 +66,7 @@ export interface LayoutTransferTarget {
  * smaller ratio — scaling a glyph by the larger one would overflow the box that
  * grew by the smaller.
  */
-interface Scale {
+export interface Scale {
   x: number
   y: number
   min: number
@@ -254,11 +254,12 @@ export function transferConfiguration(
         note({ kind: 'widget_off_display', ...label })
       }
 
-      for (const field of FRAME_PIXEL_FIELDS) scaleField(widget, field, scale, label, note)
-      for (const field of TYPE_PIXEL_FIELDS[widget.type] ?? []) {
-        scaleField(widget, field, scale, label, note)
-      }
-      repairArcThickness(widget, label, note)
+      scaleWidgetFields(widget, scale, (field, from, to) => {
+        note({ kind: 'field_clamped', ...label, field: field.path, from, to })
+      })
+      repairArcThickness(widget, (from, to) => {
+        note({ kind: 'arc_thickness_reduced', ...label, field: 'thickness_px', from, to })
+      })
       noteImageResize(widget, before, label, note)
 
       // Through childArraysOf so a container type added later is not a
@@ -276,6 +277,33 @@ export function transferConfiguration(
     visit(widgetsOf(screen), screenIndex, { x: 0, y: 0 }, 0)
   }
   return { configuration: next, fit, scale, offset, from, to, notes }
+}
+
+/**
+ * Resizing a container carries its contents, when the author asks for it.
+ *
+ * The widget's own box is the caller's — it is what the drag resolved — and
+ * everything the box holds follows it here: each child's placement, and every
+ * pixel-valued property of the widget and its descendants, so a plate that is
+ * dragged twice as wide keeps the same proportions rather than becoming a
+ * bigger frame around the same small text.
+ *
+ * The same tables the board transfer uses, and for the same reason: a property
+ * added to the frame has to scale in both places or in neither, and one table
+ * is how that stays true. What differs is only the reporting — a transfer says
+ * what it clamped, a resize is an edit the author is watching happen.
+ */
+export function scaleWidgetPixels(widget: WidgetConfiguration, scale: Scale): void {
+  scaleWidgetFields(widget, scale)
+  repairArcThickness(widget)
+  // Through childArraysOf, so a container type added later is not a forgotten
+  // `=== 'shape'` here either.
+  for (const children of childArraysOf(widget)) {
+    for (const child of children) {
+      scalePlacement(child.placement, scale, NO_SHIFT)
+      scaleWidgetPixels(child, scale)
+    }
+  }
 }
 
 const NO_SHIFT = { x: 0, y: 0 }
@@ -338,12 +366,27 @@ function scaleAxis(
   }
 }
 
+/**
+ * Every pixel-valued property one widget owns, scaled in place. `clamped` is
+ * called for a value the contract would not take at the new size, which is the
+ * transfer's business to report and the editor's to ignore.
+ */
+function scaleWidgetFields(
+  widget: WidgetConfiguration,
+  scale: Scale,
+  clamped?: (field: PixelField, from: number, to: number) => void
+): void {
+  for (const field of FRAME_PIXEL_FIELDS) scaleField(widget, field, scale, clamped)
+  for (const field of TYPE_PIXEL_FIELDS[widget.type] ?? []) {
+    scaleField(widget, field, scale, clamped)
+  }
+}
+
 function scaleField(
   widget: WidgetConfiguration,
   field: PixelField,
   scale: Scale,
-  label: { screenIndex: number; widgetId?: string; widgetType: WidgetType },
-  note: (entry: LayoutTransferNote) => void
+  clamped?: (field: PixelField, from: number, to: number) => void
 ): void {
   const leaf = leafOwner(widget, field.path)
   if (!leaf) return
@@ -353,12 +396,10 @@ function scaleField(
   if (typeof value !== 'number' || !Number.isFinite(value)) return
   const scaled = Math.round(value * (field.axis ? scale[field.axis] : scale.min))
   const floored = field.floorWhenPositive && value > 0 ? Math.max(1, scaled) : scaled
-  const bounds = resolveBounds(label.widgetType, field)
+  const bounds = resolveBounds(widget.type, field)
   const next = clampInteger(floored, bounds.min, bounds.max)
   leaf.owner[leaf.key] = next
-  if (next !== floored) {
-    note({ kind: 'field_clamped', ...label, field: field.path, from: floored, to: next })
-  }
+  if (next !== floored) clamped?.(field, floored, next)
 }
 
 /**
@@ -386,8 +427,7 @@ function resolveBounds(owner: WidgetType, field: PixelField): { min: number; max
  */
 function repairArcThickness(
   widget: WidgetConfiguration,
-  label: { screenIndex: number; widgetId?: string; widgetType: WidgetType },
-  note: (entry: LayoutTransferNote) => void
+  reduced?: (from: number, to: number) => void
 ): void {
   if (widget.type !== 'arc') return
   const box = widget.placement
@@ -400,7 +440,7 @@ function repairArcThickness(
     : DEFAULT_ARC_THICKNESS_PX
   if (thickness <= limit) return
   widget.thickness_px = limit
-  note({ kind: 'arc_thickness_reduced', ...label, field: 'thickness_px', from: thickness, to: limit })
+  reduced?.(thickness, limit)
 }
 
 /**

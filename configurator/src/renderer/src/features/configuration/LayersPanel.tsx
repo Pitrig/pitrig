@@ -4,7 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
 import { withEditGroup } from '@/features/device/edit-group'
 import { isContainer, pagesOf, screensOf, stackOrder, widgetsOf } from '@shared/configuration-access'
+import { BOARD_PROFILES } from '@shared/device'
 import { visibleSlotPage } from './preview/canvas-geometry'
+import { ContextMenu } from './preview/ContextMenu'
+import { widgetMenuEntries } from './preview/menu-entries'
 import { WIDGET_ID_CAPACITY } from '@shared/configuration-schema'
 import type { SlotWidgetConfiguration, WidgetConfiguration } from '@shared/configuration-schema'
 import {
@@ -57,6 +60,8 @@ export function LayersPanel(): React.JSX.Element {
   // rather than a flag per row: there is only ever one, and clearing it is then
   // one assignment instead of every row racing to unset its own.
   const [dropTarget, setDropTarget] = useState<DropTarget>()
+  // The same menu the canvas opens, from the row instead of from the widget.
+  const [menu, setMenu] = useState<{ x: number; y: number; id: string }>()
   const body = useRef<HTMLDivElement>(null)
 
   // Read through the subscribed index rather than the store getter, so the list
@@ -87,7 +92,26 @@ export function LayersPanel(): React.JSX.Element {
     return () => cancelAnimationFrame(frame)
   }, [primary, draft, expand])
 
-  const rowProps = { dragged, setDragged, renaming, setRenaming, dropTarget, setDropTarget }
+  const openMenu = (event: React.MouseEvent, id: string): void => {
+    event.preventDefault()
+    // A menu acts on the selection, so a right-click on an unselected row picks
+    // it first — otherwise "Delete" would delete something else.
+    if (!selectedIds.includes(id)) {
+      useDashboardEditorStore.getState().select({ type: 'widget', id })
+    }
+    setMenu({ x: event.clientX, y: event.clientY, id })
+  }
+
+  const rowProps = {
+    dragged,
+    setDragged,
+    renaming,
+    setRenaming,
+    dropTarget,
+    setDropTarget,
+    openMenu
+  }
+  const display = draft ? BOARD_PROFILES[draft.board]?.display : undefined
 
   return (
     <Card className="flex h-full min-h-0 flex-col">
@@ -134,6 +158,16 @@ export function LayersPanel(): React.JSX.Element {
           ) : null}
           <LayerList widgets={widgets} {...rowProps} />
         </div>
+        {menu && display ? (
+          <ContextMenu
+            x={menu.x}
+            y={menu.y}
+            entries={widgetMenuEntries(menu.id, display, {
+              onRename: () => setRenaming(menu.id)
+            })}
+            onClose={() => setMenu(undefined)}
+          />
+        ) : null}
         {widgets.length > 0 ? (
           <p className="pt-1 text-muted-foreground">
             Hiding and locking apply to this editing session only; the board draws every widget.
@@ -158,6 +192,8 @@ interface RowState {
   setRenaming: (id?: string) => void
   dropTarget?: DropTarget
   setDropTarget: (target?: DropTarget) => void
+  /** Where the right button was pressed, and on which row. */
+  openMenu: (event: React.MouseEvent, id: string) => void
 }
 
 /**
@@ -188,7 +224,8 @@ function LayerList({
   widgets,
   ...rowState
 }: { widgets: WidgetConfiguration[] } & RowState): React.JSX.Element {
-  const { dragged, setDragged, renaming, setRenaming, dropTarget, setDropTarget } = rowState
+  const { dragged, setDragged, renaming, setRenaming, dropTarget, setDropTarget, openMenu } =
+    rowState
   const draft = useDeviceStore((state) => state.draft)
   const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
   const select = useDashboardEditorStore((state) => state.select)
@@ -249,6 +286,7 @@ function LayerList({
           <div
             data-layer-id={id}
             draggable
+            onContextMenu={(event) => openMenu(event, id)}
             onDragStart={(event) => {
               // Dragging a selected row drags the whole selection, the way
               // dragging one of several selected widgets moves the group on the

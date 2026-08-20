@@ -1,13 +1,20 @@
 import { pagesOf } from '@shared/configuration-access'
 import { type SlotWidgetConfiguration, type TextWidgetConfiguration, type WidgetAction, type WidgetConfiguration } from '@shared/configuration-schema'
-import { type DisplayDescriptor } from '@shared/device'
-import { clamp, clampToDisplay } from '../editor/placement'
-import { type WidgetSelection, completePlacement } from '../dashboard-editor'
+import { clamp } from '../editor/placement'
+import type { ScaleSubject } from '../editor/geometry-commands'
+import type { CanvasTool } from '../editor/store'
+import type { WidgetSelection } from '../dashboard-editor'
 
 export interface PreviewLayer {
   configuration: WidgetConfiguration
   zIndex: number
   configurationOrder: number
+  /**
+   * The container holding this widget, absent for one on the screen itself.
+   * A gesture lines a widget up with its own siblings, so the canvas has to
+   * know which level each layer belongs to.
+   */
+  parentId?: string
   /**
    * Where this widget's parent sits on the display — the sum of every container
    * above it — or zero for a widget on the screen.
@@ -96,6 +103,9 @@ export function actionLabel(action: WidgetAction | undefined): string {
 }
 
 
+/** The only part of a display these need: a board descriptor satisfies it. */
+export type DisplaySize = { width: number; height: number }
+
 export type ResizeMode = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 export type InteractionMode = 'move' | ResizeMode
 export type Placement = Required<NonNullable<TextWidgetConfiguration['placement']>>
@@ -106,13 +116,35 @@ export interface Follower {
   placement: Placement
 }
 
+/**
+ * A gesture in progress. `placement` is the box it started from — the widget's
+ * own, or the one around the whole selection — and every frame resolves the
+ * pointer against that rather than against the last frame, so the same pointer
+ * position always means the same result.
+ */
 export interface Interaction {
   pointerId: number
   target: WidgetSelection
   mode: InteractionMode
   start: { x: number; y: number }
   placement: Placement
+  /** Widgets carried along by a move. */
   followers: Follower[]
+  /**
+   * What a resize acts on, snapshotted whole: one widget, or every outermost
+   * member of the selection when the group's own frame is being dragged.
+   */
+  subjects: ScaleSubject[]
+  /** The container the gesture began inside, which is the level it lines up within. */
+  level?: string
+}
+
+/** A box drawn on the canvas by a tool, which becomes a widget on release. */
+export interface Draw {
+  pointerId: number
+  tool: Exclude<CanvasTool, 'select'>
+  start: { x: number; y: number }
+  current: { x: number; y: number }
 }
 
 export interface Marquee {
@@ -128,80 +160,6 @@ export interface Pan {
   startClientY: number
   startPanX: number
   startPanY: number
-}
-
-/** Lines the dragged widget snapped to, drawn while the drag is in progress. */
-export interface Guides {
-  x: number[]
-  y: number[]
-}
-
-export const NO_GUIDES: Guides = { x: [], y: [] }
-
-// How close an edge has to be before it snaps, in screen pixels.
-export const SNAP_TOLERANCE_PX = 6
-
-export interface SnapTargets {
-  x: number[]
-  y: number[]
-}
-
-/**
- * The lines a dragged widget can snap to: every other widget's left, centre and
- * right, its top, middle and bottom, and the display's own edges and centre.
- * Hidden widgets contribute nothing, because a line to something invisible
- * cannot be understood.
- */
-export function collectSnapTargets(
-  widgets: readonly WidgetConfiguration[],
-  display: DisplayDescriptor,
-  dragged: WidgetSelection | undefined,
-  hidden: Readonly<Record<string, boolean>>
-): SnapTargets {
-  const draggedId = dragged?.type === 'widget' ? dragged.id : undefined
-  const x = [0, display.width / 2, display.width]
-  const y = [0, display.height / 2, display.height]
-  for (const widget of widgets) {
-    if (!widget.id || widget.id === draggedId || hidden[widget.id]) continue
-    const placement = completePlacement(widget.placement)
-    if (!placement) continue
-    x.push(placement.x, placement.x + placement.width / 2, placement.x + placement.width)
-    y.push(placement.y, placement.y + placement.height / 2, placement.y + placement.height)
-  }
-  return { x, y }
-}
-
-interface SnapOptions {
-  grid: number
-  tolerance: number
-  targets: SnapTargets
-}
-
-/**
- * Snaps one coordinate. The widget's own three edges are each tried against
- * every target, and the nearest match within tolerance wins, so a widget lines
- * up by whichever of its edges is closest to something.
- */
-function snapAxis(
-  start: number,
-  size: number,
-  targets: readonly number[],
-  options: SnapOptions
-): { value: number; guide?: number } {
-  let best: { value: number; guide: number; distance: number } | undefined
-  for (const edge of [0, size / 2, size]) {
-    for (const target of targets) {
-      const candidate = target - edge
-      const distance = Math.abs(candidate - start)
-      if (distance > options.tolerance) continue
-      if (!best || distance < best.distance) {
-        best = { value: candidate, guide: target, distance }
-      }
-    }
-  }
-  if (best) return { value: best.value, guide: best.guide }
-  if (options.grid > 0) return { value: Math.round(start / options.grid) * options.grid }
-  return { value: start }
 }
 
 export function marqueeBounds(marquee: Marquee): Placement {
@@ -263,21 +221,29 @@ export function intersects(placement: Placement, bounds: Placement): boolean {
 /** Screen pixels per logical pixel, which is what a pan in client space costs. */
 export function viewportScale(
   svg: SVGSVGElement | null,
-  display: DisplayDescriptor,
+  display: DisplaySize,
   zoom: number
 ): number {
   const width = svg?.getBoundingClientRect().width ?? display.width
   return (width / display.width) * zoom
 }
 
+/**
+ * Keeps the view over the display. Magnified there is more display than
+ * viewport and the pan says which part is shown; below one to one the viewport
+ * is the larger of the two, so there is nothing to pan to and the display is
+ * centred in the space instead of sitting in a corner.
+ */
 export function clampPan(
   pan: { panX: number; panY: number },
-  display: DisplayDescriptor,
+  display: DisplaySize,
   zoom: number
 ): { panX: number; panY: number } {
+  const spareX = display.width - display.width / zoom
+  const spareY = display.height - display.height / zoom
   return {
-    panX: clamp(pan.panX, 0, display.width - display.width / zoom),
-    panY: clamp(pan.panY, 0, display.height - display.height / zoom)
+    panX: spareX >= 0 ? clamp(pan.panX, 0, spareX) : spareX / 2,
+    panY: spareY >= 0 ? clamp(pan.panY, 0, spareY) : spareY / 2
   }
 }
 
@@ -290,45 +256,35 @@ export function logicalPoint(svg: SVGSVGElement | null, clientX: number, clientY
   return { x: point.x, y: point.y }
 }
 
-export function transformedPlacement(
-  interaction: Interaction,
-  dx: number,
-  dy: number,
-  display: DisplayDescriptor,
-  snap: SnapOptions
-): { placement: Placement; guides: Guides } {
-  const original = interaction.placement
-  if (interaction.mode === 'move') {
-    const horizontal = snapAxis(original.x + dx, original.width, snap.targets.x, snap)
-    const vertical = snapAxis(original.y + dy, original.height, snap.targets.y, snap)
-    return {
-      placement: {
-        ...original,
-        ...clampToDisplay(horizontal.value, vertical.value, original.width,
-                          original.height, display)
-      },
-      guides: {
-        x: horizontal.guide === undefined ? [] : [horizontal.guide],
-        y: vertical.guide === undefined ? [] : [vertical.guide]
-      }
-    }
-  }
-  const minimum = 8
-  // A resized edge snaps to the grid but not to another widget: a size that
-  // quietly followed a neighbour would be harder to predict than to correct.
-  const align = (value: number): number =>
-    snap.grid > 0 ? Math.round(value / snap.grid) * snap.grid : value
-  let left = original.x
-  let top = original.y
-  let right = original.x + original.width
-  let bottom = original.y + original.height
-  if (interaction.mode.includes('w')) left = clamp(align(original.x + dx), 0, right - minimum)
-  if (interaction.mode.includes('e')) right = clamp(align(original.x + original.width + dx), left + minimum, display.width)
-  if (interaction.mode.includes('n')) top = clamp(align(original.y + dy), 0, bottom - minimum)
-  if (interaction.mode.includes('s')) bottom = clamp(align(original.y + original.height + dy), top + minimum, display.height)
+/**
+ * The view that puts one box on screen: magnified until it nearly fills the
+ * canvas, and centred. A margin is left around it deliberately — a box scaled
+ * to the very edge gives no sense of where on the display it sits.
+ *
+ * The zoom is a factor over "the whole display fits the canvas", which is what
+ * one means here: the surface always scales to the space it has, so a
+ * percentage of physical pixels would be a number about the window rather than
+ * about the dashboard.
+ */
+export function viewForBox(
+  box: Placement,
+  display: DisplaySize,
+  bounds: { minimum: number; maximum: number }
+): { zoom: number; panX: number; panY: number } {
+  const fit = Math.min(
+    box.width > 0 ? display.width / box.width : bounds.maximum,
+    box.height > 0 ? display.height / box.height : bounds.maximum
+  )
+  const zoom = clamp(fit * 0.8, bounds.minimum, bounds.maximum)
   return {
-    placement: { x: Math.round(left), y: Math.round(top), width: Math.round(right - left), height: Math.round(bottom - top) },
-    guides: NO_GUIDES
+    zoom,
+    ...clampPan(
+      {
+        panX: box.x + box.width / 2 - display.width / zoom / 2,
+        panY: box.y + box.height / 2 - display.height / zoom / 2
+      },
+      display,
+      zoom
+    )
   }
 }
-

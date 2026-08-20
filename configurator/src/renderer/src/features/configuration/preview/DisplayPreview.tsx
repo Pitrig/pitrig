@@ -1,36 +1,19 @@
 import { useEffect } from 'react'
-import { allWidgetsOf, isContainer } from '@shared/configuration-access'
-import type { WidgetConfiguration } from '@shared/configuration-schema'
+import { Copy, Redo2, Trash2, Undo2 } from 'lucide-react'
 import { BOARD_PROFILES } from '@shared/device'
-import { MAXIMUM_TEXT_WIDGETS, addWidget, deleteWidget, draftValueFont, duplicateWidget, findWidget, useDashboardEditorStore } from '../dashboard-editor'
+import { duplicateWidget, findWidget, useDashboardEditorStore } from '../dashboard-editor'
 import { documentFonts } from '@shared/document-fonts'
 import { useFontFaceStore } from '@/features/font-library/font-face-store'
+import { deleteSelection } from './menu-entries'
 import { usePreviewAssetStore } from './preview-assets'
 import { Widgets } from './PreviewCanvas'
 import { ArrangeToolbar } from './PreviewChrome'
+import { CanvasStatusBar } from './CanvasStatusBar'
+import { ToolPalette } from './ToolPalette'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
-
-/**
- * The widget kinds the toolbar can add. Each entry differs only in its label,
- * its button width, and the defaults its kind needs, so the buttons are one
- * loop rather than seven copies — adding a widget type adds a row here.
- */
-const ADD_WIDGET_BUTTONS: {
-  label: string
-  width: string
-  type: WidgetConfiguration['type']
-}[] = [
-  { label: 'Text', width: 'w-20', type: 'text' },
-  { label: 'Shape', width: 'w-20', type: 'shape' },
-  { label: 'Bar', width: 'w-20', type: 'bar' },
-  { label: 'Arc', width: 'w-20', type: 'arc' },
-  { label: 'Lights', width: 'w-24', type: 'indicator' },
-  { label: 'Graph', width: 'w-20', type: 'graph' },
-  { label: 'Image', width: 'w-20', type: 'image' },
-  { label: 'Slot', width: 'w-20', type: 'slot' }
-]
+import { withEditGroup } from '@/features/device/edit-group'
 
 export function DisplayPreview(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -41,7 +24,9 @@ export function DisplayPreview(): React.JSX.Element {
     ? BOARD_PROFILES[configuration.board]?.display
     : session?.info.display
   const selection = useDashboardEditorStore((state) => state.selection)
+  const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
   const select = useDashboardEditorStore((state) => state.select)
+  const selectMany = useDashboardEditorStore((state) => state.selectMany)
   // The cached bitmaps change only when a package is installed or cleared,
   // which is exactly when the board starts reporting a different set of them.
   const refreshPreviewAssets = usePreviewAssetStore((state) => state.refresh)
@@ -71,85 +56,68 @@ export function DisplayPreview(): React.JSX.Element {
   const canRedo = useDeviceStore((state) => state.future.length > 0)
   const undo = useDeviceStore((state) => state.undo)
   const redo = useDeviceStore((state) => state.redo)
-  // A new reading takes the dashboard font the author chose, or failing that
-  // the font the dashboard already draws with, at the size its other readings
-  // already use.
-  const defaultFontFamily = useDashboardEditorStore((state) => state.defaultFontFamily)
-  const defaultFont = draftValueFont(configuration, defaultFontFamily)
-  // Widget storage is a dashboard-wide pool, so the cap counts every screen.
-  const textWidgetCount = allWidgetsOf(configuration).filter(
-    (widget) => widget.type === 'text'
-  ).length
+  // Every id that still names a widget. The buttons act on the whole selection,
+  // as the keyboard always has — a Delete button that removed one of four
+  // selected widgets was the odd one out.
+  const liveSelection = selectedIds.filter((id) => findWidget(configuration, id))
   const selectedExists =
-    selection?.type === 'widget' && Boolean(findWidget(configuration, selection.id))
-  // Where the next widget will land. The rule lives in the editor; this only
-  // says it out loud, because a widget appearing inside a panel is otherwise a
-  // surprise the author has to undo to understand.
-  const drillIn = useDashboardEditorStore((state) => state.drillIn)
-  const selectedContainer =
-    selection?.type === 'widget' &&
-    (() => {
-      const widget = findWidget(configuration, selection.id)?.widget
-      return widget !== undefined && isContainer(widget)
-    })()
-      ? selection.id
-      : undefined
-  const landing = drillIn ?? selectedContainer
+    liveSelection.length > 0 ||
+    (selection?.type === 'widget' && Boolean(findWidget(configuration, selection.id)))
   const displayRatio = display
     ? display.width / display.height
     : 16 / 9
 
   return (
     <Card className="flex h-full w-full flex-col bg-background/70">
-      <CardHeader className="flex-none py-3">
+      <CardHeader className="flex-none gap-2 py-3">
         <div className="flex items-center justify-between gap-3">
           <CardTitle>Display preview</CardTitle>
-          <div className="flex flex-wrap justify-end gap-2">
-            {ADD_WIDGET_BUTTONS.map(({ label, width, type }) => {
-              const atCapacity = label === 'Text' && textWidgetCount >= MAXIMUM_TEXT_WIDGETS
-              return (
-                <Button
-                  key={label}
-                  className={`h-8 ${width}`}
-                  variant="outline"
-                  disabled={!configuration || atCapacity}
-                  title={
-                    atCapacity
-                      ? `Maximum of ${MAXIMUM_TEXT_WIDGETS} text widgets reached.`
-                      : landing
-                        ? `Adds inside ${landing}`
-                        : undefined
-                  }
-                  onClick={() => {
-                    if (!display) return
-                    const added = addWidget(type, display, {
-                      font: defaultFont,
-                      image: session?.imageAssets?.images[0]?.name
-                    })
-                    if (added) select(added)
-                  }}
-                >
-                  + {label}
-                </Button>
-              )
-            })}
-            <Button className="h-8 w-20" variant="outline" disabled={!selectedExists} title="Duplicate the selected widget (Cmd/Ctrl+D)" onClick={() => {
-              if (!display || !selection) return
-              const added = duplicateWidget(selection, display)
-              if (added) select(added)
-            }}>Duplicate</Button>
-            <Button className="h-8 w-10" variant="outline" disabled={!canUndo} title="Undo (Cmd/Ctrl+Z)" onClick={() => undo()}>↶</Button>
-            <Button className="h-8 w-10" variant="outline" disabled={!canRedo} title="Redo (Shift+Cmd/Ctrl+Z)" onClick={() => redo()}>↷</Button>
-            <Button className="h-8 w-20" variant="outline" disabled={!selectedExists} title="Delete the selected widget (Delete)" onClick={() => {
-              if (!selection) return
-              if (deleteWidget(selection)) select(undefined)
-            }}>Delete</Button>
+          <div className="flex flex-none gap-1">
+            <Button className="size-8 p-0" variant="outline" disabled={!canUndo} title="Undo (Cmd/Ctrl+Z)" onClick={() => undo()}>
+              <Undo2 className="size-4" aria-hidden />
+              <span className="sr-only">Undo</span>
+            </Button>
+            <Button className="size-8 p-0" variant="outline" disabled={!canRedo} title="Redo (Shift+Cmd/Ctrl+Z)" onClick={() => redo()}>
+              <Redo2 className="size-4" aria-hidden />
+              <span className="sr-only">Redo</span>
+            </Button>
+            <Button
+              className="size-8 p-0"
+              variant="outline"
+              disabled={!selectedExists}
+              title="Duplicate the selection (Cmd/Ctrl+D)"
+              onClick={() => {
+                if (!display) return
+                withEditGroup(() => {
+                  const added = liveSelection
+                    .map((id) => duplicateWidget({ type: 'widget', id }, display))
+                    .filter((entry): entry is { type: 'widget'; id: string } => entry?.type === 'widget')
+                  if (added.length > 0) selectMany(added.map((entry) => entry.id))
+                })
+              }}
+            >
+              <Copy className="size-4" aria-hidden />
+              <span className="sr-only">Duplicate</span>
+            </Button>
+            <Button
+              className="size-8 p-0 text-red-400 hover:text-red-300"
+              variant="outline"
+              disabled={!selectedExists}
+              title="Delete the selection (Delete)"
+              onClick={() => {
+                if (liveSelection.length > 0) deleteSelection(liveSelection)
+                else select(undefined)
+              }}
+            >
+              <Trash2 className="size-4" aria-hidden />
+              <span className="sr-only">Delete</span>
+            </Button>
           </div>
         </div>
-        {display ? <ArrangeToolbar display={display} /> : null}
+        {display ? <ArrangeToolbar /> : null}
         <CardDescription>
           {display
-            ? `${display.width} × ${display.height} logical pixels · ${configuration?.board ?? 'connected board'}`
+            ? `${configuration?.board ?? 'connected board'} · drag a tool onto the display to add a widget`
             : 'Create, load, or connect a configuration to start editing.'}
         </CardDescription>
       </CardHeader>
@@ -161,29 +129,35 @@ export function DisplayPreview(): React.JSX.Element {
           overflowed the card and had its lower widgets cut off. Size
           containment also decouples this box from its content, which is what
           keeps the measurement from chasing itself. */}
-      <CardContent
-        className="flex min-h-0 flex-1 items-center justify-center px-4 pb-4"
-        style={{ containerType: 'size' }}
-      >
-        <div
-          className="relative overflow-hidden rounded-md border bg-black shadow-2xl"
-          style={{
-            // The smaller of the two fits: as wide as the box, or as wide as
-            // its height allows at this board's proportions.
-            width: `min(100cqw, calc(100cqh * ${displayRatio}))`,
-            aspectRatio: display
-              ? `${display.width} / ${display.height}`
-              : '16 / 9'
-          }}
-        >
-          {display && configuration ? (
-            <Widgets configuration={configuration} display={display} />
-          ) : (
-            <div className="flex size-full items-center justify-center text-sm text-zinc-600">
-              No local configuration
+      <CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4">
+        <div className="flex min-h-0 flex-1 gap-2">
+          <ToolPalette enabled={Boolean(display && configuration)} />
+          <div
+            className="flex min-h-0 min-w-0 flex-1 items-center justify-center"
+            style={{ containerType: 'size' }}
+          >
+            <div
+              className="relative overflow-hidden rounded-md border bg-black shadow-2xl"
+              style={{
+                // The smaller of the two fits: as wide as the box, or as wide as
+                // its height allows at this board's proportions.
+                width: `min(100cqw, calc(100cqh * ${displayRatio}))`,
+                aspectRatio: display
+                  ? `${display.width} / ${display.height}`
+                  : '16 / 9'
+              }}
+            >
+              {display && configuration ? (
+                <Widgets configuration={configuration} display={display} />
+              ) : (
+                <div className="flex size-full items-center justify-center text-sm text-zinc-600">
+                  No local configuration
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
+        {display ? <CanvasStatusBar display={display} /> : null}
       </CardContent>
     </Card>
   )

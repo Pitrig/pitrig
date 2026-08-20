@@ -315,7 +315,12 @@ configuration itself may hold no property the contract does not declare. See
 
 Inside `features/configuration/`, the editor is split three ways and each part has its own
 directory. `preview/` draws the canvas: `PreviewCanvas` and its chrome, the pure geometry in
-`canvas-geometry.ts`, and one renderer per widget type. `inspector/` is the property panel: the
+`canvas-geometry.ts`, and one renderer per widget type. Beside them sit the parts a gesture needs —
+`snapping.ts`, which is where a move, a resize and a drawn corner all resolve (a neighbour's edge
+first, then a gap the row already has, then the grid, within the level the box lives in);
+`ToolPalette` and `widget-creation.ts`, which turn a drawn box into a widget; `CanvasStatusBar` for
+the zoom and the snapping switches; and `ContextMenu` with the entries it shows in `menu-entries.ts`,
+shared with the layer list. `inspector/` is the property panel: the
 shell dispatches by widget type into `widget-editors`, over shared `section-editors`,
 `styling-editors` and form primitives in `fields.tsx`. Those are laid out by two components — a
 folding `Group` with a summary of what it holds, and a `PropertyRow` that puts the name left of
@@ -325,8 +330,9 @@ every explanation is a click on the `InfoHint` beside a name, worded once in `hi
 as prose between the fields. Colours use `ColorPicker` rather than
 `<input type="color">`, because the browser draws its own popup outside the document and the
 dashboard's existing colours have to be reachable from inside the picker. `editor/` is the document layer — view
-state in `store.ts`, panel sizes and group folds in `panel-store.ts` (the only editor state kept
-across restarts), access and mutation in `document.ts`, and one module per family of commands
+state and the active tool in `store.ts`, panel sizes and group folds in `panel-store.ts` and the
+snapping preferences in `snap-store.ts` (the editor state kept across restarts), access and mutation
+in `document.ts`, and one module per family of commands
 (`widgets`, `screens`, `slots`, `clipboard`, `naming`, `palette`, and the arrange family split by
 what it arranges: `alignment`, `geometry-commands`, `grouping`, `placement`, `reparent`).
 `dashboard-editor.ts` re-exports `editor/` as one surface, so panels keep a single import.

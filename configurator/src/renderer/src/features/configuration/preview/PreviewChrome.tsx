@@ -1,15 +1,30 @@
 import { Fragment, useState } from 'react'
 import { pagesOf, screenWidgetsOf, screensOf } from '@shared/configuration-access'
-import { type SlotWidgetConfiguration } from '@shared/configuration-schema'
-import { type DisplayDescriptor } from '@shared/device'
-import { type AlignmentEdge, MAXIMUM_SCREENS, MAXIMUM_SLOT_PAGES, addScreen, addSlotPage, addTapZone, alignWidgets, ancestorsOf, deleteScreen, distributeWidgets, findWidget, moveScreen, wrapInShape, useDashboardEditorStore } from '../dashboard-editor'
+import { WIDGET_ID_CAPACITY, type ScreenConfiguration, type SlotWidgetConfiguration } from '@shared/configuration-schema'
+import { type AlignmentEdge, MAXIMUM_SCREENS, MAXIMUM_SLOT_PAGES, addScreen, addSlotPage, alignWidgets, ancestorsOf, deleteScreen, distributeWidgets, findWidget, moveScreen, renameScreen, wrapInShape, useDashboardEditorStore } from '../dashboard-editor'
 import { visibleSlotPage } from './canvas-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
+
+/**
+ * What a screen is called. The name is the document's own — it is what a
+ * `goto_screen` action points at — and a sparse screen that has not been given
+ * one yet is called what `ensureScreen` will name it, so the strip never shows
+ * a screen under one name and the inspector under another.
+ */
+function screenName(screens: readonly ScreenConfiguration[], index: number): string {
+  return screens[index]?.id ?? `screen${index + 1}`
+}
 
 /**
  * Which screen is being authored, and in which order the driver swipes through
  * them. Which one is being looked at is an editor view with nothing to save;
  * the order is the document, so dragging a tab is an ordinary undoable edit.
+ *
+ * The tabs carry names rather than positions. A number tells the author nothing
+ * about which screen it is, and it is the one label that changes meaning as a
+ * tab is dragged — during a reorder every number after the drop point is about
+ * to become a different screen, which is exactly when the strip has to be
+ * readable. A name travels with the screen, so what is picked up is what lands.
  */
 function ScreenTabs(): React.JSX.Element {
   const configuration = useDeviceStore((state) => state.draft)
@@ -19,6 +34,7 @@ function ScreenTabs(): React.JSX.Element {
   // Which edge of which tab the drop would land on. One object for the strip
   // rather than a flag per tab, as the layer list does it.
   const [dropTarget, setDropTarget] = useState<{ index: number; before: boolean }>()
+  const [renaming, setRenaming] = useState<number>()
   const screens = screensOf(configuration)
   const count = Math.max(screens.length, 1)
   // A single screen has no order to change, and a sparse document can show a
@@ -41,21 +57,21 @@ function ScreenTabs(): React.JSX.Element {
     <>
       {Array.from({ length: count }, (_, index) => {
         const edge = dropTarget?.index === index ? dropTarget.before : undefined
+        const name = screenName(screens, index)
         return (
-        <button
+        <div
           key={screens[index]?.id ?? index}
-          type="button"
-          draggable={reorderable}
+          // Dragging is off while the name is being typed: a press inside the
+          // field would otherwise pick the tab up instead of placing the caret.
+          draggable={reorderable && renaming !== index}
           title={
             reorderable
-              ? `Edit screen ${index + 1} · drag to reorder`
-              : `Edit screen ${index + 1}`
+              ? `${name} · double-click to rename · drag to reorder`
+              : `${name} · double-click to rename`
           }
-          aria-pressed={index === activeScreenIndex}
-          className={`relative h-7 rounded-md border px-2 hover:bg-muted ${
+          className={`relative flex h-7 items-center rounded-md border px-2 hover:bg-muted ${
             index === activeScreenIndex ? 'bg-muted font-medium' : ''
           } ${dragged === index ? 'opacity-50' : ''}`}
-          onClick={() => setActiveScreen(index)}
           onDragStart={(event) => {
             setDragged(index)
             event.dataTransfer.effectAllowed = 'move'
@@ -103,8 +119,27 @@ function ScreenTabs(): React.JSX.Element {
               }`}
             />
           ) : null}
-          {index + 1}
-        </button>
+          {renaming === index ? (
+            <ScreenNameField
+              index={index}
+              name={name}
+              onDone={() => setRenaming(undefined)}
+            />
+          ) : (
+            <button
+              type="button"
+              aria-pressed={index === activeScreenIndex}
+              className="max-w-28 truncate"
+              onClick={() => setActiveScreen(index)}
+              onDoubleClick={() => {
+                setActiveScreen(index)
+                setRenaming(index)
+              }}
+            >
+              {name}
+            </button>
+          )}
+        </div>
         )
       })}
       {count < MAXIMUM_SCREENS ? (
@@ -123,7 +158,7 @@ function ScreenTabs(): React.JSX.Element {
       {activeScreenIndex > 0 ? (
         <button
           type="button"
-          title="Delete this screen and everything on it"
+          title={`Delete ${screenName(screens, activeScreenIndex)} and everything on it`}
           className="h-7 rounded-md border px-2 hover:bg-muted"
           onClick={() => deleteScreen(activeScreenIndex)}
         >
@@ -131,6 +166,54 @@ function ScreenTabs(): React.JSX.Element {
         </button>
       ) : null}
     </>
+  )
+}
+
+/**
+ * Renaming a screen in place, on the tab it is named on. The name is a document
+ * value rather than a label, so a refused one — empty, longer than the device
+ * stores, or already taken by another screen — puts the old name back and marks
+ * the field instead of vanishing silently. Repointing the `goto_screen` actions
+ * that named it is `renameScreen`'s business.
+ */
+function ScreenNameField({
+  index,
+  name,
+  onDone
+}: {
+  index: number
+  name: string
+  onDone: () => void
+}): React.JSX.Element {
+  const [value, setValue] = useState(name)
+  const [rejected, setRejected] = useState(false)
+  const commit = (): void => {
+    if (value !== name && !renameScreen(index, value)) {
+      setRejected(true)
+      setValue(name)
+      return
+    }
+    onDone()
+  }
+  return (
+    <input
+      autoFocus
+      aria-label="Screen name"
+      value={value}
+      maxLength={WIDGET_ID_CAPACITY - 1}
+      className={`w-24 min-w-0 rounded-sm border bg-transparent px-1 ${
+        rejected ? 'border-red-500' : ''
+      }`}
+      onChange={(event) => setValue(event.target.value)}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        // The strip is inside the canvas card, where Escape and the arrows mean
+        // something else entirely.
+        event.stopPropagation()
+        if (event.key === 'Enter') commit()
+        if (event.key === 'Escape') onDone()
+      }}
+    />
   )
 }
 
@@ -239,7 +322,7 @@ function DrillInCrumbs(): React.JSX.Element | null {
         className="h-7 rounded-md border px-2 hover:bg-muted"
         onClick={() => setDrillIn(undefined)}
       >
-        {`← Screen ${activeScreenIndex + 1}`}
+        {`← ${screenName(screensOf(configuration), activeScreenIndex)}`}
       </button>
       {chain.map((id, index) => (
         <Fragment key={id}>
@@ -262,15 +345,16 @@ function DrillInCrumbs(): React.JSX.Element | null {
 }
 
 /**
- * Arrangement acts on the selection and the view controls act on the canvas, so
- * neither belongs with the buttons that add widgets. Alignment appears only
- * once there is a selection to align, which is also when it starts meaning
- * anything.
+ * Which screen or container is being worked on, and what can be done to the
+ * selection. The view controls are not here: how the canvas is being looked at
+ * and what a gesture sticks to sit in the status bar under it, because neither
+ * is an edit.
+ *
+ * Alignment appears only once there is a selection to align, which is also when
+ * it starts meaning anything.
  */
-export function ArrangeToolbar({ display }: { display: DisplayDescriptor }): React.JSX.Element {
+export function ArrangeToolbar(): React.JSX.Element {
   const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
-  const view = useDashboardEditorStore((state) => state.view)
-  const setView = useDashboardEditorStore((state) => state.setView)
   const drillIn = useDashboardEditorStore((state) => state.drillIn)
   const distributable = selectedIds.length >= 3
   return (
@@ -297,18 +381,6 @@ export function ArrangeToolbar({ display }: { display: DisplayDescriptor }): Rea
           <span className="mx-1 h-4 w-px bg-border" />
         </>
       ) : null}
-      <button
-        type="button"
-        title="Add an invisible rectangle that takes a tap"
-        className="h-7 rounded-md border px-2 hover:bg-muted"
-        onClick={() => {
-          const id = addTapZone(display)
-          if (id) useDashboardEditorStore.getState().select({ type: 'widget', id })
-        }}
-      >
-        Tap zone
-      </button>
-      <span className="mx-1 h-4 w-px bg-border" />
       {selectedIds.length >= 2 ? (
         <>
           <span className="mr-1 text-muted-foreground">{`${selectedIds.length} selected`}</span>
@@ -323,23 +395,8 @@ export function ArrangeToolbar({ display }: { display: DisplayDescriptor }): Rea
           <button type="button" title="Space evenly down" disabled={!distributable} className="h-7 rounded-md border px-2 hover:bg-muted disabled:opacity-40" onClick={() => distributeWidgets(selectedIds, 'vertical')}>
             ⇵
           </button>
-          <span className="mx-1 h-4 w-px bg-border" />
         </>
       ) : null}
-      <label className="flex items-center gap-1">
-        <input type="checkbox" checked={view.snapToGrid} onChange={(event) => setView({ snapToGrid: event.target.checked })} />
-        Grid
-      </label>
-      <input
-        aria-label="Grid size"
-        type="number"
-        min={1}
-        max={64}
-        value={view.gridSize}
-        disabled={!view.snapToGrid}
-        className="h-7 w-14 rounded-md border bg-transparent px-1 disabled:opacity-40"
-        onChange={(event) => setView({ gridSize: Math.max(1, Math.round(Number(event.target.value) || 1)) })}
-      />
     </div>
   )
 }
