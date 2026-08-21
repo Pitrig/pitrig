@@ -44,21 +44,47 @@ class Collection final {
                             std::span<const Config> configurations,
                             const fonts::Registry& fonts,
                             std::span<lv_obj_t*> pages);
+  // Brings one instance up to a replacement document: the box it stands in and
+  // the pages inside it, keeping every object. A slot's pages are the parents of
+  // the widgets authored on them and the slots controller points at them, so
+  // rebuilding one would take both down. Refuses — having written nothing — a
+  // difference that is not a restyle: a page count that changed, or whatever the
+  // frame itself refuses.
+  //
+  // An instance that has no object yet is built rather than restyled, which is
+  // how a slot added by a replacement arrives.
+  [[nodiscard]] bool update(std::size_t index, const Layout& layout,
+                            const Config& configuration,
+                            const fonts::Registry& fonts,
+                            std::span<lv_obj_t*> pages);
   [[nodiscard]] lv_obj_t* root_object(std::size_t index) const {
-    return index < count_ ? states_[index].container : nullptr;
+    return index < count_ ? states_[index].box.container : nullptr;
   }
+  [[nodiscard]] std::size_t instance_count() const { return count_; }
+  // The pool primitives the frame collection offers every other type, spelled
+  // out here because a slot draws nothing and owns no render timer.
+  [[nodiscard]] bool extend_to(std::size_t count);
+  [[nodiscard]] bool shrink_to(std::size_t count);
   void destroy();
 
  private:
   struct State {
-    lv_obj_t* container{};
+    // The whole box rather than the container alone. The frame puts a caption
+    // and its mask on the *parent*, and an inset background inside the
+    // container; a slot has no painter to own either, so nothing else here
+    // would delete them or hand them to an update.
+    frame::Box box{};
     std::uint8_t page_count{};
   };
 
   void clear_objects();
+  void release(State& state, std::size_t index);
   [[nodiscard]] bool build(State& state, std::size_t index, const Layout& layout,
                            const Config& configuration,
                            const fonts::Registry& fonts);
+  [[nodiscard]] bool place_pages(State& state, std::size_t index,
+                                 const Config& configuration,
+                                 const Rect& bounds, bool create_objects);
 
   // Published so a child can find its page, and cleared alongside the object it
   // names so a released page never leaves a stale pointer behind.

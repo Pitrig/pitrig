@@ -52,6 +52,21 @@ void Painter::configure(const Config& config, const Box& box,
   applied_style_ = static_style_;
   blink_visible_ = true;
   visible_ = true;
+  // What this claims about LVGL has to be true of LVGL. A build hands over
+  // fresh objects, which are visible; an update hands over the ones the widget
+  // was already drawing with, and a rule that hid it — or a blink caught in its
+  // dark half — left the flag on them. Nothing would take it off again: the
+  // resolution below only writes visibility where it changes, and as far as
+  // this painter is now concerned it never did.
+  const auto show = [](lv_obj_t* const object) {
+    if (object != nullptr) {
+      lv_obj_remove_flag(object, LV_OBJ_FLAG_HIDDEN);
+    }
+  };
+  show(box.container);
+  for (std::size_t index = 0; index < attachment_count_; ++index) {
+    show(attachments_[index]);
+  }
 }
 
 void Painter::bind(const ValueReadCallback read, void* const context) {

@@ -210,6 +210,58 @@ bool bind_actions(const configuration::ApplicationConfiguration& configuration,
   return bound;
 }
 
+std::size_t extend(lv_display_t* const display,
+                   const configuration::ApplicationConfiguration& configuration,
+                   Dashboard& dashboard, const std::size_t from) {
+  const std::size_t count =
+      std::max<std::size_t>(configuration.dashboard.screen_count, 1);
+  for (std::size_t index = from;
+       index < count && index < dashboard.screens.size(); ++index) {
+    lv_obj_t* const screen = screen_object(display, index);
+    if (screen == nullptr) {
+      return index;
+    }
+    dashboard.screens[index] = screen;
+    lv_obj_set_style_bg_color(
+        screen, lv_color_hex(screen_background(configuration, index)),
+        LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
+  }
+  return count;
+}
+
+bool attach_slots(const configuration::ApplicationConfiguration& configuration,
+                  Dashboard& dashboard) {
+  dashboard.slots.clear();
+  bool attached = true;
+  for (std::size_t index = 0; index < configuration.dashboard.slot_widget_count;
+       ++index) {
+    const configuration::SlotWidgetConfiguration& config =
+        configuration.dashboard.slot_widgets[index];
+    lv_obj_t* const container = dashboard.slot.collection.root_object(index);
+    const std::span<lv_obj_t* const> pages =
+        std::span{dashboard.pages}.subspan(
+            index * configuration::kMaximumSlotPages,
+            configuration::kMaximumSlotPages);
+    if (container == nullptr || dashboard.slot.registry == nullptr ||
+        dashboard.slot.telemetry == nullptr) {
+      attached = false;
+      continue;
+    }
+    if (!dashboard.slots.add(container, pages, config, *dashboard.slot.registry,
+                             *dashboard.slot.telemetry,
+                             dashboard.slot.modifier_readers)) {
+      log::error("dashboard", "Failed to bind slot page source");
+      attached = false;
+    }
+  }
+  if (!dashboard.slots.start()) {
+    log::error("dashboard", "Failed to start dashboard slots");
+    attached = false;
+  }
+  return attached;
+}
+
 void release(Dashboard& dashboard) {
   // Containers are widgets now, so the shape and slot collections own and delete
   // them. What is left here is the view of them, and the overflow the

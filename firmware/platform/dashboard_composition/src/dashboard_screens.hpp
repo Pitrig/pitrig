@@ -67,6 +67,27 @@ namespace simcore::dashboard_composition::screens {
     const configuration::ApplicationConfiguration& configuration,
     Dashboard& dashboard);
 
+// Creates the screens a replacement added, beyond the `from` it already has,
+// and paints each with its own background. Returns how many screens exist
+// afterwards. Caller holds the LVGL lock. The screens that were already there
+// are left alone: their widgets are standing on them.
+[[nodiscard]] std::size_t extend(
+    lv_display_t* display,
+    const configuration::ApplicationConfiguration& configuration,
+    Dashboard& dashboard, std::size_t from);
+
+// Points the slots controller at the slots the document describes: which page
+// of each is in the loop, what raises another, and the objects to show. Forgets
+// what it held first, so re-running it on slots that kept their objects leaves
+// one binding rather than two. Caller holds the LVGL lock.
+//
+// The registry, the telemetry reader and the modifier readers come from the
+// slot type's own storage, which is where the composition put them, so an
+// incremental apply can rebind without carrying them back through.
+[[nodiscard]] bool attach_slots(
+    const configuration::ApplicationConfiguration& configuration,
+    Dashboard& dashboard);
+
 // Deletes the screens this created and loads the display's own screen back,
 // and drops the view of the containers the shape collection owns. Caller holds
 // the LVGL lock.

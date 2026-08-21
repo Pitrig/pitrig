@@ -31,6 +31,10 @@ using Config = configuration::ShapeWidgetConfiguration;
 struct State {
   frame::Painter painter{};
   lv_obj_t* container{};
+  // Kept because an in-place update restyles the objects it already has, and an
+  // inset background is a second one. The caption is not here: it belongs to the
+  // painter, which is what deletes it.
+  lv_obj_t* background_fill{};
 };
 
 class Collection final
@@ -55,6 +59,19 @@ class Collection final
                            const Config& configuration,
                            frame::ValueReadCallback read, void* read_context,
                            const fonts::Registry& fonts);
+  // A shape that holds widgets is their LVGL parent, so it is restyled rather
+  // than rebuilt: deleting the object would delete the children with it. Refuses
+  // the same way the frame does, leaving the widget as it stands.
+  [[nodiscard]] bool restyle(std::size_t index, const Layout& layout,
+                             const Config& configuration,
+                             frame::ValueReadCallback read, void* read_context,
+                             const fonts::Registry& fonts);
+  // Whether anything is parented to this shape's object, which is what decides
+  // whether it may be rebuilt. Asked of LVGL rather than of the document: a
+  // replacement that moved the last widget out still has it standing inside
+  // until its own rebuild moves it, and the document already says the shape is
+  // empty.
+  [[nodiscard]] bool holds_widgets(std::size_t index) const;
   // A released container must not leave a stale pointer behind for a child to
   // find, so the published table is retracted as the pool is torn down.
   void on_released(std::size_t index) {

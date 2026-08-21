@@ -44,6 +44,55 @@ class Collection {
     return index < count_ ? states_[index].container : nullptr;
   }
 
+  [[nodiscard]] std::size_t instance_count() const { return count_; }
+
+  // Reserves instance slots without building them, so a replacement that added
+  // widgets builds each new one through the same per-instance path it updates a
+  // changed one through — the pool is a document-order array, and what an added
+  // widget really does is lengthen it. A type the document had none of when the
+  // dashboard was composed starts here too: an empty pool is created rather
+  // than absent, and its first instance is then an ordinary addition.
+  [[nodiscard]] bool extend_to(const std::size_t count) {
+    if (count > states_.size() || count < count_) {
+      return false;
+    }
+    if (!lock_lvgl()) {
+      return false;
+    }
+    created_ = true;
+    count_ = count;
+    // The pool's one render timer starts with its first instance, whether that
+    // instance arrived at composition or at a replacement.
+    const bool timed =
+        count_ == 0 || timer_ != nullptr ||
+        (timer_ = lv_timer_create(&update, kRenderPeriodMs, this)) != nullptr;
+    unlock_lvgl();
+    return timed;
+  }
+
+  // Releases the instances past `count`. Backwards, for the reason
+  // clear_objects() gives: a container is ordered before what it holds, so
+  // releasing forward would delete a child twice.
+  [[nodiscard]] bool shrink_to(const std::size_t count) {
+    if (count > count_) {
+      return false;
+    }
+    if (!created_ || !lock_lvgl()) {
+      return false;
+    }
+    while (count_ > count) {
+      --count_;
+      derived().on_released(count_);
+      release(states_[count_]);
+    }
+    if (count_ == 0 && timer_ != nullptr) {
+      lv_timer_delete(timer_);
+      timer_ = nullptr;
+    }
+    unlock_lvgl();
+    return true;
+  }
+
   void destroy() {
     if (!created_ || !lock_lvgl()) {
       return;
@@ -117,11 +166,39 @@ class Collection {
     return built;
   }
 
+  // Updates one instance without replacing its LVGL object, leaving whatever
+  // is parented to it alone. `apply(State&)` returns false when it cannot
+  // answer for the change, and is written to refuse before it writes anything,
+  // so the instance is left as it stands and the caller can fall back to a full
+  // composition. Used where `rebuild_one` cannot be: a container's object is
+  // the parent of widgets other collections own, and deleting it deletes them.
+  template <typename Apply>
+  [[nodiscard]] bool update_one(const std::size_t index, Apply&& apply) {
+    if (!created_ || index >= count_ || !lock_lvgl()) {
+      return false;
+    }
+    State& state = states_[index];
+    const bool applied = apply(state);
+    if (applied) {
+      derived().render_state(state);
+    }
+    unlock_lvgl();
+    return applied;
+  }
+
   void render() {
     if (!created_) {
       return;
     }
     for (std::size_t index = 0; index < count_; ++index) {
+      // An instance with no object is one this pool is counting but does not
+      // yet have: a slot reserved by extend_to and not built yet, or one a
+      // failed rebuild left empty. Drawing it would hand LVGL the null objects
+      // it was never given, and the timer runs on the LVGL task between the
+      // reservation and the build — the lock is released in between.
+      if (states_[index].container == nullptr) {
+        continue;
+      }
       derived().render_state(states_[index]);
     }
   }

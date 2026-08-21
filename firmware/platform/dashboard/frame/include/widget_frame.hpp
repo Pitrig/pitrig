@@ -231,6 +231,26 @@ struct Box {
                          bool fill_available_width, const fonts::Registry& fonts,
                          lv_obj_t*& parent, Rect& bounds, Box& box);
 
+// Re-resolves an existing box against a replacement configuration, keeping the
+// objects it is already made of. This is what a container is updated through: a
+// widget parented to it is an LVGL child, and deleting the container deletes
+// its children with it — children another collection owns and still points at.
+//
+// Answers false, having written nothing, when the difference is not a restyle
+// at all: a widget whose parent changed, or whose inset background appears or
+// disappears. Its caller falls back to a full composition, which can rebuild
+// what this cannot. The caption and its mask are replaced rather than restyled,
+// so the caller releases the ones it held after this returns.
+// `bounds` receives the box it resolved, for a type that has to place something
+// of its own inside it — a slot's pages. Optional, because most types read what
+// they need back off the objects.
+[[nodiscard]] bool update(const Layout& layout, const Config& config,
+                          const char* tag, std::int32_t content_width,
+                          std::int32_t content_height,
+                          bool fill_available_width,
+                          const fonts::Registry& fonts, Box& box,
+                          Rect* bounds = nullptr);
+
 // Owns the conditional appearance of one widget: which rule applies, how long
 // it outlives the match that raised it, and the blink phase. LVGL is touched
 // only where the resolved appearance differs from what is on screen, so a

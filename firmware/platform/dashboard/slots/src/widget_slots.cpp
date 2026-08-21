@@ -109,8 +109,20 @@ void Controller::clear() {
     lv_timer_delete(timer_);
     timer_ = nullptr;
   }
-  // The objects are deleted with their screens, which takes their event
-  // callbacks with them; forgetting them here is all this owns.
+  // A slot whose object outlives this — one an incremental apply kept and is
+  // about to rebind — would otherwise collect a second click handler and cycle
+  // its pages twice per tap. Dropped rather than assumed to die with the
+  // object, the same way the overflow pass drops its own handler before
+  // attaching it again. A slot whose object is already gone is not walked here
+  // at all: the composition clears the controller before it deletes them.
+  for (std::size_t index = 0; index < count_; ++index) {
+    lv_obj_t* const container = slots_[index].container;
+    if (container == nullptr) {
+      continue;
+    }
+    (void)lv_obj_remove_event_cb_with_user_data(container, on_click, this);
+    lv_obj_remove_flag(container, LV_OBJ_FLAG_CLICKABLE);
+  }
   count_ = 0;
   page_count_ = 0;
   slots_ = {};

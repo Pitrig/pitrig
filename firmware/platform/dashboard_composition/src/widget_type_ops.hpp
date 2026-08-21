@@ -37,6 +37,16 @@ struct WidgetOpsCommon {
     return storage(context).collection.root_object(index);
   }
 
+  // Growing reserves empty slots, which update_instance then builds; shrinking
+  // releases the tail. One pair of calls for every type, including the slot:
+  // its collection offers the same two primitives.
+  [[nodiscard]] static bool sync_count(void* const context,
+                                       const std::uint8_t count) {
+    auto& collection = storage(context).collection;
+    return count >= collection.instance_count() ? collection.extend_to(count)
+                                                : collection.shrink_to(count);
+  }
+
  protected:
   static Storage& storage(void* const context) {
     return *static_cast<Storage*>(context);
@@ -192,7 +202,7 @@ struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
 // The slot: the only type that neither draws nor binds anything of its own. It
 // builds the objects and stops there — which page of them is visible, and what
 // telemetry raises it, belong to the slots controller. So there is no binder to
-// rebind, no timer to wake, and rebuilding one instance is not possible at all:
+// rebind and no timer to wake, and one instance is updated rather than rebuilt:
 // a slot's pages hold other widgets, and deleting the slot deletes them with it.
 template <typename Storage>
 struct SlotWidgetOps : WidgetOpsCommon<Storage> {
@@ -208,8 +218,21 @@ struct SlotWidgetOps : WidgetOpsCommon<Storage> {
     return true;
   }
 
-  [[nodiscard]] static bool update_instance(void*, std::uint8_t) {
-    return false;
+  // A slot is brought up to the replacement in place: its pages are the parents
+  // of the widgets authored on them and the controller points at them, so
+  // rebuilding one would take both down. What the controller reads — which page
+  // is in the loop, what raises another — is not here: the composition rebinds
+  // it once, after every slot has been updated.
+  [[nodiscard]] static bool update_instance(void* const context,
+                                            const std::uint8_t index) {
+    Storage& widgets = Common::storage(context);
+    const auto configurations = Common::configurations(widgets);
+    if (index >= configurations.size()) {
+      return false;
+    }
+    return widgets.collection.update(index, widgets.layout,
+                                     configurations[index], *widgets.fonts,
+                                     widgets.page_slots);
   }
 };
 
@@ -225,6 +248,7 @@ template <typename Ops, typename Storage>
       .destroy = &Ops::destroy,
       .root_object = &Ops::root_object,
       .update_instance = &Ops::update_instance,
+      .sync_count = &Ops::sync_count,
       .wake = nullptr,
       .context = &widgets,
   };

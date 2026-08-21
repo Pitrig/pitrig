@@ -21,6 +21,11 @@ using WidgetRootObject = lv_obj_t* (*)(void* context, std::uint8_t index);
 // other instances of this type untouched. Returns false when the type cannot
 // update that instance, and the caller falls back to a full recomposition.
 using WidgetUpdateInstance = bool (*)(void* context, std::uint8_t index);
+// Brings the type's instance pool to `count`, reserving the slots a replacement
+// added empty and releasing the ones it removed. A reserved slot is built by
+// the update entry above, so an added widget travels the path a changed one
+// does. Returns false when the type cannot.
+using WidgetSyncCount = bool (*)(void* context, std::uint8_t count);
 // Marks the type's render timers ready because a source value changed. Called
 // with the LVGL lock held; must not block. Optional.
 using WidgetWake = void (*)(void* context);
@@ -37,6 +42,7 @@ struct WidgetDescriptor {
   WidgetDestroy destroy{};
   WidgetRootObject root_object{};
   WidgetUpdateInstance update_instance{};
+  WidgetSyncCount sync_count{};
   WidgetWake wake{};
   void* context{};
 };
@@ -70,6 +76,17 @@ class WidgetManager final {
                                       std::uint8_t index) const;
   [[nodiscard]] bool update_instance(configuration::WidgetType type,
                                      std::uint8_t index) const;
+  // The registered types, in the order they were added — which is the order a
+  // parent has to be settled in before what it holds. A caller that walks the
+  // pools has to walk them in this order rather than in the contract's, so this
+  // is what it walks.
+  [[nodiscard]] std::size_t type_count() const { return count_; }
+  [[nodiscard]] configuration::WidgetType type_at(std::size_t index) const;
+  // Reconciles one type's pool with a replacement document. A type the previous
+  // document had no widgets of was never created, and creating it is part of
+  // this: an empty pool is the same thing as one that has yet to be extended.
+  [[nodiscard]] bool sync_count(configuration::WidgetType type,
+                                std::uint8_t count);
   // Wakes every created type that provides a wake entry. LVGL lock held.
   void wake_all() const;
 

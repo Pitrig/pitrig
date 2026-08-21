@@ -133,36 +133,14 @@ void on_telemetry_updated(const events::Event&, void* const context) {
 // removes that flag as it builds, and this puts it back on the slots themselves.
 [[nodiscard]] bool attach_slots_and_navigation(
     const configuration::ApplicationConfiguration& configuration,
-    const dashboard::Layout& layout,
-    const dashboard::frame::ModifierReaders& readers,
-    Dashboard& dashboard, const telemetry::ITelemetryRegistry& registry,
-    const telemetry::ITelemetryReader& telemetry) {
+    const dashboard::Layout& layout, Dashboard& dashboard) {
   if (!lvgl_port_lock(0)) {
     log::warn(kTag, "Failed to lock LVGL for slots and screen navigation");
     return true;
   }
-  bool attached = true;
-  for (std::size_t index = 0; index < configuration.dashboard.slot_widget_count;
-       ++index) {
-    const configuration::SlotWidgetConfiguration& config =
-        configuration.dashboard.slot_widgets[index];
-    lv_obj_t* const container =
-        dashboard.slot.collection.root_object(index);
-    const std::span<lv_obj_t* const> pages =
-        std::span{dashboard.pages}
-            .subspan(index * configuration::kMaximumSlotPages,
-                     configuration::kMaximumSlotPages);
-    if (container != nullptr &&
-        !dashboard.slots.add(container, pages, config, registry, telemetry,
-                             readers)) {
-      log::error(kTag, "Failed to bind slot page source");
-      attached = false;
-    }
-  }
-  if (!dashboard.slots.start()) {
-    log::error(kTag, "Failed to start dashboard slots");
-    attached = false;
-  }
+  // The same binding an incremental apply re-runs when a slot changes, so the
+  // controller cannot be configured two different ways.
+  const bool attached = screens::attach_slots(configuration, dashboard);
   dashboard.navigation.attach(layout.screens);
   lvgl_port_unlock();
   return attached;
@@ -256,9 +234,7 @@ bool create(lv_display_t* const display,
     log::error(kTag, "Failed to apply dashboard widget Z order");
     initialized = false;
   }
-  if (!attach_slots_and_navigation(configuration, layout, readers,
-                                   dashboard_state, telemetry_registry,
-                                   telemetry)) {
+  if (!attach_slots_and_navigation(configuration, layout, dashboard_state)) {
     initialized = false;
   }
   // After attach(), which resets the controller and therefore the bindings.
