@@ -62,6 +62,7 @@ bool Service::validate_package(
   constexpr asset_package::Format kFormat{
       .magic = 0x4146'4353U,
       .version = kFormatVersion,
+      .minimum_version = kFormatVersion,
       .manifest_entry_size = kManifestEntrySize,
       .maximum_entries = kMaximumFamilies,
       .data_offset = kAssetDataOffset,

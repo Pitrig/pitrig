@@ -41,7 +41,7 @@ The 32-byte header is byte-for-byte identical — magic, format, entry count,
 payload size, three CRC32s, header written last — because the risky part of an
 upload is the flash choreography, not the pixels, and that choreography is
 already proven. The manifest entry is 64 bytes rather than 48, carrying width,
-height, colour format, stride and an optional palette: a bitmap does not
+height, colour format, stride and how the bytes are stored: a bitmap does not
 describe itself, so the geometry is validated at commit instead of being
 discovered inside a draw. Data is 64-byte aligned, matching the cache line and
 the P4's draw-buffer alignment.
@@ -104,9 +104,10 @@ describes itself and a bitmap does not, which is the whole of the difference.
 - An image is drawn at the size it was uploaded at. Resizing a widget does not
   resize the artwork; the configurator re-converts instead. This is what keeps
   the P4 accelerator engaged and what makes rotation unnecessary to support.
-- Indexed colour is in the format and validated by the device, but the
-  configurator does not produce it yet — a palette needs quantisation worth
-  doing properly rather than approximately.
+- Stored pixels are deflated, and the artwork's size lands on flash rather than
+  on the frame — see the amendment below.
+- Indexed colour is reserved rather than supported, for the reasons in that
+  amendment.
 - Only one upload can run at a time across every asset kind, and the second one
   is told so rather than corrupting the first.
 - The performance overlay reports one upload-task line for both controls, since
@@ -118,3 +119,120 @@ describes itself and a bitmap does not, which is the whole of the difference.
   [ADR 0010](0010-uploaded-font-assets.md#amendment-the-configurator-keeps-a-copy-of-what-it-installs).
   The preview draws the converted image, so RGB565 banding shows there rather
   than first on the board.
+
+## Amendment: the package is compressed, and indexed colour is not the answer
+
+Raw pixels cost what they cost: a 325 KB PNG lands as 1.5 MiB, because 1.5 MiB
+is what `width × height × 2` comes to and nothing about the artwork's redundancy
+survives the conversion. The obvious answers were all measured before one was
+taken.
+
+| Approach | Flash | External RAM | CPU per repaint | P4 accelerator |
+| --- | ---: | ---: | --- | :-: |
+| Raw RGB565, as first decided | `w·h·2` | `w·h·2` | none, direct blit | yes |
+| `indexed8` | `w·h + 1 KiB` | same | I8 → ARGB8888 per line, every repaint | no |
+| PNG / JPEG / SVG through LVGL | ~compressed | decode buffer | **full decode every draw** | no |
+| the same, with LVGL's image cache on | ~compressed | `w·h·4` (ARGB8888) | none after the first | no |
+| **Deflate in the package, inflated at boot** | **~compressed** | `w·h·2`, unchanged | **none** | **yes** |
+
+Three facts decide it. `CONFIG_LV_CACHE_DEF_SIZE` is `0` on every board, so LVGL
+caches no decoded image and anything decoder-shaped pays its full cost on every
+redraw. Turning that cache on does not rescue it: a decoded PNG or indexed image
+is held as ARGB8888, **double** what RGB565 costs today. And the ESP32-P4's PPA
+accepts only RGB888 and RGB565 source formats, so every one of those options
+loses hardware acceleration as well.
+
+So the compression belongs in our own package rather than in a decoder LVGL
+runs: deflate at build time, inflate once during startup into the external RAM
+the image was going to be copied into anyway. Flash falls to about what the same
+picture costs as a PNG — measured at a fifth to a third of raw on real dashboard
+artwork — while external RAM, the draw path and the accelerator are all exactly
+what they were. `tinfl_decompress` is in ROM on both the ESP32-S3 and the
+ESP32-P4, so the decompressor costs no flash either.
+
+**Indexed colour is therefore reserved rather than supported.** It was the one
+option that saved external RAM as well, but the saving is on a resource these
+boards have 8 MiB or more of, and it is bought with per-repaint CPU and the
+accelerator. It was also unimplementable as this ADR first specified it: LVGL
+fixes an indexed palette at a full 256 entries whatever the count says, so the
+variable `palette_entry_count` in the original manifest entry would have put the
+pixel data at the wrong offset. The colour-format value stays spoken for so it
+can never come to mean something else.
+
+The package format goes to version 2, using a byte the entry already reserved.
+Version 1 stays readable: nothing about its bytes changed meaning, so a board
+holding one keeps drawing across a firmware update.
+
+**What this does not solve** is portability. A compressed bitmap is still a
+bitmap at one size, so a cross-board layout transfer still cannot carry it. That
+remains what an original-format asset would be for, and it remains open.
+
+## Amendment: sprite sheets are uniform frames, stored whole
+
+One entry may hold several pictures of one geometry, and a widget draws whichever
+of them it is asked for — outright through `sprite_frame`, or from telemetry
+through `sprite_frame_source` (schema 12). A gear readout, a flag or a lamp set
+becomes one widget rather than a stack of them, and one of the 32 package entries
+rather than one per picture.
+
+The frames are **uniform and stored whole, back to back**, rather than being
+rectangles packed into a larger atlas. That is not a packing convenience: whole
+frames are the only layout contiguous in *every* colour format this package
+carries. RGB565A8 keeps its alpha plane after the whole colour plane, so a row
+range of one taller image is not a frame in it, and an arbitrary rectangle is not
+a contiguous run in any of them. Storing whole frames makes reaching frame `n` an
+advance of the data pointer by one frame's bytes — a widget owns its own
+`lv_image_dsc_t` and moves it — with no offset arithmetic inside LVGL, no clip,
+and the ESP32-P4 accelerator untouched. Two widgets can therefore sit on
+different frames of one sheet at no cost, which is why the image registry hands
+out a sheet rather than a descriptor.
+
+The cost is that a sheet cannot pack pictures of different sizes. For what sheets
+are for — one picture per state of one readout — identical size is what is wanted
+anyway.
+
+A frame past what the sheet holds is a composition error, refused before a
+replacement configuration is applied, exactly as naming an image that is not
+installed is. This makes `sprite_frame` the one widget property whose valid range
+comes from an uploaded asset rather than from the contract, so the editor can only
+offer the range while a board is connected.
+
+## Amendment: external RAM holds what is drawn, not what is installed
+
+Compression put the artwork's size on flash, where there are four megabytes.
+What it could not touch is external RAM: a compressed image has to be inflated to
+be drawn, so it costs its full decoded size there whatever it costs in flash.
+Two changes take that down without touching a single pixel of anyone's artwork.
+
+**Only the images the running configuration draws are loaded.** The registry used
+to copy every image in the package — up to 32 — while a dashboard draws at most
+eight, so a library of icons was held whole to show three of them. The set is now
+derived from the document and rebuilt on every replacement, between
+`dashboard_composition::destroy` and `create`, which is the only moment nothing
+holds a descriptor into it. The reservation grows and never shrinks, so repeated
+applies converge on a high-water mark instead of trading large blocks back and
+forth and fragmenting external RAM.
+
+This moves one check: whether a document's images are *available* is now asked of
+the package rather than of the registry, because an image the current dashboard
+does not draw is installed and simply not in memory. A separate question — is
+every image this document needs already loaded — is what now gates the
+incremental apply path, since rebuilding the table is safe only with the
+dashboard down.
+
+**The alpha plane is offered only to artwork that uses one.** A PNG almost always
+carries an alpha channel whether or not any pixel is transparent, and RGB565A8
+keeps that plane beside the colour: a third of the image, in flash and in
+external RAM alike, spent on a plane of `0xFF`. The configurator already decodes
+each picked file for its thumbnail, so it scans it once and defaults the format
+to `rgb565` when nothing is transparent. Noticing the alpha was never used is not
+changing the picture, and it is the only saving that halves both memories at
+once. It remains a default the author can override.
+
+**What was considered and not taken:** drawing straight from the flash mapping,
+which would cost zero external RAM. It is real on the ESP32-S3, whose renderer
+reads pixels with the CPU, but it forces those images to be stored uncompressed —
+trading all of the flash saving back — and it does not work on the ESP32-P4 at
+all, where the PPA is a DMA engine that cannot address a flash mmap window. It
+would also mean tearing the dashboard down before an upload rather than after.
+Left open.

@@ -5,7 +5,7 @@ import { pagesOf, widgetsOf } from '@shared/configuration-access'
 import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { fieldBounds } from '@shared/validate/ranges'
 import { DEFAULT_WIDGET_FONT_SIZE_PX, type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
-import { SourceEditor } from './TelemetryBindingField'
+import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Advanced, Group } from './Group'
 import { HINTS } from './hints'
@@ -169,13 +169,34 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
   const update = (mutation: (next: ImageWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ImageWidgetConfiguration))
   const installed = useDeviceStore((state) => state.session?.imageAssets?.images) ?? []
   const known = installed.find(({ name }) => name === widget.image)
+  // A sheet is what makes the frame controls mean anything, and only the board
+  // knows how many frames an image has. With nothing connected they stay hidden
+  // rather than offering a range nobody can check.
+  const frames = known?.frameCount ?? 1
+  const sheet = frames > 1
+  const frameBinding = widget.sprite_frame_source?.binding ?? ''
   return (
     <>
       <Group id="Image" title="Image" icon={GROUP_ICONS.image} summary={widget.image || 'Unassigned'}>
         <SelectField label="Bitmap" hint={HINTS.image.image} block value={widget.image ?? ''} options={['', ...installed.map(({ name }) => name)]} modified={authored(widget.image, '')} onReset={() => update((next) => { delete next.image })} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
         {installed.length === 0 ? <Hint>Upload images to the board to choose one here.</Hint> : null}
         {widget.image && !known && installed.length > 0 ? <Hint>{`"${widget.image}" is not installed on the connected board, so the device will refuse this configuration.`}</Hint> : null}
-        {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}`}</p> : null}
+        {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}${sheet ? ` · ${frames} frames` : ''}`}</p> : null}
+        {sheet ? (
+          <>
+            <TelemetryBindingField label="Frame from" hint={HINTS.image.frameSource} value={frameBinding} onReset={() => update((next) => { delete next.sprite_frame_source })} onChange={(value) => update((next) => {
+              if (!value) { delete next.sprite_frame_source; return }
+              next.sprite_frame_source = { ...next.sprite_frame_source, binding: value }
+              // The two are alternatives, and the source wins on the device, so
+              // leaving a frame authored underneath it would only mislead.
+              delete next.sprite_frame
+            })} />
+            {frameBinding ? null : (
+              <NumberField label="Frame" hint={HINTS.image.frame} value={widget.sprite_frame ?? 0} min={0} max={frames - 1} modified={authored(widget.sprite_frame, 0)} onReset={() => update((next) => { delete next.sprite_frame })} onChange={(value) => update((next) => { next.sprite_frame = Math.min(frames - 1, Math.max(0, Math.round(value))) })} />
+            )}
+          </>
+        ) : null}
+        {!sheet && (widget.sprite_frame || widget.sprite_frame_source) ? <Hint>{`"${widget.image}" has a single frame, so the device will refuse a frame or a frame source on it.`}</Hint> : null}
         <OptionalColorField label="Recolor" hint={HINTS.image.recolor} value={widget.recolor} onChange={(value) => update((next) => { if (value) next.recolor = value; else { delete next.recolor; delete next.recolor_opa } })} />
         {widget.recolor ? <NumberField label="Strength" hint={HINTS.image.strength} value={widget.recolor_opa ?? 255} min={0} max={255} modified={authored(widget.recolor_opa, 255)} onReset={() => update((next) => { delete next.recolor_opa })} onChange={(value) => update((next) => { next.recolor_opa = Math.min(255, Math.max(0, Math.round(value))) })} /> : null}
       </Group>

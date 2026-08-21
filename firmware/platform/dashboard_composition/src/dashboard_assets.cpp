@@ -1,5 +1,6 @@
 #include "dashboard_assets.hpp"
 
+#include <array>
 #include <cstdint>
 #include <span>
 
@@ -15,6 +16,50 @@ namespace simcore::dashboard_composition {
 namespace {
 
 constexpr char kTag[] = "dashboard";
+
+// The distinct images one configuration draws. A dashboard holds at most
+// kMaximumImageWidgets of them, so the set can never be larger however many the
+// package carries.
+using ReferencedImages =
+    std::array<const image_assets::ImageAsset*, configuration::kMaximumImageWidgets>;
+
+[[nodiscard]] const image_assets::ImageAsset* find_installed(
+    const image_assets::Service& image_assets,
+    const image_assets::ImageId& id) {
+  for (const image_assets::ImageAsset& asset : image_assets.images()) {
+    if (asset.id == id) {
+      return &asset;
+    }
+  }
+  return nullptr;
+}
+
+// Each image once, in the order the widgets name them. A widget naming an image
+// that is not installed is skipped rather than failing here: whether a document
+// can be composed at all is images_available's answer, and it is given before
+// anything is torn down.
+[[nodiscard]] std::size_t collect_referenced(
+    const configuration::ApplicationConfiguration& configuration,
+    const image_assets::Service& image_assets, ReferencedImages& referenced) {
+  const configuration::DashboardConfiguration& dashboard = configuration.dashboard;
+  std::size_t count{};
+  for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
+    const image_assets::ImageAsset* const asset =
+        find_installed(image_assets, dashboard.image_widgets[index].image);
+    if (asset == nullptr) {
+      continue;
+    }
+    bool seen = false;
+    for (std::size_t previous = 0; previous < count; ++previous) {
+      seen = seen || referenced[previous] == asset;
+    }
+    if (!seen && count < referenced.size()) {
+      referenced[count] = asset;
+      ++count;
+    }
+  }
+  return count;
+}
 
 // Visits every caption a document carries, whatever type it sits on. A caption
 // belongs to the frame, so every framed type can carry one and the traits table
@@ -140,9 +185,67 @@ bool fonts_available(
   return families_installed(configuration.dashboard, state.fonts);
 }
 
+std::size_t image_bytes_required(
+    const configuration::ApplicationConfiguration& configuration,
+    const image_assets::Service& image_assets) {
+  ReferencedImages referenced{};
+  const std::size_t count =
+      collect_referenced(configuration, image_assets, referenced);
+  std::size_t total{};
+  for (std::size_t index = 0; index < count; ++index) {
+    total += (referenced[index]->decoded_bytes() + image_assets::kImageAlignment - 1) &
+             ~(image_assets::kImageAlignment - 1);
+  }
+  return total;
+}
+
+bool load_images(Dashboard& dashboard,
+                 const configuration::ApplicationConfiguration& configuration,
+                 const image_assets::Service& image_assets,
+                 const std::span<std::uint8_t> storage) {
+  ReferencedImages referenced{};
+  const std::size_t count =
+      collect_referenced(configuration, image_assets, referenced);
+  std::array<image_assets::ImageAsset, configuration::kMaximumImageWidgets> assets{};
+  for (std::size_t index = 0; index < count; ++index) {
+    assets[index] = *referenced[index];
+  }
+  return dashboard.images.load({assets.data(), count}, storage);
+}
+
 bool images_available(
     const configuration::ApplicationConfiguration& configuration,
-    const Dashboard& state) {
+    const image_assets::Service& image_assets, const Dashboard& state) {
+  const configuration::DashboardConfiguration& dashboard =
+      configuration.dashboard;
+  for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
+    const configuration::ImageWidgetConfiguration& widget =
+        dashboard.image_widgets[index];
+    // The package first, because that is what a reload would draw from; what is
+    // already loaded second, because between an upload and its restart there is
+    // no package left to reload and the registry is all there is. A frame past
+    // what the sheet holds is refused here for the same reason a missing image
+    // is — the document is rejected while the running dashboard is still
+    // intact, rather than failing inside a build that has already begun.
+    const image_assets::ImageAsset* const asset =
+        find_installed(image_assets, widget.image);
+    const std::size_t frames =
+        asset != nullptr ? asset->frame_count : state.images.frame_count(widget.image);
+    if (frames == 0 || widget.sprite_frame >= frames) {
+      return false;
+    }
+    // A source on an image with nothing to switch between would sit read and
+    // unused, which the contract refuses the same way it refuses an unread
+    // binding anywhere else.
+    if (widget.sprite_frame_source_present && frames < 2) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool images_loaded(const configuration::ApplicationConfiguration& configuration,
+                   const Dashboard& state) {
   const configuration::DashboardConfiguration& dashboard =
       configuration.dashboard;
   for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
@@ -164,9 +267,5 @@ bool load_fonts(Dashboard& dashboard, const font_assets::Service& font_assets,
   return loaded;
 }
 
-bool load_images(Dashboard& dashboard, const image_assets::Service& image_assets,
-                 const std::span<std::uint8_t> storage) {
-  return dashboard.images.load(image_assets.images(), storage);
-}
 
 }  // namespace simcore::dashboard_composition

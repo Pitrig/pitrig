@@ -81,7 +81,10 @@ struct WidgetOpsCommon {
   }
 };
 
-// Types whose collection draws a bound value: text, bar, arc, indicator, graph.
+// Types whose collection draws a bound value: text, bar, arc, indicator, graph,
+// and image — which binds one only to choose between the frames of a sprite
+// sheet, but binds it the same way. Image is also the only one that draws from
+// an uploaded asset, which is the single compile-time branch below.
 template <typename Storage>
 struct ValueWidgetOps : WidgetOpsCommon<Storage> {
   using Common = WidgetOpsCommon<Storage>;
@@ -96,11 +99,18 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
     if (!Common::rebind(widgets, configurations)) {
       return Common::report_bind_failure();
     }
-    if (!widgets.collection.create(widgets.layout, configurations,
-                                   widgets.binder.bindings(), *widgets.fonts)) {
-      return Common::report_create_failure();
-    }
-    return true;
+    const bool created = [&] {
+      if constexpr (requires { widgets.images; }) {
+        return widgets.collection.create(widgets.layout, configurations,
+                                         widgets.binder.bindings(),
+                                         *widgets.fonts, *widgets.images);
+      } else {
+        return widgets.collection.create(widgets.layout, configurations,
+                                         widgets.binder.bindings(),
+                                         *widgets.fonts);
+      }
+    }();
+    return created ? true : Common::report_create_failure();
   }
 
   [[nodiscard]] static bool update_instance(void* const context,
@@ -111,19 +121,23 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
         !Common::rebind(widgets, configurations)) {
       return false;
     }
-    return widgets.collection.recreate(index, widgets.layout,
-                                       configurations[index],
-                                       widgets.binder.bindings()[index],
-                                       *widgets.fonts);
+    if constexpr (requires { widgets.images; }) {
+      return widgets.collection.recreate(
+          index, widgets.layout, configurations[index],
+          widgets.binder.bindings()[index], *widgets.fonts, *widgets.images);
+    } else {
+      return widgets.collection.recreate(index, widgets.layout,
+                                         configurations[index],
+                                         widgets.binder.bindings()[index],
+                                         *widgets.fonts);
+    }
   }
 };
 
 // Types that bind no telemetry of their own — only their styling rules watch
-// one: shape and image. Each carries one extra argument the other does not:
-// image draws from the image registry, and shape publishes the containers it
-// built so children can be parented to them. Both are the whole of the
-// difference, so both are compile-time branches on the storage rather than
-// separate templates.
+// one. Shape is the only one left: it publishes the containers it built so
+// children can be parented to them, which is a compile-time branch on the
+// storage rather than a template of its own.
 template <typename Storage>
 struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
   using Common = WidgetOpsCommon<Storage>;
@@ -139,11 +153,7 @@ struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
       return Common::report_bind_failure();
     }
     const bool created = [&] {
-      if constexpr (requires { widgets.images; }) {
-        return widgets.collection.create(
-            widgets.layout, configurations, widgets.binder.reads(),
-            widgets.binder.contexts(), *widgets.fonts, *widgets.images);
-      } else if constexpr (requires { widgets.container_slots; }) {
+      if constexpr (requires { widgets.container_slots; }) {
         return widgets.collection.create(
             widgets.layout, configurations, widgets.binder.reads(),
             widgets.binder.contexts(), *widgets.fonts,
@@ -165,12 +175,7 @@ struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
         !Common::rebind(widgets, configurations)) {
       return false;
     }
-    if constexpr (requires { widgets.images; }) {
-      return widgets.collection.recreate(
-          index, widgets.layout, configurations[index],
-          widgets.binder.reads()[index], widgets.binder.contexts()[index],
-          *widgets.fonts, *widgets.images);
-    } else if constexpr (requires { widgets.container_slots; }) {
+    if constexpr (requires { widgets.container_slots; }) {
       return widgets.collection.recreate(
           index, widgets.layout, configurations[index],
           widgets.binder.reads()[index], widgets.binder.contexts()[index],

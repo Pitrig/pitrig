@@ -106,8 +106,14 @@ export const HINTS = {
   image: {
     image:
       'Images are uploaded to the board and converted in the configurator to the size they are drawn at. The device neither scales nor rotates, so match the widget box to the bitmap.',
-    recolor: 'Tints the bitmap towards this colour, which is how one white icon serves every state.',
-    strength: 'How far the tint goes, from untouched at 0 to fully the tint colour at 255.'
+    frame:
+      'Which picture of a sprite sheet to draw. A sheet is several images uploaded as one, so switching between them costs nothing on the board and spends one of its 32 entries rather than one per picture.',
+    frameSource:
+      'Chooses the picture from telemetry instead: the value is rounded to a whole number and clamped to the frames the sheet holds, so 0 is the first and anything past the last stays on the last. This is what draws a gear, a flag or a lamp set from one widget rather than a stack of them.',
+    recolor:
+      'Tints the bitmap towards this colour, which is how one white icon serves every state. An alpha8 image is the colour rather than tinted by it: it carries only coverage, and is drawn white until this says otherwise.',
+    strength:
+      'How far the tint goes, from untouched at 0 to fully the tint colour at 255. An alpha8 image ignores it — there the colour is the image, not a tint over one.'
   },
   shape: {
     kind: 'A line is a thin rectangle: give it a small height or width. A shape is also the container other widgets are placed inside.'

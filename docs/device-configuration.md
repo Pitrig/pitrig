@@ -1,6 +1,6 @@
 # Device configuration
 
-This document defines the schema 11 configuration contract implemented by the
+This document defines the schema 12 configuration contract implemented by the
 firmware and read by the desktop configurator. Earlier schemas are
 intentionally not part of the current contract.
 
@@ -414,7 +414,16 @@ way the `number` transform parses one.
   state the widget samples for itself; nothing else can read it.
 - `shape` and `image` bind no telemetry of their own. A shape is a `rectangle`
   or an `ellipse` — a line is a thin rectangle — and an image names an uploaded
-  asset through `image`, optionally tinted with `recolor` at `recolor_opa`.
+  asset through `image`, optionally tinted with `recolor` at `recolor_opa`. An
+  `alpha8` asset carries coverage and no colour, so there `recolor` *is* the
+  colour rather than a tint over one: omitted it draws white, and `recolor_opa`
+  does not apply to it. An image whose asset is a **sprite sheet** draws one of
+  its frames: `sprite_frame` picks one outright, or `sprite_frame_source` picks
+  it from telemetry — rounded to a whole number and clamped to the frames the
+  sheet holds. This is the one thing an image binds telemetry for, and the only
+  widget property whose valid range comes from an uploaded asset rather than
+  from the contract: a frame past what the sheet holds is a composition error,
+  exactly as naming an image that is not installed is.
 
 Defaults and ranges for all of these are in
 [configuration-schema.md](configuration-schema.md).

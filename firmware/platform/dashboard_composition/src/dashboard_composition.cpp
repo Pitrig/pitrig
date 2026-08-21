@@ -117,7 +117,7 @@ void on_telemetry_updated(const events::Event&, void* const context) {
       dashboard.widgets.add(
           widget_descriptor<ValueWidgetOps<GraphWidgets>>(dashboard.graph)) &&
       dashboard.widgets.add(
-          widget_descriptor<ConditionWidgetOps<ImageWidgets>>(dashboard.image));
+          widget_descriptor<ValueWidgetOps<ImageWidgets>>(dashboard.image));
   lvgl_port_unlock();
   if (!registered) {
     log::error(kTag, "Failed to register dashboard widget types");

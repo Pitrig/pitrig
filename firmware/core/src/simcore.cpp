@@ -173,10 +173,13 @@ void initialize_display(Application& application,
 
 // Fonts and images are both copied out of the package mapping a later upload
 // releases: a widget drawing from that mapping would be reading a partition
-// mid-erase. The cost is bounded by what was actually uploaded rather than by
-// the partition. A failure here is not fatal — composition reports it as an
-// unresolved dependency.
-void load_uploaded_assets(Application& application) {
+// mid-erase. Faces cost what was uploaded; images cost only what this
+// configuration draws, since a package may carry up to 32 and a dashboard may
+// show at most eight of them. A failure here is not fatal — composition reports
+// it as an unresolved dependency.
+void load_uploaded_assets(
+    Application& application,
+    const configuration::ApplicationConfiguration& configuration) {
   // Faces and images are copied out of flash so the dashboard can draw from
   // them. With no dashboard there is nothing to draw, and the copy would only
   // spend external memory the device never reads.
@@ -194,13 +197,14 @@ void load_uploaded_assets(Application& application) {
       log::error(kTag, "Font faces could not be loaded");
     }
   }
-  const std::size_t image_bytes =
-      application.services.image_assets.image_bytes_total();
+  const std::size_t image_bytes = dashboard_composition::image_bytes_required(
+      configuration, application.services.image_assets);
   if (image_bytes > 0) {
-    if (!application.platform.image_memory.initialize(image_bytes)) {
+    if (!application.platform.image_memory.ensure(image_bytes)) {
       log::error(kTag, "Images do not fit in external memory");
     } else if (!dashboard_composition::load_images(
-                   dashboard_composition::instance(), application.services.image_assets,
+                   dashboard_composition::instance(), configuration,
+                   application.services.image_assets,
                    application.platform.image_memory.bytes())) {
       log::error(kTag, "Images could not be loaded");
     }
@@ -284,7 +288,7 @@ void run() {
   performance::begin();
 #endif
   initialize_display(application, board, configuration);
-  load_uploaded_assets(application);
+  load_uploaded_assets(application, configuration);
   compose(application, configuration);
   if (start_communication(application, board, buffers)) {
     // Everything a firmware image has to prove has now happened: the

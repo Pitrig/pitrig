@@ -210,13 +210,17 @@ Sparse JSON, used unchanged for both configurator projects and the device wire p
 properties are *not* expanded through board profiles. Widget geometry is absolute logical display
 pixels, except inside a **container**, where it is relative to the container's box (ADR 0021). A
 **shape** widget is the drawing container: it may hold widgets, including other shapes, nested up to
-`kMaximumNestingDepth`. A container does **not** clip its children — a caption or a widget that
-overhangs it is drawn, and only the display still bounds a box. A dashboard holds up to four
+`kMaximumNestingDepth`. A container clips its children unless `clip_children` says
+otherwise — a widget's own caption is drawn on the parent, so it is never cut by
+its own clip. A dashboard holds up to four
 screens, swiped between on a board with touch (ADR 0020). A **slot** widget is an area that switches
 what it shows: it draws nothing, is authored only on a screen, and holds up to `kMaximumSlotPages`
 pages of which one is visible — a tap cycles the pages that are `in_loop`, and a page whose
 `trigger` fires (`conditions` over `source`, or `value_changed`) is raised over the loop for its
-`duration_ms`, first page in the array winning. Any widget may
+`duration_ms`, first page in the array winning. An **image** widget may draw one frame of a sprite
+sheet — several pictures uploaded as one asset — picked by `sprite_frame` or from telemetry through
+`sprite_frame_source`; it is the only widget property whose range comes from an uploaded asset
+rather than from the contract. Any widget may
 carry an `action`, so a tap navigates to the next, previous, or a named screen; an empty
 transparent shape with an action is an invisible touch zone. Bounded limits (64 KB payload, per-type widget caps, 4 modifiers per
 source, byte limits on strings) and the full property table are in
@@ -256,7 +260,18 @@ over `@SC:FONT:` / `@SC:IMAGE:`, and a single `binary_session::Claim` that
 decides which one owns the serial link — a second upload is answered `busy`
 rather than raced. Images are converted **in the configurator** to the LVGL
 layout and the size they are drawn at; the device holds no decoder and neither
-scales nor rotates. See [docs/image-assets.md](docs/image-assets.md) and
+scales nor rotates. Their pixels are stored **deflated** and inflated once at
+startup into the external RAM they were going to be copied into anyway, so the
+artwork's size lands on flash and the draw path is unchanged — `tinfl_decompress`
+is in ROM on both chips. External RAM holds only the images the running
+configuration **draws**, rebuilt on every replacement while the dashboard is
+down; an installed image nothing shows costs nothing but flash. A source with no
+transparent pixel is offered `rgb565` rather than `rgb565a8`, which is a third
+off both memories at once. An entry may hold several **frames** of one geometry,
+stored whole and back to back, which is a sprite sheet. Indexed colour is
+reserved rather than supported: LVGL expands it to ARGB8888 per line on every
+repaint and loses the P4 accelerator. See
+[docs/image-assets.md](docs/image-assets.md) and
 [docs/adr/0018-uploaded-image-assets.md](docs/adr/0018-uploaded-image-assets.md).
 
 Firmware travels the same way under `@SC:FW:` and takes the same claim. The

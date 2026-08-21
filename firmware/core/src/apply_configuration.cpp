@@ -1,11 +1,13 @@
 #include "application.hpp"
 
+#include <cstddef>
 #include <cstring>
 #include <span>
 
 #include "application_configuration.hpp"
 #include "configuration_service.hpp"
 #include "dashboard_composition.hpp"
+#include "image_asset_service.hpp"
 #include "logger.hpp"
 #include "module_composition.hpp"
 
@@ -41,6 +43,27 @@ bool recompose(Application& application) {
   if (headless) {
     return modules_started;
   }
+  // External memory holds the images this document draws rather than every one
+  // the package carries, so the set is rebuilt here — with the dashboard down,
+  // which is the only moment nothing is drawing from it. The buffer only ever
+  // grows, so a document needing less than the last one costs no allocation.
+  //
+  // Unless there is nothing to rebuild from: between an image upload and the
+  // restart it requires, the partition has been erased and the registry holds
+  // the only copies left. Reloading then would empty it, so what is there is
+  // kept and composed from instead.
+  if (application.services.image_assets.package_readable()) {
+    const std::size_t image_bytes = dashboard_composition::image_bytes_required(
+        configuration, application.services.image_assets);
+    if (!application.platform.image_memory.ensure(image_bytes) ||
+        !dashboard_composition::load_images(
+            dashboard_composition::instance(), configuration,
+            application.services.image_assets,
+            application.platform.image_memory.bytes())) {
+      log::error(kTag, "Images could not be loaded for the new configuration");
+      return false;
+    }
+  }
   const bool dashboard_created = dashboard_composition::create(
       application.display, configuration, application.modules,
       dashboard_composition::instance(), application.services.telemetry_registry,
@@ -72,6 +95,7 @@ configuration::ValidationFailure apply_configuration(
             .path = {'f', 'o', 'n', 't', '\0'}};
   }
   if (!dashboard_composition::images_available(service.staged(),
+                                               application.services.image_assets,
                                                dashboard_composition::instance())) {
     return {.error = configuration::ValidationError::invalid_widget,
             .path = {'i', 'm', 'a', 'g', 'e', '\0'}};
@@ -90,8 +114,12 @@ configuration::ValidationFailure apply_configuration(
 
   service.promote();
   // The incremental path rebuilds LVGL objects in place, so it is reachable
-  // only where LVGL is running at all.
+  // only where LVGL is running at all — and only while every image the document
+  // draws is already loaded, since rebuilding the image table is safe just with
+  // the dashboard down.
   if (dashboard_only && application.display != nullptr &&
+      dashboard_composition::images_loaded(candidate,
+                                           dashboard_composition::instance()) &&
       dashboard_composition::apply_incremental(previous, candidate,
                                                dashboard_composition::instance())) {
     return {};

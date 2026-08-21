@@ -36,8 +36,12 @@ export function SubTabs<Id extends string>({
   actions
 }: SubTabsProps<Id>): React.JSX.Element {
   return (
-    <div className="flex h-11 flex-none items-center justify-between gap-4 border-b px-3">
-      <div aria-label={label} className="flex min-w-0 items-center gap-1" role="tablist">
+    // The tabs keep their width and the actions give theirs up. It was the
+    // other way round — `min-w-0` on the tabs, `flex-none` on the actions — and
+    // a long live-apply message then shrank the tab list below its own content
+    // and painted straight over it.
+    <div className="flex h-11 flex-none items-center gap-4 border-b px-3">
+      <div aria-label={label} className="flex flex-none items-center gap-1" role="tablist">
         {tabs.map((tab) => {
           const active = tab.id === value
           return (
@@ -62,7 +66,7 @@ export function SubTabs<Id extends string>({
         })}
       </div>
       {actions ? (
-        <div className="flex flex-none items-center gap-2">{actions}</div>
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">{actions}</div>
       ) : null}
     </div>
   )

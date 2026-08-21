@@ -171,9 +171,7 @@ struct ImageWidgets : WidgetStorage {
   static constexpr auto kPool =
       &configuration::DashboardConfiguration::image_widgets;
 
-  dashboard::frame::ConditionBinder<Config,
-                                    dashboard::image_widget::kMaximumInstances>
-      binder;
+  dashboard::image_widget::Binder binder;
   dashboard::image_widget::Collection collection;
   // The only type that draws from an uploaded asset, so the only one that
   // carries a registry beyond the fonts every framed type may caption with.

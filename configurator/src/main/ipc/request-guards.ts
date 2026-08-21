@@ -45,7 +45,8 @@ export function isImageUploadRequest(value: unknown): value is ImageUploadReques
       (asset) =>
         typeof asset === 'object' &&
         asset !== null &&
-        typeof asset.sourceId === 'string' &&
+        Array.isArray(asset.sourceIds) &&
+        asset.sourceIds.every((sourceId) => typeof sourceId === 'string') &&
         typeof asset.name === 'string' &&
         typeof asset.width === 'number' &&
         typeof asset.height === 'number' &&

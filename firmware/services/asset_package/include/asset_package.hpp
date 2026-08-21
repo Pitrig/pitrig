@@ -57,7 +57,12 @@ struct Status {
 // upload engine.
 struct Format {
   std::uint32_t magic{};
+  // What this firmware writes, and the newest it reads.
   std::uint16_t version{};
+  // The oldest version still readable. Equal to `version` for a kind that has
+  // never kept an older package readable, which is the honest default: a
+  // format change that reinterprets existing bytes cannot be read both ways.
+  std::uint16_t minimum_version{};
   std::size_t manifest_entry_size{};
   std::size_t maximum_entries{};
   std::size_t data_offset{};
@@ -67,6 +72,10 @@ struct Format {
 // What a header says once everything kind-neutral about it holds.
 struct Header {
   std::uint16_t entry_count{};
+  // Which version the stored package actually is, which is what a kind reading
+  // more than one has to decode its manifest against — and what the device
+  // reports, rather than the version it would write.
+  std::uint16_t format_version{};
   std::uint32_t payload_size{};
   // Already verified against the stored bytes by validate_header. It is carried
   // out so a kind can report it: a host that knows the CRC of the package it

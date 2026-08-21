@@ -120,11 +120,31 @@ namespace {
                                       ImageWidgetConfiguration& config,
                                       ValidationFailure& failure) {
   constexpr std::string_view kName = "widget.image";
-  return valid_object(object, schema::kImageWidgetConfigurationKeys, kName,
-                      failure) &&
-         parse_frame(object, config.frame, kName, failure) &&
-         read_text(object, "image", config.image, kName, failure) &&
-         read_color(object, "recolor", config.recolor, kName, failure) &&
+  if (!valid_object(object, schema::kImageWidgetConfigurationKeys, kName,
+                    failure) ||
+      !parse_frame(object, config.frame, kName, failure) ||
+      !read_text(object, "image", config.image, kName, failure) ||
+      !read_integer(object, "sprite_frame", config.sprite_frame, kName,
+                    failure)) {
+    return false;
+  }
+  // Which frames the sheet actually has is an asset question, so it is settled
+  // at composition rather than here; what this owes is that the source parsed
+  // and that its presence is recorded, since an absent one leaves the widget on
+  // the frame it authored.
+  if (const cJSON* const source = member(object, "sprite_frame_source");
+      source != nullptr) {
+    constexpr std::string_view kSourceName = "widget.image.sprite_frame_source";
+    if (!valid_object(source, schema::kValueSourceConfigurationKeys, kSourceName,
+                      failure) ||
+        !read_text(source, "binding", config.sprite_frame_source.binding,
+                   kSourceName, failure) ||
+        !parse_modifiers(source, config.sprite_frame_source, failure)) {
+      return false;
+    }
+    config.sprite_frame_source_present = true;
+  }
+  return read_color(object, "recolor", config.recolor, kName, failure) &&
          read_integer(object, "recolor_opa", config.recolor_opa, kName,
                       failure);
 }

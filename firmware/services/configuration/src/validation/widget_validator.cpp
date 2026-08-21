@@ -366,6 +366,22 @@ bool Validator::image_widget(const ImageWidgetConfiguration& config) {
   if (!valid_optional_color(config.recolor)) {
     return reject(failure_, ValidationError::invalid_widget, "recolor");
   }
+  // How many frames the sheet holds is an asset question, settled at
+  // composition alongside whether the image is installed at all. What the
+  // document can be held to is that the source names a real field.
+  if (config.sprite_frame_source_present) {
+    if (!registry_
+             .resolve(value_binding_view(config.sprite_frame_source.binding))
+             .valid()) {
+      return reject(failure_, ValidationError::invalid_widget,
+                    "sprite_frame_source");
+    }
+    if (config.sprite_frame_source.modifier_count >
+        config.sprite_frame_source.modifiers.size()) {
+      return reject(failure_, ValidationError::invalid_widget,
+                    "sprite_frame_source");
+    }
+  }
   return frame(config.frame);
 }
 

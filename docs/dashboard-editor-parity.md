@@ -127,11 +127,24 @@ configurator (RGB565 / RGB565A8 / A8) and the `image` widget
 The device decodes nothing: an image arrives in the layout and at the size it is
 drawn at.
 
-Missing: an indexed palette (the format accepts one, but the configurator does
-not quantize yet), sprite atlases, and keeping an image in the format it was
-authored in — a PNG or an SVG the device decodes and scales itself, so one
-upload serves every size and a layout transfer carries it. That last one is the
-opposite of the decision ADR 0018 took, and needs its own.
+The stored pixels are deflated and inflated once at startup, so what the artwork
+costs lands on flash rather than on the frame: real dashboard artwork stores at a
+fifth to a third of raw, and the draw path is byte for byte what it was.
+
+Sprite sheets exist: one entry holds several pictures of one geometry, and a
+widget draws whichever frame it is asked for, chosen outright or from telemetry.
+Frames are uniform and stored whole rather than packed as rectangles, because
+whole frames are the only layout contiguous in every colour format — which is
+what keeps a frame change a pointer step and leaves the accelerated blit alone.
+
+Missing: keeping an image in the format it was authored in —
+a PNG or an SVG the device decodes and scales itself, so one upload serves every
+size and a layout transfer carries it. That last one is the opposite of the
+decision ADR 0018 took, and needs its own. An indexed palette was on this list
+and is not any more: it is excluded by decision, because LVGL expands an indexed
+image to ARGB8888 a line at a time on every repaint and cannot hand it to the
+P4 accelerator, so it would trade frames for storage that compression already
+gives back.
 
 ### 6. Editor UX
 
@@ -302,9 +315,11 @@ What a transfer still cannot do: reflow. Neither fit rearranges anything, so a
 layout that wants a different arrangement on a differently shaped display is
 hand work; reflow is accepted for work. Image assets do not follow either — the board draws a bitmap at the size it was uploaded at
 ([ADR 0018](adr/0018-uploaded-image-assets.md)) — so the report names each one
-and the size it now needs. A template is a whole dashboard: there is no way to
-save or insert a single screen, and no way to share one as a file without going
-through the user data folder.
+and the size it now needs. A template is a whole dashboard or a single widget,
+and one screen of a saved dashboard can be added to the open one — it arrives as
+a new screen at the end rather than replacing anything, transferred to this board
+like any other layout. What is left is saving a screen on its own, and sharing a
+template as a file without going through the user data folder.
 
 ### 9. Style details
 
@@ -357,9 +372,9 @@ raising a particular cap is a decision about the RAM budget.
    behind. It comes first among what is left because it is what makes the rest
    judgeable: a rule, a ramp, a graph trace and a real string length cannot be
    checked against a placeholder.
-9. **The editor's remaining reach** — saving and inserting a single screen, a
-   template as a file, and a gallery to start from. Configurator only, no schema
-   and no firmware.
+9. **The editor's remaining reach** — saving a single screen, a template as a
+   file, and a gallery to start from. Configurator only, no schema and no
+   firmware.
 10. **Transparency** — cheap to author and cheap to draw; the work is an alpha
     encoding that still leaves the `kTransparentColor` sentinel meaning "unset".
 11. **Images that survive a move** — an original-format asset the device scales,

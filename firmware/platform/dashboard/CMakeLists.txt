@@ -58,8 +58,8 @@ idf_component_register(
     EMBED_FILES ${boot_splash_asset}
     REQUIRES configuration_contract font_assets image_assets lvgl__lvgl
              telemetry
-    PRIV_REQUIRES display esp_lvgl_port esp_timer heap logger number_transform
-                  performance simcore_config text_writer time_transform
-                  transport)
+    PRIV_REQUIRES display esp_lvgl_port esp_rom esp_timer heap logger
+                  number_transform performance simcore_config text_writer
+                  time_transform transport)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-std=c++20>)

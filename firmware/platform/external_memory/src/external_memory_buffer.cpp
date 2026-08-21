@@ -10,6 +10,21 @@ ExternalMemoryBuffer::~ExternalMemoryBuffer() {
   }
 }
 
+bool ExternalMemoryBuffer::ensure(const std::size_t size) {
+  if (size == 0) {
+    return true;
+  }
+  if (size <= size_) {
+    return true;
+  }
+  if (data_ != nullptr) {
+    heap_caps_free(data_);
+    data_ = nullptr;
+    size_ = 0;
+  }
+  return initialize(size);
+}
+
 bool ExternalMemoryBuffer::initialize(const std::size_t size) {
   if (data_ != nullptr || size == 0) {
     return false;

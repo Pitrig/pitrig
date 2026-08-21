@@ -15,7 +15,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] FreeRTOS and LVGL scheduler ownership decision
 - [*] Telemetry catalog, registry and handle-based ingestion
 - [*] Performance service and debug overlay
-- [*] Generated configuration contract (schema 11)
+- [*] Generated configuration contract (schema 12)
 - [*] Screen as an explicit composition primitive
 - [*] Compile-time widget type descriptors
 - [*] Double-buffered runtime configuration ownership
@@ -63,15 +63,23 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [ ] Uploaded images kept in their original format (PNG or SVG) instead of
       converted, so the device scales them and a layout transfer carries them —
       the format and what decodes it are undecided
-- [ ] Indexed-colour images — the `indexed8` the package format and the firmware
-      already accept but the converter does not produce: a palette of up to 256
-      colours plus one byte per pixel, which halves an RGB565 image and thirds
-      one carrying alpha. The work is the quantisation, since a palette chosen
-      badly looks worse than RGB565
-- [ ] Sprite atlases — many small pictures in one image with a table of their
-      rectangles, a widget drawing one rectangle of it. Spends one of the 32
-      package entries rather than one per icon, and lets a single widget switch
-      its picture from telemetry instead of stacking one widget per state
+- [*] Compressed image packages — pixels stored deflated and inflated once at
+      startup, so the artwork's size lands on flash instead of on the frame.
+      Real dashboard artwork stores at a fifth to a third of raw, with the draw
+      path, the external RAM and the P4 accelerator all unchanged (indexed
+      colour is excluded by decision: it trades frames and the accelerator for
+      storage this buys back for nothing — ADR 0018)
+- [*] Image memory bounded by what is drawn — external RAM holds only the images
+      the running configuration shows rather than every one the package carries,
+      and artwork with no transparent pixel is offered a format without an alpha
+      plane, which is a third off flash and external RAM at once
+- [*] Sprite sheets — many pictures in one image, a widget drawing one of them.
+      Spends one of the 32 package entries rather than one per icon, and lets a
+      single widget switch its picture from telemetry instead of stacking one
+      widget per state. Frames are uniform and stored whole, back to back, which
+      is the only layout contiguous in every colour format — so a frame is a
+      pointer step and the P4 accelerator is untouched (an arbitrary rectangle
+      atlas was rejected for that reason)
 - [ ] Button Matrix
 - [ ] RGB
 
@@ -89,7 +97,7 @@ foundation for them landed in Phase 1.
 - [*] Configurator layer panel with reordering, lock and hide
 - [*] Dashboard preview with placeholder values
 - [*] Dashboard templates and cross-board layout transfer
-- [ ] Font library, font picker and automatic font delivery on save
+- [*] Font library, font picker and automatic font delivery on save
 - [*] Dragging a widget into a container on the canvas, and container clipping
       as an authored property (schema 11)
 - [*] Drawing a widget with a tool, snapping that reaches the neighbours during a
@@ -99,7 +107,11 @@ foundation for them landed in Phase 1.
       configurator taking the SimHub stream, drawing it, and forwarding it to the
       board
 - [ ] Reflow in a cross-board layout transfer
-- [ ] Saving and inserting a single screen, and templates shared as a file rather
+- [*] Widget templates — one widget saved to the library and drawn onto the
+      canvas, beside the dashboards
+- [*] Inserting a single screen out of a saved dashboard, transferred to this
+      board like any other layout
+- [ ] Saving a single screen on its own, and templates shared as a file rather
       than through the user data directory
 - [ ] A gallery of ready-made dashboards
 

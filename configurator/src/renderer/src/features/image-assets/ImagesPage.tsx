@@ -1,4 +1,4 @@
-import { Image as ImageIcon, Trash2 } from 'lucide-react'
+import { Image as ImageIcon, Link2, Trash2, Unlink2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -9,12 +9,14 @@ import {
   MAXIMUM_IMAGES,
   MAXIMUM_IMAGE_DIMENSION,
   MAXIMUM_IMAGE_PACKAGE_SIZE,
+  MAXIMUM_SPRITE_FRAMES,
+  imageAssetBytes,
   imagePackageSize,
   type ImageColorFormat
 } from '@shared/image-assets'
 import { usePreviewAssetStore } from '@/features/configuration/preview/preview-assets'
 import { kilobytes } from '@/features/font-library/font-library-store'
-import { useImageAssetsStore } from './image-assets-store'
+import { useImageAssetsStore, type ImageEntry } from './image-assets-store'
 
 // Uploaded images, which the device stores as one package and replaces whole.
 // The conversion happens in the configurator — the board never decodes — so the
@@ -23,8 +25,7 @@ import { useImageAssetsStore } from './image-assets-store'
 const FORMAT_LABELS: Record<ImageColorFormat, string> = {
   rgb565a8: 'Colour + transparency',
   rgb565: 'Colour, no transparency',
-  alpha8: 'Mask (alpha only)',
-  indexed8: 'Indexed (not supported yet)'
+  alpha8: 'Mask (alpha only)'
 }
 
 export function ImagesPage(): React.JSX.Element {
@@ -53,9 +54,14 @@ export function ImagesPage(): React.JSX.Element {
   const duplicated = entries.some(
     (entry, index) => entries.findIndex(({ name }) => name === entry.name) !== index
   )
-  // What this selection would occupy once packed — the same layout the
-  // converter produces, so the number is the one the device will see.
-  const staged = imagePackageSize(entries)
+  // What this selection would occupy once packed, every frame counted — an
+  // upper bound, since the package is compressed and this cannot know by how
+  // much. It is also exactly the external RAM the board reserves for it.
+  const staged = imagePackageSize(
+    entries.flatMap((entry) =>
+      entry.sources.map(() => ({ width: entry.width, height: entry.height, format: entry.format }))
+    )
+  )
   const oversized = entries.some(
     (entry) =>
       entry.width < 1 ||
@@ -73,6 +79,18 @@ export function ImagesPage(): React.JSX.Element {
     Boolean(images?.storageAvailable) &&
     !images?.rebootRequired &&
     !busy
+
+  const addFrame = async (id: string): Promise<void> => {
+    setBusy(true)
+    store.getState().setError(undefined)
+    try {
+      const result = await window.simcore.selectImageSource()
+      if (!result.ok) store.getState().setError(result.error.message)
+      else if (result.value) store.getState().addFrame(id, result.value)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const addSource = async (): Promise<void> => {
     setBusy(true)
@@ -92,7 +110,7 @@ export function ImagesPage(): React.JSX.Element {
     try {
       const result = await window.simcore.uploadImageAssets({
         assets: entries.map((entry) => ({
-          sourceId: entry.source.id,
+          sourceIds: entry.sources.map((source) => source.id),
           name: entry.name,
           format: entry.format,
           width: entry.width,
@@ -180,6 +198,7 @@ export function ImagesPage(): React.JSX.Element {
                   <span className="block truncate font-mono">{image.name}</span>
                   <span className="block text-[11px] text-muted-foreground">
                     {`${image.width}×${image.height} · ${image.format}`}
+                    {image.frameCount > 1 ? ` · ${image.frameCount} frames` : ''}
                   </span>
                 </span>
               </li>
@@ -233,21 +252,53 @@ export function ImagesPage(): React.JSX.Element {
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             {entries.map((entry) => (
-              <div key={entry.source.id} className="space-y-1.5 rounded-md border p-2">
+              <div key={entry.id} className="space-y-1.5 rounded-md border p-2">
                 <div className="flex items-center gap-2.5">
-                  <Thumbnail dataUrl={entry.source.dataUrl} alt={entry.source.name} />
-                  <span className="min-w-0 flex-1 truncate font-medium" title={entry.source.name}>
-                    {entry.source.name}
+                  <Thumbnail dataUrl={entry.sources[0]?.dataUrl} alt={entry.sources[0]?.name ?? ''} />
+                  <span className="min-w-0 flex-1 truncate font-medium" title={entry.sources[0]?.name}>
+                    {entry.sources[0]?.name}
                   </span>
                   <Button
-                    aria-label={`Remove ${entry.source.name}`}
+                    aria-label={`Remove ${entry.name}`}
                     className="flex-none px-2"
                     variant="outline"
-                    onClick={() => store.getState().removeEntry(entry.source.id)}
+                    onClick={() => store.getState().removeEntry(entry.id)}
                   >
                     <Trash2 aria-hidden="true" className="size-3.5" />
                   </Button>
                 </div>
+                {/* Frames beyond the first. A sheet is one entry on the device
+                    whatever it holds, so this is where an icon set stops
+                    spending one of the 32 per picture. */}
+                {entry.sources.length > 1 ? (
+                  <ul className="flex flex-wrap gap-1">
+                    {entry.sources.map((source, index) => (
+                      <li key={source.id} className="flex items-center gap-1 rounded border px-1 py-0.5">
+                        <span className="text-[11px] text-muted-foreground">{index}</span>
+                        <span className="max-w-24 truncate text-[11px]" title={source.name}>
+                          {source.name}
+                        </span>
+                        <button
+                          aria-label={`Remove frame ${index}`}
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => store.getState().removeFrame(entry.id, source.id)}
+                        >
+                          <Trash2 aria-hidden="true" className="size-3" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  disabled={busy || entry.sources.length >= MAXIMUM_SPRITE_FRAMES}
+                  onClick={() => void addFrame(entry.id)}
+                >
+                  {entry.sources.length > 1
+                    ? `Add frame (${entry.sources.length})`
+                    : 'Make a sprite sheet…'}
+                </Button>
                 <label className="grid gap-1">
                   <span className="text-muted-foreground">Name a widget refers to</span>
                   <input
@@ -255,7 +306,7 @@ export function ImagesPage(): React.JSX.Element {
                     maxLength={31}
                     className="h-7 rounded-md border bg-transparent px-1 font-mono"
                     onChange={(event) =>
-                      store.getState().updateEntry(entry.source.id, { name: event.target.value })
+                      store.getState().updateEntry(entry.id, { name: event.target.value })
                     }
                   />
                 </label>
@@ -265,7 +316,7 @@ export function ImagesPage(): React.JSX.Element {
                     value={entry.format}
                     className="h-7 rounded-md border bg-transparent px-1"
                     onChange={(event) =>
-                      store.getState().updateEntry(entry.source.id, {
+                      store.getState().updateEntry(entry.id, {
                         format: event.target.value as ImageColorFormat
                       })
                     }
@@ -277,7 +328,7 @@ export function ImagesPage(): React.JSX.Element {
                     ))}
                   </select>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
                   <label className="grid gap-1">
                     <span className="text-muted-foreground">Width</span>
                     <input
@@ -285,14 +336,35 @@ export function ImagesPage(): React.JSX.Element {
                       min={1}
                       max={MAXIMUM_IMAGE_DIMENSION}
                       value={entry.width}
-                      className="h-7 rounded-md border bg-transparent px-1"
+                      className="h-7 w-full rounded-md border bg-transparent px-1"
                       onChange={(event) =>
-                        store
-                          .getState()
-                          .updateEntry(entry.source.id, { width: Number(event.target.value) })
+                        store.getState().resizeEntry(entry.id, 'width', Number(event.target.value))
                       }
                     />
                   </label>
+                  {/* Between the two fields, because that is what it relates.
+                      Shrinking is the usual reason to touch them at all, and
+                      one side at a time is how an image ends up squashed. */}
+                  <button
+                    type="button"
+                    aria-pressed={entry.lockAspect}
+                    aria-label={entry.lockAspect ? 'Unlock proportions' : 'Lock proportions'}
+                    title={
+                      entry.lockAspect
+                        ? 'Proportions locked: changing one side carries the other'
+                        : 'Proportions free: each side is set on its own'
+                    }
+                    className={`mb-0.5 rounded-md border p-1.5 ${entry.lockAspect ? 'text-foreground' : 'text-muted-foreground'}`}
+                    onClick={() =>
+                      store.getState().updateEntry(entry.id, { lockAspect: !entry.lockAspect })
+                    }
+                  >
+                    {entry.lockAspect ? (
+                      <Link2 aria-hidden="true" className="size-3.5" />
+                    ) : (
+                      <Unlink2 aria-hidden="true" className="size-3.5" />
+                    )}
+                  </button>
                   <label className="grid gap-1">
                     <span className="text-muted-foreground">Height</span>
                     <input
@@ -300,18 +372,18 @@ export function ImagesPage(): React.JSX.Element {
                       min={1}
                       max={MAXIMUM_IMAGE_DIMENSION}
                       value={entry.height}
-                      className="h-7 rounded-md border bg-transparent px-1"
+                      className="h-7 w-full rounded-md border bg-transparent px-1"
                       onChange={(event) =>
-                        store
-                          .getState()
-                          .updateEntry(entry.source.id, { height: Number(event.target.value) })
+                        store.getState().resizeEntry(entry.id, 'height', Number(event.target.value))
                       }
                     />
                   </label>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {`Source is ${entry.source.width}×${entry.source.height}. The board draws the image at the size it is uploaded at, so this is also the widget's size.`}
-                </p>
+                {/* What the two numbers above actually cost. The board draws
+                    an image at the size it was uploaded at, so this size is
+                    also the widget's — and the memory it takes is quadratic in
+                    it, which is the one thing worth seeing while typing. */}
+                <SizeReadout entry={entry} />
               </div>
             ))}
           </div>
@@ -340,6 +412,37 @@ export function ImagesPage(): React.JSX.Element {
  * recovered leaves the box empty rather than the row missing: the board still
  * holds the image, this application simply no longer has its copy.
  */
+/**
+ * The source's size, what it is being converted to, and what that comes to in
+ * memory. The board neither scales nor rotates, so the size chosen here is the
+ * size the widget draws at — and shrinking a source to what a widget actually
+ * needs is the largest saving available anywhere in the image pipeline, since
+ * the cost goes with the area.
+ */
+function SizeReadout({ entry }: { entry: ImageEntry }): React.JSX.Element {
+  const source = entry.sources[0]
+  const frames = entry.sources.length
+  const bytes = imageAssetBytes(entry.width, entry.height, entry.format) * frames
+  const resized =
+    source !== undefined && (source.width !== entry.width || source.height !== entry.height)
+  const sourceBytes =
+    source === undefined
+      ? 0
+      : imageAssetBytes(source.width, source.height, entry.format) * frames
+  return (
+    <p className="text-[11px] text-muted-foreground">
+      {frames > 1
+        ? `${frames} frames, all converted to ${entry.width}×${entry.height}. `
+        : null}
+      {source
+        ? resized
+          ? `Source is ${source.width}×${source.height}, converted to ${entry.width}×${entry.height} — ${kilobytes(bytes)} instead of ${kilobytes(sourceBytes)}.`
+          : `Source is ${source.width}×${source.height}, uploaded unchanged — ${kilobytes(bytes)}. The board draws it at this size, so it is also the widget's size.`
+        : null}
+    </p>
+  )
+}
+
 function Thumbnail({ dataUrl, alt }: { dataUrl?: string; alt: string }): React.JSX.Element {
   return (
     <span

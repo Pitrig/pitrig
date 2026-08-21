@@ -5,8 +5,11 @@ import {
 } from '@shared/font-assets'
 import {
   IMAGE_ID_PATTERN,
+  IMAGE_PACKAGE_FORMAT_VERSION,
   MAXIMUM_IMAGES,
   MAXIMUM_IMAGE_PACKAGE_SIZE,
+  MAXIMUM_SPRITE_FRAMES,
+  MINIMUM_IMAGE_PACKAGE_FORMAT_VERSION,
   type ImageAssetState,
   type InstalledImage
 } from '@shared/image-assets'
@@ -55,7 +58,13 @@ interface AssetStatusLimits {
   label: string
   countField: string
   maximumCount: number
+  /** The newest package version this application writes. */
   formatVersion: number
+  /**
+   * The oldest one it still understands, when a kind kept an older package
+   * readable rather than obsoleting it. Defaults to the newest.
+   */
+  minimumFormatVersion?: number
   maximumPackageSize: number
 }
 
@@ -87,7 +96,9 @@ function parseAssetStatus(line: string, limits: AssetStatusLimits): AssetStatus 
     !Number.isSafeInteger(packageSize) || packageSize < 0 ||
     packageSize > limits.maximumPackageSize ||
     (packageAvailable
-      ? formatVersion !== limits.formatVersion || packageSize < 4096
+      ? formatVersion < (limits.minimumFormatVersion ?? limits.formatVersion) ||
+        formatVersion > limits.formatVersion ||
+        packageSize < 4096
       : formatVersion !== 0 || count !== 0 || packageSize !== 0)
   ) {
     throw new DeviceServiceError(
@@ -178,7 +189,8 @@ export function parseImageAssetInfo(line: string): ImageAssetState {
     label: 'image status',
     countField: 'images',
     maximumCount: MAXIMUM_IMAGES,
-    formatVersion: 1,
+    formatVersion: IMAGE_PACKAGE_FORMAT_VERSION,
+    minimumFormatVersion: MINIMUM_IMAGE_PACKAGE_FORMAT_VERSION,
     maximumPackageSize: MAXIMUM_IMAGE_PACKAGE_SIZE
   })
   const images = parseInstalledImages(status.entries)
@@ -202,20 +214,26 @@ function parseInstalledImages(value: string | undefined): InstalledImage[] {
     .split(';')
     .filter((entry) => entry.length > 0)
     .map((entry) => {
-      const [name, size, format] = entry.split(':')
+      // A sprite sheet appends its frame count; an ordinary image has one frame
+      // and says nothing, so a three-field entry is the same as it ever was.
+      const [name, size, format, frames] = entry.split(':')
       const [width, height] = (size ?? '').split('x')
       return {
         name: name ?? '',
         width: Number(width),
         height: Number(height),
-        format: format ?? ''
+        format: format ?? '',
+        frameCount: frames === undefined ? 1 : Number(frames)
       }
     })
     .filter(
       (image) =>
         IMAGE_ID_PATTERN.test(image.name) &&
         Number.isSafeInteger(image.width) &&
-        Number.isSafeInteger(image.height)
+        Number.isSafeInteger(image.height) &&
+        Number.isSafeInteger(image.frameCount) &&
+        image.frameCount >= 1 &&
+        image.frameCount <= MAXIMUM_SPRITE_FRAMES
     )
 }
 

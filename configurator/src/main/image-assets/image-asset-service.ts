@@ -74,6 +74,29 @@ function thumbnailOf(
   }
 }
 
+/**
+ * Whether any pixel is less than fully opaque.
+ *
+ * A PNG usually carries an alpha channel whether or not it uses one, and an
+ * unused one is a third of the image spent on a plane of `0xFF` — in flash and
+ * in the board's external RAM alike, since RGB565A8 keeps that plane beside the
+ * colour. Reading it here is what lets the panel offer the format the artwork
+ * actually needs instead of always the widest one.
+ *
+ * The scan is over the decoded bitmap the thumbnail already needed, so it costs
+ * one pass and no extra decode.
+ */
+function hasTransparency(decoded: Electron.NativeImage): boolean {
+  const { width, height } = decoded.getSize()
+  const bgra = decoded.toBitmap()
+  const pixels = width * height
+  if (bgra.byteLength < pixels * 4) return true
+  for (let index = 0; index < pixels; ++index) {
+    if (bgra[index * 4 + 3] !== 0xff) return true
+  }
+  return false
+}
+
 export class ImageAssetService extends AssetServiceBase {
   constructor(
     deviceService: DeviceService,
@@ -95,9 +118,10 @@ export class ImageAssetService extends AssetServiceBase {
       return failure('source_unreadable', `"${basename(path)}" could not be read as an image.`)
     }
     const { width, height } = decoded.getSize()
-    const source: ImageSourceRecord = { id, name, path, width, height }
+    const hasAlpha = hasTransparency(decoded)
+    const source: ImageSourceRecord = { id, name, path, width, height, hasAlpha }
     this.sources.set(source.id, source)
-    return success({ id, name, width, height, ...thumbnailOf(decoded, width, height) })
+    return success({ id, name, width, height, hasAlpha, ...thumbnailOf(decoded, width, height) })
   }
 
   async upload(request: ImageUploadRequest): Promise<AssetResult<void>> {
@@ -121,14 +145,18 @@ export class ImageAssetService extends AssetServiceBase {
         // Conversion is synchronous and can run for a while over several large
         // images, so the cancel button has to be honoured between them.
         operation.signal.throwIfAborted()
-        const source = this.sources.get(asset.sourceId)
-        if (!source) {
-          return failure('source_missing', 'Select the image file again and retry.')
+        const paths: string[] = []
+        for (const sourceId of asset.sourceIds) {
+          const source = this.sources.get(sourceId)
+          if (!source) {
+            return failure('source_missing', 'Select the image file again and retry.')
+          }
+          paths.push(source.path)
         }
         converted.push(
           convertImage({
             name: asset.name,
-            path: source.path,
+            paths,
             format: asset.format,
             width: asset.width,
             height: asset.height

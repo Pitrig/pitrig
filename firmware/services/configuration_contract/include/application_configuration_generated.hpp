@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 11;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 12;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
@@ -66,6 +66,8 @@ inline constexpr std::size_t kMaximumValueModifiers = 4;
 inline constexpr std::size_t kMaximumColorStops = 4;
 // Conditional styling rules per widget. Four covers a normal, caution, warning and limit band.
 inline constexpr std::size_t kMaximumWidgetConditions = 4;
+// Frames one uploaded image may hold as a sprite sheet. A frame costs only its own pixels — every frame of a sheet is an offset into the one buffer the image was already loaded into — so this bounds what an author can address rather than what the device spends. Must match kMaximumSpriteFrames in the image contract.
+inline constexpr std::size_t kMaximumSpriteFrames = 64;
 // Uploaded image identifier storage including the terminator (31 usable bytes). Must match kImageIdCapacity in the image contract.
 inline constexpr std::size_t kImageIdCapacity = 32;
 // Widget identifier storage including the terminator (15 usable bytes).
@@ -451,13 +453,17 @@ struct GraphWidgetConfiguration {
   std::uint16_t line_width_px{2};
 };
 
-// An uploaded image drawn inside the frame. It binds no telemetry of its
-// own, but its styling rules can hide it, flash it or recolour it. Neither
-// scaled nor rotated: the configurator converts each image to the size it
-// is drawn at, which also keeps the accelerated draw path on the ESP32-P4.
+// An uploaded image drawn inside the frame. Neither scaled nor rotated: the
+// configurator converts each image to the size it is drawn at, which also
+// keeps the accelerated draw path on the ESP32-P4. It binds telemetry only
+// to choose between the frames of a sprite sheet; its styling rules can
+// still hide it, flash it or recolour it.
 struct ImageWidgetConfiguration {
   WidgetFrame frame{};
   std::array<char, kImageIdCapacity> image{};
+  std::uint8_t sprite_frame{};
+  ValueSourceConfiguration sprite_frame_source{};
+  bool sprite_frame_source_present{false};
   std::uint32_t recolor{kTransparentColor};
   std::uint8_t recolor_opa{255};
 };

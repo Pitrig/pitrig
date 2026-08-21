@@ -27,7 +27,8 @@ import { fieldBounds } from './validate/ranges'
 // What this deliberately does not touch: colours of every kind, gradient
 // direction, telemetry bindings and modifiers, a number transform's scale and
 // offset (a unit conversion, not a pixel), value windows and thresholds, every
-// duration in milliseconds, point_count, the arc's angles, recolor_opa,
+// duration in milliseconds, point_count, the arc's angles, recolor_opa, an
+// image's sprite frame (an index into an asset, not a measurement),
 // z_index, ids, actions, shape kind, orientation, slot triggers, and a screen's
 // id and background colour.
 //

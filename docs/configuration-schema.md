@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 11. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 12. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 11.
+Schema version: 12.
 
 ## Limits
 
@@ -32,6 +32,7 @@ Schema version: 11.
 | `kMaximumValueModifiers` | 4 | Value modifiers per text widget source. |
 | `kMaximumColorStops` | 4 | Stops in one widget colour ramp. Four is a normal, caution, warning and limit band, the same bands the conditional rules cover discretely. |
 | `kMaximumWidgetConditions` | 4 | Conditional styling rules per widget. Four covers a normal, caution, warning and limit band. |
+| `kMaximumSpriteFrames` | 64 | Frames one uploaded image may hold as a sprite sheet. A frame costs only its own pixels — every frame of a sheet is an offset into the one buffer the image was already loaded into — so this bounds what an author can address rather than what the device spends. Must match kMaximumSpriteFrames in the image contract. |
 | `kImageIdCapacity` | 32 | Uploaded image identifier storage including the terminator (31 usable bytes). Must match kImageIdCapacity in the image contract. |
 | `kWidgetIdCapacity` | 16 | Widget identifier storage including the terminator (15 usable bytes). |
 | `kWidgetTitleCapacity` | 16 | Widget title text storage including the terminator (15 usable bytes). |
@@ -345,7 +346,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 
 ### ImageWidgetConfiguration
 
-An uploaded image drawn inside the frame. It binds no telemetry of its own, but its styling rules can hide it, flash it or recolour it. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4.
+An uploaded image drawn inside the frame. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4. It binds telemetry only to choose between the frames of a sprite sheet; its styling rules can still hide it, flash it or recolour it.
 
 Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they are plain properties of this object in JSON.
 
@@ -353,6 +354,8 @@ Also carries the properties of [`WidgetFrame`](#widgetframe), flattened: they ar
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `image` | required |
 | `image` | string, max 31 bytes | empty |
+| `sprite_frame` | integer, 0..64 | `0` |
+| `sprite_frame_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `recolor` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `recolor_opa` | integer, 0..255 | `255` |
 

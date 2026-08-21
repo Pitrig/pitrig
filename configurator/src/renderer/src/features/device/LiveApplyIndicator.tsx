@@ -19,16 +19,23 @@ export function LiveApplyIndicator(): React.JSX.Element | null {
 
   if (error) {
     return (
-      <span className="truncate text-xs text-amber-300" title={error}>
+      // The one line here that has no bound of its own: a validation failure
+      // carries whatever the firmware said. It takes the room left over and
+      // ends in an ellipsis, with the whole of it in the tooltip.
+      <span className="min-w-0 flex-1 truncate text-xs text-amber-300" title={error}>
         {`Live preview failed: ${error}`}
       </span>
     )
   }
-  if (pending) return <span className="text-xs text-muted-foreground">Applying to the board…</span>
+  if (pending) {
+    return (
+      <span className="flex-none text-xs text-muted-foreground">Applying to the board…</span>
+    )
+  }
   if (missingFamilies.length > 0) {
     return (
       <span
-        className="truncate text-xs text-muted-foreground"
+        className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
         title={`The board does not hold ${missingFamilies.join(', ')} yet.`}
       >
         Preview only until you save — the board lacks a font.

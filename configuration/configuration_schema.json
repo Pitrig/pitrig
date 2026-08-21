@@ -1,5 +1,5 @@
 {
-  "schema_version": 11,
+  "schema_version": 12,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "limits": {
@@ -98,6 +98,10 @@
     "kMaximumWidgetConditions": {
       "value": 4,
       "doc": "Conditional styling rules per widget. Four covers a normal, caution, warning and limit band."
+    },
+    "kMaximumSpriteFrames": {
+      "value": 64,
+      "doc": "Frames one uploaded image may hold as a sprite sheet. A frame costs only its own pixels — every frame of a sheet is an offset into the one buffer the image was already loaded into — so this bounds what an author can address rather than what the device spends. Must match kMaximumSpriteFrames in the image contract."
     },
     "kImageIdCapacity": {
       "value": 32,
@@ -526,12 +530,15 @@
 
     "ImageWidgetConfiguration": {
       "widget_type": "image",
-      "doc": "An uploaded image drawn inside the frame. It binds no telemetry of its own, but its styling rules can hide it, flash it or recolour it. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4.",
+      "doc": "An uploaded image drawn inside the frame. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4. It binds telemetry only to choose between the frames of a sprite sheet; its styling rules can still hide it, flash it or recolour it.",
       "fields": [
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "image", "kind": "text", "capacity": "kImageIdCapacity", "default": "", "doc": "Identifier of an uploaded image. A missing one is a composition error, never a silent fallback — the same rule a font family follows." },
-        { "name": "recolor", "kind": "optional_color", "default": "kTransparentColor", "doc": "Tints the image towards this colour. Omitted draws it as uploaded." },
-        { "name": "recolor_opa", "kind": "uint8", "default": 255, "doc": "How strongly the recolour applies, 0 to 255." }
+        { "name": "sprite_frame", "kind": "uint8", "default": 0, "maximum": "kMaximumSpriteFrames", "doc": "Which frame of a sprite sheet to draw. A plain image holds the one frame, so this stays 0; a frame past what the sheet holds is a composition error, the same as naming an image that is not installed. Ignored when sprite_frame_source is given." },
+        { "name": "sprite_frame_source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry that chooses the frame instead. The value is rounded to the nearest whole number and clamped to the frames the sheet holds, so a source that leaves the range picks the first or the last rather than drawing nothing. Rejected on an image whose asset has a single frame, so a binding never sits unread." },
+        { "name": "sprite_frame_source_present", "kind": "bool", "default": false, "serialized": false },
+        { "name": "recolor", "kind": "optional_color", "default": "kTransparentColor", "doc": "Tints the image towards this colour. Omitted draws it as uploaded — except for an alpha8 image, which carries no colour of its own and is painted white until this says otherwise." },
+        { "name": "recolor_opa", "kind": "uint8", "default": 255, "doc": "How strongly the recolour applies, 0 to 255. Does not apply to an alpha8 image: there the colour is the image's own, not a tint over one, so it is drawn at full strength whatever this says." }
       ]
     },
 

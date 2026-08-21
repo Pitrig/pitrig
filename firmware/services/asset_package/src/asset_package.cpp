@@ -45,9 +45,11 @@ bool validate_header(const Format& format,
       binary::read_u32_le(header, kHeaderPayloadSizeOffset);
   const std::size_t manifest_size =
       static_cast<std::size_t>(entry_count) * format.manifest_entry_size;
+  const std::uint16_t format_version =
+      binary::read_u16_le(header, kHeaderFormatVersionOffset);
   if (binary::read_u32_le(header, kHeaderMagicOffset) != format.magic ||
-      binary::read_u16_le(header, kHeaderFormatVersionOffset) !=
-          format.version ||
+      format_version < format.minimum_version ||
+      format_version > format.version ||
       binary::read_u16_le(header, kHeaderSizeOffset) != kHeaderSize ||
       binary::read_u32_le(header, kHeaderReservedWordOffset) != 0 ||
       entry_count > format.maximum_entries ||
@@ -70,6 +72,7 @@ bool validate_header(const Format& format,
     return false;
   }
   parsed = {.entry_count = entry_count,
+            .format_version = format_version,
             .payload_size = payload_size,
             .payload_crc = payload_crc,
             .manifest = manifest};

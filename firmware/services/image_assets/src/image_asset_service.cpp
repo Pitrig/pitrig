@@ -41,7 +41,7 @@ bool Service::initialize(IStorage& storage) {
   }
 
   status_.package_available = true;
-  status_.format_version = kFormatVersion;
+  status_.format_version = package_.format_version;
   status_.entry_count = package_.image_count;
   status_.package_size = package_.package_size;
   for (std::size_t index = 0; index < package_.image_count; ++index) {
@@ -49,17 +49,10 @@ bool Service::initialize(IStorage& storage) {
     image_catalog_[index] = {.id = asset.id,
                              .format = asset.format,
                              .width = asset.width,
-                             .height = asset.height};
+                             .height = asset.height,
+                             .frame_count = asset.frame_count};
   }
   return true;
-}
-
-std::size_t Service::image_bytes_total() const {
-  std::size_t total{};
-  for (const ImageAsset& asset : images()) {
-    total += (asset.bytes.size() + kImageAlignment - 1) & ~(kImageAlignment - 1);
-  }
-  return total;
 }
 
 UpdateError Service::begin_update(const std::size_t package_size) {
@@ -159,7 +152,7 @@ UpdateError Service::commit_update() {
   }
   storage_->unmap();
   status_.package_available = true;
-  status_.format_version = kFormatVersion;
+  status_.format_version = package_.format_version;
   status_.entry_count = package_.image_count;
   status_.package_size = package_.package_size;
   image_catalog_ = {};
@@ -168,7 +161,8 @@ UpdateError Service::commit_update() {
     image_catalog_[index] = {.id = asset.id,
                              .format = asset.format,
                              .width = asset.width,
-                             .height = asset.height};
+                             .height = asset.height,
+                             .frame_count = asset.frame_count};
   }
   package_ = {};
   reset_update();

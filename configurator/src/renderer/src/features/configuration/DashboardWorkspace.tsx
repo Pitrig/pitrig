@@ -57,13 +57,16 @@ export function DashboardWorkspace(): React.JSX.Element {
             <LiveApplyIndicator />
             {rebootRequired ? (
               <Badge
-                className="border-amber-500/40 bg-amber-500/15 text-amber-300"
+                className="flex-none border-amber-500/40 bg-amber-500/15 text-amber-300"
                 variant="outline"
               >
                 Restart required
               </Badge>
             ) : dirty ? (
-              <Badge className="border-sky-500/40 bg-sky-500/15 text-sky-300" variant="outline">
+              <Badge
+                className="flex-none border-sky-500/40 bg-sky-500/15 text-sky-300"
+                variant="outline"
+              >
                 Modified
               </Badge>
             ) : null}
@@ -71,7 +74,7 @@ export function DashboardWorkspace(): React.JSX.Element {
                 and a button whose meaning changes with the page is worse than a
                 button that is not there. */}
             {view === 'canvas' ? <SaveToTemplatesButton /> : null}
-            <SaveToBoardButton />
+            <SaveToBoardButton className="flex-none" />
           </>
         }
       />

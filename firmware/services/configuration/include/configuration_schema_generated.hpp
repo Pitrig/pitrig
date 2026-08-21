@@ -352,7 +352,7 @@ inline constexpr std::array<std::string_view, 22> kGraphWidgetConfigurationKeys{
     "line_width_px",
 }};
 
-inline constexpr std::array<std::string_view, 18> kImageWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 20> kImageWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -369,6 +369,8 @@ inline constexpr std::array<std::string_view, 18> kImageWidgetConfigurationKeys{
     "color_ramp",
     "conditions",
     "image",
+    "sprite_frame",
+    "sprite_frame_source",
     "recolor",
     "recolor_opa",
 }};
@@ -520,6 +522,13 @@ inline constexpr std::array<std::string_view, 4> kApplicationConfigurationKeys{{
   }
   if (config.line_width_px < 1) {
     return "line_width_px";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const ImageWidgetConfiguration& config) {
+  if (config.sprite_frame > kMaximumSpriteFrames) {
+    return "sprite_frame";
   }
   return {};
 }

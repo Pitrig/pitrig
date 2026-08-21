@@ -58,18 +58,44 @@ struct Dashboard;
                               const font_assets::Service& font_assets,
                               std::span<std::uint8_t> storage);
 
-// Copies every uploaded image into caller-owned external memory, for the same
-// reason the faces are copied: the next upload releases the package mapping
-// while the dashboard is still drawing from it. `storage` must be at least
-// `image_assets.image_bytes_total()` bytes.
-[[nodiscard]] bool load_images(Dashboard& dashboard,
-                               const image_assets::Service& image_assets,
-                               std::span<std::uint8_t> storage);
+// External memory one configuration's images need, every frame and the
+// alignment between them included. Only the images it actually draws: a package
+// may hold up to 32 and a dashboard may draw at most eight of them, so
+// reserving for the package would be paying for pictures nothing shows.
+[[nodiscard]] std::size_t image_bytes_required(
+    const configuration::ApplicationConfiguration& configuration,
+    const image_assets::Service& image_assets);
 
-// Whether every image a configuration names is installed. Checked before a
-// replacement is applied, so a document that references a missing image is
-// rejected while the running dashboard is still intact.
+// Copies the images a configuration draws into caller-owned external memory,
+// for the same reason the faces are copied: the next upload releases the
+// package mapping while the dashboard is still drawing from it. `storage` must
+// be at least `image_bytes_required(configuration, image_assets)` bytes.
+//
+// Nothing may be drawing from the registry when this runs — it rebuilds the
+// table whole — so it belongs between tearing a dashboard down and building the
+// next one.
+[[nodiscard]] bool load_images(
+    Dashboard& dashboard,
+    const configuration::ApplicationConfiguration& configuration,
+    const image_assets::Service& image_assets, std::span<std::uint8_t> storage);
+
+// Whether every image a configuration names can be drawn, with the frames it
+// asks for: either the package still holds it, so loading it is possible, or it
+// is already loaded and needs no loading. Both halves are needed — an image the
+// running dashboard does not draw is installed but absent from the registry,
+// and between an upload and its restart the package is gone while the registry
+// still holds what is on screen. Checked before a replacement is applied, so a
+// document that references a missing image is rejected while the running
+// dashboard is still intact.
 [[nodiscard]] bool images_available(
+    const configuration::ApplicationConfiguration& configuration,
+    const image_assets::Service& image_assets, const Dashboard& dashboard);
+
+// Whether every image a configuration names is already loaded. What decides
+// whether a replacement can be applied widget by widget: rebuilding the image
+// table is only safe with the dashboard down, so a document needing an image
+// the registry does not hold takes the full path instead.
+[[nodiscard]] bool images_loaded(
     const configuration::ApplicationConfiguration& configuration,
     const Dashboard& dashboard);
 
