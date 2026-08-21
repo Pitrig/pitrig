@@ -1,5 +1,6 @@
 import { migrateConfigurationDocument } from '../../shared/configuration-migrate'
 import { validateConfigurationDocument } from '../../shared/configuration-validate'
+import type { WidgetConfiguration } from '../../shared/configuration-schema'
 import {
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
   SIMCORE_BOARD_IDS,
@@ -37,6 +38,26 @@ export function parseDeviceConfigurationValue(value: unknown): DeviceConfigurati
     throw new Error(result.error)
   }
   return result.configuration
+}
+
+/**
+ * One widget, checked the way the device would check it.
+ *
+ * A fragment has no document around it, so it is given the smallest one that
+ * can carry it and validated in there: that walks the discriminator and every
+ * property against the generated allow-list, and brings a fragment saved under
+ * an older schema forward on the way. The widget is read back out of the
+ * validated document rather than returned as it arrived, so what the caller
+ * gets is what the validator accepted.
+ */
+export function parseWidgetFragment(value: unknown, board: SimCoreBoardId): WidgetConfiguration {
+  const document = parseDeviceConfigurationValue({
+    board,
+    dashboard: { screens: [{ widgets: [value] }] }
+  })
+  const widget = document.dashboard?.screens?.[0]?.widgets?.[0]
+  if (!widget) throw new Error('The fragment holds no widget.')
+  return widget
 }
 
 export function prepareDeviceConfigurationJson(

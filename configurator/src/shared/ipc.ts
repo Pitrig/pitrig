@@ -59,12 +59,12 @@ import type {
   SavedConfigurationSummary
 } from './config-library'
 import type {
-  DashboardTemplateDocument,
-  DashboardTemplateLibrary,
-  DashboardTemplateSummary,
+  TemplateDocument,
   TemplateIdRequest,
+  TemplateLibrary,
   TemplateResult,
-  TemplateSaveRequest
+  TemplateSaveRequest,
+  TemplateSummary
 } from './templates'
 
 export const APP_GET_INFO_CHANNEL = 'app:get-info' as const
@@ -96,14 +96,11 @@ export interface SimCoreApi {
   forgetRecentConfiguration: (
     request: ConfigurationPathRequest
   ) => Promise<ConfigLibraryResult<void>>
-  listDashboardTemplates: () => Promise<TemplateResult<DashboardTemplateLibrary>>
-  readDashboardTemplate: (
-    request: TemplateIdRequest
-  ) => Promise<TemplateResult<DashboardTemplateDocument>>
-  saveDashboardTemplate: (
-    request: TemplateSaveRequest
-  ) => Promise<TemplateResult<DashboardTemplateSummary>>
-  deleteDashboardTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<void>>
+  /** Dashboards to start from, and widgets to reuse inside one. */
+  listTemplates: () => Promise<TemplateResult<TemplateLibrary>>
+  readTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<TemplateDocument>>
+  saveTemplate: (request: TemplateSaveRequest) => Promise<TemplateResult<TemplateSummary>>
+  deleteTemplate: (request: TemplateIdRequest) => Promise<TemplateResult<void>>
   listSerialPorts: () => Promise<DeviceResult<SerialPortSummary[]>>
   getDeviceState: () => Promise<DeviceState>
   connectDevice: (

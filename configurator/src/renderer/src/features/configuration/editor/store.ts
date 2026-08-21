@@ -18,6 +18,19 @@ export type WidgetSelection =
 export type CanvasTool = 'select' | WidgetConfiguration['type'] | 'tap_zone'
 
 /**
+ * A widget from the library, waiting for the author to say where it goes.
+ *
+ * Unlike a tool it is not drawn at a size — it already has one, chosen when it
+ * was saved — so the canvas follows the pointer with the widget itself and one
+ * click puts it down. `label` is the library entry's name, which is the only
+ * thing the canvas can say about a fragment that may be a whole cluster.
+ */
+export interface PendingInsert {
+  widget: WidgetConfiguration
+  label: string
+}
+
+/**
  * How the canvas is being looked at, and which widgets are set aside while
  * working. None of this belongs in the document: the device would reject the
  * unknown properties, and a grid or a locked layer is a fact about the editing
@@ -91,6 +104,9 @@ interface DashboardEditorStore {
   /** The tool a press on the canvas runs, reset to `select` after it draws. */
   activeTool: CanvasTool
   setActiveTool: (tool: CanvasTool) => void
+  pendingInsert?: PendingInsert
+  beginInsert: (insert: PendingInsert) => void
+  cancelInsert: () => void
   setDefaultFontFamily: (family: string) => void
   select: (selection?: WidgetSelection) => void
   /** Adds or removes one widget, keeping it primary when it stays selected. */
@@ -128,7 +144,11 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   collapsed: {},
   slotPage: {},
   activeTool: 'select',
-  setActiveTool: (tool) => set({ activeTool: tool }),
+  // A tool and a pending insert are two answers to "what does the next click
+  // do", so taking one puts the other down.
+  setActiveTool: (tool) => set({ activeTool: tool, pendingInsert: undefined }),
+  beginInsert: (pendingInsert) => set({ pendingInsert, activeTool: 'select' }),
+  cancelInsert: () => set({ pendingInsert: undefined }),
   setDefaultFontFamily: (family) => set({ defaultFontFamily: family }),
   select: (selection) =>
     set({
@@ -229,6 +249,7 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
       drillIn: undefined,
       defaultFontFamily: undefined,
       activeTool: 'select',
+      pendingInsert: undefined,
       view: DEFAULT_EDITOR_VIEW,
     })
 }))

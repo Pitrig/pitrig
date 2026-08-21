@@ -12,7 +12,12 @@ import { cn } from '@/lib/utils'
  */
 
 interface PageShellProps {
-  title: string
+  /**
+   * Omitted by a page whose sections already say what they are: a heading and
+   * a sentence above two libraries that name themselves is a band of text
+   * between the author and what they came for.
+   */
+  title?: string
   description?: ReactNode
   /** Buttons and status that belong to the page as a whole, shown top right. */
   actions?: ReactNode
@@ -33,15 +38,17 @@ export function PageShell({
 }: PageShellProps): React.JSX.Element {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-      <header className="flex flex-none items-start justify-between gap-4 border-b px-5 py-3">
-        <div className="min-w-0">
-          <h2 className="text-sm font-semibold">{title}</h2>
-          {description ? (
-            <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-          ) : null}
-        </div>
-        {actions ? <div className="flex flex-none items-center gap-2">{actions}</div> : null}
-      </header>
+      {title ? (
+        <header className="flex flex-none items-start justify-between gap-4 border-b px-5 py-3">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">{title}</h2>
+            {description ? (
+              <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+            ) : null}
+          </div>
+          {actions ? <div className="flex flex-none items-center gap-2">{actions}</div> : null}
+        </header>
+      ) : null}
       {fill ? (
         <div className="flex min-h-0 min-w-0 flex-1">{children}</div>
       ) : (

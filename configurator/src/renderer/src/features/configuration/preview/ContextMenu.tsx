@@ -103,7 +103,7 @@ function Entry({
           role="menuitem"
           className="flex w-full items-center justify-between gap-4 rounded px-2 py-1.5 text-left hover:bg-muted"
         >
-          <span>{entry.label}</span>
+          <EntryLabel>{entry.label}</EntryLabel>
           <span className="text-muted-foreground">▸</span>
         </button>
         {open ? (
@@ -129,14 +129,36 @@ function Entry({
         onClose()
       }}
     >
-      <span className="flex items-center gap-2">
-        <span className="w-3 text-sky-400">{checked ? '✓' : ''}</span>
-        {entry.label}
-      </span>
+      <EntryLabel checked={checked}>{entry.label}</EntryLabel>
       {entry.kind === 'item' && entry.hint ? (
         <span className="text-muted-foreground">{entry.hint}</span>
       ) : null}
     </button>
+  )
+}
+
+/**
+ * A name, behind the column the tick lives in.
+ *
+ * Every entry reserves that column, including the ones that can never be
+ * ticked: without it a submenu's name started at the left edge while an item's
+ * started twenty pixels in, and a menu holding both read as two menus that had
+ * been stacked by accident.
+ */
+function EntryLabel({
+  checked,
+  children
+}: {
+  checked?: boolean
+  children: React.ReactNode
+}): React.JSX.Element {
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span aria-hidden="true" className="w-3 flex-none text-sky-400">
+        {checked ? '✓' : ''}
+      </span>
+      <span className="min-w-0 truncate">{children}</span>
+    </span>
   )
 }
 

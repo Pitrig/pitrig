@@ -5,20 +5,20 @@ import { clamp } from '../editor/placement'
 import { isTextEntry } from '../editor/keyboard'
 import { GapOverlay, GridOverlay, GuideOverlay, HitArea, MeasureBadge, SelectionFrame, TargetOutline } from './CanvasOverlays'
 import { CanvasContextMenu } from './ContextMenu'
-import { ImagePreview } from './ImagePreview'
-import { TextWidgetPreview } from './TextPreview'
 import { moveSelection, scaleWidgets, type ScaleSubject } from '../editor/geometry-commands'
 import { flattenScreen } from './preview-layers'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, type WidgetSelection, absolutePlacement, absolutePlacements, ancestorsOf, completePlacement, findWidget, moveWidgetInto, parentContainerId, selectionTarget, useDashboardEditorStore } from '../dashboard-editor'
 import { type Draw, type Follower, type Interaction, type InteractionMode, type Marquee, type Pan, type Placement, type PreviewLayer, actionLabel, clampPan, containerAt, containerClipId, intersection, intersects, logicalPoint, marqueeBounds, viewportScale, visibleSlotPage, widgetClipId } from './canvas-geometry'
-import { ArcPreview, BarPreview, GraphPreview, IndicatorPreview } from './gauge-previews'
+import type { PendingInsert } from '../editor/store'
 import { contentArea } from './preview-geometry-paint'
 import { SCREEN_BACKGROUND } from './preview-theme'
 import { createPreviewValues } from './preview-values'
 import { resolveGridSize, useSnapStore } from '../editor/snap-store'
 import { type GapLabel, type SnapField, type SnapGuide, type SnapMode, type SnapPreferences, resolveMove, resolveResize, snapPoint } from './snapping'
 import { createWidget, defaultToolBox } from './widget-creation'
-import { CaptionPreview, ShapePreview, } from './widget-previews'
+import { fitWidgetToDisplay, placeTemplateWidget } from '../editor/insert-template'
+import { WidgetBody } from './WidgetBody'
+import { WidgetLayers } from './WidgetLayers'
 import { useDeviceStore } from '@/features/device/device-store'
 
 /** What the canvas is telling the author while a gesture runs. */
@@ -62,6 +62,8 @@ export function Widgets({
   const setDrillIn = useDashboardEditorStore((state) => state.setDrillIn)
   const activeTool = useDashboardEditorStore((state) => state.activeTool)
   const setActiveTool = useDashboardEditorStore((state) => state.setActiveTool)
+  const pendingInsert = useDashboardEditorStore((state) => state.pendingInsert)
+  const cancelInsert = useDashboardEditorStore((state) => state.cancelInsert)
   const view = useDashboardEditorStore((state) => state.view)
   const locked = useDashboardEditorStore((state) => state.locked)
   const hidden = useDashboardEditorStore((state) => state.hidden)
@@ -354,7 +356,54 @@ export function Widgets({
     return containerAt(layers, placements, box, excluded, locked, hidden)
   }
 
+  // Where the widget waiting to be placed currently sits, tagged with the
+  // insert it belongs to. Undefined until the pointer has been over the display:
+  // a ghost drawn at a guessed position before the author has moved is a ghost
+  // in the wrong place, and carrying the insert is what makes the position from
+  // the *previous* one fail to match rather than linger.
+  const [ghost, setGhost] = useState<{ insert: PendingInsert; x: number; y: number }>()
+  const insertAt = ghost && ghost.insert === pendingInsert ? ghost : undefined
+  const fittedInsert = pendingInsert
+    ? fitWidgetToDisplay(pendingInsert.widget, display)
+    : undefined
+
+  // A press anywhere outside the display gives up on the insert, and so does
+  // Escape. Both are capture-phase, so neither reaches whatever they landed on.
+  useEffect(() => {
+    if (!pendingInsert) return
+    const away = (event: PointerEvent): void => {
+      if (!svgRef.current?.contains(event.target as Node)) cancelInsert()
+    }
+    const key = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      event.stopPropagation()
+      cancelInsert()
+    }
+    window.addEventListener('pointerdown', away, true)
+    window.addEventListener('keydown', key, true)
+    return () => {
+      window.removeEventListener('pointerdown', away, true)
+      window.removeEventListener('keydown', key, true)
+    }
+  }, [pendingInsert, cancelInsert])
+
+  const placePendingInsert = (event: React.PointerEvent<SVGSVGElement>): boolean => {
+    if (!pendingInsert || event.button !== 0) return false
+    const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
+    if (!point) return false
+    const added = placeTemplateWidget(pendingInsert, display, point)
+    cancelInsert()
+    // Selected on landing, so the inspector is already pointed at what was just
+    // placed — the next thing an author does to a fragment is adjust it.
+    if (added) select(added)
+    return true
+  }
+
   const movePointer = (event: React.PointerEvent<SVGSVGElement>): void => {
+    if (pendingInsert) {
+      const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
+      setGhost(point ? { insert: pendingInsert, ...point } : undefined)
+    }
     if (pan && event.pointerId === pan.pointerId) {
       const scale = viewportScale(svgRef.current, display, view.zoom)
       useDashboardEditorStore.getState().setView(
@@ -609,6 +658,9 @@ export function Widgets({
   const beginBackground = (event: React.PointerEvent<SVGSVGElement>): void => {
     // The right button opens the menu; it must not start a gesture on the way.
     if (event.button === 2) return
+    // A widget waiting to be placed owns the next press: no rubber band, no
+    // tool, no selection.
+    if (placePendingInsert(event)) return
     const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
     if (!point) return
     svgRef.current?.setPointerCapture(event.pointerId)
@@ -709,7 +761,11 @@ export function Widgets({
       ref={svgRef}
       aria-label="Dashboard display preview"
       className={`block size-full touch-none select-none ${
-        spaceHeld ? 'cursor-grab' : activeTool === 'select' ? '' : 'cursor-crosshair'
+        spaceHeld
+          ? 'cursor-grab'
+          : activeTool === 'select' && !pendingInsert
+            ? ''
+            : 'cursor-crosshair'
       }`}
       preserveAspectRatio="xMidYMid meet"
       viewBox={`${view.panX} ${view.panY} ${viewWidth} ${viewHeight}`}
@@ -772,10 +828,10 @@ export function Widgets({
         // which is what `clip_children` says. What is deliberately *not*
         // clipped is the hit area: a widget dragged out of a container would
         // otherwise be invisible and unselectable at once, with no way back.
-        const box = completePlacement(layer.configuration.placement)
         // The clip arrives in display coordinates and this group is already
         // translated by the container chain, so it is read back into local
-        // space rather than the transform being undone around it.
+        // space rather than the transform being undone around it. The widget's
+        // own box is clipped inside WidgetBody, which knows it from the widget.
         const clip = layer.clip
           ? {
               ...layer.clip,
@@ -807,7 +863,7 @@ export function Widgets({
             if (!id) return
             // A tool is drawing, and a press over a widget is where the author
             // wants the new one — not a request to pick what is underneath.
-            if (activeTool !== 'select' || spaceHeld || event.button === 1) return
+            if (activeTool !== 'select' || pendingInsert || spaceHeld || event.button === 1) return
             // The object under the pointer is the deepest one; which widget that
             // means is the container rule, not this handler's business.
             const target = selectionTarget(configuration, id, {
@@ -839,31 +895,12 @@ export function Widgets({
               </clipPath>
             ) : null}
             <g clipPath={clip ? `url(#${containerClipId(layerIndex)})` : undefined}>
-            {box ? (
-              <clipPath id={widgetClipId(layerIndex)}>
-                <rect {...box} />
-              </clipPath>
-            ) : null}
-            <g clipPath={box ? `url(#${widgetClipId(layerIndex)})` : undefined}>
-              {layer.configuration.type === 'bar' ? (
-                <BarPreview configuration={layer.configuration} values={values} />
-              ) : layer.configuration.type === 'arc' ? (
-                <ArcPreview configuration={layer.configuration} values={values} />
-              ) : layer.configuration.type === 'indicator' ? (
-                <IndicatorPreview configuration={layer.configuration} values={values} />
-              ) : layer.configuration.type === 'graph' ? (
-                <GraphPreview configuration={layer.configuration} values={values} />
-              ) : layer.configuration.type === 'image' ? (
-                <ImagePreview configuration={layer.configuration} values={values} />
-              ) : layer.configuration.type === 'shape' ? (
-                <ShapePreview configuration={layer.configuration} values={values} />
-              ) : layer.configuration.type === 'slot' ? null : (
-                <TextWidgetPreview configuration={layer.configuration} values={values} />
-              )}
-            </g>
-            {layer.configuration.type === 'slot' ? null : (
-              <CaptionPreview configuration={layer.configuration} behind={screenBackground} />
-            )}
+            <WidgetBody
+              configuration={layer.configuration}
+              values={values}
+              clipId={widgetClipId(layerIndex)}
+              screenBackground={screenBackground}
+            />
             </g>
             {(id && locked[id]) || activeTool !== 'select' ? null : (
               <HitArea placement={completePlacement(layer.configuration.placement)} />
@@ -964,6 +1001,29 @@ export function Widgets({
           display={display}
           zoom={view.zoom}
         />
+      ) : null}
+      {/* What the click will put down, drawn where it will land. Inert, so the
+          press underneath it still reaches the surface. */}
+      {fittedInsert && insertAt ? (
+        <g
+          opacity={0.6}
+          pointerEvents="none"
+          transform={`translate(${Math.round(insertAt.x - fittedInsert.width / 2) - (completePlacement(fittedInsert.widget.placement)?.x ?? 0)} ${Math.round(insertAt.y - fittedInsert.height / 2) - (completePlacement(fittedInsert.widget.placement)?.y ?? 0)})`}
+        >
+          {/* Flattened, so a container being placed shows what is inside it
+              rather than an empty box. */}
+          <WidgetLayers
+            layers={flattenScreen({ widgets: [fittedInsert.widget] }, {})}
+            background={screenBackground}
+          />
+          <rect
+            {...(completePlacement(fittedInsert.widget.placement) ?? { x: 0, y: 0, width: 0, height: 0 })}
+            fill="none"
+            stroke="#38BDF8"
+            strokeDasharray={`${4 / view.zoom} ${3 / view.zoom}`}
+            strokeWidth={1 / view.zoom}
+          />
+        </g>
       ) : null}
       {band && (band.width >= 2 || band.height >= 2) ? (
         <rect

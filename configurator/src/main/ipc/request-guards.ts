@@ -29,6 +29,7 @@ import {
   type TemplateIdRequest,
   type TemplateSaveRequest
 } from '@shared/templates'
+import { SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
 
 // Everything arriving over IPC is untrusted: the renderer is separate code and
 // a handler must not take its word for the shape of a request. These are the
@@ -86,12 +87,21 @@ export function isJsonDocumentRequest(
  */
 export function isTemplateSaveRequest(value: unknown): value is TemplateSaveRequest {
   if (!value || typeof value !== 'object') return false
-  const request = value as Partial<TemplateSaveRequest>
+  const request = value as Partial<TemplateSaveRequest> & { board?: unknown }
+  if (request.kind !== 'dashboard' && request.kind !== 'widget') return false
   if (typeof request.name !== 'string' || request.name.length > MAXIMUM_TEMPLATE_NAME) return false
   if (
     request.description !== undefined &&
     (typeof request.description !== 'string' ||
       request.description.length > MAXIMUM_TEMPLATE_DESCRIPTION)
+  ) {
+    return false
+  }
+  // A widget names the board its pixels were drawn in; the service re-checks it
+  // before the fragment is validated against that board's contract.
+  if (
+    request.kind === 'widget' &&
+    !SIMCORE_BOARD_IDS.includes(request.board as SimCoreBoardId)
   ) {
     return false
   }
@@ -105,7 +115,9 @@ export function isTemplateSaveRequest(value: unknown): value is TemplateSaveRequ
  */
 export function isTemplateIdRequest(value: unknown): value is TemplateIdRequest {
   if (!value || typeof value !== 'object') return false
-  const id = (value as Partial<TemplateIdRequest>).id
+  const request = value as Partial<TemplateIdRequest>
+  if (request.kind !== 'dashboard' && request.kind !== 'widget') return false
+  const id = request.id
   if (typeof id !== 'string' || id.length > 96) return false
   return TEMPLATE_ID_PATTERN.test(id) || id.startsWith(BUNDLED_TEMPLATE_PREFIX)
 }

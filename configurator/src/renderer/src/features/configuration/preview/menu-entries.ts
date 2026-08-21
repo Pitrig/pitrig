@@ -4,6 +4,8 @@ import type { DisplayDescriptor } from '@shared/device'
 import { activeScreen, copyWidget, deleteWidget, duplicateWidget, findWidget, pasteWidget, parentContainerId, restackOrder, restackWidget, unwrapShape, useDashboardEditorStore, wrapInShape } from '../dashboard-editor'
 import type { CanvasTool } from '../editor/store'
 import { useSnapStore } from '../editor/snap-store'
+import { useTemplatesStore } from '@/features/templates/templates-store'
+import { useInsertScreenStore } from '@/features/templates/insert-screen-store'
 import { createWidget, defaultToolBox } from './widget-creation'
 import { useDeviceStore } from '@/features/device/device-store'
 import { withEditGroup } from '@/features/device/edit-group'
@@ -163,6 +165,7 @@ export function screenMenuEntries(
 ): MenuEntry[] {
   const editor = useDashboardEditorStore.getState()
   const snap = useSnapStore.getState()
+  const widgets = useTemplatesStore.getState().library?.widgets ?? []
   const point = at ?? { x: display.width / 2, y: display.height / 2 }
   return [
     {
@@ -179,6 +182,30 @@ export function screenMenuEntries(
         }
       }))
     },
+    // From the library rather than from the clipboard. A widget goes through
+    // the same placement the Templates page starts — the canvas follows the
+    // pointer with it — so this is a shortcut to the entry, not a second way of
+    // putting one down.
+    {
+      kind: 'submenu',
+      label: 'Insert widget',
+      items:
+        widgets.length > 0
+          ? widgets.map((entry) => ({
+              kind: 'item' as const,
+              label: entry.name,
+              hint: `${entry.width} × ${entry.height}`,
+              run: () => editor.beginInsert({ widget: entry.widget, label: entry.name })
+            }))
+          : [{ kind: 'item' as const, label: 'The widget library is empty', disabled: true, run: () => {} }]
+    },
+    {
+      kind: 'item',
+      label: 'Insert screen…',
+      hint: 'from a saved dashboard',
+      run: () => useInsertScreenStore.getState().openPicker()
+    },
+    { kind: 'separator' },
     {
       kind: 'item',
       label: 'Paste',

@@ -611,6 +611,39 @@ board's font package on the Fonts page, erasing its images on Images, resetting
 the configuration on Configs, restarting the board on Configs and Firmware.
 Info states what the board and the application are and changes nothing.
 
+The template library holds two kinds of thing, on the same card. A **dashboard**
+is a whole document — every screen and everything on them — and it offers two
+things: `Add` takes screens out of it, one or all of them, and appends them to
+the dashboard already open without touching it; `Use` replaces that dashboard
+entirely, and says so before it does. Both scale to the board in hand on the way
+in. A **widget** is one widget lifted out of a dashboard for reuse inside
+another, and offers `Add` alone; a container brings its whole subtree, which is
+how a rev-counter with its shift lights becomes one entry. Neither is saved
+from the library page: saving is an act on what is on the canvas, so
+`Save to templates` sits beside `Save to board` and takes the selected widget
+when there is one and the whole dashboard when there is not.
+
+Both kinds of card are the same card: a preview taking half of it, a name, a
+line of counts, and what can be done with it. Only a dashboard names the board
+it was drawn for, because only a dashboard is bound to one — a widget is placed
+onto whatever is open and scaled if it has to be. They draw what they hold
+with the renderers the canvas uses, so an entry looks in the library as it will
+look once it is on a board. A dashboard with more than one screen is a gallery —
+dragged sideways, stepped with the arrows, counted by the dots — and its document
+is read the first time a card needs it rather than shipped with the listing. The
+save dialog shows the same preview, because what it is about to make is one of
+those cards.
+
+Placing a widget entry is a mode rather than a drop. `Add` hands the fragment to
+the canvas, which follows the pointer with the widget drawn as itself until a
+click puts it down — centred on the pointer, selected on landing. `Escape` or a
+press outside the display gives up. The saved box is kept: a gauge saved at
+180 × 180 is worth that here too, and it is scaled only when it would not
+otherwise fit, by the smallest factor that makes it, through the engine a board
+transfer uses. The canvas menu offers the same entries, and one more: a screen
+taken out of a saved dashboard, added at the end rather than replacing the one
+being worked on.
+
 The canvas names the board it is drawing, at the right of the status bar under
 it, in place of the resolution that row used to print — the board is that
 resolution, so the two were the same fact written twice. A connected board

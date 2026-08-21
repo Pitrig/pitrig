@@ -182,7 +182,7 @@ export function registerIpcHandlers(
   ipcMain.handle(TEMPLATE_LIST_CHANNEL, () => templateService.list())
   ipcMain.handle(TEMPLATE_READ_CHANNEL, (_event, request: unknown) => {
     if (!isTemplateIdRequest(request)) return invalidTemplateRequest()
-    return templateService.read(request.id)
+    return templateService.read(request.id, request.kind)
   })
   ipcMain.handle(TEMPLATE_SAVE_CHANNEL, (_event, request: unknown) => {
     if (!isTemplateSaveRequest(request)) return invalidTemplateRequest()
@@ -190,7 +190,7 @@ export function registerIpcHandlers(
   })
   ipcMain.handle(TEMPLATE_DELETE_CHANNEL, (_event, request: unknown) => {
     if (!isTemplateIdRequest(request)) return invalidTemplateRequest()
-    return templateService.remove(request.id)
+    return templateService.remove(request.id, request.kind)
   })
   ipcMain.handle(DEVICE_LIST_PORTS_CHANNEL, () => deviceService.listPorts())
   ipcMain.handle(DEVICE_GET_STATE_CHANNEL, () => deviceService.getState())

@@ -1,97 +1,186 @@
-import { LayoutTemplate } from 'lucide-react'
+import { LayoutTemplate, Plus, Shapes, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
+import { useWorkspaceStore } from '@/app/workspace/workspace-store'
 import { transferReportLines } from '@/features/configuration/transfer-report'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
-import { draftText, useDeviceStore } from '@/features/device/device-store'
+import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
+import { useDeviceStore } from '@/features/device/device-store'
 import {
   collectFontRequirements,
   missingFontFamilies
 } from '@/features/font-library/font-requirements'
+import { useFontFaceStore } from '@/features/font-library/font-face-store'
+import { documentFonts } from '@shared/document-fonts'
 import { withWidgetIds } from '@shared/configuration-access'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
 import {
   applyBoardTransportDefaults,
-  BOARD_PROFILES,
   SIMCORE_BOARD_IDS,
   type DeviceConfiguration
 } from '@shared/device'
+import { transferConfiguration, type LayoutTransferResult } from '@shared/layout-transfer'
 import { displaySize } from '@/features/configuration/board-labels'
-import {
-  transferConfiguration,
-  type LayoutFit,
-  type LayoutTransferResult
-} from '@shared/layout-transfer'
-import {
-  MAXIMUM_TEMPLATE_DESCRIPTION,
-  MAXIMUM_TEMPLATE_NAME,
-  templateIdFor,
-  type DashboardTemplateSummary
-} from '@shared/templates'
-import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
-import { useTemplatesStore } from './templates-store'
+import type { DashboardTemplateSummary, WidgetTemplateSummary } from '@shared/templates'
+import { DashboardThumbnail } from './DashboardThumbnail'
+import { TemplateCard } from './TemplateCard'
+import { useInsertScreenStore } from './insert-screen-store'
+import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
+import { WidgetThumbnail } from './WidgetThumbnail'
 
-// Whole dashboards to start from: the starters that ship with the application
-// and whatever the author has saved. A template authored for another board is
-// not refused — it is scaled to the board in hand on the way in, by the same
-// engine the Configs page's Convert uses.
-
+/**
+ * The library, in two halves.
+ *
+ * A **dashboard** answers "what am I starting from" — it replaces the whole
+ * draft, and one authored for another display is scaled to the board in hand on
+ * the way in, by the same engine the Configs page's Convert uses. A **widget**
+ * answers "what am I building with" — it is placed onto the dashboard already
+ * open, and changes nothing else about it.
+ *
+ * Neither is saved from here any more: saving is an act on what is on the
+ * canvas, so it lives beside Save to board where the canvas is.
+ */
 export function TemplatesPage(): React.JSX.Element {
-  const session = useDeviceStore((state) => state.session)
-  const draft = useDeviceStore((state) => state.draft)
-  const rawDraft = useDeviceStore((state) => state.rawDraft)
-  const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
-  const replaceLocalDraft = useDeviceStore((state) => state.replaceLocalDraft)
-  const resetEditorState = useDashboardEditorStore((state) => state.resetEditorState)
-
   const library = useTemplatesStore((state) => state.library)
   const loading = useTemplatesStore((state) => state.loading)
   const error = useTemplatesStore((state) => state.error)
   const setError = useTemplatesStore((state) => state.setError)
   const refresh = useTemplatesStore((state) => state.refresh)
-
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string>()
-  const [report, setReport] = useState<LayoutTransferResult>()
-  const [missing, setMissing] = useState<readonly string[]>([])
-  const fit = useEditorPanelStore((state) => state.transferFit)
-  const setFit = useEditorPanelStore((state) => state.setTransferFit)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
 
   useEffect(() => {
     void refresh()
   }, [refresh])
 
-  const templates = library?.templates ?? []
-  // The board a template is about to land on. Only when one was authored for a
-  // different display does the fit matter, so that is when it is offered.
-  const targetBoard = session?.info.boardId ?? draft?.board
-  const anyRescaled = templates.some((entry) => entry.board !== targetBoard)
+  // Every card draws itself, so the faces the library names have to be loaded —
+  // the canvas only ever asks for the ones the open document uses. Both halves
+  // count: the widget entries, which arrive with the listing, and whichever
+  // dashboards have been read for their preview.
+  const ensureFaces = useFontFaceStore((state) => state.ensureFaces)
+  const documents = useTemplatesStore((state) => state.documents)
+  const entryFamilies = [
+    ...(library?.widgets ?? []).map(
+      (entry) =>
+        ({ dashboard: { screens: [{ widgets: [entry.widget] }] } }) as DeviceConfiguration
+    ),
+    ...Object.values(documents).filter(
+      (document): document is DeviceConfiguration => typeof document === 'object'
+    )
+  ]
+    .flatMap((document) => documentFonts(document))
+    .map((font) => font?.family)
+    .filter((family): family is string => Boolean(family))
+  const familyKey = [...new Set(entryFamilies)].sort().join(' ')
+  useEffect(() => {
+    void ensureFaces(familyKey ? familyKey.split(' ') : [])
+  }, [ensureFaces, familyKey])
 
-  const begin = (): void => {
+  const remove = async (
+    entry: DashboardTemplateSummary | WidgetTemplateSummary
+  ): Promise<void> => {
+    if (!window.confirm(`Delete the saved ${entry.kind} "${entry.name}"?`)) return
+    setBusy(true)
     setError(undefined)
     setNotice(undefined)
-    setReport(undefined)
-    setMissing([])
+    try {
+      const result = await window.simcore.deleteTemplate({ id: entry.id, kind: entry.kind })
+      if (!result.ok) {
+        setError(result.error.message)
+        return
+      }
+      setNotice(`"${entry.name}" deleted.`)
+      await refresh()
+    } finally {
+      setBusy(false)
+    }
   }
 
-  const apply = async (summary: DashboardTemplateSummary): Promise<void> => {
+  return (
+    <PageShell>
+      <DashboardSection
+        busy={busy}
+        setBusy={setBusy}
+        onNotice={setNotice}
+        onDelete={(entry) => void remove(entry)}
+      />
+      <WidgetSection busy={busy} onDelete={(entry) => void remove(entry)} />
+
+      {loading && !library ? (
+        <p className="text-xs text-muted-foreground">Reading the library…</p>
+      ) : null}
+      {library && library.unreadable > 0 ? (
+        <p className="text-[11px] text-amber-400">
+          {`${library.unreadable} file${library.unreadable === 1 ? '' : 's'} in the template folder could not be read.`}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="rounded-md border border-red-500/30 bg-red-500/10 p-2 text-xs text-red-300">
+          {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-xs text-emerald-300">
+          {notice}
+        </p>
+      ) : null}
+    </PageShell>
+  )
+}
+
+function DashboardSection({
+  busy,
+  setBusy,
+  onNotice,
+  onDelete
+}: {
+  busy: boolean
+  setBusy: (busy: boolean) => void
+  onNotice: (notice: string) => void
+  onDelete: (entry: DashboardTemplateSummary) => void
+}): React.JSX.Element {
+  const session = useDeviceStore((state) => state.session)
+  const draft = useDeviceStore((state) => state.draft)
+  const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
+  const replaceLocalDraft = useDeviceStore((state) => state.replaceLocalDraft)
+  const resetEditorState = useDashboardEditorStore((state) => state.resetEditorState)
+  const setError = useTemplatesStore((state) => state.setError)
+  const templates = useTemplatesStore((state) => state.library ?? NO_TEMPLATES).dashboards
+  const fit = useEditorPanelStore((state) => state.transferFit)
+  const openPicker = useInsertScreenStore((state) => state.openPicker)
+  const [report, setReport] = useState<LayoutTransferResult>()
+  const [missing, setMissing] = useState<readonly string[]>([])
+
+  const targetBoard = session?.info.boardId ?? draft?.board
+
+  // `Use` is the destructive one, and the only one: it replaces every screen
+  // and everything on them. `Add` takes screens without touching what is open,
+  // which is why the two are separate buttons rather than one that behaves
+  // differently depending on what you already have.
+  const use = async (summary: DashboardTemplateSummary): Promise<void> => {
     if (
       hasLocalDraft &&
-      !window.confirm(`Discard the current local draft and apply "${summary.name}"?`)
+      !window.confirm(
+        `Replace everything you have open with "${summary.name}"? Every screen and every widget in the current draft is discarded.`
+      )
     ) {
       return
     }
     setBusy(true)
-    begin()
+    setError(undefined)
+    setReport(undefined)
+    setMissing([])
     try {
-      const result = await window.simcore.readDashboardTemplate({ id: summary.id })
+      const result = await window.simcore.readTemplate({ id: summary.id, kind: 'dashboard' })
       if (!result.ok) {
         setError(result.error.message)
+        return
+      }
+      if (result.value.format !== 'simcore-dashboard-template') {
+        setError('That entry is not a dashboard.')
         return
       }
       // The connected board first, then whatever the draft already targets —
@@ -127,7 +216,7 @@ export function TemplatesPage(): React.JSX.Element {
           session?.fontAssets?.families ?? []
         )
       )
-      setNotice(`"${summary.name}" applied as the local draft.`)
+      onNotice(`"${summary.name}" is now the local draft.`)
     } catch (bridgeError) {
       setError(bridgeError instanceof Error ? bridgeError.message : 'Failed to apply the template.')
     } finally {
@@ -135,251 +224,193 @@ export function TemplatesPage(): React.JSX.Element {
     }
   }
 
-  const save = async (): Promise<void> => {
-    const trimmed = name.trim()
-    const id = templateIdFor(trimmed)
-    const replaced = templates.find((entry) => entry.origin === 'user' && entry.id === id)
-    if (replaced && !window.confirm(`Replace the saved template "${replaced.name}"?`)) return
-    setBusy(true)
-    begin()
-    try {
-      const result = await window.simcore.saveDashboardTemplate({
-        name: trimmed,
-        ...(description.trim() ? { description: description.trim() } : {}),
-        json: draftText({ rawDraft, draft })
-      })
-      if (!result.ok) {
-        setError(result.error.message)
-        return
-      }
-      setName('')
-      setDescription('')
-      setNotice(`Saved as "${result.value.name}".`)
-      await refresh()
-    } catch (bridgeError) {
-      setError(bridgeError instanceof Error ? bridgeError.message : 'Failed to save the template.')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const remove = async (summary: DashboardTemplateSummary): Promise<void> => {
-    if (!window.confirm(`Delete the saved template "${summary.name}"?`)) return
-    setBusy(true)
-    begin()
-    try {
-      const result = await window.simcore.deleteDashboardTemplate({ id: summary.id })
-      if (!result.ok) {
-        setError(result.error.message)
-        return
-      }
-      setNotice(`"${summary.name}" deleted.`)
-      await refresh()
-    } catch (bridgeError) {
-      setError(
-        bridgeError instanceof Error ? bridgeError.message : 'Failed to delete the template.'
-      )
-    } finally {
-      setBusy(false)
-    }
-  }
-
   return (
-    <PageShell
-      title="Templates"
-      description="Whole dashboards to start from. One authored for another board is scaled to fit this one."
-      actions={
-        anyRescaled ? (
-          <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span>Fit</span>
-            <select
-              className="h-8 rounded-md border bg-background px-2 text-xs text-foreground"
-              disabled={busy}
-              value={fit}
-              onChange={(event) => setFit(event.target.value as LayoutFit)}
-            >
-              <option value="contain">Keep proportions, centre</option>
-              <option value="stretch">Stretch to fill the display</option>
-            </select>
-          </label>
-        ) : null
+    <PageSection
+      title="Dashboards"
+      description={
+        targetBoard
+          ? `Whole layouts, scaled to ${displaySize(targetBoard) ?? targetBoard} on the way in. Add takes screens from one; Use replaces what you have open.`
+          : 'Whole layouts. Add takes screens from one; Use replaces what you have open.'
       }
     >
-      <PageSection
-        title="Library"
-        description={
-          targetBoard
-            ? `Applying replaces the draft, scaled to ${displaySize(targetBoard) ?? targetBoard}.`
-            : 'Applying replaces the current draft.'
-        }
-      >
-        {loading && templates.length === 0 ? (
-          <p className="text-muted-foreground">Reading the library…</p>
-        ) : templates.length === 0 ? (
-          <EmptyState
-            icon={<LayoutTemplate aria-hidden="true" className="size-6" />}
-            title="No templates"
-          >
-            Save the dashboard you are working on below, and it will be here next time.
-          </EmptyState>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {templates.map((summary) => (
-              <TemplateCard
-                key={summary.id}
-                busy={busy}
-                summary={summary}
-                onApply={() => void apply(summary)}
-                onDelete={() => void remove(summary)}
-              />
+      {templates.length === 0 ? (
+        <EmptyState
+          icon={<LayoutTemplate aria-hidden="true" className="size-6" />}
+          title="No dashboards"
+        >
+          Save the dashboard you are working on with <b>Save to templates</b> on the canvas, and it
+          will be here next time.
+        </EmptyState>
+      ) : (
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {templates.map((summary) => (
+            <TemplateCard
+              key={summary.id}
+              name={summary.name}
+              description={summary.description}
+              meta={`${summary.screenCount} screen${summary.screenCount === 1 ? '' : 's'} · ${summary.widgetCount} widget${summary.widgetCount === 1 ? '' : 's'}`}
+              preview={<DashboardThumbnail id={summary.id} board={summary.board} />}
+              badges={
+                <>
+                  {summary.origin === 'bundled' ? (
+                    <Badge
+                      className="flex-none border-zinc-500/40 bg-zinc-500/15 text-zinc-300"
+                      variant="outline"
+                    >
+                      Starter
+                    </Badge>
+                  ) : null}
+                  <Badge className="flex-none" variant="outline" title={summary.board}>
+                    {displaySize(summary.board) ?? summary.board}
+                  </Badge>
+                </>
+              }
+              actions={
+                <>
+                  <Button
+                    className="h-7 px-2"
+                    variant="outline"
+                    disabled={busy || !hasLocalDraft}
+                    title={
+                      hasLocalDraft
+                        ? 'Add screens from this template to the dashboard you have open'
+                        : 'Open a dashboard first — there is nothing to add screens to'
+                    }
+                    onClick={() => openPicker(summary)}
+                  >
+                    <Plus aria-hidden="true" className="mr-1 size-3.5" />
+                    Add
+                  </Button>
+                  <Button
+                    className="h-7 px-2"
+                    variant="outline"
+                    disabled={busy}
+                    title="Replace everything you have open with this template"
+                    onClick={() => void use(summary)}
+                  >
+                    Use
+                  </Button>
+                  {summary.origin === 'user' ? (
+                    <Button
+                      aria-label={`Delete ${summary.name}`}
+                      className="h-7 px-2 text-red-400 hover:text-red-300"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => onDelete(summary)}
+                    >
+                      <Trash2 aria-hidden="true" className="size-3.5" />
+                    </Button>
+                  ) : null}
+                </>
+              }
+            />
+          ))}
+        </ul>
+      )}
+
+      {missing.length > 0 ? (
+        <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-amber-300">
+          {`Needs font famil${missing.length === 1 ? 'y' : 'ies'} not installed on the board: ${missing.join(', ')}. Choose a source on the Fonts page; saving to the board uploads them.`}
+        </p>
+      ) : null}
+      {report ? (
+        <div className="mt-3 space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
+          <div className="flex items-start justify-between gap-2">
+            <span className="font-medium">Layout transfer</span>
+            <button
+              className="text-sky-300/70 hover:text-sky-200"
+              type="button"
+              onClick={() => setReport(undefined)}
+            >
+              Dismiss
+            </button>
+          </div>
+          <ul className="list-disc space-y-0.5 pl-4">
+            {transferReportLines(report).map((line) => (
+              <li key={line}>{line}</li>
             ))}
-          </div>
-        )}
-
-        {library && library.unreadable > 0 ? (
-          <p className="mt-2 text-[11px] text-amber-400">
-            {`${library.unreadable} file${library.unreadable === 1 ? '' : 's'} in the template folder could not be read.`}
-          </p>
-        ) : null}
-
-        {error ? (
-          <p className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 p-2 text-red-300">
-            {error}
-          </p>
-        ) : null}
-        {notice ? (
-          <p className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-300">
-            {notice}
-          </p>
-        ) : null}
-        {missing.length > 0 ? (
-          <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-amber-300">
-            {`Needs font famil${missing.length === 1 ? 'y' : 'ies'} not installed on the board: ${missing.join(', ')}. Choose a source on the Fonts page; saving to the board uploads them.`}
-          </p>
-        ) : null}
-        {report ? (
-          <div className="mt-3 space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
-            <div className="flex items-start justify-between gap-2">
-              <span className="font-medium">Layout transfer</span>
-              <button
-                className="text-sky-300/70 hover:text-sky-200"
-                type="button"
-                onClick={() => setReport(undefined)}
-              >
-                Dismiss
-              </button>
-            </div>
-            <ul className="list-disc space-y-0.5 pl-4">
-              {transferReportLines(report).map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </PageSection>
-
-      <PageSection
-        title="Save the current dashboard"
-        description="A template is the whole document plus a name, so it can be applied to any board."
-      >
-        <div className="space-y-2">
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="block space-y-1 text-[11px] text-muted-foreground">
-              <span>Name</span>
-              <input
-                className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
-                disabled={busy || !hasLocalDraft}
-                maxLength={MAXIMUM_TEMPLATE_NAME}
-                placeholder="Endurance layout"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-            <label className="block space-y-1 text-[11px] text-muted-foreground">
-              <span>Description (optional)</span>
-              <input
-                className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
-                disabled={busy || !hasLocalDraft}
-                maxLength={MAXIMUM_TEMPLATE_DESCRIPTION}
-                placeholder="Fuel and tyre readouts for long runs"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </label>
-          </div>
-          <Button
-            variant="outline"
-            disabled={busy || !hasLocalDraft || templateIdFor(name.trim()) === undefined}
-            onClick={() => void save()}
-          >
-            Save template
-          </Button>
-          {!hasLocalDraft ? (
-            <p className="text-[11px] text-muted-foreground">
-              Create, open or read a configuration first.
-            </p>
-          ) : null}
+          </ul>
         </div>
-      </PageSection>
-    </PageShell>
+      ) : null}
+    </PageSection>
   )
 }
 
-function TemplateCard({
-  summary,
+/**
+ * Parts of dashboards, for reuse inside one.
+ *
+ * Pressing Add does not drop the widget somewhere and leave the author to find
+ * it: it hands the fragment to the canvas, which then follows the pointer with
+ * it until a click says where it goes.
+ */
+function WidgetSection({
   busy,
-  onApply,
   onDelete
 }: {
-  summary: DashboardTemplateSummary
   busy: boolean
-  onApply: () => void
-  onDelete: () => void
+  onDelete: (entry: WidgetTemplateSummary) => void
 }): React.JSX.Element {
-  const display = BOARD_PROFILES[summary.board].display
+  const widgets = useTemplatesStore((state) => state.library ?? NO_TEMPLATES).widgets
+  const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
+  const beginInsert = useDashboardEditorStore((state) => state.beginInsert)
+  const setDashboardView = useWorkspaceStore((state) => state.setDashboardView)
+
+  const add = (entry: WidgetTemplateSummary): void => {
+    beginInsert({ widget: entry.widget, label: entry.name })
+    setDashboardView('canvas')
+  }
+
   return (
-    <div className="flex flex-col gap-1.5 rounded-md border p-2.5">
-      <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 truncate font-medium" title={summary.name}>
-          {summary.name}
-        </span>
-        <div className="flex flex-none items-center gap-1">
-          {summary.origin === 'bundled' ? (
-            <Badge className="border-zinc-500/40 bg-zinc-500/15 text-zinc-300" variant="outline">
-              Starter
-            </Badge>
-          ) : null}
-          <Badge variant="outline" title={summary.board}>
-            {`${display.width} × ${display.height}`}
-          </Badge>
-        </div>
-      </div>
-      {summary.description ? (
-        <p className="line-clamp-2 text-[11px] text-muted-foreground" title={summary.description}>
-          {summary.description}
-        </p>
-      ) : null}
-      <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-        <span className="text-[11px] text-muted-foreground">
-          {`${summary.screenCount} screen${summary.screenCount === 1 ? '' : 's'} · ${summary.widgetCount} widget${summary.widgetCount === 1 ? '' : 's'}`}
-        </span>
-        <div className="flex flex-none gap-1">
-          {summary.origin === 'user' ? (
-            <Button
-              className="h-7 px-2 text-red-400 hover:text-red-300"
-              variant="outline"
-              disabled={busy}
-              onClick={onDelete}
-            >
-              Delete
-            </Button>
-          ) : null}
-          <Button className="h-7 px-2" variant="outline" disabled={busy} onClick={onApply}>
-            Apply
-          </Button>
-        </div>
-      </div>
-    </div>
+    <PageSection
+      title="Widgets"
+      description="Parts of a dashboard kept for reuse. A container brings everything inside it."
+    >
+      {widgets.length === 0 ? (
+        <EmptyState icon={<Shapes aria-hidden="true" className="size-6" />} title="No widgets">
+          Select a widget on the canvas and press <b>Save to templates</b>. A container saves its
+          whole cluster, which is how a rev-counter with its lights becomes one entry.
+        </EmptyState>
+      ) : (
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {widgets.map((entry) => (
+            <TemplateCard
+              key={entry.id}
+              name={entry.name}
+              description={entry.description}
+              meta={`${entry.width} × ${entry.height}${entry.widgetCount > 1 ? ` · ${entry.widgetCount} widgets` : ''}`}
+              preview={<WidgetThumbnail widget={entry.widget} className="size-full" />}
+              actions={
+                <>
+                  <Button
+                    className="h-7 px-2"
+                    variant="outline"
+                    disabled={busy || !hasLocalDraft}
+                    title={
+                      hasLocalDraft
+                        ? 'Place this on the canvas'
+                        : 'Open a dashboard first — there is nothing to place it on'
+                    }
+                    onClick={() => add(entry)}
+                  >
+                    <Plus aria-hidden="true" className="mr-1 size-3.5" />
+                    Add
+                  </Button>
+                  <Button
+                    aria-label={`Delete ${entry.name}`}
+                    className="h-7 px-2 text-red-400 hover:text-red-300"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => onDelete(entry)}
+                  >
+                    <Trash2 aria-hidden="true" className="size-3.5" />
+                  </Button>
+                </>
+              }
+            />
+          ))}
+        </ul>
+      )}
+    </PageSection>
   )
 }
 

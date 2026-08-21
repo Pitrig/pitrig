@@ -15,6 +15,8 @@ import { LiveApplyIndicator } from '@/features/device/LiveApplyIndicator'
 import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
 import { FontsPage } from '@/features/font-library/FontsPage'
 import { ImagesPage } from '@/features/image-assets/ImagesPage'
+import { InsertScreenDialog } from '@/features/templates/InsertScreenDialog'
+import { SaveToTemplatesButton } from '@/features/templates/SaveToTemplates'
 import { TemplatesPage } from '@/features/templates/TemplatesPage'
 
 /**
@@ -65,6 +67,10 @@ export function DashboardWorkspace(): React.JSX.Element {
                 Modified
               </Badge>
             ) : null}
+            {/* Only on the canvas: the other pages have no selection to read,
+                and a button whose meaning changes with the page is worse than a
+                button that is not there. */}
+            {view === 'canvas' ? <SaveToTemplatesButton /> : null}
             <SaveToBoardButton />
           </>
         }
@@ -78,6 +84,9 @@ export function DashboardWorkspace(): React.JSX.Element {
       ) : (
         <ImagesPage />
       )}
+      {/* Mounted for the workspace rather than for the canvas: the picker is
+          opened from the canvas menu and outlives the click that opened it. */}
+      <InsertScreenDialog />
     </div>
   )
 }

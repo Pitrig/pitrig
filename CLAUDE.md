@@ -325,10 +325,23 @@ fills the display) as the author picks, plus a report of what did not carry (ima
 all, which the device never rescales). Every entry point goes through `convertDraftToBoard` in
 `configuration-actions.ts` — the Configs page's "Convert draft to <board>", the canvas board picker,
 and applying a template authored elsewhere — and the fit is one persisted preference in
-`panel-store.ts` rather than three copies of local state. Which board is being authored for while
+`panel-store.ts` rather than three copies of local state.
+
+The template library holds two kinds, in two folders: dashboards (a whole document) and widgets (one
+widget, in `templates/widgets/`, so the two cannot collide on a name). Both kinds share one `TemplateCard`; a dashboard's `Add`
+appends screens through `insert-screen.ts` and only `Use` replaces the draft. A widget entry carries
+the fragment in its *summary* rather than being read per row, because the row draws it and `Add` hands
+the same bytes to the canvas; a dashboard's document is still read on demand and cached in
+`templates-store`, because a card draws it too and four configurations in one listing would be four
+copies for nothing. Placing one is a mode on the canvas — `pendingInsert` in the editor
+store, a ghost following the pointer, `insert-template.ts` scaling it only when it would not
+otherwise fit — and it is the only thing that re-ids a whole subtree (`freshWidgetIds`), because two
+widgets claiming one id would break the layer list, the selection and `goto_screen` at once. Which board is being authored for while
 nothing is plugged in lives in the device store (`offlineBoard`), because the canvas and the Configs
-page both offer that choice. A template is a whole document inside an envelope, because the
-configuration itself may hold no property the contract does not declare. See
+page both offer that choice. A template is its payload inside an envelope, because the
+configuration itself may hold no property the contract does not declare — and a widget fragment is
+validated inside the smallest document that can carry it, the same trick the editor's clipboard uses
+on a paste. See
 [docs/adr/0023-dashboard-templates-and-layout-transfer.md](docs/adr/0023-dashboard-templates-and-layout-transfer.md).
 
 Inside `features/configuration/`, the editor is split three ways and each part has its own
