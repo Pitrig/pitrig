@@ -33,26 +33,30 @@ const COLLAPSED_WIDTH = '3.5rem'
 const EXPANDED_WIDTH = '11.25rem'
 
 interface RailEntry {
-  tab: WorkspaceTab
   label: string
   icon: LucideIcon
   hint: string
 }
 
-const ENTRIES: RailEntry[] = [
-  {
-    tab: 'dashboard',
+/**
+ * What each workspace looks like in the rail. Keyed rather than listed, so the
+ * compiler answers for coverage — a workspace added to `WORKSPACE_TABS` with no
+ * entry here fails to build rather than rendering a gap — and so the order
+ * lives in exactly one place.
+ */
+const ENTRIES: Record<WorkspaceTab, RailEntry> = {
+  dashboard: {
     label: 'Dashboard',
     icon: LayoutDashboard,
     hint: 'Draw the dashboard, and the fonts, images and templates it is made of'
   },
-  { tab: 'info', label: 'Info', icon: Info, hint: 'What the connected board is' },
-  { tab: 'protocol', label: 'Protocol', icon: Cable, hint: 'Telemetry link and SimHub' },
-  { tab: 'configs', label: 'Configs', icon: Files, hint: 'Files, saved configurations and JSON' },
-  { tab: 'modules', label: 'Modules', icon: Puzzle, hint: 'Buttons, encoders and LEDs' },
-  { tab: 'firmware', label: 'Firmware', icon: Cpu, hint: 'Install a firmware image over serial' },
-  { tab: 'debug', label: 'Debug', icon: Terminal, hint: 'Serial traffic and control commands' }
-]
+  modules: { label: 'Modules', icon: Puzzle, hint: 'Buttons, encoders and LEDs' },
+  protocol: { label: 'Protocol', icon: Cable, hint: 'Telemetry link and SimHub' },
+  configs: { label: 'Configs', icon: Files, hint: 'Files, saved configurations and JSON' },
+  firmware: { label: 'Firmware', icon: Cpu, hint: 'Install a firmware image over serial' },
+  info: { label: 'Info', icon: Info, hint: 'What the connected board is' },
+  debug: { label: 'Debug', icon: Terminal, hint: 'Serial traffic and control commands' }
+}
 
 export function WorkspaceRail(): React.JSX.Element {
   const tab = useWorkspaceStore((state) => state.tab)
@@ -77,9 +81,9 @@ export function WorkspaceRail(): React.JSX.Element {
   }, [setTab])
 
   const firmwarePending = Boolean(session?.firmware?.rebootRequired || session?.firmware?.pendingVerify)
-  const dotFor = (entry: RailEntry): string | undefined => {
-    if (entry.tab === 'firmware' && firmwarePending) return 'bg-amber-400'
-    if ((entry.tab === 'dashboard' || entry.tab === 'configs') && dirty) return 'bg-sky-400'
+  const dotFor = (candidate: WorkspaceTab): string | undefined => {
+    if (candidate === 'firmware' && firmwarePending) return 'bg-amber-400'
+    if ((candidate === 'dashboard' || candidate === 'configs') && dirty) return 'bg-sky-400'
     return undefined
   }
 
@@ -102,12 +106,13 @@ export function WorkspaceRail(): React.JSX.Element {
       </button>
 
       <div className="mt-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
-        {ENTRIES.map((entry) => {
-          const active = entry.tab === tab
-          const dot = dotFor(entry)
+        {WORKSPACE_TABS.map((candidate) => {
+          const entry = ENTRIES[candidate]
+          const active = candidate === tab
+          const dot = dotFor(candidate)
           return (
             <button
-              key={entry.tab}
+              key={candidate}
               type="button"
               aria-current={active ? 'page' : undefined}
               title={expanded ? entry.hint : `${entry.label} — ${entry.hint}`}
@@ -117,7 +122,7 @@ export function WorkspaceRail(): React.JSX.Element {
                   ? 'bg-muted text-foreground'
                   : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               )}
-              onClick={() => useWorkspaceStore.getState().setTab(entry.tab)}
+              onClick={() => setTab(candidate)}
             >
               {/* The accent bar rather than a colour swap: it survives the
                   collapsed rail, where a label is not there to carry it. */}

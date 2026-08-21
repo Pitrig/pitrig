@@ -466,8 +466,8 @@ The desktop configurator is the primary authoring and device-management tool.
 Project JSON and the public device payload are sparse: omitted components stay
 absent instead of being expanded through board profiles.
 
-Its window is a rail of workspaces — Dashboard, Info, Protocol, Configs,
-Modules, Firmware, Debug — over one page at a time, with the serial connection
+Its window is a rail of workspaces — Dashboard, Modules, Protocol, Configs,
+Firmware, Info, Debug — over one page at a time, with the serial connection
 above all of them. Dashboard carries the canvas and the three libraries it draws
 from; Configs carries everything that replaces the whole document; Modules is
 the reserved place for peripherals, which have no production contract yet. See

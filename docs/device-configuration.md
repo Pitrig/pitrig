@@ -67,8 +67,8 @@ profile.
 The configurator can create, load, save, and edit this JSON without a connected
 device. The root `board` selects the local immutable board profile used for
 display dimensions and preview. A local draft remains available after a
-disconnect and is not replaced when another device connects. **Reload board**
-is the explicit operation that discards the local draft in favor of the
+disconnect and is not replaced when another device connects. **Load config from
+board** is the explicit operation that discards the local draft in favor of the
 connected device configuration. **Save to board** requires the draft and
 connected device to have the same board identifier.
 
@@ -605,8 +605,9 @@ replaces the near colour while the authored gradient stays.
 ## Authoring in the configurator
 
 The window is a rail of workspaces on the left and one page beside it:
-**Dashboard**, **Info**, **Protocol**, **Configs**, **Modules**, **Firmware**
-and **Debug**, reachable with `Cmd`/`Ctrl` and a digit. The rail collapses to
+**Dashboard**, **Modules**, **Protocol**, **Configs**, **Firmware**, **Info**
+and **Debug**, reachable with `Cmd`/`Ctrl` and a digit — ordered from what an
+author works in to what only reports back. The rail collapses to
 icons, and marks a draft that differs from the board and a firmware image the
 board has installed but not started.
 
@@ -615,6 +616,16 @@ Dashboard is the workspace with pages of its own — **Canvas**, **Templates**,
 dashboard is made of. `Save to board` sits above them and applies to the
 document rather than to whichever page is open, and the canvas keyboard
 commands are live only while the canvas is.
+
+The **Transport** section is last on the Protocol page, and folded closed. It
+is the only setting in the application that decides whether the configurator can
+reach the board at all — a speed a USB-serial bridge cannot hold leaves a board
+that answers nothing — so its controls arrive disabled behind a warning that
+says what can go wrong and how to get back, and a tick unlocks them for that
+visit only. Two acts to reach it, in other words, and neither of them
+accidental. The pin pair is the exception it names: firmware checks it against
+the board's own and refuses a document that names another, so a wrong number
+there costs a refused save rather than a dark board.
 
 Each destructive device action lives beside what it affects: erasing the
 board's font package on the Fonts page, erasing its images on Images, resetting
@@ -771,7 +782,12 @@ the board does not already hold those exact bytes, and `@SC:SET` the document.
 How it ends depends on what it did. A face the board did not have becomes
 usable only after a restart, so installing one ends in `@SC:REBOOT` and a
 reconnect — as does saving onto a board that already owes a restart for a font
-or image package it has accepted. Otherwise the save ends in `@SC:APPLY` with
+or image package it has accepted, and as does a changed `telemetry_transport`.
+That last one is not obvious: firmware takes the full recompose path for it,
+but recompose rebuilds modules and the dashboard, and the link itself is
+selected once at startup — so a transport written without a restart would be a
+setting that is stored and not in force. A changed speed also means the board
+comes back at the new one, which is the case the reconnect can fail on. Otherwise the save ends in `@SC:APPLY` with
 the same document, which rebuilds the running dashboard from what was just
 written to NVS. `SET` still answers `reboot_required=1`, because NVS and the
 running dashboard are two different things; the apply is what closes the gap,

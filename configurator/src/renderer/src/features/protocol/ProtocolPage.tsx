@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { bridgeErrorMessage } from '@/features/device/bridge-errors'
+import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
 import { writeDebugLog } from '@/features/debug/debug-log'
 import { useDeviceStore } from '@/features/device/device-store'
 import { mutateDraftConfiguration } from '@/features/configuration/editor/document'
@@ -44,9 +45,11 @@ export function ProtocolPage(): React.JSX.Element {
       description="Where telemetry comes from, how it reaches the board, and what the fields are called."
     >
       <TelemetrySourceSection />
-      <TransportSection />
       <SimHubProfileSection />
       <CatalogSection />
+      {/* Last and folded away: this is the section an author reads once when a
+          board is first set up, and the one that can cut the board off. */}
+      <TransportSection />
     </PageShell>
   )
 }
@@ -87,10 +90,15 @@ function TransportSection(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
   const transport = draft?.telemetry_transport
   const uart = transport?.uart
+  // Locked on arrival, and locked again every time the page is left. That is
+  // the point of it: this is the one section whose settings decide whether the
+  // configurator can reach the board at all, and an author who has come here to
+  // read should not be one stray scroll-over-a-select away from changing it.
+  const [unlocked, setUnlocked] = useState(false)
 
   if (!draft) {
     return (
-      <PageSection title="Transport" description="How telemetry reaches the board.">
+      <PageSection title="Transport" collapsible description="The link the board talks over.">
         <EmptyState title="No configuration open">
           Create or open a configuration on the Configs page first — the transport travels with the
           dashboard rather than being set on the board.
@@ -116,9 +124,47 @@ function TransportSection(): React.JSX.Element {
   return (
     <PageSection
       title="Transport"
-      description="Part of the configuration document, so it travels with the dashboard."
+      collapsible
+      // Folded, so this line is all an author sees until they open it — which
+      // makes it the place the warning inside has to be hinted at.
+      description="The link the board talks over. Part of the configuration document, so it travels with the dashboard — and changing it can cut the board off."
+      actions={<SaveToBoardButton />}
     >
-      <div className="space-y-1">
+      {/* The settings that decide whether this application can talk to the board
+          at all. Everything else on the page describes the link; this one is the
+          link. It is also the one setting a save cannot make true on its own:
+          firmware stores a changed transport and takes the full recompose path,
+          but recompose rebuilds modules and the dashboard — the link itself is
+          selected once at startup. */}
+      <div className="mb-3 space-y-2 rounded-md border border-red-500/40 bg-red-500/10 p-2.5">
+        <p className="font-medium text-red-300">Changing this can cut the board off</p>
+        <ul className="list-disc space-y-1 pl-4 text-[11px] leading-4 text-red-200/80">
+          <li>
+            A saved change restarts the board, and the board comes back on the new link — at the
+            new speed, if that is what changed. This window reconnects at the old one and will
+            report that the board did not come back.
+          </li>
+          <li>
+            Not every speed survives every board. A USB-serial bridge is what limits it, not the
+            firmware, and a rate the bridge cannot hold leaves a board that answers nothing.
+          </li>
+        </ul>
+        <p className="text-[11px] leading-4 text-red-200/80">
+          Nothing here is permanent: <b>Auto</b> at the top of the window walks the speeds a
+          SimCore board answers on, and a board that cannot be reached at all can still be flashed
+          over USB.
+        </p>
+        <label className="flex items-center gap-2 pt-0.5 text-[11px] text-red-200">
+          <input
+            checked={unlocked}
+            className="size-3.5"
+            type="checkbox"
+            onChange={(event) => setUnlocked(event.target.checked)}
+          />
+          I know what these do — let me change them
+        </label>
+      </div>
+      <fieldset className="space-y-1 disabled:opacity-50" disabled={!unlocked}>
         <SelectField
           label="Transport"
           hint="Which link carries telemetry and @SC: control. The board default is what the firmware was built for."
@@ -157,14 +203,15 @@ function TransportSection(): React.JSX.Element {
           onReset={() => writeUart((current) => delete current.baud_rate)}
           onChange={(value) => writeUart((current) => (current.baud_rate = Number(value)))}
         />
-      </div>
+      </fieldset>
 
       <details className="mt-3 rounded-md border">
         <summary className="cursor-pointer px-3 py-2 font-medium">UART pins</summary>
-        <div className="space-y-1 border-t p-2">
+        <fieldset className="space-y-1 border-t p-2 disabled:opacity-50" disabled={!unlocked}>
           <p className="pb-1 text-[11px] text-muted-foreground">
             The firmware checks these against the board’s own pin pair and refuses a document that
-            names another, so a wrong number costs a refused save rather than a dark board.
+            names another, so a wrong number costs a refused save rather than a dark board — the
+            one setting here that cannot go wrong quietly.
           </p>
           <NumberField
             label="TX pin"
@@ -201,7 +248,7 @@ function TransportSection(): React.JSX.Element {
             onReset={() => writeUart((current) => delete current.silence_esp_logs)}
             onChange={(checked) => writeUart((current) => (current.silence_esp_logs = checked))}
           />
-        </div>
+        </fieldset>
       </details>
     </PageSection>
   )

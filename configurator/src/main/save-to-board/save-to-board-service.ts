@@ -1,3 +1,4 @@
+import { canonicalJson } from '../../shared/configuration-access'
 import { documentFonts } from '../../shared/document-fonts'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type {
@@ -106,8 +107,16 @@ export class SaveToBoardService {
 
       // Anything the board is still owed a restart for makes the restart worth
       // taking now: a face or a bitmap it has accepted but not yet mapped is one
-      // the dashboard about to be applied would draw wrong.
-      if (fontsUploaded || assetsAwaitingRestart(this.deviceService.getState().session)) {
+      // the dashboard about to be applied would draw wrong. So does a changed
+      // transport — the firmware stores it and takes the full recompose path,
+      // but recompose rebuilds modules and the dashboard, and the link itself is
+      // selected once at startup. Saving without restarting would leave the
+      // author looking at a setting that has been written and is not in force.
+      const restartNeeded =
+        fontsUploaded ||
+        assetsAwaitingRestart(this.deviceService.getState().session) ||
+        transportChanged(session, request.json)
+      if (restartNeeded) {
         const reconnected = await this.restart()
         this.report('completed', 1, 1, 'Saved. The board is running the new dashboard.')
         return {
@@ -160,6 +169,25 @@ export class SaveToBoardService {
     message: string
   ): void {
     this.onProgress({ stage, completed, total, message })
+  }
+}
+
+/**
+ * Whether the document changes the link the board talks over.
+ *
+ * Compared against what the board reported when it was read, structurally, so
+ * reordering or reformatting the section is not a change. A document that
+ * cannot be parsed is not a transport change — the save is about to fail on it
+ * anyway, and the parse error is the better message.
+ */
+function transportChanged(session: DeviceSession, json: string): boolean {
+  try {
+    return (
+      canonicalJson(parseDeviceConfigurationJson(json).telemetry_transport) !==
+      canonicalJson(session.configuration.telemetry_transport)
+    )
+  } catch {
+    return false
   }
 }
 

@@ -13,13 +13,27 @@ import { create } from 'zustand'
 
 const STORAGE_KEY = 'simcore.workspace'
 
+/**
+ * Every workspace, in the order the rail lists them and `Cmd`/`Ctrl` with a
+ * digit reaches them.
+ *
+ * The order is here rather than beside the icons because it is the one thing
+ * both halves need: the rail draws it, the accelerator counts it, and two
+ * arrays would drift into `Cmd`+2 opening the third entry. What each workspace
+ * looks like stays with the rail, keyed by name.
+ *
+ * They run from what an author works in to what they only occasionally look at:
+ * the dashboard and the hardware on it, then the link that feeds it, then the
+ * document, then the firmware under all of it — and finally the two that only
+ * report, which is why Info sits near Debug rather than near the top.
+ */
 export const WORKSPACE_TABS = [
   'dashboard',
-  'info',
+  'modules',
   'protocol',
   'configs',
-  'modules',
   'firmware',
+  'info',
   'debug'
 ] as const
 

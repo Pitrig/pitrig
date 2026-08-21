@@ -66,6 +66,11 @@ interface PageSectionProps {
   title: string
   description?: ReactNode
   actions?: ReactNode
+  /**
+   * Folds the block away, closed. For the parts of a page that are read once
+   * and then left alone — or that should take a deliberate act to reach.
+   */
+  collapsible?: boolean
   className?: string
   children: ReactNode
 }
@@ -75,21 +80,47 @@ export function PageSection({
   title,
   description,
   actions,
+  collapsible = false,
   className,
   children
 }: PageSectionProps): React.JSX.Element {
-  return (
-    <section className="rounded-xl border bg-card text-card-foreground shadow-sm">
-      <div className="flex items-start justify-between gap-4 px-4 pt-4 pb-3">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold leading-none tracking-tight">{title}</h3>
-          {description ? (
-            <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>
-          ) : null}
-        </div>
-        {actions ? <div className="flex flex-none items-center gap-2">{actions}</div> : null}
+  const frame = 'rounded-xl border bg-card text-card-foreground shadow-sm'
+  const header = (
+    <>
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold leading-none tracking-tight">{title}</h3>
+        {description ? (
+          <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>
+        ) : null}
       </div>
-      <div className={cn('px-4 pb-4 text-xs', className)}>{children}</div>
+      {actions ? (
+        // A press on an action inside a summary would otherwise fold the block
+        // it belongs to, since that is the summary's own default.
+        <div
+          className="flex flex-none items-center gap-2"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {actions}
+        </div>
+      ) : null}
+    </>
+  )
+  const body = <div className={cn('px-4 pb-4 text-xs', className)}>{children}</div>
+
+  if (collapsible) {
+    return (
+      <details className={frame}>
+        <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-4 pt-4 pb-3">
+          {header}
+        </summary>
+        {body}
+      </details>
+    )
+  }
+  return (
+    <section className={frame}>
+      <div className="flex items-start justify-between gap-4 px-4 pt-4 pb-3">{header}</div>
+      {body}
     </section>
   )
 }

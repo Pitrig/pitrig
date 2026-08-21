@@ -286,8 +286,9 @@ downloaded from the checked-in Google Fonts catalog, or imported from a file —
 own entry, its own family and one of the eight slots. "Save to board" resolves the document's
 families against that library, builds a package holding exactly those, skips the upload when
 `@SC:FONT:INFO` reports the same `crc` and `entries`, and saves. It restarts the board only when a
-package was actually installed — or when the board already owed a restart for one — because a face
-becomes usable only after a restart; otherwise it closes with `@SC:APPLY`, which brings the running
+package was actually installed, when the board already owed a restart for one, or when
+`telemetry_transport` changed — a face becomes usable only after a restart, and a transport is
+selected once at startup, so `recompose` stores it without putting it in force; otherwise it closes with `@SC:APPLY`, which brings the running
 dashboard up to what was just written. An unresolvable family stops the save and asks for a file;
 live apply is suppressed while the board lacks a family, because firmware rejects the document
 whole. See
@@ -307,7 +308,9 @@ surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 
 `app/workspace/` owns the navigation: a collapsible rail (`WorkspaceRail`) over seven workspaces —
-Dashboard, Info, Protocol, Configs, Modules, Firmware, Debug — with the active one, the active
+Dashboard, Modules, Protocol, Configs, Firmware, Info, Debug, ordered once in
+`WORKSPACE_TABS` so the rail and the `Cmd`/`Ctrl`+digit accelerators cannot
+disagree — with the active one, the active
 dashboard page and the rail's width kept across restarts in `workspace-store.ts`, and one page
 chrome (`PageShell`) so the seven read as one application. Only Dashboard has pages of its own
 (`Canvas`, `Templates`, `Fonts`, `Images`), because all four answer what the dashboard is made of.
@@ -317,7 +320,7 @@ unresolved-fonts dialog — is mounted in `App.tsx`, so leaving a page never sto
 The editor mutates one sparse draft document; canvas drag/resize, the inspector, and the advanced
 JSON editor all write the same document — there is no separate editor-only layout model. The draft
 owns its board identity, so it works fully disconnected; device connection and draft have independent
-lifetimes ("Reload board" is the explicit discard).
+lifetimes ("Load config from board" is the explicit discard).
 
 A dashboard moves to another board through `shared/layout-transfer.ts`: every pixel-valued property
 scaled, either `contain` (one factor, centred, keeps proportions) or `stretch` (a factor per axis,

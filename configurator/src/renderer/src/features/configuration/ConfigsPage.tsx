@@ -260,7 +260,7 @@ export function ConfigsPage(): React.JSX.Element {
               disabled={!connected || working}
               onClick={() => void act(readConfigurationFromBoard)}
             >
-              Reload board
+              Load config from board
             </Button>
             <Button
               variant="outline"
