@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 #include "lvgl.h"
 
@@ -139,7 +140,16 @@ class Collection {
     if (state.container != nullptr) {
       lv_obj_delete(state.container);
     }
-    state = {};
+    // Reconstructed in place rather than assigned from `State{}`. A widget's
+    // state carries non-zero defaults — the conditions the painter holds are
+    // kTransparentColor — so a temporary is a real object the compiler builds
+    // on the stack and copies over, and the frame it needs is the size of the
+    // whole state. This runs on the configuration task while a replacement is
+    // being applied, whose stack is a few kilobytes: a state large enough to
+    // hold a graph's traces overflowed it there, and every type was paying the
+    // same cost in proportion to its own size.
+    std::destroy_at(&state);
+    std::construct_at(&state);
   }
 
   void clear_objects() {

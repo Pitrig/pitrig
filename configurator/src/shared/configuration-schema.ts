@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 12
+export const CONFIGURATION_SCHEMA_VERSION = 13
 
 /** Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
 export const MAXIMUM_PAYLOAD_SIZE = 65536
@@ -44,6 +44,10 @@ export const MAXIMUM_BLINK_MS = 5000
 export const MAXIMUM_HOLD_MS = 10000
 /** Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. */
 export const MAXIMUM_GRAPH_POINTS = 128
+/** Telemetry sources one graph draws on a single plot, counting the widget's own. Each one costs a point array and an LVGL line of its own, which is why this is the smallest of the multi-source caps. */
+export const MAXIMUM_GRAPH_SOURCES = 3
+/** Entries in a graph's traces array: kMaximumGraphSources less the one the widget's own source already is. An array capacity has to name a limit of its own, which is why the total is stated separately. */
+export const MAXIMUM_GRAPH_TRACES = 2
 /** Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. */
 export const MAXIMUM_TEXT_SOURCES = 3
 /** Value modifiers per text widget source. */
@@ -432,7 +436,15 @@ export interface IndicatorWidgetConfiguration {
   segments?: IndicatorSegment[]
 }
 
-/** A rolling trace of one telemetry source. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it. */
+/** A second or third source drawn on the same plot as the graph's own. It carries a window of its own, because a trace of speed beside one of throttle would otherwise flatten against an edge, and a colour of its own, because that is what tells the two apart. */
+export interface GraphTraceConfiguration {
+  source?: ValueSourceConfiguration
+  minimum?: number
+  maximum?: number
+  line_color?: RgbColor
+}
+
+/** A rolling trace of one telemetry source, plus up to two more drawn over the same plot. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it. */
 export interface GraphWidgetConfiguration {
   type: 'graph'
   id?: string
@@ -456,6 +468,7 @@ export interface GraphWidgetConfiguration {
   sample_interval_ms?: number
   line_color?: RgbColor
   line_width_px?: number
+  traces?: GraphTraceConfiguration[]
 }
 
 /** An uploaded image drawn inside the frame. Neither scaled nor rotated: the configurator converts each image to the size it is drawn at, which also keeps the accelerated draw path on the ESP32-P4. It binds telemetry only to choose between the frames of a sprite sheet; its styling rules can still hide it, flash it or recolour it. */
@@ -585,7 +598,8 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ArcWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'start_angle_deg', 'sweep_deg', 'thickness_px', 'track_color', 'fill_color', 'inverted'],
   IndicatorSegment: ['threshold', 'color'],
   IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'orientation', 'segment_gap_px', 'segment_radius_px', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
-  GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px'],
+  GraphTraceConfiguration: ['source', 'minimum', 'maximum', 'line_color'],
+  GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px', 'traces'],
   ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'image', 'sprite_frame', 'sprite_frame_source', 'recolor', 'recolor_opa'],
   ShapeWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'kind', 'clip_children', 'widgets'],
   SlotPageConfiguration: ['in_loop', 'trigger', 'source', 'duration_ms', 'conditions', 'widgets'],
@@ -625,7 +639,8 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   BarWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
   ArcWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
   IndicatorWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', segments: 'IndicatorSegment' },
-  GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration' },
+  GraphTraceConfiguration: { source: 'ValueSourceConfiguration' },
+  GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', traces: 'GraphTraceConfiguration' },
   ImageWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', sprite_frame_source: 'ValueSourceConfiguration' },
   ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
   SlotPageConfiguration: { source: 'ValueSourceConfiguration', conditions: 'SlotCondition' },

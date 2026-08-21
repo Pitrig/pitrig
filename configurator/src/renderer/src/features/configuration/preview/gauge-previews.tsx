@@ -225,22 +225,57 @@ export function GraphPreview({
   if (!style.visible) return null
   // A graph draws the samples it has collected, and the configurator collects
   // none: it receives no telemetry. So the preview answers the question it can
-  // — where the plot sits inside the frame, and how thick and what colour its
-  // line will be — with a baseline across the content area.
-  const plot = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
+  // — where the plot sits inside the frame, and how thick and what colour each
+  // of its traces will be — with one baseline per trace. They are spread down
+  // the plot rather than stacked on the middle, because three lines at one
+  // height are one line and the count is half of what there is to judge.
+  const width = configuration.line_width_px ?? 2
+  const border = configuration.border?.width_px ?? 0
+  // The same two allowances the device keeps clear on every side, so a bordered
+  // graph is previewed at the size its traces actually get rather than at the
+  // full content area: half a line, because the stroke is centred on the path,
+  // plus what a rounded frame takes the corners in. The content area is a plain
+  // rectangle, so with a radius its corners sit outside the arc — a corner inset
+  // by r*(1 - 1/√2) is the one that clears it.
+  // r*(1 - 1/\u221A2) through the same 2929/10000 the firmware uses rather than
+  // through Math.SQRT1_2: the two round apart at one radius in the contract's
+  // range, and a preview that is a pixel off the board is a preview that has to
+  // be re-derived to be trusted.
+  const innerRadius = Math.max(0, (configuration.border?.radius_px ?? 0) - border)
+  const reserve = Math.ceil(width / 2) + Math.ceil((innerRadius * 2929) / 10000)
+  const content = contentArea(placement, border, configuration.padding)
+  const plot = {
+    x: content.x + reserve,
+    y: content.y + reserve,
+    width: Math.max(0, content.width - 2 * reserve),
+    height: Math.max(0, content.height - 2 * reserve)
+  }
+  // A rule that repaints the widget paints every trace at once on the device,
+  // so a resolved colour replaces all of them here too.
+  const ruled = style.color !== undefined && style.color !== (configuration.line_color ?? '#38BDF8')
+  const traces = [
+    configuration.line_color ?? '#38BDF8',
+    ...(configuration.traces ?? []).map((trace) => trace?.line_color ?? '#38BDF8')
+  ]
 
   return (
     <g>
       <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
-      <line
-        x1={plot.x}
-        y1={plot.y + plot.height / 2}
-        x2={plot.x + plot.width}
-        y2={plot.y + plot.height / 2}
-        stroke={style.color ?? '#38BDF8'}
-        strokeWidth={configuration.line_width_px ?? 2}
-        strokeOpacity={0.35}
-      />
+      {traces.map((color, index) => {
+        const y = plot.y + (plot.height * (index + 1)) / (traces.length + 1)
+        return (
+          <line
+            key={index}
+            x1={plot.x}
+            y1={y}
+            x2={plot.x + plot.width}
+            y2={y}
+            stroke={ruled ? style.color : color}
+            strokeWidth={width}
+            strokeOpacity={0.35}
+          />
+        )
+      })}
     </g>
   )
 }

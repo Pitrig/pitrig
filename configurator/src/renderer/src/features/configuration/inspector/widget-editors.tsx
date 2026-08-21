@@ -2,9 +2,9 @@ import { Plus, Trash2 } from 'lucide-react'
 import { ConditionsEditor } from './ConditionsEditor'
 import { SlotPagesEditor } from './SlotPagesEditor'
 import { pagesOf, widgetsOf } from '@shared/configuration-access'
-import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
+import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphTraceConfiguration, type GraphWidgetConfiguration, type ImageWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_SOURCES, MAXIMUM_INDICATOR_SEGMENTS, MAXIMUM_TEXT_SOURCES, type RgbColor, SHAPE_KIND_VALUES, type ShapeWidgetConfiguration, type SlotWidgetConfiguration, TEXT_ALIGNMENT_VALUES, type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { fieldBounds } from '@shared/validate/ranges'
-import { DEFAULT_WIDGET_FONT_SIZE_PX, type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
+import { DEFAULT_WIDGET_FONT_SIZE_PX, NEW_GRAPH_BINDING, type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
 import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Advanced, Group } from './Group'
@@ -12,7 +12,7 @@ import { HINTS } from './hints'
 import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
 import { CheckboxField, ColorField, ColorSwatchInput, FontEditor, Hint, NumberField, NumberInput, OptionalColorField, SelectField, TextField } from './fields'
-import { ContainerEditor, SourceRangeSection } from './section-editors'
+import { ContainerEditor, SourceRangeFields, SourceRangeSection } from './section-editors'
 import { BoxEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -207,14 +207,76 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
   )
 }
 
+/** What a second and a third trace start out as, so they read apart at a glance. */
+const TRACE_COLORS: readonly [RgbColor, ...RgbColor[]] = ['#00C853', '#FFD200']
+
+/**
+ * One of the sources a graph draws beside its own. It carries exactly what the
+ * widget's own trace carries — what it reads, through what window, in what
+ * colour — through the same fields, so neither of the two is the special case
+ * and a trace added here cannot drift from the one above it.
+ */
+function GraphTraceEditor({ trace, index, onChange, onRemove }: {
+  trace: GraphTraceConfiguration
+  index: number
+  onChange: (mutation: (next: GraphTraceConfiguration) => void) => void
+  onRemove: () => void
+}): React.JSX.Element {
+  return (
+    <div className="space-y-2 rounded-md border p-2">
+      <div className="flex items-center justify-between">
+        {/* The widget's own source is trace 1, so these start at two. */}
+        <span className="font-medium">{`Trace ${index + 2}`}</span>
+        <button type="button" aria-label={`Remove trace ${index + 2}`} title="Remove this trace" className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={onRemove}>
+          <Trash2 aria-hidden className="size-3" />
+        </button>
+      </div>
+      <SourceRangeFields widget={trace} update={onChange} />
+      <ColorField label="Line" value={trace.line_color ?? '#38BDF8'} modified={authored(trace.line_color, '#38BDF8')} onReset={() => onChange((next) => { delete next.line_color })} onChange={(value) => onChange((next) => { next.line_color = value })} />
+    </div>
+  )
+}
+
 export function GraphEditor({ selection, widget }: { selection: WidgetSelection; widget: GraphWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: GraphWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as GraphWidgetConfiguration))
   const points = widget.point_count ?? 64
   const interval = widget.sample_interval_ms ?? 100
+  const traces = widget.traces ?? []
   return (
     <>
-      <SourceRangeSection widget={widget} update={update} />
-      <Group id="Trace" title="Trace" icon={GROUP_ICONS.graph} summary={`${((points * interval) / 1000).toFixed(1)} s`}>
+      {/* The widget's own source is the first trace, so its colour sits with
+          its binding and its window rather than with the plot below. */}
+      <SourceRangeSection widget={widget} update={update}>
+        <ColorField label="Line" value={widget.line_color ?? '#38BDF8'} modified={authored(widget.line_color, '#38BDF8')} onReset={() => update((next) => { delete next.line_color })} onChange={(value) => update((next) => { next.line_color = value })} />
+      </SourceRangeSection>
+      <Group id="Traces" title="More traces" icon={GROUP_ICONS.graph} hint={HINTS.graph.traces} summary={`${traces.length + 1} of ${MAXIMUM_GRAPH_SOURCES}`} defaultOpen={traces.length > 0}>
+        {traces.map((trace, index) => (
+          <GraphTraceEditor
+            key={index}
+            trace={trace}
+            index={index}
+            onChange={(mutation) => update((next) => {
+              const list = next.traces ?? []
+              if (list[index]) mutation(list[index])
+            })}
+            onRemove={() => update((next) => {
+              next.traces = (next.traces ?? []).filter((_, position) => position !== index)
+            })}
+          />
+        ))}
+        {traces.length + 1 < MAXIMUM_GRAPH_SOURCES ? (
+          <AddButton label="Add trace" onClick={() => update((next) => {
+            // Both properties are answered here rather than left to the
+            // contract's defaults: an unnamed source is the empty string, which
+            // the device refuses outright, and an uncoloured trace would be
+            // drawn in the same blue as the one above it — which is the one
+            // thing a second trace must not be.
+            const list = next.traces ?? []
+            next.traces = [...list, { source: { binding: NEW_GRAPH_BINDING }, line_color: TRACE_COLORS[list.length] ?? TRACE_COLORS[0] }]
+          })} />
+        ) : <Hint>{`A graph draws at most ${MAXIMUM_GRAPH_SOURCES} sources on one plot.`}</Hint>}
+      </Group>
+      <Group id="Plot" title="Plot" icon={GROUP_ICONS.graph} summary={`${((points * interval) / 1000).toFixed(1)} s`}>
         <PropertyRow
           label="Window"
           hint={HINTS.graph.points}
@@ -225,14 +287,13 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
           })}
         >
           <div className="grid grid-cols-2 gap-1">
-            <NumberInput title="How many samples the trace keeps" value={points} {...fieldBounds('graph', 'point_count')} onChange={(value) => update((next) => { next.point_count = value })} />
+            <NumberInput title="How many samples each trace keeps" value={points} {...fieldBounds('graph', 'point_count')} onChange={(value) => update((next) => { next.point_count = value })} />
             <NumberInput title="Milliseconds between samples" value={interval} {...fieldBounds('graph', 'sample_interval_ms')} onChange={(value) => update((next) => { next.sample_interval_ms = value })} />
           </div>
           <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Points</span><span>Interval (ms)</span></div>
         </PropertyRow>
         <p className="text-muted-foreground">{`Shows the last ${((points * interval) / 1000).toFixed(1)} s.`}</p>
-        <ColorField label="Line" value={widget.line_color ?? '#38BDF8'} modified={authored(widget.line_color, '#38BDF8')} onReset={() => update((next) => { delete next.line_color })} onChange={(value) => update((next) => { next.line_color = value })} />
-        <NumberField label="Line width" suffix="px" value={widget.line_width_px ?? 2} {...fieldBounds('graph', 'line_width_px')} modified={authored(widget.line_width_px, 2)} onReset={() => update((next) => { delete next.line_width_px })} onChange={(value) => update((next) => { next.line_width_px = value })} />
+        <NumberField label="Line width" hint={HINTS.graph.width} suffix="px" value={widget.line_width_px ?? 2} {...fieldBounds('graph', 'line_width_px')} modified={authored(widget.line_width_px, 2)} onReset={() => update((next) => { delete next.line_width_px })} onChange={(value) => update((next) => { next.line_width_px = value })} />
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />

@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 12. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 13. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 12.
+Schema version: 13.
 
 ## Limits
 
@@ -28,6 +28,8 @@ Schema version: 12.
 | `kMaximumBlinkMs` | 5000 | Slowest blink period any rule may ask for. Past this the widget spends so long in one phase that it reads as one that failed to update. |
 | `kMaximumHoldMs` | 10000 | Longest a styling rule, or a slot page raised by an event, may outlive the match that raised it. Past this it stops reading as a reaction to the car and starts reading as a stuck dashboard. |
 | `kMaximumGraphPoints` | 128 | Samples one graph retains. The ring buffer is sized by this whatever point_count asks for. |
+| `kMaximumGraphSources` | 3 | Telemetry sources one graph draws on a single plot, counting the widget's own. Each one costs a point array and an LVGL line of its own, which is why this is the smallest of the multi-source caps. |
+| `kMaximumGraphTraces` | 2 | Entries in a graph's traces array: kMaximumGraphSources less the one the widget's own source already is. An array capacity has to name a limit of its own, which is why the total is stated separately. |
 | `kMaximumTextSources` | 3 | Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays. |
 | `kMaximumValueModifiers` | 4 | Value modifiers per text widget source. |
 | `kMaximumColorStops` | 4 | Stops in one widget colour ramp. Four is a normal, caution, warning and limit band, the same bands the conditional rules cover discretely. |
@@ -329,9 +331,20 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | `blink_ms` | integer, 0 or 100..5000 | `0` |
 | `segments` | array of [`IndicatorSegment`](#indicatorsegment), max 16 | absent |
 
+### GraphTraceConfiguration
+
+A second or third source drawn on the same plot as the graph's own. It carries a window of its own, because a trace of speed beside one of throttle would otherwise flatten against an edge, and a colour of its own, because that is what tells the two apart.
+
+Also carries the properties of [`ValueRange`](#valuerange), flattened: they are plain properties of this object in JSON.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `line_color` | string `#RRGGBB` | `#38BDF8` |
+
 ### GraphWidgetConfiguration
 
-A rolling trace of one telemetry source. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it.
+A rolling trace of one telemetry source, plus up to two more drawn over the same plot. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it.
 
 Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](#valuerange), flattened: they are plain properties of this object in JSON.
 
@@ -343,6 +356,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | `sample_interval_ms` | integer, 1..65535 | `100` |
 | `line_color` | string `#RRGGBB` | `#38BDF8` |
 | `line_width_px` | integer, 1..65535 | `2` |
+| `traces` | array of [`GraphTraceConfiguration`](#graphtraceconfiguration), max 2 | absent |
 
 ### ImageWidgetConfiguration
 

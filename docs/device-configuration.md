@@ -209,7 +209,7 @@ allowance. The production firmware supports these widget types:
 | `bar` | 16 | one telemetry source as a filled track, optionally from a configured origin |
 | `arc` | 8 | one telemetry source swept around an arc |
 | `indicator` | 4 | up to 16 lamps lighting as one source climbs its range |
-| `graph` | 2 | a rolling trace of one source, sampled on its own timer |
+| `graph` | 2 | up to three rolling traces over one plot, sampled on its own timer |
 | `image` | 8 | an uploaded image, optionally tinted |
 | `slot` | 4 | nothing of its own; an area that switches between its pages |
 
@@ -410,8 +410,23 @@ way the `number` transform parses one.
   `blink_ms` once the fraction reaches `blink_threshold`, whose default of `2`
   is outside the clamped fraction and therefore never blinks.
 - `graph` keeps `point_count` samples taken every `sample_interval_ms` and draws
-  them as a `line_width_px` trace in `line_color`. The history is presentation
-  state the widget samples for itself; nothing else can read it.
+  them as a `line_width_px` trace in `line_color`. `traces` adds up to two more
+  sources over the same plot, each with a `source`, a `minimum`/`maximum` window
+  and a `line_color` of its own — the widget's own source is the first trace, so
+  three is the total. One point count and one sample clock serve all of them, so
+  the traces line up along the same time axis; the windows are separate, which
+  is what lets a speed trace and a throttle trace share a field without either
+  flattening against an edge. Two allowances are kept clear inside the plot on
+  every side: half the line width, because the stroke is centred on the path, so
+  a value at either end of its window is drawn whole instead of being cut by the
+  frame the container clips against; and, when `border.radius_px` rounds the
+  frame, enough for the plot's corners to clear the curve — the content area is
+  a rectangle, so its corners would otherwise sit outside the arc the frame line
+  follows. A styling rule that
+  names a `color` repaints every trace at once — the widget is in alarm, not one
+  of its lines — and each takes its own colour back when the rule stops
+  matching. The history is presentation state the widget samples for itself;
+  nothing else can read it.
 - `shape` and `image` bind no telemetry of their own. A shape is a `rectangle`
   or an `ellipse` — a line is a thin rectangle — and an image names an uploaded
   asset through `image`, optionally tinted with `recolor` at `recolor_opa`. An

@@ -24,11 +24,7 @@ using ModifierReaders = frame::ModifierReaders;
 // into the configuration document: the binder owns everything here, and the
 // matching Config is passed alongside as a parallel span, so a configuration
 // buffer can be replaced without leaving the binder pointing at stale storage.
-struct BoundConfig {
-  ValueReadCallback read{};
-  void* read_context{};
-  bool fast_updates{};
-};
+using BoundConfig = frame::BoundSource;
 
 // The resolved sources of one widget, in authored order, plus the source its
 // styling rules watch. A widget without rules leaves `condition` empty.

@@ -227,6 +227,15 @@ export function draftValueFont(
  * a widget to it: the schema's own default is a zero-sized box, which the
  * editor reads as no placement at all and stops drawing.
  */
+/**
+ * What a graph reads before the author has chosen. It is also what a trace
+ * added to an existing graph starts from: the contract's own default for a
+ * source is the empty string, which the device refuses, so a trace the panel
+ * writes has to name a field or adding one would break a working dashboard
+ * until the author noticed.
+ */
+export const NEW_GRAPH_BINDING = 'vehicle.speed'
+
 export const NEW_WIDGET_SIZE: Record<
   WidgetConfiguration['type'],
   { width: number; height: number }
@@ -327,7 +336,7 @@ const WIDGET_DEFAULTS: Record<
   }),
   graph: (display) => ({
     type: 'graph',
-    source: { binding: 'vehicle.speed' },
+    source: { binding: NEW_GRAPH_BINDING },
     background_color: '#1E293B',
     placement: centeredPlacement(display, NEW_WIDGET_SIZE.graph)
   }),

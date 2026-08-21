@@ -97,6 +97,29 @@ namespace {
          parse_indicator_segments(object, config, failure);
 }
 
+// The sources drawn over the same plot as the widget's own. Each carries the
+// window and the colour that make it a trace of its own; the point count and
+// the sample clock stay on the widget, because one plot has one time axis.
+[[nodiscard]] bool parse_graph_traces(const cJSON* const object,
+                                      GraphWidgetConfiguration& config,
+                                      ValidationFailure& failure) {
+  constexpr std::string_view kName = "widget.graph.traces";
+  return read_array(
+      object, "traces", config.traces, config.trace_count, kName,
+      ValidationError::malformed, failure,
+      [&](const cJSON* const trace, GraphTraceConfiguration& parsed) {
+        return valid_object(trace, schema::kGraphTraceConfigurationKeys, kName,
+                            failure) &&
+               parse_value_source(trace, parsed.source, kName, failure) &&
+               read_float(trace, "minimum", parsed.range.minimum, kName,
+                          failure) &&
+               read_float(trace, "maximum", parsed.range.maximum, kName,
+                          failure) &&
+               read_color(trace, "line_color", parsed.line_color, kName,
+                          failure);
+      });
+}
+
 [[nodiscard]] bool parse_graph_widget(const cJSON* const object,
                                       GraphWidgetConfiguration& config,
                                       ValidationFailure& failure) {
@@ -113,7 +136,8 @@ namespace {
                       kName, failure) &&
          read_color(object, "line_color", config.line_color, kName, failure) &&
          read_integer(object, "line_width_px", config.line_width_px, kName,
-                      failure);
+                      failure) &&
+         parse_graph_traces(object, config, failure);
 }
 
 [[nodiscard]] bool parse_image_widget(const cJSON* const object,

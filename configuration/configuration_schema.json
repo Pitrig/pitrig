@@ -1,5 +1,5 @@
 {
-  "schema_version": 12,
+  "schema_version": 13,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "limits": {
@@ -82,6 +82,14 @@
     "kMaximumGraphPoints": {
       "value": 128,
       "doc": "Samples one graph retains. The ring buffer is sized by this whatever point_count asks for."
+    },
+    "kMaximumGraphSources": {
+      "value": 3,
+      "doc": "Telemetry sources one graph draws on a single plot, counting the widget's own. Each one costs a point array and an LVGL line of its own, which is why this is the smallest of the multi-source caps."
+    },
+    "kMaximumGraphTraces": {
+      "value": 2,
+      "doc": "Entries in a graph's traces array: kMaximumGraphSources less the one the widget's own source already is. An array capacity has to name a limit of its own, which is why the total is stated separately."
     },
     "kMaximumTextSources": {
       "value": 3,
@@ -514,17 +522,28 @@
       ]
     },
 
+    "GraphTraceConfiguration": {
+      "doc": "A second or third source drawn on the same plot as the graph's own. It carries a window of its own, because a trace of speed beside one of throttle would otherwise flatten against an edge, and a colour of its own, because that is what tells the two apart.",
+      "fields": [
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
+        { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
+        { "name": "line_color", "kind": "color", "default": "0x38BDF8" }
+      ]
+    },
+
     "GraphWidgetConfiguration": {
       "widget_type": "graph",
-      "doc": "A rolling trace of one telemetry source. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it.",
+      "doc": "A rolling trace of one telemetry source, plus up to two more drawn over the same plot. The history is presentation state the widget samples for itself; it is not a telemetry value and nothing else can read it.",
       "fields": [
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
-        { "name": "point_count", "kind": "uint16", "default": 64, "minimum": 2, "maximum": "kMaximumGraphPoints", "doc": "Samples the trace shows. The ring buffer is sized by kMaximumGraphPoints whatever this asks for." },
-        { "name": "sample_interval_ms", "kind": "uint16", "default": 100, "minimum": 1, "doc": "How often a sample is taken, which with point_count sets how far back the trace reaches." },
+        { "name": "point_count", "kind": "uint16", "default": 64, "minimum": 2, "maximum": "kMaximumGraphPoints", "doc": "Samples the trace shows. The ring buffer is sized by kMaximumGraphPoints whatever this asks for, and every trace of one graph keeps the same count." },
+        { "name": "sample_interval_ms", "kind": "uint16", "default": 100, "minimum": 1, "doc": "How often a sample is taken, which with point_count sets how far back the trace reaches. One clock for the whole widget, so the traces stay aligned along it." },
         { "name": "line_color", "kind": "color", "default": "0x38BDF8" },
-        { "name": "line_width_px", "kind": "uint16", "default": 2, "minimum": 1 }
+        { "name": "line_width_px", "kind": "uint16", "default": 2, "minimum": 1, "doc": "Thickness of every trace. Half of it is reserved inside the plot on each side, so a value at either end of its window is drawn whole rather than cut by the frame." },
+        { "name": "trace_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "traces", "kind": "array", "struct": "GraphTraceConfiguration", "capacity": "kMaximumGraphTraces", "count_field": "trace_count", "doc": "Further sources over the same plot, each with its own window and colour. The widget's own source is the first trace, so this holds one fewer than kMaximumGraphSources." }
       ]
     },
 

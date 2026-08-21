@@ -101,7 +101,11 @@ export const HINTS = {
   },
   graph: {
     points:
-      'How many samples the trace keeps and how often one is taken — together they are the window it shows. The trace is the most expensive widget to draw, so keep the point count only as high as it needs to be.'
+      'How many samples each trace keeps and how often one is taken — together they are the window the plot shows. One clock for the whole widget, so several traces line up along it. The trace is the most expensive widget to draw, so keep the point count only as high as it needs to be.',
+    traces:
+      'Further sources drawn over the same plot, up to three in all counting the widget\u2019s own. Each carries its own range, which is what lets speed and throttle share one field without either flattening against an edge.',
+    width:
+      'Thickness of every trace. Half of it is kept clear inside the plot on each side — plus whatever a rounded frame needs for the corners to clear the curve — so a value at the top or the bottom of its range is drawn whole rather than cut by the frame.'
   },
   image: {
     image:

@@ -23,7 +23,7 @@ export { MAXIMUM_ZOOM, MINIMUM_ZOOM, useDashboardEditorStore } from './editor/st
 export type { WidgetLocation } from './editor/document'
 export { absolutePlacement, absolutePlacements, activeScreen, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, mutateSelectedWidget, parentContainerId, parentOf, parentOffset, selectedWidget, selectionTarget, widgetArrayOf, writePlacement } from './editor/document'
 export { addScreen, deleteScreen, ensureScreen, moveScreen, mutateActiveScreen } from './editor/screens'
-export { DEFAULT_CAPTION_FONT_SIZE_PX, DEFAULT_WIDGET_FONT_SIZE_PX, NEW_WIDGET_SIZE, actionCount, addTapZone, addWidget, atWidgetCapacity, applyFontFamilyToDashboard, deleteWidget, draftFontFamily, draftValueFont, duplicateWidget, insertWidget, offsetWidget } from './editor/widgets'
+export { DEFAULT_CAPTION_FONT_SIZE_PX, DEFAULT_WIDGET_FONT_SIZE_PX, NEW_GRAPH_BINDING, NEW_WIDGET_SIZE, actionCount, addTapZone, addWidget, atWidgetCapacity, applyFontFamilyToDashboard, deleteWidget, draftFontFamily, draftValueFont, duplicateWidget, insertWidget, offsetWidget } from './editor/widgets'
 export { addSlotPage, deleteSlotPage, mutateSlotPage } from './editor/slots'
 export { copyWidget, pasteWidget } from './editor/clipboard'
 export type { AlignmentEdge } from './editor/alignment'

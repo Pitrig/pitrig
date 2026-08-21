@@ -352,6 +352,20 @@ bool Validator::graph_widget(const GraphWidgetConfiguration& config) {
   if (!valid_color(config.line_color)) {
     return reject(failure_, ValidationError::invalid_widget, "line_color");
   }
+  if (config.trace_count > config.traces.size()) {
+    return reject(failure_, ValidationError::invalid_widget, "traces");
+  }
+  // Every further trace is a source and a window in its own right, so each is
+  // held to what the widget's own source is held to.
+  for (std::size_t index = 0; index < config.trace_count; ++index) {
+    const GraphTraceConfiguration& trace = config.traces[index];
+    if (!valid_color(trace.line_color)) {
+      return reject(failure_, ValidationError::invalid_widget, "traces");
+    }
+    if (!value_source(trace.source) || !value_range(trace.range)) {
+      return false;
+    }
+  }
   return value_source(config.source) && value_range(config.range) &&
          frame(config.frame);
 }

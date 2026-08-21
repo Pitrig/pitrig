@@ -242,8 +242,8 @@ the strings the board draws.
 
 What this costs is that conditional rules and the colour ramp cannot be seen
 reacting: no reading means no rule matches, so the canvas shows the authored
-appearance. A graph shows the frame and a baseline rather than a trace, and an
-indicator shows its unlit lamps. The configurator previously invented a
+appearance. A graph shows the frame and one baseline per trace rather than the
+traces themselves, and an indicator shows its unlit lamps. The configurator previously invented a
 synthetic lap to fill the gap; a value the game never sent is judged as though
 it had, and the shape of the real signal is the one thing the configurator
 cannot know.

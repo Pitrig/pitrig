@@ -10,6 +10,7 @@
 #include "performance_overlay_widget.hpp"
 #include "arc_widget.hpp"
 #include "bar_widget.hpp"
+#include "graph_binding.hpp"
 #include "graph_widget.hpp"
 #include "image_widget.hpp"
 #include "indicator_widget.hpp"
@@ -159,9 +160,10 @@ struct GraphWidgets : WidgetStorage {
   static constexpr auto kPool =
       &configuration::DashboardConfiguration::graph_widgets;
 
-  dashboard::frame::ValueBinder<Config,
-                                dashboard::graph_widget::kMaximumInstances>
-      binder;
+  // Its own binder rather than the shared one: a graph draws up to three
+  // sources over a single plot, so it resolves an array of them the way a text
+  // widget resolves the sources it composes.
+  dashboard::graph_widget::Binder binder;
   dashboard::graph_widget::Collection collection;
 };
 

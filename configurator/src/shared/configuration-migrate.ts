@@ -24,6 +24,11 @@
 // held a shape up is not a page with a duration — so the properties are dropped
 // rather than guessed at. The shapes stay exactly where they were, as ordinary
 // containers, and the author rebuilds the switching with a slot.
+//
+// Schema 12 → 13: a graph gained `traces`, the second and third sources drawn
+// over its plot. Its own `source`, window and `line_color` are untouched — they
+// are the first trace — so a schema-12 document parses unchanged and needs no
+// step here.
 
 import { createWidgetId } from './configuration-access'
 

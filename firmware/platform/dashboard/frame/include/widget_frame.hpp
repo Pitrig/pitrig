@@ -68,6 +68,18 @@ struct SourceContext {
     const ModifierReaders& modifier_readers, SourceContext& context,
     ValueReadCallback& read, void*& read_context, bool& fast_updates);
 
+// One resolved source: the callback that reads it and the context it reads
+// through. A widget that binds several holds an array of these; one that binds
+// a single value spells the same three fields into ValueBinding below, so a
+// bar's binding stays one object rather than an array of one.
+struct BoundSource {
+  ValueReadCallback read{};
+  void* read_context{};
+  // Set for module modifiers, whose value derives from a free-running clock and
+  // therefore carries no telemetry revision to compare against.
+  bool fast_updates{};
+};
+
 // One widget's resolved sources: the value it draws and the source its rules
 // watch. Widgets that draw a single value all bind exactly this pair.
 struct ValueBinding {

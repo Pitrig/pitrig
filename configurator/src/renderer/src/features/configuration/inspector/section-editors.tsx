@@ -25,10 +25,25 @@ interface RangedWidget {
 // Every gauge reads one source through one window, so they share the group that
 // binds it rather than each spelling it out.
 export function SourceRangeSection<T extends RangedWidget>({ widget, update, children }: { widget: T; update: (mutation: (next: T) => void) => void; children?: React.ReactNode }): React.JSX.Element {
+  return (
+    <Group id="Data" title="Data" icon={GROUP_ICONS.data} summary={widget.source?.binding || 'Unbound'}>
+      <SourceRangeFields widget={widget} update={update} />
+      {children}
+    </Group>
+  )
+}
+
+/**
+ * What binds one value: the field it reads, the modifier over it, and the
+ * window it is read through. A gauge shows these once, inside its Data group; a
+ * graph shows the same three again for every further trace it draws, which is
+ * why they are a component of their own rather than the body of that group.
+ */
+export function SourceRangeFields<T extends RangedWidget>({ widget, update }: { widget: T; update: (mutation: (next: T) => void) => void }): React.JSX.Element {
   const binding = TELEMETRY_CATALOG.find(({ name }) => name === widget.source?.binding)
   const unit = binding?.unit && binding.unit !== 'source' ? ` (${binding.unit})` : ''
   return (
-    <Group id="Data" title="Data" icon={GROUP_ICONS.data} summary={widget.source?.binding || 'Unbound'}>
+    <>
       <TelemetryBindingField value={widget.source?.binding ?? ''} onReset={() => update((next) => { delete next.source })} onChange={(value) => update((next) => {
         next.source = { ...next.source, binding: value }
       })} />
@@ -37,8 +52,7 @@ export function SourceRangeSection<T extends RangedWidget>({ widget, update, chi
         else if (next.source) delete next.source.modifiers
       })} />
       <RangeRow widget={widget} update={update} unit={unit} />
-      {children}
-    </Group>
+    </>
   )
 }
 

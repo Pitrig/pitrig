@@ -95,6 +95,17 @@ bool has_lap_timer_modifier(
       mapped(dashboard.graph_widgets, dashboard.graph_widget_count)) {
     return true;
   }
+  // A graph draws its own source plus the traces beside it, and each of those
+  // binds a modifier the same way, so the sweep above covers only the first of
+  // up to three.
+  for (std::size_t index = 0; index < dashboard.graph_widget_count; ++index) {
+    const auto& widget = dashboard.graph_widgets[index];
+    for (std::size_t trace = 0; trace < widget.trace_count; ++trace) {
+      if (uses_lap_timer(widget.traces[trace].source)) {
+        return true;
+      }
+    }
+  }
   // A slot page watches its own source, separate from the styling rules the
   // sweep above covers, so a lap_timer modifier there would otherwise leave the
   // module unstarted and the page never appearing.

@@ -133,6 +133,12 @@ export function widgetSources(widget: WidgetConfiguration): ValueSourceConfigura
   return [
     ...(isTextWidget(widget) ? widget.sources ?? [] : []),
     ...('source' in widget && widget.source ? [widget.source] : []),
+    // A graph draws further sources beside its own, each one an ordinary
+    // binding the board has to be fed. Probed rather than switched on, for the
+    // same reason as the rest of this list.
+    ...('traces' in widget && Array.isArray(widget.traces)
+      ? widget.traces.flatMap((trace) => (trace?.source ? [trace.source] : []))
+      : []),
     ...(widget.condition_source ? [widget.condition_source] : []),
     // A slot page watches a field the slot itself never shows, so it is invisible
     // to every probe above — and a binding missing from this list is a binding

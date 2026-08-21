@@ -327,7 +327,14 @@ inline constexpr std::array<std::string_view, 25> kIndicatorWidgetConfigurationK
     "segments",
 }};
 
-inline constexpr std::array<std::string_view, 22> kGraphWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 4> kGraphTraceConfigurationKeys{{
+    "source",
+    "minimum",
+    "maximum",
+    "line_color",
+}};
+
+inline constexpr std::array<std::string_view, 23> kGraphWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -350,6 +357,7 @@ inline constexpr std::array<std::string_view, 22> kGraphWidgetConfigurationKeys{
     "sample_interval_ms",
     "line_color",
     "line_width_px",
+    "traces",
 }};
 
 inline constexpr std::array<std::string_view, 20> kImageWidgetConfigurationKeys{{

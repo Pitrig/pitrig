@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 12;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 13;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
@@ -58,6 +58,10 @@ inline constexpr std::size_t kMaximumBlinkMs = 5000;
 inline constexpr std::size_t kMaximumHoldMs = 10000;
 // Samples one graph retains. The ring buffer is sized by this whatever point_count asks for.
 inline constexpr std::size_t kMaximumGraphPoints = 128;
+// Telemetry sources one graph draws on a single plot, counting the widget's own. Each one costs a point array and an LVGL line of its own, which is why this is the smallest of the multi-source caps.
+inline constexpr std::size_t kMaximumGraphSources = 3;
+// Entries in a graph's traces array: kMaximumGraphSources less the one the widget's own source already is. An array capacity has to name a limit of its own, which is why the total is stated separately.
+inline constexpr std::size_t kMaximumGraphTraces = 2;
 // Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays.
 inline constexpr std::size_t kMaximumTextSources = 3;
 // Value modifiers per text widget source.
@@ -440,9 +444,19 @@ struct IndicatorWidgetConfiguration {
   std::array<IndicatorSegment, kMaximumIndicatorSegments> segments{};
 };
 
-// A rolling trace of one telemetry source. The history is presentation
-// state the widget samples for itself; it is not a telemetry value and
-// nothing else can read it.
+// A second or third source drawn on the same plot as the graph's own. It
+// carries a window of its own, because a trace of speed beside one of
+// throttle would otherwise flatten against an edge, and a colour of its
+// own, because that is what tells the two apart.
+struct GraphTraceConfiguration {
+  ValueSourceConfiguration source{};
+  ValueRange range{};
+  std::uint32_t line_color{0x38BDF8};
+};
+
+// A rolling trace of one telemetry source, plus up to two more drawn over
+// the same plot. The history is presentation state the widget samples for
+// itself; it is not a telemetry value and nothing else can read it.
 struct GraphWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
@@ -451,6 +465,8 @@ struct GraphWidgetConfiguration {
   std::uint16_t sample_interval_ms{100};
   std::uint32_t line_color{0x38BDF8};
   std::uint16_t line_width_px{2};
+  std::uint8_t trace_count{};
+  std::array<GraphTraceConfiguration, kMaximumGraphTraces> traces{};
 };
 
 // An uploaded image drawn inside the frame. Neither scaled nor rotated: the

@@ -84,8 +84,8 @@ hand.
 ## Amendment: presentation history
 
 A widget may keep a bounded history of the values it has read, for its own
-drawing only. The graph widget does: it samples its source on its own timer into
-a fixed ring buffer and draws the result as a trace.
+drawing only. The graph widget does: it samples its sources on its own timer
+into fixed ring buffers and draws the result as traces.
 
 This does not make the widget a stateful modifier. A modifier produces a value
 the pipeline hands to whoever asked for it, which is why `lap_timer` is module
@@ -98,11 +98,28 @@ The bound is the point. History is a fixed array sized by `kMaximumGraphPoints`,
 allocated with the widget, so a trace cannot grow and the sample rate cannot
 outrun its storage.
 
+Amended in schema 13: a graph draws up to `kMaximumGraphSources` of them over
+one plot. Each trace is a source, a window and a colour, and each owns a history
+of its own — so the bound is now a product, which is why the source cap is the
+smallest of the three multi-source caps. What stays shared is the time axis: one
+`point_count` and one `sample_interval_ms` for the widget, sampled in one pass,
+because traces taken on separate clocks would not line up along it.
+
+The widget's own `source` is the first trace and `traces` holds the rest, rather
+than an array replacing both. That is the opposite of what schema 4 did to the
+text widget, and deliberately so: a gauge's `source`, `minimum` and `maximum`
+are the shape every value widget binds through, and a graph that spelled them
+differently would be the one exception to it. The cost is that the array holds
+one fewer entry than the widget draws, which is why `kMaximumGraphTraces` is
+stated beside `kMaximumGraphSources` instead of being derived at each reader.
+
 ## Consequences
 
 - The Lap Timer module remains independent from LVGL and string presentation.
 - A widget may retain bounded presentation history sampled on its own timer; it
   is not a telemetry value and does not enter the pipeline.
+- A widget may bind several sources without an array replacing the single-source
+  spelling, when that spelling is what its family shares.
 - Generic text widgets consume pre-bound read callbacks and have no concrete
   Lap Timer dependency.
 - One widget can align parts that separate widgets could not: a value label is
