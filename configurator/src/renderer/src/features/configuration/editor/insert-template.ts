@@ -1,4 +1,3 @@
-import { childArraysOf, createWidgetId } from '@shared/configuration-access'
 import type { WidgetConfiguration } from '@shared/configuration-schema'
 import { scaleWidgetPixels } from '@shared/layout-transfer'
 import { clamp } from './placement'
@@ -60,8 +59,9 @@ export function placeTemplateWidget(
   const box = completePlacement(fitted.widget.placement)
   if (!box) return undefined
 
+  // Ids are not renamed here: `insertWidget` gives the whole subtree fresh ones.
   const placed: WidgetConfiguration = {
-    ...freshWidgetIds(fitted.widget),
+    ...fitted.widget,
     placement: {
       ...box,
       x: clamp(Math.round(at.x - box.width / 2), 0, Math.max(0, display.width - box.width)),
@@ -74,24 +74,4 @@ export function placeTemplateWidget(
     added = insertWidget(configuration, placed)
   })
   return added
-}
-
-/**
- * Every widget in a fragment gets an identifier of its own.
- *
- * A fragment arrives carrying the identifiers it had in the dashboard it was
- * saved from, and a second copy of the same entry would then hold two widgets
- * claiming one id — which is what the layer list, the selection and
- * `goto_screen` all address widgets by. `insertWidget` renames the one widget
- * it is handed, which is enough for a single widget and not for a container or
- * for a whole screen's worth of them, so the subtree is renamed here.
- *
- * Mutates in place; every caller is holding a clone.
- */
-export function freshWidgetIds(widget: WidgetConfiguration): WidgetConfiguration {
-  widget.id = createWidgetId()
-  for (const children of childArraysOf(widget)) {
-    for (const child of children) freshWidgetIds(child)
-  }
-  return widget
 }

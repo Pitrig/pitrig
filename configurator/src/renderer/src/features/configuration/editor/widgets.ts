@@ -1,4 +1,4 @@
-import { allWidgetsOf, createWidgetId, isContainer, pagesOf } from '@shared/configuration-access'
+import { allWidgetsOf, freshWidgetIds, isContainer, pagesOf } from '@shared/configuration-access'
 import { type FontSpec, MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_NESTING_DEPTH, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_SLOT_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import { applyFontFamily, documentFonts } from '@shared/document-fonts'
@@ -108,7 +108,8 @@ function intoContainer(
 /**
  * The single insertion path: adding, duplicating and pasting all land here, so
  * a new widget cannot skip a cap check or reuse an id. The widget is inserted
- * as given apart from its id, which is always fresh.
+ * as given apart from its identifiers, which are fresh through the whole
+ * subtree — the widget itself and everything a container holds.
  */
 export function insertWidget(
   configuration: DeviceConfiguration,
@@ -128,14 +129,16 @@ export function insertWidget(
   if (pooled >= WIDGET_CAPACITIES[widget.type] || widgets.length >= cap) {
     return undefined
   }
+  // Every id in the subtree, not only the one on the widget handed in: a
+  // container arrives carrying the ids of the one it was copied from, and two
+  // widgets claiming one id are resolved to whichever the search reaches first
+  // — so a panel pasted onto the second screen answered every drag, every
+  // selection frame and every inspector edit with the original on the first.
+  const inserted = freshWidgetIds(structuredClone(widget))
+  if (box) inserted.placement = intoContainer(widget.placement, box)
   // A copy of a tap target is a second tap target, and the device holds
   // sixteen. Past that the copy is inserted without its action rather than
   // refused: what was asked for was the widget.
-  const inserted = {
-    ...widget,
-    id: createWidgetId(),
-    ...(box ? { placement: intoContainer(widget.placement, box) } : {})
-  }
   if (inserted.action && actionCount(configuration) >= MAXIMUM_ACTIONS) {
     delete inserted.action
   }

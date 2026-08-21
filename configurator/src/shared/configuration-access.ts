@@ -159,6 +159,29 @@ export function createWidgetId(): string {
 }
 
 /**
+ * Every widget in a fragment gets an identifier of its own.
+ *
+ * A copy carries the identifiers of the widget it was made from, and one
+ * rename is enough only for a widget that holds nothing: a container copied
+ * whole leaves two of its children claiming one id — which the layer list, the
+ * selection and every id lookup resolve to whichever comes first, so a copy
+ * pasted onto the second screen was dragged on the first.
+ *
+ * Mutates in place; every caller is holding a clone. The named id is on the
+ * result, so an insertion can report what it just added without asserting that
+ * a widget it renamed itself has a name.
+ */
+export function freshWidgetIds(
+  widget: WidgetConfiguration
+): WidgetConfiguration & { id: string } {
+  widget.id = createWidgetId()
+  for (const children of childArraysOf(widget)) {
+    for (const child of children) freshWidgetIds(child)
+  }
+  return widget as WidgetConfiguration & { id: string }
+}
+
+/**
  * Assigns an id to every widget and screen that lacks one, at any depth. Ids are
  * optional in the schema, so an imported or hand-written document may arrive
  * without them, and everything is addressed by id in selection, the layer tree
