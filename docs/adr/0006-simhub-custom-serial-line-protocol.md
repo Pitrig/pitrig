@@ -4,8 +4,8 @@
 
 SimCore receives both module inputs and telemetry over a board-selected serial
 transport. Generic text widgets may show the source value exactly or apply a
-typed presentation transform. Lap Timer, Delta Time, best lap, and estimated
-lap therefore require numeric milliseconds.
+typed presentation transform. Lap times — current, best, estimated and the
+signed delta between them — therefore require numeric milliseconds.
 
 ## Decision
 
@@ -27,8 +27,12 @@ Device profile and configurator profile data from the canonical catalog and a
 separate generic SimHub mapping manifest. The checked-in profile enables every
 catalog field. The configurator can export either that complete set or only
 the dependencies of its current dashboard draft. Dashboard dependencies are
-the canonical binding of each Text widget, `session.lap.delta` for a Delta Time
-widget, and `session.lap.current_time` for a Lap Timer modifier.
+every binding the document reads, whether or not a widget shows it: the sources
+a text widget composes, the source a mapped widget consumes, a
+`condition_source`, an image's `sprite_frame_source`, a slot page's trigger
+source, and `session.lap.current_time` for a Lap Timer modifier. The walk is
+driven by the generated widget-type list, so a type added to the contract
+cannot be silently left out of the profile.
 
 Both export paths use the catalog rate classes: 60 Hz for fast, 20 Hz for
 normal, 5 Hz for slow, and changes-only for stable values. The complete profile
@@ -48,8 +52,8 @@ layer.
 - SimHub controls source text for text-valued fields; firmware configuration
   controls typed formatting, prefixes, and suffixes.
 - Text-widget instances can independently format the same canonical value.
-- Lap Timer and Delta Time retain numeric behavior without coupling widgets to
-  protocol parsing.
+- Lap timing retains numeric behavior without coupling widgets to protocol
+  parsing.
 - Parsing and state updates use fixed storage and no runtime allocation.
 - SimHub identifiers do not escape the protocol implementation.
 - Generic SimHub property names remain isolated from the canonical catalog and

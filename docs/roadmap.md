@@ -15,7 +15,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] FreeRTOS and LVGL scheduler ownership decision
 - [*] Telemetry catalog, registry and handle-based ingestion
 - [*] Performance service and debug overlay
-- [*] Generated configuration contract (schema 12)
+- [*] Generated configuration contract
 - [*] Screen as an explicit composition primitive
 - [*] Compile-time widget type descriptors
 - [*] Double-buffered runtime configuration ownership

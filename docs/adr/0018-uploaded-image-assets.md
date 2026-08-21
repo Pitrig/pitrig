@@ -116,7 +116,7 @@ describes itself and a bitmap does not, which is the whole of the difference.
   back and the picked source is gone with the session — so the configurator
   keeps its own copy of them for the editor's preview, under the asset cache
   decided in
-  [ADR 0010](0010-uploaded-font-assets.md#amendment-the-configurator-keeps-a-copy-of-what-it-installs).
+  [ADR 0010](0010-uploaded-font-assets.md#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs).
   The preview draws the converted image, so RGB565 banding shows there rather
   than first on the board.
 

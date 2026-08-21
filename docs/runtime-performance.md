@@ -1,10 +1,10 @@
 # Runtime Performance Diagnostics
 
-`PerformanceService` publishes a one-second snapshot containing FPS, CPU usage
-per core, the render/flush/sync split of a frame, the slowest frame and its
-processing and idle parts, internal heap information, available PSRAM, uptime,
-and the free stack of each monitored task. The debug overlay adds transport
-counters read straight from the active transport.
+The `simcore::performance` service publishes a one-second snapshot containing
+FPS, CPU usage per core, the render/flush/sync split of a frame, the slowest
+frame and its processing and idle parts, internal heap information, available
+PSRAM, uptime, and the free stack of each monitored task. The debug overlay
+adds transport counters read straight from the active transport.
 
 ## Build profile
 

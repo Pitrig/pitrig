@@ -91,6 +91,5 @@ board or controller.
   matching configurator board profile.
 - LVGL is owned by the display component and is not initialized by the hardware
   driver.
-- All supported drivers may remain linked into one firmware image. Supported
-  configurable devices may select drivers without changing the immutable board
-  identity or overriding read-only board capabilities.
+- Supported configurable devices may select drivers without changing the
+  immutable board identity or overriding read-only board capabilities.

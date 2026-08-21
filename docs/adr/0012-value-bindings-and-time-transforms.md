@@ -72,14 +72,11 @@ during configuration validation.
 Lap time presentation uses the reusable Text widget with the `lap_timer`
 modifier and `time` transform. There is no parallel dedicated widget path.
 
-Bindings, modifiers, and transforms arrived as an additive schema 2 extension,
-and moving the affixes off the time transform left the payload unchanged.
-Replacing the widget-level `binding`, `modifiers`, and `transform` with
-`sources` does not: it is schema 4, and firmware carries no second spelling. The
-configurator migrates a document authored against an older schema when it loads
-it, so the one-time cost is a device rejecting its stored record and booting the
-factory dashboard until the next upload, not a configuration anyone rewrites by
-hand.
+The ordered `sources` array replaced a widget-level `binding`, `modifiers` and
+`transform`, and firmware carries no second spelling of it. The configurator
+migrates a document authored against an older schema when it loads it, so the
+one-time cost is a device rejecting its stored record and booting the factory
+dashboard until the next upload, not a configuration anyone rewrites by hand.
 
 ## Amendment: presentation history
 
@@ -106,8 +103,8 @@ smallest of the three multi-source caps. What stays shared is the time axis: one
 because traces taken on separate clocks would not line up along it.
 
 The widget's own `source` is the first trace and `traces` holds the rest, rather
-than an array replacing both. That is the opposite of what schema 4 did to the
-text widget, and deliberately so: a gauge's `source`, `minimum` and `maximum`
+than an array replacing both. That is the opposite of what the text widget did,
+and deliberately so: a gauge's `source`, `minimum` and `maximum`
 are the shape every value widget binds through, and a graph that spelled them
 differently would be the one exception to it. The cost is that the array holds
 one fewer entry than the widget draws, which is why `kMaximumGraphTraces` is

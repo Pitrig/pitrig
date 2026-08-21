@@ -1,12 +1,10 @@
 # ADR 0009: Persistent Runtime Configuration
 
-Status: Accepted; the schema 2 document shape is superseded by ADR 0013 and
-the reboot-only application rule by ADR 0016. The two-slot NVS record
-strategy and the fact that the payload is bounded remain in force; the bound
-itself lives in the schema rather than here.
-Implementation status: the desktop configurator now supports the complete
-control round trip, and the legacy schema 0 CLI and inheritance profiles have
-been removed. Schema 2 font references are defined by ADR 0010.
+Status: Accepted; the document shape it introduced is superseded by ADR 0013
+and its reboot-only application rule by ADR 0016. What remains in force is the
+two-slot NVS record strategy, the storage partition, the external-RAM arena,
+and the fact that the payload is bounded — the bound itself lives in the schema
+rather than here. Font references are defined by ADR 0010.
 
 ## Context
 
@@ -15,9 +13,9 @@ desktop configurator, and cannot make a device permanently unbootable after an
 interrupted write. Runtime storage must remain bounded and isolated from
 unrelated NVS users.
 
-The original schema stored a complete expanded snapshot. Sparse JSON was
-expanded through a board profile by the CLI, so a board-only file silently
-enabled modules, regions, and widgets. That behavior is incompatible with a
+The original format stored a complete expanded snapshot, and a sparse file was
+expanded through a board profile before it was stored — so a board-only file
+silently enabled modules and widgets. That behavior is incompatible with a
 configurator-first workflow where omitted components must remain absent and a
 freshly flashed device must show an empty screen.
 
@@ -29,11 +27,10 @@ user-configured hardware devices, modules, or widgets. Hardware declared as
 built into the board remains enabled according to the immutable board-registry
 mapping; in particular, a board-provided display is initialized by default.
 
-Replace the legacy schemas with schema 2. Schema 2 is a bounded sparse JSON
-document:
+Persist a bounded sparse JSON document:
 
 - the public authoring document is also the public transport payload;
-- property names and nesting are defined by the schema 2 JSON contract;
+- property names and nesting are defined by the JSON contract (ADR 0013);
 - the board identifier is mandatory;
 - the configurable hardware-device list is optional and may be empty;
 - optional sections and fields remain absent when omitted;
@@ -44,15 +41,15 @@ The line-oriented control protocol transfers compact JSON directly, without a
 secondary TLV or hexadecimal representation. Missing properties remain
 missing instead of being expanded through a board profile.
 
-Keep the desktop configurator's sparse schema 2 authoring draft independent
-from a device session. A disconnect does not clear it, and connecting a board
+Keep the desktop configurator's sparse authoring draft independent from a
+device session. A disconnect does not clear it, and connecting a board
 does not replace an existing local draft. The draft's `board` selects the
 configurator's immutable local board profile for offline preview and editing.
 Loading from the connected board is an explicit replacement operation. Saving
 to a board requires matching board identities.
 
 Allow the configurator to create a board-only local draft and import or export
-the same public schema 2 JSON through desktop file dialogs. File import checks
+the same public JSON through desktop file dialogs. File import checks
 the supported board, bounded schema shape, and compact firmware payload limit.
 Local files introduce no project-only properties into the device payload.
 
@@ -63,7 +60,7 @@ CRC32. Write and verify the inactive slot before selecting it. These record
 headers and slot mechanics remain private firmware details.
 
 Bound the compact JSON payload at `kMaximumPayloadSize`, which the generated
-configuration contract defines — 65536 bytes as of schema 11. Size the dedicated
+configuration contract defines. Size the dedicated
 `simcore_cfg` NVS partition at 1 MiB (`0x100000`). Two full-size records, the
 copy NVS keeps while it rewrites one, and NVS's own page metadata fit in a
 quarter of that; the rest is deliberate headroom for storing several
@@ -92,13 +89,8 @@ platform-independent services. Keep the bounded telemetry line buffer in
 internal RAM; the communication router switches to the external control-line
 workspace only after recognizing the `@SC:` prefix.
 
-Schema 0 and schema 1 records are not migrated. They are treated as unsupported
-and startup falls back to a valid schema 2 slot or the board-only factory
-configuration. Saving still takes effect after restart.
-
-The schema 0 configuration CLI was not extended to encode schema 2. It was
-removed after the configurator implemented `INFO`, `GET`, `VALIDATE`, `SET`,
-`RESET`, and `REBOOT`, together with its inheritance profiles.
+A record of an unsupported schema version is not migrated: startup falls back
+to the other valid slot or to the board-only factory configuration.
 
 ## Consequences
 
@@ -112,14 +104,12 @@ removed after the configurator implemented `INFO`, `GET`, `VALIDATE`, `SET`,
 - Omitted components do not reappear through hidden profile inheritance.
 - Public JSON and private NVS record framing remain separate contracts.
 - Offline authoring, JSON file exchange, and device persistence use the same
-  sparse schema 2 document.
+  sparse document.
 - Connecting or disconnecting hardware cannot silently discard a local draft.
 - A local draft for one board cannot be written to a different board.
 - Interrupted or corrupt writes retain the existing verified-slot recovery.
 - Storage, protocol, and runtime containers remain bounded and deterministic.
 - Large configuration workspaces do not consume internal RAM, while normal
   telemetry ingestion remains on the internal-memory hot path.
-- Schema 0 and schema 1 configurations are intentionally discarded after the
-  upgrade.
 - Adding or changing public fields requires a documented schema change shared
   by firmware and configurator.

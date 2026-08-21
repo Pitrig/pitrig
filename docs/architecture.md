@@ -77,27 +77,26 @@ The firmware should avoid device-specific code paths.
 # High-Level Architecture
 
 ```
-                   +-------------------------+
-                   |     SimHub / PC App     |
-                   +------------+------------+
-                                |
-                                |
-                      Communication Layer
-                                |
-+---------------------------------------------------------------+
-|                        Firmware Core                          |
-|---------------------------------------------------------------|
-| Startup                                                   |
-| Configuration                                             |
-| Scheduling Ownership                                     |
-| Event System                                              |
-| Static Service Composition                                |
-| Bounded Module Manager                                    |
-+---------------------------------------------------------------+
-              |                    |                    |
-              |                    |                    |
-       +------+-----+       +------+-----+       +------+------+
-       |   Modules   +------>| Components |       |  Services   |
+                    +-------------------------+
+                    |     SimHub / PC App     |
+                    +------------+------------+
+                                 |
+                       Communication Layer
+                                 |
++----------------------------------------------------------------+
+|                         Firmware Core                          |
+|----------------------------------------------------------------|
+| Startup                                                        |
+| Configuration                                                  |
+| Scheduling Ownership                                           |
+| Event System                                                   |
+| Static Service Composition                                     |
+| Bounded Module Manager                                         |
++----------------------------------------------------------------+
+              |                    |                     |
+              |                    |                     |
+       +------+-----+       +------+-----+       +-------+-----+
+       |  Modules   +------>| Components |       |  Services   |
        +------------+       +------+-----+       +-------------+
                                    |
                               Interfaces
@@ -106,7 +105,7 @@ The firmware should avoid device-specific code paths.
                     |                             |
                Display Drivers               Input Drivers
                     |                             |
-              T-Display-S3...              GT911 touch, Buttons...
+              T-Display-S3...                  GT911 touch
 ```
 
 ---
@@ -221,19 +220,15 @@ lookup.
 
 Components expose reusable hardware capabilities to the core and modules.
 
-Examples include:
+Two exist:
 
 - Display
 - Touch Input
-- LED Strip
-- LED Matrix
-- Buttons
-- Encoders
 
-Display and Touch Input exist; the rest are still owed. The input component
-registers the board's pointer with the LVGL port and nothing else — the board
-descriptor carries its input driver as a nullable pointer, so a board with no
-digitizer is a board fact rather than a special case in the core, and a
+LED strips, LED matrices, buttons and encoders are still owed. The input
+component registers the board's pointer with the LVGL port and nothing else —
+the board descriptor carries its input driver as a nullable pointer, so a board
+with no digitizer is a board fact rather than a special case in the core, and a
 digitizer that fails to answer is logged and survived rather than fatal
 ([ADR 0019](adr/0019-input-interface-and-touch.md)).
 
@@ -245,15 +240,9 @@ Components depend on interfaces rather than concrete drivers.
 
 # Modules
 
-Modules provide user-visible functionality.
-
-Examples:
-
-- Shift Lights
-- Lap Timer
-- Spotter
-- Race Control
-- Display Pages
+Modules provide user-visible functionality. `lap_timer` is the only one so far:
+it owns lap-time extrapolation, correction and stale-telemetry handling behind
+a value-pipeline callback.
 
 Modules communicate through platform services rather than directly with each other whenever possible.
 
@@ -299,14 +288,18 @@ Neither side simulates telemetry. The configurator receives none — the control
 
 Services provide shared infrastructure used by the core, components, modules, and drivers when appropriate.
 
-Examples include:
+They are:
 
-- Logging
-- Scheduling
-- Configuration
-- Communication
-- Font and image asset catalogs and package validation
-- Uploaded asset storage and the shared binary upload session
+- Logging, and the debug-only performance collector
+- The configuration contract, the configuration service over it, and the
+  transport-facing configuration control
+- Telemetry — registry, state and the SimHub protocol under it
+- The event bus
+- Font and image asset catalogs and package validation, and the leaf font and
+  image contracts beside them
+- Uploaded asset storage, the shared package header, the shared `SCF1` upload
+  engine and the binary session claim over it, plus the font, image and
+  firmware kinds on that engine
 
 The `configuration_contract` service component owns the bounded
 application value contract. The configuration service parses, validates, and
@@ -393,14 +386,13 @@ code: `CONFIG_LCD_DSI_ISR_CACHE_SAFE` in the P4 defaults, plus a version-pinned
 patch to `esp_lvgl_port` under `firmware/patches/` that `firmware/cmake/`
 applies so the port's flush callback honours it.
 
-Examples include:
+What exists:
 
-- Display drivers
-- LED drivers
-- Encoder drivers
-- Touch drivers
-- CAN drivers
-- USB drivers
+- Display drivers, one per board (T-Display-S3, Guition ESP32-4848S040,
+  Guition JC1060P470C)
+- One touch driver, the GT911
+- Transport drivers: UART, USB CDC and USB-Serial-JTAG, over a shared
+  `transport_common`
 
 Drivers implement interfaces used by components.
 

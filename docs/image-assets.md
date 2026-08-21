@@ -202,7 +202,7 @@ The host can query persisted asset state without starting an upload:
 
 ```text
 @SC:IMAGE:INFO
-@SC:OK:IMAGE:INFO:storage=1,package=1,format=1,images=2,size=397312,reboot_required=0,entries=logo:128x64:rgb565a8;shift_bar:320x24:rgb565
+@SC:OK:IMAGE:INFO:storage=1,package=1,format=2,images=2,size=397312,reboot_required=0,entries=logo:128x64:rgb565a8;shift_bar:320x24:rgb565
 ```
 
 `storage` reports whether the partition is available. `package` reports whether

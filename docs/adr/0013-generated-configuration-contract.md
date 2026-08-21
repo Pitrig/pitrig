@@ -1,14 +1,14 @@
 # ADR 0013: Generated Configuration Contract
 
-Status: Accepted; supersedes the schema 2 document shape defined by ADR 0009
+Status: Accepted; supersedes the document shape defined by ADR 0009
 
 ## Context
 
 The configuration contract existed twice by hand: bounded C++ structures in
 `configuration_contract`, and a TypeScript mirror in `configurator/src/shared`.
 Nothing cross-checked them, and they had drifted. The configurator emitted a
-`#00000000` background sentinel firmware rejects outright, its Delta Time colour
-and range defaults disagreed with the firmware defaults, and its main-process
+`#00000000` background sentinel firmware rejects outright, several of its widget
+defaults disagreed with the firmware defaults, and its main-process
 validation checked a few node shapes while firmware rejected unknown properties
 outright — so the configurator could ship payloads the device refused.
 
@@ -37,9 +37,9 @@ key tables; and the mechanical property reference in
 than shape: helpers over the generated storage, the private `ValidationContext`
 that validates a document against immutable hardware, and semantic validation.
 
-Raise the schema to version 3 and put the version inside the document instead of
-leaving it implicit in the firmware build. Schema 2 records are not migrated;
-they are unsupported and startup falls back as ADR 0009 already specifies.
+Put the schema version inside the document instead of leaving it implicit in the
+firmware build, and raise it whenever the shape changes. A record of an
+unsupported version is not migrated; startup falls back as ADR 0009 specifies.
 
 Discriminate widgets by an explicit `type` tag inside one heterogeneous
 `widgets` array, replacing structural encoding. Give every widget and screen a
@@ -88,8 +88,8 @@ generating it would mean describing logic in JSON.
   device to refuse.
 - A rejection identifies the widget and property that caused it.
 - Adding a widget type no longer touches roughly nineteen sites.
-- Schema 2 documents are rejected; existing device configurations are discarded
-  and must be authored again.
+- A document of an unsupported version is rejected rather than guessed at, so a
+  contract change costs one re-authoring rather than a silent misreading.
 - `configuration/configuration_schema.json` and the generator become part of the
   public contract: editing generated files directly is a defect, and `--check`
   belongs in any verification pass.

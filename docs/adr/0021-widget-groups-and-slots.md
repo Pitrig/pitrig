@@ -1,34 +1,10 @@
 # ADR 0021: Nested Containers, Slots and Pages
 
 Status: Accepted; takes the extension ADR 0007 reserved and extends ADR 0014 one
-level down. Introduced in schema 6 as a separate `group` primitive; replaced in
-schema 9 by the shape widget, which holds widgets; the slot separated from the
-shape into a widget type of its own in schema 10. Schema 11 returns the clip
-schema 9 had removed, this time as an authored property that is on by default.
-
-## Superseded decisions
-
-Schema 6 through 8 had `screen.groups`: a list of `GroupConfiguration` records,
-each an invisible rectangle with an id, a box, a slot and its own `widgets`
-array, and a `group_index` on every widget beside its `screen_index`. Everything
-that record did is now done by the shape widget, and `screen.groups` is gone.
-Two decisions from that version were reversed and are recorded below: children
-were clipped to the container, and nesting was out of scope. Nesting stays in.
-The clip came back in schema 11, but not as the unconditional rule it had been —
-the case that argued against it is real and now has a property of its own.
-
-Schema 9 made a slot a number on a container shape: shapes carrying the same
-`slot` were the alternatives, and validation held them together by refusing any
-that disagreed on box, screen or parent. That is reversed in schema 10 and
-recorded below. What went wrong was not the behaviour but where it lived. An area
-that switches was five cross-widget rules over a set of shapes that had no name
-between them, rather than one object; the author kept the boxes in step by hand
-while the editor watched; the slot controller and the frame painter both wrote
-`LV_OBJ_FLAG_HIDDEN`, reconciled only by refusing hiding rules on a member; and a
-slot number was a dashboard-wide namespace capped at four even though every
-member of one had to share a screen and a parent anyway. The `slot`,
-`slot_default`, `slot_source` and `slot_conditions` properties are gone from the
-shape.
+level down. It arrived as a separate `group` primitive with a slot expressed as a
+number shared between shapes; both are gone. A container is the shape widget, a
+slot is a widget type holding pages, and the clip is an authored property that is
+on by default.
 
 ## Context
 
@@ -50,12 +26,12 @@ wrong tool for a corner of one. Swapping the screen to change a quarter of it
 throws away the three quarters that did not change.
 
 Two things about the first version of this ADR turned out to be wrong in use.
-A group painted nothing, so every area that needed a visible plate had a shape
-widget dropped inside it whose only job was to be the box the group already
-was — one concept authored as two. And the clip, taken for free from LVGL, cut
-things the author meant to see: a caption straddles its widget's top border by
-design, so a captioned widget at the top of a group lost the top half of its
-label, and a widget nudged past the container's edge disappeared instead of
+A container that painted nothing meant every area needing a visible plate had a
+shape widget dropped inside it whose only job was to be the box the container
+already was — one concept authored as two. And an unconditional clip cut things
+the author meant to see: a caption straddles its widget's top border by design,
+so a captioned widget at the top of a container lost the top half of its label,
+and a widget nudged past the container's edge disappeared instead of
 overhanging it.
 
 ## Decision
@@ -142,8 +118,8 @@ and no place in a stacking order — it is the slot's box, and the widgets on it
 are placed relative to that. What it is, at runtime, is one bare LVGL object: a
 page is shown or hidden with a single flag write on that object rather than one
 per widget on it, and because the flag is written on the page instead of on the
-widgets, nothing here touches the flag the frame painter owns. The hiding rule
-that schema 9 had to refuse on a slot member is ordinary again.
+widgets, nothing here touches the flag the frame painter owns, so a hiding rule
+on a widget inside a slot is ordinary.
 
 Pages have no pool of their own either. A slot's pool index times
 `kMaximumSlotPages` plus the page addresses the flat table the layout resolves a
@@ -270,19 +246,15 @@ version of this ADR excluded, is now in.
   own conditional rules cannot show it.
 - The source of every slot page must be sent to SimHub like a widget's, or its
   trigger never receives a value.
-- A slot's box is the box of every page, so there is nothing to keep in step: the
-  geometry rule schema 9 enforced across members is now simply unrepresentable.
+- A slot's box is the box of every page, so there is nothing to keep in step:
+  alternatives that disagree on geometry are unrepresentable rather than
+  rejected.
 - Everything is optional. A slot with two plain pages is an area a tap cycles; a
   shape with children and no slot is a container that moves as one in the editor.
 - `value_changed` compares exactly, so it is meant for booleans and discrete
   levels. A float that drifts would fire on every reading.
-- A dashboard authored against schema 9 or earlier is not accepted by schema 10
-  firmware, which is what that version bump recorded. The two slot models do not
-  correspond — several shapes agreeing on a box are not one slot with several
-  pages — so migration drops the old properties rather than guessing, and the
-  shapes stay as ordinary containers.
-- Schema 11 takes another bump for one added property, because a document
-  carrying it is refused outright by schema 10 firmware and because the default
-  changes what an existing document draws. A board therefore has to be updated
-  before the configurator will talk to it, which is the honest outcome: the
-  alternative is a canvas that clips and a board that does not.
+- Both steps took a schema version bump, so a document authored against an
+  earlier one is refused rather than migrated: the two slot models do not
+  correspond, and the clip changes what an existing document draws. A board has
+  to be updated before the configurator will talk to it, which is the honest
+  outcome — the alternative is a canvas that clips and a board that does not.

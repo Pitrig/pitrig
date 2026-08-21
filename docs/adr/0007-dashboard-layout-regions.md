@@ -30,14 +30,9 @@ The dashboard may additionally define one opaque `background_color`; when it
 is absent the screen remains black.
 
 Each widget may define a signed 16-bit `z_index`; larger values render above
-smaller values. The default is zero. Equal values retain stable configuration
-order: the dedicated Delta Time widget first, followed by Text widgets in
-array order. The configurator preview uses the same ordering rule as LVGL.
-
-Keep Delta Time as a dedicated widget because it renders module-specific scale
-state. Represent Lap Timer and direct telemetry labels with the bounded reusable
-text-widget type. Widget presence in the sparse configuration controls whether
-a widget is created.
+smaller values. The default is zero. Equal values retain stable authored order.
+The configurator preview uses the same ordering rule as LVGL. Widget presence in
+the sparse configuration controls whether a widget is created.
 
 Value bindings remain bounded canonical telemetry fields. A startup-only binder
 resolves and type-checks bindings and modifier pipelines before LVGL objects are
@@ -55,7 +50,5 @@ created; periodic update paths keep using only bound read callbacks.
   lookup, clipping, padding, or anchor resolution.
 - Shared visual grouping must be represented by an explicit widget or another
   future composition primitive, not by an implicit layout container.
-- Existing schema 0 configurations are not compatible because their geometry
-  depends on regions and anchors.
 - Invalid bounds or telemetry bindings still fail validation before widget
   creation.

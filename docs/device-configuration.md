@@ -1,7 +1,9 @@
 # Device configuration
 
-This document defines the schema 12 configuration contract implemented by the
-firmware and read by the desktop configurator. Earlier schemas are
+This document defines the configuration contract implemented by the firmware
+and read by the desktop configurator. Its version, property table and bounds
+live in `configuration/configuration_schema.json` and its generated reference,
+[configuration-schema.md](configuration-schema.md). Earlier schemas are
 intentionally not part of the current contract.
 
 ## Hardware identity and user configuration
@@ -720,12 +722,10 @@ render above smaller values. Missing values default to zero; equal values use
 stable configuration order so the configurator preview and firmware display
 remain identical.
 
-The preview toolbar exposes one button per widget type plus `Duplicate`, undo,
-redo and `Delete`. Adding a widget creates it with only a centered placement
-(clamped for smaller displays), leaving its content and style fields unset for
-explicit configuration in the inspector; a new image widget is the one exception
-and starts on the first installed image, because an image widget without one has
-nothing to draw.
+A drawn widget carries only its box, leaving its content and style fields unset
+for explicit configuration in the inspector; a new image widget is the one
+exception and starts on the first installed image, because an image widget
+without one has nothing to draw.
 
 The preview draws no telemetry values. The configurator never receives any —
 the control protocol carries no command for reading them and SimHub owns the
@@ -861,7 +861,7 @@ checks before it lets a configuration replace the running dashboard.
 
 ```text
 @SC:INFO
-@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=11,source=factory,generation=0,storage=1
+@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=13,source=factory,generation=0,storage=1
 ```
 
 Fields:
@@ -1022,10 +1022,3 @@ was read but not loaded — another schema version, a malformed record, a failed
 checksum, or a document this firmware rejects — is named in the boot log with
 its reason, so a device that comes up on the factory dashboard after a firmware
 update can be told apart from one that was never configured.
-
-## Legacy tooling
-
-The schema 0 Python configuration CLI and its inheritance profiles were removed
-after the desktop configurator implemented the complete `INFO`, `GET`,
-`VALIDATE`, `SET`, `RESET`, and `REBOOT` round trip. Current tooling authors and
-transfers only the sparse JSON document described here.

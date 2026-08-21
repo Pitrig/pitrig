@@ -11,8 +11,8 @@ where fonts are project assets selected by the user.
 
 Font data can be much larger than runtime configuration. It must not be placed
 inside the sparse JSON payload or the configuration NVS records. The upload
-path must detect incomplete or corrupt packages even though the MVP does not
-retain a second copy for rollback.
+path must detect incomplete or corrupt packages even though no second copy is
+retained for rollback.
 
 ## Decision
 
@@ -89,10 +89,6 @@ composition reports that unresolved dependency instead of substituting another
 font. A pixel size is never an unresolved dependency: it is rasterized on
 demand.
 
-Schema 1 persisted configuration is not migrated because its closed `lcd` and
-`roboto_mono` identifiers refer to fonts that no longer exist. Firmware falls
-back to a valid schema 2 slot or the board-only factory configuration.
-
 ## Shared upload engine
 
 Fonts were the first uploaded asset kind and this decision was written for
@@ -119,15 +115,10 @@ two places.
 - Replacing a package requires a reboot before the new faces are used.
 - An interrupted update can remove the previous package; there is no second
   slot or rollback generation.
-- The configurator must retain source fonts in its local project and upload the
-  complete family set before expecting custom rendering. *(Superseded: the font
-  library holds the faces, and a document names library ids rather than
-  travelling with files.)*
-- The configurator derives the target package from configuration dependencies,
-  asks for one source per family, uploads the complete package, and only then
-  saves the configuration. It no longer carries a font converter. *(Superseded:
-  it resolves the families from the library and asks for a file only when one
-  cannot be resolved.)*
+- The configurator resolves the families a document names against its font
+  library, builds the package from them, uploads it, and only then saves the
+  configuration. It carries no font converter, and asks for a file only when a
+  family cannot be resolved.
 - Every device connection performs a fresh configuration and font manifest
   probe. Reconnecting clears transient validation and upload feedback before
   the configurator evaluates the newly reported device state.
@@ -137,14 +128,7 @@ two places.
 - The single partition, bounded asset service, read-only flash mapping, and
   LVGL font registry are implemented. The exact package contract is
   documented in [Font asset storage](../font-assets.md).
-- The firmware binary upload protocol and the configurator-side upload
-  orchestration are implemented. Project persistence and editor integration
-  remain separate phases.
-- Package format 3 is not backward compatible and installed format 2 packages
-  read as absent, so firmware and configurator must ship together and existing
-  devices need one re-upload.
-- Text metrics come from the face rather than from a converter, so a dashboard
-  authored against the previous packages can shift by a pixel or two.
+- Text metrics come from the face rather than from a converter.
 
 ## Amendment: the binary stream is shared
 
@@ -156,52 +140,39 @@ takes a claim, synchronously on the task that reads the bytes, inside its
 the shared `asset_storage` contract at the same time; the font package format
 and everything above it are unchanged.
 
-## Amendment: the configurator keeps a copy of what it installs
+## Amendment: the configurator keeps a copy of the images it installs
 
-Superseded for fonts by the library amendment below, which gives the
-configurator the face bytes whether or not any board was ever given them. The
-images half of this decision stands unchanged: an image is converted before
-upload and the converted pixels exist nowhere else.
+An uploaded image under [ADR 0018](0018-uploaded-image-assets.md) is converted
+before it is sent and the converted pixels exist nowhere else: the device holds
+no decoder and hands nothing back, and the picked source file is a path held in
+memory for the length of one session. Without a copy the canvas would fall back
+to a named box for the rest of the project's life.
 
-This ADR moved rasterization onto the board and left the configurator with no
-converter — which also left it with nothing to draw with. A face is uploaded and
-then unreachable: the device rasterizes it and exposes only family names, and
-the picked source file is a path held in memory for the length of one session.
-The editor's preview therefore drew every dashboard in a stand-in system face,
-so string widths, line heights and the caption's gap in the border were
-approximations of the board's, and the same gap applied to images under
-[ADR 0018](0018-uploaded-image-assets.md), which are converted in the
-configurator and then equally unreachable.
-
-**Decision.** The configurator writes a copy of every asset it installs to a
-cache under the app's `userData` directory — the face bytes unchanged, and each
-image re-encoded from the *converted* pixels so the preview carries the resize
-and the colour reduction the upload applied. The renderer registers each face as
-a `FontFace` and measures text with it, so the canvas lays out from the same
-metrics the board does.
+**Decision.** The configurator writes each image it installs to a cache under
+the app's `userData` directory, re-encoded from the *converted* pixels so the
+preview carries the resize and the colour reduction the upload applied. Faces
+are deliberately not cached: the font library below owns them and answers
+whether or not a board was ever given them.
 
 The cache mirrors a device package rather than anything the author wrote, so:
 
 - it is replaced whole on upload and emptied on clear, exactly as the package
   it stands for;
 - nothing depends on it. A missing, stale or unreadable entry costs the preview
-  its fidelity and falls back to the stand-in font and the named image box —
-  never the upload, the document, or validation;
+  its fidelity and falls back to the named image box — never the upload, the
+  document, or validation;
 - it stays out of the saved project. A project is a sparse configuration
   document, and binding megabytes of asset to it is a separate decision about
   the project format that this does not take.
 
 **Consequences.**
 
-- Preview fidelity survives restarts and works with no board connected, but only
-  for assets *this* installation uploaded. Opening someone else's project, or
-  one authored on another machine, still draws in the stand-in face until its
-  fonts are uploaded here.
+- An image drawn on the canvas is the bitmap the board holds, but only for one
+  installed by *this* installation; someone else's project draws a named box
+  until its images are uploaded here.
 - Glyph rasterization still differs: the browser and LVGL's TinyTTF hint and
   antialias differently, so the preview matches the board's layout, not its
   pixels.
-- Font bytes cross to the renderer as bytes rather than as a `data:` URL, so the
-  renderer's content policy keeps `data:` for images alone.
 
 ## Amendment: a family is chosen from a library, not named
 

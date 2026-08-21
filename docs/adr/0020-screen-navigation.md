@@ -1,7 +1,7 @@
 # ADR 0020: Screen Navigation
 
 Status: Accepted; completes the seam ADR 0014 left open. Amended in schema 7:
-a widget or a group may carry a tap that navigates, which narrows — but does not
+any widget may carry a tap that navigates, which narrows — but does not
 remove — the rule that navigation is unauthored.
 
 ## Context
@@ -85,8 +85,8 @@ button — `LAP`, `PIT` — and a corner of the screen that goes back are both
 things a dashboard wants to say, and neither is expressible by "the gesture is
 the same on every screen".
 
-So a widget and a group may each carry one **action**: `next_screen`,
-`previous_screen`, or `goto_screen`. A tap on that object performs it.
+So a widget may carry one **action**: `next_screen`, `previous_screen`, or
+`goto_screen`. A tap on that object performs it.
 
 The claim this replaces read "navigation is behaviour of the composition, not a
 property in the document". What stays true is narrower and is what the original
@@ -101,14 +101,14 @@ future addressing survive reordering and deletion" — and a document that reads
 is resolved to an index once, in the composition, beside where a font family is
 resolved and for the same reason: a tap looks nothing up.
 
-A group in a slot already spends its tap on cycling its own contents, so a group
-that carries both a slot and an action would give one tap two meanings.
-Validation refuses it rather than ranking them.
+A slot already spends its tap on cycling its pages, so a slot that carried an
+action as well would give one tap two meanings. Validation refuses it rather
+than ranking them.
 
-A widget with an action inside a slot group consumes the tap, and the slot does
-not cycle. That is not a rule of its own — it is what event bubbling already
-does, and it is the behaviour an author would expect from a button drawn inside
-an area.
+A widget with an action on one of a slot's pages consumes the tap, and the slot
+does not cycle. That is not a rule of its own — it is what event bubbling
+already does, and it is the behaviour an author would expect from a button
+drawn inside an area.
 
 Bindings live in the navigation controller, which already owns the screens and
 the active index, and are bounded at sixteen for the whole dashboard. They are
@@ -122,10 +122,9 @@ callback.
 - Adding a screen costs a reference table; the widget budget is unchanged and
   still shared across every screen.
 - How a dashboard moves is still not authorable — order, gesture and transition
-  are fixed. Which objects move it is authorable, as one property per widget or
-  group.
-- An empty group is an invisible rectangle that takes a tap, which is how "this
-  corner goes back" is expressed without a widget to press.
+  are fixed. Which objects move it is authorable, as one property per widget.
+- An empty transparent shape is an invisible rectangle that takes a tap, which
+  is how "this corner goes back" is expressed without a widget to press.
 - A tap target costs a binding and makes one object clickable; sixteen of them
   is the dashboard-wide bound.
 - On the T-Display-S3 a document with more than one screen validates, applies,

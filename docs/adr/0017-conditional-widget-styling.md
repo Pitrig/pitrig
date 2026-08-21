@@ -6,10 +6,10 @@ Status: Accepted
 
 Every colour a widget renders was fixed when it was built, so a dashboard could
 not go red at the rev limiter, hide a readout that does not apply, or flash when
-ABS engages. The Delta Time widget already does a hardcoded version of this: it
-picks `faster`, `slower`, or `neutral` from module state and touches LVGL only
-when the cached colour actually changed. What was missing was a way to author
-that behaviour rather than compile it.
+ABS engages. One widget type carried a hardcoded version of it — three tone
+colours picked from module state, touching LVGL only when the cached colour
+actually changed. What was missing was a way to author that behaviour rather
+than compile it.
 
 SimHub expresses this with an expression language on every property. An
 interpreter contradicts the rule that periodic paths allocate nothing and look
@@ -82,14 +82,10 @@ and the container paints nothing; a rule repaints whichever of the two the
 widget was built with.
 
 This is an additive extension: a widget without `conditions` parses, validates,
-and renders exactly as before.
-
-Amended in schema 5. The paragraph this replaces read "The Delta Time widget
-keeps its own tone model. Giving it rules as well would leave two mechanisms
-deciding one colour." That widget no longer exists — its three tone colours
-were two rules over the field it already read, so it was removed rather than
-given a second mechanism (see ADR 0015). Nothing on the dashboard now decides a
-colour outside what this decision describes.
+and renders exactly as before. Nothing on the dashboard decides a colour
+outside what this decision describes — a widget type with a tone model of its
+own would leave two mechanisms deciding one colour, which is a reason not to
+add one (see ADR 0015).
 
 ## Amendment: colour ramps and gradients
 

@@ -21,7 +21,7 @@ pointers, and an explicit context pointer. The manager starts enabled modules,
 tracks successful starts, and stops them in reverse registration order. It
 performs no allocation, RTTI, or name-based runtime lookup.
 
-Keep transport, control routing, binary font upload routing, and the concrete
+Keep transport, control routing, binary asset-upload routing, and the concrete
 telemetry protocol in a platform communication composition. The core supplies
 the selected transport and shared services but does not depend on SimHub or
 protocol routing details.
@@ -32,7 +32,7 @@ UART and/or USB CDC adapters supported by that board. The core sees only the
 neutral transport interface. Split feature-module lifecycle and LVGL dashboard
 creation into separate module and dashboard composition components.
 
-Keep the bounded schema 2 value contract in its own `configuration_contract`
+Keep the bounded application value contract in its own `configuration_contract`
 service component. The configuration service consumes that contract for
 parsing, validation, persistence, and control operations. Modules and dashboard
 widgets consume the neutral contract directly instead of depending on the
