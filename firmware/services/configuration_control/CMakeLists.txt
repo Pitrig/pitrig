@@ -1,5 +1,6 @@
 idf_component_register(
     SRCS "src/configuration_control.cpp"
+         "src/configuration_control_commands.cpp"
     INCLUDE_DIRS "include"
     REQUIRES configuration freertos transport
     PRIV_REQUIRES esp_app_format performance simcore_config)

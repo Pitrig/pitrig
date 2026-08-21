@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
 
-import { BOARD_PROFILES } from '@shared/device'
-import type { DeviceConfiguration } from '@shared/device'
 import { useDeviceStore } from '@/features/device/device-store'
+import { arrowStep, displayOf, nudge, resize } from './keyboard-geometry'
 import { withEditGroup } from '@/features/device/edit-group'
 import { screenWidgetsOf } from '@shared/configuration-access'
 import {
@@ -11,10 +10,7 @@ import {
   copyWidget,
   deleteWidget,
   duplicateWidget,
-  findWidget,
   wrapInShape,
-  mutateSelectedWidget,
-  parentOffset,
   pasteWidget,
   parentContainerId,
   restackOrder,
@@ -24,10 +20,8 @@ import {
   useDashboardEditorStore
 } from '../dashboard-editor'
 import { isTextEntry } from './keyboard'
-import { clamp, clampToDisplay } from './placement'
-import { scaleWidgets } from './geometry-commands'
+import { clamp } from './placement'
 import { useSnapStore } from './snap-store'
-import { MINIMUM_SIZE_PX } from '../preview/snapping'
 import { clampPan, viewForBox } from '../preview/canvas-geometry'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM } from './store'
 import type { WidgetSelection } from '../dashboard-editor'
@@ -35,8 +29,6 @@ import type { WidgetSelection } from '../dashboard-editor'
 // The whole window listens, because the canvas is an SVG that nothing focuses
 // and the shortcuts are about the selected widget rather than about whatever
 // happens to have focus. Anything typed into a field is left alone.
-const NUDGE_PX = 1
-const COARSE_NUDGE_PX = 10
 
 /**
  * Keyboard editing for the canvas. A held arrow key repeats, so the whole run
@@ -260,102 +252,3 @@ export function useEditorShortcuts(enabled: boolean): void {
 function selectIfAdded(added: WidgetSelection | undefined): void {
   if (added) useDashboardEditorStore.getState().select(added)
 }
-
-function arrowStep(key: string): { x: number; y: number } | undefined {
-  switch (key) {
-    case 'ArrowLeft':
-      return { x: -1, y: 0 }
-    case 'ArrowRight':
-      return { x: 1, y: 0 }
-    case 'ArrowUp':
-      return { x: 0, y: -1 }
-    case 'ArrowDown':
-      return { x: 0, y: 1 }
-    default:
-      return undefined
-  }
-}
-
-/**
- * Grows or shrinks one widget from its bottom-right corner, which is what a
- * keyboard resize can mean without an anchor to pick. Bounded exactly as the
- * pointer resize is: no smaller than the handles allow, and never past the
- * display — and through the same command, so "scale contents" means the same
- * thing whichever way the box was resized.
- */
-function resize(
-  selection: WidgetSelection,
-  configuration: DeviceConfiguration,
-  display: { width: number; height: number },
-  step: { x: number; y: number },
-  coarse: boolean
-): void {
-  if (selection.type !== 'widget') return
-  const location = findWidget(configuration, selection.id)
-  const placement = absolutePlacement(configuration, selection.id)
-  if (!location || !placement) return
-  const distance = coarse ? COARSE_NUDGE_PX : NUDGE_PX
-  const width = clamp(
-    placement.width + step.x * distance,
-    MINIMUM_SIZE_PX,
-    Math.max(MINIMUM_SIZE_PX, display.width - placement.x)
-  )
-  const height = clamp(
-    placement.height + step.y * distance,
-    MINIMUM_SIZE_PX,
-    Math.max(MINIMUM_SIZE_PX, display.height - placement.y)
-  )
-  if (width === placement.width && height === placement.height) return
-  scaleWidgets(
-    [
-      {
-        id: selection.id,
-        // One keypress is one edit from the document as it stands, so the
-        // widget itself is the state to scale — unlike a drag, which re-derives
-        // every frame from where the gesture began.
-        original: JSON.parse(JSON.stringify(location.widget)),
-        box: placement
-      }
-    ],
-    placement,
-    { ...placement, width, height },
-    display,
-    useSnapStore.getState().scaleContents
-  )
-}
-
-function nudge(
-  selection: WidgetSelection,
-  configuration: DeviceConfiguration,
-  display: { width: number; height: number },
-  step: { x: number; y: number },
-  coarse: boolean
-): void {
-  if (selection.type !== 'widget') return
-  // Clamped in display space the same way dragging is, so the keyboard cannot
-  // place a widget where the pointer could not; a widget in a container is then
-  // written back in its group's space.
-  const placement = absolutePlacement(configuration, selection.id)
-  if (!placement) return
-  const offset = parentOffset(configuration, selection.id)
-  const distance = coarse ? COARSE_NUDGE_PX : NUDGE_PX
-  const { x, y } = clampToDisplay(
-    placement.x + step.x * distance,
-    placement.y + step.y * distance,
-    placement.width,
-    placement.height,
-    display
-  )
-  if (x === placement.x && y === placement.y) return
-  mutateSelectedWidget(selection, (widget) => {
-    widget.placement = { ...placement, x: x - offset.x, y: y - offset.y }
-  })
-}
-
-
-function displayOf(
-  configuration: DeviceConfiguration
-): { width: number; height: number } | undefined {
-  return BOARD_PROFILES[configuration.board]?.display
-}
-

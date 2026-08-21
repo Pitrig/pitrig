@@ -1,5 +1,6 @@
 idf_component_register(
   SRCS "src/simcore.cpp"
+       "src/simcore_boot.cpp"
        "src/apply_configuration.cpp"
   INCLUDE_DIRS "include"
   PRIV_INCLUDE_DIRS "src"

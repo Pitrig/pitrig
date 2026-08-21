@@ -430,6 +430,9 @@ remount a restart causes; `live-apply-store.ts` holds what the board is currentl
 
 - C++20, `.clang-format` is Google style, 100 columns, left pointer alignment, case-sensitive include
   sorting. 2-space indent everywhere (4 in `CMakeLists.txt`), LF, final newline.
+- **File size**: keep source files at roughly 300 lines or fewer. A change that pushes a file past
+  that splits it along a natural seam in the same change — never "later". Generated outputs
+  (`*_generated.*`, the generated `.ts` mirrors, `google-fonts-catalog.json`) are exempt.
 - Prefer static allocation, `constexpr`, bounded fixed-size structures; avoid global mutable state,
   heap churn in periodic paths, and blocking work outside dedicated FreeRTOS tasks.
 - No central application scheduler: FreeRTOS tasks for blocking work, LVGL timers for rendering,

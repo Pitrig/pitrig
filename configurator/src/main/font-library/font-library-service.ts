@@ -1,58 +1,48 @@
 import type { BrowserWindow } from 'electron'
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { FONT_FAMILY_PATTERN } from '../../shared/font-assets'
 import {
   FONT_LIBRARY_FORMAT,
   FONT_LIBRARY_FORMAT_VERSION,
-  MAXIMUM_FACE_SIZE,
-  MINIMUM_FACE_SIZE,
   fontFamilyId,
   normalizeVariant,
   type FontFaceBytes,
   type FontLibraryEntry,
-  type FontLibraryError,
   type FontLibraryResult,
   type FontLibrarySnapshot,
   type FontVariant
 } from '../../shared/font-library'
 import { FONT_FILE_CHOICE, chooseFile } from '../assets/choose-file'
 import { BUNDLED_FACES } from './bundled-faces'
+import {
+  adoptLegacyCache,
+  backfillTabularDigits,
+  dropMissingFaces
+} from './font-library-maintenance'
+import {
+  FACE_EXTENSION,
+  faceProblem,
+  displayName,
+  failure,
+  messageOf,
+  optionalTabular,
+  parseIndex,
+  readFaceFile,
+  type StoredEntry,
+  type StoredIndex
+} from './font-library-files'
 import { hasTabularDigits } from './font-metrics'
 
 const INDEX_FILE = 'library.json'
 const FACES_DIRECTORY = 'faces'
-const FACE_EXTENSION = '.ttf'
 /**
  * Enough that no author meets it while authoring, and small enough that a
  * runaway import loop cannot fill the disk. The device's eight families are a
  * separate, much smaller limit that the editor enforces per dashboard.
  */
 const MAXIMUM_USER_FACES = 256
-
-// TrueType, OpenType/CFF, the legacy Apple tag and a collection — the same four
-// the firmware accepts, checked here so a truncated download or an HTML error
-// page never becomes a library entry.
-const SFNT_SIGNATURES = [0x00010000, 0x4f54544f, 0x74727565, 0x74746366] as const
-
-/** One record in library.json. Bundled faces are not listed; they are code. */
-interface StoredEntry {
-  id: string
-  name: string
-  origin: 'imported' | 'google'
-  category?: string
-  source?: { family: string; variant: FontVariant }
-  file: string
-  bytes: number
-  tabularDigits?: boolean
-}
-
-interface StoredIndex {
-  format: typeof FONT_LIBRARY_FORMAT
-  format_version: number
-  entries: StoredEntry[]
-}
 
 /**
  * The configurator's font faces: the set bundled with the application, the ones
@@ -343,161 +333,15 @@ export class FontLibraryService {
         entries: []
       }
     }
-    await this.dropMissingFaces()
-    await this.adoptLegacyCache()
-    await this.backfillTabularDigits()
-  }
-
-  /**
-   * Entries written before the digit width was recorded have no answer stored,
-   * and would show no badge next to a font that has one — which reads as the
-   * check being unreliable rather than as the record being old. Read once and
-   * written back, so this happens on the first start after the upgrade and
-   * never again.
-   */
-  private async backfillTabularDigits(): Promise<void> {
-    let changed = false
-    for (const entry of this.index.entries) {
-      if (entry.tabularDigits !== undefined) continue
-      const bytes = await readFaceFile(join(this.facesDirectory, entry.file))
-      const tabular = bytes ? hasTabularDigits(bytes) : undefined
-      if (tabular === undefined) continue
-      entry.tabularDigits = tabular
-      changed = true
-    }
-    if (changed) await this.writeIndex().catch(() => undefined)
-  }
-
-  /** An entry whose file is gone is a gap in the list, not a broken library. */
-  private async dropMissingFaces(): Promise<void> {
-    const kept: StoredEntry[] = []
-    for (const entry of this.index.entries) {
-      try {
-        await stat(join(this.facesDirectory, entry.file))
-        kept.push(entry)
-      } catch {
-        this.unreadable += 1
-      }
-    }
-    this.index.entries = kept
-  }
-
-  /**
-   * Faces that earlier versions cached to draw a preview with become imported
-   * entries, once. Before the library existed, uploading was the only way to
-   * make the canvas draw in the real face, so this is what keeps an existing
-   * project rendering the way it did yesterday. The old directory is left
-   * alone: it is a cache, and deleting it is not worth a failure path.
-   */
-  private async adoptLegacyCache(): Promise<void> {
-    if (!this.legacyFontCacheDirectory) return
-    let files: string[]
-    try {
-      files = await readdir(this.legacyFontCacheDirectory)
-    } catch {
-      return
-    }
-    for (const file of files) {
-      if (!file.endsWith('.font')) continue
-      const id = file.slice(0, -'.font'.length)
-      if (!FONT_FAMILY_PATTERN.test(id) || this.has(id)) continue
-      try {
-        const bytes = new Uint8Array(await readFile(join(this.legacyFontCacheDirectory, file)))
-        if (faceProblem(bytes)) continue
-        await this.store({
-          id,
-          name: id,
-          origin: 'imported',
-          file: `${id}${FACE_EXTENSION}`,
-          bytes: bytes.byteLength,
-          ...optionalTabular(hasTabularDigits(bytes))
-        }, bytes)
-      } catch {
-        // A face that cannot be adopted simply is not adopted.
-      }
+    this.unreadable += await dropMissingFaces(this.index, this.facesDirectory)
+    await adoptLegacyCache(
+      this.legacyFontCacheDirectory,
+      (id) => this.has(id),
+      (entry, bytes) => this.store(entry, bytes)
+    )
+    if (await backfillTabularDigits(this.index, this.facesDirectory)) {
+      await this.writeIndex().catch(() => undefined)
     }
   }
-}
 
-async function readFaceFile(path: string): Promise<Uint8Array | undefined> {
-  try {
-    return new Uint8Array(await readFile(path))
-  } catch {
-    return undefined
-  }
-}
-
-function faceProblem(bytes: Uint8Array): string | undefined {
-  if (bytes.byteLength < MINIMUM_FACE_SIZE) return 'That file is too small to be a font face.'
-  if (bytes.byteLength > MAXIMUM_FACE_SIZE) {
-    return 'That face is larger than the whole 2 MiB font partition.'
-  }
-  const signature = new DataView(bytes.buffer, bytes.byteOffset, 4).getUint32(0, false)
-  return SFNT_SIGNATURES.some((candidate) => candidate === signature)
-    ? undefined
-    : 'That file is not a TTF or OTF font face.'
-}
-
-function displayName(family: string, variant: FontVariant): string {
-  const normalized = normalizeVariant(variant)
-  const italic = normalized.endsWith('italic')
-  const weight = italic ? normalized.slice(0, -'italic'.length) : normalized
-  const weightName = WEIGHT_NAMES[weight] ?? weight
-  const parts = [family]
-  if (weightName) parts.push(weightName)
-  if (italic) parts.push('Italic')
-  return parts.join(' ')
-}
-
-const WEIGHT_NAMES: Readonly<Record<string, string>> = {
-  '100': 'Thin',
-  '200': 'ExtraLight',
-  '300': 'Light',
-  '400': '',
-  '500': 'Medium',
-  '600': 'SemiBold',
-  '700': 'Bold',
-  '800': 'ExtraBold',
-  '900': 'Black'
-}
-
-function parseIndex(value: unknown): StoredIndex {
-  if (typeof value !== 'object' || value === null) throw new Error('not an object')
-  const record = value as Record<string, unknown>
-  if (record.format !== FONT_LIBRARY_FORMAT) throw new Error('not a font library')
-  const entries = Array.isArray(record.entries) ? record.entries : []
-  return {
-    format: FONT_LIBRARY_FORMAT,
-    format_version: FONT_LIBRARY_FORMAT_VERSION,
-    entries: entries.filter(isStoredEntry)
-  }
-}
-
-function isStoredEntry(value: unknown): value is StoredEntry {
-  if (typeof value !== 'object' || value === null) return false
-  const entry = value as Record<string, unknown>
-  return (
-    typeof entry.id === 'string' &&
-    FONT_FAMILY_PATTERN.test(entry.id) &&
-    typeof entry.name === 'string' &&
-    (entry.origin === 'imported' || entry.origin === 'google') &&
-    typeof entry.file === 'string' &&
-    // The file name is derived from the id, so a record naming anything else is
-    // a record that could reach outside the faces directory.
-    entry.file === `${entry.id}${FACE_EXTENSION}` &&
-    typeof entry.bytes === 'number'
-  )
-}
-
-/** Omitted rather than set to undefined, so an entry round-trips through JSON. */
-function optionalTabular(tabular: boolean | undefined): { tabularDigits?: boolean } {
-  return tabular === undefined ? {} : { tabularDigits: tabular }
-}
-
-function failure<T>(code: FontLibraryError['code'], message: string): FontLibraryResult<T> {
-  return { ok: false, error: { code, message } }
-}
-
-function messageOf(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback
 }

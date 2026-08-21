@@ -3,106 +3,24 @@ import type { SerialPort } from 'serialport'
 import {
   type DeviceConfiguration,
   type DeviceErrorCode,
-  type DeviceSession,
-  MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
   type SimCoreBoardId
 } from '@shared/device'
-import { describeDeviceError } from '@shared/device-error-message'
 import {
   CONFIGURATION_DOCUMENT_IDS,
   type ConfigurationDocumentId
 } from '@shared/configuration-schema'
 import { mergeDocuments } from '@shared/configuration-documents'
 import { parseDeviceConfigurationJson } from './configuration-json'
-import {
-  parseDeviceInfo,
-  parseFirmwareUpdateInfo,
-  parseFontAssetInfo,
-  parseImageAssetInfo
-} from './protocol-parsers'
 import { DeviceServiceError } from './device-errors'
+import {
+  CONFIGURATION_RESPONSE_PREFIX,
+  requestResponse,
+  type TrafficCallback
+} from './serial-request'
 
-const PROBE_TIMEOUT_MS = 1_000
-const CONFIGURATION_RESPONSE_PREFIX = '@SC:OK:CONFIG:'
-// The buffer holds the one line still being received, so it has to keep the
-// longest line the device sends: a GET reply, which is the prefix, a payload up
-// to the contract's bound, and the line ending. A smaller bound cut the head
-// off a long configuration before its newline arrived, and by the time the
-// line was complete the prefix it was waiting for was gone — every dashboard
-// over the old 8 KiB failed the probe as "not a SimCore device".
-const MAXIMUM_RESPONSE_BUFFER_SIZE =
-  CONFIGURATION_RESPONSE_PREFIX.length +
-  'dashboard:'.length +
-  MAXIMUM_CONFIGURATION_PAYLOAD_SIZE +
-  '\r\n'.length
-// The probe is the first thing written to a freshly opened port, and it opens
-// with a newline of its own. A scan walks the baud rates in turn, and a request
-// written at the wrong rate still reaches the device — as bytes that decode
-// into garbage carrying no line ending. The next request, correct rate and all,
-// is appended to that remnant and read as one unknown line, so the attempt that
-// should have succeeded is the one that is lost. The leading newline closes the
-// ruined line, which the device discards unrecognised, and leaves the request on
-// a line of its own. Only a board reached over a USB-serial bridge ever shows
-// this: a native USB link has no wrong rate to be probed at.
-const INFO_REQUEST = '\n@SC:INFO\n'
-const IMAGE_INFO_REQUEST = '@SC:IMAGE:INFO\n'
-const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
-const FIRMWARE_INFO_REQUEST = '@SC:FW:INFO\n'
+export { requestResponse, sendControlCommand } from './serial-request'
+
 const CONFIGURATION_TIMEOUT_MS = 2_000
-// Long enough for a board that is busy redrawing, short enough that a console
-// that gets nothing back says so while the author is still looking at it.
-const CONTROL_COMMAND_TIMEOUT_MS = 3_000
-
-type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
-
-export async function probeSimCore(
-  port: SerialPort,
-  onTraffic: TrafficCallback
-): Promise<DeviceSession> {
-  const infoLine = await requestResponse(
-    port,
-    INFO_REQUEST,
-    '@SC:OK:INFO:',
-    PROBE_TIMEOUT_MS,
-    onTraffic
-  )
-  const info = parseDeviceInfo(infoLine)
-  const configuration = await readConfiguration(port, info.boardId, onTraffic, 'not_simcore')
-  if (configuration.board !== info.boardId) {
-    throw new DeviceServiceError(
-      'not_simcore',
-      'The device configuration board does not match the connected hardware.'
-    )
-  }
-  const fontAssets = await probeCapability(
-    port,
-    FONT_INFO_REQUEST,
-    '@SC:OK:FONT:INFO:',
-    parseFontAssetInfo,
-    onTraffic
-  )
-  const imageAssets = await probeCapability(
-    port,
-    IMAGE_INFO_REQUEST,
-    '@SC:OK:IMAGE:INFO:',
-    parseImageAssetInfo,
-    onTraffic
-  )
-  const firmware = await probeCapability(
-    port,
-    FIRMWARE_INFO_REQUEST,
-    '@SC:OK:FW:INFO:',
-    parseFirmwareUpdateInfo,
-    onTraffic
-  )
-  return {
-    info,
-    configuration,
-    ...(fontAssets ? { fontAssets } : {}),
-    ...(imageAssets ? { imageAssets } : {}),
-    ...(firmware ? { firmware } : {})
-  }
-}
 
 /**
  * One document read back, as the whole aggregate it is a slice of.
@@ -252,184 +170,4 @@ export async function clearFontAssets(
     onTraffic,
     'serial_error'
   )
-}
-
-export function requestResponse(
-  port: SerialPort,
-  request: string,
-  responsePrefix: string,
-  timeoutMs: number,
-  onTraffic: TrafficCallback,
-  rejectionCode: DeviceErrorCode = 'not_simcore'
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let buffer = ''
-    let settled = false
-
-    const cleanup = (): void => {
-      clearTimeout(timeoutTimer)
-      port.off('data', onData)
-      port.off('error', onError)
-      port.off('close', onClose)
-      buffer = ''
-    }
-    const finish = (error?: Error, response?: string): void => {
-      if (settled) return
-      settled = true
-      cleanup()
-      if (error) reject(error)
-      else resolve(response ?? '')
-    }
-    const onData = (chunk: Buffer): void => {
-      const text = chunk.toString('utf8')
-      onTraffic('rx', text)
-      buffer = (buffer + text).slice(-MAXIMUM_RESPONSE_BUFFER_SIZE)
-      const lines = buffer.replaceAll('\r', '').split('\n')
-      buffer = lines.pop() ?? ''
-      const response = lines.find((line) => line.startsWith(responsePrefix))
-      if (response) {
-        finish(undefined, response)
-        return
-      }
-      const deviceError = lines.find((line) => line.startsWith('@SC:ERR:'))
-      if (deviceError) {
-        const token = deviceError.slice('@SC:ERR:'.length).trim()
-        finish(new DeviceServiceError(rejectionCode, describeDeviceError(token), token))
-      }
-    }
-    const onError = (error: Error): void => finish(error)
-    const onClose = (): void => {
-      finish(new DeviceServiceError('serial_error', 'Serial port closed during request.'))
-    }
-    const sendRequest = (): void => {
-      if (!port.isOpen || settled) return
-      port.write(request, (error) => {
-        if (error) finish(error)
-        else onTraffic('tx', request)
-      })
-    }
-
-    port.on('data', onData)
-    port.once('error', onError)
-    port.once('close', onClose)
-    const timeoutTimer = setTimeout(() => {
-      finish(new DeviceServiceError(rejectionCode, `The device did not answer ${request.trim()}.`))
-    }, timeoutMs)
-    port.flush(() => sendRequest())
-  })
-}
-
-/**
- * One hand-typed line, and every `@SC:` line the board answers with.
- *
- * This is the debug console's request, and it differs from `requestResponse` in
- * the two ways a console needs: it waits for *a* terminating line rather than
- * one particular prefix, since the caller typed the command and nothing here
- * knows what its reply looks like; and `@SC:ERR:` is an answer to be shown
- * rather than a rejection to be thrown. Telemetry the board is streaming past
- * the command is dropped — only `@SC:` lines are the reply.
- *
- * A silent board resolves with what did arrive rather than failing, because
- * "the board said nothing" is itself the finding the console exists to show.
- */
-export function sendControlCommand(
-  port: SerialPort,
-  command: string,
-  onTraffic: TrafficCallback
-): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    const request = `${command}\n`
-    const collected: string[] = []
-    let buffer = ''
-    let settled = false
-
-    const cleanup = (): void => {
-      clearTimeout(timeoutTimer)
-      port.off('data', onData)
-      port.off('error', onError)
-      port.off('close', onClose)
-      buffer = ''
-    }
-    const finish = (error?: Error): void => {
-      if (settled) return
-      settled = true
-      cleanup()
-      if (error) reject(error)
-      else resolve(collected)
-    }
-    const onData = (chunk: Buffer): void => {
-      const text = chunk.toString('utf8')
-      onTraffic('rx', text)
-      buffer = (buffer + text).slice(-MAXIMUM_RESPONSE_BUFFER_SIZE)
-      const lines = buffer.replaceAll('\r', '').split('\n')
-      buffer = lines.pop() ?? ''
-      for (const line of lines) {
-        if (!line.startsWith('@SC:')) continue
-        collected.push(line)
-        if (line.startsWith('@SC:OK:') || line.startsWith('@SC:ERR:')) {
-          finish()
-          return
-        }
-      }
-    }
-    const onError = (error: Error): void => finish(error)
-    const onClose = (): void => {
-      finish(new DeviceServiceError('serial_error', 'Serial port closed during the command.'))
-    }
-
-    port.on('data', onData)
-    port.once('error', onError)
-    port.once('close', onClose)
-    const timeoutTimer = setTimeout(() => finish(), CONTROL_COMMAND_TIMEOUT_MS)
-    if (!port.isOpen) {
-      finish(new DeviceServiceError('serial_error', 'The serial port is closed.'))
-      return
-    }
-    port.write(request, (error) => {
-      if (error) finish(error)
-      else onTraffic('tx', request)
-    })
-  })
-}
-
-/**
- * A capability the connected firmware may not have. Firmware that does not know
- * the command answers `unknown_command` — bare from the configuration control,
- * or under its namespace as `<TAG>:unknown_command` — and that is a fact about
- * the board rather than a failure, so the probe reports the capability absent
- * and the panel for it stays away.
- *
- * The reason is read from the device's own token rather than from the message:
- * the message is a translated sentence for the reader, and matching its text
- * made every probe here reject a board it was meant to accept.
- */
-async function probeCapability<T>(
-  port: SerialPort,
-  request: string,
-  responsePrefix: string,
-  parse: (line: string) => T,
-  onTraffic: TrafficCallback
-): Promise<T | undefined> {
-  try {
-    const line = await requestResponse(
-      port,
-      request,
-      responsePrefix,
-      PROBE_TIMEOUT_MS,
-      onTraffic
-    )
-    return parse(line)
-  } catch (error) {
-    if (isUnknownCommand(error)) {
-      return undefined
-    }
-    throw error
-  }
-}
-
-function isUnknownCommand(error: unknown): boolean {
-  if (!(error instanceof DeviceServiceError) || error.token === undefined) {
-    return false
-  }
-  return error.token.slice(error.token.lastIndexOf(':') + 1) === 'unknown_command'
 }

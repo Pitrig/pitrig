@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { HueSlider, SaturationSquare } from './color-picker-controls'
+import { parseHex, rgbToHsv, hsvToRgb, toHex, clamp, type Channels } from './color-math'
 import { Pipette } from 'lucide-react'
 import type { RgbColor } from '@shared/configuration-schema'
 import { dashboardPalette } from '../dashboard-editor'
@@ -31,15 +33,8 @@ declare global {
 
 const MARGIN = 6
 const WIDTH_PX = 232
-const SQUARE_HEIGHT_PX = 132
 /** Below this much room underneath, the popup goes above the swatch instead. */
 const NEEDED_PX = 300
-
-interface Channels {
-  r: number
-  g: number
-  b: number
-}
 
 export function ColorPicker({
   value,
@@ -255,150 +250,4 @@ function DashboardPalette({
       </div>
     </div>
   )
-}
-
-function SaturationSquare({
-  hue,
-  hsv,
-  onChange
-}: {
-  hue: number
-  hsv: Hsv
-  onChange: (saturation: number, brightness: number) => void
-}): React.JSX.Element {
-  return (
-    <div
-      role="presentation"
-      className="relative w-full cursor-crosshair"
-      style={{
-        height: SQUARE_HEIGHT_PX,
-        backgroundImage: `linear-gradient(to top, #000, rgba(0,0,0,0)), linear-gradient(to right, #fff, hsl(${hue} 100% 50%))`
-      }}
-      onPointerDown={track((x, y) => onChange(x, 1 - y))}
-    >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-        style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%` }}
-      />
-    </div>
-  )
-}
-
-function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: number) => void }): React.JSX.Element {
-  return (
-    <div
-      role="slider"
-      aria-label="Hue"
-      aria-valuemin={0}
-      aria-valuemax={359}
-      aria-valuenow={Math.round(hue)}
-      tabIndex={0}
-      className="relative h-3 min-w-0 flex-1 cursor-pointer rounded-full"
-      style={{
-        backgroundImage:
-          'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)'
-      }}
-      onPointerDown={track((x) => onChange(x * 359))}
-      onKeyDown={(event) => {
-        if (event.key === 'ArrowLeft') onChange(Math.max(0, hue - 2))
-        else if (event.key === 'ArrowRight') onChange(Math.min(359, hue + 2))
-      }}
-    >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-        style={{ left: `${(hue / 359) * 100}%`, backgroundColor: `hsl(${hue} 100% 50%)` }}
-      />
-    </div>
-  )
-}
-
-/**
- * Follows the pointer across a surface until it is released, reporting where it
- * is as a fraction of that surface. On the window rather than the element,
- * because a colour is chosen by dragging past the edge as often as inside it.
- */
-function track(
-  report: (x: number, y: number) => void
-): (event: React.PointerEvent<HTMLElement>) => void {
-  return (event) => {
-    event.preventDefault()
-    const rect = event.currentTarget.getBoundingClientRect()
-    const at = (clientX: number, clientY: number): void =>
-      report(
-        clamp((clientX - rect.left) / rect.width, 0, 1),
-        clamp((clientY - rect.top) / rect.height, 0, 1)
-      )
-    at(event.clientX, event.clientY)
-    const move = (moved: PointerEvent): void => at(moved.clientX, moved.clientY)
-    const release = (): void => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', release)
-    }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', release)
-  }
-}
-
-interface Hsv {
-  /** Degrees, 0–360. */
-  h: number
-  s: number
-  v: number
-}
-
-const clamp = (value: number, low: number, high: number): number =>
-  Math.min(high, Math.max(low, value))
-
-function parseHex(value: string): Channels | undefined {
-  if (!/^#[0-9A-Fa-f]{6}$/.test(value)) return undefined
-  return {
-    r: Number.parseInt(value.slice(1, 3), 16),
-    g: Number.parseInt(value.slice(3, 5), 16),
-    b: Number.parseInt(value.slice(5, 7), 16)
-  }
-}
-
-function toHex({ r, g, b }: Channels): RgbColor {
-  const pair = (level: number): string => clamp(Math.round(level), 0, 255).toString(16).padStart(2, '0')
-  return `#${pair(r)}${pair(g)}${pair(b)}`.toUpperCase() as RgbColor
-}
-
-function rgbToHsv({ r, g, b }: Channels): Hsv {
-  const red = r / 255
-  const green = g / 255
-  const blue = b / 255
-  const high = Math.max(red, green, blue)
-  const low = Math.min(red, green, blue)
-  const span = high - low
-  let h = 0
-  if (span !== 0) {
-    if (high === red) h = ((green - blue) / span) % 6
-    else if (high === green) h = (blue - red) / span + 2
-    else h = (red - green) / span + 4
-    h *= 60
-    if (h < 0) h += 360
-  }
-  return { h, s: high === 0 ? 0 : span / high, v: high }
-}
-
-function hsvToRgb(h: number, s: number, v: number): Channels {
-  const chroma = v * s
-  const second = chroma * (1 - Math.abs(((h / 60) % 2) - 1))
-  const base = v - chroma
-  const sector = Math.floor(h / 60) % 6
-  const [red, green, blue] =
-    sector === 0
-      ? [chroma, second, 0]
-      : sector === 1
-        ? [second, chroma, 0]
-        : sector === 2
-          ? [0, chroma, second]
-          : sector === 3
-            ? [0, second, chroma]
-            : sector === 4
-              ? [second, 0, chroma]
-              : [chroma, 0, second]
-  return { r: (red + base) * 255, g: (green + base) * 255, b: (blue + base) * 255 }
 }

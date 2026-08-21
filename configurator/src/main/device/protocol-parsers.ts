@@ -1,27 +1,10 @@
 import {
-  MAXIMUM_FONT_FAMILIES,
-  MAXIMUM_FONT_PACKAGE_SIZE,
-  FONT_FAMILY_PATTERN
-} from '@shared/font-assets'
-import {
-  IMAGE_ID_PATTERN,
-  IMAGE_PACKAGE_FORMAT_VERSION,
-  MAXIMUM_IMAGES,
-  MAXIMUM_IMAGE_PACKAGE_SIZE,
-  MAXIMUM_SPRITE_FRAMES,
-  MINIMUM_IMAGE_PACKAGE_FORMAT_VERSION,
-  type ImageAssetState,
-  type InstalledImage
-} from '@shared/image-assets'
-import { type FirmwareUpdateState } from '@shared/firmware-update'
-import {
   BOARD_PROFILES,
   CONFIGURATION_SCHEMA_VERSION,
   SIMCORE_BOARD_IDS,
   type ConfigurationDocumentOutcome,
   type ConfigurationDocumentState,
   type DeviceInfo,
-  type FontAssetDeviceInfo,
   type SimCoreBoardId
 } from '@shared/device'
 import {
@@ -33,7 +16,7 @@ import { DeviceServiceError } from './device-errors'
 // Reading what the device says back. Every function here is a pure decode of
 // one reply line: no serial port, no timeouts, no state.
 
-function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {
+export function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {
   const fields = new Map<string, string>()
   for (const entry of line.slice(prefix.length).split(',')) {
     const separator = entry.indexOf('=')
@@ -48,7 +31,7 @@ function parseFields(line: string, prefix: string, fieldName: string): Map<strin
   return fields
 }
 
-function isBooleanField(value: string | undefined): boolean {
+export function isBooleanField(value: string | undefined): boolean {
   return value === '0' || value === '1'
 }
 
@@ -59,7 +42,7 @@ function isBooleanField(value: string | undefined): boolean {
  * which is how the font side came to check its package bound as a literal
  * while the image side used the named constant.
  */
-interface AssetStatusLimits {
+export interface AssetStatusLimits {
   prefix: string
   label: string
   countField: string
@@ -74,7 +57,7 @@ interface AssetStatusLimits {
   maximumPackageSize: number
 }
 
-interface AssetStatus {
+export interface AssetStatus {
   storageAvailable: boolean
   packageAvailable: boolean
   rebootRequired: boolean
@@ -86,7 +69,7 @@ interface AssetStatus {
   crc: string | undefined
 }
 
-function parseAssetStatus(line: string, limits: AssetStatusLimits): AssetStatus {
+export function parseAssetStatus(line: string, limits: AssetStatusLimits): AssetStatus {
   const fields = parseFields(line, limits.prefix, limits.label)
   const formatVersion = Number(fields.get('format'))
   const count = Number(fields.get(limits.countField))
@@ -181,138 +164,4 @@ function parseDocumentState(value: string | undefined): ConfigurationDocumentSta
   return { outcome: outcome as ConfigurationDocumentOutcome, generation }
 }
 
-/**
- * Firmware status reports two slots rather than a package: which one is running,
- * which one the next upload lands in, and whether either is waiting on a
- * restart. It shares no shape with the asset kinds, so it shares no parser.
- */
-export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
-  const fields = parseFields(line, '@SC:OK:FW:INFO:', 'firmware status')
-  const running = fields.get('running')
-  const target = fields.get('target')
-  const version = fields.get('version')
-  if (
-    !isBooleanField(fields.get('storage')) ||
-    !isBooleanField(fields.get('pending_verify')) ||
-    !isBooleanField(fields.get('reboot_required')) ||
-    running === undefined ||
-    target === undefined ||
-    version === undefined
-  ) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed firmware status.')
-  }
-  return {
-    storageAvailable: fields.get('storage') === '1',
-    running,
-    target,
-    version,
-    pendingVerify: fields.get('pending_verify') === '1',
-    rebootRequired: fields.get('reboot_required') === '1'
-  }
-}
-
-export function parseImageAssetInfo(line: string): ImageAssetState {
-  const status = parseAssetStatus(line, {
-    prefix: '@SC:OK:IMAGE:INFO:',
-    label: 'image status',
-    countField: 'images',
-    maximumCount: MAXIMUM_IMAGES,
-    formatVersion: IMAGE_PACKAGE_FORMAT_VERSION,
-    minimumFormatVersion: MINIMUM_IMAGE_PACKAGE_FORMAT_VERSION,
-    maximumPackageSize: MAXIMUM_IMAGE_PACKAGE_SIZE
-  })
-  const images = parseInstalledImages(status.entries)
-  if (status.entries !== undefined && images.length !== status.count) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed image status.')
-  }
-  return {
-    storageAvailable: status.storageAvailable,
-    packageAvailable: status.packageAvailable,
-    formatVersion: status.formatVersion,
-    packageSize: status.packageSize,
-    images,
-    rebootRequired: status.rebootRequired
-  }
-}
-
-/** `name:WxH:format`, separated by semicolons. */
-function parseInstalledImages(value: string | undefined): InstalledImage[] {
-  if (!value) return []
-  return value
-    .split(';')
-    .filter((entry) => entry.length > 0)
-    .map((entry) => {
-      // A sprite sheet appends its frame count; an ordinary image has one frame
-      // and says nothing, so a three-field entry is the same as it ever was.
-      const [name, size, format, frames] = entry.split(':')
-      const [width, height] = (size ?? '').split('x')
-      return {
-        name: name ?? '',
-        width: Number(width),
-        height: Number(height),
-        format: format ?? '',
-        frameCount: frames === undefined ? 1 : Number(frames)
-      }
-    })
-    .filter(
-      (image) =>
-        IMAGE_ID_PATTERN.test(image.name) &&
-        Number.isSafeInteger(image.width) &&
-        Number.isSafeInteger(image.height) &&
-        Number.isSafeInteger(image.frameCount) &&
-        image.frameCount >= 1 &&
-        image.frameCount <= MAXIMUM_SPRITE_FRAMES
-    )
-}
-
-export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
-  const status = parseAssetStatus(line, {
-    prefix: '@SC:OK:FONT:INFO:',
-    label: 'font status',
-    countField: 'families',
-    maximumCount: MAXIMUM_FONT_FAMILIES,
-    formatVersion: 3,
-    maximumPackageSize: MAXIMUM_FONT_PACKAGE_SIZE
-  })
-  const families = parseFontFamilies(status.entries)
-  if (status.entries !== undefined && families.length !== status.count) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
-  }
-  const payloadCrc = parsePayloadCrc(status.crc)
-  return {
-    storageAvailable: status.storageAvailable,
-    packageAvailable: status.packageAvailable,
-    formatVersion: status.formatVersion,
-    familyCount: status.count,
-    families,
-    packageSize: status.packageSize,
-    ...(payloadCrc === undefined ? {} : { payloadCrc }),
-    rebootRequired: status.rebootRequired
-  }
-}
-
-/**
- * The stored package's payload CRC. Firmware that predates the key leaves it
- * absent, which reads as "cannot tell" and therefore as "upload anyway" — so an
- * older board still works, it just never skips a font upload.
- */
-function parsePayloadCrc(value: string | undefined): number | undefined {
-  if (value === undefined) return undefined
-  const crc = Number(value)
-  if (!Number.isSafeInteger(crc) || crc < 0 || crc > 0xffff_ffff) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
-  }
-  return crc
-}
-
-function parseFontFamilies(value: string | undefined): string[] {
-  if (value === undefined || value === '') return []
-  const families: string[] = []
-  for (const family of value.split(';')) {
-    if (!FONT_FAMILY_PATTERN.test(family) || families.includes(family)) {
-      throw new DeviceServiceError('not_simcore', 'The device returned malformed font entries.')
-    }
-    families.push(family)
-  }
-  return families
-}
+export { parseFirmwareUpdateInfo, parseFontAssetInfo, parseImageAssetInfo } from './asset-info-parsers'

@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { configurationsEqual, withWidgetIds } from '@shared/configuration-access'
 import { CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
 import type { ConfigurationDocumentId } from '@shared/configuration-schema'
-import { documentOf, mergeDocument } from '@shared/configuration-documents'
+import { mergeDocument } from '@shared/configuration-documents'
 import type {
   DeviceConfiguration,
   DeviceConnection,
@@ -305,37 +305,11 @@ function recordHistory(
   }
 }
 
-export function formatConfiguration(configuration: DeviceConfiguration): string {
-  return JSON.stringify(configuration, null, 2)
-}
+import { parseConfiguration } from './draft-text'
 
-/**
- * Text the advanced JSON editor should show for one document.
- *
- * The typed text wins only for the document it was typed into: the other two
- * are rendered from the structured draft, which is where every other reader of
- * the configuration looks.
- */
-export function documentDraftText(
-  state: { rawDraft?: RawDraft; draft?: DeviceConfiguration },
-  document: ConfigurationDocumentId
-): string {
-  if (state.rawDraft?.document === document) return state.rawDraft.text
-  return state.draft ? formatConfiguration(documentOf(state.draft, document)) : ''
-}
-
-/** The whole draft as the file and the library hold it. */
-export function draftText(state: { draft?: DeviceConfiguration }): string {
-  return state.draft ? formatConfiguration(state.draft) : ''
-}
-
-export function parseConfiguration(text: string): DeviceConfiguration | undefined {
-  try {
-    const value: unknown = JSON.parse(text)
-    return value && typeof value === 'object' && !Array.isArray(value)
-      ? (value as DeviceConfiguration)
-      : undefined
-  } catch {
-    return undefined
-  }
-}
+export {
+  documentDraftText,
+  draftText,
+  formatConfiguration,
+  parseConfiguration
+} from './draft-text'

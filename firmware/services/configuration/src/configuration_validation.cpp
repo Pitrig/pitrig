@@ -5,6 +5,7 @@
 
 #include "configuration_json.hpp"
 #include "image_asset_types.hpp"
+#include "validation/document_rules.hpp"
 #include "validation/value_rules.hpp"
 #include "validation/widget_validator.hpp"
 
@@ -12,190 +13,8 @@ namespace simcore::configuration {
 
 using validation::reject;
 using validation::terminated;
-using validation::valid_action;
 using validation::valid_color;
 using validation::Validator;
-
-namespace {
-
-// An uploaded package carries one face per family, so a document may not name
-// more families than a package can hold. Sizes are free: every one of them is
-// rasterized from the same face.
-[[nodiscard]] bool within_family_budget(
-    const ApplicationConfiguration& configuration) {
-  std::array<font_assets::FamilyId, font_assets::kMaximumFamilies> families{};
-  std::size_t count{};
-  const auto record = [&families, &count](const font_assets::FontSpec& font) {
-    for (std::size_t index = 0; index < count; ++index) {
-      if (families[index] == font.family) {
-        return true;
-      }
-    }
-    if (count == families.size()) {
-      return false;
-    }
-    families[count] = font.family;
-    ++count;
-    return true;
-  };
-
-  // Widget storage is one pool, so this walks it once rather than per screen.
-  const DashboardConfiguration& dashboard = configuration.dashboard;
-  const auto record_caption = [&record](const WidgetFrame& frame) {
-    return frame.title.text.front() == '\0' || record(frame.title.font);
-  };
-  for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
-    const TextWidgetConfiguration& widget = dashboard.text_widgets[index];
-    if (!record(widget.value.font) || !record_caption(widget.frame)) {
-      return false;
-    }
-  }
-  for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
-    if (!record_caption(dashboard.shape_widgets[index].frame)) {
-      return false;
-    }
-  }
-  for (std::size_t index = 0; index < dashboard.bar_widget_count; ++index) {
-    if (!record_caption(dashboard.bar_widgets[index].frame)) {
-      return false;
-    }
-  }
-  for (std::size_t index = 0; index < dashboard.arc_widget_count; ++index) {
-    if (!record_caption(dashboard.arc_widgets[index].frame)) {
-      return false;
-    }
-  }
-  for (std::size_t index = 0; index < dashboard.indicator_widget_count;
-       ++index) {
-    if (!record_caption(dashboard.indicator_widgets[index].frame)) {
-      return false;
-    }
-  }
-  for (std::size_t index = 0; index < dashboard.graph_widget_count; ++index) {
-    if (!record_caption(dashboard.graph_widgets[index].frame)) {
-      return false;
-    }
-  }
-  for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
-    if (!record_caption(dashboard.image_widgets[index].frame)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-[[nodiscard]] bool validate_transport(
-    const ApplicationConfiguration& configuration,
-    const ValidationContext& profile, ValidationFailure& failure) {
-  if (!configuration.telemetry_transport_present) {
-    return true;
-  }
-  const TelemetryTransportId transport = configuration.telemetry_transport.id;
-  if (transport < TelemetryTransportId::board_default ||
-      transport > TelemetryTransportId::uart) {
-    return reject(failure, ValidationError::invalid_transport,
-                  "telemetry_transport.id");
-  }
-  if (transport == TelemetryTransportId::native_usb_cdc &&
-      !profile.native_usb_cdc_supported) {
-    return reject(failure, ValidationError::invalid_transport,
-                  "telemetry_transport.id");
-  }
-  const UartTelemetryConfiguration& uart = configuration.telemetry_transport.uart;
-  if (transport == TelemetryTransportId::uart &&
-      (!profile.uart_supported || uart.port < 0 || uart.port > 2 ||
-       uart.tx_pin == uart.rx_pin || uart.baud_rate < 9'600 ||
-       uart.baud_rate > 2'000'000 || uart.tx_pin != profile.uart_tx_pin ||
-       uart.rx_pin != profile.uart_rx_pin)) {
-    return reject(failure, ValidationError::invalid_uart,
-                  "telemetry_transport.uart");
-  }
-  return true;
-}
-
-// One ordered reference table, whether it belongs to a screen, a container shape
-// or one page of a slot. Each entry must name a filled pool slot whose widget
-// agrees about the parent that declared it, so a document cannot point two
-// parents at one widget or leave a widget claiming a parent that never
-// referenced it.
-[[nodiscard]] bool validate_references(
-    const DashboardConfiguration& dashboard,
-    const std::span<const WidgetReference> references, const std::size_t count,
-    const std::size_t screen_index, const WidgetParentKind parent_kind,
-    const std::uint8_t parent_index, Validator& validator,
-    std::size_t& action_count, ValidationFailure& failure) {
-  // Parenting and the tap action are both facts about the frame, so one probe
-  // decides whether the reference is sound before the type-specific checks run.
-  const auto parented = [&](const WidgetFrame& frame) {
-    if (frame.action.type != WidgetActionType::none) {
-      ++action_count;
-    }
-    return frame.screen_index == screen_index &&
-           frame.parent_kind == parent_kind &&
-           (parent_kind == WidgetParentKind::screen ||
-            frame.parent_index == parent_index) &&
-           valid_action(frame.action, dashboard);
-  };
-  for (std::size_t index = 0; index < count && index < references.size();
-       ++index) {
-    const WidgetReference& reference = references[index];
-    bool valid = false;
-    switch (reference.type) {
-      case WidgetType::text:
-        valid = reference.index < dashboard.text_widget_count &&
-                parented(dashboard.text_widgets[reference.index].frame) &&
-                validator.text_widget(dashboard.text_widgets[reference.index]);
-        break;
-      case WidgetType::shape:
-        valid =
-            reference.index < dashboard.shape_widget_count &&
-            parented(dashboard.shape_widgets[reference.index].frame) &&
-            validator.shape_widget(dashboard.shape_widgets[reference.index]);
-        break;
-      case WidgetType::bar:
-        valid = reference.index < dashboard.bar_widget_count &&
-                parented(dashboard.bar_widgets[reference.index].frame) &&
-                validator.bar_widget(dashboard.bar_widgets[reference.index]);
-        break;
-      case WidgetType::arc:
-        valid = reference.index < dashboard.arc_widget_count &&
-                parented(dashboard.arc_widgets[reference.index].frame) &&
-                validator.arc_widget(dashboard.arc_widgets[reference.index]);
-        break;
-      case WidgetType::indicator:
-        valid = reference.index < dashboard.indicator_widget_count &&
-                parented(dashboard.indicator_widgets[reference.index].frame) &&
-                validator.indicator_widget(
-                    dashboard.indicator_widgets[reference.index]);
-        break;
-      case WidgetType::image:
-        valid =
-            reference.index < dashboard.image_widget_count &&
-            parented(dashboard.image_widgets[reference.index].frame) &&
-            validator.image_widget(dashboard.image_widgets[reference.index]);
-        break;
-      case WidgetType::graph:
-        valid =
-            reference.index < dashboard.graph_widget_count &&
-            parented(dashboard.graph_widgets[reference.index].frame) &&
-            validator.graph_widget(dashboard.graph_widgets[reference.index]);
-        break;
-      case WidgetType::slot:
-        valid = reference.index < dashboard.slot_widget_count &&
-                parented(dashboard.slot_widgets[reference.index].frame) &&
-                validator.slot_widget(dashboard.slot_widgets[reference.index]);
-        break;
-    }
-    if (!valid) {
-      (void)reject(failure, ValidationError::invalid_widget, "widgets");
-      failure.widget_index = static_cast<std::int16_t>(index);
-      return false;
-    }
-  }
-  return true;
-}
-
-}  // namespace
 
 ValidationFailure validate_configuration(
     const ApplicationConfiguration& configuration,
@@ -216,7 +35,7 @@ ValidationFailure validate_configuration(
     (void)reject(failure, ValidationError::invalid_hardware, "hardware");
     return failure;
   }
-  if (!validate_transport(configuration, profile, failure)) {
+  if (!validation::validate_transport(configuration, profile, failure)) {
     return failure;
   }
 
@@ -282,7 +101,7 @@ ValidationFailure validate_configuration(
     }
     referenced_widgets += screen.widget_count;
     validator.set_parent_origin(0, 0);
-    if (!validate_references(dashboard, screen.widgets, screen.widget_count,
+    if (!validation::validate_references(dashboard, screen.widgets, screen.widget_count,
                              screen_index, WidgetParentKind::screen, 0,
                              validator, action_count, failure)) {
       failure.screen_index = static_cast<std::int16_t>(screen_index);
@@ -365,7 +184,7 @@ ValidationFailure validate_configuration(
     referenced_widgets += shape.widget_count;
     validator.set_parent_origin(origin_x[index] + shape.frame.placement.x,
                                 origin_y[index] + shape.frame.placement.y);
-    if (!validate_references(dashboard, shape.widgets, shape.widget_count,
+    if (!validation::validate_references(dashboard, shape.widgets, shape.widget_count,
                              shape.frame.screen_index, WidgetParentKind::shape,
                              static_cast<std::uint8_t>(index), validator,
                              action_count, failure)) {
@@ -387,7 +206,7 @@ ValidationFailure validate_configuration(
       const std::size_t flat = index * kMaximumSlotPages + page;
       referenced_widgets += config.widget_count;
       validator.set_parent_origin(page_origin_x[flat], page_origin_y[flat]);
-      if (!validate_references(dashboard, config.widgets, config.widget_count,
+      if (!validation::validate_references(dashboard, config.widgets, config.widget_count,
                                slot.frame.screen_index,
                                WidgetParentKind::slot_page,
                                static_cast<std::uint8_t>(flat), validator,
@@ -439,7 +258,7 @@ ValidationFailure validate_configuration(
     (void)reject(failure, ValidationError::invalid_widget, "modifiers");
     return failure;
   }
-  if (!within_family_budget(configuration)) {
+  if (!validation::within_family_budget(configuration)) {
     (void)reject(failure, ValidationError::invalid_widget, "font");
     return failure;
   }
