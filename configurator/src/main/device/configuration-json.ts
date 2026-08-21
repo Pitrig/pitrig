@@ -1,8 +1,16 @@
 import { migrateConfigurationDocument } from '../../shared/configuration-migrate'
 import { validateConfigurationDocument } from '../../shared/configuration-validate'
-import type { WidgetConfiguration } from '../../shared/configuration-schema'
 import {
-  MAXIMUM_CONFIGURATION_PAYLOAD_SIZE,
+  CONFIGURATION_DOCUMENTS,
+  CONFIGURATION_DOCUMENT_IDS,
+  type ConfigurationDocumentId,
+  type WidgetConfiguration
+} from '../../shared/configuration-schema'
+import {
+  CONFIGURATION_DOCUMENT_LABELS,
+  documentJson
+} from '../../shared/configuration-documents'
+import {
   SIMCORE_BOARD_IDS,
   type DeviceConfiguration,
   type SimCoreBoardId
@@ -63,16 +71,28 @@ export function parseWidgetFragment(value: unknown, board: SimCoreBoardId): Widg
 export function prepareDeviceConfigurationJson(
   json: string,
   expectedBoard: SimCoreBoardId
-): { configuration: DeviceConfiguration; payload: string } {
+): {
+  configuration: DeviceConfiguration
+  payloads: Record<ConfigurationDocumentId, string>
+} {
   const configuration = parseDeviceConfigurationJson(json)
   if (configuration.board !== expectedBoard) {
     throw new Error(`Configuration board must remain ${expectedBoard}.`)
   }
-  const payload = JSON.stringify(configuration)
-  if (Buffer.byteLength(payload, 'utf8') > MAXIMUM_CONFIGURATION_PAYLOAD_SIZE) {
-    throw new Error(
-      `Configuration exceeds the ${MAXIMUM_CONFIGURATION_PAYLOAD_SIZE}-byte device limit.`
-    )
+  // Every document is serialized and measured, not only the ones about to be
+  // sent: a caller that finds one over its bound has a configuration it cannot
+  // save at all, and saying so before half of it is written is the point.
+  const payloads = {} as Record<ConfigurationDocumentId, string>
+  for (const document of CONFIGURATION_DOCUMENT_IDS) {
+    const payload = documentJson(configuration, document)
+    const limit = CONFIGURATION_DOCUMENTS[document].maxPayload
+    if (Buffer.byteLength(payload, 'utf8') > limit) {
+      throw new Error(
+        `The ${CONFIGURATION_DOCUMENT_LABELS[document].toLowerCase()} configuration exceeds ` +
+          `the ${limit}-byte device limit.`
+      )
+    }
+    payloads[document] = payload
   }
-  return { configuration, payload }
+  return { configuration, payloads }
 }

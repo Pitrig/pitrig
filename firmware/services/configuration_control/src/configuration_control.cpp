@@ -116,73 +116,102 @@ void ConfigurationControl::handle(
       std::equal(command.begin(), command.end(), "INFO")) {
     const ConfigurationStatus status = service_->status();
     const std::string_view board = board_id_name(service_->hardware_board());
-    const char* source = "factory";
-    if (status.source == ConfigurationSource::slot_a) {
-      source = "slot_a";
-    } else if (status.source == ConfigurationSource::slot_b) {
-      source = "slot_b";
-    }
-    const int written = std::snprintf(
+    int written = std::snprintf(
         reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
-        "@SC:OK:INFO:board=%.*s,firmware=%s,schema=%u,source=%s,generation=%lu,storage=%u\n",
+        "@SC:OK:INFO:board=%.*s,firmware=%s,schema=%u,storage=%u",
         static_cast<int>(board.size()), board.data(),
         esp_app_get_description()->version,
-        static_cast<unsigned>(kConfigurationSchemaVersion), source,
-        static_cast<unsigned long>(status.generation),
+        static_cast<unsigned>(kConfigurationSchemaVersion),
         status.storage_available ? 1U : 0U);
-    if (written > 0 && static_cast<std::size_t>(written) < io_buffer_.size()) {
-      (void)write_reply(
-          std::span<const std::uint8_t>(io_buffer_.data(), written));
+    // Then one field per document: what became of its stored record, and which
+    // generation of it the device is running. A host that finds `absent` knows
+    // the board is on that document's factory values rather than having to
+    // infer it from a single source token that could only name one of three.
+    for (std::size_t index = 0;
+         written > 0 && index < kConfigurationDocumentCount; ++index) {
+      const auto document = static_cast<ConfigurationDocument>(index);
+      const std::string_view name = configuration_document_name(document);
+      const std::string_view outcome =
+          document_outcome_name(status.documents[index].outcome);
+      const int field = std::snprintf(
+          reinterpret_cast<char*>(io_buffer_.data()) + written,
+          io_buffer_.size() - static_cast<std::size_t>(written),
+          ",%.*s=%.*s:%lu", static_cast<int>(name.size()), name.data(),
+          static_cast<int>(outcome.size()), outcome.data(),
+          static_cast<unsigned long>(status.documents[index].generation));
+      if (field <= 0) {
+        written = 0;
+        break;
+      }
+      written += field;
+    }
+    if (written > 0 &&
+        static_cast<std::size_t>(written) + 1U < io_buffer_.size()) {
+      io_buffer_[static_cast<std::size_t>(written)] = '\n';
+      (void)write_reply(std::span<const std::uint8_t>(
+          io_buffer_.data(), static_cast<std::size_t>(written) + 1U));
     }
     return;
   }
 
-  if (command.size() == 3 &&
-      std::equal(command.begin(), command.end(), "GET")) {
-    (void)send_payload(service_->current_payload());
+  ConfigurationDocument document{};
+  std::span<const std::uint8_t> payload{};
+
+  constexpr std::string_view kGet = "GET:";
+  if (command.size() >= kGet.size() &&
+      std::equal(kGet.begin(), kGet.end(), command.begin())) {
+    if (take_document(command.subspan(kGet.size()), false, document, payload)) {
+      (void)send_payload(document, service_->current_payload(document));
+    }
     return;
   }
 
   constexpr std::string_view kApply = "APPLY:";
   if (command.size() >= kApply.size() &&
       std::equal(kApply.begin(), kApply.end(), command.begin())) {
+    if (!take_document(command.subspan(kApply.size()), true, document,
+                       payload)) {
+      return;
+    }
     if (apply_handler_ == nullptr) {
       (void)send_text("@SC:ERR:unsupported\n");
       return;
     }
     const ValidationFailure failure =
-        apply_handler_(command.subspan(kApply.size()), apply_context_);
+        apply_handler_(document, payload, apply_context_);
     if (!failure.ok()) {
       (void)send_error(failure);
       return;
     }
-    (void)send_text("@SC:OK:APPLIED\n");
+    (void)send_document_reply("@SC:OK:APPLIED", document, nullptr);
     return;
   }
 
   constexpr std::string_view kValidate = "VALIDATE:";
-  constexpr std::string_view kSet = "SET:";
-  const bool validate =
-      command.size() >= kValidate.size() &&
-      std::equal(kValidate.begin(), kValidate.end(), command.begin());
-  const bool set =
-      command.size() >= kSet.size() &&
-      std::equal(kSet.begin(), kSet.end(), command.begin());
-  if (validate || set) {
-    const std::size_t prefix_size =
-        validate ? kValidate.size() : kSet.size();
-    const std::span<const std::uint8_t> payload =
-        command.subspan(prefix_size);
-    if (validate) {
-      const ValidationFailure failure = service_->validate_payload(payload);
-      if (!failure.ok()) {
-        (void)send_error(failure);
-        return;
-      }
-      (void)send_text("@SC:OK:VALID\n");
+  if (command.size() >= kValidate.size() &&
+      std::equal(kValidate.begin(), kValidate.end(), command.begin())) {
+    if (!take_document(command.subspan(kValidate.size()), true, document,
+                       payload)) {
       return;
     }
-    const ConfigurationService::SaveOutcome outcome = service_->save(payload);
+    const ValidationFailure failure =
+        service_->validate_payload(document, payload);
+    if (!failure.ok()) {
+      (void)send_error(failure);
+      return;
+    }
+    (void)send_document_reply("@SC:OK:VALID", document, nullptr);
+    return;
+  }
+
+  constexpr std::string_view kSet = "SET:";
+  if (command.size() >= kSet.size() &&
+      std::equal(kSet.begin(), kSet.end(), command.begin())) {
+    if (!take_document(command.subspan(kSet.size()), true, document, payload)) {
+      return;
+    }
+    const ConfigurationService::SaveOutcome outcome =
+        service_->save(document, payload);
     if (outcome.storage_failed) {
       // The same answer RESET gives when flash refuses it, rather than a
       // validation error over a document that parsed and validated fine.
@@ -193,7 +222,14 @@ void ConfigurationControl::handle(
       (void)send_error(outcome.failure);
       return;
     }
-    (void)send_text("@SC:OK:SAVED:reboot_required=1\n");
+    // Only the transport is chosen once at startup, so only that document is
+    // stored and not in force. The rest are brought up by an APPLY carrying the
+    // same bytes, which is what the configurator pairs with this.
+    (void)send_document_reply(
+        "@SC:OK:SAVED", document,
+        configuration_document_reboot_required(document)
+            ? "reboot_required=1"
+            : "reboot_required=0");
     return;
   }
 
@@ -207,6 +243,23 @@ void ConfigurationControl::handle(
     return;
   }
 
+  constexpr std::string_view kResetOne = "RESET:";
+  if (command.size() >= kResetOne.size() &&
+      std::equal(kResetOne.begin(), kResetOne.end(), command.begin())) {
+    if (!take_document(command.subspan(kResetOne.size()), false, document,
+                       payload)) {
+      return;
+    }
+    if (!service_->erase(document)) {
+      (void)send_text("@SC:ERR:storage\n");
+      return;
+    }
+    // Erasing a record does not put the board back on that document's factory
+    // values; only a restart reloads it, which is true of every document here.
+    (void)send_document_reply("@SC:OK:RESET", document, "reboot_required=1");
+    return;
+  }
+
   if (command.size() == 6 &&
       std::equal(command.begin(), command.end(), "REBOOT")) {
     (void)send_text("@SC:OK:REBOOTING\n");
@@ -217,6 +270,31 @@ void ConfigurationControl::handle(
   }
 
   (void)send_text("@SC:ERR:unknown_command\n");
+}
+
+bool ConfigurationControl::take_document(
+    const std::span<const std::uint8_t> argument, const bool expect_payload,
+    ConfigurationDocument& document,
+    std::span<const std::uint8_t>& payload) {
+  const auto separator = std::find(argument.begin(), argument.end(),
+                                   static_cast<std::uint8_t>(':'));
+  const auto name_size =
+      static_cast<std::size_t>(separator - argument.begin());
+  if (expect_payload == (separator == argument.end())) {
+    // A command that carries a document and a payload needs the colon between
+    // them; one that carries only a document must not have anything after it.
+    (void)send_text("@SC:ERR:unknown_document\n");
+    return false;
+  }
+  const std::string_view name(
+      reinterpret_cast<const char*>(argument.data()), name_size);
+  if (!configuration_document_from_name(name, document)) {
+    (void)send_text("@SC:ERR:unknown_document\n");
+    return false;
+  }
+  payload = expect_payload ? argument.subspan(name_size + 1U)
+                           : std::span<const std::uint8_t>{};
+  return true;
 }
 
 bool ConfigurationControl::write_reply(
@@ -248,18 +326,42 @@ bool ConfigurationControl::send_error(const ValidationFailure& failure) {
              std::span<const std::uint8_t>(io_buffer_.data(), written));
 }
 
+bool ConfigurationControl::send_document_reply(
+    const char* const prefix, const ConfigurationDocument document,
+    const char* const trailer) {
+  const std::string_view name = configuration_document_name(document);
+  const int written = std::snprintf(
+      reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
+      "%s:%.*s%s%s\n", prefix, static_cast<int>(name.size()), name.data(),
+      trailer == nullptr ? "" : ":", trailer == nullptr ? "" : trailer);
+  return written > 0 &&
+         static_cast<std::size_t>(written) < io_buffer_.size() &&
+         write_reply(
+             std::span<const std::uint8_t>(io_buffer_.data(), written));
+}
+
 bool ConfigurationControl::send_payload(
+    const ConfigurationDocument document,
     const std::span<const std::uint8_t> payload) {
-  constexpr char prefix[] = "@SC:OK:CONFIG:";
-  constexpr std::size_t prefix_size = sizeof(prefix) - 1;
+  constexpr std::string_view kPayloadPrefix = "@SC:OK:CONFIG:";
+  const std::string_view name = configuration_document_name(document);
+  // The name and the colon after it sit between the prefix and the payload, so
+  // the room they take is counted before anything is copied.
+  const std::size_t prefix_size =
+      kPayloadPrefix.size() + name.size() + 1U;
   if (prefix_size + payload.size() + 1U > io_buffer_.size()) {
     // The contract defines malformed as covering an oversized payload, so this
     // is the documented answer rather than an approximation of one.
     return send_error({.error = ValidationError::malformed});
   }
-  std::copy_n(reinterpret_cast<const std::uint8_t*>(prefix), prefix_size,
-              io_buffer_.begin());
-  std::size_t position = prefix_size;
+  std::size_t position = 0;
+  const auto append = [this, &position](const std::string_view text) {
+    std::copy(text.begin(), text.end(), io_buffer_.begin() + position);
+    position += text.size();
+  };
+  append(kPayloadPrefix);
+  append(name);
+  io_buffer_[position++] = ':';
   std::copy(payload.begin(), payload.end(), io_buffer_.begin() + position);
   position += payload.size();
   io_buffer_[position++] = '\n';

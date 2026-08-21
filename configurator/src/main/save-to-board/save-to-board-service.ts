@@ -1,12 +1,23 @@
-import { canonicalJson } from '../../shared/configuration-access'
 import { documentFonts } from '../../shared/document-fonts'
+import {
+  CONFIGURATION_DOCUMENT_IDS,
+  type ConfigurationDocumentId
+} from '../../shared/configuration-schema'
+import {
+  CONFIGURATION_DOCUMENT_LABELS,
+  documentsDiffering
+} from '../../shared/configuration-documents'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type {
   SaveProgress,
   SaveToBoardRequest,
   SaveToBoardResult
 } from '../../shared/save-to-board'
-import type { DeviceSession } from '../../shared/device'
+import type {
+  DeviceConfiguration,
+  DeviceConfigurationSaveResult,
+  DeviceSession
+} from '../../shared/device'
 import { DeviceService } from '../device/device-service'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import { FontAssetService } from '../font-assets/font-asset-service'
@@ -47,12 +58,28 @@ export class SaveToBoardService {
       return failure('device_error', 'No SimCore board is connected.')
     }
 
-    let families: string[]
+    // Parsed once, up front, whatever is about to be written. Working out which
+    // documents differ needs the structure anyway, and a document that does not
+    // parse has to fail here rather than reach the "nothing differs" branch and
+    // be reported as a save that succeeded.
+    let configuration: DeviceConfiguration
     try {
-      families = requiredFamilies(request.json)
+      configuration = parseDeviceConfigurationJson(request.json)
     } catch (error) {
       return failure('invalid_configuration', messageOf(error, 'The configuration is not valid.'))
     }
+
+    const requested = request.documents
+    const changed = documentsDiffering(configuration, session.configuration).filter(
+      (document) => requested === undefined || requested.includes(document)
+    )
+
+    // Fonts belong to the dashboard document. A save that is not writing it —
+    // the Configs page saving one row, or a dashboard that already matches the
+    // board — has no faces to resolve and no package to build, and asking the
+    // author about a family it is not about to send would be a question with
+    // nothing behind it.
+    const families = changed.includes('dashboard') ? requiredFamilies(configuration) : []
 
     this.report('preparing', 0, 1, 'Checking the fonts this dashboard needs')
     const unresolved = await this.library.unresolved(families)
@@ -101,28 +128,38 @@ export class SaveToBoardService {
         }
       }
 
-      this.report('saving', 0, 1, 'Saving the configuration')
-      const saved = await this.deviceService.saveConfiguration(request.json)
-      if (!saved.ok) return failure('device_error', saved.error.message)
+      // Only what actually differs from the board is written — worked out above,
+      // before the pipeline was taken. The three documents are stored separately
+      // now, so changing a baud rate no longer rewrites sixty kilobytes of
+      // dashboard, and a dashboard edit no longer makes the board answer that a
+      // restart is owed for a transport nobody touched.
+      let written: DeviceConfigurationSaveResult | undefined
+      if (changed.length > 0) {
+        this.report('saving', 0, 1, describeSaving(changed))
+        const result = await this.deviceService.saveConfiguration(request.json, changed)
+        if (!result.ok) return failure('device_error', result.error.message)
+        written = result.value
+      }
+      const saved = written?.configuration ?? session.configuration
 
       // Anything the board is still owed a restart for makes the restart worth
       // taking now: a face or a bitmap it has accepted but not yet mapped is one
-      // the dashboard about to be applied would draw wrong. So does a changed
-      // transport — the firmware stores it and takes the full recompose path,
-      // but recompose rebuilds modules and the dashboard, and the link itself is
-      // selected once at startup. Saving without restarting would leave the
-      // author looking at a setting that has been written and is not in force.
+      // the dashboard about to be applied would draw wrong. So does the protocol
+      // document — the link is selected once at startup, so saving it without
+      // restarting would leave the author looking at a setting that has been
+      // written and is not in force. The contract answers which documents those
+      // are, so this no longer has to compare the transport section by hand.
       const restartNeeded =
         fontsUploaded ||
         assetsAwaitingRestart(this.deviceService.getState().session) ||
-        transportChanged(session, request.json)
+        (written?.rebootRequired ?? false)
       if (restartNeeded) {
         const reconnected = await this.restart()
         this.report('completed', 1, 1, 'Saved. The board is running the new dashboard.')
         return {
           ok: true,
           value: {
-            configuration: saved.value.configuration,
+            configuration: saved,
             fontsUploaded,
             restarted: true,
             ...(reconnected.ok ? {} : { reconnectFailed: true })
@@ -130,18 +167,29 @@ export class SaveToBoardService {
         }
       }
 
-      this.report('applying', 0, 1, 'Applying to the running dashboard')
-      const applied = await this.deviceService.applyConfigurationNow(request.json)
-      this.report('completed', 1, 1, 'Saved. The board is running the new dashboard.')
+      // Only what was written is applied, and the protocol document is dropped
+      // on the way in — it is the one that took the restart branch above.
+      const applied =
+        written && written.documents.length > 0
+          ? await this.deviceService.applyConfigurationNow(request.json, written.documents)
+          : undefined
+      this.report(
+        'completed',
+        1,
+        1,
+        written
+          ? 'Saved. The board is running the new dashboard.'
+          : 'Nothing to save — the board already holds this configuration.'
+      )
       return {
         ok: true,
         value: {
-          configuration: saved.value.configuration,
+          configuration: saved,
           fontsUploaded,
           restarted: false,
           // Flash is already written, so a refused apply is a note: the board
           // keeps showing what it showed, and starts with the saved document.
-          ...(applied.ok ? {} : { applyFailed: applied.error.message })
+          ...(applied && !applied.ok ? { applyFailed: applied.error.message } : {})
         }
       }
     })
@@ -172,23 +220,15 @@ export class SaveToBoardService {
   }
 }
 
-/**
- * Whether the document changes the link the board talks over.
- *
- * Compared against what the board reported when it was read, structurally, so
- * reordering or reformatting the section is not a change. A document that
- * cannot be parsed is not a transport change — the save is about to fail on it
- * anyway, and the parse error is the better message.
- */
-function transportChanged(session: DeviceSession, json: string): boolean {
-  try {
-    return (
-      canonicalJson(parseDeviceConfigurationJson(json).telemetry_transport) !==
-      canonicalJson(session.configuration.telemetry_transport)
-    )
-  } catch {
-    return false
+/** What the progress bar says while one, two or three documents are written. */
+function describeSaving(documents: ConfigurationDocumentId[]): string {
+  if (documents.length === CONFIGURATION_DOCUMENT_IDS.length) {
+    return 'Saving the configuration'
   }
+  const names = documents.map((document) =>
+    CONFIGURATION_DOCUMENT_LABELS[document].toLowerCase()
+  )
+  return `Saving the ${names.join(' and ')} configuration`
 }
 
 /**
@@ -201,8 +241,7 @@ function assetsAwaitingRestart(session: DeviceSession | undefined): boolean {
 }
 
 /** The families a document names, deduplicated and in a stable order. */
-function requiredFamilies(json: string): string[] {
-  const configuration = parseDeviceConfigurationJson(json)
+function requiredFamilies(configuration: DeviceConfiguration): string[] {
   return [
     ...new Set(
       documentFonts(configuration)

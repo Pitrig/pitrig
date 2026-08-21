@@ -74,7 +74,10 @@ struct Application {
 // the internal heap.
 struct ConfigurationBuffers {
   std::span<std::uint8_t> record;
-  std::span<std::uint8_t> current_payload;
+  // One slice per document, carved inside the configuration service: only the
+  // dashboard needs the full payload bound, so all three together cost barely
+  // more than the single buffer this replaced.
+  std::span<std::uint8_t> current_payloads;
   std::span<std::uint8_t> control_io;
   std::span<std::uint8_t> control_line;
   std::span<std::uint8_t> configuration;
@@ -90,6 +93,7 @@ struct ConfigurationBuffers {
 // requires. Runs on the configuration control task, which may take the LVGL
 // lock.
 configuration::ValidationFailure apply_configuration(
+    configuration::ConfigurationDocument document,
     std::span<const std::uint8_t> payload, void* context);
 
 }  // namespace simcore

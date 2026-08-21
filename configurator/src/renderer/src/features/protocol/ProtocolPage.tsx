@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { bridgeErrorMessage } from '@/features/device/bridge-errors'
+import { DocumentStatusChip } from '@/features/device/document-status'
 import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
 import { writeDebugLog } from '@/features/debug/debug-log'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -24,10 +25,12 @@ import { searchTelemetryReference } from './telemetry-reference'
  * The link between the PC and the board: what feeds it, how it is carried, and
  * what the fields on it are called.
  *
- * The transport half edits the draft document rather than the board directly —
- * `telemetry_transport` is configuration like anything else, so it travels with
- * the dashboard and takes effect the way the rest of it does. Until now it
- * could only be reached through the raw JSON editor.
+ * The transport half edits the draft rather than the board directly, and what
+ * it edits is the board's `protocol` configuration: its own stored document,
+ * saved on its own and never rewritten by a dashboard edit. It is also the one
+ * document a restart has to bring into force — the link is chosen once at
+ * startup — which is why saving from here restarts the board and saving a
+ * dashboard does not.
  */
 
 type Feedback = { kind: 'success' | 'error'; message: string }
@@ -43,6 +46,12 @@ export function ProtocolPage(): React.JSX.Element {
     <PageShell
       title="Protocol"
       description="Where telemetry comes from, how it reaches the board, and what the fields are called."
+      actions={
+        <>
+          <DocumentStatusChip document="protocol" />
+          <SaveToBoardButton />
+        </>
+      }
     >
       <TelemetrySourceSection />
       <SimHubProfileSection />
@@ -127,15 +136,14 @@ function TransportSection(): React.JSX.Element {
       collapsible
       // Folded, so this line is all an author sees until they open it — which
       // makes it the place the warning inside has to be hinted at.
-      description="The link the board talks over. Part of the configuration document, so it travels with the dashboard — and changing it can cut the board off."
+      description="The link the board talks over. Its own stored configuration, saved and restarted on its own — and changing it can cut the board off."
       actions={<SaveToBoardButton />}
     >
       {/* The settings that decide whether this application can talk to the board
           at all. Everything else on the page describes the link; this one is the
           link. It is also the one setting a save cannot make true on its own:
-          firmware stores a changed transport and takes the full recompose path,
-          but recompose rebuilds modules and the dashboard — the link itself is
-          selected once at startup. */}
+          the firmware stores the protocol document and answers that a restart is
+          owed, because the link is selected once at startup. */}
       <div className="mb-3 space-y-2 rounded-md border border-red-500/40 bg-red-500/10 p-2.5">
         <p className="font-medium text-red-300">Changing this can cut the board off</p>
         <ul className="list-disc space-y-1 pl-4 text-[11px] leading-4 text-red-200/80">

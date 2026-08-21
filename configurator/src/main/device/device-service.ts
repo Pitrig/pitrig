@@ -18,6 +18,11 @@ import {
   type DeviceState,
   type SerialPortSummary
 } from '../../shared/device'
+import {
+  CONFIGURATION_DOCUMENTS,
+  CONFIGURATION_DOCUMENT_IDS,
+  type ConfigurationDocumentId
+} from '../../shared/configuration-schema'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type { FontUploadProgress } from '../../shared/font-assets'
 import {
@@ -28,6 +33,7 @@ import {
 } from './device-errors'
 import { readPackageFamilies } from '../font-assets/font-package'
 import { uploadAssetPackage } from './asset-upload'
+import { documentOf, mergeDocument } from '../../shared/configuration-documents'
 import { prepareDeviceConfigurationJson } from './configuration-json'
 import { isBluetoothPort, PortRegistry, serialIdentity, type PortRecord } from './port-registry'
 import { closePort, openPort } from './serial-port-lifecycle'
@@ -39,6 +45,7 @@ import {
   readConfiguration,
   requestResponse,
   resetConfiguration,
+  resetConfigurationDocument,
   applyConfiguration,
   saveConfiguration,
   sendControlCommand,
@@ -290,12 +297,13 @@ export class DeviceService {
   // fresh document moments later anyway. The pipeline flag is checked here and
   // not in getActiveDevice, because a save's own commands run inside it.
   async applyConfiguration(
-    json: string
+    json: string,
+    documents?: ConfigurationDocumentId[]
   ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
     if (this.pipelineActive) {
       return failure({ code: 'busy', message: 'A save is running on the connected device.' })
     }
-    return this.applyConfigurationNow(json)
+    return this.applyConfigurationNow(json, documents)
   }
 
   /**
@@ -307,26 +315,69 @@ export class DeviceService {
    * and it is issued by the pipeline itself rather than raced into it.
    */
   async applyConfigurationNow(
-    json: string
+    json: string,
+    documents?: ConfigurationDocumentId[]
   ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
     return this.runOperation(async ({ port, session, traffic }) => {
       const prepared = this.prepareConfiguration(json, session)
       if (!prepared.ok) return prepared
-      await applyConfiguration(port, prepared.value.payload, this.operationTraffic(traffic))
-      return success({ configuration: prepared.value.configuration })
+      // The protocol document is never applied: the transport is bound once at
+      // startup, so sending it would only make the board stage bytes it cannot
+      // act on. It reaches the device through a save and a restart.
+      const selected = (documents ?? [...CONFIGURATION_DOCUMENT_IDS]).filter(
+        (document) => !CONFIGURATION_DOCUMENTS[document].rebootRequired
+      )
+      for (const document of selected) {
+        await applyConfiguration(
+          port,
+          document,
+          prepared.value.payloads[document],
+          this.operationTraffic(traffic)
+        )
+      }
+      return success({ configuration: prepared.value.configuration, documents: selected })
     })
   }
 
   async saveConfiguration(
-    json: string
+    json: string,
+    documents?: ConfigurationDocumentId[]
   ): Promise<DeviceResult<DeviceConfigurationSaveResult>> {
     return this.runOperation(async ({ port, session, traffic }) => {
       const prepared = this.prepareConfiguration(json, session)
       if (!prepared.ok) return prepared
-      await saveConfiguration(port, prepared.value.payload, this.operationTraffic(traffic))
+      // Protocol first, then modules, then the dashboard. A write that fails
+      // part way should leave the cheap documents done and the expensive one
+      // untouched rather than the other way round.
+      const requested = documents ?? [...CONFIGURATION_DOCUMENT_IDS]
+      const selected = CONFIGURATION_DOCUMENT_IDS.filter((document) =>
+        requested.includes(document)
+      ).reverse()
+      for (const document of selected) {
+        await saveConfiguration(
+          port,
+          document,
+          prepared.value.payloads[document],
+          this.operationTraffic(traffic)
+        )
+      }
+      // What the board holds in flash is now what was just written. Recording it
+      // keeps the next save from finding the documents it already wrote still
+      // "different" and writing them a second time, which is what a stale
+      // session used to make it do.
+      if (this.activePort === port && this.state.session === session) {
+        let held = session.configuration
+        for (const document of selected) {
+          held = mergeDocument(held, document, documentOf(prepared.value.configuration, document))
+        }
+        this.setState({ ...this.state, session: { ...session, configuration: held } })
+      }
       return success({
         configuration: prepared.value.configuration,
-        rebootRequired: true
+        documents: selected,
+        rebootRequired: selected.some(
+          (document) => CONFIGURATION_DOCUMENTS[document].rebootRequired
+        )
       })
     })
   }
@@ -348,13 +399,29 @@ export class DeviceService {
     })
   }
 
-  async resetConfiguration(): Promise<DeviceResult<DeviceConfigurationResetResult>> {
+  /**
+   * Erases stored configuration: one document, or every one of them when none
+   * is named.
+   *
+   * What the board will run afterwards is that document's compiled factory
+   * value, which only a restart loads — the firmware has no serializer to
+   * report it with. So the configuration answered here is what a reset board
+   * comes up with for the documents that were erased: the board identifier and
+   * nothing else. The ones left alone keep what the session already holds.
+   */
+  async resetConfiguration(
+    document?: ConfigurationDocumentId
+  ): Promise<DeviceResult<DeviceConfigurationResetResult>> {
     return this.runOperation(async ({ port, session, traffic }) => {
-      await resetConfiguration(port, this.operationTraffic(traffic))
-      return success({
-        configuration: { board: session.info.boardId },
-        rebootRequired: true
-      })
+      const traffic_ = this.operationTraffic(traffic)
+      const erased = document ? [document] : [...CONFIGURATION_DOCUMENT_IDS]
+      if (document) await resetConfigurationDocument(port, document, traffic_)
+      else await resetConfiguration(port, traffic_)
+      let configuration: DeviceConfiguration = session.configuration
+      for (const id of erased) {
+        configuration = mergeDocument(configuration, id, { board: session.info.boardId })
+      }
+      return success({ configuration, documents: erased, rebootRequired: true })
     })
   }
 
@@ -653,7 +720,10 @@ export class DeviceService {
   private prepareConfiguration(
     json: string,
     session: DeviceSession
-  ): DeviceResult<{ configuration: DeviceConfiguration; payload: string }> {
+  ): DeviceResult<{
+    configuration: DeviceConfiguration
+    payloads: Record<ConfigurationDocumentId, string>
+  }> {
     try {
       return success(prepareDeviceConfigurationJson(json, session.info.boardId))
     } catch (error) {

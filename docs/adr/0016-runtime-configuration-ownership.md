@@ -1,6 +1,11 @@
 # ADR 0016: Runtime Configuration Ownership
 
-Status: Accepted; supersedes the reboot-only application rule in ADR 0009
+Status: Accepted; supersedes the reboot-only application rule in ADR 0009.
+Amended by ADR 0024: staging, promotion and reversion are unchanged and still
+operate on one active/scratch pair, but a replacement now carries only one
+document's sections. The scratch document is seeded from the active one before
+parsing, so the sections it does not own survive the swap, and the
+`dashboard_only` comparison is replaced by the document the request named.
 
 ## Context
 

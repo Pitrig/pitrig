@@ -4,6 +4,7 @@ import type {
   ConnectDeviceRequest,
   DeviceConfigurationApplyResult,
   DeviceConfigurationRequest,
+  DeviceConfigurationResetRequest,
   DeviceConfigurationResetResult,
   DeviceConfigurationSaveResult,
   DeviceResult,
@@ -118,7 +119,9 @@ export interface SimCoreApi {
   ) => Promise<DeviceResult<DeviceConfigurationSaveResult>>
   /** Resolve fonts, install what the board lacks, save, restart, reconnect. */
   saveToBoard: (request: SaveToBoardRequest) => Promise<SaveToBoardResult>
-  resetDeviceConfiguration: () => Promise<DeviceResult<DeviceConfigurationResetResult>>
+  resetDeviceConfiguration: (
+    request?: DeviceConfigurationResetRequest
+  ) => Promise<DeviceResult<DeviceConfigurationResetResult>>
   rebootDevice: () => Promise<DeviceResult<DeviceState>>
   /** One hand-typed `@SC:` line, and the lines the board answered with. */
   sendControlCommand: (request: ControlCommandRequest) => Promise<ControlCommandResult>

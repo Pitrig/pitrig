@@ -27,8 +27,11 @@ namespace simcore::communication {
 // control line from the other host.
 class Router final {
  public:
+  // The widest payload plus room for the command word, the document name and
+  // the colons between them — the same allowance the control service makes for
+  // its own reply buffer.
   static constexpr std::size_t kControlLineBufferSize =
-      16 + configuration::kMaximumPayloadSize;
+      32 + configuration::kMaximumPayloadSize;
   // Fonts, images and firmware. One claim decides which of them owns the
   // stream, so the count bounds what may be registered, not what may run.
   static constexpr std::size_t kMaximumBinarySessions = 3;

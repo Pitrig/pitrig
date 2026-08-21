@@ -109,7 +109,8 @@ const api: SimCoreApi = {
   saveDeviceConfiguration: (request) =>
     ipcRenderer.invoke(DEVICE_CONFIGURATION_SAVE_CHANNEL, request),
   saveToBoard: (request) => ipcRenderer.invoke(SAVE_TO_BOARD_CHANNEL, request),
-  resetDeviceConfiguration: () => ipcRenderer.invoke(DEVICE_CONFIGURATION_RESET_CHANNEL),
+  resetDeviceConfiguration: (request) =>
+    ipcRenderer.invoke(DEVICE_CONFIGURATION_RESET_CHANNEL, request),
   rebootDevice: () => ipcRenderer.invoke(DEVICE_REBOOT_CHANNEL),
   sendControlCommand: (request) => ipcRenderer.invoke(CONTROL_COMMAND_CHANNEL, request),
   listFontLibrary: () => ipcRenderer.invoke(FONT_LIBRARY_LIST_CHANNEL),

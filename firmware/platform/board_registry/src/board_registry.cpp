@@ -29,8 +29,11 @@ const BoardDefinition& factory_board() {
       .input = &input::drivers::guition_jc1060p470c::get(),
       .default_telemetry_transport =
           configuration::TelemetryTransportId::native_usb_cdc,
-      .factory_configuration_json =
+      .factory_configuration_json = {
           R"({"board":"guition_jc1060p470c"})",
+          R"({"board":"guition_jc1060p470c"})",
+          R"({"board":"guition_jc1060p470c"})",
+      },
   };
 #elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
   static const BoardDefinition board{
@@ -50,11 +53,14 @@ const BoardDefinition& factory_board() {
       // Telemetry on this board runs over the same CH340 bridge it is flashed
       // over, and that bridge does not hold the contract default of 921600. An
       // omitted property expands identically on every board, so the rate has
-      // to be named here too: a board with no saved configuration would
-      // otherwise answer at a speed the host cannot open.
-      .factory_configuration_json =
+      // to be named in the protocol document here too: a board with no saved
+      // configuration would otherwise answer at a speed the host cannot open.
+      .factory_configuration_json = {
+          R"({"board":"guition_esp32_4848s040"})",
+          R"({"board":"guition_esp32_4848s040"})",
           R"({"board":"guition_esp32_4848s040",)"
           R"("telemetry_transport":{"uart":{"baud_rate":460800}}})",
+      },
   };
 #else
   static const BoardDefinition board{
@@ -71,7 +77,11 @@ const BoardDefinition& factory_board() {
       .input = nullptr,
       .default_telemetry_transport =
           configuration::TelemetryTransportId::native_usb_cdc,
-      .factory_configuration_json = R"({"board":"t_display_s3"})",
+      .factory_configuration_json = {
+          R"({"board":"t_display_s3"})",
+          R"({"board":"t_display_s3"})",
+          R"({"board":"t_display_s3"})",
+      },
   };
 #endif
   return board;

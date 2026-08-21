@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import { configurationsEqual } from '@shared/configuration-access'
+import { documentsDiffering } from '@shared/configuration-documents'
 import type { DeviceConfiguration } from '@shared/device'
 import { formatConfiguration, useDeviceStore } from './device-store'
 
@@ -19,6 +20,12 @@ export interface LiveApplyState {
  * or restarting. Only one apply is in flight at a time; edits made while one is
  * running are collapsed into a single follow-up, so a burst of edits costs one
  * extra round trip rather than one per edit.
+ *
+ * Only the documents that actually moved are sent. In practice that is the
+ * dashboard alone, which is the difference between a widget drag costing its own
+ * bytes and costing the whole configuration; and an edit confined to the
+ * protocol document sends nothing at all, since the transport cannot be applied
+ * to a running board.
  */
 export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) => void): void {
   const draft = useDeviceStore((state) => state.draft)
@@ -38,13 +45,21 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
     if (!draft || configurationsEqual(draft, applied.current)) return
 
     const send = async (configuration: DeviceConfiguration): Promise<void> => {
+      const changed = documentsDiffering(configuration, applied.current)
+      if (changed.length === 0) {
+        applied.current = configuration
+        return
+      }
       inFlight.current = true
       report.current({ pending: true })
       const result = await window.simcore.applyDeviceConfiguration({
-        json: formatConfiguration(configuration)
+        json: formatConfiguration(configuration),
+        documents: changed
       })
       inFlight.current = false
       if (result.ok) {
+        // What the board is now showing, which is the whole draft: the documents
+        // that were not sent are the ones it already had.
         applied.current = configuration
         report.current({ pending: false })
       } else {

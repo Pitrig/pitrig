@@ -1,10 +1,14 @@
 import { create } from 'zustand'
 
 import { configurationsEqual, withWidgetIds } from '@shared/configuration-access'
+import { CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
+import type { ConfigurationDocumentId } from '@shared/configuration-schema'
+import { documentOf, mergeDocument } from '@shared/configuration-documents'
 import type {
   DeviceConfiguration,
   DeviceConnection,
   DeviceError,
+  DeviceInfo,
   DeviceScanProgress,
   DeviceSession,
   DeviceState,
@@ -12,11 +16,18 @@ import type {
   SimCoreBoardId
 } from '@shared/device'
 
-// The draft is a structured document, not a string. Editing, comparison, and
-// the preview all read `draft`; the serialized form exists only for the
-// advanced JSON editor and for the wire. `rawDraft` holds the advanced editor's
-// text while it differs from the structured draft, including while it is not
-// parseable — the preview keeps rendering the last good document, as before.
+// The draft is a structured document, not a string. Editing, comparison, the
+// preview and the wire all read `draft`; the serialized form exists only for the
+// advanced JSON editor. `rawDraft` holds what that editor is showing, and which
+// of the three documents it is showing, including while the text does not parse
+// — the preview keeps rendering the last good document, and the draft counts as
+// invalid until the text is valid again.
+
+/** What the advanced JSON editor is holding, and which document it is for. */
+export interface RawDraft {
+  document: ConfigurationDocumentId
+  text: string
+}
 //
 // History lives here rather than in the editor because this is where every
 // document replacement lands. Entries are whole documents: each edit already
@@ -44,7 +55,7 @@ interface DeviceStore {
   connectionRevision: number
   activeConfiguration?: DeviceConfiguration
   draft?: DeviceConfiguration
-  rawDraft?: string
+  rawDraft?: RawDraft
   hasLocalDraft: boolean
   draftFileName?: string
   pendingConfiguration?: DeviceConfiguration
@@ -67,7 +78,7 @@ interface DeviceStore {
   editSource: EditSource
   applyDeviceState: (state: DeviceState) => void
   setDraft: (configuration: DeviceConfiguration) => void
-  setRawDraft: (text: string) => void
+  setRawDraft: (document: ConfigurationDocumentId, text: string) => void
   replaceLocalDraft: (configuration: DeviceConfiguration, fileName?: string) => void
   reloadDraft: (session: DeviceSession) => void
   /**
@@ -89,6 +100,17 @@ interface DeviceStore {
   endEdit: () => void
   undo: () => void
   redo: () => void
+}
+
+/**
+ * Whether two device reports describe the same stored configuration. It is one
+ * generation per document now, and any of them moving means the board is
+ * holding something else.
+ */
+function sameGenerations(left: DeviceInfo, right: DeviceInfo): boolean {
+  return CONFIGURATION_DOCUMENT_IDS.every(
+    (id) => left.documents[id].generation === right.documents[id].generation
+  )
 }
 
 function adopt(configuration: DeviceConfiguration): DeviceConfiguration {
@@ -134,7 +156,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       const sameActiveConfiguration =
         current.status === 'connected' &&
         current.session?.info.boardId === state.session.info.boardId &&
-        current.session.info.generation === state.session.info.generation &&
+        sameGenerations(current.session.info, state.session.info) &&
         configurationsEqual(current.activeConfiguration, activeConfiguration)
 
       if (sameActiveConfiguration) {
@@ -174,14 +196,16 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       ...recordHistory(current, 'structured')
     })),
   // Keeps the typed text exactly as entered so reformatting never fights the
-  // caret; the structured draft advances only while the text parses.
-  setRawDraft: (text) =>
+  // caret; the structured draft advances only while the text parses. The text
+  // is one document rather than the whole configuration, so it is merged over
+  // the draft: editing the protocol JSON by hand cannot lose a dashboard.
+  setRawDraft: (document, text) =>
     set((current) => {
       const parsed = parseConfiguration(text)
-      if (!parsed) return { rawDraft: text, hasLocalDraft: true }
+      if (!parsed || !current.draft) return { rawDraft: { document, text }, hasLocalDraft: true }
       return {
-        rawDraft: text,
-        draft: parsed,
+        rawDraft: { document, text },
+        draft: mergeDocument(current.draft, document, parsed),
         hasLocalDraft: true,
         editSource: 'raw',
         ...recordHistory(current, 'raw')
@@ -285,12 +309,23 @@ export function formatConfiguration(configuration: DeviceConfiguration): string 
   return JSON.stringify(configuration, null, 2)
 }
 
-/** Text the advanced JSON editor should show for the current draft. */
-export function draftText(state: {
-  rawDraft?: string
-  draft?: DeviceConfiguration
-}): string {
-  if (state.rawDraft !== undefined) return state.rawDraft
+/**
+ * Text the advanced JSON editor should show for one document.
+ *
+ * The typed text wins only for the document it was typed into: the other two
+ * are rendered from the structured draft, which is where every other reader of
+ * the configuration looks.
+ */
+export function documentDraftText(
+  state: { rawDraft?: RawDraft; draft?: DeviceConfiguration },
+  document: ConfigurationDocumentId
+): string {
+  if (state.rawDraft?.document === document) return state.rawDraft.text
+  return state.draft ? formatConfiguration(documentOf(state.draft, document)) : ''
+}
+
+/** The whole draft as the file and the library hold it. */
+export function draftText(state: { draft?: DeviceConfiguration }): string {
   return state.draft ? formatConfiguration(state.draft) : ''
 }
 

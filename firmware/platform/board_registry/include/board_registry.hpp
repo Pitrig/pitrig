@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <string_view>
 
 #include "application_configuration.hpp"
@@ -20,7 +21,13 @@ struct BoardDefinition {
   // error. A pointer rather than a reference is what makes that expressible.
   const input::driver::Driver* input{};
   configuration::TelemetryTransportId default_telemetry_transport{};
-  std::string_view factory_configuration_json{};
+  // One compiled factory document per configuration document, in
+  // ConfigurationDocument order. Each is a complete document carrying the board
+  // identifier, so a board with nothing stored answers `@SC:GET:<DOC>` with the
+  // bytes it is actually running rather than with a section carved out of a
+  // larger payload — the device has no serializer to carve one with.
+  std::array<std::string_view, configuration::kConfigurationDocumentCount>
+      factory_configuration_json{};
 };
 
 // Returns the single immutable board selected by the firmware build.

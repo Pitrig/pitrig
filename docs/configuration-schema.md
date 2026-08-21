@@ -1,14 +1,24 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 13. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 14. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 13.
+Schema version: 14.
+
+## Documents
+
+The configuration is transferred and stored as three independent documents. Each carries the `board` identifier — so each is validated against the board it arrives at — plus the root sections listed here, and is rejected if it carries any other. `@SC:GET`, `@SC:SET`, `@SC:VALIDATE` and `@SC:APPLY` name one of them.
+
+| Document | Carries | Maximum payload | Restart to take effect | Purpose |
+| --- | --- | --- | --- | --- |
+| `dashboard` | `board`, `dashboard` | 65536 bytes | no | The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place. |
+| `modules` | `board`, `hardware` | 1024 bytes | no | Peripherals beyond the display. Empty until a peripheral driver has a production contract, and separate so that adding one costs neither the dashboard's bytes nor its restarts. |
+| `protocol` | `board`, `telemetry_transport` | 1024 bytes | yes | Which link carries telemetry and how it is configured. The transport is bound once at startup, so writing this document stores a setting that is not yet in force — which is why it is the one document whose save asks for a restart. |
 
 ## Limits
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
-| `kMaximumPayloadSize` | 65536 | Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. |
+| `kMaximumPayloadSize` | 65536 | Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. |
 | `kMaximumScreens` | 4 | Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM. |
 | `kMaximumWidgetsPerScreen` | 106 | Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. |
 | `kMaximumWidgetsPerContainer` | 16 | Ordered widget references inside one container: a shape, or one page of a slot. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does. |
@@ -69,6 +79,12 @@ Schema version: 13.
 | Property | Type | Default |
 | --- | --- | --- |
 | `board` | `BoardId` | `t_display_s3` |
+
+### HardwareConfiguration
+
+Reserved bounded peripheral section. No user-configurable peripheral driver has a complete production contract yet, so a non-empty list is rejected rather than guessed.
+
+Accepted as an empty array only.
 
 ### UartTelemetryConfiguration
 

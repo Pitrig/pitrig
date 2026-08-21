@@ -53,7 +53,6 @@ export function SaveToTemplatesButton(): React.JSX.Element {
 
 function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
-  const rawDraft = useDeviceStore((state) => state.rawDraft)
   const selection = useDashboardEditorStore((state) => state.selection)
   const refresh = useTemplatesStore((state) => state.refresh)
   const library = useTemplatesStore((state) => state.library)
@@ -89,7 +88,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
               kind: 'dashboard',
               name: name.trim(),
               ...(trimmed ? { description: trimmed } : {}),
-              json: draftText({ rawDraft, draft })
+              json: draftText({ draft })
             }
           : {
               kind: 'widget',

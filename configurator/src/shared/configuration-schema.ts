@@ -2,9 +2,9 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 13
+export const CONFIGURATION_SCHEMA_VERSION = 14
 
-/** Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
+/** Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
 export const MAXIMUM_PAYLOAD_SIZE = 65536
 /** Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM. */
 export const MAXIMUM_SCREENS = 4
@@ -565,6 +565,51 @@ export interface ApplicationConfiguration {
   hardware?: HardwareConfiguration
   telemetry_transport?: TelemetryTransportConfiguration
   dashboard?: DashboardConfiguration
+}
+
+/** One independently stored and transferred configuration document. */
+export type ConfigurationDocumentId = 'dashboard' | 'modules' | 'protocol'
+export const CONFIGURATION_DOCUMENT_IDS: readonly ConfigurationDocumentId[] = ['dashboard', 'modules', 'protocol']
+
+/** The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place. */
+export interface DashboardDocument {
+  board: BoardId
+  dashboard?: DashboardConfiguration
+}
+
+/** Peripherals beyond the display. Empty until a peripheral driver has a production contract, and separate so that adding one costs neither the dashboard's bytes nor its restarts. */
+export interface ModulesDocument {
+  board: BoardId
+  hardware?: HardwareConfiguration
+}
+
+/** Which link carries telemetry and how it is configured. The transport is bound once at startup, so writing this document stores a setting that is not yet in force — which is why it is the one document whose save asks for a restart. */
+export interface ProtocolDocument {
+  board: BoardId
+  telemetry_transport?: TelemetryTransportConfiguration
+}
+
+export type ConfigurationDocument = DashboardDocument | ModulesDocument | ProtocolDocument
+
+/** What one document is called, holds, may weigh, and costs to save. */
+export interface ConfigurationDocumentDescriptor {
+  readonly id: ConfigurationDocumentId
+  /** Root sections it carries, beside the board identifier every one has. */
+  readonly sections: readonly string[]
+  /** Top-level property names it accepts, board included. */
+  readonly keys: readonly string[]
+  readonly maxPayload: number
+  /** Saving it stores a setting the running board cannot pick up. */
+  readonly rebootRequired: boolean
+}
+
+export const CONFIGURATION_DOCUMENTS: Record<
+  ConfigurationDocumentId,
+  ConfigurationDocumentDescriptor
+> = {
+  dashboard: { id: 'dashboard', sections: ['dashboard'], keys: ['board', 'dashboard'], maxPayload: 65536, rebootRequired: false },
+  modules: { id: 'modules', sections: ['hardware'], keys: ['board', 'hardware'], maxPayload: 1024, rebootRequired: false },
+  protocol: { id: 'protocol', sections: ['telemetry_transport'], keys: ['board', 'telemetry_transport'], maxPayload: 1024, rebootRequired: true },
 }
 
 /** Discriminated widget union. Adding a widget type adds one member here. */

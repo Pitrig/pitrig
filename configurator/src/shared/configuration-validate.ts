@@ -1,4 +1,12 @@
-import { MAXIMUM_PAYLOAD_SIZE, type ApplicationConfiguration } from './configuration-schema'
+import {
+  CONFIGURATION_DOCUMENTS,
+  CONFIGURATION_DOCUMENT_IDS,
+  type ApplicationConfiguration
+} from './configuration-schema'
+import {
+  CONFIGURATION_DOCUMENT_LABELS,
+  documentPayloadBytes
+} from './configuration-documents'
 import { findFontError } from './validate/fonts'
 import { findRangeError } from './validate/ranges'
 import { findUnknownProperty } from './validate/schema-keys'
@@ -22,7 +30,7 @@ export interface ValidateOptions {
 }
 
 export type ValidationResult =
-  | { ok: true; configuration: ApplicationConfiguration; payloadBytes: number }
+  | { ok: true; configuration: ApplicationConfiguration }
   | { ok: false; error: string }
 
 export function validateConfigurationDocument(
@@ -58,14 +66,22 @@ export function validateConfigurationDocument(
   const fontError = findFontError(configuration)
   if (fontError) return { ok: false, error: fontError }
 
-  const payloadBytes = new TextEncoder().encode(JSON.stringify(configuration)).byteLength
-  if (payloadBytes > MAXIMUM_PAYLOAD_SIZE) {
-    return {
-      ok: false,
-      error: `Configuration exceeds the ${MAXIMUM_PAYLOAD_SIZE}-byte device limit.`
+  // Per document, because that is how the bytes travel: the dashboard has the
+  // whole 64 KB and the other two a kilobyte each. Measuring the aggregate
+  // would refuse a dashboard that is exactly at its bound for the sake of a
+  // transport section the device counts separately.
+  for (const document of CONFIGURATION_DOCUMENT_IDS) {
+    const limit = CONFIGURATION_DOCUMENTS[document].maxPayload
+    if (documentPayloadBytes(configuration, document) > limit) {
+      return {
+        ok: false,
+        error:
+          `The ${CONFIGURATION_DOCUMENT_LABELS[document].toLowerCase()} configuration exceeds ` +
+          `the ${limit}-byte device limit.`
+      }
     }
   }
-  return { ok: true, configuration, payloadBytes }
+  return { ok: true, configuration }
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

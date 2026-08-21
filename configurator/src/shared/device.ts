@@ -5,7 +5,11 @@ import {
   CONFIGURATION_SCHEMA_VERSION,
   MAXIMUM_PAYLOAD_SIZE
 } from './configuration-schema'
-import type { ApplicationConfiguration, BoardId } from './configuration-schema'
+import type {
+  ApplicationConfiguration,
+  BoardId,
+  ConfigurationDocumentId
+} from './configuration-schema'
 
 export const DEVICE_LIST_PORTS_CHANNEL = 'device:list-ports' as const
 export const DEVICE_GET_STATE_CHANNEL = 'device:get-state' as const
@@ -147,13 +151,32 @@ export function applyBoardTransportDefaults(
   }
 }
 
+/** What became of one stored document at boot, as `@SC:INFO` reports it. */
+export type ConfigurationDocumentOutcome =
+  | 'absent'
+  | 'malformed_record'
+  | 'unsupported_schema'
+  | 'corrupt_payload'
+  | 'rejected'
+  | 'valid'
+
+export interface ConfigurationDocumentState {
+  outcome: ConfigurationDocumentOutcome
+  /** Which generation of the stored record the board is running; 0 when absent. */
+  generation: number
+}
+
 export interface DeviceInfo {
   boardId: SimCoreBoardId
   firmwareVersion: string
   schemaVersion: typeof CONFIGURATION_SCHEMA_VERSION
   display: DisplayDescriptor
-  configurationSource: 'factory' | 'slot_a' | 'slot_b'
-  generation: number
+  /**
+   * One entry per configuration document. A board on factory values for one
+   * section and a stored record for another is an ordinary state now, so there
+   * is no single source token that could describe it.
+   */
+  documents: Record<ConfigurationDocumentId, ConfigurationDocumentState>
   storageAvailable: boolean
 }
 
@@ -215,21 +238,43 @@ export interface ConnectDeviceRequest {
 
 export interface DeviceConfigurationRequest {
   json: string
+  /**
+   * Which documents to write, out of the aggregate `json` carries. Omitted
+   * means all of them, which is what replacing the whole configuration wants;
+   * a live apply names only what actually changed, so dragging a widget no
+   * longer resends the transport settings with every frame.
+   */
+  documents?: ConfigurationDocumentId[]
 }
 
 // Applying changes only what the device is rendering. Flash is untouched, so a
 // restart returns to the last saved configuration.
 export interface DeviceConfigurationApplyResult {
   configuration: DeviceConfiguration
+  /** The documents actually sent, which may be fewer than the caller asked for. */
+  documents: ConfigurationDocumentId[]
 }
 
 export interface DeviceConfigurationSaveResult {
   configuration: DeviceConfiguration
-  rebootRequired: true
+  documents: ConfigurationDocumentId[]
+  /**
+   * Whether any document written here is one the running board cannot pick up.
+   * Only the transport is chosen once at startup, so an ordinary dashboard save
+   * answers false and is closed with an apply instead of a restart.
+   */
+  rebootRequired: boolean
+}
+
+export interface DeviceConfigurationResetRequest {
+  /** Which document to erase. Omitted erases every one of them. */
+  document?: ConfigurationDocumentId
 }
 
 export interface DeviceConfigurationResetResult {
   configuration: DeviceConfiguration
+  /** The documents erased, which is all three unless one was named. */
+  documents: ConfigurationDocumentId[]
   rebootRequired: true
 }
 

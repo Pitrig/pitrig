@@ -1,4 +1,5 @@
-import { configurationsEqual } from '@shared/configuration-access'
+import { documentsDiffering } from '@shared/configuration-documents'
+import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import {
   validateConfigurationDocument,
   type ValidationResult
@@ -21,11 +22,17 @@ import { draftText, parseConfiguration, useDeviceStore } from './device-store'
  * dirty" is four chances for them to disagree about it.
  */
 export interface DraftState {
-  /** The draft as the wire would carry it, raw text included while it is being typed. */
+  /** The whole draft as a file or the library would hold it. */
   draftJson: string
   parsed: ValidationResult
   /** The draft differs from what the board has active or pending. */
   dirty: boolean
+  /**
+   * Which documents differ. The three are stored and sent separately, so this
+   * is what a save writes, what a live apply sends, and what the Configs page
+   * marks a row with — rather than three places each deciding for themselves.
+   */
+  dirtyDocuments: ConfigurationDocumentId[]
   connected: boolean
   /** The draft names a different board than the one plugged in. */
   boardMismatch: boolean
@@ -39,8 +46,9 @@ export interface DraftState {
    * A family the board lacks is the case worth naming: firmware rejects such a
    * document whole — apply_configuration.cpp answers `invalid_widget` with
    * `path=font` *before* it tears the running dashboard down — so sending it
-   * would only turn a calm sentence into a red error. Apply is whole-document,
-   * so while this is false no edit reaches the board, not only the font.
+   * would only turn a calm sentence into a red error. Firmware refuses the whole
+   * document it arrives in, so while this is false no dashboard edit reaches the
+   * board, not only the font.
    */
   liveApplyAllowed: boolean
 }
@@ -54,10 +62,10 @@ export function useDraftState(): DraftState {
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
 
-  const draftJson = draftText({ rawDraft, draft })
+  const draftJson = draftText({ draft })
   const { parsed, missingFamilies } = inspect(
     draft,
-    rawDraft,
+    rawDraft?.text,
     hasLocalDraft,
     session?.fontAssets?.families
   )
@@ -65,7 +73,13 @@ export function useDraftState(): DraftState {
   // Structural comparison: reordering or reformatting properties no longer
   // makes an identical configuration look modified.
   const comparison = pendingConfiguration ?? activeConfiguration
-  const dirty = hasLocalDraft && (!session || !configurationsEqual(draft, comparison))
+  // Disconnected, every document counts as differing: there is nothing to
+  // compare against, and the answer callers want is "all of it is unsaved".
+  const dirtyDocuments = compare(
+    hasLocalDraft ? draft : undefined,
+    session ? comparison : undefined
+  )
+  const dirty = dirtyDocuments.length > 0
   const connected = status === 'connected' && Boolean(session)
   const boardMismatch =
     parsed.ok && session ? parsed.configuration.board !== session.info.boardId : false
@@ -86,6 +100,7 @@ export function useDraftState(): DraftState {
     draftJson,
     parsed,
     dirty,
+    dirtyDocuments,
     connected,
     boardMismatch,
     missingFamilies,
@@ -116,6 +131,35 @@ let memo:
       value: { parsed: ValidationResult; missingFamilies: string[] }
     }
   | undefined
+
+/**
+ * Which documents differ, memoized on the two configurations that produce the
+ * answer.
+ *
+ * Same reason as `inspect` below, and the same shape: comparing documents
+ * canonicalizes each one, which for the dashboard is a recursive key-sort of the
+ * whole thing. A drag would otherwise pay for that several times per frame to
+ * reach an answer that has not changed.
+ */
+let diffMemo:
+  | {
+      draft: DeviceConfiguration | undefined
+      board: DeviceConfiguration | undefined
+      value: ConfigurationDocumentId[]
+    }
+  | undefined
+
+function compare(
+  draft: DeviceConfiguration | undefined,
+  board: DeviceConfiguration | undefined
+): ConfigurationDocumentId[] {
+  if (diffMemo && diffMemo.draft === draft && diffMemo.board === board) {
+    return diffMemo.value
+  }
+  const value = documentsDiffering(draft, board)
+  diffMemo = { draft, board, value }
+  return value
+}
 
 function inspect(
   draft: DeviceConfiguration | undefined,

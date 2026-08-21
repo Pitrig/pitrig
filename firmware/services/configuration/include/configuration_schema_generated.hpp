@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string_view>
 
 #include "application_configuration_generated.hpp"
@@ -449,6 +450,38 @@ inline constexpr std::array<std::string_view, 4> kApplicationConfigurationKeys{{
     "telemetry_transport",
     "dashboard",
 }};
+
+// Accepted top-level property names per document. A section that belongs
+// to another document is unknown here, so a dashboard sent under
+// `@SC:SET:PROTOCOL` is rejected rather than half-applied.
+
+inline constexpr std::array<std::string_view, 2> kDashboardDocumentKeys{{
+    "board",
+    "dashboard",
+}};
+
+inline constexpr std::array<std::string_view, 2> kModulesDocumentKeys{{
+    "board",
+    "hardware",
+}};
+
+inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
+    "board",
+    "telemetry_transport",
+}};
+
+[[nodiscard]] inline std::span<const std::string_view> document_keys(
+    const ConfigurationDocument value) {
+  switch (value) {
+    case ConfigurationDocument::dashboard:
+      return kDashboardDocumentKeys;
+    case ConfigurationDocument::modules:
+      return kModulesDocumentKeys;
+    case ConfigurationDocument::protocol:
+      return kProtocolDocumentKeys;
+  }
+  return {};
+}
 
 // The authored bounds of every scalar property that has one, in
 // declaration order. Each returns the public path of the first property

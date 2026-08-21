@@ -1,3 +1,5 @@
+import type { ConfigurationDocumentId } from './configuration-schema'
+
 // Saving a dashboard to a board is several device commands with one document
 // riding on all of them: resolve the families it names, build the package,
 // compare it with what is installed, upload only on a difference, and save the
@@ -33,6 +35,12 @@ export interface SaveProgress {
 
 export interface SaveToBoardRequest {
   json: string
+  /**
+   * Which documents the save may write, out of those that actually differ.
+   * Omitted means all of them, which is what the toolbar's "Save to board"
+   * wants; the Configs page names one so a row can be saved on its own.
+   */
+  documents?: ConfigurationDocumentId[]
 }
 
 export interface SaveToBoardValue {

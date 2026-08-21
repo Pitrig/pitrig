@@ -15,6 +15,7 @@ import {
   isFontLibraryIdRequest,
   isFontLibraryImportRequest,
   isImageUploadRequest,
+  isConfigurationResetRequest,
   isJsonDocumentRequest,
   isSimHubProfileExportRequest,
   isTemplateIdRequest,
@@ -198,18 +199,21 @@ export function registerIpcHandlers(
   ipcMain.handle(DEVICE_CANCEL_AUTO_CONNECT_CHANNEL, () => deviceService.cancelAutoConnect())
   ipcMain.handle(DEVICE_DISCONNECT_CHANNEL, () => deviceService.disconnect())
   ipcMain.handle(DEVICE_CONFIGURATION_READ_CHANNEL, () => deviceService.readConfiguration())
-  ipcMain.handle(DEVICE_CONFIGURATION_RESET_CHANNEL, () => deviceService.resetConfiguration())
+  ipcMain.handle(DEVICE_CONFIGURATION_RESET_CHANNEL, (_event, request: unknown) => {
+    const document = isConfigurationResetRequest(request) ? request.document : undefined
+    return deviceService.resetConfiguration(document)
+  })
   ipcMain.handle(DEVICE_CONFIGURATION_APPLY_CHANNEL, async (_event, request: unknown) => {
     if (!isJsonDocumentRequest(request)) {
       return invalidConfigurationRequest()
     }
-    return deviceService.applyConfiguration(request.json)
+    return deviceService.applyConfiguration(request.json, request.documents)
   })
   ipcMain.handle(DEVICE_CONFIGURATION_SAVE_CHANNEL, (_event, request: unknown) => {
     if (!isJsonDocumentRequest(request)) {
       return invalidConfigurationRequest()
     }
-    return deviceService.saveConfiguration(request.json)
+    return deviceService.saveConfiguration(request.json, request.documents)
   })
   ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.reboot())
   ipcMain.handle(CONTROL_COMMAND_CHANNEL, (_event, request: unknown) => {
@@ -230,7 +234,7 @@ export function registerIpcHandlers(
       }
       return result
     }
-    return saveToBoardService.save({ json: request.json })
+    return saveToBoardService.save({ json: request.json, documents: request.documents })
   })
   ipcMain.handle(FONT_LIBRARY_LIST_CHANNEL, () => fontLibraryService.list())
   ipcMain.handle(FONT_LIBRARY_FACES_CHANNEL, (_event, request: unknown) =>

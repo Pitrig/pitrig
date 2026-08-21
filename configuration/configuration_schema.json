@@ -1,11 +1,32 @@
 {
-  "schema_version": 13,
+  "schema_version": 14,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
+
+  "documents": {
+    "dashboard": {
+      "sections": ["dashboard"],
+      "max_payload": 65536,
+      "reboot_required": false,
+      "doc": "The screens and every widget on them. The one document large enough to need the full payload bound, and the only one a live apply rebuilds in place."
+    },
+    "modules": {
+      "sections": ["hardware"],
+      "max_payload": 1024,
+      "reboot_required": false,
+      "doc": "Peripherals beyond the display. Empty until a peripheral driver has a production contract, and separate so that adding one costs neither the dashboard's bytes nor its restarts."
+    },
+    "protocol": {
+      "sections": ["telemetry_transport"],
+      "max_payload": 1024,
+      "reboot_required": true,
+      "doc": "Which link carries telemetry and how it is configured. The transport is bound once at startup, so writing this document stores a setting that is not yet in force — which is why it is the one document whose save asks for a restart."
+    }
+  },
 
   "limits": {
     "kMaximumPayloadSize": {
       "value": 65536,
-      "doc": "Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory."
+      "doc": "Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory."
     },
     "kMaximumScreens": {
       "value": 4,

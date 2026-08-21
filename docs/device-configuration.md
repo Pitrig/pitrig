@@ -14,8 +14,10 @@ the firmware drivers for hardware physically built into that board. Firmware
 reports the stable board identifier; the configurator maps it to its local
 supported board profile.
 
-User configuration cannot change the physical board. Every configuration must
-contain the same board identifier, and a mismatch is rejected before saving.
+User configuration cannot change the physical board. Every configuration
+document must contain the same board identifier — all three of them do, which is
+what makes each answerable on its own — and a mismatch is rejected before
+saving.
 
 Configurator board profiles:
 
@@ -45,20 +47,27 @@ built-in display. The optional hardware list therefore does not duplicate that
 display. Logical dimensions are held by the configurator board profile rather
 than transmitted by firmware or stored in device configuration.
 
-SimCore loads user configuration in this order:
+User configuration is not one document. It is three — `dashboard`, `modules`
+and `protocol` — each transferred, stored, validated and applied on its own. See
+[Public payload](#public-payload) for what each carries and
+[ADR 0024](adr/0024-separate-configuration-documents.md) for why.
 
-1. Active valid NVS slot.
-2. Backup valid NVS slot.
-3. Board-only factory configuration compiled into firmware.
+SimCore loads them in this order:
 
-The factory configuration enables no additional hardware devices, modules, or
-widgets. A clean flash or reset still initializes a board-provided display, but
-the screen has no dashboard content.
+1. The three board-only factory documents compiled into firmware.
+2. Whatever is stored, one document at a time on top of them.
+
+A document with no stored record therefore runs its factory value while the
+others run what was saved. The factory documents enable no additional hardware
+devices, modules, or widgets. A clean flash or reset still initializes a
+board-provided display, but the screen has no dashboard content.
 
 A saved replacement takes effect after restart. `APPLY` is the exception: it
-validates a document and rebuilds the running dashboard from it without writing
-storage, so an editor can preview a change live. The stored configuration is
-unchanged, and a restart returns to it.
+validates one document and rebuilds the running composition from it without
+writing storage, so an editor can preview a change live. The stored
+configuration is unchanged, and a restart returns to it. The protocol document
+is the one this cannot help: the link is selected once at startup, so applying
+it stages the setting and rebuilds nothing.
 
 ## Sparse authoring format
 
@@ -799,28 +808,35 @@ the same schema allow-list the device payload uses.
 
 ### Saving to the board
 
-`Save to board` is one sequence in the main process: resolve the families the
-document names against the font library, build the package, send it only when
-the board does not already hold those exact bytes, and `@SC:SET` the document.
+`Save to board` is one sequence in the main process: work out which documents
+differ from what the board is holding, resolve the families the dashboard names
+against the font library, build the package, send it only when the board does
+not already hold those exact bytes, and `@SC:SET` each differing document —
+protocol first, dashboard last, so a partial failure leaves the cheap writes
+done and the expensive one untouched. A document that matches the board is not
+written at all, which is why changing a baud rate no longer costs sixty
+kilobytes of dashboard.
 
 How it ends depends on what it did. A face the board did not have becomes
 usable only after a restart, so installing one ends in `@SC:REBOOT` and a
 reconnect — as does saving onto a board that already owes a restart for a font
-or image package it has accepted, and as does a changed `telemetry_transport`.
-That last one is not obvious: firmware takes the full recompose path for it,
-but recompose rebuilds modules and the dashboard, and the link itself is
-selected once at startup — so a transport written without a restart would be a
-setting that is stored and not in force. A changed speed also means the board
-comes back at the new one, which is the case the reconnect can fail on. Otherwise the save ends in `@SC:APPLY` with
-the same document, which rebuilds the running dashboard from what was just
-written to NVS. `SET` still answers `reboot_required=1`, because NVS and the
-running dashboard are two different things; the apply is what closes the gap,
-and it is why an ordinary save costs no dark screen.
+or image package it has accepted, and as does writing the protocol document.
+That last one is the whole reason the document is separate: the link is selected
+once at startup, so a transport written without a restart would be a setting
+that is stored and not in force, and the firmware says so by answering
+`reboot_required=1` for that document alone. A changed speed also means the
+board comes back at the new one, which is the case the reconnect can fail on.
+Otherwise the save ends in `@SC:APPLY` for each document it wrote, which
+rebuilds the running composition from what was just written to NVS. That is why
+an ordinary save costs no dark screen.
 
-The Configs page states the difference between the draft and the configuration
-the board has active or pending, property by property, before any of this
-happens. Widgets and screens are matched by `id`, so moving one reads as a move
-rather than as a deletion and an unrelated arrival.
+The Configs page lists the three documents with what each is doing on the board
+— in sync, modified, factory, or a stored record the firmware refused — and can
+load, save or erase any one of them on its own. Below that it states the
+difference between the draft and the configuration the board has active or
+pending, per document and property by property, before any of this happens.
+Widgets and screens are matched by `id`, so moving one reads as a move rather
+than as a deletion and an unrelated arrival.
 
 ## Fonts
 
@@ -861,7 +877,7 @@ checks before it lets a configuration replace the running dashboard.
 
 ```text
 @SC:INFO
-@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=13,source=factory,generation=0,storage=1
+@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=14,storage=1,dashboard=valid:3,modules=absent:0,protocol=valid:1
 ```
 
 Fields:
@@ -869,10 +885,12 @@ Fields:
 - `board` is the immutable factory board identifier;
 - `firmware` comes from the ESP-IDF application description;
 - `schema` is the supported public configuration schema;
-- `source` is the configuration source active in the current runtime and is
-  `factory`, `slot_a`, or `slot_b`;
-- `generation` is the stored-record generation active in the current runtime;
-- `storage` is `1` when persistent configuration storage is available.
+- `storage` is `1` when persistent configuration storage is available;
+- one field per configuration document, named after it and spelled
+  `<outcome>:<generation>`. The outcome is `absent`, `malformed_record`,
+  `unsupported_schema`, `corrupt_payload`, `rejected` or `valid`; the generation
+  is the stored record's, or `0` when there is none. `absent` is not a fault —
+  it is a board running that document's factory value.
 
 The configurator must resolve display information from the `board` field and
 its local supported-board registry, present it as read-only device information,
@@ -884,9 +902,10 @@ profile before they are supported.
 `INFO` and `GET` describe the configuration the device loaded at boot. `SET`
 and `RESET` update persistent state but do not change either until reboot,
 which keeps them consistent with the configuration currently used by modules
-and widgets. `APPLY` does not change them either: it replaces what the dashboard
-renders, not what was loaded, so `GET` keeps returning the boot payload and
-`source` and `generation` keep naming the boot record.
+and widgets. `APPLY` does not change them either: it replaces what the
+composition renders, not what was loaded, so `GET` keeps returning each
+document's boot payload and the per-document outcomes keep naming the boot
+records.
 
 ## Control commands
 
@@ -904,15 +923,35 @@ arrives on another link while an upload runs is answered `busy` (see
 attaches a second link). Neither is a configuration command, and their bytes
 are never stored in configuration NVS.
 
+Every command that carries configuration names one of the three documents.
+`<doc>` below is `dashboard`, `modules` or `protocol`, spelled in lower case the
+way the contract spells every other value on this wire. A name that is none of
+them is answered `@SC:ERR:unknown_document`.
+
 | Request | Successful response | Purpose |
 | --- | --- | --- |
-| `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata. |
-| `@SC:GET` | `@SC:OK:CONFIG:<JSON>` | Read the exact sparse JSON payload. |
-| `@SC:VALIDATE:<JSON>` | `@SC:OK:VALID` | Validate without saving. |
-| `@SC:APPLY:<JSON>` | `@SC:OK:APPLIED` | Validate and apply to the running dashboard without saving. |
-| `@SC:SET:<JSON>` | `@SC:OK:SAVED:reboot_required=1` | Validate and save. |
-| `@SC:RESET` | `@SC:OK:RESET:reboot_required=1` | Remove saved configuration. |
+| `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata, and each document's stored record. |
+| `@SC:GET:<doc>` | `@SC:OK:CONFIG:<doc>:<JSON>` | Read the exact sparse JSON payload that document was loaded from. |
+| `@SC:VALIDATE:<doc>:<JSON>` | `@SC:OK:VALID:<doc>` | Validate without saving. |
+| `@SC:APPLY:<doc>:<JSON>` | `@SC:OK:APPLIED:<doc>` | Validate and apply to the running composition without saving. |
+| `@SC:SET:<doc>:<JSON>` | `@SC:OK:SAVED:<doc>:reboot_required=<0\|1>` | Validate and save. |
+| `@SC:RESET:<doc>` | `@SC:OK:RESET:<doc>:reboot_required=1` | Remove one saved document. |
+| `@SC:RESET` | `@SC:OK:RESET:reboot_required=1` | Remove every saved document. |
 | `@SC:REBOOT` | `@SC:OK:REBOOTING` | Restart the device. |
+
+`reboot_required` on a save is a property of the document, generated from the
+schema rather than decided here: `protocol` answers 1 because the link is
+selected once at startup, and `dashboard` and `modules` answer 0 because
+`@SC:APPLY` brings the running composition up to what was just written. Applying
+the protocol document is accepted and stages it, but rebuilds nothing — the
+board picks the link up on its next start.
+
+`@SC:INFO` reports `board`, `firmware`, `schema`, `storage`, and then one field
+per document spelled `<doc>=<outcome>:<generation>`. The outcome is one of
+`absent`, `malformed_record`, `unsupported_schema`, `corrupt_payload`,
+`rejected` or `valid`; the generation is the stored record's, or `0` when there
+is none. A board running one section from flash and another from its factory
+value is an ordinary state, which is why there is no single source token.
 
 Validation errors use `@SC:ERR:<reason>:screen=<n>,widget=<n>,path=<property>`.
 The reason token keeps its position, so a host that only reads the reason is
@@ -927,27 +966,51 @@ location suffix:
 | --- | --- |
 | `@SC:ERR:unknown_command` | The line starts with `@SC:` but names no command above. A host probes for a capability this way. |
 | `@SC:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler. |
+| `@SC:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |
 | `@SC:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. |
 
-After reset and reboot, `GET` returns the board-only factory configuration and
-the board-provided display remains enabled with an empty dashboard.
+After reset and reboot, each `GET` returns that document's compiled factory
+payload and the board-provided display remains enabled with an empty dashboard.
 
 ## Public payload
 
-The public payload is the bounded sparse JSON document described above. The
-configurator sends it directly; there is no binary codec or hexadecimal wrapper.
-The serial protocol is line-oriented, so payloads must be compact single-line
-JSON without literal CR or LF bytes. Whitespace inside that one line is valid,
-but the configurator should use `JSON.stringify` output.
+The public payload is a bounded sparse JSON document. The configurator sends it
+directly; there is no binary codec or hexadecimal wrapper. The serial protocol is
+line-oriented, so payloads must be compact single-line JSON without literal CR or
+LF bytes. Whitespace inside that one line is valid, but the configurator should
+use `JSON.stringify` output.
 
-Top-level properties:
+There are three of them, and each is transferred and stored on its own. Every
+one carries `board`, which is what makes it answerable for arriving at the wrong
+hardware, plus the sections belonging to it — and is rejected if it carries any
+other:
+
+| Document | Top-level properties | Maximum payload |
+| --- | --- | --- |
+| `dashboard` | `board`, `dashboard.screens` | 65536 bytes |
+| `modules` | `board`, `hardware` | 1024 bytes |
+| `protocol` | `board`, `telemetry_transport` | 1024 bytes |
 
 | Property | Shape | Meaning |
 | --- | --- | --- |
-| `board` | string, required | Immutable compatible board identifier. |
+| `board` | string, required | Immutable compatible board identifier. Present in all three documents. |
 | `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
 | `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
 | `dashboard.screens` | array, optional | Bounded screen list, at most four entries. |
+
+A document owns the sections listed against it completely: an omitted section
+means the author says it holds nothing, not that the device should keep what was
+there. Sections belonging to another document are left exactly as they were, so
+writing the protocol document cannot disturb a dashboard.
+
+The smallest valid document of any kind is `{ "board": "t_display_s3" }`.
+
+In memory the three are one bounded structure, which is what lets a rule that
+spans them stay one check — a UART pin the board does not have, a font budget
+over every widget, the single `lap_timer` modifier. A replacement is parsed over
+the sections it owns and the whole result is validated, so a protocol document
+that contradicts the dashboard already in place is rejected on arrival rather
+than at composition.
 
 Nested property names use snake case. Placement uses `x`, `y`, `width`, and
 `height`; widget stacking uses `z_index`; font uses `family` and `size_px`; a
@@ -996,12 +1059,14 @@ extensions must be recorded in an ADR.
 The schema retains deterministic limits. They are generated from
 `configuration/configuration_schema.json` together with the firmware structures
 and the configurator types, and the current values are listed in
-[configuration-schema.md](configuration-schema.md). The payload bound is 65536
-bytes of compact JSON, which a screen filled to every per-type widget cap does
-not come close to. The buffers it sizes live in external memory, and so does the
-parser's document: the parser points cJSON's allocator at PSRAM, because the
-SPIRAM policy sends every allocation under 16 KiB to internal RAM and a document
-is thousands of small nodes.
+[configuration-schema.md](configuration-schema.md). The widest payload bound is
+65536 bytes of compact JSON — the dashboard's, which a screen filled to every
+per-type widget cap does not come close to; it is what sizes the shared line,
+record and reply buffers, while the other two documents are held to a kilobyte
+each. Those buffers live in external memory, and so does the parser's document:
+the parser points cJSON's allocator at PSRAM, because the SPIRAM policy sends
+every allocation under 16 KiB to internal RAM and a document is thousands of
+small nodes.
 
 The property table, object shapes, enumerations, and rejection reasons in that
 generated reference are authoritative; this document describes the rules around
@@ -1010,15 +1075,24 @@ them.
 ## Internal persistence
 
 Firmware wraps the exact validated JSON bytes in a private NVS record containing
-magic, record version, schema version, payload size, generation, and CRC32.
-Two records are stored in the dedicated `simcore_cfg` partition. Firmware
-writes and verifies the inactive slot before selecting it.
+magic, record version, schema version, payload size, generation, and CRC32. One
+record per document is stored in the dedicated `simcore_cfg` partition, keyed by
+the document's name, each with a generation of its own. Firmware writes a record
+and reads it back — header, checksum and parse — before believing the write.
+
+There is no second copy of a record. NVS writes a new blob before retiring the
+one it replaces, so a torn write leaves the previous record readable, and the
+alternating pair this used to keep bought a second copy of that same guarantee.
 
 Configurator code must not reproduce or depend on this NVS record format.
 
-Records of any earlier schema are unsupported and are not migrated. They fall
-back to another valid slot or the board-only factory configuration. A slot that
-was read but not loaded — another schema version, a malformed record, a failed
-checksum, or a document this firmware rejects — is named in the boot log with
-its reason, so a device that comes up on the factory dashboard after a firmware
-update can be told apart from one that was never configured.
+Records of any earlier schema are unsupported and are not migrated. That
+document falls back to its compiled factory payload while the other two load
+normally. A record that was read but not loaded — another schema version, a
+malformed record, a failed checksum, or a document this firmware rejects — is
+named in the boot log with its reason, so a device that comes up on a factory
+section after a firmware update can be told apart from one that was never
+configured. `@SC:INFO` reports the same thing per document.
+
+Startup order is the three factory documents compiled into the firmware, then
+whatever is stored, one document at a time on top of them.

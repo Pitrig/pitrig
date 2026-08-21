@@ -1,5 +1,9 @@
 #include "nvs_config_storage.hpp"
 
+#include <algorithm>
+#include <array>
+#include <string_view>
+
 #include "esp_err.h"
 #include "nvs.h"
 #include "nvs_flash.h"
@@ -9,12 +13,18 @@ namespace {
 
 constexpr char kPartition[] = "simcore_cfg";
 constexpr char kNamespace[] = "simcore_cfg";
-constexpr char kSlotAKey[] = "slot_a";
-constexpr char kSlotBKey[] = "slot_b";
-constexpr char kActiveKey[] = "active";
 
-const char* key_for(const StorageSlot slot) {
-  return slot == StorageSlot::a ? kSlotAKey : kSlotBKey;
+// One key per document, spelled the way the wire spells it. NVS keys are
+// bounded at fifteen characters and the generated names are well inside that,
+// so the contract can name a document without this having to translate it.
+std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(
+    const ConfigurationDocument document) {
+  const std::string_view name = configuration_document_name(document);
+  std::array<char, NVS_KEY_NAME_MAX_SIZE> key{};
+  const std::size_t length =
+      std::min(name.size(), key.size() - 1U);
+  std::copy_n(name.begin(), length, key.begin());
+  return key;
 }
 
 }  // namespace
@@ -33,8 +43,8 @@ bool NvsConfigurationStorage::initialize() {
 }
 
 bool NvsConfigurationStorage::read(
-    const StorageSlot slot, const std::span<std::uint8_t> destination,
-    std::size_t& size) {
+    const ConfigurationDocument document,
+    const std::span<std::uint8_t> destination, std::size_t& size) {
   size = 0;
   if (!initialized_) {
     return false;
@@ -44,8 +54,9 @@ bool NvsConfigurationStorage::read(
       ESP_OK) {
     return false;
   }
+  const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
   std::size_t required{};
-  esp_err_t result = nvs_get_blob(handle, key_for(slot), nullptr, &required);
+  esp_err_t result = nvs_get_blob(handle, key.data(), nullptr, &required);
   if (result == ESP_OK && required > destination.size()) {
     // A record this build cannot hold is not a record it can read. Falling
     // through here would leave result at ESP_OK and report success with a size
@@ -54,7 +65,7 @@ bool NvsConfigurationStorage::read(
   }
   if (result == ESP_OK) {
     size = required;
-    result = nvs_get_blob(handle, key_for(slot), destination.data(), &size);
+    result = nvs_get_blob(handle, key.data(), destination.data(), &size);
   }
   nvs_close(handle);
   if (result != ESP_OK) {
@@ -64,7 +75,8 @@ bool NvsConfigurationStorage::read(
 }
 
 bool NvsConfigurationStorage::write(
-    const StorageSlot slot, const std::span<const std::uint8_t> data) {
+    const ConfigurationDocument document,
+    const std::span<const std::uint8_t> data) {
   if (!initialized_ || data.empty()) {
     return false;
   }
@@ -73,33 +85,15 @@ bool NvsConfigurationStorage::write(
       ESP_OK) {
     return false;
   }
-  const esp_err_t result = nvs_set_blob(handle, key_for(slot), data.data(),
-                                        data.size());
+  const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
+  const esp_err_t result =
+      nvs_set_blob(handle, key.data(), data.data(), data.size());
   const esp_err_t commit = result == ESP_OK ? nvs_commit(handle) : result;
   nvs_close(handle);
   return result == ESP_OK && commit == ESP_OK;
 }
 
-bool NvsConfigurationStorage::read_active(StorageSlot& slot) {
-  if (!initialized_) {
-    return false;
-  }
-  nvs_handle_t handle{};
-  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READONLY, &handle) !=
-      ESP_OK) {
-    return false;
-  }
-  std::uint8_t value{};
-  const esp_err_t result = nvs_get_u8(handle, kActiveKey, &value);
-  nvs_close(handle);
-  if (result != ESP_OK || value > 1U) {
-    return false;
-  }
-  slot = value == 0 ? StorageSlot::a : StorageSlot::b;
-  return true;
-}
-
-bool NvsConfigurationStorage::set_active(const StorageSlot slot) {
+bool NvsConfigurationStorage::erase(const ConfigurationDocument document) {
   if (!initialized_) {
     return false;
   }
@@ -108,8 +102,13 @@ bool NvsConfigurationStorage::set_active(const StorageSlot slot) {
       ESP_OK) {
     return false;
   }
-  const esp_err_t result =
-      nvs_set_u8(handle, kActiveKey, slot == StorageSlot::a ? 0U : 1U);
+  const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
+  esp_err_t result = nvs_erase_key(handle, key.data());
+  if (result == ESP_ERR_NVS_NOT_FOUND) {
+    // Nothing stored is the state the caller asked for, so this is a success
+    // rather than a failure to erase.
+    result = ESP_OK;
+  }
   const esp_err_t commit = result == ESP_OK ? nvs_commit(handle) : result;
   nvs_close(handle);
   return result == ESP_OK && commit == ESP_OK;

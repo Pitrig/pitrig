@@ -461,8 +461,11 @@ absent instead of being expanded through board profiles.
 Its window is a rail of workspaces — Dashboard, Modules, Protocol, Configs,
 Firmware, Info, Debug — over one page at a time, with the serial connection
 above all of them. Dashboard carries the canvas and the three libraries it draws
-from; Configs carries everything that replaces the whole document; Modules is
-the reserved place for peripherals, which have no production contract yet. See
+from; Configs carries everything that replaces the whole document and lists the
+three configuration documents on the board; Modules is the reserved place for
+peripherals, which have no production contract yet. Dashboard, Modules and
+Protocol each own one of the three documents, which is why each can say on its
+own whether its settings are saved. See
 [Authoring in the configurator](device-configuration.md#authoring-in-the-configurator).
 
 Firmware builds own one immutable `BoardDefinition`. It binds the board
@@ -475,11 +478,14 @@ carrying board identity. This metadata is not part of the public
 configuration or device-information protocol.
 Firmware reports only the stable board identifier; the configurator maps it to
 a local supported board profile containing read-only authoring metadata such as
-logical display dimensions. Every user configuration includes a matching board
-identifier for compatibility validation. A separate optional bounded list
-controls supported configurable hardware devices and may be empty.
+logical display dimensions. Every configuration document includes a matching
+board identifier for compatibility validation. A separate optional bounded list
+controls supported configurable hardware devices and may be empty; it is what
+the `modules` document carries.
 
-The factory user configuration contains only that board identifier. Hardware
+The factory user configuration is three compiled documents, each containing
+that board identifier and, on a board whose link needs it, the transport
+settings it cannot come up without. Hardware
 declared as built into the board remains enabled; currently, a board-provided
 display is initialized by default and exposed to the configurator as a
 read-only capability. A board that declares none starts no LVGL and composes no
@@ -487,11 +493,18 @@ dashboard, and keeps its configuration link, transport and modules unchanged. Ad
 created only when present in the validated configuration, so a freshly flashed
 or reset production device has an enabled display with an empty dashboard.
 
-The public configuration schema uses a bounded sparse JSON document directly for
-authoring and device transport. Widget geometry uses absolute logical display
-coordinates; regions, region identifiers, and anchors are not part of the
-contract. Firmware parses and validates JSON on the configuration/startup path,
-then runtime code uses bounded typed structures.
+The public configuration schema uses bounded sparse JSON directly for authoring
+and device transport. It is transferred and stored as three documents —
+`dashboard`, `modules` and `protocol` — each carrying the board identifier and
+its own sections, each with its own NVS record, generation, payload bound and
+answer to whether a restart is owed
+([ADR 0024](adr/0024-separate-configuration-documents.md)). In memory they are
+one bounded structure, so a rule that spans sections stays one check; a
+replacement parses over the sections its document owns and the whole result is
+validated. Widget geometry uses absolute logical display coordinates; regions,
+region identifiers, and anchors are not part of the contract. Firmware parses and
+validates JSON on the configuration/startup path, then runtime code uses bounded
+typed structures.
 
 Fonts use a bounded family identifier and pixel size. Production firmware has
 no built-in dashboard font families. Configurator-imported faces are uploaded
@@ -514,9 +527,10 @@ Unlike a face, an image is stored in the exact layout and size it is drawn at,
 so resizing a widget is a re-conversion in the configurator rather than a
 runtime scale.
 
-Persistent NVS slot headers, generations, CRC validation, and recovery remain
-private to the configuration service. External tools communicate only through
-the public configuration control protocol.
+Persistent NVS record headers, per-document generations, CRC validation, and
+recovery remain private to the configuration service. External tools communicate
+only through the public configuration control protocol, which names the document
+it is acting on.
 
 ---
 

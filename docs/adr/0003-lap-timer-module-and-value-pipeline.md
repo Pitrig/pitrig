@@ -2,7 +2,11 @@
 
 Status: Accepted; the prohibition on a dedicated Lap Timer widget is
 superseded by ADR 0015, which makes widget types descriptor-driven. The
-value-pipeline boundary remains in force.
+value-pipeline boundary remains in force, and so does the decision against a
+root module-enablement section: the `modules` document ADR 0024 introduces
+carries peripherals, not module lifecycle, and the Lap Timer still activates
+from a `lap_timer` modifier inside a dashboard widget's source — a binding that
+stays wholly inside the dashboard document.
 ## Context
 
 The lap timer must support smooth local progression between irregular telemetry

@@ -1,5 +1,10 @@
 # ADR 0006: SimHub Custom Serial Line Protocol
 
+Status: Accepted; the telemetry line format is in force unchanged. The `@SC:`
+configuration commands are amended by ADR 0024, which gives `GET`, `VALIDATE`,
+`APPLY`, `SET` and `RESET` a document name and replaces `INFO`'s single
+`source=`/`generation=` pair with one field per document.
+
 ## Context
 
 SimCore receives both module inputs and telemetry over a board-selected serial

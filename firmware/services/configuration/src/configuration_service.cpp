@@ -8,28 +8,16 @@
 #include "crc32.hpp"
 
 namespace simcore::configuration {
-namespace {
-
-ConfigurationSource source_for(const StorageSlot slot) {
-  return slot == StorageSlot::a ? ConfigurationSource::slot_a
-                                : ConfigurationSource::slot_b;
-}
-
-StorageSlot other(const StorageSlot slot) {
-  return slot == StorageSlot::a ? StorageSlot::b : StorageSlot::a;
-}
-
-}  // namespace
 
 bool ConfigurationService::initialize(
     IConfigurationStorage& storage,
     const ValidationContext& validation_profile,
-    const std::span<const std::uint8_t> factory_payload,
+    const FactoryPayloads& factory_payloads,
     const std::span<std::uint8_t> record_buffer,
-    const std::span<std::uint8_t> current_payload_buffer,
+    const std::span<std::uint8_t> payload_buffer,
     const std::span<std::uint8_t> configuration_buffer) {
   if (record_buffer.size() < kRecordBufferSize ||
-      current_payload_buffer.size() < kPayloadBufferSize ||
+      payload_buffer.size() < kPayloadBufferSize ||
       configuration_buffer.size() < kConfigurationBufferSize) {
     return false;
   }
@@ -37,122 +25,118 @@ bool ConfigurationService::initialize(
   scratch_ = new (configuration_buffer.data() +
                   sizeof(ApplicationConfiguration)) ApplicationConfiguration{};
   record_buffer_ = record_buffer.first(kRecordBufferSize);
-  current_payload_ = current_payload_buffer.first(kPayloadBufferSize);
+  std::span<std::uint8_t> remaining = payload_buffer.first(kPayloadBufferSize);
+  for (std::size_t index = 0; index < kConfigurationDocumentCount; ++index) {
+    const std::size_t size = kConfigurationDocumentPayloadSizes[index];
+    payloads_[index] = remaining.first(size);
+    remaining = remaining.subspan(size);
+  }
+  payload_sizes_ = {};
   storage_ = &storage;
   validation_profile_ = validation_profile;
-  has_persisted_slot_ = false;
-  persisted_generation_ = 0;
-  if (factory_payload.empty() ||
-      factory_payload.size() > current_payload_.size() ||
-      !parse_configuration_json(factory_payload, validation_profile_,
-                                (*scratch_))
-           .ok()) {
-    return false;
+  status_ = {};
+
+  // The board's own documents come first and settle every section. They are
+  // parsed through the ordinary per-document path, so a factory document that
+  // named a section belonging to another one would be refused here rather than
+  // quietly accepted at the one place the rule does not apply.
+  *scratch_ = {};
+  for (std::size_t index = 0; index < kConfigurationDocumentCount; ++index) {
+    const auto document = static_cast<ConfigurationDocument>(index);
+    const std::span<const std::uint8_t> payload = factory_payloads[index];
+    if (payload.empty() || payload.size() > payloads_[index].size() ||
+        !parse_configuration_json(document, payload, validation_profile_,
+                                  (*scratch_))
+             .ok()) {
+      return false;
+    }
+    remember_payload(document, payload);
   }
   promote_scratch();
-  std::copy(factory_payload.begin(), factory_payload.end(),
-            current_payload_.begin());
-  current_payload_size_ = factory_payload.size();
-  status_ = {};
+
   status_.storage_available = storage.initialize();
   if (!status_.storage_available) {
     return false;
   }
 
-  StorageSlot active{};
-  const bool has_active = storage.read_active(active);
-
-  const auto slot_status = [this](const StorageSlot slot) -> SlotStatus& {
-    return slot == StorageSlot::a ? status_.slot_a : status_.slot_b;
-  };
-  StorageSlot selected_slot = StorageSlot::a;
-  LoadedRecord selected{};
-  if (has_active) {
-    selected = load_slot(active, (*scratch_));
-    slot_status(active) = selected.status;
-    if (selected.valid) {
-      selected_slot = active;
-    } else {
-      selected_slot = other(active);
-      selected = load_slot(selected_slot, (*scratch_));
-      slot_status(selected_slot) = selected.status;
+  // Then whatever is stored, one document at a time on top of the factory
+  // values. A document that is absent or refused leaves its own sections as the
+  // board shipped them and does not touch the others.
+  for (std::size_t index = 0; index < kConfigurationDocumentCount; ++index) {
+    const auto document = static_cast<ConfigurationDocument>(index);
+    copy_active_to_scratch();
+    const LoadedRecord loaded = load_document(document, (*scratch_));
+    status_.documents[index] = loaded.status;
+    if (!loaded.valid) {
+      continue;
     }
-  } else {
-    const LoadedRecord slot_a =
-        load_slot(StorageSlot::a, (*scratch_));
-    const LoadedRecord slot_b =
-        load_slot(StorageSlot::b, (*scratch_));
-    status_.slot_a = slot_a.status;
-    status_.slot_b = slot_b.status;
-    if (slot_a.valid &&
-        (!slot_b.valid || slot_a.generation >= slot_b.generation)) {
-      selected_slot = StorageSlot::a;
-      selected = load_slot(selected_slot, (*scratch_));
-    } else if (slot_b.valid) {
-      selected_slot = StorageSlot::b;
-      selected = load_slot(selected_slot, (*scratch_));
-    }
-  }
-
-  if (selected.valid) {
     promote_scratch();
-    const std::uint32_t payload_size = binary::read_u32_le(record_buffer_, 8);
-    std::copy_n(record_buffer_.begin() + kRecordHeaderSize, payload_size,
-                current_payload_.begin());
-    current_payload_size_ = payload_size;
-    status_.source = source_for(selected_slot);
-    status_.generation = selected.generation;
-    persisted_slot_ = selected_slot;
-    persisted_generation_ = selected.generation;
-    has_persisted_slot_ = true;
-    if (!has_active || selected_slot != active) {
-      // Keep the selected valid slot in memory even if repairing the marker
-      // fails. Subsequent saves still target the opposite slot and cannot
-      // overwrite the only verified record.
-      (void)storage.set_active(selected_slot);
-    }
+    remember_payload(document,
+                     std::span<const std::uint8_t>(
+                         record_buffer_.data() + kRecordHeaderSize,
+                         loaded.payload_size));
   }
   return true;
 }
 
+std::span<const std::uint8_t> ConfigurationService::current_payload(
+    const ConfigurationDocument document) const {
+  const std::size_t index = index_of(document);
+  if (index >= payloads_.size()) {
+    return {};
+  }
+  return {payloads_[index].data(), payload_sizes_[index]};
+}
+
 ValidationFailure ConfigurationService::validate_payload(
+    const ConfigurationDocument document,
     const std::span<const std::uint8_t> payload) const {
-  return parse_configuration_json(payload, validation_profile_,
+  copy_active_to_scratch();
+  return parse_configuration_json(document, payload, validation_profile_,
                                   (*scratch_));
 }
 
 ConfigurationService::SaveOutcome ConfigurationService::save(
+    const ConfigurationDocument document,
     const std::span<const std::uint8_t> payload) {
   if (storage_ == nullptr || !status_.storage_available) {
     return {.storage_failed = true};
   }
-  const ValidationFailure parsed =
-      parse_configuration_json(payload, validation_profile_,
-                               (*scratch_));
+  copy_active_to_scratch();
+  const ValidationFailure parsed = parse_configuration_json(
+      document, payload, validation_profile_, (*scratch_));
   if (!parsed.ok()) {
     return {.failure = parsed};
   }
-  const StorageSlot target =
-      has_persisted_slot_ ? other(persisted_slot_) : StorageSlot::a;
-  const std::uint32_t generation = persisted_generation_ + 1U;
+  const std::size_t index = index_of(document);
+  const std::uint32_t generation = status_.documents[index].generation + 1U;
   std::size_t record_size{};
   if (!build_record(payload, generation, record_buffer_, record_size) ||
       !storage_->write(
-          target,
+          document,
           std::span<const std::uint8_t>(record_buffer_.data(), record_size))) {
     return {.storage_failed = true};
   }
 
-  const LoadedRecord verified =
-      load_slot(target, (*scratch_));
-  if (!verified.valid || verified.generation != generation ||
-      !storage_->set_active(target)) {
+  // Read the record back and parse it again before believing it: a write that
+  // reports success and cannot be loaded is the one failure a save must not
+  // hide, since the next boot is where it would otherwise surface.
+  copy_active_to_scratch();
+  const LoadedRecord verified = load_document(document, (*scratch_));
+  if (!verified.valid || verified.generation != generation) {
     return {.storage_failed = true};
   }
-  persisted_slot_ = target;
-  persisted_generation_ = generation;
-  has_persisted_slot_ = true;
+  status_.documents[index] = verified.status;
   return {};
+}
+
+bool ConfigurationService::erase(const ConfigurationDocument document) {
+  if (storage_ == nullptr || !status_.storage_available ||
+      !storage_->erase(document)) {
+    return false;
+  }
+  status_.documents[index_of(document)] = {};
+  return true;
 }
 
 bool ConfigurationService::reset() {
@@ -160,23 +144,25 @@ bool ConfigurationService::reset() {
       !storage_->reset()) {
     return false;
   }
-  has_persisted_slot_ = false;
-  persisted_generation_ = 0;
+  for (DocumentStatus& document : status_.documents) {
+    document = {};
+  }
   return true;
 }
 
-ConfigurationService::LoadedRecord ConfigurationService::load_slot(
-    const StorageSlot slot, ApplicationConfiguration& configuration) {
+ConfigurationService::LoadedRecord ConfigurationService::load_document(
+    const ConfigurationDocument document,
+    ApplicationConfiguration& configuration) {
   LoadedRecord loaded;
-  loaded.status.outcome = SlotOutcome::absent;
+  loaded.status.outcome = DocumentOutcome::absent;
   if (storage_ == nullptr) {
     return loaded;
   }
   std::size_t size{};
-  if (!storage_->read(slot, record_buffer_, size) || size == 0) {
+  if (!storage_->read(document, record_buffer_, size) || size == 0) {
     return loaded;
   }
-  loaded.status.outcome = SlotOutcome::malformed_record;
+  loaded.status.outcome = DocumentOutcome::malformed_record;
   if (size < kRecordHeaderSize || size > record_buffer_.size()) {
     return loaded;
   }
@@ -185,30 +171,33 @@ ConfigurationService::LoadedRecord ConfigurationService::load_slot(
   const std::uint32_t payload_size = binary::read_u32_le(record, 8);
   if (binary::read_u32_le(record, 0) != kRecordMagic ||
       binary::read_u16_le(record, 4) != kRecordVersion ||
-      payload_size == 0 || payload_size > kMaximumPayloadSize ||
+      payload_size == 0 ||
+      payload_size > configuration_document_payload_size(document) ||
       size != kRecordHeaderSize + payload_size) {
     return loaded;
   }
   if (!is_supported_configuration_schema(schema_version)) {
-    loaded.status.outcome = SlotOutcome::unsupported_schema;
+    loaded.status.outcome = DocumentOutcome::unsupported_schema;
     return loaded;
   }
   const std::span<const std::uint8_t> payload =
       record.subspan(kRecordHeaderSize, payload_size);
   if (binary::crc32(payload) != binary::read_u32_le(record, 16)) {
-    loaded.status.outcome = SlotOutcome::corrupt_payload;
+    loaded.status.outcome = DocumentOutcome::corrupt_payload;
     return loaded;
   }
-  const ValidationFailure failure =
-      parse_configuration_json(payload, validation_profile_, configuration);
+  const ValidationFailure failure = parse_configuration_json(
+      document, payload, validation_profile_, configuration);
   if (!failure.ok()) {
-    loaded.status.outcome = SlotOutcome::rejected;
+    loaded.status.outcome = DocumentOutcome::rejected;
     loaded.status.failure = failure;
     return loaded;
   }
   loaded.generation = binary::read_u32_le(record, 12);
+  loaded.payload_size = payload_size;
   loaded.valid = true;
-  loaded.status.outcome = SlotOutcome::valid;
+  loaded.status.outcome = DocumentOutcome::valid;
+  loaded.status.generation = loaded.generation;
   return loaded;
 }
 
@@ -234,9 +223,20 @@ bool ConfigurationService::build_record(
   return true;
 }
 
-ValidationFailure ConfigurationService::stage(
+void ConfigurationService::remember_payload(
+    const ConfigurationDocument document,
     const std::span<const std::uint8_t> payload) {
-  return parse_configuration_json(payload, validation_profile_, (*scratch_));
+  const std::size_t index = index_of(document);
+  std::copy(payload.begin(), payload.end(), payloads_[index].begin());
+  payload_sizes_[index] = payload.size();
+}
+
+ValidationFailure ConfigurationService::stage(
+    const ConfigurationDocument document,
+    const std::span<const std::uint8_t> payload) {
+  copy_active_to_scratch();
+  return parse_configuration_json(document, payload, validation_profile_,
+                                  (*scratch_));
 }
 
 void ConfigurationService::promote() {
@@ -249,6 +249,10 @@ void ConfigurationService::revert() {
 
 void ConfigurationService::promote_scratch() {
   std::swap(active_, scratch_);
+}
+
+void ConfigurationService::copy_active_to_scratch() const {
+  *scratch_ = *active_;
 }
 
 }  // namespace simcore::configuration

@@ -18,10 +18,16 @@ import {
   BOARD_PROFILES,
   CONFIGURATION_SCHEMA_VERSION,
   SIMCORE_BOARD_IDS,
+  type ConfigurationDocumentOutcome,
+  type ConfigurationDocumentState,
   type DeviceInfo,
   type FontAssetDeviceInfo,
   type SimCoreBoardId
 } from '@shared/device'
+import {
+  CONFIGURATION_DOCUMENT_IDS,
+  type ConfigurationDocumentId
+} from '@shared/configuration-schema'
 import { DeviceServiceError } from './device-errors'
 
 // Reading what the device says back. Every function here is a pure decode of
@@ -130,27 +136,49 @@ export function parseDeviceInfo(line: string): DeviceInfo {
       `Unsupported configuration schema: ${fields.get('schema') ?? 'unknown'}.`
     )
   }
-  const source = fields.get('source')
-  const generation = Number(fields.get('generation'))
   const firmwareVersion = fields.get('firmware')
-  if (
-    !firmwareVersion ||
-    (source !== 'factory' && source !== 'slot_a' && source !== 'slot_b') ||
-    !Number.isSafeInteger(generation) ||
-    generation < 0 ||
-    !isBooleanField(fields.get('storage'))
-  ) {
+  if (!firmwareVersion || !isBooleanField(fields.get('storage'))) {
     throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+  }
+  // One field per document, spelled `<document>=<outcome>:<generation>`. Every
+  // document this build knows has to be there: a firmware that reports fewer
+  // has a different contract, and the schema check above is what should have
+  // caught it.
+  const documents = {} as Record<ConfigurationDocumentId, ConfigurationDocumentState>
+  for (const document of CONFIGURATION_DOCUMENT_IDS) {
+    documents[document] = parseDocumentState(fields.get(document))
   }
   return {
     boardId: board,
     firmwareVersion,
     schemaVersion: CONFIGURATION_SCHEMA_VERSION,
     display: BOARD_PROFILES[board].display,
-    configurationSource: source,
-    generation,
+    documents,
     storageAvailable: fields.get('storage') === '1'
   }
+}
+
+const DOCUMENT_OUTCOMES: readonly ConfigurationDocumentOutcome[] = [
+  'absent',
+  'malformed_record',
+  'unsupported_schema',
+  'corrupt_payload',
+  'rejected',
+  'valid'
+]
+
+function parseDocumentState(value: string | undefined): ConfigurationDocumentState {
+  const separator = value?.indexOf(':') ?? -1
+  const outcome = separator > 0 ? value!.slice(0, separator) : undefined
+  const generation = separator > 0 ? Number(value!.slice(separator + 1)) : Number.NaN
+  if (
+    !DOCUMENT_OUTCOMES.includes(outcome as ConfigurationDocumentOutcome) ||
+    !Number.isSafeInteger(generation) ||
+    generation < 0
+  ) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+  }
+  return { outcome: outcome as ConfigurationDocumentOutcome, generation }
 }
 
 /**

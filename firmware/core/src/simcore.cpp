@@ -60,7 +60,7 @@ ConfigurationBuffers reserve_configuration_memory(Application& application) {
   };
   return {
       .record = take(configuration::ConfigurationService::kRecordBufferSize),
-      .current_payload =
+      .current_payloads =
           take(configuration::ConfigurationService::kPayloadBufferSize),
       .control_io = take(configuration::ConfigurationControl::kIoBufferSize),
       .control_line = take(communication::Composition::kMaximumLinks *
@@ -70,35 +70,43 @@ ConfigurationBuffers reserve_configuration_memory(Application& application) {
   };
 }
 
-// A stored slot that was read and not loaded is worth a line: a device that
-// boots on the factory dashboard after a firmware update looks exactly like one
-// that was never configured, and INFO's `source=factory` does not say why.
-void report_slot(const char name, const configuration::SlotStatus& status) {
-  using configuration::SlotOutcome;
+// A stored document that was read and not loaded is worth a line: a device that
+// comes up on a factory section after a firmware update looks exactly like one
+// that was never configured, and INFO alone is not read at the console.
+void report_document(const configuration::ConfigurationDocument document,
+                     const configuration::DocumentStatus& status) {
+  using configuration::DocumentOutcome;
+  const std::string_view name = configuration_document_name(document);
   switch (status.outcome) {
-    case SlotOutcome::unchecked:
-    case SlotOutcome::absent:
-    case SlotOutcome::valid:
+    case DocumentOutcome::absent:
+      log::info(kTag, "No stored %.*s configuration; using factory defaults",
+                static_cast<int>(name.size()), name.data());
       return;
-    case SlotOutcome::malformed_record:
-      log::warn(kTag, "Configuration slot %c holds a malformed record; ignored",
-                name);
+    case DocumentOutcome::valid:
+      log::info(kTag, "Configuration %.*s loaded, generation %lu",
+                static_cast<int>(name.size()), name.data(),
+                static_cast<unsigned long>(status.generation));
       return;
-    case SlotOutcome::unsupported_schema:
+    case DocumentOutcome::malformed_record:
+      log::warn(kTag, "Configuration %.*s holds a malformed record; ignored",
+                static_cast<int>(name.size()), name.data());
+      return;
+    case DocumentOutcome::unsupported_schema:
       log::warn(kTag,
-                "Configuration slot %c was written for another schema version; "
+                "Configuration %.*s was written for another schema version; "
                 "ignored",
-                name);
+                static_cast<int>(name.size()), name.data());
       return;
-    case SlotOutcome::corrupt_payload:
-      log::warn(kTag, "Configuration slot %c failed its checksum; ignored",
-                name);
+    case DocumentOutcome::corrupt_payload:
+      log::warn(kTag, "Configuration %.*s failed its checksum; ignored",
+                static_cast<int>(name.size()), name.data());
       return;
-    case SlotOutcome::rejected: {
+    case DocumentOutcome::rejected: {
       const std::string_view reason =
           configuration::validation_error_name(status.failure.error);
-      log::warn(kTag, "Configuration slot %c rejected: %.*s at %s; ignored",
-                name, static_cast<int>(reason.size()), reason.data(),
+      log::warn(kTag, "Configuration %.*s rejected: %.*s at %s; ignored",
+                static_cast<int>(name.size()), name.data(),
+                static_cast<int>(reason.size()), reason.data(),
                 status.failure.path.data());
       return;
     }
@@ -108,32 +116,26 @@ void report_slot(const char name, const configuration::SlotStatus& status) {
 void load_configuration(Application& application,
                         const board_registry::BoardDefinition& board,
                         const ConfigurationBuffers& buffers) {
-  const std::string_view factory_json = board.factory_configuration_json;
+  configuration::ConfigurationService::FactoryPayloads factory{};
+  for (std::size_t index = 0;
+       index < configuration::kConfigurationDocumentCount; ++index) {
+    const std::string_view json = board.factory_configuration_json[index];
+    factory[index] = std::span<const std::uint8_t>(
+        reinterpret_cast<const std::uint8_t*>(json.data()), json.size());
+  }
   if (!application.services.configuration.initialize(
           application.platform.configuration_storage, board.validation,
-          std::span<const std::uint8_t>(
-              reinterpret_cast<const std::uint8_t*>(factory_json.data()),
-              factory_json.size()),
-          buffers.record, buffers.current_payload, buffers.configuration)) {
+          factory, buffers.record, buffers.current_payloads,
+          buffers.configuration)) {
     log::warn(kTag,
               "Configuration storage unavailable; using factory defaults");
   }
   const configuration::ConfigurationStatus status =
       application.services.configuration.status();
-  report_slot('A', status.slot_a);
-  report_slot('B', status.slot_b);
-  switch (status.source) {
-    case configuration::ConfigurationSource::slot_a:
-    case configuration::ConfigurationSource::slot_b:
-      log::info(kTag, "Configuration loaded from slot %c, generation %lu",
-                status.source == configuration::ConfigurationSource::slot_a
-                    ? 'A'
-                    : 'B',
-                static_cast<unsigned long>(status.generation));
-      break;
-    case configuration::ConfigurationSource::factory:
-      log::info(kTag, "No stored configuration; using factory defaults");
-      break;
+  for (std::size_t index = 0;
+       index < configuration::kConfigurationDocumentCount; ++index) {
+    report_document(static_cast<configuration::ConfigurationDocument>(index),
+                    status.documents[index]);
   }
   if (!application.services.font_assets.initialize(
           application.platform.font_asset_storage)) {

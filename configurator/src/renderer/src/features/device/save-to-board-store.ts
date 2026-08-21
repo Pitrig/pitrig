@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
 import { isUnresolvedFonts, type SaveProgress } from '@shared/save-to-board'
+import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import type { DeviceConfiguration } from '@shared/device'
 import { writeDebugLog } from '@/features/debug/debug-log'
 import { operationErrorMessage } from './bridge-errors'
@@ -36,10 +37,16 @@ export const useSaveToBoardStore = create<SaveToBoardStore>((set) => ({
 /**
  * Resolve the fonts, install what the board lacks, save, and make the running
  * dashboard match — one call, because that is one act as far as the author is
- * concerned. The board restarts only when a font package was installed; see
- * `SaveToBoardService`.
+ * concerned. The board restarts only when a font package was installed or the
+ * protocol document was written; see `SaveToBoardService`.
+ *
+ * `documents` narrows it to one row of the Configs page. Left out, it saves
+ * whichever of the three actually differ from the board, which is what every
+ * "Save to board" button means.
  */
-export async function saveDraftToBoard(): Promise<void> {
+export async function saveDraftToBoard(
+  documents?: ConfigurationDocumentId[]
+): Promise<void> {
   if (useSaveToBoardStore.getState().running) return
   const device = useDeviceStore.getState()
   const draft = device.draft
@@ -47,7 +54,7 @@ export async function saveDraftToBoard(): Promise<void> {
     device.setSaveFeedback({ kind: 'error', message: 'There is no configuration to save.' })
     return
   }
-  const json = device.rawDraft ?? formatConfiguration(draft)
+  const json = formatConfiguration(draft)
 
   useSaveToBoardStore.setState({ running: true, progress: undefined, unresolvedFonts: undefined })
   device.setSaveFeedback(undefined)
@@ -55,7 +62,10 @@ export async function saveDraftToBoard(): Promise<void> {
     useSaveToBoardStore.setState({ progress })
   )
   try {
-    const result = await window.simcore.saveToBoard({ json })
+    const result = await window.simcore.saveToBoard({
+      json,
+      ...(documents ? { documents } : {})
+    })
     writeDebugLog('Save to board completed', result)
     if (!result.ok) {
       if (isUnresolvedFonts(result.error)) {

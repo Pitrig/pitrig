@@ -3,6 +3,12 @@ import { bridgeErrorMessage, operationErrorMessage } from '@/features/device/bri
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
+import type { ConfigurationDocumentId } from '@shared/configuration-schema'
+import {
+  CONFIGURATION_DOCUMENT_LABELS,
+  documentOf,
+  mergeDocument
+} from '@shared/configuration-documents'
 import {
   applyBoardTransportDefaults,
   BOARD_PROFILES,
@@ -73,11 +79,11 @@ export async function openConfigurationFile(): Promise<ActionFeedback | undefine
  * keystroke should set off.
  */
 export async function saveConfigurationFile(): Promise<ActionFeedback | undefined> {
-  const { draft, rawDraft } = useDeviceStore.getState()
+  const { draft } = useDeviceStore.getState()
   if (!draft) return { kind: 'error', message: 'There is no configuration to save.' }
   try {
     const result = await window.simcore.saveConfigurationFile({
-      json: rawDraft ?? formatConfiguration(draft)
+      json: formatConfiguration(draft)
     })
     writeDebugLog('Configuration file save completed', result)
     if (!result.ok) return { kind: 'error', message: result.error.message }
@@ -191,6 +197,54 @@ export async function resetBoardConfiguration(): Promise<ActionFeedback | undefi
     useDeviceStore.getState().markConfigurationReset(result.configuration)
     return 'Factory configuration saved. Restart the board to activate it.'
   })
+}
+
+/**
+ * Erases one stored document, leaving the other two alone.
+ *
+ * The board keeps running what it is running: only a restart loads the compiled
+ * factory value that takes its place, which is true of every document. So the
+ * draft is left alone too — what changed is what the board will come up with.
+ */
+export async function resetBoardDocument(
+  document: ConfigurationDocumentId
+): Promise<ActionFeedback | undefined> {
+  const label = CONFIGURATION_DOCUMENT_LABELS[document].toLowerCase()
+  if (!window.confirm(`Erase the saved ${label} configuration from the board?`)) {
+    return undefined
+  }
+  return run(
+    `reset ${document}`,
+    () => window.simcore.resetDeviceConfiguration({ document }),
+    (result) => {
+      useDeviceStore.getState().markConfigurationReset(result.configuration)
+      return `Saved ${label} configuration erased. Restart the board to activate the factory one.`
+    }
+  )
+}
+
+/**
+ * Takes one document back from the board into the draft, leaving the rest of
+ * the draft as it is.
+ *
+ * No device round trip: the session already holds what the board answered when
+ * it was read, and a document is a slice of it. This is the narrow counterpart
+ * of "Load config from board", which discards the whole draft.
+ */
+export function loadDocumentFromBoard(
+  document: ConfigurationDocumentId
+): ActionFeedback | undefined {
+  const store = useDeviceStore.getState()
+  const board = store.activeConfiguration
+  const draft = store.draft
+  if (!board || !draft) {
+    return { kind: 'error', message: 'The board has not reported a configuration yet.' }
+  }
+  store.setDraft(mergeDocument(draft, document, documentOf(board, document)))
+  return {
+    kind: 'success',
+    message: `Loaded the ${CONFIGURATION_DOCUMENT_LABELS[document].toLowerCase()} configuration from the board.`
+  }
 }
 
 export async function restartBoard(): Promise<ActionFeedback | undefined> {

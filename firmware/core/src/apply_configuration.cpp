@@ -1,7 +1,6 @@
 #include "application.hpp"
 
 #include <cstddef>
-#include <cstring>
 #include <span>
 
 #include "application_configuration.hpp"
@@ -80,12 +79,14 @@ bool recompose(Application& application) {
 // installed once per boot and a rejected replacement must leave the running
 // dashboard alone.
 configuration::ValidationFailure apply_configuration(
+    const configuration::ConfigurationDocument document,
     const std::span<const std::uint8_t> payload, void* const context) {
   auto& application = *static_cast<Application*>(context);
   configuration::ConfigurationService& service =
       application.services.configuration;
 
-  const configuration::ValidationFailure staged = service.stage(payload);
+  const configuration::ValidationFailure staged =
+      service.stage(document, payload);
   if (!staged.ok()) {
     return staged;
   }
@@ -101,23 +102,23 @@ configuration::ValidationFailure apply_configuration(
             .path = {'i', 'm', 'a', 'g', 'e', '\0'}};
   }
 
-  // Anything outside the dashboard changes module lifecycle or transport, so
-  // only a dashboard-local difference can take the incremental path.
   const configuration::ApplicationConfiguration& previous = service.current();
   const configuration::ApplicationConfiguration& candidate = service.staged();
-  const bool dashboard_only =
-      previous.telemetry_transport_present ==
-          candidate.telemetry_transport_present &&
-      std::memcmp(&previous.telemetry_transport,
-                  &candidate.telemetry_transport,
-                  sizeof(previous.telemetry_transport)) == 0;
-
   service.promote();
+
+  // Which document arrived is what a replacement costs. The transport is bound
+  // once at startup, so the protocol document is stored and nothing is rebuilt
+  // from it; a dashboard may be rebuilt in place; anything touching module
+  // lifecycle goes through a full recompose.
+  if (document == configuration::ConfigurationDocument::protocol) {
+    return {};
+  }
   // The incremental path rebuilds LVGL objects in place, so it is reachable
   // only where LVGL is running at all — and only while every image the document
   // draws is already loaded, since rebuilding the image table is safe just with
   // the dashboard down.
-  if (dashboard_only && application.display != nullptr &&
+  if (document == configuration::ConfigurationDocument::dashboard &&
+      application.display != nullptr &&
       dashboard_composition::images_loaded(candidate,
                                            dashboard_composition::instance()) &&
       dashboard_composition::apply_incremental(previous, candidate,

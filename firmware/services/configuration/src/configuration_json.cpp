@@ -1,5 +1,6 @@
 #include "configuration_json.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -20,6 +21,13 @@ using namespace json;  // NOLINT(google-build-using-namespace) — the readers a
 namespace {
 
 using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
+
+// Which sections a document carries is answered by the generated key list it is
+// parsed against, rather than by a second table saying the same thing. A
+// section absent from the list is one this document may neither set nor clear.
+[[nodiscard]] bool owns(const KeyList keys, const std::string_view section) {
+  return std::find(keys.begin(), keys.end(), section) != keys.end();
+}
 
 [[nodiscard]] bool parse_uart(const cJSON* const object,
                               UartTelemetryConfiguration& uart,
@@ -115,15 +123,17 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 }
 
 [[nodiscard]] ValidationFailure parse_root(
-    const cJSON* const root, const ValidationContext& profile,
+    const cJSON* const root, const KeyList keys,
+    const ValidationContext& profile,
     ApplicationConfiguration& configuration) {
   ValidationFailure failure{};
   constexpr std::string_view kName = "configuration";
-  if (!valid_object(root, schema::kApplicationConfigurationKeys, kName,
-                    failure)) {
+  if (!valid_object(root, keys, kName, failure)) {
     return failure;
   }
 
+  // Every document carries the board identifier, which is what makes each one
+  // answerable on its own for arriving at the wrong hardware.
   const cJSON* const board = member(root, "board");
   if (!cJSON_IsString(board) || board->valuestring == nullptr ||
       !board_id_from_name(std::string_view{board->valuestring},
@@ -132,38 +142,50 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
     return failure;
   }
 
-  const cJSON* const hardware = member(root, "hardware");
-  if (hardware != nullptr &&
-      (!cJSON_IsArray(hardware) || cJSON_GetArraySize(hardware) != 0)) {
-    (void)reject(failure, ValidationError::invalid_hardware, kName, "hardware");
-    return failure;
-  }
-
-  const cJSON* const transport = member(root, "telemetry_transport");
-  if (transport != nullptr) {
-    configuration.telemetry_transport_present = true;
-    if (!parse_transport(transport, configuration.telemetry_transport,
-                         failure)) {
+  // A section this document owns is replaced whole, present or not: an omitted
+  // section is the author saying it holds nothing, not saying leave what is
+  // there. Sections another document owns are untouched.
+  if (owns(keys, "hardware")) {
+    configuration.hardware = {};
+    const cJSON* const hardware = member(root, "hardware");
+    if (hardware != nullptr &&
+        (!cJSON_IsArray(hardware) || cJSON_GetArraySize(hardware) != 0)) {
+      (void)reject(failure, ValidationError::invalid_hardware, kName,
+                   "hardware");
       return failure;
     }
   }
 
-  const cJSON* const dashboard = member(root, "dashboard");
-  if (dashboard != nullptr &&
-      !parse_dashboard(dashboard, configuration.dashboard, failure)) {
-    return failure;
+  if (owns(keys, "telemetry_transport")) {
+    configuration.telemetry_transport = {};
+    configuration.telemetry_transport_present = false;
+    const cJSON* const transport = member(root, "telemetry_transport");
+    if (transport != nullptr) {
+      configuration.telemetry_transport_present = true;
+      if (!parse_transport(transport, configuration.telemetry_transport,
+                           failure)) {
+        return failure;
+      }
+    }
+  }
+
+  if (owns(keys, "dashboard")) {
+    configuration.dashboard = {};
+    const cJSON* const dashboard = member(root, "dashboard");
+    if (dashboard != nullptr &&
+        !parse_dashboard(dashboard, configuration.dashboard, failure)) {
+      return failure;
+    }
   }
   return validate_configuration(configuration, profile);
 }
 
-}  // namespace
-
-ValidationFailure parse_configuration_json(
-    const std::span<const std::uint8_t> input,
-    const ValidationContext& profile,
+[[nodiscard]] ValidationFailure parse_payload(
+    const std::span<const std::uint8_t> input, const std::size_t limit,
+    const KeyList keys, const ValidationContext& profile,
     ApplicationConfiguration& configuration) {
   ValidationFailure failure{};
-  if (input.empty() || input.size() > kMaximumPayloadSize) {
+  if (input.empty() || input.size() > limit) {
     (void)reject(failure, ValidationError::malformed, "configuration");
     return failure;
   }
@@ -183,12 +205,23 @@ ValidationFailure parse_configuration_json(
     (void)reject(failure, ValidationError::malformed, "configuration");
     return failure;
   }
+  return parse_root(root.get(), keys, profile, configuration);
+}
 
-  // Callers provide dedicated scratch storage. Reset and populate it directly
-  // so the multi-kilobyte runtime configuration is never duplicated on a task
-  // stack.
-  configuration = {};
-  return parse_root(root.get(), profile, configuration);
+}  // namespace
+
+// Callers provide dedicated scratch storage. The sections this document owns
+// are reset and populated directly in it, so the multi-kilobyte runtime
+// configuration is never duplicated on a task stack.
+ValidationFailure parse_configuration_json(
+    const ConfigurationDocument document,
+    const std::span<const std::uint8_t> input,
+    const ValidationContext& profile,
+    ApplicationConfiguration& configuration) {
+  return parse_payload(input,
+                       configuration_document_payload_size(document),
+                       schema::document_keys(document), profile,
+                       configuration);
 }
 
 }  // namespace simcore::configuration

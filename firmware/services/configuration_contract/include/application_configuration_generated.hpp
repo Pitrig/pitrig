@@ -13,12 +13,12 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 13;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 14;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
-// Maximum compact JSON payload in bytes, for both the wire and NVS. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory.
+// Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory.
 inline constexpr std::size_t kMaximumPayloadSize = 65536;
 // Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM.
 inline constexpr std::size_t kMaximumScreens = 4;
@@ -86,6 +86,77 @@ inline constexpr std::size_t kValidationPathCapacity = 48;
 inline constexpr std::size_t kValueBindingCapacity = 40;
 // Transform prefix and suffix storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kValueAffixCapacity = 16;
+
+// One independently stored and transferred configuration document. Each
+// carries the board identifier and the sections listed against it in the
+// schema, and nothing else: a section belonging to another document is
+// rejected rather than ignored.
+enum class ConfigurationDocument : std::uint8_t {
+  dashboard,
+  modules,
+  protocol,
+};
+
+inline constexpr std::size_t kConfigurationDocumentCount = 3;
+
+inline constexpr std::array<std::string_view, 3> kConfigurationDocumentNames{{
+    "dashboard",
+    "modules",
+    "protocol",
+}};
+
+[[nodiscard]] inline std::string_view configuration_document_name(
+    const ConfigurationDocument value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kConfigurationDocumentNames.size()
+             ? kConfigurationDocumentNames[index]
+             : std::string_view{};
+}
+
+[[nodiscard]] inline bool configuration_document_from_name(
+    const std::string_view name, ConfigurationDocument& value) {
+  for (std::size_t index = 0; index < kConfigurationDocumentNames.size();
+       ++index) {
+    if (kConfigurationDocumentNames[index] == name) {
+      value = static_cast<ConfigurationDocument>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+// What each document is allowed to weigh. Only the dashboard needs the
+// full payload bound, so the buffers the other two hold are a fraction of
+// it and an oversized document is refused before it is parsed.
+inline constexpr std::array<std::size_t, 3> kConfigurationDocumentPayloadSizes{{
+    65536,
+    1024,
+    1024,
+}};
+
+[[nodiscard]] inline std::size_t configuration_document_payload_size(
+    const ConfigurationDocument value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kConfigurationDocumentPayloadSizes.size()
+             ? kConfigurationDocumentPayloadSizes[index]
+             : std::size_t{0};
+}
+
+// Whether saving this document leaves a setting stored and not in force.
+// The transport is selected once at startup, so only that document has to
+// ask for a restart; the rest are applied to the running composition.
+inline constexpr std::array<bool, 3> kConfigurationDocumentRebootRequired{{
+    false,
+    false,
+    true,
+}};
+
+[[nodiscard]] inline bool configuration_document_reboot_required(
+    const ConfigurationDocument value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kConfigurationDocumentRebootRequired.size() &&
+         kConfigurationDocumentRebootRequired[index];
+}
 
 // Immutable hardware identity. Must match the firmware build or the configuration is rejected.
 enum class BoardId : std::uint8_t {

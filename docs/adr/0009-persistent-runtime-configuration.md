@@ -1,10 +1,13 @@
 # ADR 0009: Persistent Runtime Configuration
 
-Status: Accepted; the document shape it introduced is superseded by ADR 0013
-and its reboot-only application rule by ADR 0016. What remains in force is the
-two-slot NVS record strategy, the storage partition, the external-RAM arena,
-and the fact that the payload is bounded — the bound itself lives in the schema
-rather than here. Font references are defined by ADR 0010.
+Status: Accepted; the document shape it introduced is superseded by ADR 0013,
+its reboot-only application rule by ADR 0016, and its single-document
+two-slot storage by ADR 0024 — which stores one record per configuration
+document and drops the alternating pair, NVS already leaving the previous blob
+readable through a torn write. What remains in force is the record format
+itself, the storage partition, the external-RAM arena, and the fact that the
+payload is bounded — the bound itself lives in the schema rather than here, and
+is now one bound per document. Font references are defined by ADR 0010.
 
 ## Context
 

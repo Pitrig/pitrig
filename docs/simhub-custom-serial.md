@@ -134,6 +134,11 @@ prefix open a binary upload session instead of answering a line — `@SC:FONT:`
 ([Firmware updates over serial](ota.md)) — and only one of them may own the link
 at a time.
 
+The configuration commands themselves name the document they act on:
+`@SC:GET:dashboard`, `@SC:SET:protocol:<JSON>` and so on, over the three
+documents a board stores. The full command table is in
+[Control commands](device-configuration.md#control-commands).
+
 ## Development second link (ESP32-P4)
 
 A build of the Guition JC1060P470C may attach a second serial link on the

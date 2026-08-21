@@ -39,7 +39,11 @@ export function DashboardWorkspace(): React.JSX.Element {
   const view = useWorkspaceStore((state) => state.dashboardView)
   const setView = useWorkspaceStore((state) => state.setDashboardView)
   const rebootRequired = useDeviceStore((state) => state.rebootRequired)
-  const { dirty } = useDraftState()
+  // The dashboard document alone: this badge sits over the canvas, and an
+  // unsaved baud rate is not something the canvas can show or the author can
+  // fix from here. The Configs page is where all three are accounted for.
+  const { dirtyDocuments } = useDraftState()
+  const dirty = dirtyDocuments.includes('dashboard')
 
   // The canvas keys act on the selected widget, so they are live only while the
   // canvas is the page being looked at.

@@ -90,7 +90,14 @@ def load_schema() -> dict[str, Any]:
 
 
 def validate_schema(document: dict[str, Any]) -> None:
-    for key in ("schema_version", "limits", "enums", "structs", "validation_errors"):
+    for key in (
+        "schema_version",
+        "documents",
+        "limits",
+        "enums",
+        "structs",
+        "validation_errors",
+    ):
         if key not in document:
             fail(f"missing top-level key '{key}'")
     if not isinstance(document["schema_version"], int):
@@ -163,9 +170,76 @@ def validate_schema(document: dict[str, Any]) -> None:
         if "value" not in body:
             fail(f"constant {name} has no value")
 
+    # Every serialized section of the root belongs to exactly one document.
+    # Anything else would be a section no `@SC:GET` can return or a section two
+    # documents both claim to own, and the split only holds if it is a partition.
+    sections = [
+        field["name"]
+        for field in structs[roots[0]].get("fields", [])
+        if field.get("serialized", True) and not field.get("flatten")
+    ]
+    claimed: dict[str, str] = {}
+    for name, body in document["documents"].items():
+        if not body.get("sections"):
+            fail(f"document {name} owns no section")
+        payload = body.get("max_payload")
+        if not isinstance(payload, int) or payload <= 0:
+            fail(f"document {name}: 'max_payload' must be a positive integer")
+        if payload > limits["kMaximumPayloadSize"]["value"]:
+            fail(f"document {name}: 'max_payload' exceeds kMaximumPayloadSize")
+        if not isinstance(body.get("reboot_required"), bool):
+            fail(f"document {name}: 'reboot_required' must be a boolean")
+        for section in body["sections"]:
+            if section not in sections:
+                fail(f"document {name}: '{section}' is not a serialized root section")
+            if section in claimed:
+                fail(
+                    f"section '{section}' is claimed by both "
+                    f"'{claimed[section]}' and '{name}'"
+                )
+            claimed[section] = name
+    orphans = [section for section in sections if section not in claimed]
+    if orphans:
+        fail(f"no document carries root section(s): {', '.join(orphans)}")
+
 
 def root_struct(document: dict[str, Any]) -> str:
     return next(name for name, body in document["structs"].items() if body.get("root"))
+
+
+def document_ids(document: dict[str, Any]) -> list[str]:
+    return list(document["documents"])
+
+
+def document_type(name: str) -> str:
+    """The TypeScript interface one document is authored as."""
+    return f"{name[:1].upper()}{name[1:]}Document"
+
+
+def document_fields(document: dict[str, Any], name: str) -> list[dict[str, Any]]:
+    """Root fields one document carries, in root declaration order.
+
+    The flattened board identifier comes first and is carried by every document:
+    it is what lets each one be validated against the firmware it arrives at,
+    rather than only the one that happens to hold the dashboard.
+    """
+    sections = set(document["documents"][name]["sections"])
+    return [
+        field
+        for field in serialized_fields(document["structs"][root_struct(document)])
+        if field.get("flatten") or field["name"] in sections
+    ]
+
+
+def document_keys(document: dict[str, Any], name: str) -> list[str]:
+    """Public JSON property names accepted at the top level of one document."""
+    keys: list[str] = []
+    for field in document_fields(document, name):
+        if field.get("flatten"):
+            keys.extend(object_keys(document, field["struct"]))
+        else:
+            keys.append(json_key(field))
+    return keys
 
 
 def struct_order(document: dict[str, Any]) -> list[str]:
@@ -436,6 +510,111 @@ def cpp_field_type(field: dict[str, Any], document: dict[str, Any]) -> str:
     return SCALAR_CPP[kind]
 
 
+def generate_cpp_documents(document: dict[str, Any]) -> list[str]:
+    """The three independently stored and transferred configuration documents.
+
+    A document is a name on the wire, a record in storage, a payload bound and
+    an answer to whether writing it needs a restart. All four come from the same
+    schema entry, so a caller cannot pair one document's name with another's
+    bound.
+    """
+    ids = document_ids(document)
+    lines = [
+        "// One independently stored and transferred configuration document. Each",
+        "// carries the board identifier and the sections listed against it in the",
+        "// schema, and nothing else: a section belonging to another document is",
+        "// rejected rather than ignored.",
+        "enum class ConfigurationDocument : std::uint8_t {",
+    ]
+    lines.extend(f"  {name}," for name in ids)
+    lines.append("};")
+    lines.append("")
+    lines.append(
+        f"inline constexpr std::size_t kConfigurationDocumentCount = {len(ids)};"
+    )
+    lines.append("")
+    lines.append(
+        f"inline constexpr std::array<std::string_view, {len(ids)}> "
+        "kConfigurationDocumentNames{{"
+    )
+    lines.extend(f'    "{name}",' for name in ids)
+    lines.append("}};")
+    lines.append("")
+    lines.extend(
+        [
+            "[[nodiscard]] inline std::string_view configuration_document_name(",
+            "    const ConfigurationDocument value) {",
+            "  const auto index = static_cast<std::size_t>(value);",
+            "  return index < kConfigurationDocumentNames.size()",
+            "             ? kConfigurationDocumentNames[index]",
+            "             : std::string_view{};",
+            "}",
+            "",
+            "[[nodiscard]] inline bool configuration_document_from_name(",
+            "    const std::string_view name, ConfigurationDocument& value) {",
+            "  for (std::size_t index = 0; index < kConfigurationDocumentNames.size();",
+            "       ++index) {",
+            "    if (kConfigurationDocumentNames[index] == name) {",
+            "      value = static_cast<ConfigurationDocument>(index);",
+            "      return true;",
+            "    }",
+            "  }",
+            "  return false;",
+            "}",
+            "",
+            "// What each document is allowed to weigh. Only the dashboard needs the",
+            "// full payload bound, so the buffers the other two hold are a fraction of",
+            "// it and an oversized document is refused before it is parsed.",
+        ]
+    )
+    sizes = [document["documents"][name]["max_payload"] for name in ids]
+    lines.append(
+        f"inline constexpr std::array<std::size_t, {len(ids)}> "
+        "kConfigurationDocumentPayloadSizes{{"
+    )
+    lines.extend(f"    {size}," for size in sizes)
+    lines.append("}};")
+    lines.append("")
+    lines.extend(
+        [
+            "[[nodiscard]] inline std::size_t configuration_document_payload_size(",
+            "    const ConfigurationDocument value) {",
+            "  const auto index = static_cast<std::size_t>(value);",
+            "  return index < kConfigurationDocumentPayloadSizes.size()",
+            "             ? kConfigurationDocumentPayloadSizes[index]",
+            "             : std::size_t{0};",
+            "}",
+            "",
+            "// Whether saving this document leaves a setting stored and not in force.",
+            "// The transport is selected once at startup, so only that document has to",
+            "// ask for a restart; the rest are applied to the running composition.",
+        ]
+    )
+    flags = [
+        "true" if document["documents"][name]["reboot_required"] else "false"
+        for name in ids
+    ]
+    lines.append(
+        f"inline constexpr std::array<bool, {len(ids)}> "
+        "kConfigurationDocumentRebootRequired{{"
+    )
+    lines.extend(f"    {flag}," for flag in flags)
+    lines.append("}};")
+    lines.append("")
+    lines.extend(
+        [
+            "[[nodiscard]] inline bool configuration_document_reboot_required(",
+            "    const ConfigurationDocument value) {",
+            "  const auto index = static_cast<std::size_t>(value);",
+            "  return index < kConfigurationDocumentRebootRequired.size() &&",
+            "         kConfigurationDocumentRebootRequired[index];",
+            "}",
+            "",
+        ]
+    )
+    return lines
+
+
 def generate_cpp_contract(document: dict[str, Any]) -> str:
     lines = [
         f"// {BANNER}",
@@ -471,6 +650,8 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
             lines.append(f"// {body['doc']}")
         lines.append(f"inline constexpr std::size_t {name} = {body['value']};")
     lines.append("")
+
+    lines.extend(generate_cpp_documents(document))
 
     for name, body in document["enums"].items():
         if body.get("doc"):
@@ -665,6 +846,50 @@ def wrap_comment(text: str, width: int = 76) -> list[str]:
     return lines
 
 
+def generate_cpp_document_keys(document: dict[str, Any]) -> list[str]:
+    """Top-level property names each document accepts.
+
+    The root object's own list stays beside these: it is what the compiled
+    factory payload is parsed against, being the one document that may seed
+    every section at once.
+    """
+    lines = [
+        "// Accepted top-level property names per document. A section that belongs",
+        "// to another document is unknown here, so a dashboard sent under",
+        "// `@SC:SET:PROTOCOL` is rejected rather than half-applied.",
+        "",
+    ]
+    ids = document_ids(document)
+    for name in ids:
+        keys = document_keys(document, name)
+        lines.append(
+            f"inline constexpr std::array<std::string_view, {len(keys)}> "
+            f"k{document_type(name)}Keys{{{{"
+        )
+        lines.extend(f'    "{key}",' for key in keys)
+        lines.append("}};")
+        lines.append("")
+    lines.extend(
+        [
+            "[[nodiscard]] inline std::span<const std::string_view> document_keys(",
+            "    const ConfigurationDocument value) {",
+            "  switch (value) {",
+        ]
+    )
+    for name in ids:
+        lines.append(f"    case ConfigurationDocument::{name}:")
+        lines.append(f"      return k{document_type(name)}Keys;")
+    lines.extend(
+        [
+            "  }",
+            "  return {};",
+            "}",
+            "",
+        ]
+    )
+    return lines
+
+
 def generate_cpp_parser(document: dict[str, Any]) -> str:
     errors = document["validation_errors"]
     lines = [
@@ -674,6 +899,7 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
         "#include <array>",
         "#include <cstddef>",
         "#include <cstdint>",
+        "#include <span>",
         "#include <string_view>",
         "",
         '#include "application_configuration_generated.hpp"',
@@ -743,6 +969,7 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
         lines.extend(f'    "{key}",' for key in keys)
         lines.append("}};")
         lines.append("")
+    lines.extend(generate_cpp_document_keys(document))
     lines.extend(
         [
             "// The authored bounds of every scalar property that has one, in",
@@ -805,6 +1032,82 @@ def ts_field_type(field: dict[str, Any], document: dict[str, Any]) -> str:
     if kind == "external":
         return document["external_types"][field["external"]]["typescript"]
     return SCALAR_TS[kind]
+
+
+def generate_typescript_documents(document: dict[str, Any]) -> list[str]:
+    """The three documents as the configurator sees them.
+
+    The aggregate `ApplicationConfiguration` stays: it is what the editor mutates
+    and what a saved file holds. These are the slices carved out of it for one
+    transfer each, so the shape the device receives is spelled out here rather
+    than assembled by hand at each call site.
+    """
+    ids = document_ids(document)
+    lines = [
+        "/** One independently stored and transferred configuration document. */",
+        "export type ConfigurationDocumentId = "
+        + " | ".join(f"'{name}'" for name in ids),
+        "export const CONFIGURATION_DOCUMENT_IDS: readonly ConfigurationDocumentId[] = ["
+        + ", ".join(f"'{name}'" for name in ids)
+        + "]",
+        "",
+    ]
+    for name in ids:
+        body = document["documents"][name]
+        if body.get("doc"):
+            lines.append(f"/** {body['doc']} */")
+        lines.append(f"export interface {document_type(name)} {{")
+        for field in document_fields(document, name):
+            if field.get("flatten"):
+                for inner in serialized_fields(document["structs"][field["struct"]]):
+                    optional = "" if inner.get("required") else "?"
+                    lines.append(
+                        f"  {json_key(inner)}{optional}: "
+                        f"{ts_field_type(inner, document)}"
+                    )
+                continue
+            lines.append(
+                f"  {json_key(field)}?: {ts_field_type(field, document)}"
+            )
+        lines.append("}")
+        lines.append("")
+    lines.append(
+        "export type ConfigurationDocument = "
+        + " | ".join(document_type(name) for name in ids)
+    )
+    lines.append("")
+    lines.extend(
+        [
+            "/** What one document is called, holds, may weigh, and costs to save. */",
+            "export interface ConfigurationDocumentDescriptor {",
+            "  readonly id: ConfigurationDocumentId",
+            "  /** Root sections it carries, beside the board identifier every one has. */",
+            "  readonly sections: readonly string[]",
+            "  /** Top-level property names it accepts, board included. */",
+            "  readonly keys: readonly string[]",
+            "  readonly maxPayload: number",
+            "  /** Saving it stores a setting the running board cannot pick up. */",
+            "  readonly rebootRequired: boolean",
+            "}",
+            "",
+            "export const CONFIGURATION_DOCUMENTS: Record<",
+            "  ConfigurationDocumentId,",
+            "  ConfigurationDocumentDescriptor",
+            "> = {",
+        ]
+    )
+    for name in ids:
+        body = document["documents"][name]
+        sections = ", ".join(f"'{section}'" for section in body["sections"])
+        keys = ", ".join(f"'{key}'" for key in document_keys(document, name))
+        lines.append(
+            f"  {name}: {{ id: '{name}', sections: [{sections}], keys: [{keys}], "
+            f"maxPayload: {body['max_payload']}, "
+            f"rebootRequired: {str(body['reboot_required']).lower()} }},"
+        )
+    lines.append("}")
+    lines.append("")
+    return lines
 
 
 def generate_typescript(document: dict[str, Any]) -> str:
@@ -965,6 +1268,8 @@ def generate_typescript(document: dict[str, Any]) -> str:
         lines.append("}")
         lines.append("")
 
+    lines.extend(generate_typescript_documents(document))
+
     variants = widget_variants(document)
     if variants:
         union = " | ".join(sorted(variants.values()))
@@ -1078,11 +1383,32 @@ def generate_markdown(document: dict[str, Any]) -> str:
         "",
         f"Schema version: {version}.",
         "",
+        "## Documents",
+        "",
+        "The configuration is transferred and stored as three independent documents. "
+        "Each carries the `board` identifier — so each is validated against the board "
+        "it arrives at — plus the root sections listed here, and is rejected if it "
+        "carries any other. `@SC:GET`, `@SC:SET`, `@SC:VALIDATE` and `@SC:APPLY` name "
+        "one of them.",
+        "",
+        "| Document | Carries | Maximum payload | Restart to take effect | Purpose |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for name, body in document["documents"].items():
+        sections = ", ".join(f"`{section}`" for section in body["sections"])
+        restart = "yes" if body["reboot_required"] else "no"
+        lines.append(
+            f"| `{name}` | `board`, {sections} | {body['max_payload']} bytes | "
+            f"{restart} | {body.get('doc', '')} |"
+        )
+    lines.append("")
+
+    lines.extend([
         "## Limits",
         "",
         "| Constant | Value | Meaning |",
         "| --- | --- | --- |",
-    ]
+    ])
     for name, body in document["limits"].items():
         lines.append(f"| `{name}` | {body['value']} | {body.get('doc', '')} |")
     lines.append("")
@@ -1097,6 +1423,17 @@ def generate_markdown(document: dict[str, Any]) -> str:
     for name in document["structs"]:
         body = document["structs"][name]
         if body.get("serialized") is False:
+            continue
+        if body.get("json_kind") == "empty_array":
+            # No property table to print, but the root links here, so the
+            # section has to exist for the anchor to resolve.
+            lines.append(f"### {name}")
+            lines.append("")
+            if body.get("doc"):
+                lines.append(body["doc"])
+                lines.append("")
+            lines.append("Accepted as an empty array only.")
+            lines.append("")
             continue
         fields = [field for field in serialized_fields(body) if not field.get("flatten")]
         if not fields:

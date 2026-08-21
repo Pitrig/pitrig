@@ -20,7 +20,11 @@ using RebootHandler = void (*)(void* context);
 
 class ConfigurationControl {
  public:
-  static constexpr std::size_t kIoBufferSize = 16 + kMaximumPayloadSize;
+  // The longest request is a command word, a document name and a colon around
+  // the widest payload. Thirty-two bytes covers every spelling of both with
+  // room left, which is what keeps this one number rather than a computation
+  // over the command table.
+  static constexpr std::size_t kIoBufferSize = 32 + kMaximumPayloadSize;
 
   ~ConfigurationControl();
 
@@ -28,7 +32,8 @@ class ConfigurationControl {
   // whole sequence — stage, check composability, promote, recompose, revert on
   // failure — because only the application composition can see every piece.
   using ApplyHandler = ValidationFailure (*)(
-      std::span<const std::uint8_t> payload, void* context);
+      ConfigurationDocument document, std::span<const std::uint8_t> payload,
+      void* context);
 
   // Every reply goes to the link the request arrived on, so no transport is
   // taken here: consume() learns which link that is from each line.
@@ -61,13 +66,25 @@ class ConfigurationControl {
   static void task_entry(void* context);
   void process();
   void handle(std::span<const std::uint8_t> line);
+  // Splits "<DOCUMENT>" or "<DOCUMENT>:<payload>" off the front of a command
+  // argument. Answers the host itself when the name is not one of the three, so
+  // callers deal only with a document they can act on.
+  [[nodiscard]] bool take_document(std::span<const std::uint8_t> argument,
+                                   bool expect_payload,
+                                   ConfigurationDocument& document,
+                                   std::span<const std::uint8_t>& payload);
   // Every reply goes out through write_reply, which is the one place that
   // knows the link may be absent. They return whether the answer actually
   // reached the host so a caller that can still act on the failure may.
   bool write_reply(std::span<const std::uint8_t> data);
   bool send_text(const char* text);
   bool send_error(const ValidationFailure& failure);
-  bool send_payload(std::span<const std::uint8_t> payload);
+  bool send_payload(ConfigurationDocument document,
+                    std::span<const std::uint8_t> payload);
+  // "<prefix>:<document>" with an optional trailing field, which is the shape
+  // every per-document acknowledgement takes.
+  bool send_document_reply(const char* prefix, ConfigurationDocument document,
+                           const char* trailer);
   // Where the answer to the request being handled goes.
   [[nodiscard]] transport::ITransport* reply() const { return reply_; }
 

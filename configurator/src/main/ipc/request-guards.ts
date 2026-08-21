@@ -2,6 +2,7 @@ import {
   IMAGE_COLOR_FORMATS,
   type ImageUploadRequest
 } from '@shared/image-assets'
+import { isConfigurationDocumentId } from '@shared/configuration-documents'
 import type {
   FontCatalogPreviewRequest,
   FontFacesRequest,
@@ -18,7 +19,12 @@ import {
 } from '@shared/config-library'
 import { MAXIMUM_CONTROL_COMMAND_LENGTH, type ControlCommandRequest } from '@shared/debug'
 import { type FirmwareUploadRequest } from '@shared/firmware-update'
-import type { ConnectDeviceRequest, DeviceConfigurationRequest, DeviceResult } from '@shared/device'
+import type {
+  ConnectDeviceRequest,
+  DeviceConfigurationRequest,
+  DeviceConfigurationResetRequest,
+  DeviceResult
+} from '@shared/device'
 import type { ConfigurationFileSaveRequest } from '@shared/configuration-files'
 import type { SimHubProfileExportRequest } from '@shared/simhub-profile'
 import {
@@ -73,12 +79,32 @@ export function isConnectRequest(value: unknown): value is ConnectDeviceRequest 
 
 // Both the device and the file request are `{ json: string }`; the bound is the
 // source-document limit, not the payload limit, which the parser enforces.
+/**
+ * A reset naming one document, or nothing at all. An absent request is valid and
+ * means every document, which is what the old no-argument channel did.
+ */
+export function isConfigurationResetRequest(
+  value: unknown
+): value is DeviceConfigurationResetRequest {
+  if (value === undefined || value === null) return true
+  if (typeof value !== 'object') return false
+  const request = value as Partial<DeviceConfigurationResetRequest>
+  return request.document === undefined || isConfigurationDocumentId(request.document)
+}
+
 export function isJsonDocumentRequest(
   value: unknown
 ): value is DeviceConfigurationRequest & ConfigurationFileSaveRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<DeviceConfigurationRequest>
-  return typeof request.json === 'string' && request.json.length <= 64 * 1024
+  if (typeof request.json !== 'string' || request.json.length > 64 * 1024) return false
+  if (request.documents === undefined) return true
+  return (
+    Array.isArray(request.documents) &&
+    request.documents.every(
+      (document) => typeof document === 'string' && isConfigurationDocumentId(document)
+    )
+  )
 }
 
 /**

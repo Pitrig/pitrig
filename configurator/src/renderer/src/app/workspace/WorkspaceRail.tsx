@@ -14,6 +14,7 @@ import { useEffect } from 'react'
 
 import { cn } from '@/lib/utils'
 import { useDeviceStore } from '@/features/device/device-store'
+import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import { useDraftState } from '@/features/device/draft-state'
 import { useWorkspaceStore, WORKSPACE_TABS, type WorkspaceTab } from './workspace-store'
 
@@ -58,13 +59,22 @@ const ENTRIES: Record<WorkspaceTab, RailEntry> = {
   debug: { label: 'Debug', icon: Terminal, hint: 'Serial traffic and control commands' }
 }
 
+// A workspace that owns one configuration document lights up for that document
+// alone; Configs lights up for any of them, because it is where all three are
+// listed. Editing a baud rate used to put a dot on Dashboard.
+const OWNED_DOCUMENT: Partial<Record<WorkspaceTab, ConfigurationDocumentId>> = {
+  dashboard: 'dashboard',
+  modules: 'modules',
+  protocol: 'protocol'
+}
+
 export function WorkspaceRail(): React.JSX.Element {
   const tab = useWorkspaceStore((state) => state.tab)
   const setTab = useWorkspaceStore((state) => state.setTab)
   const expanded = useWorkspaceStore((state) => state.railExpanded)
   const toggleRail = useWorkspaceStore((state) => state.toggleRail)
   const session = useDeviceStore((state) => state.session)
-  const { dirty } = useDraftState()
+  const { dirty, dirtyDocuments } = useDraftState()
 
   // Cmd/Ctrl + 1…7, in the order the rail lists them. Digits are free: the
   // editor's own accelerators are all letters.
@@ -83,7 +93,9 @@ export function WorkspaceRail(): React.JSX.Element {
   const firmwarePending = Boolean(session?.firmware?.rebootRequired || session?.firmware?.pendingVerify)
   const dotFor = (candidate: WorkspaceTab): string | undefined => {
     if (candidate === 'firmware' && firmwarePending) return 'bg-amber-400'
-    if ((candidate === 'dashboard' || candidate === 'configs') && dirty) return 'bg-sky-400'
+    if (candidate === 'configs' && dirty) return 'bg-sky-400'
+    const owned = OWNED_DOCUMENT[candidate]
+    if (owned && dirtyDocuments.includes(owned)) return 'bg-sky-400'
     return undefined
   }
 

@@ -8,6 +8,11 @@ import {
   type SimCoreBoardId
 } from '@shared/device'
 import { describeDeviceError } from '@shared/device-error-message'
+import {
+  CONFIGURATION_DOCUMENT_IDS,
+  type ConfigurationDocumentId
+} from '@shared/configuration-schema'
+import { mergeDocuments } from '@shared/configuration-documents'
 import { parseDeviceConfigurationJson } from './configuration-json'
 import {
   parseDeviceInfo,
@@ -26,7 +31,10 @@ const CONFIGURATION_RESPONSE_PREFIX = '@SC:OK:CONFIG:'
 // line was complete the prefix it was waiting for was gone — every dashboard
 // over the old 8 KiB failed the probe as "not a SimCore device".
 const MAXIMUM_RESPONSE_BUFFER_SIZE =
-  CONFIGURATION_RESPONSE_PREFIX.length + MAXIMUM_CONFIGURATION_PAYLOAD_SIZE + '\r\n'.length
+  CONFIGURATION_RESPONSE_PREFIX.length +
+  'dashboard:'.length +
+  MAXIMUM_CONFIGURATION_PAYLOAD_SIZE +
+  '\r\n'.length
 // The probe is the first thing written to a freshly opened port, and it opens
 // with a newline of its own. A scan walks the baud rates in turn, and a request
 // written at the wrong rate still reaches the device — as bytes that decode
@@ -37,7 +45,6 @@ const MAXIMUM_RESPONSE_BUFFER_SIZE =
 // a line of its own. Only a board reached over a USB-serial bridge ever shows
 // this: a native USB link has no wrong rate to be probed at.
 const INFO_REQUEST = '\n@SC:INFO\n'
-const GET_REQUEST = '@SC:GET\n'
 const IMAGE_INFO_REQUEST = '@SC:IMAGE:INFO\n'
 const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
 const FIRMWARE_INFO_REQUEST = '@SC:FW:INFO\n'
@@ -97,24 +104,31 @@ export async function probeSimCore(
   }
 }
 
-export async function readConfiguration(
+/**
+ * One document read back, as the whole aggregate it is a slice of.
+ *
+ * The device answers `@SC:GET:<document>` with the exact bytes it loaded that
+ * document from, so the reply is validated inside the smallest configuration
+ * that can carry it — the same trick the editor's clipboard uses on a paste.
+ */
+export async function readConfigurationDocument(
   port: SerialPort,
+  document: ConfigurationDocumentId,
   expectedBoard: SimCoreBoardId,
   onTraffic: TrafficCallback,
   rejectionCode: DeviceErrorCode = 'configuration_rejected'
 ): Promise<DeviceConfiguration> {
+  const prefix = `${CONFIGURATION_RESPONSE_PREFIX}${document}:`
   const line = await requestResponse(
     port,
-    GET_REQUEST,
-    CONFIGURATION_RESPONSE_PREFIX,
+    `@SC:GET:${document}\n`,
+    prefix,
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
     rejectionCode
   )
   try {
-    const configuration = parseDeviceConfigurationJson(
-      line.slice(CONFIGURATION_RESPONSE_PREFIX.length)
-    )
+    const configuration = parseDeviceConfigurationJson(line.slice(prefix.length))
     if (configuration.board !== expectedBoard) {
       throw new Error('The device configuration board does not match the connected hardware.')
     }
@@ -125,15 +139,40 @@ export async function readConfiguration(
   }
 }
 
+/**
+ * Every document, merged back into the one configuration the application edits.
+ * Reading them in turn rather than in parallel is not a choice: the control
+ * service answers one request at a time and drops a second arriving mid-answer.
+ */
+export async function readConfiguration(
+  port: SerialPort,
+  expectedBoard: SimCoreBoardId,
+  onTraffic: TrafficCallback,
+  rejectionCode: DeviceErrorCode = 'configuration_rejected'
+): Promise<DeviceConfiguration> {
+  const documents = {} as Record<ConfigurationDocumentId, DeviceConfiguration>
+  for (const document of CONFIGURATION_DOCUMENT_IDS) {
+    documents[document] = await readConfigurationDocument(
+      port,
+      document,
+      expectedBoard,
+      onTraffic,
+      rejectionCode
+    )
+  }
+  return mergeDocuments(documents)
+}
+
 export async function applyConfiguration(
   port: SerialPort,
+  document: ConfigurationDocumentId,
   payload: string,
   onTraffic: TrafficCallback
 ): Promise<void> {
   await requestResponse(
     port,
-    `@SC:APPLY:${payload}\n`,
-    '@SC:OK:APPLIED',
+    `@SC:APPLY:${document}:${payload}\n`,
+    `@SC:OK:APPLIED:${document}`,
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
     'configuration_rejected'
@@ -142,19 +181,21 @@ export async function applyConfiguration(
 
 export async function saveConfiguration(
   port: SerialPort,
+  document: ConfigurationDocumentId,
   payload: string,
   onTraffic: TrafficCallback
 ): Promise<void> {
   await requestResponse(
     port,
-    `@SC:SET:${payload}\n`,
-    '@SC:OK:SAVED:reboot_required=1',
+    `@SC:SET:${document}:${payload}\n`,
+    `@SC:OK:SAVED:${document}:`,
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
     'configuration_rejected'
   )
 }
 
+/** Erases every stored document, putting the board back on factory values. */
 export async function resetConfiguration(
   port: SerialPort,
   onTraffic: TrafficCallback
@@ -163,6 +204,22 @@ export async function resetConfiguration(
     port,
     '@SC:RESET\n',
     '@SC:OK:RESET:reboot_required=1',
+    CONFIGURATION_TIMEOUT_MS,
+    onTraffic,
+    'configuration_rejected'
+  )
+}
+
+/** Erases one stored document, leaving the other two as they are. */
+export async function resetConfigurationDocument(
+  port: SerialPort,
+  document: ConfigurationDocumentId,
+  onTraffic: TrafficCallback
+): Promise<void> {
+  await requestResponse(
+    port,
+    `@SC:RESET:${document}\n`,
+    `@SC:OK:RESET:${document}:`,
     CONFIGURATION_TIMEOUT_MS,
     onTraffic,
     'configuration_rejected'

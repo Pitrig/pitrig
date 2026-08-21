@@ -191,18 +191,33 @@ new hardware capability, add a driver only for new hardware. The core should rar
 
 A firmware build owns exactly one immutable `BoardDefinition` selected by
 `CONFIG_SIMCORE_FACTORY_BOARD_*` (set by the `sdkconfig.defaults.<board>` file). It binds board id,
-display driver, default telemetry transport, factory payload, and private validation metadata
-(display bounds, the board's UART pin pair). Firmware reports only the stable board identifier; the
-configurator maps it to a local board profile for logical display dimensions. User configuration must
-carry a matching `board` or it is rejected. `SET` writes NVS and answers `reboot_required=1`;
-`APPLY` rebuilds the running dashboard from a document without writing storage, which is what the
-configurator's live preview uses — and what a save pairs with `SET` so an ordinary save costs no
-restart.
+display driver, default telemetry transport, one factory payload **per configuration document**,
+and private validation metadata (display bounds, the board's UART pin pair). Firmware reports only
+the stable board identifier; the configurator maps it to a local board profile for logical display
+dimensions. Every configuration document must carry a matching `board` or it is rejected. `SET`
+writes NVS and answers `reboot_required` from the document's own schema entry — 1 for `protocol`,
+0 for the others; `APPLY` rebuilds the running composition from one document without writing
+storage, which is what the configurator's live preview uses — and what a save pairs with `SET` so an
+ordinary save costs no restart.
 
-Config load order: valid NVS slot A → valid NVS slot B → compiled factory config (board id only,
-which yields an enabled display with an empty dashboard). NVS record format (magic, generation,
-CRC32, dual slot in the `simcore_cfg` partition) is private to the configuration service; the
-configurator must not depend on it.
+Config load order: the three compiled factory documents, then each stored record on top of its own
+(ADR 0024). A document with no record runs its factory value while the others run what was saved;
+board id alone yields an enabled display with an empty dashboard. NVS record format (magic,
+per-document generation, CRC32, one key per document in the `simcore_cfg` partition) is private to
+the configuration service; the configurator must not depend on it.
+
+### Configuration documents
+
+The configuration is **three documents**, not one: `dashboard` (`board` +
+`dashboard`), `modules` (`board` + `hardware`, empty until a peripheral driver has a contract) and
+`protocol` (`board` + `telemetry_transport`). Each is transferred, stored, validated and applied on
+its own — `@SC:GET:<doc>`, `@SC:SET:<doc>:<json>`, one NVS record and generation each, its own
+payload bound (64 KB / 1 KB / 1 KB) and its own answer to whether a restart is owed. They are
+declared in the `documents` block of `configuration/configuration_schema.json`, which must partition
+every serialized root section, and the generator emits the enum, key allow-lists, bounds and restart
+flags for both firmware and configurator. In memory they are still one `ApplicationConfiguration`, so
+a rule spanning sections stays one check; on disk and in the editor the aggregate is still one file.
+See [docs/adr/0024-separate-configuration-documents.md](docs/adr/0024-separate-configuration-documents.md).
 
 ### Configuration schema
 
@@ -298,13 +313,15 @@ reboot.
 The author never types a family. `family` **is** the id of an entry in the configurator's font
 library (`main/font-library/`), which holds faces from three origins — bundled with the app,
 downloaded from the checked-in Google Fonts catalog, or imported from a file — and a weight is its
-own entry, its own family and one of the eight slots. "Save to board" resolves the document's
-families against that library, builds a package holding exactly those, skips the upload when
-`@SC:FONT:INFO` reports the same `crc` and `entries`, and saves. It restarts the board only when a
-package was actually installed, when the board already owed a restart for one, or when
-`telemetry_transport` changed — a face becomes usable only after a restart, and a transport is
-selected once at startup, so `recompose` stores it without putting it in force; otherwise it closes with `@SC:APPLY`, which brings the running
-dashboard up to what was just written. An unresolvable family stops the save and asks for a file;
+own entry, its own family and one of the eight slots. "Save to board" writes only the documents that
+differ from the board, protocol first and dashboard last. When the dashboard is among them it
+resolves that document's families against the library, builds a package holding exactly those, and
+skips the upload when `@SC:FONT:INFO` reports the same `crc` and `entries`. It restarts the board
+only when a package was actually installed, when the board already owed a restart for one, or when
+the `protocol` document was written — a face becomes usable only after a restart, and a transport is
+selected once at startup, so writing that document answers `reboot_required=1`; otherwise it closes
+with `@SC:APPLY` for each document it wrote, which brings the running composition up to what was
+just written. An unresolvable family stops the save and asks for a file;
 live apply is suppressed while the board lacks a family, because firmware rejects the document
 whole. See
 [docs/adr/0010-uploaded-font-assets.md](docs/adr/0010-uploaded-font-assets.md).
@@ -331,6 +348,11 @@ chrome (`PageShell`) so the seven read as one application. Only Dashboard has pa
 (`Canvas`, `Templates`, `Fonts`, `Images`), because all four answer what the dashboard is made of.
 What the window owns rather than a page — live apply, the serial traffic log, `Cmd`/`Ctrl`+`S`, the
 unresolved-fonts dialog — is mounted in `App.tsx`, so leaving a page never stops it.
+
+The draft is one aggregate `DeviceConfiguration`, sliced into the three device documents only at the
+edges — `shared/configuration-documents.ts` holds `documentOf` / `mergeDocument` /
+`documentsDiffering`, and the protocol, the save orchestrator, live apply and the Configs page are
+the only things that see three. Everything else keeps working on the whole draft.
 
 The editor mutates one sparse draft document; canvas drag/resize, the inspector, and the advanced
 JSON editor all write the same document — there is no separate editor-only layout model. The draft
@@ -387,17 +409,22 @@ what it arranges: `alignment`, `geometry-commands`, `grouping`, `placement`, `re
 `dashboard-editor.ts` re-exports `editor/` as one surface, so panels keep a single import.
 
 What stays at the feature root is what belongs to none of the three: `DashboardWorkspace.tsx` (the
-four dashboard pages and the toolbar over them), `ConfigsPage.tsx` (files, the saved-configuration
-library, the draft-versus-board diff and the raw JSON), `configuration-actions.ts` (every command
-that replaces the whole document, as plain functions so a keystroke can reach one without a panel
-being mounted), `LayersPanel.tsx`, and the `dashboard-editor.ts` barrel. The canvas shell, the
+four dashboard pages and the toolbar over them), `ConfigsPage.tsx` (files, the three documents on the
+board with a Load/Save/Reset each, the saved-configuration library, the per-document
+draft-versus-board diff and the raw JSON in one tab per document), `configuration-actions.ts` (every
+command that replaces the whole document, plus the per-document load and reset, as plain functions so
+a keystroke can reach one without a panel being mounted), `LayersPanel.tsx`, and the
+`dashboard-editor.ts` barrel. The canvas shell, the
 inspector shell and the keyboard commands live in `preview/`, `inspector/` and `editor/` with the
 rest of their halves.
 
 Board state that several pages read is a hook or a store rather than one page's local state:
-`features/device/draft-state.ts` answers whether the draft parses, differs from the board and could
-be saved; `save-to-board-store.ts` holds a save that outlives the button that started it — and the
+`features/device/draft-state.ts` answers whether the draft parses, **which documents** differ from
+the board, and whether it could be saved — one memoized answer, because comparing documents
+canonicalizes each one and four components ask per frame during a drag;
+`save-to-board-store.ts` holds a save that outlives the button that started it — and the
 remount a restart causes; `live-apply-store.ts` holds what the board is currently being told.
+`document-status.tsx` is the chip a page puts in its header to say where its own document stands.
 
 ## Conventions
 

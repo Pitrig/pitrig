@@ -1,6 +1,10 @@
 # ADR 0013: Generated Configuration Contract
 
-Status: Accepted; supersedes the document shape defined by ADR 0009
+Status: Accepted; supersedes the document shape defined by ADR 0009. Amended by
+ADR 0024: the single root struct is still generated and is still the one runtime
+document, but the schema now also declares the three documents it is transferred
+and stored as, and the generator emits a key allow-list, a payload bound and a
+restart rule for each.
 
 ## Context
 

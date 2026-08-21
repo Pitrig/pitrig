@@ -22,7 +22,14 @@ import {
  * questions a release build raises.
  */
 
-const SUGGESTIONS = ['@SC:INFO', '@SC:GET', '@SC:FONT:INFO', '@SC:IMAGE:INFO', '@SC:FW:INFO']
+const SUGGESTIONS = [
+  '@SC:INFO',
+  '@SC:GET:dashboard',
+  '@SC:GET:protocol',
+  '@SC:FONT:INFO',
+  '@SC:IMAGE:INFO',
+  '@SC:FW:INFO'
+]
 
 export function DebugPage(): React.JSX.Element {
   const { entries, omittedEntryCount } = useSyncExternalStore(
