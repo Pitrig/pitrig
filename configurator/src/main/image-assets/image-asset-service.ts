@@ -1,6 +1,9 @@
 import { nativeImage, type BrowserWindow } from 'electron'
 import { basename } from 'node:path'
 
+/** Long edge of the staged-row thumbnail, in device-independent pixels. */
+const THUMBNAIL_EDGE_PX = 192
+
 import type { AssetError, AssetResult, AssetUploadProgress } from '../../shared/asset-upload'
 import {
   IMAGE_ID_PATTERN,
@@ -42,6 +45,35 @@ interface ImageSourceRecord extends ImageSourceSelection {
  * once, exactly as fonts are: the device stores one package, and a partial
  * update would leave it describing images it no longer holds.
  */
+/**
+ * A small rendering of the picked file, so a staged row can show what it is.
+ *
+ * Bounded on the long edge rather than sent whole: a 4000-pixel photograph over
+ * IPC to fill a 96-pixel box is megabytes for nothing. A thumbnail that cannot
+ * be produced is simply absent — the row falls back to its name, which is what
+ * it showed before there were any previews at all.
+ */
+function thumbnailOf(
+  decoded: Electron.NativeImage,
+  width: number,
+  height: number
+): { dataUrl?: string } {
+  try {
+    const longest = Math.max(width, height)
+    const scaled =
+      longest > THUMBNAIL_EDGE_PX
+        ? decoded.resize({
+            width: Math.max(1, Math.round((width / longest) * THUMBNAIL_EDGE_PX)),
+            height: Math.max(1, Math.round((height / longest) * THUMBNAIL_EDGE_PX)),
+            quality: 'good'
+          })
+        : decoded
+    return { dataUrl: scaled.toDataURL() }
+  } catch {
+    return {}
+  }
+}
+
 export class ImageAssetService extends AssetServiceBase {
   constructor(
     deviceService: DeviceService,
@@ -65,7 +97,7 @@ export class ImageAssetService extends AssetServiceBase {
     const { width, height } = decoded.getSize()
     const source: ImageSourceRecord = { id, name, path, width, height }
     this.sources.set(source.id, source)
-    return success({ id, name, width, height })
+    return success({ id, name, width, height, ...thumbnailOf(decoded, width, height) })
   }
 
   async upload(request: ImageUploadRequest): Promise<AssetResult<void>> {

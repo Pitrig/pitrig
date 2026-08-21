@@ -8,8 +8,12 @@ import {
   IMAGE_ID_PATTERN,
   MAXIMUM_IMAGES,
   MAXIMUM_IMAGE_DIMENSION,
+  MAXIMUM_IMAGE_PACKAGE_SIZE,
+  imagePackageSize,
   type ImageColorFormat
 } from '@shared/image-assets'
+import { usePreviewAssetStore } from '@/features/configuration/preview/preview-assets'
+import { kilobytes } from '@/features/font-library/font-library-store'
 import { useImageAssetsStore } from './image-assets-store'
 
 // Uploaded images, which the device stores as one package and replaces whole.
@@ -32,8 +36,16 @@ export function ImagesPage(): React.JSX.Element {
   const store = useImageAssetsStore
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string>()
+  // The converted bitmaps this application kept when it installed them. The
+  // board never sends an image back, so this is the only way to show what it
+  // is actually holding — and it is what the canvas draws with too.
+  const installedPreviews = usePreviewAssetStore((state) => state.images)
+  const refreshPreviews = usePreviewAssetStore((state) => state.refresh)
 
   useEffect(() => window.simcore.onImageUploadProgress(store.getState().setProgress), [store])
+  useEffect(() => {
+    void refreshPreviews()
+  }, [refreshPreviews])
 
   const images = session?.imageAssets
   const installed = images?.images ?? []
@@ -41,6 +53,9 @@ export function ImagesPage(): React.JSX.Element {
   const duplicated = entries.some(
     (entry, index) => entries.findIndex(({ name }) => name === entry.name) !== index
   )
+  // What this selection would occupy once packed — the same layout the
+  // converter produces, so the number is the one the device will see.
+  const staged = imagePackageSize(entries)
   const oversized = entries.some(
     (entry) =>
       entry.width < 1 ||
@@ -54,6 +69,7 @@ export function ImagesPage(): React.JSX.Element {
     invalid.length === 0 &&
     !duplicated &&
     !oversized &&
+    staged <= MAXIMUM_IMAGE_PACKAGE_SIZE &&
     Boolean(images?.storageAvailable) &&
     !images?.rebootRequired &&
     !busy
@@ -140,16 +156,31 @@ export function ImagesPage(): React.JSX.Element {
         title="On the board"
         description="What the installed package holds. A widget refers to one of these names."
       >
+        {/* Installing replaces the package whole, so what is staged does not add
+            to this — it becomes it. The two bars are two answers to the same
+            question, before and after. */}
+        <StorageBar
+          className="mb-3"
+          label="Installed"
+          used={images?.packageSize ?? 0}
+          available={Boolean(images)}
+        />
         {installed.length > 0 ? (
           <ul className="grid gap-1 sm:grid-cols-2">
             {installed.map((image) => (
               <li
                 key={image.name}
-                className="flex items-center justify-between gap-2 rounded-md border px-2 py-1.5"
+                className="flex items-center gap-2.5 rounded-md border p-2"
               >
-                <span className="min-w-0 truncate font-mono">{image.name}</span>
-                <span className="flex-none text-muted-foreground">
-                  {`${image.width}×${image.height} · ${image.format}`}
+                <Thumbnail
+                  dataUrl={installedPreviews[image.name]?.dataUrl}
+                  alt={image.name}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-mono">{image.name}</span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    {`${image.width}×${image.height} · ${image.format}`}
+                  </span>
                 </span>
               </li>
             ))}
@@ -185,6 +216,15 @@ export function ImagesPage(): React.JSX.Element {
           </>
         }
       >
+        {entries.length > 0 ? (
+          <StorageBar
+            className="mb-3"
+            label="This selection"
+            used={staged}
+            available
+            over={staged > MAXIMUM_IMAGE_PACKAGE_SIZE}
+          />
+        ) : null}
         {entries.length === 0 ? (
           <EmptyState title="Nothing staged">
             Adding an image converts it here, at the size the board will draw it — the device
@@ -194,8 +234,9 @@ export function ImagesPage(): React.JSX.Element {
           <div className="grid gap-2 sm:grid-cols-2">
             {entries.map((entry) => (
               <div key={entry.source.id} className="space-y-1.5 rounded-md border p-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="min-w-0 truncate font-medium" title={entry.source.name}>
+                <div className="flex items-center gap-2.5">
+                  <Thumbnail dataUrl={entry.source.dataUrl} alt={entry.source.name} />
+                  <span className="min-w-0 flex-1 truncate font-medium" title={entry.source.name}>
                     {entry.source.name}
                   </span>
                   <Button
@@ -290,5 +331,75 @@ export function ImagesPage(): React.JSX.Element {
         {error ? <p className="mt-2 text-red-400">{error}</p> : null}
       </PageSection>
     </PageShell>
+  )
+}
+
+
+/**
+ * One image, at whatever size the row gives it. A bitmap that could not be
+ * recovered leaves the box empty rather than the row missing: the board still
+ * holds the image, this application simply no longer has its copy.
+ */
+function Thumbnail({ dataUrl, alt }: { dataUrl?: string; alt: string }): React.JSX.Element {
+  return (
+    <span
+      className="flex size-14 flex-none items-center justify-center overflow-hidden rounded border bg-black/40 p-0.5"
+      // The checkerboard is what makes transparency visible as transparency
+      // rather than as black, which is what rgb565a8 is chosen for.
+      style={{
+        backgroundImage:
+          'linear-gradient(45deg, #2a2a2a 25%, transparent 25%, transparent 75%, #2a2a2a 75%), linear-gradient(45deg, #2a2a2a 25%, transparent 25%, transparent 75%, #2a2a2a 75%)',
+        backgroundSize: '10px 10px',
+        backgroundPosition: '0 0, 5px 5px'
+      }}
+    >
+      {dataUrl ? (
+        <img alt={alt} src={dataUrl} className="max-h-full max-w-full object-contain" />
+      ) : (
+        <span className="text-[10px] text-muted-foreground">no copy</span>
+      )}
+    </span>
+  )
+}
+
+/**
+ * How much of the four megabytes is spoken for. The partition is fixed and the
+ * package is replaced whole, so "used" and "left" are the whole story — there
+ * is no fragmentation to explain.
+ */
+function StorageBar({
+  label,
+  used,
+  available,
+  over,
+  className
+}: {
+  label: string
+  used: number
+  available: boolean
+  over?: boolean
+  className?: string
+}): React.JSX.Element {
+  const percent = Math.min(100, Math.round((used / MAXIMUM_IMAGE_PACKAGE_SIZE) * 100))
+  const free = Math.max(0, MAXIMUM_IMAGE_PACKAGE_SIZE - used)
+  return (
+    <div className={`space-y-1 ${className ?? ''}`}>
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={over ? 'text-red-400' : 'text-muted-foreground'}>
+          {available
+            ? `${kilobytes(used)} of ${kilobytes(MAXIMUM_IMAGE_PACKAGE_SIZE)} · ${
+                over ? `${kilobytes(used - MAXIMUM_IMAGE_PACKAGE_SIZE)} over` : `${kilobytes(free)} free`
+              }`
+            : 'Unavailable'}
+        </span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className={`h-full transition-[width] ${over ? 'bg-red-500' : 'bg-sky-500'}`}
+          style={{ width: `${available ? Math.max(percent, used > 0 ? 1 : 0) : 0}%` }}
+        />
+      </div>
+    </div>
   )
 }

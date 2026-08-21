@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
+import { DigitSpecimen } from './DigitSpecimen'
 import { catalogPreviewFamily, useFontCatalogStore } from './font-catalog-store'
 import { FontCatalogRow } from './FontCatalogRow'
 import { useFontFaceStore, previewFontFamily } from './font-face-store'
@@ -43,8 +44,17 @@ export function FontsPage(): React.JSX.Element {
   const entries = useFontLibraryStore((state) => state.entries)
   const unreadable = useFontLibraryStore((state) => state.unreadable)
   const loaded = useFontFaceStore((state) => state.loaded)
+  const ensureFaces = useFontFaceStore((state) => state.ensureFaces)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string>()
+
+  // Every listed face is drawn in itself, so every listed face has to be
+  // registered — the canvas only ever asks for the ones the open document uses,
+  // which is why the list came up in the stand-in. The library is small enough
+  // that this is one read.
+  useEffect(() => {
+    void ensureFaces(entries.map((entry) => entry.id))
+  }, [ensureFaces, entries])
 
   const used = useMemo(
     () =>
@@ -142,11 +152,17 @@ export function FontsPage(): React.JSX.Element {
                   key={family}
                   className="flex items-center justify-between gap-2 rounded-md border px-2 py-1.5"
                 >
-                  <span
-                    className="min-w-0 flex-1 truncate text-foreground"
-                    style={loaded[family] ? { fontFamily: previewFontFamily(family) } : undefined}
-                  >
-                    {entry?.name ?? family}
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className="block truncate text-foreground"
+                      style={loaded[family] ? { fontFamily: previewFontFamily(family) } : undefined}
+                    >
+                      {entry?.name ?? family}
+                    </span>
+                    <DigitSpecimen
+                      cssFamily={loaded[family] ? previewFontFamily(family) : undefined}
+                      tabularDigits={entry?.tabularDigits}
+                    />
                   </span>
                   {!entry ? (
                     <Badge variant="outline" className="border-amber-500 text-amber-500">
@@ -205,6 +221,16 @@ export function FontsPage(): React.JSX.Element {
                   >
                     {entry.name}
                   </span>
+                  {/* The digits in the face, and whether they are all one width.
+                      A dashboard is mostly numbers that change several times a
+                      second, and a face with proportional digits reflows the
+                      reading every time a 1 becomes an 8 — which the name never
+                      tells you: Roboto is not monospaced but its digits are
+                      tabular, while Inter's are not. */}
+                  <DigitSpecimen
+                    cssFamily={loaded[entry.id] ? previewFontFamily(entry.id) : undefined}
+                    tabularDigits={entry.tabularDigits}
+                  />
                   <span className="block text-[11px] text-muted-foreground">
                     {`${entry.origin} · ${kilobytes(entry.bytes)}${used.includes(entry.id) ? ' · in use' : ''}`}
                   </span>

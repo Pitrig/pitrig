@@ -3,9 +3,12 @@ import { nativeImage } from 'electron'
 import { crc32 } from '../device/asset-crc'
 import {
   IMAGE_ID_PATTERN,
+  IMAGE_PACKAGE_ALIGNMENT,
+  IMAGE_PACKAGE_DATA_OFFSET,
   MAXIMUM_IMAGES,
   MAXIMUM_IMAGE_DIMENSION,
   MAXIMUM_IMAGE_PACKAGE_SIZE,
+  imageAssetBytes,
   type ImageColorFormat
 } from '../../shared/image-assets'
 
@@ -20,11 +23,11 @@ import {
 
 const HEADER_SIZE = 32
 const MANIFEST_ENTRY_SIZE = 64
-const ASSET_DATA_OFFSET = 4096
+const ASSET_DATA_OFFSET = IMAGE_PACKAGE_DATA_OFFSET
 const FORMAT_VERSION = 1
 // Matches the device's alignment: the cache line, and the draw buffer alignment
 // the P4 wants.
-const IMAGE_ALIGNMENT = 64
+const IMAGE_ALIGNMENT = IMAGE_PACKAGE_ALIGNMENT
 
 const FORMAT_CODES: Record<ImageColorFormat, number> = {
   rgb565: 1,
@@ -78,8 +81,8 @@ export function convertImage(source: ImageSource): ConvertedImage {
 
   const pixels = width * height
   const colorBytes = source.format === 'alpha8' ? 0 : pixels * 2
-  const alphaBytes = source.format === 'rgb565' ? 0 : pixels
-  const bytes = Buffer.alloc(colorBytes + alphaBytes)
+  // The one formula, so the panel's estimate and this allocation cannot drift.
+  const bytes = Buffer.alloc(imageAssetBytes(width, height, source.format))
   for (let index = 0; index < pixels; ++index) {
     const blue = bgra[index * 4] ?? 0
     const green = bgra[index * 4 + 1] ?? 0

@@ -435,6 +435,16 @@ exactly like a missing font family. The package format and its upload protocol
 are defined in [Image asset storage](image-assets.md); installing a package
 requires a reboot before its images can be drawn.
 
+The Images page shows both halves as pictures rather than as names. An installed
+image is drawn from the configurator's own copy of what it sent — the board
+never sends one back — so what is on screen is the converted bitmap, banding and
+all, rather than the source file; a staged one is drawn from the file that was
+picked, because what it will become depends on the size and format still being
+chosen. Both sit on a checkerboard, so transparency reads as transparency rather
+than as black. Beside them are two bars over the same four megabytes: what the
+installed package occupies, and what the staged selection would occupy once
+packed — not their sum, because installing replaces the package whole.
+
 ## Widget captions
 
 A `title` labels a widget's frame. Only `text` is required to place one; the
