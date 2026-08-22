@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 14;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 15;
 
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
@@ -221,6 +221,12 @@ enum class WidgetActionType : std::uint8_t {
   next_screen,
   previous_screen,
   goto_screen,
+};
+
+// How the dashboard swaps one screen for another. slide is LVGL's animated screen load, the horizontal move a swipe reads as. none replaces the screen in a single frame: the animation composites both screens for its whole duration, which on a screen filled with widgets costs more per frame than either screen alone, so a dashboard that cannot afford it says so here rather than living with the drop.
+enum class ScreenTransition : std::uint8_t {
+  slide,
+  none,
 };
 
 // Stateful value processing implemented by a module behind the pipeline callback.
@@ -617,6 +623,7 @@ struct ScreenConfiguration {
 // therefore costs its reference table rather than a full set of widget
 // arrays.
 struct DashboardConfiguration {
+  ScreenTransition transition{ScreenTransition::slide};
   std::uint8_t screen_count{};
   std::array<ScreenConfiguration, kMaximumScreens> screens{};
   std::uint8_t text_widget_count{};
@@ -828,6 +835,27 @@ inline constexpr std::array<std::string_view, 4> kWidgetActionTypeNames{{
   for (std::size_t index = 0; index < kWidgetActionTypeNames.size(); ++index) {
     if (kWidgetActionTypeNames[index] == name) {
       value = static_cast<WidgetActionType>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kScreenTransitionNames{{
+    "slide",
+    "none",
+}};
+
+[[nodiscard]] inline std::string_view screen_transition_name(const ScreenTransition value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kScreenTransitionNames.size() ? kScreenTransitionNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool screen_transition_from_name(const std::string_view name,
+                                                  ScreenTransition& value) {
+  for (std::size_t index = 0; index < kScreenTransitionNames.size(); ++index) {
+    if (kScreenTransitionNames[index] == name) {
+      value = static_cast<ScreenTransition>(index);
       return true;
     }
   }

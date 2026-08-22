@@ -132,6 +132,16 @@ swipes between them on a board with a touch panel. Each screen carries its own
 what a `goto_screen` action names, so it is worth setting to something the
 dashboard means rather than leaving as the generated default.
 
+`dashboard.transition` says how a move between screens is drawn, and applies to
+every move whether a swipe or a tap asked for it. `slide` is the default and is
+the horizontal animation a swipe reads as; `none` replaces the screen in a
+single frame. The animation draws the screen being left as well as the one
+arriving, for every one of its frames, so it costs more than either screen does
+at rest — a screen filled with widgets is where that is felt, and `none` is the
+answer for a dashboard that would rather arrive than travel. It is one setting
+for the dashboard rather than one per screen, because a per-screen answer would
+only hold in one direction.
+
 A **shape** widget may hold widgets of its own, which makes it a container. The
 geometry of the widgets inside it is relative to its box, and they nest up to
 four levels deep. A container performs no layout — it is a parent and a
@@ -987,7 +997,7 @@ other:
 
 | Document | Top-level properties | Maximum payload |
 | --- | --- | --- |
-| `dashboard` | `board`, `dashboard.screens` | 65536 bytes |
+| `dashboard` | `board`, `dashboard.transition`, `dashboard.screens` | 65536 bytes |
 | `modules` | `board`, `hardware` | 1024 bytes |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes |
 
@@ -996,6 +1006,7 @@ other:
 | `board` | string, required | Immutable compatible board identifier. Present in all three documents. |
 | `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
 | `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
+| `dashboard.transition` | string, optional | How a move between screens is drawn: `slide` or `none`. Defaults to `slide`. |
 | `dashboard.screens` | array, optional | Bounded screen list, at most four entries. |
 
 A document owns the sections listed against it completely: an omitted section

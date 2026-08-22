@@ -1,5 +1,5 @@
 {
-  "schema_version": 14,
+  "schema_version": 15,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "documents": {
@@ -235,6 +235,12 @@
       "default": "none",
       "doc": "What a tap on a widget does. none is the default and leaves the object refusing input, which is what every widget did before actions existed."
     },
+    "ScreenTransition": {
+      "json_values": ["slide", "none"],
+      "default": "slide",
+      "doc": "How the dashboard swaps one screen for another. slide is LVGL's animated screen load, the horizontal move a swipe reads as. none replaces the screen in a single frame: the animation composites both screens for its whole duration, which on a screen filled with widgets costs more per frame than either screen alone, so a dashboard that cannot afford it says so here rather than living with the drop."
+    },
+
     "ValueModifierType": {
       "json_values": ["lap_timer"],
       "default": "lap_timer",
@@ -681,6 +687,7 @@
     "DashboardConfiguration": {
       "doc": "Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays.",
       "fields": [
+        { "name": "transition", "kind": "enum", "enum": "ScreenTransition", "doc": "How every move between screens is drawn, whether a swipe or a tap asked for it. Dashboard-wide because an animation draws the screen being left as well as the one arriving, so a per-screen answer would only hold in one direction." },
         { "name": "screen_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "screens", "kind": "array", "struct": "ScreenConfiguration", "capacity": "kMaximumScreens", "count_field": "screen_count" },
         { "name": "text_widget_count", "kind": "uint8", "default": 0, "serialized": false },

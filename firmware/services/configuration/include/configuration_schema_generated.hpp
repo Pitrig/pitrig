@@ -440,7 +440,8 @@ inline constexpr std::array<std::string_view, 3> kScreenConfigurationKeys{{
     "widgets",
 }};
 
-inline constexpr std::array<std::string_view, 1> kDashboardConfigurationKeys{{
+inline constexpr std::array<std::string_view, 2> kDashboardConfigurationKeys{{
+    "transition",
     "screens",
 }};
 

@@ -56,6 +56,11 @@ void Controller::detach() {
   active_ = 0;
 }
 
+void Controller::set_transition(
+    const configuration::ScreenTransition transition) {
+  transition_ = transition;
+}
+
 void Controller::clear_actions() {
   // Only the composition knows which objects survived a rebuild, and it does
   // not tell this. Removing by (callback, user_data) is safe on a survivor and
@@ -117,6 +122,23 @@ void Controller::on_action(lv_event_t* const event) {
   }
 }
 
+// The screen being left is kept: screens outlive navigation and only a
+// configuration replacement destroys them.
+void Controller::load(lv_obj_t* const screen, const bool forward) {
+  if (transition_ == configuration::ScreenTransition::none) {
+    // The same call with no duration, which LVGL shortcuts to a plain load
+    // rather than running an animation of zero length. The slide is what a
+    // dense screen cannot afford: for every one of its frames both screens are
+    // drawn, so the transition costs more than either screen does at rest.
+    lv_screen_load(screen);
+    return;
+  }
+  lv_screen_load_anim(screen,
+                      forward ? LV_SCREEN_LOAD_ANIM_MOVE_LEFT
+                              : LV_SCREEN_LOAD_ANIM_MOVE_RIGHT,
+                      kTransitionMs, 0, false);
+}
+
 // A tap that names the screen already shown is not a transition, so it animates
 // nothing rather than sliding the screen out and back.
 void Controller::show(const std::size_t index) {
@@ -127,10 +149,7 @@ void Controller::show(const std::size_t index) {
   if (screen == nullptr) {
     return;
   }
-  lv_screen_load_anim(screen,
-                      index > active_ ? LV_SCREEN_LOAD_ANIM_MOVE_LEFT
-                                      : LV_SCREEN_LOAD_ANIM_MOVE_RIGHT,
-                      kTransitionMs, 0, false);
+  load(screen, index > active_);
   active_ = index;
 }
 
@@ -160,12 +179,7 @@ void Controller::step(const int delta) {
   if (screen == nullptr) {
     return;
   }
-  // The screen being left is kept: screens outlive navigation and only a
-  // configuration replacement destroys them.
-  lv_screen_load_anim(screen,
-                      delta > 0 ? LV_SCREEN_LOAD_ANIM_MOVE_LEFT
-                                : LV_SCREEN_LOAD_ANIM_MOVE_RIGHT,
-                      kTransitionMs, 0, false);
+  load(screen, delta > 0);
   active_ = next;
 }
 

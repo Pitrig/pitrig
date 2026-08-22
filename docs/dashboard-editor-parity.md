@@ -49,8 +49,11 @@ stating: **the T-Display-S3 has no digitizer**, so on that board a second screen
 is authored, validated and never reachable; and buttons and encoders are still
 owed on every board ([ADR 0019](adr/0019-input-interface-and-touch.md)).
 
-Missing: authored transitions, vertical navigation, and switching a screen from
-telemetry.
+A dashboard says whether a move between screens slides or lands in one frame;
+which of the two it is is the whole of the authored transition.
+
+Missing: a per-screen or per-move transition, a duration for it, vertical
+navigation, and switching a screen from telemetry.
 
 ### 5. Graphical assets
 

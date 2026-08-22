@@ -2,7 +2,8 @@
 
 Status: Accepted; completes the seam ADR 0014 left open. Amended in schema 7:
 any widget may carry a tap that navigates, which narrows — but does not
-remove — the rule that navigation is unauthored.
+remove — the rule that navigation is unauthored. Amended in schema 15: whether
+the transition animates is authored too.
 
 ## Context
 
@@ -116,13 +117,51 @@ re-established after any rebuild: applying a configuration replaces a widget's
 LVGL object, and the replacement carries neither the clickable flag nor the
 callback.
 
+## Amendment: authored transition
+
+Introduced in schema 15.
+
+The animated screen load draws both screens for every frame it runs: the one
+arriving and the one being left, each composited at its own offset. A screen
+carrying a handful of readouts absorbs that; a screen filled to the widget caps
+does not, and the drop is visible for exactly as long as the swipe lasts — the
+one moment the driver is looking at the transition rather than at a value.
+
+So a dashboard carries `transition`: `slide`, the animation described above, or
+`none`, which replaces the screen in a single frame. It governs every move
+between screens, whether a swipe or a tap asked for it, and both paths reach it
+through one function in the controller so the two cannot be drawn differently.
+
+The claim this narrows read "the order of the screens, the swipe, and the
+transition remain unauthored". The order and the swipe still are. The transition
+is not, and what remains true of it is smaller: **there is one transition for
+the whole dashboard, and it is a choice between animating and not.** Neither the
+direction nor the duration is authorable — the direction is what the navigation
+means rather than a preference, and a duration would be a third answer to a
+question that has two.
+
+Dashboard-wide rather than per screen, because the cost belongs to the pair. A
+screen that declared itself instant would still be animated out of when the
+driver swiped back to it from a neighbour that had not, so the property would
+hold in one direction and quietly fail in the other. Naming the dashboard is the
+only place the answer is the same whichever way the swipe goes.
+
+The controller takes it as a setting rather than as a parameter of `attach()`.
+A document may change how it moves and nothing else — an edit no widget pass
+would notice — so every apply sets it, including the incremental one, which is
+what lets the configurator's live preview show the change without a rebuild.
+
 ## Consequences
 
 - A dashboard may hold up to four screens, and the driver swipes between them.
 - Adding a screen costs a reference table; the widget budget is unchanged and
   still shared across every screen.
-- How a dashboard moves is still not authorable — order, gesture and transition
-  are fixed. Which objects move it is authorable, as one property per widget.
+- Where a dashboard moves is still not authorable — order and gesture are fixed.
+  Which objects move it is authorable, as one property per widget, and whether
+  the move animates is authorable, as one property for the dashboard.
+- A dashboard dense enough to stutter mid-swipe has an answer that costs nothing
+  at rest: `transition: none` removes the frames that draw two screens at once
+  without touching what either screen holds.
 - An empty transparent shape is an invisible rectangle that takes a tap, which
   is how "this corner goes back" is expressed without a widget to press.
 - A tap target costs a binding and makes one object clickable; sixteen of them
@@ -137,5 +176,6 @@ callback.
   rather than a stale one.
 - Applying a configuration that needs a full recomposition is visible as a jump
   back to the first screen; an incremental apply stays on the current one.
-- Transitions are LVGL's stock animations. An authored transition, per-screen
-  duration, or vertical navigation would each be an extension of this decision.
+- Transitions are LVGL's stock animations, and the choice between them is one
+  bit. A per-screen duration, a second animation to pick from, or vertical
+  navigation would each be a further extension of this decision.

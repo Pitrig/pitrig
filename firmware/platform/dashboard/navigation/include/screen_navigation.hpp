@@ -15,8 +15,10 @@ using lv_event_t = _lv_event_t;
 namespace simcore::dashboard::navigation {
 
 // Moves between the screens a dashboard composed, in configuration order and
-// wrapping at both ends. The order and the gesture stay unauthored — the
-// contract carries nothing for them — but any widget may declare a tap
+// wrapping at both ends. The order and the gesture stay unauthored; how a move
+// is drawn does not — a dashboard says whether it slides or swaps in one frame,
+// because the slide composites both screens for its whole duration and a screen
+// filled with widgets cannot always pay for that. Any widget may declare a tap
 // that navigates, and those bindings live here because this already owns the
 // screens and the active index.
 //
@@ -45,6 +47,13 @@ class Controller final {
                                 configuration::WidgetActionType type,
                                 std::uint8_t target);
 
+  // How every move between screens is drawn, from the document being applied.
+  // Set beside attach() by a full composition and again by every incremental
+  // apply, because a document may change this and nothing else. It is a
+  // property of the document rather than of the screens, so an attach/detach
+  // pair neither carries it nor clears it.
+  void set_transition(configuration::ScreenTransition transition);
+
   // Removes the handlers and forgets the actions. Called before the screens
   // themselves are released.
   void detach();
@@ -69,9 +78,15 @@ class Controller final {
   static void on_action(lv_event_t* event);
   void step(int delta);
   void show(std::size_t index);
+  // Loads one screen the way the document asked for, `forward` naming the
+  // direction the slide travels. Both ways of reaching a screen — the gesture
+  // and a tap — come through here, so neither can be drawn differently.
+  void load(lv_obj_t* screen, bool forward);
 
   std::span<lv_obj_t* const> screens_{};
   std::size_t active_{};
+  configuration::ScreenTransition transition_{
+      configuration::ScreenTransition::slide};
   std::array<Binding, configuration::kMaximumActions> actions_{};
   std::size_t action_count_{};
 };

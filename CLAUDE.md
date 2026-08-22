@@ -228,7 +228,10 @@ pixels, except inside a **container**, where it is relative to the container's b
 `kMaximumNestingDepth`. A container clips its children unless `clip_children` says
 otherwise — a widget's own caption is drawn on the parent, so it is never cut by
 its own clip. A dashboard holds up to four
-screens, swiped between on a board with touch (ADR 0020). A **slot** widget is an area that switches
+screens, swiped between on a board with touch, and its `transition` says whether
+a move between them slides or lands in one frame — the slide composites both
+screens for every frame it runs, which a full screen of widgets cannot always
+afford (ADR 0020). A **slot** widget is an area that switches
 what it shows: it draws nothing, is authored only on a screen, and holds up to `kMaximumSlotPages`
 pages of which one is visible — a tap cycles the pages that are `in_loop`, and a page whose
 `trigger` fires (`conditions` over `source`, or `value_changed`) is raised over the loop for its

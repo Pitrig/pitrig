@@ -142,6 +142,7 @@ void on_telemetry_updated(const events::Event&, void* const context) {
   // controller cannot be configured two different ways.
   const bool attached = screens::attach_slots(configuration, dashboard);
   dashboard.navigation.attach(layout.screens);
+  dashboard.navigation.set_transition(configuration.dashboard.transition);
   lvgl_port_unlock();
   return attached;
 }

@@ -148,6 +148,9 @@ bool apply_incremental(
     return decline("LVGL is busy");
   }
   dashboard.navigation.clear_actions();
+  // Not conditional on anything: a document may change how it moves between
+  // screens and nothing else, which is an edit no widget pass would notice.
+  dashboard.navigation.set_transition(after.transition);
   if (had_slots) {
     dashboard.slots.clear();
   }

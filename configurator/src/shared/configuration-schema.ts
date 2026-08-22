@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 14
+export const CONFIGURATION_SCHEMA_VERSION = 15
 
 /** Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
 export const MAXIMUM_PAYLOAD_SIZE = 65536
@@ -104,6 +104,10 @@ export const CONDITION_OPERATOR_VALUES: readonly ConditionOperator[] = ['above',
 /** What a tap on a widget does. none is the default and leaves the object refusing input, which is what every widget did before actions existed. */
 export type WidgetActionType = 'none' | 'next_screen' | 'previous_screen' | 'goto_screen'
 export const WIDGET_ACTION_TYPE_VALUES: readonly WidgetActionType[] = ['none', 'next_screen', 'previous_screen', 'goto_screen']
+
+/** How the dashboard swaps one screen for another. slide is LVGL's animated screen load, the horizontal move a swipe reads as. none replaces the screen in a single frame: the animation composites both screens for its whole duration, which on a screen filled with widgets costs more per frame than either screen alone, so a dashboard that cannot afford it says so here rather than living with the drop. */
+export type ScreenTransition = 'slide' | 'none'
+export const SCREEN_TRANSITION_VALUES: readonly ScreenTransition[] = ['slide', 'none']
 
 /** Stateful value processing implemented by a module behind the pipeline callback. */
 export type ValueModifierType = 'lap_timer'
@@ -557,6 +561,7 @@ export interface ScreenConfiguration {
 
 /** Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays. */
 export interface DashboardConfiguration {
+  transition?: ScreenTransition
   screens?: ScreenConfiguration[]
 }
 
@@ -650,7 +655,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   SlotPageConfiguration: ['in_loop', 'trigger', 'source', 'duration_ms', 'conditions', 'widgets'],
   SlotWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'action', 'condition_source', 'color_ramp', 'conditions', 'clip_children', 'pages'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
-  DashboardConfiguration: ['screens'],
+  DashboardConfiguration: ['transition', 'screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'dashboard'],
 }
 

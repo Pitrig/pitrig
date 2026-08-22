@@ -132,6 +132,8 @@ export const HINTS = {
       'How long the page stays up. A value-changed trigger needs one; with rules, zero shows the page only while a rule holds.'
   },
   dashboard: {
+    transition:
+      'How the board swaps one screen for another, whether a swipe or a tap asked for it. slide is the sliding animation; none replaces the screen in a single frame. The slide draws both screens for every one of its frames, so a screen full of widgets is where it is felt — set this to none if swiping stutters.',
     font: 'The family new widgets take. It is the editor’s own setting — the device resolves a font per widget, so the document carries no dashboard-wide one.',
     budget:
       'What the chosen families cost on the board. Faces are uploaded whole and the partition holds 2 MiB of them.'
