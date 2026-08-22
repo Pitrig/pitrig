@@ -1,5 +1,6 @@
 import { rampColor } from './color-ramp'
 import type { ConditionOperator, RgbColor, WidgetCondition } from './configuration-schema'
+import { deviceFloat } from './contract-number'
 
 // What a widget ends up looking like once its watched value is known. This
 // mirrors `frame::Painter::render` and `conditions::resolve`, and the layering
@@ -52,7 +53,7 @@ export function resolveWidgetStyle(
 
   if (value === undefined) return style
   for (const rule of frame.conditions ?? []) {
-    if (!holds(rule.op ?? 'at_or_above', value, rule.value ?? 0)) continue
+    if (!holds(rule.op ?? 'at_or_above', value, deviceFloat(rule.value ?? 0))) continue
     // A rule overrides only what it names; everything else stays as the ramp or
     // the author left it.
     if (rule.color) style.color = rule.color

@@ -57,6 +57,24 @@ export function isContainer(widget: WidgetConfiguration): boolean {
 }
 
 /**
+ * How many nesting levels a subtree occupies below its own: zero for a leaf and
+ * for an empty container, one more than the deepest child otherwise.
+ *
+ * This is what bounds a paste or a drop, because the device rejects a *widget*
+ * sitting deeper than `kMaximumNestingDepth`, not a container that could hold
+ * one. An empty container at the last level is a plain drawn rectangle and the
+ * firmware accepts it; a container holding anything at that level is not.
+ *
+ * A slot's pages cost no level of their own, which `childArraysOf` already
+ * states by returning one array per page.
+ */
+export function subtreeHeight(widget: WidgetConfiguration): number {
+  const children = childArraysOf(widget).flat()
+  if (children.length === 0) return 0
+  return 1 + Math.max(...children.map(subtreeHeight))
+}
+
+/**
  * One parent's children back to front: `z_index` ascending, authored array order
  * breaking ties. That is the rule the firmware applies within one LVGL parent,
  * so the layer list, the canvas and every restack answer it from here rather

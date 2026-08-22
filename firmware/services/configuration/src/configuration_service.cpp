@@ -33,6 +33,7 @@ bool ConfigurationService::initialize(
   }
   payload_sizes_ = {};
   storage_ = &storage;
+  factory_payloads_ = factory_payloads;
   validation_profile_ = validation_profile;
   status_ = {};
 
@@ -127,6 +128,15 @@ ConfigurationService::SaveOutcome ConfigurationService::save(
     return {.storage_failed = true};
   }
   status_.documents[index] = verified.status;
+  // What `GET` echoes is what the next boot would read, and that is now this
+  // record. Taken from the buffer `load_document` just verified rather than from
+  // the caller's span, so the bytes remembered are exactly the bytes that came
+  // back off flash — and bounded by the document's own payload size, which is
+  // what that read already checked.
+  remember_payload(document,
+                   std::span<const std::uint8_t>(
+                       record_buffer_.data() + kRecordHeaderSize,
+                       verified.payload_size));
   return {};
 }
 
@@ -135,7 +145,11 @@ bool ConfigurationService::erase(const ConfigurationDocument document) {
       !storage_->erase(document)) {
     return false;
   }
-  status_.documents[index_of(document)] = {};
+  const std::size_t index = index_of(document);
+  status_.documents[index] = {};
+  // With no record left, the next boot reads the board's own document, so that
+  // is what `GET` has to answer with.
+  remember_payload(document, factory_payloads_[index]);
   return true;
 }
 
@@ -144,8 +158,10 @@ bool ConfigurationService::reset() {
       !storage_->reset()) {
     return false;
   }
-  for (DocumentStatus& document : status_.documents) {
-    document = {};
+  for (std::size_t index = 0; index < kConfigurationDocumentCount; ++index) {
+    status_.documents[index] = {};
+    remember_payload(static_cast<ConfigurationDocument>(index),
+                     factory_payloads_[index]);
   }
   return true;
 }

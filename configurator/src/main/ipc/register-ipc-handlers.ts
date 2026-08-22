@@ -98,8 +98,13 @@ export function registerIpcHandlers(
   ipcMain.handle(DEVICE_DISCONNECT_CHANNEL, () => deviceService.disconnect())
   ipcMain.handle(DEVICE_CONFIGURATION_READ_CHANNEL, () => deviceService.readConfiguration())
   ipcMain.handle(DEVICE_CONFIGURATION_RESET_CHANNEL, (_event, request: unknown) => {
-    const document = isConfigurationResetRequest(request) ? request.document : undefined
-    return deviceService.resetConfiguration(document)
+    // A request that is not one is refused rather than read as "no document",
+    // which is the reset that erases every one of them: the most destructive
+    // variant is not what a malformed request should fall back to.
+    if (!isConfigurationResetRequest(request)) {
+      return invalidConfigurationRequest()
+    }
+    return deviceService.resetConfiguration(request?.document)
   })
   ipcMain.handle(DEVICE_CONFIGURATION_APPLY_CHANNEL, async (_event, request: unknown) => {
     if (!isJsonDocumentRequest(request)) {

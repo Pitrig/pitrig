@@ -1,4 +1,5 @@
 import type { ColorStop, RgbColor } from './configuration-schema'
+import { deviceFloat } from './contract-number'
 
 // The device's colour ramp, mirrored so the preview can draw what the board
 // will. Kept beside the schema rather than in the renderer because the preview
@@ -16,7 +17,9 @@ export function rampColor(
   if (!stops || stops.length < 2 || value === undefined || !Number.isFinite(value)) {
     return undefined
   }
-  const anchors = stops.map((stop) => ({ at: stop.at ?? 0, color: stop.color }))
+  // The device holds a stop at float precision, so the ratio it interpolates
+  // with is the one derived from those, not from the authored doubles.
+  const anchors = stops.map((stop) => ({ at: deviceFloat(stop.at ?? 0), color: stop.color }))
   const first = anchors[0]!
   const last = anchors[anchors.length - 1]!
   if (value <= first.at) return first.color

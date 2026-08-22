@@ -1,5 +1,5 @@
 import { type TextWidgetConfiguration } from '@shared/configuration-schema'
-import { placeholderBody, transformedBody, withAffixes } from '@shared/value-format'
+import { composeWidgetText, placeholderBody, transformedBody, withAffixes } from '@shared/value-format'
 import { useFontFaceStore } from '@/features/font-library/font-face-store'
 import { completePlacement } from '../dashboard-editor'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
@@ -88,5 +88,5 @@ function composedText(configuration: TextWidgetConfiguration, values: PreviewVal
   if (!anyAvailable && configuration.value?.unavailable_text) {
     return configuration.value.unavailable_text
   }
-  return parts.join('')
+  return composeWidgetText(parts)
 }

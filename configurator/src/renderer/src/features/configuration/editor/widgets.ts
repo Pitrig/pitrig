@@ -1,4 +1,4 @@
-import { allWidgetsOf, freshWidgetIds, isContainer, pagesOf } from '@shared/configuration-access'
+import { allWidgetsOf, freshWidgetIds, isContainer, pagesOf, subtreeHeight } from '@shared/configuration-access'
 import { MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_NESTING_DEPTH, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_SLOT_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import { applyFontFamily } from '@shared/document-fonts'
@@ -134,10 +134,13 @@ export function insertWidget(
   // A slot is built before every container that could hold one, so it is only
   // ever authored on a screen.
   if (box && widget.type === 'slot') return undefined
-  // A container added inside one carries its own level, and the parser recurses
-  // once per level — so this is the same bound the validator applies, checked
-  // where the widget is created rather than after the device refuses it.
-  if (isContainer(widget) && depth + 2 > MAXIMUM_NESTING_DEPTH) return undefined
+  // The parser recurses once per level and refuses a widget past the last one,
+  // so what has to fit is the whole subtree: the widget at this depth and
+  // everything it carries below it. An empty container on the last level holds
+  // nothing and is accepted, which is what makes a plain rectangle drawable
+  // there. Checked where the widget is created rather than after the device
+  // refuses it.
+  if (depth + subtreeHeight(widget) >= MAXIMUM_NESTING_DEPTH) return undefined
   const pooled = allWidgetsOf(configuration).filter(({ type }) => type === widget.type).length
   if (pooled >= WIDGET_CAPACITIES[widget.type] || widgets.length >= cap) {
     return undefined

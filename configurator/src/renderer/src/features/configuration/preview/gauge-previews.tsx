@@ -7,6 +7,7 @@ import { DEFAULT_BORDER_COLOR } from './preview-theme'
 import { type PreviewValues, normalizeColor } from './preview-values'
 import { GradientDefinition, WidgetFrameShape } from './frame-shape'
 import { contentArea, gradientPaint } from './preview-geometry-paint'
+import { deviceFloat } from '@shared/contract-number'
 
 export function BarPreview({
   configuration,
@@ -35,7 +36,7 @@ export function BarPreview({
   const fraction = rangeFraction(values.numberFor(configuration.source), configuration.minimum, configuration.maximum)
   const originFraction = configuration.origin === undefined
     ? 0
-    : rangeFraction(configuration.origin, configuration.minimum, configuration.maximum)
+    : rangeFraction(deviceFloat(configuration.origin), configuration.minimum, configuration.maximum)
   const offset = Math.round(span * Math.min(originFraction, fraction))
   const length = Math.round(span * Math.max(originFraction, fraction)) - offset
   const fromAxisStart = horizontal !== (configuration.inverted ?? false)
@@ -186,7 +187,7 @@ export function IndicatorPreview({
         const offset = index * (length + gap)
         // Thresholds do not decrease, so the lit lamps are a prefix and the
         // first one not reached ends the strip.
-        const lit = value !== undefined && fraction >= (segment.threshold ?? 0)
+        const lit = value !== undefined && fraction >= deviceFloat(segment.threshold ?? 0)
         // Without an off colour the device leaves an unlit lamp fully
         // transparent, so a strip at rest is the screen behind it.
         if (!lit && !unlitPainted) return null

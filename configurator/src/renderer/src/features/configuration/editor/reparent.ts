@@ -1,4 +1,4 @@
-import { childArraysOf, pagesOf, stackOrder, type WidgetParent } from '@shared/configuration-access'
+import { pagesOf, stackOrder, subtreeHeight, type WidgetParent } from '@shared/configuration-access'
 import { MAXIMUM_NESTING_DEPTH, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import type { WidgetPlacement } from '@shared/configuration-schema'
@@ -48,18 +48,6 @@ interface MovePlan {
 }
 
 /** Levels of container this widget adds below the array it is placed in, or undefined for a leaf. */
-function containerHeight(widget: WidgetConfiguration): number | undefined {
-  const arrays = childArraysOf(widget)
-  if (arrays.length === 0) return undefined
-  const below = arrays
-    .flat()
-    .map(containerHeight)
-    .filter((level): level is number => level !== undefined)
-  // A slot's pages cost no level, so a slot is exactly as tall as a shape
-  // holding the same widgets.
-  return below.length === 0 ? 0 : 1 + Math.max(...below)
-}
-
 /** Where a destination measures its children from: the container's own corner, or the screen. */
 function destinationOrigin(
   configuration: DeviceConfiguration,
@@ -139,11 +127,11 @@ function planMove(
     // A slot is built before every container that could hold one, so it is only
     // ever authored on a screen.
     if (moved.widget.type === 'slot' && depth > 0) return undefined
-    // What has to fit is the subtree's own tallest container, not just the
-    // widget: a container of containers dropped two deep pushes its own past the
-    // cap even though the widget itself would fit.
-    const height = containerHeight(moved.widget)
-    if (height !== undefined && depth + height + 2 > MAXIMUM_NESTING_DEPTH) return undefined
+    // What has to fit is the whole subtree, not just the widget: a container of
+    // containers dropped two deep pushes its own past the cap even though the
+    // widget itself would fit. An empty container occupies only its own level,
+    // which is what the device bounds.
+    if (depth + subtreeHeight(moved.widget) >= MAXIMUM_NESTING_DEPTH) return undefined
     const capacity = depth === 0 ? MAXIMUM_WIDGETS_PER_SCREEN : MAXIMUM_WIDGETS_PER_CONTAINER
     if ((destinationOwner.widgets?.length ?? 0) >= capacity) return undefined
   }

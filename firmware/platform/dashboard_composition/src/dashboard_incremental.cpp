@@ -134,10 +134,23 @@ bool apply_incremental(
   // Every tap target is unbound now, while the objects it was bound to still
   // exist; the pass below replaces some of them, and the pass at the end binds
   // onto whatever the document has after that.
+  //
+  // The slot controller is unbound here for the same reason, and it is the
+  // stronger one: it holds each slot's container and page objects, and the walk
+  // below is free to rebuild a slot or release one the document dropped. Left
+  // until the rebind at the end, its pointers would by then name freed memory
+  // and clearing it would be the first thing to read them — which is a load
+  // from a deleted LVGL object, not a stale value. This is the order destroy()
+  // uses, and what Controller::clear() means by "the composition clears the
+  // controller before it deletes them".
+  const bool had_slots = before.slot_widget_count != 0;
   if (!lvgl_port_lock(0)) {
     return decline("LVGL is busy");
   }
   dashboard.navigation.clear_actions();
+  if (had_slots) {
+    dashboard.slots.clear();
+  }
   lvgl_port_unlock();
 
   // Widget contexts point into the document that was active when they were
@@ -152,10 +165,14 @@ bool apply_incremental(
   }
   const std::uint32_t repainted = repainted_containers(before, after);
 
+  // Decided before anything moves rather than discovered along the way: the
+  // controller was dropped above, so a document that had slots — or that has
+  // them now — has to be rebound whatever the walk does to them.
+  const bool slots_touched = had_slots || after.slot_widget_count != 0;
+
   // Containers first, which is the order the manager registered its types in.
   // A widget resolves its parent as it builds, so the parent's object has to
   // exist and to have settled where it stands before anything inside it does.
-  bool slots_touched = false;
   for (std::size_t entry = 0; entry < dashboard.widgets.type_count(); ++entry) {
     const configuration::WidgetType type = dashboard.widgets.type_at(entry);
     const configuration::WidgetTypeTraits& traits =
@@ -171,8 +188,6 @@ bool apply_incremental(
         !dashboard.widgets.sync_count(type, count)) {
       return decline("widget pool cannot be resized");
     }
-    slots_touched = slots_touched || (type == configuration::WidgetType::slot &&
-                                      count != previous_count);
     for (std::uint8_t index = 0; index < count; ++index) {
       if (!needs_update(traits, before, after, index, previous_count,
                         recoloured_screens, repainted)) {
@@ -181,8 +196,6 @@ bool apply_incremental(
       if (!dashboard.widgets.update_instance(type, index)) {
         return decline("a widget could not be updated in place");
       }
-      slots_touched =
-          slots_touched || type == configuration::WidgetType::slot;
     }
   }
   // The containers a replacement removed, deepest first: a shape may stand on a
@@ -198,8 +211,6 @@ bool apply_incremental(
     if (!dashboard.widgets.sync_count(type, traits.count(after))) {
       return decline("a container could not be released");
     }
-    slots_touched =
-        slots_touched || type == configuration::WidgetType::slot;
   }
 
   // What a container that refuses to clip has to let through is a fact about

@@ -10,6 +10,7 @@ import type {
 import type { ConfigurationDocumentId } from '../../shared/configuration-schema'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type { FontUploadProgress } from '../../shared/font-assets'
+import type { InstalledImage } from '../../shared/image-assets'
 import { failure, success, toDeviceError } from './device-errors'
 import {
   applyDeviceConfiguration,
@@ -212,7 +213,9 @@ export class DeviceService {
   async uploadImages(
     packageBytes: Uint8Array,
     onProgress: (progress: AssetUploadProgress) => void,
-    signal: AbortSignal
+    signal: AbortSignal,
+    /** What the package holds, which is what the board now reports. */
+    installed: readonly InstalledImage[] = []
   ): Promise<void> {
     return uploadPackage(
       this.connection,
@@ -221,7 +224,7 @@ export class DeviceService {
       packageBytes,
       onProgress,
       signal,
-      advanceImageSession
+      (session, bytes) => advanceImageSession(session, bytes, installed)
     )
   }
 

@@ -2,6 +2,10 @@ import type { SerialPort } from 'serialport'
 
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import type { DeviceResult, DeviceSession, DeviceState } from '../../shared/device'
+import {
+  IMAGE_PACKAGE_FORMAT_VERSION,
+  type InstalledImage
+} from '../../shared/image-assets'
 import { readPackageFamilies } from '../font-assets/font-package'
 import { uploadAssetPackage, type AssetNamespace } from './asset-upload'
 import { DeviceServiceError, failure, success } from './device-errors'
@@ -79,9 +83,18 @@ export function advanceFontSession(
   }
 }
 
+/**
+ * `installed` is what the package that was just written holds, which is what the
+ * board now answers `@SC:IMAGE:INFO` with. Carrying it is not a nicety: the
+ * installed list is what the Images page draws, what an image widget's picker
+ * offers and what a newly drawn one starts on, and leaving it at the pre-upload
+ * set made a just-uploaded image invisible to all three until the next connect.
+ * The font path reads the same facts back out of its package header.
+ */
 export function advanceImageSession(
   session: DeviceSession,
-  bytes: Uint8Array
+  bytes: Uint8Array,
+  installed: readonly InstalledImage[]
 ): DeviceSession | undefined {
   return session.imageAssets
     ? {
@@ -89,6 +102,8 @@ export function advanceImageSession(
         imageAssets: {
           ...session.imageAssets,
           packageAvailable: true,
+          formatVersion: IMAGE_PACKAGE_FORMAT_VERSION,
+          images: [...installed],
           packageSize: bytes.byteLength,
           rebootRequired: true
         }

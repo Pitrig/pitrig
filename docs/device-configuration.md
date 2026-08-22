@@ -931,7 +931,7 @@ them is answered `@SC:ERR:unknown_document`.
 | Request | Successful response | Purpose |
 | --- | --- | --- |
 | `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata, and each document's stored record. |
-| `@SC:GET:<doc>` | `@SC:OK:CONFIG:<doc>:<JSON>` | Read the exact sparse JSON payload that document was loaded from. |
+| `@SC:GET:<doc>` | `@SC:OK:CONFIG:<doc>:<JSON>` | Read the exact sparse JSON payload that document would be loaded from: the stored record, or the board's own document while none is held. `@SC:APPLY` does not move it. |
 | `@SC:VALIDATE:<doc>:<JSON>` | `@SC:OK:VALID:<doc>` | Validate without saving. |
 | `@SC:APPLY:<doc>:<JSON>` | `@SC:OK:APPLIED:<doc>` | Validate and apply to the running composition without saving. |
 | `@SC:SET:<doc>:<JSON>` | `@SC:OK:SAVED:<doc>:reboot_required=<0\|1>` | Validate and save. |

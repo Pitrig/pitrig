@@ -1,6 +1,7 @@
 import type { ValueTransform } from './configuration-schema'
-import { rawText, type TelemetryValue } from './telemetry-value'
+import { parseSourceNumber, rawText, type TelemetryValue } from './telemetry-value'
 import { MAXIMUM_TRANSFORM_DECIMALS } from './value-transform'
+import { deviceFloat } from './contract-number'
 
 // The device's presentation transforms, mirrored so the preview shows the
 // string the board will draw rather than an approximation of it. The two rules
@@ -33,8 +34,13 @@ function formatSignedDuration(milliseconds: number): string {
 
 function formatNumber(transform: ValueTransform, value: number): string | undefined {
   const decimals = transform.decimals ?? 0
-  const scale = transform.scale ?? 1
-  const offset = transform.offset ?? 0
+  // `scale` and `offset` are `float` members of the device's Config, so the
+  // document's doubles are narrowed to float32 before the arithmetic — the
+  // multiplication itself is double on both sides. Skipping this is how the
+  // preview and the board come to disagree by one: 1.8 is 1.7999999523 as a
+  // float, so 1.8 × 65535 rounds to 117963 here and to 117962 there.
+  const scale = deviceFloat(transform.scale ?? 1)
+  const offset = deviceFloat(transform.offset ?? 0)
   if (decimals > MAXIMUM_TRANSFORM_DECIMALS) return undefined
   if (![value, scale, offset].every((entry) => Number.isFinite(entry))) return undefined
   const scaled = value * scale + offset
@@ -97,19 +103,60 @@ export function placeholderBody(transform: ValueTransform | undefined): string {
   return '0'
 }
 
-/** Prefix and suffix belong to the transform, so they wrap whatever it produced. */
-export function withAffixes(transform: ValueTransform | undefined, body: string): string {
-  return `${transform?.prefix ?? ''}${body}${transform?.suffix ?? ''}`
+/** The buffer one widget's text is composed in, terminator included. */
+const TEXT_CAPACITY = 64
+
+const encoder = new TextEncoder()
+
+/** The device measures its buffers in bytes, not in characters. */
+function textBytes(text: string): number {
+  return encoder.encode(text).byteLength
 }
 
-/** A number transform reads numerics and parses text; a boolean it refuses. */
+/**
+ * Prefix and suffix belong to the transform, so they wrap whatever it produced —
+ * unless the three together outgrow the buffer they are composed in. The device
+ * refuses an append that would overflow rather than truncating, and then writes
+ * the body on its own: the value outranks its decoration (`value_text::compose`).
+ */
+export function withAffixes(transform: ValueTransform | undefined, body: string): string {
+  const decorated = `${transform?.prefix ?? ''}${body}${transform?.suffix ?? ''}`
+  return textBytes(decorated) < TEXT_CAPACITY ? decorated : body
+}
+
+/**
+ * One widget's label, out of what each of its sources contributed. All three
+ * share the single buffer above, and the device stops at the first part that
+ * would overflow it — dropping that part and the ones after it whole, rather
+ * than cutting one in half. Three sources with generous affixes reach that
+ * bound easily, and the canvas is the only place the author can see it happen.
+ */
+export function composeWidgetText(parts: readonly string[]): string {
+  let composed = ''
+  let used = 0
+  for (const part of parts) {
+    const bytes = textBytes(part)
+    if (used + bytes >= TEXT_CAPACITY) break
+    composed += part
+    used += bytes
+  }
+  return composed
+}
+
+/**
+ * A number transform reads numerics and parses text; a boolean it refuses.
+ *
+ * Narrowed to float32 wherever the device holds a float: its registry stores a
+ * `float32` field as one, and its text parser produces one. A `uint32` and an
+ * `int32` are widened exactly on both sides and are left alone.
+ */
 function numberFor(value: TelemetryValue): number | undefined {
   if (value.type === 'boolean') return undefined
   if (value.type === 'text') {
-    const text = value.text?.trim()
-    if (!text) return undefined
-    const parsed = Number(text)
-    return Number.isFinite(parsed) ? parsed : undefined
+    return value.text === undefined ? undefined : parseSourceNumber(value.text)
+  }
+  if (value.type === 'float32') {
+    return value.number === undefined ? undefined : deviceFloat(value.number)
   }
   return value.number
 }

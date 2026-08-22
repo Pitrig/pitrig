@@ -11,6 +11,7 @@ import { findFontError } from './validate/fonts'
 import { findRangeError } from './validate/ranges'
 import { findUnknownProperty } from './validate/schema-keys'
 import { findScreenError } from './validate/structure'
+import { findTransportError } from './validate/transport'
 
 // The single configuration validator. The renderer, the main process, and file
 // import all use this instead of keeping their own partial copies, and the key
@@ -62,6 +63,9 @@ export function validateConfigurationDocument(
 
   const rangeError = findRangeError(configuration)
   if (rangeError) return { ok: false, error: rangeError }
+
+  const transportError = findTransportError(configuration)
+  if (transportError) return { ok: false, error: transportError }
 
   const fontError = findFontError(configuration)
   if (fontError) return { ok: false, error: fontError }

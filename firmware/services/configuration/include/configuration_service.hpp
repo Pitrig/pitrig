@@ -100,9 +100,11 @@ class ConfigurationService {
     return validation_profile_.board;
   }
 
-  // The exact bytes this document was loaded from at boot, which is what `GET`
-  // echoes. `SET` and `APPLY` deliberately do not move it: a host asking what
-  // the device booted with must not be answered with what it was last told.
+  // The exact bytes this document would be loaded from, which is what `GET`
+  // echoes: the stored record's payload, or the factory one while no record is
+  // held. `SET` and `RESET` move it because they change what the next boot
+  // reads; `APPLY` deliberately does not, because a host asking what the board
+  // holds must not be answered with a preview that flash never took.
   [[nodiscard]] std::span<const std::uint8_t> current_payload(
       ConfigurationDocument document) const;
   [[nodiscard]] ValidationFailure validate_payload(
@@ -177,6 +179,9 @@ class ConfigurationService {
   void copy_active_to_scratch() const;
 
   IConfigurationStorage* storage_{};
+  // Kept so an erase can put `GET` back on the document the next boot would
+  // read. The spans address compiled literals, which outlive the service.
+  FactoryPayloads factory_payloads_{};
   ValidationContext validation_profile_{};
   ApplicationConfiguration* active_{};
   ApplicationConfiguration* scratch_{};

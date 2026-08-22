@@ -81,11 +81,15 @@ export function isConnectRequest(value: unknown): value is ConnectDeviceRequest 
 // source-document limit, not the payload limit, which the parser enforces.
 /**
  * A reset naming one document, or nothing at all. An absent request is valid and
- * means every document, which is what the old no-argument channel did.
+ * means every document, which is what the old no-argument channel did — so the
+ * predicate has to admit `undefined` into the type it narrows to. Claiming that
+ * `undefined` *was* a request narrowed it to one for the compiler, which then
+ * raised no objection to reading a property off it, and "Reset to factory
+ * configuration" threw inside the handler on every press.
  */
 export function isConfigurationResetRequest(
   value: unknown
-): value is DeviceConfigurationResetRequest {
+): value is DeviceConfigurationResetRequest | undefined {
   if (value === undefined || value === null) return true
   if (typeof value !== 'object') return false
   const request = value as Partial<DeviceConfigurationResetRequest>

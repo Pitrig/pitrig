@@ -2,6 +2,7 @@ import { childArraysOf, widgetsOf } from './configuration-access'
 import { type ApplicationConfiguration, type WidgetConfiguration, type WidgetPlacement, type WidgetType } from './configuration-schema'
 import { BOARD_PROFILES, type SimCoreBoardId } from './device'
 import { scaleAxis, scaleWidgetFields } from './layout-transfer-fields'
+import { repairArcThickness, repairFrameInset } from './layout-transfer-repairs'
 
 // Moving a dashboard to a board with a different display. Geometry is absolute
 // logical pixels in one coordinate space, so the same document on a 320x170
@@ -111,10 +112,6 @@ export interface LayoutTransferResult {
 // wrong with it, and the report groups them anyway.
 const MAXIMUM_NOTES = 200
 
-// The device's own default, which it applies to an arc that names no thickness
-// — so a shrunk arc has to be repaired even when the property is absent.
-const DEFAULT_ARC_THICKNESS_PX = 8
-
 /**
  * Moves a dashboard onto another board, scaling every pixel-valued property by
  * one factor. The input is never modified; the result carries the new document
@@ -198,6 +195,9 @@ export function transferConfiguration(
       repairArcThickness(widget, (from, to) => {
         note({ kind: 'arc_thickness_reduced', ...label, field: 'thickness_px', from, to })
       })
+      repairFrameInset(widget, (field, from, to) => {
+        note({ kind: 'field_clamped', ...label, field, from, to })
+      })
       noteImageResize(widget, before, label, note)
 
       // Through childArraysOf so a container type added later is not a
@@ -234,6 +234,7 @@ export function transferConfiguration(
 export function scaleWidgetPixels(widget: WidgetConfiguration, scale: Scale): void {
   scaleWidgetFields(widget, scale)
   repairArcThickness(widget)
+  repairFrameInset(widget)
   // Through childArraysOf, so a container type added later is not a forgotten
   // `=== 'shape'` here either.
   for (const children of childArraysOf(widget)) {
@@ -278,24 +279,6 @@ function scalePlacement(
   if (!placement) return
   scaleAxis(placement, 'x', 'width', scale.x, shift.x)
   scaleAxis(placement, 'y', 'height', scale.y, shift.y)
-}
-
-function repairArcThickness(
-  widget: WidgetConfiguration,
-  reduced?: (from: number, to: number) => void
-): void {
-  if (widget.type !== 'arc') return
-  const box = widget.placement
-  const width = box?.width
-  const height = box?.height
-  if (typeof width !== 'number' || typeof height !== 'number') return
-  const limit = Math.max(1, Math.floor(Math.min(width, height) / 2))
-  const thickness = typeof widget.thickness_px === 'number'
-    ? widget.thickness_px
-    : DEFAULT_ARC_THICKNESS_PX
-  if (thickness <= limit) return
-  widget.thickness_px = limit
-  reduced?.(thickness, limit)
 }
 
 /**

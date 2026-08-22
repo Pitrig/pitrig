@@ -178,7 +178,20 @@ export class ImageAssetService extends AssetServiceBase {
       if (this.deviceService.getState().session !== session) {
         return failure('device_error', 'The connected device changed during the upload.')
       }
-      await this.deviceService.uploadImages(packageBytes, this.onProgress, operation.signal)
+      await this.deviceService.uploadImages(
+        packageBytes,
+        this.onProgress,
+        operation.signal,
+        // What the board now holds, in the shape `@SC:IMAGE:INFO` reports it in,
+        // so the session does not have to wait for a reconnect to say so.
+        converted.map(({ name, width, height, format, frameCount }) => ({
+          name,
+          width,
+          height,
+          format,
+          frameCount
+        }))
+      )
       // The converted pixels are what the board now holds, and nothing reads
       // them back off it, so the preview's copy is taken here.
       await this.previewAssets.storeImages(converted).catch(() => undefined)

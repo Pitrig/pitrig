@@ -6,6 +6,7 @@ import {
   type SimCoreBoardId
 } from '@shared/device'
 import {
+  CONFIGURATION_DOCUMENTS,
   CONFIGURATION_DOCUMENT_IDS,
   type ConfigurationDocumentId
 } from '@shared/configuration-schema'
@@ -21,6 +22,33 @@ import {
 export { requestResponse, sendControlCommand } from './serial-request'
 
 const CONFIGURATION_TIMEOUT_MS = 2_000
+// Resetting erases NVS records, which is quick but still flash work.
+const RESET_TIMEOUT_MS = 5_000
+// The device erases the whole 2–4 MiB asset partition before it answers CLEAR,
+// exactly the work the upload engine budgets BEGIN_TIMEOUT_MS for. A 2 s wait
+// here reported boards as unreachable while they were busy erasing.
+const ASSET_CLEAR_TIMEOUT_MS = 30_000
+
+/**
+ * How long a configuration exchange may take on this link.
+ *
+ * A dashboard document is up to 64 KiB, and both the SET line and the GET
+ * reply carry it whole — at 460800 baud that alone is ~1.4 s on the wire, and
+ * the slower rates the UI legitimately offers take far longer. A flat 2 s
+ * timeout therefore failed the very probe that reads the configuration on
+ * connect, which read as "not a SimCore device" with no way back in.
+ *
+ * `port.baudRate` is the rate the port was opened at: on a USB-serial bridge
+ * it is what the bytes actually travel at, and on native USB it is nominal
+ * while the link is faster, so the reply only ever arrives early. The factor
+ * of two covers the device's own work — parsing and validating 64 KiB of
+ * JSON, and for SET the NVS write plus its read-back verification.
+ */
+function configurationTimeout(port: SerialPort, payloadBytes: number): number {
+  const baud = Math.max(port.baudRate, 9_600)
+  const transferMs = Math.ceil((payloadBytes * 10 * 1_000) / baud)
+  return CONFIGURATION_TIMEOUT_MS + 2 * transferMs
+}
 
 /**
  * One document read back, as the whole aggregate it is a slice of.
@@ -41,7 +69,7 @@ export async function readConfigurationDocument(
     port,
     `@SC:GET:${document}\n`,
     prefix,
-    CONFIGURATION_TIMEOUT_MS,
+    configurationTimeout(port, CONFIGURATION_DOCUMENTS[document].maxPayload),
     onTraffic,
     rejectionCode
   )
@@ -91,7 +119,7 @@ export async function applyConfiguration(
     port,
     `@SC:APPLY:${document}:${payload}\n`,
     `@SC:OK:APPLIED:${document}`,
-    CONFIGURATION_TIMEOUT_MS,
+    configurationTimeout(port, Buffer.byteLength(payload, 'utf8')),
     onTraffic,
     'configuration_rejected'
   )
@@ -107,7 +135,7 @@ export async function saveConfiguration(
     port,
     `@SC:SET:${document}:${payload}\n`,
     `@SC:OK:SAVED:${document}:`,
-    CONFIGURATION_TIMEOUT_MS,
+    configurationTimeout(port, Buffer.byteLength(payload, 'utf8')),
     onTraffic,
     'configuration_rejected'
   )
@@ -122,7 +150,7 @@ export async function resetConfiguration(
     port,
     '@SC:RESET\n',
     '@SC:OK:RESET:reboot_required=1',
-    CONFIGURATION_TIMEOUT_MS,
+    RESET_TIMEOUT_MS,
     onTraffic,
     'configuration_rejected'
   )
@@ -138,7 +166,7 @@ export async function resetConfigurationDocument(
     port,
     `@SC:RESET:${document}\n`,
     `@SC:OK:RESET:${document}:`,
-    CONFIGURATION_TIMEOUT_MS,
+    RESET_TIMEOUT_MS,
     onTraffic,
     'configuration_rejected'
   )
@@ -152,7 +180,7 @@ export async function clearImageAssets(
     port,
     '@SC:IMAGE:CLEAR\n',
     '@SC:OK:IMAGE:CLEARED:reboot_required=1',
-    CONFIGURATION_TIMEOUT_MS,
+    ASSET_CLEAR_TIMEOUT_MS,
     onTraffic,
     'serial_error'
   )
@@ -166,7 +194,7 @@ export async function clearFontAssets(
     port,
     '@SC:FONT:CLEAR\n',
     '@SC:OK:FONT:CLEARED:reboot_required=1',
-    CONFIGURATION_TIMEOUT_MS,
+    ASSET_CLEAR_TIMEOUT_MS,
     onTraffic,
     'serial_error'
   )

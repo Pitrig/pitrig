@@ -110,11 +110,21 @@ export interface BoardProfile {
    * itself. Absent means the contract default stands.
    */
   telemetryUartBaudRate?: number
+  /**
+   * The links this board actually has, mirroring `uart_supported` and
+   * `native_usb_cdc_supported` in its `BoardDefinition::validation`. The device
+   * refuses a protocol document naming a link it does not own, and it is the
+   * board identifier the document already carries that says which those are —
+   * so the answer belongs here rather than in a reply the configurator would
+   * have to be connected to have heard.
+   */
+  transports: { uart: boolean; nativeUsbCdc: boolean }
 }
 
 export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
   t_display_s3: {
-    display: { width: 320, height: 170, configurable: false }
+    display: { width: 320, height: 170, configurable: false },
+    transports: { uart: true, nativeUsbCdc: true }
   },
   guition_esp32_4848s040: {
     display: { width: 480, height: 480, configurable: false },
@@ -122,10 +132,12 @@ export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
     // the PC through the same CH340 bridge it is flashed over. That bridge does
     // not hold 921600 on this host: esptool cannot even verify the flash chip
     // after switching to it, so telemetry and `@SC:` would fare no better.
-    telemetryUartBaudRate: 460_800
+    telemetryUartBaudRate: 460_800,
+    transports: { uart: true, nativeUsbCdc: false }
   },
   guition_jc1060p470c: {
-    display: { width: 1024, height: 600, configurable: false }
+    display: { width: 1024, height: 600, configurable: false },
+    transports: { uart: false, nativeUsbCdc: true }
   }
 }
 

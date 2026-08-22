@@ -37,6 +37,12 @@ export function wrapInShape(ids: readonly string[]): string | undefined {
   ) {
     return undefined
   }
+  // A slot holds pages of its own and is only ever authored on a screen — the
+  // rule insertWidget states and the reparent guard enforces. Wrapping splices
+  // its members straight into the new container instead of going through
+  // either, so it has to refuse one for itself: the device rejects the whole
+  // document over a slot it finds inside a shape.
+  if (locations.some(({ widget }) => widget.type === 'slot')) return undefined
   // A widget with no usable box has nothing to contribute to the container's
   // bounds, so wrapping is refused rather than guessed at.
   const boxes = locations.map(({ widget }) => completePlacement(widget.placement))
