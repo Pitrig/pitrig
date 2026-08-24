@@ -74,12 +74,18 @@ export class SaveToBoardService {
       (document) => requested === undefined || requested.includes(document)
     )
 
+    // A board in safe mode runs no upload engine, so there is no package to
+    // build and no question to ask about a family: writing the document is the
+    // whole errand, and it is the errand that gets the board out of safe mode.
+    const safeMode = session.info.health?.safeMode ?? false
+
     // Fonts belong to the dashboard document. A save that is not writing it —
     // the Configs page saving one row, or a dashboard that already matches the
     // board — has no faces to resolve and no package to build, and asking the
     // author about a family it is not about to send would be a question with
     // nothing behind it.
-    const families = changed.includes('dashboard') ? requiredFamilies(configuration) : []
+    const families =
+      !safeMode && changed.includes('dashboard') ? requiredFamilies(configuration) : []
 
     this.report('preparing', 0, 1, 'Checking the fonts this dashboard needs')
     const unresolved = await this.library.unresolved(families)
@@ -149,13 +155,27 @@ export class SaveToBoardService {
       // restarting would leave the author looking at a setting that has been
       // written and is not in force. The contract answers which documents those
       // are, so this no longer has to compare the transport section by hand.
+      //
+      // A board in safe mode always takes it. The document just written is what
+      // cleared the fault count, and only the boot after it composes anything —
+      // safe mode has no dashboard to apply to and registers no apply handler,
+      // so the restart is the whole ending rather than an optimisation.
+      const leavingSafeMode = safeMode && written !== undefined
       const restartNeeded =
+        leavingSafeMode ||
         fontsUploaded ||
         assetsAwaitingRestart(this.deviceService.getState().session) ||
         (written?.rebootRequired ?? false)
       if (restartNeeded) {
         const reconnected = await this.restart()
-        this.report('completed', 1, 1, 'Saved. The board is running the new dashboard.')
+        this.report(
+          'completed',
+          1,
+          1,
+          leavingSafeMode
+            ? 'Saved. The board is restarting out of safe mode.'
+            : 'Saved. The board is running the new dashboard.'
+        )
         return {
           ok: true,
           value: {

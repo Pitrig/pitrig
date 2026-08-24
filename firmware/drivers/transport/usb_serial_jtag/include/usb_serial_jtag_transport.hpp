@@ -38,6 +38,11 @@ class UsbSerialJtagTransport final : public ITransport {
   bool write(std::span<const std::uint8_t> data) override;
   [[nodiscard]] Diagnostics diagnostics() const override;
 
+  // Deferred out of start() for the same reason the UART link defers it: this
+  // link comes up first now, and silencing there would take the rest of
+  // startup's log with it. Startup calls this once it is finished.
+  void silence_logs();
+
  private:
   static constexpr std::size_t kChunkSize = 512;
   static constexpr std::size_t kTaskStackSize = 4096;

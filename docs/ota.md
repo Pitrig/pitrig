@@ -37,14 +37,25 @@ idf.py -B build-t-display -p <port> erase-flash flash monitor
 ## Rollback
 
 Builds select `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE`. An image installed over
-serial boots in `ESP_OTA_IMG_PENDING_VERIFY`, and `core` clears that state only
-after startup has finished: the configuration loaded, the display came up, the
-dashboard composed and the communication link answers. An image that resets
-before reaching that point is rolled back to the previous slot by the
-bootloader.
+serial boots in `ESP_OTA_IMG_PENDING_VERIFY`, and `core` clears that state as
+soon as the serial link is up — which, since [ADR
+0025](adr/0025-startup-order-and-safe-mode.md), is before the display and before
+anything is composed. An image that resets before reaching that point is rolled
+back to the previous slot by the bootloader.
+
+What an image has to prove is that it can be talked to. Past that line a broken
+dashboard is repairable by replacing it and a broken image by uploading another;
+short of it, only the bootloader can help. A board that falls back to safe mode
+still clears the state, because safe mode is reached over a link that answers.
+
+Validity deliberately does not wait for a host to say anything. `transport->
+start()` installs a driver and creates a read task; neither UART nor USB CDC has
+a host to wait for, and a board powered from a charger with no PC attached
+passes the phase in milliseconds. Requiring an actual host would mean a board on
+a desk never confirms its image and every reset rolls a working one back.
 
 `@SC:FW:INFO` reports `pending_verify=1` for the window in which this matters,
-which on a healthy board is the fraction of a second before startup completes.
+which on a healthy board is the few milliseconds before the link comes up.
 
 ## Package layout
 

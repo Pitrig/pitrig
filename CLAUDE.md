@@ -155,10 +155,10 @@ components → interfaces ← drivers
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
 - `services/` — shared infrastructure (`asset_control`, `asset_package`, `asset_storage`,
-  `binary_session`, `configuration`, `configuration_contract`, `configuration_control`,
-  `event_bus`, `firmware_update`, `font_assets`, `font_asset_control`, `font_contract`,
-  `image_assets`, `image_asset_control`, `image_contract`, `logger`, `performance`, `telemetry` +
-  `telemetry/protocols/simhub`). `asset_control` is the `SCF1` upload engine;
+  `binary_session`, `boot_guard`, `configuration`, `configuration_contract`,
+  `configuration_control`, `event_bus`, `firmware_update`, `font_assets`, `font_asset_control`,
+  `font_contract`, `image_assets`, `image_asset_control`, `image_contract`, `logger`,
+  `performance`, `telemetry` + `telemetry/protocols/simhub`). `asset_control` is the `SCF1` upload engine;
   `font_asset_control`, `image_asset_control` and `firmware_update` are thin per-kind wrappers
   over it that supply the protocol tag and the body of the `INFO` reply. `firmware_update` is one
   component rather than a service plus a wrapper, because nothing reads a firmware image at
@@ -186,6 +186,36 @@ default search path and needs no entry. Public headers live in `include/`, sourc
 
 Extension order: add a module first, reuse existing components/services, add a component only for a
 new hardware capability, add a driver only for new hardware. The core should rarely change.
+
+### Startup order and safe mode
+
+The phases are `boot guard → configuration → link + control protocol → display → assets →
+modules + dashboard → composed → complete`, and the order is the decision (ADR 0025). **The serial
+link comes up before the display and before anything is composed**, so everything a board can be
+repaired with sits ahead of everything a board can be broken by. Only the configuration stays ahead
+of it, because the `protocol` document picks the port, pins and baud rate. Starting a link waits for
+no host — it installs a driver and creates a read task — so a board with nothing plugged in passes
+the phase in milliseconds.
+
+A crashed task here is a panic that resets the chip; there is no isolating one. `boot_guard` counts
+crashes and watchdog resets in RTC memory (survives a panic reset, cleared on power-on), and three
+in a row put the next boot on the **recovery surface**: transport, `@SC:` control and `@SC:FW:`
+upload, and nothing else — no display, no LVGL, no dashboard, no modules, no font/image upload, no
+telemetry decode, and the board's own `protocol` document rather than the stored one. `APPLY`
+answers `unsupported` there. The count is cleared by the first document a host writes or erases
+(`SET` or `RESET`), so both an ordinary "save to board" and a factory reset are ways out; it is *not* cleared when startup ends but ten seconds
+later, or a fault firing just after composition would reset it every time and never reach the
+threshold. `@SC:INFO` reports `safe_mode`, `boot_failures`, `reset_reason` and `last_phase`.
+
+Consequences to respect when touching startup: `mark_running_image_valid()` now fires as soon as the
+link is up (rollback catches only an image that cannot be talked to); `display::initialize()`
+returns `nullptr` instead of aborting; a `SET`/`APPLY`/`RESET` arriving before composition waits on
+an event bit and is answered `busy` after ten seconds, while reads and `REBOOT` never wait;
+`binary_session::Claim` stays closed until composition so an upload cannot erase a partition
+startup is still copying out of (`BEGIN`/`CLEAR` answer `busy`, they do not wait); and log
+silencing happens at the end of startup rather than when the link starts. The task watchdog resets
+(`CONFIG_ESP_TASK_WDT_PANIC`, 10 s, idle checks off) and watches only tasks that feed it — each
+link's read task, and the render trigger, whose LVGL-lock probe is what catches a wedged LVGL task.
 
 ### Board identity vs. user configuration
 

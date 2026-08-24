@@ -44,12 +44,29 @@ struct Session {
 
 class Claim final {
  public:
+  /** Whether the device has finished with the flash an upload would overwrite.
+   *
+   *  The serial link answers before startup has copied the font and image
+   *  packages out of their partitions, so an upload that arrived in that window
+   *  would erase what startup was still reading. Until the composition root
+   *  says otherwise no session can take the stream, and a host asking for one
+   *  is answered `busy` — which is what it is: the device is busy starting. */
+  [[nodiscard]] bool ready() const {
+    return ready_.load(std::memory_order_acquire);
+  }
+
+  /** Called once by the composition root, when nothing is reading those
+   *  partitions any more. A recovery boot opens it as soon as the link is up:
+   *  it loads no assets, so there is nothing for an upload to collide with. */
+  void open() { ready_.store(true, std::memory_order_release); }
+
   /** Takes the stream for `session` on `link`, or fails because another
-   *  session already has it. `link` identifies one serial link; the reply
-   *  transport serves, since there is exactly one per link. */
+   *  session already has it — or because startup has not finished with the
+   *  flash. `link` identifies one serial link; the reply transport serves,
+   *  since there is exactly one per link. */
   [[nodiscard]] bool try_claim(const Session* session, const void* link) {
     const Session* expected = nullptr;
-    if (session == nullptr ||
+    if (session == nullptr || !ready() ||
         !owner_.compare_exchange_strong(expected, session,
                                         std::memory_order_acq_rel,
                                         std::memory_order_acquire)) {
@@ -88,6 +105,9 @@ class Claim final {
  private:
   std::atomic<const Session*> owner_{nullptr};
   std::atomic<const void*> owner_link_{nullptr};
+  // Closed until the composition root opens it. Startup is the one thing that
+  // reads the asset partitions whole, and it now runs after the link answers.
+  std::atomic<bool> ready_{false};
 };
 
 }  // namespace simcore::binary_session

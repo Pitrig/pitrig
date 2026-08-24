@@ -7,6 +7,7 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "simcore_features.hpp"
+#include "transport_watchdog.hpp"
 #if SIMCORE_DEBUG
 #include "performance.hpp"
 #endif
@@ -75,14 +76,14 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
   performance::register_task(performance::TaskMetric::transport, task_);
 #endif
 
-  // Logged before the silencing below, not after: this line is the only
-  // confirmation that the link came up, and silencing first sends it nowhere —
-  // which leaves a build that looks identical to one without the link at all.
   ESP_LOGI(kTag, "USB Serial/JTAG telemetry transport started");
-  if (configuration_.silence_esp_logs) {
+  return true;
+}
+
+void UsbSerialJtagTransport::silence_logs() {
+  if (started_ && configuration_.silence_esp_logs) {
     log_silencer_.silence();
   }
-  return true;
 }
 
 void UsbSerialJtagTransport::stop() {
@@ -156,9 +157,13 @@ void UsbSerialJtagTransport::task_entry(void* const context) {
 
 void UsbSerialJtagTransport::process() {
   std::array<std::uint8_t, kChunkSize> data{};
+  watch_current_task();
   while (running_.load(std::memory_order_acquire)) {
     const int received = usb_serial_jtag_read_bytes(data.data(), data.size(),
                                                     kReadTimeout);
+    // The read already returns on its own timeout, so an idle link comes
+    // through here regularly and feeds without needing a wait of its own.
+    feed_watchdog();
     if (received <= 0) {
       continue;
     }
@@ -175,6 +180,7 @@ void UsbSerialJtagTransport::process() {
     }
   }
 
+  unwatch_current_task();
   xSemaphoreGive(stopped_);
   vTaskDelete(nullptr);
 }

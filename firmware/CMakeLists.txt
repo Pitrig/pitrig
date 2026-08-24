@@ -28,6 +28,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/asset_package"
      "${CMAKE_CURRENT_LIST_DIR}/services/asset_storage"
      "${CMAKE_CURRENT_LIST_DIR}/services/binary_session"
+     "${CMAKE_CURRENT_LIST_DIR}/services/boot_guard"
      "${CMAKE_CURRENT_LIST_DIR}/services/configuration"
      "${CMAKE_CURRENT_LIST_DIR}/services/configuration_contract"
      "${CMAKE_CURRENT_LIST_DIR}/services/configuration_control"

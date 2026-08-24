@@ -62,6 +62,15 @@ class Composition final {
   Composition(const Composition&) = delete;
   Composition& operator=(const Composition&) = delete;
 
+  // What the attached links answer. `full` is the product surface. `recovery`
+  // is what a boot that has already crashed its way to safe mode brings up: the
+  // control protocol, so the configuration that broke the board can be read and
+  // replaced, and firmware upload, so an image that cannot run can be, and
+  // nothing else. Font and image upload are left out because they write the
+  // partitions a failed boot may have been reading, and telemetry because
+  // nothing is composed to display it.
+  enum class Surface : std::uint8_t { full, recovery };
+
   // `transports` holds one to kMaximumLinks links, and `control_line_buffers`
   // one Router::kControlLineBufferSize block per link.
   [[nodiscard]] bool start(
@@ -74,8 +83,14 @@ class Composition final {
       configuration::ConfigurationControl::ApplyHandler apply_handler,
       void* apply_context,
       std::span<std::uint8_t> control_io_buffer,
-      std::span<std::uint8_t> control_line_buffers);
+      std::span<std::uint8_t> control_line_buffers,
+      Surface surface);
   void stop();
+
+  // Opens the gate a configuration write waits behind — see
+  // ConfigurationControl::mark_composed(). Startup calls it once the dashboard
+  // is up; a recovery link opens it for itself, since no composition is coming.
+  void mark_composed();
 
  private:
   // One attached serial link: what it is, how its bytes are split, and how its

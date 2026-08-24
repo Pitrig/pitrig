@@ -6,6 +6,7 @@
 
 #include "esp_err.h"
 #include "esp_log.h"
+#include "transport_watchdog.hpp"
 #if SIMCORE_DEBUG
 #include "performance.hpp"
 #endif
@@ -143,6 +144,7 @@ void UsbCdcTransport::stop() {
 #if SIMCORE_DEBUG
     performance::unregister_task(performance::TaskMetric::transport);
 #endif
+    unwatch_task(task_);
     vTaskDelete(task_);
     task_ = nullptr;
   }
@@ -233,9 +235,15 @@ void UsbCdcTransport::receive() {
 
 void UsbCdcTransport::process() {
   Chunk chunk;
+  watch_current_task();
   while (true) {
-    if (xQueueReceive(queue_, &chunk, portMAX_DELAY) == pdTRUE &&
-        handler_ != nullptr) {
+    // Bounded rather than indefinite: the wait is what feeds the watchdog on a
+    // link no host is talking to, and an idle link must not look like a wedged
+    // one.
+    const bool has_chunk =
+        xQueueReceive(queue_, &chunk, kWatchdogFeedTicks) == pdTRUE;
+    feed_watchdog();
+    if (has_chunk && handler_ != nullptr) {
 #if SIMCORE_DEBUG
       queued_bytes_.fetch_sub(static_cast<std::uint32_t>(chunk.size),
                               std::memory_order_relaxed);

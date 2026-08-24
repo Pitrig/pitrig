@@ -207,6 +207,41 @@ Responsibilities include:
 
 The firmware core must not contain feature-specific logic.
 
+## Startup order
+
+The phases run in the order below, and the order is the decision rather than an
+accident of how the file grew ([ADR
+0025](adr/0025-startup-order-and-safe-mode.md)):
+
+```text
+boot guard → configuration → link + control protocol → display → assets →
+modules + dashboard → composed → complete
+```
+
+The serial link comes up **before** the display and before anything is composed.
+Everything a board can be repaired with therefore sits ahead of everything a
+board can be broken by: a configuration that will not compose, a font package
+that will not map, a panel that stops answering, a widget that dereferences
+null. The configuration stays ahead of the link only because the `protocol`
+document chooses the port, the pins and the baud rate, and reading it is a
+handful of NVS reads and no hardware.
+
+Starting the link waits for no host; it installs a driver and creates a read
+task, and a board with nothing plugged into it passes the phase in milliseconds.
+
+A crashed task on this chip is a panic that resets the whole device — FreeRTOS
+has no memory protection between tasks, so a fault cannot be isolated where it
+happens. It is contained on the boot *after* it instead. The `boot_guard`
+service counts crashes and watchdog resets in RTC memory, which survives the
+reset the crash caused; three in a row and the next boot runs the **recovery
+surface**: the transport, the `@SC:` control protocol and firmware upload, and
+nothing else. The count is cleared by the first document a host writes or
+erases, so both an ordinary save and a factory reset are ways out.
+
+The task watchdog resets rather than prints. It watches only the tasks that feed
+it: each link's read task, and the render trigger, which takes the LVGL lock
+every round and so fails to feed when the LVGL task stops giving it back.
+
 The bounded Module Manager stores compile-time descriptors with function
 pointers and explicit contexts. A dedicated module composition registers the
 available module implementations and configuration controls which descriptors

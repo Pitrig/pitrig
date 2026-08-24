@@ -1,19 +1,36 @@
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include <string_view>
 
+#include "boot_guard.hpp"
 #include "configuration_control.hpp"
-#include "esp_app_desc.h"
 #include "transport.hpp"
 
 // The command half of configuration control: what each `@SC:` line means and
 // the replies it earns, run on the worker task. The task lifecycle and the
-// line intake live in configuration_control.cpp.
+// line intake live in configuration_control.cpp, and the `INFO` report in
+// configuration_control_info.cpp.
 namespace simcore::configuration {
 namespace {
 
 constexpr std::string_view kPrefix = "@SC:";
+
+// `APPLY`, `SET` and both spellings of `RESET`. `INFO`, `GET` and `VALIDATE`
+// only read, and `REBOOT` is what a host reaches for when nothing else works,
+// so none of them is held back.
+[[nodiscard]] bool changes_the_device(
+    const std::span<const std::uint8_t> command) {
+  constexpr std::array<std::string_view, 3> kWriting{"APPLY:", "SET:", "RESET"};
+  for (const std::string_view word : kWriting) {
+    if (command.size() >= word.size() &&
+        std::equal(word.begin(), word.end(), command.begin())) {
+      return true;
+    }
+  }
+  return false;
+}
 
 }  // namespace
 
@@ -24,43 +41,16 @@ void ConfigurationControl::handle(
 
   if (command.size() == 4 &&
       std::equal(command.begin(), command.end(), "INFO")) {
-    const ConfigurationStatus status = service_->status();
-    const std::string_view board = board_id_name(service_->hardware_board());
-    int written = std::snprintf(
-        reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
-        "@SC:OK:INFO:board=%.*s,firmware=%s,schema=%u,storage=%u",
-        static_cast<int>(board.size()), board.data(),
-        esp_app_get_description()->version,
-        static_cast<unsigned>(kConfigurationSchemaVersion),
-        status.storage_available ? 1U : 0U);
-    // Then one field per document: what became of its stored record, and which
-    // generation of it the device is running. A host that finds `absent` knows
-    // the board is on that document's factory values rather than having to
-    // infer it from a single source token that could only name one of three.
-    for (std::size_t index = 0;
-         written > 0 && index < kConfigurationDocumentCount; ++index) {
-      const auto document = static_cast<ConfigurationDocument>(index);
-      const std::string_view name = configuration_document_name(document);
-      const std::string_view outcome =
-          document_outcome_name(status.documents[index].outcome);
-      const int field = std::snprintf(
-          reinterpret_cast<char*>(io_buffer_.data()) + written,
-          io_buffer_.size() - static_cast<std::size_t>(written),
-          ",%.*s=%.*s:%lu", static_cast<int>(name.size()), name.data(),
-          static_cast<int>(outcome.size()), outcome.data(),
-          static_cast<unsigned long>(status.documents[index].generation));
-      if (field <= 0) {
-        written = 0;
-        break;
-      }
-      written += field;
-    }
-    if (written > 0 &&
-        static_cast<std::size_t>(written) + 1U < io_buffer_.size()) {
-      io_buffer_[static_cast<std::size_t>(written)] = '\n';
-      (void)write_reply(std::span<const std::uint8_t>(
-          io_buffer_.data(), static_cast<std::size_t>(written) + 1U));
-    }
+    send_info();
+    return;
+  }
+
+  // Everything below that writes has to wait for a composition to write into.
+  // Startup answers on the link well before the dashboard exists, so a document
+  // arriving in that window would otherwise be applied to half a device.
+  // Reads, and the reboot a stuck board needs, are answered regardless.
+  if (changes_the_device(command) && !await_composition()) {
+    (void)send_text("@SC:ERR:busy\n");
     return;
   }
 
@@ -132,6 +122,11 @@ void ConfigurationControl::handle(
       (void)send_error(outcome.failure);
       return;
     }
+    // A host that got this far has replaced what was on the board and proved it
+    // can reach it, so the faults counted against earlier boots are forgiven.
+    // A device that fell back to the link is put back on the ordinary startup
+    // path by the restart this answer asks for.
+    boot_guard::clear_failures();
     // Only the transport is chosen once at startup, so only that document is
     // stored and not in force. The rest are brought up by an APPLY carrying the
     // same bytes, which is what the configurator pairs with this.
@@ -146,6 +141,11 @@ void ConfigurationControl::handle(
   if (command.size() == 5 &&
       std::equal(command.begin(), command.end(), "RESET")) {
     if (service_->reset()) {
+      // Erasing every record is the other repair, and the one a board nobody
+      // can explain gets. Whatever was stored is gone, so the faults counted
+      // against it are too — otherwise a board put back to its factory values
+      // would come up in safe mode for a configuration it no longer holds.
+      boot_guard::clear_failures();
       (void)send_text("@SC:OK:RESET:reboot_required=1\n");
     } else {
       (void)send_text("@SC:ERR:storage\n");
@@ -164,6 +164,7 @@ void ConfigurationControl::handle(
       (void)send_text("@SC:ERR:storage\n");
       return;
     }
+    boot_guard::clear_failures();
     // Erasing a record does not put the board back on that document's factory
     // values; only a restart reloads it, which is true of every document here.
     (void)send_document_reply("@SC:OK:RESET", document, "reboot_required=1");

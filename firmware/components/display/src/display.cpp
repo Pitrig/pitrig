@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "esp_err.h"
+#include "esp_log.h"
 #include "esp_lvgl_port.h"
 #include "display_driver.hpp"
 #include "freertos/FreeRTOS.h"
@@ -17,6 +18,7 @@
 namespace simcore::display {
 namespace {
 
+constexpr char kTag[] = "display";
 constexpr int kLvglTaskCore = SIMCORE_RENDER_CORE;
 constexpr std::uint32_t kInitialFrameTimeoutMs = 1'000;
 #if SIMCORE_DEBUG
@@ -59,16 +61,20 @@ void on_refresh_ready(lv_event_t* const event) {
   xSemaphoreGive(signal);
 }
 
-void configure_initial_black_screen(lv_display_t* const display) {
-  ESP_ERROR_CHECK(lvgl_port_lock(0) ? ESP_OK : ESP_FAIL);
+[[nodiscard]] bool configure_initial_black_screen(
+    lv_display_t* const display) {
+  if (!lvgl_port_lock(0)) {
+    return false;
+  }
   lv_obj_t* const screen = lv_display_get_screen_active(display);
-  ESP_ERROR_CHECK(screen == nullptr ? ESP_FAIL : ESP_OK);
+  if (screen == nullptr) {
+    lvgl_port_unlock();
+    return false;
+  }
   lv_obj_set_style_bg_color(screen, lv_color_black(), LV_PART_MAIN);
   lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
   lvgl_port_unlock();
-  ESP_ERROR_CHECK(refresh_and_wait(display, kInitialFrameTimeoutMs)
-                      ? ESP_OK
-                      : ESP_ERR_TIMEOUT);
+  return refresh_and_wait(display, kInitialFrameTimeoutMs);
 }
 
 #if SIMCORE_DEBUG
@@ -156,7 +162,12 @@ bool refresh_and_wait(lv_display_t* const display,
     return false;
   }
   lv_obj_invalidate(screen);
-  ESP_ERROR_CHECK(lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, display));
+  if (lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, display) != ESP_OK) {
+    lv_display_remove_event_cb_with_user_data(display, on_refresh_ready,
+                                              refresh_signal);
+    lvgl_port_unlock();
+    return false;
+  }
   lvgl_port_unlock();
 
   const bool refreshed =
@@ -170,26 +181,39 @@ bool refresh_and_wait(lv_display_t* const display,
   return refreshed;
 }
 
+// A panel that will not come up is reported, not fatal. Aborting here used to
+// reboot, and a reboot repeats it: the device would loop instead of ever
+// answering. The core already treats a null display as "this board draws
+// nothing", which is the state a failed panel leaves it in, and the serial link
+// is up by the time this runs — so a board whose screen is dead is still a
+// board that can be read, reconfigured and reflashed.
 lv_display_t* initialize(const driver::Driver& selected_driver) {
-  ESP_ERROR_CHECK(selected_driver.initialize == nullptr ? ESP_ERR_INVALID_ARG
-                                                        : ESP_OK);
-  ESP_ERROR_CHECK(selected_driver.on_display_ready == nullptr
-                      ? ESP_ERR_INVALID_ARG
-                      : ESP_OK);
+  if (selected_driver.initialize == nullptr ||
+      selected_driver.on_display_ready == nullptr) {
+    ESP_LOGE(kTag, "Board display driver is incomplete");
+    return nullptr;
+  }
   const driver::Configuration hardware = selected_driver.initialize();
   const lv_color_format_t color_format =
       to_lvgl_color_format(hardware.color_format);
-  ESP_ERROR_CHECK(color_format == LV_COLOR_FORMAT_UNKNOWN
-                      ? ESP_ERR_NOT_SUPPORTED
-                      : ESP_OK);
+  if (color_format == LV_COLOR_FORMAT_UNKNOWN) {
+    ESP_LOGE(kTag, "Board display driver asked for an unsupported color format");
+    return nullptr;
+  }
 
   lvgl_port_cfg_t lvgl_config = ESP_LVGL_PORT_INIT_CONFIG();
   lvgl_config.task_affinity = kLvglTaskCore;
   lvgl_config.task_max_sleep_ms = kTaskMaxSleepMs;
   lvgl_config.timer_period_ms = kTimerPeriodMs;
-  ESP_ERROR_CHECK(lvgl_port_init(&lvgl_config));
+  if (lvgl_port_init(&lvgl_config) != ESP_OK) {
+    ESP_LOGE(kTag, "LVGL port did not start");
+    return nullptr;
+  }
   refresh_signal = xSemaphoreCreateBinaryStatic(&refresh_signal_storage);
-  ESP_ERROR_CHECK(refresh_signal == nullptr ? ESP_ERR_NO_MEM : ESP_OK);
+  if (refresh_signal == nullptr) {
+    ESP_LOGE(kTag, "No memory for the refresh signal");
+    return nullptr;
+  }
 #if SIMCORE_DEBUG
   performance::register_task(performance::TaskMetric::lvgl,
                              xTaskGetHandle("taskLVGL"));
@@ -241,7 +265,10 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
   } else {
     display = lvgl_port_add_disp(&display_config);
   }
-  ESP_ERROR_CHECK(display == nullptr ? ESP_FAIL : ESP_OK);
+  if (display == nullptr) {
+    ESP_LOGE(kTag, "LVGL port refused the panel");
+    return nullptr;
+  }
   lv_display_add_event_cb(display, on_rendering_started, LV_EVENT_RENDER_START,
                           nullptr);
   lv_display_add_event_cb(display, on_rendering_finished, LV_EVENT_REFR_READY,
@@ -249,7 +276,13 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
 #if SIMCORE_DEBUG
   register_performance_events(display);
 #endif
-  configure_initial_black_screen(display);
+  // The first frame is what proves the panel actually flushes. Without it the
+  // dashboard would compose onto a screen nothing reaches, so the display is
+  // reported as absent rather than as working.
+  if (!configure_initial_black_screen(display)) {
+    ESP_LOGE(kTag, "Panel did not present its first frame");
+    return nullptr;
+  }
   selected_driver.on_display_ready();
   return display;
 }

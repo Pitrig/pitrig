@@ -59,4 +59,13 @@ std::size_t TelemetryComposition::select(
   return count;
 }
 
+void TelemetryComposition::silence_logs() {
+#if !CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+  uart_.silence_logs();
+#endif
+#if SIMCORE_SECOND_TELEMETRY_LINK
+  usb_serial_jtag_.silence_logs();
+#endif
+}
+
 }  // namespace simcore::transport

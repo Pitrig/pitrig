@@ -38,7 +38,8 @@ bool Composition::start(
     const configuration::ConfigurationControl::ApplyHandler apply_handler,
     void* const apply_context,
     const std::span<std::uint8_t> control_io_buffer,
-    const std::span<std::uint8_t> control_line_buffers) {
+    const std::span<std::uint8_t> control_line_buffers,
+    const Surface surface) {
   if (started_) {
     log::error(kTag, "Communication is already running");
     return false;
@@ -49,8 +50,13 @@ bool Composition::start(
     log::error(kTag, "Communication was given no usable link");
     return false;
   }
+  const bool full = surface == Surface::full;
   for (std::size_t index = 0; index < transports.size(); ++index) {
-    if (transports[index] == nullptr || !links_[index].protocol.initialized()) {
+    // The protocol binding only has to hold where telemetry is decoded. A
+    // recovery link never reaches it, and refusing to come up over a registry
+    // it will not read would cost the board the only way back.
+    if (transports[index] == nullptr ||
+        (full && !links_[index].protocol.initialized())) {
       log::error(kTag, "Failed to bind telemetry protocol fields");
       return false;
     }
@@ -65,12 +71,12 @@ bool Composition::start(
     log::error(kTag, "Failed to start configuration control task");
     return false;
   }
-  if (!font_asset_control_.initialize(font_assets, binary_claim_)) {
+  if (full && !font_asset_control_.initialize(font_assets, binary_claim_)) {
     log::error(kTag, "Failed to start font asset control task");
     configuration_control_.stop();
     return false;
   }
-  if (!image_asset_control_.initialize(image_assets, binary_claim_)) {
+  if (full && !image_asset_control_.initialize(image_assets, binary_claim_)) {
     log::error(kTag, "Failed to start image asset control task");
     font_asset_control_.stop();
     configuration_control_.stop();
@@ -83,19 +89,27 @@ bool Composition::start(
     configuration_control_.stop();
     return false;
   }
+  // A session the surface left out is registered as absent rather than as
+  // itself: an uninitialized session carries an empty command prefix, and an
+  // empty prefix matches every control line there is. The router skips a null
+  // entry, so the command falls through to the control service and is answered
+  // `unknown_command`.
   const std::array<const binary_session::Session*, 3> sessions{
-      &font_asset_control_.session(), &image_asset_control_.session(),
+      full ? &font_asset_control_.session() : nullptr,
+      full ? &image_asset_control_.session() : nullptr,
       &firmware_update_control_.session()};
 
-  telemetry_ = &telemetry;
+  telemetry_ = full ? &telemetry : nullptr;
   link_count_ = transports.size();
   for (std::size_t index = 0; index < link_count_; ++index) {
     Link& link = links_[index];
     link.owner = this;
     link.transport = transports[index];
+    // No telemetry handler on a recovery link: the router drops every line that
+    // is not a control line rather than decoding into state nothing reads.
     link.router.initialize(
         configuration_control_, binary_claim_, sessions,
-        &receive_telemetry_line, &link,
+        full ? &receive_telemetry_line : nullptr, &link,
         control_line_buffers.subspan(index * Router::kControlLineBufferSize,
                                      Router::kControlLineBufferSize),
         *link.transport);
@@ -115,7 +129,21 @@ bool Composition::start(
     return false;
   }
   started_ = true;
+  if (!full) {
+    // Nothing further is coming on this boot, so neither a write nor an upload
+    // has anything left to wait for. Held shut, every SET a host sent to repair
+    // the board would sit out the timeout and be refused, and the firmware
+    // upload that is the other way out would be answered busy forever.
+    mark_composed();
+  }
   return true;
+}
+
+void Composition::mark_composed() {
+  configuration_control_.mark_composed();
+  // Startup has finished reading the font and image partitions, so an upload
+  // may now erase them.
+  binary_claim_.open();
 }
 
 void Composition::stop() {

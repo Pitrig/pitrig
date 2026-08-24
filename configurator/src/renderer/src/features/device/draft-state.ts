@@ -34,6 +34,13 @@ export interface DraftState {
    */
   dirtyDocuments: ConfigurationDocumentId[]
   connected: boolean
+  /**
+   * The board came up on the recovery surface: the serial link and the control
+   * protocol alone. Saving is what gets it out of that, so a save stays
+   * offered; live apply does not, because nothing is composed to apply to and
+   * the board answers `unsupported`.
+   */
+  safeMode: boolean
   /** The draft names a different board than the one plugged in. */
   boardMismatch: boolean
   /** Families the dashboard names that the board does not hold yet. */
@@ -49,6 +56,9 @@ export interface DraftState {
    * would only turn a calm sentence into a red error. Firmware refuses the whole
    * document it arrives in, so while this is false no dashboard edit reaches the
    * board, not only the font.
+   *
+   * A board in safe mode is the other case: it composed nothing to apply to and
+   * registers no apply handler, so every apply comes back `unsupported`.
    */
   liveApplyAllowed: boolean
 }
@@ -81,6 +91,7 @@ export function useDraftState(): DraftState {
   )
   const dirty = dirtyDocuments.length > 0
   const connected = status === 'connected' && Boolean(session)
+  const safeMode = session?.info.health?.safeMode ?? false
   const boardMismatch =
     parsed.ok && session ? parsed.configuration.board !== session.info.boardId : false
 
@@ -102,10 +113,12 @@ export function useDraftState(): DraftState {
     dirty,
     dirtyDocuments,
     connected,
+    safeMode,
     boardMismatch,
     missingFamilies,
     saveBlockedReason,
-    liveApplyAllowed: connected && parsed.ok && !boardMismatch && missingFamilies.length === 0
+    liveApplyAllowed:
+      connected && !safeMode && parsed.ok && !boardMismatch && missingFamilies.length === 0
   }
 }
 

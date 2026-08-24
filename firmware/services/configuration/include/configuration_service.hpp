@@ -85,12 +85,25 @@ class ConfigurationService {
   using FactoryPayloads =
       std::array<std::span<const std::uint8_t>, kConfigurationDocumentCount>;
 
+  // Which stored records may replace their factory values. A document left out
+  // is still read, validated and reported, so `INFO` and `GET` answer with what
+  // is stored — it simply is not what the device runs. A recovery boot leaves
+  // out `protocol`: a stored transport the host cannot reach would otherwise
+  // make the recovery as unreachable as the boot it is recovering from.
+  using StoredDocuments = std::array<bool, kConfigurationDocumentCount>;
+  [[nodiscard]] static constexpr StoredDocuments all_stored_documents() {
+    StoredDocuments documents{};
+    documents.fill(true);
+    return documents;
+  }
+
   bool initialize(IConfigurationStorage& storage,
                   const ValidationContext& validation_profile,
                   const FactoryPayloads& factory_payloads,
                   std::span<std::uint8_t> record_buffer,
                   std::span<std::uint8_t> payload_buffer,
-                  std::span<std::uint8_t> configuration_buffer);
+                  std::span<std::uint8_t> configuration_buffer,
+                  const StoredDocuments& apply_stored);
 
   [[nodiscard]] const ApplicationConfiguration& current() const {
     return *active_;

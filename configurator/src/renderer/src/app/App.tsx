@@ -13,6 +13,7 @@ import { useAppInfo } from '@/features/device/app-info'
 import { useDraftState } from '@/features/device/draft-state'
 import { InfoPage } from '@/features/device/InfoPage'
 import { reportLiveApply } from '@/features/device/live-apply-store'
+import { SafeModeBanner } from '@/features/device/SafeModeBanner'
 import { UnresolvedFontsGate } from '@/features/device/save-to-board-ui'
 import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
 import { useLiveApply } from '@/features/device/use-live-apply'
@@ -64,6 +65,12 @@ export function App(): React.JSX.Element {
         </div>
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
+
+      {/* Its own row rather than an overlay: a board in safe mode cannot do most
+          of what the pages below offer, and a strip that pushes them down is
+          read, where one floating over them is dismissed. It collapses to
+          nothing on an ordinary board. */}
+      <SafeModeBanner />
 
       <main className="flex min-h-0 overflow-hidden">
         <WorkspaceRail />

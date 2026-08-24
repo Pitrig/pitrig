@@ -12,11 +12,12 @@
 #include "application.hpp"
 #include "application_configuration.hpp"
 #include "board_registry.hpp"
+#include "boot_guard.hpp"
 #include "communication_composition.hpp"
 #include "configuration_service.hpp"
 #include "dashboard_composition.hpp"
 #include "display.hpp"
-#include "esp_err.h"
+#include "esp_timer.h"
 #include "event_bus.hpp"
 #include "external_memory_buffer.hpp"
 #include "font_asset_service.hpp"
@@ -53,6 +54,10 @@ void initialize_display(Application& application,
     return;
   }
   application.display = display::initialize(*board.display);
+  if (application.display == nullptr) {
+    log::error(kTag, "Display did not come up; running without a dashboard");
+    return;
+  }
   // A board without a digitizer leaves this null. The pointer device is never
   // torn down, so nothing else in the firmware learns which case it is in, and
   // a declared panel that fails to answer lands in the same place.
@@ -144,6 +149,7 @@ bool start_communication(Application& application,
   if (!application.services.firmware_update.initialize(board.id)) {
     log::warn(kTag, "No firmware slot to update into");
   }
+  const bool recovery = boot_guard::safe_mode();
   if (!application.communication.start(
           application.services.configuration,
           application.services.firmware_update,
@@ -152,8 +158,15 @@ bool start_communication(Application& application,
           std::span<transport::ITransport* const>(
               application.telemetry_transports.data(),
               application.telemetry_link_count),
-          &apply_configuration, &application, buffers.control_io,
-          buffers.control_line)) {
+          // A recovery boot composes nothing, and the replacement transaction
+          // checks a candidate against fonts and images that were never
+          // loaded, so it would refuse every dashboard put to it. With no
+          // handler the control service answers `unsupported`, and the way out
+          // is the SET the configurator pairs with a restart anyway.
+          recovery ? nullptr : &apply_configuration, &application,
+          buffers.control_io, buffers.control_line,
+          recovery ? communication::Composition::Surface::recovery
+                   : communication::Composition::Surface::full)) {
     log::error(kTag, "Communication composition is incomplete");
     return false;
   }
@@ -163,11 +176,21 @@ bool start_communication(Application& application,
 }  // namespace
 
 void run() {
+  // Before anything else, because everything after it depends on the answer:
+  // whether the last few boots ended in a crash, and therefore whether this one
+  // may run the whole firmware or only the link back to a host.
+  boot_guard::begin();
+  // Each phase is recorded as it is entered, not as it is left, so a boot that
+  // does not survive one leaves the name of the phase that killed it.
+  boot_guard::reached(boot_guard::Phase::configuration);
   static Application application;
   const ConfigurationBuffers buffers =
       boot::reserve_configuration_memory(application);
   const board_registry::BoardDefinition& board =
       board_registry::factory_board();
+  // The configuration still comes first, because the protocol document is what
+  // chooses the port, the pins and the baud rate. It is a few NVS reads and no
+  // hardware, which is what makes it cheap enough to keep ahead of the link.
   boot::load_configuration(application, board, buffers);
 
   const configuration::ApplicationConfiguration& configuration =
@@ -175,23 +198,65 @@ void run() {
   application.telemetry_link_count =
       application.platform.telemetry_transport.select(
           board, configuration, application.telemetry_transports);
-  ESP_ERROR_CHECK(application.telemetry_link_count == 0 ? ESP_ERR_NOT_SUPPORTED
-                                                        : ESP_OK);
+  if (application.telemetry_link_count == 0) {
+    // Deliberately not fatal. Aborting here would reboot, and rebooting would
+    // abort again: a build whose board cannot supply the selected transport
+    // does not become able to on the next try. Stopping leaves the console
+    // readable and leaves a freshly installed image unverified, so the
+    // bootloader takes it back on the next reset.
+    log::error(kTag, "No telemetry transport for this board; stopping");
+    return;
+  }
 
   log::info(kTag, "SimCore starting");
 #if SIMCORE_DEBUG
   performance::begin();
 #endif
-  initialize_display(application, board, configuration);
-  load_uploaded_assets(application, configuration);
-  compose(application, configuration);
-  if (start_communication(application, board, buffers)) {
-    // Everything a firmware image has to prove has now happened: the
-    // configuration loaded, the display came up, the dashboard composed and the
-    // link answers. A freshly installed image that cannot reach this line is
-    // undone by the bootloader on the next reset.
-    application.services.firmware_update.mark_running_image_valid();
+  // The link goes up before the display and before anything is composed. It is
+  // the one part of the firmware whose absence cannot be diagnosed or repaired
+  // from anywhere else, so it is also the part that must not depend on the rest
+  // having worked.
+  boot_guard::reached(boot_guard::Phase::link);
+  if (!start_communication(application, board, buffers)) {
+    return;
   }
+  // The one number this ordering exists to change, logged in every build: how
+  // long after a reset the board can be talked to. It used to be however long
+  // the display, the assets and the whole composition took.
+  log::info(kTag, "Serial link answering %lu ms after reset",
+            static_cast<unsigned long>(esp_timer_get_time() / 1'000));
+  // What a firmware image has to prove is that it can be talked to. Everything
+  // past this point is repairable over the link that just came up — a broken
+  // dashboard by replacing it, a broken image by uploading another — while an
+  // image that cannot reach this line is repairable only by the bootloader
+  // taking it back on the next reset.
+  application.services.firmware_update.mark_running_image_valid();
+  if (boot_guard::safe_mode()) {
+    // The link, the control protocol and nothing else. The counter that put
+    // this boot here is cleared by the first document a host writes, so the
+    // restart after it starts an ordinary boot.
+    log::warn(kTag, "Safe mode: waiting for a host on the serial link");
+    return;
+  }
+
+  boot_guard::reached(boot_guard::Phase::display);
+  initialize_display(application, board, configuration);
+  boot_guard::reached(boot_guard::Phase::assets);
+  boot::open_asset_storage(application);
+  load_uploaded_assets(application, configuration);
+  boot_guard::reached(boot_guard::Phase::composition);
+  compose(application, configuration);
+  boot_guard::reached(boot_guard::Phase::complete);
+  // Writes have been held since the link came up; there is something to apply
+  // them to now.
+  application.communication.mark_composed();
+  // Only now does the console share its wire, so every line startup logged got
+  // out first.
+  application.platform.telemetry_transport.silence_logs();
+  // Started, not finished: the counter is cleared once the device has run this
+  // long without resetting. A fault that only fires when telemetry arrives
+  // happens after this line, and has to count.
+  boot_guard::arm_stability_window();
 }
 
 }

@@ -178,6 +178,47 @@ export interface ConfigurationDocumentState {
   generation: number
 }
 
+/** Why the device's last boot happened, as `@SC:INFO` reports it. */
+export type DeviceResetCause =
+  | 'power_on'
+  | 'software'
+  | 'panic'
+  | 'task_watchdog'
+  | 'brownout'
+  | 'other'
+
+/** How far a boot got. Reported for the boot *before* this one. */
+export type DeviceStartupPhase =
+  | 'none'
+  | 'configuration'
+  | 'link'
+  | 'display'
+  | 'assets'
+  | 'composition'
+  | 'complete'
+
+export interface DeviceHealth {
+  /**
+   * Three boots in a row ended in a crash or a watchdog reset, so this one came
+   * up on the serial link and the control protocol alone: no display, no
+   * dashboard, no modules, and no font or image upload. Writing or erasing any
+   * document clears the count, and the restart after it starts an ordinary
+   * boot.
+   */
+  safeMode: boolean
+  /**
+   * Crashes counted since the last power-on, or since the last document written
+   * or erased.
+   */
+  bootFailures: number
+  resetCause: DeviceResetCause
+  /**
+   * How far the boot before this one got. On a board that keeps crashing this
+   * is the field that says what is crashing it.
+   */
+  lastPhase: DeviceStartupPhase
+}
+
 export interface DeviceInfo {
   boardId: SimCoreBoardId
   firmwareVersion: string
@@ -190,6 +231,13 @@ export interface DeviceInfo {
    */
   documents: Record<ConfigurationDocumentId, ConfigurationDocumentState>
   storageAvailable: boolean
+  /**
+   * Absent on firmware built before the boot guard, which reports none of these
+   * fields. Absent reads as "cannot tell", never as "healthy" — a board that
+   * cannot say whether it is in safe mode is treated as an ordinary one,
+   * because that is what every such board is.
+   */
+  health?: DeviceHealth
 }
 
 export interface FontAssetDeviceInfo {

@@ -37,6 +37,13 @@ class UartTransport final : public ITransport {
   bool write(std::span<const std::uint8_t> data) override;
   [[nodiscard]] Diagnostics diagnostics() const override;
 
+  // Silencing is global and irreversible until the link stops, so it is not
+  // done when the link starts: startup now brings this link up first, and
+  // silencing there would swallow every line the rest of startup logs — which
+  // is exactly what a board that fails to come up needs to have said. Startup
+  // calls this once it is finished, and a recovery boot never calls it.
+  void silence_logs();
+
  private:
   static constexpr std::size_t kChunkSize = 512;
   static constexpr std::size_t kTaskStackSize = 4096;

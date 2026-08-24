@@ -29,6 +29,10 @@ export interface LiveApplyState {
  */
 export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) => void): void {
   const draft = useDeviceStore((state) => state.draft)
+  // What the board is rendering right now, which is what it loaded at startup.
+  // `pendingConfiguration` is deliberately not consulted: that is what a
+  // restart would bring up, not what is on the screen.
+  const running = useDeviceStore((state) => state.activeConfiguration)
   const inFlight = useRef(false)
   const queued = useRef<DeviceConfiguration | undefined>(undefined)
   const applied = useRef<DeviceConfiguration | undefined>(undefined)
@@ -42,6 +46,14 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
       applied.current = undefined
       return
     }
+    // A freshly connected board is already showing its own configuration, so
+    // that is where "what the board is showing" starts. Left unset, the first
+    // pass would count every document as changed and apply all of them — and
+    // applying the modules document rebuilds the dashboard whole rather than in
+    // place, so connecting to a board that was perfectly correct redrew its
+    // screen. A draft that genuinely differs still travels, one document at a
+    // time, exactly as an edit does.
+    applied.current ??= running
     if (!draft || configurationsEqual(draft, applied.current)) return
 
     const send = async (configuration: DeviceConfiguration): Promise<void> => {
@@ -78,5 +90,5 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
       void send(draft)
     }, APPLY_DELAY_MS)
     return () => window.clearTimeout(timer)
-  }, [draft, enabled])
+  }, [draft, enabled, running])
 }

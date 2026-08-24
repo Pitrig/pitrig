@@ -8,6 +8,7 @@
 
 #include "configuration_service.hpp"
 #include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
 #include "freertos/task.h"
 
 namespace simcore::transport {
@@ -45,6 +46,14 @@ class ConfigurationControl {
                                 std::span<std::uint8_t> io_buffer);
   void stop();
 
+  // Opens the gate a write waits behind. Startup brings the link up before the
+  // dashboard exists, so a document can arrive while there is still nothing to
+  // apply it to: reads are answered straight away, which is the whole point of
+  // an early link, and a write waits here rather than racing composition. A
+  // recovery boot opens it as soon as the link is up, because nothing else is
+  // coming.
+  void mark_composed();
+
   // Queues a line that starts with "@SC:" and has no line terminator. Parsing,
   // validation, and NVS operations run in the dedicated control task.
   // The answer goes back out on the link the line arrived on, so the transport
@@ -62,10 +71,22 @@ class ConfigurationControl {
 
   static constexpr std::size_t kTaskStackSize = 4096;
   static constexpr UBaseType_t kTaskPriority = 4;
+  static constexpr EventBits_t kComposedBit = 1U << 0U;
+  // How long a write waits for composition before it is refused. Startup
+  // reaches it in a few hundred milliseconds; anything near this bound means it
+  // never will, and the host is better told so than left holding the line.
+  static constexpr std::uint32_t kCompositionWaitMs = 10'000;
 
   static void task_entry(void* context);
   void process();
   void handle(std::span<const std::uint8_t> line);
+  // The `INFO` reply: what board this is, what it is running, what became of
+  // each stored document, and how the last boot went. Its own file, because it
+  // is the one command that reports rather than acts.
+  void send_info();
+  // Whether the composition a write needs is there yet. False only after the
+  // wait above elapsed without it.
+  [[nodiscard]] bool await_composition();
   // Splits "<DOCUMENT>" or "<DOCUMENT>:<payload>" off the front of a command
   // argument. Answers the host itself when the name is not one of the three, so
   // callers deal only with a document they can act on.
@@ -98,6 +119,8 @@ class ConfigurationControl {
   void* reboot_context_{};
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
+  EventGroupHandle_t composed_{};
+  StaticEventGroup_t composed_storage_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
   // The control task reuses this storage for a response only after it has
   // finished consuming the queued request bytes.

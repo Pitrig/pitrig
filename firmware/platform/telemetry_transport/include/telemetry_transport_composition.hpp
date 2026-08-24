@@ -42,6 +42,14 @@ class TelemetryComposition final {
       const configuration::ApplicationConfiguration& configuration,
       std::span<ITransport*> links);
 
+  // Silences the ESP log on any attached link that shares its wire with the
+  // console. Startup calls it once, at the end: the link now comes up before
+  // the display, and silencing when it starts would swallow the log of
+  // everything that follows — which is the log a board that fails to start
+  // needs to have produced. A link that was not selected, or that does not
+  // want silencing, ignores this.
+  void silence_logs();
+
  private:
 #if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
   UsbCdcTransport usb_cdc_;

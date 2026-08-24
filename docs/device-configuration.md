@@ -887,7 +887,7 @@ checks before it lets a configuration replace the running dashboard.
 
 ```text
 @SC:INFO
-@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=14,storage=1,dashboard=valid:3,modules=absent:0,protocol=valid:1
+@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=14,storage=1,safe_mode=0,boot_failures=0,reset_reason=power_on,last_phase=none,dashboard=valid:3,modules=absent:0,protocol=valid:1
 ```
 
 Fields:
@@ -896,6 +896,18 @@ Fields:
 - `firmware` comes from the ESP-IDF application description;
 - `schema` is the supported public configuration schema;
 - `storage` is `1` when persistent configuration storage is available;
+- `safe_mode` is `1` when the board came up on the recovery surface: the link,
+  this control protocol and firmware upload, and nothing else — no display, no
+  dashboard, no modules, no font or image upload, and no telemetry decode. See
+  [ADR 0025](adr/0025-startup-order-and-safe-mode.md);
+- `boot_failures` counts the crashes and watchdog resets since the last power-on
+  or the last document written or erased. Three of them in a row is what sets
+  `safe_mode`, and a successful `SET` or `RESET` is what clears it;
+- `reset_reason` is why this boot happened: `power_on`, `software`, `panic`,
+  `task_watchdog`, `brownout` or `other`;
+- `last_phase` is how far the **previous** boot got: `none`, `configuration`,
+  `link`, `display`, `assets`, `composition` or `complete`. On a board that
+  keeps crashing this is the field that says what is crashing it;
 - one field per configuration document, named after it and spelled
   `<outcome>:<generation>`. The outcome is `absent`, `malformed_record`,
   `unsupported_schema`, `corrupt_payload`, `rejected` or `valid`; the generation
@@ -956,8 +968,9 @@ selected once at startup, and `dashboard` and `modules` answer 0 because
 the protocol document is accepted and stages it, but rebuilds nothing — the
 board picks the link up on its next start.
 
-`@SC:INFO` reports `board`, `firmware`, `schema`, `storage`, and then one field
-per document spelled `<doc>=<outcome>:<generation>`. The outcome is one of
+`@SC:INFO` reports `board`, `firmware`, `schema`, `storage`, the four boot-health
+fields above, and then one field per document spelled
+`<doc>=<outcome>:<generation>`. The outcome is one of
 `absent`, `malformed_record`, `unsupported_schema`, `corrupt_payload`,
 `rejected` or `valid`; the generation is the stored record's, or `0` when there
 is none. A board running one section from flash and another from its factory
@@ -975,7 +988,8 @@ location suffix:
 | Response | When |
 | --- | --- |
 | `@SC:ERR:unknown_command` | The line starts with `@SC:` but names no command above. A host probes for a capability this way. |
-| `@SC:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler. |
+| `@SC:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. |
+| `@SC:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. An asset or firmware `BEGIN` or `CLEAR` in that same window is answered `busy` under its own namespace rather than waiting, because startup is still reading the partitions it would erase. |
 | `@SC:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |
 | `@SC:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. |
 

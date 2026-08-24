@@ -149,7 +149,12 @@ void AssetControl::consume_command(const std::span<const std::uint8_t> line,
     request_type_ = RequestType::info;
   } else if (matches(line, {clear_command_.data(),
                             std::strlen(clear_command_.data())})) {
-    request_type_ = RequestType::clear;
+    // Erasing takes no claim, so it asks the same question the claim answers:
+    // startup copies this partition whole, and an erase underneath that copy
+    // corrupts what it copied. Before the link answered last this could not
+    // happen; now it can, so it is refused rather than raced.
+    request_type_ = claim_ != nullptr && !claim_->ready() ? RequestType::busy
+                                                         : RequestType::clear;
   } else if (line.size() >= begin_prefix.size() &&
              std::equal(begin_prefix.begin(), begin_prefix.end(),
                         line.begin())) {

@@ -4,7 +4,10 @@ import {
   SIMCORE_BOARD_IDS,
   type ConfigurationDocumentOutcome,
   type ConfigurationDocumentState,
+  type DeviceHealth,
   type DeviceInfo,
+  type DeviceResetCause,
+  type DeviceStartupPhase,
   type SimCoreBoardId
 } from '@shared/device'
 import {
@@ -131,13 +134,65 @@ export function parseDeviceInfo(line: string): DeviceInfo {
   for (const document of CONFIGURATION_DOCUMENT_IDS) {
     documents[document] = parseDocumentState(fields.get(document))
   }
+  const health = parseDeviceHealth(fields)
   return {
     boardId: board,
     firmwareVersion,
     schemaVersion: CONFIGURATION_SCHEMA_VERSION,
     display: BOARD_PROFILES[board].display,
     documents,
-    storageAvailable: fields.get('storage') === '1'
+    storageAvailable: fields.get('storage') === '1',
+    ...(health ? { health } : {})
+  }
+}
+
+const RESET_CAUSES: readonly DeviceResetCause[] = [
+  'power_on',
+  'software',
+  'panic',
+  'task_watchdog',
+  'brownout',
+  'other'
+]
+
+const STARTUP_PHASES: readonly DeviceStartupPhase[] = [
+  'none',
+  'configuration',
+  'link',
+  'display',
+  'assets',
+  'composition',
+  'complete'
+]
+
+/**
+ * How the board's last boot went. Firmware built before the boot guard reports
+ * none of these fields, which reads as "cannot tell" and leaves the health
+ * absent — never as "healthy", because a board that cannot answer the question
+ * is an ordinary board and has to look like one. Firmware that reports the
+ * first field and not the rest is malformed, and is called that.
+ */
+function parseDeviceHealth(fields: Map<string, string>): DeviceHealth | undefined {
+  const safeMode = fields.get('safe_mode')
+  if (safeMode === undefined) return undefined
+  const bootFailures = Number(fields.get('boot_failures'))
+  const resetCause = fields.get('reset_reason')
+  const lastPhase = fields.get('last_phase')
+  if (
+    !isBooleanField(safeMode) ||
+    !Number.isSafeInteger(bootFailures) ||
+    bootFailures < 0 ||
+    bootFailures > 255 ||
+    !RESET_CAUSES.includes(resetCause as DeviceResetCause) ||
+    !STARTUP_PHASES.includes(lastPhase as DeviceStartupPhase)
+  ) {
+    throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+  }
+  return {
+    safeMode: safeMode === '1',
+    bootFailures,
+    resetCause: resetCause as DeviceResetCause,
+    lastPhase: lastPhase as DeviceStartupPhase
   }
 }
 

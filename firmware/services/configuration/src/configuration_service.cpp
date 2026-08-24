@@ -15,7 +15,8 @@ bool ConfigurationService::initialize(
     const FactoryPayloads& factory_payloads,
     const std::span<std::uint8_t> record_buffer,
     const std::span<std::uint8_t> payload_buffer,
-    const std::span<std::uint8_t> configuration_buffer) {
+    const std::span<std::uint8_t> configuration_buffer,
+    const StoredDocuments& apply_stored) {
   if (record_buffer.size() < kRecordBufferSize ||
       payload_buffer.size() < kPayloadBufferSize ||
       configuration_buffer.size() < kConfigurationBufferSize) {
@@ -71,7 +72,12 @@ bool ConfigurationService::initialize(
     if (!loaded.valid) {
       continue;
     }
-    promote_scratch();
+    // Read, validated and reported either way; promoted only where this boot is
+    // allowed to run it. The payload is remembered regardless, because `GET`
+    // answers with what is stored rather than with what is running.
+    if (apply_stored[index]) {
+      promote_scratch();
+    }
     remember_payload(document,
                      std::span<const std::uint8_t>(
                          record_buffer_.data() + kRecordHeaderSize,

@@ -53,11 +53,18 @@ const DEPENDENCY_MESSAGES: Record<string, string> = {
 const REQUEST_MESSAGES: Record<string, string> = {
   storage: 'The device could not write to its configuration storage.',
   unsupported: 'The device cannot carry out this request in its current state.',
-  unknown_command: 'The device did not recognise the request.'
+  unknown_command: 'The device did not recognise the request.',
+  // The device answers on its serial link before it has composed a dashboard,
+  // so a write that arrives in that window waits for one. This is what it says
+  // when the wait ran out — which means startup is stuck, not merely slow.
+  busy: 'The device is still starting up and has nothing to apply this to yet.'
 }
 
 const UPLOAD_MESSAGES: Record<string, string> = {
-  busy: 'Another upload is already using the device connection. Wait for it to finish and try again.',
+  busy:
+    'The device connection is busy — either another upload is using it, or the board is still ' +
+    'finishing its startup and has not let go of the storage this would overwrite. Wait a moment ' +
+    'and try again.',
   timeout: 'The upload timed out.',
   frame_crc: 'An upload frame failed its checksum. The connection may be unreliable.',
   sequence: 'An upload frame arrived out of order.',

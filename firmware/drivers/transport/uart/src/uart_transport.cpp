@@ -4,6 +4,7 @@
 
 #include "esp_err.h"
 #include "esp_log.h"
+#include "transport_watchdog.hpp"
 #if SIMCORE_DEBUG
 #include "performance.hpp"
 #endif
@@ -32,13 +33,8 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
     return false;
   }
 
-  if (configuration_.silence_esp_logs) {
-    log_silencer_.silence();
-  }
-
   if (uart_is_driver_installed(configuration_.port)) {
     if (uart_driver_delete(configuration_.port) != ESP_OK) {
-      log_silencer_.restore();
       return false;
     }
   }
@@ -75,7 +71,6 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
       uart_driver_delete(configuration_.port);
     }
     event_queue_ = nullptr;
-    log_silencer_.restore();
     return false;
   }
 
@@ -97,7 +92,6 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
     event_queue_ = nullptr;
     handler_ = nullptr;
     handler_context_ = nullptr;
-    log_silencer_.restore();
     return false;
   }
 #if SIMCORE_DEBUG
@@ -105,6 +99,12 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
 #endif
 
   return true;
+}
+
+void UartTransport::silence_logs() {
+  if (started_ && configuration_.silence_esp_logs) {
+    log_silencer_.silence();
+  }
 }
 
 void UartTransport::stop() {
@@ -117,6 +117,7 @@ void UartTransport::stop() {
 #if SIMCORE_DEBUG
     performance::unregister_task(performance::TaskMetric::transport);
 #endif
+    unwatch_task(task_);
     vTaskDelete(task_);
     task_ = nullptr;
   }
@@ -143,8 +144,15 @@ void UartTransport::task_entry(void* const context) {
 void UartTransport::process() {
   std::array<std::uint8_t, kChunkSize> data{};
   uart_event_t event{};
+  watch_current_task();
   while (true) {
-    if (xQueueReceive(event_queue_, &event, portMAX_DELAY) != pdTRUE) {
+    // Bounded rather than indefinite: the wait is what feeds the watchdog on a
+    // link no host is talking to, and an idle link must not look like a wedged
+    // one.
+    const bool has_event =
+        xQueueReceive(event_queue_, &event, kWatchdogFeedTicks) == pdTRUE;
+    feed_watchdog();
+    if (!has_event) {
       continue;
     }
 

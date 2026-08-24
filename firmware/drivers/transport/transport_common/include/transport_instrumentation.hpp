@@ -15,7 +15,14 @@ namespace simcore::transport {
 // restored the moment the link stops.
 class LogSilencer final {
  public:
-  void silence() { previous_ = esp_log_set_vprintf(&discard); }
+  // Silencing twice would record the discard function as the thing to restore,
+  // and the logs would never come back, so the second call is the one that has
+  // to do nothing.
+  void silence() {
+    if (previous_ == nullptr) {
+      previous_ = esp_log_set_vprintf(&discard);
+    }
+  }
 
   void restore() {
     if (previous_ != nullptr) {

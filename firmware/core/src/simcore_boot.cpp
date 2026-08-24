@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "application_configuration.hpp"
+#include "boot_guard.hpp"
 #include "communication_composition.hpp"
 #include "configuration_service.hpp"
 #include "esp_err.h"
@@ -104,10 +105,21 @@ void load_configuration(Application& application,
     factory[index] = std::span<const std::uint8_t>(
         reinterpret_cast<const std::uint8_t*>(json.data()), json.size());
   }
+  // A recovery boot runs the board's own protocol document rather than the
+  // stored one. The record is still read, validated and reported, so `INFO` and
+  // `GET` answer with what is on the device; it simply does not choose the
+  // link. A stored transport the host cannot reach would otherwise leave the
+  // recovery boot as unreachable as the boot it is recovering from.
+  auto apply_stored =
+      configuration::ConfigurationService::all_stored_documents();
+  if (boot_guard::safe_mode()) {
+    apply_stored[static_cast<std::size_t>(
+        configuration::ConfigurationDocument::protocol)] = false;
+  }
   if (!application.services.configuration.initialize(
           application.platform.configuration_storage, board.validation,
           factory, buffers.record, buffers.current_payloads,
-          buffers.configuration)) {
+          buffers.configuration, apply_stored)) {
     log::warn(kTag,
               "Configuration storage unavailable; using factory defaults");
   }
@@ -118,6 +130,9 @@ void load_configuration(Application& application,
     report_document(static_cast<configuration::ConfigurationDocument>(index),
                     status.documents[index]);
   }
+}
+
+void open_asset_storage(Application& application) {
   if (!application.services.font_assets.initialize(
           application.platform.font_asset_storage)) {
     log::warn(kTag, "Font asset storage unavailable");

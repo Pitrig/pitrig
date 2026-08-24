@@ -70,6 +70,16 @@ CONFIG_LV_DEF_REFR_PERIOD=8
 # CONFIG_LV_USE_OBSERVER is not set
 # CONFIG_LV_LABEL_TEXT_SELECTION is not set
 CONFIG_FREERTOS_HZ=1000
+# A wedged task is as unreachable as a crashed one, so the task watchdog resets
+# rather than only printing. Only tasks that feed it are watched: the read task
+# of every link, and the render trigger, which takes the LVGL lock each round
+# and so fails to feed when the LVGL task stops giving it back. The idle-task
+# checks are deliberately off — erasing the 4 MiB image partition starves idle
+# for seconds at a time, and that is work, not a fault.
+CONFIG_ESP_TASK_WDT_PANIC=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
+# CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0 is not set
+# CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1 is not set
 # Keep the UART receive interrupt running while flash is written so telemetry
 # is buffered, not lost, during a configuration save on UART-transport boards.
 CONFIG_UART_ISR_IN_IRAM=y

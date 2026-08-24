@@ -8,6 +8,7 @@ import type {
   ConfigurationDocumentState
 } from '@shared/device'
 import { useAppInfo } from './app-info'
+import { describeBootFailures, describeLastBoot } from './device-health'
 import { useDeviceStore } from './device-store'
 
 /**
@@ -84,6 +85,27 @@ export function InfoPage(): React.JSX.Element {
                   : 'Single application partition'
               }
             />
+            {/* Absent on firmware built before the boot guard, which reports
+                none of this. Three fields rather than one: whether the board is
+                running everything, how it got here, and how close it is to
+                falling back to the link. */}
+            {session.info.health ? (
+              <>
+                <ReadOnlyField
+                  label="Startup"
+                  value={
+                    session.info.health.safeMode
+                      ? 'Safe mode — serial link only'
+                      : 'Normal — everything composed'
+                  }
+                />
+                <ReadOnlyField label="Last boot" value={describeLastBoot(session.info.health)} />
+                <ReadOnlyField
+                  label="Recent failures"
+                  value={describeBootFailures(session.info.health)}
+                />
+              </>
+            ) : null}
           </div>
         ) : (
           <EmptyState

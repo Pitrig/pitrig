@@ -46,12 +46,16 @@ size the alignment would have cost 56 KiB in a gap.
 **Rollback is on.** `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` costs 128 bytes of
 the P4 bootloader and 64 of the S3 one, both of which fit. A freshly installed
 image boots pending verification; `core` clears it after `start_communication`
-returns, which is the point where the configuration has loaded, the display has
-come up, the dashboard has composed and the link answers. An image that cannot
-reach that line is undone by the bootloader on the next reset instead of leaving
-a board that has to be opened up. A timed criterion — *N* seconds of successful
-rendering — was considered and dropped: it adds state to carry and asserts less
-than reaching the end of startup already does.
+returns. An image that cannot reach that line is undone by the bootloader on the
+next reset instead of leaving a board that has to be opened up. A timed
+criterion — *N* seconds of successful rendering — was considered and dropped: it
+adds state to carry and asserts less than reaching that line already does.
+
+That line used to be the end of startup, because the link came up last.
+[ADR 0025](0025-startup-order-and-safe-mode.md) moved the link ahead of the
+display, so it now means only that the board can be talked to — which is what an
+image actually has to prove, since everything past it is repairable over that
+link and nothing short of it is.
 
 **Firmware is the third consumer of the `SCF1` upload engine.** The `@SC:FW:`
 namespace joins `@SC:FONT:` and `@SC:IMAGE:` over the same frames, the same
