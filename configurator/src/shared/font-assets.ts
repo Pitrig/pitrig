@@ -15,7 +15,7 @@ export const FONT_CLEAR_CHANNEL = 'font-assets:clear' as const
 
 export const MAXIMUM_FONT_FAMILIES = 8
 export const MAXIMUM_FONT_SIZE_PX = 255
-export const MAXIMUM_FONT_PACKAGE_SIZE = 2 * 1024 * 1024
+export const MAXIMUM_FONT_PACKAGE_SIZE = 3 * 1024 * 1024
 export const FONT_FAMILY_PATTERN = /^[a-z0-9_-]{1,31}$/
 
 /**

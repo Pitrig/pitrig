@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstdint>
+#include <span>
+
 #include "asset_control.hpp"
 #include "binary_session.hpp"
 #include "image_asset_service.hpp"
@@ -13,8 +16,11 @@ namespace simcore::image_assets {
 // (ADR 0018).
 class ImageAssetControl final {
  public:
+  // `frame` is the upload frame buffer every kind shares; see
+  // asset_control::AssetControl::initialize.
   [[nodiscard]] bool initialize(Service& service,
-                                binary_session::Claim& claim);
+                                binary_session::Claim& claim,
+                                std::span<std::uint8_t> frame);
 
   // Registered with the router, which routes by prefix and by who holds the
   // stream rather than by knowing what an image is.

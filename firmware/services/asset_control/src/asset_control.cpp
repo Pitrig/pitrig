@@ -53,13 +53,15 @@ void AssetControl::consume_entry(void* const context,
 
 bool AssetControl::initialize(const Traits& traits,
                               const Operations& operations,
-                              binary_session::Claim& claim) {
-  if (task_ != nullptr) {
+                              binary_session::Claim& claim,
+                              const std::span<std::uint8_t> frame) {
+  if (task_ != nullptr || frame.size() < kMaximumFrameSize) {
     return false;
   }
   traits_ = traits;
   operations_ = operations;
   claim_ = &claim;
+  frame_ = frame.first(kMaximumFrameSize);
   // The namespace ends in a colon and carries no command, which is what the
   // router matches a line against before this ever sees it.
   const int prefix_length =
@@ -114,6 +116,7 @@ void AssetControl::stop() {
   operations_ = {};
   requested_reply_ = nullptr;
   reply_ = nullptr;
+  frame_ = {};
 }
 
 bool AssetControl::ready() const {

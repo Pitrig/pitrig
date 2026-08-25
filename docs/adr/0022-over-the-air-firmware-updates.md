@@ -23,7 +23,7 @@ its 24 KiB left, which decides whether rollback support fits at all; and the
 ## Decision
 
 **Two application slots and no `factory`.** The partition table becomes
-`ota_0` and `ota_1`, 2 MiB each, with an `otadata` partition selecting between
+`ota_0` and `ota_1`, 2.5 MiB each, with an `otadata` partition selecting between
 them. Nothing falls back to a compiled-in image: if both slots are unusable the
 device is recovered over USB. That is an acceptable floor precisely because the
 device is a USB peripheral — a SimCore board with no cable attached is not
@@ -42,6 +42,44 @@ the configuration lives in `simcore_cfg` and no other component opens NVS — an
 at 16 KiB the partitions before the first application slot end exactly at
 `0x10000`, where a 64 KiB-aligned application partition has to start. At its old
 size the alignment would have cost 56 KiB in a gap.
+
+**Every byte of the part is a partition, including the ones nothing uses yet.**
+The table was first installed with 4.94 MiB left unallocated, which read as a
+reserve and was not one: a partition table travels only over a cable and only
+with a full erase behind it, so space that is not a partition today can never be
+given to a board that has already shipped. The revised table spends that tail
+and the 512 KiB reclaimed from `simcore_cfg` — 2.5 MiB slots, 3 MiB of fonts,
+7 MiB of images — and turns what is left into two declared, deliberately empty
+partitions: `coredump`, which needs only `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`
+to come alive, and `reserve`, for the next uploaded asset kind. Both can then be
+put to use by an ordinary firmware update rather than by another migration. The
+sizes are chosen once, before boards are in other people's hands, because that
+is the only moment when getting them wrong costs a developer's own `erase-flash`
+rather than everyone's.
+
+The slots grew from 2 MiB to 2.5 MiB with the image at 0.95 MiB, which is not
+pressure. It is the one failure among these that cannot be repaired in the
+field: an asset partition that turns out too small refuses a package and an
+author makes a smaller one, while a slot that turns out too small refuses the
+update that would have fixed anything.
+
+**An asset update erases what the package needs, not the partition.** With
+stores sized for the largest package a board may ever hold — and image pixels
+deflated, so a real package is usually a fraction of one — erasing seven
+megabytes ahead of every upload would have made the erase, not the transfer,
+the slowest part of installing a dashboard's artwork. `IStorage` therefore
+carries both: the whole store for a `CLEAR`, and a length for an update. Nothing
+reads past `payload_size`, so what stays behind an incoming package is
+unreachable rather than stale.
+
+**One upload frame carries 4 KiB rather than 1, in a buffer the three kinds
+share.** The engine is stop-and-wait: one frame, one acknowledgement, no
+window. A package therefore costs its size divided by the frame size in round
+trips, and at 1 KiB a 7 MiB package would spend minutes in latency alone on the
+slowest link. Widening it costs internal RAM, and a buffer per kind would have
+cost it three times over — which the claim makes pointless, since only the kind
+holding the stream is assembling anything. The composition owns one buffer and
+hands each engine a span of it.
 
 **Rollback is on.** `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` costs 128 bytes of
 the P4 bootloader and 64 of the S3 one, both of which fit. A freshly installed
@@ -92,10 +130,18 @@ running and the one it would fall back to, and neither is erasable on request.
 - Updating a board no longer needs a toolchain, a checkout, or `idf.py`.
 - Installing this partition table is a one-time full erase. Configuration must be
   re-saved and the font and image packages re-uploaded.
-- Flash use grows from 8.31 MiB to 11.06 MiB of the 16 MiB part, leaving
-  4.94 MiB unallocated.
+- The whole 16 MiB part is allocated and nothing is left unnamed. What is spare
+  is spare *inside* a partition, where a firmware update can reach it.
 - The application image grew by about 18 KiB, which is what `app_update` and the
-  new service cost. Every board keeps more than half of its slot free.
+  new service cost. At 0.95 MiB in a 2.5 MiB slot, every board keeps well over
+  half of its slot free.
+- `simcore_cfg` at 512 KiB still holds several stored configurations, but fewer
+  than the 1 MiB ADR 0009 sized for. Three documents come to 66 KiB, so the
+  headroom is now measured in a handful of them rather than in dozens.
+- The upload frame at 4 KiB cuts an upload's round trips by four. Measured on
+  the T-Display-S3 build, sharing one buffer instead of three returns 8 208
+  bytes of internal RAM, so the widening costs 1 008 bytes net rather than
+  9 216.
 - The P4 bootloader now has 1 296 bytes of headroom. Anything that adds to it —
   secure boot, flash encryption, anti-rollback — will need
   `CONFIG_PARTITION_TABLE_OFFSET` moved past `0x8000` first.

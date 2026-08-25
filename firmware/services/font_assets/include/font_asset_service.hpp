@@ -11,7 +11,7 @@
 
 namespace simcore::font_assets {
 
-inline constexpr std::size_t kStorageSize = 2U * 1024U * 1024U;
+inline constexpr std::size_t kStorageSize = 3U * 1024U * 1024U;
 inline constexpr std::size_t kHeaderSize = asset_package::kHeaderSize;
 inline constexpr std::size_t kManifestEntrySize = 48;
 inline constexpr std::size_t kAssetDataOffset = 4096;

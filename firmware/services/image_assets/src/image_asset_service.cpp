@@ -75,7 +75,7 @@ UpdateError Service::begin_update(const std::size_t package_size) {
   package_mapping_ = {};
   package_ = {};
   clear_package_status();
-  if (!storage_->erase()) {
+  if (!storage_->erase(package_size)) {
     return UpdateError::storage_failure;
   }
   update_in_progress_ = true;

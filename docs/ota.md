@@ -15,13 +15,30 @@ The decisions behind this are in
 | `nvs` | data, nvs | `0x9000` | 16 KiB |
 | `otadata` | data, ota | `0xD000` | 8 KiB |
 | `phy_init` | data, phy | `0xF000` | 4 KiB |
-| `ota_0` | app | `0x10000` | 2 MiB |
-| `ota_1` | app | `0x210000` | 2 MiB |
-| `simcore_cfg` | data, nvs | `0x410000` | 1 MiB |
-| `font_assets` | data, `0x40` | `0x510000` | 2 MiB |
-| `image_assets` | data, `0x41` | `0x710000` | 4 MiB |
+| `ota_0` | app | `0x10000` | 2.5 MiB |
+| `ota_1` | app | `0x290000` | 2.5 MiB |
+| `simcore_cfg` | data, nvs | `0x510000` | 512 KiB |
+| `font_assets` | data, `0x40` | `0x590000` | 3 MiB |
+| `image_assets` | data, `0x41` | `0x890000` | 7 MiB |
+| `coredump` | data, coredump | `0xF90000` | 64 KiB |
+| `reserve` | data, `0x45` | `0xFA0000` | 384 KiB |
 
-The table ends at `0xB10000`, leaving 4.94 MiB of the 16 MiB part unallocated.
+The table ends at `0x1000000`: the whole 16 MiB part is allocated, and none of
+it is left as an unnamed tail. That is deliberate. A partition table is the one
+thing no update can deliver — an image travels over serial, a table travels
+over a cable and takes a full erase with it — so space that is not a partition
+today is space no board in the field can ever be given. `coredump` and
+`reserve` are therefore declared and left empty: nothing here writes to either,
+and a later firmware update can start using them without anyone opening a case.
+`coredump` waits for `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`, `reserve` for
+whatever the next uploaded asset kind turns out to be.
+
+Each asset partition holds one package and accepts one up to its full size: 3
+MiB of fonts, 7 MiB of images. An update erases only what the arriving package
+occupies rather than the whole store, because the two sizes are rarely close —
+image pixels are deflated, and a dashboard's worth of them is usually a few
+hundred kilobytes against seven megabytes of partition.
+
 There is no `factory` partition: a board whose two slots are both unusable is
 recovered over USB with `idf.py flash`.
 
@@ -121,7 +138,7 @@ The host starts a session with the complete package size, including the header:
 
 ```text
 @SC:FW:BEGIN:size=<bytes>
-@SC:OK:FW:READY:max_chunk=1024
+@SC:OK:FW:READY:max_chunk=4096
 ```
 
 Unlike the asset kinds, nothing is erased at `BEGIN`. The write handle is opened

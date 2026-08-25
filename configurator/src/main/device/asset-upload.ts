@@ -11,7 +11,8 @@ import { crc32 } from './asset-crc'
 
 const FRAME_MAGIC = Buffer.from('SCF1', 'ascii')
 const FRAME_HEADER_SIZE = 14
-const MAXIMUM_CHUNK_SIZE = 1024
+// The device announces this in READY and refuses a larger frame.
+const MAXIMUM_CHUNK_SIZE = 4096
 const BEGIN_TIMEOUT_MS = 30_000
 const FRAME_TIMEOUT_MS = 5_000
 
@@ -52,7 +53,7 @@ export async function uploadAssetPackage(
     await exchangeLine(
       port,
       Buffer.from(begin, 'utf8'),
-      `@SC:OK:${namespace.command}:READY:max_chunk=1024`,
+      `@SC:OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`,
       BEGIN_TIMEOUT_MS,
       callbacks,
       signal

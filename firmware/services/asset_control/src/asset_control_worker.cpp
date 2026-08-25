@@ -104,7 +104,9 @@ void AssetControl::handle_begin() {
     return;
   }
   release_request();
-  if (!send_ok("READY:max_chunk=1024")) {
+  // The host matches this line literally.
+  static_assert(kUploadMaximumChunkSize == 4096);
+  if (!send_ok("READY:max_chunk=4096")) {
     operations_.cancel_update(operations_.service);
     reset_session();
   }

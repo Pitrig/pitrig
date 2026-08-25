@@ -1,5 +1,7 @@
 #include "partition_asset_storage.hpp"
 
+#include <algorithm>
+
 #include "esp_err.h"
 
 namespace simcore::platform {
@@ -46,6 +48,23 @@ bool PartitionStorage::erase() {
   }
   unmap();
   return esp_partition_erase_range(partition_, 0, partition_->size) == ESP_OK;
+}
+
+bool PartitionStorage::erase(const std::size_t bytes) {
+  if (partition_ == nullptr || bytes > partition_->size) {
+    return false;
+  }
+  // esp_partition_erase_range refuses an unaligned length, so the rounding is
+  // a requirement rather than a convenience.
+  const std::size_t granularity = partition_->erase_size;
+  const std::size_t aligned =
+      (bytes + granularity - 1U) / granularity * granularity;
+  const std::size_t length = std::min<std::size_t>(aligned, partition_->size);
+  if (length == 0) {
+    return true;
+  }
+  unmap();
+  return esp_partition_erase_range(partition_, 0, length) == ESP_OK;
 }
 
 bool PartitionStorage::write(const std::size_t offset,

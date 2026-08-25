@@ -49,11 +49,14 @@ each family and size a configuration references becomes one runtime font
 object.
 
 Font assets live outside the application image and configuration NVS in one raw
-2 MiB `font_assets` partition. The package contains a bounded manifest followed
-by face data. The manifest owns a format version, bounded entry count, and for
-every entry its family identifier, offset, length, and CRC32. Package-level
-validation covers the complete stored asset set and includes an sfnt signature
-check, because a face is parsed while rendering rather than at load.
+`font_assets` partition, 2 MiB at the time of this decision and 3 MiB since
+[ADR 0022](0022-over-the-air-firmware-updates.md) resized the table; the current
+offsets are in [ota.md](../ota.md). The package contains a bounded manifest
+followed by face data. The manifest owns a format version, bounded entry count,
+and for every entry its family identifier, offset, length, and CRC32.
+Package-level validation covers the complete stored asset set and includes an
+sfnt signature check, because a face is parsed while rendering rather than at
+load.
 
 An upload erases and replaces the single partition. Bytes after the header are
 written first; firmware validates every bound and checksum before writing the

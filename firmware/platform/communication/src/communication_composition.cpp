@@ -71,18 +71,21 @@ bool Composition::start(
     log::error(kTag, "Failed to start configuration control task");
     return false;
   }
-  if (full && !font_asset_control_.initialize(font_assets, binary_claim_)) {
+  if (full && !font_asset_control_.initialize(font_assets, binary_claim_,
+                                              upload_frame_)) {
     log::error(kTag, "Failed to start font asset control task");
     configuration_control_.stop();
     return false;
   }
-  if (full && !image_asset_control_.initialize(image_assets, binary_claim_)) {
+  if (full && !image_asset_control_.initialize(image_assets, binary_claim_,
+                                               upload_frame_)) {
     log::error(kTag, "Failed to start image asset control task");
     font_asset_control_.stop();
     configuration_control_.stop();
     return false;
   }
-  if (!firmware_update_control_.initialize(firmware_update, binary_claim_)) {
+  if (!firmware_update_control_.initialize(firmware_update, binary_claim_,
+                                           upload_frame_)) {
     log::error(kTag, "Failed to start firmware update task");
     image_asset_control_.stop();
     font_asset_control_.stop();

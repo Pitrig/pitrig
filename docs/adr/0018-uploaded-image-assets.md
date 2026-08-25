@@ -33,8 +33,9 @@ nothing already installed moves. A full-screen 1024×600 RGB565A8 background is
 16 MiB flash unallocated, reserved for the Phase 6 OTA layout — a dual-OTA
 arrangement at the current app size needs about 4 MiB, so the remaining space
 was deliberate rather than incidental. [ADR 0022](0022-over-the-air-firmware-updates.md)
-spent it, and moved this partition to `0x710000` in the process; the current
-offsets are in [ota.md](../ota.md).
+spent it, moved this partition in the process, and later grew it to 7 MiB when
+the rest of the tail was allocated; the current offsets are in
+[ota.md](../ota.md).
 
 **The `SCIA` package mirrors `SCFA` where it can and diverges where it must.**
 The 32-byte header is byte-for-byte identical — magic, format, entry count,

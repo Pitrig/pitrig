@@ -121,6 +121,8 @@ class Composition final {
   // However many links are attached, only one of them may own the binary
   // stream at a time.
   binary_session::Claim binary_claim_;
+  // And why one frame buffer serves all three upload kinds.
+  std::array<std::uint8_t, asset_control::kMaximumFrameSize> upload_frame_{};
   std::array<Link, kMaximumLinks> links_;
   std::size_t link_count_{};
   telemetry::TelemetryProvider* telemetry_{};

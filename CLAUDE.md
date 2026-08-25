@@ -302,7 +302,7 @@ UART, USB CDC, or SimHub. See [docs/simhub-custom-serial.md](docs/simhub-custom-
 ### Uploaded assets and firmware
 
 Fonts and images are both uploaded, never compiled in, and they share everything
-except their package format: one 4 MiB `image_assets` partition beside the 2 MiB
+except their package format: one 7 MiB `image_assets` partition beside the 3 MiB
 `font_assets` one, the `asset_storage` contract under both, the `SCF1` frames
 over `@SC:FONT:` / `@SC:IMAGE:`, and a single `binary_session::Claim` that
 decides which one owns the serial link — a second upload is answered `busy`
@@ -323,12 +323,15 @@ repaint and loses the P4 accelerator. See
 [docs/adr/0018-uploaded-image-assets.md](docs/adr/0018-uploaded-image-assets.md).
 
 Firmware travels the same way under `@SC:FW:` and takes the same claim. The
-partition table carries two 2 MiB application slots and no `factory`: an upload
-fills the one that is not running, `@SC:REBOOT` starts it, and rollback returns
+partition table carries two 2.5 MiB application slots and no `factory`: an
+upload fills the one that is not running, `@SC:REBOOT` starts it, and rollback returns
 to the previous slot if startup does not finish. The image is wrapped in the
 same 32-byte header with a manifest naming the `BoardId`, because ESP-IDF checks
 the chip and both S3 boards are the same chip. Changing the partition table is a
-full `erase-flash`. See [docs/ota.md](docs/ota.md) and
+full `erase-flash` over a cable — the one thing an update cannot deliver, so
+the table allocates the whole 16 MiB part and declares `coredump` and `reserve`
+empty rather than leaving a tail no shipped board could ever be given.
+See [docs/ota.md](docs/ota.md) and
 [docs/adr/0022-over-the-air-firmware-updates.md](docs/adr/0022-over-the-air-firmware-updates.md).
 
 ### Fonts

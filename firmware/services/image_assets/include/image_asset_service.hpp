@@ -11,7 +11,7 @@
 
 namespace simcore::image_assets {
 
-inline constexpr std::size_t kStorageSize = 4U * 1024U * 1024U;
+inline constexpr std::size_t kStorageSize = 7U * 1024U * 1024U;
 inline constexpr std::size_t kHeaderSize = asset_package::kHeaderSize;
 inline constexpr std::size_t kManifestEntrySize = 64;
 inline constexpr std::size_t kAssetDataOffset = 4096;

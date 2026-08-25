@@ -24,16 +24,19 @@ already holds one keeps drawing across a firmware update.
 
 ## Storage model
 
-Firmware reserves one raw 4 MiB data partition named `image_assets`, placed
-immediately after `font_assets` so nothing already installed moves. At startup
-it validates the stored package. If the package is absent or invalid, no images
-are available and a configuration naming one is rejected.
+Firmware reserves one raw 7 MiB data partition named `image_assets`, placed
+immediately after `font_assets`. At startup it validates the stored package. If
+the package is absent or invalid, no images are available and a configuration
+naming one is rejected.
 
-An update erases and replaces the complete partition. Bytes after the 32-byte
-header are written first. The header stays in RAM and is written only after the
-complete candidate package passes validation. An interrupted upload therefore
-leaves an invalid package; there is no second slot and no previous generation to
-recover.
+An update replaces the whole package: there is one slot, and the bytes an
+arriving package occupies are erased before it is written — the rest of the
+partition is left alone, because nothing reads past `payload_size`, and erasing
+seven megabytes for a package of a few hundred kilobytes would cost more than
+the upload does. Bytes after the 32-byte header are written first. The header
+stays in RAM and is written only after the complete candidate package passes
+validation. An interrupted upload therefore leaves an invalid package; there is
+no second slot and no previous generation to recover.
 
 A successfully committed package becomes active after reboot. The package is
 mapped read-only at startup and firmware copies the images into external RAM
@@ -74,7 +77,7 @@ polynomial, initial value `0xFFFFFFFF`, final XOR `0xFFFFFFFF`).
 | following | until `0x1000` | Reserved; ignored |
 | `0x1000` | variable | 64-byte aligned image data |
 
-`payload_size` is the exact package size and may not exceed 4 MiB. Every asset
+`payload_size` is the exact package size and may not exceed 7 MiB. Every asset
 range must be fully contained in `[0x1000, payload_size)`. Asset offsets are
 64-byte aligned — the cache line on both targets and the ESP32-P4 draw-buffer
 alignment — and must not overlap.
@@ -92,7 +95,7 @@ side; only the magic tells them apart.
 | 8 | `u32` | reserved | zero |
 | 12 | `u16` | entry count | 0 through 32 |
 | 14 | `u16` | reserved | zero |
-| 16 | `u32` | payload size | `0x1000` through `0x400000` |
+| 16 | `u32` | payload size | `0x1000` through `0x700000` |
 | 20 | `u32` | manifest CRC | manifest entries only |
 | 24 | `u32` | payload CRC | bytes `[0x1000, payload_size)` |
 | 28 | `u32` | header CRC | bytes `[0, 28)` |
@@ -236,7 +239,7 @@ Firmware validates the size and erases the image partition in its own dedicated
 static FreeRTOS task. When ready for binary data, it replies:
 
 ```text
-@SC:OK:IMAGE:READY:max_chunk=1024
+@SC:OK:IMAGE:READY:max_chunk=4096
 ```
 
 After this response, every host request is a binary frame. The host sends only
@@ -290,7 +293,7 @@ so a source with no transparent pixel is offered `rgb565` rather than `rgb565a8`
 It is a default, not a rule — the format stays the author's to set.
 
 At most 32 images fit in one package, each at most 2048 pixels on a side and at
-most 64 frames, with the package as a whole bounded by the 4 MiB partition. A
+most 64 frames, with the package as a whole bounded by the 7 MiB partition. A
 sheet's frames are all converted to one geometry, since that geometry is what the
 device steps through them by. Two sizes matter and they
 are no longer the same one: the **stored** size is what fills that partition,

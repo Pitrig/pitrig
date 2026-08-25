@@ -17,8 +17,9 @@ export const FIRMWARE_HEADER_SIZE = 32
 export const FIRMWARE_MANIFEST_ENTRY_SIZE = 2
 // Where the application image starts inside the package.
 export const FIRMWARE_IMAGE_OFFSET = 64
-// One OTA slot. An image larger than this cannot be installed on any board.
-export const MAXIMUM_FIRMWARE_IMAGE_SIZE = 2 * 1024 * 1024
+// One OTA slot, 2.5 MiB. An image larger than this cannot be installed on any
+// board.
+export const MAXIMUM_FIRMWARE_IMAGE_SIZE = 2560 * 1024
 
 export interface FirmwareUpdateState {
   /** False when the running partition table has no second slot. */

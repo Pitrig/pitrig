@@ -5,7 +5,7 @@ export const IMAGE_CLEAR_CHANNEL = 'image-assets:clear' as const
 export const IMAGE_UPLOAD_PROGRESS_CHANNEL = 'image-assets:upload-progress' as const
 
 export const MAXIMUM_IMAGES = 32
-export const MAXIMUM_IMAGE_PACKAGE_SIZE = 4 * 1024 * 1024
+export const MAXIMUM_IMAGE_PACKAGE_SIZE = 7 * 1024 * 1024
 /** Where the `SCIA` package's pixels start, after its header and manifest. */
 export const IMAGE_PACKAGE_DATA_OFFSET = 4096
 /** The device's alignment: the cache line, and the P4's draw-buffer alignment. */

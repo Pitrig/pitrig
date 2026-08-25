@@ -10,15 +10,17 @@ configuration asks for from the installed face.
 
 ## Storage model
 
-Firmware reserves one raw 2 MiB data partition named `font_assets`. At startup
+Firmware reserves one raw 3 MiB data partition named `font_assets`. At startup
 it validates the stored package. If the package is absent or invalid, no
 dashboard fonts are available.
 
-An update erases and replaces the complete partition. Bytes after the 32-byte
-header are written first. The header stays in RAM and is written only after the
-complete candidate package passes validation. An interrupted upload therefore
-leaves an invalid package, but there is no second slot or previous generation
-to recover.
+An update replaces the whole package: there is one slot, and the bytes an
+arriving package occupies are erased before it is written — the rest of the
+partition is left alone, because nothing reads past `payload_size`. Bytes after
+the 32-byte header are written first. The header stays in RAM and is written
+only after the complete candidate package passes validation. An interrupted
+upload therefore leaves an invalid package, but there is no second slot or
+previous generation to recover.
 
 A successfully committed package becomes active after reboot. The package is
 mapped read-only at startup and firmware copies each face into external RAM
@@ -44,7 +46,7 @@ polynomial, initial value `0xFFFFFFFF`, final XOR `0xFFFFFFFF`).
 | following | until `0x1000` | Reserved; ignored by version 3 |
 | `0x1000` | variable | Aligned font face data |
 
-`payload_size` is the exact package size and may not exceed 2 MiB. Every asset
+`payload_size` is the exact package size and may not exceed 3 MiB. Every asset
 range must be fully contained in `[0x1000, payload_size)`. Asset offsets are
 four-byte aligned and must not overlap.
 
@@ -58,7 +60,7 @@ four-byte aligned and must not overlap.
 | 8 | `u32` | reserved | zero |
 | 12 | `u16` | entry count | 0 through 8 |
 | 14 | `u16` | reserved | zero |
-| 16 | `u32` | payload size | `0x1000` through `0x200000` |
+| 16 | `u32` | payload size | `0x1000` through `0x300000` |
 | 20 | `u32` | manifest CRC | manifest entries only |
 | 24 | `u32` | payload CRC | bytes `[0x1000, payload_size)` |
 | 28 | `u32` | header CRC | bytes `[0, 28)` |
@@ -139,11 +141,12 @@ The host starts a session with the complete package size:
 @SC:FONT:BEGIN:size=<bytes>
 ```
 
-Firmware validates the size and erases the font partition in a dedicated
-static FreeRTOS task. When ready for binary data, it replies:
+Firmware validates the size and erases as much of the font partition as the
+announced package needs, in a dedicated static FreeRTOS task. When ready for
+binary data, it replies:
 
 ```text
-@SC:OK:FONT:READY:max_chunk=1024
+@SC:OK:FONT:READY:max_chunk=4096
 ```
 
 After this response, every host request is a binary frame. The host sends only
@@ -155,12 +158,12 @@ one frame at a time and waits for its response before sending the next one.
 | 4 | 1 | type | `1` data, `2` commit, `3` cancel |
 | 5 | 1 | reserved | zero |
 | 6 | 4 | sequence | unsigned little-endian, starting at zero |
-| 10 | 2 | payload length | unsigned little-endian, 1–1024 for data, zero otherwise |
+| 10 | 2 | payload length | unsigned little-endian, 1–4096 for data, zero otherwise |
 | 12 | 2 | reserved | zero |
 | 14 | variable | payload | package bytes for a data frame |
 | following | 4 | frame CRC | CRC32 of the header and payload |
 
-The maximum frame size is 1042 bytes. The commit and cancel frames use the next
+The maximum frame size is 4114 bytes. The commit and cancel frames use the next
 expected sequence number. Each accepted data frame receives:
 
 ```text

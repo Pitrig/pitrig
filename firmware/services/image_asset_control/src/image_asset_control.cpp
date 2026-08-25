@@ -81,7 +81,8 @@ int write_info_body(void* const service, char* const out,
 }  // namespace
 
 bool ImageAssetControl::initialize(Service& service,
-                                   binary_session::Claim& claim) {
+                                   binary_session::Claim& claim,
+                                   const std::span<std::uint8_t> frame) {
   return control_.initialize(
       {
           .tag = "IMAGE",
@@ -97,7 +98,7 @@ bool ImageAssetControl::initialize(Service& service,
           .cancel_update = &cancel_update,
           .write_info_body = &write_info_body,
       },
-      claim);
+      claim, frame);
 }
 
 }  // namespace simcore::image_assets

@@ -24,6 +24,7 @@ class PartitionStorage final : public asset_storage::IStorage {
   [[nodiscard]] bool map(std::span<const std::uint8_t>& bytes) override;
   void unmap() override;
   [[nodiscard]] bool erase() override;
+  [[nodiscard]] bool erase(std::size_t bytes) override;
   [[nodiscard]] bool write(std::size_t offset,
                            std::span<const std::uint8_t> bytes) override;
 

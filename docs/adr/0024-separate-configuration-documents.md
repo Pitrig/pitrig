@@ -125,5 +125,5 @@ nothing an author would recognise.
   against. The `modules` document carries peripherals; the Lap Timer still
   activates from a `lap_timer` modifier inside a dashboard widget's source, and
   that binding stays inside one document.
-- The 1 MiB `simcore_cfg` partition is unchanged. Three records well under a
-  quarter of it leaves the headroom ADR 0009 reserved.
+- The `simcore_cfg` partition is unchanged by this decision. Three records come
+  to 66 KiB, comfortably inside the 512 KiB it holds since ADR 0022.

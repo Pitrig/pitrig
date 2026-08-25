@@ -68,8 +68,12 @@ configuration contract defines. Size the dedicated
 copy NVS keeps while it rewrites one, and NVS's own page metadata fit in a
 quarter of that; the rest is deliberate headroom for storing several
 configurations rather than one, which is planned and would otherwise force a
-second flash migration. The slots themselves stay a pair — `StorageSlot{a, b}`
-is how one record is replaced atomically, not how profiles are kept.
+second flash migration. ADR 0022 later cut it to 512 KiB (`0x80000`): ADR 0024
+split the stored configuration into three documents totalling 66 KiB rather than
+two 64 KiB records, so half the partition buys the same headroom and the other
+half was worth more as flash a board can be given assets in. The slots
+themselves stay a pair — `StorageSlot{a, b}` is how one record is replaced
+atomically, not how profiles are kept.
 
 The partition was 256 KiB at `0x210000` until ADR 0022 rebuilt the table around
 two application slots. Growing it moves everything after it, so installing

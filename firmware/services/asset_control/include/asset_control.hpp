@@ -15,7 +15,14 @@
 
 namespace simcore::asset_control {
 
-inline constexpr std::size_t kUploadMaximumChunkSize = 1024;
+// Stop-and-wait, so a package costs its size divided by this in round trips.
+inline constexpr std::size_t kUploadMaximumChunkSize = 4096;
+inline constexpr std::size_t kFrameHeaderSize = 14;
+inline constexpr std::size_t kFrameCrcSize = 4;
+// Size of the buffer a frame is assembled in. Only the kind holding the binary
+// claim assembles anything, so the engines are given one buffer between them.
+inline constexpr std::size_t kMaximumFrameSize =
+    kFrameHeaderSize + kUploadMaximumChunkSize + kFrameCrcSize;
 
 // The `SCF1` upload engine, shared by every uploaded asset kind. Fonts and
 // images differ in what a package contains and in what INFO reports about it;
@@ -62,9 +69,13 @@ class AssetControl final {
 
   // Every reply goes to the link the request arrived on, so no transport is
   // taken here: the engine learns which link that is from each command.
+  //
+  // `frame` is written only while this kind holds `claim`, which is what lets
+  // every kind be given the same one. It must hold kMaximumFrameSize bytes.
   [[nodiscard]] bool initialize(const Traits& traits,
                                 const Operations& operations,
-                                binary_session::Claim& claim);
+                                binary_session::Claim& claim,
+                                std::span<std::uint8_t> frame);
 
   // Registered with the router, which routes by prefix and by who holds the
   // stream rather than by knowing what an asset is.
@@ -98,10 +109,6 @@ class AssetControl final {
     invalid_frame,
   };
 
-  static constexpr std::size_t kFrameHeaderSize = 14;
-  static constexpr std::size_t kFrameCrcSize = 4;
-  static constexpr std::size_t kMaximumFrameSize =
-      kFrameHeaderSize + kUploadMaximumChunkSize + kFrameCrcSize;
   static constexpr std::size_t kTaskStackSize = 4096;
   static constexpr UBaseType_t kTaskPriority = 4;
   static constexpr TickType_t kInactivityTimeout = pdMS_TO_TICKS(10'000);
@@ -172,7 +179,7 @@ class AssetControl final {
   std::atomic<RequestState> request_state_{RequestState::idle};
   RequestType request_type_{RequestType::begin};
   std::size_t requested_package_size_{};
-  std::array<std::uint8_t, kMaximumFrameSize> frame_{};
+  std::span<std::uint8_t> frame_{};
   std::size_t frame_size_{};
   std::size_t expected_frame_size_{};
   std::size_t request_frame_size_{};
