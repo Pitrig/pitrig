@@ -30,6 +30,16 @@ load measurement. Without `SIMCORE_DEBUG`, transport diagnostics, display
 instrumentation, and the dashboard overlay are removed from the production hot
 path, and FreeRTOS runtime statistics remain disabled.
 
+## Reading the snapshot over the link
+
+The same snapshot is answered on the serial link by `@SC:DIAG`, alongside live
+heap figures the overlay does not draw: the total and lowest-since-boot free
+bytes of both heaps. That is what makes a memory budget measurable — a host can
+apply a document and read what it cost, in bytes, without anyone reading the
+panel. The command exists only in a build that has this service; a product build
+answers `@SC:ERR:unsupported`. The reply's field list is documented in
+[device-configuration.md](device-configuration.md).
+
 ## Measurements
 
 - **FPS:** number of LVGL refreshes that performed rendering, divided by the

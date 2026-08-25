@@ -929,6 +929,45 @@ composition renders, not what was loaded, so `GET` keeps returning each
 document's boot payload and the per-document outcomes keep naming the boot
 records.
 
+## Runtime diagnostics
+
+`DIAG` reports what the running device costs rather than what it holds: live
+memory figures and the last interval of the frame sampler. It is the same
+measurement the debug overlay draws, answered on the link instead of on the
+panel, so a board whose limits are being measured can be read exactly and from
+a script rather than off its own screen.
+
+It is a **debug-build** command. Firmware built without `CONFIG_SIMCORE_DEBUG`
+carries no sampler, so it answers `@SC:ERR:unsupported`; see
+[runtime-performance.md](runtime-performance.md) for the build.
+
+```text
+@SC:DIAG
+@SC:OK:DIAG:internal_total=393216,internal_free=180224,internal_min=172032,internal_largest=131072,psram_total=8388608,psram_free=7340032,psram_min=7208960,psram_largest=4194304,fps=59.9,cpu0=12.4,cpu1=31.0,render_us=3120,flush_us=1980,sync_us=410,frame_max_us=17600,work_max_us=6200,gap_max_us=9100,stack_lvgl=3200,stack_transport=2100,stack_control=1800,stack_upload=2400,stack_sampler=1500,uptime_ms=48213
+```
+
+Fields:
+
+- `internal_*` and `psram_*` are the total, current free, lowest free since
+  boot, and largest free block of each heap, in bytes. `psram_total` is `0` on a
+  board without external RAM. They are read when the command arrives rather than
+  taken from the one-second snapshot, so a host that just applied a document
+  reads what that document costs now; `*_min` is the low-water mark since boot,
+  which is what a memory budget is set against;
+- `fps`, `cpu0` and `cpu1` carry one decimal, and every `*_us` field is
+  microseconds. They mean exactly what the same names mean in
+  [runtime-performance.md](runtime-performance.md), and they come from the
+  sampler's last completed interval — a composition that has just changed is
+  described a second later;
+- `stack_*` is the free stack of each monitored task in bytes. The font and
+  image upload tasks share `stack_upload`, reported as the smaller of the two,
+  because only one of them can own the link at a time;
+- `uptime_ms` is milliseconds since boot.
+
+Nothing here is part of the configuration contract: the field list is a
+diagnostic surface that may grow, and a host must read it by name rather than
+by position.
+
 ## Control commands
 
 The configuration protocol remains line-oriented and shares the selected
@@ -953,6 +992,7 @@ them is answered `@SC:ERR:unknown_document`.
 | Request | Successful response | Purpose |
 | --- | --- | --- |
 | `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata, and each document's stored record. |
+| `@SC:DIAG` | `@SC:OK:DIAG:...` | Read live memory and frame figures. Debug builds only; a product build answers `unsupported`. |
 | `@SC:GET:<doc>` | `@SC:OK:CONFIG:<doc>:<JSON>` | Read the exact sparse JSON payload that document would be loaded from: the stored record, or the board's own document while none is held. `@SC:APPLY` does not move it. |
 | `@SC:VALIDATE:<doc>:<JSON>` | `@SC:OK:VALID:<doc>` | Validate without saving. |
 | `@SC:APPLY:<doc>:<JSON>` | `@SC:OK:APPLIED:<doc>` | Validate and apply to the running composition without saving. |
@@ -988,7 +1028,7 @@ location suffix:
 | Response | When |
 | --- | --- |
 | `@SC:ERR:unknown_command` | The line starts with `@SC:` but names no command above. A host probes for a capability this way. |
-| `@SC:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. |
+| `@SC:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. Also `DIAG` on a product build, which carries no sampler to answer it with. |
 | `@SC:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. An asset or firmware `BEGIN` or `CLEAR` in that same window is answered `busy` under its own namespace rather than waiting, because startup is still reading the partitions it would erase. |
 | `@SC:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |
 | `@SC:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. |

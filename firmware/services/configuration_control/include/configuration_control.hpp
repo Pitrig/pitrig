@@ -84,6 +84,11 @@ class ConfigurationControl {
   // each stored document, and how the last boot went. Its own file, because it
   // is the one command that reports rather than acts.
   void send_info();
+  // The `DIAG` reply: what the running device costs in memory and in frame
+  // time. A debug build answers it with live figures; a product build answers
+  // `unsupported`, because the sampler those figures come from is not compiled
+  // into one. Its own file, for the same reason `INFO` has one.
+  void send_diagnostics();
   // Whether the composition a write needs is there yet. False only after the
   // wait above elapsed without it.
   [[nodiscard]] bool await_composition();

@@ -45,6 +45,14 @@ void ConfigurationControl::handle(
     return;
   }
 
+  // The other command that only reports. It waits for nothing: a board still
+  // composing is exactly the board a host may want the memory figures of.
+  if (command.size() == 4 &&
+      std::equal(command.begin(), command.end(), "DIAG")) {
+    send_diagnostics();
+    return;
+  }
+
   // Everything below that writes has to wait for a composition to write into.
   // Startup answers on the link well before the dashboard exists, so a document
   // arriving in that window would otherwise be applied to half a device.
