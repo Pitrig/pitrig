@@ -7,6 +7,7 @@
 #include "dashboard_images.hpp"
 #include "dashboard_layout.hpp"
 #include "event_bus.hpp"
+#include "fps_overlay_widget.hpp"
 #include "performance_overlay_widget.hpp"
 #include "arc_widget.hpp"
 #include "bar_widget.hpp"
@@ -162,6 +163,7 @@ struct Dashboard {
   dashboard::slots::Controller slots;
   dashboard::navigation::Controller navigation;
   dashboard::performance_overlay_widget::View performance_overlay;
+  dashboard::fps_overlay_widget::View fps_overlay;
   dashboard::WidgetManager widgets;
   TextWidgets text;
   ShapeWidgets shape;

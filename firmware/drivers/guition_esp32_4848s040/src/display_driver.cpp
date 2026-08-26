@@ -18,7 +18,7 @@ namespace {
 constexpr char kTag[] = "guition_4848s040";
 constexpr std::uint32_t kHorizontalResolution = 480;
 constexpr std::uint32_t kVerticalResolution = 480;
-constexpr std::uint32_t kPixelClockHz = 10'000'000;
+constexpr std::uint32_t kPixelClockHz = 16'000'000;
 
 constexpr gpio_num_t kBacklightPin = GPIO_NUM_38;
 constexpr gpio_num_t kSpiChipSelectPin = GPIO_NUM_39;
@@ -184,7 +184,7 @@ esp_lcd_panel_handle_t initialize_panel(esp_lcd_panel_io_handle_t io) {
       .out_color_format = LCD_COLOR_FMT_RGB565,
       .num_fbs = 2,
       .user_fbs = {},
-      .bounce_buffer_size_px = 0,
+      .bounce_buffer_size_px = kHorizontalResolution * 10,
       .dma_burst_size = 64,
       .hsync_gpio_num = kHorizontalSyncPin,
       .vsync_gpio_num = kVerticalSyncPin,
@@ -248,17 +248,17 @@ driver::Configuration initialize() {
       .panel = panel,
       .horizontal_resolution = kHorizontalResolution,
       .vertical_resolution = kVerticalResolution,
-      .buffer_size = kHorizontalResolution * kVerticalResolution,
+      .buffer_size = kHorizontalResolution * 40,
       .swap_xy = false,
       .mirror_x = false,
       .mirror_y = false,
       .bus_type = driver::BusType::rgb,
       .color_format = driver::ColorFormat::rgb565,
-      .double_buffer = false,
-      .buffer_in_dma_memory = false,
+      .double_buffer = true,
+      .buffer_in_dma_memory = true,
       .buffer_in_psram = false,
-      .avoid_tearing = true,
-      .direct_mode = true,
+      .avoid_tearing = false,
+      .direct_mode = false,
   };
 }
 

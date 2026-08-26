@@ -8,6 +8,28 @@ config SIMCORE_DEBUG
         Enables performance collection, transport diagnostics, and the
         on-screen performance overlay.
 
+choice SIMCORE_DEBUG_OVERLAY
+    prompt "Debug on-screen overlay"
+    depends on SIMCORE_DEBUG
+    default SIMCORE_DEBUG_OVERLAY_FPS
+    help
+        What a debug build draws over the dashboard. The full panel blends a
+        semi-transparent block over the widgets beneath it, which distorts
+        frame measurements on small displays; the FPS figure is an opaque chip
+        LVGL can draw without touching anything under it. Nothing leaves the
+        dashboard exactly as a product build renders it.
+
+config SIMCORE_DEBUG_OVERLAY_FULL
+    bool "Full statistics panel"
+
+config SIMCORE_DEBUG_OVERLAY_FPS
+    bool "FPS figure only"
+
+config SIMCORE_DEBUG_OVERLAY_NONE
+    bool "Nothing"
+
+endchoice
+
 config SIMCORE_LOG_MODE_FULL
     bool "Formatted, level-aware log forwarding"
     default n

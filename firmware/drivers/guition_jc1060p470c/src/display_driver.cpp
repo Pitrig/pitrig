@@ -26,17 +26,17 @@ driver::Configuration initialize() {
       .panel = panel,
       .horizontal_resolution = kHorizontalResolution,
       .vertical_resolution = kVerticalResolution,
-      .buffer_size = kHorizontalResolution * kVerticalResolution,
+      .buffer_size = kHorizontalResolution * 60,
       .swap_xy = false,
       .mirror_x = false,
       .mirror_y = false,
       .bus_type = driver::BusType::dsi,
       .color_format = driver::ColorFormat::rgb565,
-      .double_buffer = false,
-      .buffer_in_dma_memory = false,
+      .double_buffer = true,
+      .buffer_in_dma_memory = true,
       .buffer_in_psram = false,
-      .avoid_tearing = true,
-      .direct_mode = true,
+      .avoid_tearing = false,
+      .direct_mode = false,
   };
 }
 

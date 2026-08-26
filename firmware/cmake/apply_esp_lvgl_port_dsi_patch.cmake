@@ -2,7 +2,7 @@ set(_simcore_port_dir
     "${CMAKE_CURRENT_LIST_DIR}/../managed_components/espressif__esp_lvgl_port")
 set(_simcore_port_manifest "${_simcore_port_dir}/idf_component.yml")
 set(_simcore_port_patch
-    "${CMAKE_CURRENT_LIST_DIR}/../patches/esp-lvgl-port-2.8.0-dsi-cache-safe-callback.patch")
+    "${CMAKE_CURRENT_LIST_DIR}/../patches/esp-lvgl-port-2.8.0-dsi-cache-safe-flush.patch")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_simcore_port_patch}")
 
 if(NOT EXISTS "${_simcore_port_manifest}")
@@ -15,7 +15,7 @@ string(FIND "${_simcore_port_manifest_contents}" "version: 2.8.0~1"
        _simcore_port_version_match)
 if(_simcore_port_version_match EQUAL -1)
     message(FATAL_ERROR
-        "The DSI cache-safe callback patch supports only esp_lvgl_port 2.8.0~1. "
+        "The DSI cache-safe flush patch supports only esp_lvgl_port 2.8.0~1. "
         "Review or remove ${_simcore_port_patch} before building this version.")
 endif()
 
@@ -40,7 +40,7 @@ if(_simcore_port_patch_can_apply EQUAL 0)
             "Failed to apply the esp_lvgl_port ESP32-P4 DSI patch:\n"
             "${_simcore_port_patch_output}${_simcore_port_patch_error}")
     endif()
-    message(STATUS "Applied esp_lvgl_port 2.8.0 ESP32-P4 DSI cache-safe callback patch")
+    message(STATUS "Applied esp_lvgl_port 2.8.0 ESP32-P4 DSI cache-safe flush patch")
 else()
     execute_process(
         COMMAND "${GIT_EXECUTABLE}" apply --reverse --check "${_simcore_port_patch}"
@@ -55,7 +55,7 @@ else()
             "reconfigure, or review ${_simcore_port_patch}.")
     endif()
     message(STATUS
-        "esp_lvgl_port 2.8.0 ESP32-P4 DSI cache-safe callback patch is already applied")
+        "esp_lvgl_port 2.8.0 ESP32-P4 DSI cache-safe flush patch is already applied")
 endif()
 
 unset(_simcore_port_dir)

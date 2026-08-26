@@ -1,5 +1,4 @@
 diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
-index 92d1f38..a8c8ff1 100644
 --- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
 +++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
 @@ -43,7 +43,7 @@
@@ -11,7 +10,7 @@ index 92d1f38..a8c8ff1 100644
  #define LVGL_PORT_IRAM IRAM_ATTR
  #else
  #define LVGL_PORT_IRAM
-@@ -153,13 +153,16 @@ lv_display_t *lvgl_port_add_disp_dsi(const lvgl_port_display_cfg_t *disp_cfg,
+@@ -155,13 +155,20 @@ lv_display_t *lvgl_port_add_disp_dsi(const lvgl_port_display_cfg_t *disp_cfg,
  
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
          esp_lcd_dpi_panel_event_callbacks_t cbs = {0};
@@ -21,6 +20,10 @@ index 92d1f38..a8c8ff1 100644
 +            callback_ctx = disp_ctx;
          } else {
              cbs.on_color_trans_done = lvgl_port_flush_dpi_panel_ready_callback;
++            callback_ctx = disp_ctx;
++            disp_ctx->trans_sem = xSemaphoreCreateCounting(1, 0);
++            ESP_RETURN_ON_FALSE(disp_ctx->trans_sem, NULL, TAG,
++                                "Failed to create DSI flush semaphore");
          }
          /* Register done callback */
 -        esp_lcd_dpi_panel_register_event_callbacks(disp_ctx->panel_handle, &cbs, disp);
@@ -29,13 +32,39 @@ index 92d1f38..a8c8ff1 100644
  
          /* Apply rotation from initial display configuration */
          lvgl_port_disp_rotation_update(disp_ctx);
-@@ -319,3 +322,3 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp_cfg,
+@@ -317,7 +324,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+     }
+ 
      /* Display context */
 -#if CONFIG_LCD_RGB_ISR_IRAM_SAFE
 +#if CONFIG_LCD_RGB_ISR_IRAM_SAFE || CONFIG_LCD_DSI_ISR_CACHE_SAFE
      /* When ISR IRAM safety is enabled, the display context is passed directly
-@@ -516,15 +519,15 @@ static bool lvgl_port_flush_dpi_panel_ready_callback(esp_lcd_panel_handle_t panel
-     return false;
+     * to the ISR callback as user_ctx. It must reside in internal RAM so it
+     * remains accessible when the cache is disabled during SPI flash operations. */
+@@ -511,24 +518,32 @@ static bool lvgl_port_flush_io_ready_callback(esp_lcd_panel_io_handle_t panel_io
+ }
+ 
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+-static bool lvgl_port_flush_dpi_panel_ready_callback(esp_lcd_panel_handle_t panel_io,
++static LVGL_PORT_IRAM bool lvgl_port_flush_dpi_panel_ready_callback(esp_lcd_panel_handle_t panel_io,
+         esp_lcd_dpi_panel_event_data_t *edata, void *user_ctx)
+ {
+-    lv_display_t *disp_drv = (lv_display_t *)user_ctx;
+-    assert(disp_drv != NULL);
+-    lv_disp_flush_ready(disp_drv);
+-    return false;
++    BaseType_t need_yield = pdFALSE;
++
++    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)user_ctx;
++    if (disp_ctx == NULL) {
++        return false;
++    }
++
++    if (disp_ctx->trans_sem) {
++        xSemaphoreGiveFromISR(disp_ctx->trans_sem, &need_yield);
++    }
++
++    return (need_yield == pdTRUE);
  }
  
 -static bool lvgl_port_flush_dpi_vsync_ready_callback(esp_lcd_panel_handle_t panel_io,
@@ -55,3 +84,19 @@ index 92d1f38..a8c8ff1 100644
  
      if (disp_ctx->trans_sem) {
          xSemaphoreGiveFromISR(disp_ctx->trans_sem, &need_yield);
+@@ -752,10 +767,13 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+         }
+     } else {
+         esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
++        if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI && disp_ctx->trans_sem) {
++            xSemaphoreTake(disp_ctx->trans_sem, portMAX_DELAY);
++        }
+     }
+ 
+-    if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB || (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI
+-            && (disp_ctx->flags.direct_mode || disp_ctx->flags.full_refresh))) {
++    if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB
++            || disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI) {
+         lv_disp_flush_ready(drv);
+     }
+ }

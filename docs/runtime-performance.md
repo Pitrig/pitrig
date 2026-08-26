@@ -45,9 +45,10 @@ answers `@SC:ERR:unsupported`. The reply's field list is documented in
 - **FPS:** number of LVGL refreshes that performed rendering, divided by the
   actual sampling interval. Idle refresh callbacks are not counted, so a
   dashboard whose values change more slowly than the display refreshes reports
-  fewer frames without being late. A board that waits for the panel before
-  reusing a frame buffer also cannot exceed the panel refresh rate; the Guition
-  JC1060P470C scans at 60.0 Hz.
+  fewer frames without being late. Since [ADR
+  0027](adr/0027-partial-render-buffers-and-unsynchronized-scan-out.md) no
+  board waits for the panel before reusing a buffer, so FPS can exceed the
+  panel scan rate; the panel shows at most its own rate of them.
 - **CPU0 / CPU1:** `100%` minus the idle task runtime percentage for each core,
   calculated from consecutive FreeRTOS runtime-counter samples.
 - **Render time:** average drawing time per rendered frame, measured between
@@ -81,8 +82,10 @@ answers `@SC:ERR:unsupported`. The reply's field list is documented in
   stack figure, reported as the smaller of the two, because only one of them can
   own the serial link at a time.
 
-The service owns measurement and aggregation. The dashboard widget only reads
-the latest statistics snapshot and formats it for display.
+The service owns measurement and aggregation. What a debug build draws over
+the dashboard is the `SIMCORE_DEBUG_OVERLAY` Kconfig choice: the full
+statistics panel, an FPS-only chip (the default — the full panel blends over
+the widgets beneath it and distorts small-display measurements), or nothing.
 
 Dashboard glyphs are rasterized from the uploaded font faces and cached per
 font in external RAM. Composition pre-warms the characters a dashboard draws,
@@ -136,8 +139,12 @@ Timed inside LVGL's refresh with a temporary probe, per drawn area, one changing
 | drawing the tasks | 888 µs | 399 µs |
 | sending the buffer | 139 µs | 8,655 µs |
 
-The two boards are limited by different things, and it decides which advice
-applies to which. **The ESP32-S3 is CPU-bound**: 61% of an area is the software
+These figures were measured under the direct-mode buffering [ADR
+0027](adr/0027-partial-render-buffers-and-unsynchronized-scan-out.md) since
+replaced; with partial buffers the "sending" term is a strip copy of a few
+hundred microseconds and no board waits for scan-out. The split between walking
+and drawing still holds. The two boards were limited by different things, and
+it decides which advice applies to which. **The ESP32-S3 is CPU-bound**: 61% of an area is the software
 blender working at roughly 150 ns per pixel, another 29% is the tree walk, and
 the panel takes the result in 139 µs. **The ESP32-P4 is display-bound**: its
 drawing is over in 400 µs and then the frame waits ~8.6 ms for the panel to

@@ -192,11 +192,16 @@ bool create(lv_display_t* const display,
     initialized = false;
   }
 
-#if SIMCORE_DEBUG
+#if SIMCORE_DEBUG && SIMCORE_DEBUG_OVERLAY_FULL
   if (!dashboard_state.performance_overlay.create(display,
                                                   telemetry_transport)) {
     log::warn(kTag, "Failed to create performance overlay");
   }
+#elif SIMCORE_DEBUG && SIMCORE_DEBUG_OVERLAY_FPS
+  if (!dashboard_state.fps_overlay.create(display)) {
+    log::warn(kTag, "Failed to create FPS overlay");
+  }
+  (void)telemetry_transport;
 #else
   (void)telemetry_transport;
 #endif
@@ -211,6 +216,7 @@ void destroy(Dashboard& dashboard) {
     lvgl_port_unlock();
   }
   dashboard.performance_overlay.destroy();
+  dashboard.fps_overlay.destroy();
 }
 
 bool start_render_trigger(Dashboard& dashboard, events::EventBus& event_bus) {

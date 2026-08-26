@@ -24,6 +24,7 @@ set(component_sources
     "widgets/slot/src/slot_widget.cpp"
     "widgets/text/src/text_widget.cpp"
     "widgets/text/src/widget_binding.cpp"
+    "widgets/fps_overlay/src/fps_overlay_widget.cpp"
     "widgets/performance_overlay/src/performance_overlay_widget.cpp"
     "src/widget_descriptor.cpp")
 set(component_include_dirs
@@ -46,6 +47,7 @@ set(component_include_dirs
     "widgets/shape/include"
     "widgets/slot/include"
     "widgets/text/include"
+    "widgets/fps_overlay/include"
     "widgets/performance_overlay/include")
 
 if(CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040 OR
