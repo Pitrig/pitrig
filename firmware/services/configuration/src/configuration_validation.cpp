@@ -16,6 +16,38 @@ using validation::terminated;
 using validation::valid_color;
 using validation::Validator;
 
+namespace {
+
+[[nodiscard]] constexpr bool widget_pools_addressable() {
+  for (const WidgetTypeTraits& traits : kWidgetTypeTraits) {
+    if (traits.capacity > 255) {
+      return false;
+    }
+  }
+  return true;
+}
+
+[[nodiscard]] bool widget_counts_within_capacity(
+    const DashboardConfiguration& dashboard) {
+  for (const WidgetTypeTraits& traits : kWidgetTypeTraits) {
+    if (traits.count(dashboard) > traits.capacity) {
+      return false;
+    }
+  }
+  return true;
+}
+
+[[nodiscard]] std::size_t total_widget_count(
+    const DashboardConfiguration& dashboard) {
+  std::size_t total{};
+  for (const WidgetTypeTraits& traits : kWidgetTypeTraits) {
+    total += traits.count(dashboard);
+  }
+  return total;
+}
+
+}
+
 ValidationFailure validate_configuration(
     const ApplicationConfiguration& configuration,
     const ValidationContext& profile) {
@@ -44,32 +76,15 @@ ValidationFailure validate_configuration(
     (void)reject(failure, ValidationError::invalid_screen, "dashboard.screens");
     return failure;
   }
-  if (dashboard.text_widget_count > dashboard.text_widgets.size() ||
-      dashboard.shape_widget_count > dashboard.shape_widgets.size() ||
-      dashboard.bar_widget_count > dashboard.bar_widgets.size() ||
-      dashboard.arc_widget_count > dashboard.arc_widgets.size() ||
-      dashboard.indicator_widget_count > dashboard.indicator_widgets.size() ||
-      dashboard.graph_widget_count > dashboard.graph_widgets.size() ||
-      dashboard.image_widget_count > dashboard.image_widgets.size() ||
-      dashboard.slot_widget_count > dashboard.slot_widgets.size()) {
+  if (!widget_counts_within_capacity(dashboard)) {
     (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
     return failure;
   }
 
-  static_assert(kMaximumTextWidgets <= 255);
-  static_assert(kMaximumShapeWidgets <= 255);
-  static_assert(kMaximumBarWidgets <= 255);
-  static_assert(kMaximumArcWidgets <= 255);
-  static_assert(kMaximumIndicatorWidgets <= 255);
-  static_assert(kMaximumGraphWidgets <= 255);
-  static_assert(kMaximumImageWidgets <= 255);
+  static_assert(widget_pools_addressable());
   static_assert(kMaximumSlotWidgets * kMaximumSlotPages <= 255);
 
-  static_assert(kMaximumWidgetsPerScreen ==
-                kMaximumTextWidgets + kMaximumShapeWidgets +
-                    kMaximumSlotWidgets + kMaximumBarWidgets +
-                    kMaximumArcWidgets + kMaximumIndicatorWidgets +
-                    kMaximumGraphWidgets + kMaximumImageWidgets);
+  static_assert(kMaximumWidgetsPerScreen <= 255);
   static_assert(kImageIdCapacity == image_assets::kImageIdCapacity);
 
   Validator validator(profile, failure);
@@ -206,12 +221,7 @@ ValidationFailure validate_configuration(
     }
   }
 
-  if (referenced_widgets !=
-      static_cast<std::size_t>(dashboard.text_widget_count) +
-          dashboard.shape_widget_count + dashboard.bar_widget_count +
-          dashboard.arc_widget_count + dashboard.indicator_widget_count +
-          dashboard.graph_widget_count + dashboard.image_widget_count +
-          dashboard.slot_widget_count) {
+  if (referenced_widgets != total_widget_count(dashboard)) {
     (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
     return failure;
   }

@@ -109,6 +109,33 @@ the object-tree walk, while the ESP32-P4 finishes drawing in 400 µs and waits
 why every ESP32-S3 setting above moved one board and none of them moved the
 other. The figures are in [runtime-performance.md](../runtime-performance.md).
 
+The first cap change decided that way raised the pools rather than the frame
+budget, and broke the identity that had tied them to a screen. The per-type caps
+were exactly the widgets one screen could reference, so a screen could hold the
+whole pool and the pool could hold no more than a screen; what an author ran out
+of was never the total but the mix — 24 images against 96 texts, whatever the
+dashboard was actually made of. They are now dashboard-wide pools that outsize
+any one screen: text 96 → 160, shape 64 → 96, image 24 → 64, bar 32 → 48, arc
+16 → 24, indicator 8 → 12, graph 4 → 6, slot 8 → 12, together 422 against the
+255 references a screen can address — the uint8 that counts them, and the only
+hard wall left. A payload carries around 370 widgets at the ~350 bytes one
+measures, so the document is the tighter bound of the two.
+
+It cost what this ADR predicted it would: external RAM and nothing else.
+`.ext_ram.bss` went from 165,208 to 271,824 bytes and `ApplicationConfiguration`,
+of which two live in the PSRAM arena, from 156,000 to 255,360 — about 305 KB of
+the 7 MB free. Flash did not move; the pools are BSS. Internal RAM moved only
+where the caps reach a stack: validation's scratch is indexed by the shape and
+slot-page caps, so the main task went to 5,120 bytes and the configuration
+control task to 6,144.
+
+What the pools do not buy is a screen filled to 255. Widgets spread across four
+screens are free while three of them are not shown, but every object on the
+screen that is shown is walked once per drawn area, so a single dense screen
+still meets the frame long before it meets a cap. The pools decide what an
+author may build; the frame decides what renders at 60 fps, and the two are
+deliberately not the same number.
+
 ## Alternatives measured and rejected
 
 - **Two software draw units** (`LV_DRAW_SW_DRAW_UNIT_CNT=2`, which needs

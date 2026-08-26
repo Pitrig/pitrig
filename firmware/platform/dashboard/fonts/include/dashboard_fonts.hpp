@@ -12,12 +12,16 @@
 
 namespace simcore::dashboard::fonts {
 
-inline constexpr std::size_t kMaximumFonts =
-    configuration::kMaximumTextWidgets * 2 +
-    configuration::kMaximumShapeWidgets + configuration::kMaximumBarWidgets +
-    configuration::kMaximumArcWidgets +
-    configuration::kMaximumIndicatorWidgets +
-    configuration::kMaximumGraphWidgets + configuration::kMaximumImageWidgets;
+[[nodiscard]] constexpr std::size_t maximum_font_requests() {
+  std::size_t total = configuration::kMaximumTextWidgets;
+  for (const configuration::WidgetTypeTraits& traits :
+       configuration::kWidgetTypeTraits) {
+    total += traits.capacity;
+  }
+  return total;
+}
+
+inline constexpr std::size_t kMaximumFonts = maximum_font_requests();
 
 class Registry final {
  public:

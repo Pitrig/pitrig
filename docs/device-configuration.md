@@ -223,19 +223,22 @@ Widgets live in a dashboard-wide pool, one per type, and a screen names them by
 reference — so a cap is a budget across every screen rather than a per-screen
 allowance. The production firmware supports these widget types:
 
-| Type | Cap | Draws |
-| --- | --- | --- |
-| `text` | 32 | up to three telemetry sources composed into one string |
-| `shape` | 32 | a rectangle or ellipse; no telemetry of its own |
-| `bar` | 16 | one telemetry source as a filled track, optionally from a configured origin |
-| `arc` | 8 | one telemetry source swept around an arc |
-| `indicator` | 4 | up to 16 lamps lighting as one source climbs its range |
-| `graph` | 2 | up to three rolling traces over one plot, sampled on its own timer |
-| `image` | 8 | an uploaded image, optionally tinted |
-| `slot` | 4 | nothing of its own; an area that switches between its pages |
+| Type | Draws |
+| --- | --- |
+| `text` | up to three telemetry sources composed into one string |
+| `shape` | a rectangle or ellipse; no telemetry of its own |
+| `bar` | one telemetry source as a filled track, optionally from a configured origin |
+| `arc` | one telemetry source swept around an arc |
+| `indicator` | up to 16 lamps lighting as one source climbs its range |
+| `graph` | up to three rolling traces over one plot, sampled on its own timer |
+| `image` | an uploaded image, optionally tinted |
+| `slot` | nothing of its own; an area that switches between its pages |
 
-`kMaximumWidgetsPerScreen` is the sum of those caps, so a single screen can
-reference the whole pool; what bounds a document overall is the payload size.
+Each pool's cap is in [configuration-schema.md](configuration-schema.md) and is
+not repeated here. Together they hold more widgets than either the payload or a
+single screen can take: `kMaximumWidgetsPerScreen` is 255, the most a uint8 can
+reference, so four screens share the pools rather than one screen exhausting
+them.
 
 Module lifecycle is derived from configured consumers. A `lap_timer` modifier
 activates the Lap Timer module automatically; there is no separate root Lap
@@ -1062,7 +1065,7 @@ other:
 
 | Document | Top-level properties | Maximum payload |
 | --- | --- | --- |
-| `dashboard` | `board`, `dashboard.transition`, `dashboard.screens` | 65536 bytes |
+| `dashboard` | `board`, `dashboard.transition`, `dashboard.screens` | 131072 bytes |
 | `modules` | `board`, `hardware` | 1024 bytes |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes |
 
@@ -1136,10 +1139,12 @@ The schema retains deterministic limits. They are generated from
 `configuration/configuration_schema.json` together with the firmware structures
 and the configurator types, and the current values are listed in
 [configuration-schema.md](configuration-schema.md). The widest payload bound is
-65536 bytes of compact JSON — the dashboard's, which a screen filled to every
-per-type widget cap does not come close to; it is what sizes the shared line,
-record and reply buffers, while the other two documents are held to a kilobyte
-each. Those buffers live in external memory, and so does the parser's document:
+131072 bytes of compact JSON — the dashboard's, which at the ~350 bytes a widget
+measures carries around 370 of them; it is what sizes the shared line, record and
+reply buffers, while the other two documents are held to a kilobyte each. That is
+the tighter of the two bounds a dense dashboard meets: the per-type widget pools
+add up to more widgets than one payload can carry, and a single screen addresses
+at most 255 of them whatever the pools hold. Those buffers live in external memory, and so does the parser's document:
 the parser points cJSON's allocator at PSRAM, because the SPIRAM policy sends
 every allocation under 16 KiB to internal RAM and a document is thousands of
 small nodes.

@@ -26,15 +26,15 @@
   "limits": {
     "kMaximumPayloadSize": {
       "value": 131072,
-      "doc": "Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare, at the ~350 bytes of compact JSON a widget measures; two of these also have to fit in the 512 KB configuration partition while a record is being replaced. The buffers it sizes and the parser's document both live in external memory."
+      "doc": "Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. At the ~350 bytes of compact JSON a widget measures it carries around 370 widgets, which is what a document can actually instantiate — fewer than the per-type pools below add up to, and already past what one screen can address. Two of these also have to fit in the 512 KB configuration partition while a record is being replaced, which is why it stops here rather than growing again. The buffers it sizes and the parser's document both live in external memory."
     },
     "kMaximumScreens": {
       "value": 4,
       "doc": "Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM."
     },
     "kMaximumWidgetsPerScreen": {
-      "value": 252,
-      "doc": "Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. The sum may not exceed 255: every count in the contract is a uint8, and a reference addresses its pool with one."
+      "value": 255,
+      "doc": "Ordered widget references per screen, and the largest a uint8 count can address — which is what sets it. It is no longer the sum of the per-type caps below: the pool is dashboard-wide and deliberately larger than one screen, so four screens share it instead of each being able to hold all of it. What bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize, which at the ~350 bytes of compact JSON a widget measures carries fewer widgets than the pools could hold."
     },
     "kMaximumWidgetsPerContainer": {
       "value": 32,
@@ -53,36 +53,36 @@
       "doc": "Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries."
     },
     "kMaximumTextWidgets": {
-      "value": 96,
-      "doc": "Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. Widget storage costs external RAM only, so what bounds this is the frame rather than memory - see ADR 0026."
+      "value": 160,
+      "doc": "Text widget storage for the whole dashboard, and the largest pool because a dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. Widget storage costs external RAM only, so what bounds this is the frame rather than memory - see ADR 0026."
     },
     "kMaximumShapeWidgets": {
-      "value": 64,
-      "doc": "Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap: every container spends one."
+      "value": 96,
+      "doc": "Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap after text: every container spends one, and a dense screen spends them faster than it spends any gauge."
     },
     "kMaximumSlotWidgets": {
-      "value": 8,
+      "value": 12,
       "doc": "Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool."
     },
     "kMaximumBarWidgets": {
-      "value": 32,
+      "value": 48,
       "doc": "Bar widget storage for the whole dashboard."
     },
     "kMaximumArcWidgets": {
-      "value": 16,
+      "value": 24,
       "doc": "Arc widget storage for the whole dashboard."
     },
     "kMaximumIndicatorWidgets": {
-      "value": 8,
+      "value": 12,
       "doc": "Indicator strip storage for the whole dashboard."
     },
     "kMaximumGraphWidgets": {
-      "value": 4,
+      "value": 6,
       "doc": "Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest."
     },
     "kMaximumImageWidgets": {
-      "value": 24,
-      "doc": "Image widget storage for the whole dashboard."
+      "value": 64,
+      "doc": "Image widget storage for the whole dashboard. Generous because an image that never changes is among the cheapest widgets to draw, and a dashboard that leans on artwork rather than on shapes spends its budget here instead."
     },
     "kMaximumIndicatorSegments": {
       "value": 16,

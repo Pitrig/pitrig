@@ -49,7 +49,7 @@ class ConfigurationControl {
     ready,
   };
 
-  static constexpr std::size_t kTaskStackSize = 4096;
+  static constexpr std::size_t kTaskStackSize = 6144;
   static constexpr UBaseType_t kTaskPriority = 4;
   static constexpr EventBits_t kComposedBit = 1U << 0U;
   static constexpr std::uint32_t kCompositionWaitMs = 10'000;

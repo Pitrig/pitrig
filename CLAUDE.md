@@ -243,7 +243,7 @@ The configuration is **three documents**, not one: `dashboard` (`board` +
 `dashboard`), `modules` (`board` + `hardware`, empty until a peripheral driver has a contract) and
 `protocol` (`board` + `telemetry_transport`). Each is transferred, stored, validated and applied on
 its own — `@SC:GET:<doc>`, `@SC:SET:<doc>:<json>`, one NVS record and generation each, its own
-payload bound (64 KB / 1 KB / 1 KB) and its own answer to whether a restart is owed. They are
+payload bound (128 KB / 1 KB / 1 KB) and its own answer to whether a restart is owed. They are
 declared in the `documents` block of `configuration/configuration_schema.json`, which must partition
 every serialized root section, and the generator emits the enum, key allow-lists, bounds and restart
 flags for both firmware and configurator. In memory they are still one `ApplicationConfiguration`, so
@@ -271,7 +271,8 @@ sheet — several pictures uploaded as one asset — picked by `sprite_frame` or
 `sprite_frame_source`; it is the only widget property whose range comes from an uploaded asset
 rather than from the contract. Any widget may
 carry an `action`, so a tap navigates to the next, previous, or a named screen; an empty
-transparent shape with an action is an invisible touch zone. Bounded limits (64 KB payload, per-type widget caps, 4 modifiers per
+transparent shape with an action is an invisible touch zone. Bounded limits (128 KB payload, dashboard-wide per-type widget pools that together outsize both
+the 255 references one screen can address and the widgets one payload can carry, 4 modifiers per
 source, byte limits on strings) and the full property table are in
 [docs/device-configuration.md](docs/device-configuration.md) — read it before touching config code on
 either side. The contract itself lives in the `configuration_contract` service component (no storage,

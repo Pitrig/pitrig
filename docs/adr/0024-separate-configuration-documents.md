@@ -16,8 +16,8 @@ slots. Nothing could be read, written, validated or applied on its own.
 
 The sections do not behave alike, and the single document forced them to.
 
-- Their sizes differ by two orders of magnitude. A dashboard filled to every
-  per-type widget cap approaches the 64 KB payload bound; the transport is under
+- Their sizes differ by two orders of magnitude. A dashboard fills its payload
+  bound with widgets before the per-type pools run out; the transport is under
   a hundred bytes and the peripheral section is `[]`. Editing a baud rate wrote
   the whole dashboard to flash.
 - Their costs differ. A dashboard replacement can be rebuilt into the running
@@ -46,7 +46,7 @@ generator emits them for both readers:
 
 | Document | Carries | Maximum payload | Restart to take effect |
 | --- | --- | --- | --- |
-| `dashboard` | `board`, `dashboard` | 65536 bytes | no |
+| `dashboard` | `board`, `dashboard` | 131072 bytes | no |
 | `modules` | `board`, `hardware` | 1024 bytes | no |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes | yes |
 
