@@ -943,7 +943,7 @@ carries no sampler, so it answers `@SC:ERR:unsupported`; see
 
 ```text
 @SC:DIAG
-@SC:OK:DIAG:internal_total=393216,internal_free=180224,internal_min=172032,internal_largest=131072,psram_total=8388608,psram_free=7340032,psram_min=7208960,psram_largest=4194304,fps=59.9,cpu0=12.4,cpu1=31.0,render_us=3120,flush_us=1980,sync_us=410,frame_max_us=17600,work_max_us=6200,gap_max_us=9100,stack_lvgl=3200,stack_transport=2100,stack_control=1800,stack_upload=2400,stack_sampler=1500,uptime_ms=48213
+@SC:OK:DIAG:internal_total=393216,internal_free=180224,internal_min=172032,internal_largest=131072,psram_total=8388608,psram_free=7340032,psram_min=7208960,psram_largest=4194304,fps=59.9,cpu0=12.4,cpu1=31.0,render_us=3120,flush_us=1980,sync_us=410,frame_max_us=17600,work_max_us=6200,gap_max_us=9100,inval_px=6059,inval_areas=3,drawn_areas=1,stack_lvgl=3200,stack_transport=2100,stack_control=1800,stack_upload=2400,stack_sampler=1500,uptime_ms=48213
 ```
 
 Fields:
@@ -959,6 +959,11 @@ Fields:
   [runtime-performance.md](runtime-performance.md), and they come from the
   sampler's last completed interval — a composition that has just changed is
   described a second later;
+- `inval_px`, `inval_areas` and `drawn_areas` describe what a frame was asked to
+  redraw: the pixels every invalidation covered, how many invalidations there
+  were, and how many areas survived LVGL's merging to be drawn and sent. They
+  are what turn a render figure into a cost model — see
+  [runtime-performance.md](runtime-performance.md);
 - `stack_*` is the free stack of each monitored task in bytes. The font and
   image upload tasks share `stack_upload`, reported as the smaller of the two,
   because only one of them can own the link at a time;

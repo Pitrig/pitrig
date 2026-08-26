@@ -137,6 +137,9 @@ void update() {
   next.longest_frame_us = interval.longest_frame_us;
   next.longest_work_us = interval.longest_work_us;
   next.longest_gap_us = interval.longest_gap_us;
+  next.invalidated_px = average(interval.invalidated_px, interval.frames);
+  next.invalidated_areas = average(interval.invalidated_areas, interval.frames);
+  next.drawn_areas = average(interval.drawn_areas, interval.frames);
   constexpr std::uint32_t kInternalHeapCapabilities = MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL;
   next.free_heap = heap_caps_get_free_size(kInternalHeapCapabilities);
   next.largest_heap_block =

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -38,13 +39,19 @@ namespace simcore::dashboard_composition::incremental {
          (recoloured & (1U << frame->screen_index)) != 0;
 }
 
+// One bit per shape pool slot. A bitset rather than an integer mask because the
+// pool is a contract value: an integer silently stops covering it the day the
+// cap passes its width, and the widget it stopped covering is one whose caption
+// keeps the colour of a container that was repainted behind it.
+using ContainerSet = std::bitset<configuration::kMaximumShapeWidgets>;
+
 [[nodiscard]] inline bool caption_masks_container(
     const configuration::WidgetFrame* const frame,
-    const std::uint32_t repainted) {
+    const ContainerSet& repainted) {
   return caption_masks_parent(frame) &&
          frame->parent_kind == configuration::WidgetParentKind::shape &&
-         frame->parent_index < 32 &&
-         (repainted & (1U << frame->parent_index)) != 0;
+         frame->parent_index < repainted.size() &&
+         repainted.test(frame->parent_index);
 }
 
 // A type whose objects are the LVGL parents of other widgets. What makes these
@@ -59,12 +66,10 @@ namespace simcore::dashboard_composition::incremental {
 // mask actually reads count: it copies the container's background colour, and an
 // inset background moves the paint off the container altogether. A container
 // this replacement added is not here — everything inside it is new too.
-[[nodiscard]] inline std::uint32_t repainted_containers(
+[[nodiscard]] inline ContainerSet repainted_containers(
     const configuration::DashboardConfiguration& before,
     const configuration::DashboardConfiguration& after) {
-  static_assert(configuration::kMaximumShapeWidgets <= 32,
-                "The repainted-container set is one bit per shape pool slot");
-  std::uint32_t repainted = 0;
+  ContainerSet repainted{};
   const std::uint8_t common =
       std::min(before.shape_widget_count, after.shape_widget_count);
   for (std::uint8_t index = 0; index < common; ++index) {
@@ -72,7 +77,7 @@ namespace simcore::dashboard_composition::incremental {
     const configuration::WidgetFrame& now = after.shape_widgets[index].frame;
     if (was.background_color != now.background_color ||
         was.background_inset_px != now.background_inset_px) {
-      repainted |= 1U << index;
+      repainted.set(index);
     }
   }
   return repainted;
@@ -91,7 +96,7 @@ namespace simcore::dashboard_composition::incremental {
                                 const std::uint8_t index,
                                 const std::uint8_t previous_count,
                                 const std::uint32_t recoloured_screens,
-                                const std::uint32_t repainted) {
+                                const ContainerSet& repainted) {
   if (index >= previous_count) {
     return true;
   }

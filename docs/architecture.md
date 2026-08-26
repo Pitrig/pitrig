@@ -191,8 +191,14 @@ component that knows its type, so the core neither links against LVGL nor
 recompiles when a widget type changes. It is also the one static the firmware
 places in external RAM: some 68 KB of widget-state pools whose per-frame
 working set is a few kilobytes, kept out of the internal RAM the draw buffers
-and the LVGL heap need. Only the render trigger's task stack and control
+need. Only the render trigger's task stack and control
 block, which FreeRTOS requires internal, sit beside it in internal `.bss`.
+
+The LVGL heap is there too — every object, style, font cache and label string
+LVGL allocates comes from external RAM
+([ADR 0026](adr/0026-ui-memory-in-external-ram.md)) — so free internal RAM does
+not move with what is composed, and how many widgets and font sizes a dashboard
+may hold is a question about frame time rather than about memory.
 
 Responsibilities include:
 

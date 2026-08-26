@@ -2,3 +2,17 @@ CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
 CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
+
+# The draw path is bound by the instruction cache on this chip, not by pixels:
+# the cost of a redraw is the same whatever area it covers, and the caches at
+# their defaults (16 KB / 32 KB) are what a frame misses in. The larger pair
+# more than halves render time -- 3.8 ms to 1.8 ms per changing widget -- for
+# 48 KB of the internal SRAM they are carved out of.
+CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y
+CONFIG_ESP32S3_DATA_CACHE_64KB=y
+# Same reason, and it is why this target overrides the performance optimization
+# the shared defaults select: -Os is slower code that fits the cache better,
+# which is worth a further 13-16% here and a 17% smaller image. On the ESP32-P4,
+# which is not cache-bound, the same switch costs 12%, so it stays per-target.
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+# CONFIG_COMPILER_OPTIMIZATION_PERF is not set

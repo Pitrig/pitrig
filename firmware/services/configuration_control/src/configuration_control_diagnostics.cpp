@@ -82,14 +82,18 @@ void ConfigurationControl::send_diagnostics() {
         reinterpret_cast<char*>(io_buffer_.data()) + written,
         io_buffer_.size() - static_cast<std::size_t>(written),
         ",fps=%u.%u,cpu0=%u.%u,cpu1=%u.%u,render_us=%u,flush_us=%u,"
-        "sync_us=%u,frame_max_us=%u,work_max_us=%u,gap_max_us=%u",
+        "sync_us=%u,frame_max_us=%u,work_max_us=%u,gap_max_us=%u,"
+        "inval_px=%u,inval_areas=%u,drawn_areas=%u",
         fps.whole, fps.tenth, cpu0.whole, cpu0.tenth, cpu1.whole, cpu1.tenth,
         static_cast<unsigned>(stats.render_time_us),
         static_cast<unsigned>(stats.flush_time_us),
         static_cast<unsigned>(stats.sync_time_us),
         static_cast<unsigned>(stats.longest_frame_us),
         static_cast<unsigned>(stats.longest_work_us),
-        static_cast<unsigned>(stats.longest_gap_us));
+        static_cast<unsigned>(stats.longest_gap_us),
+        static_cast<unsigned>(stats.invalidated_px),
+        static_cast<unsigned>(stats.invalidated_areas),
+        static_cast<unsigned>(stats.drawn_areas));
     written = field > 0 ? written + field : 0;
   }
 

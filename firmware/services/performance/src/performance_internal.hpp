@@ -25,6 +25,9 @@ struct Measurements {
   std::uint32_t longest_frame_us;
   std::uint32_t longest_work_us;
   std::uint32_t longest_gap_us;
+  std::uint64_t invalidated_px;
+  std::uint32_t invalidated_areas;
+  std::uint32_t drawn_areas;
 };
 
 extern portMUX_TYPE state_lock;

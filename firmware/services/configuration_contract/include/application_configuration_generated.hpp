@@ -18,36 +18,36 @@ inline constexpr std::uint16_t kConfigurationSchemaVersion = 15;
 // Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
-// Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory.
-inline constexpr std::size_t kMaximumPayloadSize = 65536;
+// Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare, at the ~350 bytes of compact JSON a widget measures; two of these also have to fit in the 512 KB configuration partition while a record is being replaced. The buffers it sizes and the parser's document both live in external memory.
+inline constexpr std::size_t kMaximumPayloadSize = 131072;
 // Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM.
 inline constexpr std::size_t kMaximumScreens = 4;
-// Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize.
-inline constexpr std::size_t kMaximumWidgetsPerScreen = 106;
+// Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. The sum may not exceed 255: every count in the contract is a uint8, and a reference addresses its pool with one.
+inline constexpr std::size_t kMaximumWidgetsPerScreen = 252;
 // Ordered widget references inside one container: a shape, or one page of a slot. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does.
-inline constexpr std::size_t kMaximumWidgetsPerContainer = 16;
+inline constexpr std::size_t kMaximumWidgetsPerContainer = 32;
 // How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference — and why a slot page costs nothing here: it is walked without a recursion of its own, so a slot spends exactly what a container shape spends.
 inline constexpr std::size_t kMaximumNestingDepth = 4;
 // Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list.
-inline constexpr std::size_t kMaximumActions = 16;
+inline constexpr std::size_t kMaximumActions = 32;
 // Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries.
 inline constexpr std::size_t kMaximumSlotPages = 8;
-// Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts.
-inline constexpr std::size_t kMaximumTextWidgets = 32;
+// Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. Widget storage costs external RAM only, so what bounds this is the frame rather than memory - see ADR 0026.
+inline constexpr std::size_t kMaximumTextWidgets = 96;
 // Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap: every container spends one.
-inline constexpr std::size_t kMaximumShapeWidgets = 32;
+inline constexpr std::size_t kMaximumShapeWidgets = 64;
 // Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool.
-inline constexpr std::size_t kMaximumSlotWidgets = 4;
+inline constexpr std::size_t kMaximumSlotWidgets = 8;
 // Bar widget storage for the whole dashboard.
-inline constexpr std::size_t kMaximumBarWidgets = 16;
+inline constexpr std::size_t kMaximumBarWidgets = 32;
 // Arc widget storage for the whole dashboard.
-inline constexpr std::size_t kMaximumArcWidgets = 8;
+inline constexpr std::size_t kMaximumArcWidgets = 16;
 // Indicator strip storage for the whole dashboard.
-inline constexpr std::size_t kMaximumIndicatorWidgets = 4;
+inline constexpr std::size_t kMaximumIndicatorWidgets = 8;
 // Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest.
-inline constexpr std::size_t kMaximumGraphWidgets = 2;
+inline constexpr std::size_t kMaximumGraphWidgets = 4;
 // Image widget storage for the whole dashboard.
-inline constexpr std::size_t kMaximumImageWidgets = 8;
+inline constexpr std::size_t kMaximumImageWidgets = 24;
 // Segments in one indicator strip.
 inline constexpr std::size_t kMaximumIndicatorSegments = 16;
 // Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal.
@@ -129,7 +129,7 @@ inline constexpr std::array<std::string_view, 3> kConfigurationDocumentNames{{
 // full payload bound, so the buffers the other two hold are a fraction of
 // it and an oversized document is refused before it is parsed.
 inline constexpr std::array<std::size_t, 3> kConfigurationDocumentPayloadSizes{{
-    65536,
+    131072,
     1024,
     1024,
 }};

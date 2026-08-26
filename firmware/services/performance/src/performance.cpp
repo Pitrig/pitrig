@@ -89,6 +89,13 @@ void frame_started() {
   taskEXIT_CRITICAL(&state_lock);
 }
 
+void area_invalidated(const std::uint32_t pixels) {
+  taskENTER_CRITICAL(&state_lock);
+  measurements.invalidated_px += pixels;
+  ++measurements.invalidated_areas;
+  taskEXIT_CRITICAL(&state_lock);
+}
+
 void frame_finished() {
   const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
@@ -143,6 +150,7 @@ void render_finished() {
 void flush_started() {
   const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
+  ++measurements.drawn_areas;
   flush_started_at_us = now_us;
   taskEXIT_CRITICAL(&state_lock);
 }

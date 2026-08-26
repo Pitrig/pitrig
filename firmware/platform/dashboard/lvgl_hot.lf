@@ -1,0 +1,34 @@
+# The ESP32-S3 executes from flash through a 32 KB instruction cache, and the
+# draw path is what misses in it: a redraw costs the same whatever area it
+# covers, and every cache-sized change moved that cost while no pixel-oriented
+# one did. These are the translation units a frame runs through — the software
+# blender, the rect, border, label and glyph paths, the refresh loop, and the
+# style and text lookups each object performs — placed in internal RAM.
+#
+# It buys ~20% of the render time for ~62 KB of internal RAM, which the board
+# has to spare once LVGL's heap lives in external memory. Registered only for
+# the ESP32-S3; see the guard in CMakeLists.txt.
+[mapping:lvgl_hot]
+archive: liblvgl__lvgl.a
+entries:
+    lv_draw_sw_fill (noflash)
+    lv_draw_sw_letter (noflash)
+    lv_draw_sw_blend (noflash)
+    lv_draw_sw_blend_to_rgb565 (noflash)
+    lv_draw_sw_border (noflash)
+    lv_draw_sw_mask_rect (noflash)
+    lv_draw_sw (noflash)
+    lv_draw (noflash)
+    lv_draw_buf (noflash)
+    lv_draw_label (noflash)
+    lv_draw_rect (noflash)
+    lv_refr (noflash)
+    lv_area (noflash)
+    lv_style (noflash)
+    lv_obj_style (noflash)
+    lv_obj_pos (noflash)
+    lv_obj_draw (noflash)
+    lv_text (noflash)
+    lv_font (noflash)
+    lv_label (noflash)
+    lv_tiny_ttf (noflash)

@@ -166,7 +166,7 @@ bool apply_incremental(
   if (!recolour_screens(before, after, dashboard, recoloured_screens)) {
     return decline("LVGL is busy");
   }
-  const std::uint32_t repainted = repainted_containers(before, after);
+  const incremental::ContainerSet repainted = repainted_containers(before, after);
 
   // Decided before anything moves rather than discovered along the way: the
   // controller was dropped above, so a document that had slots — or that has

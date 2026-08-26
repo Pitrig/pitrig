@@ -100,6 +100,16 @@ void on_refresh_finished(lv_event_t*) {
   }
 }
 
+void on_area_invalidated(lv_event_t* const event) {
+  const auto* const area =
+      static_cast<const lv_area_t*>(lv_event_get_param(event));
+  if (area != nullptr) {
+    performance::area_invalidated(
+        static_cast<std::uint32_t>(lv_area_get_width(area)) *
+        static_cast<std::uint32_t>(lv_area_get_height(area)));
+  }
+}
+
 void on_flush_started(lv_event_t*) {
   performance::flush_started();
 }
@@ -124,6 +134,8 @@ void register_performance_events(lv_display_t* display) {
   lv_display_add_event_cb(display, on_render_started, LV_EVENT_RENDER_START, nullptr);
   lv_display_add_event_cb(display, on_render_finished, LV_EVENT_RENDER_READY, nullptr);
   lv_display_add_event_cb(display, on_refresh_finished, LV_EVENT_REFR_READY, nullptr);
+  lv_display_add_event_cb(display, on_area_invalidated, LV_EVENT_INVALIDATE_AREA,
+                          nullptr);
   lv_display_add_event_cb(display, on_flush_started, LV_EVENT_FLUSH_START, nullptr);
   lv_display_add_event_cb(display, on_flush_finished, LV_EVENT_FLUSH_FINISH, nullptr);
   lv_display_add_event_cb(display, on_flush_wait_started, LV_EVENT_FLUSH_WAIT_START,

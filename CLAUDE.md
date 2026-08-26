@@ -168,7 +168,8 @@ components → interfaces ← drivers
 - `platform/` — framework/board-specific wiring: `board_registry`, `communication`,
   `dashboard` (LVGL `widgets` over a shared `frame`, plus `conditions`, `fonts`, `images`,
   `layout`, `navigation` for screen swiping, `slots` for container switching, `value_text` for
-  turning one value into the text a widget draws, `utilities`, and the embedded boot-splash
+  turning one value into the text a widget draws, `memory` for the allocator that puts **every**
+  LVGL allocation in external RAM, `utilities`, and the embedded boot-splash
   `assets`),
   `dashboard_composition`, `module_composition`, `nvs_config_storage`,
   `partition_asset_storage`, `telemetry_transport`, `external_memory`.
@@ -342,7 +343,10 @@ checksummed package of TTF/OTF faces, one per family (max 8), and the device ras
 is a composition error, never a silent fallback, while a new **size** needs neither upload nor
 reboot. Faces are copied into external RAM at startup so a later upload can release the flash
 mapping while the dashboard renders; glyph bitmaps are cached per font in external RAM and
-pre-warmed during composition. The configurator uploads the chosen file unchanged and replaces the
+pre-warmed during composition. A distinct `(family, size_px)` pair is what a dashboard actually
+spends memory on — 4–12 KB of external RAM each — and since ADR 0026 it costs no internal RAM at
+all, so how many of them a board can hold is bounded by external RAM rather than by a wall it used
+to hit at twenty-four. The configurator uploads the chosen file unchanged and replaces the
 whole package before saving a configuration that needs a new family; installing a package requires a
 reboot.
 

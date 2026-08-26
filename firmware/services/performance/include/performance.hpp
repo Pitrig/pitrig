@@ -58,6 +58,14 @@ struct PerformanceStats {
   // Longest interval between one frame finishing and the next one starting.
   // Shows how long the LVGL task was kept from refreshing.
   std::uint32_t longest_gap_us;
+  // What a frame was asked to redraw before it drew anything: the pixels every
+  // invalidated area covers, and how many areas that was, per rendered frame.
+  // Drawing time that does not follow these is not drawing.
+  std::uint32_t invalidated_px;
+  std::uint32_t invalidated_areas;
+  // Areas the frame actually drew and sent, after LVGL merged and dropped the
+  // ones the invalidations above overlapped.
+  std::uint32_t drawn_areas;
   std::uint32_t free_heap;
   std::uint32_t largest_heap_block;
   std::uint32_t free_psram;
@@ -72,6 +80,8 @@ void unregister_task(TaskMetric metric);
 
 // Records lifecycle events emitted by the rendering platform.
 void frame_started();
+// One area marked for redraw, before the refresh that will draw it.
+void area_invalidated(std::uint32_t pixels);
 void frame_finished();
 void render_started();
 void render_finished();

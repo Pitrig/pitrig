@@ -4,36 +4,36 @@ export type RgbColor = `#${string}`
 
 export const CONFIGURATION_SCHEMA_VERSION = 15
 
-/** Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare; the buffers it sizes and the parser's document both live in external memory. */
-export const MAXIMUM_PAYLOAD_SIZE = 65536
+/** Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare, at the ~350 bytes of compact JSON a widget measures; two of these also have to fit in the 512 KB configuration partition while a record is being replaced. The buffers it sizes and the parser's document both live in external memory. */
+export const MAXIMUM_PAYLOAD_SIZE = 131072
 /** Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM. */
 export const MAXIMUM_SCREENS = 4
-/** Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. */
-export const MAXIMUM_WIDGETS_PER_SCREEN = 106
+/** Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. The sum may not exceed 255: every count in the contract is a uint8, and a reference addresses its pool with one. */
+export const MAXIMUM_WIDGETS_PER_SCREEN = 252
 /** Ordered widget references inside one container: a shape, or one page of a slot. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does. */
-export const MAXIMUM_WIDGETS_PER_CONTAINER = 16
+export const MAXIMUM_WIDGETS_PER_CONTAINER = 32
 /** How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference — and why a slot page costs nothing here: it is walked without a recursion of its own, so a slot spends exactly what a container shape spends. */
 export const MAXIMUM_NESTING_DEPTH = 4
 /** Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list. */
-export const MAXIMUM_ACTIONS = 16
+export const MAXIMUM_ACTIONS = 32
 /** Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries. */
 export const MAXIMUM_SLOT_PAGES = 8
-/** Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. */
-export const MAXIMUM_TEXT_WIDGETS = 32
+/** Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. Widget storage costs external RAM only, so what bounds this is the frame rather than memory - see ADR 0026. */
+export const MAXIMUM_TEXT_WIDGETS = 96
 /** Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap: every container spends one. */
-export const MAXIMUM_SHAPE_WIDGETS = 32
+export const MAXIMUM_SHAPE_WIDGETS = 64
 /** Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool. */
-export const MAXIMUM_SLOT_WIDGETS = 4
+export const MAXIMUM_SLOT_WIDGETS = 8
 /** Bar widget storage for the whole dashboard. */
-export const MAXIMUM_BAR_WIDGETS = 16
+export const MAXIMUM_BAR_WIDGETS = 32
 /** Arc widget storage for the whole dashboard. */
-export const MAXIMUM_ARC_WIDGETS = 8
+export const MAXIMUM_ARC_WIDGETS = 16
 /** Indicator strip storage for the whole dashboard. */
-export const MAXIMUM_INDICATOR_WIDGETS = 4
+export const MAXIMUM_INDICATOR_WIDGETS = 8
 /** Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest. */
-export const MAXIMUM_GRAPH_WIDGETS = 2
+export const MAXIMUM_GRAPH_WIDGETS = 4
 /** Image widget storage for the whole dashboard. */
-export const MAXIMUM_IMAGE_WIDGETS = 8
+export const MAXIMUM_IMAGE_WIDGETS = 24
 /** Segments in one indicator strip. */
 export const MAXIMUM_INDICATOR_SEGMENTS = 16
 /** Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal. */
@@ -612,7 +612,7 @@ export const CONFIGURATION_DOCUMENTS: Record<
   ConfigurationDocumentId,
   ConfigurationDocumentDescriptor
 > = {
-  dashboard: { id: 'dashboard', sections: ['dashboard'], keys: ['board', 'dashboard'], maxPayload: 65536, rebootRequired: false },
+  dashboard: { id: 'dashboard', sections: ['dashboard'], keys: ['board', 'dashboard'], maxPayload: 131072, rebootRequired: false },
   modules: { id: 'modules', sections: ['hardware'], keys: ['board', 'hardware'], maxPayload: 1024, rebootRequired: false },
   protocol: { id: 'protocol', sections: ['telemetry_transport'], keys: ['board', 'telemetry_transport'], maxPayload: 1024, rebootRequired: true },
 }
