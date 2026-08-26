@@ -36,12 +36,32 @@ waited for scan-out, so it is unchanged.
 - Both boards hand the port partial buffers (two strips in internal DMA RAM),
   `avoid_tearing = false`, `direct_mode = false`. The 4848S040 runs its pixel
   clock at 16 MHz with 480×10 px bounce buffers.
-- Tearing is accepted: a strip lands in the frame buffer mid-scan. For numeric
-  readouts the artifact is a one-frame horizontal seam inside a glyph, judged
-  worth 14–17 ms of latency on every value the dashboard shows.
-- `esp_lvgl_port`'s DSI partial path is patched
-  (`patches/esp-lvgl-port-2.8.0-dsi-partial-flush-ready.patch`, applied with
-  the existing cache-safe callback patch on the ESP32-P4). Upstream defers
+- Tearing is accepted for widget updates: a strip lands in the frame buffer
+  mid-scan, and for numeric readouts the artifact is a one-frame horizontal
+  seam inside a glyph, judged worth 14–17 ms of latency on every value the
+  dashboard shows. A screen change is the case it is not acceptable for — a
+  slide invalidates the whole screen every frame and the seams read as the
+  image breaking apart — so the navigation controller switches the display to
+  tear-free rendering into the panel frame buffers for the duration of a
+  transition (`lvgl_port_disp_set_tear_free`, added by the same port patch)
+  and back to partial strips one refresh after the new screen has settled.
+  DSI uses true direct mode, handed the buffer the panel is not scanning
+  first — or the first transition frame paints in plain sight. RGB cannot
+  render into its PSRAM frame buffers at all: blending is a read-modify-write
+  through the cache, and with the 16 MHz bounce-buffer scan-out on the same
+  bus the panel underruns — rows visibly sliding down the screen (direct and
+  full mode both failed on the bench). So RGB keeps LVGL in partial mode, with
+  the same internal-RAM strips and the same PSRAM traffic as the resting
+  state, and the port's flush redirects each strip into the hidden frame
+  buffer; the last strip of a frame that covered the whole screen swaps the
+  buffers at the frame boundary. A frame that covered less does not swap — its
+  strips wait in the hidden buffer for the next full animation frame, so a
+  stray widget-only refresh cannot swap ghost content in. At rest the switch
+  costs nothing; verified tear-free on both boards.
+- `esp_lvgl_port` is patched on the ESP32-P4
+  (`patches/esp-lvgl-port-2.8.0-dsi-cache-safe-flush.patch`, one combined file
+  because overlapping split patches defeat the apply script's already-applied
+  check). Upstream's DSI partial path defers
   `lv_disp_flush_ready` to the `on_color_trans_done` ISR, which under
   `CONFIG_LCD_DSI_ISR_CACHE_SAFE` must not reach flash-resident LVGL code or
   the PSRAM-resident display object. The patch mirrors the vsync path instead:
@@ -68,6 +88,10 @@ waited for scan-out, so it is unchanged.
   nothing outside IRAM and internal RAM; the patch must be reviewed if
   `esp_lvgl_port` is upgraded past 2.8.0~1 (the apply script fails the build
   rather than guessing).
+- The 4848S040 names its bounce buffers to the LVGL port (`bounce_buffers` in
+  the driver configuration), because the port must bind the frame-complete
+  event rather than vsync for the tear-free wait when bounce buffers stream
+  the panel.
 - The panel-side vsync no longer paces LVGL, so a fast producer can render
   more frames than the panel shows; the extra frames cost CPU but not
   correctness. The per-type widget caps stay a frame decision, judged with

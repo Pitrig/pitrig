@@ -73,6 +73,10 @@ answers `@SC:ERR:unsupported`. The reply's field list is documented in
   removed. A `Max` of several display periods with a normal `Work` means the
   frame was not slow to draw — it was late or blocked.
 - **Idle:** the longest gap between one frame finishing and the next starting.
+- **Latency** (`lat_us` / `lat_max_us` / `lat_n` on the link): average and worst
+  time from a telemetry value's commit into its slot to the display accepting
+  the frame that drew it, and how many frames carried one. The one figure that
+  covers the whole path — wake, render and flush together.
 - **Heap:** current free internal 8-bit heap and its largest free block.
 - **PSRAM:** current free SPIRAM heap, or zero when SPIRAM is unavailable.
 - **Uptime**, and the transport counters **Link** (bytes and reads per second),
@@ -122,10 +126,24 @@ Two more terms:
   extra LVGL object a widget is built from (a background inset, a border, a
   caption) adds 100–170 µs — a rounded border, which draws through a mask, 344.
 
-What follows for authoring: **compose several values into one text widget rather
-than placing one widget each.** A widget with three sources is one area; three
-widgets are three, and the same three numbers cost 735 µs against ~1,700 on the
-P4. Shrinking a font is the other lever, and it pays quadratically.
+What follows for authoring — the rules that make a new screen fast without
+per-screen tuning:
+
+- **Compose several values into one text widget rather than placing one widget
+  each.** A widget with three sources is one area; three widgets are three,
+  and the same three numbers cost 735 µs against ~1,700 on the P4.
+- **Budget a screen by its changing readouts, not its widget count**: about
+  sixteen values changing at telemetry rate hold 60 fps on every board (the
+  measured figures are below). Static widgets are nearly free at rest — but
+  every object on the screen is walked for every drawn area, so heavy
+  decoration taxes each changing widget.
+- **Shrink fonts where the value allows it** — pixel cost is quadratic in
+  size, and on the ESP32-S3 it is half of an area's price.
+- **Screens that are not shown cost nothing**, so splitting a dense dashboard
+  across screens buys frame budget directly; transitions are tear-free and do
+  not tax the steady state.
+- **Verify, don't guess**: apply the document and read `render_us` and
+  `lat_us` back over `@SC:DIAG`, with the FPS chip on the panel.
 
 ### Where an area's time goes
 
@@ -180,26 +198,26 @@ accelerator's.
 
 ### What a screen change costs
 
-Measured with four screens of 24 widgets each, telemetry at 30 Hz, while a hand
-swiped through them continuously. Median render time per frame:
+A screen change draws whole screens rather than per-widget areas, and since
+[ADR 0027](adr/0027-partial-render-buffers-and-unsynchronized-scan-out.md) it
+also switches the display into its tear-free mode for the duration — the
+navigation controller does this on every transition, `slide` and `none` alike,
+so an author gets clean screen changes without doing anything. The steady
+state pays nothing for it.
 
-| | steady | `transition: none` | `transition: slide` |
-| --- | ---: | ---: | ---: |
-| Guition ESP32-4848S040 | 12.8 ms | 25.1 ms | **42.1 ms** |
-| Guition JC1060P470C | 7.3 ms | 18.5 ms | **30.7 ms** |
+During a slide each animation frame composites the outgoing and incoming
+screens — together one screen's worth of widgets — so the animation paces at
+the full-screen frame rate, roughly 25–50 fps depending on how full the
+screens are, rather than the 60 fps of resting readouts. An instant `none`
+change costs one such frame. The trade `transition` offers is therefore only
+about how the change looks; neither choice affects what the dashboard costs
+between changes.
 
-The mechanism is the one the cost model predicts. At rest a frame draws one
-small area per changing widget — eleven of them here. During a change it draws
-one area covering the whole screen, so the price stops being per widget and
-becomes per screen; the slide then pays it twice over, because the animation
-composites the outgoing and incoming screens together for every frame it runs.
-The longest frame reaches 82 ms on the 4848S040 and 66 ms on the JC1060P470C,
-so the animation itself moves at 12–15 fps rather than the panel's 60.
-
-**A slide costs about 1.7× what an instant change costs**, on both boards, and
-three to four times the steady state. That is the trade `transition` exists to
-let an author make: a dashboard whose screens are full is smoother to switch
-with `none`.
+The direct-mode era measured this in numbers (four screens of 24 widgets,
+30 Hz telemetry, continuous swiping): steady 12.8/7.3 ms per frame against
+42.1/30.7 ms per slide frame on the 4848S040/JC1060P470C — the ~3–4× ratio
+between resting and transitioning frames still describes the shape, even
+though the absolute figures predate ADR 0027.
 
 Photographing the two screens and animating the pictures instead — which would
 put the moving frames on the ESP32-P4's image accelerator — was built and
@@ -217,13 +235,21 @@ invalidated area out to a 32-pixel grid so neighbours fold together halves the
 area count and makes both boards slower — the pixels it adds cost more than the
 areas it saves. Measured on both, rejected on both.
 
-Per changing widget, after the settings of
-[ADR 0026](adr/0026-ui-memory-in-external-ram.md): **~1,250 µs on the
-T-Display-S3**, **~820 µs on the Guition ESP32-4848S040**, **~450 µs on the
-Guition JC1060P470C**. A frame has to fit every widget that changed in it, so
-what a board can carry is that figure against the panel period — roughly 25
-simultaneously changing widgets at 60 Hz on the JC1060P470C, and a handful on
-the S3 boards — while the widgets that do not change cost almost nothing.
+Per changing widget, after
+[ADR 0026](adr/0026-ui-memory-in-external-ram.md) and
+[ADR 0027](adr/0027-partial-render-buffers-and-unsynchronized-scan-out.md),
+measured with the FPS-only overlay (the full statistics panel used to sit over
+the benchmark widgets and inflate every small-display figure):
+**~0.5–0.6 ms on the T-Display-S3**, **~0.6–0.75 ms on the Guition
+ESP32-4848S040**, **~0.5–0.6 ms on the Guition JC1060P470C** — one ordinary
+single-source readout each, growing mildly with the object count on screen. A
+frame has to fit every widget that changed in it, so against the 16.7 ms
+budget **roughly sixteen concurrently changing readouts hold 60 fps on every
+board**; a screen with more does not break, it drops frames gracefully
+(24 readouts ran at 31–42 fps, 32 at 23–34). Widgets whose values did not
+change this frame cost almost nothing, and screens that are not shown cost
+nothing at all — so a dashboard is budgeted per screen, by how many values on
+it change at telemetry rate, not by its total widget count.
 
 This is also why the per-type caps in the configuration contract are not a
 memory decision: free internal RAM no longer moves with what is composed at all.

@@ -4,7 +4,13 @@ Status: Accepted. Changes what bounds the caps of
 [ADR 0013](0013-generated-configuration-contract.md), removes the internal-RAM
 ceiling the font registry of [ADR 0010](0010-uploaded-font-assets.md) ran into,
 and adds a debug-only reply to the control protocol of
-[ADR 0006](0006-simhub-custom-serial-line-protocol.md).
+[ADR 0006](0006-simhub-custom-serial-line-protocol.md). The memory findings
+stand; the frame-time figures below are superseded — they were measured under
+the direct-mode buffering
+[ADR 0027](0027-partial-render-buffers-and-unsynchronized-scan-out.md)
+replaced, and with the full debug overlay drawn over the widgets under test,
+which ADR 0027 found inflating every small-display figure. Current frame costs
+are in [runtime-performance.md](../runtime-performance.md).
 
 ## Context
 

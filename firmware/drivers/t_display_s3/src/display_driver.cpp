@@ -117,6 +117,7 @@ driver::Configuration initialize_panel() {
       .double_buffer = true,
       .buffer_in_dma_memory = true,
       .buffer_in_psram = false,
+      .bounce_buffers = false,
       .avoid_tearing = false,
       .direct_mode = false,
   };

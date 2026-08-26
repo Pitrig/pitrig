@@ -184,7 +184,7 @@ esp_lcd_panel_handle_t initialize_panel(esp_lcd_panel_io_handle_t io) {
       .out_color_format = LCD_COLOR_FMT_RGB565,
       .num_fbs = 2,
       .user_fbs = {},
-      .bounce_buffer_size_px = kHorizontalResolution * 10,
+      .bounce_buffer_size_px = kHorizontalResolution * 20,
       .dma_burst_size = 64,
       .hsync_gpio_num = kHorizontalSyncPin,
       .vsync_gpio_num = kVerticalSyncPin,
@@ -257,6 +257,7 @@ driver::Configuration initialize() {
       .double_buffer = true,
       .buffer_in_dma_memory = true,
       .buffer_in_psram = false,
+      .bounce_buffers = true,
       .avoid_tearing = false,
       .direct_mode = false,
   };

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "esp_lvgl_port.h"
 #include "lvgl.h"
 
 namespace simcore::dashboard::navigation {
@@ -28,7 +29,14 @@ void Controller::attach(const std::span<lv_obj_t* const> screens) {
   for (lv_obj_t* const screen : screens_) {
     if (screen != nullptr) {
       lv_obj_add_event_cb(screen, on_gesture, LV_EVENT_GESTURE, this);
+      lv_obj_add_event_cb(screen, on_screen_loaded, LV_EVENT_SCREEN_LOADED, this);
+      if (display_ == nullptr) {
+        display_ = lv_obj_get_display(screen);
+      }
     }
+  }
+  if (display_ != nullptr) {
+    lv_display_add_event_cb(display_, on_refresh_ready, LV_EVENT_REFR_READY, this);
   }
 }
 
@@ -36,8 +44,15 @@ void Controller::detach() {
   for (lv_obj_t* const screen : screens_) {
     if (screen != nullptr) {
       (void)lv_obj_remove_event_cb_with_user_data(screen, on_gesture, this);
+      (void)lv_obj_remove_event_cb_with_user_data(screen, on_screen_loaded, this);
     }
   }
+  if (display_ != nullptr) {
+    (void)lv_display_remove_event_cb_with_user_data(display_, on_refresh_ready, this);
+    end_tear_free();
+    display_ = nullptr;
+  }
+  sync_phase_ = SyncPhase::idle;
   clear_actions();
   screens_ = {};
   active_ = 0;
@@ -101,7 +116,47 @@ void Controller::on_action(lv_event_t* const event) {
   }
 }
 
+void Controller::begin_tear_free() {
+  if (display_ == nullptr) {
+    return;
+  }
+  if (lvgl_port_disp_set_tear_free(display_, true) == ESP_OK) {
+    sync_phase_ = SyncPhase::transitioning;
+  }
+}
+
+void Controller::end_tear_free() {
+  if (display_ != nullptr) {
+    (void)lvgl_port_disp_set_tear_free(display_, false);
+  }
+  sync_phase_ = SyncPhase::idle;
+}
+
+void Controller::on_screen_loaded(lv_event_t* const event) {
+  auto* const controller =
+      static_cast<Controller*>(lv_event_get_user_data(event));
+  if (controller == nullptr ||
+      controller->sync_phase_ != SyncPhase::transitioning) {
+    return;
+  }
+  controller->sync_phase_ = SyncPhase::settling;
+  lv_obj_t* const active = lv_screen_active();
+  if (active != nullptr) {
+    lv_obj_invalidate(active);
+  }
+}
+
+void Controller::on_refresh_ready(lv_event_t* const event) {
+  auto* const controller =
+      static_cast<Controller*>(lv_event_get_user_data(event));
+  if (controller != nullptr &&
+      controller->sync_phase_ == SyncPhase::settling) {
+    controller->end_tear_free();
+  }
+}
+
 void Controller::load(lv_obj_t* const screen, const bool forward) {
+  begin_tear_free();
   if (transition_ == configuration::ScreenTransition::none) {
     lv_screen_load(screen);
     return;

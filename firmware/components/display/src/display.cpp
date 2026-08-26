@@ -246,7 +246,7 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
   if (hardware.bus_type == driver::BusType::rgb) {
     const lvgl_port_display_rgb_cfg_t rgb_config = {
         .flags = {
-            .bb_mode = false,
+            .bb_mode = hardware.bounce_buffers,
             .avoid_tearing = hardware.avoid_tearing,
         },
     };

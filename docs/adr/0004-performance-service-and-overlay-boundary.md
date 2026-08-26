@@ -1,5 +1,12 @@
 # ADR 0004: Performance Service and Overlay Boundary
 
+Status: Accepted. Amended by
+[ADR 0027](0027-partial-render-buffers-and-unsynchronized-scan-out.md): what a
+debug build draws over the dashboard is now the `SIMCORE_DEBUG_OVERLAY` Kconfig
+choice — the full panel this ADR describes, an FPS-only chip that LVGL can draw
+without touching the widgets beneath it, or nothing. The service/overlay
+boundary is unchanged and both views stay behind it.
+
 ## Context
 
 SimCore needs runtime diagnostics for CPU, rendering, display transfer, and memory

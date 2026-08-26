@@ -33,6 +33,7 @@ struct Configuration {
   bool double_buffer;
   bool buffer_in_dma_memory;
   bool buffer_in_psram;
+  bool bounce_buffers;
   bool avoid_tearing;
   bool direct_mode;
 };

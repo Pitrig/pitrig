@@ -3,7 +3,12 @@
 Status: Accepted; completes the seam ADR 0014 left open. Amended in schema 7:
 any widget may carry a tap that navigates, which narrows — but does not
 remove — the rule that navigation is unauthored. Amended in schema 15: whether
-the transition animates is authored too.
+the transition animates is authored too. Amended by
+[ADR 0027](0027-partial-render-buffers-and-unsynchronized-scan-out.md): the
+controller now also switches the display into its tear-free rendering mode for
+the duration of every transition and back one refresh after the new screen
+settles, so the frame-rate trade the amendment below describes still holds but
+the drawing underneath it changed.
 
 ## Context
 

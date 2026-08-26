@@ -11,6 +11,8 @@ struct _lv_obj_t;
 using lv_obj_t = _lv_obj_t;
 struct _lv_event_t;
 using lv_event_t = _lv_event_t;
+struct _lv_display_t;
+using lv_display_t = _lv_display_t;
 
 namespace simcore::dashboard::navigation {
 
@@ -41,14 +43,26 @@ class Controller final {
     std::uint8_t target{};
   };
 
+  enum class SyncPhase : std::uint8_t {
+    idle,
+    transitioning,
+    settling,
+  };
+
   static void on_gesture(lv_event_t* event);
   static void on_action(lv_event_t* event);
+  static void on_screen_loaded(lv_event_t* event);
+  static void on_refresh_ready(lv_event_t* event);
+  void begin_tear_free();
+  void end_tear_free();
   void step(int delta);
   void show(std::size_t index);
   void load(lv_obj_t* screen, bool forward);
 
   std::span<lv_obj_t* const> screens_{};
   std::size_t active_{};
+  lv_display_t* display_{};
+  SyncPhase sync_phase_{SyncPhase::idle};
   configuration::ScreenTransition transition_{
       configuration::ScreenTransition::slide};
   std::array<Binding, configuration::kMaximumActions> actions_{};
