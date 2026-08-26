@@ -8,18 +8,6 @@ import { BoardPicker } from './BoardPicker'
 import { clampPan, viewForBox } from './canvas-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
 
-/**
- * The row under the canvas: how it is being looked at, what a gesture will
- * stick to, what is currently selected, and which display all of it is for.
- *
- * It sits below rather than above because the header holds the things that
- * change the document and this holds the things that describe it — which also
- * keeps the header from growing a third row on a narrow window. The board is
- * the one control here that can change the document, and it is here because it
- * replaced the resolution this row used to print: the board *is* that
- * resolution, and stating one beside a control choosing the other would have
- * been the same fact written twice.
- */
 export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): React.JSX.Element {
   const view = useDashboardEditorStore((state) => state.view)
   const setView = useDashboardEditorStore((state) => state.setView)

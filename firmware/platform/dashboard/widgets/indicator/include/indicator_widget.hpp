@@ -25,9 +25,6 @@ inline constexpr std::size_t kMaximumSegments =
 
 using Config = configuration::IndicatorWidgetConfiguration;
 
-// A row of lamps that light as a source climbs its range. Each segment is a
-// plain object rather than an lv_led, whose shadow would cost a blur per frame
-// on a display the panel is scanning directly.
 struct State {
   frame::Painter painter{};
   frame::ValueReadCallback read{};
@@ -45,9 +42,6 @@ struct State {
   lv_obj_t* container{};
   std::uint64_t rendered_revision{};
   bool rendered_available{};
-  // Which segments are painted lit right now, so a render that changes
-  // nothing touches no LVGL. The blink phase is part of the comparison
-  // because it decides the same pixels.
   std::uint32_t drawn_mask{};
   bool drawn_blink_visible{true};
   bool initialized{};
@@ -75,4 +69,4 @@ class Collection final
                            const fonts::Registry& fonts);
 };
 
-}  // namespace simcore::dashboard::indicator_widget
+}

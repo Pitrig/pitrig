@@ -1,17 +1,5 @@
 import { create } from 'zustand'
 
-/**
- * How the canvas helps a gesture land: what a dragged or resized box prefers to
- * line up with, how far it reaches for it, and whether a container carries its
- * contents when it grows.
- *
- * Separate from both stores next door on purpose. The dashboard editor store is
- * keyed by the widgets of the document being edited and is thrown away with it,
- * and the panel store describes the window; this describes how the author
- * works, which outlives every document and every window — so, like the panel
- * sizes, it is kept across restarts.
- */
-
 const STORAGE_KEY = 'simcore.editor.snap'
 
 export const MINIMUM_GRID_PX = 1
@@ -22,29 +10,10 @@ export const DEFAULT_TOLERANCE_PX = 10
 
 export interface SnapSettings {
   snapToGrid: boolean
-  /**
-   * Absent means the board decides, which is what a fresh installation wants: a
-   * 480x480 panel and a 1024x600 one do not want the same step. Naming one
-   * pins it for every board, because an author who typed a number meant it.
-   */
   gridSize?: number
-  /** Edges and centres of the neighbours, the container and the display. */
   snapToWidgets: boolean
-  /** Gaps equal to a gap that already exists between two neighbours. */
   snapToSpacing: boolean
-  /** How far a box reaches for a line, in screen pixels rather than logical ones. */
   tolerancePx: number
-  /**
-   * Whether a container's contents grow with it. Off, resizing a plate moves
-   * its own box and leaves what is inside where the author put it — which is
-   * what the device does with an authored offset, and what this editor has
-   * always done. On, the whole subtree scales, fonts included.
-   *
-   * A mode rather than a held key: it changes what a whole session of resizing
-   * means, and the four modifier combinations a resize already answers to
-   * (proportions, from the centre, grid-only, no snapping) leave nothing free
-   * that would not cost one of them.
-   */
   scaleContents: boolean
 }
 
@@ -64,12 +33,6 @@ const DEFAULTS: SnapSettings = {
 const clamp = (value: number, low: number, high: number): number =>
   Math.min(high, Math.max(low, Math.round(value)))
 
-/**
- * The step a board wants when the author has named none. A dashboard on a small
- * panel is built out of small boxes, and a step of eight pixels there is a
- * twentieth of the display — coarse enough to be in the way rather than in
- * help.
- */
 export function defaultGridSize(display: { width: number; height: number }): number {
   return Math.min(display.width, display.height) <= 480 ? 4 : 8
 }
@@ -103,7 +66,6 @@ function restore(): SnapSettings {
       scaleContents: stored.scaleContents ?? DEFAULTS.scaleContents
     }
   } catch {
-    // Storage that cannot be read or parsed is storage the editor does without.
     return DEFAULTS
   }
 }
@@ -140,6 +102,5 @@ useSnapStore.subscribe((state) => {
       })
     )
   } catch {
-    // Writing is a convenience; a full or blocked store must not break editing.
   }
 })

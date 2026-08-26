@@ -59,11 +59,6 @@ export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: numb
   )
 }
 
-/**
- * Follows the pointer across a surface until it is released, reporting where it
- * is as a fraction of that surface. On the window rather than the element,
- * because a colour is chosen by dragging past the edge as often as inside it.
- */
 function track(
   report: (x: number, y: number) => void
 ): (event: React.PointerEvent<HTMLElement>) => void {
@@ -85,4 +80,3 @@ function track(
     window.addEventListener('pointerup', release)
   }
 }
-

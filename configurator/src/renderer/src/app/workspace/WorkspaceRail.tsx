@@ -18,18 +18,6 @@ import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import { useDraftState } from '@/features/device/draft-state'
 import { useWorkspaceStore, WORKSPACE_TABS, type WorkspaceTab } from './workspace-store'
 
-/**
- * The rail that switches workspaces.
- *
- * Collapsed it is a column of icons; expanded it names them. The state is kept
- * across restarts, because which one an author prefers is a property of their
- * screen rather than of this session.
- *
- * The dots are the reason the rail is more than a menu: a draft that differs
- * from the board, or a board holding firmware it has not started yet, is
- * something you need to know while looking at another page.
- */
-
 const COLLAPSED_WIDTH = '3.5rem'
 const EXPANDED_WIDTH = '11.25rem'
 
@@ -39,12 +27,6 @@ interface RailEntry {
   hint: string
 }
 
-/**
- * What each workspace looks like in the rail. Keyed rather than listed, so the
- * compiler answers for coverage — a workspace added to `WORKSPACE_TABS` with no
- * entry here fails to build rather than rendering a gap — and so the order
- * lives in exactly one place.
- */
 const ENTRIES: Record<WorkspaceTab, RailEntry> = {
   dashboard: {
     label: 'Dashboard',
@@ -59,9 +41,6 @@ const ENTRIES: Record<WorkspaceTab, RailEntry> = {
   debug: { label: 'Debug', icon: Terminal, hint: 'Serial traffic and control commands' }
 }
 
-// A workspace that owns one configuration document lights up for that document
-// alone; Configs lights up for any of them, because it is where all three are
-// listed. Editing a baud rate used to put a dot on Dashboard.
 const OWNED_DOCUMENT: Partial<Record<WorkspaceTab, ConfigurationDocumentId>> = {
   dashboard: 'dashboard',
   modules: 'modules',
@@ -76,8 +55,6 @@ export function WorkspaceRail(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const { dirty, dirtyDocuments } = useDraftState()
 
-  // Cmd/Ctrl + 1…7, in the order the rail lists them. Digits are free: the
-  // editor's own accelerators are all letters.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return
@@ -136,8 +113,6 @@ export function WorkspaceRail(): React.JSX.Element {
               )}
               onClick={() => setTab(candidate)}
             >
-              {/* The accent bar rather than a colour swap: it survives the
-                  collapsed rail, where a label is not there to carry it. */}
               <span
                 aria-hidden="true"
                 className={cn(

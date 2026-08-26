@@ -149,6 +149,28 @@ widgets, not faster ones.
 A changing readout costs three draw tasks on the S3 — the screen background
 under it, the widget's own fill, and the label — at ~300 µs each.
 
+### The ESP32-P4's accelerator, and when it is worth using
+
+LVGL hands the PPA every opaque, square, ungraded fill. Submitting one and
+waiting for it costs the same whatever it fills, so the accelerator is a trade
+rather than a win: measured against the processor doing the same work, it costs
+**+103 µs per changing widget** — about 51 µs for each of the two fills a
+readout makes — and saves **18.4 ns per pixel** (25.9 against 44.3).
+
+| | fixed per changing widget | per pixel |
+| --- | ---: | ---: |
+| fill on the PPA | 367 µs | 25.9 ns |
+| fill on the processor | 264 µs | 44.3 ns |
+
+The crossover is around 1,500 pixels, which is why
+`patches/lvgl-9.5.0-ppa-small-fill-threshold.patch` leaves smaller fills on the
+processor: a 12 px readout costs 314 µs a widget instead of 402, a 72 px one
+still goes to the accelerator. Two things never reach it at all — a fill with a
+`radius_px`, because a rounded corner needs a mask, and text, because a glyph is
+blended through an alpha mask. A rounded background on a widget therefore costs
+more on the ESP32-P4 specifically, where the square version would have been the
+accelerator's.
+
 ### What a screen change costs
 
 Measured with four screens of 24 widgets each, telemetry at 30 Hz, while a hand
@@ -171,6 +193,17 @@ so the animation itself moves at 12–15 fps rather than the panel's 60.
 three to four times the steady state. That is the trade `transition` exists to
 let an author make: a dashboard whose screens are full is smoother to switch
 with `none`.
+
+Photographing the two screens and animating the pictures instead — which would
+put the moving frames on the ESP32-P4's image accelerator — was built and
+measured, and it is **worse**: 36.1 ms a frame against LVGL's 30.7, unchanged by
+reusing the previous slide's photograph or by dropping the fill behind them. The
+reason is in the arithmetic rather than in the accelerator. LVGL moves the two
+screens and draws only the part of each that is on the display, which together
+is one screen's worth of widgets; two full-screen pictures are two screens'
+worth of pixels, most of them clipped away after being blitted. Making the
+moving frames cheap needs the visible slices composited directly into the frame
+buffer, which is the display driver's business rather than LVGL's.
 
 Merging areas does **not** work, in case it looks tempting: snapping every
 invalidated area out to a 32-pixel grid so neighbours fold together halves the

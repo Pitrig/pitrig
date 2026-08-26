@@ -18,11 +18,6 @@ import type { PreviewValues } from './preview-values'
 import { HitArea } from './CanvasOverlays'
 import { WidgetBody } from './WidgetBody'
 
-/**
- * One widget of the screen, drawn inside its container chain's clip and wired
- * for selection: a press begins a move, a double-click opens a container, and
- * the context menu acts on whatever the container rule resolves the click to.
- */
 export function CanvasWidgetLayer({
   layer,
   layerIndex,
@@ -42,7 +37,6 @@ export function CanvasWidgetLayer({
   values: PreviewValues
   screenBackground: string
   dimmed: boolean
-  /** False while a tool, an insert, a pan or a middle-button press owns input. */
   gestureIdle: (event: React.PointerEvent) => boolean
   openMenu: (event: React.MouseEvent, widgetId?: string) => void
   beginMove: (
@@ -58,18 +52,6 @@ export function CanvasWidgetLayer({
   const locked = useDashboardEditorStore((state) => state.locked)
   const activeTool = useDashboardEditorStore((state) => state.activeTool)
   const id = layer.configuration.id
-  // Two clips, both the device's. The widget's own box clips its contents,
-  // exactly as its LVGL container does — a value wider than its widget is cut
-  // off on the board rather than spilling over its neighbours — and its caption
-  // is left out of that one, because the device puts the caption on the parent
-  // where it overhangs the frame. The containers above it clip everything it
-  // draws, caption included, which is what `clip_children` says. What is
-  // deliberately *not* clipped is the hit area: a widget dragged out of a
-  // container would otherwise be invisible and unselectable at once, with no
-  // way back. The clip arrives in display coordinates and this group is
-  // already translated by the container chain, so it is read back into local
-  // space rather than the transform being undone around it. The widget's own
-  // box is clipped inside WidgetBody, which knows it from the widget.
   const clip = layer.clip
     ? {
         ...layer.clip,
@@ -97,11 +79,7 @@ export function CanvasWidgetLayer({
       }}
       onPointerDown={(event) => {
         if (!id) return
-        // A tool is drawing, and a press over a widget is where the author
-        // wants the new one — not a request to pick what is underneath.
         if (!gestureIdle(event)) return
-        // The object under the pointer is the deepest one; which widget that
-        // means is the container rule, not this handler's business.
         const target = selectionTarget(configuration, id, {
           entered: drillIn,
           deep: event.metaKey || event.ctrlKey,
@@ -111,17 +89,12 @@ export function CanvasWidgetLayer({
         if (!target || !placement) return
         beginMove(event, { type: 'widget', id: target }, 'move', placement)
       }}
-      // Opening a container is what makes the level below it clickable — a
-      // slot one page at a time inside its own box, a shape its children.
-      // Double-click is how a container has always been opened.
       onDoubleClick={() => {
         if (!id) return
         const target = selectionTarget(configuration, id, { entered: drillIn })
         const opening = target ? findWidget(configuration, target)?.widget : undefined
         if (!target || !opening || !isContainer(opening)) return
         setDrillIn(target)
-        // Land on what was actually double-clicked rather than on the
-        // container just opened, which is where the click was aimed.
         const inside = selectionTarget(configuration, id, { entered: target })
         if (inside && inside !== target) select({ type: 'widget', id: inside })
       }}

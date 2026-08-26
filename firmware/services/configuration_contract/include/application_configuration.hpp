@@ -7,13 +7,6 @@
 
 #include "application_configuration_generated.hpp"
 
-// Public schema value contract. Structures, bounded capacities, enumerations,
-// and their wire spellings are generated from configuration/configuration_schema.json
-// by tools/generate_configuration_schema.py. This header adds only what is logic
-// rather than shape: helpers over the generated storage, and the private
-// firmware metadata that validates a public configuration against immutable
-// hardware.
-
 namespace simcore::configuration {
 
 template <std::size_t Capacity>
@@ -36,8 +29,6 @@ struct DisplayValidationProfile {
   std::int32_t height{};
 };
 
-// Private firmware metadata used to validate a public configuration against
-// immutable hardware. It is not serialized or exposed by the control protocol.
 struct ValidationContext {
   BoardId board{BoardId::t_display_s3};
   DisplayValidationProfile display{};
@@ -47,4 +38,4 @@ struct ValidationContext {
   bool native_usb_cdc_supported{};
 };
 
-}  // namespace simcore::configuration
+}

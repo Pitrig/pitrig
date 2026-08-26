@@ -7,15 +7,12 @@
 #include "simcore_features.hpp"
 #include "transport.hpp"
 
-// The lifecycle half of configuration control: the worker task and the
-// single-request intake it drains. What each command means, and every reply,
-// live in configuration_control_commands.cpp.
 namespace simcore::configuration {
 namespace {
 
 constexpr std::string_view kPrefix = "@SC:";
 
-}  // namespace
+}
 
 ConfigurationControl::~ConfigurationControl() { stop(); }
 
@@ -33,17 +30,12 @@ bool ConfigurationControl::initialize(
   apply_handler_ = apply_handler;
   apply_context_ = apply_context;
   request_state_.store(RequestState::idle, std::memory_order_relaxed);
-  // The group is created once over storage this object owns and then only ever
-  // has its bit cleared, so a control service that is stopped and started again
-  // waits on the same handle rather than leaking a new one each time.
   if (composed_ == nullptr) {
     composed_ = xEventGroupCreateStatic(&composed_storage_);
   }
   if (composed_ != nullptr) {
     (void)xEventGroupClearBits(composed_, kComposedBit);
   }
-  // Parsing and validating a 64 KB document, and a live apply, run here; on
-  // the communication core they never time-slice with the LVGL task.
   task_ = xTaskCreateStaticPinnedToCore(
       &ConfigurationControl::task_entry, "configuration_control",
       task_stack_.size(), this, kTaskPriority, task_stack_.data(),
@@ -66,9 +58,6 @@ void ConfigurationControl::mark_composed() {
 }
 
 bool ConfigurationControl::await_composition() {
-  // No group means the service was never initialized, which the caller already
-  // guards; answering "ready" keeps the failure where it belongs rather than
-  // turning it into a timeout.
   if (composed_ == nullptr) {
     return true;
   }
@@ -138,4 +127,4 @@ void ConfigurationControl::process() {
   }
 }
 
-}  // namespace simcore::configuration
+}

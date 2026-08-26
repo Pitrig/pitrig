@@ -11,10 +11,6 @@ import { scaleWidgets } from './geometry-commands'
 import { useSnapStore } from './snap-store'
 import type { WidgetSelection } from './store'
 
-// The keyboard's share of canvas geometry: what one arrow press means for a
-// box, at either step size. The hook that binds keys to these lives in
-// use-editor-shortcuts.ts.
-
 const NUDGE_PX = 1
 const COARSE_NUDGE_PX = 10
 
@@ -33,13 +29,6 @@ export function arrowStep(key: string): { x: number; y: number } | undefined {
   }
 }
 
-/**
- * Grows or shrinks one widget from its bottom-right corner, which is what a
- * keyboard resize can mean without an anchor to pick. Bounded exactly as the
- * pointer resize is: no smaller than the handles allow, and never past the
- * display — and through the same command, so "scale contents" means the same
- * thing whichever way the box was resized.
- */
 export function resize(
   selection: WidgetSelection,
   configuration: DeviceConfiguration,
@@ -67,9 +56,6 @@ export function resize(
     [
       {
         id: selection.id,
-        // One keypress is one edit from the document as it stands, so the
-        // widget itself is the state to scale — unlike a drag, which re-derives
-        // every frame from where the gesture began.
         original: JSON.parse(JSON.stringify(location.widget)),
         box: placement
       }
@@ -89,9 +75,6 @@ export function nudge(
   coarse: boolean
 ): void {
   if (selection.type !== 'widget') return
-  // Clamped in display space the same way dragging is, so the keyboard cannot
-  // place a widget where the pointer could not; a widget in a container is then
-  // written back in its group's space.
   const placement = absolutePlacement(configuration, selection.id)
   if (!placement) return
   const offset = parentOffset(configuration, selection.id)

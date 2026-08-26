@@ -3,10 +3,6 @@
 #include "lvgl.h"
 #include "widget_conditions.hpp"
 
-// The only part of a frame that runs on every LVGL pass. Building one is a
-// composition-time concern and lives beside build() in widget_frame.cpp; what
-// is here reads a bound value, resolves the styling rules over it, and touches
-// LVGL only when something actually changed.
 namespace simcore::dashboard::frame {
 
 void Painter::configure(const Config& config, const Box& box,
@@ -40,8 +36,6 @@ void Painter::configure(const Config& config, const Box& box,
   for (std::size_t index = 0; index < ramp_stop_count_; ++index) {
     ramp_stops_[index] = config.color_ramp.stops[index];
   }
-  // The widget as authored is what every rule falls back to, and what build()
-  // just configured LVGL with, so the first render has nothing to apply.
   static_style_ = {
       .color = content_color,
       .background_color = config.background_color,
@@ -52,12 +46,6 @@ void Painter::configure(const Config& config, const Box& box,
   applied_style_ = static_style_;
   blink_visible_ = true;
   visible_ = true;
-  // What this claims about LVGL has to be true of LVGL. A build hands over
-  // fresh objects, which are visible; an update hands over the ones the widget
-  // was already drawing with, and a rule that hid it — or a blink caught in its
-  // dark half — left the flag on them. Nothing would take it off again: the
-  // resolution below only writes visibility where it changes, and as far as
-  // this painter is now concerned it never did.
   const auto show = [](lv_obj_t* const object) {
     if (object != nullptr) {
       lv_obj_remove_flag(object, LV_OBJ_FLAG_HIDDEN);
@@ -75,8 +63,6 @@ void Painter::bind(const ValueReadCallback read, void* const context) {
 }
 
 void Painter::release() {
-  // The caption and its mask sit on the parent, so deleting the container would
-  // leave them behind.
   for (lv_obj_t* const object : {box_.caption, box_.caption_gap}) {
     if (object != nullptr) {
       lv_obj_delete(object);
@@ -95,9 +81,6 @@ void Painter::render() {
     rendered_revision_ = value.revision;
     rendered_available_ = value.available;
   }
-  // Styling is re-resolved when the watched value moved, while a hold runs
-  // down, and while a blink is on. A widget with neither rules nor a ramp never
-  // enters this at all.
   if ((condition_count_ > 0 || ramp_stop_count_ >= 2) &&
       (changed || holding_ || applied_style_.blink_ms != 0)) {
     const std::optional<double> numeric = conditions::condition_value(value);
@@ -109,22 +92,15 @@ void Painter::render() {
       hold_started_ = lv_tick_get();
       holding_ = resolution.hold_ms > 0;
     } else if (holding_ && lv_tick_elaps(hold_started_) < hold_ms_) {
-      // The rule stopped matching but its flash has not run out yet, which is
-      // what makes a momentary trigger visible at all.
       resolution.style = held_style_;
     } else {
       holding_ = false;
     }
     apply_style(resolution.style);
   }
-  // A blink runs off the tick rather than off telemetry, so its phase advances
-  // even on a pass where nothing else moved.
   apply_blink();
 }
 
-// The authored style with the ramp's colour in place of the one it paints. This
-// is what the rules fall back to, which is what makes the ramp the base layer
-// rather than a competing mechanism.
 conditions::ResolvedStyle Painter::ramped(
     const std::optional<double> value) const {
   conditions::ResolvedStyle style = static_style_;
@@ -167,8 +143,6 @@ void Painter::apply_style(const conditions::ResolvedStyle& style) {
     lv_obj_set_style_bg_opa(filled, painted ? LV_OPA_COVER : LV_OPA_TRANSP,
                             LV_PART_MAIN);
     if (background_mask_ != nullptr && box_.background_fill == nullptr) {
-      // An inset background never reaches what the mask covers, so the mask
-      // only follows a background the container itself paints.
       lv_obj_set_style_bg_color(
           background_mask_,
           lv_color_hex(painted ? style.background_color : background_mask_rgb_),
@@ -180,16 +154,11 @@ void Painter::apply_style(const conditions::ResolvedStyle& style) {
         box_.container, lv_color_hex(style.border_color), LV_PART_MAIN);
   }
   if (style.blink_ms != applied_style_.blink_ms) {
-    // Anchor the phase to the change, so the frame that turns the widget red is
-    // one the widget is visible in instead of one it happens to blink out on.
     blink_started_ = lv_tick_get();
     blink_visible_ = true;
   }
   applied_style_ = style;
   apply_visibility();
-  // Border, background and content are one visual change. Invalidating the
-  // whole widget publishes them as a single area, instead of leaving LVGL with
-  // separate rectangles that a partial draw buffer can flush one after another.
   lv_obj_invalidate(box_.container);
   for (std::size_t index = 0; index < attachment_count_; ++index) {
     if (attachments_[index] != nullptr) {
@@ -215,8 +184,6 @@ void Painter::apply_visibility() {
     return;
   }
   visible_ = visible;
-  // A blink hides the whole widget rather than its content alone, so the box,
-  // the frame and anything attached to it pulse together.
   const auto set = [visible](lv_obj_t* const object) {
     if (object == nullptr) {
       return;
@@ -233,4 +200,4 @@ void Painter::apply_visibility() {
   }
 }
 
-}  // namespace simcore::dashboard::frame
+}

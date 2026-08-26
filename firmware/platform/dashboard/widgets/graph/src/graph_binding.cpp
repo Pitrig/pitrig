@@ -10,9 +10,6 @@ bool Binder::bind_one(const configuration::ValueSourceConfiguration& source,
   if (context_count_ >= source_contexts_.size()) {
     return false;
   }
-  // A modified source reads through the module's own context and leaves this
-  // slot untouched, which costs one unused entry and keeps the pool's size a
-  // property of the contract rather than of the document.
   frame::SourceContext& context = source_contexts_[context_count_++];
   return frame::bind_source(configuration::value_binding_view(source.binding),
                             source.modifier_count, source.modifiers, registry,
@@ -28,9 +25,6 @@ bool Binder::bind_sources(const Config& configuration,
   if (configuration.trace_count > configuration.traces.size()) {
     return false;
   }
-  // The widget's own source is the first trace, so it is bound the same way the
-  // ones beside it are and the collection reads one array rather than a special
-  // case and an array.
   if (!bind_one(configuration.source, registry, telemetry, modifier_readers,
                 binding.sources[0])) {
     return false;
@@ -79,4 +73,4 @@ std::span<const WidgetBinding> Binder::bindings() const {
   return {bindings_.data(), count_};
 }
 
-}  // namespace simcore::dashboard::graph_widget
+}

@@ -8,10 +8,6 @@
 
 namespace simcore::configuration {
 
-// One record per document, and no more. NVS replaces a blob by writing the new
-// one before retiring the old, so a torn write leaves the previous record
-// readable; the pair of alternating slots this used to keep bought a second
-// copy of that guarantee and nothing else.
 class IConfigurationStorage {
  public:
   virtual ~IConfigurationStorage() = default;
@@ -26,4 +22,4 @@ class IConfigurationStorage {
   virtual bool reset() = 0;
 };
 
-}  // namespace simcore::configuration
+}

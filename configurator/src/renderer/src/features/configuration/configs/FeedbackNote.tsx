@@ -1,6 +1,5 @@
 import type { ActionFeedback } from '../configuration-actions'
 
-/** One action's outcome, in the tone it deserves. */
 export function FeedbackNote({
   feedback
 }: {

@@ -7,9 +7,6 @@ import { HINTS } from './hints'
 import { GROUP_ICONS } from './icons'
 import { SelectField } from './fields'
 
-// What a tap on this widget does. An action is bounded per document, so the
-// editor has to say when there is no room for another one.
-
 export function ActionEditor({
   configuration,
   action,
@@ -54,8 +51,6 @@ export function ActionEditor({
                 onChange({ type: 'goto_screen', screen: screens[0]?.id ?? '' })
                 return
               }
-              // The other types name no screen, and one that does is rejected
-              // by the device rather than ignored.
               onChange({ type: next as WidgetActionType })
             }}
           />
@@ -68,8 +63,6 @@ export function ActionEditor({
               onChange={(screen) => onChange({ type: 'goto_screen', screen })}
             />
           ) : null}
-          {/* The canvas cannot be tapped the way the board is, so following the
-              action here is how a link gets checked while authoring. */}
           {type !== 'none' ? (
             <button
               type="button"

@@ -16,39 +16,18 @@ import type {
   SimCoreBoardId
 } from '@shared/device'
 
-// The draft is a structured document, not a string. Editing, comparison, the
-// preview and the wire all read `draft`; the serialized form exists only for the
-// advanced JSON editor. `rawDraft` holds what that editor is showing, and which
-// of the three documents it is showing, including while the text does not parse
-// — the preview keeps rendering the last good document, and the draft counts as
-// invalid until the text is valid again.
-
-/** What the advanced JSON editor is holding, and which document it is for. */
 export interface RawDraft {
   document: ConfigurationDocumentId
   text: string
 }
-//
-// History lives here rather than in the editor because this is where every
-// document replacement lands. Entries are whole documents: each edit already
-// produces a fresh clone, so a snapshot costs a reference rather than a copy,
-// and a 64 KB bound on the document keeps the stack small.
 
 const MAXIMUM_HISTORY_ENTRIES = 100
 
-/**
- * Which control produced the current draft. A raw-JSON session records one
- * entry when it starts rather than one per keystroke, which is what makes undo
- * step over an editing session instead of a character.
- */
 type EditSource = 'structured' | 'raw'
 
 interface DeviceStore {
   status: DeviceStatus
   session?: DeviceSession
-  // The link's own report, mirrored here rather than kept beside the store in
-  // a component: it is the same DeviceState every other field comes from, and
-  // two copies of it drifted apart as soon as one of them was updated first.
   connection?: DeviceConnection
   scan?: DeviceScanProgress
   error?: DeviceError
@@ -59,15 +38,6 @@ interface DeviceStore {
   hasLocalDraft: boolean
   draftFileName?: string
   pendingConfiguration?: DeviceConfiguration
-  /**
-   * The board being authored against while nothing is plugged in.
-   *
-   * A connected board answers this itself, and a draft carries its own `board`
-   * — this is only for the gap before either exists, where "New" has to know
-   * what to create and the canvas has to know how large the display is. It sits
-   * here rather than in one page's local state because the canvas and the
-   * Configs page both offer the choice, and two copies would disagree.
-   */
   offlineBoard?: SimCoreBoardId
   setOfflineBoard: (board?: SimCoreBoardId) => void
   rebootRequired: boolean
@@ -81,32 +51,16 @@ interface DeviceStore {
   setRawDraft: (document: ConfigurationDocumentId, text: string) => void
   replaceLocalDraft: (configuration: DeviceConfiguration, fileName?: string) => void
   reloadDraft: (session: DeviceSession) => void
-  /**
-   * How the last save to a board ended. It lives here rather than in the panel
-   * because a save now restarts the board and reconnects to it, and that
-   * reconnect remounts the panel — the message would be destroyed by the very
-   * operation it is reporting on.
-   */
   saveFeedback?: { kind: 'success' | 'error'; message: string }
   setSaveFeedback: (feedback?: { kind: 'success' | 'error'; message: string }) => void
   markConfigurationSaved: (configuration: DeviceConfiguration) => void
   markConfigurationReset: (configuration: DeviceConfiguration) => void
-  /**
-   * Collapses everything until the matching `endEdit` into one history entry.
-   * A drag commits a document per animation frame and a held arrow key one per
-   * repeat; both are one edit to the person doing them.
-   */
   beginEdit: () => void
   endEdit: () => void
   undo: () => void
   redo: () => void
 }
 
-/**
- * Whether two device reports describe the same stored configuration. It is one
- * generation per document now, and any of them moving means the board is
- * holding something else.
- */
 function sameGenerations(left: DeviceInfo, right: DeviceInfo): boolean {
   return CONFIGURATION_DOCUMENT_IDS.every(
     (id) => left.documents[id].generation === right.documents[id].generation
@@ -117,11 +71,6 @@ function adopt(configuration: DeviceConfiguration): DeviceConfiguration {
   return withWidgetIds(configuration)
 }
 
-/**
- * A document arriving from outside the editor — a file, the board, a save —
- * is a new starting point, so the stack it would have been compared against no
- * longer describes anything the person can return to.
- */
 function clearedHistory(): Partial<DeviceStore> {
   return { past: [], future: [], editDepth: 0, editRecorded: false }
 }
@@ -138,8 +87,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
   editSource: 'structured',
   applyDeviceState: (state) =>
     set((current) => {
-      // Carried into every branch below. Leaving it out of one of them is
-      // exactly how a stale port name or a cleared error survives a reconnect.
       const link = { connection: state.connection, scan: state.scan, error: state.error }
       if (state.status !== 'connected' || !state.session) {
         return {
@@ -195,10 +142,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       editSource: 'structured',
       ...recordHistory(current, 'structured')
     })),
-  // Keeps the typed text exactly as entered so reformatting never fights the
-  // caret; the structured draft advances only while the text parses. The text
-  // is one document rather than the whole configuration, so it is merged over
-  // the draft: editing the protocol JSON by hand cannot lose a dashboard.
   setRawDraft: (document, text) =>
     set((current) => {
       const parsed = parseConfiguration(text)
@@ -239,9 +182,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       hasLocalDraft: true,
       draftFileName: undefined,
       pendingConfiguration: configuration,
-      // A save leaves the board already running what it saved — by applying the
-      // document when nothing needed installing, and by restarting when
-      // something did. Either way there is nothing left for the author to do.
       rebootRequired: false,
       ...clearedHistory()
     }),
@@ -264,7 +204,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       if (previous === undefined || current.draft === undefined) return {}
       return {
         draft: previous,
-        // The advanced editor's text belonged to the document being undone.
         rawDraft: undefined,
         hasLocalDraft: true,
         past: current.past.slice(0, -1),
@@ -285,11 +224,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
     })
 }))
 
-/**
- * The history half of a draft replacement. Nothing is recorded until there is a
- * document to go back to, an open edit group records only its first change, and
- * a raw-JSON session records only where it began.
- */
 function recordHistory(
   current: DeviceStore,
   source: EditSource
@@ -299,7 +233,6 @@ function recordHistory(
   if (current.draft === undefined || grouped || continuingRawSession) return {}
   return {
     past: [...current.past, current.draft].slice(-MAXIMUM_HISTORY_ENTRIES),
-    // Editing after undoing abandons the branch that was undone.
     future: [],
     editRecorded: true
   }

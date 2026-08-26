@@ -14,7 +14,7 @@ namespace {
                               : std::string_view{partition->label};
 }
 
-}  // namespace
+}
 
 Service::~Service() { cancel_update(); }
 
@@ -54,8 +54,6 @@ UpdateError Service::begin_update(const std::size_t package_size) {
   if (update_in_progress_) {
     return UpdateError::busy;
   }
-  // A second image staged over the first would leave the boot partition
-  // pointing at bytes that were only half replaced.
   if (status_.reboot_required) {
     return UpdateError::reboot_required;
   }
@@ -69,8 +67,6 @@ UpdateError Service::begin_update(const std::size_t package_size) {
   expected_image_crc_ = 0;
   image_crc_.reset();
   header_.fill(0);
-  // The write handle stays closed until the header has named this board. An
-  // image for another board is refused before a single byte is erased.
   return UpdateError::none;
 }
 
@@ -158,8 +154,6 @@ UpdateError Service::commit_update() {
       update_received_ != update_size_) {
     return UpdateError::invalid_state;
   }
-  // Checked before esp_ota_end so a transfer that lost bytes is named as a bad
-  // package rather than as whatever the image verifier makes of the result.
   if (image_crc_.value() != expected_image_crc_) {
     reset_update();
     return UpdateError::invalid_package;
@@ -196,4 +190,4 @@ void Service::reset_update() {
   image_crc_.reset();
 }
 
-}  // namespace simcore::firmware_update
+}

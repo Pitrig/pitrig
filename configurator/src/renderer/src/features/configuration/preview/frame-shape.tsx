@@ -6,10 +6,6 @@ import { DEFAULT_BORDER_COLOR, type FramedWidgetConfiguration } from './preview-
 import { backgroundRect, gradientPaint } from './preview-geometry-paint'
 import { normalizeColor } from './preview-values'
 
-// The box every widget preview draws around itself: the background, its
-// gradient, the border and the inset. Shared because it is the frame the
-// firmware draws too, not because these previews happen to look alike.
-
 export function GradientDefinition({
   id,
   from,
@@ -39,7 +35,6 @@ export function WidgetFrameShape({
   placement: Placement
   configuration: FramedWidgetConfiguration
   style: ResolvedStyle
-  /** Half the shorter side for an ellipse; the authored corner otherwise. */
   radius?: number
 }): React.JSX.Element {
   const gradientId = markupId(useId())

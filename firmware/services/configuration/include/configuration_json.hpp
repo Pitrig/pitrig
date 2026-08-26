@@ -14,12 +14,6 @@ namespace simcore::configuration {
   return version == kConfigurationSchemaVersion;
 }
 
-// Parses one document's sections of a sparse schema document into bounded
-// runtime storage and validates the whole result against immutable hardware.
-// Sections the document does not own are left exactly as they were, so loading
-// the protocol document does not disturb a dashboard already in place. On
-// rejection the failure carries the offending widget index and property path so
-// the configurator can point at the cause.
 [[nodiscard]] ValidationFailure parse_configuration_json(
     ConfigurationDocument document, std::span<const std::uint8_t> input,
     const ValidationContext& profile, ApplicationConfiguration& configuration);
@@ -28,4 +22,4 @@ namespace simcore::configuration {
     const ApplicationConfiguration& configuration,
     const ValidationContext& profile);
 
-}  // namespace simcore::configuration
+}

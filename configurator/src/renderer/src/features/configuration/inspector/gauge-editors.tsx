@@ -12,14 +12,6 @@ import { CheckboxField, ColorField, ColorSwatchInput, Hint, NumberField, NumberI
 import { SourceRangeFields, SourceRangeSection } from './section-editors'
 import { BoxEditor, TitleEditor } from './styling-editors'
 
-/**
- * One editor per widget type, each a list of groups in the same order: what it
- * reads, what it is, what it says, what it looks like, and what a value does to
- * it. The frame it stands in — its name, its box, its geometry and its action —
- * is added around these by the inspector, because every type carries it.
- */
-
-/** The button every list of repeated rows adds with. */
 import { AddButton, RemoveButton } from './widget-editors'
 
 export function ArcEditor({ selection, widget }: { selection: WidgetSelection; widget: ArcWidgetConfiguration }): React.JSX.Element {
@@ -148,12 +140,6 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
 
 const TRACE_COLORS: readonly [RgbColor, ...RgbColor[]] = ['#00C853', '#FFD200']
 
-/**
- * One of the sources a graph draws beside its own. It carries exactly what the
- * widget's own trace carries — what it reads, through what window, in what
- * colour — through the same fields, so neither of the two is the special case
- * and a trace added here cannot drift from the one above it.
- */
 function GraphTraceEditor({ trace, index, onChange, onRemove }: {
   trace: GraphTraceConfiguration
   index: number
@@ -163,7 +149,6 @@ function GraphTraceEditor({ trace, index, onChange, onRemove }: {
   return (
     <div className="space-y-2 rounded-md border p-2">
       <div className="flex items-center justify-between">
-        {/* The widget's own source is trace 1, so these start at two. */}
         <span className="font-medium">{`Trace ${index + 2}`}</span>
         <button type="button" aria-label={`Remove trace ${index + 2}`} title="Remove this trace" className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={onRemove}>
           <Trash2 aria-hidden className="size-3" />
@@ -182,8 +167,6 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
   const traces = widget.traces ?? []
   return (
     <>
-      {/* The widget's own source is the first trace, so its colour sits with
-          its binding and its window rather than with the plot below. */}
       <SourceRangeSection widget={widget} update={update}>
         <ColorField label="Line" value={widget.line_color ?? '#38BDF8'} modified={authored(widget.line_color, '#38BDF8')} onReset={() => update((next) => { delete next.line_color })} onChange={(value) => update((next) => { next.line_color = value })} />
       </SourceRangeSection>
@@ -204,11 +187,6 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
         ))}
         {traces.length + 1 < MAXIMUM_GRAPH_SOURCES ? (
           <AddButton label="Add trace" onClick={() => update((next) => {
-            // Both properties are answered here rather than left to the
-            // contract's defaults: an unnamed source is the empty string, which
-            // the device refuses outright, and an uncoloured trace would be
-            // drawn in the same blue as the one above it — which is the one
-            // thing a second trace must not be.
             const list = next.traces ?? []
             next.traces = [...list, { source: { binding: NEW_GRAPH_BINDING }, line_color: TRACE_COLORS[list.length] ?? TRACE_COLORS[0] }]
           })} />
@@ -244,9 +222,6 @@ export function BarEditor({ selection, widget }: { selection: WidgetSelection; w
   const update = (mutation: (next: BarWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as BarWidgetConfiguration))
   return (
     <>
-      {/* A bar is the one gauge that may fill from somewhere other than its
-          minimum, so its data group carries the origin the others have no use
-          for. */}
       <SourceRangeSection widget={widget} update={update}>
         <CheckboxField label="From origin" hint={HINTS.bar.origin} checked={widget.origin !== undefined} modified={widget.origin !== undefined} onReset={() => update((next) => { delete next.origin })} onChange={(checked) => update((next) => { if (checked) next.origin = 0; else delete next.origin })} />
         {widget.origin !== undefined ? (
@@ -256,8 +231,6 @@ export function BarEditor({ selection, widget }: { selection: WidgetSelection; w
       <Group id="Bar" title="Bar" icon={GROUP_ICONS.bar} summary={widget.orientation ?? 'horizontal'}>
         <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} modified={authored(widget.orientation, 'horizontal')} onReset={() => update((next) => { delete next.orientation })} onChange={(value) => update((next) => { next.orientation = value })} />
         <ColorField label="Fill" hint={HINTS.bar.fill} value={widget.fill_color ?? '#38BDF8'} modified={authored(widget.fill_color, '#38BDF8')} onReset={() => update((next) => { delete next.fill_color })} onChange={(value) => update((next) => { next.fill_color = value })} />
-        {/* The fill's gradient runs along the bar's own axis, so it needs no
-            direction of its own. */}
         <OptionalColorField
           label="Gradient to"
           value={widget.fill_grad_color}
@@ -278,6 +251,3 @@ export function BarEditor({ selection, widget }: { selection: WidgetSelection; w
     </>
   )
 }
-
-// A shape is its frame, so its own group is one property; the box and the
-// styling rules come from the shared frame editors below.

@@ -6,25 +6,6 @@ import type { CanvasTool } from '../editor/store'
 import { WIDGET_ICONS } from '../inspector/icons'
 import { useDeviceStore } from '@/features/device/device-store'
 
-/**
- * The tools, down the left edge of the canvas.
- *
- * A tool is picked and then a box is drawn, which is how a widget ends up
- * exactly where it belongs instead of in the middle of the display waiting to
- * be dragged into place. Eight buttons labelled "+ Text" used to take a whole
- * row of the card's header and still said nothing about where the widget would
- * land; here the choice sits beside the surface it acts on.
- *
- * Deliberately without keyboard shortcuts: nine single-letter bindings in a
- * window whose panels are full of fields is a trap, and the same nine kinds are
- * a right-click away on the canvas itself.
- *
- * The column scrolls. Ten buttons need some 360 pixels, which a short window
- * does not always have, and a flex child stretched by its row will happily draw
- * past the card it lives in rather than admit it does not fit — so it is given
- * a height of its own to be bounded by, and its own scroll inside that.
- */
-
 const TOOLS: { tool: CanvasTool; label: string; icon: LucideIcon; hint: string }[] = [
   { tool: 'select', label: 'Select', icon: MousePointer2, hint: 'Pick, move and resize widgets' },
   { tool: 'text', label: 'Text', icon: WIDGET_ICONS.text, hint: 'A reading, drawn from telemetry' },
@@ -51,7 +32,6 @@ export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Elemen
       style={{ scrollbarWidth: 'thin' }}
     >
       {TOOLS.map(({ tool, label, icon: Icon, hint }) => {
-        // A tap zone is a shape, so it shares the shape pool and its cap.
         const kind: WidgetConfiguration['type'] | undefined =
           tool === 'select' ? undefined : tool === 'tap_zone' ? 'shape' : tool
         const full = kind !== undefined && atWidgetCapacity(configuration, kind)

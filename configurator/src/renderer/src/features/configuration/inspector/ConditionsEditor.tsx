@@ -12,18 +12,12 @@ import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
 import { CheckboxField, ColorSwatchInput, Hint, NumberInput, OptionalColorField, SelectField, SelectInput } from './fields'
 
-// What a value changes about how a widget looks: the rules over one source, and
-// the colour ramp underneath them. The ramp is the layer the rules fall back
-// to, which is why the two are edited together.
-
 export function ConditionsEditor({ widget, update }: {
   widget: FramedWidget
   update: (mutation: (next: FramedWidget) => void) => void
 }): React.JSX.Element {
   const watched = widget.condition_source?.binding ?? ''
   const field = TELEMETRY_CATALOG.find(({ name }) => name === watched)
-  // A boolean field has nothing to be above or below, so the editor offers the
-  // two states it can actually take.
   const boolean = field?.type === 'boolean'
   const operators = boolean ? BOOLEAN_OPERATORS : CONDITION_OPERATOR_VALUES
   const rules = widget.conditions ?? []
@@ -50,8 +44,6 @@ export function ConditionsEditor({ widget, update }: {
           return
         }
         next.condition_source = { ...next.condition_source, binding: value }
-        // Thresholds follow the data: switching to a boolean field leaves no
-        // meaning in "above 0.9", so the rules move to the states it has.
         const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
         if (selected?.type !== 'boolean') return
         for (const rule of next.conditions ?? []) {
@@ -59,9 +51,6 @@ export function ConditionsEditor({ widget, update }: {
           rule.value = (rule.value ?? 0) >= 1 ? 1 : 0
         }
       })} />
-      {/* The value sources have carried a modifier since the lap timer existed;
-          the watched source could only ever be a raw field, so a rule could not
-          be written against lap time at all. */}
       {watched ? (
         <SelectField
           label="Modifier"
@@ -165,8 +154,6 @@ export function ConditionsEditor({ widget, update }: {
   )
 }
 
-// The ramp is the layer under the rules, so it is edited with them rather than
-// in a group of its own.
 function ColorRampEditor({ widget, update, unit }: {
   widget: FramedWidget
   update: (mutation: (next: FramedWidget) => void) => void

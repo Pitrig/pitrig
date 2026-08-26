@@ -17,19 +17,12 @@ export function ScreenTabs(): React.JSX.Element {
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
   const setActiveScreen = useDashboardEditorStore((state) => state.setActiveScreen)
   const [dragged, setDragged] = useState<number>()
-  // Which edge of which tab the drop would land on. One object for the strip
-  // rather than a flag per tab, as the layer list does it.
   const [dropTarget, setDropTarget] = useState<{ index: number; before: boolean }>()
   const [renaming, setRenaming] = useState<number>()
   const screens = screensOf(configuration)
   const count = Math.max(screens.length, 1)
-  // A single screen has no order to change, and a sparse document can show a
-  // tab for a screen the array does not hold yet.
   const reorderable = screens.length > 1
 
-  // Where the pointer sits on the tab, and what that means to an array the
-  // dragged screen is spliced out of first: a landing spot after the one it
-  // came from shifts back by one.
   const edgeAt = (event: React.DragEvent<HTMLElement>): boolean => {
     const box = event.currentTarget.getBoundingClientRect()
     return box.width > 0 ? event.clientX - box.left < box.width / 2 : true
@@ -47,8 +40,6 @@ export function ScreenTabs(): React.JSX.Element {
         return (
         <div
           key={screens[index]?.id ?? index}
-          // Dragging is off while the name is being typed: a press inside the
-          // field would otherwise pick the tab up instead of placing the caret.
           draggable={reorderable && renaming !== index}
           title={
             reorderable
@@ -65,8 +56,6 @@ export function ScreenTabs(): React.JSX.Element {
           onDragOver={(event) => {
             if (dragged === undefined) return
             const before = edgeAt(event)
-            // A drop that would put the screen back where it started is not
-            // offered at all, so no band is ever a move that does nothing.
             if (destinationOf(dragged, index, before) === dragged) return
             event.preventDefault()
             event.dataTransfer.dropEffect = 'move'
@@ -76,7 +65,6 @@ export function ScreenTabs(): React.JSX.Element {
           }}
           onDrop={(event) => {
             event.preventDefault()
-            // Recomputed from the drop itself: the stored edge is a render behind.
             if (dragged !== undefined) {
               moveScreen(dragged, destinationOf(dragged, index, edgeAt(event)))
             }
@@ -88,15 +76,9 @@ export function ScreenTabs(): React.JSX.Element {
             setDropTarget(undefined)
           }}
           onDragLeave={() => {
-            // Only if this tab is still the marked one. Leaving one tab and
-            // entering the next fire in either order, and an unguarded clear
-            // would wipe the indicator the tab being entered had just set.
             setDropTarget((current) => (current?.index === index ? undefined : current))
           }}
         >
-          {/* Absolute and click-through, for the same reason the layer list's
-              indicator is: an element under the cursor would swallow the
-              dragover this exists to reflect. */}
           {edge !== undefined ? (
             <span
               aria-hidden
@@ -155,13 +137,6 @@ export function ScreenTabs(): React.JSX.Element {
   )
 }
 
-/**
- * Renaming a screen in place, on the tab it is named on. The name is a document
- * value rather than a label, so a refused one — empty, longer than the device
- * stores, or already taken by another screen — puts the old name back and marks
- * the field instead of vanishing silently. Repointing the `goto_screen` actions
- * that named it is `renameScreen`'s business.
- */
 function ScreenNameField({
   index,
   name,
@@ -193,8 +168,6 @@ function ScreenNameField({
       onChange={(event) => setValue(event.target.value)}
       onBlur={commit}
       onKeyDown={(event) => {
-        // The strip is inside the canvas card, where Escape and the arrows mean
-        // something else entirely.
         event.stopPropagation()
         if (event.key === 'Enter') commit()
         if (event.key === 'Escape') onDone()

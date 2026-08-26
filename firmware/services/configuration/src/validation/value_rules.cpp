@@ -8,8 +8,6 @@
 
 namespace simcore::configuration::validation {
 
-// Records a rejection with the property that caused it. The first cause wins so
-// an inner reason is not replaced by the generic error its caller would return.
 bool reject(ValidationFailure& failure, const ValidationError error,
             const std::string_view path) {
   if (!failure.ok()) {
@@ -34,10 +32,6 @@ bool reject(ValidationFailure& failure, const ValidationError error,
   return color == kTransparentColor || valid_color(color);
 }
 
-// A transform must be able to read the value it is placed on. Each time format
-// accepts exactly one millisecond type. The number transform accepts anything
-// numeric, including a source that carries its number as text, and is bounded
-// by what the fixed-point conversion can render.
 [[nodiscard]] bool valid_transform(const ValueTransform& transform,
                                    const telemetry::ValueType type) {
   using transformers::time_transform::Format;
@@ -64,9 +58,6 @@ bool reject(ValidationFailure& failure, const ValidationError error,
          font.size_px <= font_assets::kMaximumFontSizePx;
 }
 
-// An uploaded package carries one face per family, so a document may not name
-// more families than a package can hold. Sizes are free: every one of them is
-
 [[nodiscard]] bool on_display(const std::int32_t origin_x,
                               const std::int32_t origin_y,
                               const WidgetPlacement& placement,
@@ -81,10 +72,6 @@ bool reject(ValidationFailure& failure, const ValidationError error,
          left < display_width && top < display_height;
 }
 
-// A target that names no screen would send a tap nowhere, and a screen named by
-// an action type that navigates relatively is a property that does nothing —
-// both are authoring mistakes rather than harmless noise, so both are refused.
-// `screens` is the document's screen list, which is what the id must match.
 [[nodiscard]] bool valid_action(const WidgetAction& action,
                                 const DashboardConfiguration& dashboard) {
   const std::string_view target = text_view(action.screen);
@@ -108,4 +95,4 @@ bool reject(ValidationFailure& failure, const ValidationError error,
   return false;
 }
 
-}  // namespace simcore::configuration::validation
+}

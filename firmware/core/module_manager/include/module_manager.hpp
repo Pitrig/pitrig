@@ -15,8 +15,6 @@ struct Descriptor {
   void* context{};
 };
 
-// Owns bounded module lifecycle state. Module storage and dependencies remain
-// in the application composition layer and are supplied through descriptors.
 class Manager final {
  public:
   static constexpr std::size_t kMaximumModules = 16;
@@ -42,4 +40,4 @@ class Manager final {
   std::size_t count_{};
 };
 
-}  // namespace simcore::modules
+}

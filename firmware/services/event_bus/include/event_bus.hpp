@@ -23,10 +23,6 @@ struct Subscription {
   bool valid{};
 };
 
-// Delivers events synchronously to a fixed number of subscribers.
-//
-// Event payloads remain valid only for the duration of publish(). Subscribers
-// must copy any data they need after the callback returns.
 class EventBus {
  public:
   static constexpr std::size_t kMaximumSubscriptions = 16;
@@ -48,4 +44,4 @@ class EventBus {
   std::mutex mutex_;
 };
 
-}  // namespace simcore::events
+}

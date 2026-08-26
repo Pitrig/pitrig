@@ -29,8 +29,6 @@ namespace simcore::configuration::json::variants {
                   failure)) {
     return false;
   }
-  // An omitted origin means the low end of the range, which a literal zero
-  // cannot express once the window goes negative.
   config.origin_present = member(object, "origin") != nullptr;
   return true;
 }
@@ -95,9 +93,6 @@ namespace simcore::configuration::json::variants {
          parse_indicator_segments(object, config, failure);
 }
 
-// The sources drawn over the same plot as the widget's own. Each carries the
-// window and the colour that make it a trace of its own; the point count and
-// the sample clock stay on the widget, because one plot has one time axis.
 [[nodiscard]] bool parse_graph_traces(const cJSON* const object,
                                       GraphWidgetConfiguration& config,
                                       ValidationFailure& failure) {
@@ -138,4 +133,4 @@ namespace simcore::configuration::json::variants {
          parse_graph_traces(object, config, failure);
 }
 
-}  // namespace simcore::configuration::json::variants
+}

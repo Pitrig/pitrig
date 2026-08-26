@@ -4,14 +4,6 @@ import type { FontCatalogFamily, FontVariant } from '@shared/font-library'
 
 import { catalogFontFamily, registerCatalogFace } from './font-face-store'
 
-/**
- * The Google Fonts catalog as the picker browses it.
- *
- * Rows draw themselves in their own face, which means downloading faces the
- * author may never choose — so a row fetches only once it has been on screen
- * long enough to look at, and only a few at a time. A row whose face never
- * arrives reads in the stand-in and says so; it is still choosable.
- */
 const MAXIMUM_CONCURRENT_PREVIEWS = 4
 
 type PreviewState = 'loading' | 'ready' | 'unavailable'
@@ -19,11 +11,8 @@ type PreviewState = 'loading' | 'ready' | 'unavailable'
 interface FontCatalogState {
   families: FontCatalogFamily[]
   loaded: boolean
-  /** Per family name, so a row can show what happened to its preview. */
   previews: Readonly<Record<string, PreviewState>>
-  /** The library id each previewed family was registered under. */
   previewIds: Readonly<Record<string, string>>
-  /** Whether each previewed family's digits are all one width. */
   tabular: Readonly<Record<string, boolean>>
   load: () => Promise<void>
   requestPreview: (family: string) => void
@@ -83,7 +72,6 @@ async function preview(family: string, set: SetState): Promise<void> {
   }))
 }
 
-/** The CSS family a previewed catalog row draws in, or undefined until it has one. */
 export function catalogPreviewFamily(
   previews: Readonly<Record<string, PreviewState>>,
   previewIds: Readonly<Record<string, string>>,
@@ -105,7 +93,6 @@ const WEIGHT_NAMES: Readonly<Record<string, string>> = {
   '900': 'Black'
 }
 
-/** How a weight reads to a person, rather than as the number the id carries. */
 export function variantLabel(variant: FontVariant): string {
   const italic = variant.endsWith('italic')
   const weight = italic ? variant.slice(0, -'italic'.length) : variant

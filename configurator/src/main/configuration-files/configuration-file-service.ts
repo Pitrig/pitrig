@@ -13,11 +13,6 @@ import type { RecentConfigurations } from '../configs/recent-configurations'
 
 const MAXIMUM_SOURCE_FILE_SIZE = 64 * 1024
 
-/**
- * The Open and Save dialogs. Both record what they touched in the recent list,
- * because the path only exists here: everything downstream of this service sees
- * a base name, which is what the author reads but not what reopens a file.
- */
 export class ConfigurationFileService {
   constructor(private readonly recent: RecentConfigurations) {}
 
@@ -44,7 +39,6 @@ export class ConfigurationFileService {
         )
       }
       const json = await readFile(path, 'utf8')
-      // parseDeviceConfigurationJson already enforces the payload limit.
       const configuration = parseDeviceConfigurationJson(json)
       await this.recent.record(path)
       return { ok: true, value: { configuration, fileName: basename(path) } }

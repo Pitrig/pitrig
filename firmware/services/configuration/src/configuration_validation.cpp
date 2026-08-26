@@ -56,8 +56,6 @@ ValidationFailure validate_configuration(
     return failure;
   }
 
-  // A reference index is a std::uint8_t, so a pool that outgrew that would
-  // silently alias its first entries.
   static_assert(kMaximumTextWidgets <= 255);
   static_assert(kMaximumShapeWidgets <= 255);
   static_assert(kMaximumBarWidgets <= 255);
@@ -65,15 +63,8 @@ ValidationFailure validate_configuration(
   static_assert(kMaximumIndicatorWidgets <= 255);
   static_assert(kMaximumGraphWidgets <= 255);
   static_assert(kMaximumImageWidgets <= 255);
-  // A page is addressed by arithmetic over the slot pool rather than by a pool
-  // of its own, so it is the product that has to stay inside a std::uint8_t.
   static_assert(kMaximumSlotWidgets * kMaximumSlotPages <= 255);
 
-  // Three prose promises the schema makes, turned into build errors. Each was
-  // asserted in two or three documents and enforced nowhere, and the first is
-  // the one that had already gone wrong: dashboard-editor-parity.md claimed a
-  // shape cap of 24 against a real 32 and omitted slots, so the sum it stated
-  // did not hold.
   static_assert(kMaximumWidgetsPerScreen ==
                 kMaximumTextWidgets + kMaximumShapeWidgets +
                     kMaximumSlotWidgets + kMaximumBarWidgets +
@@ -109,10 +100,6 @@ ValidationFailure validate_configuration(
     }
   }
 
-  // Where every page sits on the display. A slot is only ever authored on a
-  // screen, so a page's box is the slot's own and nothing has to be resolved
-  // before it — which is also why this runs before the shape pass, whose
-  // containers may sit on a page.
   constexpr std::size_t kPageTableSize = kMaximumSlotWidgets * kMaximumSlotPages;
   std::array<std::int32_t, kPageTableSize> page_origin_x{};
   std::array<std::int32_t, kPageTableSize> page_origin_y{};
@@ -125,11 +112,6 @@ ValidationFailure validate_configuration(
     }
   }
 
-  // Where every container shape sits on the display, so a child's relative
-  // geometry can be checked against the one edge that still bounds it. The pool
-  // is ordered parent-before-child by construction, so one forward pass resolves
-  // any depth — and a parent index that is not lower than its own is the shape
-  // of a cycle, which is refused here rather than assumed impossible.
   std::array<std::int32_t, kMaximumShapeWidgets> origin_x{};
   std::array<std::int32_t, kMaximumShapeWidgets> origin_y{};
   std::array<std::uint8_t, kMaximumShapeWidgets> depth{};
@@ -159,10 +141,6 @@ ValidationFailure validate_configuration(
           (void)reject(failure, ValidationError::invalid_widget, "widgets");
           return failure;
         }
-        // The page table already holds the absolute box, and a slot is always
-        // authored on a screen, so the depth is fixed: the slot sits at 0 and
-        // its pages cost nothing, which leaves this shape at 1 — exactly where
-        // it would be inside a container shape on the same screen.
         origin_x[index] = page_origin_x[frame.parent_index];
         origin_y[index] = page_origin_y[frame.parent_index];
         depth[index] = 1;
@@ -174,8 +152,6 @@ ValidationFailure validate_configuration(
     }
   }
 
-  // Each container's own table, flat over the pool: ordering only ever happens
-  // among one parent's children, so depth costs nothing here.
   for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
     const ShapeWidgetConfiguration& shape = dashboard.shape_widgets[index];
     if (shape.widget_count == 0) {
@@ -194,8 +170,6 @@ ValidationFailure validate_configuration(
     }
   }
 
-  // Every page's own table. A page is not a widget and holds no reference of its
-  // own, so its widgets are counted here rather than through the slot.
   for (std::size_t index = 0; index < dashboard.slot_widget_count; ++index) {
     const SlotWidgetConfiguration& slot = dashboard.slot_widgets[index];
     for (std::size_t page = 0; page < slot.page_count; ++page) {
@@ -232,10 +206,6 @@ ValidationFailure validate_configuration(
     }
   }
 
-  // Only the parser produces documents, and it appends one reference per pool
-  // slot it fills. An unreferenced slot would render nothing and still cost its
-  // storage, so treat the mismatch as a malformed dashboard rather than trust
-  // that no other path can build one.
   if (referenced_widgets !=
       static_cast<std::size_t>(dashboard.text_widget_count) +
           dashboard.shape_widget_count + dashboard.bar_widget_count +
@@ -246,14 +216,11 @@ ValidationFailure validate_configuration(
     return failure;
   }
 
-  // Each action makes one object clickable and holds one binding at runtime.
   if (action_count > kMaximumActions) {
     (void)reject(failure, ValidationError::invalid_widget, "action");
     return failure;
   }
 
-  // One Lap Timer module instance backs every lap_timer modifier, so only one
-  // widget may claim it across the whole dashboard.
   if (lap_timer_modifier_count > 1) {
     (void)reject(failure, ValidationError::invalid_widget, "modifiers");
     return failure;
@@ -265,4 +232,4 @@ ValidationFailure validate_configuration(
   return failure;
 }
 
-}  // namespace simcore::configuration
+}

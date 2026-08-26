@@ -11,22 +11,6 @@
 
 namespace simcore::dashboard_composition {
 
-// The WidgetDescriptor entries of one widget type, written once for every type
-// instead of once per type. A descriptor is five function pointers over an
-// opaque context (ADR 0015); the context is that type's storage, and the only
-// thing the manager may not know is which concrete type it holds. That
-// knowledge lives here, in one template, rather than in seven copies of the
-// same five functions.
-//
-// Three shapes exist because three shapes of collection exist: a type that
-// draws a value takes the resolved bindings, a type that only restyles takes the
-// reads its rules watch, and the slot takes neither because it draws nothing at
-// all. They share everything else through WidgetOpsCommon.
-
-// Destroying and reaching a root object are the same calls whatever the type
-// draws, so they are written here and inherited by all three. Waking is not:
-// it belongs to a render timer, and the type with nothing to re-render has
-// none — which is exactly what makes the descriptor's wake entry optional.
 template <typename Storage>
 struct WidgetOpsCommon {
   static void destroy(void* const context) {
@@ -37,9 +21,6 @@ struct WidgetOpsCommon {
     return storage(context).collection.root_object(index);
   }
 
-  // Growing reserves empty slots, which update_instance then builds; shrinking
-  // releases the tail. One pair of calls for every type, including the slot:
-  // its collection offers the same two primitives.
   [[nodiscard]] static bool sync_count(void* const context,
                                        const std::uint8_t count) {
     auto& collection = storage(context).collection;
@@ -52,9 +33,6 @@ struct WidgetOpsCommon {
     return *static_cast<Storage*>(context);
   }
 
-  // The type's slice of the document's widget pool. The count comes from the
-  // generated traits table, so this holds no per-type knowledge beyond the
-  // pool the storage names.
   static std::span<const typename Storage::Config> configurations(
       const Storage& widgets) {
     const auto& pool = widgets.dashboard->*Storage::kPool;
@@ -62,8 +40,6 @@ struct WidgetOpsCommon {
             configuration::widget_traits(Storage::kType).count(*widgets.dashboard)};
   }
 
-  // Re-resolving every binding is pure computation over a bounded array and no
-  // LVGL work, so an update does this rather than tracking which one changed.
   [[nodiscard]] static bool rebind(
       Storage& widgets,
       const std::span<const typename Storage::Config> configurations) {
@@ -71,9 +47,6 @@ struct WidgetOpsCommon {
                                *widgets.telemetry, widgets.modifier_readers);
   }
 
-  // The type is named from the traits table rather than baked into a per-type
-  // message, so the log still says which type failed without seven copies of
-  // the same two lines.
   [[nodiscard]] static bool report_bind_failure() {
     log::error("dashboard", "Failed to resolve %.*s widget bindings",
                static_cast<int>(type_name().size()), type_name().data());
@@ -91,10 +64,6 @@ struct WidgetOpsCommon {
   }
 };
 
-// Types whose collection draws a bound value: text, bar, arc, indicator, graph,
-// and image — which binds one only to choose between the frames of a sprite
-// sheet, but binds it the same way. Image is also the only one that draws from
-// an uploaded asset, which is the single compile-time branch below.
 template <typename Storage>
 struct ValueWidgetOps : WidgetOpsCommon<Storage> {
   using Common = WidgetOpsCommon<Storage>;
@@ -144,10 +113,6 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
   }
 };
 
-// Types that bind no telemetry of their own — only their styling rules watch
-// one. Shape is the only one left: it publishes the containers it built so
-// children can be parented to them, which is a compile-time branch on the
-// storage rather than a template of its own.
 template <typename Storage>
 struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
   using Common = WidgetOpsCommon<Storage>;
@@ -199,11 +164,6 @@ struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
   }
 };
 
-// The slot: the only type that neither draws nor binds anything of its own. It
-// builds the objects and stops there — which page of them is visible, and what
-// telemetry raises it, belong to the slots controller. So there is no binder to
-// rebind and no timer to wake, and one instance is updated rather than rebuilt:
-// a slot's pages hold other widgets, and deleting the slot deletes them with it.
 template <typename Storage>
 struct SlotWidgetOps : WidgetOpsCommon<Storage> {
   using Common = WidgetOpsCommon<Storage>;
@@ -218,11 +178,6 @@ struct SlotWidgetOps : WidgetOpsCommon<Storage> {
     return true;
   }
 
-  // A slot is brought up to the replacement in place: its pages are the parents
-  // of the widgets authored on them and the controller points at them, so
-  // rebuilding one would take both down. What the controller reads — which page
-  // is in the loop, what raises another — is not here: the composition rebinds
-  // it once, after every slot has been updated.
   [[nodiscard]] static bool update_instance(void* const context,
                                             const std::uint8_t index) {
     Storage& widgets = Common::storage(context);
@@ -236,8 +191,6 @@ struct SlotWidgetOps : WidgetOpsCommon<Storage> {
   }
 };
 
-// One descriptor for one type's storage. `enabled` follows the document: a type
-// the configuration never uses is registered but never built.
 template <typename Ops, typename Storage>
 [[nodiscard]] dashboard::WidgetDescriptor widget_descriptor(Storage& widgets) {
   dashboard::WidgetDescriptor descriptor{
@@ -252,12 +205,10 @@ template <typename Ops, typename Storage>
       .wake = nullptr,
       .context = &widgets,
   };
-  // A type with nothing to re-render provides no wake, which the manager
-  // already treats as an optional entry.
   if constexpr (requires { &Ops::wake; }) {
     descriptor.wake = &Ops::wake;
   }
   return descriptor;
 }
 
-}  // namespace simcore::dashboard_composition
+}

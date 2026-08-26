@@ -7,15 +7,9 @@
 
 namespace simcore::input::drivers::gt911 {
 
-// One GT911 implementation shared by every board that carries the controller,
-// the way one UART transport driver serves every board that has a UART. The
-// board driver supplies its own wiring; the controller sequence stays here.
-
 struct Pins {
   gpio_num_t sda;
   gpio_num_t scl;
-  // GPIO_NUM_NC leaves the line unmanaged: the controller keeps its power-on
-  // address and is polled over I2C instead of raising an interrupt.
   gpio_num_t reset;
   gpio_num_t interrupt;
 };
@@ -30,14 +24,6 @@ struct Panel {
   bool mirror_y;
 };
 
-// Brings up an I2C master bus and the GT911 on it, driving the reset and
-// interrupt lines so the controller's I2C address is decided here rather than
-// latched from the power-on state of those pins.
-//
-// Returns a null touch handle when the controller cannot be reached, and logs a
-// scan of the bus on the way out. A panel that does not answer costs the board
-// its pointer, not its boot: the dashboard and the configuration link stay up,
-// the way they do on a board that carries no digitizer at all.
 [[nodiscard]] driver::Configuration create(const Panel& panel);
 
-}  // namespace simcore::input::drivers::gt911
+}

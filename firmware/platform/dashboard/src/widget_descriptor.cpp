@@ -87,13 +87,6 @@ bool WidgetManager::sync_count(const configuration::WidgetType type,
     if (!candidate.descriptor.sync_count(candidate.descriptor.context, count)) {
       return false;
     }
-    // Created is what the destroy pass and every lookup read, and the extend is
-    // what creates the pool — at any count. An empty pool is created rather than
-    // absent, which is the whole reason a type the previous document had none of
-    // can be extended at all; making this depend on `count > 0` left the pool
-    // created as far as the collection was concerned and absent as far as the
-    // manager was, so `destroy_all` skipped it and the next full composition
-    // refused to build a pool that already believed it existed.
     candidate.created = true;
     return true;
   }
@@ -109,4 +102,4 @@ void WidgetManager::wake_all() const {
   }
 }
 
-}  // namespace simcore::dashboard
+}

@@ -22,10 +22,6 @@ export function TransportSection(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
   const transport = draft?.telemetry_transport
   const uart = transport?.uart
-  // Locked on arrival, and locked again every time the page is left. That is
-  // the point of it: this is the one section whose settings decide whether the
-  // configurator can reach the board at all, and an author who has come here to
-  // read should not be one stray scroll-over-a-select away from changing it.
   const [unlocked, setUnlocked] = useState(false)
 
   if (!draft) {
@@ -47,9 +43,6 @@ export function TransportSection(): React.JSX.Element {
     })
   }
 
-  // The shown value is the effective one, not the authored one: a sparse
-  // document usually names no rate, and a select with nothing selected reads as
-  // broken rather than as "the contract default applies".
   const baudRate = effectiveSimHubBaudRate(draft)
   const baudOptions = baudRateOptions(baudRate)
 
@@ -57,16 +50,9 @@ export function TransportSection(): React.JSX.Element {
     <PageSection
       title="Transport"
       collapsible
-      // Folded, so this line is all an author sees until they open it — which
-      // makes it the place the warning inside has to be hinted at.
       description="The link the board talks over. Its own stored configuration, saved and restarted on its own — and changing it can cut the board off."
       actions={<SaveToBoardButton />}
     >
-      {/* The settings that decide whether this application can talk to the board
-          at all. Everything else on the page describes the link; this one is the
-          link. It is also the one setting a save cannot make true on its own:
-          the firmware stores the protocol document and answers that a restart is
-          owed, because the link is selected once at startup. */}
       <div className="mb-3 space-y-2 rounded-md border border-red-500/40 bg-red-500/10 p-2.5">
         <p className="font-medium text-red-300">Changing this can cut the board off</p>
         <ul className="list-disc space-y-1 pl-4 text-[11px] leading-4 text-red-200/80">
@@ -185,11 +171,6 @@ export function TransportSection(): React.JSX.Element {
   )
 }
 
-/**
- * A speed list that always contains the value being shown. A document written
- * for a rate this build does not offer would otherwise show an empty select and
- * silently rewrite itself on the next change.
- */
 function baudRateOptions(effective: number): readonly string[] {
   const rates = SUPPORTED_BAUD_RATES.map(String)
   const value = String(effective)

@@ -10,10 +10,6 @@ import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
 import { CheckboxField, NumberField, NumberInput, SelectField, SelectInput } from './fields'
 
-// A slot's pages: the tab strip, which page is being edited, what raises a page
-// over the loop, and the rules behind that. The largest single editor, and the
-// only one with a list inside a list.
-
 export function SlotPagesEditor({
   slotId,
   pages
@@ -114,8 +110,6 @@ export function SlotPagesEditor({
               change((next) => {
                 const chosen = value as SlotTrigger
                 if (chosen === 'none') {
-                  // The device refuses a binding, a rule or a duration nothing
-                  // reads, so dropping the trigger drops what it was reading.
                   delete next.trigger
                   delete next.source
                   delete next.conditions

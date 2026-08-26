@@ -2,29 +2,10 @@ import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
-/**
- * The chrome every workspace page shares: a title, a sentence saying what the
- * page is for, the actions that belong to it, and the body below.
- *
- * It exists so the seven pages read as one application rather than as seven
- * panels that happen to be in the same window. Nothing here decides what a page
- * holds — only where its heading, its actions and its scroll live.
- */
-
 interface PageShellProps {
-  /**
-   * Omitted by a page whose sections already say what they are: a heading and
-   * a sentence above two libraries that name themselves is a band of text
-   * between the author and what they came for.
-   */
   title?: string
   description?: ReactNode
-  /** Buttons and status that belong to the page as a whole, shown top right. */
   actions?: ReactNode
-  /**
-   * Hands the whole area to the child, which then owns its own scrolling. The
-   * canvas and the traffic log need this; a page of sections does not.
-   */
   fill?: boolean
   children: ReactNode
 }
@@ -53,8 +34,6 @@ export function PageShell({
         <div className="flex min-h-0 min-w-0 flex-1">{children}</div>
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {/* Wide enough for a two-column section, narrow enough that a line of
-              prose does not run the width of a 27-inch display. */}
           <div className="mx-auto flex max-w-5xl flex-col gap-4 p-5">{children}</div>
         </div>
       )}
@@ -66,16 +45,11 @@ interface PageSectionProps {
   title: string
   description?: ReactNode
   actions?: ReactNode
-  /**
-   * Folds the block away, closed. For the parts of a page that are read once
-   * and then left alone — or that should take a deliberate act to reach.
-   */
   collapsible?: boolean
   className?: string
   children: ReactNode
 }
 
-/** One block of a page: a heading, an optional sentence, and its content. */
 export function PageSection({
   title,
   description,
@@ -94,8 +68,6 @@ export function PageSection({
         ) : null}
       </div>
       {actions ? (
-        // A press on an action inside a summary would otherwise fold the block
-        // it belongs to, since that is the summary's own default.
         <div
           className="flex flex-none items-center gap-2"
           onClick={(event) => event.stopPropagation()}
@@ -125,10 +97,6 @@ export function PageSection({
   )
 }
 
-/**
- * A read-only fact with its label above it. The same shape the device
- * information has always used, now shared by every page that states one.
- */
 export function ReadOnlyField({
   label,
   value,
@@ -148,10 +116,6 @@ export function ReadOnlyField({
   )
 }
 
-/**
- * What a page shows when it has nothing to show. A page that is simply blank
- * reads as broken; one that says why it is blank reads as waiting.
- */
 export function EmptyState({
   icon,
   title,

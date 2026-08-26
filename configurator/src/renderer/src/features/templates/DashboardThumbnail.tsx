@@ -6,15 +6,6 @@ import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
 import { ScreenGallery } from './ScreenGallery'
 import { useTemplatesStore } from './templates-store'
 
-/**
- * What a dashboard template looks like.
- *
- * A name and two counts said what a template contained without saying what it
- * *was*; a card that draws the layout answers the question the author is
- * actually asking. The document is read the first time a card needs it and
- * kept, because scrolling a library past the same card twice should cost one
- * read.
- */
 export function DashboardThumbnail({
   id,
   board,
@@ -27,10 +18,6 @@ export function DashboardThumbnail({
   const document = useTemplatesStore((state) => state.documents[id])
   const loadDocument = useTemplatesStore((state) => state.loadDocument)
 
-  // Asked for again whenever the card is holding nothing — which is not only
-  // the first render: a refresh drops the cache, because after a write the same
-  // name may stand for a different document. `loadDocument` marks the read in
-  // flight, so re-running this cannot start a second one.
   useEffect(() => {
     if (!document) loadDocument(id)
   }, [document, id, loadDocument])

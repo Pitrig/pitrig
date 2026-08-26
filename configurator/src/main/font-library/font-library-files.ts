@@ -12,19 +12,10 @@ import {
   type FontVariant
 } from '../../shared/font-library'
 
-// The file-format half of the font library: what one index record looks like,
-// how a face file is judged to be a font at all, and the naming a Google
-// variant is listed under. The service in font-library-service.ts owns the
-// directory and the flows; nothing here touches its state.
-
 export const FACE_EXTENSION = '.ttf'
 
-// TrueType, OpenType/CFF, the legacy Apple tag and a collection — the same four
-// the firmware accepts, checked here so a truncated download or an HTML error
-// page never becomes a library entry.
 const SFNT_SIGNATURES = [0x00010000, 0x4f54544f, 0x74727565, 0x74746366] as const
 
-/** One record in library.json. Bundled faces are not listed; they are code. */
 export interface StoredEntry {
   id: string
   name: string
@@ -105,14 +96,11 @@ function isStoredEntry(value: unknown): value is StoredEntry {
     typeof entry.name === 'string' &&
     (entry.origin === 'imported' || entry.origin === 'google') &&
     typeof entry.file === 'string' &&
-    // The file name is derived from the id, so a record naming anything else is
-    // a record that could reach outside the faces directory.
     entry.file === `${entry.id}${FACE_EXTENSION}` &&
     typeof entry.bytes === 'number'
   )
 }
 
-/** Omitted rather than set to undefined, so an entry round-trips through JSON. */
 export function optionalTabular(tabular: boolean | undefined): { tabularDigits?: boolean } {
   return tabular === undefined ? {} : { tabularDigits: tabular }
 }

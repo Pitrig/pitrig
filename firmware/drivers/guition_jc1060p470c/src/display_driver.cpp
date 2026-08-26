@@ -51,8 +51,8 @@ const driver::Driver kDriver{
     .on_display_ready = on_display_ready,
 };
 
-}  // namespace
+}
 
 const driver::Driver& get() { return kDriver; }
 
-}  // namespace simcore::display::drivers::guition_jc1060p470c
+}

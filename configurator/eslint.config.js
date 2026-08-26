@@ -9,6 +9,11 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    rules: {
+      'no-empty': ['error', { allowEmptyCatch: true }]
+    }
+  },
+  {
     files: ['src/renderer/src/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser

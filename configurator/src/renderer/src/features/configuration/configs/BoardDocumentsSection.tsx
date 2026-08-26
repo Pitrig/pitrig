@@ -24,15 +24,6 @@ import {
   documentPayloadBytes
 } from '@shared/configuration-documents'
 
-/**
- * What each of the three documents is doing on the board, and the commands that
- * change it.
- *
- * They are stored, transferred and applied separately, so "the board's
- * configuration" is three answers rather than one — a dashboard can be modified
- * while the transport is in sync, and only one of them costs a restart. A row
- * each is the only honest way to show that.
- */
 export function BoardDocumentsSection({
   working,
   onAct
@@ -153,13 +144,6 @@ export function BoardDocumentsSection({
   )
 }
 
-/**
- * One document's standing, in one word.
- *
- * A stored record that the board refused is the case worth colouring: it looks
- * exactly like never having configured that section, and the difference is that
- * something is wrong with bytes that are there.
- */
 function DocumentStatusBadge({
   connected,
   modified,

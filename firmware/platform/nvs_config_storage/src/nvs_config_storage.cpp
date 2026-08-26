@@ -14,9 +14,6 @@ namespace {
 constexpr char kPartition[] = "simcore_cfg";
 constexpr char kNamespace[] = "simcore_cfg";
 
-// One key per document, spelled the way the wire spells it. NVS keys are
-// bounded at fifteen characters and the generated names are well inside that,
-// so the contract can name a document without this having to translate it.
 std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(
     const ConfigurationDocument document) {
   const std::string_view name = configuration_document_name(document);
@@ -27,7 +24,7 @@ std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(
   return key;
 }
 
-}  // namespace
+}
 
 bool NvsConfigurationStorage::initialize() {
   esp_err_t result = nvs_flash_init_partition(kPartition);
@@ -58,9 +55,6 @@ bool NvsConfigurationStorage::read(
   std::size_t required{};
   esp_err_t result = nvs_get_blob(handle, key.data(), nullptr, &required);
   if (result == ESP_OK && required > destination.size()) {
-    // A record this build cannot hold is not a record it can read. Falling
-    // through here would leave result at ESP_OK and report success with a size
-    // of zero, which the caller cannot tell from a genuinely short record.
     result = ESP_ERR_NVS_INVALID_LENGTH;
   }
   if (result == ESP_OK) {
@@ -105,8 +99,6 @@ bool NvsConfigurationStorage::erase(const ConfigurationDocument document) {
   const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
   esp_err_t result = nvs_erase_key(handle, key.data());
   if (result == ESP_ERR_NVS_NOT_FOUND) {
-    // Nothing stored is the state the caller asked for, so this is a success
-    // rather than a failure to erase.
     result = ESP_OK;
   }
   const esp_err_t commit = result == ESP_OK ? nvs_commit(handle) : result;
@@ -129,4 +121,4 @@ bool NvsConfigurationStorage::reset() {
   return result == ESP_OK && commit == ESP_OK;
 }
 
-}  // namespace simcore::configuration
+}

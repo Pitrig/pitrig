@@ -31,10 +31,6 @@ export function TextWidgetPreview({
   if (!style.visible) return null
   const previewValue = composedText(configuration, values)
 
-  // The device sizes the label to its text and aligns that inside the content
-  // area, so the box the glyphs sit in is the string's own width by the font's
-  // line height — not the widget's box. Everything below places that label the
-  // way LVGL does, then draws from its baseline.
   const metrics = fontMetrics(previewValue, valueFont)
   const { column, row } = alignmentAnchor(configuration.value?.alignment ?? 'center')
   const valueX =
@@ -43,8 +39,6 @@ export function TextWidgetPreview({
       : column === 'right'
         ? content.x + content.width - metrics.width
         : content.x + lvglCenterOffset(content.width, metrics.width)
-  // A titled widget pushes its value down by a quarter of the caption's line
-  // height, which is the room the caption takes out of the top of the box.
   const titleDrop = title ? Math.trunc(fontMetrics(title, titleFont).lineHeight / 4) : 0
   const valueY =
     row === 'top'
@@ -71,12 +65,6 @@ export function TextWidgetPreview({
   )
 }
 
-/**
- * The device keeps two unavailability rules apart, and so does this. A source
- * that has no value falls back to its own placeholder, so a live neighbour
- * keeps updating beside it; only when *every* source is silent does the
- * widget-level `unavailable_text` replace the whole string.
- */
 function composedText(configuration: TextWidgetConfiguration, values: PreviewValues): string {
   const sources = configuration.sources ?? []
   let anyAvailable = false

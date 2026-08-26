@@ -11,55 +11,16 @@ import {
 } from '@/features/font-library/font-requirements'
 import { draftText, parseConfiguration, useDeviceStore } from './device-store'
 
-/**
- * Everything several places need to know about the draft and the board under
- * it: whether it parses, whether it differs from what the board holds, and
- * whether it could be saved at all.
- *
- * It is one hook rather than one panel's local state because the answers are
- * now read in four places — the rail's modified dot, the canvas toolbar, the
- * Configs page, and the live-apply gate in App — and four copies of "is this
- * dirty" is four chances for them to disagree about it.
- */
 export interface DraftState {
-  /** The whole draft as a file or the library would hold it. */
   draftJson: string
   parsed: ValidationResult
-  /** The draft differs from what the board has active or pending. */
   dirty: boolean
-  /**
-   * Which documents differ. The three are stored and sent separately, so this
-   * is what a save writes, what a live apply sends, and what the Configs page
-   * marks a row with — rather than three places each deciding for themselves.
-   */
   dirtyDocuments: ConfigurationDocumentId[]
   connected: boolean
-  /**
-   * The board came up on the recovery surface: the serial link and the control
-   * protocol alone. Saving is what gets it out of that, so a save stays
-   * offered; live apply does not, because nothing is composed to apply to and
-   * the board answers `unsupported`.
-   */
   safeMode: boolean
-  /** The draft names a different board than the one plugged in. */
   boardMismatch: boolean
-  /** Families the dashboard names that the board does not hold yet. */
   missingFamilies: string[]
-  /** Why "Save to board" is refused, or nothing when it is offered. */
   saveBlockedReason?: string
-  /**
-   * Whether the board could accept this document right now.
-   *
-   * A family the board lacks is the case worth naming: firmware rejects such a
-   * document whole — apply_configuration.cpp answers `invalid_widget` with
-   * `path=font` *before* it tears the running dashboard down — so sending it
-   * would only turn a calm sentence into a red error. Firmware refuses the whole
-   * document it arrives in, so while this is false no dashboard edit reaches the
-   * board, not only the font.
-   *
-   * A board in safe mode is the other case: it composed nothing to apply to and
-   * registers no apply handler, so every apply comes back `unsupported`.
-   */
   liveApplyAllowed: boolean
 }
 
@@ -80,11 +41,7 @@ export function useDraftState(): DraftState {
     session?.fontAssets?.families
   )
 
-  // Structural comparison: reordering or reformatting properties no longer
-  // makes an identical configuration look modified.
   const comparison = pendingConfiguration ?? activeConfiguration
-  // Disconnected, every document counts as differing: there is nothing to
-  // compare against, and the answer callers want is "all of it is unsaved".
   const dirtyDocuments = compare(
     hasLocalDraft ? draft : undefined,
     session ? comparison : undefined
@@ -122,19 +79,6 @@ export function useDraftState(): DraftState {
   }
 }
 
-/**
- * Validating the document and walking it for font families, memoized on the
- * identities that produce them.
- *
- * The cache is module-level rather than a `useMemo` per component because four
- * components ask this at once — the rail's dot, the canvas toolbar, the save
- * button and the live-apply gate — and a drag commits a fresh document per
- * animation frame. Per-component memoization would validate a 64 KB document
- * four times a frame to reach four identical answers.
- *
- * One entry is enough: every caller in a render pass sees the same draft, and
- * the next draft makes the previous answer worthless anyway.
- */
 let memo:
   | {
       draft: DeviceConfiguration | undefined
@@ -145,15 +89,6 @@ let memo:
     }
   | undefined
 
-/**
- * Which documents differ, memoized on the two configurations that produce the
- * answer.
- *
- * Same reason as `inspect` below, and the same shape: comparing documents
- * canonicalizes each one, which for the dashboard is a recursive key-sort of the
- * whole thing. A drag would otherwise pay for that several times per frame to
- * reach an answer that has not changed.
- */
 let diffMemo:
   | {
       draft: DeviceConfiguration | undefined
@@ -207,8 +142,6 @@ function parseDraft(
   hasLocalDraft: boolean
 ): ValidationResult {
   if (!hasLocalDraft) return { ok: false, error: 'No local configuration.' }
-  // A raw draft that never parsed leaves `draft` at the last good document, so
-  // report the text problem rather than validating a stale structure.
   if (rawDraft !== undefined && parseConfiguration(rawDraft) === undefined) {
     return { ok: false, error: 'Configuration is not valid JSON.' }
   }

@@ -18,23 +18,6 @@ import {
   useFontLibraryStore
 } from './font-library-store'
 
-/**
- * The fonts this dashboard uses, the library they come from, and what the board
- * has been given so far.
- *
- * Choosing a font for a widget happens in the inspector and delivering one
- * happens on save, so this is neither of those: it is where the author sees the
- * eight-family budget being spent, notices a family the library cannot answer
- * for, adds one, and — when something has gone wrong — reaches the manual
- * controls the automatic path replaced.
- */
-
-/**
- * How many catalog rows are drawn at once. Every row on screen fetches its own
- * face, so the list is cut rather than virtualized: searching narrows it, and
- * nobody scrolls two thousand fonts looking for one.
- */
-
 export function FontsPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const draft = useDeviceStore((state) => state.draft)
@@ -45,10 +28,6 @@ export function FontsPage(): React.JSX.Element {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string>()
 
-  // Every listed face is drawn in itself, so every listed face has to be
-  // registered — the canvas only ever asks for the ones the open document uses,
-  // which is why the list came up in the stand-in. The library is small enough
-  // that this is one read.
   useEffect(() => {
     void ensureFaces(entries.map((entry) => entry.id))
   }, [ensureFaces, entries])
@@ -218,12 +197,6 @@ export function FontsPage(): React.JSX.Element {
                   >
                     {entry.name}
                   </span>
-                  {/* The digits in the face, and whether they are all one width.
-                      A dashboard is mostly numbers that change several times a
-                      second, and a face with proportional digits reflows the
-                      reading every time a 1 becomes an 8 — which the name never
-                      tells you: Roboto is not monospaced but its digits are
-                      tabular, while Inter's are not. */}
                   <DigitSpecimen
                     cssFamily={loaded[entry.id] ? previewFontFamily(entry.id) : undefined}
                     tabularDigits={entry.tabularDigits}

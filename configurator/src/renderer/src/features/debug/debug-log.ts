@@ -1,10 +1,3 @@
-// What crossed the serial link, and what the application did about it.
-//
-// This used to be development-only — every write returned early outside a dev
-// build. The debug workspace ships now, because a board that misbehaves in a
-// release build is exactly when someone needs to see the traffic; what keeps it
-// affordable is the bound below rather than the build flag.
-
 export interface DebugLogEntry {
   id: number
   timestamp: Date
@@ -17,8 +10,6 @@ export interface DebugLogSnapshot {
   omittedEntryCount: number
 }
 
-// The log is a window on the session, not a record of it: an idle board still
-// answers a probe, and a save streams a font package a kilobyte at a time.
 const MAXIMUM_LOG_ENTRIES = 2_000
 
 let nextEntryId = 1

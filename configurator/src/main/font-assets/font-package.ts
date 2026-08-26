@@ -10,9 +10,6 @@ const MANIFEST_ENTRY_SIZE = 48
 const ASSET_DATA_OFFSET = 4096
 const FORMAT_VERSION = 3
 const MINIMUM_FACE_SIZE = 128
-// TrueType, OpenType/CFF, the legacy Apple tag, and a TrueType collection. The
-// device rejects anything else at commit, so the same check runs here to fail
-// on the desk instead of on the board.
 const SFNT_SIGNATURES = [0x00010000, 0x4f54544f, 0x74727565, 0x74746366] as const
 
 export interface FontFamilyAsset {
@@ -22,18 +19,11 @@ export interface FontFamilyAsset {
 
 export interface BuiltFontPackage {
   bytes: Uint8Array
-  /** The header's payload CRC, which is what `@SC:FONT:INFO` reports back. */
   payloadCrc: number
-  /** The families it declares, in the order the manifest lists them. */
   families: string[]
 }
 
 export function buildFontPackage(assets: FontFamilyAsset[]): BuiltFontPackage {
-  // Code-point order, not localeCompare: the same face set has to produce the
-  // same bytes on every machine or the CRC a save compares against the device
-  // means nothing. ICU collation reorders `-` and `_` by locale, which is
-  // exactly the kind of difference that would not show up until someone else
-  // opened the project. See the determinism note in docs/font-assets.md.
   const ordered = [...assets].sort((left, right) =>
     left.family < right.family ? -1 : left.family > right.family ? 1 : 0
   )
@@ -113,13 +103,6 @@ function align4(value: number): number {
   return (value + 3) & ~3
 }
 
-/**
- * The family names a built package declares, read back from its manifest.
- * The device service needs them to describe what it has just installed, and
- * reading them here keeps the header offsets in the one file that writes them
- * — it had been decoding 32 and 48 as literals from the other side of the
- * codebase.
- */
 export function readPackageFamilies(packageBytes: Uint8Array): string[] {
   const view = new DataView(packageBytes.buffer, packageBytes.byteOffset, packageBytes.byteLength)
   const count = view.getUint16(12, true)

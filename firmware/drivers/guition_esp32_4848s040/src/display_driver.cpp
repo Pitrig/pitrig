@@ -88,8 +88,6 @@ constexpr std::uint8_t kEqualize11[] = {
 constexpr std::uint8_t kBank3[] = {0x77, 0x01, 0x00, 0x00, 0x13};
 constexpr std::uint8_t kGateControl[] = {0xE4};
 constexpr std::uint8_t kCommand2Disabled[] = {0x77, 0x01, 0x00, 0x00, 0x00};
-// The Guition type-9 panel initialization specifies RGB666 at the controller
-// even though the ESP32 feeds it over the board's 16-bit RGB565 bus.
 constexpr std::uint8_t kControllerColorMode[] = {0x60};
 
 constexpr st7701_lcd_init_cmd_t kInitializationCommands[] = {
@@ -235,7 +233,7 @@ esp_lcd_panel_handle_t initialize_panel(esp_lcd_panel_io_handle_t io) {
   return panel;
 }
 
-}  // namespace
+}
 
 namespace {
 
@@ -275,10 +273,10 @@ const driver::Driver kDriver{
     .on_display_ready = on_display_ready,
 };
 
-}  // namespace
+}
 
 const driver::Driver& get() {
   return kDriver;
 }
 
-}  // namespace simcore::display::drivers::guition_esp32_4848s040
+}

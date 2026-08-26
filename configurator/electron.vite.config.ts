@@ -32,8 +32,6 @@ export default defineConfig(({ command }) => ({
     resolve: {
       alias: {
         '@': resolve('src/renderer/src'),
-        // The renderer sits four and five directories deep, so without this the
-        // boundary types are reached through '../../../../shared/...'.
         '@shared': resolve('src/shared')
       }
     }

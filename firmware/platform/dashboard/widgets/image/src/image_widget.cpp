@@ -15,18 +15,8 @@ namespace {
 
 constexpr char kTag[] = "image_widget";
 
-// An alpha-only image carries no colour of its own — LVGL draws it as a mask
-// painted in the recolour — and the recolour's own default is black, which on a
-// dashboard is indistinguishable from not drawing it at all. White is what the
-// configurator's canvas already draws such an image as, so it is what an
-// unrecoloured A8 image is painted in here.
 constexpr std::uint32_t kAlphaOnlyColor = 0xFFFFFFU;
 
-// Where a rule's value colour lands for this widget type. A bitmap cannot take
-// a colour outright, so it takes a tint — and a tint with zero opacity is no
-// tint at all, which is what an image with no authored `recolor` carries. So
-// the rule's colour raises the opacity and the authored colour lowers it back;
-// comparing against the authored colour is how this tells the two apart.
 void apply_recolor(void* const context, const std::uint32_t rgb) {
   const State& state = *static_cast<const State*>(context);
   const bool authored = rgb == state.authored_color;
@@ -36,7 +26,7 @@ void apply_recolor(void* const context, const std::uint32_t rgb) {
       LV_PART_MAIN);
 }
 
-}  // namespace
+}
 
 bool Binder::bind(const std::span<const Config> configurations,
                   const telemetry::ITelemetryRegistry& registry,
@@ -49,9 +39,6 @@ bool Binder::bind(const std::span<const Config> configurations,
   for (const Config& configuration : configurations) {
     frame::ValueBinding binding{};
     bool frame_fast{};
-    // An image with no sheet source leaves the pair empty rather than resolving
-    // a name it would never read, which is what makes the source optional here
-    // in a way ValueBinder cannot express.
     if (configuration.sprite_frame_source_present &&
         !frame::bind_source(configuration::value_binding_view(
                                 configuration.sprite_frame_source.binding),
@@ -88,8 +75,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
                        const images::Registry& images) {
   const images::Sheet* const sheet = images.resolve(config.image);
   if (sheet == nullptr) {
-    // Composition checks this before anything is torn down, so reaching here
-    // means the package changed underneath a running dashboard.
     log::error(kTag, "Image '%s' is not installed",
                image_assets::image_id_view(config.image).data());
     return false;
@@ -103,8 +88,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
-  // The image is drawn at the size it was uploaded at, so the placement decides
-  // the box outright.
   if (!frame::build(layout, config.frame, kTag, 0, 0, false, fonts, parent,
                     bounds, box)) {
     return false;
@@ -115,14 +98,10 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_center(state.image);
   lv_obj_remove_flag(state.image, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(state.image, LV_OBJ_FLAG_CLICKABLE);
-  // The widget's own copy, so moving it to another frame cannot disturb another
-  // widget drawing from the same sheet.
   state.descriptor = sheet->descriptor;
   state.frames = static_cast<const std::uint8_t*>(sheet->descriptor.data);
   state.frame_stride = sheet->frame_stride;
   state.frame_count = sheet->frame_count;
-  // A source overrides the authored frame, so a sheet it drives starts wherever
-  // the first read puts it rather than flashing frame zero first.
   state.frame_read = config.sprite_frame_source_present ? binding.read : nullptr;
   state.frame_context =
       config.sprite_frame_source_present ? binding.read_context : nullptr;
@@ -133,14 +112,9 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_image_set_src(state.image, &state.descriptor);
   const bool recolored = config.recolor != configuration::kTransparentColor;
   const bool alpha_only = state.descriptor.header.cf == LV_COLOR_FORMAT_A8;
-  // An unrecoloured colour image keeps the colour it was uploaded in, so the
-  // tint stays off; an unrecoloured A8 image has no colour to keep.
   state.authored_color =
       recolored ? config.recolor
                 : (alpha_only ? kAlphaOnlyColor : config.frame.border.color);
-  // Opacity does not apply to A8 at all — LVGL paints the mask in the colour
-  // itself — so there it may as well carry the authored value like every other
-  // case, and only an unrecoloured colour image keeps the tint off.
   state.authored_opa = recolored || alpha_only ? config.recolor_opa : 0;
   state.rule_opa = config.recolor_opa;
   lv_obj_set_style_image_recolor(
@@ -167,15 +141,10 @@ void Collection::render_state(State& state) {
   state.rendered_revision = value.revision;
   state.initialized = true;
 
-  // An unavailable source holds the frame it last showed rather than snapping
-  // back to the first: a sheet is a state readout, and a dropped packet is not
-  // a change of state.
   const std::optional<double> numeric = conditions::condition_value(value);
   if (!numeric.has_value()) {
     return;
   }
-  // Rounded and clamped, so a source that leaves the range picks the first or
-  // the last frame rather than drawing nothing.
   const double rounded = std::round(*numeric);
   const std::size_t frame =
       rounded <= 0.0 ? 0
@@ -185,9 +154,6 @@ void Collection::render_state(State& state) {
     return;
   }
   state.rendered_frame = frame;
-  // The descriptor is a value LVGL re-reads on every draw, so moving it is the
-  // whole of a frame change — with the image cache off there is nothing else
-  // holding the old pixels.
   state.descriptor.data = state.frames + frame * state.frame_stride;
   lv_obj_invalidate(state.image);
 }
@@ -217,4 +183,4 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
   });
 }
 
-}  // namespace simcore::dashboard::image_widget
+}

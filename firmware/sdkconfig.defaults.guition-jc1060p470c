@@ -1,7 +1,3 @@
-# Factory fallback for fresh Guition JC1060P470C devices.
 CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C=y
-# ESP32-P4 rev 1.x can produce an invalid EP0 setup-packet DMA address in the
-# TinyUSB DWC2 driver. Keep the High-Speed USB port, but use slave/IRQ mode for
-# reliable enumeration and CDC telemetry connections.
 CONFIG_TINYUSB_MODE_SLAVE=y
 # CONFIG_TINYUSB_MODE_DMA is not set

@@ -211,4 +211,4 @@ void Service::reset_update() {
   update_header_.fill(0xFFU);
 }
 
-}  // namespace simcore::font_assets
+}

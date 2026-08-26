@@ -33,17 +33,6 @@ import { BUNDLED_TEMPLATE_SOURCES } from './bundled-templates'
 
 const FILE_EXTENSION = '.json'
 
-/**
- * The template library: read-only starters that ship with the application, and
- * whatever the author has saved, one file per entry under the user data
- * directory — dashboards in the folder itself, widgets in a subfolder so the
- * two cannot collide on a name.
- *
- * Everything goes through the same parse the Load dialog and the device payload
- * use, so a template can only hold something the board would accept. A widget
- * is validated inside the smallest document that can carry it, which is the
- * same trick the editor's clipboard uses on a pasted fragment.
- */
 export class TemplateService {
   constructor(private readonly directory: string) {}
 
@@ -75,8 +64,6 @@ export class TemplateService {
         if (document.format !== TEMPLATE_FORMAT) throw new Error('Not a dashboard template.')
         dashboards.push(dashboardSummary(id, 'user', document))
       } catch {
-        // One unreadable file is a gap in the list, reported as a count, rather
-        // than a library that will not open at all.
         unreadable += 1
       }
     }
@@ -160,8 +147,6 @@ export class TemplateService {
     const directory = request.kind === 'dashboard' ? this.directory : this.widgetDirectory
     try {
       await mkdir(directory, { recursive: true })
-      // A name that slugs to an existing identifier replaces that template; the
-      // panel confirms first, which is a clearer answer than a "-2" suffix.
       const saved = await this.savedIds(request.kind)
       if (!saved.includes(id) && saved.length >= MAXIMUM_USER_TEMPLATES) {
         return failure(
@@ -187,8 +172,6 @@ export class TemplateService {
   }
 
   async remove(id: string, kind: TemplateKind): Promise<TemplateResult<void>> {
-    // The identifier scheme is what makes this safe: a bundled identifier can
-    // never name a file, so refusing it here touches no filesystem at all.
     if (isBundledTemplateId(id)) {
       return failure('read_only', 'A starter template cannot be deleted.')
     }
@@ -225,11 +208,6 @@ export class TemplateService {
       : parseWidgetTemplateDocument(value)
   }
 
-  /**
-   * The identifier pattern is the path-traversal gate; comparing the base name
-   * back is the second one, so a later change to the pattern cannot quietly
-   * turn an identifier into a path.
-   */
   private pathFor(id: string, kind: TemplateKind): string {
     const fileName = `${id}${FILE_EXTENSION}`
     const path = join(kind === 'dashboard' ? this.directory : this.widgetDirectory, fileName)

@@ -1,38 +1,5 @@
-// Documents outlive schema versions, so every document entering the
-// configurator — project file or device payload — is brought forward here
-// instead of at each call site. Migration mutates the document it is given,
-// which is always one the caller has just parsed.
-//
-// Schema 3 → 4: a text widget carried one `binding` with its `modifiers` and
-// `transform` at the widget level; the ordered `sources` array replaced them.
-//
-// Schema 4 → 5: the `delta_time` widget and its module section were removed.
-// A lap delta is telemetry like any other, so the widget is rebuilt out of the
-// primitives that were always underneath it: a text widget reading
-// `session.lap.delta` through the signed duration transform, plus a bar for the
-// scale it used to draw itself.
-//
-// Schema 5 → 6: widget groups and slots were added. Purely additive — a schema-5
-// document has no `groups`, parses unchanged, and needs no step here.
-//
-// Schema 6 → 7: widgets and groups gained an optional `action`, so a tap can
-// navigate. Additive for the same reason, and likewise needs no step.
-//
-// Schema 9 → 10: the slot became a widget type holding pages of its own, and the
-// `slot*` properties left the shape. The two models do not correspond — several
-// shapes agreeing on a box are not one slot with several pages, and a rule that
-// held a shape up is not a page with a duration — so the properties are dropped
-// rather than guessed at. The shapes stay exactly where they were, as ordinary
-// containers, and the author rebuilds the switching with a slot.
-//
-// Schema 12 → 13: a graph gained `traces`, the second and third sources drawn
-// over its plot. Its own `source`, window and `line_color` are untouched — they
-// are the first trace — so a schema-12 document parses unchanged and needs no
-// step here.
-
 import { createWidgetId } from './configuration-access'
 
-/** Properties a schema-9 container shape carried, all owned by the slot now. */
 const LEGACY_SLOT_KEYS = [
   'slot',
   'slot_default',
@@ -42,7 +9,6 @@ const LEGACY_SLOT_KEYS = [
 
 const LEGACY_SOURCE_KEYS = ['binding', 'modifiers', 'transform'] as const
 
-/** The field the Delta Time module read, and the only one this widget showed. */
 const LAP_DELTA_BINDING = 'session.lap.delta'
 
 const DEFAULT_FASTER_COLOR = '#00C853'
@@ -65,17 +31,10 @@ export function migrateConfigurationDocument(document: unknown): unknown {
       screen.widgets = widgets
     }
   }
-  // The module section has no consumer left, and leaving it would fail
-  // validation as an unknown property.
   delete document.delta_time
   return document
 }
 
-/**
- * Every schema-3 text widget had exactly one source, so one is always written —
- * a widget that named no binding was relying on the schema default and keeps
- * relying on it.
- */
 function migrateTextWidget(widget: unknown): void {
   if (!isObject(widget) || widget.type !== 'text' || widget.sources !== undefined) return
   const source: Record<string, unknown> = {}
@@ -87,12 +46,6 @@ function migrateTextWidget(widget: unknown): void {
   widget.sources = [source]
 }
 
-/**
- * Strips the schema-9 slot properties from a shape at any depth. Leaving them
- * would fail validation as unknown properties, so this runs on every document
- * rather than only on ones known to be old — a schema-10 shape has none of them
- * and passes through untouched.
- */
 function dropLegacySlot(widget: unknown): void {
   if (!isObject(widget)) return
   for (const key of LEGACY_SLOT_KEYS) delete widget[key]
@@ -101,12 +54,6 @@ function dropLegacySlot(widget: unknown): void {
   }
 }
 
-/**
- * Expands one delta_time widget into the widgets that reproduce it. The scale
- * becomes a bar centred on zero — which is what `origin` exists for — and the
- * reading becomes a text widget above it, so the pair keeps the z-order the
- * single widget had. Any other widget passes through untouched.
- */
 function migrateDeltaTimeWidget(
   widget: unknown,
   module: Record<string, unknown> | undefined
@@ -131,8 +78,6 @@ function migrateDeltaTimeWidget(
       source: { binding: LAP_DELTA_BINDING },
       minimum: -rangeMs,
       maximum: rangeMs,
-      // The old scale filled outwards from the centre, which is exactly a zero
-      // origin on a symmetric window.
       origin: 0,
       fill_color: colorOr(widget.neutral_color, DEFAULT_NEUTRAL_COLOR),
       ...(widgetScale
@@ -153,8 +98,6 @@ function migrateDeltaTimeWidget(
 
   replacements.push({
     type: 'text',
-    // Selection, and anything else addressing this widget, follows the reading
-    // rather than the scale, so the reading keeps the original id.
     ...(typeof widget.id === 'string' ? { id: widget.id } : {}),
     placement: widget.placement,
     z_index: replacements.length > 0 ? zIndex + 1 : zIndex,
@@ -169,8 +112,6 @@ function migrateDeltaTimeWidget(
       color: colorOr(widget.neutral_color, DEFAULT_NEUTRAL_COLOR),
       ...unavailableText(module)
     },
-    // The tone model was three fixed colours around zero, which is two rules
-    // over the same field the widget already read.
     condition_source: { binding: LAP_DELTA_BINDING },
     conditions: [
       { op: 'below', value: 0, color: colorOr(widget.faster_color, DEFAULT_FASTER_COLOR) },
@@ -181,10 +122,6 @@ function migrateDeltaTimeWidget(
   return replacements
 }
 
-/**
- * `zero` was the schema default and matches what a text widget already does
- * with an absent source, so only the other two behaviours write anything.
- */
 function unavailableText(
   module: Record<string, unknown> | undefined
 ): { unavailable_text?: string } {

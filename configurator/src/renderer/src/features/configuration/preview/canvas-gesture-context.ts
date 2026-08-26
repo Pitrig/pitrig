@@ -6,7 +6,6 @@ import type { SnapGuide, GapLabel, SnapMode } from './snapping'
 import type { CanvasTool } from '../editor/store'
 import type { useSnapStore } from '../editor/snap-store'
 
-/** What the canvas is telling the author while a gesture runs. */
 export interface Feedback {
   guides: SnapGuide[]
   gaps: GapLabel[]
@@ -23,12 +22,6 @@ export interface Modifiers {
   altKey: boolean
 }
 
-/**
- * Everything a canvas gesture resolves against: the document being edited, the
- * geometry already computed for this render, and the editor state the gesture
- * reads. Built once per render by PreviewCanvas and handed to the gesture hook
- * and the pure field helpers, so the two cannot disagree about what they see.
- */
 export interface CanvasContext {
   svgRef: RefObject<SVGSVGElement | null>
   configuration: DeviceConfiguration
@@ -50,13 +43,6 @@ export interface CanvasContext {
   setActiveTool: (tool: CanvasTool) => void
 }
 
-/**
- * What the held modifiers leave of the snapping. Nothing else in the editor
- * reads them this way, so the rule is stated once: the accelerator drops the
- * neighbours and keeps the grid — the same key that already means "leave this
- * widget where it is, in the container it is in" — and adding Shift drops the
- * grid as well, which is the escape hatch for a value the author means exactly.
- */
 export function snapMode(event: {
   metaKey: boolean
   ctrlKey: boolean
@@ -66,7 +52,6 @@ export function snapMode(event: {
   return event.shiftKey ? 'none' : 'grid'
 }
 
-// Smaller than this is a click that missed rather than a box that was drawn.
 export const MINIMUM_DRAWN_PX = 4
 
 export function drawnBox(
@@ -81,7 +66,6 @@ export function drawnBox(
   }
 }
 
-/** The box around every selected widget, which is what a group resize acts on. */
 export function unionOf(placements: readonly Placement[]): Placement | undefined {
   if (placements.length === 0) return undefined
   const left = Math.min(...placements.map((box) => box.x))

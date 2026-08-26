@@ -23,32 +23,23 @@ inline constexpr std::size_t kMaximumInstances =
 
 using Config = configuration::BarWidgetConfiguration;
 
-// One telemetry source drawn as a filled proportion of the widget. The fill is
-// a child rectangle resized per render rather than an lv_bar, so invalidation
-// stays this widget's own business.
 struct State {
   frame::Painter painter{};
   frame::ValueReadCallback read{};
   void* read_context{};
   configuration::ValueRange range{};
-  // Where in the range the fill starts, as a fraction of the span. Zero is
-  // the low end, which is what an unconfigured origin means; a half turns a
-  // signed window into a centred meter.
   float origin_fraction{};
   configuration::BarOrientation orientation{};
   bool inverted{};
   bool free_running{};
   lv_obj_t* container{};
   lv_obj_t* fill{};
-  // Content box the fill runs inside, in the container's child coordinates.
   std::int32_t inner_width{};
   std::int32_t inner_height{};
   std::int32_t origin_x{};
   std::int32_t origin_y{};
   std::uint64_t rendered_revision{};
   bool rendered_available{};
-  // Fill geometry already on screen, so an unchanged proportion touches no
-  // LVGL. The offset matters as soon as the origin is not the low end.
   std::int32_t drawn_length{-1};
   std::int32_t drawn_offset{-1};
   bool initialized{};
@@ -76,4 +67,4 @@ class Collection final
                            const fonts::Registry& fonts);
 };
 
-}  // namespace simcore::dashboard::bar_widget
+}

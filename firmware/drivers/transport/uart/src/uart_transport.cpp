@@ -14,7 +14,7 @@ namespace {
 
 constexpr char kTag[] = "uart_transport";
 
-}  // namespace
+}
 
 bool UartTransport::configure(const UartConfiguration configuration) {
   if (started_) {
@@ -49,9 +49,6 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
       .source_clk = UART_SCLK_DEFAULT,
       .flags = {},
   };
-  // With CONFIG_UART_ISR_IN_IRAM the receive interrupt keeps draining the FIFO
-  // while flash is being written (configuration save), so a telemetry burst
-  // during that window is buffered instead of overflowing the 128-byte FIFO.
 #if CONFIG_UART_ISR_IN_IRAM
   constexpr int kInterruptFlags = ESP_INTR_FLAG_IRAM;
 #else
@@ -146,9 +143,6 @@ void UartTransport::process() {
   uart_event_t event{};
   watch_current_task();
   while (true) {
-    // Bounded rather than indefinite: the wait is what feeds the watchdog on a
-    // link no host is talking to, and an idle link must not look like a wedged
-    // one.
     const bool has_event =
         xQueueReceive(event_queue_, &event, kWatchdogFeedTicks) == pdTRUE;
     feed_watchdog();
@@ -175,11 +169,6 @@ void UartTransport::process() {
       continue;
     }
 
-    // Drain everything the driver has buffered rather than only `event.size`
-    // bytes. When the event queue is full the ESP-IDF driver drops the event
-    // but keeps the bytes in its ring buffer, so a size-bound read would leave
-    // them behind until a later event and every following line would be
-    // delivered late. A zero timeout returns whatever is available.
     while (true) {
       const int received =
           uart_read_bytes(configuration_.port, data.data(), data.size(), 0);
@@ -218,4 +207,4 @@ Diagnostics UartTransport::diagnostics() const {
   return diagnostics;
 }
 
-}  // namespace simcore::transport
+}

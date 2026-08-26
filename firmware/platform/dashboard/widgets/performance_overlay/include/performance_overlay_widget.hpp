@@ -37,4 +37,4 @@ class View final {
   std::uint64_t previous_read_events_{};
 };
 
-}  // namespace simcore::dashboard::performance_overlay_widget
+}

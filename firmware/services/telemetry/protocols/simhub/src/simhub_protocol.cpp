@@ -57,7 +57,7 @@ template <typename Value>
       (static_cast<std::uint16_t>(first) << 8U) | second);
 }
 
-}  // namespace
+}
 
 SimHubProtocol::SimHubProtocol(
     const telemetry::ITelemetryRegistry& registry) {
@@ -93,8 +93,6 @@ telemetry::Handle SimHubProtocol::resolve_identifier(
 void SimHubProtocol::consume_line(const std::span<const std::uint8_t> line,
                                   const telemetry::UpdateHandler handler,
                                   void* const context) {
-  // `<id>;<value>`: a one- or two-character identifier, the separator, and
-  // the value. Anything shorter names nothing.
   if (!initialized_ || handler == nullptr || line.size() < 2 ||
       line.size() > telemetry::kMaximumTelemetryLineLength) {
     return;
@@ -156,4 +154,4 @@ void SimHubProtocol::consume_line(const std::span<const std::uint8_t> line,
   handler(update, context);
 }
 
-}  // namespace simcore::protocols
+}

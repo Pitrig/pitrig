@@ -38,4 +38,4 @@ bool ExternalMemoryBuffer::initialize(const std::size_t size) {
   return true;
 }
 
-}  // namespace simcore::platform
+}

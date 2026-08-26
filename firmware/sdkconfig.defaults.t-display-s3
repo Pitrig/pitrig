@@ -1,2 +1,1 @@
-# Factory fallback for fresh LilyGO T-Display-S3 devices.
 CONFIG_SIMCORE_FACTORY_BOARD_T_DISPLAY_S3=y

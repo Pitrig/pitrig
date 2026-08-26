@@ -86,10 +86,6 @@ export interface DeviceConnection {
   baudRate: number
 }
 
-// The configuration contract itself is generated from
-// configuration/configuration_schema.json. This module re-exports the parts the
-// device layer speaks in so call sites keep one import, and adds only what the
-// contract cannot know: the logical display size behind each board identifier.
 export type SimCoreBoardId = BoardId
 export const SIMCORE_BOARD_IDS = BOARD_ID_VALUES
 export { CONFIGURATION_SCHEMA_VERSION }
@@ -103,21 +99,7 @@ export interface DisplayDescriptor {
 
 export interface BoardProfile {
   display: DisplayDescriptor
-  /**
-   * Written into a document for this board instead of being left to the
-   * contract default of 921600. A sparse document is never expanded through a
-   * board profile, so a rate a board cannot hold has to travel in the document
-   * itself. Absent means the contract default stands.
-   */
   telemetryUartBaudRate?: number
-  /**
-   * The links this board actually has, mirroring `uart_supported` and
-   * `native_usb_cdc_supported` in its `BoardDefinition::validation`. The device
-   * refuses a protocol document naming a link it does not own, and it is the
-   * board identifier the document already carries that says which those are —
-   * so the answer belongs here rather than in a reply the configurator would
-   * have to be connected to have heard.
-   */
   transports: { uart: boolean; nativeUsbCdc: boolean }
 }
 
@@ -128,10 +110,6 @@ export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
   },
   guition_esp32_4848s040: {
     display: { width: 480, height: 480, configurable: false },
-    // The only board whose telemetry runs over UART by default, and it reaches
-    // the PC through the same CH340 bridge it is flashed over. That bridge does
-    // not hold 921600 on this host: esptool cannot even verify the flash chip
-    // after switching to it, so telemetry and `@SC:` would fare no better.
     telemetryUartBaudRate: 460_800,
     transports: { uart: true, nativeUsbCdc: false }
   },
@@ -141,12 +119,6 @@ export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
   }
 }
 
-/**
- * Fills in the transport properties the contract default cannot supply for a
- * board, leaving an authored value alone. Called wherever a document is created
- * or moved onto a board — the document is the only carrier, because firmware
- * expands an omitted property the same way for every board.
- */
 export function applyBoardTransportDefaults(
   configuration: ApplicationConfiguration
 ): ApplicationConfiguration {
@@ -163,7 +135,6 @@ export function applyBoardTransportDefaults(
   }
 }
 
-/** What became of one stored document at boot, as `@SC:INFO` reports it. */
 export type ConfigurationDocumentOutcome =
   | 'absent'
   | 'malformed_record'
@@ -174,11 +145,9 @@ export type ConfigurationDocumentOutcome =
 
 export interface ConfigurationDocumentState {
   outcome: ConfigurationDocumentOutcome
-  /** Which generation of the stored record the board is running; 0 when absent. */
   generation: number
 }
 
-/** Why the device's last boot happened, as `@SC:INFO` reports it. */
 export type DeviceResetCause =
   | 'power_on'
   | 'software'
@@ -187,7 +156,6 @@ export type DeviceResetCause =
   | 'brownout'
   | 'other'
 
-/** How far a boot got. Reported for the boot *before* this one. */
 export type DeviceStartupPhase =
   | 'none'
   | 'configuration'
@@ -198,24 +166,9 @@ export type DeviceStartupPhase =
   | 'complete'
 
 export interface DeviceHealth {
-  /**
-   * Three boots in a row ended in a crash or a watchdog reset, so this one came
-   * up on the serial link and the control protocol alone: no display, no
-   * dashboard, no modules, and no font or image upload. Writing or erasing any
-   * document clears the count, and the restart after it starts an ordinary
-   * boot.
-   */
   safeMode: boolean
-  /**
-   * Crashes counted since the last power-on, or since the last document written
-   * or erased.
-   */
   bootFailures: number
   resetCause: DeviceResetCause
-  /**
-   * How far the boot before this one got. On a board that keeps crashing this
-   * is the field that says what is crashing it.
-   */
   lastPhase: DeviceStartupPhase
 }
 
@@ -224,19 +177,8 @@ export interface DeviceInfo {
   firmwareVersion: string
   schemaVersion: typeof CONFIGURATION_SCHEMA_VERSION
   display: DisplayDescriptor
-  /**
-   * One entry per configuration document. A board on factory values for one
-   * section and a stored record for another is an ordinary state now, so there
-   * is no single source token that could describe it.
-   */
   documents: Record<ConfigurationDocumentId, ConfigurationDocumentState>
   storageAvailable: boolean
-  /**
-   * Absent on firmware built before the boot guard, which reports none of these
-   * fields. Absent reads as "cannot tell", never as "healthy" — a board that
-   * cannot say whether it is in safe mode is treated as an ordinary one,
-   * because that is what every such board is.
-   */
   health?: DeviceHealth
 }
 
@@ -245,18 +187,8 @@ export interface FontAssetDeviceInfo {
   packageAvailable: boolean
   formatVersion: number
   familyCount: number
-  // Installed faces. Every pixel size is rasterized from them on the device, so
-  // a configuration only has to match a family.
   families: string[]
   packageSize: number
-  /**
-   * The stored package's payload CRC, when the firmware reports one. It lets a
-   * save skip an upload whose bytes the board already holds. Older firmware
-   * omits the key, which reads as "cannot tell" and so as "upload anyway".
-   *
-   * The CRC covers the face data and not the manifest, so comparing it answers
-   * only half the question — `families` answers the other half.
-   */
   payloadCrc?: number
   rebootRequired: boolean
 }
@@ -267,12 +199,7 @@ export interface DeviceSession {
   info: DeviceInfo
   configuration: DeviceConfiguration
   fontAssets?: FontAssetDeviceInfo
-  // Absent when the firmware predates uploaded images, the same way font
-  // support is reported: an older board answers the probe with an unknown
-  // command rather than an error worth showing.
   imageAssets?: ImageAssetState
-  // Absent on a board flashed before the OTA partition layout, which has one
-  // application partition and no slot to update into.
   firmware?: FirmwareUpdateState
 }
 
@@ -298,42 +225,26 @@ export interface ConnectDeviceRequest {
 
 export interface DeviceConfigurationRequest {
   json: string
-  /**
-   * Which documents to write, out of the aggregate `json` carries. Omitted
-   * means all of them, which is what replacing the whole configuration wants;
-   * a live apply names only what actually changed, so dragging a widget no
-   * longer resends the transport settings with every frame.
-   */
   documents?: ConfigurationDocumentId[]
 }
 
-// Applying changes only what the device is rendering. Flash is untouched, so a
-// restart returns to the last saved configuration.
 export interface DeviceConfigurationApplyResult {
   configuration: DeviceConfiguration
-  /** The documents actually sent, which may be fewer than the caller asked for. */
   documents: ConfigurationDocumentId[]
 }
 
 export interface DeviceConfigurationSaveResult {
   configuration: DeviceConfiguration
   documents: ConfigurationDocumentId[]
-  /**
-   * Whether any document written here is one the running board cannot pick up.
-   * Only the transport is chosen once at startup, so an ordinary dashboard save
-   * answers false and is closed with an apply instead of a restart.
-   */
   rebootRequired: boolean
 }
 
 export interface DeviceConfigurationResetRequest {
-  /** Which document to erase. Omitted erases every one of them. */
   document?: ConfigurationDocumentId
 }
 
 export interface DeviceConfigurationResetResult {
   configuration: DeviceConfiguration
-  /** The documents erased, which is all three unless one was named. */
   documents: ConfigurationDocumentId[]
   rebootRequired: true
 }

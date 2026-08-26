@@ -11,8 +11,6 @@
 
 namespace simcore::protocols {
 
-// Decodes SimHub Custom Serial lines into transport-independent typed updates.
-// Protocol identifiers are resolved to canonical handles once at startup.
 class SimHubProtocol final : public telemetry::IProtocol {
  public:
   explicit SimHubProtocol(const telemetry::ITelemetryRegistry& registry);
@@ -31,4 +29,4 @@ class SimHubProtocol final : public telemetry::IProtocol {
   bool initialized_{};
 };
 
-}  // namespace simcore::protocols
+}

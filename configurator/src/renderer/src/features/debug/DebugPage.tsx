@@ -13,15 +13,6 @@ import {
   type DebugLogEntry
 } from './debug-log'
 
-/**
- * What crossed the link, and a way to put one line on it by hand.
- *
- * This used to be a floating panel that only existed in development builds. It
- * is a workspace now because the questions it answers — did the board reply,
- * what did it reply with, does it answer this command at all — are exactly the
- * questions a release build raises.
- */
-
 const SUGGESTIONS = [
   '@SC:INFO',
   '@SC:GET:dashboard',

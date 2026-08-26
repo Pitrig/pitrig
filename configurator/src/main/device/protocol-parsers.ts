@@ -16,9 +16,6 @@ import {
 } from '@shared/configuration-schema'
 import { DeviceServiceError } from './device-errors'
 
-// Reading what the device says back. Every function here is a pure decode of
-// one reply line: no serial port, no timeouts, no state.
-
 export function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {
   const fields = new Map<string, string>()
   for (const entry of line.slice(prefix.length).split(',')) {
@@ -38,24 +35,12 @@ export function isBooleanField(value: string | undefined): boolean {
   return value === '0' || value === '1'
 }
 
-/**
- * What both asset kinds report the same way: a format version, a count, a
- * package size, and whether storage is present and a reboot is owed. The two
- * parsers were the same thirty-line validation wall with different nouns —
- * which is how the font side came to check its package bound as a literal
- * while the image side used the named constant.
- */
 export interface AssetStatusLimits {
   prefix: string
   label: string
   countField: string
   maximumCount: number
-  /** The newest package version this application writes. */
   formatVersion: number
-  /**
-   * The oldest one it still understands, when a kind kept an older package
-   * readable rather than obsoleting it. Defaults to the newest.
-   */
   minimumFormatVersion?: number
   maximumPackageSize: number
 }
@@ -68,7 +53,6 @@ export interface AssetStatus {
   count: number
   packageSize: number
   entries: string | undefined
-  /** Raw, because only fonts report one; the kind decides what it means. */
   crc: string | undefined
 }
 
@@ -126,10 +110,6 @@ export function parseDeviceInfo(line: string): DeviceInfo {
   if (!firmwareVersion || !isBooleanField(fields.get('storage'))) {
     throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
   }
-  // One field per document, spelled `<document>=<outcome>:<generation>`. Every
-  // document this build knows has to be there: a firmware that reports fewer
-  // has a different contract, and the schema check above is what should have
-  // caught it.
   const documents = {} as Record<ConfigurationDocumentId, ConfigurationDocumentState>
   for (const document of CONFIGURATION_DOCUMENT_IDS) {
     documents[document] = parseDocumentState(fields.get(document))
@@ -165,13 +145,6 @@ const STARTUP_PHASES: readonly DeviceStartupPhase[] = [
   'complete'
 ]
 
-/**
- * How the board's last boot went. Firmware built before the boot guard reports
- * none of these fields, which reads as "cannot tell" and leaves the health
- * absent — never as "healthy", because a board that cannot answer the question
- * is an ordinary board and has to look like one. Firmware that reports the
- * first field and not the rest is malformed, and is called that.
- */
 function parseDeviceHealth(fields: Map<string, string>): DeviceHealth | undefined {
   const safeMode = fields.get('safe_mode')
   if (safeMode === undefined) return undefined

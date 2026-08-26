@@ -11,14 +11,6 @@ interface StoredEntry {
   openedAt: number
 }
 
-/**
- * The configuration files the author reached through the system dialogs.
- *
- * Nothing is copied: an entry is a path and a timestamp, so opening one reads
- * the file where it actually lives and an entry can outlive the file it names.
- * That is reported as `missing` rather than hidden, because a row that silently
- * disappears looks like the app lost the work.
- */
 export class RecentConfigurations {
   constructor(private readonly storePath: string) {}
 
@@ -34,7 +26,6 @@ export class RecentConfigurations {
     )
   }
 
-  /** Moves a path to the front, whether or not it was already listed. */
   async record(path: string): Promise<void> {
     const stored = await this.read()
     const next = [
@@ -54,8 +45,6 @@ export class RecentConfigurations {
       if (!Array.isArray(parsed)) return []
       return parsed.filter(isStoredEntry).slice(0, MAXIMUM_RECENT_CONFIGURATIONS)
     } catch {
-      // A list that cannot be read is a list that starts empty. Losing it costs
-      // convenience and nothing else, so it never fails an operation.
       return []
     }
   }
@@ -65,7 +54,6 @@ export class RecentConfigurations {
       await mkdir(dirname(this.storePath), { recursive: true })
       await writeFile(this.storePath, `${JSON.stringify(entries, null, 2)}\n`, 'utf8')
     } catch {
-      // Same bargain as reading: recording is a convenience, never a blocker.
     }
   }
 }

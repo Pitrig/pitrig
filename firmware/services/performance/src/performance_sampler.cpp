@@ -14,9 +14,6 @@
 #include "performance_internal.hpp"
 #endif
 
-// The sampler half of the service: the once-a-second task that drains the
-// hooks' measurements into one PerformanceStats snapshot. The hooks themselves
-// live in performance.cpp.
 namespace simcore::performance {
 #if SIMCORE_DEBUG
 
@@ -71,7 +68,7 @@ void sampler_task(void*) {
   }
 }
 
-}  // namespace
+}
 
 void begin() {
   taskENTER_CRITICAL(&state_lock);
@@ -137,6 +134,10 @@ void update() {
   next.longest_frame_us = interval.longest_frame_us;
   next.longest_work_us = interval.longest_work_us;
   next.longest_gap_us = interval.longest_gap_us;
+  next.value_latency_us =
+      average(interval.value_latency_total_us, interval.value_latency_samples);
+  next.value_latency_max_us = interval.value_latency_max_us;
+  next.value_latency_samples = interval.value_latency_samples;
   next.invalidated_px = average(interval.invalidated_px, interval.frames);
   next.invalidated_areas = average(interval.invalidated_areas, interval.frames);
   next.drawn_areas = average(interval.drawn_areas, interval.frames);
@@ -154,8 +155,6 @@ void update() {
       .configuration_free_bytes =
           stack_free_bytes(task_handles[static_cast<std::size_t>(
               TaskMetric::configuration_control)]),
-      // Only one upload can own the serial link at a time, so the three share
-      // one line: whichever tasks are idle report their full stack.
       .asset_upload_free_bytes = std::min(
           {stack_free_bytes(
                task_handles[static_cast<std::size_t>(TaskMetric::font_asset_control)]),
@@ -173,4 +172,4 @@ void update() {
 }
 #endif
 
-}  // namespace simcore::performance
+}

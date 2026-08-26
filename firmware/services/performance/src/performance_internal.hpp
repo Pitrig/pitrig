@@ -10,10 +10,6 @@
 #include "freertos/task.h"
 #include "performance.hpp"
 
-// What the two halves of the service share: the instrumentation hooks in
-// performance.cpp accumulate into `measurements` under `state_lock`, and the
-// sampler task in performance_sampler.cpp drains them into `stats` once a
-// second. Internal to the service; everything outside reads get_stats().
 namespace simcore::performance::internal {
 
 struct Measurements {
@@ -28,6 +24,9 @@ struct Measurements {
   std::uint64_t invalidated_px;
   std::uint32_t invalidated_areas;
   std::uint32_t drawn_areas;
+  std::uint64_t value_latency_total_us;
+  std::uint32_t value_latency_max_us;
+  std::uint32_t value_latency_samples;
 };
 
 extern portMUX_TYPE state_lock;
@@ -36,13 +35,12 @@ extern Measurements measurements;
 extern std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)>
     monitored_tasks;
 
-}  // namespace simcore::performance::internal
+}
 
 namespace simcore::performance {
 
-// One aggregation pass, run by the sampler task once a second.
 void update();
 
-}  // namespace simcore::performance
+}
 
 #endif

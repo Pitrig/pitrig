@@ -9,18 +9,12 @@ import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
 import { CheckboxField, NumberField, NumberInput, SelectField } from './fields'
 
-// The sections a widget's properties are built from: what one value is bound
-// to, what a container does with what it holds, and where a box sits. The
-// dashboard and the screen are not widgets and live in document-sections.tsx.
-
 interface RangedWidget {
   source?: ValueSourceConfiguration
   minimum?: number
   maximum?: number
 }
 
-// Every gauge reads one source through one window, so they share the group that
-// binds it rather than each spelling it out.
 export function SourceRangeSection<T extends RangedWidget>({ widget, update, children }: { widget: T; update: (mutation: (next: T) => void) => void; children?: React.ReactNode }): React.JSX.Element {
   return (
     <Group id="Data" title="Data" icon={GROUP_ICONS.data} summary={widget.source?.binding || 'Unbound'}>
@@ -30,12 +24,6 @@ export function SourceRangeSection<T extends RangedWidget>({ widget, update, chi
   )
 }
 
-/**
- * What binds one value: the field it reads, the modifier over it, and the
- * window it is read through. A gauge shows these once, inside its Data group; a
- * graph shows the same three again for every further trace it draws, which is
- * why they are a component of their own rather than the body of that group.
- */
 export function SourceRangeFields<T extends RangedWidget>({ widget, update }: { widget: T; update: (mutation: (next: T) => void) => void }): React.JSX.Element {
   const binding = TELEMETRY_CATALOG.find(({ name }) => name === widget.source?.binding)
   const unit = binding?.unit && binding.unit !== 'source' ? ` (${binding.unit})` : ''
@@ -53,10 +41,6 @@ export function SourceRangeFields<T extends RangedWidget>({ widget, update }: { 
   )
 }
 
-/**
- * The window a value is read against. The two ends share a row because neither
- * means anything without the other, and the unit is the bound field's.
- */
 function RangeRow<T extends RangedWidget>({ widget, update, unit }: { widget: T; update: (mutation: (next: T) => void) => void; unit: string }): React.JSX.Element {
   return (
     <PropertyRow
@@ -80,12 +64,6 @@ function RangeRow<T extends RangedWidget>({ widget, update, unit }: { widget: T;
   )
 }
 
-/**
- * What holding widgets means. The clip is the one property here rather than in
- * the styling groups, because it is not an appearance: it says where this
- * container's contents end, and a slot answers it for every one of its pages at
- * once.
- */
 export function ContainerEditor<T extends ClippingWidget>({
   widget,
   update,
@@ -94,7 +72,6 @@ export function ContainerEditor<T extends ClippingWidget>({
 }: {
   widget: T
   update: (mutation: (next: T) => void) => void
-  /** How many widgets it holds, which is what decides whether the clip matters. */
   count: number
   summary: string
 }): React.JSX.Element {
@@ -109,8 +86,6 @@ export function ContainerEditor<T extends ClippingWidget>({
         modified={authored(widget.clip_children, true)}
         onReset={() => update((next) => { delete next.clip_children })}
         onChange={(checked) => update((next) => {
-          // Written only when it differs from the default, so the document stays
-          // as sparse as the author left it.
           if (checked) delete next.clip_children
           else next.clip_children = false
         })}
@@ -123,19 +98,10 @@ interface ClippingWidget {
   clip_children?: boolean
 }
 
-/**
- * Where the widget sits. Last in the panel because the canvas is where a box is
- * normally moved — this is for the pixel that the drag could not reach.
- */
 export function GeometryEditor({ selection, type, placement, zIndex }: { selection: WidgetSelection; type: WidgetConfiguration['type']; placement?: Required<WidgetPlacement>; zIndex?: number }): React.JSX.Element {
   const update = (key: keyof Required<WidgetPlacement>, value: number): void => mutateSelectedWidget(selection, (widget) => {
     widget.placement = { ...widget.placement, [key]: value }
   })
-  // Written rather than deleted, both of them: the editor reads a placement
-  // missing a side — or sized zero — as no placement at all and stops drawing
-  // the widget, so the schema's own zero default is not somewhere this can put
-  // one back to. Position returns to the origin; size to the box a new widget
-  // of this type is created at.
   const created = NEW_WIDGET_SIZE[type]
   return (
     <Group

@@ -1,19 +1,4 @@
 #!/usr/bin/env python3
-"""Generate the configurator's Google Fonts catalog from a checked-in snapshot.
-
-The snapshot is fetched from Google and committed, so generating the catalog is
-offline and deterministic and `--check` means something in CI. Refreshing it
-needs no API key: the family list comes from the public metadata endpoint and
-each face's file URL from the CSS endpoint, asked with a user agent old enough
-that Google answers with TrueType rather than WOFF2 — the device rasterizes an
-sfnt face and nothing here converts one.
-
-The generator derives no family identifiers. `fontFamilyId` in
-configurator/src/shared/font-library.ts is the single implementation of that
-rule, and this only checks that every identifier it would derive is valid and
-unique.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -34,7 +19,6 @@ OUTPUT = ROOT / "configurator/src/main/font-library/google-fonts-catalog.json"
 
 METADATA_URL = "https://fonts.google.com/metadata/fonts"
 CSS_URL = "https://fonts.googleapis.com/css2"
-# Old enough that the CSS endpoint answers with `format('truetype')`.
 LEGACY_USER_AGENT = "Mozilla/4.0"
 FAMILIES_PER_REQUEST = 8
 REQUEST_PAUSE_SECONDS = 0.2
@@ -50,8 +34,6 @@ FACE_PATTERN = re.compile(
     r".*?src:\s*url\((https://fonts\.gstatic\.com/[^)]+)\)",
     re.S,
 )
-# Only this host is ever written into the catalog, and the main process refuses
-# to download from anywhere else.
 ASSET_HOST = "https://fonts.gstatic.com/"
 
 
@@ -64,14 +46,13 @@ def fetch(url: str, user_agent: str | None = None) -> bytes:
 
 
 def fetch_with_retry(url: str, attempts: int = 3) -> str | None:
-    """A timeout or a 5xx is worth asking again; a 4xx is an answer."""
     for attempt in range(attempts):
         try:
             return fetch(url, LEGACY_USER_AGENT).decode("utf-8")
         except urllib.error.HTTPError as error:
             if error.code < 500:
                 return None
-        except Exception:  # noqa: BLE001 - a socket has many ways to fail
+        except Exception:
             pass
         if attempt + 1 < attempts:
             time.sleep(2 ** attempt)
@@ -83,17 +64,12 @@ def variant_of(style: str, weight: str) -> str:
 
 
 def resolve_faces(requests: list[tuple[str, list[str]]]) -> dict[str, dict[str, str]]:
-    """Ask the CSS endpoint for the TTF URL of every family and variant."""
     resolved: dict[str, dict[str, str]] = {}
     for start in range(0, len(requests), FAMILIES_PER_REQUEST):
         batch = requests[start : start + FAMILIES_PER_REQUEST]
         query = "&".join(family_query(family, variants) for family, variants in batch)
         css = fetch_with_retry(f"{CSS_URL}?{query}")
         if css is None:
-            # One batch that will not come back is a gap in the catalog, not a
-            # failed refresh: a family Google does not serve to us is a family
-            # nobody could install anyway. Losing the whole run to one timed-out
-            # socket would be the worse failure.
             print(f"  skipped a batch: {[f for f, _ in batch]}", file=sys.stderr)
             continue
         for family, style, weight, url in FACE_PATTERN.findall(css):
@@ -130,9 +106,6 @@ def refresh_snapshot() -> dict[str, Any]:
         fonts = entry.get("fonts")
         if not isinstance(name, str) or not isinstance(fonts, dict):
             continue
-        # Filter before sorting: a variable font can list an axis key that is
-        # not a weight at all, and sorting on one would fail here rather than
-        # simply not being offered.
         variants = sorted(
             {
                 variant
@@ -184,7 +157,6 @@ def variant_order(variant: str) -> tuple[bool, int]:
 
 
 def normalize_variant(key: str) -> str:
-    """`400`, `400i` and `regular` as the one shape shared with the app."""
     lowered = key.strip().lower()
     if lowered in ("regular", ""):
         return "400"
@@ -234,8 +206,6 @@ def build_catalog(snapshot: dict[str, Any], selection: dict[str, Any]) -> dict[s
             }
         )
 
-    # Most popular first, because a picker's first screen is the answer most of
-    # the time; the file keeps that order so the app does no sorting of its own.
     ranking = {
         entry["family"]: entry.get("popularity") or 10_000
         for entry in snapshot.get("families", [])
@@ -254,9 +224,6 @@ def build_catalog(snapshot: dict[str, Any], selection: dict[str, Any]) -> dict[s
 
 
 IDENTIFIER_PATTERN = re.compile(r"^[a-z0-9_-]{1,31}$")
-# `_` and not `-`: a family slug can never contain an underscore, so a family
-# name can never be read as a variant. Mirrors WEIGHT_SUFFIXES in
-# configurator/src/shared/font-library.ts, which is the real implementation.
 WEIGHT_SUFFIXES = {
     "100": "_thin",
     "200": "_extralight",
@@ -271,7 +238,6 @@ WEIGHT_SUFFIXES = {
 
 
 def font_family_id(family: str, variant: str) -> str:
-    """A port of fontFamilyId, used only to check the result — never to emit it."""
     italic = variant.endswith("italic")
     weight = variant[: -len("italic")] if italic else variant
     suffix = WEIGHT_SUFFIXES.get(weight, f"_w{weight}")

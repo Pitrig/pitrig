@@ -4,27 +4,9 @@ import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible,
 import { previewFontFamily } from '@/features/font-library/font-face-store'
 import { type GlyphMetrics, measureGlyphs } from './text-metrics'
 
-/**
- * What the previews ask about a value.
- *
- * The configurator never receives telemetry: the control protocol has no
- * command for reading it, and while a session is running the port belongs to
- * SimHub. So every reading is unavailable, and the canvas draws what the device
- * draws when nothing is arriving — each source's own placeholder, or the
- * widget's `unavailable_text` when it has one. That is a real state of the
- * dashboard rather than a stand-in for one, which is why it is the only state
- * previewed: a synthetic lap invented here would be judged as if it were the
- * game's, and its shape is the one thing the configurator cannot know.
- *
- * Wrapping it still earns its place: it keeps every renderer from repeating the
- * "read the binding, take its numeric view, resolve the frame" chain, and it is
- * the seam a real telemetry source would arrive through.
- */
 export interface PreviewValues {
   read: (binding: string | undefined) => TelemetryValue
-  /** Numeric view of what a widget's own source reads, for a fill or a sweep. */
   numberFor: (source: { binding?: string } | undefined) => number | undefined
-  /** Authored style with the ramp and the rules applied. */
   styleFor: (frame: StyledFrame, authored: AuthoredStyle) => ResolvedStyle & { visible: boolean }
 }
 
@@ -34,40 +16,19 @@ export function createPreviewValues(): PreviewValues {
     read,
     numberFor: () => conditionValue(read()),
     styleFor: (frame, authored) => {
-      // No reading means no rule matches, so this is the authored appearance —
-      // resolved through the same function the device uses rather than read off
-      // the widget, so a ramp or a rule that needs no value still applies.
       const style = resolveWidgetStyle(frame, authored, conditionValue(read()))
-      // There is no clock to blink against, so a widget that would blink is
-      // drawn in its lit half. This still goes through blinkVisible rather than
-      // answering true, because that is also where hiding is decided.
       return { ...style, visible: blinkVisible(style, 0) }
     }
   }
 }
 
-/**
- * The box a widget draws its content in. LVGL positions every child against the
- * container's content area, which the border and the padding have already
- * inset, so the canvas has to inset the same way — otherwise a bordered arc is
- * drawn at its full placement here and one border narrower on the board.
- */
-
 interface PreviewFont {
   family: string
   sizePx: number
   weight: number
-  /** Whether this is the face the board rasterizes rather than a stand-in. */
   resolved: boolean
 }
 
-/**
- * The face to draw one font spec with. The library's face is used whenever the
- * library answers to the identifier — which is any bundled or downloaded font,
- * on any machine. What falls through is a family nothing answers to: a document
- * naming a face this installation has never seen, which draws in a system stand-in
- * and lays out only approximately until the author resolves it.
- */
 export function resolvedFont(
   font: FontSpec | undefined,
   defaultSizePx: number,
@@ -76,9 +37,6 @@ export function resolvedFont(
   const identifier = font?.family ?? 'custom_font'
   const sizePx = font?.size_px ?? defaultSizePx
   if (loadedFamilies[identifier]) {
-    // The face carries its own weight; asking for a heavier one would have the
-    // browser synthesize a thicker version of glyphs the board draws as they
-    // are.
     return { family: previewFontFamily(identifier), sizePx, weight: 400, resolved: true }
   }
   const black = identifier.includes('black')
@@ -96,10 +54,6 @@ export function fontMetrics(text: string, font: PreviewFont): GlyphMetrics {
   return measureGlyphs(text, font.family, font.sizePx, font.weight)
 }
 
-/**
- * LVGL centres in whole pixels and truncates each half separately, so a box and
- * its contents can land one pixel off what an exact midpoint would give.
- */
 export function lvglCenterOffset(available: number, size: number): number {
   return Math.trunc(available / 2) - Math.trunc(size / 2)
 }
@@ -115,11 +69,6 @@ interface Box {
   height: number
 }
 
-/**
- * The two axes of a nine-point anchor. Mirrors `anchor_of` in widget_frame.cpp:
- * spelled out rather than derived from the enum's order, which the contract is
- * free to change.
- */
 export function alignmentAnchor(alignment: TextAlignment): {
   column: 'left' | 'center' | 'right'
   row: 'top' | 'middle' | 'bottom'
@@ -146,20 +95,12 @@ export function alignmentAnchor(alignment: TextAlignment): {
   }
 }
 
-/** Where the caption lands, and the frame line it cuts on its way there. */
 export interface CaptionGeometry {
   x: number
   y: number
-  /** Absent when the caption crosses no border, or the cut is turned off. */
   gap?: Box
 }
 
-/**
- * Mirrors widget_frame.cpp `caption_rect` and `caption_gap_rect` exactly: the
- * anchor is the widget's outer box rather than its content area, C++ truncation
- * toward zero is Math.trunc, and the mask is one thin band along the border the
- * caption actually crosses, clipped to the box so it never paints outside it.
- */
 export function captionGeometry(
   box: Box,
   title: {
@@ -179,8 +120,6 @@ export function captionGeometry(
       : column === 'right'
         ? box.width - metrics.width
         : Math.trunc((box.width - metrics.width) / 2)
-  // The top and bottom rows straddle their border line, which is what lets the
-  // caption break it. The middle row sits inside the box and breaks nothing.
   const rowY =
     row === 'top'
       ? box.y - Math.trunc(metrics.lineHeight / 2)
@@ -204,8 +143,6 @@ export function captionGeometry(
   const thickness = borderWidth + 2
   const spansX = spanRight > spanLeft
   const spansY = spanBottom > spanTop
-  // A horizontal border wins a corner, because a caption is a horizontal run of
-  // text and that is the line it reads as breaking.
   if (spansX && top < box.y + borderWidth && bottom > box.y) {
     return { x, y, gap: { x: spanLeft, y: box.y, width: spanRight - spanLeft, height: thickness } }
   }

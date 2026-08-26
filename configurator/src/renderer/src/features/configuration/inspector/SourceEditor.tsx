@@ -37,7 +37,6 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
       <TelemetryBindingField value={source.binding ?? ''} onReset={() => onChange((next) => { delete next.binding })} onChange={(value) => onChange((next) => {
         next.binding = value
         const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
-        // An unrecognized name is left alone: the binding is mid-edit, not wrong.
         if (selected && next.transform && !transformOptions(selected).includes(transformSelection(next.transform))) {
           clearTransformType(next.transform)
           pruneTransform(next)
@@ -68,8 +67,6 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
             next.transform.offset = preset.offset
             next.transform.suffix = preset.suffix
           })} /> : null}
-          {/* Three numbers of one formula, so they share a row and name
-              themselves under it rather than each taking a row of its own. */}
           <PropertyRow
             label="Number"
             hint={HINTS.text.scale}
@@ -112,10 +109,6 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
   )
 }
 
-// Gap between the input and its popup, and the bounds the popup is allowed to
-// take: enough rows to be worth scrolling, never more than a quarter screen.
-
-
 function transformOptions(binding: TelemetryCatalogEntry | undefined): readonly string[] {
   if (!binding) return ['source_text']
   const options = ['source_text']
@@ -125,7 +118,6 @@ function transformOptions(binding: TelemetryCatalogEntry | undefined): readonly 
   return options
 }
 
-/** The Transform select value: a transform may exist carrying affixes alone. */
 function transformSelection(transform: ValueTransform | undefined): string {
   if (transform?.type === 'number') return 'number'
   if (transform?.type === 'time') return transform.format ?? 'duration_ms'
@@ -140,7 +132,6 @@ function clearTransformType(transform: ValueTransform): void {
   delete transform.offset
 }
 
-/** Keeps the document sparse: a transform that formats nothing is not written. */
 function pruneTransform(source: TextSourceConfiguration): void {
   const transform = source.transform
   if (transform && (transform.type ?? 'none') === 'none' && !transform.prefix && !transform.suffix) {

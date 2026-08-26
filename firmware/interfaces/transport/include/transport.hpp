@@ -23,12 +23,10 @@ class ITransport {
 
   virtual bool start(DataHandler handler, void* context) = 0;
   virtual void stop() = 0;
-  // A dropped write leaves the peer waiting for an answer that never comes,
-  // and a timeout on its side is the only other trace of it.
   [[nodiscard]] virtual bool write(std::span<const std::uint8_t> data) = 0;
   [[nodiscard]] virtual Diagnostics diagnostics() const {
     return {};
   }
 };
 
-}  // namespace simcore::transport
+}

@@ -1,8 +1,5 @@
 import type { RgbColor } from '@shared/configuration-schema'
 
-// The colour arithmetic behind the picker: hex to channels, channels to HSV
-// and back. Pure functions with no DOM behind them.
-
 export interface Channels {
   r: number
   g: number
@@ -10,7 +7,6 @@ export interface Channels {
 }
 
 export interface Hsv {
-  /** Degrees, 0–360. */
   h: number
   s: number
   v: number

@@ -6,22 +6,11 @@ import { diffConfigurations } from '@shared/configuration-diff'
 import { CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
 import { CONFIGURATION_DOCUMENT_LABELS, documentOf } from '@shared/configuration-documents'
 
-/**
- * What saving would change on the board, property by property.
- *
- * "Modified" says a dashboard of hundreds of numbers differs somewhere; this
- * says where. It compares against the pending configuration when there is one,
- * for the same reason the dirty flag does: that is what the board will be
- * holding once it restarts.
- */
 export function ChangesSection(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
   const board = pendingConfiguration ?? activeConfiguration
-  // One diff per document rather than one over the whole configuration: a baud
-  // rate changed alongside a screen full of widgets would otherwise be one row
-  // among two hundred, and the two are separate writes now.
   const diffs = useMemo(
     () =>
       board && draft

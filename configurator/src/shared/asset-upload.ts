@@ -1,7 +1,3 @@
-// What every uploaded asset kind reports while it is being installed. Fonts and
-// images share the wire protocol, the staged progress and the failure
-// vocabulary; only the package they carry differs.
-
 export type AssetUploadStage =
   | 'reading'
   | 'building'

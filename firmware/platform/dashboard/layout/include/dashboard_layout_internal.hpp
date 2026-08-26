@@ -21,4 +21,4 @@ void apply_debug_widget_outline(lv_obj_t* object);
 inline void apply_debug_widget_outline(lv_obj_t*) {}
 #endif
 
-}  // namespace simcore::dashboard
+}

@@ -1,12 +1,5 @@
 import { type LayoutTransferNote, type LayoutTransferResult } from '@shared/layout-transfer'
 
-// What a cross-board transfer could not carry cleanly, phrased for a panel.
-// The engine returns structured notes and no prose, because wording does not
-// belong in a module the main process can also import — and because both the
-// templates panel and the configuration panel show the same report, which is
-// one place to keep them from drifting apart.
-
-/** How many widgets a line names before it starts counting the rest. */
 const NAMES_SHOWN = 4
 
 export function transferReportLines(result: LayoutTransferResult): string[] {
@@ -25,8 +18,6 @@ export function transferReportLines(result: LayoutTransferResult): string[] {
 
   const images = notes.filter((note) => note.kind === 'image_resize_required')
   if (images.length > 0) {
-    // The board draws a bitmap at the size it was uploaded at, so this is the
-    // one thing a transfer cannot fix on its own.
     lines.push(
       `${count(images.length, 'image')} now ${images.length === 1 ? 'draws' : 'draw'} at a new size and must be uploaded again: ${list(
         images.map((note) => `${note.imageId ?? 'image'} at ${note.size?.width} × ${note.size?.height}`)
@@ -79,7 +70,6 @@ function list(entries: readonly string[]): string {
   return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(', ')
 }
 
-/** 0.31 rather than 0.3125, and 1.5 rather than 1.500. */
 function trim(scale: number): string {
   return String(Number(scale.toFixed(2)))
 }

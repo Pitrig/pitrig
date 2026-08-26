@@ -17,7 +17,7 @@ namespace {
 
 constexpr char kTag[] = "usb_serial_jtag_transport";
 
-}  // namespace
+}
 
 UsbSerialJtagTransport::~UsbSerialJtagTransport() {
   stop();
@@ -97,8 +97,6 @@ void UsbSerialJtagTransport::stop() {
 #if SIMCORE_DEBUG
     performance::unregister_task(performance::TaskMetric::transport);
 #endif
-    // One read timeout is all the task needs to notice the flag; waiting for
-    // it to say so keeps the driver from being uninstalled under a live read.
     (void)xSemaphoreTake(stopped_, kReadTimeout * 4);
     task_ = nullptr;
   }
@@ -116,10 +114,6 @@ bool UsbSerialJtagTransport::write(const std::span<const std::uint8_t> data) {
     return false;
   }
 
-  // Handed over whole, a reply longer than the driver's ring buffer came back
-  // as zero bytes written and never left the board: the configuration a GET
-  // returns was the first one long enough. The pieces share one deadline, so a
-  // stalled host costs a writer the same wait it did before.
   const TickType_t started_at = xTaskGetTickCount();
   std::size_t position = 0;
   while (position < data.size()) {
@@ -161,8 +155,6 @@ void UsbSerialJtagTransport::process() {
   while (running_.load(std::memory_order_acquire)) {
     const int received = usb_serial_jtag_read_bytes(data.data(), data.size(),
                                                     kReadTimeout);
-    // The read already returns on its own timeout, so an idle link comes
-    // through here regularly and feeds without needing a wait of its own.
     feed_watchdog();
     if (received <= 0) {
       continue;
@@ -191,4 +183,4 @@ Diagnostics UsbSerialJtagTransport::diagnostics() const {
   return diagnostics;
 }
 
-}  // namespace simcore::transport
+}

@@ -12,22 +12,8 @@ import { useFontFaceStore } from './font-face-store'
 import { FontPickerRow } from './FontPickerRow'
 import { dashboardFontFootprint, kilobytes, useFontLibraryStore } from './font-library-store'
 
-/**
- * How many catalog rows are drawn at once. Every row on screen fetches its own
- * face, so the list is cut rather than virtualized: searching narrows it, and
- * nobody scrolls two thousand fonts looking for one.
- */
 const CATALOG_RESULT_LIMIT = 60
 
-/**
- * Choosing a font, with every candidate drawn in itself.
- *
- * The families the dashboard already uses come first, because taking one of
- * those is free: the board holds eight faces, and a widget that reuses a family
- * already on the screen spends none of them. Everything else costs a slot, and
- * the header says how many are left before the author spends one rather than
- * after the device refuses the document.
- */
 export function FontPicker({
   value,
   onChoose,
@@ -67,8 +53,6 @@ export function FontPicker({
   const footprint = dashboardFontFootprint(entries, used)
   const budgetSpent = footprint.families >= MAXIMUM_FONT_FAMILIES
 
-  // Every listed face is drawn in itself, so every listed face has to be
-  // registered. The library is small enough that this is one read.
   useEffect(() => {
     void ensureFaces(entries.map((entry) => entry.id))
   }, [ensureFaces, entries])
@@ -109,9 +93,6 @@ export function FontPicker({
     return undefined
   }
 
-  // A catalog family the library already answers for is shown as a library
-  // entry, not offered again — the picker should not have two ways to pick the
-  // same face and disagree about whether it costs a slot.
   const known = new Set(entries.map((entry) => entry.id))
   const needle = query.trim().toLowerCase()
   const catalogMatches = catalog

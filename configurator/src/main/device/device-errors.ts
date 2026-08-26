@@ -8,9 +8,6 @@ export class DeviceServiceError extends Error {
   constructor(
     readonly code: DeviceErrorCode,
     message: string,
-    // The device's own reason token, kept beside the sentence it was turned
-    // into. The message is written for the reader; this is what code matches
-    // on, so a better sentence never changes what a probe decides.
     readonly token?: string
   ) {
     super(message)

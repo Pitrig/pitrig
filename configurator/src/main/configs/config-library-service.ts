@@ -20,19 +20,8 @@ import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import type { RecentConfigurations } from './recent-configurations'
 
 const FILE_EXTENSION = '.json'
-/** The document itself is capped at 64 KB; pretty printing is what the rest is. */
 const MAXIMUM_FILE_SIZE = 128 * 1024
 
-/**
- * The author's own configurations, one plain document per file in a folder of
- * its own under the user data directory, plus the recent-files list beside it.
- *
- * Unlike a template there is no envelope: a saved configuration is exactly what
- * the board would be sent, so the file can be handed to anyone — and the same
- * parse the Load dialog and the device payload use is what reads it back. The
- * only thing the format cannot carry is a name, and the file's own name answers
- * for that.
- */
 export class ConfigLibraryService {
   constructor(
     private readonly directory: string,
@@ -46,7 +35,6 @@ export class ConfigLibraryService {
     try {
       fileNames = await readdir(this.directory)
     } catch (error) {
-      // Nothing saved yet is an empty library, not a failure.
       if (isMissing(error)) return { ok: true, value: { saved: [], recent, unreadable: 0 } }
       return failure('read_failed', messageOf(error, 'Failed to read the configuration folder.'))
     }
@@ -63,12 +51,9 @@ export class ConfigLibraryService {
       try {
         saved.push(await this.summaryOf(id))
       } catch {
-        // One unreadable file is a gap reported as a count, rather than a
-        // library that will not open at all.
         unreadable += 1
       }
     }
-    // Most recently written first: the list is a work history, not an index.
     saved.sort((left, right) => right.modifiedAt - left.modifiedAt)
     return { ok: true, value: { saved, recent, unreadable } }
   }
@@ -112,8 +97,6 @@ export class ConfigLibraryService {
 
     try {
       await mkdir(this.directory, { recursive: true })
-      // A name that slugs to an existing identifier replaces that entry; the
-      // panel confirms first, which is a clearer answer than a "-2" suffix.
       const existing = await this.savedIds()
       if (!existing.includes(id) && existing.length >= MAXIMUM_SAVED_CONFIGURATIONS) {
         return failure(
@@ -138,12 +121,6 @@ export class ConfigLibraryService {
     }
   }
 
-  /**
-   * One of the recent files, read from wherever it lives. The path comes from
-   * this application's own list rather than from the renderer's imagination,
-   * and a path that is no longer listed is refused — the renderer cannot use
-   * this to read an arbitrary file.
-   */
   async readRecent(path: string): Promise<ConfigLibraryResult<RecentConfigurationValue>> {
     const listed = (await this.recent.list()).some((entry) => entry.path === path)
     if (!listed) return failure('not_found', 'That file is not in the recent list any more.')
@@ -205,11 +182,6 @@ export class ConfigLibraryService {
     return parseDeviceConfigurationJson(await readFile(path, 'utf8'))
   }
 
-  /**
-   * The identifier pattern is the path-traversal gate; comparing the base name
-   * back is the second one, so a later change to the pattern cannot quietly
-   * turn an identifier into a path.
-   */
   private pathFor(id: string): string {
     const fileName = `${id}${FILE_EXTENSION}`
     const path = join(this.directory, fileName)

@@ -55,16 +55,9 @@ export function Widgets({
     x: number
     y: number
     widgetId?: string
-    /** Where on the display it was opened, which is where "Add" puts a widget. */
     at?: { x: number; y: number }
   }>()
-  // Every reading is unavailable — the configurator receives no telemetry — so
-  // this holds nothing and is built once rather than per frame.
   const values = createPreviewValues()
-  // Every box in display coordinates, resolved in one walk. Asking per widget
-  // costs two tree searches each, and this render asks for the selection, for
-  // every widget carrying an action, for every layer it draws and again on
-  // each pointer-down.
   const placements = useMemo(() => absolutePlacements(configuration), [configuration])
   const screen = screensOf(configuration)[activeScreenIndex]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
@@ -73,13 +66,8 @@ export function Widgets({
   const selectedPlacements = selectedIds
     .map((id) => placements.get(id))
     .filter((placement): placement is Placement => placement !== undefined)
-  // A container resizes like the widget it is: its box is the thing being
-  // dragged, and its children keep the offsets they were authored with — unless
-  // the author has asked for the contents to scale with it.
   const primaryPlacement =
     selection?.type === 'widget' ? placements.get(selection.id) : undefined
-  // More than one widget is resized by the box around all of them, which is the
-  // same gesture over a different rectangle.
   const groupPlacement = selectedPlacements.length > 1 ? unionOf(selectedPlacements) : undefined
 
   const context: CanvasContext = {
@@ -116,8 +104,6 @@ export function Widgets({
   const openMenu = (event: React.MouseEvent, widgetId?: string): void => {
     event.preventDefault()
     event.stopPropagation()
-    // A menu acts on the selection, so a right-click on something unselected
-    // picks it first — otherwise "Delete" would delete the wrong widget.
     if (widgetId && !selectedIds.includes(widgetId)) select({ type: 'widget', id: widgetId })
     if (!widgetId) select({ type: 'screen' })
     setMenu({
@@ -143,15 +129,6 @@ export function Widgets({
     .map((id) => placements.get(id))
     .filter((box): box is Placement => box !== undefined)
 
-  // Working inside a slot means looking at its box, with the rest of the screen
-  // still drawn around it for context but dimmed and inert — the page is the
-  // only thing being authored, and a click landing outside it would be an edit
-  // to something the author is not looking at.
-  //
-  // Only a slot. A page is one of several alternatives for a box, so isolating
-  // it is honest; a container shape is an ordinary parent that draws alongside
-  // everything else, and dimming the screen around it would say the rest had
-  // stopped mattering. Opening one only changes what a click reaches.
   const openedWidget = drillIn ? findWidget(configuration, drillIn)?.widget : undefined
   const isolated = openedWidget?.type === 'slot' ? drillIn : undefined
   const openedIds = new Set(
@@ -222,8 +199,6 @@ export function Widgets({
       })}
       <ClippedAwayOutlines layers={layers} placements={placements} hidden={hidden} zoom={view.zoom} />
       <TapTargets layers={layers} placements={placements} zoom={view.zoom} />
-      {/* Every selected widget is outlined; the handles go on the primary one,
-          or on the box around them all when there is more than one. */}
       {selectedPlacements.map((placement, index) => (
         <rect
           key={index}

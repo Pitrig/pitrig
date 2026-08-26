@@ -27,10 +27,6 @@ export function DisplayPreview(): React.JSX.Element {
   const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
   const offlineBoard = useDeviceStore((state) => state.offlineBoard)
   const configuration = draft ?? pendingConfiguration ?? session?.configuration
-  // With nothing to draw yet the canvas still has a size: the connected board's,
-  // or the one chosen for working offline. Drawing a 16:9 placeholder instead
-  // was what left an author with no way to tell what display they were about to
-  // author for — which is the whole question the board picker answers.
   const display = configuration
     ? BOARD_PROFILES[configuration.board]?.display
     : (session?.info.display ??
@@ -39,8 +35,6 @@ export function DisplayPreview(): React.JSX.Element {
   const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
   const select = useDashboardEditorStore((state) => state.select)
   const selectMany = useDashboardEditorStore((state) => state.selectMany)
-  // The cached bitmaps change only when a package is installed or cleared,
-  // which is exactly when the board starts reporting a different set of them.
   const refreshPreviewAssets = usePreviewAssetStore((state) => state.refresh)
   const installedImages = (session?.imageAssets?.images ?? [])
     .map((image) => image.name)
@@ -48,9 +42,6 @@ export function DisplayPreview(): React.JSX.Element {
   useEffect(() => {
     void refreshPreviewAssets()
   }, [refreshPreviewAssets, installedImages])
-  // Faces follow the *document*, not the board: the library holds them whether
-  // or not anything was ever uploaded, so the canvas draws a font the moment it
-  // is chosen rather than after a save.
   const ensureFaces = useFontFaceStore((state) => state.ensureFaces)
   const documentFamilies = [
     ...new Set(
@@ -68,9 +59,6 @@ export function DisplayPreview(): React.JSX.Element {
   const canRedo = useDeviceStore((state) => state.future.length > 0)
   const undo = useDeviceStore((state) => state.undo)
   const redo = useDeviceStore((state) => state.redo)
-  // Every id that still names a widget. The buttons act on the whole selection,
-  // as the keyboard always has — a Delete button that removed one of four
-  // selected widgets was the odd one out.
   const liveSelection = selectedIds.filter((id) => findWidget(configuration, id))
   const selectedExists =
     liveSelection.length > 0 ||
@@ -126,18 +114,8 @@ export function DisplayPreview(): React.JSX.Element {
             </Button>
           </div>
         </div>
-        {/* The screen tabs and the arrange controls act on a document; with none
-            open there is nothing for them to name. */}
         {configuration ? <ArrangeToolbar /> : null}
       </CardHeader>
-      {/* A size container, so the surface can be measured against the space it
-          actually has rather than against a guess. The header above it grows
-          and shrinks as the toolbar wraps, and the old bound subtracted a fixed
-          13rem from the *viewport* height — which ignored both the wrapping and
-          the fact that the card is one cell of a grid, so a square board
-          overflowed the card and had its lower widgets cut off. Size
-          containment also decouples this box from its content, which is what
-          keeps the measurement from chasing itself. */}
       <CardContent className="flex min-h-0 flex-1 flex-col gap-2 px-4 pb-4">
         <div className="flex min-h-0 flex-1 gap-2">
           <ToolPalette enabled={Boolean(display && configuration)} />
@@ -148,8 +126,6 @@ export function DisplayPreview(): React.JSX.Element {
             <div
               className="relative overflow-hidden rounded-md border bg-black shadow-2xl"
               style={{
-                // The smaller of the two fits: as wide as the box, or as wide as
-                // its height allows at this board's proportions.
                 width: `min(100cqw, calc(100cqh * ${displayRatio}))`,
                 aspectRatio: display
                   ? `${display.width} / ${display.height}`
@@ -171,14 +147,6 @@ export function DisplayPreview(): React.JSX.Element {
 }
 
 
-/**
- * What the canvas shows before there is anything to draw.
- *
- * The three ways to get a dashboard — start one, open a file, take a template —
- * all used to live on other pages, which made an empty canvas a dead end rather
- * than a starting point. The board comes first because it decides the size
- * everything after it is placed in.
- */
 function EmptyCanvas(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const offlineBoard = useDeviceStore((state) => state.offlineBoard)

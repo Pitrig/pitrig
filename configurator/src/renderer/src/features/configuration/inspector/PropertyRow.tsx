@@ -1,24 +1,7 @@
 import { InfoHint } from './InfoHint'
 
-/**
- * One property: its name on the left, its control on the right.
- *
- * The name used to sit above the control, which cost two rows for every
- * property and made a widget with thirty of them a panel nobody reaches the
- * bottom of. Side by side halves that, and the fixed name column is what makes
- * a column of controls line up instead of stepping in and out with the length
- * of each label.
- */
-
 export interface PropertyMeta {
-  /** The explanation behind the ⓘ, from `hints.ts`. */
   hint?: string
-  /**
-   * Whether the document actually carries this property. The document is
-   * sparse, so a field showing a default is showing something that is not
-   * written anywhere — the dot is the difference, and clicking it takes the
-   * property back out.
-   */
   modified?: boolean
   onReset?: () => void
 }
@@ -34,11 +17,6 @@ export function PropertyRow({
 }: PropertyMeta & {
   label: string
   controlId?: string
-  /**
-   * Puts the control on its own line under the name. For the few controls that
-   * cannot live in half a narrow panel — a telemetry search, a font button with
-   * a size beside it — the fixed name column would leave them unusable.
-   */
   block?: boolean
   children: React.ReactNode
 }): React.JSX.Element {

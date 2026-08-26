@@ -15,40 +15,18 @@
 
 namespace simcore::asset_control {
 
-// Stop-and-wait, so a package costs its size divided by this in round trips.
 inline constexpr std::size_t kUploadMaximumChunkSize = 4096;
 inline constexpr std::size_t kFrameHeaderSize = 14;
 inline constexpr std::size_t kFrameCrcSize = 4;
-// Size of the buffer a frame is assembled in. Only the kind holding the binary
-// claim assembles anything, so the engines are given one buffer between them.
 inline constexpr std::size_t kMaximumFrameSize =
     kFrameHeaderSize + kUploadMaximumChunkSize + kFrameCrcSize;
 
-// The `SCF1` upload engine, shared by every uploaded asset kind. Fonts and
-// images differ in what a package contains and in what INFO reports about it;
-// they do not differ in how a package arrives. The framing, the stop-and-wait
-// sequence, the CRC, the inactivity timeout, the worker task and the claim on
-// the serial link are all the same, so they live here once instead of once per
-// kind (ADR 0010, ADR 0018).
-//
-// This is deliberately not a template: one compiled state machine is one copy
-// in the binary, and the per-kind parts are small enough to pass as data.
-
-// The words one asset kind puts on the wire and the task it runs on. Everything
-// else about a kind reaches the engine through Operations.
 struct Traits {
-  // The protocol's word for this kind: `FONT`, `IMAGE`. It is what stands
-  // between `@SC:OK:` and the rest of every reply, and what follows `@SC:` in
-  // the command namespace.
   std::string_view tag;
   const char* task_name;
   performance::TaskMetric metric;
 };
 
-// What the engine asks of an asset service. Each operation reports failure as
-// the protocol's error word rather than as an enumerator, because the wire is
-// the only place these errors go — and because the two services spell the same
-// failures in two separate enumerations.
 struct Operations {
   void* service{};
   const char* (*begin_update)(void* service, std::size_t package_size){};
@@ -57,9 +35,6 @@ struct Operations {
   const char* (*commit_update)(void* service){};
   const char* (*clear)(void* service){};
   void (*cancel_update)(void* service){};
-  // Writes the INFO reply body: everything after `@SC:OK:<tag>:INFO:` and
-  // before the newline. Returns the length written, or -1 when it does not
-  // fit — which suppresses the reply, so a truncated catalog is never sent.
   int (*write_info_body)(void* service, char* out, std::size_t size){};
 };
 
@@ -67,18 +42,11 @@ class AssetControl final {
  public:
   ~AssetControl();
 
-  // Every reply goes to the link the request arrived on, so no transport is
-  // taken here: the engine learns which link that is from each command.
-  //
-  // `frame` is written only while this kind holds `claim`, which is what lets
-  // every kind be given the same one. It must hold kMaximumFrameSize bytes.
   [[nodiscard]] bool initialize(const Traits& traits,
                                 const Operations& operations,
                                 binary_session::Claim& claim,
                                 std::span<std::uint8_t> frame);
 
-  // Registered with the router, which routes by prefix and by who holds the
-  // stream rather than by knowing what an asset is.
   [[nodiscard]] const binary_session::Session& session() const {
     return session_;
   }
@@ -100,10 +68,6 @@ class AssetControl final {
     info,
     clear,
     invalid_command,
-    // A BEGIN that arrived while another asset kind owns the stream. Answered
-    // from the worker task like every other response. (A command that arrives
-    // while this kind owns it is answered busy from the reading task instead;
-    // see consume_command.)
     busy,
     frame,
     invalid_frame,
@@ -112,16 +76,10 @@ class AssetControl final {
   static constexpr std::size_t kTaskStackSize = 4096;
   static constexpr UBaseType_t kTaskPriority = 4;
   static constexpr TickType_t kInactivityTimeout = pdMS_TO_TICKS(10'000);
-  // `@SC:FONT:BEGIN:size=` and the like, assembled once from the tag so the
-  // three command spellings cannot drift from the namespace they live in.
   static constexpr std::size_t kCommandCapacity = 32;
 
-  // Queues an ASCII `@SC:<tag>` command without its line terminator.
-  // It is answered on the link it arrived on — the only one, in a product
-  // build.
   void consume_command(std::span<const std::uint8_t> line,
                        transport::ITransport& reply);
-  // Consumes binary upload frames while active() is true.
   void consume(std::span<const std::uint8_t> bytes);
 
   static void task_entry(void* context);
@@ -134,19 +92,12 @@ class AssetControl final {
   void release_request();
   void finish_with_error(const char* error, bool cancel_update = true);
   [[nodiscard]] bool send_text(const char* text);
-  // "@SC:OK:<tag>:<rest>\n" and "@SC:ERR:<tag>:<word>\n": the two shapes
-  // every reply but ACK and INFO takes.
   [[nodiscard]] bool send_ok(const char* rest);
   [[nodiscard]] bool send_error(const char* word);
   [[nodiscard]] bool send_ack(std::uint32_t sequence);
-  // "@SC:ERR:<tag>:busy\n" to a link other than the one an upload owns. Sent
-  // from the reading task through its own buffer, because the worker task and
-  // response_ are the upload's while it runs.
   void send_busy(transport::ITransport& reply) const;
   void reset_session();
   [[nodiscard]] bool ready() const;
-  // Where the reply to the request being handled goes. With one link attached
-  // that is the only link there is.
   [[nodiscard]] transport::ITransport* replies_to() const { return reply_; }
 
   static void consume_command_entry(void* context,
@@ -157,11 +108,6 @@ class AssetControl final {
 
   Traits traits_{};
   Operations operations_{};
-  // Written by a reading task under the request state, then snapshotted by the
-  // worker into `reply_` when it takes the request. The worker releases the
-  // request state before it answers — so that the next frame can already be
-  // arriving — and the snapshot is what keeps that answer pointed at the link
-  // that asked rather than at one that queued a command meanwhile.
   transport::ITransport* requested_reply_{};
   transport::ITransport* reply_{};
   binary_session::Claim* claim_{};
@@ -190,4 +136,4 @@ class AssetControl final {
   std::array<char, 1'280> response_{};
 };
 
-}  // namespace simcore::asset_control
+}

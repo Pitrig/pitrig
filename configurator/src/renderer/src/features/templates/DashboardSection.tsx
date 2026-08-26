@@ -52,10 +52,6 @@ export function DashboardSection({
 
   const targetBoard = session?.info.boardId ?? draft?.board
 
-  // `Use` is the destructive one, and the only one: it replaces every screen
-  // and everything on them. `Add` takes screens without touching what is open,
-  // which is why the two are separate buttons rather than one that behaves
-  // differently depending on what you already have.
   const use = async (summary: DashboardTemplateSummary): Promise<void> => {
     if (
       hasLocalDraft &&
@@ -79,8 +75,6 @@ export function DashboardSection({
         setError('That entry is not a dashboard.')
         return
       }
-      // The connected board first, then whatever the draft already targets —
-      // so the library works the same disconnected as it does plugged in.
       const board = session?.info.boardId ?? draft?.board ?? result.value.configuration.board
       const transferred = transferConfiguration(result.value.configuration, {
         board,
@@ -88,8 +82,6 @@ export function DashboardSection({
         fit
       })
       setReport(transferred)
-      // Draft transport first, then the template's, then whatever the target
-      // board cannot leave to the contract default.
       const adopted = applyBoardTransportDefaults(
         withWidgetIds(keepDraftTransport(transferred.configuration, draft))
       )
@@ -103,8 +95,6 @@ export function DashboardSection({
         return
       }
       replaceLocalDraft(validated.configuration)
-      // A different document is a different set of widgets, so nothing the
-      // editor was pointing at describes anything any more.
       resetEditorState()
       setMissing(
         missingFontFamilies(
@@ -232,12 +222,6 @@ export function DashboardSection({
   )
 }
 
-/**
- * Telemetry transport is device wiring — a UART port, its pins, its baud rate —
- * rather than layout, so a template must not bring another machine's pin map
- * with it. What the draft already says about its own wiring wins; a template's
- * transport is taken only when the draft names none.
- */
 function keepDraftTransport(
   configuration: DeviceConfiguration,
   draft: DeviceConfiguration | undefined

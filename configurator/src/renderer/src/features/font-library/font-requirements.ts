@@ -21,8 +21,6 @@ export function collectFontRequirements(configuration: DeviceConfiguration): Fon
   )
 }
 
-// Only families have to be installed: the device rasterizes every size from
-// the uploaded face, so a size it has never rendered needs no upload.
 export function missingFontFamilies(
   required: FontAssetKey[],
   installed: readonly string[]
@@ -46,4 +44,3 @@ export function groupFontRequirements(required: FontAssetKey[]): Map<string, num
   }
   return groups
 }
-

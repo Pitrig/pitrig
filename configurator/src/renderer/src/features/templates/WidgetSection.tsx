@@ -10,13 +10,6 @@ import { TemplateCard } from './TemplateCard'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
 import { WidgetThumbnail } from './WidgetThumbnail'
 
-/**
- * Parts of dashboards, for reuse inside one.
- *
- * Pressing Add does not drop the widget somewhere and leave the author to find
- * it: it hands the fragment to the canvas, which then follows the pointer with
- * it until a click says where it goes.
- */
 export function WidgetSection({
   busy,
   onDelete

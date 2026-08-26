@@ -23,10 +23,6 @@ inline constexpr std::size_t kMaximumInstances =
 
 using Config = configuration::ArcWidgetConfiguration;
 
-// One telemetry source swept around an lv_arc. The arc carries both the track
-// and the fill as its own parts, so a gauge is one object rather than a stack
-// of them, and the sweep is set in per-mille to keep the update integral.
-// One instance: the frame's painter plus the arc-specific draw state.
 struct State {
   frame::Painter painter{};
   frame::ValueReadCallback read{};
@@ -38,9 +34,6 @@ struct State {
   lv_obj_t* arc{};
   std::uint64_t rendered_revision{};
   bool rendered_available{};
-  // Sweep already on screen, in per-mille of the arc. An unchanged proportion
-  // touches no LVGL, which matters because setting a value invalidates the
-  // whole ring.
   std::int32_t drawn_per_mille{-1};
   bool initialized{};
 };
@@ -67,4 +60,4 @@ class Collection final
                            const fonts::Registry& fonts);
 };
 
-}  // namespace simcore::dashboard::arc_widget
+}

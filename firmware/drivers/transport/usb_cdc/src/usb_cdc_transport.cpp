@@ -29,7 +29,7 @@ constexpr tinyusb_port_t kUsbPort = TINYUSB_PORT_FULL_SPEED_0;
 #endif
 std::atomic<UsbCdcTransport*> active_transport;
 
-}  // namespace
+}
 
 UsbCdcTransport::~UsbCdcTransport() {
   stop();
@@ -70,8 +70,6 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
           {
               .size = TINYUSB_DEFAULT_TASK_SIZE,
               .priority = TINYUSB_DEFAULT_TASK_PRIO,
-              // The port's default is the LVGL core; the receive callback
-              // runs on this task, so it belongs with the other transports.
               .xCoreID = SIMCORE_COMMUNICATION_CORE,
           },
       .descriptor =
@@ -237,9 +235,6 @@ void UsbCdcTransport::process() {
   Chunk chunk;
   watch_current_task();
   while (true) {
-    // Bounded rather than indefinite: the wait is what feeds the watchdog on a
-    // link no host is talking to, and an idle link must not look like a wedged
-    // one.
     const bool has_chunk =
         xQueueReceive(queue_, &chunk, kWatchdogFeedTicks) == pdTRUE;
     feed_watchdog();
@@ -268,4 +263,4 @@ Diagnostics UsbCdcTransport::diagnostics() const {
   return diagnostics;
 }
 
-}  // namespace simcore::transport
+}

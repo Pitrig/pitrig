@@ -18,7 +18,7 @@ void apply_outline(lv_obj_t* const object, const std::uint32_t color_rgb) {
 }
 #endif
 
-}  // namespace
+}
 
 bool resolve_widget_bounds(const Layout& layout,
                            const configuration::WidgetFrame& frame,
@@ -28,23 +28,14 @@ bool resolve_widget_bounds(const Layout& layout,
                            const bool fill_available_width, lv_obj_t*& parent,
                            Rect& bounds) {
   lv_obj_t* const owner = layout.parent(frame);
-  // A container supplies the size an unsized widget fills, and the display does
-  // so for a widget the screen owns. Which of the two applies is the one thing
-  // the parent kind decides here.
   const bool contained =
       frame.parent_kind != configuration::WidgetParentKind::screen;
-  // Zero intrinsic is an answer, not a failure: a shape asks for no content of
-  // its own, so a container with no caption, border or padding needs exactly
-  // nothing — and that is the ordinary container. What refuses a widget with no
-  // size is the bounds test below, once the placement has had its say.
   if (layout.display == nullptr || owner == nullptr || intrinsic_width < 0 ||
       intrinsic_height < 0 || placement.width < 0 || placement.height < 0) {
     return false;
   }
 
   parent = owner;
-  // Filling means filling the parent, so a container still supplies the width
-  // an unsized widget takes. It is built before its children, so this is final.
   const std::int32_t parent_width =
       contained ? lv_obj_get_width(owner)
                 : lv_display_get_horizontal_resolution(layout.display);
@@ -63,12 +54,6 @@ bool resolve_widget_bounds(const Layout& layout,
   if (bounds.width <= 0 || bounds.height <= 0) {
     return false;
   }
-  // A container does not bound its children — they are drawn where they land,
-  // overhang included. The display is the one edge with nothing beyond it, so a
-  // box entirely outside it is the only geometry refused here. LVGL keeps
-  // `coords` absolute, so the parent's own position is the whole conversion and
-  // no walk up the parent chain is needed; a screen sits at (0,0), which is why
-  // the unparented case needs no branch.
   lv_area_t parent_box{};
   lv_obj_get_coords(owner, &parent_box);
   const std::int32_t left = parent_box.x1 + bounds.x;
@@ -84,4 +69,4 @@ void apply_debug_widget_outline(lv_obj_t* const object) {
 }
 #endif
 
-}  // namespace simcore::dashboard
+}

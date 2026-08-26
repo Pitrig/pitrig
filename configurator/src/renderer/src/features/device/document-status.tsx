@@ -4,14 +4,6 @@ import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import { useDeviceStore } from './device-store'
 import { useDraftState } from './draft-state'
 
-/**
- * Which configuration document a page edits, and where that document stands.
- *
- * The three are saved and stored separately, so a page that edits one has an
- * answer of its own to "is this saved" — the workspace-wide badge could only
- * ever describe the draft as a whole. This is that answer, in the header of the
- * page that owns the document.
- */
 export function DocumentStatusChip({
   document
 }: {

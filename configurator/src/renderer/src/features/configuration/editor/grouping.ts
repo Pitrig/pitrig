@@ -4,20 +4,6 @@ import type { WidgetPlacement } from '@shared/configuration-schema'
 import { type WidgetLocation, completePlacement, findWidget, mutateDraftConfiguration, widgetArrayOf } from './document'
 import { useDeviceStore } from '@/features/device/device-store'
 
-// Wrapping widgets in a container and taking them back out again. A container
-// is a document edit rather than an editor grouping — the device needs it to
-// switch what an area of the screen shows (ADR 0021).
-
-/**
- * Wraps the selected widgets in a container shape sized to their bounds,
- * rewriting their geometry to be relative to it. Wrapping is a document edit
- * rather than an editor annotation, because the device needs the container to
- * switch what an area of the screen shows — see ADR 0021.
- *
- * Every selected widget must share one parent, since the container takes their
- * place in that one array. They may already be inside a container: nesting is
- * what a container is for.
- */
 export function wrapInShape(ids: readonly string[]): string | undefined {
   if (ids.length === 0) return undefined
   const configuration = useDeviceStore.getState().draft
@@ -37,14 +23,7 @@ export function wrapInShape(ids: readonly string[]): string | undefined {
   ) {
     return undefined
   }
-  // A slot holds pages of its own and is only ever authored on a screen — the
-  // rule insertWidget states and the reparent guard enforces. Wrapping splices
-  // its members straight into the new container instead of going through
-  // either, so it has to refuse one for itself: the device rejects the whole
-  // document over a slot it finds inside a shape.
   if (locations.some(({ widget }) => widget.type === 'slot')) return undefined
-  // A widget with no usable box has nothing to contribute to the container's
-  // bounds, so wrapping is refused rather than guessed at.
   const boxes = locations.map(({ widget }) => completePlacement(widget.placement))
   if (boxes.some((box) => box === undefined)) return undefined
   const placed = boxes as Required<WidgetPlacement>[]
@@ -76,18 +55,10 @@ export function wrapInShape(ids: readonly string[]): string | undefined {
       })
     }
     if (members.length === 0) return
-    // Put the container where the first member was, so wrapping does not
-    // silently restack the parent it happened in.
     siblings.splice(insertion, 0, {
       type: 'shape',
       kind: 'rectangle',
       id,
-      // Wrapping is grouping, and a group does not cut anything off — the box
-      // is the members' own bounds, so the only thing a clip could reach is
-      // what already overhangs one of them, a caption above all. That is the
-      // frame/group split Figma and Sketch make: a container drawn on purpose
-      // clips, a container wrapped around a selection does not. Ticking "Clip
-      // contents" turns it into the other kind.
       clip_children: false,
       placement: { x: left, y: top, width: right - left, height: bottom - top },
       widgets: members
@@ -97,10 +68,6 @@ export function wrapInShape(ids: readonly string[]): string | undefined {
   return created
 }
 
-/**
- * Puts a container's widgets back beside it and removes it, adding its offset
- * back into their geometry. The exact inverse of wrapInShape, at any depth.
- */
 export function unwrapShape(id: string): string[] {
   const released: string[] = []
   mutateDraftConfiguration((configuration) => {

@@ -12,19 +12,6 @@ import { ArcEditor, BarEditor, GraphEditor, ImageEditor, IndicatorEditor, ShapeE
 import { Card } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
 
-/**
- * The properties of whatever is selected, as a list of folding groups in one
- * order for every widget type: what it reads, what it is, what it says, how it
- * looks, what a value does to it, what a tap does, and where it sits.
- *
- * The panel scrolls on its own rather than with the column above it, and it
- * starts from the top for each new selection: a scroll position belongs to the
- * widget it was scrolled for, and carrying it into the next one lands the author
- * halfway down a different set of properties.
- *
- * There is no widget picker here. The layer list and the canvas are the two
- * places a widget is chosen, and a third one only ever disagreed with them.
- */
 export function WidgetInspector(): React.JSX.Element {
   const configuration = useDeviceStore((state) => state.draft)
   const selection = useDashboardEditorStore((state) => state.selection)
@@ -32,9 +19,6 @@ export function WidgetInspector(): React.JSX.Element {
   const widget = selectedWidget(configuration, selection)
   const body = useRef<HTMLDivElement>(null)
 
-  // Keyed on what is selected rather than on the widget object, which is a new
-  // one after every edit — scrolling to the top on each keystroke is exactly
-  // what this must not do.
   const selected = selection?.type === 'widget' ? `widget:${selection.id}` : (selection?.type ?? 'none')
   useEffect(() => {
     if (body.current) body.current.scrollTop = 0
@@ -42,10 +26,6 @@ export function WidgetInspector(): React.JSX.Element {
 
   return (
     <Card className="flex h-full min-h-0 flex-col">
-      {/* Without a document there is nothing to be the properties of, so the
-          panel is an empty frame rather than a header over a message. It keeps
-          its place in the column so the layout does not move once one is
-          loaded. */}
       {configuration ? (
         <header className="flex-none border-b px-3 py-2 text-xs">
           {widget ? (
@@ -84,8 +64,6 @@ export function WidgetInspector(): React.JSX.Element {
             ) : (
               <TextEditor selection={selection} widget={widget} />
             )}
-            {/* A slot's tap already means "next page", so it carries no action
-                and the device refuses one that does. */}
             {widget.type === 'slot' ? null : (
               <ActionEditor
                 configuration={configuration}
@@ -112,16 +90,9 @@ export function WidgetInspector(): React.JSX.Element {
   )
 }
 
-/**
- * What is being edited: its kind, and the name everything else refers to it by.
- * A rename that would collide or overflow is refused rather than adjusted, and
- * the field reverts so the refusal is visible instead of the edit vanishing.
- */
 function WidgetIdentity({ widget }: { widget: WidgetConfiguration }): React.JSX.Element {
   const Icon = WIDGET_ICONS[widget.type]
   const id = widget.id ?? ''
-  // Keyed on the committed id by its caller, so a rename elsewhere remounts
-  // this instead of being synced into it.
   const [draft, setDraft] = useState(id)
   const [rejected, setRejected] = useState(false)
   const commit = (): void => {

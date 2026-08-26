@@ -12,9 +12,6 @@ bool PartitionStorage::initialize() {
   unmap();
   partition_ = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
                                         ESP_PARTITION_SUBTYPE_ANY, label_);
-  // A partition of the wrong size would let a package validate against bounds
-  // the firmware does not actually own, so the mismatch is fatal to this store
-  // rather than something to work around.
   return partition_ != nullptr && partition_->size == expected_size_;
 }
 
@@ -54,8 +51,6 @@ bool PartitionStorage::erase(const std::size_t bytes) {
   if (partition_ == nullptr || bytes > partition_->size) {
     return false;
   }
-  // esp_partition_erase_range refuses an unaligned length, so the rounding is
-  // a requirement rather than a convenience.
   const std::size_t granularity = partition_->erase_size;
   const std::size_t aligned =
       (bytes + granularity - 1U) / granularity * granularity;
@@ -78,4 +73,4 @@ bool PartitionStorage::write(const std::size_t offset,
          ESP_OK;
 }
 
-}  // namespace simcore::platform
+}

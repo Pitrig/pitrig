@@ -5,15 +5,7 @@ CONFIG_SPIRAM=y
 CONFIG_SPIRAM_USE_MALLOC=y
 CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL=16384
 CONFIG_SPIRAM_MALLOC_RESERVE_INTERNAL=32768
-# Lets EXT_RAM_BSS_ATTR place a static in external RAM; the dashboard's widget
-# pools use it so internal RAM stays for draw buffers and the LVGL heap.
 CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
-# LVGL allocates from external RAM: platform/dashboard/memory/lvgl_heap.cpp
-# implements the allocator this selects. The IDF allocator hands out internal
-# memory first, so with the C library's malloc every object, style and font
-# cache a dashboard builds was paid for in the memory the board has least of --
-# and on the ESP32-S3 a screen full of font sizes exhausted it. It costs no
-# render time on any board.
 # CONFIG_LV_USE_BUILTIN_MALLOC is not set
 # CONFIG_LV_USE_CLIB_MALLOC is not set
 CONFIG_LV_USE_CUSTOM_MALLOC=y
@@ -25,25 +17,14 @@ CONFIG_LV_BUILD_DEMOS=n
 CONFIG_LV_USE_VECTOR_GRAPHIC=n
 CONFIG_LV_USE_THORVG=n
 # CONFIG_LV_USE_FLOAT is not set
-# Dashboard fonts are uploaded TTF/OTF faces rasterized on the device. File
-# support stays off on purpose: it switches the parser to a stream whose read
-# position is shared state, which is unsafe once more than one draw unit runs.
 CONFIG_LV_USE_TINY_TTF=y
 # CONFIG_LV_TINY_TTF_FILE_SUPPORT is not set
 CONFIG_LV_TINY_TTF_CACHE_GLYPH_CNT=128
-# Fonts are created without kerning, so the kerning cache would only hold
-# single-glyph entries; zero selects the direct path that allocates nothing.
 CONFIG_LV_TINY_TTF_CACHE_KERNING_CNT=0
 CONFIG_LV_DEF_REFR_PERIOD=8
-# No LVGL theme: every dashboard object strips the theme's styles on creation
-# and sets what it draws with explicitly, so a theme only costs an apply-and-
-# remove per object and every widget class it references in flash. With none
-# selected lv_theme_apply() is a no-op.
 # CONFIG_LV_USE_THEME_DEFAULT is not set
 # CONFIG_LV_USE_THEME_SIMPLE is not set
 # CONFIG_LV_USE_THEME_MONO is not set
-# The dashboard is built from lv_obj, lv_label, lv_image, lv_line and lv_arc;
-# no other widget class, layout or observer is reached, so none is compiled.
 # CONFIG_LV_USE_ANIMIMG is not set
 # CONFIG_LV_USE_ARCLABEL is not set
 # CONFIG_LV_USE_BAR is not set
@@ -77,18 +58,10 @@ CONFIG_LV_DEF_REFR_PERIOD=8
 # CONFIG_LV_USE_OBSERVER is not set
 # CONFIG_LV_LABEL_TEXT_SELECTION is not set
 CONFIG_FREERTOS_HZ=1000
-# A wedged task is as unreachable as a crashed one, so the task watchdog resets
-# rather than only printing. Only tasks that feed it are watched: the read task
-# of every link, and the render trigger, which takes the LVGL lock each round
-# and so fails to feed when the LVGL task stops giving it back. The idle-task
-# checks are deliberately off — erasing the 4 MiB image partition starves idle
-# for seconds at a time, and that is work, not a fault.
 CONFIG_ESP_TASK_WDT_PANIC=y
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
 # CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0 is not set
 # CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1 is not set
-# Keep the UART receive interrupt running while flash is written so telemetry
-# is buffered, not lost, during a configuration save on UART-transport boards.
 CONFIG_UART_ISR_IN_IRAM=y
 # CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS is not set
 CONFIG_LV_USE_SYSMON=n
@@ -98,10 +71,6 @@ CONFIG_TINYUSB_DESC_PRODUCT_STRING="SimCore"
 CONFIG_TINYUSB_DESC_CDC_STRING="SimCore CDC"
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
-# There is no factory partition to fall back on, so a firmware that cannot
-# finish startup must be undone by the bootloader rather than by a cable. The
-# image boots pending verification and core marks it valid once the dashboard
-# and the serial link are up; anything short of that rolls back on reset.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 CONFIG_CJSON_NESTING_LIMIT=16
 # CONFIG_SIMCORE_DEBUG is not set

@@ -10,13 +10,6 @@ import { createWidget, defaultToolBox } from './widget-creation'
 import { useDeviceStore } from '@/features/device/device-store'
 import { withEditGroup } from '@/features/device/edit-group'
 
-// What the right button offers, over the canvas and over the layer list.
-//
-// Separate from the component that draws it so that file exports components
-// only, which is what lets fast refresh swap the menu without reloading the
-// editor — the same reason the preview's geometry lives beside its renderers
-// rather than inside them.
-
 export type MenuEntry =
   | { kind: 'item'; label: string; hint?: string; disabled?: boolean; run: () => void }
   | { kind: 'toggle'; label: string; checked: boolean; run: () => void }
@@ -35,7 +28,6 @@ const ADDABLE: { label: string; tool: Exclude<CanvasTool, 'select'> }[] = [
   { label: 'Tap zone', tool: 'tap_zone' }
 ]
 
-/** Deleting a selection is one edit, the way the Delete key already makes it one. */
 export function deleteSelection(ids: readonly string[]): void {
   if (ids.length === 0) return
   withEditGroup(() => {
@@ -44,12 +36,6 @@ export function deleteSelection(ids: readonly string[]): void {
   useDashboardEditorStore.getState().select(undefined)
 }
 
-/**
- * What can be done to whatever is selected. Shared by the canvas and the layer
- * list, because "duplicate, restack, lock, delete" is the same list of verbs
- * wherever the pointer happens to be — only renaming differs, which the layer
- * list can do inline and the canvas cannot.
- */
 export function widgetMenuEntries(
   widgetId: string,
   display: { width: number; height: number },
@@ -182,10 +168,6 @@ export function screenMenuEntries(
         }
       }))
     },
-    // From the library rather than from the clipboard. A widget goes through
-    // the same placement the Templates page starts — the canvas follows the
-    // pointer with it — so this is a shortcut to the entry, not a second way of
-    // putting one down.
     {
       kind: 'submenu',
       label: 'Insert widget',

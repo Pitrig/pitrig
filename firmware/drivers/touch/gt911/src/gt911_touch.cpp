@@ -11,15 +11,10 @@ namespace {
 
 constexpr char kTag[] = "gt911";
 constexpr int kGlitchIgnoreCount = 7;
-// The 7-bit range the I2C standard leaves to devices; the rest is reserved.
 constexpr std::uint16_t kFirstScannedAddress = 0x08;
 constexpr std::uint16_t kLastScannedAddress = 0x77;
 constexpr int kProbeTimeoutMs = 10;
 
-// Handing the component one of these is what makes it drive reset and interrupt
-// itself and so decide the address, instead of trusting whatever the controller
-// latched at power-on. The primary address is tried first; the backup covers a
-// board that leaves reset unmanaged, where the sequence cannot run at all.
 esp_lcd_touch_io_gt911_config_t kAddressCandidates[] = {
     {.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS},
     {.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP},
@@ -29,10 +24,6 @@ std::uint64_t pin_mask(gpio_num_t pin) {
   return pin == GPIO_NUM_NC ? 0ULL : 1ULL << static_cast<int>(pin);
 }
 
-// Diagnostic only. The controller latches 0x5D or 0x14 from the level of its
-// interrupt line when reset is released, so "nothing on the bus" and "the
-// controller is at the other address" are different faults behind the same
-// failed read. Both the scan and the idle pin levels tell them apart.
 void log_bus(i2c_master_bus_handle_t bus, const Pins& pins) {
   const std::uint64_t mask = pin_mask(pins.reset) | pin_mask(pins.interrupt);
   if (mask != 0ULL) {
@@ -67,7 +58,7 @@ void log_bus(i2c_master_bus_handle_t bus, const Pins& pins) {
   ESP_LOGW(kTag, "Scan complete: %d device(s) answered", found);
 }
 
-}  // namespace
+}
 
 driver::Configuration create(const Panel& panel) {
   i2c_master_bus_config_t bus_configuration = {};
@@ -96,14 +87,7 @@ driver::Configuration create(const Panel& panel) {
   touch_configuration.flags.mirror_x = panel.mirror_x ? 1U : 0U;
   touch_configuration.flags.mirror_y = panel.mirror_y ? 1U : 0U;
 
-  // Each candidate needs its own panel IO, because the address the master talks
-  // to lives in the IO configuration while the address the controller answers
-  // on is latched during the reset the component performs.
   for (esp_lcd_touch_io_gt911_config_t& candidate : kAddressCandidates) {
-    // The vendor macro carries the controller's address and control phases and
-    // leaves the rest of the struct alone, which this build treats as an error.
-    // Suppressed here rather than restated, so the address stays the
-    // component's to define.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
     esp_lcd_panel_io_i2c_config_t io_configuration =
@@ -133,4 +117,4 @@ driver::Configuration create(const Panel& panel) {
   return {.touch = nullptr};
 }
 
-}  // namespace simcore::input::drivers::gt911
+}

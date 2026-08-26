@@ -7,24 +7,9 @@ import { writeDebugLog } from '@/features/debug/debug-log'
 import { operationErrorMessage } from './bridge-errors'
 import { formatConfiguration, useDeviceStore } from './device-store'
 
-/**
- * The state of a save to the board, held in a store rather than in whichever
- * panel started it.
- *
- * The save outlives its button: it is one sequence in the main process that can
- * install fonts and restart the board, and the author is free to switch
- * workspaces while it runs. Local state would be thrown away by that switch —
- * and, when a restart reconnects the board, by the remount that follows.
- */
-
 interface SaveToBoardStore {
   running: boolean
   progress?: SaveProgress
-  /**
-   * Families the library could not answer for. Nothing was written when this is
-   * set, so the dashboard on the board is exactly as it was — the dialog asks
-   * for the file and offers to try again.
-   */
   unresolvedFonts?: string[]
   dismissUnresolvedFonts: () => void
 }
@@ -34,16 +19,6 @@ export const useSaveToBoardStore = create<SaveToBoardStore>((set) => ({
   dismissUnresolvedFonts: () => set({ unresolvedFonts: undefined })
 }))
 
-/**
- * Resolve the fonts, install what the board lacks, save, and make the running
- * dashboard match — one call, because that is one act as far as the author is
- * concerned. The board restarts only when a font package was installed or the
- * protocol document was written; see `SaveToBoardService`.
- *
- * `documents` narrows it to one row of the Configs page. Left out, it saves
- * whichever of the three actually differ from the board, which is what every
- * "Save to board" button means.
- */
 export async function saveDraftToBoard(
   documents?: ConfigurationDocumentId[]
 ): Promise<void> {
@@ -91,11 +66,6 @@ export async function saveDraftToBoard(
   }
 }
 
-/**
- * What the save actually did. The restart is the part worth reporting: it is
- * the difference between a dashboard that changed in place and ten seconds of a
- * dark screen, and the author should know which one they just paid for.
- */
 function describeSave(value: {
   fontsUploaded: boolean
   restarted: boolean
@@ -114,7 +84,6 @@ function describeSave(value: {
   return 'Saved. The board is running the new dashboard — no restart needed.'
 }
 
-/** How far along the save is, as one label per stage. */
 export const SAVE_STAGE_LABELS: Record<SaveProgress['stage'], string> = {
   preparing: 'Checking fonts',
   building: 'Building the font package',

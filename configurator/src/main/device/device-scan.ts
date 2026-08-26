@@ -15,12 +15,6 @@ export interface Match {
   baudRate: number
 }
 
-/**
- * The auto-connect scan: every USB serial port at every automatic baud rate,
- * until exactly one SimCore board answers the INFO probe. Ports it opens are
- * closed again — the winning match is reopened by the caller, so the scan
- * cannot leave a half-attached port behind when the caller's attach fails.
- */
 export async function scanForDevice(
   connection: ConnectionManager,
   token: number
@@ -96,15 +90,6 @@ export async function scanForDevice(
   return match
 }
 
-/**
- * Coming back after a restart, paced so the board is left alone while it boots.
- *
- * Opening a serial port asserts DTR, which on these boards is a reset line — so
- * an eager reconnect does not merely fail, it resets a board that was halfway
- * through starting, and a tight retry loop can hold one in that state. Hence a
- * settle window before the port is touched at all, a poll that only *looks* for
- * the port, and a real pause between attempts that actually open it.
- */
 const RECONNECT_SETTLE_MS = 2_500
 const RECONNECT_TIMEOUT_MS = 30_000
 const RECONNECT_POLL_MS = 750
@@ -115,24 +100,13 @@ export function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
-/**
- * Waits for a restarted board to come back on the same port and reconnects.
- *
- * USB-CDC re-enumeration takes as long as it takes, and a board that never
- * reappears is not a failed save — the flash is already written — so the
- * caller is told to reconnect by hand instead.
- */
 export async function reconnectToBoard(
   manager: ConnectionManager,
   connection: DeviceConnection
 ): Promise<DeviceResult<DeviceState>> {
-  // Nothing touches the port until the board has had time to boot on its own.
   manager.setState({ status: 'connecting' })
   await delay(RECONNECT_SETTLE_MS)
 
-  // By path, not by identifier: the board's port identifier does not survive
-  // the device disappearing, so the one we started with is gone the moment it
-  // reboots.
   const wanted = serialIdentity(connection.path)
   const deadline = Date.now() + RECONNECT_TIMEOUT_MS
   let attempts = 0
@@ -146,14 +120,11 @@ export async function reconnectToBoard(
       record = undefined
     }
     if (!record) {
-      // Looking costs the board nothing, so this can be frequent.
       await delay(RECONNECT_POLL_MS)
       continue
     }
     attempts += 1
     const connected = await manager.openConnection(record.summary.id, connection.baudRate, true)
-    // The port is enumerated before the firmware answers `@SC:`, so a refused
-    // probe means "not yet", not "not a SimCore board".
     if (connected.ok) return connected
     await delay(RECONNECT_RETRY_MS)
   }

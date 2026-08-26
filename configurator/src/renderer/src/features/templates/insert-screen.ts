@@ -6,16 +6,6 @@ import { SIMCORE_BOARD_IDS, type DeviceConfiguration } from '@shared/device'
 import { transferConfiguration, type LayoutFit } from '@shared/layout-transfer'
 import { useDeviceStore } from '@/features/device/device-store'
 
-/**
- * Taking one screen out of a saved dashboard and adding it to the open one.
- *
- * It arrives as a new screen at the end rather than replacing anything: the
- * screen being worked on is work, and an import that silently swallowed it
- * would be the one action in the editor that destroys something without saying
- * so. The board decides the rest — a screen drawn on another display goes
- * through the same transfer a whole dashboard does, so its widgets land in this
- * display's pixels.
- */
 export function insertScreenFromDocument(
   source: DeviceConfiguration,
   screenIndex: number,
@@ -25,9 +15,6 @@ export function insertScreenFromDocument(
   if (!draft) return { ok: false, error: 'There is no dashboard to add a screen to.' }
 
   const existing = screensOf(draft)
-  // An empty array already stands for the first screen: the strip shows a tab
-  // for it and the canvas draws it, so appending to nothing would produce a
-  // dashboard whose first screen is the imported one.
   const screens = existing.length > 0 ? existing : [{ id: 'screen1' } as ScreenConfiguration]
   if (screens.length >= MAXIMUM_SCREENS) {
     return { ok: false, error: `A dashboard holds at most ${MAXIMUM_SCREENS} screens.` }
@@ -70,7 +57,6 @@ export function insertScreenFromDocument(
   return { ok: true, index: screens.length }
 }
 
-/** `screenN` for the lowest N no screen already claims — ids are what actions point at. */
 function freeScreenId(screens: readonly ScreenConfiguration[]): string {
   const taken = new Set(screens.map((screen) => screen.id))
   for (let index = 1; index <= MAXIMUM_SCREENS + 1; index += 1) {

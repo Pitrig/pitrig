@@ -49,10 +49,6 @@ import { ImageAssetService } from '../image-assets/image-asset-service'
 import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 import { broadcastFontLibraryChanged } from './register-ipc-handlers'
 
-// The channels behind everything uploaded or exported: font faces and the
-// catalog they come from, firmware images, image packages, the preview asset
-// cache and the SimHub profile. Registered from registerIpcHandlers.
-
 export function registerAssetHandlers(
   deviceService: DeviceService,
   fontAssetService: FontAssetService,
@@ -67,8 +63,6 @@ export function registerAssetHandlers(
   ipcMain.handle(FONT_LIBRARY_FACES_CHANNEL, (_event, request: unknown) =>
     isFontFacesRequest(request) ? fontLibraryService.readFaces(request.ids) : []
   )
-  // The library changed under the renderer's feet, so it is told rather than
-  // left to notice: the canvas draws from it and the picker lists it.
   ipcMain.handle(FONT_LIBRARY_IMPORT_CHANNEL, async (event, request: unknown) => {
     if (!isFontLibraryImportRequest(request)) return invalidFontLibraryRequest()
     const result = await fontLibraryService.import(
@@ -112,8 +106,6 @@ export function registerAssetHandlers(
     return result
   })
   ipcMain.handle(FONT_CANCEL_UPLOAD_CHANNEL, () => fontAssetService.cancel())
-  // Erasing the board's package says nothing about the author's library, so
-  // nothing local is cleared with it — the canvas keeps drawing what it drew.
   ipcMain.handle(FONT_CLEAR_CHANNEL, () => deviceService.clearFonts())
   ipcMain.handle(FIRMWARE_SELECT_SOURCE_CHANNEL, (event) =>
     firmwareUpdateService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)

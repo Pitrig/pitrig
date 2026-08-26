@@ -13,11 +13,6 @@ export function mutateActiveScreen(
   })
 }
 
-/**
- * Returns the screen being edited, creating the dashboard section and every
- * screen up to it if they are absent. A document is sparse, so the array can be
- * shorter than the index the editor is pointing at.
- */
 export function ensureScreen(
   configuration: DeviceConfiguration,
   index = useDashboardEditorStore.getState().activeScreenIndex
@@ -35,10 +30,6 @@ export function addScreen(): number | undefined {
   let added: number | undefined
   mutateDraftConfiguration((configuration) => {
     const screens = ((configuration.dashboard ??= {}).screens ??= [])
-    // An empty array already stands for a screen — the strip shows a tab for it
-    // and the canvas draws it — so adding means adding a *second* one. Without
-    // this the first press materialized the screen that was already there and
-    // looked like it had done nothing at all.
     if (screens.length === 0) screens.push({ id: 'screen1' })
     if (screens.length >= MAXIMUM_SCREENS) return
     screens.push({ id: `screen${screens.length + 1}` })
@@ -47,11 +38,6 @@ export function addScreen(): number | undefined {
   return added
 }
 
-/**
- * Removes a screen with everything on it. The first screen cannot go: a
- * dashboard with no screen has nothing to compose, and the editor would have no
- * canvas to draw.
- */
 export function deleteScreen(index: number): boolean {
   let deleted = false
   mutateDraftConfiguration((configuration) => {
@@ -60,9 +46,6 @@ export function deleteScreen(index: number): boolean {
     const removed = screens[index]?.id
     screens.splice(index, 1)
     deleted = true
-    // A goto_screen that named the removed screen would fail validation and
-    // the author would learn about it only on apply, so those actions go with
-    // the screen. next/previous keep working: they never named it.
     if (removed === undefined) return
     for (const target of allWidgetsOf(configuration)) {
       if (target.action?.type === 'goto_screen' && target.action.screen === removed) {
@@ -78,15 +61,6 @@ export function deleteScreen(index: number): boolean {
   return deleted
 }
 
-/**
- * Moves a screen to another position in the array, which is the order the
- * driver swipes through them.
- *
- * Nothing has to follow it: a `goto_screen` action names a screen `id`, and the
- * id travels with the screen. What changes is the sequence, which is the whole
- * point — the editor then looks at where the moved screen landed rather than at
- * whatever now sits at the index it came from.
- */
 export function moveScreen(from: number, to: number): boolean {
   let moved = false
   mutateDraftConfiguration((configuration) => {
@@ -101,6 +75,3 @@ export function moveScreen(from: number, to: number): boolean {
   if (moved) useDashboardEditorStore.getState().setActiveScreen(to)
   return moved
 }
-
-// Widget storage is a dashboard-wide pool, so a per-type cap is a budget across
-// every screen rather than a per-screen allowance.

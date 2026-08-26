@@ -2,8 +2,6 @@ import { create } from 'zustand'
 
 import type { FirmwareSourceSelection, FirmwareUploadProgress } from '@shared/firmware-update'
 
-// One chosen image at a time: an update replaces the inactive slot whole, so
-// there is nothing to compose and no list to keep.
 interface FirmwareUpdateStore {
   source?: FirmwareSourceSelection
   progress?: FirmwareUploadProgress

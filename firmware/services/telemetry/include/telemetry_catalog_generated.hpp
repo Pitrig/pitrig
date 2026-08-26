@@ -238,4 +238,4 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
 
 static_assert(kFieldCount <= kMaximumFieldCount);
 
-}  // namespace simcore::telemetry::catalog
+}

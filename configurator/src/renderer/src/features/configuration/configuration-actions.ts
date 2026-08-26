@@ -24,21 +24,8 @@ import {
 } from '@shared/layout-transfer'
 import { boardLabel, fitOutcome } from './board-labels'
 
-/**
- * Everything that replaces or writes the whole document, in one place.
- *
- * These used to be methods on the configuration panel, which meant the panel
- * had to be mounted for a keystroke to reach them — Cmd/Ctrl+S among them. They
- * are plain functions over the two stores now, so the Configs page, the canvas
- * toolbar and a window-level shortcut can all call the same one.
- */
-
 export type ActionFeedback = { kind: 'success' | 'error'; message: string }
 
-/**
- * A different document is a different set of widgets, so the selection, the
- * locked and hidden layers and the zoom all describe nothing any more.
- */
 function adoptNewDocument(configuration: DeviceConfiguration, fileName?: string): void {
   useDeviceStore.getState().replaceLocalDraft(configuration, fileName)
   useDashboardEditorStore.getState().resetEditorState()
@@ -73,11 +60,6 @@ export async function openConfigurationFile(): Promise<ActionFeedback | undefine
   }
 }
 
-/**
- * Cmd/Ctrl+S, and the Save button beside Open. To a file rather than to the
- * board: saving to the board can install fonts and restart, which is not what a
- * keystroke should set off.
- */
 export async function saveConfigurationFile(): Promise<ActionFeedback | undefined> {
   const { draft } = useDeviceStore.getState()
   if (!draft) return { kind: 'error', message: 'There is no configuration to save.' }
@@ -95,7 +77,6 @@ export async function saveConfigurationFile(): Promise<ActionFeedback | undefine
   }
 }
 
-/** One of the application's own saved configurations. */
 export async function openSavedConfiguration(id: string): Promise<ActionFeedback> {
   const { hasLocalDraft } = useDeviceStore.getState()
   if (hasLocalDraft && !window.confirm(`Discard the current local draft and open "${id}"?`)) {
@@ -107,7 +88,6 @@ export async function openSavedConfiguration(id: string): Promise<ActionFeedback
   return { kind: 'success', message: `${result.value.name} opened.` }
 }
 
-/** One of the files the Open and Save dialogs touched, wherever it lives. */
 export async function openRecentConfiguration(path: string): Promise<ActionFeedback> {
   const { hasLocalDraft } = useDeviceStore.getState()
   if (hasLocalDraft && !window.confirm('Discard the current local draft and open this file?')) {
@@ -119,19 +99,6 @@ export async function openRecentConfiguration(path: string): Promise<ActionFeedb
   return { kind: 'success', message: `${result.value.fileName} opened.` }
 }
 
-/**
- * Moving the draft onto a different display.
- *
- * Offered wherever a board is chosen — the Configs page and the canvas header —
- * because the two are the same act seen from either end: picking a board while
- * a draft exists *is* asking for the layout to come with you. It confirms in
- * numbers rather than in adjectives, because "keep proportions" says nothing
- * about how much of the new display a layout will leave empty.
- *
- * Returns the transfer report as well as the outcome: what did not carry across
- * (image bitmaps above all, which the device never rescales) is the part worth
- * reading afterwards.
- */
 export function convertDraftToBoard(
   target: SimCoreBoardId,
   fit: LayoutFit,
@@ -150,11 +117,7 @@ export function convertDraftToBoard(
     return {}
   }
 
-  // The connected board answers for its own display; the profile is what the
-  // editor falls back to when nothing is plugged in.
   const transferred = transferConfiguration(draft, { board: target, display, fit })
-  // The transfer scales geometry and rewrites the board identifier; the rate the
-  // new board needs is not layout, so it is filled in here.
   const validated = validateConfigurationDocument(
     applyBoardTransportDefaults(transferred.configuration),
     { supportedBoards: SIMCORE_BOARD_IDS }
@@ -168,10 +131,6 @@ export function convertDraftToBoard(
       }
     }
   }
-  // setDraft rather than replacing the document: this records history, so the
-  // conversion is undoable, and a transfer preserves every widget and screen id
-  // — so the selection, the locked and hidden layers and the open slot page all
-  // still address real widgets.
   setDraft(validated.configuration)
   return {
     report: transferred,
@@ -199,13 +158,6 @@ export async function resetBoardConfiguration(): Promise<ActionFeedback | undefi
   })
 }
 
-/**
- * Erases one stored document, leaving the other two alone.
- *
- * The board keeps running what it is running: only a restart loads the compiled
- * factory value that takes its place, which is true of every document. So the
- * draft is left alone too — what changed is what the board will come up with.
- */
 export async function resetBoardDocument(
   document: ConfigurationDocumentId
 ): Promise<ActionFeedback | undefined> {
@@ -223,14 +175,6 @@ export async function resetBoardDocument(
   )
 }
 
-/**
- * Takes one document back from the board into the draft, leaving the rest of
- * the draft as it is.
- *
- * No device round trip: the session already holds what the board answered when
- * it was read, and a document is a slice of it. This is the narrow counterpart
- * of "Load config from board", which discards the whole draft.
- */
 export function loadDocumentFromBoard(
   document: ConfigurationDocumentId
 ): ActionFeedback | undefined {

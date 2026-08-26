@@ -10,7 +10,7 @@ namespace {
 
 constexpr std::uint32_t kEvaluationPeriodMs = LV_DEF_REFR_PERIOD;
 
-}  // namespace
+}
 
 Controller::~Controller() { clear(); }
 
@@ -48,8 +48,6 @@ bool Controller::add(lv_obj_t* const container,
         source.condition_count > source.conditions.size()
             ? source.conditions.size()
             : source.condition_count);
-    // Copied for the reason a widget copies its rules: applying a configuration
-    // can swap the document out from under a slot that did not itself change.
     for (std::size_t rule = 0; rule < page.condition_count; ++rule) {
       page.conditions[rule] = source.conditions[rule];
     }
@@ -65,9 +63,6 @@ bool Controller::add(lv_obj_t* const container,
         return false;
       }
     }
-    // The first page in the loop is where the slot starts. Validation
-    // guarantees there is one; falling back to the first page of all keeps a
-    // hand-built document from showing an empty box.
     if (page.in_loop && slot.loop_page == kNoPage) {
       slot.loop_page = static_cast<std::uint8_t>(page_count_ + index);
     }
@@ -85,10 +80,6 @@ bool Controller::add(lv_obj_t* const container,
 bool Controller::start() {
   bool watches_telemetry = false;
   for (std::size_t index = 0; index < count_; ++index) {
-    // The only clickable objects in the dashboard besides the authored tap
-    // targets. Widgets all refuse clicks as they build, so a tap anywhere in a
-    // slot reaches it — and this runs after they are built, which is what puts
-    // the flag back.
     lv_obj_add_flag(slots_[index].container, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(slots_[index].container, on_click, LV_EVENT_CLICKED,
                         this);
@@ -109,12 +100,6 @@ void Controller::clear() {
     lv_timer_delete(timer_);
     timer_ = nullptr;
   }
-  // A slot whose object outlives this — one an incremental apply kept and is
-  // about to rebind — would otherwise collect a second click handler and cycle
-  // its pages twice per tap. Dropped rather than assumed to die with the
-  // object, the same way the overflow pass drops its own handler before
-  // attaching it again. A slot whose object is already gone is not walked here
-  // at all: the composition clears the controller before it deletes them.
   for (std::size_t index = 0; index < count_; ++index) {
     lv_obj_t* const container = slots_[index].container;
     if (container == nullptr) {
@@ -138,9 +123,6 @@ void Controller::evaluate(lv_timer_t* const timer) {
 }
 
 void Controller::on_click(lv_event_t* const event) {
-  // A swipe that starts on a slot is a screen change, not a page change. The
-  // gesture bubbles up to the screen on its own, but LVGL still ends the press
-  // with a click, which would cycle the page as a side effect of navigating.
   const lv_indev_t* const indev = lv_indev_active();
   if (indev != nullptr && lv_indev_get_gesture_dir(indev) != LV_DIR_NONE) {
     return;
@@ -162,17 +144,11 @@ void Controller::on_click(lv_event_t* const event) {
 
 void Controller::advance(const std::size_t index) {
   Slot& slot = slots_[index];
-  // An event owns the slot while it lasts, so the tap is not a way around it.
-  // Stepping the loop underneath would also be invisible, which is worse than
-  // doing nothing.
   for (std::uint8_t offset = 0; offset < slot.page_count; ++offset) {
     if (pages_[slot.first_page + offset].event_active) {
       return;
     }
   }
-  // The next page in the loop after the one showing, wrapping past the last.
-  // Walking the whole ring from the current page is what makes the wrap fall
-  // out rather than needing a case of its own.
   const std::uint8_t current =
       static_cast<std::uint8_t>(slot.loop_page - slot.first_page);
   for (std::uint8_t step = 1; step <= slot.page_count; ++step) {
@@ -196,15 +172,10 @@ bool Controller::raised(Page& page) {
   bool fires = false;
   if (value.has_value()) {
     if (page.trigger == configuration::SlotTrigger::value_changed) {
-      // The first reading is what a change is measured against, not a change in
-      // itself — otherwise every slot would flash its alert pages at startup.
       fires = page.has_last && *value != page.last_value;
       page.last_value = *value;
       page.has_last = true;
     } else {
-      // The same comparison a styling rule makes, deciding which page of the
-      // slot is shown rather than how a widget is painted. Declaration order
-      // decides, exactly as it does among one widget's rules.
       for (std::size_t rule = 0; rule < page.condition_count; ++rule) {
         const configuration::SlotCondition& condition = page.conditions[rule];
         if (conditions::condition_holds(condition.op, *value,
@@ -215,13 +186,10 @@ bool Controller::raised(Page& page) {
       }
     }
   } else if (page.trigger == configuration::SlotTrigger::value_changed) {
-    // A source that went away is not a change back when it returns.
     page.has_last = false;
   }
 
   if (fires) {
-    // Re-firing restarts the duration, so a trigger that keeps going keeps its
-    // page up rather than letting it lapse mid-event.
     page.event_active = true;
     page.started = lv_tick_get();
     return true;
@@ -229,8 +197,6 @@ bool Controller::raised(Page& page) {
   if (!page.event_active) {
     return false;
   }
-  // With no duration a rule holds its page exactly as long as it matches, which
-  // is what makes a duration the thing that outlives a momentary trigger.
   if (page.duration_ms == 0 || lv_tick_elaps(page.started) >= page.duration_ms) {
     page.event_active = false;
   }
@@ -241,9 +207,6 @@ std::uint8_t Controller::selection(const Slot& slot) {
   std::uint8_t event = kNoPage;
   for (std::uint8_t offset = 0; offset < slot.page_count; ++offset) {
     const std::uint8_t index = static_cast<std::uint8_t>(slot.first_page + offset);
-    // Every page is evaluated even once one has won, because each owns its own
-    // duration and change history: skipping the rest would leave a page's next
-    // event measured against a value from before the one that beat it.
     if (raised(pages_[index]) && event == kNoPage) {
       event = index;
     }
@@ -266,4 +229,4 @@ void Controller::refresh() {
   }
 }
 
-}  // namespace simcore::dashboard::slots
+}

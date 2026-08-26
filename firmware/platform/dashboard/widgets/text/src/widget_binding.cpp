@@ -14,8 +14,6 @@ bool Binder::bind_one(
   if (!handle.valid()) {
     return false;
   }
-  // The same rule frame::bind_source states: one modifier is what the contract
-  // allows, and which module answers it is the table's business, not this file's.
   const bool modified = modifier_count == 1;
   ValueReadCallback read{};
   void* read_context{};
@@ -115,4 +113,4 @@ std::span<const WidgetBinding> Binder::bindings() const {
   return {bindings_.data(), count_};
 }
 
-}  // namespace simcore::dashboard::text_widget
+}

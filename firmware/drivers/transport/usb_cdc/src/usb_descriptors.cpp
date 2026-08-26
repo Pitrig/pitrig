@@ -15,7 +15,7 @@ constexpr std::uint8_t kUsbCdcInputEndpoint = 0x82;
 constexpr std::uint16_t kUsbConfigurationLength =
     TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN;
 
-}  // namespace
+}
 
 const tusb_desc_device_t kDevice{
     .bLength = sizeof(tusb_desc_device_t),
@@ -75,4 +75,4 @@ const char* kStrings[] = {
 const int kStringCount =
     static_cast<int>(sizeof(kStrings) / sizeof(kStrings[0]));
 
-}  // namespace simcore::transport::usb_descriptors
+}

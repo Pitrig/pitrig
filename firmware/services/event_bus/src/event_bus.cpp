@@ -72,4 +72,4 @@ void EventBus::publish(const Event& event) {
   }
 }
 
-}  // namespace simcore::events
+}

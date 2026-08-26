@@ -55,8 +55,6 @@ inline constexpr std::array<std::string_view, 16> kValidationErrorNames{{
                                              : std::string_view{};
 }
 
-// A rejection plus enough context for the configurator to point at the
-// offending place. Indices are -1 when the failure is not inside a widget.
 struct ValidationFailure {
   ValidationError error{ValidationError::none};
   std::int16_t screen_index{-1};
@@ -69,10 +67,6 @@ struct ValidationFailure {
 };
 
 namespace schema {
-
-// Accepted property names per object. A name absent from the matching list
-// is rejected as unknown_property; a repeated name is rejected as
-// duplicate_property.
 
 inline constexpr std::array<std::string_view, 2> kFontSpecKeys{{
     "family",
@@ -452,10 +446,6 @@ inline constexpr std::array<std::string_view, 4> kApplicationConfigurationKeys{{
     "dashboard",
 }};
 
-// Accepted top-level property names per document. A section that belongs
-// to another document is unknown here, so a dashboard sent under
-// `@SC:SET:PROTOCOL` is rejected rather than half-applied.
-
 inline constexpr std::array<std::string_view, 2> kDashboardDocumentKeys{{
     "board",
     "dashboard",
@@ -483,15 +473,6 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
   }
   return {};
 }
-
-// The authored bounds of every scalar property that has one, in
-// declaration order. Each returns the public path of the first property
-// outside its range, or an empty view when all of them are inside it, so
-// the caller supplies the ValidationError and the rejection stays where
-// the rest of that type's rules are.
-//
-// A flattened struct and an array element are validated through their own
-// overload, because the hand-written validator already reaches both.
 
 [[nodiscard]] inline std::string_view range_error(const WidgetBorder& config) {
   if (config.width_px > 240) {
@@ -582,6 +563,6 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
   return {};
 }
 
-}  // namespace schema
+}
 
-}  // namespace simcore::configuration
+}

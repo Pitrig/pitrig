@@ -8,14 +8,8 @@ const MARGIN = 4
 const MINIMUM_POPUP_PX = 160
 const MAXIMUM_POPUP_PX = 256
 
-export function TelemetryBindingField({ value, onChange, onReset, label = 'Binding', hint = HINTS.data.binding }: { value: string; onChange: (value: string) => void; /** Clears the binding; the dot follows from the value itself. */ onReset?: () => void; label?: string; hint?: string }): React.JSX.Element {
+export function TelemetryBindingField({ value, onChange, onReset, label = 'Binding', hint = HINTS.data.binding }: { value: string; onChange: (value: string) => void; onReset?: () => void; label?: string; hint?: string }): React.JSX.Element {
   const inputId = useId()
-  // A <datalist> is what this wants to be, and it was one — but its popup is a
-  // browser widget rendered outside the document, so the page can neither style
-  // it nor scroll it, and 227 fields were reachable only by typing. This is the
-  // same control rebuilt in the document: it floats over the panel through a
-  // portal, so it neither shifts the layout nor gets clipped by the inspector's
-  // own scroll box, and it scrolls.
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   const [open, setOpen] = useState(false)
@@ -30,8 +24,6 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
 
   const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
   const needle = value.trim().toLowerCase()
-  // A name that already resolves is a choice, not a search, so the list stays
-  // whole and the author can browse on from it.
   const matches =
     needle === '' || selected
       ? TELEMETRY_CATALOG
@@ -48,9 +40,6 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
       if (!rect) return
       const below = window.innerHeight - rect.bottom - MARGIN * 2
       const above = rect.top - MARGIN * 2
-      // Near the bottom of the panel there is no room underneath, and a popup
-      // that runs off the viewport is a popup with no list in it. Flip it above
-      // the input, which is what the native control does.
       const upward = below < MINIMUM_POPUP_PX && above > below
       setAnchor({
         left: Math.max(MARGIN, Math.min(rect.left, window.innerWidth - rect.width - MARGIN)),
@@ -61,8 +50,6 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
       })
     }
     place()
-    // The popup is positioned in viewport coordinates, so it has to follow the
-    // input when the inspector scrolls under it.
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
     return () => {
@@ -142,8 +129,6 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
                 width: anchor.width,
                 maxHeight: anchor.maxHeight
               }}
-              // Without this the input blurs and the list closes before the
-              // option's click lands.
               onPointerDown={(event) => event.preventDefault()}
             >
               {matches.map((entry, index) => (
@@ -178,9 +163,5 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
     </PropertyRow>
   )
 }
-
-// The device rejects a transform it cannot read, so the editor offers only the
-// ones the selected binding supports: any non-boolean value can be formatted as
-// a number, while each duration format accepts one millisecond type.
 
 export { SourceEditor } from './SourceEditor'

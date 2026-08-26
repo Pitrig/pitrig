@@ -8,18 +8,11 @@
 #include "configuration_control.hpp"
 #include "transport.hpp"
 
-// The command half of configuration control: what each `@SC:` line means and
-// the replies it earns, run on the worker task. The task lifecycle and the
-// line intake live in configuration_control.cpp, and the `INFO` report in
-// configuration_control_info.cpp.
 namespace simcore::configuration {
 namespace {
 
 constexpr std::string_view kPrefix = "@SC:";
 
-// `APPLY`, `SET` and both spellings of `RESET`. `INFO`, `GET` and `VALIDATE`
-// only read, and `REBOOT` is what a host reaches for when nothing else works,
-// so none of them is held back.
 [[nodiscard]] bool changes_the_device(
     const std::span<const std::uint8_t> command) {
   constexpr std::array<std::string_view, 3> kWriting{"APPLY:", "SET:", "RESET"};
@@ -32,7 +25,7 @@ constexpr std::string_view kPrefix = "@SC:";
   return false;
 }
 
-}  // namespace
+}
 
 void ConfigurationControl::handle(
     const std::span<const std::uint8_t> line) {
@@ -45,18 +38,12 @@ void ConfigurationControl::handle(
     return;
   }
 
-  // The other command that only reports. It waits for nothing: a board still
-  // composing is exactly the board a host may want the memory figures of.
   if (command.size() == 4 &&
       std::equal(command.begin(), command.end(), "DIAG")) {
     send_diagnostics();
     return;
   }
 
-  // Everything below that writes has to wait for a composition to write into.
-  // Startup answers on the link well before the dashboard exists, so a document
-  // arriving in that window would otherwise be applied to half a device.
-  // Reads, and the reboot a stuck board needs, are answered regardless.
   if (changes_the_device(command) && !await_composition()) {
     (void)send_text("@SC:ERR:busy\n");
     return;
@@ -121,8 +108,6 @@ void ConfigurationControl::handle(
     const ConfigurationService::SaveOutcome outcome =
         service_->save(document, payload);
     if (outcome.storage_failed) {
-      // The same answer RESET gives when flash refuses it, rather than a
-      // validation error over a document that parsed and validated fine.
       (void)send_text("@SC:ERR:storage\n");
       return;
     }
@@ -130,14 +115,7 @@ void ConfigurationControl::handle(
       (void)send_error(outcome.failure);
       return;
     }
-    // A host that got this far has replaced what was on the board and proved it
-    // can reach it, so the faults counted against earlier boots are forgiven.
-    // A device that fell back to the link is put back on the ordinary startup
-    // path by the restart this answer asks for.
     boot_guard::clear_failures();
-    // Only the transport is chosen once at startup, so only that document is
-    // stored and not in force. The rest are brought up by an APPLY carrying the
-    // same bytes, which is what the configurator pairs with this.
     (void)send_document_reply(
         "@SC:OK:SAVED", document,
         configuration_document_reboot_required(document)
@@ -149,10 +127,6 @@ void ConfigurationControl::handle(
   if (command.size() == 5 &&
       std::equal(command.begin(), command.end(), "RESET")) {
     if (service_->reset()) {
-      // Erasing every record is the other repair, and the one a board nobody
-      // can explain gets. Whatever was stored is gone, so the faults counted
-      // against it are too — otherwise a board put back to its factory values
-      // would come up in safe mode for a configuration it no longer holds.
       boot_guard::clear_failures();
       (void)send_text("@SC:OK:RESET:reboot_required=1\n");
     } else {
@@ -173,8 +147,6 @@ void ConfigurationControl::handle(
       return;
     }
     boot_guard::clear_failures();
-    // Erasing a record does not put the board back on that document's factory
-    // values; only a restart reloads it, which is true of every document here.
     (void)send_document_reply("@SC:OK:RESET", document, "reboot_required=1");
     return;
   }
@@ -200,8 +172,6 @@ bool ConfigurationControl::take_document(
   const auto name_size =
       static_cast<std::size_t>(separator - argument.begin());
   if (expect_payload == (separator == argument.end())) {
-    // A command that carries a document and a payload needs the colon between
-    // them; one that carries only a document must not have anything after it.
     (void)send_text("@SC:ERR:unknown_document\n");
     return false;
   }
@@ -228,8 +198,6 @@ bool ConfigurationControl::send_text(const char* const text) {
 }
 
 bool ConfigurationControl::send_error(const ValidationFailure& failure) {
-  // The reason token keeps its position so existing hosts still parse it.
-  // Location details follow only when the failure has them.
   const std::string_view reason = validation_error_name(failure.error);
   const std::string_view path = text_view(failure.path);
   const int written = std::snprintf(
@@ -264,13 +232,9 @@ bool ConfigurationControl::send_payload(
     const std::span<const std::uint8_t> payload) {
   constexpr std::string_view kPayloadPrefix = "@SC:OK:CONFIG:";
   const std::string_view name = configuration_document_name(document);
-  // The name and the colon after it sit between the prefix and the payload, so
-  // the room they take is counted before anything is copied.
   const std::size_t prefix_size =
       kPayloadPrefix.size() + name.size() + 1U;
   if (prefix_size + payload.size() + 1U > io_buffer_.size()) {
-    // The contract defines malformed as covering an oversized payload, so this
-    // is the documented answer rather than an approximation of one.
     return send_error({.error = ValidationError::malformed});
   }
   std::size_t position = 0;
@@ -288,4 +252,4 @@ bool ConfigurationControl::send_payload(
       std::span<const std::uint8_t>(io_buffer_.data(), position));
 }
 
-}  // namespace simcore::configuration
+}

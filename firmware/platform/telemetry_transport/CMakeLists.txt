@@ -1,12 +1,7 @@
 set(transport_driver_dependencies)
 if(IDF_TARGET STREQUAL "esp32p4")
-    # usb_serial_jtag is only instantiated behind SIMCORE_SECOND_TELEMETRY_LINK,
-    # but the dependency graph is built before that Kconfig value is loaded.
     list(APPEND transport_driver_dependencies usb_cdc usb_serial_jtag)
 else()
-    # The fresh-configure dependency graph is built before the S3 board Kconfig
-    # choice is loaded. The implementation still instantiates only the
-    # selected board's adapters.
     list(APPEND transport_driver_dependencies uart usb_cdc)
 endif()
 

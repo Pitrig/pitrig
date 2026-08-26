@@ -5,8 +5,6 @@
 namespace simcore::firmware_update {
 namespace {
 
-// The engine reports failures as the protocol's word, so each operation turns
-// this kind's enumeration into one. Success is a null word.
 [[nodiscard]] const char* word_for(const UpdateError error) {
   return error == UpdateError::none ? nullptr : update_error_name(error);
 }
@@ -34,9 +32,6 @@ const char* clear(void* const service) {
 
 void cancel_update(void* const service) { service_of(service).cancel_update(); }
 
-// Everything after `@SC:OK:FW:INFO:` and before the newline. It names both
-// slots, because which one an upload lands in is what the configurator reports
-// and what a reboot then makes visible.
 int write_info_body(void* const service, char* const out,
                     const std::size_t size) {
   const Status& status = service_of(service).status();
@@ -55,7 +50,7 @@ int write_info_body(void* const service, char* const out,
   return written;
 }
 
-}  // namespace
+}
 
 bool FirmwareUpdateControl::initialize(Service& service,
                                        binary_session::Claim& claim,
@@ -78,4 +73,4 @@ bool FirmwareUpdateControl::initialize(Service& service,
       claim, frame);
 }
 
-}  // namespace simcore::firmware_update
+}

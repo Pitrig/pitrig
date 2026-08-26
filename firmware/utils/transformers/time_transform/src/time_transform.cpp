@@ -27,7 +27,7 @@ namespace {
          writer.append_integer(magnitude % 1'000, 3);
 }
 
-}  // namespace
+}
 
 bool apply(const Config& config, const std::uint32_t value,
            const std::span<char> output) {
@@ -42,4 +42,4 @@ bool apply(const Config& config, const std::int32_t value,
          write_signed_duration(writer, value);
 }
 
-}  // namespace simcore::transformers::time_transform
+}

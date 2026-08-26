@@ -24,9 +24,6 @@ import {
 } from 'lucide-react'
 import type { WidgetConfiguration } from '@shared/configuration-schema'
 
-// One import site for the icon set, so a change of icon library is one file and
-// the panels name what they mean rather than which glyph they picked.
-
 export const WIDGET_ICONS: Record<WidgetConfiguration['type'], LucideIcon> = {
   text: Type,
   shape: Square,

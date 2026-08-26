@@ -16,7 +16,7 @@ void write(const esp_log_level_t level, const char* tag, const char* format, va_
 #endif
 }
 
-}  // namespace
+}
 
 void info(const char* tag, const char* format, ...) {
   va_list args;

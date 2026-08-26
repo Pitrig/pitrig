@@ -2,10 +2,6 @@ import type { WidgetInsets } from '@shared/configuration-schema'
 import { normalizeColor } from './preview-values'
 import type { Placement } from './canvas-geometry'
 
-// Geometry and paint arithmetic the previews share. Kept out of the component
-// modules so those export components only, which is what lets fast refresh
-// swap a renderer without reloading the editor.
-
 export function contentArea(
   placement: Placement,
   border: number,
@@ -23,12 +19,6 @@ export function contentArea(
   }
 }
 
-/**
- * Where a widget's own fill lands. An inset background cannot be the
- * container's fill, which always reaches the border, so the device makes it a
- * child sized to leave exactly `inset` of frame showing; without an inset it is
- * the container itself and covers the whole box.
- */
 export function backgroundRect(
   placement: Placement,
   border: number,
@@ -45,13 +35,6 @@ export function backgroundRect(
   }
 }
 
-/**
- * A linear gradient is two style properties on whichever object paints the
- * fill, so it is drawn as one: the authored colour is the near stop — which is
- * what a styling rule replaces — and the gradient colour is the far one.
- */
-
-/** The paint for a fill that may carry a gradient, and the definition it needs. */
 export function gradientPaint(
   id: string,
   color: string,
@@ -61,10 +44,3 @@ export function gradientPaint(
   const gradient = far !== undefined && far !== 'transparent' && color !== 'transparent'
   return { paint: gradient ? `url(#${id})` : color, definition: gradient }
 }
-
-/**
- * The box every widget type carries: the fill the frame paints and the border
- * drawn inside the bounds. The device applies both from the shared frame before
- * a widget draws anything of its own, so this is drawn for every type — an arc
- * with a background used to show one on the board and nothing here.
- */

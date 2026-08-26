@@ -1,24 +1,10 @@
 import type { TelemetryCatalogEntry } from './telemetry-catalog'
 
-// Mirrors kMaximumDecimals in
-// firmware/utils/transformers/number_transform/include/number_transform.hpp,
-// which is where the fixed-point conversion sets the bound.
 export const MAXIMUM_TRANSFORM_DECIMALS = 4
 
-// Unit conversion is a configurator convenience, not a device feature: the
-// number transform only ever receives scale, offset, and a suffix, so this
-// table can grow without a firmware release.
-
 export interface UnitPreset {
-  /** Shown in the inspector. */
   label: string
-  /** Catalog units this conversion reads. */
   units: readonly string[]
-  /**
-   * Canonical fields this conversion also fits. Sources that format their value
-   * on the PC declare the `source` unit, so the field name is what identifies
-   * them.
-   */
   bindings?: readonly string[]
   scale: number
   offset: number

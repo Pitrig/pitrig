@@ -9,18 +9,6 @@ import { useTemplatesStore } from './templates-store'
 import { DashboardSection } from './DashboardSection'
 import { WidgetSection } from './WidgetSection'
 
-/**
- * The library, in two halves.
- *
- * A **dashboard** answers "what am I starting from" — it replaces the whole
- * draft, and one authored for another display is scaled to the board in hand on
- * the way in, by the same engine the Configs page's Convert uses. A **widget**
- * answers "what am I building with" — it is placed onto the dashboard already
- * open, and changes nothing else about it.
- *
- * Neither is saved from here any more: saving is an act on what is on the
- * canvas, so it lives beside Save to board where the canvas is.
- */
 export function TemplatesPage(): React.JSX.Element {
   const library = useTemplatesStore((state) => state.library)
   const loading = useTemplatesStore((state) => state.loading)
@@ -34,10 +22,6 @@ export function TemplatesPage(): React.JSX.Element {
     void refresh()
   }, [refresh])
 
-  // Every card draws itself, so the faces the library names have to be loaded —
-  // the canvas only ever asks for the ones the open document uses. Both halves
-  // count: the widget entries, which arrive with the listing, and whichever
-  // dashboards have been read for their preview.
   const ensureFaces = useFontFaceStore((state) => state.ensureFaces)
   const documents = useTemplatesStore((state) => state.documents)
   const entryFamilies = [

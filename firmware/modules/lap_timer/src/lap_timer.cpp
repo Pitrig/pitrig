@@ -24,7 +24,7 @@ std::int64_t monotonic_time_us() {
       .count();
 }
 
-}  // namespace
+}
 
 LapTimer::~LapTimer() {
   stop();
@@ -165,4 +165,4 @@ LapTimer::Snapshot LapTimer::snapshot() {
   return {.time_ms = result, .available = true};
 }
 
-}  // namespace simcore::lap_timer
+}

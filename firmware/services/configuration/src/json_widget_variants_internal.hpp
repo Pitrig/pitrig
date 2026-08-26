@@ -3,9 +3,6 @@
 #include "application_configuration.hpp"
 #include "cJSON.h"
 
-// The gauge-family parsers, split from json_widget_variants.cpp where the
-// dispatch table lives. Internal to the configuration service: everything
-// outside reaches them through kWidgetParsers.
 namespace simcore::configuration::json::variants {
 
 [[nodiscard]] bool parse_bar_widget(const cJSON* object,
@@ -21,4 +18,4 @@ namespace simcore::configuration::json::variants {
                                       GraphWidgetConfiguration& config,
                                       ValidationFailure& failure);
 
-}  // namespace simcore::configuration::json::variants
+}

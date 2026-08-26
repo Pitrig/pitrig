@@ -6,13 +6,6 @@ import { EmptyState, PageSection, PageShell, ReadOnlyField } from '@/app/workspa
 import { useDeviceStore } from '@/features/device/device-store'
 import { useFirmwareUpdateStore } from './firmware-update-store'
 
-/**
- * Updating firmware over the same serial link the dashboard is configured on.
- *
- * The board keeps two application slots and runs the one it was last told to;
- * an upload fills the other, so a failed image costs a restart rather than a
- * cable. See docs/ota.md.
- */
 export function FirmwarePage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const source = useFirmwareUpdateStore((state) => state.source)

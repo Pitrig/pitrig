@@ -4,15 +4,6 @@ import type { PreviewLayer } from './canvas-geometry'
 import { createPreviewValues } from './preview-values'
 import { WidgetBody } from './WidgetBody'
 
-/**
- * A flattened tree, drawn back to front.
- *
- * Every surface that shows a widget goes through this, because a container is
- * not one widget: it is a box and everything inside it, at its own offsets and
- * under its own clip. Drawing only the widget handed in produced exactly what
- * you would expect — an empty rounded rectangle where a rev-counter cluster
- * should have been.
- */
 export function WidgetLayers({
   layers,
   background
@@ -25,9 +16,6 @@ export function WidgetLayers({
   return (
     <>
       {layers.map((layer, layerIndex) => {
-        // The clip arrives in display coordinates and this group is already
-        // translated by the container chain, so it is read back into local
-        // space rather than the transform being undone around it.
         const clip = layer.clip
           ? { ...layer.clip, x: layer.clip.x - layer.offsetX, y: layer.clip.y - layer.offsetY }
           : undefined

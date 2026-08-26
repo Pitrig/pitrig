@@ -6,9 +6,6 @@
 #include "asset_control.hpp"
 #include "transport.hpp"
 
-// How an upload answers. Every reply names the asset kind in the same
-// position, which is the whole reason these are not four snprintf calls
-// scattered through the state machine.
 namespace simcore::asset_control {
 
 bool AssetControl::send_text(const char* const text) {
@@ -17,8 +14,6 @@ bool AssetControl::send_text(const char* const text) {
              reinterpret_cast<const std::uint8_t*>(text), std::strlen(text)));
 }
 
-// Every reply names the kind in the same position, so the tag is written here
-// and the caller supplies only what follows it.
 bool AssetControl::send_ok(const char* const rest) {
   const int written =
       std::snprintf(response_.data(), response_.size(), "@SC:OK:%.*s:%s\n",
@@ -38,8 +33,6 @@ bool AssetControl::send_error(const char* const word) {
 }
 
 void AssetControl::send_busy(transport::ITransport& reply) const {
-  // "@SC:ERR:" + tag + ":busy\n": the tag is bounded by the command buffers,
-  // so this fits by construction; the check only guards a truncated write.
   std::array<char, kCommandCapacity> text{};
   const int written =
       std::snprintf(text.data(), text.size(), "@SC:ERR:%.*s:busy\n",
@@ -62,4 +55,4 @@ bool AssetControl::send_ack(const std::uint32_t sequence) {
          send_text(response_.data());
 }
 
-}  // namespace simcore::asset_control
+}

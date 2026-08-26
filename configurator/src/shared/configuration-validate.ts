@@ -13,20 +13,7 @@ import { findUnknownProperty } from './validate/schema-keys'
 import { findScreenError } from './validate/structure'
 import { findTransportError } from './validate/transport'
 
-// The single configuration validator. The renderer, the main process, and file
-// import all use this instead of keeping their own partial copies, and the key
-// allow-lists come from the same generated schema the firmware parser uses — so
-// the configurator can no longer ship a payload the device answers with
-// unknown_property.
-//
-// It runs five passes, each in its own file: the board and hardware gate here,
-// then unknown keys, then structure and limits, then scalar ranges, then fonts.
-// The range pass reads the same bounds the firmware validator generates from
-// configuration/configuration_schema.json, so a value this accepts is not
-// refused by the device for being out of range.
-
 export interface ValidateOptions {
-  /** Board identifiers this build supports; a document targeting another is rejected. */
   supportedBoards: readonly string[]
 }
 
@@ -70,10 +57,6 @@ export function validateConfigurationDocument(
   const fontError = findFontError(configuration)
   if (fontError) return { ok: false, error: fontError }
 
-  // Per document, because that is how the bytes travel: the dashboard has the
-  // whole 64 KB and the other two a kilobyte each. Measuring the aggregate
-  // would refuse a dashboard that is exactly at its bound for the sake of a
-  // transport section the device counts separately.
   for (const document of CONFIGURATION_DOCUMENT_IDS) {
     const limit = CONFIGURATION_DOCUMENTS[document].maxPayload
     if (documentPayloadBytes(configuration, document) > limit) {

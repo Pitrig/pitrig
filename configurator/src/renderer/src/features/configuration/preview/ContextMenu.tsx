@@ -3,16 +3,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { DisplayDescriptor } from '@shared/device'
 import { type MenuEntry, screenMenuEntries, widgetMenuEntries } from './menu-entries'
 
-// The popup itself. Hand-built rather than pulled in: the application has no
-// menu primitive and no component library behind it, and what this needs — a
-// list, one level of submenu, and closing when the pointer goes anywhere else —
-// is smaller than the dependency would be. What goes in it lives next door in
-// menu-entries.
-//
-// It is `fixed` rather than absolute so it is positioned in the same
-// coordinates the pointer event reports, and so the canvas card, which clips
-// its own overflow, cannot cut it off.
-
 export function ContextMenu({
   x,
   y,
@@ -28,9 +18,6 @@ export function ContextMenu({
   const [position, setPosition] = useState({ x, y })
   const [openSubmenu, setOpenSubmenu] = useState<number>()
 
-  // Measured after mounting rather than guessed: a menu opened near the bottom
-  // right of the window has to come back inside it, and how far depends on how
-  // many entries it ended up with.
   useLayoutEffect(() => {
     const box = ref.current?.getBoundingClientRect()
     if (!box) return
@@ -50,8 +37,6 @@ export function ContextMenu({
         onClose()
       }
     }
-    // Capture, so a press that would otherwise start a gesture on the canvas
-    // closes the menu instead of doing both.
     window.addEventListener('pointerdown', away, true)
     window.addEventListener('keydown', key, true)
     window.addEventListener('blur', onClose)
@@ -137,14 +122,6 @@ function Entry({
   )
 }
 
-/**
- * A name, behind the column the tick lives in.
- *
- * Every entry reserves that column, including the ones that can never be
- * ticked: without it a submenu's name started at the left edge while an item's
- * started twenty pixels in, and a menu holding both read as two menus that had
- * been stacked by accident.
- */
 function EntryLabel({
   checked,
   children
@@ -162,7 +139,6 @@ function EntryLabel({
   )
 }
 
-/** The menu over the canvas: on a widget, or on the screen behind it. */
 export function CanvasContextMenu({
   x,
   y,
@@ -175,7 +151,6 @@ export function CanvasContextMenu({
   y: number
   widgetId?: string
   display: DisplayDescriptor
-  /** Where the click landed on the display, which is where a new widget goes. */
   at?: { x: number; y: number }
   onClose: () => void
 }): React.JSX.Element {
@@ -184,4 +159,3 @@ export function CanvasContextMenu({
     : screenMenuEntries(display, at)
   return <ContextMenu x={x} y={y} entries={entries} onClose={onClose} />
 }
-

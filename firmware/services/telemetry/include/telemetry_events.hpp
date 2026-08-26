@@ -12,4 +12,4 @@ struct TelemetryUpdated {
   std::uint64_t revision{};
 };
 
-}  // namespace simcore::telemetry
+}

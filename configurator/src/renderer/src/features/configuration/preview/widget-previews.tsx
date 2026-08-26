@@ -10,7 +10,6 @@ export function CaptionPreview({
   behind
 }: {
   configuration: FramedWidgetConfiguration
-  /** What is painted behind the widget, which is what the mask falls back to. */
   behind: string
 }): React.JSX.Element | null {
   const loadedFamilies = useFontFaceStore((state) => state.loaded)
@@ -22,18 +21,8 @@ export function CaptionPreview({
   const borderWidth = configuration.border?.width_px ?? 0
   const background = normalizeColor(configuration.background_color)
   const inset = configuration.background_inset_px ?? 0
-  // A widget only covers its own frame line when it fills the container: a
-  // transparent colour paints nothing, and an inset background paints an inner
-  // rect that leaves the line standing on whatever is behind the widget. The
-  // device resolves that by walking up to the first ancestor that paints
-  // (widget_frame.cpp: background_behind), and a container with no background of
-  // its own paints nothing, so the
-  // screen is what shows through.
   const paintsContainer = background !== undefined && background !== 'transparent' && inset === 0
   const maskFill = paintsContainer ? background : behind
-  // By default the caption straddles the top border: the device puts the label's
-  // top half a line height above the box's edge and masks the border line behind
-  // it. The anchor and the offsets move it from there, and the mask follows.
   const geometry = captionGeometry(
     placement,
     {
@@ -80,15 +69,11 @@ export function ShapePreview({
 }): React.JSX.Element | null {
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
-  // A shape has no content of its own, so a rule's value colour has nowhere to
-  // land — exactly as on the device, where it binds no content-colour applier.
   const style = values.styleFor(configuration, {
     backgroundColor: configuration.background_color,
     borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
   })
   if (!style.visible) return null
-  // An ellipse is a radius of half the shorter side, which is what the device
-  // gets from LV_RADIUS_CIRCLE.
   const radius =
     configuration.kind === 'ellipse'
       ? Math.min(placement.width, placement.height) / 2

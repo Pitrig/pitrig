@@ -45,4 +45,4 @@ void Manager::clear() {
   count_ = 0;
 }
 
-}  // namespace simcore::modules
+}

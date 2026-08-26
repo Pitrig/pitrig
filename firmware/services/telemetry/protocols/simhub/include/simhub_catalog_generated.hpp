@@ -478,4 +478,4 @@ inline constexpr std::array<LookupEntry, 227> kLookup{{
     {21504, 83},
 }};
 
-}  // namespace simcore::protocols::simhub_catalog
+}

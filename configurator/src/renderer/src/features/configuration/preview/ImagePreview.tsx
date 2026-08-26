@@ -61,27 +61,14 @@ export function ImagePreview({
   const content = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
   const x = content.x + lvglCenterOffset(content.width, bitmap.width)
   const y = content.y + lvglCenterOffset(content.height, bitmap.height)
-  // A sheet is cached as one tall strip. There are no live values on the canvas,
-  // so a frame chosen from telemetry has no reading to resolve — the first frame
-  // is what the board would draw before one arrived, and it is what shows here.
   const frames = bitmap.frameCount
   const frame =
     frames > 1 && !configuration.sprite_frame_source
       ? Math.min(frames - 1, Math.max(0, configuration.sprite_frame ?? 0))
       : 0
-  // The <image> is drawn strip-tall and slid up, with a clip cutting it back to
-  // the one frame: SVG has no source rectangle, so this is what a window is.
   const strip = { height: bitmap.height * frames, offset: -frame * bitmap.height }
-  // A recolour mixes the bitmap towards one colour without touching its alpha,
-  // so it is the same pixels flooded and laid back over at the configured
-  // strength.
   const recolored = tint !== undefined && tint !== 'transparent'
   const recolorOpacity = (configuration.recolor_opa ?? 255) / 255
-  // An alpha8 bitmap carries coverage and no colour: the board floods it with
-  // the recolour outright — white when none is authored — and `recolor_opa`
-  // has no pixels of its own to scale against, so it does not apply. The cache
-  // holds that coverage as white, which is why the unrecoloured case needs no
-  // flood of its own.
   const alphaOnly = bitmap.format === 'alpha8'
   const frameClipId = markupId(`${recolorId}-frame`)
   return (
@@ -121,7 +108,3 @@ export function ImagePreview({
     </g>
   )
 }
-
-// A caption belongs to the frame, so it is drawn the same way for every type
-// that has one: anchored to an edge of the widget's outer box, and over a gap in
-// whichever border line it ends up crossing.

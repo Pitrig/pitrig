@@ -37,25 +37,13 @@ class UartTransport final : public ITransport {
   bool write(std::span<const std::uint8_t> data) override;
   [[nodiscard]] Diagnostics diagnostics() const override;
 
-  // Silencing is global and irreversible until the link stops, so it is not
-  // done when the link starts: startup now brings this link up first, and
-  // silencing there would swallow every line the rest of startup logs — which
-  // is exactly what a board that fails to come up needs to have said. Startup
-  // calls this once it is finished, and a recovery boot never calls it.
   void silence_logs();
 
  private:
   static constexpr std::size_t kChunkSize = 512;
   static constexpr std::size_t kTaskStackSize = 4096;
-  // The RX threshold below makes the driver post one event per 8 received
-  // bytes, so a burst posts events far faster than a scheduling hiccup lets the
-  // task drain them; the queue is deep enough that such a hiccup does not drop
-  // events. Each entry is a few bytes.
   static constexpr std::size_t kEventQueueDepth = 16;
-  // About 22 ms of continuous data at 921600 baud.
   static constexpr std::size_t kDriverRxBufferSize = 2048;
-  // Small threshold + one-symbol timeout: the task is woken within a few byte
-  // times of the end of a line, and mid-burst every 8 bytes.
   static constexpr std::size_t kRxFullThresholdBytes = 8;
   static constexpr std::uint8_t kRxTimeoutSymbols = 1;
   static constexpr UBaseType_t kTaskPriority = 5;
@@ -74,11 +62,10 @@ class UartTransport final : public ITransport {
   LogSilencer log_silencer_{};
   ReadInstrumentation instrumentation_{};
 #if SIMCORE_DEBUG
-  // What only a UART has to report: the peripheral FIFO and the driver ring.
   std::atomic<std::uint32_t> fifo_overflows_{};
   std::atomic<std::uint32_t> buffer_full_events_{};
 #endif
   bool started_{};
 };
 
-}  // namespace simcore::transport
+}

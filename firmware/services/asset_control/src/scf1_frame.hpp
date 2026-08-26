@@ -9,9 +9,6 @@
 #include "asset_control.hpp"
 #include "binary_codec.hpp"
 
-// The SCF1 upload frame: what the bytes on the wire mean, with nothing in it
-// about who owns the stream or when. Both asset kinds send the same frames,
-// which is why the engine above this is shared too.
 namespace simcore::asset_control::scf1 {
 
 inline constexpr std::array<std::uint8_t, 4> kMagic{'S', 'C', 'F', '1'};
@@ -27,9 +24,6 @@ enum class FrameType : std::uint8_t {
   cancel = 3,
 };
 
-// Everything a header says about itself: magic, both reserved fields, and a
-// payload length the type actually allows. The sequence and the CRC are the
-// caller's business, because they are about the transfer rather than the frame.
 [[nodiscard]] inline bool valid_header(
     const std::span<const std::uint8_t> header) {
   if (header.size() != 14 ||
@@ -48,4 +42,4 @@ enum class FrameType : std::uint8_t {
          payload_size == 0;
 }
 
-}  // namespace simcore::asset_control::scf1
+}

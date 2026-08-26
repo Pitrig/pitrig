@@ -29,8 +29,6 @@ export class SerialTrafficReporter {
       this.emitLog(direction, line, encoding)
     }
 
-    // A malformed or non-line-oriented device must not grow the main-process
-    // heap indefinitely. Emit complete chunks instead of discarding bytes.
     while (this.receiveBuffer.length > MAXIMUM_BUFFERED_TEXT_SIZE) {
       this.emitLog(
         direction,

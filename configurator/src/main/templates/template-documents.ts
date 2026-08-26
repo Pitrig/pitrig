@@ -20,10 +20,6 @@ import {
   type WidgetTemplateSummary
 } from '../../shared/templates'
 
-/**
- * The document inside goes through the one parse the Load dialog and the device
- * payload share: migration, the generated validator, then the payload limit.
- */
 export function parseTemplateDocument(value: unknown): DashboardTemplateDocument {
   const record = envelopeOf(value, TEMPLATE_FORMAT, 'a SimCore dashboard template')
   if (typeof record.configuration !== 'object' || record.configuration === null) {
@@ -38,11 +34,6 @@ export function parseTemplateDocument(value: unknown): DashboardTemplateDocument
   }
 }
 
-/**
- * The half of the envelope both kinds share: identity, version, name and
- * description. Checked before shape so a configuration someone dropped into the
- * folder by hand fails with a reason rather than half-parsing.
- */
 export function envelopeOf(
   value: unknown,
   format: string,
@@ -93,11 +84,6 @@ export function dashboardSummary(
   }
 }
 
-/**
- * The widget envelope, checked the same way: identity before shape, then the
- * fragment through the validator inside the smallest document that can carry
- * it. The board it names is what the fragment's pixels were drawn in.
- */
 export function parseWidgetTemplateDocument(value: unknown): WidgetTemplateDocument {
   const record = envelopeOf(value, WIDGET_TEMPLATE_FORMAT, 'a SimCore widget template')
   const board = record.board
@@ -131,9 +117,6 @@ export function widgetSummary(id: string, document: TemplateDocument): WidgetTem
     origin: 'user',
     width: placement?.width ?? 0,
     height: placement?.height ?? 0,
-    // descendantsOf counts the widget itself, which is what "how many widgets
-    // is this entry" wants: one for a gauge, and the whole cluster for a
-    // container.
     widgetCount: descendantsOf(document.widget).length,
     widget: document.widget
   }

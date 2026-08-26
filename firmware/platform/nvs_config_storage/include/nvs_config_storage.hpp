@@ -18,4 +18,4 @@ class NvsConfigurationStorage final : public IConfigurationStorage {
   bool initialized_{};
 };
 
-}  // namespace simcore::configuration
+}

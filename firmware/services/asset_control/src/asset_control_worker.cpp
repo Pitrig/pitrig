@@ -5,10 +5,6 @@
 #include "crc32.hpp"
 #include "scf1_frame.hpp"
 
-// The worker half of the upload engine: the task that owns each queued request,
-// the per-frame protocol checks, and the session teardown they share. The
-// intake half — command matching and byte accumulation on the reading task —
-// lives in asset_control.cpp.
 namespace simcore::asset_control {
 
 void AssetControl::task_entry(void* const context) {
@@ -32,8 +28,6 @@ void AssetControl::process() {
       }
       continue;
     }
-    // Taken while the request is still held, so every reply below — including
-    // the ones sent after the state is released — goes to the link that asked.
     reply_ = requested_reply_;
     if (request_type_ == RequestType::begin) {
       handle_begin();
@@ -74,8 +68,6 @@ void AssetControl::handle_info() {
     return;
   }
   auto offset = static_cast<std::size_t>(written);
-  // A body that does not fit suppresses the reply rather than sending a
-  // truncated catalog the configurator would read as complete.
   written = operations_.write_info_body(
       operations_.service, response_.data() + offset, response_.size() - offset);
   if (written < 0) {
@@ -104,7 +96,6 @@ void AssetControl::handle_begin() {
     return;
   }
   release_request();
-  // The host matches this line literally.
   static_assert(kUploadMaximumChunkSize == 4096);
   if (!send_ok("READY:max_chunk=4096")) {
     operations_.cancel_update(operations_.service);
@@ -215,11 +206,9 @@ void AssetControl::reset_session() {
   expected_sequence_ = 0;
   overrun_.store(false, std::memory_order_relaxed);
   session_active_.store(false, std::memory_order_release);
-  // Releases only if this session still holds the stream, so an error arriving
-  // after another kind took it cannot hand it away.
   if (claim_ != nullptr) {
     claim_->release(&session_);
   }
 }
 
-}  // namespace simcore::asset_control
+}

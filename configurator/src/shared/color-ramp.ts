@@ -1,15 +1,6 @@
 import type { ColorStop, RgbColor } from './configuration-schema'
 import { deviceFloat } from './contract-number'
 
-// The device's colour ramp, mirrored so the preview can draw what the board
-// will. Kept beside the schema rather than in the renderer because the preview
-// is not the only thing that has to agree with the firmware about it.
-//
-// The firmware side is `conditions::ramp_color` in
-// `firmware/platform/dashboard/conditions`: below the first stop and above the
-// last one the ramp holds that stop's colour, and between two stops it
-// interpolates each sRGB channel linearly.
-
 export function rampColor(
   stops: readonly ColorStop[] | undefined,
   value: number | undefined
@@ -17,8 +8,6 @@ export function rampColor(
   if (!stops || stops.length < 2 || value === undefined || !Number.isFinite(value)) {
     return undefined
   }
-  // The device holds a stop at float precision, so the ratio it interpolates
-  // with is the one derived from those, not from the authored doubles.
   const anchors = stops.map((stop) => ({ at: deviceFloat(stop.at ?? 0), color: stop.color }))
   const first = anchors[0]!
   const last = anchors[anchors.length - 1]!
@@ -29,8 +18,6 @@ export function rampColor(
     if (value > upper.at) continue
     const lower = anchors[index - 1]!
     const width = upper.at - lower.at
-    // Stops are validated as increasing; this only guards a pair the validator
-    // could not have seen, such as two stops at the same value.
     if (!(width > 0)) return lower.color
     return blend(lower.color, upper.color, (value - lower.at) / width)
   }

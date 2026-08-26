@@ -1,7 +1,3 @@
-// The dashboard editor's public surface. The implementation is split by
-// concern under editor/ — view state, document access, and one module per
-// family of commands — and re-exported here so the panels keep one import.
-
 export {
   MAXIMUM_ARC_WIDGETS,
   MAXIMUM_BAR_WIDGETS,
@@ -15,9 +11,6 @@ export {
   MAXIMUM_TEXT_WIDGETS
 } from '@shared/configuration-schema'
 
-// One line per module, names spelled out. `export *` hid four constants that
-// no longer had a reader outside their own file; an explicit list makes the
-// next one visible instead of carrying it forever.
 export type { WidgetSelection } from './editor/store'
 export { MAXIMUM_ZOOM, MINIMUM_ZOOM, useDashboardEditorStore } from './editor/store'
 export type { WidgetLocation } from './editor/document'

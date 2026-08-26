@@ -32,8 +32,8 @@ constexpr driver::Driver kDriver = {
     .initialize = initialize,
 };
 
-}  // namespace
+}
 
 const driver::Driver& get() { return kDriver; }
 
-}  // namespace simcore::input::drivers::guition_jc1060p470c
+}

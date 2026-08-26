@@ -7,11 +7,6 @@
 namespace simcore::configuration::json {
 namespace {
 
-// cJSON builds a document out of many small nodes, and the SPIRAM policy sends
-// every allocation under 16 KiB to internal RAM, so a large payload would parse
-// itself into the scarcest memory the device has. This parser is the only cJSON
-// user in the firmware, so pointing its allocator at external memory is safe
-// and makes the payload limit a question of PSRAM rather than of SRAM.
 void* json_malloc(const std::size_t size) {
   void* const external =
       heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -20,7 +15,7 @@ void* json_malloc(const std::size_t size) {
 
 void json_free(void* const pointer) { heap_caps_free(pointer); }
 
-}  // namespace
+}
 
 void install_json_allocator() {
   static bool installed = false;
@@ -32,8 +27,6 @@ void install_json_allocator() {
   installed = true;
 }
 
-// Records the first cause and leaves it untouched afterwards, so a nested
-// rejection is reported instead of the generic error its caller would return.
 bool reject(ValidationFailure& failure, const ValidationError error,
             const std::string_view object, const std::string_view key) {
   if (!failure.ok()) {
@@ -57,8 +50,6 @@ bool reject(ValidationFailure& failure, const ValidationError error,
   return false;
 }
 
-// Rejects any property the schema does not declare, and any property that
-// appears twice in the same object.
 [[nodiscard]] bool valid_object(const cJSON* const object,
                                 const KeyList allowed,
                                 const std::string_view name,
@@ -84,8 +75,6 @@ bool reject(ValidationFailure& failure, const ValidationError error,
   return true;
 }
 
-// Bounded well inside the float range so a scale or offset cannot reach the
-// device as an infinity after the narrowing conversion.
 constexpr double kMaximumRealMagnitude = 1.0e9;
 
 [[nodiscard]] bool read_float(const cJSON* const object,
@@ -193,4 +182,4 @@ constexpr double kMaximumRealMagnitude = 1.0e9;
   return value == nullptr || parse_font(value, font, failure);
 }
 
-}  // namespace simcore::configuration::json
+}

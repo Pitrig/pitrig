@@ -14,14 +14,6 @@ import { ContainerEditor } from './section-editors'
 import { BoxEditor, TitleEditor } from './styling-editors'
 import { useDeviceStore } from '@/features/device/device-store'
 
-/**
- * One editor per widget type, each a list of groups in the same order: what it
- * reads, what it is, what it says, what it looks like, and what a value does to
- * it. The frame it stands in — its name, its box, its geometry and its action —
- * is added around these by the inspector, because every type carries it.
- */
-
-/** The button every list of repeated rows adds with. */
 export function AddButton({ label, onClick }: { label: string; onClick: () => void }): React.JSX.Element {
   return (
     <button type="button" className="flex h-7 w-full items-center justify-center gap-1 rounded-md border text-foreground hover:bg-muted" onClick={onClick}>
@@ -43,9 +35,6 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
   const update = (mutation: (next: ImageWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ImageWidgetConfiguration))
   const installed = useDeviceStore((state) => state.session?.imageAssets?.images) ?? []
   const known = installed.find(({ name }) => name === widget.image)
-  // A sheet is what makes the frame controls mean anything, and only the board
-  // knows how many frames an image has. With nothing connected they stay hidden
-  // rather than offering a range nobody can check.
   const frames = known?.frameCount ?? 1
   const sheet = frames > 1
   const frameBinding = widget.sprite_frame_source?.binding ?? ''
@@ -61,8 +50,6 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
             <TelemetryBindingField label="Frame from" hint={HINTS.image.frameSource} value={frameBinding} onReset={() => update((next) => { delete next.sprite_frame_source })} onChange={(value) => update((next) => {
               if (!value) { delete next.sprite_frame_source; return }
               next.sprite_frame_source = { ...next.sprite_frame_source, binding: value }
-              // The two are alternatives, and the source wins on the device, so
-              // leaving a frame authored underneath it would only mislead.
               delete next.sprite_frame
             })} />
             {frameBinding ? null : (
@@ -81,7 +68,6 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
   )
 }
 
-/** What a second and a third trace start out as, so they read apart at a glance. */
 export function ShapeEditor({ selection, widget }: { selection: WidgetSelection; widget: ShapeWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: ShapeWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ShapeWidgetConfiguration))
   const held = widgetsOf(widget).length
@@ -93,8 +79,6 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
       <ConditionsEditor widget={widget} update={update} />
-      {/* A shape holds widgets, so it gets the group that says what holding
-          them means. */}
       <ContainerEditor
         widget={widget}
         update={update}
@@ -109,11 +93,6 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
   )
 }
 
-/**
- * A slot is an area that switches what it shows. It draws nothing, so it has no
- * frame editors at all — the device refuses a slot with an appearance — and its
- * only properties are its box and its pages.
- */
 export function SlotEditor({ selection, widget }: { selection: WidgetSelection; widget: SlotWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: SlotWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as SlotWidgetConfiguration))
   const pages = pagesOf(widget)

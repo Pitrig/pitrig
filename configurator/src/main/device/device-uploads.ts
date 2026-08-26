@@ -13,11 +13,6 @@ import type { ConnectionManager } from './device-connection'
 import type { OperationRunner } from './device-operation'
 import { clearFontAssets, clearImageAssets } from './simcore-protocol'
 
-// One package upload, whatever the kind, plus the session bookkeeping each
-// kind performs afterwards. The device reports the installed set only after a
-// restart, so each `advance` moves the session on from what was just sent
-// rather than re-probing; returning undefined leaves it untouched.
-
 export async function uploadPackage(
   connection: ConnectionManager,
   runner: OperationRunner,
@@ -55,12 +50,6 @@ export async function uploadPackage(
   })
 }
 
-/**
- * What a finished font upload means for the session. The board reports what it
- * holds only after a restart, so this moves the session on from what was just
- * sent. `payloadCrc` is the package's payload CRC, so a second save this
- * session can skip an identical upload.
- */
 export function advanceFontSession(
   session: DeviceSession,
   bytes: Uint8Array,
@@ -83,14 +72,6 @@ export function advanceFontSession(
   }
 }
 
-/**
- * `installed` is what the package that was just written holds, which is what the
- * board now answers `@SC:IMAGE:INFO` with. Carrying it is not a nicety: the
- * installed list is what the Images page draws, what an image widget's picker
- * offers and what a newly drawn one starts on, and leaving it at the pre-upload
- * set made a just-uploaded image invisible to all three until the next connect.
- * The font path reads the same facts back out of its package header.
- */
 export function advanceImageSession(
   session: DeviceSession,
   bytes: Uint8Array,
@@ -117,7 +98,6 @@ export function advanceFirmwareSession(session: DeviceSession): DeviceSession | 
     : undefined
 }
 
-/** What clearing an installed font package leaves the session holding. */
 export function clearedFontSession(session: DeviceSession): DeviceSession {
   return {
     ...session,
@@ -133,7 +113,6 @@ export function clearedFontSession(session: DeviceSession): DeviceSession {
   }
 }
 
-/** What clearing an installed image package leaves the session holding. */
 export function clearedImageSession(session: DeviceSession): DeviceSession {
   return {
     ...session,
@@ -178,11 +157,6 @@ export async function clearFontPackage(
   )
 }
 
-/**
- * Clearing a font package and clearing an image package differ only in the
- * command sent and in which half of the session the reply invalidates, so the
- * guard, the mid-operation identity check and the bookkeeping live here once.
- */
 async function clearAssets(
   connection: ConnectionManager,
   runner: OperationRunner,

@@ -15,67 +15,35 @@ import {
 export type { SnapEdge } from './snap-lines'
 export { MINIMUM_SIZE_PX, resolveResize, type ResizeOptions } from './snap-resize'
 
-// Where a dragged or resized box wants to land, and why.
-//
-// Three kinds of answer, in the order they are preferred. An **edge** lines the
-// box up with something already on the screen — a neighbour's edge or centre,
-// the container it sits in, the display itself. A **gap** repeats a distance
-// that already exists, so a third tile lands the same distance from the second
-// as the second is from the first. The **grid** is what catches everything
-// else: a step the author picked, applied only where nothing better was found,
-// because a widget that lines up with its neighbour matters more than a widget
-// whose coordinate is a round number.
-//
-// Everything here is pure geometry in logical display pixels. It reads no
-// document, no store and no React state: the canvas resolves what a gesture
-// means and hands the answer to an editor command.
-
-/**
- * The level a box is being moved within: its siblings and the area holding
- * them. A widget only ever lines up inside its own parent — a readout in a
- * panel has nothing to do with a readout in the panel next to it, and treating
- * the whole screen as one level made a container's contents jump to lines that
- * were nowhere near them.
- */
 export interface SnapField {
   siblings: readonly { id: string; box: Placement }[]
-  /** The container's box, or the display when the level is a screen. */
   bounds: Placement
-  /** The container's content area — its box less border and padding. */
   inner?: Placement
 }
 
 export type SnapMode = 'all' | 'grid' | 'none'
 
 export interface SnapPreferences {
-  /** Step in logical pixels; zero when the grid is off. */
   grid: number
-  /** How far a box reaches for a line, in logical pixels. */
   tolerance: number
   widgets: boolean
   spacing: boolean
-  /** What the held modifiers have left of all that. */
   mode: SnapMode
 }
 
-/** A line drawn while the gesture runs, spanning only what it relates. */
 export interface SnapGuide {
-  /** `x` is a vertical line at `position`, spanning `from`..`to` down the screen. */
   axis: 'x' | 'y'
   position: number
   from: number
   to: number
 }
 
-/** A measured distance between two boxes, drawn with its number. */
 export interface GapLabel {
-  /** `x` measures horizontally between `from` and `to`, at height `at`. */
   axis: 'x' | 'y'
   from: number
   to: number
   at: number
   distance: number
-  /** Whether this gap is one the box snapped to rather than one it merely has. */
   matched: boolean
 }
 
@@ -83,7 +51,6 @@ export interface SnapResolution {
   placement: Placement
   guides: SnapGuide[]
   gaps: GapLabel[]
-  /** Widgets the box lined up with, which the canvas outlines. */
   highlighted: string[]
 }
 
@@ -91,7 +58,6 @@ export const DEFAULT_SNAP_TOLERANCE_PX = 10
 
 const NOTHING: Omit<SnapResolution, 'placement'> = { guides: [], gaps: [], highlighted: [] }
 
-/** A guide covering both boxes, or just the moving one against the display. */
 export function guideFor(axis: 'x' | 'y', position: number, moving: Placement, edge: SnapEdge): SnapGuide {
   const across = axis === 'x' ? 'y' : 'x'
   const own = axisOf(moving, across)
@@ -104,7 +70,6 @@ export function guideFor(axis: 'x' | 'y', position: number, moving: Placement, e
   }
 }
 
-/** A measured gap between the moving box and one neighbour, with its number. */
 function gapLabel(
   axis: 'x' | 'y',
   moving: Placement,
@@ -130,11 +95,6 @@ interface AxisResolution {
   highlighted: string[]
 }
 
-/**
- * One axis of a move: an edge first, a repeated gap second, the grid last.
- * The order is the whole rule — a line the author can see beats a number they
- * cannot.
- */
 function resolveAxis(
   raw: number,
   moving: Placement,
@@ -180,7 +140,6 @@ function resolveAxis(
   }
 }
 
-/** The distances to whatever now stands on either side, for the readout. */
 export function measureGaps(
   moving: Placement,
   field: SnapField,
@@ -220,17 +179,10 @@ export function resolveMove(
   }
 }
 
-/** A box with no snapping applied at all, for a gesture that asked for none. */
 export function plain(placement: Placement): SnapResolution {
   return { placement, ...NOTHING }
 }
 
-/**
- * One corner of a box being drawn. A tool places both corners the same way a
- * move places an edge — against the neighbours first, the grid second — so a
- * widget drawn beside another starts out aligned with it rather than needing to
- * be nudged into place afterwards.
- */
 export function snapPoint(
   point: { x: number; y: number },
   field: SnapField,

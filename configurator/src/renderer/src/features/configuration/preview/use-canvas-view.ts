@@ -5,21 +5,12 @@ import { isTextEntry } from '../editor/keyboard'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, useDashboardEditorStore } from '../dashboard-editor'
 import { clampPan, logicalPoint, viewportScale } from './canvas-geometry'
 
-/**
- * The viewport half of the canvas: wheel zoom and scroll, plus the held Space
- * that turns the left button into a pan. Gestures read the result; nothing
- * here touches the document.
- */
 export function useCanvasView(
   svgRef: RefObject<SVGSVGElement | null>,
   display: DisplayDescriptor
 ): { spaceHeld: boolean } {
-  // Space is the pan key every canvas uses, and it has to be a held state
-  // rather than a modifier on the event: the press happens before the drag.
   const [spaceHeld, setSpaceHeld] = useState(false)
 
-  // Space pans, so the canvas has to know it is held before anything is
-  // dragged. Left alone while a field has focus, where a space is a space.
   useEffect(() => {
     const down = (event: KeyboardEvent): void => {
       if (event.code !== 'Space' || isTextEntry(event.target)) return
@@ -29,7 +20,6 @@ export function useCanvasView(
     const up = (event: KeyboardEvent): void => {
       if (event.code === 'Space') setSpaceHeld(false)
     }
-    // A window that loses focus mid-press never sees the release.
     const clear = (): void => setSpaceHeld(false)
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
@@ -41,9 +31,6 @@ export function useCanvasView(
     }
   }, [])
 
-  // Wheel handling is a native listener rather than a React prop because it has
-  // to be able to refuse the browser's own zoom and scroll, and React registers
-  // wheel passively at the root, where preventDefault does nothing.
   useEffect(() => {
     const element = svgRef.current
     if (!element) return
@@ -62,8 +49,6 @@ export function useCanvasView(
           store.setView({ zoom, ...clampPan(current, display, zoom) })
           return
         }
-        // Zooming at the pointer keeps whatever is under it under it, which is
-        // what makes magnifying a corner of the display usable at all.
         store.setView({
           zoom,
           ...clampPan(

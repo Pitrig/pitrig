@@ -9,24 +9,6 @@ import titilliumWebBold from './bundled/titillium-web_bold.ttf?asset'
 
 import type { FontVariant } from '../../shared/font-library'
 
-// The faces a fresh installation can already draw with, before any board is
-// connected and before anything has been downloaded. They are imported with
-// `?asset` rather than inlined the way the bundled templates are: a template is
-// a few kilobytes of JSON and a face is a hundred, so electron-vite copies the
-// file beside the main bundle and hands back its path instead of putting a
-// megabyte of base64 through the module graph.
-//
-// The ids below are not written by hand — every one is what `fontFamilyId`
-// derives from the family and variant beside it. Licences are in
-// bundled/OFL.txt.
-//
-// Every face here draws its ten digits at one width. That is a hard requirement
-// for this set rather than a nicety: these are the faces an author reaches for
-// first, a dashboard is mostly numbers that change several times a second, and
-// a proportional-digit face makes the reading shift sideways as they do. Oswald,
-// Rajdhani and Orbitron were here and were dropped for exactly that — Orbitron's
-// widest digit is 2.1x its narrowest.
-
 export interface BundledFace {
   id: string
   name: string

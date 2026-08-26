@@ -4,8 +4,6 @@
 
 #include "esp_heap_caps.h"
 #include "lvgl.h"
-// The handler struct is deliberately opaque in the public header; LVGL ships
-// this one for code that has to reach it.
 #include "lvgl_private.h"
 
 namespace simcore::dashboard::fonts {
@@ -13,8 +11,6 @@ namespace {
 
 bool installed;
 
-// LVGL aligns the returned pointer itself, so the padding the default handler
-// adds has to be reproduced here.
 void* allocate_glyph_buffer(const std::size_t size,
                             const lv_color_format_t color_format) {
   (void)color_format;
@@ -28,7 +24,7 @@ void free_glyph_buffer(void* const buffer) {
   heap_caps_free(buffer);
 }
 
-}  // namespace
+}
 
 void install_external_memory_glyph_allocator() {
   if (installed) {
@@ -43,4 +39,4 @@ void install_external_memory_glyph_allocator() {
   installed = true;
 }
 
-}  // namespace simcore::dashboard::fonts
+}

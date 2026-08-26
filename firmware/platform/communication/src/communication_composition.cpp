@@ -17,7 +17,7 @@ namespace {
 
 constexpr char kTag[] = "communication";
 
-}  // namespace
+}
 
 Composition::Composition(const telemetry::ITelemetryRegistry& registry)
 #if SIMCORE_SECOND_TELEMETRY_LINK
@@ -52,19 +52,12 @@ bool Composition::start(
   }
   const bool full = surface == Surface::full;
   for (std::size_t index = 0; index < transports.size(); ++index) {
-    // The protocol binding only has to hold where telemetry is decoded. A
-    // recovery link never reaches it, and refusing to come up over a registry
-    // it will not read would cost the board the only way back.
     if (transports[index] == nullptr ||
         (full && !links_[index].protocol.initialized())) {
       log::error(kTag, "Failed to bind telemetry protocol fields");
       return false;
     }
   }
-  // The control services answer on the link each request arrived on, so they
-  // are given no link of their own: the router hands them one with every line.
-  // Even a reply with no request behind it, such as an upload timing out, goes
-  // to the link that opened the upload.
   if (!configuration_control_.initialize(configuration, &reboot, nullptr,
                                          apply_handler, apply_context,
                                          control_io_buffer)) {
@@ -92,11 +85,6 @@ bool Composition::start(
     configuration_control_.stop();
     return false;
   }
-  // A session the surface left out is registered as absent rather than as
-  // itself: an uninitialized session carries an empty command prefix, and an
-  // empty prefix matches every control line there is. The router skips a null
-  // entry, so the command falls through to the control service and is answered
-  // `unknown_command`.
   const std::array<const binary_session::Session*, 3> sessions{
       full ? &font_asset_control_.session() : nullptr,
       full ? &image_asset_control_.session() : nullptr,
@@ -108,8 +96,6 @@ bool Composition::start(
     Link& link = links_[index];
     link.owner = this;
     link.transport = transports[index];
-    // No telemetry handler on a recovery link: the router drops every line that
-    // is not a control line rather than decoding into state nothing reads.
     link.router.initialize(
         configuration_control_, binary_claim_, sessions,
         full ? &receive_telemetry_line : nullptr, &link,
@@ -122,8 +108,6 @@ bool Composition::start(
                                        &links_[index])) {
       continue;
     }
-    // A link that will not start takes the whole composition with it rather
-    // than leaving the device answering on some of the ports it was asked for.
     log::error(kTag, "Failed to start telemetry transport");
     for (std::size_t started = 0; started < index; ++started) {
       links_[started].transport->stop();
@@ -133,10 +117,6 @@ bool Composition::start(
   }
   started_ = true;
   if (!full) {
-    // Nothing further is coming on this boot, so neither a write nor an upload
-    // has anything left to wait for. Held shut, every SET a host sent to repair
-    // the board would sit out the timeout and be refused, and the firmware
-    // upload that is the other way out would be answered busy forever.
     mark_composed();
   }
   return true;
@@ -144,8 +124,6 @@ bool Composition::start(
 
 void Composition::mark_composed() {
   configuration_control_.mark_composed();
-  // Startup has finished reading the font and image partitions, so an upload
-  // may now erase them.
   binary_claim_.open();
 }
 
@@ -192,4 +170,4 @@ void Composition::reboot(void*) {
   esp_restart();
 }
 
-}  // namespace simcore::communication
+}

@@ -7,30 +7,8 @@ import { EmptyState, PageSection } from '@/app/workspace/PageShell'
 import { catalogPreviewFamily, useFontCatalogStore } from './font-catalog-store'
 import { FontCatalogRow } from './FontCatalogRow'
 
-/**
- * The fonts this dashboard uses, the library they come from, and what the board
- * has been given so far.
- *
- * Choosing a font for a widget happens in the inspector and delivering one
- * happens on save, so this is neither of those: it is where the author sees the
- * eight-family budget being spent, notices a family the library cannot answer
- * for, adds one, and — when something has gone wrong — reaches the manual
- * controls the automatic path replaced.
- */
-
-/**
- * How many catalog rows are drawn at once. Every row on screen fetches its own
- * face, so the list is cut rather than virtualized: searching narrows it, and
- * nobody scrolls two thousand fonts looking for one.
- */
 const CATALOG_RESULT_LIMIT = 60
 
-/**
- * Google Fonts, drawn in themselves. The same catalog the inspector's picker
- * browses — adding one here puts it in the library without pointing any widget
- * at it, which is what you want when preparing a board rather than styling a
- * reading.
- */
 export function CatalogSection({ onMessage }: { onMessage: (message: string) => void }): React.JSX.Element {
   const catalog = useFontCatalogStore((state) => state.families)
   const previews = useFontCatalogStore((state) => state.previews)

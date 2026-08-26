@@ -2,16 +2,6 @@ import { ChevronDown, ChevronRight, type LucideIcon } from 'lucide-react'
 import { InfoHint } from './InfoHint'
 import { useEditorPanelStore } from '../editor/panel-store'
 
-/**
- * A folding group of properties.
- *
- * The fold is remembered by name rather than by widget: an author who never
- * touches borders wants "Box" folded for every widget, not for the one that
- * happened to be selected. The summary on the right is what makes folding
- * cheap — a folded group still says what is inside it, so nothing has to be
- * opened just to find out whether it holds anything.
- */
-
 export function Group({
   id,
   title,
@@ -21,11 +11,9 @@ export function Group({
   defaultOpen = true,
   children
 }: {
-  /** Stable across widget types: the fold is global by this key. */
   id: string
   title: string
   icon: LucideIcon
-  /** What is inside, shown while folded. */
   summary?: string
   hint?: string
   defaultOpen?: boolean
@@ -63,12 +51,6 @@ export function Group({
   )
 }
 
-/**
- * The tail of a group: the properties that exist for the one dashboard that
- * needs them and are noise on every other. Folded unless the document already
- * carries one of them — hiding a value somebody set is worse than showing a
- * default nobody wanted.
- */
 export function Advanced({
   id,
   active,

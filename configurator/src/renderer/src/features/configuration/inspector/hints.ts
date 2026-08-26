@@ -1,16 +1,3 @@
-/**
- * Every explanation the inspector shows behind a ⓘ.
- *
- * They live together rather than beside the fields they explain because they
- * are prose, not markup: keeping them in one file is what makes it possible to
- * read the panel's whole vocabulary at once and notice where two properties
- * were described in two different ways.
- *
- * What is *not* here: anything computed from the current document — a trace's
- * time window, an image's pixel size, the font budget — and anything that warns
- * about the document being wrong. Both stay in the panel where they can be seen
- * without asking.
- */
 export const HINTS = {
   geometry: {
     position:

@@ -6,36 +6,13 @@ export type WidgetSelection =
   | { type: 'screen' }
   | { type: 'widget'; id: string }
 
-/**
- * What a press on the empty canvas does. `select` rubber-bands, and every other
- * value draws the box a new widget of that kind is created at — the way a
- * drawing editor works, and the one way to place a widget exactly where it
- * belongs without correcting it afterwards.
- *
- * One-shot: the tool returns to `select` as soon as it has drawn something, so
- * the next press edits rather than adding a second widget nobody asked for.
- */
 export type CanvasTool = 'select' | WidgetConfiguration['type'] | 'tap_zone'
 
-/**
- * A widget from the library, waiting for the author to say where it goes.
- *
- * Unlike a tool it is not drawn at a size — it already has one, chosen when it
- * was saved — so the canvas follows the pointer with the widget itself and one
- * click puts it down. `label` is the library entry's name, which is the only
- * thing the canvas can say about a fragment that may be a whole cluster.
- */
 export interface PendingInsert {
   widget: WidgetConfiguration
   label: string
 }
 
-/**
- * How the canvas is being looked at, and which widgets are set aside while
- * working. None of this belongs in the document: the device would reject the
- * unknown properties, and a grid or a locked layer is a fact about the editing
- * session rather than about the dashboard.
- */
 export interface EditorView {
   zoom: number
   panX: number
@@ -48,60 +25,20 @@ const DEFAULT_EDITOR_VIEW: EditorView = {
   panY: 0
 }
 
-// Below one to one the whole display fits with room to spare, which is what
-// judging a layout as a whole needs; the grid and the snapping settings that
-// used to sit beside the zoom now live in the snap store, because they outlive
-// the document while the zoom does not.
 export const MINIMUM_ZOOM = 0.25
 export const MAXIMUM_ZOOM = 8
 
 interface DashboardEditorStore {
-  /**
-   * The widget the inspector edits. Always the most recently picked member of
-   * `selectedIds`, so single-widget editing and multi-widget arrangement read
-   * the same selection from two angles instead of keeping two of them.
-   */
   selection?: WidgetSelection
   selectedIds: string[]
-  /**
-   * The screen the canvas, the layer list and the inspector are working on.
-   * Editor-only: which screen is being authored says nothing about the
-   * dashboard, and the device always starts at the first one.
-   */
   activeScreenIndex: number
   view: EditorView
-  /** Editor-only, keyed by widget id: none of these reach the document. */
   locked: Record<string, boolean>
   hidden: Record<string, boolean>
-  /**
-   * Containers whose contents the layer list is not showing. Absent means open,
-   * so a container is expanded until the author folds it — a list that hid its
-   * own contents by default would bury the thing most often looked for.
-   */
   collapsed: Record<string, boolean>
-  /**
-   * Which page of each slot the canvas draws, keyed by the slot's widget id. The
-   * board shows one at a time and picks it from a tap or a trigger; the editor
-   * has to author all of them, so it picks one to look at instead.
-   */
   slotPage: Record<string, number>
-  /**
-   * The container being worked inside, if any — a shape, or a slot, in which
-   * case it is one page at a time. What it changes is what a click on the canvas
-   * reaches and where a new widget lands: everything at or below this level is
-   * addressable, everything above it is picked as a whole. A way of looking at
-   * the document, not a property of it.
-   */
   drillIn?: string
-  /**
-   * The family a new widget takes. Editor-only, and deliberately so: the device
-   * resolves a font per widget and the contract declares no document-level one,
-   * so a default that lived in the document would be a property the board
-   * rejects. Choosing one here seeds what is added next; "apply to every
-   * widget" is what changes what is already there.
-   */
   defaultFontFamily?: string
-  /** The tool a press on the canvas runs, reset to `select` after it draws. */
   activeTool: CanvasTool
   setActiveTool: (tool: CanvasTool) => void
   pendingInsert?: PendingInsert
@@ -109,28 +46,16 @@ interface DashboardEditorStore {
   cancelInsert: () => void
   setDefaultFontFamily: (family: string) => void
   select: (selection?: WidgetSelection) => void
-  /** Adds or removes one widget, keeping it primary when it stays selected. */
   extendSelection: (id: string) => void
   selectMany: (ids: readonly string[]) => void
   setActiveScreen: (index: number) => void
   setSlotPage: (slotId: string, page: number) => void
-  /** Works inside a container, or leaves every one of them when given nothing. */
   setDrillIn: (containerId?: string) => void
   setView: (patch: Partial<EditorView>) => void
   toggleLocked: (id: string) => void
   toggleHidden: (id: string) => void
   toggleCollapsed: (id: string) => void
-  /** Opens every container named, which is how a selection is revealed in the list. */
   expand: (ids: readonly string[]) => void
-  /**
-   * Moves every id-keyed piece of editor state from one id to another. A rename
-   * rewrites the widget's id in the document, and anything still keyed by the
-   * old one — selection, lock, hide, the slot's visible page, the container the
-   * editor has drilled into — would silently detach from it. Missing a field
-   * here is not cosmetic: an orphaned `drillIn` leaves the editor logically
-   * inside a container that no longer exists, and new widgets then land on the
-   * screen instead of inside it.
-   */
   renameId: (from: string, to: string) => void
   resetEditorState: () => void
 }
@@ -144,8 +69,6 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
   collapsed: {},
   slotPage: {},
   activeTool: 'select',
-  // A tool and a pending insert are two answers to "what does the next click
-  // do", so taking one puts the other down.
   setActiveTool: (tool) => set({ activeTool: tool, pendingInsert: undefined }),
   beginInsert: (pendingInsert) => set({ pendingInsert, activeTool: 'select' }),
   cancelInsert: () => set({ pendingInsert: undefined }),
@@ -173,9 +96,6 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
       selection:
         ids.length === 0 ? { type: 'screen' } : { type: 'widget', id: ids[ids.length - 1]! }
     }),
-  // Selection belongs to one screen, so switching screens drops it rather than
-  // leaving the inspector editing something the canvas no longer draws.
-  // A container belongs to one screen, so leaving the screen leaves it too.
   setActiveScreen: (index) =>
     set({
       activeScreenIndex: Math.max(index, 0),
@@ -185,8 +105,6 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
     }),
   setSlotPage: (slotId, page) =>
     set((current) => ({ slotPage: { ...current.slotPage, [slotId]: Math.max(page, 0) } })),
-  // Entering a container selects it, so the inspector lands on the thing just
-  // opened rather than on nothing.
   setDrillIn: (containerId) =>
     set(
       containerId === undefined
@@ -235,8 +153,6 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
         drillIn: current.drillIn === from ? to : current.drillIn
       }
     }),
-  // A different document is a different set of widgets, so what was locked,
-  // hidden or selected in the previous one describes nothing.
   resetEditorState: () =>
     set({
       selection: undefined,

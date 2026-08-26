@@ -22,12 +22,6 @@ export interface OpenedDevice {
   traffic: SerialTrafficReporter
 }
 
-/**
- * The port half of the device service: which serial port is open, the probe
- * that decides it is a SimCore board, the scan over every candidate, and the
- * paced reconnect after a restart. Command execution lives with DeviceService;
- * this class never sends anything but the probe.
- */
 export class ConnectionManager {
   private readonly portRegistry = new PortRegistry()
   private state: DeviceState = { status: 'disconnected' }
@@ -59,7 +53,6 @@ export class ConnectionManager {
     return this.activeTraffic
   }
 
-  /** Whether the connection is mid-transition and must not be raced. */
   isTransitioning(): boolean {
     return ['scanning', 'connecting', 'disconnecting'].includes(this.state.status)
   }
@@ -77,11 +70,6 @@ export class ConnectionManager {
     return this.portRegistry.refresh()
   }
 
-  /**
-   * Connecting without the busy check the public `connect` performs, because a
-   * save's own reconnect runs *inside* the pipeline: asking `connect` would
-   * have it refuse itself.
-   */
   async openConnection(
     portId: string,
     baudRate: number,
@@ -108,8 +96,6 @@ export class ConnectionManager {
       this.attachActivePort(opened, record, baudRate)
       return success(this.state)
     } catch (error) {
-      // A quiet attempt is one of several: reporting each failure would flash
-      // an error the next attempt is about to disprove.
       if (quiet) return failure(toDeviceError(error))
       return this.finishFailedOperation(error, token)
     }
@@ -162,11 +148,6 @@ export class ConnectionManager {
     this.setState({ status: 'disconnected' })
   }
 
-  /**
-   * Hands the active port back to the caller and forgets it, without closing
-   * it. This is what a reboot does: the REBOOT reply has been read, so the
-   * port is closed by the caller once nothing more is expected on it.
-   */
   releaseActivePort(): { port: SerialPort; traffic?: SerialTrafficReporter } | undefined {
     const port = this.activePort
     if (!port) return undefined
@@ -178,7 +159,6 @@ export class ConnectionManager {
     return { port, traffic }
   }
 
-  /** See reconnectToBoard: the paced wait for a restarted board. */
   async reconnect(connection: DeviceConnection): Promise<DeviceResult<DeviceState>> {
     return reconnectToBoard(this, connection)
   }

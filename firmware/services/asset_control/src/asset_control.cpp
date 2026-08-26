@@ -9,10 +9,6 @@
 #include "scf1_frame.hpp"
 #include "simcore_features.hpp"
 
-// The intake half of the upload engine: command matching and frame-byte
-// accumulation, both on the task that reads the link. The worker task that
-// answers each queued request lives in asset_control_worker.cpp.
-
 namespace simcore::asset_control {
 namespace {
 
@@ -22,7 +18,6 @@ namespace {
          std::equal(command.begin(), command.end(), line.begin());
 }
 
-// Fills one of the command spellings from the tag, e.g. `@SC:FONT:INFO`.
 std::string_view compose(std::array<char, 32>& storage,
                          const std::string_view tag,
                          const std::string_view suffix) {
@@ -36,7 +31,7 @@ std::string_view compose(std::array<char, 32>& storage,
   return {storage.data(), static_cast<std::size_t>(written)};
 }
 
-}  // namespace
+}
 
 AssetControl::~AssetControl() { stop(); }
 
@@ -62,8 +57,6 @@ bool AssetControl::initialize(const Traits& traits,
   operations_ = operations;
   claim_ = &claim;
   frame_ = frame.first(kMaximumFrameSize);
-  // The namespace ends in a colon and carries no command, which is what the
-  // router matches a line against before this ever sees it.
   const int prefix_length =
       std::snprintf(command_prefix_.data(), command_prefix_.size(), "@SC:%.*s:",
                     static_cast<int>(traits_.tag.size()), traits_.tag.data());
@@ -128,10 +121,6 @@ void AssetControl::consume_command(const std::span<const std::uint8_t> line,
   if (!ready()) {
     return;
   }
-  // The link an upload owns never gets here — the router hands its bytes to
-  // consume() — so a command that arrives while active() came in on another
-  // link. It is answered from this task, at once: the worker and its response
-  // buffer belong to the upload in progress and must not be touched.
   if (active()) {
     send_busy(reply);
     return;
@@ -152,10 +141,6 @@ void AssetControl::consume_command(const std::span<const std::uint8_t> line,
     request_type_ = RequestType::info;
   } else if (matches(line, {clear_command_.data(),
                             std::strlen(clear_command_.data())})) {
-    // Erasing takes no claim, so it asks the same question the claim answers:
-    // startup copies this partition whole, and an erase underneath that copy
-    // corrupts what it copied. Before the link answered last this could not
-    // happen; now it can, so it is refused rather than raced.
     request_type_ = claim_ != nullptr && !claim_->ready() ? RequestType::busy
                                                          : RequestType::clear;
   } else if (line.size() >= begin_prefix.size() &&
@@ -169,11 +154,6 @@ void AssetControl::consume_command(const std::span<const std::uint8_t> line,
     if (result.ec != std::errc{} || result.ptr != end) {
       requested_package_size_ = 0;
     }
-    // Taken here, on the task that reads the bytes, so a second upload
-    // arriving mid-handshake finds the stream owned rather than a flag that
-    // has not been set yet.
-    // The reply transport identifies the link, so the upload's binary frames
-    // are only accepted from the one that opened it.
     if (claim_ != nullptr && !claim_->try_claim(&session_, &reply)) {
       request_type_ = RequestType::busy;
     } else {
@@ -229,4 +209,4 @@ void AssetControl::consume(const std::span<const std::uint8_t> bytes) {
   }
 }
 
-}  // namespace simcore::asset_control
+}

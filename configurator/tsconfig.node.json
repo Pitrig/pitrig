@@ -13,7 +13,6 @@
     },
     "tsBuildInfoFile": "./out/.tsbuildinfo/node",
     "noEmit": true,
-    // The bundled dashboard templates are imported as JSON and inlined by Vite.
     "resolveJsonModule": true,
     "types": ["electron-vite/node", "node"]
   },
@@ -24,7 +23,5 @@
     "src/preload/**/*.ts",
     "src/shared/**/*.ts"
   ],
-  // Generated data read from disk at runtime, never imported as a module: it is
-  // a megabyte of JSON with no type worth inferring.
   "exclude": ["src/main/font-library/google-fonts-catalog.json"]
 }

@@ -11,17 +11,14 @@ namespace {
 
 constexpr char kTag[] = "arc_widget";
 
-// The sweep is expressed in per-mille rather than in degrees so a long arc on a
-// large display still moves smoothly.
 constexpr std::int32_t kSweepResolution = 1'000;
 
-// Where a rule's value colour lands for this widget type.
 void apply_indicator_color(void* const context, const std::uint32_t rgb) {
   lv_obj_set_style_arc_color(static_cast<lv_obj_t*>(context), lv_color_hex(rgb),
                              LV_PART_INDICATOR);
 }
 
-}  // namespace
+}
 
 
 bool Collection::build(State& state, const Layout& layout, const Config& config,
@@ -30,7 +27,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
-  // An arc has no intrinsic size: the placement is the whole of it.
   if (!frame::build(layout, config.frame, kTag, 0, 0, false, fonts, parent,
                     bounds, box)) {
     return false;
@@ -56,8 +52,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_remove_style_all(state.arc);
   lv_obj_set_pos(state.arc, 0, 0);
   lv_obj_set_size(state.arc, inner_width, inner_height);
-  // The knob is the draggable handle of an input control, and the dashboard has
-  // no input; leaving it on would draw a dot at the end of every gauge.
   lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_SCROLLABLE);
   lv_arc_set_mode(state.arc, LV_ARC_MODE_NORMAL);
@@ -70,8 +64,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_set_style_arc_color(state.arc, lv_color_hex(config.fill_color),
                              LV_PART_INDICATOR);
   lv_obj_set_style_arc_opa(state.arc, LV_OPA_COVER, LV_PART_INDICATOR);
-  // An unpainted track is what an arc drawn over a shape wants, so a missing
-  // colour hides the background part rather than guessing one.
   const bool has_track = config.track_color != configuration::kTransparentColor;
   lv_obj_set_style_arc_color(
       state.arc, lv_color_hex(has_track ? config.track_color : 0x000000),
@@ -114,7 +106,6 @@ void Collection::render_state(State& state) {
   }
   state.initialized = true;
 
-  // An unavailable source reads as empty rather than holding its last sweep.
   const std::optional<double> numeric = conditions::condition_value(value);
   const float fraction =
       numeric.has_value() ? conditions::range_fraction(*numeric, state.range)
@@ -142,4 +133,4 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
   });
 }
 
-}  // namespace simcore::dashboard::arc_widget
+}

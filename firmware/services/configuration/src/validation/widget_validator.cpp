@@ -43,19 +43,11 @@ bool Validator::text_source(const TextSourceConfiguration& config) {
   return true;
 }
 
-// Styling rules read one telemetry source and may not blink faster than the eye
-// can follow or so slowly that the widget looks broken.
-
-
-// Styling rules read one telemetry source and may not blink faster than the eye
-// can follow or so slowly that the widget looks broken.
 bool Validator::conditions(const WidgetFrame& config) {
   if (config.condition_count > config.conditions.size() ||
       config.color_ramp.stop_count > config.color_ramp.stops.size()) {
     return reject(failure_, ValidationError::invalid_widget, "conditions");
   }
-  // A ramp needs at least two stops to interpolate between, and its stops have
-  // to climb, or the search for the pair a value sits between has no answer.
   if (config.color_ramp.stop_count == 1) {
     return reject(failure_, ValidationError::invalid_widget, "color_ramp");
   }
@@ -72,8 +64,6 @@ bool Validator::conditions(const WidgetFrame& config) {
       config.color_ramp.target > ColorRampTarget::border) {
     return reject(failure_, ValidationError::invalid_widget, "color_ramp");
   }
-  // Both mechanisms read the same source, so neither is configurable without
-  // one that resolves.
   if (config.condition_count == 0 && config.color_ramp.stop_count == 0) {
     return true;
   }
@@ -105,19 +95,11 @@ bool Validator::conditions(const WidgetFrame& config) {
   return true;
 }
 
-// Geometry, box and styling rules belong to every widget type, so each one
-// validates them here rather than repeating the same checks.
-
-
-// Geometry, box and styling rules belong to every widget type, so each one
-// validates them here rather than repeating the same checks.
 bool Validator::frame(const WidgetFrame& config) {
   if (!on_display(origin_x_, origin_y_, config.placement,
                   profile_.display.width, profile_.display.height)) {
     return reject(failure_, ValidationError::invalid_widget, "placement");
   }
-  // Bounded by the display rather than by the container: padding eats into the
-  // widget's own box, and a container is no longer what limits a widget.
   if (config.padding.left > profile_.display.width ||
       config.padding.right > profile_.display.width ||
       config.padding.top > profile_.display.height ||
@@ -127,15 +109,10 @@ bool Validator::frame(const WidgetFrame& config) {
   if (!valid_color(config.border.color)) {
     return reject(failure_, ValidationError::invalid_widget, "border");
   }
-  // Everything the schema states as a plain bound, checked from the schema:
-  // the border line, its radius, and the padding around a caption that widens
-  // the mask cutting that line.
   if (const std::string_view out_of_range = schema::range_error(config);
       !out_of_range.empty()) {
     return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
-  // The inset eats into the widget from both sides, so it cannot claim more
-  // than the box has to give.
   if (2 * config.background_inset_px + 2 * config.border.width_px >=
           config.placement.width ||
       2 * config.background_inset_px + 2 * config.border.width_px >=
@@ -165,13 +142,6 @@ bool Validator::frame(const WidgetFrame& config) {
   return conditions(config);
 }
 
-// A page's rules select which page of the slot is shown rather than restyling
-// anything, so the operator and the watched source are all there is to check.
-// What each trigger requires is stated per trigger rather than loosely for all
-// three: a binding, a rule or a duration that nothing reads is how an author
-// comes to believe an alert works.
-
-
 bool Validator::value_source(const ValueSourceConfiguration& config) {
   if (!registry_.resolve(value_binding_view(config.binding)).valid()) {
     return reject(failure_, ValidationError::invalid_widget, "source");
@@ -191,4 +161,4 @@ bool Validator::value_range(const ValueRange& range) {
   return true;
 }
 
-}  // namespace simcore::configuration::validation
+}

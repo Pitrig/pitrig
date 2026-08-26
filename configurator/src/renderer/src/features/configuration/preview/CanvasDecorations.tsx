@@ -10,18 +10,6 @@ import type { fitWidgetToDisplay } from '../editor/insert-template'
 import { flattenScreen } from './preview-layers'
 import { WidgetLayers } from './WidgetLayers'
 
-// The inert decorations the canvas draws around the widgets: container hints,
-// clipped-away markers, tap-target outlines and the insert ghost. All of them
-// are pointerEvents="none" fragments — nothing here handles input.
-
-/**
- * A container is a visible widget with its own hit area, so all it needs here
- * is a hint that it holds things — drawn under the widgets, and only on the
- * outline so it never steals a click from a child. A slot draws nothing at
- * all, so its outline is not a hint but the only thing that says where it is;
- * and every container gets one while something is being dragged, because an
- * empty shape is otherwise an invisible place to drop into.
- */
 export function ContainerHints({
   layers,
   selection,
@@ -61,8 +49,6 @@ export function ContainerHints({
             fill="none"
             stroke={landing ? '#38F5A8' : picked || drillIn === id ? stroke : `${stroke}80`}
             strokeWidth={(landing ? 2 : 1) / zoom}
-            // Solid says the drop lands here; dashed is only a hint that
-            // something holds widgets.
             strokeDasharray={landing ? undefined : `${2 / zoom} ${4 / zoom}`}
             pointerEvents="none"
           />
@@ -72,12 +58,6 @@ export function ContainerHints({
   )
 }
 
-/**
- * A widget its container cuts away entirely draws nothing, here and on the
- * board. Nothing is not something an author can select or drag back, so the
- * editor says where it went — the hit area under this outline is live, which
- * is what makes it recoverable.
- */
 export function ClippedAwayOutlines({
   layers,
   placements,
@@ -114,10 +94,6 @@ export function ClippedAwayOutlines({
   )
 }
 
-/**
- * A tap target is only a tap target on the board, so the canvas says so: an
- * empty transparent shape would otherwise be an invisible rectangle.
- */
 export function TapTargets({
   layers,
   placements,
@@ -127,8 +103,6 @@ export function TapTargets({
   placements: Map<string, Placement>
   zoom: number
 }): React.JSX.Element {
-  // Every tap target is a widget now — a container carries its action on the
-  // frame like any other — so one pass collects them all in display coordinates.
   const targets = layers
     .filter(
       (layer) => layer.configuration.action?.type && layer.configuration.action.type !== 'none'
@@ -167,11 +141,6 @@ export function TapTargets({
   )
 }
 
-/**
- * What the click will put down, drawn where it will land. Inert, so the press
- * underneath it still reaches the surface. Flattened, so a container being
- * placed shows what is inside it rather than an empty box.
- */
 export function InsertGhost({
   fitted,
   at,

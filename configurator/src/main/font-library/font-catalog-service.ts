@@ -14,17 +14,8 @@ import {
 } from '../../shared/font-library'
 import { hasTabularDigits } from './font-metrics'
 
-/**
- * Only this host is ever fetched from, and only for a URL the checked-in
- * catalog supplies. A URL that arrived in a request is never a download target.
- */
 const ASSET_HOST = 'https://fonts.gstatic.com/'
 const DOWNLOAD_TIMEOUT_MS = 15_000
-/**
- * Previewing a list means downloading faces the author may never choose, so the
- * cache is bounded and disposable — nothing in the library, the document or a
- * package ever points into it.
- */
 const MAXIMUM_CACHE_BYTES = 128 * 1024 * 1024
 
 interface CatalogVariant {
@@ -38,20 +29,12 @@ interface CatalogFamily {
   variants: CatalogVariant[]
 }
 
-/**
- * The Google Fonts catalog: a checked-in snapshot of what Google serves, and
- * the downloads that turn one of its rows into a real face.
- *
- * The catalog is a file beside the bundle rather than an import, because it is
- * megabytes of data the app only needs once the picker is opened.
- */
 export class FontCatalogService {
   private families: CatalogFamily[] | undefined
   private readonly inFlight = new Map<string, Promise<Uint8Array | undefined>>()
 
   constructor(private readonly cacheDirectory: string) {}
 
-  /** What the picker lists. Face URLs are deliberately not part of this. */
   async list(): Promise<FontCatalogFamily[]> {
     return (await this.load()).map((family) => ({
       name: family.name,
@@ -60,16 +43,8 @@ export class FontCatalogService {
     }))
   }
 
-  /**
-   * A family's first variant, downloaded if it is not cached, so a row can be
-   * drawn in its own face. A failure is a row that reads in the stand-in — never
-   * an error the author has to dismiss.
-   */
   async preview(familyName: string): Promise<FontCatalogPreview | undefined> {
     const family = (await this.load()).find((entry) => entry.name === familyName)
-    // The regular weight is what a family looks like; a row previewed in
-    // whichever weight happened to be listed first shows Light for anything
-    // that ships one.
     const shown =
       family?.variants.find((variant) => variant.variant === '400') ?? family?.variants[0]
     if (!family || !shown) return undefined
@@ -86,7 +61,6 @@ export class FontCatalogService {
     }
   }
 
-  /** The exact face behind one family and variant, for adding it to the library. */
   async faceFor(
     familyName: string,
     variant: FontVariant
@@ -104,7 +78,6 @@ export class FontCatalogService {
   private async face(id: string, url: string): Promise<Uint8Array | undefined> {
     const cached = await this.readCached(id)
     if (cached) return cached
-    // One download per face even when a dozen rows scroll past at once.
     const existing = this.inFlight.get(id)
     if (existing) return existing
     const download = this.download(id, url).finally(() => this.inFlight.delete(id))
@@ -120,9 +93,6 @@ export class FontCatalogService {
       const response = await fetch(url, { signal: abort.signal })
       if (!response.ok) return undefined
       const bytes = new Uint8Array(await response.arrayBuffer())
-      // An error page is bytes too, so what came back has to look like a face
-      // before it is cached under a font's name. A face larger than the whole
-      // partition could never be installed, so it is not worth caching either.
       if (bytes.byteLength > MAXIMUM_FACE_SIZE || !isFontFace(bytes)) return undefined
       await this.writeCached(id, bytes)
       return bytes
@@ -149,11 +119,9 @@ export class FontCatalogService {
       await writeFile(join(this.cacheDirectory, `${id}.ttf`), bytes)
       await this.prune()
     } catch {
-      // A cache that cannot be written costs a re-download, nothing else.
     }
   }
 
-  /** Oldest first, until the cache is back under its cap. */
   private async prune(): Promise<void> {
     try {
       const names = await readdir(this.cacheDirectory)
@@ -171,7 +139,6 @@ export class FontCatalogService {
         total -= file.size
       }
     } catch {
-      // Pruning is housekeeping; failing at it is not worth a visible error.
     }
   }
 
@@ -181,7 +148,6 @@ export class FontCatalogService {
       const parsed: unknown = JSON.parse(await readFile(catalogPath, 'utf8'))
       this.families = readCatalog(parsed)
     } catch {
-      // No catalog is a picker with no Google group, not a broken application.
       this.families = []
     }
     return this.families

@@ -7,19 +7,12 @@ import type { SnapField, SnapPreferences } from './snapping'
 import { snapMode, type CanvasContext } from './canvas-gesture-context'
 import { useDeviceStore } from '@/features/device/device-store'
 
-// The pure half of a canvas gesture: which boxes a drag lines up with, which
-// container it would land in, and what a resize will rewrite. All of it reads
-// the CanvasContext of the render that started the gesture, so the hook that
-// owns the pointer state stays the only stateful piece.
-
 export function preferences(
   context: CanvasContext,
   event: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }
 ): SnapPreferences {
   return {
     grid: context.snap.snapToGrid ? context.gridSize : 0,
-    // Snapping is in logical pixels, so the tolerance shrinks as the canvas is
-    // magnified and stays the same distance under the pointer.
     tolerance: context.snap.tolerancePx / context.view.zoom,
     widgets: context.snap.snapToWidgets,
     spacing: context.snap.snapToSpacing,
@@ -27,15 +20,6 @@ export function preferences(
   }
 }
 
-/**
- * The level a gesture lines up within: the siblings of whichever container
- * holds the box, that container's own edges and the area inside its padding.
- *
- * A widget only ever lines up with what it lives beside. Treating the whole
- * screen as one field made a readout inside a panel snap to a readout in the
- * panel next door — two boxes that have nothing to do with each other and
- * that the author cannot see a relationship between.
- */
 export function snapField(
   context: CanvasContext,
   levelId: string | undefined,
@@ -63,7 +47,6 @@ export function snapField(
   }
 }
 
-/** A widget, everything inside it, and everything moving with it. */
 export function excludedFrom(movedId: string, followers: readonly Follower[]): Set<string> {
   const widget = findWidget(useDeviceStore.getState().draft, movedId)?.widget
   const excluded = new Set(
@@ -76,12 +59,6 @@ export function excludedFrom(movedId: string, followers: readonly Follower[]): S
   return excluded
 }
 
-/**
- * The container a dragged widget would join, resolved against the document as
- * it stands. A widget cannot land in itself or in anything it holds, and a
- * group drag lands nowhere: reparenting only the widget under the pointer
- * would split the selection across two boxes.
- */
 export function dropTargetFor(
   context: CanvasContext,
   box: Placement | undefined,
@@ -99,11 +76,6 @@ export function dropTargetFor(
   )
 }
 
-/**
- * What a resize will rewrite, snapshotted before the first frame. A widget
- * inside another selected widget is left out: it would be scaled once by its
- * own entry and again by its container's, and compound.
- */
 export function resizeSubjects(
   context: CanvasContext,
   ids: readonly string[]

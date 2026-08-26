@@ -14,18 +14,10 @@ namespace {
 
 constexpr char kTag[] = "boot_guard";
 
-// Three consecutive faults. Two would let one power glitch and one genuine
-// crash take the dashboard away between them; five leaves a board that really
-// is broken unreachable for five reboots in a row.
 constexpr std::uint8_t kFailureThreshold = 3;
 
-// How long a boot has to run before its predecessors are forgiven. Wider than
-// composition and the first frames by a long margin, so a fault that only
-// shows once telemetry starts arriving still accumulates.
 constexpr std::uint64_t kStabilityWindowUs = 10'000'000;
 
-// "SCBG", little endian. RTC memory holds whatever it held before power was
-// applied, so nothing in the record may be believed until this matches.
 constexpr std::uint32_t kRecordMagic = 0x4742'4353U;
 
 struct Record {
@@ -35,9 +27,6 @@ struct Record {
   std::uint16_t reserved;
 };
 
-// Survives the reset a panic causes, which is the whole point: the counter has
-// to outlive the fault it counts. It is deliberately outside the startup clear,
-// so it is undefined on the first boot after power is applied — hence the magic.
 RTC_NOINIT_ATTR Record record;
 
 Status current_status;
@@ -71,15 +60,13 @@ constexpr std::array<std::string_view, 6> kResetCauseNames{{
   }
 }
 
-// Only a fault counts. A restart the host asked for says nothing about whether
-// the firmware can run, and neither does the first boot after power is applied.
 [[nodiscard]] bool counts_as_failure(const ResetCause cause) {
   return cause == ResetCause::panic || cause == ResetCause::task_watchdog;
 }
 
 void on_stability_elapsed(void*) { clear_failures(); }
 
-}  // namespace
+}
 
 std::string_view phase_name(const Phase phase) {
   const auto index = static_cast<std::size_t>(phase);
@@ -94,9 +81,6 @@ std::string_view reset_cause_name(const ResetCause cause) {
 
 void begin() {
   const ResetCause cause = classify(esp_reset_reason());
-  // A power-on starts the count over whatever the retained bytes happen to
-  // say. Pulling the cable is the one recovery that needs no host at all, and
-  // carrying a stale count across it would deny the user that.
   if (record.magic != kRecordMagic || cause == ResetCause::power_on) {
     record = {
         .magic = kRecordMagic,
@@ -144,9 +128,6 @@ bool safe_mode() { return current_status.safe_mode; }
 void reached(const Phase phase) {
   record.phase = static_cast<std::uint8_t>(phase);
 #if SIMCORE_DEBUG
-  // What the ordering actually costs, phase by phase. A debug build is where
-  // that question gets asked, and one line each is cheaper to read than a
-  // timestamp column nobody set up.
   const std::string_view name = phase_name(phase);
   log::info(kTag, "Phase %.*s at %lu ms", static_cast<int>(name.size()),
             name.data(),
@@ -155,8 +136,6 @@ void reached(const Phase phase) {
 }
 
 void arm_stability_window() {
-  // With nothing counted against this boot there is nothing to forgive, which
-  // is the healthy board's case: it pays for none of this.
   if (stability_timer != nullptr || record.failures == 0) {
     return;
   }
@@ -168,9 +147,6 @@ void arm_stability_window() {
       .skip_unhandled_events = true,
   };
   if (esp_timer_create(&arguments, &stability_timer) != ESP_OK) {
-    // Nothing to fall back on, and nothing that needs one: leaving the counter
-    // where it is only means the next fault is counted against a boot that had
-    // already earned its place, which is the safe direction to be wrong in.
     stability_timer = nullptr;
     return;
   }
@@ -182,4 +158,4 @@ void clear_failures() {
   current_status.consecutive_failures = 0;
 }
 
-}  // namespace simcore::boot_guard
+}

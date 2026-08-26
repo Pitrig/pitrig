@@ -9,20 +9,6 @@ import { transferReportLines } from '@/features/configuration/transfer-report'
 import { SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
 import type { LayoutTransferResult } from '@shared/layout-transfer'
 
-/**
- * Which display the canvas is drawing.
- *
- * It sits at the right of the status bar, where the resolution used to be
- * printed: the board *is* that resolution, so a label stating one and a control
- * choosing the other would have been the same fact twice. A connected board
- * answers it itself and the control is a statement; with nothing plugged in it
- * is a choice, and it has to be on the canvas rather than only on the Configs
- * page, because the canvas is where the size is visible.
- *
- * Changing it while a draft exists is a layout transfer, not a relabelling —
- * that is what `convertDraftToBoard` confirms, in the numbers the new display
- * produces.
- */
 export function BoardPicker(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const draft = useDeviceStore((state) => state.draft)
@@ -57,8 +43,6 @@ export function BoardPicker(): React.JSX.Element {
       setOfflineBoard(undefined)
       return
     }
-    // With no draft there is nothing to move: the choice only tells "New" what
-    // to create and the canvas how large to draw.
     if (!draft) {
       setOfflineBoard(next)
       return
@@ -87,7 +71,6 @@ export function BoardPicker(): React.JSX.Element {
         ))}
       </select>
 
-      {/* Only meaningful while there is a layout to carry across. */}
       {draft ? (
         <div className="flex items-center rounded-md border" role="group" aria-label="Fit">
           {(['contain', 'stretch'] as const).map((option) => (
@@ -113,9 +96,6 @@ export function BoardPicker(): React.JSX.Element {
         </div>
       ) : null}
 
-      {/* Both are one line in a row that has no room for a paragraph: the whole
-          text is in the tooltip, and the transfer report is on the Configs page
-          in full. */}
       {error ? (
         <span className="max-w-40 truncate text-[11px] text-red-400" title={error}>
           {error}
@@ -133,7 +113,6 @@ export function BoardPicker(): React.JSX.Element {
   )
 }
 
-/** The same choice, as the first step of an empty canvas rather than a chip. */
 export function BoardChoice({
   value,
   onChange

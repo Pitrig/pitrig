@@ -1,13 +1,3 @@
-# The ESP32-S3 executes from flash through a 32 KB instruction cache, and the
-# draw path is what misses in it: a redraw costs the same whatever area it
-# covers, and every cache-sized change moved that cost while no pixel-oriented
-# one did. These are the translation units a frame runs through — the software
-# blender, the rect, border, label and glyph paths, the refresh loop, and the
-# style and text lookups each object performs — placed in internal RAM.
-#
-# It buys ~20% of the render time for ~62 KB of internal RAM, which the board
-# has to spare once LVGL's heap lives in external memory. Registered only for
-# the ESP32-S3; see the guard in CMakeLists.txt.
 [mapping:lvgl_hot]
 archive: liblvgl__lvgl.a
 entries:

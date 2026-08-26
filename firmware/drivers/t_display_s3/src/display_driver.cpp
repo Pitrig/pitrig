@@ -14,13 +14,6 @@ namespace {
 constexpr char kTag[] = "t_display_s3";
 constexpr int kHorizontalResolution = 320;
 constexpr int kVerticalResolution = 170;
-// Two draw buffers of this height, in internal DMA memory. LVGL renders the
-// invalidated areas rather than the whole buffer, so a widget redraw barely
-// notices the height; a repaint of the whole screen does, because it is split
-// into that many more transfers. Measured at 20, 40 and 80 lines: the widget
-// case moves by ~3%, while the whole-screen case costs 11.3 ms at 20 lines and
-// 9.6 ms at both 40 and 80. Forty is where the worst frame stops improving,
-// and it hands 51 KB of internal RAM back to the rest of the firmware.
 constexpr int kBufferLines = 40;
 constexpr int kPixelClockHz = 20'000'000;
 
@@ -129,7 +122,7 @@ driver::Configuration initialize_panel() {
   };
 }
 
-}  // namespace
+}
 
 namespace {
 
@@ -150,10 +143,10 @@ const driver::Driver kDriver{
     .on_display_ready = on_display_ready,
 };
 
-}  // namespace
+}
 
 const driver::Driver& get() {
   return kDriver;
 }
 
-}  // namespace simcore::display::drivers::t_display_s3
+}

@@ -4,8 +4,6 @@
 namespace simcore::input::drivers::guition_esp32_4848s040 {
 namespace {
 
-// The panel exposes no reset or interrupt line on this board, so the controller
-// keeps its power-on address and the LVGL port polls it.
 constexpr gpio_num_t kSdaPin = GPIO_NUM_19;
 constexpr gpio_num_t kSclPin = GPIO_NUM_45;
 constexpr std::uint32_t kClockHz = 400'000;
@@ -32,8 +30,8 @@ constexpr driver::Driver kDriver = {
     .initialize = initialize,
 };
 
-}  // namespace
+}
 
 const driver::Driver& get() { return kDriver; }
 
-}  // namespace simcore::input::drivers::guition_esp32_4848s040
+}

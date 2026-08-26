@@ -26,10 +26,6 @@ constexpr std::uint32_t kTaskMaxSleepMs = 8;
 #else
 constexpr std::uint32_t kTaskMaxSleepMs = 16;
 #endif
-// LVGL timers become due in tick units, so the tick period bounds how late a
-// widget timer runs after its period elapsed and how soon a wake-triggered
-// refresh may follow the previous one. 2 ms keeps that error small; the
-// esp_timer callback that advances the tick costs microseconds.
 constexpr std::uint32_t kTimerPeriodMs = 2;
 
 StaticSemaphore_t refresh_signal_storage;
@@ -126,9 +122,6 @@ void on_flush_wait_finished(lv_event_t*) {
   performance::flush_wait_finished();
 }
 
-// LVGL runs the flush callback and any wait for a previous flush from inside
-// its render pass, so both intervals are reported separately and the service
-// subtracts them from the render time.
 void register_performance_events(lv_display_t* display) {
   lv_display_add_event_cb(display, on_refresh_started, LV_EVENT_REFR_START, nullptr);
   lv_display_add_event_cb(display, on_render_started, LV_EVENT_RENDER_START, nullptr);
@@ -145,7 +138,7 @@ void register_performance_events(lv_display_t* display) {
 }
 #endif
 
-}  // namespace
+}
 
 bool rendering_in_progress() {
   return rendering.load(std::memory_order_acquire);
@@ -153,9 +146,6 @@ bool rendering_in_progress() {
 
 bool refresh_and_wait(lv_display_t* const display,
                       const std::uint32_t timeout_ms) {
-  // One binary semaphore, created by initialize(): this waits for one refresh
-  // on behalf of one caller at a time, which is what startup needs. Two
-  // concurrent callers would share the signal and one of them would time out.
   if (display == nullptr || refresh_signal == nullptr) {
     return false;
   }
@@ -193,12 +183,6 @@ bool refresh_and_wait(lv_display_t* const display,
   return refreshed;
 }
 
-// A panel that will not come up is reported, not fatal. Aborting here used to
-// reboot, and a reboot repeats it: the device would loop instead of ever
-// answering. The core already treats a null display as "this board draws
-// nothing", which is the state a failed panel leaves it in, and the serial link
-// is up by the time this runs — so a board whose screen is dead is still a
-// board that can be read, reconfigured and reflashed.
 lv_display_t* initialize(const driver::Driver& selected_driver) {
   if (selected_driver.initialize == nullptr ||
       selected_driver.on_display_ready == nullptr) {
@@ -288,9 +272,6 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
 #if SIMCORE_DEBUG
   register_performance_events(display);
 #endif
-  // The first frame is what proves the panel actually flushes. Without it the
-  // dashboard would compose onto a screen nothing reaches, so the display is
-  // reported as absent rather than as working.
   if (!configure_initial_black_screen(display)) {
     ESP_LOGE(kTag, "Panel did not present its first frame");
     return nullptr;
@@ -299,4 +280,4 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
   return display;
 }
 
-}  // namespace simcore::display
+}

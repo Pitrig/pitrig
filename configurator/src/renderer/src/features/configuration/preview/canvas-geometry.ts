@@ -9,33 +9,12 @@ export interface PreviewLayer {
   configuration: WidgetConfiguration
   zIndex: number
   configurationOrder: number
-  /**
-   * The container holding this widget, absent for one on the screen itself.
-   * A gesture lines a widget up with its own siblings, so the canvas has to
-   * know which level each layer belongs to.
-   */
   parentId?: string
-  /**
-   * Where this widget's parent sits on the display — the sum of every container
-   * above it — or zero for a widget on the screen.
-   */
   offsetX: number
   offsetY: number
-  /**
-   * What the containers above this widget cut it down to, in display
-   * coordinates: the intersection of every clipping ancestor's box, or
-   * undefined when nothing above it clips. A container's own frame and caption
-   * are not in it — the device draws both on the parent, so a container never
-   * cuts its own edge off.
-   */
   clip?: Placement
 }
 
-/**
- * The part two boxes share. Empty where they miss each other entirely, which is
- * a widget dragged clean out of the container it belongs to: nothing of it is
- * drawn, exactly as on the board.
- */
 export function intersection(outer: Placement, inner: Placement): Placement {
   const x = Math.max(outer.x, inner.x)
   const y = Math.max(outer.y, inner.y)
@@ -47,44 +26,24 @@ export function intersection(outer: Placement, inner: Placement): Placement {
   }
 }
 
-/**
- * Whether this container cuts its children off at its box. Omitted means it
- * does, which is the schema default and LVGL's own behaviour; a slot answers
- * for every one of its pages at once.
- */
 export function clipsChildren(widget: WidgetConfiguration): boolean {
   return (
     (widget.type === 'shape' || widget.type === 'slot') && widget.clip_children !== false
   )
 }
 
-/**
- * Fragment identifiers referenced from `url(#…)`. They are derived from
- * positions rather than from ids because a widget id is author-supplied and
- * bounded only in length — a space or a quote in one would produce
- * markup that silently references nothing.
- */
 export function widgetClipId(index: number): string {
   return `widget-clip-${index}`
 }
 
-/** The clip the containers above one layer impose, as opposed to its own box. */
 export function containerClipId(index: number): string {
   return `container-clip-${index}`
 }
 
-/**
- * React's generated ids carry punctuation of their own, which the same
- * references cannot take either.
- */
 export function markupId(generated: string): string {
   return generated.replace(/[^A-Za-z0-9_-]/g, '')
 }
 
-/**
- * Which page of a slot the canvas draws. The tabs pick one; before anything is
- * picked it is the first page in the loop, which is where the device starts too.
- */
 export function visibleSlotPage(
   widget: SlotWidgetConfiguration,
   picked: Record<string, number>
@@ -103,43 +62,28 @@ export function actionLabel(action: WidgetAction | undefined): string {
 }
 
 
-/** The only part of a display these need: a board descriptor satisfies it. */
 export type DisplaySize = { width: number; height: number }
 
 export type ResizeMode = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
 export type InteractionMode = 'move' | ResizeMode
 export type Placement = Required<NonNullable<TextWidgetConfiguration['placement']>>
 
-/** A widget that moves with the one under the pointer. */
 export interface Follower {
   id: string
   placement: Placement
 }
 
-/**
- * A gesture in progress. `placement` is the box it started from — the widget's
- * own, or the one around the whole selection — and every frame resolves the
- * pointer against that rather than against the last frame, so the same pointer
- * position always means the same result.
- */
 export interface Interaction {
   pointerId: number
   target: WidgetSelection
   mode: InteractionMode
   start: { x: number; y: number }
   placement: Placement
-  /** Widgets carried along by a move. */
   followers: Follower[]
-  /**
-   * What a resize acts on, snapshotted whole: one widget, or every outermost
-   * member of the selection when the group's own frame is being dragged.
-   */
   subjects: ScaleSubject[]
-  /** The container the gesture began inside, which is the level it lines up within. */
   level?: string
 }
 
-/** A box drawn on the canvas by a tool, which becomes a widget on release. */
 export interface Draw {
   pointerId: number
   tool: Exclude<CanvasTool, 'select'>
@@ -171,17 +115,6 @@ export function marqueeBounds(marquee: Marquee): Placement {
   }
 }
 
-/**
- * The container a dragged box would join: the innermost one that holds it
- * whole. Entirely inside rather than under the pointer, so a readout the author
- * deliberately hung over the edge of a plate is not swallowed by it, and so the
- * answer does not change with where on the widget the drag was started.
- *
- * `layers` is in draw order — a parent immediately before what is inside it —
- * so the last container that qualifies is the deepest one, at any nesting.
- * Locked and hidden layers are not candidates: a drop into something the author
- * has set aside reads as the widget vanishing.
- */
 export function containerAt(
   layers: readonly PreviewLayer[],
   placements: ReadonlyMap<string, Placement>,
@@ -218,7 +151,6 @@ export function intersects(placement: Placement, bounds: Placement): boolean {
   )
 }
 
-/** Screen pixels per logical pixel, which is what a pan in client space costs. */
 export function viewportScale(
   svg: SVGSVGElement | null,
   display: DisplaySize,
@@ -228,12 +160,6 @@ export function viewportScale(
   return (width / display.width) * zoom
 }
 
-/**
- * Keeps the view over the display. Magnified there is more display than
- * viewport and the pan says which part is shown; below one to one the viewport
- * is the larger of the two, so there is nothing to pan to and the display is
- * centred in the space instead of sitting in a corner.
- */
 export function clampPan(
   pan: { panX: number; panY: number },
   display: DisplaySize,
@@ -256,16 +182,6 @@ export function logicalPoint(svg: SVGSVGElement | null, clientX: number, clientY
   return { x: point.x, y: point.y }
 }
 
-/**
- * The view that puts one box on screen: magnified until it nearly fills the
- * canvas, and centred. A margin is left around it deliberately — a box scaled
- * to the very edge gives no sense of where on the display it sits.
- *
- * The zoom is a factor over "the whole display fits the canvas", which is what
- * one means here: the surface always scales to the space it has, so a
- * percentage of physical pixels would be a number about the window rather than
- * about the dashboard.
- */
 export function viewForBox(
   box: Placement,
   display: DisplaySize,

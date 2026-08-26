@@ -9,9 +9,6 @@
 
 namespace simcore::platform {
 
-// One data partition as asset storage. The label and the size it must have are
-// given by whoever owns the partition, so a second asset kind is a second
-// instance rather than a second class.
 class PartitionStorage final : public asset_storage::IStorage {
  public:
   PartitionStorage(const char* label, std::size_t expected_size)
@@ -40,4 +37,4 @@ class PartitionStorage final : public asset_storage::IStorage {
   Mapping mapping_{};
 };
 
-}  // namespace simcore::platform
+}

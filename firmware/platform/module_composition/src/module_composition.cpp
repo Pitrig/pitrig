@@ -35,8 +35,6 @@ void stop_lap_timer(void* const context) {
   }
 }
 
-// A text source and a mapped source are separate structs that agree on the
-// modifier list, so this reads either.
 template <typename Source>
 [[nodiscard]] bool uses_lap_timer(const Source& source) {
   for (std::size_t index = 0; index < source.modifier_count; ++index) {
@@ -48,18 +46,10 @@ template <typename Source>
   return false;
 }
 
-// Every place a modifier can be authored, not only the text sources. A bar,
-// arc, indicator or graph binds one the same way, and so does the source a
-// styling rule watches or a slot activates on. Counting one of those places
-// and not the others left the module stopped behind a reader that would then
-// never report a value — the modifier looked configured and did nothing.
 bool has_lap_timer_modifier(
     const configuration::ApplicationConfiguration& configuration) {
   const auto& dashboard = configuration.dashboard;
 
-  // Every type carries a frame, and the traits table reaches all eight pools
-  // without naming one — which is what keeps a new widget type from silently
-  // leaving the module unstarted, the way an earlier hand-written sweep did.
   for (const configuration::WidgetTypeTraits& traits :
        configuration::kWidgetTypeTraits) {
     const std::uint8_t count = traits.count(dashboard);
@@ -95,9 +85,6 @@ bool has_lap_timer_modifier(
       mapped(dashboard.graph_widgets, dashboard.graph_widget_count)) {
     return true;
   }
-  // A graph draws its own source plus the traces beside it, and each of those
-  // binds a modifier the same way, so the sweep above covers only the first of
-  // up to three.
   for (std::size_t index = 0; index < dashboard.graph_widget_count; ++index) {
     const auto& widget = dashboard.graph_widgets[index];
     for (std::size_t trace = 0; trace < widget.trace_count; ++trace) {
@@ -106,9 +93,6 @@ bool has_lap_timer_modifier(
       }
     }
   }
-  // A slot page watches its own source, separate from the styling rules the
-  // sweep above covers, so a lap_timer modifier there would otherwise leave the
-  // module unstarted and the page never appearing.
   for (std::size_t index = 0; index < dashboard.slot_widget_count; ++index) {
     const auto& widget = dashboard.slot_widgets[index];
     for (std::size_t page = 0; page < widget.page_count; ++page) {
@@ -120,7 +104,7 @@ bool has_lap_timer_modifier(
   return false;
 }
 
-}  // namespace
+}
 
 bool start(Modules& modules, events::EventBus& event_bus,
            const telemetry::ITelemetryRegistry& telemetry_registry,
@@ -149,4 +133,4 @@ bool start(Modules& modules, events::EventBus& event_bus,
   return modules.manager.start_all();
 }
 
-}  // namespace simcore::module_composition
+}

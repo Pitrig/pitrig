@@ -7,20 +7,6 @@ import type { RgbColor } from '@shared/configuration-schema'
 import { dashboardPalette } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
 
-/**
- * The colour picker, rather than the browser's.
- *
- * The native `<input type="color">` popup is drawn by the browser outside the
- * document, so nothing can be added to it — which left the colours already on
- * the dashboard stranded under the field, taking a row from every colour
- * property on screen. Rebuilding the popup is what puts them where they belong:
- * inside it, under the channels, one click from the surface being edited.
- *
- * Hue is held here rather than read back from the colour, because black and
- * grey have none to read: dragging value down to zero and back up would
- * otherwise return red instead of the colour it started from.
- */
-
 interface EyeDropperResult {
   sRGBHex: string
 }
@@ -33,7 +19,6 @@ declare global {
 
 const MARGIN = 6
 const WIDTH_PX = 232
-/** Below this much room underneath, the popup goes above the swatch instead. */
 const NEEDED_PX = 300
 
 export function ColorPicker({
@@ -45,7 +30,6 @@ export function ColorPicker({
   value: string
   label: string
   onChange: (value: RgbColor) => void
-  /** Ends the edit group a drag opened, exactly as leaving the hex field does. */
   onClose: () => void
 }): React.JSX.Element {
   const trigger = useRef<HTMLButtonElement>(null)
@@ -80,17 +64,12 @@ export function ColorPicker({
       if (popover.current?.contains(target) || trigger.current?.contains(target)) return
       close()
     }
-    // Captured on the window so it runs before the editor's own shortcuts:
-    // Escape with a popup open means "close the popup", and letting it through
-    // would clear the selection out from under the widget being edited.
     const key = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
       event.stopPropagation()
       close()
     }
     place()
-    // Positioned in viewport coordinates, so it has to follow the swatch when
-    // the inspector scrolls under it.
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
     window.addEventListener('pointerdown', away, true)
@@ -154,8 +133,6 @@ export function ColorPicker({
                             const picked = parseHex(sRGBHex)
                             if (picked) emit(picked)
                           })
-                          // Dismissing the eyedropper rejects, and that is a
-                          // cancel rather than a failure.
                           .catch(() => undefined)
                       }}
                     >
@@ -171,11 +148,6 @@ export function ColorPicker({
                     hue={activeHue}
                     onChange={(next) => {
                       setHue(next)
-                      // Grey and black have no hue to rotate, and two of the
-                      // three colours this app starts a widget with are pure
-                      // grey — a slider that visibly does nothing on them reads
-                      // as broken. Waking the colour up is undone by one drag
-                      // in the square above; nothing happening is not.
                       emit(hsvToRgb(next, hsv.s === 0 ? 1 : hsv.s, hsv.v === 0 ? 1 : hsv.v))
                     }}
                   />
@@ -215,11 +187,6 @@ export function ColorPicker({
 
 const CHANNELS = ['r', 'g', 'b'] as const
 
-/**
- * The colours the document already uses, in the picker rather than under the
- * field. Reaching one is a click on the surface being edited, and the grid is
- * the same list the dashboard is actually painted from.
- */
 function DashboardPalette({
   current,
   onPick
@@ -237,8 +204,6 @@ function DashboardPalette({
           <button
             key={color}
             type="button"
-            // The hex is the whole label: a swatch names itself by the colour it
-            // shows, and a screen reader has nothing else to go on.
             title={color}
             aria-label={color}
             aria-pressed={color.toUpperCase() === current.toUpperCase()}

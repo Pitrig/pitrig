@@ -4,17 +4,6 @@ import {
 } from '../configuration-schema'
 import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
 
-// The protocol document's own rules, mirroring validate_transport() in
-// firmware/services/configuration/src/validation/document_rules.cpp.
-//
-// The UART pin pair is deliberately *not* checked here: the Transport page
-// states that the firmware checks the pins against the board's own pair and
-// refuses a document naming another, and that a wrong number costs a refused
-// save rather than a dark board. What is checked is what the page cannot say —
-// that the link itself exists on this board, which the transport picker offers
-// regardless.
-
-/** The device's own bound on a UART rate, whatever the picker offers. */
 const MINIMUM_BAUD_RATE = 9_600
 const MAXIMUM_BAUD_RATE = 2_000_000
 

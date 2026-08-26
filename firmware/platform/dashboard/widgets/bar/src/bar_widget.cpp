@@ -11,13 +11,12 @@ namespace {
 
 constexpr char kTag[] = "bar_widget";
 
-// Where a rule's value colour lands for this widget type.
 void apply_fill_color(void* const context, const std::uint32_t rgb) {
   lv_obj_set_style_bg_color(static_cast<lv_obj_t*>(context), lv_color_hex(rgb),
                             LV_PART_MAIN);
 }
 
-}  // namespace
+}
 
 bool Collection::build(State& state, const Layout& layout, const Config& config,
                        const frame::ValueBinding& binding,
@@ -25,7 +24,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
-  // A bar has no intrinsic size: the placement is the whole of it.
   if (!frame::build(layout, config.frame, kTag, 0, 0, false, fonts, parent,
                     bounds, box)) {
     return false;
@@ -42,9 +40,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.inverted = config.inverted;
   state.free_running = binding.fast_updates;
 
-  // LVGL positions a child against the content area, which the border and the
-  // padding already inset, so the fill starts at the content origin and spans
-  // what is left of the box.
   const std::int32_t border = config.frame.border.width_px;
   state.inner_width = std::max<std::int32_t>(
       bounds.width - 2 * border - config.frame.padding.left -
@@ -62,8 +57,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_set_style_bg_color(state.fill, lv_color_hex(config.fill_color),
                             LV_PART_MAIN);
   lv_obj_set_style_bg_opa(state.fill, LV_OPA_COVER, LV_PART_MAIN);
-  // A gradient runs along the bar's own axis, so it reads as depth on the fill
-  // rather than as a second colour crossing it.
   if (config.fill_grad_color != configuration::kTransparentColor) {
     lv_obj_set_style_bg_grad_color(state.fill,
                                    lv_color_hex(config.fill_grad_color),
@@ -106,8 +99,6 @@ bool Collection::create(const Layout& layout,
 
 void Collection::render_state(State& state) {
   const telemetry::TelemetryRead value = state.read(state.read_context);
-  // A slot advances its revision only when the stored value really changed, so
-  // an unchanged source needs no mapping and no resize.
   const bool first_render = !state.initialized;
   const bool changed = first_render || state.free_running ||
                        value.revision != state.rendered_revision ||
@@ -120,15 +111,12 @@ void Collection::render_state(State& state) {
   }
   state.initialized = true;
 
-  // An unavailable source reads as empty rather than holding its last length.
   const std::optional<double> numeric = conditions::condition_value(value);
   const float fraction =
       numeric.has_value() ? conditions::range_fraction(*numeric, state.range) : 0.0F;
   const bool horizontal =
       state.orientation == configuration::BarOrientation::horizontal;
   const std::int32_t span = horizontal ? state.inner_width : state.inner_height;
-  // The fill covers the stretch between the origin and the value, so a value
-  // below the origin fills backwards rather than reading as empty.
   const float nearest = std::min(state.origin_fraction, fraction);
   const float farthest = std::max(state.origin_fraction, fraction);
   const auto offset =
@@ -143,10 +131,6 @@ void Collection::render_state(State& state) {
   state.drawn_length = length;
   state.drawn_offset = offset;
 
-  // A horizontal bar counts from the left and a vertical one from the bottom,
-  // which is what a gauge reads as; inverting mirrors either axis. Both cases
-  // reduce to whether the offset starts at the low end of the axis, so the
-  // branches differ only in which coordinate they write.
   const bool from_axis_start = horizontal != state.inverted;
   const std::int32_t leading =
       from_axis_start ? offset : span - offset - length;
@@ -171,4 +155,4 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
   });
 }
 
-}  // namespace simcore::dashboard::bar_widget
+}

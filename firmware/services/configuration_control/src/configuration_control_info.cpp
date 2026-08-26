@@ -7,10 +7,6 @@
 #include "esp_app_desc.h"
 #include "transport.hpp"
 
-// The `INFO` half of configuration control: the one command that reports
-// instead of acting. It is the first thing a host asks and the only thing a
-// board in safe mode has to say for itself, which is why it lives apart from
-// the commands that change something.
 namespace simcore::configuration {
 
 void ConfigurationControl::send_info() {
@@ -20,9 +16,6 @@ void ConfigurationControl::send_info() {
   const std::string_view reset_reason =
       boot_guard::reset_cause_name(health.cause);
   const std::string_view last_phase = boot_guard::phase_name(health.phase);
-  // The fixed header first: what this board is, what it is running, and how the
-  // last boot went. `safe_mode` is what tells a host that the rest of this
-  // reply describes a device deliberately running on less than all of itself.
   int written = std::snprintf(
       reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
       "@SC:OK:INFO:board=%.*s,firmware=%s,schema=%u,storage=%u,safe_mode=%u,"
@@ -34,10 +27,6 @@ void ConfigurationControl::send_info() {
       static_cast<unsigned>(health.consecutive_failures),
       static_cast<int>(reset_reason.size()), reset_reason.data(),
       static_cast<int>(last_phase.size()), last_phase.data());
-  // Then one field per document: what became of its stored record, and which
-  // generation of it the device is running. A host that finds `absent` knows
-  // the board is on that document's factory values rather than having to
-  // infer it from a single source token that could only name one of three.
   for (std::size_t index = 0;
        written > 0 && index < kConfigurationDocumentCount; ++index) {
     const auto document = static_cast<ConfigurationDocument>(index);
@@ -64,4 +53,4 @@ void ConfigurationControl::send_info() {
   }
 }
 
-}  // namespace simcore::configuration
+}

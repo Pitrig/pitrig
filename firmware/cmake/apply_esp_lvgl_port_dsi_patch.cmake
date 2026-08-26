@@ -1,6 +1,3 @@
-# esp_lvgl_port 2.8.0 does not place its MIPI-DSI refresh callback in IRAM
-# when CONFIG_LCD_DSI_ISR_CACHE_SAFE is enabled. Keep this workaround pinned so
-# a component update cannot silently receive a stale patch.
 set(_simcore_port_dir
     "${CMAKE_CURRENT_LIST_DIR}/../managed_components/espressif__esp_lvgl_port")
 set(_simcore_port_manifest "${_simcore_port_dir}/idf_component.yml")

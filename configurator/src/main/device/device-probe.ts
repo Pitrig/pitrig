@@ -12,15 +12,6 @@ import { requestResponse, type TrafficCallback } from './serial-request'
 import { readConfiguration } from './simcore-protocol'
 
 const PROBE_TIMEOUT_MS = 1_000
-// The probe is the first thing written to a freshly opened port, and it opens
-// with a newline of its own. A scan walks the baud rates in turn, and a request
-// written at the wrong rate still reaches the device — as bytes that decode
-// into garbage carrying no line ending. The next request, correct rate and all,
-// is appended to that remnant and read as one unknown line, so the attempt that
-// should have succeeded is the one that is lost. The leading newline closes the
-// ruined line, which the device discards unrecognised, and leaves the request on
-// a line of its own. Only a board reached over a USB-serial bridge ever shows
-// this: a native USB link has no wrong rate to be probed at.
 const INFO_REQUEST = '\n@SC:INFO\n'
 const IMAGE_INFO_REQUEST = '@SC:IMAGE:INFO\n'
 const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
@@ -75,17 +66,6 @@ export async function probeSimCore(
   }
 }
 
-/**
- * A capability the connected firmware may not have. Firmware that does not know
- * the command answers `unknown_command` — bare from the configuration control,
- * or under its namespace as `<TAG>:unknown_command` — and that is a fact about
- * the board rather than a failure, so the probe reports the capability absent
- * and the panel for it stays away.
- *
- * The reason is read from the device's own token rather than from the message:
- * the message is a translated sentence for the reader, and matching its text
- * made every probe here reject a board it was meant to accept.
- */
 async function probeCapability<T>(
   port: SerialPort,
   request: string,

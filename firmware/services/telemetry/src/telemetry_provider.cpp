@@ -24,4 +24,4 @@ void TelemetryProvider::submit(const TelemetryUpdate& update) {
   });
 }
 
-}  // namespace simcore::telemetry
+}

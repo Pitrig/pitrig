@@ -14,19 +14,6 @@ import { useInsertScreenStore } from './insert-screen-store'
 import { ScreenView } from './ScreenGallery'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
 
-/**
- * Which screen to take, and out of which dashboard.
- *
- * Nothing here replaces anything: a screen arrives at the end of the dashboard
- * already open, and the one being worked on is untouched. That is the whole
- * difference between this and `Use`, and it is why a card offers both.
- *
- * A submenu would have been shorter, and it cannot be: a screen's name and what
- * is on it live in the document, and a summary deliberately does not carry four
- * of those per row. So the choice is made in two steps — the dashboard, then the
- * screen it turns out to hold — with the read in between. A card that already
- * knows which dashboard it means skips the first.
- */
 export function InsertScreenDialog(): React.JSX.Element | null {
   const open = useInsertScreenStore((state) => state.open)
   const preselected = useInsertScreenStore((state) => state.template)
@@ -41,13 +28,9 @@ export function InsertScreenDialog(): React.JSX.Element | null {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
 
-  // A card names its template when it opens this, so the first step has already
-  // been answered and reading it is the only thing left to do.
   useEffect(() => {
     if (!open || !preselected) return
     void choose(preselected)
-    // choose is recreated per render and only ever reads the argument it is
-    // given, so the identifier is what this actually depends on.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, preselected?.id])
 
@@ -82,8 +65,6 @@ export function InsertScreenDialog(): React.JSX.Element | null {
 
   const take = (indices: readonly number[]): void => {
     if (!document || !draft) return
-    // Refused whole rather than half: taking two of three screens and stopping
-    // at the cap would leave a dashboard nobody asked for.
     const room = MAXIMUM_SCREENS - Math.max(screensOf(draft).length, 1)
     if (indices.length > room) {
       setError(

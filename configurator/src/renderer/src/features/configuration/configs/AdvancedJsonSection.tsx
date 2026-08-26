@@ -13,14 +13,6 @@ import {
 } from '@shared/configuration-schema'
 import { CONFIGURATION_DOCUMENT_LABELS } from '@shared/configuration-documents'
 
-/**
- * The raw JSON, one document at a time.
- *
- * A tab shows exactly the bytes that document is sent as, which is the point of
- * an escape hatch: what is on screen is what the board receives. Editing one
- * cannot disturb the other two — the text is merged back over the draft rather
- * than replacing it.
- */
 export function AdvancedJsonSection({
   working,
   onEdit
@@ -42,8 +34,6 @@ export function AdvancedJsonSection({
       description="Each document exactly as the board receives it."
       className="px-0 pb-0"
       actions={
-        // The same tab language the dashboard pages use, at the size a section
-        // header carries.
         <div aria-label="Configuration documents" className="flex gap-1" role="tablist">
           {CONFIGURATION_DOCUMENT_IDS.map((id) => (
             <button

@@ -31,20 +31,11 @@ export function App(): React.JSX.Element {
   const saving = useSaveToBoardStore((state) => state.running)
   const { liveApplyAllowed } = useDraftState()
 
-  // The library outlives any connection, so it is read once here rather than
-  // keyed on the device the way the pages below are.
   useEffect(() => subscribeToFontLibrary(), [])
   useSerialTraffic()
 
-  // Live apply belongs to the window, not to a page: an edit made in the
-  // inspector must still reach the board when the author steps over to Fonts,
-  // and a save owns the link for its whole sequence.
   useLiveApply(liveApplyAllowed && !saving, reportLiveApply)
 
-  // Cmd/Ctrl+S saves the dashboard, which is what it does in SimHub's editor —
-  // to a file, not to the board, because saving to the board can install fonts
-  // and is not what a keystroke should set off. The guard is the same one the
-  // canvas keys use: a keystroke aimed at a field belongs to the field.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return
@@ -66,17 +57,10 @@ export function App(): React.JSX.Element {
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 
-      {/* Its own row rather than an overlay: a board in safe mode cannot do most
-          of what the pages below offer, and a strip that pushes them down is
-          read, where one floating over them is dismissed. It collapses to
-          nothing on an ordinary board. */}
       <SafeModeBanner />
 
       <main className="flex min-h-0 overflow-hidden">
         <WorkspaceRail />
-        {/* Keyed on the connection so a board that comes back — after a save
-            that restarted it, or after being unplugged — starts its pages from
-            the state it actually reports rather than from a stale one. */}
         <WorkspacePage key={`${tab}-${connectionRevision}`} />
       </main>
 

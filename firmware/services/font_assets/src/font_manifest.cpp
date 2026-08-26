@@ -7,11 +7,6 @@
 #include "binary_codec.hpp"
 #include "crc32.hpp"
 
-// What one family entry in the manifest means, and what makes a face a face.
-// This is the whole of what makes the font package differ from the image one:
-// a face describes its own geometry and a bitmap does not, so a font entry
-// carries no dimensions and instead has its sfnt signature checked. Everything
-// the two kinds share lives in services/asset_package.
 namespace simcore::font_assets {
 namespace {
 
@@ -20,10 +15,6 @@ constexpr std::size_t kEntryReservedOffset = 32;
 constexpr std::size_t kEntryDataOffset = 36;
 constexpr std::size_t kEntryLengthOffset = 40;
 constexpr std::size_t kEntryCrcOffset = 44;
-// A face is parsed lazily on the render path, so a payload that is not an sfnt
-// container is rejected at commit instead of failing inside a frame. The four
-// accepted signatures are TrueType, OpenType/CFF, the legacy Apple tag, and a
-// TrueType collection.
 constexpr std::size_t kMinimumFaceSize = 128;
 constexpr std::uint32_t kSfntVersion1 = 0x0001'0000U;
 constexpr std::uint32_t kSfntOpenType = 0x4F54'544FU;
@@ -52,7 +43,7 @@ constexpr std::uint32_t kSfntCollection = 0x7474'6366U;
   return lhs_begin < rhs_end && rhs_begin < lhs_end;
 }
 
-}  // namespace
+}
 
 bool Service::validate_package(
     const std::span<const std::uint8_t> storage_bytes,
@@ -112,4 +103,4 @@ bool Service::validate_package(
   return true;
 }
 
-}  // namespace simcore::font_assets
+}

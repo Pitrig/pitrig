@@ -10,10 +10,6 @@
 
 namespace simcore::transformers {
 
-// Bounded, always-terminated text output over caller-owned storage. Every
-// append refuses to overflow rather than truncating silently, so a transform
-// either renders completely or reports failure. Shared by the value transforms
-// and by the presentation code that wraps their output in affixes.
 class TextWriter final {
  public:
   explicit TextWriter(const std::span<char> output) : output_(output) {
@@ -57,7 +53,6 @@ class TextWriter final {
   std::size_t length_{};
 };
 
-// View of a fixed-capacity zero-terminated text field.
 template <std::size_t Size>
 [[nodiscard]] inline std::string_view text_view(
     const std::array<char, Size>& text) {
@@ -65,4 +60,4 @@ template <std::size_t Size>
   return {text.data(), static_cast<std::size_t>(end - text.begin())};
 }
 
-}  // namespace simcore::transformers
+}

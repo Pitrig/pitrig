@@ -38,10 +38,6 @@ bool ConfigurationService::initialize(
   validation_profile_ = validation_profile;
   status_ = {};
 
-  // The board's own documents come first and settle every section. They are
-  // parsed through the ordinary per-document path, so a factory document that
-  // named a section belonging to another one would be refused here rather than
-  // quietly accepted at the one place the rule does not apply.
   *scratch_ = {};
   for (std::size_t index = 0; index < kConfigurationDocumentCount; ++index) {
     const auto document = static_cast<ConfigurationDocument>(index);
@@ -61,9 +57,6 @@ bool ConfigurationService::initialize(
     return false;
   }
 
-  // Then whatever is stored, one document at a time on top of the factory
-  // values. A document that is absent or refused leaves its own sections as the
-  // board shipped them and does not touch the others.
   for (std::size_t index = 0; index < kConfigurationDocumentCount; ++index) {
     const auto document = static_cast<ConfigurationDocument>(index);
     copy_active_to_scratch();
@@ -72,9 +65,6 @@ bool ConfigurationService::initialize(
     if (!loaded.valid) {
       continue;
     }
-    // Read, validated and reported either way; promoted only where this boot is
-    // allowed to run it. The payload is remembered regardless, because `GET`
-    // answers with what is stored rather than with what is running.
     if (apply_stored[index]) {
       promote_scratch();
     }
@@ -125,20 +115,12 @@ ConfigurationService::SaveOutcome ConfigurationService::save(
     return {.storage_failed = true};
   }
 
-  // Read the record back and parse it again before believing it: a write that
-  // reports success and cannot be loaded is the one failure a save must not
-  // hide, since the next boot is where it would otherwise surface.
   copy_active_to_scratch();
   const LoadedRecord verified = load_document(document, (*scratch_));
   if (!verified.valid || verified.generation != generation) {
     return {.storage_failed = true};
   }
   status_.documents[index] = verified.status;
-  // What `GET` echoes is what the next boot would read, and that is now this
-  // record. Taken from the buffer `load_document` just verified rather than from
-  // the caller's span, so the bytes remembered are exactly the bytes that came
-  // back off flash — and bounded by the document's own payload size, which is
-  // what that read already checked.
   remember_payload(document,
                    std::span<const std::uint8_t>(
                        record_buffer_.data() + kRecordHeaderSize,
@@ -153,8 +135,6 @@ bool ConfigurationService::erase(const ConfigurationDocument document) {
   }
   const std::size_t index = index_of(document);
   status_.documents[index] = {};
-  // With no record left, the next boot reads the board's own document, so that
-  // is what `GET` has to answer with.
   remember_payload(document, factory_payloads_[index]);
   return true;
 }
@@ -277,4 +257,4 @@ void ConfigurationService::copy_active_to_scratch() const {
   *scratch_ = *active_;
 }
 
-}  // namespace simcore::configuration
+}

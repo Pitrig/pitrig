@@ -6,9 +6,6 @@
 
 namespace simcore::configuration::validation {
 
-// An uploaded package carries one face per family, so a document may not name
-// more families than a package can hold. Sizes are free: every one of them is
-// rasterized from the same face.
 [[nodiscard]] bool within_family_budget(
     const ApplicationConfiguration& configuration) {
   std::array<font_assets::FamilyId, font_assets::kMaximumFamilies> families{};
@@ -27,7 +24,6 @@ namespace simcore::configuration::validation {
     return true;
   };
 
-  // Widget storage is one pool, so this walks it once rather than per screen.
   const DashboardConfiguration& dashboard = configuration.dashboard;
   const auto record_caption = [&record](const WidgetFrame& frame) {
     return frame.title.text.front() == '\0' || record(frame.title.font);
@@ -101,19 +97,12 @@ namespace simcore::configuration::validation {
   return true;
 }
 
-// One ordered reference table, whether it belongs to a screen, a container shape
-// or one page of a slot. Each entry must name a filled pool slot whose widget
-// agrees about the parent that declared it, so a document cannot point two
-// parents at one widget or leave a widget claiming a parent that never
-// referenced it.
 [[nodiscard]] bool validate_references(
     const DashboardConfiguration& dashboard,
     const std::span<const WidgetReference> references, const std::size_t count,
     const std::size_t screen_index, const WidgetParentKind parent_kind,
     const std::uint8_t parent_index, Validator& validator,
     std::size_t& action_count, ValidationFailure& failure) {
-  // Parenting and the tap action are both facts about the frame, so one probe
-  // decides whether the reference is sound before the type-specific checks run.
   const auto parented = [&](const WidgetFrame& frame) {
     if (frame.action.type != WidgetActionType::none) {
       ++action_count;
@@ -183,4 +172,4 @@ namespace simcore::configuration::validation {
   return true;
 }
 
-}  // namespace simcore::configuration::validation
+}

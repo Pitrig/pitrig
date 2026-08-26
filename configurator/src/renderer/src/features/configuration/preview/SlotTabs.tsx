@@ -12,26 +12,15 @@ import { visibleSlotPage } from './canvas-geometry'
 import { screenName } from './screen-name'
 import { useDeviceStore } from '@/features/device/device-store'
 
-/**
- * One picker per slot on the screen being edited. The board decides which page a
- * slot shows from a tap or a trigger, so this is purely a way to look at the
- * others while authoring them — and, while a slot is open, the tabs of the one
- * being edited stand where the screen tabs do.
- */
 export function SlotTabs(): React.JSX.Element | null {
   const configuration = useDeviceStore((state) => state.draft)
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
   const slotPage = useDashboardEditorStore((state) => state.slotPage)
   const setSlotPage = useDashboardEditorStore((state) => state.setSlotPage)
   const drillIn = useDashboardEditorStore((state) => state.drillIn)
-  // A slot is authored on a screen, but the sweep is over the whole screen
-  // anyway: it costs nothing and it does not depend on where a slot may sit.
   const slots = screenWidgetsOf(screensOf(configuration)[activeScreenIndex]).filter(
     (widget): widget is SlotWidgetConfiguration => widget.type === 'slot'
   )
-  // Inside a container, only the slot that container belongs to has pages worth
-  // switching — and a shape that belongs to no slot leaves every slot's tabs
-  // where they were, because none of them is the thing being edited.
   const opened = drillIn ? openedChain(configuration, drillIn) : undefined
   const related = opened ? slots.filter((slot) => slot.id && opened.includes(slot.id)) : slots
   const shown = related.length > 0 ? related : slots
@@ -60,8 +49,6 @@ export function SlotTabs(): React.JSX.Element | null {
                 }`}
                 onClick={() => setSlotPage(id, index)}
               >
-                {/* A page reached only by a trigger is not part of the loop, and
-                    saying so here is what makes the tap order readable. */}
                 {page.in_loop === false ? `${index + 1}*` : index + 1}
               </button>
             ))}
@@ -82,10 +69,6 @@ export function SlotTabs(): React.JSX.Element | null {
   )
 }
 
-/**
- * The containers between the screen and the one being worked in, outermost
- * first. One walk, so the crumbs and the slot tabs agree on what is open.
- */
 function openedChain(
   configuration: ReturnType<typeof useDeviceStore.getState>['draft'],
   containerId: string
@@ -97,11 +80,6 @@ function openedChain(
     .filter((id): id is string => id !== undefined)
 }
 
-/**
- * Where in the document the canvas is looking, and the way back out. A crumb
- * per container rather than one button, because containers nest: leaving the
- * innermost one is a step, not the way back to the screen.
- */
 export function DrillInCrumbs(): React.JSX.Element | null {
   const configuration = useDeviceStore((state) => state.draft)
   const drillIn = useDashboardEditorStore((state) => state.drillIn)

@@ -23,4 +23,4 @@ const FieldDescriptor* TelemetryRegistry::describe(const Handle handle) const {
   return descriptor.type == handle.type ? &descriptor : nullptr;
 }
 
-}  // namespace simcore::telemetry
+}

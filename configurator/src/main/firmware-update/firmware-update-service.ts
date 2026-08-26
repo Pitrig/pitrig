@@ -52,8 +52,6 @@ export class FirmwareUpdateService extends AssetServiceBase {
     } catch {
       return failure('source_unreadable', `Cannot read ${source.name}.`)
     }
-    // Reported before the upload so an image for the wrong build is obvious
-    // from its size rather than from a rejection halfway through.
     if (size === 0 || size > MAXIMUM_FIRMWARE_IMAGE_SIZE) {
       return failure(
         'package_too_large',
@@ -90,8 +88,6 @@ export class FirmwareUpdateService extends AssetServiceBase {
       operation.signal.throwIfAborted()
 
       stage = 'building'
-      // The board the package names is the connected board, so an image built
-      // for a different one is refused here rather than by the device.
       const packageBytes = buildFirmwarePackage(image, deviceSession.info.boardId)
       this.onProgress({
         stage: 'building',

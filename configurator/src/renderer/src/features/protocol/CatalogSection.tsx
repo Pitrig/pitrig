@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { EmptyState, PageSection } from '@/app/workspace/PageShell'
 import { searchTelemetryReference } from './telemetry-reference'
 
-/** Every field the protocol can carry, and where SimHub reads it from. */
 export function CatalogSection(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const entries = useMemo(() => searchTelemetryReference(query), [query])

@@ -51,4 +51,4 @@ void ReadInstrumentation::fill(Diagnostics& diagnostics) const {
 
 #endif
 
-}  // namespace simcore::transport
+}

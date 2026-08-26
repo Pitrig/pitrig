@@ -55,10 +55,6 @@ else()
     set(boot_splash_asset "assets/boot_splash/logo_320x170.rgb565")
 endif()
 
-# The ESP32-S3 runs the draw path from flash through a small instruction cache
-# and misses in it; the fragment moves the translation units a frame runs
-# through into internal RAM. The ESP32-P4 is not cache-bound, so there the same
-# fragment would spend SRAM for nothing and LVGL stays in flash.
 set(lvgl_ldfragments "")
 if(CONFIG_IDF_TARGET_ESP32S3)
     set(lvgl_ldfragments "lvgl_hot.lf")
@@ -75,9 +71,6 @@ idf_component_register(
                   number_transform performance simcore_config text_writer
                   time_transform transport)
 
-# LVGL's archive is scanned before this component's, so the allocator LVGL
-# calls has to be named explicitly or the link ends in undefined references to
-# it. esp_lvgl_port names its own replacement symbols the same way.
 foreach(symbol lv_mem_init lv_mem_deinit lv_mem_add_pool lv_mem_remove_pool
                lv_malloc_core lv_realloc_core lv_free_core lv_mem_monitor_core
                lv_mem_test_core)

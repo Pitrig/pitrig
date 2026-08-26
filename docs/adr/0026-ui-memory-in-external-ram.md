@@ -57,8 +57,9 @@ handler.
 the caches from 16/32 KB to 32/64 KB, compiles for size rather than speed, and
 places the translation units a frame runs through — the software blender, the
 rect, border, label and glyph paths, the refresh loop, the style and text
-lookups — in internal RAM through a linker fragment. The ESP32-P4 gets none of
-it: it is not cache-bound, its L2 at 256 KB changes nothing, and `-Os` costs it
+lookups — in internal RAM through a linker fragment. That fragment buys ~20% of
+the render time for ~62 KB of internal RAM, which the board has to spare once
+LVGL's heap lives in external memory. The ESP32-P4 gets none of it: it is not cache-bound, its L2 at 256 KB changes nothing, and `-Os` costs it
 12%.
 
 **The T-Display's draw buffers are 40 lines** rather than 80, which is where the
@@ -116,6 +117,12 @@ other. The figures are in [runtime-performance.md](../runtime-performance.md).
   (`section '.iram1.8' conflicts with previous '.iram1.4'`), hence the linker
   fragment.
 - **`LV_OBJ_STYLE_CACHE`**: 1,854 → 2,016 µs. Worse.
+- **Screen slides animated from snapshots** rather than from the screens
+  themselves, so that the ESP32-P4's image accelerator would carry the moving
+  frames: 36.1 ms a frame against LVGL's own 30.7. Two full-screen pictures are
+  more pixels than the two partial screens LVGL actually draws, and the
+  snapshots cost a full render each on top. See
+  [runtime-performance.md](../runtime-performance.md).
 - **Flash QIO instead of DIO, cache line 32 → 64 B, cache wrap mode, a 16 ms
   refresh period, the ESP32-P4's L2 cache at 256 KB**: all within noise, and the
   L2 change costs 130 KB of internal RAM for it.

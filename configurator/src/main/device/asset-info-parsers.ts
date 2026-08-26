@@ -18,14 +18,6 @@ import type { FontAssetDeviceInfo } from '@shared/device'
 import { DeviceServiceError } from './device-errors'
 import { isBooleanField, parseAssetStatus, parseFields } from './protocol-parsers'
 
-// The INFO replies of the three uploaded-asset kinds. The shared field walk
-// and the device's own INFO stay in protocol-parsers.ts.
-
-/**
- * Firmware status reports two slots rather than a package: which one is running,
- * which one the next upload lands in, and whether either is waiting on a
- * restart. It shares no shape with the asset kinds, so it shares no parser.
- */
 export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
   const fields = parseFields(line, '@SC:OK:FW:INFO:', 'firmware status')
   const running = fields.get('running')
@@ -75,15 +67,12 @@ export function parseImageAssetInfo(line: string): ImageAssetState {
   }
 }
 
-/** `name:WxH:format`, separated by semicolons. */
 function parseInstalledImages(value: string | undefined): InstalledImage[] {
   if (!value) return []
   return value
     .split(';')
     .filter((entry) => entry.length > 0)
     .map((entry) => {
-      // A sprite sheet appends its frame count; an ordinary image has one frame
-      // and says nothing, so a three-field entry is the same as it ever was.
       const [name, size, format, frames] = entry.split(':')
       const [width, height] = (size ?? '').split('x')
       return {
@@ -131,11 +120,6 @@ export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   }
 }
 
-/**
- * The stored package's payload CRC. Firmware that predates the key leaves it
- * absent, which reads as "cannot tell" and therefore as "upload anyway" — so an
- * older board still works, it just never skips a font upload.
- */
 function parsePayloadCrc(value: string | undefined): number | undefined {
   if (value === undefined) return undefined
   const crc = Number(value)

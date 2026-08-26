@@ -37,11 +37,6 @@ import {
 } from '@shared/templates'
 import { SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
 
-// Everything arriving over IPC is untrusted: the renderer is separate code and
-// a handler must not take its word for the shape of a request. These are the
-// hand-rolled predicates that check it, kept together so a new channel's guard
-// is written beside the others rather than inline among the registrations.
-
 export function isImageUploadRequest(value: unknown): value is ImageUploadRequest {
   if (typeof value !== 'object' || value === null) return false
   const assets = (value as ImageUploadRequest).assets
@@ -77,16 +72,6 @@ export function isConnectRequest(value: unknown): value is ConnectDeviceRequest 
   )
 }
 
-// Both the device and the file request are `{ json: string }`; the bound is the
-// source-document limit, not the payload limit, which the parser enforces.
-/**
- * A reset naming one document, or nothing at all. An absent request is valid and
- * means every document, which is what the old no-argument channel did — so the
- * predicate has to admit `undefined` into the type it narrows to. Claiming that
- * `undefined` *was* a request narrowed it to one for the compiler, which then
- * raised no objection to reading a property off it, and "Reset to factory
- * configuration" threw inside the handler on every press.
- */
 export function isConfigurationResetRequest(
   value: unknown
 ): value is DeviceConfigurationResetRequest | undefined {
@@ -111,11 +96,6 @@ export function isJsonDocumentRequest(
   )
 }
 
-/**
- * The envelope's own fields plus the document as text, bounded the same way a
- * configuration file request is. Shape only — the service parses and validates
- * the document itself.
- */
 export function isTemplateSaveRequest(value: unknown): value is TemplateSaveRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<TemplateSaveRequest> & { board?: unknown }
@@ -128,8 +108,6 @@ export function isTemplateSaveRequest(value: unknown): value is TemplateSaveRequ
   ) {
     return false
   }
-  // A widget names the board its pixels were drawn in; the service re-checks it
-  // before the fragment is validated against that board's contract.
   if (
     request.kind === 'widget' &&
     !SIMCORE_BOARD_IDS.includes(request.board as SimCoreBoardId)
@@ -139,11 +117,6 @@ export function isTemplateSaveRequest(value: unknown): value is TemplateSaveRequ
   return typeof request.json === 'string' && request.json.length <= 64 * 1024
 }
 
-/**
- * A saved template's identifier names a file, so nothing outside the pattern
- * reaches the service. A starter's identifier carries a prefix the pattern
- * rejects, which is exactly what keeps it from ever naming one.
- */
 export function isTemplateIdRequest(value: unknown): value is TemplateIdRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<TemplateIdRequest>
@@ -153,10 +126,6 @@ export function isTemplateIdRequest(value: unknown): value is TemplateIdRequest 
   return TEMPLATE_ID_PATTERN.test(id) || id.startsWith(BUNDLED_TEMPLATE_PREFIX)
 }
 
-/**
- * A saved configuration's identifier names a file, so nothing outside the
- * pattern reaches the service — which checks it again before it builds a path.
- */
 export function isConfigurationIdRequest(value: unknown): value is ConfigurationIdRequest {
   if (!value || typeof value !== 'object') return false
   const id = (value as Partial<ConfigurationIdRequest>).id
@@ -174,18 +143,12 @@ export function isConfigurationSaveRequest(value: unknown): value is Configurati
   )
 }
 
-/**
- * Shape only. A path is never trusted for being well-formed: the service reads
- * one only when it is already on the recent list this application wrote, so the
- * renderer cannot name a file of its own choosing.
- */
 export function isConfigurationPathRequest(value: unknown): value is ConfigurationPathRequest {
   if (!value || typeof value !== 'object') return false
   const path = (value as Partial<ConfigurationPathRequest>).path
   return typeof path === 'string' && path.length > 0 && path.length <= 4096
 }
 
-/** The console's own refusal list is the authority; this is the size bound. */
 export function isControlCommandRequest(value: unknown): value is ControlCommandRequest {
   if (!value || typeof value !== 'object') return false
   const command = (value as Partial<ControlCommandRequest>).command
@@ -199,8 +162,6 @@ export function invalidConfigurationRequest(): DeviceResult<never> {
   }
 }
 
-// The library re-validates every identifier before it names a file, so these
-// only have to keep a malformed payload from reaching it.
 export function isFontFacesRequest(value: unknown): value is FontFacesRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<FontFacesRequest>
@@ -226,9 +187,6 @@ export function isFontCatalogPreviewRequest(
     request.family.length <= 128
 }
 
-// The family and variant name a row on the catalog, and the catalog is what
-// supplies the URL — so a request can only ever ask for something already
-// checked in, never for a download target of its own.
 export function isFontLibraryAddRequest(value: unknown): value is FontLibraryAddRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<FontLibraryAddRequest>

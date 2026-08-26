@@ -8,17 +8,11 @@
 
 namespace simcore::configuration::validation {
 
-// Owns the one immutable telemetry registry every widget resolves against. It
-// used to be constructed per widget on the validating task's stack.
 class Validator final {
  public:
   Validator(const ValidationContext& profile, ValidationFailure& failure)
       : profile_(profile), failure_(failure) {}
 
-  // Where the parent of the widgets being validated sits on the display. Widget
-  // geometry is relative to its container, so this is what turns it into
-  // something the display bound can be applied to. A screen's origin is (0,0),
-  // which is why a widget straight on a screen needs no special handling.
   void set_parent_origin(const std::int32_t x, const std::int32_t y) {
     origin_x_ = x;
     origin_y_ = y;
@@ -48,4 +42,4 @@ class Validator final {
   std::int32_t origin_y_{};
 };
 
-}  // namespace simcore::configuration::validation
+}

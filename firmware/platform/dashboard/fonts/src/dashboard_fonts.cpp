@@ -11,21 +11,14 @@ namespace simcore::dashboard::fonts {
 namespace {
 
 constexpr char kTag[] = "dashboard_fonts";
-// Caps both the metrics and the bitmap cache of one font. A warm set larger
-// than this would evict its own entries, so pre-warming checks against it.
 constexpr std::size_t kGlyphCacheEntries = 128;
 
-// Every character the periodic path can emit without the configuration saying
-// so: telemetry digits, the time transform's MM:SS.mmm and its signed +S.mmm,
-// and the punctuation a prefix or title is likely to carry.
 constexpr std::string_view kBaseWarmCharacters =
     "0123456789.:+- ,;/%()'\"";
 
 constexpr char kFirstPrintable = 0x20;
 constexpr char kLastPrintable = 0x7E;
 
-// Printable ASCII as a bitmap: the warm set is built without allocating and
-// cannot contain a duplicate.
 class CharacterSet final {
  public:
   void add(const std::span<const char> characters) {
@@ -75,9 +68,6 @@ struct WarmResult {
   std::uint32_t failed{};
 };
 
-// Rasterizing a glyph into the cache has no dedicated entry point: asking for
-// its bitmap is the only route, and the draw data must be released or the
-// entry keeps a reference and can never be evicted.
 [[nodiscard]] WarmResult warm_glyphs(const lv_font_t* const font,
                                      const CharacterSet& characters) {
   WarmResult result{};
@@ -102,7 +92,7 @@ struct WarmResult {
   return result;
 }
 
-}  // namespace
+}
 
 Registry::~Registry() {
   for (std::size_t index = 0; index < font_count_; ++index) {
@@ -165,9 +155,6 @@ bool Registry::acquire(const FontSpec& spec) {
     return false;
   }
 
-  // Kerning stays off so a cached advance is independent of the neighbouring
-  // glyph. That is what makes a per-glyph pre-warm complete, and both widgets
-  // already size themselves from a single-glyph advance.
   lv_font_t* const font = lv_tiny_ttf_create_data_ex(
       family->bytes.data(), family->bytes.size(),
       static_cast<std::int32_t>(spec.size_px), LV_FONT_KERNING_NONE,
@@ -234,4 +221,4 @@ const lv_font_t* Registry::resolve(const FontSpec& spec) const {
   return nullptr;
 }
 
-}  // namespace simcore::dashboard::fonts
+}

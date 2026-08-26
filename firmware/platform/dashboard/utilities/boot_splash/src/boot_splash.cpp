@@ -56,7 +56,7 @@ const lv_image_dsc_t* find_asset(const lv_display_t* const display) {
   return width == kDisplayWidth && height == kDisplayHeight ? &kLogo : nullptr;
 }
 
-}  // namespace
+}
 
 bool show(lv_display_t* const display, lv_obj_t* const screen,
           const std::uint32_t minimum_duration_ms,
@@ -92,8 +92,6 @@ bool show(lv_display_t* const display, lv_obj_t* const screen,
     return true;
   }
 
-  // One extra tick compensates for entering the delay immediately before a
-  // scheduler tick, keeping the visible interval at or above the requested time.
   vTaskDelay(pdMS_TO_TICKS(minimum_duration_ms) + 1);
 
   if (!lvgl_port_lock(0)) {
@@ -104,4 +102,4 @@ bool show(lv_display_t* const display, lv_obj_t* const screen,
   return true;
 }
 
-}  // namespace simcore::dashboard::boot_splash
+}

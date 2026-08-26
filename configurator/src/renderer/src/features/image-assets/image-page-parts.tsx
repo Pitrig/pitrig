@@ -3,18 +3,6 @@ import { kilobytes } from '@/features/font-library/font-library-store'
 import type { ImageEntry } from './image-assets-store'
 
 
-/**
- * One image, at whatever size the row gives it. A bitmap that could not be
- * recovered leaves the box empty rather than the row missing: the board still
- * holds the image, this application simply no longer has its copy.
- */
-/**
- * The source's size, what it is being converted to, and what that comes to in
- * memory. The board neither scales nor rotates, so the size chosen here is the
- * size the widget draws at — and shrinking a source to what a widget actually
- * needs is the largest saving available anywhere in the image pipeline, since
- * the cost goes with the area.
- */
 export function SizeReadout({ entry }: { entry: ImageEntry }): React.JSX.Element {
   const source = entry.sources[0]
   const frames = entry.sources.length
@@ -43,8 +31,6 @@ export function Thumbnail({ dataUrl, alt }: { dataUrl?: string; alt: string }): 
   return (
     <span
       className="flex size-14 flex-none items-center justify-center overflow-hidden rounded border bg-black/40 p-0.5"
-      // The checkerboard is what makes transparency visible as transparency
-      // rather than as black, which is what rgb565a8 is chosen for.
       style={{
         backgroundImage:
           'linear-gradient(45deg, #2a2a2a 25%, transparent 25%, transparent 75%, #2a2a2a 75%), linear-gradient(45deg, #2a2a2a 25%, transparent 25%, transparent 75%, #2a2a2a 75%)',
@@ -61,11 +47,6 @@ export function Thumbnail({ dataUrl, alt }: { dataUrl?: string; alt: string }): 
   )
 }
 
-/**
- * How much of the four megabytes is spoken for. The partition is fixed and the
- * package is replaced whole, so "used" and "left" are the whole story — there
- * is no fragmentation to explain.
- */
 export function StorageBar({
   label,
   used,

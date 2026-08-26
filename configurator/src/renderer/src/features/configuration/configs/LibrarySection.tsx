@@ -15,8 +15,6 @@ import { BOARD_NAMES } from '../board-labels'
 import type { SimCoreBoardId } from '@shared/device'
 import { MAXIMUM_CONFIGURATION_NAME, configurationIdFor } from '@shared/config-library'
 
-/** The application's own folder of configurations, and the files it has opened. */
-/** The application's own folder of configurations, and the files it has opened. */
 export function LibrarySection({
   working,
   onFeedback

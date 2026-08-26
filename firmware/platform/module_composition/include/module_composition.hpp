@@ -36,4 +36,4 @@ struct Modules {
     const telemetry::ITelemetryReader& telemetry,
     const configuration::ApplicationConfiguration& configuration);
 
-}  // namespace simcore::module_composition
+}

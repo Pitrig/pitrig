@@ -30,16 +30,6 @@ import {
 } from '@shared/configuration-documents'
 import type { LayoutFit, LayoutTransferResult } from '@shared/layout-transfer'
 
-/**
- * The document itself: where it came from, where it goes, and how it differs
- * from what the board is holding.
- *
- * Everything that replaces the whole document lives here rather than beside the
- * canvas — opening a file, converting to another board, resetting to factory —
- * because they all answer "which dashboard am I editing", which is a different
- * question from "what does it look like".
- */
-
 export function ConfigsPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const draftFileName = useDeviceStore((state) => state.draftFileName)
@@ -69,8 +59,6 @@ export function ConfigsPage(): React.JSX.Element {
     }
   }
 
-  // Offered only when the draft and the chosen board disagree — which, while a
-  // board is connected, is exactly the mismatch that blocks saving.
   const convertTarget =
     parsed.ok && targetBoard && parsed.configuration.board !== targetBoard
       ? targetBoard
@@ -153,9 +141,6 @@ export function ConfigsPage(): React.JSX.Element {
             </Button>
           </div>
 
-          {/* One line per document rather than one total: they are stored and
-              sent separately and each has its own bound, so a total would say
-              nothing about whether any of them fits. */}
           {parsed.ok ? (
             <div className="space-y-0.5 text-[11px] text-muted-foreground">
               {CONFIGURATION_DOCUMENT_IDS.map((id) => {
@@ -174,8 +159,6 @@ export function ConfigsPage(): React.JSX.Element {
           ) : (
             <p className="text-[11px] text-muted-foreground">Invalid JSON</p>
           )}
-          {/* The validator says exactly which property is wrong and why. Showing
-              only "Invalid JSON" left the author to find it themselves. */}
           {parsed.ok ? null : <p className="text-[11px] text-red-400">{parsed.error}</p>}
 
           {convertTarget ? (

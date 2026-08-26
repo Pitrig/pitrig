@@ -8,12 +8,6 @@ import { LayerList } from './LayerList'
 import { dropOrder } from './layer-row-state'
 import type { RowState } from './layer-row-state'
 
-/**
- * A slot's pages, each with the widgets on it. Every page is listed rather than
- * only the one the canvas draws, because a page nobody is looking at is still
- * authored — and dropping onto its row is the only way to put a widget there
- * without switching the canvas to it first.
- */
 export function SlotPages({
   slot,
   slotId,
@@ -49,8 +43,6 @@ export function SlotPages({
                       moveWidgetInto(entry, slotId, index)
                     }
                   })
-                  // A page the tabs are not looking at is not drawn, so the
-                  // canvas is pointed at what just landed.
                   setSlotPage(slotId, index)
                 }
                 setDragged(undefined)
@@ -69,8 +61,6 @@ export function SlotPages({
                 }`}
                 onClick={() => setSlotPage(slotId, index)}
               >
-                {/* A page reached only by a trigger is not part of the loop, and
-                    saying so here is what makes the tap order readable. */}
                 {page.in_loop === false ? `Page ${index + 1}*` : `Page ${index + 1}`}
               </button>
             </div>

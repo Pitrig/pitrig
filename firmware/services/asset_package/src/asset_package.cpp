@@ -79,4 +79,4 @@ bool validate_header(const Format& format,
   return true;
 }
 
-}  // namespace simcore::asset_package
+}

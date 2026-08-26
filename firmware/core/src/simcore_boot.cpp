@@ -19,9 +19,6 @@ namespace {
 
 constexpr char kTag[] = "simcore";
 
-// A stored document that was read and not loaded is worth a line: a device that
-// comes up on a factory section after a firmware update looks exactly like one
-// that was never configured, and INFO alone is not read at the console.
 void report_document(const configuration::ConfigurationDocument document,
                      const configuration::DocumentStatus& status) {
   using configuration::DocumentOutcome;
@@ -62,7 +59,7 @@ void report_document(const configuration::ConfigurationDocument document,
   }
 }
 
-}  // namespace
+}
 
 ConfigurationBuffers reserve_configuration_memory(Application& application) {
   constexpr std::size_t kConfigurationMemorySize =
@@ -105,11 +102,6 @@ void load_configuration(Application& application,
     factory[index] = std::span<const std::uint8_t>(
         reinterpret_cast<const std::uint8_t*>(json.data()), json.size());
   }
-  // A recovery boot runs the board's own protocol document rather than the
-  // stored one. The record is still read, validated and reported, so `INFO` and
-  // `GET` answer with what is on the device; it simply does not choose the
-  // link. A stored transport the host cannot reach would otherwise leave the
-  // recovery boot as unreachable as the boot it is recovering from.
   auto apply_stored =
       configuration::ConfigurationService::all_stored_documents();
   if (boot_guard::safe_mode()) {
@@ -143,4 +135,4 @@ void open_asset_storage(Application& application) {
   }
 }
 
-}  // namespace simcore::boot
+}

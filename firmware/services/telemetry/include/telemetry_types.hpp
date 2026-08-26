@@ -9,9 +9,6 @@ namespace simcore::telemetry {
 
 inline constexpr std::size_t kMaximumFields = 256;
 inline constexpr std::size_t kTelemetryTextCapacity = 64;
-// The longest telemetry line a protocol is handed, terminator excluded. The
-// link's router assembles lines against this bound; a protocol decodes one
-// complete line and keeps no assembly state of its own (ADR 0006).
 inline constexpr std::size_t kMaximumTelemetryLineLength = 127;
 using TextValue = std::array<char, kTelemetryTextCapacity>;
 
@@ -34,8 +31,6 @@ struct Handle {
   }
 };
 
-// C++20 synthesizes != from this, which is how both modules compare a bound
-// handle against the one an update carries.
 [[nodiscard]] constexpr bool operator==(const Handle left,
                                         const Handle right) {
   return left.index == right.index && left.type == right.type;
@@ -89,4 +84,4 @@ struct CommitResult {
   }
 };
 
-}  // namespace simcore::telemetry
+}

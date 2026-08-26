@@ -12,8 +12,6 @@
 namespace simcore::dashboard::value_text {
 namespace {
 
-// A float with no text of its own, to three decimals with trailing zeros and a
-// bare point dropped: 12.5 reads "12.5", 3.0 reads "3".
 [[nodiscard]] bool plain_float_text(
     const float value,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
@@ -34,9 +32,6 @@ namespace {
   return true;
 }
 
-// The source's own text, before any transform: its string if it carries one,
-// "true"/"false" for a boolean, digits otherwise — an integer as it is, a
-// float to three decimals. False when unavailable.
 [[nodiscard]] bool source_text(
     const telemetry::TelemetryRead& value,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
@@ -66,12 +61,6 @@ namespace {
                              value.value.typed.int32_value);
       break;
     case telemetry::ValueType::float32:
-      // A float that arrived without its own text — nothing the SimHub line
-      // protocol produces, since it keeps the text it was sent — is shown to
-      // three decimals with the trailing zeros dropped, through the same
-      // fixed-point path the number transform uses. That is what keeps the
-      // shortest-representation float printer, and its tables, out of the
-      // image.
       return plain_float_text(value.value.typed.float32_value, output);
     case telemetry::ValueType::text:
     case telemetry::ValueType::boolean:
@@ -84,7 +73,6 @@ namespace {
   return true;
 }
 
-// The value a transform produces, before its affixes.
 [[nodiscard]] bool transform_body(
     const configuration::ValueTransform& transform,
     const telemetry::TelemetryRead& value,
@@ -114,8 +102,6 @@ namespace {
           return transformers::number_transform::apply(
               transform.number, value.value.typed.float32_value, output);
         case telemetry::ValueType::text:
-          // Sources that format their number on the PC stay usable; a source
-          // that is not a number renders the placeholder instead.
           return transformers::number_transform::apply(
               transform.number, transformers::text_view(value.value.source_text),
               output);
@@ -127,8 +113,6 @@ namespace {
   return false;
 }
 
-// Wraps a rendered body in its affixes. They belong to the transform rather
-// than to one of its types, so an untransformed value can carry a unit too.
 [[nodiscard]] bool compose(
     const configuration::ValueTransform& transform, const std::string_view body,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
@@ -138,14 +122,10 @@ namespace {
       writer.append(transformers::text_view(transform.suffix))) {
     return true;
   }
-  // The value outranks its decoration: a source string long enough to crowd
-  // out the affixes keeps its own text rather than losing everything.
   transformers::TextWriter value_only(output);
   return value_only.append(body);
 }
 
-// The zero a widget renders while its value is unavailable, run through the
-// widget's own transform.
 [[nodiscard]] bool zero_body(
     const configuration::ValueTransform& transform,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
@@ -166,11 +146,8 @@ namespace {
   return false;
 }
 
-}  // namespace
+}
 
-// The zero one source shows while it has no value: rendered through its own
-// transform, so a plain value reads 0 and a time value keeps its format with
-// every field zeroed.
 void placeholder_value(
     const configuration::ValueTransform& transform,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
@@ -196,4 +173,4 @@ void placeholder_value(
          compose(transform, transformers::text_view(body), output);
 }
 
-}  // namespace simcore::dashboard::value_text
+}

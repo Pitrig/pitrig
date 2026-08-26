@@ -17,7 +17,6 @@ export function TitleEditor({ widget, update }: {
 }): React.JSX.Element {
   const borderWidth = widget.border?.width_px ?? 0
   const borderGap = widget.title?.border_gap ?? true
-  // A corner anchor is the one that can land the straight cut on the curve.
   const anchor = alignmentAnchor(widget.title?.alignment ?? 'top_center')
   const inCorner = anchor.column !== 'center' && anchor.row !== 'middle'
   const placed =
@@ -34,14 +33,6 @@ export function TitleEditor({ widget, update }: {
       summary={widget.title?.text || 'None'}
       defaultOpen={Boolean(widget.title?.text)}
     >
-      {/* A caption needs a font the moment it has text, and the device rejects
-          the whole document over a fontless one. The first family the dashboard
-          already uses is one the board is being asked for anyway, so adopting it
-          keeps a new caption from invalidating the draft.
-
-          Clearing the text drops the whole object rather than leaving an empty
-          one behind: the title is optional, and a sparse document should say so
-          by its absence. */}
       <TextField label="Text" value={widget.title?.text ?? ''} modified={authored(widget.title?.text, '')} onReset={() => update((next) => { delete next.title })} onChange={(value) => update((next) => {
         if (!value) {
           delete next.title
@@ -58,9 +49,6 @@ export function TitleEditor({ widget, update }: {
             }
         next.title = { ...next.title, text: value, font }
       })} />
-      {/* Every control below writes its property only when it differs from the
-          device's own default, so a caption that sits where captions have always
-          sat still costs one `text` and one `font` in the document. */}
       {widget.title?.text ? (
         <>
           <FontEditor font={widget.title.font} defaultSizePx={DEFAULT_CAPTION_FONT_SIZE_PX} hint={HINTS.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} />
@@ -188,10 +176,6 @@ export function BoxEditor({ widget, update }: {
           if (inset === 0) delete next.background_inset_px
           else next.background_inset_px = inset
         })} />
-        {/* A gradient is the far end of the background plus an axis; without a
-            background there is nothing for it to run across, so it only appears
-            once one is set. On the ESP32-P4 a gradient fill falls back to the
-            software renderer — a performance note, not a correctness one. */}
         {widget.background_color ? (
           <>
             <OptionalColorField

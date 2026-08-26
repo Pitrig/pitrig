@@ -24,29 +24,16 @@ import { ConfigLibraryService } from './configs/config-library-service'
 import { RecentConfigurations } from './configs/recent-configurations'
 
 const isDevelopment = import.meta.env.DEV
-// The traffic log ships in every build: a board that misbehaves in a release is
-// exactly when the debug workspace is wanted, and the renderer holds a bounded
-// buffer rather than the whole session.
 const deviceService = new DeviceService(broadcastDeviceState, broadcastSerialTraffic)
-// Outside the app's own state, because it mirrors what a board holds rather
-// than anything the user authored: deleting it costs the preview its fidelity
-// until the next upload, and nothing else.
 const previewAssetCache = new PreviewAssetCache(join(app.getPath('userData'), 'preview-assets'))
-// The author's own faces, plus the ones bundled with the application. It also
-// adopts the faces older versions cached to draw a preview with, so a project
-// authored before the library keeps rendering the way it did.
 const fontLibraryService = new FontLibraryService(
   join(app.getPath('userData'), 'font-library'),
   join(app.getPath('userData'), 'preview-assets', 'fonts')
 )
-// Browsing the catalog downloads faces the author may never choose, so its
-// cache is separate from the library and can be deleted at any time.
 const fontCatalogService = new FontCatalogService(
   join(app.getPath('userData'), 'font-catalog-cache')
 )
 const fontAssetService = new FontAssetService(deviceService, fontLibraryService)
-// Saving is one sequence over the serial link, so it owns the order the other
-// services run in rather than being assembled in a React component.
 const saveToBoardService = new SaveToBoardService(
   deviceService,
   fontAssetService,
@@ -63,8 +50,6 @@ const firmwareUpdateService = new FirmwareUpdateService(
   broadcastFirmwareUploadProgress
 )
 const simHubProfileService = new SimHubProfileService()
-// The files the dialogs touched, wherever they live, and the app's own folder
-// of saved configurations beside the templates one.
 const recentConfigurations = new RecentConfigurations(
   join(app.getPath('userData'), 'recent-configurations.json')
 )
@@ -73,7 +58,6 @@ const configLibraryService = new ConfigLibraryService(
   recentConfigurations
 )
 const configurationFileService = new ConfigurationFileService(recentConfigurations)
-// The author's own saved dashboards, beside the app's other user data.
 const templateService = new TemplateService(join(app.getPath('userData'), 'templates'))
 let quitAfterDeviceCleanup = false
 

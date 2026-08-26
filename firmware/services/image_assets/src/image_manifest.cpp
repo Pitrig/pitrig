@@ -6,11 +6,6 @@
 #include "binary_codec.hpp"
 #include "crc32.hpp"
 
-// What one image entry in the manifest means. This is the whole of what makes
-// the image package differ from the font one: a face describes itself, a
-// bitmap does not, so geometry, colour format and stride are validated here
-// rather than discovered inside a draw. Everything the two kinds share lives
-// in services/asset_package.
 namespace simcore::image_assets {
 namespace {
 
@@ -28,8 +23,6 @@ constexpr std::size_t kEntryPaletteCountOffset = 56;
 constexpr std::size_t kEntryFrameCountOffset = 58;
 constexpr std::size_t kEntryReservedTailOffset = 60;
 
-// `indexed8` is deliberately absent: the value is reserved, not accepted, so a
-// package naming it is refused here rather than drawn wrong.
 [[nodiscard]] bool known_format(const std::uint8_t value, ColorFormat& format) {
   switch (value) {
     case static_cast<std::uint8_t>(ColorFormat::rgb565):
@@ -42,8 +35,6 @@ constexpr std::size_t kEntryReservedTailOffset = 60;
   }
 }
 
-// Version 1 had no compression byte — the field was reserved and required to be
-// zero — so reading a version 1 package is exactly reading `none`.
 [[nodiscard]] bool known_compression(const std::uint8_t value,
                                      const std::uint16_t format_version,
                                      Compression& compression) {
@@ -69,7 +60,7 @@ constexpr std::size_t kEntryReservedTailOffset = 60;
   return lhs_begin < rhs_end && rhs_begin < lhs_end;
 }
 
-}  // namespace
+}
 
 bool Service::validate_package(
     const std::span<const std::uint8_t> storage_bytes,
@@ -104,8 +95,6 @@ bool Service::validate_package(
     asset.width = binary::read_u16_le(entry, kEntryWidthOffset);
     asset.height = binary::read_u16_le(entry, kEntryHeightOffset);
     asset.stride = binary::read_u16_le(entry, kEntryStrideOffset);
-    // Version 1 reserved this field at zero, and an image with no frame count
-    // is an image with one frame — so an old package reads as itself.
     const std::uint16_t frames = binary::read_u16_le(entry, kEntryFrameCountOffset);
     asset.frame_count = frames == 0 ? 1 : frames;
     const std::uint32_t offset = binary::read_u32_le(entry, kEntryDataOffset);
@@ -124,18 +113,10 @@ bool Service::validate_package(
         length > payload_size - offset) {
       return false;
     }
-    // The geometry check is what the sfnt signature is for a face: it catches a
-    // malformed asset at commit rather than inside a draw, where a short buffer
-    // would be read past its end. A compressed asset can only be checked for
-    // fitting in memory here; whether its stream really produces that many
-    // bytes is settled when it is inflated, which is the one thing that cannot
-    // be known without doing it.
     const std::size_t decoded = asset.decoded_bytes();
     if (asset.stride != color_stride(asset.format, asset.width) || decoded == 0 ||
         (asset.compression == Compression::none ? length != decoded
                                                 : length > decoded) ||
-        // The palette belonged to `indexed8`, which is no longer accepted, so
-        // both fields have to be absent rather than merely consistent.
         binary::read_u16_le(entry, kEntryPaletteCountOffset) != 0 ||
         binary::read_u32_le(entry, kEntryPaletteOffset) != 0) {
       return false;
@@ -168,4 +149,4 @@ const char* color_format_name(const ColorFormat format) {
   return "unknown";
 }
 
-}  // namespace simcore::image_assets
+}

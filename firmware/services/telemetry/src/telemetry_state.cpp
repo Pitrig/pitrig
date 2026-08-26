@@ -58,10 +58,6 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
     };
   }
 
-  // Seqlock write: odd sequence, fields, even sequence. The fences keep the
-  // stores in that order on both cores' memory paths, so a reader that saw an
-  // even sequence on both sides of its copy read either the old fields or the
-  // new ones, never a mix.
   const std::uint32_t sequence =
       slot.sequence.load(std::memory_order_relaxed);
   slot.sequence.store(sequence + 1, std::memory_order_relaxed);
@@ -86,9 +82,6 @@ TelemetryRead TelemetryStateService::read(const Handle handle) const {
     return {.handle = handle};
   }
 
-  // Seqlock read: no lock, no wait for a writer. A writer holds the sequence
-  // odd for the few stores above, so a retry is rare and short; the copy is
-  // accepted only when the sequence is the same even value on both sides.
   const Slot& slot = slots_[handle.index];
   TelemetryRead result{.handle = handle};
   for (;;) {
@@ -108,4 +101,4 @@ TelemetryRead TelemetryStateService::read(const Handle handle) const {
   }
 }
 
-}  // namespace simcore::telemetry
+}

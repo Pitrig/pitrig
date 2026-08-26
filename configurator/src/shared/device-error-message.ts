@@ -1,20 +1,5 @@
 import { VALIDATION_ERROR_TOKENS, type ValidationErrorToken } from './configuration-schema'
 
-// The device answers a rejected request with a compact token line — the wire is
-// bounded, so it spells reasons rather than sentences. Nothing else in the app
-// speaks that language, so it is translated here once, at the boundary, instead
-// of being shown raw.
-//
-// Three shapes arrive after the `@SC:ERR:` prefix:
-//
-//   invalid_widget:screen=-1,widget=-1,path=font   a rejected document
-//   FONT:busy                                      a rejected asset upload
-//   storage                                        a request the device refused
-//
-// A token with no entry below is still shown, as itself: an unknown reason from
-// a newer firmware is worth reading, and inventing a sentence for it would be
-// worse than passing it through.
-
 const VALIDATION_MESSAGES: Record<ValidationErrorToken, string> = {
   none: 'The device reported no error.',
   malformed:
@@ -40,10 +25,6 @@ const VALIDATION_MESSAGES: Record<ValidationErrorToken, string> = {
   duplicate_property: 'The same property appears twice within one object.'
 }
 
-// `invalid_widget` doubles as the answer to the two dependency checks the device
-// runs before it composes anything, and those have nothing to do with widget
-// geometry — the path is the only thing that tells them apart. Naming them is
-// the difference between a usable message and a puzzle.
 const DEPENDENCY_MESSAGES: Record<string, string> = {
   font: 'The dashboard uses a font family that is not installed on the device. Upload a font package containing it, or choose a family the device already has. Remember that widget captions carry their own font.',
   image:
@@ -54,9 +35,6 @@ const REQUEST_MESSAGES: Record<string, string> = {
   storage: 'The device could not write to its configuration storage.',
   unsupported: 'The device cannot carry out this request in its current state.',
   unknown_command: 'The device did not recognise the request.',
-  // The device answers on its serial link before it has composed a dashboard,
-  // so a write that arrives in that window waits for one. This is what it says
-  // when the wait ran out — which means startup is stuck, not merely slow.
   busy: 'The device is still starting up and has nothing to apply this to yet.'
 }
 
@@ -90,9 +68,6 @@ const UPLOAD_TAGS: Record<string, string> = {
 const isValidationToken = (value: string): value is ValidationErrorToken =>
   (VALIDATION_ERROR_TOKENS as readonly string[]).includes(value)
 
-// `screen=-1,widget=-1,path=font`. Absent fields and the -1 placeholders both
-// mean the device did not tie the failure to one place, so both come back
-// undefined rather than as a number nothing can be done with.
 const parseDetail = (
   detail: string
 ): { screen?: number; widget?: number; path?: string } => {
@@ -113,7 +88,6 @@ const parseDetail = (
   return result
 }
 
-// The inspector counts screens and widgets from one, so this does too.
 const describeLocation = (screen?: number, widget?: number): string => {
   const parts: string[] = []
   if (screen !== undefined) parts.push(`screen ${screen + 1}`)
@@ -121,10 +95,6 @@ const describeLocation = (screen?: number, widget?: number): string => {
   return parts.length > 0 ? ` (${parts.join(', ')})` : ''
 }
 
-/**
- * Turns the payload after `@SC:ERR:` into a sentence. Unknown reasons pass
- * through unchanged so a newer firmware is never silently misreported.
- */
 export const describeDeviceError = (payload: string): string => {
   const text = payload.trim()
   if (!text) return 'The device rejected the request without giving a reason.'
@@ -147,8 +117,6 @@ export const describeDeviceError = (payload: string): string => {
     const dependency = head === 'invalid_widget' && path ? DEPENDENCY_MESSAGES[path] : undefined
     if (dependency) return dependency
     const location = describeLocation(screen, widget)
-    // The path is the device's own name for the offending property, so it is
-    // kept verbatim — it is what the user searches the document for.
     const property = path ? ` Property: ${path}.` : ''
     return `${VALIDATION_MESSAGES[head]}${location}${property}`
   }

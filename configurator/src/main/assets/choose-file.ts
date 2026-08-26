@@ -2,10 +2,6 @@ import { dialog, type BrowserWindow, type OpenDialogOptions } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { basename, extname } from 'node:path'
 
-// Opening a file dialog and checking what came back is the same act for an
-// asset upload and for a font import, and the two disagreeing about which
-// extensions count is exactly the kind of drift worth one shared function.
-
 export interface ChosenFile {
   id: string
   name: string
@@ -16,7 +12,6 @@ export interface FileChoice {
   title: string
   buttonLabel: string
   filters: OpenDialogOptions['filters']
-  /** Lowercase, with the dot. Re-checked here because a dialog filter is a hint. */
   extensions: readonly string[]
 }
 
@@ -46,7 +41,6 @@ export async function chooseFile(
   return { kind: 'chosen', file: { id: randomUUID(), name: basename(path), path } }
 }
 
-/** The one both the font library and the font upload open. */
 export const FONT_FILE_CHOICE: FileChoice = {
   title: 'Select a font face',
   buttonLabel: 'Select',

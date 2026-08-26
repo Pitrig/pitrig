@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Generate the bounded device configuration contract shared by firmware and configurator."""
-
 from __future__ import annotations
 
 import argparse
@@ -170,9 +168,6 @@ def validate_schema(document: dict[str, Any]) -> None:
         if "value" not in body:
             fail(f"constant {name} has no value")
 
-    # Every serialized section of the root belongs to exactly one document.
-    # Anything else would be a section no `@SC:GET` can return or a section two
-    # documents both claim to own, and the split only holds if it is a partition.
     sections = [
         field["name"]
         for field in structs[roots[0]].get("fields", [])
@@ -212,17 +207,10 @@ def document_ids(document: dict[str, Any]) -> list[str]:
 
 
 def document_type(name: str) -> str:
-    """The TypeScript interface one document is authored as."""
     return f"{name[:1].upper()}{name[1:]}Document"
 
 
 def document_fields(document: dict[str, Any], name: str) -> list[dict[str, Any]]:
-    """Root fields one document carries, in root declaration order.
-
-    The flattened board identifier comes first and is carried by every document:
-    it is what lets each one be validated against the firmware it arrives at,
-    rather than only the one that happens to hold the dashboard.
-    """
     sections = set(document["documents"][name]["sections"])
     return [
         field
@@ -232,7 +220,6 @@ def document_fields(document: dict[str, Any], name: str) -> list[dict[str, Any]]
 
 
 def document_keys(document: dict[str, Any], name: str) -> list[str]:
-    """Public JSON property names accepted at the top level of one document."""
     keys: list[str] = []
     for field in document_fields(document, name):
         if field.get("flatten"):
@@ -243,7 +230,6 @@ def document_keys(document: dict[str, Any], name: str) -> list[str]:
 
 
 def struct_order(document: dict[str, Any]) -> list[str]:
-    """Dependency-first ordering so C++ definitions compile without forward declarations."""
     structs = document["structs"]
     ordered: list[str] = []
     visiting: set[str] = set()
@@ -268,11 +254,6 @@ def struct_order(document: dict[str, Any]) -> list[str]:
 def bound(
     field: dict[str, Any], edge: str, document: dict[str, Any]
 ) -> tuple[str, int] | None:
-    """An authored bound as the C++ expression naming it and its value.
-
-    A bound is either a literal or the name of a limit, so a cap that already
-    sizes storage is stated once and read here rather than copied as a number.
-    """
     raw = field.get(edge)
     if raw is None:
         return None
@@ -288,21 +269,6 @@ def bounded_fields(
     path: str = "",
     accessor: str = "",
 ) -> list[dict[str, Any]]:
-    """Every scalar property of one struct that carries an authored bound.
-
-    Paths are the public dotted ones an author would recognise, so a rejection
-    names the property rather than the C++ member that holds it.
-
-    Arrays are never entered. An element struct gets a table of its own, and
-    whatever loops over the array checks it — which is also what keeps one
-    generated function from depending on a count field it cannot see.
-
-    `expand_flatten` is the difference between the two readers. In JSON a
-    flattened struct's properties sit directly on the parent object, so the
-    configurator wants them here; the firmware validator already visits each
-    flattened struct through a function of its own, so following it there would
-    only check the same value twice.
-    """
     entries: list[dict[str, Any]] = []
     for field in serialized_fields(document["structs"][struct_name]):
         name = json_key(field)
@@ -339,11 +305,6 @@ def bounded_fields(
 
 
 def range_roots(document: dict[str, Any]) -> list[str]:
-    """Structs the configurator checks as whole JSON objects.
-
-    Widget variants, plus every element struct of an array that carries bounds
-    — the two shapes a bounded object actually arrives in.
-    """
     roots = [
         name for name, body in document["structs"].items() if body.get("widget_type")
     ]
@@ -367,19 +328,15 @@ def json_key(field: dict[str, Any]) -> str:
 
 
 def object_keys(document: dict[str, Any], struct_name: str) -> list[str]:
-    """Public JSON property names accepted inside one object, in declaration order."""
     body = document["structs"][struct_name]
     if body.get("serialized") is False:
         return []
     externals = document.get("external_types", {})
-    # A widget variant carries the discriminator that selected it.
     keys: list[str] = ["type"] if body.get("widget_type") else []
     for field in serialized_fields(body):
         if field.get("flatten"):
             keys.extend(object_keys(document, field["struct"]))
         elif field["kind"] == "external" and field.get("inline"):
-            # The external contributes its own keys inline; its C++ member name
-            # is not a public property.
             keys.extend(externals[field["external"]]["keys"])
         else:
             keys.append(json_key(field))
@@ -389,11 +346,6 @@ def object_keys(document: dict[str, Any], struct_name: str) -> list[str]:
 def text_fields(
     document: dict[str, Any], body: dict[str, Any]
 ) -> list[tuple[str, dict[str, Any]]]:
-    """Bounded strings a validator sees at this level, following flattened structs.
-
-    A flattened struct contributes its properties here, so its capacities have to
-    be reported under this name too or a check would look them up and miss.
-    """
     found: list[tuple[str, dict[str, Any]]] = []
     for field in serialized_fields(body):
         if field.get("flatten"):
@@ -404,12 +356,6 @@ def text_fields(
 
 
 def child_types(document: dict[str, Any], body: dict[str, Any]) -> dict[str, str]:
-    """Nested object type per public property, following flattened structs.
-
-    A flattened struct contributes its properties at this level, so its children
-    have to be reported here too or a validator walking the document would stop
-    at the boundary and miss everything below it.
-    """
     children: dict[str, str] = {}
     for field in serialized_fields(body):
         if field.get("flatten"):
@@ -424,7 +370,6 @@ def child_types(document: dict[str, Any], body: dict[str, Any]) -> dict[str, str
 
 
 def widget_variants(document: dict[str, Any]) -> dict[str, str]:
-    """Widget discriminator value to the struct that carries its properties."""
     return {
         body["widget_type"]: name
         for name, body in document["structs"].items()
@@ -433,13 +378,6 @@ def widget_variants(document: dict[str, Any]) -> dict[str, str]:
 
 
 def widget_pools(document: dict[str, Any]) -> list[tuple[str, str, dict[str, Any]]]:
-    """(discriminator, struct, storage array), in WidgetType order.
-
-    The traits table is indexed by the enum, so the order has to be the enum's.
-    Storage names are read from the schema rather than derived from the struct
-    name, so renaming a pool cannot silently produce a table that compiles
-    against the wrong array.
-    """
     variants = widget_variants(document)
     declared = set(document["enums"]["WidgetType"]["json_values"])
     if set(variants) != declared:
@@ -459,9 +397,6 @@ def widget_pools(document: dict[str, Any]) -> list[tuple[str, str, dict[str, Any
             fail(f"{struct} has no storage array in DashboardConfiguration")
         pools.append((value, struct, arrays[struct]))
     return pools
-
-
-# --------------------------------------------------------------------------- C++
 
 
 def cpp_text_default(value: str, capacity_name: str) -> str:
@@ -486,8 +421,6 @@ def cpp_default(field: dict[str, Any], document: dict[str, Any]) -> str:
         return "{true}" if field.get("default") else "{false}"
     if kind == "float":
         default = field.get("default", 0)
-        # Suffixed so a braced initialiser takes a float rather than narrowing
-        # a double constant.
         return "{}" if not default else f"{{{float(default)}F}}"
     if kind in SCALAR_CPP:
         default = field.get("default", 0)
@@ -511,19 +444,8 @@ def cpp_field_type(field: dict[str, Any], document: dict[str, Any]) -> str:
 
 
 def generate_cpp_documents(document: dict[str, Any]) -> list[str]:
-    """The three independently stored and transferred configuration documents.
-
-    A document is a name on the wire, a record in storage, a payload bound and
-    an answer to whether writing it needs a restart. All four come from the same
-    schema entry, so a caller cannot pair one document's name with another's
-    bound.
-    """
     ids = document_ids(document)
     lines = [
-        "// One independently stored and transferred configuration document. Each",
-        "// carries the board identifier and the sections listed against it in the",
-        "// schema, and nothing else: a section belonging to another document is",
-        "// rejected rather than ignored.",
         "enum class ConfigurationDocument : std::uint8_t {",
     ]
     lines.extend(f"  {name}," for name in ids)
@@ -562,9 +484,6 @@ def generate_cpp_documents(document: dict[str, Any]) -> list[str]:
             "  return false;",
             "}",
             "",
-            "// What each document is allowed to weigh. Only the dashboard needs the",
-            "// full payload bound, so the buffers the other two hold are a fraction of",
-            "// it and an oversized document is refused before it is parsed.",
         ]
     )
     sizes = [document["documents"][name]["max_payload"] for name in ids]
@@ -585,9 +504,6 @@ def generate_cpp_documents(document: dict[str, Any]) -> list[str]:
             "             : std::size_t{0};",
             "}",
             "",
-            "// Whether saving this document leaves a setting stored and not in force.",
-            "// The transport is selected once at startup, so only that document has to",
-            "// ask for a restart; the rest are applied to the running composition.",
         ]
     )
     flags = [
@@ -639,23 +555,17 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
     )
     lines.append("")
     for name, body in document.get("constants", {}).items():
-        if body.get("doc"):
-            lines.append(f"// {body['doc']}")
         lines.append(
             f"inline constexpr {body.get('cpp_type', 'std::uint32_t')} {name} = {body['value']}U;"
         )
     lines.append("")
     for name, body in document["limits"].items():
-        if body.get("doc"):
-            lines.append(f"// {body['doc']}")
         lines.append(f"inline constexpr std::size_t {name} = {body['value']};")
     lines.append("")
 
     lines.extend(generate_cpp_documents(document))
 
     for name, body in document["enums"].items():
-        if body.get("doc"):
-            lines.append(f"// {body['doc']}")
         lines.append(f"enum class {name} : std::uint8_t {{")
         lines.extend(f"  {value}," for value in body["json_values"])
         lines.append("};")
@@ -663,9 +573,6 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
 
     for name in struct_order(document):
         body = document["structs"][name]
-        if body.get("doc"):
-            for chunk in wrap_comment(body["doc"]):
-                lines.append(chunk)
         lines.append(f"struct {name} {{")
         for field in body.get("fields", []):
             field_type = cpp_field_type(field, document)
@@ -675,14 +582,6 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
         lines.append("};")
         lines.append("")
 
-    lines.extend(
-        [
-            "// Wire spellings and their conversions. Both directions read the same",
-            "// generated value list the parser allow-lists use, so a name cannot drift",
-            "// between the contract, the parser, and the configurator.",
-            "",
-        ]
-    )
     for name, body in document["enums"].items():
         values = body["json_values"]
         lines.append(
@@ -719,44 +618,24 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
         lines.append("}")
         lines.append("")
     lines.extend(generate_cpp_widget_traits(document))
-    lines.append("}  // namespace simcore::configuration")
+    lines.append("}")
     lines.append("")
     return "\n".join(lines)
 
 
 def generate_cpp_widget_traits(document: dict[str, Any]) -> list[str]:
-    """Per-type access to widget storage, so callers need not restate the list.
-
-    Composing a dashboard, parsing a document, comparing two of them and warming
-    the fonts a document needs all do the same thing for every widget type. Each
-    of those used to spell the seven types out again; they walk this table
-    instead, and a new widget type is added to the schema and nowhere else.
-    """
     pools = widget_pools(document)
     lines = [
-        "// Uniform access to the storage one widget type occupies in a document.",
-        "// Anything that has to do the same thing for every type — composing,",
-        "// parsing, comparing two documents, warming fonts — walks this table",
-        "// rather than naming each type, so adding a widget type is a schema",
-        "// change and not an edit in every such place.",
         "struct WidgetTypeTraits {",
         "  WidgetType type{};",
         "  std::string_view name{};",
-        "  // The document property its pool is stored under, which is what a",
-        "  // capacity rejection has to name.",
         "  std::string_view storage_key{};",
-        "  // Instances of this type one document can hold.",
         "  std::size_t capacity{};",
         "  std::uint8_t (*count)(const DashboardConfiguration&){};",
         "  void (*set_count)(DashboardConfiguration&, std::uint8_t){};",
-        "  // Null past the count, so a caller cannot reach an instance the",
-        "  // document does not have.",
         "  const WidgetFrame* (*frame)(const DashboardConfiguration&,",
         "                              std::uint8_t){};",
         "  WidgetFrame* (*mutable_frame)(DashboardConfiguration&, std::uint8_t){};",
-        "  // One instance as raw bytes, for the byte compare that decides whether",
-        "  // a widget changed between two documents. Empty past the count, so two",
-        "  // absent instances compare equal.",
         "  std::span<const std::byte> (*element_bytes)(const DashboardConfiguration&,",
         "                                              std::uint8_t){};",
         "};",
@@ -807,10 +686,6 @@ def generate_cpp_widget_traits(document: dict[str, Any]) -> list[str]:
         [
             "}};",
             "",
-            "// A WidgetType always comes from the parser or from a reference the",
-            "// parser wrote, so it is always in range; the guard keeps a corrupted",
-            "// value from indexing past the table rather than reporting an error no",
-            "// caller could act on.",
             "[[nodiscard]] inline const WidgetTypeTraits& widget_traits(",
             "    const WidgetType type) {",
             "  const auto index = static_cast<std::size_t>(type);",
@@ -832,33 +707,8 @@ def snake(name: str) -> str:
     return "".join(result)
 
 
-def wrap_comment(text: str, width: int = 76) -> list[str]:
-    words = text.split()
-    lines: list[str] = []
-    current = "//"
-    for word in words:
-        if len(current) + len(word) + 1 > width:
-            lines.append(current)
-            current = "//"
-        current += f" {word}"
-    if current != "//":
-        lines.append(current)
-    return lines
-
-
 def generate_cpp_document_keys(document: dict[str, Any]) -> list[str]:
-    """Top-level property names each document accepts.
-
-    The root object's own list stays beside these: it is what the compiled
-    factory payload is parsed against, being the one document that may seed
-    every section at once.
-    """
-    lines = [
-        "// Accepted top-level property names per document. A section that belongs",
-        "// to another document is unknown here, so a dashboard sent under",
-        "// `@SC:SET:PROTOCOL` is rejected rather than half-applied.",
-        "",
-    ]
+    lines: list[str] = []
     ids = document_ids(document)
     for name in ids:
         keys = document_keys(document, name)
@@ -931,8 +781,6 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
     lines.append("")
     lines.extend(
         [
-            "// A rejection plus enough context for the configurator to point at the",
-            "// offending place. Indices are -1 when the failure is not inside a widget.",
             "struct ValidationFailure {",
             "  ValidationError error{ValidationError::none};",
             "  std::int16_t screen_index{-1};",
@@ -945,10 +793,6 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
             "};",
             "",
             "namespace schema {",
-            "",
-            "// Accepted property names per object. A name absent from the matching list",
-            "// is rejected as unknown_property; a repeated name is rejected as",
-            "// duplicate_property.",
             "",
         ]
     )
@@ -970,19 +814,6 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
         lines.append("}};")
         lines.append("")
     lines.extend(generate_cpp_document_keys(document))
-    lines.extend(
-        [
-            "// The authored bounds of every scalar property that has one, in",
-            "// declaration order. Each returns the public path of the first property",
-            "// outside its range, or an empty view when all of them are inside it, so",
-            "// the caller supplies the ValidationError and the rejection stays where",
-            "// the rest of that type's rules are.",
-            "//",
-            "// A flattened struct and an array element are validated through their own",
-            "// overload, because the hand-written validator already reaches both.",
-            "",
-        ]
-    )
     for name in struct_order(document):
         entries = bounded_fields(document, name, expand_flatten=False)
         if not entries:
@@ -1009,14 +840,11 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
         lines.append("  return {};")
         lines.append("}")
         lines.append("")
-    lines.append("}  // namespace schema")
+    lines.append("}")
     lines.append("")
-    lines.append("}  // namespace simcore::configuration")
+    lines.append("}")
     lines.append("")
     return "\n".join(lines)
-
-
-# ---------------------------------------------------------------------- TypeScript
 
 
 def ts_field_type(field: dict[str, Any], document: dict[str, Any]) -> str:
@@ -1035,16 +863,8 @@ def ts_field_type(field: dict[str, Any], document: dict[str, Any]) -> str:
 
 
 def generate_typescript_documents(document: dict[str, Any]) -> list[str]:
-    """The three documents as the configurator sees them.
-
-    The aggregate `ApplicationConfiguration` stays: it is what the editor mutates
-    and what a saved file holds. These are the slices carved out of it for one
-    transfer each, so the shape the device receives is spelled out here rather
-    than assembled by hand at each call site.
-    """
     ids = document_ids(document)
     lines = [
-        "/** One independently stored and transferred configuration document. */",
         "export type ConfigurationDocumentId = "
         + " | ".join(f"'{name}'" for name in ids),
         "export const CONFIGURATION_DOCUMENT_IDS: readonly ConfigurationDocumentId[] = ["
@@ -1054,8 +874,6 @@ def generate_typescript_documents(document: dict[str, Any]) -> list[str]:
     ]
     for name in ids:
         body = document["documents"][name]
-        if body.get("doc"):
-            lines.append(f"/** {body['doc']} */")
         lines.append(f"export interface {document_type(name)} {{")
         for field in document_fields(document, name):
             if field.get("flatten"):
@@ -1078,15 +896,11 @@ def generate_typescript_documents(document: dict[str, Any]) -> list[str]:
     lines.append("")
     lines.extend(
         [
-            "/** What one document is called, holds, may weigh, and costs to save. */",
             "export interface ConfigurationDocumentDescriptor {",
             "  readonly id: ConfigurationDocumentId",
-            "  /** Root sections it carries, beside the board identifier every one has. */",
             "  readonly sections: readonly string[]",
-            "  /** Top-level property names it accepts, board included. */",
             "  readonly keys: readonly string[]",
             "  readonly maxPayload: number",
-            "  /** Saving it stores a setting the running board cannot pick up. */",
             "  readonly rebootRequired: boolean",
             "}",
             "",
@@ -1120,13 +934,11 @@ def generate_typescript(document: dict[str, Any]) -> str:
         "",
     ]
     for name, body in document["limits"].items():
-        lines.append(f"/** {body.get('doc', '')} */")
         lines.append(f"export const {screaming(name)} = {body['value']}")
     lines.append("")
 
     for name, body in document["enums"].items():
         union = " | ".join(f"'{value}'" for value in body["json_values"])
-        lines.append(f"/** {body.get('doc', '')} */")
         lines.append(f"export type {name} = {union}")
         lines.append(
             f"export const {screaming(name)}_VALUES: readonly {name}[] = "
@@ -1136,26 +948,13 @@ def generate_typescript(document: dict[str, Any]) -> str:
 
     lines.extend(
         [
-            "/** One scalar property's authored bounds, as a dotted public path. */",
             "export interface FieldRange {",
             "  readonly key: string",
             "  readonly minimum: number",
             "  readonly maximum: number",
-            "  /** Zero switches the property off, so it is accepted below the minimum. */",
             "  readonly zeroMeansOff?: boolean",
             "}",
             "",
-            "/**",
-            " * Every bounded property of the objects an author edits, keyed by widget",
-            " * type and by the element structs that arrive inside an array. The device",
-            " * checks the same bounds from the same schema, so a document this accepts",
-            " * is not refused on a range once it gets there.",
-            " *",
-            " * A property that authors only one edge takes the other from what its",
-            " * integer type can hold, which is the window the property table prints.",
-            " * That is what makes a hand-edited negative a range error here rather than",
-            " * a parser rejection on the device.",
-            " */",
             "export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {",
         ]
     )
@@ -1178,9 +977,6 @@ def generate_typescript(document: dict[str, Any]) -> str:
     lines.append("")
 
     error_names = [entry["name"] for entry in document["validation_errors"]]
-    lines.append(
-        "/** Reason token a device puts after `@SC:ERR:` when it rejects a document. */"
-    )
     lines.append(
         "export type ValidationErrorToken = "
         + " | ".join(f"'{name}'" for name in error_names)
@@ -1228,18 +1024,12 @@ def generate_typescript(document: dict[str, Any]) -> str:
         if body.get("serialized") is False:
             continue
         if body.get("json_kind") == "empty_array":
-            if body.get("doc"):
-                lines.append(f"/** {body['doc']} */")
             lines.append(f"export type {name} = readonly never[]")
             lines.append("")
             continue
         fields = serialized_fields(body)
         if not fields:
             continue
-        if body.get("doc"):
-            lines.append(f"/** {body['doc']} */")
-        # An inline external contributes its properties at this level rather
-        # than under its own key, so the interface extends it.
         inherited = [
             document["external_types"][field["external"]]["typescript"]
             for field in fields
@@ -1253,7 +1043,6 @@ def generate_typescript(document: dict[str, Any]) -> str:
             if field["kind"] == "external" and field.get("inline"):
                 continue
             if field.get("flatten"):
-                # The nested object contributes its properties at this level.
                 for inner in serialized_fields(document["structs"][field["struct"]]):
                     inner_optional = "" if inner.get("required") else "?"
                     lines.append(
@@ -1273,9 +1062,6 @@ def generate_typescript(document: dict[str, Any]) -> str:
     variants = widget_variants(document)
     if variants:
         union = " | ".join(sorted(variants.values()))
-        lines.append(
-            "/** Discriminated widget union. Adding a widget type adds one member here. */"
-        )
         lines.append(f"export type WidgetConfiguration = {union}")
         lines.append("")
         rendered = ", ".join(f"'{value}'" for value in variants)
@@ -1284,7 +1070,6 @@ def generate_typescript(document: dict[str, Any]) -> str:
 
     lines.extend(
         [
-            "/** Property names accepted inside each object, mirroring the firmware allow-lists. */",
             "export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {",
         ]
     )
@@ -1303,15 +1088,9 @@ def generate_typescript(document: dict[str, Any]) -> str:
     )
     lines.extend(
         [
-            "/** Struct that carries each widget variant, keyed by its discriminator. */",
             "export const SCHEMA_WIDGET_STRUCTS: Record<string, string> = "
             f"{{ {rendered_variants} }}",
             "",
-            "/**",
-            " * Properties holding a heterogeneous widget array, per struct that has one.",
-            " * A validator walks these rather than naming the container structs, so a new",
-            " * kind of parent cannot be silently skipped.",
-            " */",
             "export const SCHEMA_VARIANT_ARRAYS: Record<string, readonly string[]> = {",
         ]
     )
@@ -1329,10 +1108,6 @@ def generate_typescript(document: dict[str, Any]) -> str:
         [
             "}",
             "",
-            "/**",
-            " * Nested object type for each property, so a validator can walk an unknown",
-            " * document without a hand-maintained mapping.",
-            " */",
             "export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {",
         ]
     )
@@ -1349,7 +1124,6 @@ def generate_typescript(document: dict[str, Any]) -> str:
 
     lines.extend(
         [
-            "/** Bounded string capacities. Values include the terminator the firmware stores. */",
             "export const TEXT_CAPACITIES: Record<string, number> = {",
         ]
     )
@@ -1366,9 +1140,6 @@ def generate_typescript(document: dict[str, Any]) -> str:
 def screaming(name: str) -> str:
     trimmed = name[1:] if name.startswith("k") and name[1:2].isupper() else name
     return snake(trimmed).upper()
-
-
-# ------------------------------------------------------------------------ Markdown
 
 
 def generate_markdown(document: dict[str, Any]) -> str:
@@ -1425,8 +1196,6 @@ def generate_markdown(document: dict[str, Any]) -> str:
         if body.get("serialized") is False:
             continue
         if body.get("json_kind") == "empty_array":
-            # No property table to print, but the root links here, so the
-            # section has to exist for the anchor to resolve.
             lines.append(f"### {name}")
             lines.append("")
             if body.get("doc"):
@@ -1449,9 +1218,6 @@ def generate_markdown(document: dict[str, Any]) -> str:
             lines.append(body["doc"])
             lines.append("")
         if flattened:
-            # A flattened struct's properties are plain properties of this object
-            # on the wire, so a reader of this table has to be told where the
-            # rest of them are listed.
             links = [f"[`{struct}`](#{struct.lower()})" for struct in flattened]
             references = (
                 links[0] if len(links) == 1 else f"{', '.join(links[:-1])} and {links[-1]}"
@@ -1543,9 +1309,6 @@ def markdown_default(field: dict[str, Any], document: dict[str, Any]) -> str:
     if kind in ("struct", "array", "external"):
         return "absent"
     return f"`{field.get('default', 0)}`"
-
-
-# ----------------------------------------------------------------------- Pipeline
 
 
 def expected_outputs(document: dict[str, Any]) -> dict[Path, str]:

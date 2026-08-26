@@ -16,12 +16,6 @@ export function renameWidget(id: string, name: string): boolean {
   return true
 }
 
-/**
- * Renames a screen and repoints every action that named it. A `goto_screen`
- * addresses its target by id, so a rename that left the actions alone would
- * quietly break every button pointing at the screen — the device would reject
- * the document, but only after the author had moved on.
- */
 export function renameScreen(index: number, name: string): boolean {
   const trimmed = name.trim()
   const configuration = useDeviceStore.getState().draft
@@ -31,9 +25,6 @@ export function renameScreen(index: number, name: string): boolean {
   if (new TextEncoder().encode(trimmed).byteLength >= WIDGET_ID_CAPACITY) return false
   if (screens.some((screen) => screen.id === trimmed)) return false
   mutateDraftConfiguration((next) => {
-    // Through ensureScreen: a sparse document can be one screen short of the
-    // tab the author is renaming, and naming it is as good a reason to
-    // materialize it as drawing on it.
     const screen = ensureScreen(next, index)
     screen.id = trimmed
     for (const target of allWidgetsOf(next)) {
@@ -45,11 +36,6 @@ export function renameScreen(index: number, name: string): boolean {
   return true
 }
 
-/**
- * A name a widget may take: non-empty, within what the device stores, and not
- * already used. Containers are widgets, so one namespace covers everything that
- * selection, the layer tree and undo history address by id.
- */
 function usableId(name: string, current: string): string | undefined {
   const trimmed = name.trim()
   const configuration = useDeviceStore.getState().draft

@@ -1,15 +1,5 @@
 import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
 
-/**
- * The two drag handles of the right column: one for how wide it is, one for how
- * much of it the layer list takes.
- *
- * Both work on the delta from where the drag started rather than on the pointer
- * position, so neither needs to know where in the window the panel it resizes
- * begins. The listeners are on the window because a fast drag leaves a 4-pixel
- * handle behind long before the pointer is released.
- */
-
 function drag(onDelta: (delta: number) => void, axis: 'x' | 'y'): (event: React.PointerEvent) => void {
   return (event) => {
     event.preventDefault()
@@ -38,8 +28,6 @@ export function ColumnResizer(): React.JSX.Element {
       aria-label="Resize the property panel"
       className="w-1 flex-none cursor-col-resize hover:bg-muted"
       onPointerDown={(event: React.PointerEvent) => {
-        // The panel is to the right of the handle, so it grows as the pointer
-        // moves left.
         const width = useEditorPanelStore.getState().inspectorWidth
         drag((delta) => setInspectorWidth(width - delta), 'x')(event)
       }}

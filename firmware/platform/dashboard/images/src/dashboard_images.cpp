@@ -12,10 +12,6 @@ namespace {
 
 constexpr char kTag[] = "dashboard_images";
 
-// The decompressor is about 11 KiB of Huffman tables, which is more than the
-// startup task's stack can spare — and `tinfl_decompress_mem_to_mem` puts one
-// there. So it is allocated once for the whole load and driven directly. The
-// code itself is in ROM on both targets and costs no flash.
 struct DecompressorDelete {
   void operator()(tinfl_decompressor* const decompressor) const {
     heap_caps_free(decompressor);
@@ -30,15 +26,10 @@ using DecompressorPtr = std::unique_ptr<tinfl_decompressor, DecompressorDelete>;
   tinfl_init(&decompressor);
   std::size_t consumed = source.size();
   std::size_t produced = expected;
-  // The whole stream is in the mapping and the whole image fits the output, so
-  // one call finishes it: no HAS_MORE_INPUT, and a non-wrapping output buffer.
   const tinfl_status status =
       tinfl_decompress(&decompressor, source.data(), &consumed, destination,
                        destination, &produced,
                        TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
-  // A stream that stops early or runs long is a package that passed its CRC and
-  // still does not describe the image its manifest claims — the one thing the
-  // manifest cannot check without doing this.
   return status == TINFL_STATUS_DONE && produced == expected;
 }
 
@@ -51,21 +42,18 @@ using DecompressorPtr = std::unique_ptr<tinfl_decompressor, DecompressorDelete>;
       return LV_COLOR_FORMAT_RGB565A8;
     case image_assets::ColorFormat::alpha8:
       return LV_COLOR_FORMAT_A8;
-    // Never reaches a registry: the manifest refuses the value outright.
     case image_assets::ColorFormat::indexed8_reserved:
       return LV_COLOR_FORMAT_UNKNOWN;
   }
   return LV_COLOR_FORMAT_UNKNOWN;
 }
 
-}  // namespace
+}
 
 bool Registry::load(const std::span<const image_assets::ImageAsset> assets,
                     const std::span<std::uint8_t> storage) {
   entries_ = {};
   count_ = 0;
-  // Only paid for by a package that actually carries a compressed asset, and
-  // released as soon as the whole load is done either way.
   DecompressorPtr decompressor;
   std::size_t offset = 0;
   for (const image_assets::ImageAsset& asset : assets) {
@@ -104,10 +92,6 @@ bool Registry::load(const std::span<const image_assets::ImageAsset> assets,
     entry.sheet = {};
     entry.sheet.frame_count = asset.frame_count;
     entry.sheet.frame_stride = asset.frame_stride();
-    // The descriptor describes one frame, which for an ordinary image is the
-    // whole of it. What LVGL reads is what is in front of it, so the size is
-    // the decoded frame — never the stored size, which for a compressed asset
-    // is smaller, and never the whole sheet.
     lv_image_dsc_t& descriptor = entry.sheet.descriptor;
     descriptor.header.magic = LV_IMAGE_HEADER_MAGIC;
     descriptor.header.cf = lvgl_format(asset.format);
@@ -140,4 +124,4 @@ const Sheet* Registry::resolve(const image_assets::ImageId& id) const {
   return nullptr;
 }
 
-}  // namespace simcore::dashboard::images
+}

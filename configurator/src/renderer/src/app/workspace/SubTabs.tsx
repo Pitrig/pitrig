@@ -3,20 +3,10 @@ import type { ReactNode } from 'react'
 
 import { cn } from '@/lib/utils'
 
-/**
- * The strip of pages inside one workspace, with whatever belongs to the
- * workspace as a whole on the right of it.
- *
- * Only the dashboard has one today. It is a component rather than markup in
- * that page so a second workspace that grows pages does not invent a second
- * look for the same idea.
- */
-
 export interface SubTab<Id extends string> {
   id: Id
   label: string
   icon?: LucideIcon
-  /** A count or a warning dot's worth of state, shown after the label. */
   badge?: ReactNode
 }
 
@@ -36,10 +26,6 @@ export function SubTabs<Id extends string>({
   actions
 }: SubTabsProps<Id>): React.JSX.Element {
   return (
-    // The tabs keep their width and the actions give theirs up. It was the
-    // other way round — `min-w-0` on the tabs, `flex-none` on the actions — and
-    // a long live-apply message then shrank the tab list below its own content
-    // and painted straight over it.
     <div className="flex h-11 flex-none items-center gap-4 border-b px-3">
       <div aria-label={label} className="flex flex-none items-center gap-1" role="tablist">
         {tabs.map((tab) => {

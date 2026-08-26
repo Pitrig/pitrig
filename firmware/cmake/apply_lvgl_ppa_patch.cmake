@@ -1,20 +1,9 @@
-# LVGL 9.5.0's experimental PPA backend needs two fixes on ESP32-P4:
-#
-# - It passes draw_buf->data_size to esp_cache_msync() and PPA. Dynamically
-#   allocated draw buffers align their address, but not their size, which
-#   violates the cache-line contract.
-# - Its cache handler synchronizes the whole draw buffer for every fill or
-#   image blit. With LVGL rendering directly into a full-screen frame buffer
-#   that is a multi-megabyte write-back twice per operation; only the rows the
-#   operation touches need it.
-#
-# Keep these workarounds version-pinned so an LVGL update cannot silently
-# receive a stale patch.
 set(_simcore_lvgl_dir "${CMAKE_CURRENT_LIST_DIR}/../managed_components/lvgl__lvgl")
 set(_simcore_lvgl_version_header "${_simcore_lvgl_dir}/lv_version.h")
 set(_simcore_lvgl_patches
     "${CMAKE_CURRENT_LIST_DIR}/../patches/lvgl-9.5.0-ppa-draw-buffer-size-alignment.patch"
-    "${CMAKE_CURRENT_LIST_DIR}/../patches/lvgl-9.5.0-ppa-area-cache-sync.patch")
+    "${CMAKE_CURRENT_LIST_DIR}/../patches/lvgl-9.5.0-ppa-area-cache-sync.patch"
+    "${CMAKE_CURRENT_LIST_DIR}/../patches/lvgl-9.5.0-ppa-small-fill-threshold.patch")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${_simcore_lvgl_patches})
 
 if(NOT EXISTS "${_simcore_lvgl_version_header}")

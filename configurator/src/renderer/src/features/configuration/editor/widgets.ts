@@ -35,13 +35,10 @@ const WIDGET_CAPACITIES: Record<WidgetConfiguration['type'], number> = {
 interface InsertionTarget {
   widgets: WidgetConfiguration[]
   cap: number
-  /** Where this array measures its children from, absent on a screen. */
   box?: Required<WidgetPlacement>
-  /** How many containers stand above the array, which bounds what may join it. */
   depth: number
 }
 
-/** One container's own array: a shape's, or the page of a slot being looked at. */
 function containerTarget(
   configuration: DeviceConfiguration,
   containerId: string
@@ -49,9 +46,6 @@ function containerTarget(
   const location = findWidget(configuration, containerId)
   const container = location?.widget
   if (!location || !container) return undefined
-  // Absolute, not the authored box: a nested container's placement is read
-  // against its own parent, so using it directly would land a widget as far off
-  // as the whole chain above it.
   const box = absolutePlacement(configuration, containerId)
   const depth = ancestorsOf(configuration, location).length + 1
   if (container.type === 'shape') {
@@ -64,15 +58,6 @@ function containerTarget(
     : undefined
 }
 
-/**
- * Where a new widget lands: the container being worked in, and the active
- * screen otherwise. "Being worked in" is the one that has been opened, or
- * failing that the selected container — adding a widget while a panel is
- * selected means adding it to the panel, which is what every editor with
- * containers does and what saves a trip through the layer panel afterwards.
- * A widget *inside* a container is deliberately not enough: the selection would
- * then decide parenting from something the author only clicked.
- */
 function insertionTarget(configuration: DeviceConfiguration): InsertionTarget | undefined {
   const { drillIn, selection } = useDashboardEditorStore.getState()
   const opened = drillIn ? containerTarget(configuration, drillIn) : undefined
@@ -85,7 +70,6 @@ function insertionTarget(configuration: DeviceConfiguration): InsertionTarget | 
   return screenTarget(configuration)
 }
 
-/** The active screen's own array, which is where a widget with no container goes. */
 function screenTarget(configuration: DeviceConfiguration): InsertionTarget {
   const screen = ensureScreen(configuration)
   return { widgets: (screen.widgets ??= []), cap: MAXIMUM_WIDGETS_PER_SCREEN, depth: 0 }
@@ -96,13 +80,6 @@ function isContainerId(configuration: DeviceConfiguration, id: string): boolean 
   return widget !== undefined && isContainer(widget)
 }
 
-/**
- * A display-space box read as one inside a container. Callers build a placement
- * against the display, because that is what a new widget is centred on, so
- * landing it on a page means subtracting the container's origin. A box that
- * misses the container entirely was never about this container — a widget just
- * created in the middle of the screen — so it is centred in it instead.
- */
 function intoContainer(
   placement: WidgetPlacement | undefined,
   box: Required<WidgetPlacement>
@@ -118,12 +95,6 @@ function intoContainer(
   return misses ? centeredPlacement(box, absolute) : relative
 }
 
-/**
- * The single insertion path: adding, duplicating and pasting all land here, so
- * a new widget cannot skip a cap check or reuse an id. The widget is inserted
- * as given apart from its identifiers, which are fresh through the whole
- * subtree — the widget itself and everything a container holds.
- */
 export function insertWidget(
   configuration: DeviceConfiguration,
   widget: WidgetConfiguration,
@@ -131,30 +102,14 @@ export function insertWidget(
 ): WidgetSelection | undefined {
   if (!into) return undefined
   const { widgets, cap, box, depth } = into
-  // A slot is built before every container that could hold one, so it is only
-  // ever authored on a screen.
   if (box && widget.type === 'slot') return undefined
-  // The parser recurses once per level and refuses a widget past the last one,
-  // so what has to fit is the whole subtree: the widget at this depth and
-  // everything it carries below it. An empty container on the last level holds
-  // nothing and is accepted, which is what makes a plain rectangle drawable
-  // there. Checked where the widget is created rather than after the device
-  // refuses it.
   if (depth + subtreeHeight(widget) >= MAXIMUM_NESTING_DEPTH) return undefined
   const pooled = allWidgetsOf(configuration).filter(({ type }) => type === widget.type).length
   if (pooled >= WIDGET_CAPACITIES[widget.type] || widgets.length >= cap) {
     return undefined
   }
-  // Every id in the subtree, not only the one on the widget handed in: a
-  // container arrives carrying the ids of the one it was copied from, and two
-  // widgets claiming one id are resolved to whichever the search reaches first
-  // — so a panel pasted onto the second screen answered every drag, every
-  // selection frame and every inspector edit with the original on the first.
   const inserted = freshWidgetIds(structuredClone(widget))
   if (box) inserted.placement = intoContainer(widget.placement, box)
-  // A copy of a tap target is a second tap target, and the device holds
-  // sixteen. Past that the copy is inserted without its action rather than
-  // refused: what was asked for was the widget.
   if (inserted.action && actionCount(configuration) >= MAXIMUM_ACTIONS) {
     delete inserted.action
   }
@@ -162,12 +117,6 @@ export function insertWidget(
   return { type: 'widget', id: inserted.id }
 }
 
-/**
- * Whether the dashboard already holds as many widgets of a kind as the device
- * has room for. The pool is dashboard-wide, so this counts every screen — and
- * it is asked before a tool is offered rather than after a widget silently
- * fails to appear.
- */
 export function atWidgetCapacity(
   configuration: DeviceConfiguration | undefined,
   type: WidgetConfiguration['type']
@@ -177,7 +126,6 @@ export function atWidgetCapacity(
   return pooled >= WIDGET_CAPACITIES[type]
 }
 
-/** Inserts a new widget of `type` where the author put it, or where the editor points. */
 export function addWidget(
   type: WidgetConfiguration['type'],
   display: { width: number; height: number },
@@ -192,12 +140,6 @@ export function addWidget(
   return added
 }
 
-/**
- * The array a drawn box belongs to. Undefined hands the decision back to
- * `insertWidget`'s own rule; a container that cannot take the widget — a slot
- * whose page is missing, a shape that is gone — does the same rather than
- * dropping it silently.
- */
 function drawnTarget(
   configuration: DeviceConfiguration,
   into: string | 'screen' | undefined
@@ -217,9 +159,6 @@ export function deleteWidget(selection: WidgetSelection): boolean {
     if (!widgets || index === undefined) return
     widgets.splice(index, 1)
     deleted = true
-    // An emptied array is dropped rather than left as `[]`, which the sparse
-    // document has no use for. Its owner is the screen for a top-level widget
-    // and the container above it otherwise.
     if (widgets.length > 0) return
     const owner = parentOf(configuration, location)
     if (owner) delete owner.widgets
@@ -227,11 +166,6 @@ export function deleteWidget(selection: WidgetSelection): boolean {
   return deleted
 }
 
-/**
- * Offsetting the copy is what makes it visible: an exact overlay looks like
- * nothing happened. The offset is clamped so a widget duplicated at the edge
- * stays on the display.
- */
 const DUPLICATE_OFFSET_PX = 8
 
 export function duplicateWidget(
@@ -243,11 +177,6 @@ export function duplicateWidget(
   mutateDraftConfiguration((configuration) => {
     const source = findWidget(configuration, selection.id)?.widget
     if (!source) return
-    // The copy stays beside its original, in the same container: a duplicate
-    // that jumped out onto the screen was one the author had to put back every
-    // time. Everything travels in absolute coordinates — offsetting and
-    // clamping are against the display — and the insertion reads it back into
-    // whatever box it lands in.
     const box = absolutePlacement(configuration, selection.id)
     const lifted = box ? { ...source, placement: box } : source
     const parent = parentContainerId(configuration, selection)
@@ -277,25 +206,17 @@ export function offsetWidget(
 }
 
 export function actionCount(configuration: DeviceConfiguration | undefined): number {
-  // Containers are widgets, so allWidgetsOf already reaches every tap target.
   return allWidgetsOf(configuration).filter(
     (target) => target.action && target.action.type !== 'none'
   ).length
 }
 
-/**
- * An empty transparent shape is an invisible rectangle that takes a tap — the
- * cheapest way to say "this corner of the screen goes back" without a widget to
- * press.
- */
 export function addTapZone(
   display: { width: number; height: number },
   extras: Pick<NewWidgetExtras, 'placement' | 'into'> = {}
 ): string | undefined {
   let created: string | undefined
   mutateDraftConfiguration((configuration) => {
-    // Through the one insertion path, so the shape pool cap and the fresh id
-    // are handled where every other widget handles them.
     const selection = insertWidget(
       configuration,
       {
@@ -314,12 +235,6 @@ export function addTapZone(
 
 const TAP_ZONE_PX = 96
 
-/**
- * Puts every font the dashboard already carries into one family, in a single
- * edit so it is a single undo. Sizes are left alone: a caption and a reading
- * are deliberately different sizes, and "one font everywhere" is a statement
- * about the face, not about the scale.
- */
 export function applyFontFamilyToDashboard(family: string): void {
   mutateDraftConfiguration((configuration) => {
     for (const widget of allWidgetsOf(configuration)) applyFontFamily(widget, family)

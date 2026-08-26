@@ -32,7 +32,6 @@ bool Service::initialize(IStorage& storage) {
   if (!storage.map(package_mapping_)) {
     return false;
   }
-  // No package is a normal state, not a failure: the board ships without one.
   if (!validate_package(package_mapping_, {}, package_)) {
     storage.unmap();
     package_mapping_ = {};
@@ -62,9 +61,6 @@ UpdateError Service::begin_update(const std::size_t package_size) {
   if (update_in_progress_) {
     return UpdateError::busy;
   }
-  // The dashboard is drawing from a copy of the previous package, but the
-  // mapping is about to be erased, so a second update before a restart is
-  // refused rather than raced.
   if (status_.reboot_required) {
     return UpdateError::reboot_required;
   }
@@ -93,8 +89,6 @@ UpdateError Service::write_update(const std::span<const std::uint8_t> bytes) {
     return UpdateError::invalid_size;
   }
 
-  // The header is held back in RAM until the rest validates, so an interrupted
-  // upload leaves a partition that reads as empty rather than as a package.
   std::size_t source_offset{};
   if (update_received_ < update_header_.size()) {
     const std::size_t header_bytes =
@@ -141,7 +135,6 @@ UpdateError Service::commit_update() {
     return UpdateError::storage_failure;
   }
 
-  // Read back what was actually stored rather than trusting the write.
   candidate_mapping = {};
   if (!storage_->map(candidate_mapping) ||
       !validate_package(candidate_mapping, {}, package_)) {
@@ -214,4 +207,4 @@ void Service::reset_update() {
   update_header_.fill(0xFFU);
 }
 
-}  // namespace simcore::image_assets
+}

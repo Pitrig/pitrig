@@ -14,21 +14,12 @@
 #include "configuration_schema_generated.hpp"
 #include "cJSON.h"
 
-// Generic readers over one cJSON object: the scalar kinds the schema declares,
-// the property allow-list every object is checked against, and the two shapes
-// (placement, font) that appear at more than one level. Everything above this
-// reads a document through these, so the rules about what a malformed value is
-// live in one place.
-
 namespace simcore::configuration::json {
 
 using KeyList = std::span<const std::string_view>;
 
-// Points cJSON's allocator at external memory. Idempotent.
 void install_json_allocator();
 
-// Records the first cause and leaves it untouched afterwards, so a nested
-// rejection is reported instead of the generic error its caller would return.
 bool reject(ValidationFailure& failure, ValidationError error,
             std::string_view object, std::string_view key = {});
 
@@ -37,8 +28,6 @@ bool reject(ValidationFailure& failure, ValidationError error,
   return cJSON_GetObjectItemCaseSensitive(object, name);
 }
 
-// Rejects any property the schema does not declare, and any property that
-// appears twice in the same object.
 [[nodiscard]] bool valid_object(const cJSON* object, KeyList allowed,
                                 std::string_view name,
                                 ValidationFailure& failure);
@@ -70,14 +59,6 @@ bool reject(ValidationFailure& failure, ValidationError error,
                                        font_assets::FontSpec& font,
                                        ValidationFailure& failure);
 
-// One bounded array, which is the shape every list in the document takes:
-// absent means empty, anything that is not an array or does not fit is
-// rejected, and each element is read by `read_element(item, destination)`. The
-// count is only written once every element has been accepted, so a rejected
-// array leaves the configuration describing none of it.
-//
-// This was open-coded six times, and each copy had its own chance to get the
-// bound wrong.
 template <typename Element, std::size_t Capacity, typename ReadElement>
 [[nodiscard]] bool read_array(const cJSON* const object, const char* const key,
                               std::array<Element, Capacity>& destination,
@@ -154,7 +135,6 @@ template <std::size_t Size>
              : reject(failure, ValidationError::malformed, name, key);
 }
 
-// Decodes one of the generated wire spellings for a schema enumeration.
 template <typename Enum, typename FromName>
 [[nodiscard]] bool read_enum(const cJSON* const object,
                              const char* const key, Enum& output,
@@ -172,4 +152,4 @@ template <typename Enum, typename FromName>
   return true;
 }
 
-}  // namespace simcore::configuration::json
+}

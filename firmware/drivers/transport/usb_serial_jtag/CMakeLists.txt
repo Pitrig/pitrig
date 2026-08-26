@@ -1,7 +1,3 @@
-# Requirements are declared for both settings because the dependency graph is
-# expanded before Kconfig is read, and a requirement that appears only in one of
-# the two passes would leave the source without its include paths. Only the
-# source is conditional, so a product build compiles nothing from here.
 set(second_link_sources "")
 if(CONFIG_SIMCORE_SECOND_TELEMETRY_LINK)
     set(second_link_sources "src/usb_serial_jtag_transport.cpp")

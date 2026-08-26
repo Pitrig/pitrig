@@ -4,20 +4,8 @@ import { type DeviceConfiguration } from '@shared/device'
 
 import { findWidget, mutateDraftConfiguration, parentOf } from './document'
 
-// Where a widget sits in its own parent's stack. Restacking is a document edit
-// like any other — `z_index` is what the device draws by — and it happens
-// inside one parent, because a widget inside a container cannot be raised above
-// something outside it without raising the container (ADR 0021).
-
-/** How far a widget moves through its siblings, back to front. */
 export type StackMove = 'front' | 'forward' | 'backward' | 'back'
 
-/**
- * Where a widget currently sits in its parent's stack, which is what orders a
- * selection before it is restacked as a group. `z_index` is that rank: every
- * command that reorders a parent rewrites all of them from the array, so it is
- * never stale and never tied.
- */
 export function stackRankOf(
   configuration: DeviceConfiguration | undefined,
   id: string
@@ -25,12 +13,6 @@ export function stackRankOf(
   return findWidget(configuration, id)?.widget.z_index ?? 0
 }
 
-/**
- * The order a group has to be restacked in to come out arranged as it went in.
- * Each move lands its widget at one end of the parent, so whichever is applied
- * last ends up outermost — which means the widget that should finish outermost
- * has to go last.
- */
 export function restackOrder(
   configuration: DeviceConfiguration | undefined,
   ids: readonly string[],
@@ -42,12 +24,6 @@ export function restackOrder(
   return move === 'front' || move === 'backward' ? ascending : ascending.reverse()
 }
 
-/**
- * Moves one widget through its siblings and rewrites every `z_index` in that
- * parent, exactly as a drop in the layer panel does. Writing all of them rather
- * than only the moved one leaves no ties for the authored order to break and
- * keeps array order and `z_index` agreeing, which every later move relies on.
- */
 export function restackWidget(id: string, move: StackMove): boolean {
   let moved = false
   mutateDraftConfiguration((configuration) => {
@@ -56,7 +32,6 @@ export function restackWidget(id: string, move: StackMove): boolean {
     const owner = parentOf(configuration, location)
     const siblings = owner?.widgets
     if (!owner || !siblings) return
-    // Back to front, which is what z_index means and what "forward" moves along.
     const order = stackOrder(siblings).map(({ widget }) => widget)
     const at = order.indexOf(location.widget)
     if (at < 0) return

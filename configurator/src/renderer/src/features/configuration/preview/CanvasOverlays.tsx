@@ -4,23 +4,12 @@ import type { DisplayDescriptor } from '@shared/device'
 import type { Placement, ResizeMode } from './canvas-geometry'
 import type { GapLabel, SnapGuide } from './snapping'
 
-// The canvas chrome: what is drawn over the widgets rather than by them — the
-// grid, the snap guides and their measurements, the pointer target and the
-// selection handles. None of it reads the document or holds state, which is why
-// it is not tangled with the gesture machine next door.
-//
-// Everything is sized in screen pixels by dividing by the zoom, so a handle
-// stays the same size to grab and a guide stays one hairline wide however far
-// the canvas is magnified.
-
 const GUIDE_COLOR = '#F472B6'
 const SELECTION_COLOR = '#38BDF8'
 const TARGET_COLOR = '#F59E0B'
 
 export function GridOverlay({ display, size, zoom }: { display: DisplayDescriptor; size: number; zoom: number }): React.JSX.Element | null {
   if (size <= 0) return null
-  // A grid finer than a couple of screen pixels reads as a wash rather than as
-  // a grid, so it is left out until the canvas is magnified enough to show it.
   const step = size * zoom >= 4 ? size : size * Math.ceil(4 / (size * zoom))
   const lines: React.JSX.Element[] = []
   for (let x = step; x < display.width; x += step) {
@@ -32,11 +21,6 @@ export function GridOverlay({ display, size, zoom }: { display: DisplayDescripto
   return <g pointerEvents="none">{lines}</g>
 }
 
-/**
- * The lines a gesture landed on. Each one covers only the two boxes it
- * relates, rather than crossing the whole display: a line from edge to edge
- * says something lined up somewhere, and this says what with.
- */
 export function GuideOverlay({ guides, zoom }: { guides: readonly SnapGuide[]; zoom: number }): React.JSX.Element {
   return (
     <g pointerEvents="none">
@@ -67,11 +51,6 @@ export function GuideOverlay({ guides, zoom }: { guides: readonly SnapGuide[]; z
   )
 }
 
-/**
- * The distance to whatever stands beside the box, with its number. A matched
- * gap — one the box snapped to because the row already had it — is drawn solid;
- * the rest are the measurements the gesture happens to have produced.
- */
 export function GapOverlay({ gaps, zoom }: { gaps: readonly GapLabel[]; zoom: number }): React.JSX.Element {
   const tick = 3 / zoom
   return (
@@ -86,7 +65,6 @@ export function GapOverlay({ gaps, zoom }: { gaps: readonly GapLabel[]; zoom: nu
         return (
           <g key={index} opacity={gap.matched ? 1 : 0.75}>
             <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={1 / zoom} />
-            {/* End caps, so a short measurement still reads as a measurement. */}
             <line
               x1={horizontal ? x1 : x1 - tick}
               y1={horizontal ? y1 - tick : y1}
@@ -120,7 +98,6 @@ export function GapOverlay({ gaps, zoom }: { gaps: readonly GapLabel[]; zoom: nu
   )
 }
 
-/** The widget a gesture lined up with, outlined while it does. */
 export function TargetOutline({ boxes, zoom }: { boxes: readonly Placement[]; zoom: number }): React.JSX.Element {
   return (
     <g pointerEvents="none">
@@ -138,11 +115,6 @@ export function TargetOutline({ boxes, zoom }: { boxes: readonly Placement[]; zo
   )
 }
 
-/**
- * What the box being dragged currently is, beside the pointer. The inspector
- * says the same thing, but reading it means looking away from the thing being
- * placed — which is exactly when the number matters.
- */
 export function MeasureBadge({
   placement,
   mode,
@@ -160,8 +132,6 @@ export function MeasureBadge({
       : `${placement.width} × ${placement.height}`
   const width = (text.length * 6 + 10) / zoom
   const height = 16 / zoom
-  // Below the box normally, above it when there is no room — the badge belongs
-  // to the gesture, so it must not fall off the display and disappear.
   const below = placement.y + placement.height + 6 / zoom
   const y = below + height <= display.height ? below : placement.y - height - 6 / zoom
   const x = Math.min(Math.max(placement.x, 0), Math.max(0, display.width - width))
@@ -190,11 +160,6 @@ const HANDLE_CURSORS: Record<ResizeMode, string> = {
   w: 'ew-resize'
 }
 
-/**
- * The box a resize acts on and the eight handles that drive it. One selected
- * widget or a whole selection: a group is resized by the box around it, which
- * is the same gesture over a different rectangle.
- */
 export function SelectionFrame({
   placement,
   zoom,

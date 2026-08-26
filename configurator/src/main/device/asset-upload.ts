@@ -4,14 +4,8 @@ import type { AssetUploadProgress } from '../../shared/asset-upload'
 import { describeDeviceError } from '../../shared/device-error-message'
 import { crc32 } from './asset-crc'
 
-// The binary upload protocol, which is the same for every asset kind: SCF1
-// frames, one in flight, acknowledged by sequence. Only the command namespace
-// and the words in the messages differ, so those are parameters rather than a
-// second copy of the state machine.
-
 const FRAME_MAGIC = Buffer.from('SCF1', 'ascii')
 const FRAME_HEADER_SIZE = 14
-// The device announces this in READY and refuses a larger frame.
 const MAXIMUM_CHUNK_SIZE = 4096
 const BEGIN_TIMEOUT_MS = 30_000
 const FRAME_TIMEOUT_MS = 5_000
@@ -19,9 +13,7 @@ const FRAME_TIMEOUT_MS = 5_000
 class DeviceRejectedUploadError extends Error {}
 
 export interface AssetNamespace {
-  /** The `@SC:` command namespace, e.g. `FONT` or `IMAGE`. */
   command: string
-  /** What the messages call the thing being uploaded. */
   label: string
 }
 
@@ -72,10 +64,6 @@ export async function uploadAssetPackage(
         port,
         createFrame(1, sequence, payload),
         `@SC:OK:${namespace.command}:ACK:`,
-        // A kind may still be preparing storage when the first chunk lands:
-        // firmware defers erasing its slot until the package header has named
-        // the board, so that erase is paid for here rather than at BEGIN, and
-        // erasing 2 MiB outlasts a normal frame budget.
         sequence === 0 ? BEGIN_TIMEOUT_MS : FRAME_TIMEOUT_MS,
         callbacks,
         signal
@@ -154,7 +142,6 @@ async function cancelSession(
       new AbortController().signal
     )
   } catch {
-    // The firmware also exits the session through timeout or protocol-overrun.
   }
 }
 

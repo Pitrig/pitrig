@@ -1,7 +1,3 @@
-// CRC-32/ISO-HDLC, the checksum both asset package formats and the upload
-// frames use. Kept here rather than inside one package builder so the other one
-// does not have to import from it.
-
 export function crc32(bytes: Uint8Array): number {
   const table = [
     0x00000000, 0x1db71064, 0x3b6e20c8, 0x26d930ac,

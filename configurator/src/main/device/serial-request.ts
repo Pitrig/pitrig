@@ -7,19 +7,11 @@ import { DeviceServiceError } from './device-errors'
 export type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
 
 export const CONFIGURATION_RESPONSE_PREFIX = '@SC:OK:CONFIG:'
-// The buffer holds the one line still being received, so it has to keep the
-// longest line the device sends: a GET reply, which is the prefix, a payload up
-// to the contract's bound, and the line ending. A smaller bound cut the head
-// off a long configuration before its newline arrived, and by the time the
-// line was complete the prefix it was waiting for was gone — every dashboard
-// over the old 8 KiB failed the probe as "not a SimCore device".
 export const MAXIMUM_RESPONSE_BUFFER_SIZE =
   CONFIGURATION_RESPONSE_PREFIX.length +
   'dashboard:'.length +
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE +
   '\r\n'.length
-// Long enough for a board that is busy redrawing, short enough that a console
-// that gets nothing back says so while the author is still looking at it.
 const CONTROL_COMMAND_TIMEOUT_MS = 3_000
 
 export function requestResponse(
@@ -87,19 +79,6 @@ export function requestResponse(
   })
 }
 
-/**
- * One hand-typed line, and every `@SC:` line the board answers with.
- *
- * This is the debug console's request, and it differs from `requestResponse` in
- * the two ways a console needs: it waits for *a* terminating line rather than
- * one particular prefix, since the caller typed the command and nothing here
- * knows what its reply looks like; and `@SC:ERR:` is an answer to be shown
- * rather than a rejection to be thrown. Telemetry the board is streaming past
- * the command is dropped — only `@SC:` lines are the reply.
- *
- * A silent board resolves with what did arrive rather than failing, because
- * "the board said nothing" is itself the finding the console exists to show.
- */
 export function sendControlCommand(
   port: SerialPort,
   command: string,

@@ -46,9 +46,6 @@ std::size_t TelemetryComposition::select(
   links[0] = primary;
   std::size_t count = 1;
 #if SIMCORE_SECOND_TELEMETRY_LINK
-  // Development only, and deliberately unconditional: this is the port the
-  // board is flashed over, so it is always present, and no configuration
-  // property decides whether it also carries data.
   if (count < links.size() &&
       usb_serial_jtag_.configure({
           .silence_esp_logs = SIMCORE_SECOND_TELEMETRY_LINK_SILENCE_LOGS != 0,
@@ -68,4 +65,4 @@ void TelemetryComposition::silence_logs() {
 #endif
 }
 
-}  // namespace simcore::transport
+}

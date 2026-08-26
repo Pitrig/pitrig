@@ -22,41 +22,15 @@ import {
 export { requestResponse, sendControlCommand } from './serial-request'
 
 const CONFIGURATION_TIMEOUT_MS = 2_000
-// Resetting erases NVS records, which is quick but still flash work.
 const RESET_TIMEOUT_MS = 5_000
-// The device erases the whole 2–4 MiB asset partition before it answers CLEAR,
-// exactly the work the upload engine budgets BEGIN_TIMEOUT_MS for. A 2 s wait
-// here reported boards as unreachable while they were busy erasing.
 const ASSET_CLEAR_TIMEOUT_MS = 30_000
 
-/**
- * How long a configuration exchange may take on this link.
- *
- * A dashboard document is up to 64 KiB, and both the SET line and the GET
- * reply carry it whole — at 460800 baud that alone is ~1.4 s on the wire, and
- * the slower rates the UI legitimately offers take far longer. A flat 2 s
- * timeout therefore failed the very probe that reads the configuration on
- * connect, which read as "not a SimCore device" with no way back in.
- *
- * `port.baudRate` is the rate the port was opened at: on a USB-serial bridge
- * it is what the bytes actually travel at, and on native USB it is nominal
- * while the link is faster, so the reply only ever arrives early. The factor
- * of two covers the device's own work — parsing and validating 64 KiB of
- * JSON, and for SET the NVS write plus its read-back verification.
- */
 function configurationTimeout(port: SerialPort, payloadBytes: number): number {
   const baud = Math.max(port.baudRate, 9_600)
   const transferMs = Math.ceil((payloadBytes * 10 * 1_000) / baud)
   return CONFIGURATION_TIMEOUT_MS + 2 * transferMs
 }
 
-/**
- * One document read back, as the whole aggregate it is a slice of.
- *
- * The device answers `@SC:GET:<document>` with the exact bytes it loaded that
- * document from, so the reply is validated inside the smallest configuration
- * that can carry it — the same trick the editor's clipboard uses on a paste.
- */
 export async function readConfigurationDocument(
   port: SerialPort,
   document: ConfigurationDocumentId,
@@ -85,11 +59,6 @@ export async function readConfigurationDocument(
   }
 }
 
-/**
- * Every document, merged back into the one configuration the application edits.
- * Reading them in turn rather than in parallel is not a choice: the control
- * service answers one request at a time and drops a second arriving mid-answer.
- */
 export async function readConfiguration(
   port: SerialPort,
   expectedBoard: SimCoreBoardId,
@@ -141,7 +110,6 @@ export async function saveConfiguration(
   )
 }
 
-/** Erases every stored document, putting the board back on factory values. */
 export async function resetConfiguration(
   port: SerialPort,
   onTraffic: TrafficCallback
@@ -156,7 +124,6 @@ export async function resetConfiguration(
   )
 }
 
-/** Erases one stored document, leaving the other two as they are. */
 export async function resetConfigurationDocument(
   port: SerialPort,
   document: ConfigurationDocumentId,

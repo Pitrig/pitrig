@@ -12,9 +12,6 @@
 namespace simcore::configuration::json {
 namespace {
 
-// One container's `widgets` array. A screen, a shape and a slot page differ only
-// in the table they fill and the error they report, so the walk itself is
-// written once. `depth` is the container's own level; the children take the next
 [[nodiscard]] bool parse_children(const cJSON* const children,
                                   DashboardConfiguration& dashboard,
                                   const ReferenceTable& owner,
@@ -35,8 +32,6 @@ namespace {
     if (!parse_widget(cJSON_GetArrayItem(children, index), dashboard, owner,
                       screen_index, parent,
                       static_cast<std::uint8_t>(depth + 1), failure)) {
-      // Only the innermost failure names its position; an outer level would
-      // otherwise overwrite it with its own, which is the less useful one.
       if (failure.widget_index < 0) {
         failure.widget_index = static_cast<std::int16_t>(index);
       }
@@ -46,7 +41,7 @@ namespace {
   return true;
 }
 
-}  // namespace
+}
 
 bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
                   const ReferenceTable& owner, const std::uint8_t screen_index,
@@ -66,10 +61,6 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
                              widget_type)) {
     return reject(failure, ValidationError::invalid_widget, kName, "type");
   }
-  // A slot is built before every container that could hold one, which is what
-  // keeps composition to one pass per widget type. Refusing it here rather than
-  // in validation is what makes the schema's variant maps the whole statement of
-  // where a slot may appear.
   if (widget_type == WidgetType::slot &&
       parent.kind != WidgetParentKind::screen) {
     return reject(failure, ValidationError::invalid_slot, "widget.slot",
@@ -100,18 +91,12 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
           object, dashboard, storage_index, failure)) {
     return false;
   }
-  // Counted first, because the traits table refuses to hand out a frame past
-  // the count — which is exactly what keeps every other caller in range.
   traits.set_count(dashboard, static_cast<std::uint8_t>(storage_index + 1));
 
-  // Parenting is stamped once after the variant is parsed, so a widget type
-  // knows nothing about screens or containers.
   WidgetFrame* const frame = traits.mutable_frame(dashboard, storage_index);
   frame->screen_index = screen_index;
   frame->parent_index = parent.index;
   frame->parent_kind = parent.kind;
-  // Carrying the ordering key on the reference keeps compositing free of
-  // widget-type knowledge.
   owner.entries[*owner.count] = {
       .type = widget_type,
       .index = storage_index,
@@ -119,11 +104,6 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
   };
   ++*owner.count;
 
-  // Recursing last is what orders the pool: this container is already counted,
-  // so every widget below it takes a higher pool index than its parent, and a
-  // cycle becomes unrepresentable rather than merely rejected. The references
-  // below stay valid across the calls because the pools are fixed-size arrays
-  // that nothing here can grow or move.
   switch (widget_type) {
     case WidgetType::shape: {
       ShapeWidgetConfiguration& container =
@@ -137,8 +117,6 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
     }
     case WidgetType::slot: {
       SlotWidgetConfiguration& slot = dashboard.slot_widgets[storage_index];
-      // Pages are addressed by arithmetic rather than by a pool of their own,
-      // so the base is fixed the moment the slot takes its pool index.
       const std::uint8_t base =
           static_cast<std::uint8_t>(storage_index * kMaximumSlotPages);
       const cJSON* const pages = member(object, "pages");
@@ -150,11 +128,6 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
                 screen_index,
                 ParentRef{WidgetParentKind::slot_page,
                           static_cast<std::uint8_t>(base + page)},
-                // A page costs no nesting level. The bound exists to cap the
-                // parser's own recursion, and a page adds none: it is walked
-                // here rather than through parse_widget. Charging for it would
-                // only buy the author one level less inside a slot than
-                // outside one, for nothing.
                 depth, ValidationError::invalid_slot_page, "widget.slot.pages",
                 failure)) {
           return false;
@@ -167,4 +140,4 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
   }
 }
 
-}  // namespace simcore::configuration::json
+}

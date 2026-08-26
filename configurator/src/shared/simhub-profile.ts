@@ -47,9 +47,6 @@ export function collectDashboardTelemetry(
 ): DashboardTelemetrySelection {
   const requested = new Set<string>()
   const unknownBindings = new Set<string>()
-  // Everything the dashboard reads has to reach the profile, so this asks the
-  // same question the preview does and then splits the answer by whether SimHub
-  // knows the field.
   for (const binding of dashboardBindings(configuration)) {
     if (PROFILE_FIELD_NAMES.has(binding)) requested.add(binding)
     else unknownBindings.add(binding)

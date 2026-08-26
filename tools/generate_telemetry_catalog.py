@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-"""Generate bounded firmware, configurator, and documentation telemetry catalogs."""
-
 from __future__ import annotations
 
 import argparse
@@ -243,7 +241,7 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{{{
 
 static_assert(kFieldCount <= kMaximumFieldCount);
 
-}}  // namespace simcore::telemetry::catalog
+}}
 """
 
 
@@ -289,7 +287,7 @@ inline constexpr std::array<LookupEntry, {len(fields)}> kLookup{{{{
 {lookup_entries}
 }}}};
 
-}}  // namespace simcore::protocols::simhub_catalog
+}}
 """
 
 
@@ -401,10 +399,6 @@ def generate_simhub_expression(
             scaled = f"({source}) * {mapping['scale']}"
         converted = f"format({scaled}, '{mapping['format']}')"
 
-    # NCalc compares a number with '' by converting '' to a number, which throws
-    # and silently disables the message once the game supplies a value. Prefixing
-    # the source with '' turns the null test into a string comparison for every
-    # property type (numbers, booleans, timespans, text).
     unavailable = f"'' + isnull({source}, '') = ''"
     if fallback is not None:
         converted = f"if({unavailable}, '{fallback}', {converted})"

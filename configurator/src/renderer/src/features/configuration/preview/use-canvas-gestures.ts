@@ -37,12 +37,6 @@ interface GestureHandlers {
   beginBackground: (event: React.PointerEvent<SVGSVGElement>) => void
 }
 
-/**
- * The pointer state machine of the canvas: move, resize, draw, marquee and pan
- * as one set of handlers over the render's CanvasContext. Everything pure —
- * which field a box snaps in, where it would land — lives in gesture-fields.ts;
- * this hook owns only what changes as the pointer moves.
- */
 export function useCanvasGestures(
   context: CanvasContext,
   spaceHeld: boolean,
@@ -51,10 +45,6 @@ export function useCanvasGestures(
 ): GestureHandlers {
   const [interaction, setInteraction] = useState<Interaction>()
   const [draw, setDraw] = useState<Draw>()
-  // The container the widget being dragged would join on release. Held while the
-  // drag runs so the canvas can say where it is about to land, and recomputed
-  // from the document at release rather than trusted, because this is a render
-  // behind the pointer.
   const [dropContainer, setDropContainer] = useState<string>()
   const [marquee, setMarquee] = useState<Marquee>()
   const [pan, setPan] = useState<Pan>()
@@ -73,8 +63,6 @@ export function useCanvasGestures(
       context.extendSelection(target.id)
       return
     }
-    // Dragging one of several selected widgets moves the group; dragging an
-    // unselected one starts a new selection, which is what a click on it means.
     const group =
       target.type === 'widget' && selectedIds.includes(target.id)
         ? selectedIds
@@ -82,8 +70,6 @@ export function useCanvasGestures(
     const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
     if (!point) return
     svgRef.current?.setPointerCapture(event.pointerId)
-    // One commit per frame is still one gesture, so the whole drag collapses
-    // into a single history entry.
     useDeviceStore.getState().beginEdit()
     const primaryId = target.type === 'widget' ? target.id : ''
     setInteraction({
@@ -109,13 +95,6 @@ export function useCanvasGestures(
     })
   }
 
-  // A pointer stream can outpace the frame rate, and each commit rewrites the
-  // whole document. Coalescing to one commit per frame keeps dragging smooth.
-  //
-  // The coalesced work is kept beside its frame id so releasing the pointer can
-  // run it rather than drop it. Cancelling the frame alone loses everything
-  // between the last painted frame and the release — a slow drag gave up a few
-  // pixels, and a quick one gave up the whole gesture.
   const pendingFrame = useRef<number | undefined>(undefined)
   const pendingCommit = useRef<(() => void) | undefined>(undefined)
   const flushPendingCommit = (): void => {
@@ -216,7 +195,6 @@ export function useCanvasGestures(
     if (marquee?.pointerId === event.pointerId) {
       svgRef.current?.releasePointerCapture(event.pointerId)
       const bounds = marqueeBounds(marquee)
-      // A click rather than a drag: the screen is what was picked.
       if (bounds.width < 2 && bounds.height < 2) {
         if (!marquee.additive) context.select({ type: 'screen' })
       } else {
@@ -235,8 +213,6 @@ export function useCanvasGestures(
     }
     if (interaction?.pointerId !== event.pointerId) return
     svgRef.current?.releasePointerCapture(event.pointerId)
-    // The last move may still be waiting for a frame; it has to land, and it
-    // has to land inside the history group this gesture opened.
     flushPendingCommit()
     settleDropAfterMove(context, interaction, event)
     useDeviceStore.getState().endEdit()
@@ -246,16 +222,11 @@ export function useCanvasGestures(
   }
 
   const beginBackground = (event: React.PointerEvent<SVGSVGElement>): void => {
-    // The right button opens the menu; it must not start a gesture on the way.
     if (event.button === 2) return
-    // A widget waiting to be placed owns the next press: no rubber band, no
-    // tool, no selection.
     if (placePendingInsert(event)) return
     const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
     if (!point) return
     svgRef.current?.setPointerCapture(event.pointerId)
-    // The middle button pans, and so does Space — which leaves the left button
-    // free for the rubber band even when the canvas is magnified.
     if (event.button === 1 || spaceHeld) {
       event.preventDefault()
       setPan({

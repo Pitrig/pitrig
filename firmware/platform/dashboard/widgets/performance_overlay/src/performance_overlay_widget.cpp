@@ -19,7 +19,7 @@ constexpr std::uint32_t kBackgroundColor = 0x0B0B0B;
 constexpr std::uint32_t kTextColor = 0xE8E8E8;
 constexpr std::uint32_t kUpdatePeriodMs = 1'000;
 constexpr std::int32_t kPadding = 3;
-}  // namespace
+}
 
 View::~View() { destroy(); }
 
@@ -96,10 +96,6 @@ bool View::create(lv_display_t* const display,
   label_ = lv_label_create(lv_display_get_layer_top(display));
   lv_obj_remove_style_all(label_);
   lv_obj_set_style_bg_color(label_, lv_color_hex(kBackgroundColor), LV_PART_MAIN);
-  // Translucent so the dashboard underneath stays readable. The cost is that
-  // the widgets it covers are blended into it whenever the overlay refreshes,
-  // which is one slower frame per second and shows up in the longest-frame
-  // measurement; that is worth less than hiding the widgets being diagnosed.
   lv_obj_set_style_bg_opa(label_, LV_OPA_70, LV_PART_MAIN);
   lv_obj_set_style_pad_all(label_, kPadding, LV_PART_MAIN);
   lv_obj_set_style_text_color(label_, lv_color_hex(kTextColor), LV_PART_MAIN);
@@ -143,4 +139,4 @@ void View::update(lv_timer_t*) {}
 void View::render() {}
 #endif
 
-}  // namespace simcore::dashboard::performance_overlay_widget
+}

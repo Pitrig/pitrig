@@ -13,12 +13,6 @@ import {
   type StoredIndex
 } from './font-library-files'
 
-// The once-per-start maintenance the library performs while loading its index:
-// dropping records whose files are gone, recording digit widths older records
-// never stored, and adopting the pre-library font cache. Split from the
-// service so loading reads as three named passes rather than one long method.
-
-/** An entry whose file is gone is a gap in the list, not a broken library. Returns how many. */
 export async function dropMissingFaces(
   index: StoredIndex,
   facesDirectory: string
@@ -37,13 +31,6 @@ export async function dropMissingFaces(
   return missing
 }
 
-/**
- * Entries written before the digit width was recorded have no answer stored,
- * and would show no badge next to a font that has one — which reads as the
- * check being unreliable rather than as the record being old. Read once and
- * written back, so this happens on the first start after the upgrade and
- * never again. Returns whether the index changed and needs writing.
- */
 export async function backfillTabularDigits(
   index: StoredIndex,
   facesDirectory: string
@@ -60,13 +47,6 @@ export async function backfillTabularDigits(
   return changed
 }
 
-/**
- * Faces that earlier versions cached to draw a preview with become imported
- * entries, once. Before the library existed, uploading was the only way to
- * make the canvas draw in the real face, so this is what keeps an existing
- * project rendering the way it did yesterday. The old directory is left
- * alone: it is a cache, and deleting it is not worth a failure path.
- */
 export async function adoptLegacyCache(
   legacyDirectory: string | undefined,
   has: (id: string) => boolean,
@@ -95,7 +75,6 @@ export async function adoptLegacyCache(
         ...optionalTabular(hasTabularDigits(bytes))
       }, bytes)
     } catch {
-      // A face that cannot be adopted simply is not adopted.
     }
   }
 }

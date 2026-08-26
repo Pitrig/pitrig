@@ -1,20 +1,3 @@
-/**
- * Whether a face draws its ten digits at one width, read out of the face itself.
- *
- * This matters more than it looks on a dashboard: the screen is mostly numbers
- * that change several times a second, and a face with proportional digits
- * reflows the whole reading every time a 1 becomes an 8 — the value shifts
- * sideways while it is being read. The name does not tell you which kind it is.
- * Roboto is not a monospaced font and its digits are tabular; Inter is a
- * workhorse UI face and its digits are not.
- *
- * It is read from `hmtx` rather than measured in the browser because the browser
- * answers about whatever font it actually resolved — a face that failed to
- * register measures the fallback, and the fallback has tabular digits, so the
- * wrong answer is the confident-looking one. The device rasterizes these same
- * advance widths with TinyTTF and applies no OpenType features, so what is read
- * here is what the board will draw.
- */
 export function hasTabularDigits(face: Uint8Array): boolean | undefined {
   const advances = digitAdvances(face)
   if (!advances) return undefined
@@ -36,8 +19,6 @@ function digitAdvances(face: Uint8Array): number[] | undefined {
 
   const glyphs = characterMap(view, cmap)
   if (!glyphs) return undefined
-  // The last entry in hmtx repeats for every glyph after it, which is how a
-  // monospaced face stores one advance for thousands of glyphs.
   const longMetrics = safeUint16(view, hhea + 34)
   if (longMetrics === undefined || longMetrics === 0) return undefined
 
@@ -54,7 +35,6 @@ function digitAdvances(face: Uint8Array): number[] | undefined {
 
 function tableDirectory(view: DataView): Map<string, number> | undefined {
   const tag = safeUint32(view, 0)
-  // A collection holds several faces and says nothing about which one is meant.
   if (tag === undefined || tag === 0x74746366) return undefined
   const count = safeUint16(view, 4)
   if (count === undefined) return undefined
@@ -78,7 +58,6 @@ function tableTag(view: DataView, offset: number): string | undefined {
   return tag
 }
 
-/** Unicode code point to glyph index, from the best subtable the face offers. */
 function characterMap(view: DataView, cmap: number): Map<number, number> | undefined {
   const count = safeUint16(view, cmap + 2)
   if (count === undefined) return undefined
@@ -111,7 +90,6 @@ function subtableScore(platform: number, encoding: number): number {
   return -1
 }
 
-/** Only the digits are looked up, so both parsers resolve exactly those ten. */
 function parseFormat4(view: DataView, table: number): Map<number, number> | undefined {
   const segmentBytes = safeUint16(view, table + 6)
   if (segmentBytes === undefined) return undefined
@@ -164,8 +142,6 @@ function parseFormat12(view: DataView, table: number): Map<number, number> | und
   return glyphs
 }
 
-// A truncated or malformed face reads as "unknown" rather than throwing inside
-// a listing, which is the same bargain the rest of the library makes.
 function safeUint16(view: DataView, offset: number): number | undefined {
   return offset + 2 <= view.byteLength ? view.getUint16(offset, false) : undefined
 }

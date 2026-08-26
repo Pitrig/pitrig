@@ -9,22 +9,12 @@ namespace {
 
 constexpr std::uint32_t kTransitionMs = 200;
 
-// Whether the press being released was a swipe rather than a tap.
-//
-// A gesture reaches the screen even when it starts on a widget: LVGL sets
-// GESTURE_BUBBLE on every object that has a parent, so it walks up to the
-// screen, which has none and handles it. The press still ends in
-// LV_EVENT_CLICKED though — LVGL suppresses a click for scrolling, not for a
-// gesture — so
-// without this a single swipe across a tap target navigates twice, once by
-// direction and once by the action. The direction is cleared on the next
-// press, so it says exactly "a gesture happened during this press".
 bool gesture_in_progress() {
   const lv_indev_t* const indev = lv_indev_active();
   return indev != nullptr && lv_indev_get_gesture_dir(indev) != LV_DIR_NONE;
 }
 
-}  // namespace
+}
 
 Controller::~Controller() { detach(); }
 
@@ -33,9 +23,6 @@ void Controller::attach(const std::span<lv_obj_t* const> screens) {
   screens_ = screens;
   active_ = 0;
   if (screens_.size() < 2) {
-    // One screen has nowhere to go, and the handler would only cost an event
-    // dispatch per gesture. Tap targets are still bound: an action on a
-    // single-screen document navigates nowhere rather than being an error.
     return;
   }
   for (lv_obj_t* const screen : screens_) {
@@ -62,12 +49,6 @@ void Controller::set_transition(
 }
 
 void Controller::clear_actions() {
-  // Only the composition knows which objects survived a rebuild, and it does
-  // not tell this. Removing by (callback, user_data) is safe on a survivor and
-  // is a no-op on nothing else — but a rebuilt object's slot has been freed and
-  // may hold a new object at the same address, so this runs BEFORE that
-  // rebuild, from bind_widget_actions() on the previous document's objects, or
-  // from detach() before anything is deleted.
   for (std::size_t index = 0; index < action_count_; ++index) {
     Binding& binding = actions_[index];
     if (binding.object != nullptr) {
@@ -92,8 +73,6 @@ bool Controller::add_action(lv_obj_t* const object,
   Binding& binding = actions_[action_count_];
   binding = {.controller = this, .object = object, .type = type, .target = target};
   ++action_count_;
-  // Widgets are built refusing clicks; a tap target is the one place that is
-  // undone, and it is the composition rather than the widget type doing it.
   lv_obj_add_flag(object, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_add_event_cb(object, on_action, LV_EVENT_CLICKED, &binding);
   return true;
@@ -122,14 +101,8 @@ void Controller::on_action(lv_event_t* const event) {
   }
 }
 
-// The screen being left is kept: screens outlive navigation and only a
-// configuration replacement destroys them.
 void Controller::load(lv_obj_t* const screen, const bool forward) {
   if (transition_ == configuration::ScreenTransition::none) {
-    // The same call with no duration, which LVGL shortcuts to a plain load
-    // rather than running an animation of zero length. The slide is what a
-    // dense screen cannot afford: for every one of its frames both screens are
-    // drawn, so the transition costs more than either screen does at rest.
     lv_screen_load(screen);
     return;
   }
@@ -139,8 +112,6 @@ void Controller::load(lv_obj_t* const screen, const bool forward) {
                       kTransitionMs, 0, false);
 }
 
-// A tap that names the screen already shown is not a transition, so it animates
-// nothing rather than sliding the screen out and back.
 void Controller::show(const std::size_t index) {
   if (index >= screens_.size() || index == active_) {
     return;
@@ -172,7 +143,6 @@ void Controller::step(const int delta) {
   if (count < 2) {
     return;
   }
-  // Wrapping in both directions, computed without a signed modulo.
   const std::size_t next =
       delta > 0 ? (active_ + 1) % count : (active_ + count - 1) % count;
   lv_obj_t* const screen = screens_[next];
@@ -183,4 +153,4 @@ void Controller::step(const int delta) {
   active_ = next;
 }
 
-}  // namespace simcore::dashboard::navigation
+}

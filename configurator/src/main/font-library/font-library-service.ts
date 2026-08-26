@@ -37,23 +37,8 @@ import { hasTabularDigits } from './font-metrics'
 
 const INDEX_FILE = 'library.json'
 const FACES_DIRECTORY = 'faces'
-/**
- * Enough that no author meets it while authoring, and small enough that a
- * runaway import loop cannot fill the disk. The device's eight families are a
- * separate, much smaller limit that the editor enforces per dashboard.
- */
 const MAXIMUM_USER_FACES = 256
 
-/**
- * The configurator's font faces: the set bundled with the application, the ones
- * downloaded from the Google Fonts catalog, and the files the author imported.
- *
- * A library entry is a device family — its id is the `family` string a widget
- * carries. That is what lets a document travel: it names an id, and any
- * installation whose library answers to that id draws it and can install it.
- * Nothing here knows about a board, a package or an upload; saving asks this
- * for bytes and does the rest.
- */
 export class FontLibraryService {
   private readonly facesDirectory: string
   private readonly indexPath: string
@@ -64,14 +49,11 @@ export class FontLibraryService {
   }
   private unreadable = 0
   private loaded = false
-  /** Bundled face sizes, read once: they are files beside the bundle, not index records. */
   private bundledSizes: Map<string, number> | undefined
-  /** `null` records "parsed, and the answer is unknown", so it is not re-read. */
   private readonly bundledTabular = new Map<string, boolean | null>()
 
   constructor(
     private readonly directory: string,
-    /** Where uploads used to cache their faces, adopted once at first start. */
     private readonly legacyFontCacheDirectory?: string
   ) {
     this.facesDirectory = join(directory, FACES_DIRECTORY)
@@ -89,8 +71,6 @@ export class FontLibraryService {
         origin: 'bundled',
         category: face.category,
         source: { family: face.family, variant: face.variant },
-        // The real size, because the budget the editor shows is spent on these
-        // as much as on an imported face.
         bytes: sizes.get(face.id) ?? 0,
         ...optionalTabular(await this.tabularDigitsOf(face.id))
       })
@@ -109,11 +89,6 @@ export class FontLibraryService {
     return { entries, unreadable: this.unreadable }
   }
 
-  /**
-   * Read from the face and remembered, because a bundled entry has no index
-   * record to carry it and reading eight faces on every listing would make the
-   * picker wait on disk for an answer that cannot change.
-   */
   private async tabularDigitsOf(id: string): Promise<boolean | undefined> {
     const known = this.bundledTabular.get(id)
     if (known !== undefined) return known ?? undefined
@@ -123,11 +98,6 @@ export class FontLibraryService {
     return tabular
   }
 
-  /**
-   * The face bytes for one id, or undefined when nothing answers to it. This is
-   * the only way out of the library, and both the preview and the package
-   * builder go through it.
-   */
   async readFace(id: string): Promise<Uint8Array | undefined> {
     await this.load()
     const bundled = BUNDLED_FACES.find((face) => face.id === id)
@@ -137,7 +107,6 @@ export class FontLibraryService {
     return readFaceFile(join(this.facesDirectory, stored.file))
   }
 
-  /** The faces the renderer needs to register, skipping the ones it cannot. */
   async readFaces(ids: readonly string[]): Promise<FontFaceBytes[]> {
     const faces: FontFaceBytes[] = []
     for (const id of new Set(ids)) {
@@ -147,7 +116,6 @@ export class FontLibraryService {
     return faces
   }
 
-  /** Which of the requested ids the library cannot answer for. */
   async unresolved(ids: readonly string[]): Promise<string[]> {
     await this.load()
     const known = new Set<string>([
@@ -157,11 +125,6 @@ export class FontLibraryService {
     return [...new Set(ids)].filter((id) => !known.has(id)).sort()
   }
 
-  /**
-   * Imports a file the author picks. `id` is optional: the picker fills it from
-   * the file name, and the unresolved-font flow passes the id a document
-   * already names so the face lands under exactly that family.
-   */
   async import(
     id: string | undefined,
     owner?: BrowserWindow
@@ -193,8 +156,6 @@ export class FontLibraryService {
     if (invalid) return failure('not_a_font', invalid)
 
     const name = outcome.file.name.replace(/\.[^.]+$/, '')
-    // Nothing parses the face, so the file's own name is the only name there
-    // is; a variant is the author's claim rather than something read from it.
     const resolved = id ?? fontFamilyId(name)
     if (!resolved) {
       return failure('invalid_request', `"${name}" does not reduce to a font family identifier.`)
@@ -212,10 +173,6 @@ export class FontLibraryService {
     }, bytes)
   }
 
-  /**
-   * Adds a face fetched from the Google Fonts catalog. The caller supplies the
-   * bytes because downloading is the catalog's job, not the library's.
-   */
   async addDownloaded(
     family: string,
     variant: FontVariant,
@@ -267,8 +224,6 @@ export class FontLibraryService {
       try {
         sizes.set(face.id, (await stat(face.path)).size)
       } catch {
-        // A bundled face that cannot be measured is still usable; only the
-        // budget readout is short by its size until the next start.
       }
     }
     this.bundledSizes = sizes
@@ -325,8 +280,6 @@ export class FontLibraryService {
     try {
       this.index = parseIndex(JSON.parse(await readFile(this.indexPath, 'utf8')))
     } catch {
-      // No index yet is an empty library. A corrupt one degrades to the bundled
-      // faces plus a count, so one bad file cannot cost the author the picker.
       this.index = {
         format: FONT_LIBRARY_FORMAT,
         format_version: FONT_LIBRARY_FORMAT_VERSION,

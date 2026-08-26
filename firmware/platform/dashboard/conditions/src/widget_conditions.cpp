@@ -9,8 +9,6 @@
 namespace simcore::dashboard::conditions {
 namespace {
 
-// Linear interpolation per channel in sRGB. Integer arithmetic on bytes, so a
-// ramp costs the same on every render pass whatever the display is.
 [[nodiscard]] std::uint32_t blend(const std::uint32_t from,
                                   const std::uint32_t to, const double ratio) {
   std::uint32_t blended{};
@@ -23,7 +21,7 @@ namespace {
   return blended;
 }
 
-}  // namespace
+}
 
 bool condition_holds(const configuration::ConditionOperator op,
                      const double value, const double threshold) {
@@ -133,8 +131,6 @@ std::optional<std::uint32_t> ramp_color(
     }
     const configuration::ColorStop& lower = stops[index - 1];
     const double width = static_cast<double>(upper.at) - lower.at;
-    // Stops are validated as increasing, so this only guards a pair the
-    // validator could not have seen, such as two stops at the same value.
     if (!(width > 0.0)) {
       return lower.color;
     }
@@ -143,4 +139,4 @@ std::optional<std::uint32_t> ramp_color(
   return stops.back().color;
 }
 
-}  // namespace simcore::dashboard::conditions
+}

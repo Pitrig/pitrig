@@ -5,8 +5,6 @@
 namespace simcore::image_assets {
 namespace {
 
-// The engine reports failures as the protocol's word, so each operation turns
-// this kind's enumeration into one. Success is a null word.
 [[nodiscard]] const char* word_for(const UpdateError error) {
   return error == UpdateError::none ? nullptr : update_error_name(error);
 }
@@ -34,12 +32,6 @@ const char* clear(void* const service) {
 
 void cancel_update(void* const service) { service_of(service).cancel_update(); }
 
-// Everything after `@SC:OK:IMAGE:INFO:` and before the newline. Each entry
-// carries its geometry, which is what lets the configurator tell whether an
-// installed image still suits the dashboard without re-uploading to find out.
-// A sprite sheet adds its frame count as a fourth field; an ordinary image has
-// one frame and says nothing, so the line a host already knows how to read is
-// unchanged for every image that is not a sheet.
 int write_info_body(void* const service, char* const out,
                     const std::size_t size) {
   const Status& status = service_of(service).status();
@@ -78,7 +70,7 @@ int write_info_body(void* const service, char* const out,
   return static_cast<int>(offset);
 }
 
-}  // namespace
+}
 
 bool ImageAssetControl::initialize(Service& service,
                                    binary_session::Claim& claim,
@@ -101,4 +93,4 @@ bool ImageAssetControl::initialize(Service& service,
       claim, frame);
 }
 
-}  // namespace simcore::image_assets
+}

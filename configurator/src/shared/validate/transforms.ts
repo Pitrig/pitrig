@@ -2,20 +2,6 @@ import type { ValueTransform } from '../configuration-schema'
 import { TELEMETRY_CATALOG, type TelemetryValueType } from '../telemetry-catalog'
 import { MAXIMUM_TRANSFORM_DECIMALS } from '../value-transform'
 
-// Whether a transform suits the field it is put on.
-//
-// This mirrors `valid_transform` in the firmware's `value_rules.cpp`, which the
-// device applies before it will take a document at all. Without it here the
-// author picks "time" on a speed reading, the editor says nothing, and the
-// board answers the save with a malformed-property error naming `transform` —
-// no widget, no field, nothing to act on.
-//
-// The rule is about what a transform can be handed. A duration is a whole
-// number of milliseconds counted from zero, so it reads an unsigned integer and
-// a delta reads a signed one; neither can be made out of a float, a string or a
-// flag. A number transform will scale anything except a true/false, which has
-// no magnitude to scale.
-
 const FIELD_TYPES: ReadonlyMap<string, TelemetryValueType> = new Map(
   TELEMETRY_CATALOG.map(({ name, type }) => [name, type])
 )
@@ -25,12 +11,6 @@ const READS: Record<'duration_ms' | 'signed_duration_ms', TelemetryValueType> = 
   signed_duration_ms: 'int32'
 }
 
-/**
- * The transform on one text source, against the field that source reads.
- *
- * An unresolvable binding is not this check's business — the binding rule has
- * already named it — so a field the catalog does not know passes here.
- */
 export function transformError(
   transform: ValueTransform | undefined,
   binding: string,

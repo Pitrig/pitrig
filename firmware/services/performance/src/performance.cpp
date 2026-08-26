@@ -11,9 +11,6 @@
 #include "performance_internal.hpp"
 #endif
 
-// The instrumentation half of the service: the hooks the render and flush
-// paths call, accumulating into the shared measurements under the state lock.
-// The sampler task that turns them into stats lives in performance_sampler.cpp.
 namespace simcore::performance {
 #if SIMCORE_DEBUG
 
@@ -25,7 +22,7 @@ Measurements measurements{};
 std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)>
     monitored_tasks{};
 
-}  // namespace internal
+}
 
 using namespace internal;
 
@@ -35,18 +32,13 @@ std::int64_t frame_started_at_us;
 std::int64_t frame_finished_at_us;
 std::int64_t sync_started_at_us;
 std::int64_t render_started_at_us;
-// Sync plus render of the frame being measured, excluding every wait.
 std::uint64_t frame_work_us;
 std::int64_t flush_started_at_us;
 std::int64_t flush_wait_started_at_us;
-// Flush time that elapsed while a render was in progress. LVGL calls the flush
-// callback from inside its render pass, so a blocking flush would otherwise be
-// counted as drawing.
 std::uint64_t render_blocked_us;
 bool frame_in_progress;
+std::int64_t pending_value_commit_us;
 
-// Attributes a completed flush interval to the flush total and, when a render
-// is in progress, removes it from that render. Called under state_lock.
 void account_flush_interval(std::int64_t& started_at_us,
                             const std::int64_t now_us) {
   if (started_at_us == 0) {
@@ -60,7 +52,7 @@ void account_flush_interval(std::int64_t& started_at_us,
   started_at_us = 0;
 }
 
-}  // namespace
+}
 
 void register_task(const TaskMetric metric, void* const task_handle) {
   taskENTER_CRITICAL(&state_lock);
@@ -96,6 +88,18 @@ void area_invalidated(const std::uint32_t pixels) {
   taskEXIT_CRITICAL(&state_lock);
 }
 
+void value_rendered(const std::int64_t committed_at_us) {
+  if (committed_at_us == 0) {
+    return;
+  }
+  taskENTER_CRITICAL(&state_lock);
+  if (pending_value_commit_us == 0 ||
+      committed_at_us < pending_value_commit_us) {
+    pending_value_commit_us = committed_at_us;
+  }
+  taskEXIT_CRITICAL(&state_lock);
+}
+
 void frame_finished() {
   const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
@@ -103,6 +107,16 @@ void frame_finished() {
     ++measurements.frames;
     frame_in_progress = false;
     frame_finished_at_us = now_us;
+    if (pending_value_commit_us != 0) {
+      const auto latency_us =
+          static_cast<std::uint32_t>(now_us - pending_value_commit_us);
+      measurements.value_latency_total_us += latency_us;
+      ++measurements.value_latency_samples;
+      if (latency_us > measurements.value_latency_max_us) {
+        measurements.value_latency_max_us = latency_us;
+      }
+      pending_value_commit_us = 0;
+    }
     const auto elapsed_us =
         static_cast<std::uint32_t>(now_us - frame_started_at_us);
     if (elapsed_us > measurements.longest_frame_us) {
@@ -184,4 +198,4 @@ PerformanceStats get_stats() {
 }
 #endif
 
-}  // namespace simcore::performance
+}

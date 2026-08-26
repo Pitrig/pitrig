@@ -56,11 +56,6 @@ import { ConfigLibraryService } from '../configs/config-library-service'
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 
-// The device and save channels, plus the two domain registrars: the author's
-// folders in register-library-handlers.ts and everything uploaded or exported
-// in register-asset-handlers.ts. Every request is checked by a guard before a
-// service sees it; the renderer is separate code and its word is not taken.
-
 export function registerIpcHandlers(
   deviceService: DeviceService,
   fontAssetService: FontAssetService,
@@ -98,9 +93,6 @@ export function registerIpcHandlers(
   ipcMain.handle(DEVICE_DISCONNECT_CHANNEL, () => deviceService.disconnect())
   ipcMain.handle(DEVICE_CONFIGURATION_READ_CHANNEL, () => deviceService.readConfiguration())
   ipcMain.handle(DEVICE_CONFIGURATION_RESET_CHANNEL, (_event, request: unknown) => {
-    // A request that is not one is refused rather than read as "no document",
-    // which is the reset that erases every one of them: the most destructive
-    // variant is not what a malformed request should fall back to.
     if (!isConfigurationResetRequest(request)) {
       return invalidConfigurationRequest()
     }

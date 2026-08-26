@@ -26,20 +26,6 @@ import { clampPan, viewForBox } from '../preview/canvas-geometry'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM } from './store'
 import type { WidgetSelection } from '../dashboard-editor'
 
-// The whole window listens, because the canvas is an SVG that nothing focuses
-// and the shortcuts are about the selected widget rather than about whatever
-// happens to have focus. Anything typed into a field is left alone.
-
-/**
- * Keyboard editing for the canvas. A held arrow key repeats, so the whole run
- * is grouped into one history entry and committed when the key comes back up.
- */
-/**
- * `enabled` is the canvas being on screen. These keys act on the selected
- * widget — Delete removes it, the arrows nudge it — so they must not be live on
- * a page where nothing is selected and no canvas is visible to show what they
- * did.
- */
 export function useEditorShortcuts(enabled: boolean): void {
   useEffect(() => {
     if (!enabled) return
@@ -97,13 +83,9 @@ export function useEditorShortcuts(enabled: boolean): void {
         )
         return
       }
-      // Wrapping is a document edit — the device switches an area by container
-      // — so it goes through the draft like any other, in one history entry.
       if (accelerator && event.key.toLowerCase() === 'g') {
         event.preventDefault()
         if (event.shiftKey) {
-          // Unwrap whichever container the selection points at: the container
-          // itself when it is selected, otherwise the one holding the widget.
           const target =
             selection?.type === 'widget' && selectedWidget(configuration, selection)?.type === 'shape'
               ? selection.id
@@ -118,8 +100,6 @@ export function useEditorShortcuts(enabled: boolean): void {
         if (created) editor.select({ type: 'widget', id: created })
         return
       }
-      // Restacking, on the brackets every drawing editor puts it on. Alt is the
-      // one-step version, as it is in Illustrator and PowerPoint.
       if (accelerator && (event.key === ']' || event.key === '[')) {
         event.preventDefault()
         const forward = event.key === ']'
@@ -130,9 +110,6 @@ export function useEditorShortcuts(enabled: boolean): void {
           : forward
             ? 'front'
             : 'back'
-        // One entry for the whole selection, the way a multi-delete is one.
-        // The order the moves are applied in is what keeps a group arranged as
-        // it was, so it is asked for rather than assumed.
         withEditGroup(() => {
           for (const id of restackOrder(configuration, editor.selectedIds, move)) {
             restackWidget(id, move)
@@ -140,14 +117,11 @@ export function useEditorShortcuts(enabled: boolean): void {
         })
         return
       }
-      // Screens are switched by number, the way the driver swipes between them.
       if (accelerator && /^[1-9]$/.test(event.key)) {
         event.preventDefault()
         editor.setActiveScreen(Number(event.key) - 1)
         return
       }
-      // Whether a container carries its contents when it is resized. A mode
-      // rather than a held key, so it is bound like one.
       if (accelerator && event.shiftKey && event.key.toLowerCase() === 'c') {
         event.preventDefault()
         useSnapStore.getState().toggleScaleContents()
@@ -156,8 +130,6 @@ export function useEditorShortcuts(enabled: boolean): void {
       if (accelerator && (event.key === '0' || event.key === '=' || event.key === '-')) {
         event.preventDefault()
         if (event.key === '0') {
-          // Shift asks for the selection instead of the whole display, which is
-          // the pair every canvas binds — and zero is free where 1 to 9 are not.
           const box =
             event.shiftKey && display && selection?.type === 'widget'
               ? absolutePlacement(configuration, selection.id)
@@ -178,22 +150,12 @@ export function useEditorShortcuts(enabled: boolean): void {
         editor.setView({ zoom, ...clampPan(editor.view, display, zoom) })
         return
       }
-      // Escape is the way back out: it selects the container holding whatever
-      // is selected, and clears the selection once there is nothing above.
-      // Inside an opened container it leaves that first, which is the level
-      // above everything in it.
       if (event.key === 'Escape') {
-        // A tool is the outermost thing to leave: a press meant to put the
-        // pointer back is not a request to change the selection as well.
         if (editor.activeTool !== 'select') {
           editor.setActiveTool('select')
           return
         }
         const parent = parentContainerId(configuration, selection)
-        // One rung at a time: select the container holding the selection, and
-        // once the opened container is itself what is selected, step out of it
-        // into its own parent. Containers nest, so leaving the innermost is not
-        // the same as leaving them all — that is the crumb marked "Screen".
         if (editor.drillIn && selection?.type === 'widget' && selection.id === editor.drillIn) {
           editor.setDrillIn(parent)
           return
@@ -205,7 +167,6 @@ export function useEditorShortcuts(enabled: boolean): void {
       if (selected.length === 0) return
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault()
-        // One entry for the whole group: deleting four widgets is one edit.
         withEditGroup(() => {
           for (const id of selected) deleteWidget({ type: 'widget', id })
         })
@@ -220,9 +181,6 @@ export function useEditorShortcuts(enabled: boolean): void {
         nudging = true
         store.beginEdit()
       }
-      // Same key, same run-grouping, two writes: the arrows move the selection
-      // and the accelerator with Alt resizes it, which is the pair SimHub binds.
-      // Right and down grow, left and up shrink.
       const resizing = accelerator && event.altKey
       for (const id of selected) {
         const target: WidgetSelection = { type: 'widget', id }
@@ -237,8 +195,6 @@ export function useEditorShortcuts(enabled: boolean): void {
 
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
-    // Losing the window mid-repeat would otherwise leave the group open, and
-    // every later edit would collapse into it.
     window.addEventListener('blur', endNudge)
     return () => {
       endNudge()

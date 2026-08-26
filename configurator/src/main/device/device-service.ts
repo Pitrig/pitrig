@@ -31,13 +31,6 @@ import {
 } from './device-uploads'
 import { requestResponse, sendControlCommand } from './simcore-protocol'
 
-/**
- * Every command the configurator can ask of a connected board, over the port
- * the ConnectionManager holds and under the OperationRunner's one-at-a-time
- * lock. Splitting those two out left this class the protocol conversations
- * themselves: what is sent, what the reply means for the session, and the
- * ordering rules a save and a reboot impose.
- */
 export class DeviceService {
   private readonly connection: ConnectionManager
   private readonly runner: OperationRunner
@@ -91,10 +84,6 @@ export class DeviceService {
     return readDeviceConfiguration(this.connection, this.runner)
   }
 
-  // Live apply competes with nothing: it is rejected while another device
-  // operation holds the lock rather than queued, because the caller sends a
-  // fresh document moments later anyway. The pipeline flag is checked here and
-  // not in the runner, because a save's own commands run inside it.
   async applyConfiguration(
     json: string,
     documents?: ConfigurationDocumentId[]
@@ -105,7 +94,6 @@ export class DeviceService {
     return this.applyConfigurationNow(json, documents)
   }
 
-  /** The same apply, without the pipeline guard — see applyDeviceConfiguration. */
   async applyConfigurationNow(
     json: string,
     documents?: ConfigurationDocumentId[]
@@ -120,21 +108,12 @@ export class DeviceService {
     return saveDeviceConfiguration(this.connection, this.runner, json, documents)
   }
 
-  /** Erases stored configuration — see resetDeviceConfiguration. */
   async resetConfiguration(
     document?: ConfigurationDocumentId
   ): Promise<DeviceResult<DeviceConfigurationResetResult>> {
     return resetDeviceConfiguration(this.connection, this.runner, document)
   }
 
-  /**
-   * One line typed by hand, and whatever the board answers.
-   *
-   * It takes the same operation lock as every other command, so a console
-   * cannot interleave itself with a live apply or a save; and it is refused
-   * before the lock when the line would open a binary session, because that
-   * would leave the router waiting for frames a console cannot send.
-   */
   async sendControlCommand(command: string): Promise<DeviceResult<ControlCommandValue>> {
     const refusal = controlCommandRefusal(command)
     if (refusal) return failure({ code: 'invalid_request', message: refusal })
@@ -171,7 +150,6 @@ export class DeviceService {
           '@SC:OK:REBOOTING',
           2_000,
           (direction, data) => {
-            // RX is already observed by the active port listener.
             if (direction === 'tx') traffic?.write(direction, data)
           },
           'serial_error'
@@ -191,7 +169,6 @@ export class DeviceService {
     packageBytes: Uint8Array,
     onProgress: (progress: FontUploadProgress) => void,
     signal: AbortSignal,
-    /** The package's payload CRC, so a second save this session can skip. */
     payloadCrc?: number
   ): Promise<void> {
     return uploadPackage(
@@ -205,16 +182,10 @@ export class DeviceService {
     )
   }
 
-  /**
-   * Uploads an image package. The device answers a second upload with `busy`
-   * while one owns the serial link, and this guard keeps the configurator from
-   * asking in the first place.
-   */
   async uploadImages(
     packageBytes: Uint8Array,
     onProgress: (progress: AssetUploadProgress) => void,
     signal: AbortSignal,
-    /** What the package holds, which is what the board now reports. */
     installed: readonly InstalledImage[] = []
   ): Promise<void> {
     return uploadPackage(
@@ -228,11 +199,6 @@ export class DeviceService {
     )
   }
 
-  /**
-   * Uploads an application image into the inactive firmware slot. The device
-   * refuses one built for another board, so the package that reaches here
-   * already carries the board it was wrapped for.
-   */
   async uploadFirmware(
     packageBytes: Uint8Array,
     onProgress: (progress: AssetUploadProgress) => void,
@@ -253,18 +219,10 @@ export class DeviceService {
     await this.connection.closeDevicePorts()
   }
 
-  /** See OperationRunner.runPipeline: several commands, nothing in between. */
   async runPipeline<T>(work: () => Promise<T>): Promise<T> {
     return this.runner.runPipeline(work)
   }
 
-  /**
-   * Restarts the board and waits for it to come back on the same port.
-   *
-   * A font package and a saved configuration both become active only after a
-   * restart, so this is the last step of a save rather than something the
-   * author is asked to remember.
-   */
   async rebootAndReconnect(): Promise<DeviceResult<DeviceState>> {
     const connection = this.getState().connection
     const rebooted = await this.reboot()

@@ -25,10 +25,6 @@ import {
   saveConfiguration
 } from './simcore-protocol'
 
-// The configuration conversations: GET, APPLY, SET and RESET, each under the
-// operation lock and each accounting for what the board holds afterwards. The
-// DeviceService methods are thin delegates onto these.
-
 export async function readDeviceConfiguration(
   connection: ConnectionManager,
   runner: OperationRunner
@@ -47,13 +43,6 @@ export async function readDeviceConfiguration(
   })
 }
 
-/**
- * Applies the document to the running composition without writing storage.
- *
- * The protocol document is never applied: the transport is bound once at
- * startup, so sending it would only make the board stage bytes it cannot act
- * on. It reaches the device through a save and a restart.
- */
 export async function applyDeviceConfiguration(
   connection: ConnectionManager,
   runner: OperationRunner,
@@ -87,9 +76,6 @@ export async function saveDeviceConfiguration(
   return runner.run(async ({ port, session, traffic }) => {
     const prepared = prepareConfiguration(json, session)
     if (!prepared.ok) return prepared
-    // Protocol first, then modules, then the dashboard. A write that fails
-    // part way should leave the cheap documents done and the expensive one
-    // untouched rather than the other way round.
     const requested = documents ?? [...CONFIGURATION_DOCUMENT_IDS]
     const selected = CONFIGURATION_DOCUMENT_IDS.filter((document) =>
       requested.includes(document)
@@ -102,10 +88,6 @@ export async function saveDeviceConfiguration(
         runner.operationTraffic(traffic)
       )
     }
-    // What the board holds in flash is now what was just written. Recording it
-    // keeps the next save from finding the documents it already wrote still
-    // "different" and writing them a second time, which is what a stale
-    // session used to make it do.
     if (connection.port === port && connection.getState().session === session) {
       let held = session.configuration
       for (const document of selected) {
@@ -126,16 +108,6 @@ export async function saveDeviceConfiguration(
   })
 }
 
-/**
- * Erases stored configuration: one document, or every one of them when none is
- * named.
- *
- * What the board will run afterwards is that document's compiled factory
- * value, which only a restart loads — the firmware has no serializer to report
- * it with. So the configuration answered here is what a reset board comes up
- * with for the documents that were erased: the board identifier and nothing
- * else. The ones left alone keep what the session already holds.
- */
 export async function resetDeviceConfiguration(
   connection: ConnectionManager,
   runner: OperationRunner,

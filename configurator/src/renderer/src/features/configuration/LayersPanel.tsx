@@ -18,17 +18,6 @@ import {
 import { LayerList } from './layers/LayerList'
 import type { Dragged, DropTarget } from './layers/layer-row-state'
 
-// The stack, top layer first — the order things are drawn in, read the way they
-// are looked at. Locking and hiding are editor state and never reach the
-// document, because the device would reject the unknown properties and a hidden
-// layer is not a hidden widget.
-//
-// A container is a parent on the device as well as in the list, so its children
-// are stacked within it. Dragging a row onto the middle of a container's row
-// moves the widget into it; the top and bottom of a row restack beside it. A
-// slot lists its pages, because a page is an array of its own and dropping onto
-// one is the only way to reach a page the canvas is not showing.
-
 export function LayersPanel(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
@@ -37,22 +26,13 @@ export function LayersPanel(): React.JSX.Element {
   const expand = useDashboardEditorStore((state) => state.expand)
   const [dragged, setDragged] = useState<Dragged>()
   const [renaming, setRenaming] = useState<string>()
-  // Where the drop would land, so the row can show it. One object at panel level
-  // rather than a flag per row: there is only ever one, and clearing it is then
-  // one assignment instead of every row racing to unset its own.
   const [dropTarget, setDropTarget] = useState<DropTarget>()
-  // The same menu the canvas opens, from the row instead of from the widget.
   const [menu, setMenu] = useState<{ x: number; y: number; id: string }>()
   const body = useRef<HTMLDivElement>(null)
 
-  // Read through the subscribed index rather than the store getter, so the list
-  // re-renders when the screen being edited changes.
   const screen = screensOf(draft)[activeScreenIndex]
   const widgets = widgetsOf(screen)
 
-  // A widget picked on the canvas has to be findable here, and it is not
-  // findable inside a folded container. Opening its ancestors and scrolling to
-  // it is what makes the two views one view.
   const primary = selection?.type === 'widget' ? selection.id : undefined
   useEffect(() => {
     if (!primary) return
@@ -64,7 +44,6 @@ export function LayersPanel(): React.JSX.Element {
           .filter((id): id is string => id !== undefined)
       )
     }
-    // After the expansion has rendered, or the row is not in the DOM yet.
     const frame = requestAnimationFrame(() => {
       body.current
         ?.querySelector(`[data-layer-id="${CSS.escape(primary)}"]`)
@@ -75,8 +54,6 @@ export function LayersPanel(): React.JSX.Element {
 
   const openMenu = (event: React.MouseEvent, id: string): void => {
     event.preventDefault()
-    // A menu acts on the selection, so a right-click on an unselected row picks
-    // it first — otherwise "Delete" would delete something else.
     if (!selectedIds.includes(id)) {
       useDashboardEditorStore.getState().select({ type: 'widget', id })
     }
@@ -125,9 +102,6 @@ export function LayersPanel(): React.JSX.Element {
         <div
           ref={body}
           className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain"
-          // One handler for the whole panel: a per-row dragleave fires on every
-          // hop between a row's own buttons, which flickers the indicator
-          // constantly.
           onDragLeave={(event) => {
             if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
               setDropTarget(undefined)

@@ -16,10 +16,6 @@ import { useImageAssetsStore } from './image-assets-store'
 import { StagedImageCard } from './StagedImageCard'
 import { StorageBar, Thumbnail } from './image-page-parts'
 
-// Uploaded images, which the device stores as one package and replaces whole.
-// The conversion happens in the configurator — the board never decodes — so the
-// choices that matter here are the name a widget refers to, the pixel format
-// and the size it is drawn at.
 export function ImagesPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const entries = useImageAssetsStore((state) => state.entries)
@@ -29,9 +25,6 @@ export function ImagesPage(): React.JSX.Element {
   const store = useImageAssetsStore
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string>()
-  // The converted bitmaps this application kept when it installed them. The
-  // board never sends an image back, so this is the only way to show what it
-  // is actually holding — and it is what the canvas draws with too.
   const installedPreviews = usePreviewAssetStore((state) => state.images)
   const refreshPreviews = usePreviewAssetStore((state) => state.refresh)
 
@@ -46,9 +39,6 @@ export function ImagesPage(): React.JSX.Element {
   const duplicated = entries.some(
     (entry, index) => entries.findIndex(({ name }) => name === entry.name) !== index
   )
-  // What this selection would occupy once packed, every frame counted — an
-  // upper bound, since the package is compressed and this cannot know by how
-  // much. It is also exactly the external RAM the board reserves for it.
   const staged = imagePackageSize(
     entries.flatMap((entry) =>
       entry.sources.map(() => ({ width: entry.width, height: entry.height, format: entry.format }))
@@ -166,9 +156,6 @@ export function ImagesPage(): React.JSX.Element {
         title="On the board"
         description="What the installed package holds. A widget refers to one of these names."
       >
-        {/* Installing replaces the package whole, so what is staged does not add
-            to this — it becomes it. The two bars are two answers to the same
-            question, before and after. */}
         <StorageBar
           className="mb-3"
           label="Installed"

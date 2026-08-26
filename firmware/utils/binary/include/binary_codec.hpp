@@ -6,7 +6,6 @@
 
 namespace simcore::binary {
 
-// Callers validate the containing record before decoding fixed offsets.
 [[nodiscard]] inline std::uint16_t read_u16_le(
     const std::span<const std::uint8_t> input, const std::size_t offset) {
   return static_cast<std::uint16_t>(input[offset]) |
@@ -39,4 +38,4 @@ inline void write_u32_le(const std::span<std::uint8_t> output,
   }
 }
 
-}  // namespace simcore::binary
+}

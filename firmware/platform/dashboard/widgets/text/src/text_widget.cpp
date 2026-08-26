@@ -11,22 +11,20 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 #include "number_transform.hpp"
+#include "simcore_features.hpp"
 #include "text_writer.hpp"
 #include "time_transform.hpp"
 #include "value_text.hpp"
 #include "widget_binding.hpp"
+#if SIMCORE_DEBUG
+#include "performance.hpp"
+#endif
 
 namespace simcore::dashboard::text_widget {
 namespace {
 
 constexpr char kTag[] = "text_widget";
 
-// Telemetry changes wake the render timer early through the dashboard's render
-// trigger, so this period is the fallback poll and the cadence of free-running
-// module sources. It follows the display refresh cadence: a telemetry-backed
-// widget whose source slot did not advance skips the
-// read-transform-format-compare work entirely, so an idle dashboard costs one
-// revision comparison per widget per period.
 constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
 
 [[nodiscard]] std::int32_t text_width_of(const lv_font_t* const font,
@@ -36,10 +34,6 @@ constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
   return size.x;
 }
 
-// The value label is sized to its text, so the configured alignment positions
-// the label inside the container instead of the text inside a fixed box. LVGL
-// aligns against the parent's content area, so the result matches a full-width
-// label with the same text alignment.
 [[nodiscard]] lv_align_t lv_alignment(const Alignment alignment) {
   switch (alignment) {
     case Alignment::top_left:
@@ -64,14 +58,11 @@ constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
   return LV_ALIGN_CENTER;
 }
 
-// Where a rule's value colour lands for this widget type. The frame resolves
-// the colour and calls this with the label it was given as its context.
 void apply_value_color(void* const context, const std::uint32_t rgb) {
   lv_obj_set_style_text_color(static_cast<lv_obj_t*>(context),
                               lv_color_hex(rgb), LV_PART_MAIN);
 }
 
-// A binding is usable only once every source resolved to a callback.
 [[nodiscard]] bool complete(const WidgetBinding& binding) {
   if (binding.count == 0 || binding.count > binding.sources.size()) {
     return false;
@@ -85,8 +76,6 @@ void apply_value_color(void* const context, const std::uint32_t rgb) {
   return true;
 }
 
-// The text one source contributes to the widget string. An unavailable source
-// falls back to its own placeholder, so a live neighbour keeps updating.
 void source_text_for(
     const configuration::ValueTransform& transform,
     const telemetry::TelemetryRead& value,
@@ -96,9 +85,6 @@ void source_text_for(
   }
 }
 
-// What a widget shows before any of its sources has a value. An explicit
-// unavailable_text wins; otherwise every source contributes its placeholder,
-// which for a single-source widget is that source's zero.
 void unavailable_text(
     const Config& config,
     std::array<char, telemetry::kTelemetryTextCapacity>& output) {
@@ -116,13 +102,11 @@ void unavailable_text(
   }
 }
 
-}  // namespace
+}
 
 bool Collection::build(State& state, const Layout& layout,
                       const Config& config, const WidgetBinding& binding,
                       const fonts::Registry& fonts) {
-  // Geometry, box and styling rules are the shared frame every widget type
-  // carries; only the title, the value style and the sources are text's own.
   const configuration::WidgetFrame& frame = config.frame;
   const lv_font_t* const value_font = fonts.resolve(config.value.font);
   if (value_font == nullptr) {
@@ -159,10 +143,6 @@ bool Collection::build(State& state, const Layout& layout,
 
   state.value_label = lv_label_create(state.container);
   lv_obj_remove_style_all(state.value_label);
-  // Width follows the text: changing a value invalidates the glyphs it covers
-  // plus what it uncovers, not the full inner width of the widget. A 192 px
-  // digit costs its own box instead of the whole GEAR widget. The height stays
-  // the line height so the baseline cannot shift between values.
   lv_obj_set_size(state.value_label, LV_SIZE_CONTENT, value_height);
   lv_obj_set_style_text_font(state.value_label, value_font, LV_PART_MAIN);
   lv_obj_set_style_text_color(
@@ -177,29 +157,32 @@ bool Collection::build(State& state, const Layout& layout,
 }
 
 void Collection::render_state(State& state) {
-  // A telemetry slot advances its revision only when the stored value really
-  // changed, so a widget whose sources all stood still needs no transform,
-  // formatting, or compare. Free-running module sources report no revision and
-  // always re-render.
   const bool first_render = !state.initialized;
   std::array<telemetry::TelemetryRead, kMaximumSources> values{};
   bool changed = first_render;
   bool any_available = false;
+#if SIMCORE_DEBUG
+  std::int64_t oldest_commit_us = 0;
+#endif
   for (std::size_t index = 0; index < state.source_count; ++index) {
     Source& source = state.sources[index];
     values[index] = source.read(source.read_context);
     changed = changed || source.free_running ||
               values[index].revision != source.rendered_revision ||
               values[index].available != source.rendered_available;
-    // Recorded here rather than while formatting, so a composition that runs
-    // out of room still leaves every source compared against what it read.
+#if SIMCORE_DEBUG
+    if (values[index].revision != source.rendered_revision &&
+        values[index].last_change_us != 0 &&
+        (oldest_commit_us == 0 ||
+         values[index].last_change_us < oldest_commit_us)) {
+      oldest_commit_us = values[index].last_change_us;
+    }
+#endif
     source.rendered_revision = values[index].revision;
     source.rendered_available = values[index].available;
     any_available = any_available || values[index].available;
   }
 
-  // Conditional colour, hiding and blink are the frame's business, and its
-  // watched source is not one of these, so it gates itself.
   state.painter.render();
   if (!changed) {
     return;
@@ -215,18 +198,17 @@ void Collection::render_state(State& state) {
     }
   }
   state.initialized = true;
-  // Every source silent means the widget has nothing of its own to show yet.
   if (!any_available) {
     next = state.unavailable_text;
   }
-  // A changed source can still transform to the same text, so keep the
-  // comparison before touching LVGL.
   if (!first_render && state.displayed_text == next) {
     return;
   }
   state.displayed_text = next;
-  // lv_label_set_text_static() marks the label for refresh and invalidates it.
   lv_label_set_text_static(state.value_label, state.displayed_text.data());
+#if SIMCORE_DEBUG
+  performance::value_rendered(oldest_commit_us);
+#endif
 }
 
 
@@ -250,12 +232,9 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
   if (!complete(binding)) {
     return false;
   }
-  // rebuild_one renders before releasing the lock, which keeps LVGL's
-  // placeholder label text from reaching the display between a rebuild and the
-  // next timer tick.
   return rebuild_one(index, [&](State& state) {
     return build(state, layout, configuration, binding, fonts);
   });
 }
 
-}  // namespace simcore::dashboard::text_widget
+}

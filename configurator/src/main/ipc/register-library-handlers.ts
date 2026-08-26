@@ -33,11 +33,6 @@ import { ConfigurationFileService } from '../configuration-files/configuration-f
 import { ConfigLibraryService } from '../configs/config-library-service'
 import { TemplateService } from '../templates/template-service'
 
-// The channels that read and write the author's own folders: configuration
-// files on disk, the saved-configuration library, and the template library.
-// Registered from registerIpcHandlers; every request is checked by a guard
-// before a service sees it.
-
 export function registerLibraryHandlers(
   configurationFileService: ConfigurationFileService,
   configLibraryService: ConfigLibraryService,

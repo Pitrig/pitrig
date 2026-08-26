@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 
 import type { AppInfo } from '@shared/ipc'
 
-// The application's own name and version never change while it runs, so the
-// request is made once for the process rather than once per page that asks.
 let pending: Promise<AppInfo> | undefined
 let cached: AppInfo | undefined
 

@@ -15,82 +15,43 @@ namespace simcore::configuration {
 
 inline constexpr std::uint16_t kConfigurationSchemaVersion = 15;
 
-// Sentinel meaning no background is painted. Not representable in JSON; omit the property instead.
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
-// Largest compact JSON payload in bytes any one document may carry, for both the wire and NVS. It is the dashboard's bound — the widest of the three — so it is what sizes the shared line, record and reply buffers; each document is held to its own `max_payload` below. Sized so a screen filled to every per-type cap still fits with room to spare, at the ~350 bytes of compact JSON a widget measures; two of these also have to fit in the 512 KB configuration partition while a record is being replaced. The buffers it sizes and the parser's document both live in external memory.
 inline constexpr std::size_t kMaximumPayloadSize = 131072;
-// Dashboard screens the driver swipes between. Widget storage is a dashboard-wide pool, so a screen costs only its reference table; what bounds the count is how many screens are reachable mid-corner rather than RAM.
 inline constexpr std::size_t kMaximumScreens = 4;
-// Ordered widget references per screen. Exactly the sum of every per-type cap below, so one screen can hold the whole pool; what bounds the widgets across every screen is the pool itself, and what bounds a document is kMaximumPayloadSize. The sum may not exceed 255: every count in the contract is a uint8, and a reference addresses its pool with one.
 inline constexpr std::size_t kMaximumWidgetsPerScreen = 252;
-// Ordered widget references inside one container: a shape, or one page of a slot. A container is an area of a screen rather than a screen, so it needs far fewer than a screen does.
 inline constexpr std::size_t kMaximumWidgetsPerContainer = 32;
-// How deeply containers may nest, counting a widget on a screen as depth 0. The parser recurses once per level, so this is what bounds the configuration task's stack rather than an authoring preference — and why a slot page costs nothing here: it is walked without a recursion of its own, so a slot spends exactly what a container shape spends.
 inline constexpr std::size_t kMaximumNestingDepth = 4;
-// Tap targets for the whole dashboard. An action makes one object clickable and costs one binding; the bound keeps that a decision about memory rather than an open list.
 inline constexpr std::size_t kMaximumActions = 32;
-// Pages one slot switches between. A page costs one bare LVGL object and one row in the slot controller, so this bounds both; the flat page table the parser addresses is kMaximumSlotWidgets * kMaximumSlotPages entries.
 inline constexpr std::size_t kMaximumSlotPages = 8;
-// Text widget storage for the whole dashboard. A dense dashboard spends most of its widgets here: a tyre quadrant alone is eight readouts. Widget storage costs external RAM only, so what bounds this is the frame rather than memory - see ADR 0026.
 inline constexpr std::size_t kMaximumTextWidgets = 96;
-// Shape widget storage for the whole dashboard. Shapes carry a dashboard's layout and hold other widgets, so this is the most generous cap: every container spends one.
 inline constexpr std::size_t kMaximumShapeWidgets = 64;
-// Slot widget storage for the whole dashboard. A slot is an area that switches what it shows, and every page it holds is a live object built at composition, so it is capped far below the shape pool.
 inline constexpr std::size_t kMaximumSlotWidgets = 8;
-// Bar widget storage for the whole dashboard.
 inline constexpr std::size_t kMaximumBarWidgets = 32;
-// Arc widget storage for the whole dashboard.
 inline constexpr std::size_t kMaximumArcWidgets = 16;
-// Indicator strip storage for the whole dashboard.
 inline constexpr std::size_t kMaximumIndicatorWidgets = 8;
-// Graph storage for the whole dashboard. Each instance owns a sample ring buffer, which is why this cap is the smallest.
 inline constexpr std::size_t kMaximumGraphWidgets = 4;
-// Image widget storage for the whole dashboard.
 inline constexpr std::size_t kMaximumImageWidgets = 24;
-// Segments in one indicator strip.
 inline constexpr std::size_t kMaximumIndicatorSegments = 16;
-// Fastest blink period any rule may ask for. Below this a widget reads as a strobe rather than an indicator, and the eye stops resolving the state it is meant to signal.
 inline constexpr std::size_t kMinimumBlinkMs = 100;
-// Slowest blink period any rule may ask for. Past this the widget spends so long in one phase that it reads as one that failed to update.
 inline constexpr std::size_t kMaximumBlinkMs = 5000;
-// Longest a styling rule, or a slot page raised by an event, may outlive the match that raised it. Past this it stops reading as a reaction to the car and starts reading as a stuck dashboard.
 inline constexpr std::size_t kMaximumHoldMs = 10000;
-// Samples one graph retains. The ring buffer is sized by this whatever point_count asks for.
 inline constexpr std::size_t kMaximumGraphPoints = 128;
-// Telemetry sources one graph draws on a single plot, counting the widget's own. Each one costs a point array and an LVGL line of its own, which is why this is the smallest of the multi-source caps.
 inline constexpr std::size_t kMaximumGraphSources = 3;
-// Entries in a graph's traces array: kMaximumGraphSources less the one the widget's own source already is. An array capacity has to name a limit of its own, which is why the total is stated separately.
 inline constexpr std::size_t kMaximumGraphTraces = 2;
-// Telemetry sources one text widget composes into a single string. Raising this grows the per-widget document storage, the widget render state, and the binder arrays.
 inline constexpr std::size_t kMaximumTextSources = 3;
-// Value modifiers per text widget source.
 inline constexpr std::size_t kMaximumValueModifiers = 4;
-// Stops in one widget colour ramp. Four is a normal, caution, warning and limit band, the same bands the conditional rules cover discretely.
 inline constexpr std::size_t kMaximumColorStops = 4;
-// Conditional styling rules per widget. Four covers a normal, caution, warning and limit band.
 inline constexpr std::size_t kMaximumWidgetConditions = 4;
-// Frames one uploaded image may hold as a sprite sheet. A frame costs only its own pixels — every frame of a sheet is an offset into the one buffer the image was already loaded into — so this bounds what an author can address rather than what the device spends. Must match kMaximumSpriteFrames in the image contract.
 inline constexpr std::size_t kMaximumSpriteFrames = 64;
-// Uploaded image identifier storage including the terminator (31 usable bytes). Must match kImageIdCapacity in the image contract.
 inline constexpr std::size_t kImageIdCapacity = 32;
-// Widget identifier storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kWidgetIdCapacity = 16;
-// Widget title text storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kWidgetTitleCapacity = 16;
-// Placeholder text storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kUnavailableTextCapacity = 16;
-// Storage for the dotted property path reported with a rejection, including the terminator.
 inline constexpr std::size_t kValidationPathCapacity = 48;
-// Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py.
 inline constexpr std::size_t kValueBindingCapacity = 40;
-// Transform prefix and suffix storage including the terminator (15 usable bytes).
 inline constexpr std::size_t kValueAffixCapacity = 16;
 
-// One independently stored and transferred configuration document. Each
-// carries the board identifier and the sections listed against it in the
-// schema, and nothing else: a section belonging to another document is
-// rejected rather than ignored.
 enum class ConfigurationDocument : std::uint8_t {
   dashboard,
   modules,
@@ -125,9 +86,6 @@ inline constexpr std::array<std::string_view, 3> kConfigurationDocumentNames{{
   return false;
 }
 
-// What each document is allowed to weigh. Only the dashboard needs the
-// full payload bound, so the buffers the other two hold are a fraction of
-// it and an oversized document is refused before it is parsed.
 inline constexpr std::array<std::size_t, 3> kConfigurationDocumentPayloadSizes{{
     131072,
     1024,
@@ -142,9 +100,6 @@ inline constexpr std::array<std::size_t, 3> kConfigurationDocumentPayloadSizes{{
              : std::size_t{0};
 }
 
-// Whether saving this document leaves a setting stored and not in force.
-// The transport is selected once at startup, so only that document has to
-// ask for a restart; the rest are applied to the running composition.
 inline constexpr std::array<bool, 3> kConfigurationDocumentRebootRequired{{
     false,
     false,
@@ -158,21 +113,18 @@ inline constexpr std::array<bool, 3> kConfigurationDocumentRebootRequired{{
          kConfigurationDocumentRebootRequired[index];
 }
 
-// Immutable hardware identity. Must match the firmware build or the configuration is rejected.
 enum class BoardId : std::uint8_t {
   t_display_s3,
   guition_esp32_4848s040,
   guition_jc1060p470c,
 };
 
-// Telemetry transport selection. board_default defers to the immutable board descriptor.
 enum class TelemetryTransportId : std::uint8_t {
   board_default,
   native_usb_cdc,
   uart,
 };
 
-// Which point of a box the text is anchored to, on both axes. The unprefixed names are the middle row, so left, center and right sit vertically centred. Used for a text widget's value inside its content area and for a frame caption on its outer box.
 enum class TextAlignment : std::uint8_t {
   top_left,
   top_center,
@@ -185,27 +137,23 @@ enum class TextAlignment : std::uint8_t {
   bottom_right,
 };
 
-// Presentation transform applied after the modifier pipeline.
 enum class ValueTransformType : std::uint8_t {
   none,
   time,
   number,
 };
 
-// Axis a linear gradient runs along. Only used when a gradient colour is set.
 enum class GradientDirection : std::uint8_t {
   horizontal,
   vertical,
 };
 
-// Which part of a widget the colour ramp paints. What content means is the widget type's own business: text paints its label, a bar its fill.
 enum class ColorRampTarget : std::uint8_t {
   content,
   background,
   border,
 };
 
-// Comparison a styling rule applies to the numeric value of its condition source.
 enum class ConditionOperator : std::uint8_t {
   above,
   at_or_above,
@@ -215,7 +163,6 @@ enum class ConditionOperator : std::uint8_t {
   not_equal,
 };
 
-// What a tap on a widget does. none is the default and leaves the object refusing input, which is what every widget did before actions existed.
 enum class WidgetActionType : std::uint8_t {
   none,
   next_screen,
@@ -223,44 +170,37 @@ enum class WidgetActionType : std::uint8_t {
   goto_screen,
 };
 
-// How the dashboard swaps one screen for another. slide is LVGL's animated screen load, the horizontal move a swipe reads as. none replaces the screen in a single frame: the animation composites both screens for its whole duration, which on a screen filled with widgets costs more per frame than either screen alone, so a dashboard that cannot afford it says so here rather than living with the drop.
 enum class ScreenTransition : std::uint8_t {
   slide,
   none,
 };
 
-// Stateful value processing implemented by a module behind the pipeline callback.
 enum class ValueModifierType : std::uint8_t {
   lap_timer,
 };
 
-// Axis a bar fills along. A vertical bar grows upwards unless it is inverted.
 enum class BarOrientation : std::uint8_t {
   horizontal,
   vertical,
 };
 
-// Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own.
 enum class ShapeKind : std::uint8_t {
   rectangle,
   ellipse,
 };
 
-// How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds.
 enum class SlotTrigger : std::uint8_t {
   none,
   value_changed,
   conditions,
 };
 
-// Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot.
 enum class WidgetParentKind : std::uint8_t {
   screen,
   shape,
   slot_page,
 };
 
-// Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted.
 enum class WidgetType : std::uint8_t {
   text,
   shape,
@@ -276,9 +216,6 @@ struct BoardConfiguration {
   BoardId id{BoardId::t_display_s3};
 };
 
-// Reserved bounded peripheral section. No user-configurable peripheral
-// driver has a complete production contract yet, so a non-empty list is
-// rejected rather than guessed.
 struct HardwareConfiguration {
   std::uint8_t device_count{};
 };
@@ -296,7 +233,6 @@ struct TelemetryTransportConfiguration {
   UartTelemetryConfiguration uart{};
 };
 
-// Absolute geometry in logical screen pixels.
 struct WidgetPlacement {
   std::int32_t x{};
   std::int32_t y{};
@@ -317,9 +253,6 @@ struct WidgetBorder {
   std::uint16_t radius_px{};
 };
 
-// The caption on a widget's frame. It is anchored to a point on the
-// widget's outer box, moved from there by the offsets, and it cuts the
-// frame line on whichever border it ends up crossing.
 struct WidgetTitleStyle {
   std::array<char, kWidgetTitleCapacity> text{};
   font_assets::FontSpec font{};
@@ -338,9 +271,6 @@ struct WidgetValueStyle {
   std::array<char, kUnavailableTextCapacity> unavailable_text{};
 };
 
-// Stateless presentation transform. Absent means no transform is applied.
-// The prefix and suffix belong to the transform rather than to one type, so
-// they also apply to an untransformed value.
 struct ValueTransform {
   ValueTransformType type{ValueTransformType::none};
   transformers::time_transform::Config time{};
@@ -353,41 +283,28 @@ struct ValueModifier {
   ValueModifierType type{ValueModifierType::lap_timer};
 };
 
-// A canonical telemetry binding with its modifier pipeline, consumed as a
-// typed value. Carries no transform: the widgets that read one map it
-// through a range or compare it, rather than presenting it as text.
 struct ValueSourceConfiguration {
   std::array<char, kValueBindingCapacity> binding{};
   std::uint8_t modifier_count{};
   std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
 };
 
-// One anchor of a colour ramp.
 struct ColorStop {
   float at{};
   std::uint32_t color{0xE8E8E8};
 };
 
-// A colour interpolated from the watched source rather than switched by a
-// threshold. It is the base layer: a matching rule paints over it, and with
-// no stops the authored colour stands.
 struct ColorRamp {
   ColorRampTarget target{ColorRampTarget::content};
   std::uint8_t stop_count{};
   std::array<ColorStop, kMaximumColorStops> stops{};
 };
 
-// Navigation a tap performs. Carried by every widget, so a tap target is
-// either a readout that doubles as a button or a rectangle of the screen —
-// including an empty transparent shape, which is an invisible touch zone.
 struct WidgetAction {
   WidgetActionType type{WidgetActionType::none};
   std::array<char, kWidgetIdCapacity> screen{};
 };
 
-// One styling rule. The first rule whose comparison holds describes the
-// widget; whatever it leaves unset stays as the widget's static style, and
-// a transparent colour means unset rather than see-through.
 struct WidgetCondition {
   ConditionOperator op{ConditionOperator::at_or_above};
   float value{};
@@ -399,29 +316,17 @@ struct WidgetCondition {
   std::uint16_t hold_ms{};
 };
 
-// One activation rule for a slot page. The first rule whose comparison
-// holds raises the page. Kept separate from a widget's styling rules
-// because selection and appearance watch different fields; how long the
-// page then stays up belongs to the page, not to the rule that raised it.
 struct SlotCondition {
   ConditionOperator op{ConditionOperator::at_or_above};
   float value{};
 };
 
-// Declaration-order reference into the typed widget storage, held by
-// whichever parent declared the widget. Carries the ordering keys so
-// compositing needs no widget-type knowledge: z_index ascending, authored
-// array order breaking ties. Declared before the widget structs because a
-// container shape holds an array of these.
 struct WidgetReference {
   WidgetType type{WidgetType::text};
   std::uint8_t index{};
   std::int16_t z_index{};
 };
 
-// One canonical telemetry source of a text widget, consumed through a
-// pre-bound typed callback. Its transform affixes are what separate it from
-// the next source, so composing several needs no format string.
 struct TextSourceConfiguration {
   std::array<char, kValueBindingCapacity> binding{'v', 'e', 'h', 'i', 'c', 'l', 'e', '.', 's', 'p', 'e', 'e', 'd', '\0'};
   std::uint8_t modifier_count{};
@@ -429,9 +334,6 @@ struct TextSourceConfiguration {
   ValueTransform transform{};
 };
 
-// What every widget type owns regardless of what it draws: where it sits,
-// how it is boxed, and the rules that restyle it. Flattened into each
-// widget, so these are plain widget properties on the wire.
 struct WidgetFrame {
   std::array<char, kWidgetIdCapacity> id{};
   WidgetPlacement placement{};
@@ -453,8 +355,6 @@ struct WidgetFrame {
   std::array<WidgetCondition, kMaximumWidgetConditions> conditions{};
 };
 
-// Reusable telemetry text widget. Renders its ordered sources as one
-// string.
 struct TextWidgetConfiguration {
   WidgetFrame frame{};
   std::uint8_t source_count{};
@@ -462,17 +362,11 @@ struct TextWidgetConfiguration {
   WidgetValueStyle value{};
 };
 
-// Input window a widget maps its source through. The fraction is clamped,
-// so a value outside the window reads as full or empty rather than
-// overflowing.
 struct ValueRange {
   float minimum{};
   float maximum{1.0F};
 };
 
-// One telemetry source drawn as a filled proportion of the widget. The
-// frame background is the track the fill runs over, so a bar needs no track
-// colour of its own.
 struct BarWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
@@ -485,8 +379,6 @@ struct BarWidgetConfiguration {
   std::uint32_t fill_grad_color{kTransparentColor};
 };
 
-// One telemetry source swept around an arc. The track is the arc's own
-// background, so a gauge needs no shape behind it.
 struct ArcWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
@@ -499,14 +391,11 @@ struct ArcWidgetConfiguration {
   bool inverted{false};
 };
 
-// One lamp in an indicator strip.
 struct IndicatorSegment {
   float threshold{};
   std::uint32_t color{0x00C853};
 };
 
-// A row of lamps that light as one telemetry source climbs its range: shift
-// lights, a rev strip, a stint marker.
 struct IndicatorWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
@@ -521,19 +410,12 @@ struct IndicatorWidgetConfiguration {
   std::array<IndicatorSegment, kMaximumIndicatorSegments> segments{};
 };
 
-// A second or third source drawn on the same plot as the graph's own. It
-// carries a window of its own, because a trace of speed beside one of
-// throttle would otherwise flatten against an edge, and a colour of its
-// own, because that is what tells the two apart.
 struct GraphTraceConfiguration {
   ValueSourceConfiguration source{};
   ValueRange range{};
   std::uint32_t line_color{0x38BDF8};
 };
 
-// A rolling trace of one telemetry source, plus up to two more drawn over
-// the same plot. The history is presentation state the widget samples for
-// itself; it is not a telemetry value and nothing else can read it.
 struct GraphWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
@@ -546,11 +428,6 @@ struct GraphWidgetConfiguration {
   std::array<GraphTraceConfiguration, kMaximumGraphTraces> traces{};
 };
 
-// An uploaded image drawn inside the frame. Neither scaled nor rotated: the
-// configurator converts each image to the size it is drawn at, which also
-// keeps the accelerated draw path on the ESP32-P4. It binds telemetry only
-// to choose between the frames of a sprite sheet; its styling rules can
-// still hide it, flash it or recolour it.
 struct ImageWidgetConfiguration {
   WidgetFrame frame{};
   std::array<char, kImageIdCapacity> image{};
@@ -561,12 +438,6 @@ struct ImageWidgetConfiguration {
   std::uint8_t recolor_opa{255};
 };
 
-// Panels, dividers and backing plates, and the widget that draws while
-// holding other widgets. The frame is the whole widget: it binds no
-// telemetry of its own, but its styling rules can still hide it or flash
-// it, and a line is a thin rectangle. A shape with widgets is a container —
-// its children are placed relative to its box and cut off at it, unless
-// clip_children says otherwise.
 struct ShapeWidgetConfiguration {
   WidgetFrame frame{};
   ShapeKind kind{ShapeKind::rectangle};
@@ -575,12 +446,6 @@ struct ShapeWidgetConfiguration {
   std::array<WidgetReference, kMaximumWidgetsPerContainer> widgets{};
 };
 
-// One page of a slot: a set of widgets that share the slot's box and are
-// shown or hidden together. A page has no geometry, no frame and no styling
-// of its own — it is the slot's box, and its widgets are placed relative to
-// it. Pages the tap cycles are the loop; a page with a trigger is raised
-// over the loop while its event lasts, and the first such page in this
-// array wins when several fire at once.
 struct SlotPageConfiguration {
   bool in_loop{true};
   SlotTrigger trigger{SlotTrigger::none};
@@ -592,13 +457,6 @@ struct SlotPageConfiguration {
   std::array<WidgetReference, kMaximumWidgetsPerContainer> widgets{};
 };
 
-// An area of a screen that switches what it shows. It draws nothing of its
-// own — no background, border, caption or styling rules, all of which are
-// rejected rather than ignored — and exists only to hold pages. A tap
-// cycles the pages in the loop; a page whose trigger fires is raised over
-// them for its duration and then hands the slot back to the loop page that
-// was showing. A slot is authored directly on a screen: it holds containers
-// rather than living inside one.
 struct SlotWidgetConfiguration {
   WidgetFrame frame{};
   bool clip_children{true};
@@ -606,11 +464,6 @@ struct SlotWidgetConfiguration {
   std::array<SlotPageConfiguration, kMaximumSlotPages> pages{};
 };
 
-// One dashboard screen: the coordinate space its widgets are placed in, and
-// the order they stack in. The widgets themselves live in the dashboard's
-// pool; a screen names them by reference. Widgets authored directly on the
-// screen appear in its own reference table, and widgets authored inside a
-// container shape appear in that shape's.
 struct ScreenConfiguration {
   std::array<char, kWidgetIdCapacity> id{};
   std::uint32_t background_color{0x000000};
@@ -618,10 +471,6 @@ struct ScreenConfiguration {
   std::array<WidgetReference, kMaximumWidgetsPerScreen> widgets{};
 };
 
-// Owns the typed widget storage as one pool shared by every screen; a
-// screen holds only an ordered list of references into it. A screen
-// therefore costs its reference table rather than a full set of widget
-// arrays.
 struct DashboardConfiguration {
   ScreenTransition transition{ScreenTransition::slide};
   std::uint8_t screen_count{};
@@ -651,10 +500,6 @@ struct ApplicationConfiguration {
   TelemetryTransportConfiguration telemetry_transport{};
   DashboardConfiguration dashboard{};
 };
-
-// Wire spellings and their conversions. Both directions read the same
-// generated value list the parser allow-lists use, so a name cannot drift
-// between the contract, the parser, and the configurator.
 
 inline constexpr std::array<std::string_view, 3> kBoardIdNames{{
     "t_display_s3",
@@ -995,29 +840,16 @@ inline constexpr std::array<std::string_view, 8> kWidgetTypeNames{{
   return false;
 }
 
-// Uniform access to the storage one widget type occupies in a document.
-// Anything that has to do the same thing for every type — composing,
-// parsing, comparing two documents, warming fonts — walks this table
-// rather than naming each type, so adding a widget type is a schema
-// change and not an edit in every such place.
 struct WidgetTypeTraits {
   WidgetType type{};
   std::string_view name{};
-  // The document property its pool is stored under, which is what a
-  // capacity rejection has to name.
   std::string_view storage_key{};
-  // Instances of this type one document can hold.
   std::size_t capacity{};
   std::uint8_t (*count)(const DashboardConfiguration&){};
   void (*set_count)(DashboardConfiguration&, std::uint8_t){};
-  // Null past the count, so a caller cannot reach an instance the
-  // document does not have.
   const WidgetFrame* (*frame)(const DashboardConfiguration&,
                               std::uint8_t){};
   WidgetFrame* (*mutable_frame)(DashboardConfiguration&, std::uint8_t){};
-  // One instance as raw bytes, for the byte compare that decides whether
-  // a widget changed between two documents. Empty past the count, so two
-  // absent instances compare equal.
   std::span<const std::byte> (*element_bytes)(const DashboardConfiguration&,
                                               std::uint8_t){};
 };
@@ -1281,10 +1113,6 @@ inline constexpr std::array<WidgetTypeTraits, 8> kWidgetTypeTraits{{
     },
 }};
 
-// A WidgetType always comes from the parser or from a reference the
-// parser wrote, so it is always in range; the guard keeps a corrupted
-// value from indexing past the table rather than reporting an error no
-// caller could act on.
 [[nodiscard]] inline const WidgetTypeTraits& widget_traits(
     const WidgetType type) {
   const auto index = static_cast<std::size_t>(type);
@@ -1292,4 +1120,4 @@ inline constexpr std::array<WidgetTypeTraits, 8> kWidgetTypeTraits{{
                                          : kWidgetTypeTraits[0];
 }
 
-}  // namespace simcore::configuration
+}

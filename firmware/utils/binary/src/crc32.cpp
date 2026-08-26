@@ -19,4 +19,4 @@ std::uint32_t crc32(const std::span<const std::uint8_t> bytes) {
   return accumulator.value();
 }
 
-}  // namespace simcore::binary
+}

@@ -6,18 +6,8 @@ import { Badge } from '@/components/ui/badge'
 import { DigitSpecimen } from './DigitSpecimen'
 import { variantLabel } from './font-catalog-store'
 
-/** How long a row has to stay on screen before its face is worth downloading. */
 const DWELL_MS = 150
 
-/**
- * One catalog family. Its face is fetched when the row has been on screen long
- * enough to be looked at rather than scrolled past, so browsing a list of two
- * thousand does not download two thousand files.
- *
- * The row shows the family; the weights under it are what actually get chosen,
- * because the board holds one face per family and each weight is therefore a
- * font of its own with a slot of its own.
- */
 export function FontCatalogRow({
   family,
   previewFamily,

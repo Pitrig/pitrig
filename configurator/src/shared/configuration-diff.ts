@@ -1,35 +1,16 @@
 import type { ApplicationConfiguration } from './configuration-schema'
 
-/**
- * What one sparse configuration document holds that another does not.
- *
- * The editor already knows *that* a draft differs from the board — that is what
- * `configurationsEqual` answers, and what the "Modified" badge is. This answers
- * *what* differs, so saving is not a leap: a dashboard is hundreds of numbers,
- * and "the draft is modified" says nothing about whether the change was a font
- * size or a deleted screen.
- *
- * It is a structural walk rather than a text diff, because the two documents
- * are compared as the firmware would read them: property order and formatting
- * are not differences, an array of widgets is matched by `id` rather than by
- * position, and everything else is matched by index.
- */
-
 export type ConfigurationChangeKind = 'added' | 'removed' | 'changed'
 
 export interface ConfigurationChange {
   kind: ConfigurationChangeKind
-  /** Where it is, as the author would name it: `screen "main" › speed › size_px`. */
   path: string
-  /** Absent for `added`; a short rendering of the value otherwise. */
   before?: string
-  /** Absent for `removed`. */
   after?: string
 }
 
 export interface ConfigurationDiff {
   changes: ConfigurationChange[]
-  /** Changes past the cap, so a wholesale replacement reports a number instead of a wall. */
   truncated: number
 }
 
@@ -80,12 +61,6 @@ function walk(before: unknown, after: unknown, path: string[], emit: Emit): void
   }
 }
 
-/**
- * Widgets and screens are matched by `id`, so moving one between screens reads
- * as a move rather than as one deletion and one unrelated arrival. Everything
- * else — sources, conditions, colour stops, slot pages — is positional in the
- * contract itself, so index is the honest key for it.
- */
 function walkArray(before: unknown[], after: unknown[], path: string[], emit: Emit): void {
   const beforeIds = identifiers(before)
   const afterIds = identifiers(after)
@@ -106,8 +81,6 @@ function walkArray(before: unknown[], after: unknown[], path: string[], emit: Em
     }
   }
 
-  // Order is meaning for a widget array — it breaks ties in stacking — so a
-  // reorder is reported once for the array rather than as a change per element.
   const common = [...beforeIds.keys()].filter((id) => afterIds.has(id))
   const reordered = [...afterIds.keys()].filter((id) => beforeIds.has(id))
   if (common.length > 1 && common.some((id, index) => reordered[index] !== id)) {
@@ -120,7 +93,6 @@ function walkArray(before: unknown[], after: unknown[], path: string[], emit: Em
   }
 }
 
-/** The elements keyed by their `id`, or nothing when the array is not id-keyed. */
 function identifiers(elements: unknown[]): Map<string, Record<string, unknown>> | undefined {
   const keyed = new Map<string, Record<string, unknown>>()
   for (const element of elements) {
@@ -141,7 +113,6 @@ function label(path: string[]): string {
   return path.length > 0 ? path.join(' › ') : 'configuration'
 }
 
-/** A value short enough to sit at the end of a line. */
 function describe(value: unknown): string {
   if (value === null) return 'none'
   if (typeof value === 'string') return value.length > 0 ? value : '""'

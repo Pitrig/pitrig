@@ -19,7 +19,7 @@ void paint_segment(lv_obj_t* const segment, const std::uint32_t rgb,
                           LV_PART_MAIN);
 }
 
-}  // namespace
+}
 
 bool Collection::build(State& state, const Layout& layout, const Config& config,
                        const frame::ValueBinding& binding,
@@ -27,7 +27,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
-  // A strip has no intrinsic size: the placement is the whole of it.
   if (!frame::build(layout, config.frame, kTag, 0, 0, false, fonts, parent,
                     bounds, box)) {
     return false;
@@ -80,7 +79,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
       lv_obj_set_pos(segment, offset, 0);
       lv_obj_set_size(segment, length, inner_height);
     } else {
-      // A vertical strip lights from the bottom up, the way a rev ladder reads.
       lv_obj_set_pos(segment, 0, inner_height - offset - length);
       lv_obj_set_size(segment, inner_width, length);
     }
@@ -90,9 +88,6 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.drawn_mask = 0;
   state.drawn_blink_visible = true;
 
-  // The strip's colours are its segments' own, so a rule paints the frame
-  // rather than the lamps: two mechanisms deciding one colour is exactly what
-  // the conditional styling decision set out to avoid.
   state.painter.configure(config.frame, box, state.colors[0], nullptr, nullptr);
   state.painter.bind(binding.condition_read, binding.condition_context);
   return true;
@@ -123,14 +118,11 @@ void Collection::render_state(State& state) {
   state.painter.render();
   state.initialized = true;
 
-  // An unavailable source reads as empty rather than holding its last lamps.
   const std::optional<double> numeric = conditions::condition_value(value);
   const float fraction =
       numeric.has_value() ? conditions::range_fraction(*numeric, state.range)
                           : 0.0F;
 
-  // Thresholds are non-decreasing, so the lit segments are a prefix and the
-  // first one not reached ends the strip.
   std::uint32_t mask{};
   for (std::size_t index = 0; index < state.segment_count; ++index) {
     if (fraction < state.thresholds[index]) {
@@ -142,8 +134,6 @@ void Collection::render_state(State& state) {
   const bool blinking = state.blink_ms > 0 && fraction >= state.blink_threshold;
   const bool blink_visible =
       !blinking || (lv_tick_get() / state.blink_ms) % 2 == 0;
-  // The blink phase advances on its own, so this cannot return early on an
-  // unchanged value the way a static widget can.
   if (!first_render && !changed && !blinking) {
     return;
   }
@@ -178,4 +168,4 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
   });
 }
 
-}  // namespace simcore::dashboard::indicator_widget
+}

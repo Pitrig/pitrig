@@ -2,19 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Info } from 'lucide-react'
 
-/**
- * The explanation a property used to carry as a paragraph underneath it.
- *
- * Prose between the fields is read once and then scrolled past forever, so it
- * costs every later visit the height it took. This keeps the same words one
- * click away instead: the icon is always present, so the help is findable, and
- * the panel stays a list of properties.
- *
- * It opens on click rather than on hover — the text is long enough to be worth
- * reading rather than glancing at, and a popup that vanishes when the pointer
- * leaves cannot be read down to its last line.
- */
-
 const MARGIN = 6
 const WIDTH_PX = 288
 
@@ -29,9 +16,6 @@ export function InfoHint({ text, label }: { text: string; label?: string }): Rea
       const rect = button.current?.getBoundingClientRect()
       if (!rect) return
       const width = Math.min(WIDTH_PX, window.innerWidth - MARGIN * 2)
-      // The panel is against the right edge of the window, so a popup pinned to
-      // the icon's left runs off it. Pulling it back is what keeps the text on
-      // screen; flipping it above the icon is the same answer vertically.
       const left = Math.max(MARGIN, Math.min(rect.left, window.innerWidth - width - MARGIN))
       const below = window.innerHeight - rect.bottom - MARGIN * 2
       const upward = below < 120 && rect.top > below
@@ -45,16 +29,11 @@ export function InfoHint({ text, label }: { text: string; label?: string }): Rea
     const dismiss = (event: PointerEvent): void => {
       if (!button.current?.contains(event.target as Node | null)) setOpen(false)
     }
-    // Captured on the window so it runs before the editor's own shortcuts:
-    // Escape with the popup open means "close the popup", not "leave the
-    // widget being explained".
     const key = (event: KeyboardEvent): void => {
       if (event.key !== 'Escape') return
       event.stopPropagation()
       setOpen(false)
     }
-    // Positioned in viewport coordinates, so it has to follow the icon when the
-    // inspector scrolls under it.
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
     window.addEventListener('pointerdown', dismiss, true)
@@ -76,8 +55,6 @@ export function InfoHint({ text, label }: { text: string; label?: string }): Rea
         aria-label={label ? `About ${label}` : 'About this property'}
         className={`shrink-0 rounded-sm ${open ? 'text-foreground' : 'text-muted-foreground/60 hover:text-foreground'}`}
         onClick={(event) => {
-          // Inside a label cell, so the click would otherwise reach the control
-          // this explains.
           event.preventDefault()
           event.stopPropagation()
           setOpen((shown) => !shown)

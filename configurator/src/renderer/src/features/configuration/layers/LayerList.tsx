@@ -15,13 +15,6 @@ import { dropOrder, type RowState } from './layer-row-state'
 import { RenameField } from './RenameField'
 import { SlotPages } from './SlotPages'
 
-/**
- * One parent's stack. A row is three drop bands: its top and bottom restack
- * beside it, its middle moves the dragged widget inside it. The middle band only
- * exists where the move is legal — a container that would nest too deep, is
- * full, or is the dragged widget's own descendant offers two bands instead of
- * three, so no band is ever a drop that quietly does nothing.
- */
 export function LayerList({
   widgets,
   ...rowState
@@ -39,14 +32,10 @@ export function LayerList({
   const toggleHidden = useDashboardEditorStore((state) => state.toggleHidden)
   const toggleCollapsed = useDashboardEditorStore((state) => state.toggleCollapsed)
 
-  // Back to front is what z_index means, so the list reverses it.
   const topFirst = stackOrder(widgets)
     .map(({ widget }) => widget)
     .reverse()
 
-  // Which band the pointer is over, or undefined when no drop is legal there.
-  // Legal for every dragged row: a group that could only partly land would tear
-  // the selection in half.
   const bandAt = (
     event: React.DragEvent<HTMLElement>,
     id: string,
@@ -90,28 +79,20 @@ export function LayerList({
             draggable
             onContextMenu={(event) => openMenu(event, id)}
             onDragStart={(event) => {
-              // Dragging a selected row drags the whole selection, the way
-              // dragging one of several selected widgets moves the group on the
-              // canvas; an unselected row travels alone.
               setDragged(selectedIds.includes(id) ? selectedIds : [id])
               event.dataTransfer.effectAllowed = 'move'
             }}
             onDragOver={(event) => {
               const over = bandAt(event, id, isContainer(widget))
-              // Leaving preventDefault uncalled is what shows the no-drop cursor
-              // and keeps onDrop from firing at all — the refusal costs nothing.
               if (!over) return
               event.preventDefault()
               event.dataTransfer.dropEffect = 'move'
-              // Only on a change: dragover fires continuously, and writing state
-              // every time would re-render the whole panel dozens of times a second.
               if (dropTarget?.id !== id || dropTarget.band !== over || dropTarget.page !== undefined) {
                 setDropTarget({ id, band: over })
               }
             }}
             onDrop={(event) => {
               event.preventDefault()
-              // Recomputed from the drop itself: the stored band is a render behind.
               const over = bandAt(event, id, isContainer(widget))
               if (over) applyDrop(over, id)
               setDragged(undefined)
@@ -127,8 +108,6 @@ export function LayerList({
               band === 'inside' ? 'ring-2 ring-inset ring-sky-400' : ''
             }`}
           >
-            {/* Absolute and click-through: an element under the cursor would
-                swallow the dragover this indicator exists to reflect. */}
             {band === 'above' || band === 'below' ? (
               <span
                 aria-hidden
@@ -143,8 +122,6 @@ export function LayerList({
             >
               ⠿
             </span>
-            {/* A fixed-width slot whether or not there is a triangle, so the
-                names stay in one column at every depth. */}
             <button
               type="button"
               aria-expanded={holds ? open : undefined}
@@ -171,8 +148,6 @@ export function LayerList({
               </button>
             )}
             <span className="flex-none text-muted-foreground">{widget.type}</span>
-            {/* A slot's widgets belong to a page, so releasing them beside the
-                slot would have to pick one and lose the rest. */}
             {widget.type === 'shape' && children.length > 0 ? (
               <button
                 type="button"
@@ -188,11 +163,6 @@ export function LayerList({
                 ⤴
               </button>
             ) : null}
-            {/* Drawn rather than typed: an emoji padlock is a colour bitmap at
-                whatever weight the platform font gives it, which is the one
-                thing in these rows that does not follow the text around it. The
-                set state is the stronger colour, so a locked or hidden layer
-                reads at a glance instead of on hover. */}
             <button
               type="button"
               className={`flex-none px-1 hover:text-foreground ${

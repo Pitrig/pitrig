@@ -9,26 +9,8 @@ import { FontPicker } from '@/features/font-library/FontPicker'
 import { previewFontFamily, useFontFaceStore } from '@/features/font-library/font-face-store'
 import { findFontEntry, useFontLibraryStore } from '@/features/font-library/font-library-store'
 
-/**
- * The controls the inspector is built from. Each one is a bare input plus the
- * row that names it, kept separate so the few places that put two values on one
- * line — a position, a font and its size — reuse the input without inheriting a
- * second name column.
- */
-
-/** One height for every control, so a column of them lines up. */
-
 import { NumberInput } from './fields'
 
-/**
- * A font is chosen, never typed: the family string is the id of a library
- * entry, so a name that is not one names nothing the board could ever be given.
- * The button shows the face it stands for, which is also how an unresolved
- * family announces itself — it is the one that cannot draw itself.
- *
- * The family alone. The board holds one face per family, so a size is a
- * property of the widget that draws the text and not of the font.
- */
 export function FontFamilyPicker({ family, onChange }: { family?: string; onChange: (family: string) => void }): React.JSX.Element {
   const [picking, setPicking] = useState(false)
   const entries = useFontLibraryStore((state) => state.entries)
@@ -48,8 +30,6 @@ export function FontFamilyPicker({ family, onChange }: { family?: string; onChan
         >
           {entry ? entry.name : family ? `Unresolved: ${family}` : 'Choose font…'}
         </span>
-        {/* Not a caret: this opens a searchable browser, and a dropdown arrow
-            would promise a list that drops down from here. */}
         <BrowseIcon />
       </button>
       {picking ? (
@@ -80,15 +60,7 @@ function BrowseIcon(): React.JSX.Element {
   )
 }
 
-/**
- * A font as a widget carries one: the family, and the size that widget draws it
- * at. They share a row because neither is useful without the other.
- */
-export function FontEditor({ font, defaultSizePx, onChange, hint }: { font?: FontSpec; /** What this kind of text is created at: a caption and a reading differ. */ defaultSizePx: number; onChange: (font: FontSpec) => void; hint?: string }): React.JSX.Element {
-  // A widget with no font at all is a document the device refuses, so "reset"
-  // cannot mean "remove it". It means the dashboard's own family at the size
-  // this kind of text is created with, which is what the widget would have had
-  // if it had never been touched.
+export function FontEditor({ font, defaultSizePx, onChange, hint }: { font?: FontSpec; defaultSizePx: number; onChange: (font: FontSpec) => void; hint?: string }): React.JSX.Element {
   const family = draftFontFamily(
     useDeviceStore((state) => state.draft),
     useDashboardEditorStore((state) => state.defaultFontFamily)

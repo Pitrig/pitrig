@@ -16,7 +16,6 @@
 
 namespace simcore::transport {
 
-// Native ESP32-S3 USB CDC transport backed by esp_tinyusb.
 class UsbCdcTransport final : public ITransport {
  public:
   UsbCdcTransport() = default;
@@ -60,12 +59,10 @@ class UsbCdcTransport final : public ITransport {
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
   ReadInstrumentation instrumentation_{};
 #if SIMCORE_DEBUG
-  // What only this link has to report: the depth of the queue between the
-  // receive callback and the task that drains it.
   std::atomic<std::uint32_t> queue_overflows_{};
   std::atomic<std::uint32_t> queued_bytes_{};
 #endif
   bool started_{};
 };
 
-}  // namespace simcore::transport
+}

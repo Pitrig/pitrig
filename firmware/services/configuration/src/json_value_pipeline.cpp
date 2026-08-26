@@ -3,10 +3,6 @@
 namespace simcore::configuration::json {
 namespace {
 
-// Styling rules and the source they watch. Both are optional; a widget with
-// neither renders its authored colours and nothing evaluates at render time.
-// The ramp sits beside the rules because both read the same watched source; it
-// is the colour they fall back to rather than a rule of its own.
 [[nodiscard]] bool parse_color_ramp(const cJSON* const object,
                                     WidgetFrame& config,
                                     ValidationFailure& failure) {
@@ -71,7 +67,7 @@ namespace {
       });
 }
 
-}  // namespace
+}
 
 [[nodiscard]] bool parse_transform(const cJSON* const object,
                                    ValueTransform& transform,
@@ -243,4 +239,4 @@ namespace {
          parse_modifiers(source, config, failure);
 }
 
-}  // namespace simcore::configuration::json
+}

@@ -25,10 +25,6 @@ import {
 import { findWidgetGeometryError } from './widget-geometry'
 import { findWidgetValueError } from './widget-values'
 
-// Everything about how the document is put together: how many of each thing,
-// how deep, and whether a box lands on the display. What one widget's own
-// properties may say is widget-rules.ts.
-
 const WIDGET_POOL_CAPS: Record<string, number> = {
   text: MAXIMUM_TEXT_WIDGETS,
   shape: MAXIMUM_SHAPE_WIDGETS,
@@ -39,10 +35,6 @@ const WIDGET_POOL_CAPS: Record<string, number> = {
   image: MAXIMUM_IMAGE_WIDGETS,
   slot: MAXIMUM_SLOT_WIDGETS
 }
-
-// Undefined for a document naming no board, or one this configurator has no
-// profile for; the display bound is then simply not checked here and the device
-// answers instead.
 
 function boardDisplay(
   configuration: ApplicationConfiguration
@@ -64,8 +56,6 @@ export function findScreenError(configuration: ApplicationConfiguration): string
   const pool = new Map<string, number>()
   let lapTimers = 0
 
-  // One walk carrying where this parent sits and how deep it is, because both
-  // are facts about the path rather than about the widget.
   const walk = (
     parent: WidgetParent,
     screenIndex: number,
@@ -79,10 +69,6 @@ export function findScreenError(configuration: ApplicationConfiguration): string
       const where = depth === 0 ? `Screen ${screenIndex + 1}` : 'A container'
       return `${where} holds ${widgets.length} widgets; the device holds ${cap}.`
     }
-    // What the device bounds is the depth a *widget* sits at, not the depth a
-    // container reaches: an empty container on the last level is a plain drawn
-    // rectangle and the firmware accepts it. So this fires on the array having
-    // something in it rather than on the recursion arriving.
     if (widgets.length > 0 && depth >= MAXIMUM_NESTING_DEPTH) {
       return `Containers are nested ${depth + 1} deep; the device nests ${MAXIMUM_NESTING_DEPTH}.`
     }
@@ -100,12 +86,6 @@ export function findScreenError(configuration: ApplicationConfiguration): string
       if (widget.action && widget.action.type !== 'none') actions += 1
       pool.set(widget.type, (pool.get(widget.type) ?? 0) + 1)
 
-      // The one bound left: a container does not clip its children, so what a
-      // box must still do is reach the display. Mirrors on_display() in
-      // configuration_validation.cpp — reject only a box entirely outside it.
-      // An absent placement is not an exemption: every field defaults to zero
-      // on the device, which is a box of no size at the origin, and that is
-      // what on_display() then refuses.
       const box = widget.placement ?? {}
       if (display) {
         const left = originX + (box.x ?? 0)
@@ -133,18 +113,12 @@ export function findScreenError(configuration: ApplicationConfiguration): string
       }
 
       if (widget.type !== 'slot') continue
-      // A slot is built before every container that could hold one, so it is
-      // only ever authored on a screen — the same rule the firmware parser
-      // enforces, stated here so the editor says so before the device does.
       if (depth > 0) {
         return `${label} is a slot inside a container; a slot sits directly on a screen.`
       }
       const slotError = findSlotError(widget, label)
       if (slotError) return slotError
       for (const page of pagesOf(widget)) {
-        // A page costs no nesting level, so its widgets sit exactly where a
-        // container shape's would: one below the slot. The bound is about the
-        // firmware parser's recursion, and a page adds none.
         const nested = walk(
           page,
           screenIndex,
@@ -172,9 +146,6 @@ export function findScreenError(configuration: ApplicationConfiguration): string
   if (actions > MAXIMUM_ACTIONS) {
     return `This dashboard has ${actions} tap targets; the device binds at most ${MAXIMUM_ACTIONS}.`
   }
-  // One Lap Timer module instance backs every lap_timer modifier, so the whole
-  // dashboard claims it once. Mirrors the tally at the end of
-  // configuration_validation.cpp.
   if (lapTimers > 1) {
     return `This dashboard has ${lapTimers} sources using the lap timer; the device runs one.`
   }

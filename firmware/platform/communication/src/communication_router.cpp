@@ -14,7 +14,7 @@ constexpr std::array<std::uint8_t, 4> kControlPrefix{'@', 'S', 'C', ':'};
          std::equal(prefix.begin(), prefix.end(), line.begin());
 }
 
-}  // namespace
+}
 
 void Router::initialize(
     configuration::ConfigurationControl& control,
@@ -56,10 +56,6 @@ void Router::reset() {
 
 void Router::consume(const std::span<const std::uint8_t> data) {
   for (std::size_t index = 0; index < data.size(); ++index) {
-    // While a session owns the stream the whole remainder is its business;
-    // there is no line parsing to do until it gives the stream back. Ownership
-    // is per link, so an upload on another one leaves this stream alone
-    // instead of swallowing its telemetry.
     if (claim_ != nullptr) {
       if (const binary_session::Session* const owner =
               claim_->owner_on(transport_);
@@ -135,9 +131,7 @@ void Router::dispatch() {
   if (telemetry_line_handler_ == nullptr) {
     return;
   }
-  // One complete line, terminator stripped: the protocol decodes it as it is
-  // and keeps no assembly state of its own.
   telemetry_line_handler_(line, telemetry_context_);
 }
 
-}  // namespace simcore::communication
+}

@@ -29,16 +29,6 @@ const kFonts: AssetKind = {
   rebootRequired: 'Restart the device before uploading another font package.'
 }
 
-/**
- * Installs a font package holding exactly the families it is given.
- *
- * The faces come from the library rather than from files picked for this
- * upload: a family identifier *is* a library id, so there is nothing left to
- * bind and nothing to keep in step for the length of a session. A family the
- * library cannot answer for is refused here rather than uploaded empty — the
- * save pipeline resolves first and asks the author for a file, which is the
- * only place that question belongs.
- */
 export class FontAssetService extends AssetServiceBase {
   constructor(
     deviceService: DeviceService,
@@ -47,10 +37,6 @@ export class FontAssetService extends AssetServiceBase {
     super(deviceService, kFonts)
   }
 
-  /**
-   * Builds the package for a family set without touching the device, so a save
-   * can compare it against what is installed before deciding to upload at all.
-   */
   async buildPackage(families: readonly string[]): Promise<FontAssetResult<BuiltFontPackage>> {
     const invalid = validateFamilies(families)
     if (invalid) return { ok: false, error: invalid }
@@ -70,11 +56,6 @@ export class FontAssetService extends AssetServiceBase {
     }
   }
 
-  /**
-   * Installs the package. `report` is required because there is no font upload
-   * of its own to report on: the only caller is a save, and the author watches
-   * one bar for the whole sequence rather than one per command inside it.
-   */
   async upload(
     request: FontUploadRequest,
     report: (progress: FontUploadProgress) => void

@@ -5,8 +5,6 @@
 namespace simcore::font_assets {
 namespace {
 
-// The engine reports failures as the protocol's word, so each operation turns
-// this kind's enumeration into one. Success is a null word.
 [[nodiscard]] const char* word_for(const UpdateError error) {
   return error == UpdateError::none ? nullptr : update_error_name(error);
 }
@@ -34,15 +32,9 @@ const char* clear(void* const service) {
 
 void cancel_update(void* const service) { service_of(service).cancel_update(); }
 
-// Everything after `@SC:OK:FONT:INFO:` and before the newline. The catalog is
-// the installed families, which is what the configurator compares a dashboard's
-// font references against.
 int write_info_body(void* const service, char* const out,
                     const std::size_t size) {
   const Status& status = service_of(service).status();
-  // `crc` is the stored payload CRC. It is what lets a host decide the package
-  // it would upload is already installed, which saves a transfer and the reboot
-  // that follows one.
   int written = std::snprintf(
       out, size,
       "storage=%u,package=%u,format=%u,families=%u,size=%lu,crc=%lu,"
@@ -71,7 +63,7 @@ int write_info_body(void* const service, char* const out,
   return static_cast<int>(offset);
 }
 
-}  // namespace
+}
 
 bool FontAssetControl::initialize(Service& service,
                                   binary_session::Claim& claim,
@@ -94,4 +86,4 @@ bool FontAssetControl::initialize(Service& service,
       claim, frame);
 }
 
-}  // namespace simcore::font_assets
+}

@@ -25,10 +25,6 @@ namespace {
                     failure)) {
     return false;
   }
-  // Which frames the sheet actually has is an asset question, so it is settled
-  // at composition rather than here; what this owes is that the source parsed
-  // and that its presence is recorded, since an absent one leaves the widget on
-  // the frame it authored.
   if (const cJSON* const source = member(object, "sprite_frame_source");
       source != nullptr) {
     constexpr std::string_view kSourceName = "widget.image.sprite_frame_source";
@@ -46,10 +42,6 @@ namespace {
                       failure);
 }
 
-// A slot page activates on the same comparison a widget restyles on, so this
-// reads the same watched source and the same operator; what a match does with it
-// is all that differs. How long the page then stays up is the page's own
-// duration rather than a per-rule hold, because a page is raised as a whole.
 [[nodiscard]] bool parse_slot_page_trigger(const cJSON* const object,
                                            SlotPageConfiguration& config,
                                            ValidationFailure& failure) {
@@ -76,8 +68,6 @@ namespace {
       });
 }
 
-// One page's own properties. Its `widgets` are parsed by parse_widget, which
-// owns parenting, exactly as a container shape's are.
 [[nodiscard]] bool parse_slot_page(const cJSON* const object,
                                    SlotPageConfiguration& config,
                                    ValidationFailure& failure) {
@@ -92,9 +82,6 @@ namespace {
          parse_slot_page_trigger(object, config, failure);
 }
 
-// The slot's own properties, including the pages themselves — a page is not a
-// widget, so nothing else parses one. What the pages *hold* is left to
-// parse_widget, which owns parenting.
 [[nodiscard]] bool parse_slot_widget(const cJSON* const object,
                                      SlotWidgetConfiguration& config,
                                      ValidationFailure& failure) {
@@ -115,8 +102,6 @@ namespace {
       "pages");
 }
 
-// The shape's own properties only. Its `widgets` are parsed by parse_widget,
-// which owns parenting, so a widget type still knows nothing about who holds it.
 [[nodiscard]] bool parse_shape_widget(const cJSON* const object,
                                       ShapeWidgetConfiguration& config,
                                       ValidationFailure& failure) {
@@ -156,7 +141,7 @@ namespace {
                    text_alignment_from_name, kValueName, failure);
 }
 
-}  // namespace
+}
 
 const std::array<WidgetParser, kWidgetTypeTraits.size()> kWidgetParsers{{
     [](const cJSON* const object, DashboardConfiguration& dashboard,
@@ -194,4 +179,4 @@ const std::array<WidgetParser, kWidgetTypeTraits.size()> kWidgetParsers{{
     },
 }};
 
-}  // namespace simcore::configuration::json
+}

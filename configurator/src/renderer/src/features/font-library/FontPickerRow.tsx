@@ -11,11 +11,6 @@ const ORIGIN_LABELS: Readonly<Record<FontLibraryEntry['origin'], string>> = {
   google: 'Google Fonts'
 }
 
-/**
- * One row of the picker, drawn in the face it offers. Showing the name in a
- * uniform system font would make the list a list of strings; the whole point of
- * choosing from a library is seeing what you are choosing.
- */
 export function FontPickerRow({
   entry,
   selected,
@@ -25,7 +20,6 @@ export function FontPickerRow({
 }: {
   entry: FontLibraryEntry
   selected: boolean
-  /** Why this row cannot be taken, or undefined when it can. */
   disabledReason?: string
   loaded: boolean
   onChoose: () => void
@@ -43,8 +37,6 @@ export function FontPickerRow({
       <span className="min-w-0 flex-1">
         <span
           className="block truncate text-base leading-tight text-foreground"
-          // The face is registered under the library id; until it is, the row
-          // still reads, just in the stand-in.
           style={loaded ? { fontFamily: previewFontFamily(entry.id) } : undefined}
         >
           {entry.name}

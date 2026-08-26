@@ -18,27 +18,10 @@ import { IMAGE_ID_PATTERN } from '../image-assets'
 import { TELEMETRY_CATALOG } from '../telemetry-catalog'
 import { transformError } from './transforms'
 
-// What a widget's own values may say, mirroring Validator::* in
-// firmware/services/configuration/src/validation/. Everything here is a rule
-// the device applies and the schema cannot state as a scalar bound — a colour's
-// spelling, an enum's spelling, a binding that has to resolve, a window that has
-// to be a window, and a bounded list that has to be ordered.
-//
-// Kept exactly as strict as the firmware and no stricter: a check the device
-// does not make would refuse a document the board accepts, which is worse than
-// the opaque rejection this file exists to prevent.
-
-/** `#` and six hex digits, which is the only spelling `read_color` accepts. */
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 
 const BINDINGS: ReadonlySet<string> = new Set<string>(TELEMETRY_CATALOG.map(({ name }) => name))
 
-/**
- * Every colour anywhere in the widget, found by key rather than by a hand-kept
- * list: the schema spells every one of them `color` or `*_color`, and a widget
- * carrying a colour on a property its type does not have is already refused by
- * the unknown-key pass.
- */
 function findColorError(widget: WidgetConfiguration, label: string): string | undefined {
   let error: string | undefined
   const walk = (value: unknown, path: string): void => {
@@ -49,8 +32,6 @@ function findColorError(widget: WidgetConfiguration, label: string): string | un
     }
     for (const [key, entry] of Object.entries(value)) {
       if (error) return
-      // A container's children are widgets in their own right and are walked
-      // by the caller, so they are not descended into twice.
       if (key === 'widgets' || key === 'pages') continue
       if (key === 'color' || key.endsWith('_color')) {
         if (typeof entry !== 'string' || !COLOR_PATTERN.test(entry)) {
@@ -66,7 +47,6 @@ function findColorError(widget: WidgetConfiguration, label: string): string | un
   return error
 }
 
-/** One enum property, checked against the values the generated contract lists. */
 function badEnum(
   value: unknown,
   values: readonly string[],
@@ -104,15 +84,6 @@ function findEnumError(widget: WidgetConfiguration, label: string): string | und
   return checks.find((entry) => entry !== undefined)
 }
 
-/**
- * A binding the telemetry registry can resolve. The catalog here is generated
- * from the same `telemetry/telemetry_catalog.json` the device's registry is, so
- * the two answer alike.
- *
- * An absent binding is not an absent field: the contract gives a text source the
- * default `vehicle.speed` and every other source the empty string, so only the
- * second is a source the device refuses.
- */
 function bindingError(
   binding: string | undefined,
   fallback: string,
@@ -126,7 +97,6 @@ function bindingError(
     : `${what} of ${label} reads "${name}", which is not a telemetry field.`
 }
 
-/** `maximum` must be above `minimum`, which is what makes the window a window. */
 function rangeError(
   widget: { minimum?: number; maximum?: number },
   label: string,
@@ -190,12 +160,6 @@ function findSourceError(widget: WidgetConfiguration, label: string): string | u
   return undefined
 }
 
-/**
- * The two mechanisms that restyle a widget from a value it does not show. Both
- * read `condition_source`, so neither is configurable without one that
- * resolves; and a ramp interpolates between stops, so one stop has nothing to
- * interpolate and equal stops leave no pair to sit between.
- */
 function findConditionError(widget: WidgetConfiguration, label: string): string | undefined {
   const rules = widget.conditions ?? []
   const stops = widget.color_ramp?.stops ?? []
@@ -225,7 +189,6 @@ function findConditionError(widget: WidgetConfiguration, label: string): string 
   return bindingError(widget.condition_source?.binding, '', label, 'The watched source')
 }
 
-/** Segments light in order, so an out-of-order list leaves some that never can. */
 function findSegmentError(widget: WidgetConfiguration, label: string): string | undefined {
   if (widget.type !== 'indicator') return undefined
   const segments = widget.segments ?? []

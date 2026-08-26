@@ -31,14 +31,12 @@ class LapTimer {
   LapTimer(LapTimer&&) = delete;
   LapTimer& operator=(LapTimer&&) = delete;
 
-  // Subscribes the module to telemetry notifications.
   [[nodiscard]] bool start(
       events::EventBus& event_bus,
       const telemetry::ITelemetryReader& telemetry_reader,
       telemetry::Handle telemetry_handle);
   void stop();
 
-  // Returns one coherent reading of availability and extrapolated time.
   [[nodiscard]] Snapshot snapshot();
 
  private:
@@ -66,4 +64,4 @@ class LapTimer {
   events::Subscription telemetry_subscription_{};
 };
 
-}  // namespace simcore::lap_timer
+}

@@ -3,19 +3,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useFontLibraryStore } from './font-library-store'
 
-/**
- * The one question a save cannot answer on its own: this dashboard names a
- * family the library has never seen — a document written elsewhere, or a
- * hand-edited one.
- *
- * Nothing has been written to the board when this appears. The board is still
- * running what it was running, and it stays that way until every family
- * resolves: installing half a font package and then a configuration that needs
- * the other half would leave a board the dashboard no longer matches.
- *
- * The imported file lands under exactly the id the document already names, so
- * resolving it here is one file dialog and not a rename.
- */
 export function UnresolvedFontsDialog({
   families,
   onRetry,

@@ -17,12 +17,8 @@ inline constexpr std::size_t kManifestEntrySize = 48;
 inline constexpr std::size_t kAssetDataOffset = 4096;
 inline constexpr std::uint16_t kFormatVersion = 3;
 
-// Fonts own their package format; the flash under it is shared with the other
-// uploaded asset kinds.
 using IStorage = asset_storage::IStorage;
 
-// Spans the mapped package. The mapping is released by the next update, so a
-// consumer that outlives one boot phase must copy the bytes it needs.
 struct FamilyAsset {
   FamilyId family{};
   std::span<const std::uint8_t> bytes{};
@@ -47,15 +43,7 @@ class Service final {
   [[nodiscard]] std::span<const FamilyId> family_catalog() const {
     return {family_catalog_.data(), status_.entry_count};
   }
-  // Bytes a consumer must reserve to copy every face out of the mapping, each
-  // face aligned to four bytes.
   [[nodiscard]] std::size_t face_bytes_total() const;
-  // The installed package's payload CRC, or zero when none is installed. A host
-  // that builds packages deterministically can compare it with the one it would
-  // upload and skip a transfer the device would only have to reboot for. It is
-  // font-local rather than part of the shared Status because images report no
-  // CRC, and a shared struct half-filled by one kind is the drift asset_package
-  // exists to prevent.
   [[nodiscard]] std::uint32_t payload_crc() const { return payload_crc_; }
 
   [[nodiscard]] UpdateError begin_update(std::size_t package_size);
@@ -84,8 +72,6 @@ class Service final {
   Status status_{};
   std::uint32_t payload_crc_{};
   std::span<const std::uint8_t> package_mapping_{};
-  // Indexes the active mapping at boot and acts as update-validation scratch
-  // after that mapping has been released.
   ParsedPackage package_{};
   std::array<FamilyId, kMaximumFamilies> family_catalog_{};
 
@@ -97,4 +83,4 @@ class Service final {
 
 using asset_package::update_error_name;
 
-}  // namespace simcore::font_assets
+}

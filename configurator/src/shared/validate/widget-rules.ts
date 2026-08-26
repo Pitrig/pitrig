@@ -8,19 +8,8 @@ import {
 import { isTextWidget, pagesOf, widgetSources } from '../configuration-access'
 import { MAXIMUM_HOLD_MS } from '../widget-conditions'
 
-// What one widget's own properties are allowed to say, each function mirroring
-// the firmware validator of the same name. How the document is put together —
-// how many of a thing, how deep, whether a box lands on the display — is
-// structure.ts, which is the only caller of these.
-
-/** The one field the lap timer modifier stands in for. */
 const LAP_TIMER_BINDING = 'session.lap.current_time'
 
-/**
- * How many of a widget's *reading* sources stand in for the lap timer. Only the
- * `sources` array counts, because that is the array the device tallies: a
- * modifier anywhere else is bound without claiming the module's one instance.
- */
 export function countLapTimers(widget: WidgetConfiguration): number {
   if (!isTextWidget(widget)) return 0
   return (widget.sources ?? []).filter((source) =>
@@ -28,20 +17,6 @@ export function countLapTimers(widget: WidgetConfiguration): number {
   ).length
 }
 
-/**
- * Mirrors the modifier rules in Validator::text_source, plus the array bound the
- * parser applies to every source it reads: the lap timer stands in for the
- * elapsed lap time and nothing else, and a source claims it once.
- *
- * Reachable from the inspector, which sets the binding when the modifier is
- * picked but leaves the binding field free to be changed afterwards — and from
- * any document that arrives as a file or a template. Without this the device
- * refuses the whole dashboard and names only "modifiers".
- *
- * The binding rule is checked on the reading sources alone. A gauge's source and
- * a styling rule's watch are read by the same parser but not by that validator,
- * and a check the device does not make would refuse a document it accepts.
- */
 export function findModifierError(
   widget: WidgetConfiguration,
   label: string
@@ -71,13 +46,6 @@ export function findModifierError(
   return undefined
 }
 
-/**
- * Mirrors Validator::slot_widget and Validator::slot_page in
- * configuration_validation.cpp. A slot draws nothing, so anything that would
- * paint it is refused rather than ignored; and what a page's trigger needs is
- * stated per trigger, because a binding or a duration that nothing reads is how
- * an author comes to believe an alert works.
- */
 export function findSlotError(widget: SlotWidgetConfiguration, label: string): string | undefined {
   const painted =
     widget.background_color !== undefined ||

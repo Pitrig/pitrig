@@ -11,21 +11,6 @@ import { useAppInfo } from './app-info'
 import { describeBootFailures, describeLastBoot } from './device-health'
 import { useDeviceStore } from './device-store'
 
-/**
- * What the connected board is, and what this application is.
- *
- * Everything here is read-only, and deliberately so: the things one could *do*
- * to a board — erase its fonts, erase its images, reset its configuration,
- * restart it — live beside the thing they affect, on the page that shows it.
- * A page of facts is a page you can read without worrying about what you click.
- */
-
-/**
- * One document's stored record in a phrase. `absent` is not a fault — it is a
- * board running that section's factory values — so it reads as a state rather
- * than as an error, while everything between it and `valid` names what went
- * wrong with bytes that were there.
- */
 const DOCUMENT_STATE_LABELS: Record<ConfigurationDocumentOutcome, string> = {
   absent: 'Factory defaults',
   malformed_record: 'Stored record is malformed; ignored',
@@ -85,10 +70,6 @@ export function InfoPage(): React.JSX.Element {
                   : 'Single application partition'
               }
             />
-            {/* Absent on firmware built before the boot guard, which reports
-                none of this. Three fields rather than one: whether the board is
-                running everything, how it got here, and how close it is to
-                falling back to the link. */}
             {session.info.health ? (
               <>
                 <ReadOnlyField

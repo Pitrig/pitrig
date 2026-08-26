@@ -4,13 +4,6 @@ import { useDeviceStore } from './device-store'
 import { useDraftState } from './draft-state'
 import { SAVE_STAGE_LABELS, saveDraftToBoard, useSaveToBoardStore } from './save-to-board-store'
 
-/**
- * The one action the whole application is for, and the three pieces of state it
- * produces. They live together because they are shown together — on the canvas
- * toolbar and on the Configs page — and because a save survives a switch
- * between the two.
- */
-
 export function SaveToBoardButton({
   className,
   disabled
@@ -32,11 +25,6 @@ export function SaveToBoardButton({
   )
 }
 
-/**
- * The save's own progress. `total` is zero for the stages that are one step, so
- * those show an empty bar rather than a bar frozen at nothing — only the upload
- * has real numbers to report, and it reports a lot of them.
- */
 export function SaveProgressBar(): React.JSX.Element | null {
   const progress = useSaveToBoardStore((state) => state.progress)
   if (!progress) return null
@@ -46,9 +34,6 @@ export function SaveProgressBar(): React.JSX.Element | null {
     <div className="space-y-1.5 rounded-md border bg-muted/20 p-2 text-[11px] text-muted-foreground">
       <div className="flex items-center justify-between gap-2">
         <span className="font-medium text-foreground">{SAVE_STAGE_LABELS[progress.stage]}</span>
-        {/* Installing faces is the long part and the only interruptible one:
-            cancelling it fails the save before the configuration is written,
-            which leaves the board exactly as it was. */}
         {progress.stage === 'uploading' ? (
           <button
             type="button"
@@ -67,7 +52,6 @@ export function SaveProgressBar(): React.JSX.Element | null {
   )
 }
 
-/** How the last save ended, kept in the store so a reconnect cannot destroy it. */
 export function SaveFeedbackNote(): React.JSX.Element | null {
   const feedback = useDeviceStore((state) => state.saveFeedback)
   if (!feedback) return null
@@ -84,11 +68,6 @@ export function SaveFeedbackNote(): React.JSX.Element | null {
   )
 }
 
-/**
- * The one question a save can ask. Mounted once for the window rather than per
- * page: nothing was written when it appears, and the author may well have
- * started the save from a page they have since left.
- */
 export function UnresolvedFontsGate(): React.JSX.Element | null {
   const families = useSaveToBoardStore((state) => state.unresolvedFonts)
   const dismiss = useSaveToBoardStore((state) => state.dismissUnresolvedFonts)

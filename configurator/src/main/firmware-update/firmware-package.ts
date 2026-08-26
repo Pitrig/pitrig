@@ -10,17 +10,6 @@ import {
   MAXIMUM_FIRMWARE_IMAGE_SIZE
 } from '../../shared/firmware-update'
 
-// The `SCFW` package: the font and image header byte for byte, a manifest of one
-// entry, and the application image the bootloader runs. The manifest entry is
-// the only reason the image is wrapped at all — ESP-IDF refuses an image built
-// for another chip, but the T-Display-S3 and the Guition 4848S040 are both
-// ESP32-S3, and swapping their images boots the wrong display driver.
-
-/**
- * Wraps an `idf.py build` application image for one board.
- *
- * @throws when the image is empty or larger than a single OTA slot.
- */
 export function buildFirmwarePackage(image: Buffer, board: SimCoreBoardId): Buffer {
   if (image.byteLength === 0) {
     throw new Error('The firmware image is empty.')

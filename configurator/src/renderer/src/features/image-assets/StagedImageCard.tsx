@@ -10,11 +10,6 @@ import { useImageAssetsStore, type ImageEntry } from './image-assets-store'
 import { FORMAT_LABELS } from './image-format-labels'
 import { SizeReadout, Thumbnail } from './image-page-parts'
 
-/**
- * One staged image: its frames, the name a widget refers to, the format and
- * the size it will be converted at. Everything here edits the staging store;
- * nothing reaches the board until the page installs the package.
- */
 export function StagedImageCard({
   entry,
   busy,
@@ -41,9 +36,6 @@ export function StagedImageCard({
         <Trash2 aria-hidden="true" className="size-3.5" />
       </Button>
     </div>
-    {/* Frames beyond the first. A sheet is one entry on the device
-        whatever it holds, so this is where an icon set stops
-        spending one of the 32 per picture. */}
     {entry.sources.length > 1 ? (
       <ul className="flex flex-wrap gap-1">
         {entry.sources.map((source, index) => (
@@ -116,9 +108,6 @@ export function StagedImageCard({
           }
         />
       </label>
-      {/* Between the two fields, because that is what it relates.
-          Shrinking is the usual reason to touch them at all, and
-          one side at a time is how an image ends up squashed. */}
       <button
         type="button"
         aria-pressed={entry.lockAspect}
@@ -153,10 +142,6 @@ export function StagedImageCard({
         />
       </label>
     </div>
-    {/* What the two numbers above actually cost. The board draws
-        an image at the size it was uploaded at, so this size is
-        also the widget's — and the memory it takes is quadratic in
-        it, which is the one thing worth seeing while typing. */}
     <SizeReadout entry={entry} />
   </div>
   )

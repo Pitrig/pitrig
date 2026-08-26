@@ -4,25 +4,11 @@ import { scaleWidgetPixels } from '@shared/layout-transfer'
 import { findWidget, mutateDraftConfiguration, parentOffset, widgetArrayOf, writePlacement } from './document'
 import { clamp, clampToDisplay } from './placement'
 
-/** One widget being dragged along with the primary, at the box it started at. */
 export interface DragFollower {
   id: string
   placement: Required<WidgetPlacement>
 }
 
-/**
- * Moves the primary widget to `placement` and carries its followers by the
- * same shift, in one document edit.
- *
- * Everything here is in display coordinates and written back in each widget's
- * own parent space, which is what makes a drag inside a container behave like
- * a drag on the screen. Followers are clamped to the display; the primary is
- * not, because the caller has already resolved it against the snap targets.
- *
- * This lived inside the canvas component's pointer handler, so the document
- * was mutated from a render function and the rule for where a dragged widget
- * lands was not anywhere an editor command could find it.
- */
 export function moveSelection(
   primaryId: string,
   placement: Required<WidgetPlacement>,
@@ -54,37 +40,12 @@ export function moveSelection(
   })
 }
 
-/** One widget as a resize found it, which is what every frame re-derives from. */
 export interface ScaleSubject {
   id: string
-  /**
-   * The widget exactly as it stood when the gesture began. A pointer stream
-   * commits many times, and each commit has to produce the same answer for the
-   * same pointer position — so a frame scales this rather than whatever the
-   * previous frame left behind, which would compound a factor per frame and
-   * shrink a font to nothing on the way back.
-   */
   original: WidgetConfiguration
-  /** Its box in display coordinates when the gesture began. */
   box: Required<WidgetPlacement>
 }
 
-/**
- * Resizes one widget or a whole selection by mapping the box the gesture
- * started with onto the box it has resolved to.
- *
- * Every subject keeps its position within that box, so the space between two
- * widgets scales with them and a row stays a row. Boxes are mapped by their
- * edges rather than by their extents, the way a board transfer does it: two
- * widgets that shared an edge still share it afterwards, and rounding does not
- * accumulate along the row.
- *
- * `scaleContents` is the author's mode. Off, a container's box is all that
- * moves and what it holds stays where it was put — the behaviour a container
- * has always had here, and what an authored offset means on the device. On,
- * every pixel-valued property inside scales too, fonts included, so the widget
- * arrives looking like itself at another size.
- */
 export function scaleWidgets(
   subjects: readonly ScaleSubject[],
   from: Required<WidgetPlacement>,
@@ -102,9 +63,6 @@ export function scaleWidgets(
       const widgets = widgetArrayOf(draft, location)
       const index = location.path[location.path.length - 1]
       if (!widgets || index === undefined) continue
-      // A JSON round trip rather than structuredClone, for the reason the board
-      // transfer states: structuredClone preserves aliases, so two widgets
-      // sharing one font object would have its size scaled twice.
       const next = JSON.parse(JSON.stringify(subject.original)) as WidgetConfiguration
       const nearX = to.x + (subject.box.x - from.x) * factorX
       const nearY = to.y + (subject.box.y - from.y) * factorY

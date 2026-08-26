@@ -19,17 +19,9 @@
 #include "telemetry_state.hpp"
 #include "telemetry_transport_composition.hpp"
 
-// The display is an opaque handle here, the same forward declaration the
-// display component and the dashboard composition make: the core holds it and
-// hands it on, and reaches no LVGL header to do so.
 struct _lv_display_t;
 using lv_display_t = _lv_display_t;
 
-// Everything the composition root statically owns, and the two operations that
-// both startup and a runtime replacement need. Startup and the replacement
-// transaction are separate files over this, because they answer different
-// questions: one brings the device up in order, the other swaps a document
-// under a running dashboard without leaving it broken.
 namespace simcore {
 
 struct PlatformAdapters {
@@ -61,39 +53,26 @@ struct Application {
   module_composition::Modules modules;
   communication::Composition communication{services.telemetry_registry};
   lv_display_t* display{};
-  // In priority order: the board's configured transport, then any development
-  // link attached behind it.
   std::array<transport::ITransport*,
              communication::Composition::kMaximumLinks>
       telemetry_transports{};
   std::size_t telemetry_link_count{};
 };
 
-// The workspaces the configuration path needs, all carved from one external
-// memory reservation so ~8.5 KiB of bounded documents and line buffers stay off
-// the internal heap.
 struct ConfigurationBuffers {
   std::span<std::uint8_t> record;
-  // One slice per document, carved inside the configuration service: only the
-  // dashboard needs the full payload bound, so all three together cost barely
-  // more than the single buffer this replaced.
   std::span<std::uint8_t> current_payloads;
   std::span<std::uint8_t> control_io;
   std::span<std::uint8_t> control_line;
   std::span<std::uint8_t> configuration;
 };
 
-// The overlay reads transport diagnostics from the board's own link.
 [[nodiscard]] transport::ITransport& primary_transport(Application& application);
 
-// Rebuilds module lifecycle and the dashboard from the active configuration.
 [[nodiscard]] bool recompose(Application& application);
 
-// Applies a replacement to the running composition, in the order ADR 0016
-// requires. Runs on the configuration control task, which may take the LVGL
-// lock.
 configuration::ValidationFailure apply_configuration(
     configuration::ConfigurationDocument document,
     std::span<const std::uint8_t> payload, void* context);
 
-}  // namespace simcore
+}
