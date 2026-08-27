@@ -83,15 +83,30 @@ export class ImageAssetService extends AssetServiceBase {
     if (!chosen.ok) return chosen
     if (chosen.value === null) return success(null)
     const { id, name, path } = chosen.value
+    return this.registerSource(path, { id, name, thumbnail: true })
+  }
+
+  registerSource(
+    path: string,
+    options: { id: string; name: string; thumbnail?: boolean }
+  ): AssetResult<ImageSourceSelection> {
     const decoded = nativeImage.createFromPath(path)
     if (decoded.isEmpty()) {
       return failure('source_unreadable', `"${basename(path)}" could not be read as an image.`)
     }
     const { width, height } = decoded.getSize()
     const hasAlpha = hasTransparency(decoded)
+    const { id, name } = options
     const source: ImageSourceRecord = { id, name, path, width, height, hasAlpha }
     this.sources.set(source.id, source)
-    return success({ id, name, width, height, hasAlpha, ...thumbnailOf(decoded, width, height) })
+    return success({
+      id,
+      name,
+      width,
+      height,
+      hasAlpha,
+      ...(options.thumbnail ? thumbnailOf(decoded, width, height) : {})
+    })
   }
 
   async upload(request: ImageUploadRequest): Promise<AssetResult<void>> {

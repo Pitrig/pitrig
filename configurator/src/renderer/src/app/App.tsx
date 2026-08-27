@@ -6,7 +6,8 @@ import { ConfigsPage } from '@/features/configuration/ConfigsPage'
 import { DashboardWorkspace } from '@/features/configuration/DashboardWorkspace'
 import { saveConfigurationFile } from '@/features/configuration/configuration-actions'
 import { isTextEntry } from '@/features/configuration/editor/keyboard'
-import { DebugPage } from '@/features/debug/DebugPage'
+import { DebugWorkspace } from '@/features/debug/DebugWorkspace'
+import { subscribeToBench } from '@/features/debug/bench/bench-store'
 import { useSerialTraffic } from '@/features/debug/use-serial-traffic'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { useAppInfo } from '@/features/device/app-info'
@@ -32,6 +33,7 @@ export function App(): React.JSX.Element {
   const { liveApplyAllowed } = useDraftState()
 
   useEffect(() => subscribeToFontLibrary(), [])
+  useEffect(() => subscribeToBench(), [])
   useSerialTraffic()
 
   useLiveApply(liveApplyAllowed && !saving, reportLiveApply)
@@ -92,6 +94,6 @@ function WorkspacePage(): React.JSX.Element {
     case 'firmware':
       return <FirmwarePage />
     case 'debug':
-      return <DebugPage />
+      return <DebugWorkspace />
   }
 }

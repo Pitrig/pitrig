@@ -1,9 +1,12 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'node:path'
 
+import { BenchService } from './bench/bench-service'
 import { DeviceService } from './device/device-service'
 import { ConfigurationFileService } from './configuration-files/configuration-file-service'
 import {
+  broadcastBenchSample,
+  broadcastBenchStatus,
   broadcastDeviceState,
   broadcastFirmwareUploadProgress,
   broadcastImageUploadProgress,
@@ -48,6 +51,11 @@ const imageAssetService = new ImageAssetService(
 const firmwareUpdateService = new FirmwareUpdateService(
   deviceService,
   broadcastFirmwareUploadProgress
+)
+const benchService = new BenchService(
+  { deviceService, fontAssets: fontAssetService, imageAssets: imageAssetService },
+  broadcastBenchStatus,
+  broadcastBenchSample
 )
 const simHubProfileService = new SimHubProfileService()
 const recentConfigurations = new RecentConfigurations(
@@ -100,7 +108,8 @@ app.whenReady().then(() => {
     fontLibraryService,
     fontCatalogService,
     saveToBoardService,
-    configLibraryService
+    configLibraryService,
+    benchService
   )
   createWindow()
 
@@ -116,6 +125,7 @@ app.on('before-quit', (event) => {
     return
   }
   event.preventDefault()
+  benchService.dispose()
   fontAssetService.cancel()
   imageAssetService.cancel()
   firmwareUpdateService.cancel()

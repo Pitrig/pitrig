@@ -1,3 +1,11 @@
+import type {
+  BenchPatternRequest,
+  BenchResult,
+  BenchSample,
+  BenchStartRequest,
+  BenchStatus,
+  BenchUpdateRequest
+} from './bench'
 import type { AssetResult, AssetUploadProgress } from './asset-upload'
 import type { ImageSourceSelection, ImageUploadRequest } from './image-assets'
 import type {
@@ -121,6 +129,12 @@ export interface SimCoreApi {
   ) => Promise<DeviceResult<DeviceConfigurationResetResult>>
   rebootDevice: () => Promise<DeviceResult<DeviceState>>
   sendControlCommand: (request: ControlCommandRequest) => Promise<ControlCommandResult>
+  getBenchStatus: () => Promise<BenchStatus>
+  startBench: (request: BenchStartRequest) => Promise<BenchResult<BenchStatus>>
+  updateBench: (request: BenchUpdateRequest) => Promise<BenchResult<BenchStatus>>
+  stopBench: () => Promise<BenchResult<BenchStatus>>
+  applyBenchPattern: (request: BenchPatternRequest) => Promise<BenchResult<BenchStatus>>
+  restoreBenchDashboard: () => Promise<BenchResult<BenchStatus>>
   listFontLibrary: () => Promise<FontLibrarySnapshot>
   readFontFaces: (request: FontFacesRequest) => Promise<FontFaceBytes[]>
   importFontFace: (
@@ -155,4 +169,6 @@ export interface SimCoreApi {
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
   onSerialTraffic: (listener: (log: SerialTrafficLog) => void) => () => void
+  onBenchStatus: (listener: (status: BenchStatus) => void) => () => void
+  onBenchSample: (listener: (sample: BenchSample) => void) => () => void
 }

@@ -2,6 +2,7 @@ import { app, ipcMain } from 'electron'
 
 import { broadcastToWindows } from './broadcast'
 import { registerAssetHandlers } from './register-asset-handlers'
+import { registerBenchHandlers } from './register-bench-handlers'
 import { registerLibraryHandlers } from './register-library-handlers'
 import {
   invalidConfigurationRequest,
@@ -10,6 +11,12 @@ import {
   isControlCommandRequest,
   isJsonDocumentRequest
 } from './request-guards'
+import {
+  BENCH_SAMPLE_CHANNEL,
+  BENCH_STATUS_CHANGED_CHANNEL,
+  type BenchSample,
+  type BenchStatus
+} from '../../shared/bench'
 import {
   CONTROL_COMMAND_CHANNEL,
   SERIAL_TRAFFIC_CHANNEL,
@@ -43,6 +50,7 @@ import {
 } from '../../shared/save-to-board'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import { IMAGE_UPLOAD_PROGRESS_CHANNEL } from '../../shared/image-assets'
+import type { BenchService } from '../bench/bench-service'
 import { DeviceService } from '../device/device-service'
 import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
 import { FirmwareUpdateService } from '../firmware-update/firmware-update-service'
@@ -68,7 +76,8 @@ export function registerIpcHandlers(
   fontLibraryService: FontLibraryService,
   fontCatalogService: FontCatalogService,
   saveToBoardService: SaveToBoardService,
-  configLibraryService: ConfigLibraryService
+  configLibraryService: ConfigLibraryService,
+  benchService: BenchService
 ): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
@@ -86,6 +95,7 @@ export function registerIpcHandlers(
     fontLibraryService,
     fontCatalogService
   )
+  registerBenchHandlers(benchService)
   ipcMain.handle(DEVICE_LIST_PORTS_CHANNEL, () => deviceService.listPorts())
   ipcMain.handle(DEVICE_GET_STATE_CHANNEL, () => deviceService.getState())
   ipcMain.handle(DEVICE_AUTO_CONNECT_CHANNEL, () => deviceService.autoConnect())
@@ -165,4 +175,12 @@ export function broadcastDeviceState(state: DeviceState): void {
 
 export function broadcastSerialTraffic(log: SerialTrafficLog): void {
   broadcastToWindows(SERIAL_TRAFFIC_CHANNEL, log)
+}
+
+export function broadcastBenchStatus(status: BenchStatus): void {
+  broadcastToWindows(BENCH_STATUS_CHANGED_CHANNEL, status)
+}
+
+export function broadcastBenchSample(sample: BenchSample): void {
+  broadcastToWindows(BENCH_SAMPLE_CHANNEL, sample)
 }

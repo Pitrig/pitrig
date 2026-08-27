@@ -127,6 +127,19 @@ export class DeviceService {
     })
   }
 
+  writeTelemetry(text: string, onWritten?: (error?: Error) => void): boolean {
+    const port = this.connection.port
+    if (!port?.isOpen) {
+      onWritten?.(new Error('The serial port is closed.'))
+      return false
+    }
+    return port.write(text, (error) => onWritten?.(error ?? undefined))
+  }
+
+  telemetryLinkAvailable(): boolean {
+    return Boolean(this.connection.port?.isOpen) && !this.connection.isTransitioning()
+  }
+
   async clearImages(): Promise<DeviceResult<DeviceState>> {
     return clearImagePackage(this.connection, this.runner)
   }
