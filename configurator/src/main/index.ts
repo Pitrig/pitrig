@@ -27,6 +27,10 @@ import { ConfigLibraryService } from './configs/config-library-service'
 import { RecentConfigurations } from './configs/recent-configurations'
 
 const isDevelopment = import.meta.env.DEV
+if (isDevelopment && process.env.SIMCORE_REMOTE_DEBUG) {
+  app.commandLine.appendSwitch('remote-debugging-port', process.env.SIMCORE_REMOTE_DEBUG)
+  app.commandLine.appendSwitch('remote-allow-origins', 'http://localhost')
+}
 const deviceService = new DeviceService(broadcastDeviceState, broadcastSerialTraffic)
 const previewAssetCache = new PreviewAssetCache(join(app.getPath('userData'), 'preview-assets'))
 const fontLibraryService = new FontLibraryService(
