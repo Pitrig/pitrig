@@ -2,7 +2,7 @@
   "format": "simcore-dashboard-template",
   "format_version": 1,
   "name": "Guition reference dashboard",
-  "description": "One of every widget type on a 480 x 480 square display.",
+  "description": "Every widget type that needs no uploaded asset, on a 480 x 480 square display: containers, an indicator strip, an arc, a bar, a graph and a slot.",
   "configuration": {
     "board": "guition_esp32_4848s040",
     "telemetry_transport": {
@@ -11,17 +11,220 @@
       }
     },
     "dashboard": {
+      "transition": "none",
       "screens": [
         {
+          "id": "reference",
+          "background_color": "#05070A",
           "widgets": [
             {
-              "type": "bar",
-              "id": "wmsw2jdjr2se",
+              "type": "indicator",
+              "id": "revs",
               "placement": {
-                "x": 148,
+                "x": 8,
                 "y": 8,
-                "width": 184,
-                "height": 52
+                "width": 464,
+                "height": 34
+              },
+              "source": {
+                "binding": "engine.rpm_percent"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "segment_gap_px": 5,
+              "segment_radius_px": 3,
+              "off_color": "#14181F",
+              "blink_threshold": 97,
+              "blink_ms": 140,
+              "segments": [
+                {
+                  "threshold": 0,
+                  "color": "#22C55E"
+                },
+                {
+                  "threshold": 10,
+                  "color": "#22C55E"
+                },
+                {
+                  "threshold": 20,
+                  "color": "#22C55E"
+                },
+                {
+                  "threshold": 30,
+                  "color": "#22C55E"
+                },
+                {
+                  "threshold": 40,
+                  "color": "#FFE04A"
+                },
+                {
+                  "threshold": 50,
+                  "color": "#FFE04A"
+                },
+                {
+                  "threshold": 60,
+                  "color": "#FFE04A"
+                },
+                {
+                  "threshold": 70,
+                  "color": "#FF8C1A"
+                },
+                {
+                  "threshold": 80,
+                  "color": "#FF3B30"
+                },
+                {
+                  "threshold": 90,
+                  "color": "#FF3B30"
+                }
+              ]
+            },
+            {
+              "type": "shape",
+              "id": "panel_gear",
+              "placement": {
+                "x": 8,
+                "y": 50,
+                "width": 232,
+                "height": 206
+              },
+              "clip_children": false,
+              "background_color": "#0C1016",
+              "border": {
+                "color": "#232A35",
+                "width_px": 2,
+                "radius_px": 14
+              },
+              "title": {
+                "text": "GEAR",
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 14
+                },
+                "color": "#8A93A3"
+              },
+              "widgets": [
+                {
+                  "type": "text",
+                  "id": "gear",
+                  "placement": {
+                    "x": 6,
+                    "y": 6,
+                    "width": 220,
+                    "height": 194
+                  },
+                  "sources": [
+                    {
+                      "binding": "transmission.gear"
+                    }
+                  ],
+                  "value": {
+                    "font": {
+                      "family": "roboto_black",
+                      "size_px": 144
+                    },
+                    "color": "#FFFFFF",
+                    "alignment": "center"
+                  },
+                  "condition_source": {
+                    "binding": "engine.rpm_percent"
+                  },
+                  "conditions": [
+                    {
+                      "op": "at_or_above",
+                      "value": 97,
+                      "color": "#FF3B30",
+                      "blink_ms": 150
+                    },
+                    {
+                      "op": "at_or_above",
+                      "value": 90,
+                      "color": "#FFE04A"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "shape",
+              "id": "panel_speed",
+              "placement": {
+                "x": 248,
+                "y": 50,
+                "width": 224,
+                "height": 206
+              },
+              "clip_children": false,
+              "background_color": "#0C1016",
+              "border": {
+                "color": "#232A35",
+                "width_px": 2,
+                "radius_px": 14
+              },
+              "title": {
+                "text": "SPEED",
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 14
+                },
+                "color": "#8A93A3"
+              },
+              "widgets": [
+                {
+                  "type": "arc",
+                  "id": "speed_arc",
+                  "placement": {
+                    "x": 16,
+                    "y": 12,
+                    "width": 192,
+                    "height": 182
+                  },
+                  "source": {
+                    "binding": "vehicle.speed"
+                  },
+                  "minimum": 0,
+                  "maximum": 300,
+                  "start_angle_deg": 135,
+                  "sweep_deg": 270,
+                  "thickness_px": 14,
+                  "track_color": "#1A202B",
+                  "fill_color": "#38BDF8",
+                  "z_index": 0
+                },
+                {
+                  "type": "text",
+                  "id": "speed_value",
+                  "placement": {
+                    "x": 42,
+                    "y": 58,
+                    "width": 140,
+                    "height": 90
+                  },
+                  "z_index": 1,
+                  "sources": [
+                    {
+                      "binding": "vehicle.speed"
+                    }
+                  ],
+                  "value": {
+                    "font": {
+                      "family": "roboto_black",
+                      "size_px": 50
+                    },
+                    "color": "#FFFFFF",
+                    "alignment": "center"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "bar",
+              "id": "delta_bar",
+              "placement": {
+                "x": 8,
+                "y": 264,
+                "width": 464,
+                "height": 44
               },
               "z_index": 0,
               "source": {
@@ -30,15 +233,22 @@
               "minimum": -5000,
               "maximum": 5000,
               "origin": 0,
-              "fill_color": "#FFE04A"
+              "background_color": "#14181F",
+              "fill_color": "#FFE04A",
+              "border": {
+                "color": "#232A35",
+                "width_px": 2,
+                "radius_px": 10
+              }
             },
             {
               "type": "text",
+              "id": "delta_value",
               "placement": {
-                "x": 148,
-                "y": 8,
-                "width": 184,
-                "height": 52
+                "x": 8,
+                "y": 264,
+                "width": 464,
+                "height": 44
               },
               "z_index": 1,
               "sources": [
@@ -53,9 +263,10 @@
               "value": {
                 "font": {
                   "family": "roboto_black",
-                  "size_px": 32
+                  "size_px": 28
                 },
-                "color": "#FFE04A"
+                "color": "#E8E8E8",
+                "alignment": "center"
               },
               "condition_source": {
                 "binding": "session.lap.delta"
@@ -64,463 +275,283 @@
                 {
                   "op": "below",
                   "value": 0,
-                  "color": "#00F020"
+                  "color": "#22C55E"
                 },
                 {
                   "op": "above",
                   "value": 0,
-                  "color": "#FF4040"
+                  "color": "#FF3B30"
                 }
               ]
             },
             {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "vehicle.speed"
-                }
-              ],
+              "type": "graph",
+              "id": "inputs",
               "placement": {
                 "x": 8,
-                "y": 8,
-                "width": 132,
-                "height": 52
+                "y": 316,
+                "width": 464,
+                "height": 80
               },
+              "background_color": "#0C1016",
               "border": {
-                "color": "#FFFFFF",
+                "color": "#232A35",
                 "width_px": 2,
                 "radius_px": 10
               },
               "title": {
-                "text": "SPEED",
+                "text": "INPUTS",
                 "font": {
                   "family": "roboto_black",
                   "size_px": 14
                 },
-                "color": "#A0A0A0"
+                "color": "#8A93A3"
               },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#FFFFFF"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
+              "source": {
+                "binding": "vehicle.throttle"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "point_count": 96,
+              "sample_interval_ms": 50,
+              "line_color": "#22C55E",
+              "line_width_px": 2,
+              "traces": [
                 {
-                  "binding": "engine.rpm"
+                  "source": {
+                    "binding": "vehicle.brake"
+                  },
+                  "minimum": 0,
+                  "maximum": 100,
+                  "line_color": "#FF3B30"
                 }
-              ],
-              "placement": {
-                "x": 340,
-                "y": 8,
-                "width": 132,
-                "height": 52
-              },
-              "border": {
-                "color": "#FFFFFF",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "RPM",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#A0A0A0"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#FFFFFF"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "vehicle.fuel.level"
-                }
-              ],
-              "placement": {
-                "x": 8,
-                "y": 68,
-                "width": 132,
-                "height": 153
-              },
-              "border": {
-                "color": "#FFFFFF",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "FUEL",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#A0A0A0"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#FFFFFF"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "vehicle.fuel.average_consumption"
-                }
-              ],
-              "placement": {
-                "x": 8,
-                "y": 229,
-                "width": 132,
-                "height": 153
-              },
-              "border": {
-                "color": "#FFFFFF",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "AVG FUEL",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#A0A0A0"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#FFFFFF"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "transmission.gear"
-                }
-              ],
-              "placement": {
-                "x": 148,
-                "y": 68,
-                "width": 184,
-                "height": 314
-              },
-              "border": {
-                "color": "#404040",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "GEAR",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#A0A0A0"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 144
-                },
-                "color": "#FFFFFF"
-              },
-              "background_color": "#202020"
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "session.lap.estimated_time",
-                  "transform": {
-                    "type": "time",
-                    "format": "duration_ms"
-                  }
-                }
-              ],
-              "placement": {
-                "x": 340,
-                "y": 68,
-                "width": 132,
-                "height": 96
-              },
-              "border": {
-                "color": "#FFFFFF",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "ESTIMATED",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#A0A0A0"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#FFE04A"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "session.lap.current_time",
-                  "modifiers": [
-                    {
-                      "type": "lap_timer"
-                    }
-                  ],
-                  "transform": {
-                    "type": "time",
-                    "format": "duration_ms"
-                  }
-                }
-              ],
-              "placement": {
-                "x": 340,
-                "y": 172,
-                "width": 132,
-                "height": 100
-              },
-              "border": {
-                "color": "#FFFFFF",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "CURRENT LAP",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#A0A0A0"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#E000E8"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "session.lap.best_time",
-                  "transform": {
-                    "type": "time",
-                    "format": "duration_ms"
-                  }
-                }
-              ],
-              "placement": {
-                "x": 340,
-                "y": 280,
-                "width": 132,
-                "height": 102
-              },
-              "border": {
-                "color": "#FFFFFF",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "BEST LAP",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#A0A0A0"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#00F020"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "vehicle.aids.traction_control_level"
-                }
-              ],
-              "placement": {
-                "x": 8,
-                "y": 390,
-                "width": 148,
-                "height": 82
-              },
-              "border": {
-                "color": "#00CFFF",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "TC",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#00CFFF"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#00CFFF"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "vehicle.aids.abs_level"
-                }
-              ],
-              "placement": {
-                "x": 166,
-                "y": 390,
-                "width": 148,
-                "height": 82
-              },
-              "border": {
-                "color": "#FFE04A",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "ABS",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#FFE04A"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#FFE04A"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
-                {
-                  "binding": "vehicle.brake_bias"
-                }
-              ],
-              "placement": {
-                "x": 324,
-                "y": 390,
-                "width": 148,
-                "height": 82
-              },
-              "border": {
-                "color": "#FF3030",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "title": {
-                "text": "BB",
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 14
-                },
-                "color": "#FF3030"
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#FF3030"
-              }
+              ]
             },
             {
               "type": "shape",
-              "id": "oil-panel",
-              "clip_children": false,
+              "id": "slot_plate",
               "placement": {
-                "x": 340,
-                "y": 300,
-                "width": 132,
-                "height": 90
+                "x": 8,
+                "y": 404,
+                "width": 464,
+                "height": 68
               },
+              "background_color": "#0C1016",
               "border": {
-                "color": "#00E5FF",
+                "color": "#232A35",
                 "width_px": 2,
-                "radius_px": 8
+                "radius_px": 14
               },
-              "widgets": [
+              "z_index": 0
+            },
+            {
+              "type": "slot",
+              "id": "lower",
+              "placement": {
+                "x": 8,
+                "y": 404,
+                "width": 464,
+                "height": 68
+              },
+              "clip_children": false,
+              "pages": [
                 {
-                  "type": "text",
-                  "id": "oil-temp",
-                  "placement": {
-                    "x": 8,
-                    "y": 0,
-                    "width": 116,
-                    "height": 90
-                  },
-                  "border": {
-                    "color": "#00E5FF",
-                    "width_px": 2,
-                    "radius_px": 6
-                  },
-                  "title": {
-                    "text": "OIL",
-                    "font": {
-                      "family": "roboto_black",
-                      "size_px": 16
-                    }
-                  },
-                  "sources": [
+                  "widgets": [
                     {
-                      "binding": "engine.oil_temperature",
-                      "transform": {
-                        "type": "number",
-                        "decimals": 0,
-                        "suffix": "C"
+                      "type": "text",
+                      "id": "water",
+                      "placement": {
+                        "x": 14,
+                        "y": 12,
+                        "width": 210,
+                        "height": 46
+                      },
+                      "sources": [
+                        {
+                          "binding": "engine.water_temperature",
+                          "transform": {
+                            "type": "number",
+                            "decimals": 0,
+                            "suffix": "C"
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 28
+                        },
+                        "color": "#E8E8E8",
+                        "alignment": "center"
+                      },
+                      "title": {
+                        "text": "WATER",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 14
+                        },
+                        "color": "#8A93A3"
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "oil",
+                      "placement": {
+                        "x": 240,
+                        "y": 12,
+                        "width": 210,
+                        "height": 46
+                      },
+                      "sources": [
+                        {
+                          "binding": "engine.oil_temperature",
+                          "transform": {
+                            "type": "number",
+                            "decimals": 0,
+                            "suffix": "C"
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 28
+                        },
+                        "color": "#E8E8E8",
+                        "alignment": "center"
+                      },
+                      "title": {
+                        "text": "OIL",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 14
+                        },
+                        "color": "#8A93A3"
                       }
                     }
-                  ],
-                  "value": {
-                    "font": {
-                      "family": "roboto_black",
-                      "size_px": 28
+                  ]
+                },
+                {
+                  "widgets": [
+                    {
+                      "type": "text",
+                      "id": "fuel_left",
+                      "placement": {
+                        "x": 14,
+                        "y": 12,
+                        "width": 210,
+                        "height": 46
+                      },
+                      "sources": [
+                        {
+                          "binding": "vehicle.fuel.level",
+                          "transform": {
+                            "type": "number",
+                            "decimals": 1,
+                            "suffix": "L"
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 28
+                        },
+                        "color": "#38BDF8",
+                        "alignment": "center"
+                      },
+                      "title": {
+                        "text": "FUEL",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 14
+                        },
+                        "color": "#8A93A3"
+                      }
                     },
-                    "color": "#E8E8E8"
-                  }
+                    {
+                      "type": "text",
+                      "id": "fuel_laps",
+                      "placement": {
+                        "x": 240,
+                        "y": 12,
+                        "width": 210,
+                        "height": 46
+                      },
+                      "sources": [
+                        {
+                          "binding": "vehicle.fuel.laps_remaining",
+                          "transform": {
+                            "type": "number",
+                            "decimals": 1
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 28
+                        },
+                        "color": "#38BDF8",
+                        "alignment": "center"
+                      },
+                      "title": {
+                        "text": "LAPS LEFT",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 14
+                        },
+                        "color": "#8A93A3"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "in_loop": false,
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "vehicle.pit_limiter.enabled"
+                  },
+                  "conditions": [
+                    {
+                      "op": "at_or_above",
+                      "value": 1
+                    }
+                  ],
+                  "duration_ms": 0,
+                  "widgets": [
+                    {
+                      "type": "text",
+                      "id": "pit_limiter",
+                      "placement": {
+                        "x": 14,
+                        "y": 12,
+                        "width": 436,
+                        "height": 46
+                      },
+                      "sources": [
+                        {
+                          "binding": "vehicle.speed",
+                          "transform": {
+                            "type": "number",
+                            "decimals": 0,
+                            "prefix": "PIT "
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 28
+                        },
+                        "color": "#38BDF8",
+                        "alignment": "center"
+                      }
+                    }
+                  ]
                 }
-              ]
+              ],
+              "z_index": 1
             }
           ]
         }

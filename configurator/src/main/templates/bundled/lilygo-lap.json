@@ -2,21 +2,103 @@
   "format": "simcore-dashboard-template",
   "format_version": 1,
   "name": "T-Display lap timer",
-  "description": "Lap and delta readouts sized for the 320 x 170 strip.",
+  "description": "Lap, delta, last and best readouts grouped into containers and sized for the 320 x 170 strip.",
   "configuration": {
     "board": "t_display_s3",
     "dashboard": {
+      "transition": "none",
       "screens": [
         {
+          "id": "lap",
+          "background_color": "#05070A",
           "widgets": [
             {
-              "type": "bar",
-              "id": "wmsw2jdjs118",
+              "type": "shape",
+              "id": "panel_lap",
               "placement": {
-                "x": 32,
+                "x": 4,
+                "y": 4,
+                "width": 312,
+                "height": 48
+              },
+              "clip_children": false,
+              "background_color": "#0C1016",
+              "border": {
+                "color": "#232A35",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "widgets": [
+                {
+                  "type": "text",
+                  "id": "lap_count",
+                  "placement": {
+                    "x": 6,
+                    "y": 5,
+                    "width": 84,
+                    "height": 38
+                  },
+                  "sources": [
+                    {
+                      "binding": "session.lap.current",
+                      "transform": {
+                        "type": "number",
+                        "decimals": 0,
+                        "prefix": "L"
+                      }
+                    }
+                  ],
+                  "value": {
+                    "font": {
+                      "family": "roboto_black",
+                      "size_px": 26
+                    },
+                    "color": "#8A93A3",
+                    "alignment": "left"
+                  }
+                },
+                {
+                  "type": "text",
+                  "id": "lap_time",
+                  "placement": {
+                    "x": 94,
+                    "y": 5,
+                    "width": 212,
+                    "height": 38
+                  },
+                  "sources": [
+                    {
+                      "binding": "session.lap.current_time",
+                      "modifiers": [
+                        {
+                          "type": "lap_timer"
+                        }
+                      ],
+                      "transform": {
+                        "type": "time",
+                        "format": "duration_ms"
+                      }
+                    }
+                  ],
+                  "value": {
+                    "font": {
+                      "family": "roboto_black",
+                      "size_px": 30
+                    },
+                    "color": "#FFFFFF",
+                    "alignment": "right"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "bar",
+              "id": "delta_bar",
+              "placement": {
+                "x": 4,
                 "y": 56,
-                "width": 256,
-                "height": 58
+                "width": 312,
+                "height": 50
               },
               "z_index": 0,
               "source": {
@@ -25,20 +107,22 @@
               "minimum": -5000,
               "maximum": 5000,
               "origin": 0,
+              "background_color": "#14181F",
               "fill_color": "#FFE04A",
               "border": {
+                "color": "#232A35",
                 "width_px": 2,
-                "radius_px": 10,
-                "color": "#FFE04A"
+                "radius_px": 10
               }
             },
             {
               "type": "text",
+              "id": "delta_value",
               "placement": {
-                "x": 32,
+                "x": 4,
                 "y": 56,
-                "width": 256,
-                "height": 58
+                "width": 312,
+                "height": 50
               },
               "z_index": 1,
               "sources": [
@@ -53,9 +137,10 @@
               "value": {
                 "font": {
                   "family": "roboto_black",
-                  "size_px": 32
+                  "size_px": 30
                 },
-                "color": "#FFE04A"
+                "color": "#E8E8E8",
+                "alignment": "center"
               },
               "condition_source": {
                 "binding": "session.lap.delta"
@@ -64,76 +149,107 @@
                 {
                   "op": "below",
                   "value": 0,
-                  "color": "#00F020"
+                  "color": "#22C55E"
                 },
                 {
                   "op": "above",
                   "value": 0,
-                  "color": "#FF4040"
+                  "color": "#FF3B30"
                 }
               ]
             },
             {
-              "type": "text",
-              "sources": [
+              "type": "shape",
+              "id": "panel_times",
+              "placement": {
+                "x": 4,
+                "y": 112,
+                "width": 312,
+                "height": 56
+              },
+              "clip_children": false,
+              "widgets": [
                 {
-                  "binding": "session.lap.current_time",
-                  "modifiers": [
+                  "type": "text",
+                  "id": "last_time",
+                  "placement": {
+                    "x": 0,
+                    "y": 6,
+                    "width": 152,
+                    "height": 46
+                  },
+                  "sources": [
                     {
-                      "type": "lap_timer"
+                      "binding": "session.lap.last_time",
+                      "transform": {
+                        "type": "time",
+                        "format": "duration_ms"
+                      }
                     }
                   ],
-                  "transform": {
-                    "type": "time",
-                    "format": "duration_ms"
+                  "border": {
+                    "color": "#232A35",
+                    "width_px": 2,
+                    "radius_px": 10
+                  },
+                  "title": {
+                    "text": "LAST",
+                    "font": {
+                      "family": "roboto_black",
+                      "size_px": 12
+                    },
+                    "color": "#8A93A3"
+                  },
+                  "value": {
+                    "font": {
+                      "family": "roboto_black",
+                      "size_px": 26
+                    },
+                    "color": "#E8E8E8",
+                    "alignment": "center"
                   }
-                }
-              ],
-              "placement": {
-                "x": 8,
-                "y": 8,
-                "width": 304,
-                "height": 42
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
                 },
-                "color": "#FFFFFF",
-                "alignment": "center"
-              }
-            },
-            {
-              "type": "text",
-              "sources": [
                 {
-                  "binding": "session.lap.estimated_time",
-                  "transform": {
-                    "type": "time",
-                    "format": "duration_ms"
+                  "type": "text",
+                  "id": "best_time",
+                  "placement": {
+                    "x": 160,
+                    "y": 6,
+                    "width": 152,
+                    "height": 46
+                  },
+                  "sources": [
+                    {
+                      "binding": "session.lap.best_time",
+                      "transform": {
+                        "type": "time",
+                        "format": "duration_ms"
+                      }
+                    }
+                  ],
+                  "border": {
+                    "color": "#232A35",
+                    "width_px": 2,
+                    "radius_px": 10
+                  },
+                  "title": {
+                    "text": "BEST",
+                    "font": {
+                      "family": "roboto_black",
+                      "size_px": 12
+                    },
+                    "color": "#22C55E"
+                  },
+                  "value": {
+                    "font": {
+                      "family": "roboto_black",
+                      "size_px": 26
+                    },
+                    "color": "#22C55E",
+                    "alignment": "center"
                   }
                 }
-              ],
-              "placement": {
-                "x": 8,
-                "y": 122,
-                "width": 304,
-                "height": 40
-              },
-              "border": {
-                "color": "#FFE04A",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 32
-                },
-                "color": "#FFFFFF",
-                "alignment": "center"
-              }
+              ]
             }
           ]
         }
