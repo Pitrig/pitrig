@@ -58,6 +58,31 @@ waited for scan-out, so it is unchanged.
   strips wait in the hidden buffer for the next full animation frame, so a
   stray widget-only refresh cannot swap ghost content in. At rest the switch
   costs nothing; verified tear-free on both boards.
+- The JC1060P470C's DPI panel copies each strip with DMA2D
+  (`esp_lcd_dpi_panel_enable_dma2d`, called once when the panel is created).
+  Without it `esp_lcd_panel_draw_bitmap` falls back to a per-line `memcpy`
+  that not only spends a core but competes for the same PSRAM the renderer is
+  blending into; handing the copy to the 2D engine lifted every dashboard
+  pattern by 33-92% (text_16 61->106 fps, shapes_96 57->107, all_widgets
+  57->96) and dropped *render* time by half on top of that, because the
+  bandwidth the copy was taking went back to the blender. It is the largest
+  single lever measured on this board.
+- On the JC1060P470C the flush itself leaves the render core: the same
+  `esp_lvgl_port` patch adds a small queue and a worker task pinned to core 0
+  that runs `esp_lcd_panel_draw_bitmap`, waits out the transfer and completes
+  the flush, so the LVGL task hands a strip over and immediately renders the
+  next one into the second buffer. Draw-task profiling attributed 27–58% of
+  the render core to the flush; moving it lifted every measured dashboard
+  pattern by 13–36% (text_16 50→68 fps, text_32 30→39, bars_24 38→48) and cut
+  value latency ~20%. A mode switch drains the queue first, so a transition
+  never races an in-flight strip.
+- The ESP32-P4 build also runs its flash in QIO instead of DIO and its L2
+  cache at 256 KB instead of 128 (`sdkconfig.defaults.esp32p4`), together
+  +38–47% before the flush move — the render core was starving on code and
+  frame-buffer fetch, not on arithmetic. The 256 KB cache costs 128 KB of
+  internal RAM, paid for by shrinking the render strips from 60 to 40 lines
+  (measured free: −0–2%); with 60-line strips the second LVGL buffer no
+  longer fits and startup lands in safe mode.
 - `esp_lvgl_port` is patched on the ESP32-P4
   (`patches/esp-lvgl-port-2.8.0-dsi-cache-safe-flush.patch`, one combined file
   because overlapping split patches defeat the apply script's already-applied
@@ -82,8 +107,9 @@ waited for scan-out, so it is unchanged.
   roughly sixteen concurrently changing readouts on each board.
 - The cost model of [runtime-performance.md](../runtime-performance.md)
   changes shape on the two boards: flush is a strip copy (2–4 ms a frame)
-  rather than a scan-out wait, so the frame budget is almost entirely render
-  time. Figures in that document measured under direct mode are marked as such.
+  rather than a scan-out wait — and on the JC1060P470C the copy runs on the
+  core-0 worker, so `flush_us` there reads a hand-off of a few hundred
+  microseconds and the frame budget is almost entirely render time. Figures in that document measured under direct mode are marked as such.
 - A flash write during a flush is safe on the P4 only because the ISR touches
   nothing outside IRAM and internal RAM; the patch must be reviewed if
   `esp_lvgl_port` is upgraded past 2.8.0~1 (the apply script fails the build
@@ -92,6 +118,38 @@ waited for scan-out, so it is unchanged.
   the driver configuration), because the port must bind the frame-complete
   event rather than vsync for the tear-free wait when bounce buffers stream
   the panel.
+- The ESP32-P4's PPA is off (`LV_USE_PPA`): its blocking fills held the render
+  core 168-445 us each while the software blender, fed by QIO and the larger
+  cache, does the same work in a fraction of that — measured -13-25% frame
+  rate on square-fill dashboards with the accelerator on. The PPA patches
+  stay in `firmware/patches/` for a later re-evaluation.
+- The JC1060P470C's buffering is a build-time choice
+  (`SIMCORE_DISPLAY_RENDER_MODE`): partial strips by default, with direct and
+  full-screen modes selectable for a build that trades the measured frame
+  rates for tear-free rendering into the panel's PSRAM buffers. Full was
+  re-measured with every acceleration available to it — PPA on, and
+  separately two draw units — and stays 2-3x behind partial on every
+  dashboard pattern (repainting the whole 614k-pixel frame into PSRAM is
+  bandwidth-bound at ~52-88% CPU); the tear-free builds skip the navigation
+  controller's transition switching, since they are already tear-free.
+- Levers re-measured against this configuration and rejected, so they are not
+  tried again: merging invalidated areas into full-width rows (still −27–65%
+  even with the flush off the render core — the extra blended pixels outcost
+  the saved tree walks), a second software draw unit (−35–67%, the per-task
+  dispatch overhead dwarfs the parallelism on widget-sized tasks), LVGL
+  fast-mem in IRAM on the P4 (±0–2% — QIO plus the larger L2 already keep the
+  hot code cached; the fragment stays S3-only), replacing the value pipeline's
+  doubles with floats (±0% — they are too rare to matter, even soft-float),
+  a full-screen PSRAM draw buffer, FULL render mode, 400 MHz (panic-loop on
+  chips below rev 3), a 64-byte PPA burst, an asynchronous PPA-SRM blit draw unit for plain
+  RGB565 image copies (mechanically sound — the hardware performed the blits —
+  but the fixed ~250-400 us per transaction exceeds the software copy at every
+  widget-sized image, and back-to-back sprites serialize behind the engine;
+  only near-full-screen images would amortize it), and flattening the text
+  widget into
+  one box-sized label (the layout re-measure its content-sized label costs at
+  refresh start is real, but a box-sized label invalidates the whole box on
+  every value and the added blended pixels cost more on every display size).
 - The panel-side vsync no longer paces LVGL, so a fast producer can render
   more frames than the panel shows; the extra frames cost CPU but not
   correctness. The per-type widget caps stay a frame decision, judged with

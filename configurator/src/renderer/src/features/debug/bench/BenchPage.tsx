@@ -20,7 +20,7 @@ export function BenchPage(): React.JSX.Element {
   const pattern = useBenchStore((state) => state.pattern)
   const error = useBenchStore((state) => state.error)
   const latest = samples.at(-1)
-  const note = error ?? status.patternStage ?? status.message
+  const note = error ?? status.message
   const feedTimes = samples.map((sample) => sample.at)
   const diagnosticTimes = samples
     .filter((sample) => sample.diagnostics !== undefined)

@@ -23,6 +23,7 @@ import type {
   FirmwareSourceSelection,
   FirmwareUpdateResult,
   FirmwareUploadProgress,
+  FirmwareRegisterSourceRequest,
   FirmwareUploadRequest
 } from './firmware-update'
 import type { FontAssetResult } from './font-assets'
@@ -151,6 +152,9 @@ export interface SimCoreApi {
   cancelFontUpload: () => Promise<FontAssetResult<void>>
   clearFontAssets: () => Promise<DeviceResult<DeviceState>>
   selectFirmwareSource: () => Promise<FirmwareUpdateResult<FirmwareSourceSelection | null>>
+  registerFirmwareSource: (
+    request: FirmwareRegisterSourceRequest
+  ) => Promise<FirmwareUpdateResult<FirmwareSourceSelection>>
   uploadFirmware: (request: FirmwareUploadRequest) => Promise<FirmwareUpdateResult<void>>
   cancelFirmwareUpload: () => Promise<FirmwareUpdateResult<void>>
   selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>

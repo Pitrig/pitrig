@@ -120,6 +120,7 @@ driver::Configuration initialize_panel() {
       .bounce_buffers = false,
       .avoid_tearing = false,
       .direct_mode = false,
+      .full_refresh = false,
   };
 }
 

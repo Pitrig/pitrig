@@ -1,4 +1,4 @@
-import { Copy, Eraser, Play, RotateCcw, Square, Wand2 } from 'lucide-react'
+import { Play, RotateCcw, Square, Wand2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,6 @@ import {
   type BenchResult,
   type BenchStatus
 } from '@shared/bench'
-import { benchSamplesToCsv } from './bench-csv'
 import { useBenchStore } from './bench-store'
 
 export function BenchControls(): React.JSX.Element {
@@ -23,10 +22,9 @@ export function BenchControls(): React.JSX.Element {
   const pollIntervalMs = useBenchStore((state) => state.pollIntervalMs)
   const pattern = useBenchStore((state) => state.pattern)
   const enabled = useBenchStore((state) => state.enabled)
-  const samples = useBenchStore((state) => state.samples)
   const [working, setWorking] = useState(false)
 
-  const running = status.feed.running
+  const running = status.active
   const run = async (work: () => Promise<BenchResult<BenchStatus>>): Promise<void> => {
     setWorking(true)
     try {
@@ -49,7 +47,7 @@ export function BenchControls(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-none flex-wrap items-center gap-2 rounded-lg border bg-card px-2.5 py-2">
+    <div className="flex min-w-0 flex-none items-center gap-2 overflow-x-auto rounded-lg border bg-card px-2.5 py-2">
       <select
         aria-label="Test pattern"
         className="h-8 w-40 flex-none rounded-md border bg-background px-2 text-xs"
@@ -66,12 +64,12 @@ export function BenchControls(): React.JSX.Element {
         ))}
       </select>
       <Button
-        className="flex-none"
+        className="w-40 flex-none"
         disabled={!connected || status.patternBusy}
         onClick={() => void run(() => window.simcore.applyBenchPattern({ pattern }))}
       >
         <Wand2 aria-hidden="true" className="mr-1.5 size-3.5" />
-        {status.patternBusy ? 'Applying…' : 'Apply pattern'}
+        {status.patternBusy ? (status.patternStage ?? 'Applying…') : 'Apply pattern'}
       </Button>
       <Button
         className="flex-none"
@@ -85,11 +83,11 @@ export function BenchControls(): React.JSX.Element {
 
       <div className="mx-1 h-6 w-px flex-none bg-border" />
 
-      <label className="flex flex-none items-center gap-2 text-xs text-muted-foreground">
+      <label className="flex min-w-0 flex-1 items-center gap-2 text-xs text-muted-foreground">
         Rate
         <input
           aria-label="Telemetry rate"
-          className="h-8 w-36 accent-sky-400"
+          className="h-8 min-w-24 flex-1 accent-sky-400"
           type="range"
           min={MINIMUM_FEED_RATE_HZ}
           max={MAXIMUM_FEED_RATE_HZ}
@@ -131,25 +129,6 @@ export function BenchControls(): React.JSX.Element {
           </option>
         ))}
       </select>
-
-      <div className="ml-auto flex flex-none items-center gap-2">
-        <Button
-          variant="outline"
-          disabled={samples.length === 0}
-          onClick={() => void navigator.clipboard.writeText(benchSamplesToCsv(samples))}
-        >
-          <Copy aria-hidden="true" className="mr-1.5 size-3.5" />
-          CSV
-        </Button>
-        <Button
-          variant="outline"
-          disabled={samples.length === 0}
-          onClick={() => useBenchStore.getState().clearSamples()}
-        >
-          <Eraser aria-hidden="true" className="mr-1.5 size-3.5" />
-          Clear
-        </Button>
-      </div>
     </div>
   )
 }

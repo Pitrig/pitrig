@@ -62,6 +62,27 @@ export class FirmwareUpdateService extends AssetServiceBase {
     return success({ id: source.id, name: source.name, size })
   }
 
+  async registerSourcePath(
+    path: string
+  ): Promise<FirmwareUpdateResult<FirmwareSourceSelection>> {
+    const name = path.split('/').pop() ?? path
+    let size: number
+    try {
+      size = (await stat(path)).size
+    } catch {
+      return failure('source_unreadable', `Cannot read ${name}.`)
+    }
+    if (size === 0 || size > MAXIMUM_FIRMWARE_IMAGE_SIZE) {
+      return failure(
+        'package_too_large',
+        `${name} is ${size} bytes, which does not fit the 2 MiB firmware slot.`
+      )
+    }
+    const id = `path-${Date.now().toString(36)}`
+    this.sources.set(id, { id, name, path })
+    return success({ id, name, size })
+  }
+
   async upload(request: FirmwareUploadRequest): Promise<FirmwareUpdateResult<void>> {
     const blocked = this.preflight()
     if (blocked) return blocked

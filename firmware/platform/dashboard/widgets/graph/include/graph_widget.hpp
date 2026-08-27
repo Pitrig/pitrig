@@ -36,20 +36,27 @@ struct Trace {
   void* read_context{};
   configuration::ValueRange range{};
   std::uint32_t color{};
-  lv_obj_t* line{};
-  std::array<lv_point_precise_t, kMaximumPoints> points{};
+  std::int32_t previous_y{};
+  bool has_previous{};
 };
 
 struct State {
   frame::Painter painter{};
   lv_obj_t* container{};
+  lv_obj_t* canvas{};
   std::array<Trace, kMaximumSources> traces{};
   std::size_t trace_count{};
-  std::size_t point_count{};
-  std::size_t filled{};
   std::uint16_t sample_interval_ms{};
+  std::uint16_t line_width_px{};
   std::uint32_t last_sample_tick{};
+  std::uint32_t override_rgb{};
+  std::uint32_t background_rgb{};
+  std::int32_t plot_width{};
   std::int32_t plot_height{};
+  std::int32_t line_inset{};
+  std::int32_t head_x{};
+  float step_px{};
+  float step_carry{};
   bool initialized{};
 };
 

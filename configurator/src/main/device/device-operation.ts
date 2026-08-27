@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
+
 import type { DeviceResult } from '../../shared/device'
 import { failure, success, toDeviceError } from './device-errors'
 import type { ConnectionManager, OpenedDevice } from './device-connection'
@@ -6,6 +8,7 @@ import type { SerialTrafficReporter } from './serial-traffic-reporter'
 export class OperationRunner {
   private deviceOperationActive = false
   private pipelineActive = false
+  private readonly pipelineScope = new AsyncLocalStorage<true>()
 
   constructor(private readonly connection: ConnectionManager) {}
 
@@ -42,7 +45,7 @@ export class OperationRunner {
   async runPipeline<T>(work: () => Promise<T>): Promise<T> {
     this.pipelineActive = true
     try {
-      return await work()
+      return await this.pipelineScope.run(true, work)
     } finally {
       this.pipelineActive = false
     }
@@ -57,6 +60,12 @@ export class OperationRunner {
     }
     if (this.deviceOperationActive) {
       return failure({ code: 'busy', message: 'Another device operation is already running.' })
+    }
+    if (this.pipelineActive && this.pipelineScope.getStore() === undefined) {
+      return failure({
+        code: 'busy',
+        message: 'The board is busy with a multi-step operation. Try again when it finishes.'
+      })
     }
     return success({ port, session, traffic })
   }

@@ -118,23 +118,24 @@ export function arc(
 export function indicator(
   id: string,
   placement: WidgetPlacement,
-  orientation: 'horizontal' | 'vertical'
+  orientation: 'horizontal' | 'vertical',
+  options: { binding?: string; minimum?: number; maximum?: number } = {}
 ): WidgetConfiguration {
   return {
     type: 'indicator',
     id,
     placement,
-    source: { binding: 'engine.rpm_percent' },
-    minimum: 0,
-    maximum: 100,
+    source: { binding: options.binding ?? 'engine.rpm_percent' },
+    minimum: options.minimum ?? 0,
+    maximum: options.maximum ?? 100,
     orientation,
     segment_gap_px: 2,
     segment_radius_px: 2,
     off_color: BENCH_COLORS.track,
-    blink_threshold: 94,
+    blink_threshold: 0.94,
     blink_ms: 150,
     segments: INDICATOR_PALETTE.map((color, index) => ({
-      threshold: Math.round(((index + 1) / INDICATOR_PALETTE.length) * 100),
+      threshold: Math.round((1_000 * (index + 1)) / (INDICATOR_PALETTE.length + 1)) / 1_000,
       color
     }))
   }
@@ -174,15 +175,17 @@ export function bar(
 export function spriteImage(
   context: BenchPatternContext,
   id: string,
-  placement: WidgetPlacement
+  placement: WidgetPlacement,
+  options: { binding?: string } = {}
 ): WidgetConfiguration {
   const frames = context.image?.frameCount ?? 1
+  const binding = options.binding ?? 'session.position'
   return {
     type: 'image',
     id,
     placement,
     image: context.image?.name ?? '',
-    ...(frames > 1 ? { sprite_frame_source: { binding: 'session.position' } } : { sprite_frame: 0 })
+    ...(frames > 1 ? { sprite_frame_source: { binding } } : { sprite_frame: 0 })
   }
 }
 

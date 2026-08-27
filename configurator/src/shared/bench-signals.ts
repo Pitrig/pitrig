@@ -161,6 +161,17 @@ export const BENCH_SIGNALS: readonly BenchSignal[] = [
     maximum: 12,
     decimals: 0,
     steps: 12
+  },
+  {
+    id: 'frame',
+    binding: 'vehicle.clutch',
+    label: 'Clutch / sprite frame',
+    waveform: 'steps',
+    frequencyHz: 3,
+    minimum: 0,
+    maximum: 11,
+    decimals: 0,
+    steps: 12
   }
 ]
 

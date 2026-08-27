@@ -174,27 +174,22 @@ widgets, not faster ones.
 A changing readout costs three draw tasks on the S3 — the screen background
 under it, the widget's own fill, and the label — at ~300 µs each.
 
-### The ESP32-P4's accelerator, and when it is worth using
+### The ESP32-P4's accelerator, and why it is off
 
-LVGL hands the PPA every opaque, square, ungraded fill. Submitting one and
-waiting for it costs the same whatever it fills, so the accelerator is a trade
-rather than a win: measured against the processor doing the same work, it costs
-**+103 µs per changing widget** — about 51 µs for each of the two fills a
-readout makes — and saves **18.4 ns per pixel** (25.9 against 44.3).
-
-| | fixed per changing widget | per pixel |
-| --- | ---: | ---: |
-| fill on the PPA | 367 µs | 25.9 ns |
-| fill on the processor | 264 µs | 44.3 ns |
-
-The crossover is around 1,500 pixels, which is why
-`patches/lvgl-9.5.0-ppa-small-fill-threshold.patch` leaves smaller fills on the
-processor: a 12 px readout costs 314 µs a widget instead of 402, a 72 px one
-still goes to the accelerator. Two things never reach it at all — a fill with a
-`radius_px`, because a rounded corner needs a mask, and text, because a glyph is
-blended through an alpha mask. A rounded background on a widget therefore costs
-more on the ESP32-P4 specifically, where the square version would have been the
-accelerator's.
+LVGL hands the PPA every opaque, square, ungraded fill, and the draw unit
+waits for it — the render core stands blocked for 168-445 us per fill while
+the software blender does the same work in 36-215 us. That trade once made
+sense: under the original DIO flash and 128 KB L2 cache the processor blended
+at ~44 ns per pixel against the PPA's ~26. QIO and the 256 KB cache made the
+software path faster at every fill size measured since — a 32-readout grid of
+square panels renders 22.8 ms a frame with the accelerator and 16.3 ms
+without, and even the full-screen bar no longer wins. `LV_USE_PPA` is
+therefore off in `sdkconfig.defaults.esp32p4`; the three PPA patches under
+`firmware/patches/` stay, so re-evaluating the accelerator later — or making
+it non-blocking — is a one-line Kconfig change. While it was on, rounded
+corners measured *faster* than square ones, because a rounded fill cannot go
+to the PPA; with it off the intuitive order is restored and a transparent
+widget background is the cheapest of all.
 
 ### What a screen change costs
 
@@ -233,7 +228,8 @@ buffer, which is the display driver's business rather than LVGL's.
 Merging areas does **not** work, in case it looks tempting: snapping every
 invalidated area out to a 32-pixel grid so neighbours fold together halves the
 area count and makes both boards slower — the pixels it adds cost more than the
-areas it saves. Measured on both, rejected on both.
+areas it saves. Measured on both, rejected on both, and re-measured on the
+ESP32-P4 with the flush moved off the render core: still 27–65% slower.
 
 Per changing widget, after
 [ADR 0026](adr/0026-ui-memory-in-external-ram.md) and

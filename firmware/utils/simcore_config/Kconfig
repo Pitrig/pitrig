@@ -44,6 +44,30 @@ config SIMCORE_LAYOUT_DEBUG
     help
         Draws dashboard block and widget boundaries.
 
+choice SIMCORE_DISPLAY_RENDER_MODE
+    prompt "Display render mode"
+    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    default SIMCORE_DISPLAY_RENDER_PARTIAL
+    help
+        How LVGL renders to the JC1060P470C panel. Partial draws 40-line
+        strips in internal RAM and a core-0 worker copies them out — the
+        fastest measured steady state, with the one-frame seam ADR 0027
+        accepts. Direct and full render straight into the panel's PSRAM
+        frame buffers and swap on vsync, so nothing can tear, at the frame
+        rates ADR 0027 measured. The RGB boards keep partial: their panel
+        underruns when the processor blends into the scanning PSRAM buffer.
+
+config SIMCORE_DISPLAY_RENDER_PARTIAL
+    bool "Partial strips (fastest, glyph seams)"
+
+config SIMCORE_DISPLAY_RENDER_DIRECT
+    bool "Direct into panel buffers (tear-free, changed areas only)"
+
+config SIMCORE_DISPLAY_RENDER_FULL
+    bool "Full-screen redraw into panel buffers (tear-free)"
+
+endchoice
+
 choice SIMCORE_FACTORY_BOARD
     prompt "Factory board profile"
     default SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C if IDF_TARGET_ESP32P4

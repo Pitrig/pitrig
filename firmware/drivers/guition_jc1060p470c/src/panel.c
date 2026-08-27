@@ -195,6 +195,9 @@ esp_err_t simcore_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   if (result == ESP_OK) {
     result = esp_lcd_panel_disp_on_off(*panel, true);
   }
+  if (result == ESP_OK) {
+    result = esp_lcd_dpi_panel_enable_dma2d(*panel);
+  }
   return result;
 }
 

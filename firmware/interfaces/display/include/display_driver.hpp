@@ -36,6 +36,7 @@ struct Configuration {
   bool bounce_buffers;
   bool avoid_tearing;
   bool direct_mode;
+  bool full_refresh;
 };
 
 struct Driver {

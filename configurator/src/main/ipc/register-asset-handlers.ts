@@ -13,8 +13,10 @@ import {
 import type { AssetResult } from '../../shared/asset-upload'
 import {
   FIRMWARE_CANCEL_UPLOAD_CHANNEL,
+  FIRMWARE_REGISTER_SOURCE_CHANNEL,
   FIRMWARE_SELECT_SOURCE_CHANNEL,
   FIRMWARE_UPLOAD_CHANNEL,
+  type FirmwareRegisterSourceRequest,
   type FirmwareUpdateResult
 } from '../../shared/firmware-update'
 import { FONT_CANCEL_UPLOAD_CHANNEL, FONT_CLEAR_CHANNEL } from '../../shared/font-assets'
@@ -111,6 +113,20 @@ export function registerAssetHandlers(
     firmwareUpdateService.selectSource(BrowserWindow.fromWebContents(event.sender) ?? undefined)
   )
   ipcMain.handle(FIRMWARE_CANCEL_UPLOAD_CHANNEL, () => firmwareUpdateService.cancel())
+  ipcMain.handle(FIRMWARE_REGISTER_SOURCE_CHANNEL, (_event, request: unknown) => {
+    const path =
+      request !== null && typeof request === 'object'
+        ? (request as Partial<FirmwareRegisterSourceRequest>).path
+        : undefined
+    if (!import.meta.env.DEV || typeof path !== 'string') {
+      const result: FirmwareUpdateResult<void> = {
+        ok: false,
+        error: { code: 'invalid_request', message: 'Invalid firmware source request.' }
+      }
+      return result
+    }
+    return firmwareUpdateService.registerSourcePath(path)
+  })
   ipcMain.handle(FIRMWARE_UPLOAD_CHANNEL, (_event, request: unknown) => {
     if (!isFirmwareUploadRequest(request)) {
       const result: FirmwareUpdateResult<void> = {

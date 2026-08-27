@@ -10,23 +10,65 @@ export const BENCH_STATUS_CHANGED_CHANNEL = 'bench:status-changed' as const
 export const BENCH_SAMPLE_CHANNEL = 'bench:sample' as const
 
 export const MINIMUM_FEED_RATE_HZ = 10
-export const MAXIMUM_FEED_RATE_HZ = 100
+export const MAXIMUM_FEED_RATE_HZ = 120
 export const DEFAULT_FEED_RATE_HZ = 60
 export const POLL_INTERVALS_MS = [100, 250, 500, 1_000, 2_000] as const
 export const DEFAULT_POLL_INTERVAL_MS = 1_000
 
-export type BenchPatternId = 'all_widgets' | 'full_screen_bar' | 'text_only'
+export type BenchPatternId =
+  | 'all_widgets'
+  | 'full_screen_bar'
+  | 'text_only'
+  | 'text_16'
+  | 'text_32'
+  | 'text_64'
+  | 'text_32_plain'
+  | 'text_32_shapes'
+  | 'shapes_96'
+  | 'huge_text_4'
+  | 'bars_24'
+  | 'arcs_12'
+  | 'graphs_6'
+  | 'sprites_24'
+  | 'indicators_12'
+  | 'nested_containers'
 
 export const BENCH_PATTERN_IDS: readonly BenchPatternId[] = [
   'all_widgets',
   'full_screen_bar',
-  'text_only'
+  'text_only',
+  'text_16',
+  'text_32',
+  'text_64',
+  'text_32_plain',
+  'text_32_shapes',
+  'shapes_96',
+  'huge_text_4',
+  'bars_24',
+  'arcs_12',
+  'graphs_6',
+  'sprites_24',
+  'indicators_12',
+  'nested_containers'
 ]
 
 export const BENCH_PATTERN_LABELS: Record<BenchPatternId, string> = {
   all_widgets: 'All widgets',
   full_screen_bar: 'Full-screen bar',
-  text_only: 'Text only'
+  text_only: 'Text only',
+  text_16: 'Text grid 16',
+  text_32: 'Text grid 32',
+  text_64: 'Text grid 64',
+  text_32_plain: 'Text grid 32, no border',
+  text_32_shapes: 'Text 32 over 96 shapes',
+  shapes_96: '96 static shapes',
+  huge_text_4: 'Four huge readouts',
+  bars_24: 'Bars 24',
+  arcs_12: 'Arcs 12',
+  graphs_6: 'Graphs 6',
+  sprites_24: 'Sprites 24',
+  indicators_12: 'Indicators 12',
+  nested_containers: 'Containers 8 x 4'
 }
 
 export const BENCH_PATTERN_DESCRIPTIONS: Record<BenchPatternId, string> = {
@@ -36,7 +78,27 @@ export const BENCH_PATTERN_DESCRIPTIONS: Record<BenchPatternId, string> = {
   full_screen_bar:
     'One bar over the whole display driven by a noisy signal — the largest area a single ' +
     'frame can repaint.',
-  text_only: 'Eight text widgets at four sizes — glyph rasterization and value latency alone.'
+  text_only: 'Eight text widgets at four sizes — glyph rasterization and value latency alone.',
+  text_16: 'Sixteen readouts that all change every frame — the shape of an ordinary dashboard.',
+  text_32: 'Thirty-two readouts changing every frame — twice the areas a frame has to draw.',
+  text_64: 'Sixty-four readouts changing every frame — past what any board holds at 60 fps.',
+  text_32_plain:
+    'The thirty-two grid without borders or corner radius, so every fill is square and ' +
+    'opaque — what the ESP32-P4 accelerator can take.',
+  text_32_shapes:
+    'The thirty-two grid over ninety-six static shapes — the object-tree walk every drawn ' +
+    'area pays, separated from the drawing itself.',
+  shapes_96:
+    'Ninety-six static shapes and one changing readout — the walk alone, with almost nothing ' +
+    'to draw.',
+  huge_text_4:
+    'Four readouts at a quarter of the display height — pixel cost rather than per-area cost.',
+  bars_24: 'Twenty-four bars, half of them vertical, a third gradient-filled.',
+  arcs_12: 'Twelve arcs — drawing through a mask, which no accelerator takes.',
+  graphs_6: 'Six two-trace graphs at the contract maximum — line drawing over the whole screen.',
+  sprites_24: 'Twenty-four sprite frames picked from telemetry — the image blit path.',
+  indicators_12: 'Twelve segmented indicators at the contract maximum, blinking near the top.',
+  nested_containers: 'Eight clipping containers of four readouts each — nesting and clipping.'
 }
 
 export interface BenchStartRequest {
@@ -110,6 +172,7 @@ export interface BenchSample {
 export type BenchDiagnosticsSupport = 'unknown' | 'supported' | 'unsupported'
 
 export interface BenchStatus {
+  active: boolean
   feed: BenchFeedStats
   pollIntervalMs: number
   signals: string[]

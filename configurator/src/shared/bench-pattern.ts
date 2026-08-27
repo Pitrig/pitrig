@@ -8,6 +8,7 @@ import {
   panel
 } from './bench-layout'
 import { benchExtraScreen } from './bench-pattern-extra'
+import { benchStressScreen, isBenchStressPattern } from './bench-pattern-stress'
 import {
   arc,
   bar,
@@ -19,7 +20,12 @@ import {
   type BenchImageAsset,
   type BenchPatternContext
 } from './bench-widgets'
-import type { BoardId, DashboardDocument, WidgetConfiguration, WidgetPlacement } from './configuration-schema'
+import type {
+  BoardId,
+  DashboardDocument,
+  WidgetConfiguration,
+  WidgetPlacement
+} from './configuration-schema'
 
 export interface BenchPatternOptions {
   board: BoardId
@@ -37,8 +43,9 @@ export function buildBenchDashboard(options: BenchPatternOptions): DashboardDocu
     family: options.family,
     image: options.image
   }
-  const widgets =
-    options.pattern === 'all_widgets'
+  const widgets = isBenchStressPattern(options.pattern)
+    ? benchStressScreen(options.pattern, context)
+    : options.pattern === 'all_widgets'
       ? allWidgets(context)
       : benchExtraScreen(options.pattern, context)
   return {

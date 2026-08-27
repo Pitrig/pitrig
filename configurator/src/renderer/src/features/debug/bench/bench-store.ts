@@ -12,6 +12,7 @@ import { BENCH_SIGNAL_IDS } from '@shared/bench-signals'
 export const MAXIMUM_BENCH_SAMPLES = 900
 
 const EMPTY_STATUS: BenchStatus = {
+  active: false,
   feed: {
     running: false,
     rateHz: DEFAULT_FEED_RATE_HZ,
@@ -39,7 +40,6 @@ interface BenchStore {
   error?: string
   applyStatus: (status: BenchStatus) => void
   appendSample: (sample: BenchSample) => void
-  clearSamples: () => void
   setRate: (rateHz: number) => void
   setPollInterval: (pollIntervalMs: number) => void
   setPattern: (pattern: BenchPatternId) => void
@@ -65,7 +65,6 @@ export const useBenchStore = create<BenchStore>((set) => ({
             : samples
       }
     }),
-  clearSamples: () => set({ samples: [] }),
   setRate: (rateHz) => set({ rateHz }),
   setPollInterval: (pollIntervalMs) => set({ pollIntervalMs }),
   setPattern: (pattern) => set({ pattern }),

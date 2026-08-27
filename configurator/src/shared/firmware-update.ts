@@ -2,6 +2,7 @@ import type { AssetResult, AssetUploadProgress } from './asset-upload'
 
 export const FIRMWARE_SELECT_SOURCE_CHANNEL = 'firmware-update:select-source' as const
 export const FIRMWARE_UPLOAD_CHANNEL = 'firmware-update:upload' as const
+export const FIRMWARE_REGISTER_SOURCE_CHANNEL = 'firmware-update:register-source' as const
 export const FIRMWARE_CANCEL_UPLOAD_CHANNEL = 'firmware-update:cancel-upload' as const
 export const FIRMWARE_UPLOAD_PROGRESS_CHANNEL = 'firmware-update:upload-progress' as const
 
@@ -32,4 +33,8 @@ export type FirmwareUpdateResult<T> = AssetResult<T>
 
 export interface FirmwareUploadRequest {
   sourceId: string
+}
+
+export interface FirmwareRegisterSourceRequest {
+  path: string
 }

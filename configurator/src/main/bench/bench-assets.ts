@@ -57,7 +57,7 @@ async function ensureFamily(
     if (!restarted.ok) return restarted
   }
 
-  report(`Uploading the "${DEFAULT_FONT_FAMILY}" font package`)
+  report('Uploading fonts…')
   const uploaded = await fontAssets.upload({ families: [DEFAULT_FONT_FAMILY] }, () => undefined)
   if (!uploaded.ok) {
     return failure({ code: 'configuration_rejected', message: uploaded.error.message })
@@ -97,7 +97,7 @@ async function ensureImage(
     if (!restarted.ok) return restarted
   }
 
-  report('Building a sprite sheet for the bench')
+  report('Building sprites…')
   const sheet = await writeBenchSprite(spriteEdge, SPRITE_FRAMES)
   const sourceIds: string[] = []
   for (const [index, path] of sheet.paths.entries()) {
@@ -111,7 +111,7 @@ async function ensureImage(
     sourceIds.push(registered.value.id)
   }
 
-  report('Uploading the sprite sheet')
+  report('Uploading sprites…')
   const uploaded = await imageAssets.upload({
     assets: [
       {
@@ -143,7 +143,7 @@ async function restart(
   deviceService: DeviceService,
   report: (message: string) => void
 ): Promise<DeviceResult<undefined>> {
-  report('Restarting the board so the new assets load')
+  report('Restarting board…')
   const result = await deviceService.rebootAndReconnect()
   if (!result.ok) return failure(result.error)
   return success(undefined)

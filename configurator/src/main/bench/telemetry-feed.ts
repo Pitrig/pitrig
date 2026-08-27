@@ -13,6 +13,8 @@ export type TelemetryWriter = (text: string, onWritten?: (error?: Error) => void
 const BUCKET_MS = 100
 const BUCKETS = 10
 const MAXIMUM_PENDING_WRITES = 3
+const EARLY_WAKE_MS = 0.75
+const MAXIMUM_CATCH_UP_TICKS = 3
 
 export class TelemetryFeed {
   private timer: NodeJS.Timeout | undefined
@@ -89,19 +91,35 @@ export class TelemetryFeed {
 
   private schedule(): void {
     const delay = this.nextTickAt - performance.now()
-    this.timer = setTimeout(this.tick, delay > 0 ? delay : 0)
+    this.timer = setTimeout(this.tick, delay > 0 ? Math.floor(delay) : 0)
   }
 
   private readonly tick = (): void => {
-    const now = performance.now()
-    this.nextTickAt = Math.max(now, this.nextTickAt + this.periodMs)
-    this.rotate(now)
-    const writer = this.writer
-    if (!writer) {
+    if (this.writer === undefined) {
       this.timer = undefined
       return
     }
+    if (performance.now() < this.nextTickAt - EARLY_WAKE_MS) {
+      this.schedule()
+      return
+    }
+    let emitted = 0
+    while (emitted < MAXIMUM_CATCH_UP_TICKS) {
+      const now = performance.now()
+      if (now < this.nextTickAt - EARLY_WAKE_MS) break
+      this.nextTickAt += this.periodMs
+      this.emit(now)
+      emitted += 1
+    }
+    const behind = performance.now() - this.nextTickAt
+    if (behind > this.periodMs) this.nextTickAt = performance.now() + this.periodMs
     this.schedule()
+  }
+
+  private emit(now: number): void {
+    this.rotate(now)
+    const writer = this.writer
+    if (writer === undefined) return
     if (this.pending >= MAXIMUM_PENDING_WRITES) {
       this.droppedTicks += 1
       return
@@ -151,7 +169,8 @@ export class TelemetryFeed {
   }
 
   private coveredSeconds(now: number): number {
-    const window = Math.min(now - this.startedAt, BUCKET_MS * BUCKETS)
+    const span = (BUCKETS - 1) * BUCKET_MS + (now - this.bucketStart)
+    const window = Math.min(now - this.startedAt, span)
     return Math.max(BUCKET_MS, window) / 1_000
   }
 }

@@ -260,6 +260,7 @@ driver::Configuration initialize() {
       .bounce_buffers = true,
       .avoid_tearing = false,
       .direct_mode = false,
+      .full_refresh = false,
   };
 }
 

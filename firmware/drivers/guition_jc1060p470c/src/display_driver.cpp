@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "guition_jc1060p470c_display_driver.hpp"
 #include "panel.h"
+#include "simcore_features.hpp"
 
 namespace simcore::display::drivers::guition_jc1060p470c {
 namespace {
@@ -21,23 +22,27 @@ driver::Configuration initialize() {
   esp_lcd_panel_handle_t panel = nullptr;
   ESP_ERROR_CHECK(simcore_jc1060p470c_panel_initialize(&io, &panel));
 
+  constexpr bool kTearFree = SIMCORE_DISPLAY_RENDER_TEAR_FREE != 0;
   return {
       .io = io,
       .panel = panel,
       .horizontal_resolution = kHorizontalResolution,
       .vertical_resolution = kVerticalResolution,
-      .buffer_size = kHorizontalResolution * 60,
+      .buffer_size = kTearFree
+                         ? kHorizontalResolution * kVerticalResolution
+                         : kHorizontalResolution * 40,
       .swap_xy = false,
       .mirror_x = false,
       .mirror_y = false,
       .bus_type = driver::BusType::dsi,
       .color_format = driver::ColorFormat::rgb565,
       .double_buffer = true,
-      .buffer_in_dma_memory = true,
+      .buffer_in_dma_memory = !kTearFree,
       .buffer_in_psram = false,
       .bounce_buffers = false,
-      .avoid_tearing = false,
-      .direct_mode = false,
+      .avoid_tearing = kTearFree,
+      .direct_mode = SIMCORE_DISPLAY_RENDER_DIRECT != 0,
+      .full_refresh = SIMCORE_DISPLAY_RENDER_FULL != 0,
   };
 }
 

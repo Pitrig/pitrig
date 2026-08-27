@@ -44,6 +44,7 @@ export class BenchService {
 
   getStatus(): BenchStatus {
     return {
+      active: this.poll !== undefined,
       feed: this.feed.stats(),
       pollIntervalMs: this.pollIntervalMs,
       signals: [...this.signals],
@@ -101,8 +102,9 @@ export class BenchService {
     this.message = undefined
     const resume = this.pauseFeed()
     this.publish()
+    let outcome: DeviceResult<void>
     try {
-      return await deviceService.runPipeline(async () => {
+      outcome = await deviceService.runPipeline(async (): Promise<DeviceResult<void>> => {
         const display = session.info.display
         const assets = await ensureBenchAssets(this.services, spriteEdge(display), (stage) => {
           this.patternStage = stage
@@ -118,7 +120,7 @@ export class BenchService {
           this.restorePoint = JSON.stringify(current.configuration)
         }
 
-        this.patternStage = 'Applying the pattern'
+        this.patternStage = 'Applying pattern…'
         this.publish()
         const document = buildBenchDashboard({
           board: current.info.boardId,
@@ -131,7 +133,7 @@ export class BenchService {
         if (!applied.ok) return failure(applied.error)
         this.pattern = pattern
         this.message = assets.value.notes.join(' ') || undefined
-        return success(this.getStatus())
+        return success(undefined)
       })
     } finally {
       this.patternBusy = false
@@ -139,6 +141,7 @@ export class BenchService {
       resume()
       this.publish()
     }
+    return outcome.ok ? success(this.getStatus()) : failure(outcome.error)
   }
 
   async restore(): Promise<DeviceResult<BenchStatus>> {
@@ -153,17 +156,20 @@ export class BenchService {
     this.patternBusy = true
     const resume = this.pauseFeed()
     this.publish()
+    let outcome: DeviceResult<void>
     try {
       const applied = await applyWithRetry(deviceService, json)
-      if (!applied.ok) return failure(applied.error)
-      this.pattern = undefined
-      this.restorePoint = undefined
-      return success(this.getStatus())
+      outcome = applied.ok ? success(undefined) : failure(applied.error)
+      if (applied.ok) {
+        this.pattern = undefined
+        this.restorePoint = undefined
+      }
     } finally {
       this.patternBusy = false
       resume()
       this.publish()
     }
+    return outcome.ok ? success(this.getStatus()) : failure(outcome.error)
   }
 
   dispose(): void {
