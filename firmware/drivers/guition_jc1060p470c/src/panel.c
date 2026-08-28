@@ -17,6 +17,7 @@
 #include "esp_lcd_panel_interface.h"
 #include "esp_ldo_regulator.h"
 #include "esp_system.h"
+#include "sdkconfig.h"
 
 #define LCD_BACKLIGHT GPIO_NUM_23
 #define LCD_RESET GPIO_NUM_27
@@ -24,7 +25,12 @@
 #define MIPI_DSI_LANE_BIT_RATE_MBPS 750
 #define MIPI_DSI_PHY_LDO_CHANNEL 3
 #define MIPI_DSI_PHY_LDO_VOLTAGE_MV 2500
+#if defined(CONFIG_SIMCORE_DISPLAY_RENDER_FULL) || \
+    defined(CONFIG_SIMCORE_DISPLAY_RENDER_FULL_STRIPS)
+#define LCD_FRAME_BUFFER_COUNT 3
+#else
 #define LCD_FRAME_BUFFER_COUNT 2
+#endif
 
 static esp_ldo_channel_handle_t mipi_phy_power;
 static esp_lcd_dsi_bus_handle_t mipi_dsi_bus;

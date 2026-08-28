@@ -172,7 +172,7 @@ export interface SimCoreApi {
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
-  onSerialTraffic: (listener: (log: SerialTrafficLog) => void) => () => void
+  onSerialTraffic: (listener: (logs: SerialTrafficLog[]) => void) => () => void
   onBenchStatus: (listener: (status: BenchStatus) => void) => () => void
   onBenchSample: (listener: (sample: BenchSample) => void) => () => void
 }

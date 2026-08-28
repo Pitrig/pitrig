@@ -237,8 +237,9 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
           .buff_spiram = hardware.buffer_in_psram,
           .sw_rotate = false,
           .swap_bytes = false,
-          .full_refresh = false,
+          .full_refresh = hardware.full_refresh,
           .direct_mode = hardware.direct_mode,
+          .full_strips = hardware.full_strips,
       },
   };
 

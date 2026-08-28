@@ -58,6 +58,26 @@ constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
   return LV_ALIGN_CENTER;
 }
 
+#if SIMCORE_DISPLAY_RENDER_FULL || SIMCORE_DISPLAY_RENDER_FULL_STRIPS
+[[nodiscard]] lv_text_align_t lv_text_alignment(const Alignment alignment) {
+  switch (alignment) {
+    case Alignment::top_left:
+    case Alignment::left:
+    case Alignment::bottom_left:
+      return LV_TEXT_ALIGN_LEFT;
+    case Alignment::top_center:
+    case Alignment::center:
+    case Alignment::bottom_center:
+      return LV_TEXT_ALIGN_CENTER;
+    case Alignment::top_right:
+    case Alignment::right:
+    case Alignment::bottom_right:
+      return LV_TEXT_ALIGN_RIGHT;
+  }
+  return LV_TEXT_ALIGN_CENTER;
+}
+#endif
+
 void apply_value_color(void* const context, const std::uint32_t rgb) {
   lv_obj_set_style_text_color(static_cast<lv_obj_t*>(context),
                               lv_color_hex(rgb), LV_PART_MAIN);
@@ -143,7 +163,15 @@ bool Collection::build(State& state, const Layout& layout,
 
   state.value_label = lv_label_create(state.container);
   lv_obj_remove_style_all(state.value_label);
+#if SIMCORE_DISPLAY_RENDER_FULL || SIMCORE_DISPLAY_RENDER_FULL_STRIPS
+  lv_label_set_long_mode(state.value_label, LV_LABEL_LONG_MODE_CLIP);
+  lv_obj_set_size(state.value_label, lv_pct(100), value_height);
+  lv_obj_set_style_text_align(state.value_label,
+                              lv_text_alignment(config.value.alignment),
+                              LV_PART_MAIN);
+#else
   lv_obj_set_size(state.value_label, LV_SIZE_CONTENT, value_height);
+#endif
   lv_obj_set_style_text_font(state.value_label, value_font, LV_PART_MAIN);
   lv_obj_set_style_text_color(
       state.value_label, lv_color_hex(config.value.color), LV_PART_MAIN);

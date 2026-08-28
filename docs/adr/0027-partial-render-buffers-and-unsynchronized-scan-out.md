@@ -132,6 +132,81 @@ waited for scan-out, so it is unchanged.
   dashboard pattern (repainting the whole 614k-pixel frame into PSRAM is
   bandwidth-bound at ~52-88% CPU); the tear-free builds skip the navigation
   controller's transition switching, since they are already tear-free.
+- A build that chooses full mode gets its own configuration, appended as
+  `sdkconfig.defaults.render-full`. The panel allocates a third frame buffer
+  and the port hands it to LVGL (`lv_display_set_3rd_draw_buffer`, rotated
+  natively by LVGL), so a frame renders while the previous one is queued for
+  scan-out and a third is still on screen: the flush leaves the render core —
+  the core-0 worker queues the swap, throttled by the vsync ISR's refresh
+  counter only when a frame outruns the panel — and nothing ever waits for
+  vsync, so the frame rate is the render time rather than a multiple of the
+  scan period. The fragment also selects the 512 KB L2 cache with 128-byte
+  lines, which fits only because full mode allocates no internal-RAM render
+  strips (~77 KB of internal RAM stays free with the debug overlay and the
+  second link on — mind that headroom); halving the write-allocate
+  transactions and doubling the cache moved every pattern 39-67% on their
+  own. The text widget sizes its value label to the box instead of the
+  content in full builds, because with the whole screen repainting anyway
+  the content-sized label's narrow invalidation buys nothing and its
+  per-frame re-layout costs 1-3 ms. Together the bench battery moved
+  +29-115% over plain full mode (text_16 19.7→35.1 fps, graphs_6 11.8→23.5,
+  all_widgets 14.7→24.0, text_only 19.6→42.1). `-O3` was measured 1-2%
+  behind `-O2` (bigger code, same memory wall) and stays rejected.
+- The choice's fourth option, appended as
+  `sdkconfig.defaults.render-full-strips`, is the tear-free mode that gets
+  closest to partial's frame rates. LVGL renders only the damage, into
+  60-line strips in internal RAM (no write-allocate reads, cheap
+  read-modify-write); an AXI-GDMA channel carries each full-width strip
+  into the hidden frame buffer as one linear burst and the CPU copies the
+  narrow ones, while a dedicated reconcile task — same priority as the
+  flush worker, or its copies starve behind everything on that core and
+  the pipeline wedges — copies the whole frame from the newest buffer on
+  a second AXI-GDMA channel, in 64-row pieces fired top-down at frame
+  start. Reconciling only the stale areas was built first, tracked as up
+  to eight rectangles per buffer from what each frame actually painted,
+  and REMOVED: a bookkeeping gap showed up on the panel as stale fill
+  sectors on the last-drawn arcs, and the whole-frame copy that fixed it
+  costs nothing that matters — it rides a channel the render does not
+  use, hides behind any frame that renders longer than it copies, and
+  leaves no dirt arithmetic to get wrong. A widened frame repaints every
+  pixel itself and skips the copy. Strips wait only for the reconcile
+  pieces they overlap, and every DMA wait carries a timeout that retires
+  the engine to a CPU path rather than starving the pipeline into the
+  watchdog. The DMA2D engine (`esp_async_fbcpy`) was
+  tried for both strip and reconcile copies and REMOVED: a transfer whose
+  PSRAM destination is narrower than the frame wedges without completing
+  on this chip, full-width PSRAM-to-PSRAM transfers wedge rarely but
+  reproducibly under minutes of load, and arc and canvas dashboards
+  showed stale fragments consistent with silently incomplete copies —
+  the engine is not trusted with correctness-critical work here.
+  The frame's last strip queues the swap the panel executes at the frame
+  boundary, waiting for the previous swap to latch first: rendering past
+  the panel was measured (bench fps well above 60) and then rejected by
+  eye — irregular dropped frames read as animation judder, so the
+  pipeline paces to the panel and every rendered frame is shown exactly
+  once.
+  Because repainting the whole screen is sometimes cheaper than reconciling
+  it (image blits are cheap per pixel, so sprite dashboards prefer one full
+  pass; text blending is expensive, so scattered text prefers damage +
+  reconcile — no static feature predicts which), the port measures both:
+  it runs the cheaper mode by an EMA of frame cost with the swap's pacing
+  wait subtracted (leaving it in feeds the wait back into the estimate and
+  spirals the pacing down), widens the damage to the whole screen when the
+  full pass wins, which is always correct, and probes the loser only when
+  the answer could change — never while the winner holds the panel rate,
+  four frames in 128 while the modes are within 1.5×, four in 1024
+  otherwise, because a probe frame on a settled pattern is a visible
+  stutter. Unpaced renders measured at
+  120 Hz before the judder verdict: text_only 120 fps, shapes_96 113
+  (above plain partial's 107), huge_text_4 96, text_16 86, arcs_12 86,
+  sprites_24 68. Paced, everything that can render at 60 locks to the
+  panel (~56-59 fps: text_only, text_16, shapes_96, sprites_24 and kin),
+  with the render headroom kept as latency margin; below the panel rate
+  sit all_widgets 43, text_32 37, graphs_6 35 (parity with partial),
+  text_64 23, against 24-59 for the full modes above — the remaining gap to
+  partial is the tear-free tax: damage must cross to a hidden buffer by DMA
+  and stale rows must be reconciled, where partial blends once into the
+  buffer being scanned and accepts the seam.
 - Levers re-measured against this configuration and rejected, so they are not
   tried again: merging invalidated areas into full-width rows (still −27–65%
   even with the flush off the render core — the extra blended pixels outcost

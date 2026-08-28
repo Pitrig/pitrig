@@ -37,6 +37,7 @@ struct Configuration {
   bool avoid_tearing;
   bool direct_mode;
   bool full_refresh;
+  bool full_strips;
 };
 
 struct Driver {

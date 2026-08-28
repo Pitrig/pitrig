@@ -49,6 +49,11 @@ Debug builds append `;sdkconfig.defaults.debug` to `SDKCONFIG_DEFAULTS`, which s
 [docs/runtime-performance.md](docs/runtime-performance.md)). The same VS Code tasks exist in
 [.vscode/tasks.json](.vscode/tasks.json) ("SimCore: Build …").
 
+A P4 build may append `;sdkconfig.defaults.render-full`, which selects
+`CONFIG_SIMCORE_DISPLAY_RENDER_FULL` together with the cache configuration ADR 0027 pairs with it
+(512 KB L2, 128-byte lines), or `;sdkconfig.defaults.render-full-strips` for the strip-composed
+tear-free mode (L2 stays 256 KB — the strips need the internal RAM).
+
 A P4 build may append `;sdkconfig.defaults.second-link` as well, which selects
 `CONFIG_SIMCORE_SECOND_TELEMETRY_LINK` and runs telemetry, `@SC:` control, and asset upload on the
 USB-Serial-JTAG port too. It is a development aid: the configuration contract has no property for

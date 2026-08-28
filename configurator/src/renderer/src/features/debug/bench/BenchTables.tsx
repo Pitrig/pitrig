@@ -16,9 +16,8 @@ export function BenchTables({ status, latest }: BenchTablesProps): React.JSX.Ele
   const running = status.feed.running
 
   const display = session?.info.display
-  const utilization = connection
-    ? baudUtilization(status.feed.bytesPerSecond, connection.baudRate)
-    : 0
+  const feed = latest?.feed ?? status.feed
+  const utilization = connection ? baudUtilization(feed.bytesPerSecond, connection.baudRate) : 0
   const diagnostics = latest?.diagnostics
 
   return (
@@ -35,20 +34,20 @@ export function BenchTables({ status, latest }: BenchTablesProps): React.JSX.Ele
         />
         <Row
           label="Rate"
-          value={`${status.feed.rateHz} Hz asked · ${status.feed.measuredRateHz.toFixed(1)} Hz sent`}
-          warn={running && status.feed.measuredRateHz < status.feed.rateHz * 0.9}
+          value={`${status.feed.rateHz} Hz asked · ${feed.measuredRateHz.toFixed(1)} Hz sent`}
+          warn={running && feed.measuredRateHz < status.feed.rateHz * 0.9}
         />
         <Row
           label="Throughput"
-          value={`${status.feed.linesPerSecond.toFixed(0)} lines/s · ${bytes(
-            status.feed.bytesPerSecond
+          value={`${feed.linesPerSecond.toFixed(0)} lines/s · ${bytes(
+            feed.bytesPerSecond
           )}/s · ${(utilization * 100).toFixed(0)}% of baud`}
           warn={utilization > 0.7}
         />
         <Row
           label="Dropped"
-          value={`${status.feed.droppedTicks} ticks · ${status.feed.writeErrors} write errors`}
-          warn={status.feed.droppedTicks > 0 || status.feed.writeErrors > 0}
+          value={`${feed.droppedTicks} ticks · ${feed.writeErrors} write errors`}
+          warn={feed.droppedTicks > 0 || feed.writeErrors > 0}
         />
         <Row
           label="Diagnostics"

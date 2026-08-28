@@ -175,8 +175,8 @@ const api: SimCoreApi = {
     ipcRenderer.on(DEVICE_STATE_CHANGED_CHANNEL, handler)
     return () => ipcRenderer.removeListener(DEVICE_STATE_CHANGED_CHANNEL, handler)
   },
-  onSerialTraffic: (listener: (log: SerialTrafficLog) => void) => {
-    const handler = (_event: IpcRendererEvent, log: SerialTrafficLog): void => listener(log)
+  onSerialTraffic: (listener: (logs: SerialTrafficLog[]) => void) => {
+    const handler = (_event: IpcRendererEvent, logs: SerialTrafficLog[]): void => listener(logs)
     ipcRenderer.on(SERIAL_TRAFFIC_CHANNEL, handler)
     return () => ipcRenderer.removeListener(SERIAL_TRAFFIC_CHANNEL, handler)
   },

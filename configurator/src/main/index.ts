@@ -1,5 +1,7 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, crashReporter } from 'electron'
 import { join } from 'node:path'
+
+crashReporter.start({ uploadToServer: false })
 
 import { BenchService } from './bench/bench-service'
 import { DeviceService } from './device/device-service'
@@ -91,6 +93,10 @@ function createWindow(): void {
   })
 
   window.once('ready-to-show', () => window.show())
+
+  window.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[probe] render-process-gone', JSON.stringify(details))
+  })
 
   if (isDevelopment && process.env.ELECTRON_RENDERER_URL) {
     void window.loadURL(process.env.ELECTRON_RENDERER_URL)

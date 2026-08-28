@@ -261,6 +261,7 @@ driver::Configuration initialize() {
       .avoid_tearing = false,
       .direct_mode = false,
       .full_refresh = false,
+      .full_strips = false,
   };
 }
 

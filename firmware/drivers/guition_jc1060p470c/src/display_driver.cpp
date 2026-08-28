@@ -22,27 +22,31 @@ driver::Configuration initialize() {
   esp_lcd_panel_handle_t panel = nullptr;
   ESP_ERROR_CHECK(simcore_jc1060p470c_panel_initialize(&io, &panel));
 
-  constexpr bool kTearFree = SIMCORE_DISPLAY_RENDER_TEAR_FREE != 0;
+  constexpr bool kPanelBuffers =
+      SIMCORE_DISPLAY_RENDER_DIRECT != 0 || SIMCORE_DISPLAY_RENDER_FULL != 0;
   return {
       .io = io,
       .panel = panel,
       .horizontal_resolution = kHorizontalResolution,
       .vertical_resolution = kVerticalResolution,
-      .buffer_size = kTearFree
-                         ? kHorizontalResolution * kVerticalResolution
-                         : kHorizontalResolution * 40,
+      .buffer_size =
+          kPanelBuffers
+              ? kHorizontalResolution * kVerticalResolution
+              : kHorizontalResolution *
+                    (SIMCORE_DISPLAY_RENDER_FULL_STRIPS != 0 ? 60 : 40),
       .swap_xy = false,
       .mirror_x = false,
       .mirror_y = false,
       .bus_type = driver::BusType::dsi,
       .color_format = driver::ColorFormat::rgb565,
       .double_buffer = true,
-      .buffer_in_dma_memory = !kTearFree,
+      .buffer_in_dma_memory = !kPanelBuffers,
       .buffer_in_psram = false,
       .bounce_buffers = false,
-      .avoid_tearing = kTearFree,
+      .avoid_tearing = kPanelBuffers,
       .direct_mode = SIMCORE_DISPLAY_RENDER_DIRECT != 0,
       .full_refresh = SIMCORE_DISPLAY_RENDER_FULL != 0,
+      .full_strips = SIMCORE_DISPLAY_RENDER_FULL_STRIPS != 0,
   };
 }
 

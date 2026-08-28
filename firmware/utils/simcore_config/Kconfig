@@ -66,6 +66,9 @@ config SIMCORE_DISPLAY_RENDER_DIRECT
 config SIMCORE_DISPLAY_RENDER_FULL
     bool "Full-screen redraw into panel buffers (tear-free)"
 
+config SIMCORE_DISPLAY_RENDER_FULL_STRIPS
+    bool "Full-screen redraw through internal strips (tear-free)"
+
 endchoice
 
 choice SIMCORE_FACTORY_BOARD

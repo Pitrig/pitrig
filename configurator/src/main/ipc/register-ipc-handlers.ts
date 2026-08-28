@@ -173,8 +173,18 @@ export function broadcastDeviceState(state: DeviceState): void {
   broadcastToWindows(DEVICE_STATE_CHANGED_CHANNEL, state)
 }
 
+const pendingSerialTraffic: SerialTrafficLog[] = []
+let serialTrafficFlushTimer: ReturnType<typeof setTimeout> | undefined
+
 export function broadcastSerialTraffic(log: SerialTrafficLog): void {
-  broadcastToWindows(SERIAL_TRAFFIC_CHANNEL, log)
+  pendingSerialTraffic.push(log)
+  if (pendingSerialTraffic.length > 4_000) {
+    pendingSerialTraffic.splice(0, pendingSerialTraffic.length - 2_000)
+  }
+  serialTrafficFlushTimer ??= setTimeout(() => {
+    serialTrafficFlushTimer = undefined
+    broadcastToWindows(SERIAL_TRAFFIC_CHANNEL, pendingSerialTraffic.splice(0))
+  }, 100)
 }
 
 export function broadcastBenchStatus(status: BenchStatus): void {
