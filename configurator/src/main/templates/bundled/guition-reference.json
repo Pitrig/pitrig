@@ -34,7 +34,7 @@
               "segment_gap_px": 5,
               "segment_radius_px": 3,
               "off_color": "#14181F",
-              "blink_threshold": 97,
+              "blink_threshold": 0.97,
               "blink_ms": 140,
               "segments": [
                 {
@@ -42,39 +42,39 @@
                   "color": "#22C55E"
                 },
                 {
-                  "threshold": 10,
+                  "threshold": 0.1,
                   "color": "#22C55E"
                 },
                 {
-                  "threshold": 20,
+                  "threshold": 0.2,
                   "color": "#22C55E"
                 },
                 {
-                  "threshold": 30,
+                  "threshold": 0.3,
                   "color": "#22C55E"
                 },
                 {
-                  "threshold": 40,
+                  "threshold": 0.4,
                   "color": "#FFE04A"
                 },
                 {
-                  "threshold": 50,
+                  "threshold": 0.5,
                   "color": "#FFE04A"
                 },
                 {
-                  "threshold": 60,
+                  "threshold": 0.6,
                   "color": "#FFE04A"
                 },
                 {
-                  "threshold": 70,
+                  "threshold": 0.7,
                   "color": "#FF8C1A"
                 },
                 {
-                  "threshold": 80,
+                  "threshold": 0.8,
                   "color": "#FF3B30"
                 },
                 {
-                  "threshold": 90,
+                  "threshold": 0.9,
                   "color": "#FF3B30"
                 }
               ]

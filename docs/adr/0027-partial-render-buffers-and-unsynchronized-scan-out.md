@@ -207,9 +207,15 @@ waited for scan-out, so it is unchanged.
   of the two pipeline halves, and running rare paced A/B trials were all
   built and measured, and each fixed one dashboard while breaking another —
   the cost model stays render-side, and the residual is an open item.
-- The graph widget samples on a clock of its own — a periodic timer that
-  ticks four times per sample interval — and the repaint only drains the ring
-  it fills. It used to read its sources inside the repaint under the LVGL
+- The graph widget samples on a clock of its own — a task of its own that
+  wakes four times per sample interval — and the repaint only drains the ring
+  it fills. That task runs *below* the render pipeline (priority 2 against the
+  flush worker's 5 and the render trigger's 4), because the first version put
+  the sampler on the shared `esp_timer` task at priority 22: it preempted the
+  flush worker and starved the render trigger, whose missed watchdog feed is
+  what catches a wedged display, and the board rebooted every few minutes. A
+  graph that misses a tick draws one sample late; a sampler above the pipeline
+  costs frames and fakes a display hang. It used to read its sources inside the repaint under the LVGL
   lock, so a dashboard drawing at 32 fps silently halved a 16 ms sample
   interval and drew half the vertices. Sampling on the telemetry event was
   measured next and rejected: it restored the rate (58 Hz per graph) but
