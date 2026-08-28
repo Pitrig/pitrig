@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -31,12 +32,14 @@ using Config = configuration::GraphWidgetConfiguration;
 
 struct WidgetBinding;
 
+inline constexpr std::size_t kPendingSamples = 8;
+
 struct Trace {
   frame::ValueReadCallback read{};
   void* read_context{};
   configuration::ValueRange range{};
   std::uint32_t color{};
-  std::int32_t previous_y{};
+  float previous_y{};
   bool has_previous{};
 };
 
@@ -58,6 +61,10 @@ struct State {
   float step_px{};
   float step_carry{};
   bool initialized{};
+  std::array<std::array<std::int16_t, kMaximumSources>, kPendingSamples>
+      pending{};
+  std::atomic<std::uint8_t> pending_write{};
+  std::atomic<std::uint8_t> pending_read{};
 };
 
 class Collection final
@@ -71,11 +78,19 @@ class Collection final
                               const Config& configuration,
                               const WidgetBinding& binding,
                               const fonts::Registry& fonts);
+  void sample_all();
+  static void sample_timer(void* context);
 
  private:
   friend frame::Collection<Collection, State, kMaximumInstances>;
 
   void render_state(State& state);
+  void on_released(std::size_t index);
+  void start_sampling();
+  static void stop_sampling();
+  static void sample_state(State& state);
+  static void draw_sample(State& state, lv_layer_t& layer,
+                          std::span<const std::int16_t> sample);
   [[nodiscard]] bool build(State& state, const Layout& layout,
                            const Config& configuration,
                            const WidgetBinding& binding,

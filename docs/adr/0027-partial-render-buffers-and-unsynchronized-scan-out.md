@@ -191,12 +191,41 @@ waited for scan-out, so it is unchanged.
   reconcile — no static feature predicts which), the port measures both:
   it runs the cheaper mode by an EMA of frame cost with the swap's pacing
   wait subtracted (leaving it in feeds the wait back into the estimate and
-  spirals the pacing down), widens the damage to the whole screen when the
-  full pass wins, which is always correct, and probes the loser only when
-  the answer could change — never while the winner holds the panel rate,
-  four frames in 128 while the modes are within 1.5×, four in 1024
-  otherwise, because a probe frame on a settled pattern is a visible
-  stutter. Unpaced renders measured at
+  spirals the pacing down), and widens the damage to the whole screen when
+  the full pass wins, which is always correct. Probing the loser costs a
+  slow frame, so it runs only where that frame cannot be seen: never while
+  the winner holds the panel rate, and otherwise only while the loser's own
+  average still fits the budget the pacing is quantized to — a probe that
+  overruns that budget slips a whole refresh, which is the periodic stutter
+  graph dashboards showed. A mode never yet measured is always probed, or a
+  dashboard whose better mode is unknown would never find it, and a
+  dashboard that changed clears that memory: when the winner's own cost
+  moves by half, the other mode earns its number again. The choice is
+  bistable on dashboards whose damage-drawn frames spend most of their time
+  on narrow copies (the render-side clock cannot see the worker's tail):
+  charging that tail, charging only the measured stalls, taking the larger
+  of the two pipeline halves, and running rare paced A/B trials were all
+  built and measured, and each fixed one dashboard while breaking another —
+  the cost model stays render-side, and the residual is an open item.
+- The graph widget samples on a clock of its own — a periodic timer that
+  ticks four times per sample interval — and the repaint only drains the ring
+  it fills. It used to read its sources inside the repaint under the LVGL
+  lock, so a dashboard drawing at 32 fps silently halved a 16 ms sample
+  interval and drew half the vertices. Sampling on the telemetry event was
+  measured next and rejected: it restored the rate (58 Hz per graph) but
+  handed the plot the feed's arrival jitter, and since every sample advances
+  the same distance along the time axis, uneven arrivals stretch and squeeze
+  the curve — visible as steps that change with the feed rate. A frozen plot
+  drawn entirely from the board's own clock and its own waveform was the
+  control experiment that settled it. Each sample now lands on a schedule
+  (previous slot plus the interval, resynchronized only after a long stall),
+  so what arrives late still plots where it belongs. What was left of the
+  stepped look was the coordinate type:
+  `lv_value_precise_t` is an integer unless `LV_USE_FLOAT`, and a trace that
+  moves less than a pixel between samples is then drawn as a solid bar that
+  jumps a whole row. The ESP32-P4 build enables float precision and the
+  widget keeps a sixteenth of a pixel through the ring, at no measured cost
+  to any pattern. Unpaced renders measured at
   120 Hz before the judder verdict: text_only 120 fps, shapes_96 113
   (above plain partial's 107), huge_text_4 96, text_16 86, arcs_12 86,
   sprites_24 68. Paced, everything that can render at 60 locks to the

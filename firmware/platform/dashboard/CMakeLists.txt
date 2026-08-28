@@ -17,6 +17,8 @@ set(component_sources
     "widgets/arc/src/arc_widget.cpp"
     "widgets/bar/src/bar_widget.cpp"
     "widgets/graph/src/graph_binding.cpp"
+    "widgets/graph/src/graph_plot.cpp"
+    "widgets/graph/src/graph_sampling.cpp"
     "widgets/graph/src/graph_widget.cpp"
     "widgets/image/src/image_widget.cpp"
     "widgets/indicator/src/indicator_widget.cpp"

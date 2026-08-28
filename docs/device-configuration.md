@@ -434,7 +434,14 @@ way the `number` transform parses one.
   `blink_ms` once the fraction reaches `blink_threshold`, whose default of `2`
   is outside the clamped fraction and therefore never blinks.
 - `graph` keeps `point_count` samples taken every `sample_interval_ms` and draws
-  them as a `line_width_px` trace in `line_color`. `traces` adds up to two more
+  them as a `line_width_px` trace in `line_color`. Samples are taken when
+  a clock of its own says so, not when the screen repaints and not when
+  telemetry arrives: sampling on the repaint silently halved a 16 ms interval
+  on a dashboard drawing at 32 fps, and sampling on arrival handed the plot
+  the feed's jitter, which stretches the curve because a sample always
+  advances the same distance along the time axis. Each sample also keeps a
+  sixteenth of a pixel of vertical precision, so a slow-moving trace slopes
+  instead of stepping between whole rows. `traces` adds up to two more
   sources over the same plot, each with a `source`, a `minimum`/`maximum` window
   and a `line_color` of its own — the widget's own source is the first trace, so
   three is the total. One point count and one sample clock serve all of them, so

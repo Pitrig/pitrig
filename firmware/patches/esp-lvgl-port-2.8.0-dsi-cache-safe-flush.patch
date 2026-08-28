@@ -27,7 +27,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  #define LVGL_PORT_IRAM IRAM_ATTR
  #else
  #define LVGL_PORT_IRAM
-@@ -66,6 +69,33 @@ typedef struct {
+@@ -66,6 +69,35 @@ typedef struct {
      lv_display_t              *disp_drv;      /* LVGL display driver */
      lv_display_rotation_t     current_rotation;
      SemaphoreHandle_t         trans_sem;      /* Idle transfer mutex */
@@ -54,6 +54,8 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +    uint32_t                  mode_cost_ema[2]; /* Measured frame cost per mode: 0 partial, 1 widened */
 +    volatile uint32_t         last_swap_wait_us; /* Pacing wait of the previous swap, excluded from cost */
 +    uint8_t                   mode_best;
++    uint8_t                   mode_measured;  /* Modes whose cost was actually observed */
++    uint32_t                  probe_baseline; /* Winner cost when the loser was last believed */
 +    uint16_t                  probe_tick;
 +    int64_t                   frame_t0;
 +    uint32_t                  strip_rows;     /* Rows the current frame's strips have covered */
@@ -61,7 +63,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      lvgl_port_rounder_cb_t    rounder_cb;     /* Rounder callback for display area */
  #if LVGL_PORT_PPA
      lvgl_port_ppa_handle_t    ppa_handle;
-@@ -75,10 +105,336 @@ typedef struct {
+@@ -75,10 +107,352 @@ typedef struct {
          unsigned int swap_bytes: 1;  /* Swap bytes in RGB656 (16-bit) before send to LCD driver */
          unsigned int full_refresh: 1;   /* Always make the whole screen redrawn */
          unsigned int direct_mode: 1;    /* Use screen-sized buffers and draw to absolute coordinates */
@@ -185,6 +187,20 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +}
 +#endif
 +
++static uint32_t lvgl_port_vsync_gap(uint32_t frame_cost)
++{
++    if (frame_cost > 52000U) {
++        return 4U;
++    }
++    if (frame_cost > 36000U) {
++        return 3U;
++    }
++    if (frame_cost > 20000U) {
++        return 2U;
++    }
++    return 1U;
++}
++
 +static void lvgl_port_adaptive_refr_start_callback(lv_event_t *e)
 +{
 +    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_event_get_user_data(e);
@@ -198,11 +214,20 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +    disp_ctx->probe_tick = (uint16_t)((disp_ctx->probe_tick + 1U) & 1023U);
 +    const uint32_t best_cost = disp_ctx->mode_cost_ema[disp_ctx->mode_best];
 +    const uint32_t other_cost = disp_ctx->mode_cost_ema[disp_ctx->mode_best ^ 1U];
-+    /* Probing the losing mode costs a burst of slow frames — a visible hiccup.
-+     * At panel lock nothing can beat the panel, so probing is pointless; when
-+     * the loser is far behind, checking it once in a while is plenty. */
++    /* A probe runs the losing mode, and a probe frame that overruns the budget
++     * the pacing is quantized to slips a whole refresh — the periodic stutter
++     * graph dashboards showed. So probe only where it cannot be seen: never
++     * once the winner holds the panel rate, and otherwise only while the
++     * loser's own average still fits inside that budget. A loser measured too
++     * slow to fit stops being probed until the winner's cost moves it back
++     * into reach, which is exactly when the answer could change. */
++    const uint32_t budget = lvgl_port_vsync_gap(best_cost) * 16667U;
++    const uint8_t loser_bit = (uint8_t)(1U << (disp_ctx->mode_best ^ 1U));
++    const bool loser_unknown = (disp_ctx->mode_measured & loser_bit) == 0U;
++    const bool probe_unseen = other_cost + (other_cost >> 3) <= budget;
 +    const uint16_t probe_mask = other_cost < best_cost + (best_cost >> 1) ? 127U : 1023U;
-+    if (best_cost > 17500U && (disp_ctx->probe_tick & probe_mask) < 4U) {
++    if (best_cost > 17500U && (loser_unknown || probe_unseen)
++            && (disp_ctx->probe_tick & probe_mask) < 4U) {
 +        mode = disp_ctx->mode_best ^ 1U;
 +    }
 +    disp_ctx->frame_full = mode;
@@ -312,15 +337,8 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
 +                lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
 +#endif
-+                uint32_t vsync_gap = 1;
-+                const uint32_t frame_cost = ctx->mode_cost_ema[ctx->mode_best];
-+                if (frame_cost > 52000U) {
-+                    vsync_gap = 4;
-+                } else if (frame_cost > 36000U) {
-+                    vsync_gap = 3;
-+                } else if (frame_cost > 20000U) {
-+                    vsync_gap = 2;
-+                }
++                const uint32_t vsync_gap =
++                    lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best]);
 +                const int64_t wait_start = esp_timer_get_time();
 +                uint32_t waits = 0;
 +                while (ctx->refresh_count - ctx->queued_refresh_count < vsync_gap && waits < 10U) {
@@ -398,7 +416,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  /*******************************************************************************
  * Function definitions
  *******************************************************************************/
-@@ -155,13 +511,21 @@ lv_display_t *lvgl_port_add_disp_dsi(const lvgl_port_display_cfg_t *disp_cfg,
+@@ -155,13 +529,21 @@ lv_display_t *lvgl_port_add_disp_dsi(const lvgl_port_display_cfg_t *disp_cfg,
  
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
          esp_lcd_dpi_panel_event_callbacks_t cbs = {0};
@@ -421,7 +439,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  
          /* Apply rotation from initial display configuration */
          lvgl_port_disp_rotation_update(disp_ctx);
-@@ -226,6 +590,83 @@ lv_display_t *lvgl_port_add_disp_rgb(const lvgl_port_display_cfg_t *disp_cfg,
+@@ -226,6 +608,83 @@ lv_display_t *lvgl_port_add_disp_rgb(const lvgl_port_display_cfg_t *disp_cfg,
      return disp;
  }
  
@@ -505,7 +523,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
  {
      assert(disp);
-@@ -251,6 +692,9 @@ esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
+@@ -251,6 +710,9 @@ esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
          free(disp_ctx->oled_buffer);
      }
  
@@ -515,7 +533,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      if (disp_ctx->trans_sem) {
          vSemaphoreDelete(disp_ctx->trans_sem);
      }
-@@ -317,7 +761,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -317,7 +779,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
      }
  
      /* Display context */
@@ -524,7 +542,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      /* When ISR IRAM safety is enabled, the display context is passed directly
      * to the ISR callback as user_ctx. It must reside in internal RAM so it
      * remains accessible when the cache is disabled during SPI flash operations. */
-@@ -356,6 +800,11 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -356,6 +818,11 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
      }
  
      /* Use RGB internal buffers for avoid tearing effect */
@@ -536,7 +554,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      if (priv_cfg && priv_cfg->avoid_tearing) {
  #if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
          if (priv_cfg->disp_type ==  LVGL_PORT_DISP_TYPE_RGB) {
-@@ -367,14 +816,19 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -367,14 +834,19 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
          if (priv_cfg->disp_type ==  LVGL_PORT_DISP_TYPE_DSI) {
              buffer_size = disp_cfg->hres * disp_cfg->vres;
@@ -561,7 +579,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      } else {
          /* alloc draw buffers used by LVGL */
          /* it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized */
-@@ -387,6 +841,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -387,6 +859,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
  
          disp_ctx->draw_buffs[0] = buf1;
          disp_ctx->draw_buffs[1] = buf2;
@@ -569,7 +587,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      }
  
      disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
-@@ -434,6 +889,18 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -434,6 +907,18 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
  
          disp_ctx->flags.full_refresh = 1;
          lv_display_set_buffers(disp, buf1, buf2, buffer_size * color_bytes, LV_DISPLAY_RENDER_MODE_FULL);
@@ -588,7 +606,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      } else {
          lv_display_set_buffers(disp, buf1, buf2, buffer_size * color_bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
      }
-@@ -446,6 +913,50 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+@@ -446,6 +931,51 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
      lv_display_set_driver_data(disp, disp_ctx);
      disp_ctx->disp_drv = disp;
  
@@ -624,6 +642,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +                disp_ctx->panel_fbs[2] = fb2;
 +                disp_ctx->mode_cost_ema[0] = 30000U;
 +                disp_ctx->mode_cost_ema[1] = 30000U;
++                disp_ctx->probe_baseline = 30000U;
 +                disp_ctx->flags.full_strips = 1;
 +                lv_display_add_event_cb(disp, lvgl_port_adaptive_refr_start_callback,
 +                                        LV_EVENT_REFR_START, disp_ctx);
@@ -639,7 +658,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      /* Use SW rotation */
      if (disp_cfg->flags.sw_rotate) {
  #if LVGL_PORT_PPA
-@@ -511,27 +1022,36 @@ static bool lvgl_port_flush_io_ready_callback(esp_lcd_panel_io_handle_t panel_io
+@@ -511,27 +1041,36 @@ static bool lvgl_port_flush_io_ready_callback(esp_lcd_panel_io_handle_t panel_io
  }
  
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
@@ -688,7 +707,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      }
  
      return (need_yield == pdTRUE);
-@@ -552,8 +1072,8 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_rgb_vsync_ready_callback(esp_lcd_pane
+@@ -552,8 +1091,8 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_rgb_vsync_ready_callback(esp_lcd_pane
          return false;
      }
  
@@ -699,7 +718,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      }
  
      return (need_yield == pdTRUE);
-@@ -741,21 +1261,185 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+@@ -741,21 +1280,195 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
          _lvgl_port_transform_monochrome(drv, area, &color_map);
      }
  
@@ -777,9 +796,19 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +            frame_cost = frame_cost > swap_leak ? frame_cost - swap_leak : 0;
 +            uint32_t *ema = &disp_ctx->mode_cost_ema[disp_ctx->frame_full];
 +            *ema = *ema - (*ema >> 3) + (frame_cost >> 3);
++            disp_ctx->mode_measured |= (uint8_t)(1U << disp_ctx->frame_full);
 +            const uint32_t other_cost = disp_ctx->mode_cost_ema[disp_ctx->mode_best ^ 1U];
 +            if (other_cost + (other_cost >> 3) < disp_ctx->mode_cost_ema[disp_ctx->mode_best]) {
 +                disp_ctx->mode_best ^= 1U;
++            }
++            /* A dashboard that changed makes the unprobed mode's stored cost a
++             * guess about something else: once the winner's own cost moves by
++             * half, the other mode has to earn its number again. */
++            const uint32_t winner = disp_ctx->mode_cost_ema[disp_ctx->mode_best];
++            const uint32_t baseline = disp_ctx->probe_baseline;
++            if (winner > baseline + (baseline >> 1) || winner + (winner >> 1) < baseline) {
++                disp_ctx->mode_measured = (uint8_t)(1U << disp_ctx->mode_best);
++                disp_ctx->probe_baseline = winner;
 +            }
 +#endif
 +            disp_ctx->frame_full = 0;

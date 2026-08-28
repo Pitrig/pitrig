@@ -4,7 +4,9 @@
 
 #include "esp_lvgl_port.h"
 #include "graph_binding.hpp"
+#include "graph_plot.hpp"
 #include "logger.hpp"
+#include "simcore_features.hpp"
 #include "lvgl.h"
 #include "widget_conditions.hpp"
 
@@ -12,24 +14,6 @@ namespace simcore::dashboard::graph_widget {
 namespace {
 
 constexpr char kTag[] = "graph_widget";
-
-[[nodiscard]] std::int32_t line_reserve(const std::uint16_t line_width_px) {
-  return (static_cast<std::int32_t>(line_width_px) + 1) / 2;
-}
-
-[[nodiscard]] std::int32_t corner_reserve(const std::uint16_t radius_px,
-                                          const std::int32_t border_px) {
-  const std::int32_t inner =
-      std::max<std::int32_t>(static_cast<std::int32_t>(radius_px) - border_px, 0);
-  return (inner * 2929 + 9999) / 10000;
-}
-
-[[nodiscard]] std::int32_t sample_y(const std::int32_t plot_height,
-                                    const float fraction) {
-  const auto y = static_cast<std::int32_t>(
-      static_cast<float>(plot_height) * (1.0F - fraction) + 0.5F);
-  return std::clamp<std::int32_t>(y, 0, plot_height);
-}
 
 void apply_line_color(void* const context, const std::uint32_t rgb) {
   auto& state = *static_cast<State*>(context);
@@ -54,46 +38,6 @@ void release_plot_buffer(lv_event_t* const event) {
   }
 }
 
-void clear_columns(const State& state, lv_layer_t& layer,
-                   const std::int32_t from, const std::int32_t count) {
-  if (count <= 0) {
-    return;
-  }
-  lv_draw_rect_dsc_t descriptor;
-  lv_draw_rect_dsc_init(&descriptor);
-  descriptor.bg_color = lv_color_hex(state.background_rgb);
-  descriptor.bg_opa = LV_OPA_COVER;
-  const std::int32_t height = state.plot_height + 2 * state.line_inset;
-  lv_area_t area{from, 0, from + count - 1, height - 1};
-  lv_draw_rect(&layer, &descriptor, &area);
-  if (area.x2 >= state.plot_width) {
-    lv_area_t wrapped{area.x1 - state.plot_width, 0,
-                      area.x2 - state.plot_width, height - 1};
-    lv_draw_rect(&layer, &descriptor, &wrapped);
-  }
-}
-
-void draw_segment(const State& state, lv_layer_t& layer,
-                  const std::uint32_t rgb, const std::int32_t x0,
-                  const std::int32_t y0, const std::int32_t x1,
-                  const std::int32_t y1) {
-  lv_draw_line_dsc_t descriptor;
-  lv_draw_line_dsc_init(&descriptor);
-  descriptor.color = lv_color_hex(rgb);
-  descriptor.width = state.line_width_px;
-  descriptor.opa = LV_OPA_COVER;
-  descriptor.p1 = {static_cast<lv_value_precise_t>(x0),
-                   static_cast<lv_value_precise_t>(y0)};
-  descriptor.p2 = {static_cast<lv_value_precise_t>(x1),
-                   static_cast<lv_value_precise_t>(y1)};
-  lv_draw_line(&layer, &descriptor);
-  if (x1 >= state.plot_width) {
-    descriptor.p1.x -= static_cast<lv_value_precise_t>(state.plot_width);
-    descriptor.p2.x -= static_cast<lv_value_precise_t>(state.plot_width);
-    lv_draw_line(&layer, &descriptor);
-  }
-}
-
 }
 
 bool Collection::build(State& state, const Layout& layout, const Config& config,
@@ -110,7 +54,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.trace_count = std::min(binding.count, config.trace_count + std::size_t{1});
   state.sample_interval_ms = config.sample_interval_ms;
   state.line_width_px = config.line_width_px;
-  state.line_inset = line_reserve(config.line_width_px);
+  state.line_inset = plot::line_reserve(config.line_width_px);
   state.override_rgb = configuration::kTransparentColor;
   state.background_rgb =
       config.frame.background_color == configuration::kTransparentColor
@@ -120,10 +64,12 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.head_x = 0;
   state.step_carry = 0.0F;
   state.initialized = false;
+  state.pending_write.store(0, std::memory_order_relaxed);
+  state.pending_read.store(0, std::memory_order_relaxed);
 
   const std::int32_t border = config.frame.border.width_px;
   const std::int32_t reserve =
-      state.line_inset + corner_reserve(config.frame.border.radius_px, border);
+      state.line_inset + plot::corner_reserve(config.frame.border.radius_px, border);
   state.plot_width = std::max<std::int32_t>(
       bounds.width - 2 * border - config.frame.padding.left -
           config.frame.padding.right - 2 * reserve,
@@ -193,59 +139,74 @@ bool Collection::create(const Layout& layout,
   if (layout.display == nullptr || configurations.size() != bindings.size()) {
     return false;
   }
-  return build_all(bindings.size(), [&](State& state, const std::size_t index) {
-    return bindings[index].count > 0 &&
-           build(state, layout, configurations[index], bindings[index], fonts);
-  });
+  const bool created =
+      build_all(bindings.size(), [&](State& state, const std::size_t index) {
+        return bindings[index].count > 0 &&
+               build(state, layout, configurations[index], bindings[index], fonts);
+      });
+  start_sampling();
+  return created;
 }
 
-void Collection::render_state(State& state) {
-  state.painter.render();
-  const std::uint32_t now = lv_tick_get();
-  const bool due = !state.initialized ||
-                   now - state.last_sample_tick >= state.sample_interval_ms;
-  if (!due || state.canvas == nullptr) {
-    return;
-  }
-  state.last_sample_tick = now;
-  const bool first = !state.initialized;
-  state.initialized = true;
 
-  const float advance = first ? 0.0F : state.step_px + state.step_carry;
+
+void Collection::draw_sample(State& state, lv_layer_t& layer,
+                             const std::span<const std::int16_t> sample) {
+  const float advance = state.step_px + state.step_carry;
   const auto dx = static_cast<std::int32_t>(advance);
   state.step_carry = advance - static_cast<float>(dx);
   const std::int32_t next_x = state.head_x + dx;
-
-  lv_layer_t layer;
-  lv_canvas_init_layer(state.canvas, &layer);
   if (dx > 0) {
-    clear_columns(state, layer, state.head_x + 1, dx + state.line_inset);
+    plot::clear_columns(state, layer, state.head_x + 1, dx + state.line_inset);
   }
   for (std::size_t index = 0; index < state.trace_count; ++index) {
     Trace& trace = state.traces[index];
-    const telemetry::TelemetryRead value = trace.read(trace.read_context);
-    const std::optional<double> numeric = conditions::condition_value(value);
-    const float fraction =
-        numeric.has_value() ? conditions::range_fraction(*numeric, trace.range)
-                            : 0.0F;
-    const std::int32_t y =
-        state.line_inset + sample_y(state.plot_height, fraction);
-    if (trace.has_previous && !first) {
+    const float y = static_cast<float>(sample[index]) / plot::kSubPixel;
+    if (trace.has_previous) {
       const std::uint32_t rgb =
           state.override_rgb == configuration::kTransparentColor
               ? trace.color
               : state.override_rgb;
-      draw_segment(state, layer, rgb, state.head_x, trace.previous_y, next_x,
+      plot::draw_segment(state, layer, rgb, state.head_x, trace.previous_y, next_x,
                    y);
     }
     trace.previous_y = y;
     trace.has_previous = true;
   }
-  lv_canvas_finish_layer(state.canvas, &layer);
-
   state.head_x = next_x % state.plot_width;
+}
+
+void Collection::render_state(State& state) {
+  state.painter.render();
+  if (state.canvas == nullptr) {
+    return;
+  }
+  std::uint8_t read = state.pending_read.load(std::memory_order_relaxed);
+  const std::uint8_t write = state.pending_write.load(std::memory_order_acquire);
+  if (read == write) {
+    return;
+  }
+  lv_layer_t layer;
+  lv_canvas_init_layer(state.canvas, &layer);
+  while (read != write) {
+    draw_sample(state, layer, state.pending[read]);
+    read = static_cast<std::uint8_t>((read + 1) % kPendingSamples);
+  }
+  lv_canvas_finish_layer(state.canvas, &layer);
+  state.pending_read.store(read, std::memory_order_release);
+
   lv_image_set_offset_x(state.canvas, state.plot_width - 1 - state.head_x);
   lv_obj_invalidate(state.canvas);
+}
+
+void Collection::on_released(const std::size_t index) {
+  if (index == 0) {
+    stop_sampling();
+  }
+  State& state = states_[index];
+  state.canvas = nullptr;
+  state.pending_write.store(0, std::memory_order_relaxed);
+  state.pending_read.store(0, std::memory_order_relaxed);
 }
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
@@ -255,9 +216,11 @@ bool Collection::recreate(const std::size_t index, const Layout& layout,
   if (binding.count == 0) {
     return false;
   }
-  return rebuild_one(index, [&](State& state) {
+  const bool rebuilt = rebuild_one(index, [&](State& state) {
     return build(state, layout, configuration, binding, fonts);
   });
+  start_sampling();
+  return rebuilt;
 }
 
 }
