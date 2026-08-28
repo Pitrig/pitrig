@@ -79,7 +79,7 @@ class Collection final
                               const WidgetBinding& binding,
                               const fonts::Registry& fonts);
   void sample_all();
-  static void sample_timer(void* context);
+  static void sample_task(void* context);
 
  private:
   friend frame::Collection<Collection, State, kMaximumInstances>;

@@ -1,25 +1,41 @@
 #include <algorithm>
+#include <array>
 
-#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "graph_plot.hpp"
 #include "graph_widget.hpp"
 #include "lvgl.h"
+#include "simcore_features.hpp"
 #include "widget_conditions.hpp"
 
 namespace simcore::dashboard::graph_widget {
 namespace {
 
 constexpr std::uint32_t kSampleTickDivisor = 4;
-constexpr std::uint64_t kMinimumSampleTickUs = 2'000;
+constexpr std::uint32_t kMinimumSampleTickMs = 2;
+constexpr std::size_t kSamplerStackSize = 3072;
+constexpr UBaseType_t kSamplerPriority = 2;
 
 Collection* g_sampling_collection = nullptr;
-esp_timer_handle_t g_sample_timer = nullptr;
+TaskHandle_t g_sampler_task = nullptr;
+StaticTask_t g_sampler_state;
+std::array<StackType_t, kSamplerStackSize / sizeof(StackType_t)> g_sampler_stack;
+volatile std::uint32_t g_sampler_period_ms = 0;
 
 }
 
-void Collection::sample_timer(void*) {
-  if (g_sampling_collection != nullptr) {
+void Collection::sample_task(void*) {
+  TickType_t previous = xTaskGetTickCount();
+  while (true) {
+    const std::uint32_t period = g_sampler_period_ms;
+    if (period == 0 || g_sampling_collection == nullptr) {
+      vTaskDelay(pdMS_TO_TICKS(20));
+      previous = xTaskGetTickCount();
+      continue;
+    }
     g_sampling_collection->sample_all();
+    vTaskDelayUntil(&previous, pdMS_TO_TICKS(period));
   }
 }
 
@@ -81,32 +97,22 @@ void Collection::start_sampling() {
     }
   }
   if (shortest == 0) {
+    stop_sampling();
     return;
   }
   g_sampling_collection = this;
-  if (g_sample_timer == nullptr) {
-    const esp_timer_create_args_t timer_args{
-        .callback = &Collection::sample_timer,
-        .arg = nullptr,
-        .dispatch_method = ESP_TIMER_TASK,
-        .name = "graphSample",
-        .skip_unhandled_events = true,
-    };
-    if (esp_timer_create(&timer_args, &g_sample_timer) != ESP_OK) {
-      return;
-    }
+  g_sampler_period_ms =
+      std::max<std::uint32_t>(kMinimumSampleTickMs, shortest / kSampleTickDivisor);
+  if (g_sampler_task == nullptr) {
+    g_sampler_task = xTaskCreateStaticPinnedToCore(
+        &Collection::sample_task, "graphSample", g_sampler_stack.size(), nullptr,
+        kSamplerPriority, g_sampler_stack.data(), &g_sampler_state,
+        SIMCORE_COMMUNICATION_CORE);
   }
-  const std::uint64_t period = std::max<std::uint64_t>(
-      kMinimumSampleTickUs,
-      static_cast<std::uint64_t>(shortest) * 1000U / kSampleTickDivisor);
-  (void)esp_timer_stop(g_sample_timer);
-  (void)esp_timer_start_periodic(g_sample_timer, period);
 }
 
 void Collection::stop_sampling() {
-  if (g_sample_timer != nullptr) {
-    (void)esp_timer_stop(g_sample_timer);
-  }
+  g_sampler_period_ms = 0;
 }
 
 }
