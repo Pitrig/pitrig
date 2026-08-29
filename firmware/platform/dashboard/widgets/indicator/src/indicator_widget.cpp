@@ -1,10 +1,9 @@
 #include "indicator_widget.hpp"
 
 #include <algorithm>
-#include <cmath>
-#include <numbers>
 
 #include "esp_lvgl_port.h"
+#include "indicator_geometry.hpp"
 #include "logger.hpp"
 #include "lvgl.h"
 #include "widget_conditions.hpp"
@@ -13,69 +12,6 @@ namespace simcore::dashboard::indicator_widget {
 namespace {
 
 constexpr char kTag[] = "indicator_widget";
-
-struct Ring {
-  float radius{};
-  std::int32_t centre_x{};
-  std::int32_t centre_y{};
-};
-
-Ring resolve_ring(const Config& config, const std::int32_t inner_width,
-                  const std::int32_t inner_height) {
-  const float thickness = static_cast<float>(config.thickness_px);
-  const float fitted =
-      static_cast<float>(std::min(inner_width, inner_height)) / 2.0F -
-      thickness / 2.0F;
-  const float radius = config.radius_px != 0
-                           ? static_cast<float>(config.radius_px)
-                           : fitted;
-  const float centre_x = static_cast<float>(inner_width) / 2.0F +
-                         static_cast<float>(config.center_x_px);
-  const float centre_y = static_cast<float>(inner_height) / 2.0F +
-                         static_cast<float>(config.center_y_px);
-  return Ring{radius, static_cast<std::int32_t>(std::lround(centre_x)),
-              static_cast<std::int32_t>(std::lround(centre_y))};
-}
-
-[[nodiscard]] std::size_t slot_of(const State& state, const std::size_t index) {
-  return state.inverted ? state.segment_count - 1 - index : index;
-}
-
-[[nodiscard]] lv_area_t lamp_area(const State& state, const std::size_t index,
-                                  const lv_area_t& content) {
-  const auto offset = static_cast<std::int32_t>(slot_of(state, index)) *
-                      (state.lamp_length + state.lamp_gap);
-  if (state.horizontal) {
-    const std::int32_t left = content.x1 + offset;
-    return {left, content.y1, left + state.lamp_length - 1, content.y2};
-  }
-  const std::int32_t bottom = content.y2 - offset;
-  return {content.x1, bottom - state.lamp_length + 1, content.x2, bottom};
-}
-
-[[nodiscard]] float lamp_start_deg(const State& state,
-                                   const std::size_t index) {
-  return state.arc_start_deg + static_cast<float>(slot_of(state, index)) *
-                                   (state.arc_length_deg + state.arc_gap_deg);
-}
-
-[[nodiscard]] std::uint16_t outer_radius(const State& state) {
-  return static_cast<std::uint16_t>(std::lround(
-      state.ring_radius + static_cast<float>(state.thickness) / 2.0F));
-}
-
-[[nodiscard]] lv_area_t lamp_arc_area(const State& state,
-                                      const std::size_t index,
-                                      const lv_area_t& content) {
-  lv_area_t area{};
-  const float start = lamp_start_deg(state, index);
-  lv_draw_arc_get_area(
-      content.x1 + state.ring_center_x, content.y1 + state.ring_center_y,
-      outer_radius(state), static_cast<lv_value_precise_t>(start),
-      static_cast<lv_value_precise_t>(start + state.arc_length_deg),
-      state.thickness, state.rounded, &area);
-  return area;
-}
 
 [[nodiscard]] bool overlaps(const lv_area_t& area, const lv_area_t& clip) {
   return area.x1 <= clip.x2 && area.x2 >= clip.x1 && area.y1 <= clip.y2 &&
@@ -104,7 +40,7 @@ void draw_lamps(lv_event_t* const event) {
     arc.rounded = state->rounded ? 1U : 0U;
     arc.center = {content.x1 + state->ring_center_x,
                   content.y1 + state->ring_center_y};
-    arc.radius = outer_radius(*state);
+    arc.radius = geometry::outer_radius(*state);
   } else {
     lv_draw_rect_dsc_init(&rect);
     rect.bg_opa = LV_OPA_COVER;
@@ -118,17 +54,18 @@ void draw_lamps(lv_event_t* const event) {
     }
     const std::uint32_t rgb = lit ? state->colors[index] : state->off_color;
     if (state->arc_shape) {
-      if (!overlaps(lamp_arc_area(*state, index, content), layer->_clip_area)) {
+      const lv_area_t area = geometry::lamp_arc_area(*state, index, content);
+      if (!overlaps(area, layer->_clip_area)) {
         continue;
       }
-      const float start = lamp_start_deg(*state, index);
+      const std::int32_t start = geometry::lamp_start_deg(*state, index);
       arc.color = lv_color_hex(rgb);
       arc.start_angle = static_cast<lv_value_precise_t>(start);
       arc.end_angle =
           static_cast<lv_value_precise_t>(start + state->arc_length_deg);
       lv_draw_arc(layer, &arc);
     } else {
-      const lv_area_t area = lamp_area(*state, index, content);
+      const lv_area_t area = geometry::lamp_area(*state, index, content);
       if (!overlaps(area, layer->_clip_area)) {
         continue;
       }
@@ -185,20 +122,17 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.arc_shape = config.shape == configuration::IndicatorShape::arc;
 
   if (state.arc_shape) {
-    const Ring ring = resolve_ring(config, inner_width, inner_height);
+    const geometry::Ring ring =
+        geometry::resolve_ring(config, inner_width, inner_height);
     state.ring_radius = ring.radius;
     state.ring_center_x = ring.centre_x;
     state.ring_center_y = ring.centre_y;
-    state.arc_gap_deg =
-        ring.radius > 0.0F
-            ? static_cast<float>(config.segment_gap_px) * 180.0F /
-                  (std::numbers::pi_v<float> * ring.radius)
-            : 0.0F;
-    state.arc_length_deg = (static_cast<float>(config.sweep_deg) -
-                            state.arc_gap_deg * static_cast<float>(count - 1)) /
-                           static_cast<float>(count);
-    state.arc_start_deg = static_cast<float>(config.start_angle_deg);
-    if (ring.radius <= 0.0F || state.arc_length_deg <= 0.0F) {
+    const geometry::ArcSlices slices =
+        geometry::resolve_arc(config, ring.radius, count);
+    state.arc_start_deg = slices.start_deg;
+    state.arc_length_deg = slices.length_deg;
+    state.arc_gap_deg = slices.gap_deg;
+    if (state.arc_length_deg <= 0) {
       log::error(kTag, "Indicator needs %d segments in %d degrees",
                  static_cast<int>(count), static_cast<int>(config.sweep_deg));
       return false;
@@ -291,8 +225,8 @@ void Collection::render_state(State& state) {
       continue;
     }
     const lv_area_t area = state.arc_shape
-                               ? lamp_arc_area(state, index, content)
-                               : lamp_area(state, index, content);
+                               ? geometry::lamp_arc_area(state, index, content)
+                               : geometry::lamp_area(state, index, content);
     (void)lv_obj_invalidate_area(state.container, &area);
   }
 }

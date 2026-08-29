@@ -46,9 +46,9 @@ struct State {
   std::int32_t ring_center_x{};
   std::int32_t ring_center_y{};
   float ring_radius{};
-  float arc_start_deg{};
-  float arc_length_deg{};
-  float arc_gap_deg{};
+  std::int32_t arc_start_deg{};
+  std::int32_t arc_length_deg{};
+  std::int32_t arc_gap_deg{};
   float blink_threshold{};
   std::uint16_t blink_ms{};
   bool free_running{};

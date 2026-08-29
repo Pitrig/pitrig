@@ -67,11 +67,29 @@ export function arcSlices(
   radius: number
 ): ArcSlice[] {
   if (count <= 0 || radius <= 0) return []
-  const gap = (gapPixels * 180) / (Math.PI * radius)
-  const length = (sweepDegrees - gap * (count - 1)) / count
-  if (length <= 0) return []
+  const wantedGap = (gapPixels * 180) / (Math.PI * radius)
+  const smallestGap = gapPixels > 0 ? 1 : 0
+  const gap = Math.max(Math.round(wantedGap), smallestGap)
+  const spent = gap * (count - 1)
+  const exact = (sweepDegrees - spent) / count
+  if (exact < 0.5) return []
+  const shortest = Math.max(Math.floor(exact), 1)
+  let best: { length: number; gap: number; total: number } | undefined
+  for (let length = shortest; length <= shortest + 1; length += 1) {
+    const total = length * count + spent
+    if (total > 360) continue
+    if (best !== undefined) {
+      const error = Math.abs(sweepDegrees - total)
+      const bestError = Math.abs(sweepDegrees - best.total)
+      if (error > bestError || (error === bestError && total >= best.total)) continue
+    }
+    best = { length, gap, total }
+  }
+  if (best === undefined) return []
+  const slices = best
+  const start = startDegrees + Math.trunc((sweepDegrees - slices.total) / 2)
   return Array.from({ length: count }, (_, index) => ({
-    start: startDegrees + index * (length + gap),
-    sweep: length
+    start: start + index * (slices.length + slices.gap),
+    sweep: slices.length
   }))
 }

@@ -22,6 +22,7 @@ set(component_sources
     "widgets/graph/src/graph_sampling.cpp"
     "widgets/graph/src/graph_widget.cpp"
     "widgets/image/src/image_widget.cpp"
+    "widgets/indicator/src/indicator_geometry.cpp"
     "widgets/indicator/src/indicator_widget.cpp"
     "widgets/shape/src/shape_widget.cpp"
     "widgets/slot/src/slot_widget.cpp"

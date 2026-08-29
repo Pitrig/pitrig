@@ -126,11 +126,13 @@ Colors use `"#RRGGBB"`.
 ## Modules and widgets
 
 A dashboard owns a bounded `screens` array of up to four screens, and the driver
-swipes between them on a board with a touch panel. Each screen carries its own
-`id`, `background_color`, and an ordered `widgets` array discriminated by a
-`type` property. Every widget also carries a stable `id`. A screen's `id` is
-what a `goto_screen` action names, so it is worth setting to something the
-dashboard means rather than leaving as the generated default.
+swipes between them on a board with a touch panel — one swipe moves one screen,
+however far the finger travels, because the swipe that moved the screen owns the
+rest of that press. Each screen carries its own `id`, `background_color`, and an
+ordered `widgets` array discriminated by a `type` property. Every widget also
+carries a stable `id`. A screen's `id` is what a `goto_screen` action names, so
+it is worth setting to something the dashboard means rather than leaving as the
+generated default.
 
 `dashboard.transition` says how a move between screens is drawn, and applies to
 every move whether a swipe or a tap asked for it. `slide` is the default and is
@@ -460,11 +462,15 @@ way the `number` transform parses one.
   `thickness_px` — the rev ring a round dashboard is built on. An arc spends
   `segment_gap_px` along its own ring, so a gap is the same width wherever the
   lamp sits, and any non-zero `segment_radius_px` rounds the lamp ends rather
-  than its corners. Each shape ignores the other's geometry, so switching one
-  costs no rewrite. `inverted` lights from the far end — right instead of left,
-  top instead of bottom, the end of the sweep instead of its start — without
-  changing which lamp lights when, so a mirrored pair of rev bars either side of
-  a gear is one authored strip placed twice.
+  than its corners. Whole degrees are all an arc resolves, so the lamps and the
+  gaps are snapped to one size each and the group is centred on `sweep_deg`
+  rather than filling it exactly — a ring may run a degree or two short or long
+  of what was authored, but no lamp is wider than its neighbour. Each shape
+  ignores the other's geometry, so switching one costs no rewrite. `inverted`
+  lights from the far end — right instead of left, top instead of bottom, the
+  end of the sweep instead of its start — without changing which lamp lights
+  when, so a mirrored pair of rev bars either side of a gear is one authored
+  strip placed twice.
 - `graph` keeps `point_count` samples taken every `sample_interval_ms` and draws
   them as a `line_width_px` trace in `line_color`. Samples are taken when
   a clock of its own says so, not when the screen repaints and not when

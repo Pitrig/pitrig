@@ -184,15 +184,16 @@ void Controller::show(const std::size_t index) {
 void Controller::on_gesture(lv_event_t* const event) {
   auto* const controller =
       static_cast<Controller*>(lv_event_get_user_data(event));
-  if (controller == nullptr) {
+  lv_indev_t* const indev = lv_indev_active();
+  if (controller == nullptr || indev == nullptr) {
     return;
   }
-  const lv_dir_t direction = lv_indev_get_gesture_dir(lv_indev_active());
-  if (direction == LV_DIR_LEFT) {
-    controller->step(1);
-  } else if (direction == LV_DIR_RIGHT) {
-    controller->step(-1);
+  const lv_dir_t direction = lv_indev_get_gesture_dir(indev);
+  if (direction != LV_DIR_LEFT && direction != LV_DIR_RIGHT) {
+    return;
   }
+  lv_indev_wait_release(indev);
+  controller->step(direction == LV_DIR_LEFT ? 1 : -1);
 }
 
 void Controller::step(const int delta) {
