@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 15. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 18. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 15.
+Schema version: 18.
 
 ## Documents
 
@@ -69,6 +69,9 @@ The configuration is transferred and stored as three independent documents. Each
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
 | `BarOrientation` | `horizontal`, `vertical` | Axis a bar fills along. A vertical bar grows upwards unless it is inverted. |
 | `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
+| `FillCorners` | `rounded`, `square` | How what the box paints inside itself meets a rounded corner. rounded gives the background and a value fill the box radius less whatever they are inset by, which is what a filled widget has always drawn. square leaves them with square corners and clips the box to its own outline instead, so a bar keeps a straight leading edge while its ends still follow the rounding. Nothing to decide while the radius is zero. |
+| `ArcMark` | `ring`, `needle` | What an arc draws at the angle its value maps to. ring fills the sweep up to it; needle points a line from the centre at it, over the same track. The mark changes, the mapping does not, so a needle needs no geometry of its own: it spans the radius the ring would occupy and takes its width from thickness_px. |
+| `IndicatorShape` | `strip`, `arc` | How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sweep, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the three angle properties, and each ignores the other's. |
 | `SlotTrigger` | `none`, `value_changed`, `conditions` | How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds. |
 | `WidgetParentKind` | `screen`, `shape`, `slot_page` | Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot. |
 | `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image`, `slot` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. |
@@ -262,6 +265,7 @@ What every widget type owns regardless of what it draws: where it sits, how it i
 | `background_grad_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `background_grad_dir` | `GradientDirection` | `vertical` |
 | `background_inset_px` | integer, 0..65535 | `0` |
+| `fill_corners` | `FillCorners` | `rounded` |
 | `action` | [`WidgetAction`](#widgetaction) | absent |
 | `condition_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `color_ramp` | [`ColorRamp`](#colorramp) | absent |
@@ -317,8 +321,12 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | `start_angle_deg` | integer, 0..359 | `135` |
 | `sweep_deg` | integer, 1..360 | `270` |
 | `thickness_px` | integer, 1..65535 | `8` |
+| `radius_px` | integer, 0 or 1..2048 | `0` |
+| `center_x_px` | integer, -2048..2048 | `0` |
+| `center_y_px` | integer, -2048..2048 | `0` |
 | `track_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `fill_color` | string `#RRGGBB` | `#38BDF8` |
+| `mark` | `ArcMark` | `ring` |
 | `inverted` | boolean | `false` |
 
 ### IndicatorSegment
@@ -332,7 +340,7 @@ One lamp in an indicator strip.
 
 ### IndicatorWidgetConfiguration
 
-A row of lamps that light as one telemetry source climbs its range: shift lights, a rev strip, a stint marker.
+A row or ring of lamps that light as one telemetry source climbs its range: shift lights, a rev strip, the rev ring around a dial.
 
 Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](#valuerange), flattened: they are plain properties of this object in JSON.
 
@@ -340,9 +348,17 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `indicator` | required |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `shape` | `IndicatorShape` | `strip` |
 | `orientation` | `BarOrientation` | `horizontal` |
+| `start_angle_deg` | integer, 0..359 | `135` |
+| `sweep_deg` | integer, 1..360 | `270` |
+| `thickness_px` | integer, 1..65535 | `8` |
+| `radius_px` | integer, 0 or 1..2048 | `0` |
+| `center_x_px` | integer, -2048..2048 | `0` |
+| `center_y_px` | integer, -2048..2048 | `0` |
 | `segment_gap_px` | integer, 0..65535 | `4` |
 | `segment_radius_px` | integer, 0..65535 | `0` |
+| `inverted` | boolean | `false` |
 | `off_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `blink_threshold` | number | `2` |
 | `blink_ms` | integer, 0 or 100..5000 | `0` |

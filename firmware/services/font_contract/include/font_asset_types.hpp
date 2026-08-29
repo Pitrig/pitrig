@@ -45,11 +45,21 @@ using FamilyId = std::array<char, kFamilyIdCapacity>;
 struct FontSpec {
   FamilyId family{};
   std::uint16_t size_px{};
+  FamilyId fallback{};
 };
+
+[[nodiscard]] constexpr bool has_fallback(const FontSpec& spec) {
+  return spec.fallback.front() != '\0';
+}
+
+[[nodiscard]] constexpr FontSpec fallback_spec(const FontSpec& spec) {
+  return FontSpec{.family = spec.fallback, .size_px = spec.size_px};
+}
 
 [[nodiscard]] constexpr bool operator==(const FontSpec& lhs,
                                         const FontSpec& rhs) {
-  return lhs.family == rhs.family && lhs.size_px == rhs.size_px;
+  return lhs.family == rhs.family && lhs.size_px == rhs.size_px &&
+         lhs.fallback == rhs.fallback;
 }
 
 }

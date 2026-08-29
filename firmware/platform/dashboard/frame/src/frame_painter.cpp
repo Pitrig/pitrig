@@ -4,6 +4,18 @@
 #include "widget_conditions.hpp"
 
 namespace simcore::dashboard::frame {
+namespace {
+
+void draw_caption_mask(lv_event_t* const event) {
+  auto* const painter = static_cast<Painter*>(lv_event_get_user_data(event));
+  lv_layer_t* const layer = lv_event_get_layer(event);
+  if (painter == nullptr || layer == nullptr) {
+    return;
+  }
+  painter->paint_caption_mask(layer);
+}
+
+}
 
 void Painter::configure(const Config& config, const Box& box,
                         const std::uint32_t content_color,
@@ -11,17 +23,14 @@ void Painter::configure(const Config& config, const Box& box,
                         void* const color_context) {
   box_ = box;
   attachment_count_ = 0;
-  for (lv_obj_t* const object : {box.caption_gap, box.caption}) {
-    if (object != nullptr && attachment_count_ < attachments_.size()) {
-      attachments_[attachment_count_++] = object;
-    }
+  if (box.caption != nullptr && attachment_count_ < attachments_.size()) {
+    attachments_[attachment_count_++] = box.caption;
   }
-  if (box.caption_gap != nullptr) {
-    background_mask_ = box.caption_gap;
-    background_mask_rgb_ =
-        lv_color_to_u32(lv_obj_get_style_bg_color(box.caption_gap,
-                                                  LV_PART_MAIN)) &
-        0x00FF'FFFFU;
+  caption_mask_ = box.caption_mask;
+  caption_mask_rgb_ = box.caption_mask.rgb;
+  if (caption_mask_.present && box.container != nullptr) {
+    lv_obj_add_event_cb(box.container, &draw_caption_mask,
+                        LV_EVENT_DRAW_POST_END, this);
   }
   apply_color_ = apply_color;
   color_context_ = color_context;
@@ -63,12 +72,27 @@ void Painter::bind(const ValueReadCallback read, void* const context) {
 }
 
 void Painter::release() {
-  for (lv_obj_t* const object : {box_.caption, box_.caption_gap}) {
-    if (object != nullptr) {
-      lv_obj_delete(object);
-    }
+  if (box_.caption != nullptr) {
+    lv_obj_delete(box_.caption);
   }
   *this = Painter{};
+}
+
+void Painter::paint_caption_mask(lv_layer_t* const layer) const {
+  if (!caption_mask_.present || box_.container == nullptr) {
+    return;
+  }
+  lv_area_t coords{};
+  lv_obj_get_coords(box_.container, &coords);
+  lv_draw_rect_dsc_t dsc{};
+  lv_draw_rect_dsc_init(&dsc);
+  dsc.bg_color = lv_color_hex(caption_mask_.rgb);
+  dsc.bg_opa = LV_OPA_COVER;
+  const lv_area_t area = {coords.x1 + caption_mask_.x,
+                          coords.y1 + caption_mask_.y,
+                          coords.x1 + caption_mask_.x + caption_mask_.width - 1,
+                          coords.y1 + caption_mask_.y + caption_mask_.height - 1};
+  lv_draw_rect(layer, &dsc, &area);
 }
 
 void Painter::render() {
@@ -142,11 +166,9 @@ void Painter::apply_style(const conditions::ResolvedStyle& style) {
     }
     lv_obj_set_style_bg_opa(filled, painted ? LV_OPA_COVER : LV_OPA_TRANSP,
                             LV_PART_MAIN);
-    if (background_mask_ != nullptr && box_.background_fill == nullptr) {
-      lv_obj_set_style_bg_color(
-          background_mask_,
-          lv_color_hex(painted ? style.background_color : background_mask_rgb_),
-          LV_PART_MAIN);
+    if (caption_mask_.present && box_.background_fill == nullptr) {
+      caption_mask_.rgb =
+          painted ? style.background_color : caption_mask_rgb_;
     }
   }
   if (style.border_color != applied_style_.border_color) {

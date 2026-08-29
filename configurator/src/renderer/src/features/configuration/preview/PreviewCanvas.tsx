@@ -61,7 +61,7 @@ export function Widgets({
   const placements = useMemo(() => absolutePlacements(configuration), [configuration])
   const screen = screensOf(configuration)[activeScreenIndex]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND
-  const layers: PreviewLayer[] = flattenScreen(screen, slotPage)
+  const layers: PreviewLayer[] = flattenScreen(screen, slotPage, screenBackground)
   const gridSize = resolveGridSize(snap, display)
   const selectedPlacements = selectedIds
     .map((id) => placements.get(id))
@@ -187,7 +187,7 @@ export function Widgets({
             configuration={configuration}
             placements={placements}
             values={values}
-            screenBackground={screenBackground}
+            behind={layer.behind}
             dimmed={dimmed(layer)}
             gestureIdle={(event) =>
               activeTool === 'select' && !pendingInsert && !spaceHeld && event.button !== 1

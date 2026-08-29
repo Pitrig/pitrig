@@ -1,3 +1,4 @@
+import { useBoardSyncStore } from './board-sync-store'
 import { useDeviceStore } from './device-store'
 import { useDraftState } from './draft-state'
 import { useLiveApplyStore } from './live-apply-store'
@@ -6,9 +7,21 @@ export function LiveApplyIndicator(): React.JSX.Element | null {
   const connected = useDeviceStore((state) => state.status === 'connected')
   const pending = useLiveApplyStore((state) => state.pending)
   const error = useLiveApplyStore((state) => state.error)
-  const { missingFamilies } = useDraftState()
+  const question = useBoardSyncStore((state) => state.question)
+  const reopen = useBoardSyncStore((state) => state.reopen)
+  const { liveApplyBlockedReason, boardShowsDraft } = useDraftState()
   if (!connected) return null
 
+  if (question) {
+    return (
+      <span className="flex min-w-0 flex-1 items-center gap-2 text-xs text-amber-300">
+        <span className="truncate">The board runs its own configuration.</span>
+        <button type="button" className="flex-none underline hover:text-amber-200" onClick={reopen}>
+          Resolve
+        </button>
+      </span>
+    )
+  }
   if (error) {
     return (
       <span className="min-w-0 flex-1 truncate text-xs text-amber-300" title={error}>
@@ -17,19 +30,20 @@ export function LiveApplyIndicator(): React.JSX.Element | null {
     )
   }
   if (pending) {
-    return (
-      <span className="flex-none text-xs text-muted-foreground">Applying to the board…</span>
-    )
+    return <span className="flex-none text-xs text-muted-foreground">Applying to the board…</span>
   }
-  if (missingFamilies.length > 0) {
+  if (liveApplyBlockedReason) {
     return (
       <span
-        className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
-        title={`The board does not hold ${missingFamilies.join(', ')} yet.`}
+        className="min-w-0 flex-1 truncate text-xs text-amber-300"
+        title={liveApplyBlockedReason}
       >
-        Preview only until you save — the board lacks a font.
+        {`The board is not following the draft. ${liveApplyBlockedReason}`}
       </span>
     )
+  }
+  if (!boardShowsDraft) {
+    return <span className="flex-none text-xs text-muted-foreground">Sending to the board…</span>
   }
   return null
 }

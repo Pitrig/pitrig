@@ -5,11 +5,9 @@ import { createPreviewValues } from './preview-values'
 import { WidgetBody } from './WidgetBody'
 
 export function WidgetLayers({
-  layers,
-  background
+  layers
 }: {
   layers: readonly PreviewLayer[]
-  background: string
 }): React.JSX.Element {
   const prefix = useId()
   const values = useMemo(() => createPreviewValues(), [])
@@ -38,7 +36,7 @@ export function WidgetLayers({
                 configuration={layer.configuration}
                 values={values}
                 clipId={`${prefix}-widget-${layerIndex}`}
-                screenBackground={background}
+                behind={layer.behind}
               />
             </g>
           </g>

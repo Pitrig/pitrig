@@ -6,6 +6,8 @@ import type { DeviceConfiguration } from '@shared/device'
 import { formatConfiguration, useDeviceStore } from './device-store'
 
 const APPLY_DELAY_MS = 250
+const BUSY_RETRY_DELAY_MS = 750
+const BUSY_RETRIES = 5
 
 export interface LiveApplyState {
   pending: boolean
@@ -14,27 +16,23 @@ export interface LiveApplyState {
 
 export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) => void): void {
   const draft = useDeviceStore((state) => state.draft)
-  const running = useDeviceStore((state) => state.activeConfiguration)
+  const running = useDeviceStore((state) => state.runningConfiguration)
   const inFlight = useRef(false)
   const queued = useRef<DeviceConfiguration | undefined>(undefined)
-  const applied = useRef<DeviceConfiguration | undefined>(undefined)
   const report = useRef(onState)
   useEffect(() => {
     report.current = onState
   })
 
   useEffect(() => {
-    if (!enabled) {
-      applied.current = undefined
-      return
-    }
-    applied.current ??= running
-    if (!draft || configurationsEqual(draft, applied.current)) return
+    if (!enabled || !draft || configurationsEqual(draft, running)) return
+    let cancelled = false
+    let attempts = 0
 
     const send = async (configuration: DeviceConfiguration): Promise<void> => {
-      const changed = documentsDiffering(configuration, applied.current)
+      const changed = documentsDiffering(configuration, running)
       if (changed.length === 0) {
-        applied.current = configuration
+        useDeviceStore.getState().markLiveApplied(configuration)
         return
       }
       inFlight.current = true
@@ -44,11 +42,18 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
         documents: changed
       })
       inFlight.current = false
+      if (cancelled) return
       if (result.ok) {
-        applied.current = configuration
+        useDeviceStore.getState().markLiveApplied(configuration)
         report.current({ pending: false })
       } else {
         report.current({ pending: false, error: result.error.message })
+        if (result.error.code === 'busy' && ++attempts <= BUSY_RETRIES) {
+          window.setTimeout(() => {
+            if (!cancelled && !inFlight.current) void send(configuration)
+          }, BUSY_RETRY_DELAY_MS)
+          return
+        }
       }
       const next = queued.current
       queued.current = undefined
@@ -62,6 +67,9 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
       }
       void send(draft)
     }, APPLY_DELAY_MS)
-    return () => window.clearTimeout(timer)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
   }, [draft, enabled, running])
 }

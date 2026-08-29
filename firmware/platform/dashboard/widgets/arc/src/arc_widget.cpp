@@ -1,6 +1,8 @@
 #include "arc_widget.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <numbers>
 
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
@@ -13,9 +15,63 @@ constexpr char kTag[] = "arc_widget";
 
 constexpr std::int32_t kSweepResolution = 1'000;
 
+constexpr float kFullTurnGapDeg = 0.1F;
+
+[[nodiscard]] float drawn_sweep(const Config& config) {
+  const auto sweep = static_cast<float>(config.sweep_deg);
+  return sweep >= 360.0F ? 360.0F - kFullTurnGapDeg : sweep;
+}
+
 void apply_indicator_color(void* const context, const std::uint32_t rgb) {
   lv_obj_set_style_arc_color(static_cast<lv_obj_t*>(context), lv_color_hex(rgb),
                              LV_PART_INDICATOR);
+}
+
+void apply_needle_color(void* const context, const std::uint32_t rgb) {
+  lv_obj_set_style_line_color(static_cast<lv_obj_t*>(context), lv_color_hex(rgb),
+                              LV_PART_MAIN);
+}
+
+struct Ring {
+  float radius{};
+  std::int32_t left{};
+  std::int32_t top{};
+  std::int32_t side{};
+};
+
+Ring resolve_ring(const Config& config, const std::int32_t inner_width,
+                  const std::int32_t inner_height) {
+  const float thickness = static_cast<float>(config.thickness_px);
+  const float fitted =
+      static_cast<float>(std::min(inner_width, inner_height)) / 2.0F -
+      thickness / 2.0F;
+  const float radius = config.radius_px != 0
+                           ? static_cast<float>(config.radius_px)
+                           : std::max(fitted, 0.0F);
+  const float centre_x = static_cast<float>(inner_width) / 2.0F +
+                         static_cast<float>(config.center_x_px);
+  const float centre_y = static_cast<float>(inner_height) / 2.0F +
+                         static_cast<float>(config.center_y_px);
+  const float side = 2.0F * radius + thickness;
+  return Ring{radius,
+              static_cast<std::int32_t>(std::lround(centre_x - side / 2.0F)),
+              static_cast<std::int32_t>(std::lround(centre_y - side / 2.0F)),
+              static_cast<std::int32_t>(std::lround(side))};
+}
+
+void point_needle(State& state, const float fraction) {
+  const float degrees =
+      state.start_angle_deg + state.sweep_deg * std::clamp(fraction, 0.0F, 1.0F);
+  const float radians = degrees * std::numbers::pi_v<float> / 180.0F;
+  state.needle_points[0] = {static_cast<lv_value_precise_t>(state.centre_x),
+                            static_cast<lv_value_precise_t>(state.centre_y)};
+  state.needle_points[1] = {
+      static_cast<lv_value_precise_t>(state.centre_x +
+                                      state.needle_radius * std::cos(radians)),
+      static_cast<lv_value_precise_t>(state.centre_y +
+                                      state.needle_radius * std::sin(radians))};
+  lv_line_set_points(state.needle, state.needle_points.data(),
+                     state.needle_points.size());
 }
 
 }
@@ -48,15 +104,19 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
           config.frame.padding.bottom,
       0);
 
+  const Ring ring = resolve_ring(config, inner_width, inner_height);
+
   state.arc = lv_arc_create(box.container);
   lv_obj_remove_style_all(state.arc);
-  lv_obj_set_pos(state.arc, 0, 0);
-  lv_obj_set_size(state.arc, inner_width, inner_height);
+  lv_obj_set_pos(state.arc, ring.left, ring.top);
+  lv_obj_set_size(state.arc, ring.side, ring.side);
   lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_SCROLLABLE);
   lv_arc_set_mode(state.arc, LV_ARC_MODE_NORMAL);
-  lv_arc_set_bg_angles(state.arc, config.start_angle_deg,
-                       config.start_angle_deg + config.sweep_deg);
+  lv_arc_set_bg_angles(
+      state.arc, static_cast<lv_value_precise_t>(config.start_angle_deg),
+      static_cast<lv_value_precise_t>(static_cast<float>(config.start_angle_deg) +
+                                      drawn_sweep(config)));
   lv_arc_set_range(state.arc, 0, kSweepResolution);
   lv_arc_set_value(state.arc, 0);
   lv_obj_set_style_arc_width(state.arc, config.thickness_px, LV_PART_MAIN);
@@ -72,8 +132,31 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
                            LV_PART_MAIN);
   state.drawn_per_mille = -1;
 
+  if (config.mark == configuration::ArcMark::needle) {
+    lv_obj_set_style_arc_opa(state.arc, LV_OPA_TRANSP, LV_PART_INDICATOR);
+    state.centre_x = static_cast<float>(ring.side) / 2.0F;
+    state.centre_y = static_cast<float>(ring.side) / 2.0F;
+    state.needle_radius = ring.radius;
+    state.start_angle_deg = static_cast<float>(config.start_angle_deg);
+    state.sweep_deg = static_cast<float>(config.sweep_deg);
+    state.needle = lv_line_create(box.container);
+    lv_obj_remove_style_all(state.needle);
+    lv_obj_set_pos(state.needle, ring.left, ring.top);
+    lv_obj_set_size(state.needle, ring.side, ring.side);
+    lv_obj_remove_flag(state.needle, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(state.needle, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_line_width(state.needle, config.thickness_px, LV_PART_MAIN);
+    lv_obj_set_style_line_color(state.needle, lv_color_hex(config.fill_color),
+                                LV_PART_MAIN);
+    lv_obj_set_style_line_opa(state.needle, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_line_rounded(state.needle, true, LV_PART_MAIN);
+    point_needle(state, state.inverted ? 1.0F : 0.0F);
+  }
+
   state.painter.configure(config.frame, box, config.fill_color,
-                          &apply_indicator_color, state.arc);
+                          state.needle != nullptr ? &apply_needle_color
+                                                  : &apply_indicator_color,
+                          state.needle != nullptr ? state.needle : state.arc);
   state.painter.bind(binding.condition_read, binding.condition_context);
   return true;
 }
@@ -118,6 +201,11 @@ void Collection::render_state(State& state) {
     return;
   }
   state.drawn_per_mille = per_mille;
+  if (state.needle != nullptr) {
+    point_needle(state, static_cast<float>(per_mille) /
+                            static_cast<float>(kSweepResolution));
+    return;
+  }
   lv_arc_set_value(state.arc, per_mille);
 }
 

@@ -40,8 +40,17 @@ export const FRAME_PIXEL_FIELDS: readonly PixelField[] = [
 
 export const TYPE_PIXEL_FIELDS: Partial<Record<WidgetType, readonly PixelField[]>> = {
   text: [{ path: 'value.font.size_px', kind: 'uint16', minimum: 1, maximum: MAXIMUM_FONT_SIZE_PX }],
-  arc: [{ path: 'thickness_px', kind: 'uint16', floorWhenPositive: true }],
+  arc: [
+    { path: 'thickness_px', kind: 'uint16', floorWhenPositive: true },
+    { path: 'radius_px', kind: 'uint16' },
+    { path: 'center_x_px', kind: 'int16', axis: 'x' },
+    { path: 'center_y_px', kind: 'int16', axis: 'y' }
+  ],
   indicator: [
+    { path: 'thickness_px', kind: 'uint16', floorWhenPositive: true },
+    { path: 'radius_px', kind: 'uint16' },
+    { path: 'center_x_px', kind: 'int16', axis: 'x' },
+    { path: 'center_y_px', kind: 'int16', axis: 'y' },
     { path: 'segment_gap_px', kind: 'uint16' },
     { path: 'segment_radius_px', kind: 'uint16' }
   ],

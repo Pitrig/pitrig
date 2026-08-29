@@ -36,6 +36,10 @@ bool resolve_widget_bounds(const Layout& layout,
   }
 
   parent = owner;
+  const std::int32_t content_left =
+      contained ? lv_obj_get_style_space_left(owner, LV_PART_MAIN) : 0;
+  const std::int32_t content_top =
+      contained ? lv_obj_get_style_space_top(owner, LV_PART_MAIN) : 0;
   const std::int32_t parent_width =
       contained ? lv_obj_get_width(owner)
                 : lv_display_get_horizontal_resolution(layout.display);
@@ -47,8 +51,8 @@ bool resolve_widget_bounds(const Layout& layout,
                                   : intrinsic_width);
   const std::int32_t requested_height =
       placement.height > 0 ? placement.height : intrinsic_height;
-  bounds = {.x = placement.x,
-            .y = placement.y,
+  bounds = {.x = placement.x - content_left,
+            .y = placement.y - content_top,
             .width = requested_width,
             .height = requested_height};
   if (bounds.width <= 0 || bounds.height <= 0) {
@@ -56,8 +60,8 @@ bool resolve_widget_bounds(const Layout& layout,
   }
   lv_area_t parent_box{};
   lv_obj_get_coords(owner, &parent_box);
-  const std::int32_t left = parent_box.x1 + bounds.x;
-  const std::int32_t top = parent_box.y1 + bounds.y;
+  const std::int32_t left = parent_box.x1 + content_left + bounds.x;
+  const std::int32_t top = parent_box.y1 + content_top + bounds.y;
   return left + bounds.width > 0 && top + bounds.height > 0 &&
          left < lv_display_get_horizontal_resolution(layout.display) &&
          top < lv_display_get_vertical_resolution(layout.display);

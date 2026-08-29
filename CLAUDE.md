@@ -466,11 +466,16 @@ rest of their halves.
 
 Board state that several pages read is a hook or a store rather than one page's local state:
 `features/device/draft-state.ts` answers whether the draft parses, **which documents** differ from
-the board, and whether it could be saved — one memoized answer, because comparing documents
-canonicalizes each one and four components ask per frame during a drag;
-`save-to-board-store.ts` holds a save that outlives the button that started it — and the
-remount a restart causes; `live-apply-store.ts` holds what the board is currently being told.
-`document-status.tsx` is the chip a page puts in its header to say where its own document stands.
+what the board stores and from what it shows, whether it could be saved, and what holds live apply
+back — one memoized answer, because comparing documents canonicalizes each one and four components
+ask per frame during a drag; `save-to-board-store.ts` holds a save that outlives the button that
+started it — and the remount a restart causes; `live-apply-store.ts` holds what the board is
+currently being told; `board-sync-store.ts` holds the one question a divergence raises and gates
+live apply until it is answered. `document-status.tsx` is the chip a page puts in its header to say
+where its own document stands. The store keeps what the board **stores** (`activeConfiguration`)
+apart from what it **shows** (`runningConfiguration`), which a live `@SC:APPLY` moves and a save
+moves both of; the main process asks `@SC:INFO` every five seconds while the link is idle, so a
+document written from elsewhere is noticed rather than silently overwritten.
 
 ## Conventions
 

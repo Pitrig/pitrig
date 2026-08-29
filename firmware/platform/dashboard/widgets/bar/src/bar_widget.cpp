@@ -68,9 +68,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
             : LV_GRAD_DIR_VER,
         LV_PART_MAIN);
   }
-  lv_obj_set_style_radius(
-      state.fill, std::max<std::int32_t>(config.frame.border.radius_px - border, 0),
-      LV_PART_MAIN);
+  lv_obj_set_style_radius(state.fill, frame::fill_radius(config.frame, border),
+                          LV_PART_MAIN);
   lv_obj_remove_flag(state.fill, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_remove_flag(state.fill, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_set_pos(state.fill, state.origin_x, state.origin_y);

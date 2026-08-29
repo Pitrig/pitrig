@@ -30,12 +30,25 @@ struct State {
   frame::ValueReadCallback read{};
   void* read_context{};
   configuration::ValueRange range{};
-  std::array<lv_obj_t*, kMaximumSegments> segments{};
   std::array<float, kMaximumSegments> thresholds{};
   std::array<std::uint32_t, kMaximumSegments> colors{};
   std::size_t segment_count{};
   std::uint32_t off_color{};
   bool has_off_color{};
+  bool arc_shape{};
+  bool horizontal{};
+  bool inverted{};
+  bool rounded{};
+  std::int32_t lamp_length{};
+  std::int32_t lamp_gap{};
+  std::int32_t lamp_radius{};
+  std::int32_t thickness{};
+  std::int32_t ring_center_x{};
+  std::int32_t ring_center_y{};
+  float ring_radius{};
+  float arc_start_deg{};
+  float arc_length_deg{};
+  float arc_gap_deg{};
   float blink_threshold{};
   std::uint16_t blink_ms{};
   bool free_running{};
@@ -44,6 +57,7 @@ struct State {
   bool rendered_available{};
   std::uint32_t drawn_mask{};
   bool drawn_blink_visible{true};
+  bool drawn_blinking{};
   bool initialized{};
 };
 

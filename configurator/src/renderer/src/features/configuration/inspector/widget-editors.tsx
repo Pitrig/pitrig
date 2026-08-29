@@ -155,4 +155,5 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
   )
 }
 
-export { ArcEditor, BarEditor, GraphEditor, IndicatorEditor } from './gauge-editors'
+export { ArcEditor, BarEditor, GraphEditor } from './gauge-editors'
+export { IndicatorEditor } from './indicator-editor'

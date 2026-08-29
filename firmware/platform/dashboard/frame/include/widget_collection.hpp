@@ -27,6 +27,10 @@ class Collection {
     return index < count_ ? states_[index].container : nullptr;
   }
 
+  [[nodiscard]] lv_obj_t* caption_object(const std::size_t index) const {
+    return index < count_ ? states_[index].painter.caption_object() : nullptr;
+  }
+
   [[nodiscard]] std::size_t instance_count() const { return count_; }
 
   [[nodiscard]] bool extend_to(const std::size_t count) {

@@ -1,4 +1,5 @@
 import bebasNeue from './bundled/bebas-neue.ttf?asset'
+import materialIcons from './bundled/material-icons.ttf?asset'
 import oxaniumBold from './bundled/oxanium_bold.ttf?asset'
 import roboto from './bundled/roboto.ttf?asset'
 import robotoBlack from './bundled/roboto_black.ttf?asset'
@@ -74,6 +75,14 @@ export const BUNDLED_FACES: readonly BundledFace[] = [
     family: 'Oxanium',
     variant: '700',
     path: oxaniumBold
+  },
+  {
+    id: 'material-icons',
+    name: 'Material Icons',
+    category: 'Icons',
+    family: 'Material Icons',
+    variant: '400',
+    path: materialIcons
   },
   {
     id: 'bebas-neue',

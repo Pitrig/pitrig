@@ -19,6 +19,7 @@ import {
   saveDeviceConfiguration
 } from './device-config-commands'
 import { ConnectionManager } from './device-connection'
+import { DeviceHeartbeat } from './device-heartbeat'
 import { OperationRunner } from './device-operation'
 import { closePort } from './serial-port-lifecycle'
 import {
@@ -34,6 +35,7 @@ import { requestResponse, sendControlCommand } from './simcore-protocol'
 export class DeviceService {
   private readonly connection: ConnectionManager
   private readonly runner: OperationRunner
+  private readonly heartbeat: DeviceHeartbeat
 
   constructor(
     onStateChanged: (state: DeviceState) => void,
@@ -41,6 +43,8 @@ export class DeviceService {
   ) {
     this.connection = new ConnectionManager(onStateChanged, onSerialTraffic)
     this.runner = new OperationRunner(this.connection)
+    this.heartbeat = new DeviceHeartbeat(this.connection, this.runner)
+    this.heartbeat.start()
   }
 
   getState(): DeviceState {
@@ -229,6 +233,7 @@ export class DeviceService {
   }
 
   async dispose(): Promise<void> {
+    this.heartbeat.stop()
     await this.connection.closeDevicePorts()
   }
 

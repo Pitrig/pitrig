@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react'
 import { ConditionsEditor } from './ConditionsEditor'
-import { type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphTraceConfiguration, type GraphWidgetConfiguration, type IndicatorWidgetConfiguration, MAXIMUM_GRAPH_SOURCES, MAXIMUM_INDICATOR_SEGMENTS, type RgbColor } from '@shared/configuration-schema'
+import { ARC_MARK_VALUES, type ArcWidgetConfiguration, BAR_ORIENTATION_VALUES, type BarWidgetConfiguration, type GraphTraceConfiguration, type GraphWidgetConfiguration, MAXIMUM_GRAPH_SOURCES, type RgbColor } from '@shared/configuration-schema'
 import { fieldBounds } from '@shared/validate/ranges'
 import { NEW_GRAPH_BINDING, type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
 import { authored } from './authored'
@@ -8,128 +8,27 @@ import { Advanced, Group } from './Group'
 import { HINTS } from './hints'
 import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
-import { CheckboxField, ColorField, ColorSwatchInput, Hint, NumberField, NumberInput, OptionalColorField, SelectField } from './fields'
+import { CheckboxField, ColorField, Hint, NumberField, NumberInput, OptionalColorField, SelectField } from './fields'
+import { RingFields } from './ring-editor'
+import { ringSummary } from './ring-geometry'
 import { SourceRangeFields, SourceRangeSection } from './section-editors'
 import { BoxEditor, TitleEditor } from './styling-editors'
 
-import { AddButton, RemoveButton } from './widget-editors'
+import { AddButton } from './widget-editors'
 
 export function ArcEditor({ selection, widget }: { selection: WidgetSelection; widget: ArcWidgetConfiguration }): React.JSX.Element {
   const update = (mutation: (next: ArcWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as ArcWidgetConfiguration))
   return (
     <>
       <SourceRangeSection widget={widget} update={update} />
-      <Group id="Arc" title="Arc" icon={GROUP_ICONS.arc} summary={`${widget.start_angle_deg ?? 135}° + ${widget.sweep_deg ?? 270}°`}>
-        <PropertyRow
-          label="Angles"
-          hint={HINTS.arc.angles}
-          modified={authored(widget.start_angle_deg, 135) || authored(widget.sweep_deg, 270)}
-          onReset={() => update((next) => {
-            delete next.start_angle_deg
-            delete next.sweep_deg
-          })}
-        >
-          <div className="grid grid-cols-2 gap-1">
-            <NumberInput title="Start angle in degrees" value={widget.start_angle_deg ?? 135} {...fieldBounds('arc', 'start_angle_deg')} onChange={(value) => update((next) => { next.start_angle_deg = value })} />
-            <NumberInput title="Sweep in degrees" value={widget.sweep_deg ?? 270} {...fieldBounds('arc', 'sweep_deg')} onChange={(value) => update((next) => { next.sweep_deg = value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Start</span><span>Sweep</span></div>
-        </PropertyRow>
-        <NumberField label="Thickness" hint={HINTS.arc.thickness} suffix="px" value={widget.thickness_px ?? 8} {...fieldBounds('arc', 'thickness_px')} modified={authored(widget.thickness_px, 8)} onReset={() => update((next) => { delete next.thickness_px })} onChange={(value) => update((next) => { next.thickness_px = value })} />
+      <Group id="Arc" title="Arc" icon={GROUP_ICONS.arc} summary={ringSummary(widget)}>
+        <RingFields widget={widget} owner="arc" update={update} />
+        <SelectField label="Mark" hint={HINTS.arc.mark} value={widget.mark ?? 'ring'} options={ARC_MARK_VALUES} modified={authored(widget.mark, 'ring')} onReset={() => update((next) => { delete next.mark })} onChange={(value) => update((next) => { next.mark = value })} />
         <ColorField label="Fill" value={widget.fill_color ?? '#38BDF8'} modified={authored(widget.fill_color, '#38BDF8')} onReset={() => update((next) => { delete next.fill_color })} onChange={(value) => update((next) => { next.fill_color = value })} />
         <OptionalColorField label="Track" hint={HINTS.arc.track} value={widget.track_color} onChange={(value) => update((next) => { if (value === undefined) delete next.track_color; else next.track_color = value })} />
         <Advanced id="Arc" active={authored(widget.inverted, false)}>
           <CheckboxField label="Invert" hint={HINTS.arc.inverted} checked={widget.inverted ?? false} modified={authored(widget.inverted, false)} onReset={() => update((next) => { delete next.inverted })} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
         </Advanced>
-      </Group>
-      <TitleEditor widget={widget} update={update} />
-      <BoxEditor widget={widget} update={update} />
-      <ConditionsEditor widget={widget} update={update} />
-    </>
-  )
-}
-
-export function IndicatorEditor({ selection, widget }: { selection: WidgetSelection; widget: IndicatorWidgetConfiguration }): React.JSX.Element {
-  const update = (mutation: (next: IndicatorWidgetConfiguration) => void): void => mutateSelectedWidget(selection, (next) => mutation(next as IndicatorWidgetConfiguration))
-  const segments = widget.segments ?? []
-  return (
-    <>
-      <SourceRangeSection widget={widget} update={update} />
-      <Group id="Strip" title="Strip" icon={GROUP_ICONS.strip} summary={widget.orientation ?? 'horizontal'}>
-        <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} modified={authored(widget.orientation, 'horizontal')} onReset={() => update((next) => { delete next.orientation })} onChange={(value) => update((next) => { next.orientation = value })} />
-        <PropertyRow
-          label="Lamps"
-          hint={HINTS.strip.gap}
-          modified={authored(widget.segment_gap_px, 4) || authored(widget.segment_radius_px, 0)}
-          onReset={() => update((next) => {
-            delete next.segment_gap_px
-            delete next.segment_radius_px
-          })}
-        >
-          <div className="grid grid-cols-2 gap-1">
-            <NumberInput title="Gap between lamps in pixels" value={widget.segment_gap_px ?? 4} min={0} onChange={(value) => update((next) => { next.segment_gap_px = value })} />
-            <NumberInput title="Lamp corner radius in pixels" value={widget.segment_radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.segment_radius_px = value })} />
-          </div>
-          <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Gap</span><span>Radius</span></div>
-        </PropertyRow>
-        <OptionalColorField label="Unlit" hint={HINTS.strip.off} value={widget.off_color} onChange={(value) => update((next) => { if (value === undefined) delete next.off_color; else next.off_color = value })} />
-        <Advanced id="Strip" active={authored(widget.blink_threshold, 2) || authored(widget.blink_ms, 0)}>
-          <PropertyRow
-            label="Blink"
-            hint={HINTS.strip.blink}
-            modified={authored(widget.blink_threshold, 2) || authored(widget.blink_ms, 0)}
-            onReset={() => update((next) => {
-              delete next.blink_threshold
-              delete next.blink_ms
-            })}
-          >
-            <div className="grid grid-cols-2 gap-1">
-              <NumberInput title="Blink from this fraction of the range" value={widget.blink_threshold ?? 2} step="any" onChange={(value) => update((next) => { next.blink_threshold = value })} />
-              <NumberInput title="Blink period in milliseconds" value={widget.blink_ms ?? 0} {...fieldBounds('indicator', 'blink_ms')} onChange={(value) => update((next) => { next.blink_ms = value })} />
-            </div>
-            <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>From</span><span>Period (ms)</span></div>
-          </PropertyRow>
-        </Advanced>
-      </Group>
-      <Group id="Segments" title="Segments" icon={GROUP_ICONS.segments} hint={HINTS.strip.segments} summary={`${segments.length} lamp(s)`}>
-        {segments.map((segment, index) => (
-          <PropertyRow
-            key={index}
-            label={`Lamp ${index + 1}`}
-            modified={authored(segment.threshold, 0) || authored(segment.color, '#00C853')}
-            onReset={() => update((next) => {
-              const list = [...(next.segments ?? [])]
-              const lamp = { ...list[index] }
-              delete lamp.threshold
-              delete lamp.color
-              list[index] = lamp
-              next.segments = list
-            })}
-          >
-            <div className="flex items-center gap-1">
-              <NumberInput title={`Lamp ${index + 1} lights at this fraction of the range`} value={segment.threshold ?? 0} step="any" min={0} max={1} onChange={(value) => update((next) => {
-                const list = [...(next.segments ?? [])]
-                list[index] = { ...list[index], threshold: value }
-                next.segments = list
-              })} />
-              <ColorSwatchInput label={`Lamp ${index + 1} color`} value={segment.color ?? '#00C853'} onChange={(color) => update((next) => {
-                const list = [...(next.segments ?? [])]
-                list[index] = { ...list[index], color }
-                next.segments = list
-              })} />
-              <RemoveButton label={`Remove lamp ${index + 1}`} onClick={() => update((next) => {
-                next.segments = (next.segments ?? []).filter((_, position) => position !== index)
-              })} />
-            </div>
-          </PropertyRow>
-        ))}
-        {segments.length < MAXIMUM_INDICATOR_SEGMENTS ? (
-          <AddButton label="Add lamp" onClick={() => update((next) => {
-            const list = next.segments ?? []
-            const previous = list[list.length - 1]
-            next.segments = [...list, { threshold: previous?.threshold ?? 0, color: previous?.color ?? '#00C853' }]
-          })} />
-        ) : <Hint>{`A strip holds at most ${MAXIMUM_INDICATOR_SEGMENTS} lamps.`}</Hint>}
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />

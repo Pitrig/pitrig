@@ -29,7 +29,13 @@ export function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)
 export function documentFonts(
   configuration: ApplicationConfiguration | undefined
 ): (FontSpec | undefined)[] {
-  return allWidgetsOf(configuration).flatMap(widgetFonts)
+  return allWidgetsOf(configuration)
+    .flatMap(widgetFonts)
+    .flatMap((font) =>
+      font?.fallback
+        ? [font, { family: font.fallback, size_px: font.size_px }]
+        : [font]
+    )
 }
 
 export function applyFontFamily(widget: WidgetConfiguration, family: string): void {

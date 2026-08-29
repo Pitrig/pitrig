@@ -16,11 +16,14 @@ export interface DraftState {
   parsed: ValidationResult
   dirty: boolean
   dirtyDocuments: ConfigurationDocumentId[]
+  unappliedDocuments: ConfigurationDocumentId[]
+  boardShowsDraft: boolean
   connected: boolean
   safeMode: boolean
   boardMismatch: boolean
   missingFamilies: string[]
   saveBlockedReason?: string
+  liveApplyBlockedReason?: string
   liveApplyAllowed: boolean
 }
 
@@ -31,7 +34,7 @@ export function useDraftState(): DraftState {
   const rawDraft = useDeviceStore((state) => state.rawDraft)
   const hasLocalDraft = useDeviceStore((state) => state.hasLocalDraft)
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
-  const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
+  const runningConfiguration = useDeviceStore((state) => state.runningConfiguration)
 
   const draftJson = draftText({ draft })
   const { parsed, missingFamilies } = inspect(
@@ -41,11 +44,9 @@ export function useDraftState(): DraftState {
     session?.fontAssets?.families
   )
 
-  const comparison = pendingConfiguration ?? activeConfiguration
-  const dirtyDocuments = compare(
-    hasLocalDraft ? draft : undefined,
-    session ? comparison : undefined
-  )
+  const compared = hasLocalDraft ? draft : undefined
+  const dirtyDocuments = compare(compared, session ? activeConfiguration : undefined)
+  const unappliedDocuments = compare(compared, session ? runningConfiguration : undefined)
   const dirty = dirtyDocuments.length > 0
   const connected = status === 'connected' && Boolean(session)
   const safeMode = session?.info.health?.safeMode ?? false
@@ -61,21 +62,32 @@ export function useDraftState(): DraftState {
         : !session?.info.storageAvailable
           ? 'Persistent configuration storage is unavailable on this board.'
           : !dirty
-            ? 'The draft already matches the active or pending configuration.'
+            ? 'The draft already matches what the board holds.'
             : undefined
+
+  const liveApplyBlockedReason = liveApplyBlocker({
+    connected,
+    safeMode,
+    parsed,
+    boardMismatch,
+    boardId: session?.info.boardId,
+    missingFamilies
+  })
 
   return {
     draftJson,
     parsed,
     dirty,
     dirtyDocuments,
+    unappliedDocuments,
+    boardShowsDraft: connected && unappliedDocuments.length === 0,
     connected,
     safeMode,
     boardMismatch,
     missingFamilies,
     saveBlockedReason,
-    liveApplyAllowed:
-      connected && !safeMode && parsed.ok && !boardMismatch && missingFamilies.length === 0
+    liveApplyBlockedReason,
+    liveApplyAllowed: liveApplyBlockedReason === undefined
   }
 }
 
@@ -89,23 +101,47 @@ let memo:
     }
   | undefined
 
-let diffMemo:
-  | {
-      draft: DeviceConfiguration | undefined
-      board: DeviceConfiguration | undefined
-      value: ConfigurationDocumentId[]
-    }
-  | undefined
+interface DiffMemo {
+  draft: DeviceConfiguration | undefined
+  board: DeviceConfiguration | undefined
+  value: ConfigurationDocumentId[]
+}
+
+const diffMemos: DiffMemo[] = []
+
+function liveApplyBlocker(state: {
+  connected: boolean
+  safeMode: boolean
+  parsed: ValidationResult
+  boardMismatch: boolean
+  boardId?: string
+  missingFamilies: string[]
+}): string | undefined {
+  if (!state.connected) return 'Connect a SimCore board to mirror the draft on it.'
+  if (state.safeMode) {
+    return 'The board is in safe mode. It draws nothing until it is repaired and restarted.'
+  }
+  if (!state.parsed.ok) {
+    return `The draft is not valid, so the board keeps what it runs. ${state.parsed.error}`
+  }
+  if (state.boardMismatch) {
+    return `The draft targets ${state.parsed.configuration.board}, the board is ${state.boardId}.`
+  }
+  if (state.missingFamilies.length > 0) {
+    return `The board lacks ${state.missingFamilies.join(', ')}. Saving installs the fonts.`
+  }
+  return undefined
+}
 
 function compare(
   draft: DeviceConfiguration | undefined,
   board: DeviceConfiguration | undefined
 ): ConfigurationDocumentId[] {
-  if (diffMemo && diffMemo.draft === draft && diffMemo.board === board) {
-    return diffMemo.value
-  }
+  const hit = diffMemos.find((entry) => entry.draft === draft && entry.board === board)
+  if (hit) return hit.value
   const value = documentsDiffering(draft, board)
-  diffMemo = { draft, board, value }
+  diffMemos.unshift({ draft, board, value })
+  diffMemos.length = Math.min(diffMemos.length, 2)
   return value
 }
 

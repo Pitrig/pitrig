@@ -40,6 +40,9 @@ class Collection final {
   [[nodiscard]] lv_obj_t* root_object(std::size_t index) const {
     return index < count_ ? states_[index].box.container : nullptr;
   }
+  [[nodiscard]] lv_obj_t* caption_object(std::size_t index) const {
+    return index < count_ ? states_[index].box.caption : nullptr;
+  }
   [[nodiscard]] std::size_t instance_count() const { return count_; }
   [[nodiscard]] bool extend_to(std::size_t count);
   [[nodiscard]] bool shrink_to(std::size_t count);

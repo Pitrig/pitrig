@@ -38,6 +38,10 @@ struct SourceContext {
   telemetry::Handle handle{};
 };
 
+[[nodiscard]] inline bool watches_value(const configuration::WidgetFrame& frame) {
+  return frame.condition_count > 0 || frame.color_ramp.stop_count >= 2;
+}
+
 [[nodiscard]] bool bind_source(
     std::string_view name, std::uint8_t modifier_count,
     std::span<const configuration::ValueModifier> modifiers,
@@ -84,7 +88,7 @@ class ValueBinder final {
       }
       const configuration::WidgetFrame& widget_frame = configuration.frame;
       bool condition_fast{};
-      if (widget_frame.condition_count > 0 &&
+      if (watches_value(widget_frame) &&
           !bind_source(configuration::value_binding_view(
                            widget_frame.condition_source.binding),
                        widget_frame.condition_source.modifier_count,
@@ -128,7 +132,7 @@ class ConditionBinder final {
       void* read_context{};
       bool fast_updates{};
       const configuration::WidgetFrame& widget_frame = configuration.frame;
-      if (widget_frame.condition_count > 0 &&
+      if (watches_value(widget_frame) &&
           !bind_source(configuration::value_binding_view(
                            widget_frame.condition_source.binding),
                        widget_frame.condition_source.modifier_count,

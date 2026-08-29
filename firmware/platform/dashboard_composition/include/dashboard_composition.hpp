@@ -40,6 +40,10 @@ struct Dashboard;
     lv_display_t* display,
     const configuration::ApplicationConfiguration& configuration);
 
+void dismiss_startup_screen(
+    const configuration::ApplicationConfiguration& configuration,
+    bool wait_for_minimum);
+
 [[nodiscard]] bool load_fonts(Dashboard& dashboard,
                               const font_assets::Service& font_assets,
                               std::span<std::uint8_t> storage);

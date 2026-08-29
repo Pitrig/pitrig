@@ -1,0 +1,838 @@
+{
+  "format": "simcore-dashboard-template",
+  "format_version": 1,
+  "name": "Rallye stage",
+  "description": "A minimal stage dashboard for the 320 x 170 display: rev lights, gear and speed, the lap timer with its delta, and a second screen of lap times, fuel and aids.",
+  "configuration": {
+    "board": "t_display_s3",
+    "dashboard": {
+      "screens": [
+        {
+          "id": "stage",
+          "background_color": "#000000",
+          "widgets": [
+            {
+              "type": "indicator",
+              "id": "a_rev",
+              "placement": {
+                "x": 4,
+                "y": 4,
+                "width": 312,
+                "height": 16
+              },
+              "source": {
+                "binding": "engine.rpm_percent"
+              },
+              "minimum": 55,
+              "maximum": 99,
+              "segments": [
+                {
+                  "threshold": 0.0,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.062,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.125,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.188,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.25,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.312,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.375,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.438,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.5,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.562,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.625,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.688,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.75,
+                  "color": "#FF2D2D"
+                },
+                {
+                  "threshold": 0.812,
+                  "color": "#FF2D2D"
+                },
+                {
+                  "threshold": 0.875,
+                  "color": "#FF2D2D"
+                },
+                {
+                  "threshold": 0.938,
+                  "color": "#FF2D2D"
+                }
+              ],
+              "segment_gap_px": 3,
+              "segment_radius_px": 3,
+              "off_color": "#15171C",
+              "blink_threshold": 0.985,
+              "blink_ms": 110
+            },
+            {
+              "type": "text",
+              "id": "a_gear",
+              "placement": {
+                "x": 4,
+                "y": 22,
+                "width": 66,
+                "height": 92
+              },
+              "sources": [
+                {
+                  "binding": "transmission.gear"
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 76
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "condition_source": {
+                "binding": "engine.rpm_percent"
+              },
+              "conditions": [
+                {
+                  "op": "at_or_above",
+                  "value": 98,
+                  "color": "#FFFFFF",
+                  "background_color": "#FF2D2D",
+                  "blink_ms": 140
+                },
+                {
+                  "op": "at_or_above",
+                  "value": 94,
+                  "color": "#FF2D2D"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "a_speed",
+              "placement": {
+                "x": 4,
+                "y": 118,
+                "width": 66,
+                "height": 48
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.speed",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 34
+                },
+                "color": "#000000",
+                "alignment": "center"
+              },
+              "background_color": "#FFFFFF",
+              "border": {
+                "radius_px": 8
+              }
+            },
+            {
+              "type": "text",
+              "id": "a_lap",
+              "placement": {
+                "x": 76,
+                "y": 22,
+                "width": 164,
+                "height": 46
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.current_time",
+                  "modifiers": [
+                    {
+                      "type": "lap_timer"
+                    }
+                  ],
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "LAP",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "a_delta",
+              "placement": {
+                "x": 76,
+                "y": 72,
+                "width": 164,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.delta",
+                  "transform": {
+                    "type": "time",
+                    "format": "signed_duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 34
+                },
+                "color": "#000000",
+                "alignment": "center"
+              },
+              "background_color": "#00E676",
+              "border": {
+                "radius_px": 8
+              },
+              "condition_source": {
+                "binding": "session.lap.delta"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "color": "#FFFFFF",
+                  "background_color": "#FF2D2D"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "a_best",
+              "placement": {
+                "x": 76,
+                "y": 120,
+                "width": 164,
+                "height": 46
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.best_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#E040FB",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              }
+            },
+            {
+              "type": "text",
+              "id": "a_pos",
+              "placement": {
+                "x": 246,
+                "y": 22,
+                "width": 70,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.position",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                },
+                {
+                  "binding": "session.participants",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "prefix": "/"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 24
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "POS",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "a_laps",
+              "placement": {
+                "x": 246,
+                "y": 70,
+                "width": 70,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.current",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                },
+                {
+                  "binding": "session.lap.total",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "prefix": "/"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 24
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "LAP",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "a_fuel",
+              "placement": {
+                "x": 246,
+                "y": 118,
+                "width": 70,
+                "height": 48
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.fuel.level",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 26
+                },
+                "color": "#FFC400",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue546",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 16
+                },
+                "color": "#69717D"
+              }
+            }
+          ]
+        },
+        {
+          "id": "detail",
+          "background_color": "#000000",
+          "widgets": [
+            {
+              "type": "indicator",
+              "id": "b_rev",
+              "placement": {
+                "x": 4,
+                "y": 4,
+                "width": 312,
+                "height": 16
+              },
+              "source": {
+                "binding": "engine.rpm_percent"
+              },
+              "minimum": 55,
+              "maximum": 99,
+              "segments": [
+                {
+                  "threshold": 0.0,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.062,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.125,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.188,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.25,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.312,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.375,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.438,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.5,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.562,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.625,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.688,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.75,
+                  "color": "#FF2D2D"
+                },
+                {
+                  "threshold": 0.812,
+                  "color": "#FF2D2D"
+                },
+                {
+                  "threshold": 0.875,
+                  "color": "#FF2D2D"
+                },
+                {
+                  "threshold": 0.938,
+                  "color": "#FF2D2D"
+                }
+              ],
+              "segment_gap_px": 3,
+              "segment_radius_px": 3,
+              "off_color": "#15171C",
+              "blink_threshold": 0.985,
+              "blink_ms": 110
+            },
+            {
+              "type": "text",
+              "id": "b_last",
+              "placement": {
+                "x": 4,
+                "y": 22,
+                "width": 154,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.last_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 28
+                },
+                "color": "#FFC400",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "LAST",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12,
+                  "fallback": "material-icons"
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "b_best",
+              "placement": {
+                "x": 162,
+                "y": 22,
+                "width": 154,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.best_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 28
+                },
+                "color": "#E040FB",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "BEST",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12,
+                  "fallback": "material-icons"
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "b_est",
+              "placement": {
+                "x": 4,
+                "y": 70,
+                "width": 154,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.estimated_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 28
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "EST",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12,
+                  "fallback": "material-icons"
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "b_flaps",
+              "placement": {
+                "x": 162,
+                "y": 70,
+                "width": 154,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.fuel.level",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1,
+                    "suffix": "L "
+                  }
+                },
+                {
+                  "binding": "vehicle.fuel.laps_remaining",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1,
+                    "prefix": " "
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 26
+                },
+                "color": "#FFC400",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue546 / \ue425",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12,
+                  "fallback": "material-icons"
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "b_tc",
+              "placement": {
+                "x": 4,
+                "y": 118,
+                "width": 100,
+                "height": 48
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.aids.traction_control_level",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 28
+                },
+                "color": "#29B6F6",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "TC",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12,
+                  "fallback": "material-icons"
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "b_abs",
+              "placement": {
+                "x": 110,
+                "y": 118,
+                "width": 100,
+                "height": 48
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.aids.abs_level",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 28
+                },
+                "color": "#FFC400",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "ABS",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12,
+                  "fallback": "material-icons"
+                },
+                "color": "#69717D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "b_bb",
+              "placement": {
+                "x": 216,
+                "y": 118,
+                "width": 100,
+                "height": 48
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.brake_bias",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 28
+                },
+                "color": "#FF2D2D",
+                "alignment": "center"
+              },
+              "background_color": "#0B0C0F",
+              "border": {
+                "color": "#282B32",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "BB",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 12,
+                  "fallback": "material-icons"
+                },
+                "color": "#69717D"
+              }
+            }
+          ]
+        }
+      ],
+      "transition": "none"
+    }
+  }
+}

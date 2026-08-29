@@ -98,6 +98,8 @@ namespace {
   const std::string_view value{format->valuestring};
   if (value == "duration_ms") {
     transform.time.format = transformers::time_transform::Format::duration_ms;
+  } else if (value == "clock_ms") {
+    transform.time.format = transformers::time_transform::Format::clock_ms;
   } else if (value == "signed_duration_ms") {
     transform.time.format =
         transformers::time_transform::Format::signed_duration_ms;
@@ -166,6 +168,8 @@ namespace {
                  gradient_direction_from_name, name, failure) ||
       !read_integer(object, "background_inset_px", frame.background_inset_px,
                     name, failure) ||
+      !read_enum(object, "fill_corners", frame.fill_corners,
+                 fill_corners_from_name, name, failure) ||
       !parse_action(object, frame.action, "widget.action", failure) ||
       !parse_conditions(object, frame, failure)) {
     return false;

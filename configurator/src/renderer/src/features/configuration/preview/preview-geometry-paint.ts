@@ -1,6 +1,15 @@
-import type { WidgetInsets } from '@shared/configuration-schema'
+import type { FillCorners, WidgetInsets } from '@shared/configuration-schema'
 import { normalizeColor } from './preview-values'
 import type { Placement } from './canvas-geometry'
+
+export function squareFill(configuration: {
+  fill_corners?: FillCorners
+  border?: { radius_px?: number }
+}): boolean {
+  return (
+    configuration.fill_corners === 'square' && (configuration.border?.radius_px ?? 0) !== 0
+  )
+}
 
 export function contentArea(
   placement: Placement,

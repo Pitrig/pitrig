@@ -145,7 +145,9 @@ only hold in one direction.
 A **shape** widget may hold widgets of its own, which makes it a container. The
 geometry of the widgets inside it is relative to its box, and they nest up to
 four levels deep. A container performs no layout — it is a parent and a
-rectangle. It is a widget first, so it draws its own frame, stacks among its
+rectangle: its own border and padding do not move what it holds, so a child at
+the origin sits on the container's top-left corner rather than inside its
+frame. It is a widget first, so it draws its own frame, stacks among its
 siblings and can take a tap like any other; the shape you would once have put
 behind a group is the container now.
 
@@ -228,8 +230,8 @@ allowance. The production firmware supports these widget types:
 | `text` | up to three telemetry sources composed into one string |
 | `shape` | a rectangle or ellipse; no telemetry of its own |
 | `bar` | one telemetry source as a filled track, optionally from a configured origin |
-| `arc` | one telemetry source swept around an arc |
-| `indicator` | up to 16 lamps lighting as one source climbs its range |
+| `arc` | one telemetry source swept around an arc, as a ring or a needle |
+| `indicator` | up to 16 lamps, in a strip or around a ring, lighting as one source climbs its range |
 | `graph` | up to three rolling traces over one plot, sampled on its own timer |
 | `image` | an uploaded image, optionally tinted |
 | `slot` | nothing of its own; an area that switches between its pages |
@@ -361,6 +363,9 @@ modifier across the dashboard.
 Text widgets support the optional `time` transform:
 
 - `duration_ms` accepts unsigned milliseconds and renders `MM:SS.mmm`;
+- `clock_ms` accepts the same and renders `HH:MM:SS`, which is what a session,
+  stint or fuel clock reads as — the same field as a lap, told over hours
+  instead of thousandths;
 - `signed_duration_ms` accepts signed milliseconds and renders `+S.mmm` or
   `-S.mmm`.
 
@@ -427,12 +432,39 @@ way the `number` transform parses one.
   track colour of its own, and `fill_grad_color` gives the fill a linear
   gradient.
 - `arc` sweeps `sweep_deg` degrees from `start_angle_deg` at `thickness_px`,
-  over an optional `track_color`.
+  over an optional `track_color`. `mark` says what the value draws at the angle
+  it maps to: `ring` fills the sweep up to it, and `needle` points a line from
+  the centre at it instead, as thick as the ring would have been and reaching
+  the same radius, which leaves the track reading as the scale behind it. The
+  mark changes the drawing rather than the mapping, so a needle needs no
+  geometry of its own.
+- Both ring shapes — the `arc` widget and an `indicator` in `arc` shape — take
+  the circle they draw on from `radius_px` and `center_x_px` / `center_y_px`.
+  A zero radius keeps the rule the box always had, half the shorter inner side
+  less half the thickness, so an authored dashboard draws where it drew before.
+  A radius of its own is free to be larger than the box, and the centre is free
+  to sit outside it: the widget still clips to its box, so what reaches the
+  screen is the band of that circle crossing the box. That is how a shallow rev
+  band across the top of a round display is authored — a large radius with the
+  centre pushed down — without a box the size of the circle stealing the middle
+  of the screen from everything else. The thickness rule follows the radius: a
+  ring on the box still has to fit twice across the shorter side, while a ring
+  with a radius of its own only has to be no thicker than twice that radius.
 - `indicator` lights up to 16 `segments`, each with its own `color` and its own
   `threshold` on the mapped fraction, spaced by `segment_gap_px` and rounded by
   `segment_radius_px`; unlit lamps use `off_color`, and the strip flashes at
   `blink_ms` once the fraction reaches `blink_threshold`, whose default of `2`
-  is outside the clamped fraction and therefore never blinks.
+  is outside the clamped fraction and therefore never blinks. `shape` decides
+  how the lamps are laid out: a `strip` runs them along its `orientation`, and
+  an `arc` spaces them around `sweep_deg` degrees from `start_angle_deg` at
+  `thickness_px` — the rev ring a round dashboard is built on. An arc spends
+  `segment_gap_px` along its own ring, so a gap is the same width wherever the
+  lamp sits, and any non-zero `segment_radius_px` rounds the lamp ends rather
+  than its corners. Each shape ignores the other's geometry, so switching one
+  costs no rewrite. `inverted` lights from the far end — right instead of left,
+  top instead of bottom, the end of the sweep instead of its start — without
+  changing which lamp lights when, so a mirrored pair of rev bars either side of
+  a gear is one authored strip placed twice.
 - `graph` keeps `point_count` samples taken every `sample_interval_ms` and draws
   them as a `line_width_px` trace in `line_color`. Samples are taken when
   a clock of its own says so, not when the screen repaints and not when
@@ -589,7 +621,8 @@ per widget.
 
 `color` is the widget's content colour, and what content means is the type's own
 business: text paints its label, a bar and an arc their fill, a graph its line,
-a shape its border, and an image its recolor tint.
+and an image its recolor tint. A shape and an indicator draw no content of their
+own, so they take `background_color` and `border_color` and ignore `color`.
 
 A colour left out of a rule keeps the widget's static colour, which also means a
 rule cannot clear a background it did not paint. A widget that needs to switch
@@ -624,6 +657,15 @@ matches and the widget renders exactly as authored.
 paints the background, so a widget that turns red keeps its frame visible
 instead of flooding to the edge. It applies to the authored background and to
 one a rule paints, and the inset area shows whatever is behind the widget.
+
+`fill_corners` decides how those fills meet a rounded corner. `rounded`, the
+default, gives the background and a bar's value fill the box radius less
+whatever they sit inside, which is what a filled widget has always drawn — and
+what makes a half-filled bar round off its leading edge in the middle of the
+track. `square` leaves them square and clips the widget to its own outline
+instead, so the fill runs straight where it stops and still follows the rounding
+where it meets the ends of the box. Only the corners are clipped, and only while
+the radius is non-zero, so a square box pays nothing for the property.
 
 ## Colour ramps and gradients
 
@@ -826,6 +868,31 @@ A copied widget travels as JSON through the system clipboard, so
 it can be pasted into another project; a pasted fragment is validated against
 the same schema allow-list the device payload uses.
 
+### Keeping the draft and the board together
+
+Three things can differ, so the configurator tracks three: what the board has
+stored, what it is showing, and the draft in the editor. A save moves the first,
+a live `@SC:APPLY` moves the second, and both of them equalling the draft is what
+being in sync means. The per-document chip says which one is behind — not on the
+board while the screen is stale, shown but not saved while the board draws a
+draft it would lose on a restart.
+
+Where they part company the configurator asks rather than picks. Connecting to a
+board whose stored documents differ from the draft, or watching them change under
+an open editor, raises one question with three answers: take the board's
+configuration, show the draft on the board without writing it, or save the draft.
+Live apply stays off until that is answered, so a board is never quietly
+overwritten by a draft its author had forgotten about, and what else holds live
+apply back is named where it happens — safe mode, a draft targeting another
+board, a font the board does not hold, a draft that does not validate.
+
+The board is asked `@SC:INFO` every five seconds while it is connected and no
+operation is running, which is what notices a document written from elsewhere or
+a package installed behind the editor's back; the configuration is re-read only
+when a generation actually moved. A restart the board takes on its own stays
+invisible to it, because the reply carries what is stored rather than what is
+composed.
+
 ### Saving to the board
 
 `Save to board` is one sequence in the main process: work out which documents
@@ -853,8 +920,8 @@ an ordinary save costs no dark screen.
 The Configs page lists the three documents with what each is doing on the board
 — in sync, modified, factory, or a stored record the firmware refused — and can
 load, save or erase any one of them on its own. Below that it states the
-difference between the draft and the configuration the board has active or
-pending, per document and property by property, before any of this happens.
+difference between the draft and the configuration the board holds, per document
+and property by property, before any of this happens.
 Widgets and screens are matched by `id`, so moving one reads as a move rather
 than as a deletion and an unrelated arrival.
 
@@ -873,6 +940,22 @@ Font family identifiers contain 1 to 31 lowercase ASCII letters, digits, `_`,
 or `-`. `size_px` is an integer from 1 through 255. One configuration may
 reference at most 8 families. Font files are not part of this JSON document or
 configuration NVS.
+
+A font may name a `fallback` family, tried for the glyphs the first one does not
+have:
+
+```json
+"font": { "family": "roboto_black", "size_px": 40, "fallback": "material-icons" }
+```
+
+That is what puts an icon and a number in one widget — the icon family carries no
+digits and the text family carries no icons, so a value of `⛽ 46.2 L` needs both.
+The fallback resolves exactly like the family it backs, and the device builds it
+at the same `size_px`, so it costs one more font of memory and counts as one of
+the eight families a configuration may name. The configurator ships **Material
+Icons** in its font library and offers a picker of the racing-relevant glyphs
+beside every caption and affix field, so an icon is typed as itself rather than
+as a codepoint.
 
 Uploaded faces are stored as one checksummed package in a dedicated partition.
 The package format and firmware validation rules are defined in

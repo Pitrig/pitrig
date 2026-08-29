@@ -24,9 +24,9 @@ import { withEditGroup } from '@/features/device/edit-group'
 export function DisplayPreview(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const draft = useDeviceStore((state) => state.draft)
-  const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
+  const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const offlineBoard = useDeviceStore((state) => state.offlineBoard)
-  const configuration = draft ?? pendingConfiguration ?? session?.configuration
+  const configuration = draft ?? activeConfiguration ?? session?.configuration
   const display = configuration
     ? BOARD_PROFILES[configuration.board]?.display
     : (session?.info.display ??

@@ -1,6 +1,8 @@
 #include "indicator_widget.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <numbers>
 
 #include "esp_lvgl_port.h"
 #include "logger.hpp"
@@ -12,11 +14,128 @@ namespace {
 
 constexpr char kTag[] = "indicator_widget";
 
-void paint_segment(lv_obj_t* const segment, const std::uint32_t rgb,
-                   const bool visible) {
-  lv_obj_set_style_bg_color(segment, lv_color_hex(rgb), LV_PART_MAIN);
-  lv_obj_set_style_bg_opa(segment, visible ? LV_OPA_COVER : LV_OPA_TRANSP,
-                          LV_PART_MAIN);
+struct Ring {
+  float radius{};
+  std::int32_t centre_x{};
+  std::int32_t centre_y{};
+};
+
+Ring resolve_ring(const Config& config, const std::int32_t inner_width,
+                  const std::int32_t inner_height) {
+  const float thickness = static_cast<float>(config.thickness_px);
+  const float fitted =
+      static_cast<float>(std::min(inner_width, inner_height)) / 2.0F -
+      thickness / 2.0F;
+  const float radius = config.radius_px != 0
+                           ? static_cast<float>(config.radius_px)
+                           : fitted;
+  const float centre_x = static_cast<float>(inner_width) / 2.0F +
+                         static_cast<float>(config.center_x_px);
+  const float centre_y = static_cast<float>(inner_height) / 2.0F +
+                         static_cast<float>(config.center_y_px);
+  return Ring{radius, static_cast<std::int32_t>(std::lround(centre_x)),
+              static_cast<std::int32_t>(std::lround(centre_y))};
+}
+
+[[nodiscard]] std::size_t slot_of(const State& state, const std::size_t index) {
+  return state.inverted ? state.segment_count - 1 - index : index;
+}
+
+[[nodiscard]] lv_area_t lamp_area(const State& state, const std::size_t index,
+                                  const lv_area_t& content) {
+  const auto offset = static_cast<std::int32_t>(slot_of(state, index)) *
+                      (state.lamp_length + state.lamp_gap);
+  if (state.horizontal) {
+    const std::int32_t left = content.x1 + offset;
+    return {left, content.y1, left + state.lamp_length - 1, content.y2};
+  }
+  const std::int32_t bottom = content.y2 - offset;
+  return {content.x1, bottom - state.lamp_length + 1, content.x2, bottom};
+}
+
+[[nodiscard]] float lamp_start_deg(const State& state,
+                                   const std::size_t index) {
+  return state.arc_start_deg + static_cast<float>(slot_of(state, index)) *
+                                   (state.arc_length_deg + state.arc_gap_deg);
+}
+
+[[nodiscard]] std::uint16_t outer_radius(const State& state) {
+  return static_cast<std::uint16_t>(std::lround(
+      state.ring_radius + static_cast<float>(state.thickness) / 2.0F));
+}
+
+[[nodiscard]] lv_area_t lamp_arc_area(const State& state,
+                                      const std::size_t index,
+                                      const lv_area_t& content) {
+  lv_area_t area{};
+  const float start = lamp_start_deg(state, index);
+  lv_draw_arc_get_area(
+      content.x1 + state.ring_center_x, content.y1 + state.ring_center_y,
+      outer_radius(state), static_cast<lv_value_precise_t>(start),
+      static_cast<lv_value_precise_t>(start + state.arc_length_deg),
+      state.thickness, state.rounded, &area);
+  return area;
+}
+
+[[nodiscard]] bool overlaps(const lv_area_t& area, const lv_area_t& clip) {
+  return area.x1 <= clip.x2 && area.x2 >= clip.x1 && area.y1 <= clip.y2 &&
+         area.y2 >= clip.y1;
+}
+
+[[nodiscard]] bool lamp_lit(const State& state, const std::uint32_t mask,
+                            const bool blink_visible, const std::size_t index) {
+  return (mask & (1U << index)) != 0 && blink_visible;
+}
+
+void draw_lamps(lv_event_t* const event) {
+  auto* const state = static_cast<State*>(lv_event_get_user_data(event));
+  lv_layer_t* const layer = lv_event_get_layer(event);
+  if (state == nullptr || layer == nullptr || state->container == nullptr) {
+    return;
+  }
+  lv_area_t content{};
+  lv_obj_get_content_coords(state->container, &content);
+  lv_draw_rect_dsc_t rect{};
+  lv_draw_arc_dsc_t arc{};
+  if (state->arc_shape) {
+    lv_draw_arc_dsc_init(&arc);
+    arc.opa = LV_OPA_COVER;
+    arc.width = state->thickness;
+    arc.rounded = state->rounded ? 1U : 0U;
+    arc.center = {content.x1 + state->ring_center_x,
+                  content.y1 + state->ring_center_y};
+    arc.radius = outer_radius(*state);
+  } else {
+    lv_draw_rect_dsc_init(&rect);
+    rect.bg_opa = LV_OPA_COVER;
+    rect.radius = state->lamp_radius;
+  }
+  for (std::size_t index = 0; index < state->segment_count; ++index) {
+    const bool lit =
+        lamp_lit(*state, state->drawn_mask, state->drawn_blink_visible, index);
+    if (!lit && !state->has_off_color) {
+      continue;
+    }
+    const std::uint32_t rgb = lit ? state->colors[index] : state->off_color;
+    if (state->arc_shape) {
+      if (!overlaps(lamp_arc_area(*state, index, content), layer->_clip_area)) {
+        continue;
+      }
+      const float start = lamp_start_deg(*state, index);
+      arc.color = lv_color_hex(rgb);
+      arc.start_angle = static_cast<lv_value_precise_t>(start);
+      arc.end_angle =
+          static_cast<lv_value_precise_t>(start + state->arc_length_deg);
+      lv_draw_arc(layer, &arc);
+    } else {
+      const lv_area_t area = lamp_area(*state, index, content);
+      if (!overlaps(area, layer->_clip_area)) {
+        continue;
+      }
+      rect.bg_color = lv_color_hex(rgb);
+      lv_draw_rect(layer, &rect, &area);
+    }
+  }
 }
 
 }
@@ -35,12 +154,17 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.read = binding.read;
   state.read_context = binding.read_context;
   state.range = config.range;
-  state.segment_count = config.segment_count;
+  state.segment_count =
+      std::min<std::size_t>(config.segment_count, state.colors.size());
   state.off_color = config.off_color;
   state.has_off_color = config.off_color != configuration::kTransparentColor;
   state.blink_threshold = config.blink_threshold;
   state.blink_ms = config.blink_ms;
   state.free_running = binding.fast_updates;
+  state.inverted = config.inverted;
+  state.lamp_radius = config.segment_radius_px;
+  state.thickness = config.thickness_px;
+  state.rounded = config.segment_radius_px != 0;
   for (std::size_t index = 0; index < state.segment_count; ++index) {
     state.thresholds[index] = config.segments[index].threshold;
     state.colors[index] = config.segments[index].color;
@@ -55,38 +179,45 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
       bounds.height - 2 * border - config.frame.padding.top -
           config.frame.padding.bottom,
       0);
-  const bool horizontal =
+  state.horizontal =
       config.orientation == configuration::BarOrientation::horizontal;
-  const std::int32_t span = horizontal ? inner_width : inner_height;
   const auto count = static_cast<std::int32_t>(state.segment_count);
-  const std::int32_t gaps = config.segment_gap_px * (count - 1);
-  const std::int32_t length = (span - gaps) / std::max<std::int32_t>(count, 1);
-  if (length <= 0) {
-    log::error(kTag, "Indicator needs %d segments in %d pixels",
-               static_cast<int>(count), static_cast<int>(span));
-    return false;
-  }
+  state.arc_shape = config.shape == configuration::IndicatorShape::arc;
 
-  for (std::size_t index = 0; index < state.segment_count; ++index) {
-    lv_obj_t* const segment = lv_obj_create(box.container);
-    lv_obj_remove_style_all(segment);
-    lv_obj_remove_flag(segment, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(segment, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_radius(segment, config.segment_radius_px, LV_PART_MAIN);
-    const auto offset =
-        static_cast<std::int32_t>(index) * (length + config.segment_gap_px);
-    if (horizontal) {
-      lv_obj_set_pos(segment, offset, 0);
-      lv_obj_set_size(segment, length, inner_height);
-    } else {
-      lv_obj_set_pos(segment, 0, inner_height - offset - length);
-      lv_obj_set_size(segment, inner_width, length);
+  if (state.arc_shape) {
+    const Ring ring = resolve_ring(config, inner_width, inner_height);
+    state.ring_radius = ring.radius;
+    state.ring_center_x = ring.centre_x;
+    state.ring_center_y = ring.centre_y;
+    state.arc_gap_deg =
+        ring.radius > 0.0F
+            ? static_cast<float>(config.segment_gap_px) * 180.0F /
+                  (std::numbers::pi_v<float> * ring.radius)
+            : 0.0F;
+    state.arc_length_deg = (static_cast<float>(config.sweep_deg) -
+                            state.arc_gap_deg * static_cast<float>(count - 1)) /
+                           static_cast<float>(count);
+    state.arc_start_deg = static_cast<float>(config.start_angle_deg);
+    if (ring.radius <= 0.0F || state.arc_length_deg <= 0.0F) {
+      log::error(kTag, "Indicator needs %d segments in %d degrees",
+                 static_cast<int>(count), static_cast<int>(config.sweep_deg));
+      return false;
     }
-    paint_segment(segment, state.off_color, state.has_off_color);
-    state.segments[index] = segment;
+  } else {
+    const std::int32_t span = state.horizontal ? inner_width : inner_height;
+    state.lamp_gap = config.segment_gap_px;
+    const std::int32_t gaps = state.lamp_gap * (count - 1);
+    state.lamp_length = (span - gaps) / std::max<std::int32_t>(count, 1);
+    if (state.lamp_length <= 0) {
+      log::error(kTag, "Indicator needs %d segments in %d pixels",
+                 static_cast<int>(count), static_cast<int>(span));
+      return false;
+    }
   }
   state.drawn_mask = 0;
   state.drawn_blink_visible = true;
+  lv_obj_add_event_cb(state.container, &draw_lamps, LV_EVENT_DRAW_MAIN_END,
+                      &state);
 
   state.painter.configure(config.frame, box, state.colors[0], nullptr, nullptr);
   state.painter.bind(binding.condition_read, binding.condition_context);
@@ -116,6 +247,9 @@ void Collection::render_state(State& state) {
   state.rendered_revision = value.revision;
   state.rendered_available = value.available;
   state.painter.render();
+  if (!first_render && !changed && !state.drawn_blinking) {
+    return;
+  }
   state.initialized = true;
 
   const std::optional<double> numeric = conditions::condition_value(value);
@@ -124,36 +258,43 @@ void Collection::render_state(State& state) {
                           : 0.0F;
 
   std::uint32_t mask{};
-  for (std::size_t index = 0; index < state.segment_count; ++index) {
+  for (std::size_t index = 0; numeric.has_value() && index < state.segment_count;
+       ++index) {
     if (fraction < state.thresholds[index]) {
       break;
     }
     mask |= 1U << index;
   }
 
-  const bool blinking = state.blink_ms > 0 && fraction >= state.blink_threshold;
+  state.drawn_blinking = numeric.has_value() && state.blink_ms > 0 &&
+                         fraction >= state.blink_threshold;
   const bool blink_visible =
-      !blinking || (lv_tick_get() / state.blink_ms) % 2 == 0;
-  if (!first_render && !changed && !blinking) {
-    return;
-  }
+      !state.drawn_blinking || (lv_tick_get() / state.blink_ms) % 2 == 0;
   if (!first_render && mask == state.drawn_mask &&
       blink_visible == state.drawn_blink_visible) {
     return;
   }
 
-  for (std::size_t index = 0; index < state.segment_count; ++index) {
-    const bool lit = (mask & (1U << index)) != 0 && blink_visible;
-    const bool was_lit = (state.drawn_mask & (1U << index)) != 0 &&
-                         state.drawn_blink_visible;
-    if (!first_render && lit == was_lit) {
-      continue;
-    }
-    paint_segment(state.segments[index], lit ? state.colors[index] : state.off_color,
-                  lit || state.has_off_color);
-  }
+  const std::uint32_t drawn_mask = state.drawn_mask;
+  const bool drawn_visible = state.drawn_blink_visible;
   state.drawn_mask = mask;
   state.drawn_blink_visible = blink_visible;
+  if (first_render) {
+    lv_obj_invalidate(state.container);
+    return;
+  }
+  lv_area_t content{};
+  lv_obj_get_content_coords(state.container, &content);
+  for (std::size_t index = 0; index < state.segment_count; ++index) {
+    if (lamp_lit(state, mask, blink_visible, index) ==
+        lamp_lit(state, drawn_mask, drawn_visible, index)) {
+      continue;
+    }
+    const lv_area_t area = state.arc_shape
+                               ? lamp_arc_area(state, index, content)
+                               : lamp_area(state, index, content);
+    (void)lv_obj_invalidate_area(state.container, &area);
+  }
 }
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,

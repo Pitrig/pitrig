@@ -20,6 +20,11 @@ export function displaySize(board: string): string | undefined {
   return profile ? `${profile.display.width} × ${profile.display.height}` : undefined
 }
 
+export function displayPixels(board: string): number {
+  const profile = BOARD_PROFILES[board as SimCoreBoardId]
+  return profile ? profile.display.width * profile.display.height : Number.MAX_SAFE_INTEGER
+}
+
 export function fitOutcome(
   from: { width: number; height: number },
   to: { width: number; height: number },

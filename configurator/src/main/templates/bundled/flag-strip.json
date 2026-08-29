@@ -1,0 +1,570 @@
+{
+  "format": "simcore-dashboard-template",
+  "format_version": 1,
+  "name": "Flag strip",
+  "description": "A race-control strip for the 320 x 170 display, after CapTaylor's iRacing Flags and Selectyoung's pit countdown: rev lights, the flag lamps, the delta and what is left of the race.",
+  "configuration": {
+    "board": "t_display_s3",
+    "dashboard": {
+      "screens": [
+        {
+          "id": "flags",
+          "background_color": "#000000",
+          "widgets": [
+            {
+              "type": "indicator",
+              "id": "k_rev",
+              "placement": {
+                "x": 4,
+                "y": 4,
+                "width": 312,
+                "height": 14
+              },
+              "source": {
+                "binding": "engine.rpm_percent"
+              },
+              "minimum": 55,
+              "maximum": 99,
+              "segments": [
+                {
+                  "threshold": 0.0,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.062,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.125,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.188,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.25,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.312,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.375,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.438,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.5,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.562,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.625,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.688,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.75,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.812,
+                  "color": "#FF3B30"
+                },
+                {
+                  "threshold": 0.875,
+                  "color": "#FF3B30"
+                },
+                {
+                  "threshold": 0.938,
+                  "color": "#FF3B30"
+                }
+              ],
+              "segment_gap_px": 3,
+              "segment_radius_px": 2,
+              "off_color": "#161B22",
+              "blink_threshold": 0.985,
+              "blink_ms": 110
+            },
+            {
+              "type": "shape",
+              "id": "k_green",
+              "placement": {
+                "x": 4,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#00E676",
+              "border": {
+                "color": "#00E676",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue153",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#000000",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "k_greeno",
+              "placement": {
+                "x": 4,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#141A22",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue153",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#626B79",
+                "alignment": "center"
+              },
+              "condition_source": {
+                "binding": "session.flag.green"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "hidden": true
+                }
+              ]
+            },
+            {
+              "type": "shape",
+              "id": "k_yellow",
+              "placement": {
+                "x": 68,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#FFC400",
+              "border": {
+                "color": "#FFC400",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue002",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#000000",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "k_yellowo",
+              "placement": {
+                "x": 68,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#141A22",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue002",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#626B79",
+                "alignment": "center"
+              },
+              "condition_source": {
+                "binding": "session.flag.yellow"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "hidden": true
+                }
+              ]
+            },
+            {
+              "type": "shape",
+              "id": "k_blue",
+              "placement": {
+                "x": 132,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#38BDF8",
+              "border": {
+                "color": "#38BDF8",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue8d4",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#000000",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "k_blueo",
+              "placement": {
+                "x": 132,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#141A22",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue8d4",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#626B79",
+                "alignment": "center"
+              },
+              "condition_source": {
+                "binding": "session.flag.blue"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "hidden": true
+                }
+              ]
+            },
+            {
+              "type": "shape",
+              "id": "k_red",
+              "placement": {
+                "x": 196,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#FF3B30",
+              "border": {
+                "color": "#FF3B30",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue99a",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#000000",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "k_redo",
+              "placement": {
+                "x": 196,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#141A22",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue99a",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#626B79",
+                "alignment": "center"
+              },
+              "condition_source": {
+                "binding": "session.flag.red"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "hidden": true
+                }
+              ]
+            },
+            {
+              "type": "shape",
+              "id": "k_chq",
+              "placement": {
+                "x": 260,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#FFFFFF",
+              "border": {
+                "color": "#FFFFFF",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\uf06e",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#000000",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "k_chqo",
+              "placement": {
+                "x": 260,
+                "y": 24,
+                "width": 56,
+                "height": 46
+              },
+              "background_color": "#141A22",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\uf06e",
+                "font": {
+                  "family": "material-icons",
+                  "size_px": 26
+                },
+                "color": "#626B79",
+                "alignment": "center"
+              },
+              "condition_source": {
+                "binding": "session.flag.checkered"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "hidden": true
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "k_delta",
+              "placement": {
+                "x": 4,
+                "y": 76,
+                "width": 200,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.delta",
+                  "transform": {
+                    "type": "time",
+                    "format": "signed_duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 34
+                },
+                "color": "#000000",
+                "alignment": "center"
+              },
+              "background_color": "#00E676",
+              "border": {
+                "radius_px": 8
+              },
+              "condition_source": {
+                "binding": "session.lap.delta"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "color": "#FFFFFF",
+                  "background_color": "#FF3B30"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "k_pos",
+              "placement": {
+                "x": 212,
+                "y": 76,
+                "width": 104,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.position",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                },
+                {
+                  "binding": "session.participants",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "prefix": "/"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 26
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              }
+            },
+            {
+              "type": "text",
+              "id": "k_lap",
+              "placement": {
+                "x": 4,
+                "y": 126,
+                "width": 200,
+                "height": 40
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.current_time",
+                  "modifiers": [
+                    {
+                      "type": "lap_timer"
+                    }
+                  ],
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              }
+            },
+            {
+              "type": "text",
+              "id": "k_left",
+              "placement": {
+                "x": 212,
+                "y": 126,
+                "width": 104,
+                "height": 40
+              },
+              "sources": [
+                {
+                  "binding": "session.laps_remaining",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 26
+                },
+                "color": "#FFC400",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\ue425",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15,
+                  "fallback": "material-icons"
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              }
+            }
+          ]
+        }
+      ],
+      "transition": "none"
+    }
+  }
+}

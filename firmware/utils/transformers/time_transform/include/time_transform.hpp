@@ -8,6 +8,7 @@ namespace simcore::transformers::time_transform {
 enum class Format : std::uint8_t {
   duration_ms,
   signed_duration_ms,
+  clock_ms,
 };
 
 struct Config {

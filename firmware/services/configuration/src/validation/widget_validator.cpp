@@ -126,6 +126,10 @@ bool Validator::frame(const WidgetFrame& config) {
     return reject(failure_, ValidationError::invalid_widget,
                   "background_grad_color");
   }
+  if (config.fill_corners < FillCorners::rounded ||
+      config.fill_corners > FillCorners::square) {
+    return reject(failure_, ValidationError::invalid_widget, "fill_corners");
+  }
   if (!valid_optional_color(config.background_color)) {
     return reject(failure_, ValidationError::invalid_widget,
                   "background_color");

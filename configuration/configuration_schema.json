@@ -1,5 +1,5 @@
 {
-  "schema_version": 15,
+  "schema_version": 18,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "documents": {
@@ -175,15 +175,15 @@
       "cpp": "font_assets::FontSpec",
       "cpp_header": "font_asset_types.hpp",
       "typescript": "FontSpec",
-      "keys": ["family", "size_px"],
-      "doc": "Uploaded font asset reference. Resolution is exact; a missing family/size is a composition error."
+      "keys": ["family", "size_px", "fallback"],
+      "doc": "Uploaded font asset reference. Resolution is exact; a missing family/size is a composition error. fallback names a second installed family to try for glyphs the first does not have — an icon family beside a text one — and is materialized at the same size, so it costs one more font."
     },
     "TimeTransformConfig": {
       "cpp": "transformers::time_transform::Config",
       "cpp_header": "time_transform.hpp",
       "typescript": "TimeTransform",
       "keys": ["format"],
-      "doc": "Stateless time formatting configuration owned by utils/transformers/time_transform."
+      "doc": "Stateless time formatting configuration owned by utils/transformers/time_transform. format is duration_ms (MM:SS.mmm, a lap), clock_ms (HH:MM:SS, a session or stint clock) or signed_duration_ms (+S.mmm, a delta)."
     },
     "NumberTransformConfig": {
       "cpp": "transformers::number_transform::Config",
@@ -255,6 +255,21 @@
       "json_values": ["rectangle", "ellipse"],
       "default": "rectangle",
       "doc": "Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own."
+    },
+    "FillCorners": {
+      "json_values": ["rounded", "square"],
+      "default": "rounded",
+      "doc": "How what the box paints inside itself meets a rounded corner. rounded gives the background and a value fill the box radius less whatever they are inset by, which is what a filled widget has always drawn. square leaves them with square corners and clips the box to its own outline instead, so a bar keeps a straight leading edge while its ends still follow the rounding. Nothing to decide while the radius is zero."
+    },
+    "ArcMark": {
+      "json_values": ["ring", "needle"],
+      "default": "ring",
+      "doc": "What an arc draws at the angle its value maps to. ring fills the sweep up to it; needle points a line from the centre at it, over the same track. The mark changes, the mapping does not, so a needle needs no geometry of its own: it spans the radius the ring would occupy and takes its width from thickness_px."
+    },
+    "IndicatorShape": {
+      "json_values": ["strip", "arc"],
+      "default": "strip",
+      "doc": "How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sweep, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the three angle properties, and each ignores the other's."
     },
     "SlotTrigger": {
       "json_values": ["none", "value_changed", "conditions"],
@@ -461,6 +476,7 @@
         { "name": "background_grad_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Far end of a linear gradient across the background. Omitted paints the background flat." },
         { "name": "background_grad_dir", "kind": "enum", "enum": "GradientDirection" },
         { "name": "background_inset_px", "kind": "uint16", "default": 0, "doc": "Gap between the border and the painted background, so a filled widget keeps its frame visible. Applies to the authored background and to one a rule paints." },
+        { "name": "fill_corners", "kind": "enum", "enum": "FillCorners" },
         { "name": "action", "kind": "struct", "struct": "WidgetAction" },
         { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "color_ramp", "kind": "struct", "struct": "ColorRamp" },
@@ -516,9 +532,13 @@
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
         { "name": "start_angle_deg", "kind": "uint16", "default": 135, "maximum": 359, "doc": "Where the sweep begins, in LVGL degrees: zero is three o'clock and the angle grows clockwise." },
         { "name": "sweep_deg", "kind": "uint16", "default": 270, "minimum": 1, "maximum": 360, "doc": "How far the arc runs from its start. An extent rather than an end angle, so the wrap past 360 degrees is never ambiguous. A sweep of zero would draw nothing and one past a full turn would wrap over itself." },
-        { "name": "thickness_px", "kind": "uint16", "default": 8, "minimum": 1, "doc": "Ring thickness. Two of these also have to fit across the widget, which the display-aware validator checks separately." },
+        { "name": "thickness_px", "kind": "uint16", "default": 8, "minimum": 1, "doc": "Ring thickness. With no radius of its own, two of these also have to fit across the widget, which the display-aware validator checks separately." },
+        { "name": "radius_px", "kind": "uint16", "default": 0, "minimum": 1, "maximum": 2048, "zero_means_off": true, "doc": "Radius of the ring's centre line. Zero takes it from the box, which is what an arc has always done: half the shorter inner side, less half the thickness. A radius of its own is free to be larger than the box, and the widget still clips to its box, so a ring wider than the box shows only the band that crosses it." },
+        { "name": "center_x_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Circle centre relative to the centre of the box, positive right. Pushing the centre outside the box is how a shallow band across a corner of a round display is authored." },
+        { "name": "center_y_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Circle centre relative to the centre of the box, positive down." },
         { "name": "track_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Unfilled part of the sweep. Omitted leaves it unpainted, which suits an arc drawn over a shape." },
         { "name": "fill_color", "kind": "color", "default": "0x38BDF8" },
+        { "name": "mark", "kind": "enum", "enum": "ArcMark" },
         { "name": "inverted", "kind": "bool", "default": false, "doc": "Sweeps from the far end of the arc instead of the near one." }
       ]
     },
@@ -533,14 +553,22 @@
 
     "IndicatorWidgetConfiguration": {
       "widget_type": "indicator",
-      "doc": "A row of lamps that light as one telemetry source climbs its range: shift lights, a rev strip, a stint marker.",
+      "doc": "A row or ring of lamps that light as one telemetry source climbs its range: shift lights, a rev strip, the rev ring around a dial.",
       "fields": [
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
+        { "name": "shape", "kind": "enum", "enum": "IndicatorShape" },
         { "name": "orientation", "kind": "enum", "enum": "BarOrientation" },
-        { "name": "segment_gap_px", "kind": "uint16", "default": 4 },
-        { "name": "segment_radius_px", "kind": "uint16", "default": 0 },
+        { "name": "start_angle_deg", "kind": "uint16", "default": 135, "maximum": 359, "doc": "Where an arc strip begins, in LVGL degrees: zero is three o'clock and the angle grows clockwise. Ignored by a strip." },
+        { "name": "sweep_deg", "kind": "uint16", "default": 270, "minimum": 1, "maximum": 360, "doc": "How far an arc strip runs from its start, shared out between its lamps and the gaps between them. Ignored by a strip." },
+        { "name": "thickness_px", "kind": "uint16", "default": 8, "minimum": 1, "doc": "Ring thickness of an arc strip. With no radius of its own, two of these also have to fit across the widget, which the display-aware validator checks separately. Ignored by a strip." },
+        { "name": "radius_px", "kind": "uint16", "default": 0, "minimum": 1, "maximum": 2048, "zero_means_off": true, "doc": "Radius of the lamp ring's centre line. Zero takes it from the box, half the shorter inner side less half the thickness. A radius of its own may exceed the box, which the widget still clips to. Ignored by a strip." },
+        { "name": "center_x_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Ring centre relative to the centre of the box, positive right. Ignored by a strip." },
+        { "name": "center_y_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Ring centre relative to the centre of the box, positive down. Ignored by a strip." },
+        { "name": "segment_gap_px", "kind": "uint16", "default": 4, "doc": "Clear space between lamps. An arc spends it along its own ring, so the gap stays the same width wherever the lamp sits." },
+        { "name": "segment_radius_px", "kind": "uint16", "default": 0, "doc": "Corner radius of a strip lamp. An arc lamp has no corners, so any non-zero value rounds its ends instead." },
+        { "name": "inverted", "kind": "bool", "default": false, "doc": "Lights from the far end instead of the near one: right instead of left, top instead of bottom, or the end of the sweep instead of its start. Which lamp lights when is unchanged — the thresholds still climb down the list — so a mirrored pair of rev bars is one authored strip placed twice." },
         { "name": "off_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a segment that is not lit. Omitted leaves it unpainted." },
         { "name": "blink_threshold", "kind": "float", "default": 2, "doc": "Range fraction at or above which every lit segment blinks. The default is past the top of the range, which is how a strip says never." },
         { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Blink period once the blink threshold is reached. Zero never blinks." },

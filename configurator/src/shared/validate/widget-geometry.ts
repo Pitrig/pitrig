@@ -27,10 +27,16 @@ export function findWidgetGeometryError(
     return `${label} spends ${claimed} pixels on its border and inset, which its ${width}×${height} box has no room for.`
   }
 
-  if (widget.type === 'arc') {
+  const ringed = widget.type === 'arc'
+    || (widget.type === 'indicator' && (widget.shape ?? 'strip') === 'arc')
+  if (ringed) {
     const thickness = widget.thickness_px ?? 8
-    if (2 * thickness > Math.min(width, height)) {
-      return `${label} is ${thickness} pixels thick, which does not fit twice across its ${width}×${height} box.`
+    const radius = widget.radius_px ?? 0
+    if (radius === 0 && 2 * thickness > Math.min(width, height)) {
+      return `${label} is ${thickness} pixels thick, which does not fit twice across its ${width}×${height} box. Give it a radius of its own, or make the box bigger.`
+    }
+    if (radius !== 0 && thickness > 2 * radius) {
+      return `${label} is ${thickness} pixels thick, which is more than its ${radius}-pixel radius can carry.`
     }
   }
   return undefined

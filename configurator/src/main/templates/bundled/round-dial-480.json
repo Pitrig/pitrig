@@ -1,0 +1,1414 @@
+{
+  "format": "simcore-dashboard-template",
+  "format_version": 1,
+  "name": "Round dial 480",
+  "description": "A single round dial for the 480 x 480 display: a needle rev counter with a smooth rev ring and a segmented shift arc, corner aid chips, and a data screen of times, fuel and tyres behind it.",
+  "configuration": {
+    "board": "guition_esp32_4848s040",
+    "dashboard": {
+      "screens": [
+        {
+          "id": "dial",
+          "background_color": "#000000",
+          "widgets": [
+            {
+              "type": "shape",
+              "id": "q_bezel",
+              "placement": {
+                "x": 4,
+                "y": 4,
+                "width": 472,
+                "height": 472
+              },
+              "kind": "ellipse",
+              "background_color": "#07090C",
+              "border": {
+                "color": "#FFFFFF",
+                "width_px": 3
+              }
+            },
+            {
+              "type": "arc",
+              "id": "q_rev",
+              "placement": {
+                "x": 16,
+                "y": 16,
+                "width": 448,
+                "height": 448
+              },
+              "source": {
+                "binding": "engine.rpm_percent"
+              },
+              "minimum": 20,
+              "maximum": 99,
+              "start_angle_deg": 118,
+              "sweep_deg": 304,
+              "thickness_px": 18,
+              "fill_color": "#00E676",
+              "track_color": "#14171C",
+              "condition_source": {
+                "binding": "engine.rpm_percent"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 55,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 88,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 99,
+                    "color": "#FF2D2D"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "indicator",
+              "id": "q_shift",
+              "placement": {
+                "x": 44,
+                "y": 44,
+                "width": 392,
+                "height": 392
+              },
+              "source": {
+                "binding": "engine.rpm_percent"
+              },
+              "minimum": 82,
+              "maximum": 99,
+              "segments": [
+                {
+                  "threshold": 0.0,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.083,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.167,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.25,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.333,
+                  "color": "#00E676"
+                },
+                {
+                  "threshold": 0.417,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.5,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.583,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.667,
+                  "color": "#FFC400"
+                },
+                {
+                  "threshold": 0.75,
+                  "color": "#FF2D2D"
+                },
+                {
+                  "threshold": 0.833,
+                  "color": "#FF2D2D"
+                },
+                {
+                  "threshold": 0.917,
+                  "color": "#FF2D2D"
+                }
+              ],
+              "shape": "arc",
+              "start_angle_deg": 296,
+              "sweep_deg": 72,
+              "thickness_px": 11,
+              "segment_gap_px": 4,
+              "segment_radius_px": 2,
+              "off_color": "#12161B",
+              "blink_threshold": 0.99,
+              "blink_ms": 110
+            },
+            {
+              "type": "shape",
+              "id": "q_plate",
+              "placement": {
+                "x": 58,
+                "y": 58,
+                "width": 364,
+                "height": 364
+              },
+              "kind": "ellipse",
+              "background_color": "#000000",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2
+              }
+            },
+            {
+              "type": "arc",
+              "id": "q_needle",
+              "placement": {
+                "x": 100,
+                "y": 100,
+                "width": 280,
+                "height": 280
+              },
+              "source": {
+                "binding": "engine.rpm"
+              },
+              "minimum": 0,
+              "maximum": 9000,
+              "start_angle_deg": 145,
+              "sweep_deg": 250,
+              "thickness_px": 8,
+              "fill_color": "#FFFFFF",
+              "mark": "needle"
+            },
+            {
+              "type": "shape",
+              "id": "q_hub",
+              "placement": {
+                "x": 226,
+                "y": 226,
+                "width": 28,
+                "height": 28
+              },
+              "kind": "ellipse",
+              "background_color": "#2A2F38"
+            },
+            {
+              "type": "text",
+              "id": "q_speed",
+              "placement": {
+                "x": 144,
+                "y": 214,
+                "width": 192,
+                "height": 84
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.speed",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 72
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "title": {
+                "text": "KMH",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78",
+                "alignment": "bottom_center",
+                "border_gap": false
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_gear",
+              "placement": {
+                "x": 196,
+                "y": 104,
+                "width": 88,
+                "height": 88
+              },
+              "sources": [
+                {
+                  "binding": "transmission.gear"
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 62
+                },
+                "color": "#000000",
+                "alignment": "center"
+              },
+              "background_color": "#FFFFFF",
+              "border": {
+                "radius_px": 10
+              },
+              "condition_source": {
+                "binding": "engine.rpm_percent"
+              },
+              "conditions": [
+                {
+                  "op": "at_or_above",
+                  "value": 99,
+                  "color": "#FFFFFF",
+                  "background_color": "#FF2D2D",
+                  "blink_ms": 120
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "q_delta",
+              "placement": {
+                "x": 158,
+                "y": 8,
+                "width": 164,
+                "height": 44
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.delta",
+                  "transform": {
+                    "type": "time",
+                    "format": "signed_duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 32
+                },
+                "color": "#000000",
+                "alignment": "center"
+              },
+              "background_color": "#00E676",
+              "border": {
+                "radius_px": 10
+              },
+              "condition_source": {
+                "binding": "session.lap.delta"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "color": "#FFFFFF",
+                  "background_color": "#FF2D2D"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "q_lap",
+              "placement": {
+                "x": 130,
+                "y": 314,
+                "width": 220,
+                "height": 46
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.current_time",
+                  "modifiers": [
+                    {
+                      "type": "lap_timer"
+                    }
+                  ],
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 36
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_best",
+              "placement": {
+                "x": 130,
+                "y": 362,
+                "width": 220,
+                "height": 34
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.best_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 24
+                },
+                "color": "#E040FB",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_fuel",
+              "placement": {
+                "x": 130,
+                "y": 398,
+                "width": 220,
+                "height": 34
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.fuel.level",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1,
+                    "prefix": "\ue546 ",
+                    "suffix": "L "
+                  }
+                },
+                {
+                  "binding": "vehicle.fuel.laps_remaining",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1,
+                    "prefix": "\ue425 "
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 22,
+                  "fallback": "material-icons"
+                },
+                "color": "#FFC400",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_tc",
+              "placement": {
+                "x": 4,
+                "y": 4,
+                "width": 84,
+                "height": 64
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.aids.traction_control_level",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 32
+                },
+                "color": "#29B6F6",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#29B6F6",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "TC",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#29B6F6"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_abs",
+              "placement": {
+                "x": 392,
+                "y": 4,
+                "width": 84,
+                "height": 64
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.aids.abs_level",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 32
+                },
+                "color": "#FFC400",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#FFC400",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "ABS",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#FFC400"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_bb",
+              "placement": {
+                "x": 4,
+                "y": 412,
+                "width": 84,
+                "height": 64
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.brake_bias",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 32
+                },
+                "color": "#FF2D2D",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#FF2D2D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "BB",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#FF2D2D"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_map",
+              "placement": {
+                "x": 392,
+                "y": 412,
+                "width": 84,
+                "height": 64
+              },
+              "sources": [
+                {
+                  "binding": "engine.map",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 32
+                },
+                "color": "#00E676",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#00E676",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "MAP",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#00E676"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s1",
+              "placement": {
+                "x": 63,
+                "y": 244,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "1",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s2",
+              "placement": {
+                "x": 72,
+                "y": 167,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "2",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s3",
+              "placement": {
+                "x": 115,
+                "y": 104,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "3",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s4",
+              "placement": {
+                "x": 183,
+                "y": 68,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "4",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s5",
+              "placement": {
+                "x": 260,
+                "y": 68,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "5",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s6",
+              "placement": {
+                "x": 328,
+                "y": 104,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "6",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s7",
+              "placement": {
+                "x": 371,
+                "y": 167,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "7",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s8",
+              "placement": {
+                "x": 380,
+                "y": 244,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "8",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "shape",
+              "id": "q_s9",
+              "placement": {
+                "x": 353,
+                "y": 315,
+                "width": 36,
+                "height": 32
+              },
+              "title": {
+                "text": "9",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 24
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              }
+            }
+          ]
+        },
+        {
+          "id": "data",
+          "background_color": "#000000",
+          "widgets": [
+            {
+              "type": "text",
+              "id": "e_pred",
+              "placement": {
+                "x": 6,
+                "y": 6,
+                "width": 228,
+                "height": 104
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.estimated_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 40
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "PREDICTED",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_last",
+              "placement": {
+                "x": 246,
+                "y": 6,
+                "width": 228,
+                "height": 104
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.last_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 40
+                },
+                "color": "#FFD54F",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "LAST",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_best",
+              "placement": {
+                "x": 6,
+                "y": 118,
+                "width": 228,
+                "height": 104
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.best_time",
+                  "transform": {
+                    "type": "time",
+                    "format": "duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 40
+                },
+                "color": "#E040FB",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "BEST",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_delta",
+              "placement": {
+                "x": 246,
+                "y": 118,
+                "width": 228,
+                "height": 104
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.delta",
+                  "transform": {
+                    "type": "time",
+                    "format": "signed_duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 40
+                },
+                "color": "#00E676",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "DELTA",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_fuel",
+              "placement": {
+                "x": 6,
+                "y": 230,
+                "width": 150,
+                "height": 104
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.fuel.level",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 40
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "FUEL",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_flaps",
+              "placement": {
+                "x": 164,
+                "y": 230,
+                "width": 150,
+                "height": 104
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.fuel.laps_remaining",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 40
+                },
+                "color": "#FFC400",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "LAPS",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_ftime",
+              "placement": {
+                "x": 322,
+                "y": 230,
+                "width": 152,
+                "height": 104
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.fuel.time_remaining",
+                  "transform": {
+                    "type": "time",
+                    "format": "clock_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "TIME",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_water",
+              "placement": {
+                "x": 6,
+                "y": 342,
+                "width": 150,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "engine.water_temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "WATER",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_oil",
+              "placement": {
+                "x": 164,
+                "y": 342,
+                "width": 150,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "engine.oil_temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#9AA1AC",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "OIL",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_pos",
+              "placement": {
+                "x": 322,
+                "y": 342,
+                "width": 152,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "session.position",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "POS",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_fl",
+              "placement": {
+                "x": 6,
+                "y": 412,
+                "width": 114,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "tyre.front_left.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "FL",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              },
+              "condition_source": {
+                "binding": "tyre.front_left.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 60,
+                    "color": "#29B6F6"
+                  },
+                  {
+                    "at": 85,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 105,
+                    "color": "#FF2D2D"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_fr",
+              "placement": {
+                "x": 124,
+                "y": 412,
+                "width": 114,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "tyre.front_right.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "FR",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              },
+              "condition_source": {
+                "binding": "tyre.front_right.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 60,
+                    "color": "#29B6F6"
+                  },
+                  {
+                    "at": 85,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 105,
+                    "color": "#FF2D2D"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_rl",
+              "placement": {
+                "x": 242,
+                "y": 412,
+                "width": 114,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "tyre.rear_left.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "RL",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              },
+              "condition_source": {
+                "binding": "tyre.rear_left.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 60,
+                    "color": "#29B6F6"
+                  },
+                  {
+                    "at": 85,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 105,
+                    "color": "#FF2D2D"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "e_rr",
+              "placement": {
+                "x": 360,
+                "y": 412,
+                "width": 114,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "tyre.rear_right.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#07090C",
+              "border": {
+                "color": "#31353D",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "title": {
+                "text": "RR",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 14
+                },
+                "color": "#646C78"
+              },
+              "condition_source": {
+                "binding": "tyre.rear_right.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 60,
+                    "color": "#29B6F6"
+                  },
+                  {
+                    "at": 85,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 105,
+                    "color": "#FF2D2D"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "transition": "none"
+    }
+  }
+}

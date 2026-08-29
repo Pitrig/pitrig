@@ -13,6 +13,11 @@ function formatDuration(milliseconds: number): string {
   return `${pad(minutes, 2)}:${pad(seconds, 2)}.${pad(remainder, 3)}`
 }
 
+function formatClock(milliseconds: number): string {
+  const total = Math.trunc(milliseconds / 1000)
+  return `${pad(Math.trunc(total / 3600), 2)}:${pad(Math.trunc(total / 60) % 60, 2)}:${pad(total % 60, 2)}`
+}
+
 function formatSignedDuration(milliseconds: number): string {
   const magnitude = Math.abs(Math.trunc(milliseconds))
   return `${milliseconds < 0 ? '-' : '+'}${Math.trunc(magnitude / 1000)}.${pad(magnitude % 1000, 3)}`
@@ -47,9 +52,10 @@ export function transformedBody(
         ? formatSignedDuration(value.number)
         : undefined
     }
-    return value.type === 'uint32' && value.number !== undefined
-      ? formatDuration(value.number)
-      : undefined
+    if (value.type !== 'uint32' || value.number === undefined) return undefined
+    return transform.format === 'clock_ms'
+      ? formatClock(value.number)
+      : formatDuration(value.number)
   }
   if (transform?.type === 'number') {
     const numeric = numberFor(value)
@@ -60,9 +66,8 @@ export function transformedBody(
 
 export function placeholderBody(transform: ValueTransform | undefined): string {
   if (transform?.type === 'time') {
-    return transform.format === 'signed_duration_ms'
-      ? formatSignedDuration(0)
-      : formatDuration(0)
+    if (transform.format === 'signed_duration_ms') return formatSignedDuration(0)
+    return transform.format === 'clock_ms' ? formatClock(0) : formatDuration(0)
   }
   if (transform?.type === 'number') {
     return formatNumber(transform, 0) ?? '0'

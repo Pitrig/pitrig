@@ -33,11 +33,11 @@ interface DeviceStore {
   error?: DeviceError
   connectionRevision: number
   activeConfiguration?: DeviceConfiguration
+  runningConfiguration?: DeviceConfiguration
   draft?: DeviceConfiguration
   rawDraft?: RawDraft
   hasLocalDraft: boolean
   draftFileName?: string
-  pendingConfiguration?: DeviceConfiguration
   offlineBoard?: SimCoreBoardId
   setOfflineBoard: (board?: SimCoreBoardId) => void
   rebootRequired: boolean
@@ -53,8 +53,9 @@ interface DeviceStore {
   reloadDraft: (session: DeviceSession) => void
   saveFeedback?: { kind: 'success' | 'error'; message: string }
   setSaveFeedback: (feedback?: { kind: 'success' | 'error'; message: string }) => void
-  markConfigurationSaved: (configuration: DeviceConfiguration) => void
+  markConfigurationSaved: (configuration: DeviceConfiguration, applied: boolean) => void
   markConfigurationReset: (configuration: DeviceConfiguration) => void
+  markLiveApplied: (configuration: DeviceConfiguration) => void
   beginEdit: () => void
   endEdit: () => void
   undo: () => void
@@ -94,7 +95,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
           status: state.status,
           session: undefined,
           activeConfiguration: undefined,
-          pendingConfiguration: undefined,
+          runningConfiguration: undefined,
           rebootRequired: false
         }
       }
@@ -115,13 +116,14 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
             current.rebootRequired || (state.session.fontAssets?.rebootRequired ?? false)
         }
       }
+      const freshConnection = current.status !== 'connected'
       return {
         ...link,
         status: state.status,
         session: state.session,
-        connectionRevision:
-          current.connectionRevision + (current.status === 'connected' ? 0 : 1),
+        connectionRevision: current.connectionRevision + (freshConnection ? 1 : 0),
         activeConfiguration,
+        ...(freshConnection ? { runningConfiguration: activeConfiguration } : {}),
         ...(current.hasLocalDraft
           ? {}
           : {
@@ -130,7 +132,6 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
               hasLocalDraft: true,
               ...clearedHistory()
             }),
-        pendingConfiguration: undefined,
         rebootRequired: state.session.fontAssets?.rebootRequired ?? false
       }
     }),
@@ -175,26 +176,28 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
     })),
   setOfflineBoard: (offlineBoard) => set({ offlineBoard }),
   setSaveFeedback: (saveFeedback) => set({ saveFeedback }),
-  markConfigurationSaved: (configuration) =>
-    set({
+  markConfigurationSaved: (configuration, applied) =>
+    set((current) => ({
       draft: adopt(configuration),
       rawDraft: undefined,
       hasLocalDraft: true,
       draftFileName: undefined,
-      pendingConfiguration: configuration,
+      activeConfiguration: configuration,
+      runningConfiguration: applied ? configuration : current.runningConfiguration,
       rebootRequired: false,
       ...clearedHistory()
-    }),
+    })),
   markConfigurationReset: (configuration) =>
     set({
       draft: adopt(configuration),
       rawDraft: undefined,
       hasLocalDraft: true,
       draftFileName: undefined,
-      pendingConfiguration: configuration,
+      activeConfiguration: configuration,
       rebootRequired: true,
       ...clearedHistory()
     }),
+  markLiveApplied: (configuration) => set({ runningConfiguration: configuration }),
   beginEdit: () =>
     set((current) => ({ editDepth: current.editDepth + 1, editRecorded: false })),
   endEdit: () => set((current) => ({ editDepth: Math.max(0, current.editDepth - 1) })),

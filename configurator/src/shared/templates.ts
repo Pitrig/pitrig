@@ -1,4 +1,5 @@
 import type { BoardId, WidgetConfiguration } from './configuration-schema'
+import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from './configuration-documents'
 import type { DeviceConfiguration } from './device'
 import { LIBRARY_ID_PATTERN, libraryIdFor } from './library-id'
 
@@ -99,7 +100,7 @@ export const BUNDLED_TEMPLATE_PREFIX = 'bundled:'
 export const MAXIMUM_TEMPLATE_NAME = 64
 export const MAXIMUM_TEMPLATE_DESCRIPTION = 240
 export const MAXIMUM_USER_TEMPLATES = 64
-export const MAXIMUM_TEMPLATE_FILE_SIZE = 128 * 1024
+export const MAXIMUM_TEMPLATE_FILE_SIZE = MAXIMUM_CONFIGURATION_TEXT_SIZE
 
 export function isBundledTemplateId(id: string): boolean {
   return id.startsWith(BUNDLED_TEMPLATE_PREFIX)

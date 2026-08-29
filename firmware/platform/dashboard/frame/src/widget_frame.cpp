@@ -10,6 +10,11 @@
 namespace simcore::dashboard::frame {
 namespace {
 
+bool square_fill(const Config& config) {
+  return config.fill_corners == configuration::FillCorners::square &&
+         config.border.radius_px != 0;
+}
+
 void apply_background_gradient(const Config& config, lv_obj_t* const object) {
   if (config.background_grad_color == configuration::kTransparentColor) {
     return;
@@ -46,6 +51,8 @@ void style_container(const Config& config, const Rect& bounds,
       container, config.border.width_px == 0 ? LV_OPA_TRANSP : LV_OPA_COVER,
       LV_PART_MAIN);
   lv_obj_set_style_radius(container, config.border.radius_px, LV_PART_MAIN);
+  lv_obj_set_style_clip_corner(container, square_fill(config), LV_PART_MAIN);
+  lv_obj_set_style_border_post(container, square_fill(config), LV_PART_MAIN);
   lv_obj_set_style_pad_left(container, config.padding.left, LV_PART_MAIN);
   lv_obj_set_style_pad_top(container, config.padding.top, LV_PART_MAIN);
   lv_obj_set_style_pad_right(container, config.padding.right, LV_PART_MAIN);
@@ -65,9 +72,7 @@ void style_background_fill(const Config& config, const Rect& bounds,
                  inset - static_cast<std::int32_t>(config.padding.top));
   lv_obj_set_size(fill, std::max<std::int32_t>(bounds.width - 2 * edge, 0),
                   std::max<std::int32_t>(bounds.height - 2 * edge, 0));
-  lv_obj_set_style_radius(
-      fill, std::max<std::int32_t>(config.border.radius_px - inset, 0),
-      LV_PART_MAIN);
+  lv_obj_set_style_radius(fill, fill_radius(config, inset), LV_PART_MAIN);
   if (has_background) {
     lv_obj_set_style_bg_color(fill, lv_color_hex(config.background_color),
                               LV_PART_MAIN);
@@ -88,6 +93,13 @@ telemetry::TelemetryRead read_telemetry(void* const context) {
                                      : telemetry::TelemetryRead{};
 }
 
+}
+
+std::int32_t fill_radius(const Config& config, const std::int32_t inset) {
+  if (config.fill_corners == configuration::FillCorners::square) {
+    return 0;
+  }
+  return std::max<std::int32_t>(config.border.radius_px - inset, 0);
 }
 
 bool caption_mask_reads_parent(const Config& config) {
@@ -176,7 +188,7 @@ bool update(const Layout& layout, const Config& config, const char* const tag,
     style_background_fill(config, bounds, box.background_fill);
   }
   box.caption = nullptr;
-  box.caption_gap = nullptr;
+  box.caption_mask = {};
   internal::build_caption(config, fonts, parent, bounds, box);
   if (resolved_bounds != nullptr) {
     *resolved_bounds = bounds;

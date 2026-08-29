@@ -12,10 +12,14 @@ export const MINIMUM_LAYERS_HEIGHT_PX = 120
 export const MAXIMUM_LAYERS_HEIGHT_PX = 720
 export const DEFAULT_LAYERS_HEIGHT_PX = 260
 
+export type TemplateSort = 'size' | 'name'
+
 interface PersistedPanels {
   inspectorWidth: number
   layersHeight: number
   transferFit: LayoutFit
+  templateSort: TemplateSort
+  templateBoard: string
   groups: Record<string, boolean>
 }
 
@@ -23,6 +27,8 @@ interface EditorPanelStore extends PersistedPanels {
   setInspectorWidth: (px: number) => void
   setLayersHeight: (px: number) => void
   setTransferFit: (fit: LayoutFit) => void
+  setTemplateSort: (sort: TemplateSort) => void
+  setTemplateBoard: (board: string) => void
   setGroupOpen: (key: string, open: boolean) => void
 }
 
@@ -33,6 +39,8 @@ const DEFAULTS: PersistedPanels = {
   inspectorWidth: DEFAULT_INSPECTOR_WIDTH_PX,
   layersHeight: DEFAULT_LAYERS_HEIGHT_PX,
   transferFit: 'contain',
+  templateSort: 'size',
+  templateBoard: '',
   groups: {}
 }
 
@@ -53,6 +61,9 @@ function restore(): PersistedPanels {
         MAXIMUM_LAYERS_HEIGHT_PX
       ),
       transferFit: stored.transferFit === 'stretch' ? 'stretch' : DEFAULTS.transferFit,
+      templateSort: stored.templateSort === 'name' ? 'name' : DEFAULTS.templateSort,
+      templateBoard:
+        typeof stored.templateBoard === 'string' ? stored.templateBoard : DEFAULTS.templateBoard,
       groups: stored.groups ?? {}
     }
   } catch {
@@ -67,14 +78,24 @@ export const useEditorPanelStore = create<EditorPanelStore>((set) => ({
   setLayersHeight: (px) =>
     set({ layersHeight: clamp(px, MINIMUM_LAYERS_HEIGHT_PX, MAXIMUM_LAYERS_HEIGHT_PX) }),
   setTransferFit: (transferFit) => set({ transferFit }),
+  setTemplateSort: (templateSort) => set({ templateSort }),
+  setTemplateBoard: (templateBoard) => set({ templateBoard }),
   setGroupOpen: (key, open) => set((current) => ({ groups: { ...current.groups, [key]: open } }))
 }))
 
-useEditorPanelStore.subscribe(({ inspectorWidth, layersHeight, transferFit, groups }) => {
+useEditorPanelStore.subscribe((state) => {
+  const { inspectorWidth, layersHeight, transferFit, templateSort, templateBoard, groups } = state
   try {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ inspectorWidth, layersHeight, transferFit, groups })
+      JSON.stringify({
+        inspectorWidth,
+        layersHeight,
+        transferFit,
+        templateSort,
+        templateBoard,
+        groups
+      })
     )
   } catch {
   }

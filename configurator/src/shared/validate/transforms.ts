@@ -6,8 +6,9 @@ const FIELD_TYPES: ReadonlyMap<string, TelemetryValueType> = new Map(
   TELEMETRY_CATALOG.map(({ name, type }) => [name, type])
 )
 
-const READS: Record<'duration_ms' | 'signed_duration_ms', TelemetryValueType> = {
+const READS: Record<'duration_ms' | 'signed_duration_ms' | 'clock_ms', TelemetryValueType> = {
   duration_ms: 'uint32',
+  clock_ms: 'uint32',
   signed_duration_ms: 'int32'
 }
 
@@ -24,8 +25,8 @@ export function transformError(
 
   if (kind === 'time') {
     const format = transform?.format
-    if (format !== 'duration_ms' && format !== 'signed_duration_ms') {
-      return `${what} of ${label} is a time transform with no format; the device needs "duration_ms" or "signed_duration_ms".`
+    if (format === undefined || !(format in READS)) {
+      return `${what} of ${label} is a time transform with no format; the device needs "duration_ms", "clock_ms" or "signed_duration_ms".`
     }
     if (type === READS[format]) return undefined
     const counted = format === 'signed_duration_ms' ? 'a signed' : 'an unsigned'

@@ -24,7 +24,7 @@ export function CanvasWidgetLayer({
   configuration,
   placements,
   values,
-  screenBackground,
+  behind,
   dimmed,
   gestureIdle,
   openMenu,
@@ -35,7 +35,7 @@ export function CanvasWidgetLayer({
   configuration: DeviceConfiguration
   placements: Map<string, Placement>
   values: PreviewValues
-  screenBackground: string
+  behind: string
   dimmed: boolean
   gestureIdle: (event: React.PointerEvent) => boolean
   openMenu: (event: React.MouseEvent, widgetId?: string) => void
@@ -109,7 +109,7 @@ export function CanvasWidgetLayer({
           configuration={layer.configuration}
           values={values}
           clipId={widgetClipId(layerIndex)}
-          screenBackground={screenBackground}
+          behind={behind}
         />
       </g>
       {(id && locked[id]) || activeTool !== 'select' ? null : (

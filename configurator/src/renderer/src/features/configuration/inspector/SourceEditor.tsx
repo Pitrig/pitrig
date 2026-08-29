@@ -1,11 +1,12 @@
 import { Trash2 } from 'lucide-react'
-import { type TextSourceConfiguration, type ValueTransform } from '@shared/configuration-schema'
+import { type TextSourceConfiguration, VALUE_AFFIX_CAPACITY, type ValueTransform } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG, type TelemetryCatalogEntry } from '@shared/telemetry-catalog'
 import { MAXIMUM_TRANSFORM_DECIMALS, unitPresetsFor } from '@shared/value-transform'
 import { authored } from './authored'
 import { HINTS } from './hints'
 import { PropertyRow } from './PropertyRow'
-import { NumberInput, SelectField, TextInput } from './fields'
+import { IconTextInput } from './IconPicker'
+import { NumberInput, SelectField } from './fields'
 import { TelemetryBindingField } from './TelemetryBindingField'
 
 export function SourceEditor({ source, index, removable, onChange, onRemove }: {
@@ -54,7 +55,7 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
         const transform = next.transform ?? {}
         clearTransformType(transform)
         if (value === 'number') transform.type = 'number'
-        else if (value !== 'source_text') { transform.type = 'time'; transform.format = value as 'duration_ms' | 'signed_duration_ms' }
+        else if (value !== 'source_text') { transform.type = 'time'; transform.format = value as 'duration_ms' | 'signed_duration_ms' | 'clock_ms' }
         next.transform = transform
         pruneTransform(next)
       })} />
@@ -101,8 +102,8 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
         })}
       >
         <div className="grid grid-cols-2 gap-1">
-          <TextInput placeholder="Prefix" value={source.transform?.prefix ?? ''} onChange={affix('prefix')} />
-          <TextInput placeholder="Suffix" value={source.transform?.suffix ?? ''} onChange={affix('suffix')} />
+          <IconTextInput placeholder="Prefix" capacity={VALUE_AFFIX_CAPACITY} value={source.transform?.prefix ?? ''} onChange={affix('prefix')} />
+          <IconTextInput placeholder="Suffix" capacity={VALUE_AFFIX_CAPACITY} value={source.transform?.suffix ?? ''} onChange={affix('suffix')} />
         </div>
       </PropertyRow>
     </div>
@@ -113,7 +114,7 @@ function transformOptions(binding: TelemetryCatalogEntry | undefined): readonly 
   if (!binding) return ['source_text']
   const options = ['source_text']
   if (binding.type !== 'boolean') options.push('number')
-  if (binding.unit === 'millisecond' && binding.type === 'uint32') options.push('duration_ms')
+  if (binding.unit === 'millisecond' && binding.type === 'uint32') options.push('duration_ms', 'clock_ms')
   if (binding.unit === 'millisecond' && binding.type === 'int32') options.push('signed_duration_ms')
   return options
 }

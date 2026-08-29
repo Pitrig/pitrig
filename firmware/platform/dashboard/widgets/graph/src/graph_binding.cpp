@@ -38,7 +38,7 @@ bool Binder::bind_sources(const Config& configuration,
     ++binding.count;
   }
 
-  if (configuration.frame.condition_count == 0) {
+  if (!frame::watches_value(configuration.frame)) {
     return true;
   }
   return bind_one(configuration.frame.condition_source, registry, telemetry,

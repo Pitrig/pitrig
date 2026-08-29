@@ -58,7 +58,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.override_rgb = configuration::kTransparentColor;
   state.background_rgb =
       config.frame.background_color == configuration::kTransparentColor
-          ? 0x000000
+          ? frame::background_behind(parent)
           : config.frame.background_color;
   state.last_sample_tick = lv_tick_get();
   state.head_x = 0;

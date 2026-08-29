@@ -3,7 +3,7 @@ import { type GradientDirection } from '@shared/configuration-schema'
 import { type ResolvedStyle } from '@shared/widget-style'
 import { type Placement, markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR, type FramedWidgetConfiguration } from './preview-theme'
-import { backgroundRect, gradientPaint } from './preview-geometry-paint'
+import { backgroundRect, gradientPaint, squareFill } from './preview-geometry-paint'
 import { normalizeColor } from './preview-values'
 
 export function GradientDefinition({
@@ -40,11 +40,12 @@ export function WidgetFrameShape({
   const gradientId = markupId(useId())
   const borderWidth = configuration.border?.width_px ?? 0
   const corner = radius ?? configuration.border?.radius_px ?? 0
+  const fillCorner = squareFill(configuration) ? 0 : corner
   const background = normalizeColor(style.backgroundColor) ?? 'transparent'
   const box = backgroundRect(
     placement,
     borderWidth,
-    corner,
+    fillCorner,
     configuration.background_inset_px ?? 0
   )
   const fill = gradientPaint(gradientId, background, configuration.background_grad_color)

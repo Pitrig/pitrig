@@ -1,6 +1,11 @@
 The faces in this directory ship with the SimCore configurator and are used
-unchanged. Every one of them is licensed under the SIL Open Font License,
+unchanged. All but one of them are licensed under the SIL Open Font License,
 Version 1.1, whose text follows the copyright notices below.
+
+material-icons.ttf is MaterialIcons-Regular.ttf from
+https://github.com/google/material-design-icons, Copyright 2014 Google Inc.,
+licensed under the Apache License, Version 2.0
+(https://www.apache.org/licenses/LICENSE-2.0). It is redistributed unchanged.
 
 roboto.ttf, roboto_bold.ttf, roboto_black.ttf, roboto-condensed_bold.ttf
     Copyright 2011 The Roboto Project Authors

@@ -13,6 +13,7 @@ export interface PreviewLayer {
   offsetX: number
   offsetY: number
   clip?: Placement
+  behind: string
 }
 
 export function intersection(outer: Placement, inner: Placement): Placement {

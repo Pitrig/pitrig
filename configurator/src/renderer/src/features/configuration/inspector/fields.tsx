@@ -20,6 +20,25 @@ export function NumberInput({ id, value, min, max, step, title, onChange }: { id
   return <input id={id} type="number" title={title} className={CONTROL} value={local} min={min} max={max} step={step} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) change(next) }} onBlur={flush} />
 }
 
+export function SliderInput({ id, value, min, max, step, title, onChange }: { id?: string; value: number; min: number; max: number; step?: number; title?: string; onChange: (value: number) => void }): React.JSX.Element {
+  const [local, change, flush] = useLiveCommit(value, onChange)
+  return <input id={id} type="range" title={title} className="h-7 min-w-0 flex-1 accent-sky-400" value={Math.min(Math.max(local, min), max)} min={min} max={max} step={step ?? 1} onChange={(event) => change(Number(event.target.value))} onPointerUp={flush} onKeyUp={flush} onBlur={flush} />
+}
+
+export function SliderField({ label, value, min, max, softMin, softMax, step, suffix, caption, onChange, ...meta }: PropertyMeta & { label: string; value: number; min: number; max: number; softMin?: number; softMax?: number; step?: number; suffix?: string; caption?: string; onChange: (value: number) => void }): React.JSX.Element {
+  return (
+    <PropertyRow label={label} {...meta}>
+      <div className="flex items-center gap-1.5">
+        <SliderInput title={suffix ? `${label} in ${suffix}` : label} value={value} min={softMin ?? min} max={softMax ?? max} step={step} onChange={onChange} />
+        <div className="w-16 flex-none">
+          <NumberInput title={suffix ? `${label} in ${suffix}` : label} value={value} min={min} max={max} step={step} onChange={onChange} />
+        </div>
+      </div>
+      {caption ? <p className="pt-1 text-[10px] text-muted-foreground">{caption}</p> : null}
+    </PropertyRow>
+  )
+}
+
 export function SelectInput<T extends string>({ id, value, options, onChange }: { id?: string; value: string; options: readonly T[]; onChange: (value: T) => void }): React.JSX.Element {
   return (
     <select id={id} className={CONTROL} value={value} onChange={(event) => onChange(event.target.value as T)}>

@@ -91,9 +91,12 @@ configuration::ValidationFailure apply_configuration(
                                            dashboard_composition::instance()) &&
       dashboard_composition::apply_incremental(previous, candidate,
                                                dashboard_composition::instance())) {
+    dashboard_composition::dismiss_startup_screen(candidate, false);
     return {};
   }
   if (recompose(application)) {
+    dashboard_composition::dismiss_startup_screen(
+        application.services.configuration.current(), false);
     return {};
   }
 

@@ -2,7 +2,10 @@ import {
   IMAGE_COLOR_FORMATS,
   type ImageUploadRequest
 } from '@shared/image-assets'
-import { isConfigurationDocumentId } from '@shared/configuration-documents'
+import {
+  MAXIMUM_CONFIGURATION_TEXT_SIZE,
+  isConfigurationDocumentId
+} from '@shared/configuration-documents'
 import type {
   FontCatalogPreviewRequest,
   FontFacesRequest,
@@ -86,7 +89,8 @@ export function isJsonDocumentRequest(
 ): value is DeviceConfigurationRequest & ConfigurationFileSaveRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<DeviceConfigurationRequest>
-  if (typeof request.json !== 'string' || request.json.length > 64 * 1024) return false
+  if (typeof request.json !== 'string') return false
+  if (request.json.length > MAXIMUM_CONFIGURATION_TEXT_SIZE) return false
   if (request.documents === undefined) return true
   return (
     Array.isArray(request.documents) &&
@@ -114,7 +118,7 @@ export function isTemplateSaveRequest(value: unknown): value is TemplateSaveRequ
   ) {
     return false
   }
-  return typeof request.json === 'string' && request.json.length <= 64 * 1024
+  return typeof request.json === 'string' && request.json.length <= MAXIMUM_CONFIGURATION_TEXT_SIZE
 }
 
 export function isTemplateIdRequest(value: unknown): value is TemplateIdRequest {
@@ -139,7 +143,7 @@ export function isConfigurationSaveRequest(value: unknown): value is Configurati
     typeof request.name === 'string' &&
     request.name.length <= MAXIMUM_CONFIGURATION_NAME &&
     typeof request.json === 'string' &&
-    request.json.length <= 64 * 1024
+    request.json.length <= MAXIMUM_CONFIGURATION_TEXT_SIZE
   )
 }
 

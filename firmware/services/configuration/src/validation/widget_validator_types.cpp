@@ -10,6 +10,17 @@
 #include "value_rules.hpp"
 
 namespace simcore::configuration::validation {
+namespace {
+
+bool ring_fits(const std::uint16_t thickness_px, const std::uint16_t radius_px,
+               const WidgetPlacement& placement) {
+  if (radius_px != 0) {
+    return thickness_px <= 2 * radius_px;
+  }
+  return 2 * thickness_px <= std::min(placement.width, placement.height);
+}
+
+}
 
 bool Validator::slot_page(const SlotPageConfiguration& config) {
   if (config.condition_count > config.conditions.size() ||
@@ -116,13 +127,15 @@ bool Validator::arc_widget(const ArcWidgetConfiguration& config) {
       !out_of_range.empty()) {
     return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
-  const std::int32_t smallest_side =
-      std::min(config.frame.placement.width, config.frame.placement.height);
-  if (2 * config.thickness_px > smallest_side) {
+  if (!ring_fits(config.thickness_px, config.radius_px,
+                 config.frame.placement)) {
     return reject(failure_, ValidationError::invalid_widget, "thickness_px");
   }
   if (!valid_color(config.fill_color) || !valid_optional_color(config.track_color)) {
     return reject(failure_, ValidationError::invalid_widget, "fill_color");
+  }
+  if (config.mark < ArcMark::ring || config.mark > ArcMark::needle) {
+    return reject(failure_, ValidationError::invalid_widget, "mark");
   }
   return value_source(config.source) && value_range(config.range) &&
          frame(config.frame);
@@ -133,6 +146,15 @@ bool Validator::indicator_widget(const IndicatorWidgetConfiguration& config) {
   if (config.orientation < BarOrientation::horizontal ||
       config.orientation > BarOrientation::vertical) {
     return reject(failure_, ValidationError::invalid_widget, "orientation");
+  }
+  if (config.shape < IndicatorShape::strip ||
+      config.shape > IndicatorShape::arc) {
+    return reject(failure_, ValidationError::invalid_widget, "shape");
+  }
+  if (config.shape == IndicatorShape::arc &&
+      !ring_fits(config.thickness_px, config.radius_px,
+                 config.frame.placement)) {
+    return reject(failure_, ValidationError::invalid_widget, "thickness_px");
   }
   if (config.segment_count == 0 ||
       config.segment_count > config.segments.size()) {

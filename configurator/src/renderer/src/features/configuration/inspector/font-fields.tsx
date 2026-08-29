@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FontSpec } from '@shared/configuration-schema'
 import { MAXIMUM_FONT_SIZE_PX } from '@shared/font-assets'
 import { authored } from './authored'
+import { HINTS } from './hints'
 import { PropertyRow } from './PropertyRow'
 import { draftFontFamily, useDashboardEditorStore } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -76,6 +77,42 @@ export function FontEditor({ font, defaultSizePx, onChange, hint }: { font?: Fon
         <FontFamilyPicker family={font?.family} onChange={(family) => onChange({ ...font, family })} />
         <NumberInput title="Size in pixels" value={font?.size_px ?? defaultSizePx} min={1} max={MAXIMUM_FONT_SIZE_PX} onChange={(size_px) => onChange({ ...font, size_px })} />
       </div>
+      <FallbackRow font={font} onChange={onChange} />
     </PropertyRow>
+  )
+}
+
+function FallbackRow({ font, onChange }: { font?: FontSpec; onChange: (font: FontSpec) => void }): React.JSX.Element {
+  const [adding, setAdding] = useState(false)
+  if (!font?.fallback && !adding) {
+    return (
+      <button
+        type="button"
+        title={HINTS.title.fallback}
+        className="mt-1 text-[10px] text-muted-foreground hover:text-foreground"
+        onClick={() => setAdding(true)}
+      >
+        + Fallback family
+      </button>
+    )
+  }
+  return (
+    <div className="mt-1 grid grid-cols-[minmax(0,1fr)_1.75rem] gap-1">
+      <FontFamilyPicker family={font?.fallback} onChange={(fallback) => onChange({ ...font, fallback })} />
+      <button
+        type="button"
+        aria-label="Remove the fallback family"
+        title="Draw missing glyphs as nothing again"
+        className="h-7 rounded-md border text-muted-foreground hover:text-foreground"
+        onClick={() => {
+          setAdding(false)
+          const next = { ...font }
+          delete next.fallback
+          onChange(next)
+        }}
+      >
+        ×
+      </button>
+    </div>
   )
 }

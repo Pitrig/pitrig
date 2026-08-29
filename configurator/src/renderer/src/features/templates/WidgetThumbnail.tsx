@@ -4,7 +4,6 @@ import type { WidgetConfiguration } from '@shared/configuration-schema'
 
 import { completePlacement } from '@/features/configuration/dashboard-editor'
 import { flattenScreen } from '@/features/configuration/preview/preview-layers'
-import { SCREEN_BACKGROUND } from '@/features/configuration/preview/preview-theme'
 import { WidgetLayers } from '@/features/configuration/preview/WidgetLayers'
 
 export function WidgetThumbnail({
@@ -26,7 +25,7 @@ export function WidgetThumbnail({
       viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
       preserveAspectRatio="xMidYMid meet"
     >
-      <WidgetLayers layers={layers} background={SCREEN_BACKGROUND} />
+      <WidgetLayers layers={layers} />
     </svg>
   )
 }

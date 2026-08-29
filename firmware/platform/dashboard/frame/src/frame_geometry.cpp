@@ -15,16 +15,6 @@ namespace {
   return size.x;
 }
 
-[[nodiscard]] lv_color_t background_behind(const lv_obj_t* object) {
-  while (object != nullptr) {
-    if (lv_obj_get_style_bg_opa(object, LV_PART_MAIN) > LV_OPA_TRANSP) {
-      return lv_obj_get_style_bg_color(object, LV_PART_MAIN);
-    }
-    object = lv_obj_get_parent(object);
-  }
-  return lv_color_black();
-}
-
 enum class Column : std::uint8_t { left, center, right };
 enum class Row : std::uint8_t { top, middle, bottom };
 
@@ -126,6 +116,17 @@ struct Anchor {
 
 }
 
+std::uint32_t background_behind(const lv_obj_t* object) {
+  while (object != nullptr) {
+    if (lv_obj_get_style_bg_opa(object, LV_PART_MAIN) > LV_OPA_TRANSP) {
+      return lv_color_to_u32(lv_obj_get_style_bg_color(object, LV_PART_MAIN)) &
+             0x00FF'FFFFU;
+    }
+    object = lv_obj_get_parent(object);
+  }
+  return 0x000000U;
+}
+
 namespace internal {
 
 bool resolve_frame_box(const Layout& layout, const Config& config,
@@ -182,18 +183,15 @@ void build_caption(const Config& config, const fonts::Registry& fonts,
       caption_rect(config, bounds, text_width(title_font, config.title.text.data()),
                    lv_font_get_line_height(title_font));
   if (Rect gap{}; caption_gap_rect(config, bounds, caption, gap)) {
-    box.caption_gap = lv_obj_create(parent);
-    lv_obj_remove_style_all(box.caption_gap);
-    lv_obj_set_size(box.caption_gap, gap.width, gap.height);
-    lv_obj_set_pos(box.caption_gap, gap.x, gap.y);
-    const lv_color_t gap_color =
-        caption_mask_reads_parent(config)
-            ? background_behind(parent)
-            : lv_color_hex(config.background_color);
-    lv_obj_set_style_bg_color(box.caption_gap, gap_color, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(box.caption_gap, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_remove_flag(box.caption_gap, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(box.caption_gap, LV_OBJ_FLAG_CLICKABLE);
+    const std::uint32_t gap_rgb = caption_mask_reads_parent(config)
+                                      ? background_behind(parent)
+                                      : config.background_color;
+    box.caption_mask = {.present = true,
+                        .x = gap.x - bounds.x,
+                        .y = gap.y - bounds.y,
+                        .width = gap.width,
+                        .height = gap.height,
+                        .rgb = gap_rgb & 0x00FF'FFFFU};
   }
 
   box.caption = lv_label_create(parent);

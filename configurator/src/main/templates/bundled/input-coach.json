@@ -1,0 +1,466 @@
+{
+  "format": "simcore-dashboard-template",
+  "format_version": 1,
+  "name": "Input coach",
+  "description": "The driver rather than the car, after NoxNova's Ultimate Input Dashboard: rolling speed, pedal and steering traces beside live pedal bars, gear, g-force and the delta.",
+  "configuration": {
+    "board": "guition_jc1060p470c",
+    "dashboard": {
+      "screens": [
+        {
+          "id": "inputs",
+          "background_color": "#05070B",
+          "widgets": [
+            {
+              "type": "graph",
+              "id": "i_speed",
+              "placement": {
+                "x": 8,
+                "y": 8,
+                "width": 672,
+                "height": 180
+              },
+              "source": {
+                "binding": "vehicle.speed"
+              },
+              "minimum": 0,
+              "maximum": 320,
+              "point_count": 120,
+              "sample_interval_ms": 80,
+              "line_color": "#FFFFFF",
+              "line_width_px": 3,
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "SPEED",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15
+                },
+                "color": "#626B79"
+              }
+            },
+            {
+              "type": "graph",
+              "id": "i_pedals",
+              "placement": {
+                "x": 8,
+                "y": 196,
+                "width": 672,
+                "height": 180
+              },
+              "source": {
+                "binding": "vehicle.throttle"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "point_count": 120,
+              "sample_interval_ms": 80,
+              "line_color": "#00E676",
+              "line_width_px": 3,
+              "traces": [
+                {
+                  "source": {
+                    "binding": "vehicle.brake"
+                  },
+                  "minimum": 0,
+                  "maximum": 100,
+                  "line_color": "#FF3B30"
+                }
+              ],
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "THROTTLE\u00b7BRAKE",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15
+                },
+                "color": "#626B79"
+              }
+            },
+            {
+              "type": "graph",
+              "id": "i_steer",
+              "placement": {
+                "x": 8,
+                "y": 384,
+                "width": 672,
+                "height": 180
+              },
+              "source": {
+                "binding": "vehicle.steering"
+              },
+              "minimum": -1,
+              "maximum": 1,
+              "point_count": 120,
+              "sample_interval_ms": 80,
+              "line_color": "#22D3EE",
+              "line_width_px": 3,
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "STEERING",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15
+                },
+                "color": "#626B79"
+              }
+            },
+            {
+              "type": "bar",
+              "id": "i_thr",
+              "placement": {
+                "x": 696,
+                "y": 8,
+                "width": 56,
+                "height": 400
+              },
+              "source": {
+                "binding": "vehicle.throttle"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "fill_color": "#00E676",
+              "orientation": "vertical",
+              "background_color": "#161B22",
+              "border": {
+                "radius_px": 8
+              }
+            },
+            {
+              "type": "bar",
+              "id": "i_brk",
+              "placement": {
+                "x": 760,
+                "y": 8,
+                "width": 56,
+                "height": 400
+              },
+              "source": {
+                "binding": "vehicle.brake"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "fill_color": "#FF3B30",
+              "orientation": "vertical",
+              "background_color": "#161B22",
+              "border": {
+                "radius_px": 8
+              }
+            },
+            {
+              "type": "bar",
+              "id": "i_clu",
+              "placement": {
+                "x": 824,
+                "y": 8,
+                "width": 56,
+                "height": 400
+              },
+              "source": {
+                "binding": "vehicle.clutch"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "fill_color": "#38BDF8",
+              "orientation": "vertical",
+              "background_color": "#161B22",
+              "border": {
+                "radius_px": 8
+              }
+            },
+            {
+              "type": "shape",
+              "id": "i_labels",
+              "placement": {
+                "x": 696,
+                "y": 414,
+                "width": 184,
+                "height": 30
+              },
+              "title": {
+                "text": "THR   BRK   CLU",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15
+                },
+                "color": "#626B79",
+                "alignment": "center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "i_gear",
+              "placement": {
+                "x": 896,
+                "y": 8,
+                "width": 120,
+                "height": 190
+              },
+              "sources": [
+                {
+                  "binding": "transmission.gear"
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 120
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 10
+              },
+              "condition_source": {
+                "binding": "engine.rpm_percent"
+              },
+              "conditions": [
+                {
+                  "op": "at_or_above",
+                  "value": 98,
+                  "color": "#FF3B30",
+                  "blink_ms": 140
+                },
+                {
+                  "op": "at_or_above",
+                  "value": 94,
+                  "color": "#FFC400"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "i_speedv",
+              "placement": {
+                "x": 896,
+                "y": 206,
+                "width": 120,
+                "height": 100
+              },
+              "sources": [
+                {
+                  "binding": "vehicle.speed",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 46
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "KMH",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15
+                },
+                "color": "#626B79",
+                "alignment": "bottom_center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "i_rpm",
+              "placement": {
+                "x": 896,
+                "y": 314,
+                "width": 120,
+                "height": 94
+              },
+              "sources": [
+                {
+                  "binding": "engine.rpm",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 32
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "RPM",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "i_gl",
+              "placement": {
+                "x": 696,
+                "y": 452,
+                "width": 184,
+                "height": 68
+              },
+              "sources": [
+                {
+                  "binding": "motion.g_force_lateral",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 2
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 40
+                },
+                "color": "#A78BFA",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "G LAT",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "i_gy",
+              "placement": {
+                "x": 896,
+                "y": 452,
+                "width": 120,
+                "height": 68
+              },
+              "sources": [
+                {
+                  "binding": "motion.g_force_longitudinal",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 2
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 32
+                },
+                "color": "#A78BFA",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "G LON",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "i_delta",
+              "placement": {
+                "x": 696,
+                "y": 528,
+                "width": 320,
+                "height": 64
+              },
+              "sources": [
+                {
+                  "binding": "session.lap.delta",
+                  "transform": {
+                    "type": "time",
+                    "format": "signed_duration_ms"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 44
+                },
+                "color": "#000000",
+                "alignment": "center"
+              },
+              "background_color": "#00E676",
+              "border": {
+                "radius_px": 8
+              },
+              "condition_source": {
+                "binding": "session.lap.delta"
+              },
+              "conditions": [
+                {
+                  "op": "above",
+                  "value": 0,
+                  "color": "#FFFFFF",
+                  "background_color": "#FF3B30"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "transition": "none"
+    }
+  }
+}

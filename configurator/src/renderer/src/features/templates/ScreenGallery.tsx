@@ -81,8 +81,11 @@ export function ScreenView({
   onPointerUp?: (event: React.PointerEvent) => void
   onPointerLeave?: () => void
 }): React.JSX.Element {
-  const layers = useMemo(() => flattenScreen(screen, {}), [screen])
   const background = screen?.background_color ?? SCREEN_BACKGROUND
+  const layers = useMemo(
+    () => flattenScreen(screen, {}, screen?.background_color ?? SCREEN_BACKGROUND),
+    [screen]
+  )
 
   return (
     <svg
@@ -95,7 +98,7 @@ export function ScreenView({
       onPointerLeave={onPointerLeave}
     >
       <rect width={display.width} height={display.height} fill={background} />
-      <WidgetLayers layers={layers} background={background} />
+      <WidgetLayers layers={layers} />
     </svg>
   )
 }

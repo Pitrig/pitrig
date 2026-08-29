@@ -1,12 +1,13 @@
 import type { FramedWidget } from './types'
-import { GRADIENT_DIRECTION_VALUES, type GradientDirection, TEXT_ALIGNMENT_VALUES, type WidgetTitleStyle } from '@shared/configuration-schema'
+import { FILL_CORNERS_VALUES, GRADIENT_DIRECTION_VALUES, type GradientDirection, TEXT_ALIGNMENT_VALUES, WIDGET_TITLE_CAPACITY, type WidgetTitleStyle } from '@shared/configuration-schema'
 import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily, useDashboardEditorStore } from '../dashboard-editor'
+import { IconTextField } from './IconPicker'
 import { authored } from './authored'
 import { Advanced, Group } from './Group'
 import { HINTS } from './hints'
 import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
-import { CheckboxField, ColorField, FontEditor, Hint, NumberField, NumberInput, OptionalColorField, SelectField, TextField } from './fields'
+import { CheckboxField, ColorField, FontEditor, Hint, NumberField, NumberInput, OptionalColorField, SelectField } from './fields'
 import { fieldBounds } from '@shared/validate/ranges'
 import { alignmentAnchor } from '../preview/preview-values'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -33,7 +34,7 @@ export function TitleEditor({ widget, update }: {
       summary={widget.title?.text || 'None'}
       defaultOpen={Boolean(widget.title?.text)}
     >
-      <TextField label="Text" value={widget.title?.text ?? ''} modified={authored(widget.title?.text, '')} onReset={() => update((next) => { delete next.title })} onChange={(value) => update((next) => {
+      <IconTextField label="Text" capacity={WIDGET_TITLE_CAPACITY} value={widget.title?.text ?? ''} modified={authored(widget.title?.text, '')} onReset={() => update((next) => { delete next.title })} onChange={(value) => update((next) => {
         if (!value) {
           delete next.title
           return
@@ -138,6 +139,9 @@ export function BoxEditor({ widget, update }: {
         </div>
         <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Width</span><span>Radius</span></div>
       </PropertyRow>
+      {(widget.border?.radius_px ?? 0) > 0 ? (
+        <SelectField label="Fill corners" hint={HINTS.box.fillCorners} value={widget.fill_corners ?? 'rounded'} options={FILL_CORNERS_VALUES} modified={authored(widget.fill_corners, 'rounded')} onReset={() => update((next) => { delete next.fill_corners })} onChange={(value) => update((next) => { if (value === 'rounded') delete next.fill_corners; else next.fill_corners = value })} />
+      ) : null}
       <ColorField label="Border color" value={widget.border?.color ?? '#AEAEAE'} modified={authored(widget.border?.color, '#AEAEAE')} onReset={() => update((next) => { if (next.border) delete next.border.color })} onChange={(value) => update((next) => { next.border = { ...next.border, color: value } })} />
       <Advanced id="Box" active={detailed}>
         <PropertyRow

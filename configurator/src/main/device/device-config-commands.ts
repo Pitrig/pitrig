@@ -1,5 +1,6 @@
 import type {
   DeviceConfiguration,
+  DeviceInfo,
   DeviceConfigurationApplyResult,
   DeviceConfigurationResetResult,
   DeviceConfigurationSaveResult,
@@ -15,7 +16,9 @@ import {
 import { documentOf, mergeDocument } from '../../shared/configuration-documents'
 import { DeviceServiceError, failure, success } from './device-errors'
 import { prepareDeviceConfigurationJson } from './configuration-json'
-import type { ConnectionManager } from './device-connection'
+import { parseDeviceInfo } from './protocol-parsers'
+import { requestResponse } from './serial-request'
+import type { ConnectionManager, OpenedDevice } from './device-connection'
 import type { OperationRunner } from './device-operation'
 import {
   applyConfiguration,
@@ -93,9 +96,10 @@ export async function saveDeviceConfiguration(
       for (const document of selected) {
         held = mergeDocument(held, document, documentOf(prepared.value.configuration, document))
       }
+      const info = await readInfo(port, session, runner.operationTraffic(traffic))
       connection.setState({
         ...connection.getState(),
-        session: { ...session, configuration: held }
+        session: { ...session, configuration: held, info }
       })
     }
     return success({
@@ -124,6 +128,26 @@ export async function resetDeviceConfiguration(
     }
     return success({ configuration, documents: erased, rebootRequired: true })
   })
+}
+
+async function readInfo(
+  port: OpenedDevice['port'],
+  session: DeviceSession,
+  onTraffic: (direction: 'rx' | 'tx', data: string) => void
+): Promise<DeviceInfo> {
+  try {
+    const line = await requestResponse(
+      port,
+      '\n@SC:INFO\n',
+      '@SC:OK:INFO:',
+      1_000,
+      onTraffic,
+      'serial_error'
+    )
+    return parseDeviceInfo(line)
+  } catch {
+    return session.info
+  }
 }
 
 function prepareConfiguration(

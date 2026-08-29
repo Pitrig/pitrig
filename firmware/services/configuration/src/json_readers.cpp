@@ -159,6 +159,10 @@ constexpr double kMaximumRealMagnitude = 1.0e9;
       !read_integer(object, "size_px", font.size_px, kName, failure)) {
     return false;
   }
+  if (const cJSON* const fallback = member(object, "fallback");
+      fallback != nullptr && !copy_text(fallback, font.fallback)) {
+    return reject(failure, ValidationError::malformed, kName, "fallback");
+  }
   const cJSON* const family = member(object, "family");
   if (family == nullptr) {
     return true;

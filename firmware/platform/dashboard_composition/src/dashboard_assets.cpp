@@ -71,6 +71,15 @@ void for_each_caption(
 }
 
 template <typename Visitor>
+void visit_font(const font_assets::FontSpec& font,
+                const std::span<const char> text, Visitor&& visit) {
+  visit(font, text);
+  if (font_assets::has_fallback(font)) {
+    visit(font_assets::fallback_spec(font), text);
+  }
+}
+
+template <typename Visitor>
 void for_each_configured_font(
     const configuration::ApplicationConfiguration& configuration,
     Visitor&& visit) {
@@ -79,29 +88,35 @@ void for_each_configured_font(
   for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
     const configuration::TextWidgetConfiguration& widget =
         dashboard.text_widgets[index];
-    visit(widget.value.font, widget.value.unavailable_text);
+    visit_font(widget.value.font, widget.value.unavailable_text, visit);
     for (std::size_t source = 0; source < widget.source_count; ++source) {
-      visit(widget.value.font, widget.sources[source].transform.prefix);
-      visit(widget.value.font, widget.sources[source].transform.suffix);
+      visit_font(widget.value.font, widget.sources[source].transform.prefix,
+                 visit);
+      visit_font(widget.value.font, widget.sources[source].transform.suffix,
+                 visit);
     }
   }
   for_each_caption(dashboard, [&visit](const configuration::WidgetTitleStyle& title) {
-    visit(title.font, title.text);
+    visit_font(title.font, title.text, visit);
   });
 }
 
 [[nodiscard]] bool families_installed(
     const configuration::DashboardConfiguration& dashboard,
     const dashboard::fonts::Registry& fonts) {
+  const auto installed = [&fonts](const font_assets::FontSpec& font) {
+    return fonts.has_family(font.family) &&
+           (!font_assets::has_fallback(font) || fonts.has_family(font.fallback));
+  };
   for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
-    if (!fonts.has_family(dashboard.text_widgets[index].value.font.family)) {
+    if (!installed(dashboard.text_widgets[index].value.font)) {
       return false;
     }
   }
   bool complete = true;
   for_each_caption(dashboard,
-                   [&fonts, &complete](const configuration::WidgetTitleStyle& title) {
-                     complete = complete && fonts.has_family(title.font.family);
+                   [&installed, &complete](const configuration::WidgetTitleStyle& title) {
+                     complete = complete && installed(title.font);
                    });
   return complete;
 }

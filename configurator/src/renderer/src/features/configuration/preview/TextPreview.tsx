@@ -4,7 +4,7 @@ import { useFontFaceStore } from '@/features/font-library/font-face-store'
 import { completePlacement } from '../dashboard-editor'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
 import { contentArea } from './preview-geometry-paint'
-import { type PreviewValues, alignmentAnchor, fontMetrics, lvglCenterOffset, resolvedFont } from './preview-values'
+import { type PreviewValues, alignmentAnchor, centerOffset, fontMetrics, resolvedFont } from './preview-values'
 import { WidgetFrameShape } from './frame-shape'
 
 export function TextWidgetPreview({
@@ -38,14 +38,14 @@ export function TextWidgetPreview({
       ? content.x
       : column === 'right'
         ? content.x + content.width - metrics.width
-        : content.x + lvglCenterOffset(content.width, metrics.width)
+        : content.x + centerOffset(content.width, metrics.width)
   const titleDrop = title ? Math.trunc(fontMetrics(title, titleFont).lineHeight / 4) : 0
   const valueY =
     row === 'top'
       ? content.y
       : row === 'bottom'
         ? content.y + content.height - metrics.lineHeight
-        : content.y + lvglCenterOffset(content.height, metrics.lineHeight)
+        : content.y + centerOffset(content.height, metrics.lineHeight)
   const labelTop = valueY + titleDrop
 
   return (

@@ -29,6 +29,8 @@ export const HINTS = {
       'Drawn while the field has no value yet — before the first telemetry frame arrives, or when the game does not report it. Empty draws nothing.'
   },
   title: {
+    fallback:
+      'A second installed family to try for glyphs the first does not have — an icon family beside a text one, which is how a value carries an icon and its number in one widget. It is built at the same size, so it costs one more font.',
     text: 'A caption drawn on the widget box. Clearing the text removes the caption entirely, which is what a panel used as a container or a tap zone usually wants.',
     font: 'The family comes from the font library and the size is this caption’s alone — the board holds one face per family and rasterizes any size from it.',
     alignment:
@@ -38,6 +40,8 @@ export const HINTS = {
     gap: 'How much clear space the cut leaves on each side of the caption.'
   },
   box: {
+    fillCorners:
+      'How the background and a value fill meet the rounded corners. Rounded gives them the same curve; square leaves them straight and cuts them on the box outline instead, so a bar keeps a flat leading edge while its ends still follow the rounding.',
     background:
       'The fill behind the widget. Unset draws nothing, which is what leaves the screen background showing through.',
     gradient:
@@ -65,11 +69,20 @@ export const HINTS = {
   container: {
     clip: 'Whether the contents end at this box. With it off, a widget inside is drawn where it lands even past the box, which is what a caption straddling a child’s top border needs.'
   },
+  ring: {
+    start:
+      'Where the sweep begins. Zero degrees is three o\u2019clock and the angle grows clockwise, so a start of 135 with a 270 sweep is the usual car gauge.',
+    sweep: 'How far the ring runs from its start angle, as an extent rather than an end angle.',
+    thickness: 'How thick the band is. It grows either side of the radius, so the radius stays where it is.',
+    radius:
+      'Radius of the band\u2019s centre line. Zero takes it from the box, which is what an arc has always done. A radius of its own may be larger than the box: the widget still clips to its box, so only the band crossing it is drawn.',
+    centre:
+      'Moves the centre of the circle away from the centre of the box. Pushing it outside the box, with a radius to match, is how a shallow band across the top of a round display is authored.'
+  },
   arc: {
-    angles:
-      'Zero degrees is three o’clock and the angle grows clockwise, so a start of 135 with a 270 sweep is the usual car gauge.',
-    thickness: 'How thick the arc band is, drawn inward from the widget box.',
     track: 'The unfilled part of the arc. Unset leaves it undrawn.',
+    mark:
+      'What the value draws at its angle. A ring fills the sweep up to it; a needle points a line from the centre at it, as thick as the ring would be, with the track left as the scale behind it.',
     inverted: 'Fills from the far end of the sweep instead of from the start angle.'
   },
   bar: {
@@ -81,10 +94,14 @@ export const HINTS = {
   strip: {
     segments:
       'Each lamp lights at its own fraction of the range, so one strip suits any engine. Thresholds must not decrease down the list.',
-    gap: 'The space left between lamps, and the corner radius of each one.',
+    gap: 'The space left between lamps, and the corner radius of each one. An arc spends the gap along its own ring, and any non-zero radius rounds the lamp ends instead.',
+    shape:
+      'A strip runs the lamps along its orientation. An arc spaces them around a sweep, which is the rev ring a round dashboard is built on.',
     blink:
       'Blinking starts at this fraction of the range. A threshold above 1 never blinks, and neither does a zero period.',
-    off: 'The colour of a lamp that is not lit. Unset leaves it undrawn.'
+    off: 'The colour of a lamp that is not lit. Unset leaves it undrawn.',
+    inverted:
+      'Lights from the far end instead of the near one, which is what makes a mirrored pair of rev bars out of one authored strip. Which lamp lights when does not change.'
   },
   graph: {
     points:

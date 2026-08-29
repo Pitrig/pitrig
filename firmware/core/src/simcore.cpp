@@ -93,7 +93,7 @@ void load_uploaded_assets(
   }
 }
 
-void compose(Application& application,
+bool compose(Application& application,
              const configuration::ApplicationConfiguration& configuration) {
   if (!module_composition::start(application.modules,
                                  application.services.event_bus,
@@ -103,13 +103,13 @@ void compose(Application& application,
     log::error(kTag, "One or more configured modules failed to start");
   }
   if (application.display == nullptr) {
-    return;
+    return false;
   }
-  if (!dashboard_composition::create(
-          application.display, configuration, application.modules,
-          dashboard_composition::instance(), application.services.telemetry_registry,
-          application.services.telemetry_state,
-          primary_transport(application))) {
+  const bool composed = dashboard_composition::create(
+      application.display, configuration, application.modules,
+      dashboard_composition::instance(), application.services.telemetry_registry,
+      application.services.telemetry_state, primary_transport(application));
+  if (!composed) {
     log::error(kTag, "Dashboard composition is incomplete");
   }
   if (!dashboard_composition::start_render_trigger(
@@ -118,6 +118,7 @@ void compose(Application& application,
                "Render trigger is unavailable; widgets fall back to "
                "periodic polling");
   }
+  return composed;
 }
 
 bool start_communication(Application& application,
@@ -189,9 +190,12 @@ void run() {
   boot::open_asset_storage(application);
   load_uploaded_assets(application, configuration);
   boot_guard::reached(boot_guard::Phase::composition);
-  compose(application, configuration);
+  const bool composed = compose(application, configuration);
   boot_guard::reached(boot_guard::Phase::complete);
   application.communication.mark_composed();
+  if (composed) {
+    dashboard_composition::dismiss_startup_screen(configuration, true);
+  }
   application.platform.telemetry_transport.silence_logs();
   boot_guard::arm_stability_window();
 }

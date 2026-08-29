@@ -9,6 +9,8 @@ import { isTextEntry } from '@/features/configuration/editor/keyboard'
 import { DebugWorkspace } from '@/features/debug/DebugWorkspace'
 import { subscribeToBench } from '@/features/debug/bench/bench-store'
 import { useSerialTraffic } from '@/features/debug/use-serial-traffic'
+import { BoardSyncDialog } from '@/features/device/BoardSyncDialog'
+import { useBoardSync, useBoardSyncStore } from '@/features/device/board-sync-store'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { useAppInfo } from '@/features/device/app-info'
 import { useDraftState } from '@/features/device/draft-state'
@@ -30,13 +32,15 @@ export function App(): React.JSX.Element {
   const tab = useWorkspaceStore((state) => state.tab)
   const connectionRevision = useDeviceStore((state) => state.connectionRevision)
   const saving = useSaveToBoardStore((state) => state.running)
-  const { liveApplyAllowed } = useDraftState()
+  const syncQuestion = useBoardSyncStore((state) => state.question)
+  const { liveApplyAllowed, dirtyDocuments } = useDraftState()
 
   useEffect(() => subscribeToFontLibrary(), [])
   useEffect(() => subscribeToBench(), [])
   useSerialTraffic()
+  useBoardSync(dirtyDocuments)
 
-  useLiveApply(liveApplyAllowed && !saving, reportLiveApply)
+  useLiveApply(liveApplyAllowed && !saving && syncQuestion === undefined, reportLiveApply)
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
@@ -67,6 +71,7 @@ export function App(): React.JSX.Element {
       </main>
 
       <UnresolvedFontsGate />
+      <BoardSyncDialog />
 
       <footer className="flex min-w-0 items-center justify-between gap-4 border-t px-5 text-xs text-muted-foreground">
         <span className="min-w-0 truncate">{deviceStatusText ?? 'Application ready'}</span>

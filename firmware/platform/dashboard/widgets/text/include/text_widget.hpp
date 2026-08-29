@@ -13,6 +13,8 @@
 
 struct _lv_obj_t;
 using lv_obj_t = _lv_obj_t;
+struct _lv_font_t;
+using lv_font_t = _lv_font_t;
 struct _lv_timer_t;
 using lv_timer_t = _lv_timer_t;
 
@@ -48,9 +50,15 @@ struct State {
   std::size_t source_count{};
   frame::Painter painter{};
   lv_obj_t* container{};
-  lv_obj_t* value_label{};
+  const lv_font_t* font{};
   std::array<char, telemetry::kTelemetryTextCapacity> unavailable_text{};
   std::array<char, telemetry::kTelemetryTextCapacity> displayed_text{};
+  std::uint32_t color{};
+  Alignment alignment{};
+  std::int32_t value_height{};
+  std::int32_t text_width{};
+  std::int32_t offset_y{};
+  bool full_width{};
   bool initialized{};
 };
 

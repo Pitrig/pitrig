@@ -1,5 +1,7 @@
 #include "text_widget.hpp"
 
+#include "text_drawing.hpp"
+
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -26,62 +28,6 @@ namespace {
 constexpr char kTag[] = "text_widget";
 
 constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
-
-[[nodiscard]] std::int32_t text_width_of(const lv_font_t* const font,
-                                         const char* const text) {
-  lv_point_t size{};
-  lv_text_get_size(&size, text, font, 0, 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
-  return size.x;
-}
-
-[[nodiscard]] lv_align_t lv_alignment(const Alignment alignment) {
-  switch (alignment) {
-    case Alignment::top_left:
-      return LV_ALIGN_TOP_LEFT;
-    case Alignment::top_center:
-      return LV_ALIGN_TOP_MID;
-    case Alignment::top_right:
-      return LV_ALIGN_TOP_RIGHT;
-    case Alignment::left:
-      return LV_ALIGN_LEFT_MID;
-    case Alignment::center:
-      return LV_ALIGN_CENTER;
-    case Alignment::right:
-      return LV_ALIGN_RIGHT_MID;
-    case Alignment::bottom_left:
-      return LV_ALIGN_BOTTOM_LEFT;
-    case Alignment::bottom_center:
-      return LV_ALIGN_BOTTOM_MID;
-    case Alignment::bottom_right:
-      return LV_ALIGN_BOTTOM_RIGHT;
-  }
-  return LV_ALIGN_CENTER;
-}
-
-#if SIMCORE_DISPLAY_RENDER_FULL || SIMCORE_DISPLAY_RENDER_FULL_STRIPS
-[[nodiscard]] lv_text_align_t lv_text_alignment(const Alignment alignment) {
-  switch (alignment) {
-    case Alignment::top_left:
-    case Alignment::left:
-    case Alignment::bottom_left:
-      return LV_TEXT_ALIGN_LEFT;
-    case Alignment::top_center:
-    case Alignment::center:
-    case Alignment::bottom_center:
-      return LV_TEXT_ALIGN_CENTER;
-    case Alignment::top_right:
-    case Alignment::right:
-    case Alignment::bottom_right:
-      return LV_TEXT_ALIGN_RIGHT;
-  }
-  return LV_TEXT_ALIGN_CENTER;
-}
-#endif
-
-void apply_value_color(void* const context, const std::uint32_t rgb) {
-  lv_obj_set_style_text_color(static_cast<lv_obj_t*>(context),
-                              lv_color_hex(rgb), LV_PART_MAIN);
-}
 
 [[nodiscard]] bool complete(const WidgetBinding& binding) {
   if (binding.count == 0 || binding.count > binding.sources.size()) {
@@ -135,7 +81,7 @@ bool Collection::build(State& state, const Layout& layout,
   std::array<char, telemetry::kTelemetryTextCapacity> unavailable{};
   unavailable_text(config, unavailable);
   const std::int32_t value_width = std::max<std::int32_t>(
-      text_width_of(value_font, unavailable.data()),
+      drawing::text_width_of(value_font, unavailable.data()),
       lv_font_get_glyph_width(value_font, '8', '\0'));
   const std::int32_t value_height = lv_font_get_line_height(value_font);
 
@@ -161,25 +107,20 @@ bool Collection::build(State& state, const Layout& layout,
   state.unavailable_text = unavailable;
   state.container = box.container;
 
-  state.value_label = lv_label_create(state.container);
-  lv_obj_remove_style_all(state.value_label);
+  state.font = value_font;
+  state.color = config.value.color;
+  state.alignment = config.value.alignment;
+  state.value_height = value_height;
+  state.text_width = 0;
+  state.offset_y = has_title ? title_height / 4 : 0;
 #if SIMCORE_DISPLAY_RENDER_FULL || SIMCORE_DISPLAY_RENDER_FULL_STRIPS
-  lv_label_set_long_mode(state.value_label, LV_LABEL_LONG_MODE_CLIP);
-  lv_obj_set_size(state.value_label, lv_pct(100), value_height);
-  lv_obj_set_style_text_align(state.value_label,
-                              lv_text_alignment(config.value.alignment),
-                              LV_PART_MAIN);
-#else
-  lv_obj_set_size(state.value_label, LV_SIZE_CONTENT, value_height);
+  state.full_width = true;
 #endif
-  lv_obj_set_style_text_font(state.value_label, value_font, LV_PART_MAIN);
-  lv_obj_set_style_text_color(
-      state.value_label, lv_color_hex(config.value.color), LV_PART_MAIN);
-  lv_obj_align(state.value_label, lv_alignment(config.value.alignment), 0,
-               has_title ? title_height / 4 : 0);
+  lv_obj_add_event_cb(state.container, &drawing::draw_value, LV_EVENT_DRAW_MAIN_END,
+                      &state);
 
-  state.painter.configure(frame, box, config.value.color, &apply_value_color,
-                          state.value_label);
+  state.painter.configure(frame, box, config.value.color, &drawing::apply_value_color,
+                          &state);
   state.painter.bind(binding.condition.read, binding.condition.read_context);
   return true;
 }
@@ -232,8 +173,12 @@ void Collection::render_state(State& state) {
   if (!first_render && state.displayed_text == next) {
     return;
   }
+  lv_area_t content{};
+  lv_obj_get_content_coords(state.container, &content);
+  const lv_area_t previous = drawing::value_area(state, content);
   state.displayed_text = next;
-  lv_label_set_text_static(state.value_label, state.displayed_text.data());
+  state.text_width = drawing::text_width_of(state.font, state.displayed_text.data());
+  drawing::invalidate_value(state, first_render ? nullptr : &previous);
 #if SIMCORE_DEBUG
   performance::value_rendered(oldest_commit_us);
 #endif

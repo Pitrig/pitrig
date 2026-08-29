@@ -8,6 +8,7 @@
 #include "application_configuration.hpp"
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
+#include "lvgl.h"
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
@@ -32,6 +33,13 @@ struct State {
   bool free_running{};
   lv_obj_t* container{};
   lv_obj_t* arc{};
+  lv_obj_t* needle{};
+  std::array<lv_point_precise_t, 2> needle_points{};
+  float centre_x{};
+  float centre_y{};
+  float needle_radius{};
+  float start_angle_deg{};
+  float sweep_deg{};
   std::uint64_t rendered_revision{};
   bool rendered_available{};
   std::int32_t drawn_per_mille{-1};

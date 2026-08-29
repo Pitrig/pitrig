@@ -30,12 +30,17 @@ export function repairArcThickness(
   widget: WidgetConfiguration,
   reduced?: (from: number, to: number) => void
 ): void {
-  if (widget.type !== 'arc') return
+  const ringed = widget.type === 'arc'
+    || (widget.type === 'indicator' && (widget.shape ?? 'strip') === 'arc')
+  if (!ringed) return
+  const radius = widget.radius_px ?? 0
   const box = widget.placement
   const width = box?.width
   const height = box?.height
-  if (typeof width !== 'number' || typeof height !== 'number') return
-  const limit = Math.max(1, Math.floor(Math.min(width, height) / 2))
+  if (radius === 0 && (typeof width !== 'number' || typeof height !== 'number')) return
+  const limit = radius !== 0
+    ? Math.max(1, 2 * radius)
+    : Math.max(1, Math.floor(Math.min(width as number, height as number) / 2))
   const thickness = typeof widget.thickness_px === 'number'
     ? widget.thickness_px
     : DEFAULT_ARC_THICKNESS_PX

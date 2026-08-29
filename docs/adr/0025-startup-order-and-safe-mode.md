@@ -42,6 +42,26 @@ boot guard → configuration → link + control protocol → display → assets 
 modules + dashboard → composed → complete
 ```
 
+The boot splash is raised in the display phase and taken down at the end of
+`complete`, so it covers the slow part — inflating fonts and images, composing
+the dashboard — rather than a second of nothing before it. It is an opaque
+black full-screen cover holding the logo inside a rounded frame in the logo's
+own violets, lit by a highlight that travels around it with the frame's dark
+side riding opposite. The logo itself is never restyled while it is up — an
+image the size of the logo repaints as a step rather than as a shimmer, which
+read on the panel as a blink. The cover is also what
+keeps the dashboard from being drawn at all while it is up: LVGL skips whatever
+an opaque object covers. It is created on the display's **top layer** rather
+than on the screen, so nothing composition adds later can draw over it — widgets
+and captions are children of the screen and would otherwise appear above a cover
+created before them, which read on the panel as the dashboard flashing through
+mid-boot. The cover is deleted in one frame when the dashboard is ready — the
+finished screen is the first thing drawn after it, with nothing dissolving over
+a half-drawn dashboard. It is held for at least two seconds so a fast board does not flash
+it, and a configuration that draws nothing — or one whose composition failed —
+keeps it instead of showing an empty screen; the first applied document that
+does draw something takes it down without waiting.
+
 The configuration stays ahead of the link because the `protocol` document
 chooses the port, the pins and the baud rate. It is a handful of NVS reads and
 no hardware, which is what makes it cheap enough to keep there. Opening the font

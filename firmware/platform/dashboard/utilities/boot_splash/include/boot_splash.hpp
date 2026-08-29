@@ -9,8 +9,8 @@ using lv_obj_t = _lv_obj_t;
 
 namespace simcore::dashboard::boot_splash {
 
-[[nodiscard]] bool show(lv_display_t* display, lv_obj_t* screen,
-                        std::uint32_t minimum_duration_ms,
-                        bool retain_after_minimum_duration);
+[[nodiscard]] bool show(lv_display_t* display, lv_obj_t* layer);
+
+void dismiss(std::uint32_t minimum_visible_ms);
 
 }

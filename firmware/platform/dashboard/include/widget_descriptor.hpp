@@ -14,6 +14,7 @@ namespace simcore::dashboard {
 using WidgetCreate = bool (*)(void* context);
 using WidgetDestroy = void (*)(void* context);
 using WidgetRootObject = lv_obj_t* (*)(void* context, std::uint8_t index);
+using WidgetCaptionObject = lv_obj_t* (*)(void* context, std::uint8_t index);
 using WidgetUpdateInstance = bool (*)(void* context, std::uint8_t index);
 using WidgetSyncCount = bool (*)(void* context, std::uint8_t count);
 using WidgetWake = void (*)(void* context);
@@ -24,6 +25,7 @@ struct WidgetDescriptor {
   WidgetCreate create{};
   WidgetDestroy destroy{};
   WidgetRootObject root_object{};
+  WidgetCaptionObject caption_object{};
   WidgetUpdateInstance update_instance{};
   WidgetSyncCount sync_count{};
   WidgetWake wake{};
@@ -47,6 +49,8 @@ class WidgetManager final {
 
   [[nodiscard]] lv_obj_t* root_object(configuration::WidgetType type,
                                       std::uint8_t index) const;
+  [[nodiscard]] lv_obj_t* caption_object(configuration::WidgetType type,
+                                         std::uint8_t index) const;
   [[nodiscard]] bool update_instance(configuration::WidgetType type,
                                      std::uint8_t index) const;
   [[nodiscard]] std::size_t type_count() const { return count_; }

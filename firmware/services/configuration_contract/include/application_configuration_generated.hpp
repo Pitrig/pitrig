@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 15;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 18;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -189,6 +189,21 @@ enum class ShapeKind : std::uint8_t {
   ellipse,
 };
 
+enum class FillCorners : std::uint8_t {
+  rounded,
+  square,
+};
+
+enum class ArcMark : std::uint8_t {
+  ring,
+  needle,
+};
+
+enum class IndicatorShape : std::uint8_t {
+  strip,
+  arc,
+};
+
 enum class SlotTrigger : std::uint8_t {
   none,
   value_changed,
@@ -345,6 +360,7 @@ struct WidgetFrame {
   std::uint32_t background_grad_color{kTransparentColor};
   GradientDirection background_grad_dir{GradientDirection::vertical};
   std::uint16_t background_inset_px{};
+  FillCorners fill_corners{FillCorners::rounded};
   WidgetAction action{};
   ValueSourceConfiguration condition_source{};
   ColorRamp color_ramp{};
@@ -386,8 +402,12 @@ struct ArcWidgetConfiguration {
   std::uint16_t start_angle_deg{135};
   std::uint16_t sweep_deg{270};
   std::uint16_t thickness_px{8};
+  std::uint16_t radius_px{};
+  std::int16_t center_x_px{};
+  std::int16_t center_y_px{};
   std::uint32_t track_color{kTransparentColor};
   std::uint32_t fill_color{0x38BDF8};
+  ArcMark mark{ArcMark::ring};
   bool inverted{false};
 };
 
@@ -400,9 +420,17 @@ struct IndicatorWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
   ValueRange range{};
+  IndicatorShape shape{IndicatorShape::strip};
   BarOrientation orientation{BarOrientation::horizontal};
+  std::uint16_t start_angle_deg{135};
+  std::uint16_t sweep_deg{270};
+  std::uint16_t thickness_px{8};
+  std::uint16_t radius_px{};
+  std::int16_t center_x_px{};
+  std::int16_t center_y_px{};
   std::uint16_t segment_gap_px{4};
   std::uint16_t segment_radius_px{};
+  bool inverted{false};
   std::uint32_t off_color{kTransparentColor};
   float blink_threshold{2.0F};
   std::uint16_t blink_ms{};
@@ -763,6 +791,69 @@ inline constexpr std::array<std::string_view, 2> kShapeKindNames{{
   for (std::size_t index = 0; index < kShapeKindNames.size(); ++index) {
     if (kShapeKindNames[index] == name) {
       value = static_cast<ShapeKind>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kFillCornersNames{{
+    "rounded",
+    "square",
+}};
+
+[[nodiscard]] inline std::string_view fill_corners_name(const FillCorners value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kFillCornersNames.size() ? kFillCornersNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool fill_corners_from_name(const std::string_view name,
+                                                  FillCorners& value) {
+  for (std::size_t index = 0; index < kFillCornersNames.size(); ++index) {
+    if (kFillCornersNames[index] == name) {
+      value = static_cast<FillCorners>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kArcMarkNames{{
+    "ring",
+    "needle",
+}};
+
+[[nodiscard]] inline std::string_view arc_mark_name(const ArcMark value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kArcMarkNames.size() ? kArcMarkNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool arc_mark_from_name(const std::string_view name,
+                                                  ArcMark& value) {
+  for (std::size_t index = 0; index < kArcMarkNames.size(); ++index) {
+    if (kArcMarkNames[index] == name) {
+      value = static_cast<ArcMark>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kIndicatorShapeNames{{
+    "strip",
+    "arc",
+}};
+
+[[nodiscard]] inline std::string_view indicator_shape_name(const IndicatorShape value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kIndicatorShapeNames.size() ? kIndicatorShapeNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool indicator_shape_from_name(const std::string_view name,
+                                                  IndicatorShape& value) {
+  for (std::size_t index = 0; index < kIndicatorShapeNames.size(); ++index) {
+    if (kIndicatorShapeNames[index] == name) {
+      value = static_cast<IndicatorShape>(index);
       return true;
     }
   }

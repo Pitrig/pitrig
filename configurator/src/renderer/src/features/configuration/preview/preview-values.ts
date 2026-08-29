@@ -36,8 +36,11 @@ export function resolvedFont(
 ): PreviewFont {
   const identifier = font?.family ?? 'custom_font'
   const sizePx = font?.size_px ?? defaultSizePx
+  const spare = font?.fallback && loadedFamilies[font.fallback]
+    ? `,${previewFontFamily(font.fallback)}`
+    : ''
   if (loadedFamilies[identifier]) {
-    return { family: previewFontFamily(identifier), sizePx, weight: 400, resolved: true }
+    return { family: `${previewFontFamily(identifier)}${spare}`, sizePx, weight: 400, resolved: true }
   }
   const black = identifier.includes('black')
   return {
@@ -56,6 +59,10 @@ export function fontMetrics(text: string, font: PreviewFont): GlyphMetrics {
 
 export function lvglCenterOffset(available: number, size: number): number {
   return Math.trunc(available / 2) - Math.trunc(size / 2)
+}
+
+export function centerOffset(available: number, size: number): number {
+  return Math.trunc((available - size) / 2)
 }
 
 export function normalizeColor(color: string | undefined): string | undefined {

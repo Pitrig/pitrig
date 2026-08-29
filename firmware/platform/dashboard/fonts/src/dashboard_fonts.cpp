@@ -154,6 +154,18 @@ bool Registry::acquire(const FontSpec& spec) {
   if (family == nullptr || font_count_ == fonts_.size()) {
     return false;
   }
+  const lv_font_t* fallback{};
+  if (font_assets::has_fallback(spec)) {
+    const FontSpec spare = font_assets::fallback_spec(spec);
+    if (!acquire(spare)) {
+      log::error(kTag, "Font %s %upx has no fallback family %s",
+                 font_assets::family_id_view(spec.family).data(),
+                 static_cast<unsigned>(spec.size_px),
+                 font_assets::family_id_view(spec.fallback).data());
+      return false;
+    }
+    fallback = resolve(spare);
+  }
 
   lv_font_t* const font = lv_tiny_ttf_create_data_ex(
       family->bytes.data(), family->bytes.size(),
@@ -165,6 +177,7 @@ bool Registry::acquire(const FontSpec& spec) {
                static_cast<unsigned>(spec.size_px));
     return false;
   }
+  font->fallback = fallback;
   fonts_[font_count_] = {.spec = spec, .lv_font = font};
   ++font_count_;
 

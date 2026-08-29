@@ -27,7 +27,7 @@ namespace simcore::dashboard_composition {
 namespace {
 
 constexpr char kTag[] = "dashboard";
-constexpr std::uint32_t kMinimumStartupScreenDurationMs = 1'000;
+constexpr std::uint32_t kMinimumStartupScreenDurationMs = 2'000;
 
 telemetry::TelemetryRead read_lap_timer_modifier(void* const context) {
   telemetry::TelemetryRead value{};
@@ -125,10 +125,19 @@ Dashboard& instance() { return g_dashboard; }
 bool show_startup_screen(
     lv_display_t* const display,
     const configuration::ApplicationConfiguration& configuration) {
-  return dashboard::boot_splash::show(
-      display, screens::screen_object(display, 0),
-      kMinimumStartupScreenDurationMs,
-      !screens::will_render_content(configuration));
+  (void)configuration;
+  return dashboard::boot_splash::show(display,
+                                      lv_display_get_layer_top(display));
+}
+
+void dismiss_startup_screen(
+    const configuration::ApplicationConfiguration& configuration,
+    const bool wait_for_minimum) {
+  if (!screens::will_render_content(configuration)) {
+    return;
+  }
+  dashboard::boot_splash::dismiss(
+      wait_for_minimum ? kMinimumStartupScreenDurationMs : 0);
 }
 
 bool create(lv_display_t* const display,

@@ -6,6 +6,14 @@ import {
 } from './configuration-schema'
 import { canonicalJson } from './configuration-access'
 
+const INDENTED_TEXT_ALLOWANCE = 4
+
+export const MAXIMUM_CONFIGURATION_TEXT_SIZE =
+  CONFIGURATION_DOCUMENT_IDS.reduce(
+    (total, id) => total + CONFIGURATION_DOCUMENTS[id].maxPayload,
+    0
+  ) * INDENTED_TEXT_ALLOWANCE
+
 export const CONFIGURATION_DOCUMENT_LABELS: Record<ConfigurationDocumentId, string> = {
   dashboard: 'Dashboard',
   modules: 'Modules',

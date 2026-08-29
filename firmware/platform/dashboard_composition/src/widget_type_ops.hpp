@@ -21,6 +21,10 @@ struct WidgetOpsCommon {
     return storage(context).collection.root_object(index);
   }
 
+  static lv_obj_t* caption_object(void* const context, const std::uint8_t index) {
+    return storage(context).collection.caption_object(index);
+  }
+
   [[nodiscard]] static bool sync_count(void* const context,
                                        const std::uint8_t count) {
     auto& collection = storage(context).collection;
@@ -200,6 +204,7 @@ template <typename Ops, typename Storage>
       .create = &Ops::create,
       .destroy = &Ops::destroy,
       .root_object = &Ops::root_object,
+      .caption_object = &Ops::caption_object,
       .update_instance = &Ops::update_instance,
       .sync_count = &Ops::sync_count,
       .wake = nullptr,

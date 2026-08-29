@@ -10,27 +10,35 @@ export function DocumentStatusChip({
   document: ConfigurationDocumentId
 }): React.JSX.Element | null {
   const session = useDeviceStore((state) => state.session)
-  const { connected, dirtyDocuments } = useDraftState()
+  const { connected, dirtyDocuments, unappliedDocuments } = useDraftState()
   if (!connected) return null
+  const label = CONFIGURATION_DOCUMENT_LABELS[document]
 
   const stored = session?.info.documents[document]
   if (stored && stored.outcome !== 'valid' && stored.outcome !== 'absent') {
     return (
       <Badge className="border-red-500/40 bg-red-500/15 text-red-300" variant="outline">
-        {CONFIGURATION_DOCUMENT_LABELS[document]} config refused
+        {label} config refused
+      </Badge>
+    )
+  }
+  if (unappliedDocuments.includes(document)) {
+    return (
+      <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-300" variant="outline">
+        {label} config not on the board
       </Badge>
     )
   }
   if (dirtyDocuments.includes(document)) {
     return (
       <Badge className="border-sky-500/40 bg-sky-500/15 text-sky-300" variant="outline">
-        {CONFIGURATION_DOCUMENT_LABELS[document]} config modified
+        {label} config shown, not saved
       </Badge>
     )
   }
   return (
     <Badge className="text-muted-foreground" variant="outline">
-      {CONFIGURATION_DOCUMENT_LABELS[document]} config in sync
+      {label} config in sync
     </Badge>
   )
 }

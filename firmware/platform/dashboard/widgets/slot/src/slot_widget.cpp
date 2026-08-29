@@ -23,13 +23,13 @@ void Collection::destroy() {
 bool Collection::place_pages(State& state, const std::size_t index,
                              const Config& config, const Rect& bounds,
                              const bool create_objects) {
-  const std::int32_t page_width =
-      bounds.width - config.frame.padding.left - config.frame.padding.right;
-  const std::int32_t page_height =
-      bounds.height - config.frame.padding.top - config.frame.padding.bottom;
-  if (page_width <= 0 || page_height <= 0) {
+  if (bounds.width <= 0 || bounds.height <= 0) {
     return false;
   }
+  const std::int32_t content_left =
+      lv_obj_get_style_space_left(state.box.container, LV_PART_MAIN);
+  const std::int32_t content_top =
+      lv_obj_get_style_space_top(state.box.container, LV_PART_MAIN);
   const std::size_t base = index * configuration::kMaximumSlotPages;
   for (std::uint8_t page = 0; page < config.page_count; ++page) {
     if (base + page >= pages_.size()) {
@@ -50,8 +50,8 @@ bool Collection::place_pages(State& state, const std::size_t index,
     if (object == nullptr) {
       return false;
     }
-    lv_obj_set_pos(object, 0, 0);
-    lv_obj_set_size(object, page_width, page_height);
+    lv_obj_set_pos(object, -content_left, -content_top);
+    lv_obj_set_size(object, bounds.width, bounds.height);
   }
   return true;
 }
@@ -98,10 +98,8 @@ bool Collection::update(const std::size_t index, const Layout& layout,
     lvgl_port_unlock();
     return false;
   }
-  for (lv_obj_t* const object : {state.box.caption, state.box.caption_gap}) {
-    if (object != nullptr) {
-      lv_obj_delete(object);
-    }
+  if (state.box.caption != nullptr) {
+    lv_obj_delete(state.box.caption);
   }
   state.box = box;
   updated = place_pages(state, index, config, bounds, false);
@@ -164,10 +162,8 @@ void Collection::release(State& state, const std::size_t index) {
       pages_[base + page] = nullptr;
     }
   }
-  for (lv_obj_t* const object : {state.box.caption, state.box.caption_gap}) {
-    if (object != nullptr) {
-      lv_obj_delete(object);
-    }
+  if (state.box.caption != nullptr) {
+    lv_obj_delete(state.box.caption);
   }
   if (state.box.container != nullptr) {
     lv_obj_delete(state.box.container);

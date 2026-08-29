@@ -994,6 +994,7 @@ def generate_typescript(document: dict[str, Any]) -> str:
                 "export interface FontSpec {",
                 "  family?: string",
                 "  size_px?: number",
+                "  fallback?: string",
                 "}",
                 "",
             ]
@@ -1002,7 +1003,7 @@ def generate_typescript(document: dict[str, Any]) -> str:
         lines.extend(
             [
                 "export interface TimeTransform {",
-                "  format?: 'duration_ms' | 'signed_duration_ms'",
+                "  format?: 'duration_ms' | 'signed_duration_ms' | 'clock_ms'",
                 "}",
                 "",
             ]

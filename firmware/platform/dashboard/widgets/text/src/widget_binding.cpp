@@ -65,7 +65,7 @@ bool Binder::bind_sources(
   }
   binding.count = configuration.source_count;
 
-  if (configuration.frame.condition_count == 0) {
+  if (!frame::watches_value(configuration.frame)) {
     return true;
   }
   const configuration::ValueSourceConfiguration& source =

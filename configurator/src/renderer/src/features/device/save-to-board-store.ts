@@ -51,7 +51,10 @@ export async function saveDraftToBoard(
     }
     useDeviceStore
       .getState()
-      .markConfigurationSaved(result.value.configuration as DeviceConfiguration)
+      .markConfigurationSaved(
+        result.value.configuration as DeviceConfiguration,
+        result.value.applyFailed === undefined
+      )
     useDeviceStore.getState().setSaveFeedback({
       kind: result.value.reconnectFailed ? 'error' : 'success',
       message: describeSave(result.value)

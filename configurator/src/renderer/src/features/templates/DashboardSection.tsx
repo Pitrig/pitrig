@@ -1,5 +1,5 @@
 import { LayoutTemplate, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -23,6 +23,8 @@ import { transferConfiguration, type LayoutTransferResult } from '@shared/layout
 import { displaySize } from '@/features/configuration/board-labels'
 import type { DashboardTemplateSummary } from '@shared/templates'
 import { DashboardThumbnail } from './DashboardThumbnail'
+import { DashboardListControls } from './DashboardListControls'
+import { EVERY_BOARD, listedDashboards } from './dashboard-listing'
 import { TemplateCard } from './TemplateCard'
 import { useInsertScreenStore } from './insert-screen-store'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
@@ -46,11 +48,18 @@ export function DashboardSection({
   const setError = useTemplatesStore((state) => state.setError)
   const templates = useTemplatesStore((state) => state.library ?? NO_TEMPLATES).dashboards
   const fit = useEditorPanelStore((state) => state.transferFit)
+  const sort = useEditorPanelStore((state) => state.templateSort)
+  const board = useEditorPanelStore((state) => state.templateBoard)
+  const setBoard = useEditorPanelStore((state) => state.setTemplateBoard)
   const openPicker = useInsertScreenStore((state) => state.openPicker)
   const [report, setReport] = useState<LayoutTransferResult>()
   const [missing, setMissing] = useState<readonly string[]>([])
 
   const targetBoard = session?.info.boardId ?? draft?.board
+  const listed = useMemo(
+    () => listedDashboards(templates, board, sort),
+    [templates, board, sort]
+  )
 
   const use = async (summary: DashboardTemplateSummary): Promise<void> => {
     if (
@@ -118,6 +127,7 @@ export function DashboardSection({
           ? `Whole layouts, scaled to ${displaySize(targetBoard) ?? targetBoard} on the way in. Add takes screens from one; Use replaces what you have open.`
           : 'Whole layouts. Add takes screens from one; Use replaces what you have open.'
       }
+      actions={<DashboardListControls entries={templates} />}
     >
       {templates.length === 0 ? (
         <EmptyState
@@ -127,9 +137,20 @@ export function DashboardSection({
           Save the dashboard you are working on with <b>Save to templates</b> on the canvas, and it
           will be here next time.
         </EmptyState>
+      ) : listed.length === 0 ? (
+        <p className="rounded-md border p-3 text-xs text-muted-foreground">
+          {`No dashboard here is drawn for ${displaySize(board) ?? board}. `}
+          <button
+            className="underline underline-offset-2 hover:text-foreground"
+            type="button"
+            onClick={() => setBoard(EVERY_BOARD)}
+          >
+            Show every size
+          </button>
+        </p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
-          {templates.map((summary) => (
+          {listed.map((summary) => (
             <TemplateCard
               key={summary.id}
               name={summary.name}

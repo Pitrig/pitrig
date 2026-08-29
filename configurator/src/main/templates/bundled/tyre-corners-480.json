@@ -1,0 +1,856 @@
+{
+  "format": "simcore-dashboard-template",
+  "format_version": 1,
+  "name": "Tyre corners 480",
+  "description": "The tyre page of a data dashboard in the PS Dashboard idiom, sized for the 480 x 480 display: temperature, pressure, brake temperature and a wear bar for each corner.",
+  "configuration": {
+    "board": "guition_esp32_4848s040",
+    "dashboard": {
+      "screens": [
+        {
+          "id": "tyres",
+          "background_color": "#05070B",
+          "widgets": [
+            {
+              "type": "text",
+              "id": "q_tfl",
+              "placement": {
+                "x": 6,
+                "y": 6,
+                "width": 228,
+                "height": 108
+              },
+              "sources": [
+                {
+                  "binding": "tyre.front_left.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 54
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\uebc8 FL",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15,
+                  "fallback": "material-icons"
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              },
+              "condition_source": {
+                "binding": "tyre.front_left.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 60,
+                    "color": "#38BDF8"
+                  },
+                  {
+                    "at": 85,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 105,
+                    "color": "#FF3B30"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_pfl",
+              "placement": {
+                "x": 6,
+                "y": 120,
+                "width": 110,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "tyre.front_left.pressure",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "PSI",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 13
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_bfl",
+              "placement": {
+                "x": 124,
+                "y": 120,
+                "width": 110,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "brake.front_left.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "BRK",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 13
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              },
+              "condition_source": {
+                "binding": "brake.front_left.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 150,
+                    "color": "#38BDF8"
+                  },
+                  {
+                    "at": 420,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 720,
+                    "color": "#FF3B30"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "bar",
+              "id": "q_wfl",
+              "placement": {
+                "x": 6,
+                "y": 188,
+                "width": 228,
+                "height": 46
+              },
+              "source": {
+                "binding": "tyre.front_left.wear"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "fill_color": "#00E676",
+              "background_color": "#161B22",
+              "border": {
+                "radius_px": 8
+              },
+              "condition_source": {
+                "binding": "tyre.front_left.wear"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 40,
+                    "color": "#FF3B30"
+                  },
+                  {
+                    "at": 70,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 90,
+                    "color": "#00E676"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_tfr",
+              "placement": {
+                "x": 246,
+                "y": 6,
+                "width": 228,
+                "height": 108
+              },
+              "sources": [
+                {
+                  "binding": "tyre.front_right.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 54
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\uebc8 FR",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15,
+                  "fallback": "material-icons"
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              },
+              "condition_source": {
+                "binding": "tyre.front_right.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 60,
+                    "color": "#38BDF8"
+                  },
+                  {
+                    "at": 85,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 105,
+                    "color": "#FF3B30"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_pfr",
+              "placement": {
+                "x": 246,
+                "y": 120,
+                "width": 110,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "tyre.front_right.pressure",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "PSI",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 13
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_bfr",
+              "placement": {
+                "x": 364,
+                "y": 120,
+                "width": 110,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "brake.front_right.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "BRK",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 13
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              },
+              "condition_source": {
+                "binding": "brake.front_right.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 150,
+                    "color": "#38BDF8"
+                  },
+                  {
+                    "at": 420,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 720,
+                    "color": "#FF3B30"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "bar",
+              "id": "q_wfr",
+              "placement": {
+                "x": 246,
+                "y": 188,
+                "width": 228,
+                "height": 46
+              },
+              "source": {
+                "binding": "tyre.front_right.wear"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "fill_color": "#00E676",
+              "background_color": "#161B22",
+              "border": {
+                "radius_px": 8
+              },
+              "condition_source": {
+                "binding": "tyre.front_right.wear"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 40,
+                    "color": "#FF3B30"
+                  },
+                  {
+                    "at": 70,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 90,
+                    "color": "#00E676"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_trl",
+              "placement": {
+                "x": 6,
+                "y": 246,
+                "width": 228,
+                "height": 108
+              },
+              "sources": [
+                {
+                  "binding": "tyre.rear_left.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 54
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\uebc8 RL",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15,
+                  "fallback": "material-icons"
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              },
+              "condition_source": {
+                "binding": "tyre.rear_left.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 60,
+                    "color": "#38BDF8"
+                  },
+                  {
+                    "at": 85,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 105,
+                    "color": "#FF3B30"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_prl",
+              "placement": {
+                "x": 6,
+                "y": 360,
+                "width": 110,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "tyre.rear_left.pressure",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "PSI",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 13
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_brl",
+              "placement": {
+                "x": 124,
+                "y": 360,
+                "width": 110,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "brake.rear_left.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "BRK",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 13
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              },
+              "condition_source": {
+                "binding": "brake.rear_left.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 150,
+                    "color": "#38BDF8"
+                  },
+                  {
+                    "at": 420,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 720,
+                    "color": "#FF3B30"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "bar",
+              "id": "q_wrl",
+              "placement": {
+                "x": 6,
+                "y": 428,
+                "width": 228,
+                "height": 46
+              },
+              "source": {
+                "binding": "tyre.rear_left.wear"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "fill_color": "#00E676",
+              "background_color": "#161B22",
+              "border": {
+                "radius_px": 8
+              },
+              "condition_source": {
+                "binding": "tyre.rear_left.wear"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 40,
+                    "color": "#FF3B30"
+                  },
+                  {
+                    "at": 70,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 90,
+                    "color": "#00E676"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_trr",
+              "placement": {
+                "x": 246,
+                "y": 246,
+                "width": 228,
+                "height": 108
+              },
+              "sources": [
+                {
+                  "binding": "tyre.rear_right.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 54
+                },
+                "color": "#FFFFFF",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "\uebc8 RR",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 15,
+                  "fallback": "material-icons"
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              },
+              "condition_source": {
+                "binding": "tyre.rear_right.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 60,
+                    "color": "#38BDF8"
+                  },
+                  {
+                    "at": 85,
+                    "color": "#00E676"
+                  },
+                  {
+                    "at": 105,
+                    "color": "#FF3B30"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_prr",
+              "placement": {
+                "x": 246,
+                "y": 360,
+                "width": 110,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "tyre.rear_right.pressure",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 1
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "PSI",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 13
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              }
+            },
+            {
+              "type": "text",
+              "id": "q_brr",
+              "placement": {
+                "x": 364,
+                "y": 360,
+                "width": 110,
+                "height": 62
+              },
+              "sources": [
+                {
+                  "binding": "brake.rear_right.temperature",
+                  "transform": {
+                    "type": "number",
+                    "decimals": 0,
+                    "suffix": "\u00b0"
+                  }
+                }
+              ],
+              "value": {
+                "font": {
+                  "family": "roboto_black",
+                  "size_px": 30
+                },
+                "color": "#98A1AE",
+                "alignment": "center"
+              },
+              "background_color": "#0B0E14",
+              "border": {
+                "color": "#242A34",
+                "width_px": 2,
+                "radius_px": 8
+              },
+              "title": {
+                "text": "BRK",
+                "font": {
+                  "family": "roboto-condensed_bold",
+                  "size_px": 13
+                },
+                "color": "#626B79",
+                "alignment": "top_center"
+              },
+              "condition_source": {
+                "binding": "brake.rear_right.temperature"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 150,
+                    "color": "#38BDF8"
+                  },
+                  {
+                    "at": 420,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 720,
+                    "color": "#FF3B30"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "bar",
+              "id": "q_wrr",
+              "placement": {
+                "x": 246,
+                "y": 428,
+                "width": 228,
+                "height": 46
+              },
+              "source": {
+                "binding": "tyre.rear_right.wear"
+              },
+              "minimum": 0,
+              "maximum": 100,
+              "fill_color": "#00E676",
+              "background_color": "#161B22",
+              "border": {
+                "radius_px": 8
+              },
+              "condition_source": {
+                "binding": "tyre.rear_right.wear"
+              },
+              "color_ramp": {
+                "target": "content",
+                "stops": [
+                  {
+                    "at": 40,
+                    "color": "#FF3B30"
+                  },
+                  {
+                    "at": 70,
+                    "color": "#FFC400"
+                  },
+                  {
+                    "at": 90,
+                    "color": "#00E676"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "transition": "none"
+    }
+  }
+}

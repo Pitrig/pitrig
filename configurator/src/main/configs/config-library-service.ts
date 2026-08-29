@@ -15,12 +15,12 @@ import {
   type SavedConfigurationDocument,
   type SavedConfigurationSummary
 } from '../../shared/config-library'
+import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from '../../shared/configuration-documents'
 import type { DeviceConfiguration } from '../../shared/device'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import type { RecentConfigurations } from './recent-configurations'
 
 const FILE_EXTENSION = '.json'
-const MAXIMUM_FILE_SIZE = 128 * 1024
 
 export class ConfigLibraryService {
   constructor(
@@ -126,7 +126,7 @@ export class ConfigLibraryService {
     if (!listed) return failure('not_found', 'That file is not in the recent list any more.')
     try {
       const metadata = await stat(path)
-      if (!metadata.isFile() || metadata.size > MAXIMUM_FILE_SIZE) {
+      if (!metadata.isFile() || metadata.size > MAXIMUM_CONFIGURATION_TEXT_SIZE) {
         return failure('invalid_configuration', 'That file is not a configuration document.')
       }
       return {
@@ -176,8 +176,10 @@ export class ConfigLibraryService {
   private async readSaved(id: string): Promise<DeviceConfiguration> {
     const path = this.pathFor(id)
     const metadata = await stat(path)
-    if (!metadata.isFile() || metadata.size > MAXIMUM_FILE_SIZE) {
-      throw new Error(`A configuration file must not exceed ${MAXIMUM_FILE_SIZE} bytes.`)
+    if (!metadata.isFile() || metadata.size > MAXIMUM_CONFIGURATION_TEXT_SIZE) {
+      throw new Error(
+        `A configuration file must not exceed ${MAXIMUM_CONFIGURATION_TEXT_SIZE} bytes.`
+      )
     }
     return parseDeviceConfigurationJson(await readFile(path, 'utf8'))
   }

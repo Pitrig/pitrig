@@ -8,10 +8,9 @@ import {
   type ConfigurationFileResult,
   type ConfigurationFileSaveValue
 } from '../../shared/configuration-files'
+import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from '../../shared/configuration-documents'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import type { RecentConfigurations } from '../configs/recent-configurations'
-
-const MAXIMUM_SOURCE_FILE_SIZE = 64 * 1024
 
 export class ConfigurationFileService {
   constructor(private readonly recent: RecentConfigurations) {}
@@ -32,10 +31,10 @@ export class ConfigurationFileService {
 
     try {
       const metadata = await stat(path)
-      if (!metadata.isFile() || metadata.size > MAXIMUM_SOURCE_FILE_SIZE) {
+      if (!metadata.isFile() || metadata.size > MAXIMUM_CONFIGURATION_TEXT_SIZE) {
         return failure(
           'invalid_configuration',
-          `Configuration file must not exceed ${MAXIMUM_SOURCE_FILE_SIZE} bytes.`
+          `Configuration file must not exceed ${MAXIMUM_CONFIGURATION_TEXT_SIZE} bytes.`
         )
       }
       const json = await readFile(path, 'utf8')

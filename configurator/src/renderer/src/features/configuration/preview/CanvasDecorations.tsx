@@ -159,7 +159,7 @@ export function InsertGhost({
       pointerEvents="none"
       transform={`translate(${Math.round(at.x - fitted.width / 2) - (box?.x ?? 0)} ${Math.round(at.y - fitted.height / 2) - (box?.y ?? 0)})`}
     >
-      <WidgetLayers layers={flattenScreen({ widgets: [fitted.widget] }, {})} background={background} />
+      <WidgetLayers layers={flattenScreen({ widgets: [fitted.widget] }, {}, background)} />
       <rect
         {...(box ?? { x: 0, y: 0, width: 0, height: 0 })}
         fill="none"

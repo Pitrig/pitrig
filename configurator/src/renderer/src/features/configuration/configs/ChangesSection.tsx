@@ -8,9 +8,7 @@ import { CONFIGURATION_DOCUMENT_LABELS, documentOf } from '@shared/configuration
 
 export function ChangesSection(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
-  const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
-  const pendingConfiguration = useDeviceStore((state) => state.pendingConfiguration)
-  const board = pendingConfiguration ?? activeConfiguration
+  const board = useDeviceStore((state) => state.activeConfiguration)
   const diffs = useMemo(
     () =>
       board && draft
@@ -33,8 +31,7 @@ export function ChangesSection(): React.JSX.Element {
     >
       {!board || !draft ? (
         <EmptyState title="Nothing to compare">
-          The draft is compared against the configuration the connected board has active or
-          pending.
+          The draft is compared against the configuration the connected board has stored.
         </EmptyState>
       ) : diffs.length === 0 ? (
         <p className="rounded-md border bg-muted/20 p-2 text-muted-foreground">

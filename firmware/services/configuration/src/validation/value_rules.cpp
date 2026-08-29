@@ -39,7 +39,8 @@ bool reject(ValidationFailure& failure, const ValidationError error,
     case ValueTransformType::none:
       return true;
     case ValueTransformType::time:
-      return (transform.time.format == Format::duration_ms &&
+      return ((transform.time.format == Format::duration_ms ||
+               transform.time.format == Format::clock_ms) &&
               type == telemetry::ValueType::uint32) ||
              (transform.time.format == Format::signed_duration_ms &&
               type == telemetry::ValueType::int32);
@@ -55,7 +56,9 @@ bool reject(ValidationFailure& failure, const ValidationError error,
 
 [[nodiscard]] bool valid_font(const font_assets::FontSpec& font) {
   return font_assets::valid_family_id(font.family) && font.size_px != 0 &&
-         font.size_px <= font_assets::kMaximumFontSizePx;
+         font.size_px <= font_assets::kMaximumFontSizePx &&
+         (!font_assets::has_fallback(font) ||
+          font_assets::valid_family_id(font.fallback));
 }
 
 [[nodiscard]] bool on_display(const std::int32_t origin_x,

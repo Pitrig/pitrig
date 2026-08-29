@@ -13,6 +13,8 @@
 
 struct _lv_obj_t;
 using lv_obj_t = _lv_obj_t;
+struct _lv_layer_t;
+using lv_layer_t = _lv_layer_t;
 
 namespace simcore::dashboard::frame {
 
@@ -20,15 +22,28 @@ using Config = configuration::WidgetFrame;
 
 inline constexpr std::size_t kMaximumAttachments = 2;
 
+struct CaptionMask {
+  bool present{};
+  std::int32_t x{};
+  std::int32_t y{};
+  std::int32_t width{};
+  std::int32_t height{};
+  std::uint32_t rgb{};
+};
+
 struct Box {
   lv_obj_t* container{};
   lv_obj_t* background_fill{};
   lv_obj_t* caption{};
-  lv_obj_t* caption_gap{};
+  CaptionMask caption_mask{};
   std::int32_t caption_height{};
 };
 
 [[nodiscard]] bool caption_mask_reads_parent(const Config& config);
+
+[[nodiscard]] std::uint32_t background_behind(const lv_obj_t* object);
+
+[[nodiscard]] std::int32_t fill_radius(const Config& config, std::int32_t inset);
 
 [[nodiscard]] bool build(const Layout& layout, const Config& config,
                          const char* tag, std::int32_t content_width,
@@ -53,6 +68,8 @@ class Painter {
   void bind(ValueReadCallback read, void* context);
   void render();
   void release();
+  void paint_caption_mask(lv_layer_t* layer) const;
+  [[nodiscard]] lv_obj_t* caption_object() const { return box_.caption; }
 
  private:
   [[nodiscard]] conditions::ResolvedStyle ramped(
@@ -85,8 +102,8 @@ class Painter {
   Box box_{};
   std::array<lv_obj_t*, kMaximumAttachments> attachments_{};
   std::size_t attachment_count_{};
-  lv_obj_t* background_mask_{};
-  std::uint32_t background_mask_rgb_{};
+  CaptionMask caption_mask_{};
+  std::uint32_t caption_mask_rgb_{};
   ApplyContentColor apply_color_{};
   void* color_context_{};
 };

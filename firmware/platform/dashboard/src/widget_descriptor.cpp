@@ -9,6 +9,7 @@ WidgetManager::~WidgetManager() {
 bool WidgetManager::add(const WidgetDescriptor& descriptor) {
   if (count_ == entries_.size() || descriptor.create == nullptr ||
       descriptor.destroy == nullptr || descriptor.root_object == nullptr ||
+      descriptor.caption_object == nullptr ||
       descriptor.update_instance == nullptr || descriptor.sync_count == nullptr ||
       descriptor.context == nullptr) {
     return false;
@@ -54,6 +55,18 @@ lv_obj_t* WidgetManager::root_object(const configuration::WidgetType type,
     if (candidate.created && candidate.descriptor.type == type) {
       return candidate.descriptor.root_object(candidate.descriptor.context,
                                               index);
+    }
+  }
+  return nullptr;
+}
+
+lv_obj_t* WidgetManager::caption_object(const configuration::WidgetType type,
+                                        const std::uint8_t index) const {
+  for (std::size_t entry = 0; entry < count_; ++entry) {
+    const Entry& candidate = entries_[entry];
+    if (candidate.created && candidate.descriptor.type == type) {
+      return candidate.descriptor.caption_object(candidate.descriptor.context,
+                                                 index);
     }
   }
   return nullptr;
