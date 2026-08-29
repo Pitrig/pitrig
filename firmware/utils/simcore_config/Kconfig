@@ -47,15 +47,19 @@ config SIMCORE_LAYOUT_DEBUG
 choice SIMCORE_DISPLAY_RENDER_MODE
     prompt "Display render mode"
     depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
-    default SIMCORE_DISPLAY_RENDER_PARTIAL
+    default SIMCORE_DISPLAY_RENDER_FULL_STRIPS
     help
-        How LVGL renders to the JC1060P470C panel. Partial draws 40-line
-        strips in internal RAM and a core-0 worker copies them out — the
-        fastest measured steady state, with the one-frame seam ADR 0027
-        accepts. Direct and full render straight into the panel's PSRAM
-        frame buffers and swap on vsync, so nothing can tear, at the frame
-        rates ADR 0027 measured. The RGB boards keep partial: their panel
-        underruns when the processor blends into the scanning PSRAM buffer.
+        How LVGL renders to the JC1060P470C panel. Full strips is the
+        default: LVGL draws the damage into internal RAM, DMA carries it
+        into the hidden frame buffer and the panel swaps at the frame
+        boundary, so nothing tears at frame rates in partial's league.
+        Partial blends the same strips straight into the buffer being
+        scanned — the fastest measured steady state, and the one that
+        accepts the one-frame seam ADR 0027 describes. Direct and full
+        render into the panel's PSRAM frame buffers instead, tear-free at
+        roughly half the frame rate. The RGB boards keep partial: their
+        panel underruns when the processor blends into the scanning PSRAM
+        buffer.
 
 config SIMCORE_DISPLAY_RENDER_PARTIAL
     bool "Partial strips (fastest, glyph seams)"

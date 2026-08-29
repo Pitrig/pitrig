@@ -161,8 +161,9 @@ waited for scan-out, so it is unchanged.
   narrow ones, while a dedicated reconcile task — same priority as the
   flush worker, or its copies starve behind everything on that core and
   the pipeline wedges — copies the whole frame from the newest buffer on
-  a second AXI-GDMA channel, in 64-row pieces fired top-down at frame
-  start. Reconciling only the stale areas was built first, tracked as up
+  a second AXI-GDMA channel, in 96-row pieces fired top-down at frame
+  start (64 held the sprite pattern's lock but cost the shape and
+  large-glyph patterns their per-piece overhead). Reconciling only the stale areas was built first, tracked as up
   to eight rectangles per buffer from what each frame actually painted,
   and REMOVED: a bookkeeping gap showed up on the panel as stale fill
   sectors on the last-drawn arcs, and the whole-frame copy that fixed it
@@ -264,3 +265,26 @@ waited for scan-out, so it is unchanged.
   more frames than the panel shows; the extra frames cost CPU but not
   correctness. The per-type widget caps stay a frame decision, judged with
   `@SC:DIAG` as before.
+
+## Amendment: the strip-composed mode is the default
+
+The JC1060P470C now defaults to `SIMCORE_DISPLAY_RENDER_FULL_STRIPS`. Partial
+became the opt-out, appended as `sdkconfig.defaults.render-partial`, which also
+puts the L2 line back to 64 bytes; the 128-byte line the strip mode wants moved
+into `sdkconfig.defaults.esp32p4`, and `sdkconfig.defaults.render-full-strips`
+is gone, because a fragment that selects the default states nothing.
+
+No measurement changed. What changed is the reading of the seam this decision
+accepted: it was argued for numeric readouts, where a strip lands mid-scan
+inside a glyph for one frame. The artifact is not confined to them — every
+widget that redraws a large area shows it, and the transition switch covers
+only screen changes — so the seam is a property of the mode rather than a tax
+on digits. The strip-composed mode is tear-free everywhere at frame rates in
+partial's league (paced to the panel at 56-59 fps on every pattern that can
+reach it), so the default now buys that correctness at the frames per second
+the figures above already priced.
+
+Partial remains what a dashboard reaches for when it needs the last frames per
+second and its updates are small; its cost model in
+[runtime-performance.md](../runtime-performance.md) is unchanged, and so is
+everything the RGB boards do.

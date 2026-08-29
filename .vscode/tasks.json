@@ -3,82 +3,21 @@
   "tasks": [
     {
       "label": "SimCore: Build T-Display-S3",
+      "detail": "esp32s3 · build-t-display",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
         "source \"${workspaceFolder}/tools/idf-env.sh\" build-t-display >/dev/null && cmake -E rm -f sdkconfig.generated.t-display && idf.py -B build-t-display -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.t-display -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.t-display-s3\" build"
       ],
-      "options": {
-        "cwd": "${workspaceFolder}/firmware"
-      },
+      "options": { "cwd": "${workspaceFolder}/firmware" },
       "problemMatcher": ["$gcc"],
       "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
-    },
-    {
-      "label": "SimCore: Build Guition ESP32-4848S040",
-      "type": "shell",
-      "command": "/bin/zsh",
-      "args": [
-        "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" build-guition >/dev/null && cmake -E rm -f sdkconfig.generated.guition && idf.py -B build-guition -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.guition -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-esp32-4848s040\" build"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}/firmware"
-      },
-      "problemMatcher": ["$gcc"],
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
-    },
-    {
-      "label": "SimCore: Build Guition JC1060P470C",
-      "type": "shell",
-      "command": "/bin/zsh",
-      "args": [
-        "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c && idf.py -B build-jc1060p470c -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c\" build"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}/firmware"
-      },
-      "problemMatcher": ["$gcc"],
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
-    },
-    {
-      "label": "SimCore: Build Guition JC1060P470C (Second Link)",
-      "type": "shell",
-      "command": "/bin/zsh",
-      "args": [
-        "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c-second-link >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-second-link && idf.py -B build-jc1060p470c-second-link -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-second-link -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.second-link\" build"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}/firmware"
-      },
-      "problemMatcher": ["$gcc"],
-      "group": "build",
-      "presentation": {
-        "reveal": "always",
-        "panel": "dedicated",
-        "clear": true
-      }
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
       "label": "SimCore: Build T-Display-S3 Debug",
+      "detail": "esp32s3 · build-t-display-debug",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
@@ -91,7 +30,22 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
+      "label": "SimCore: Build Guition ESP32-4848S040",
+      "detail": "esp32s3 · build-guition",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-guition >/dev/null && cmake -E rm -f sdkconfig.generated.guition && idf.py -B build-guition -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.guition -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-esp32-4848s040\" build"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": ["$gcc"],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
       "label": "SimCore: Build Guition ESP32-4848S040 Debug",
+      "detail": "esp32s3 · build-guition-debug",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
@@ -104,7 +58,22 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
+      "label": "SimCore: Build Guition JC1060P470C",
+      "detail": "esp32p4 · build-jc1060p470c · tear-free strips (default)",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c && idf.py -B build-jc1060p470c -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c\" build"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": ["$gcc"],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
       "label": "SimCore: Build Guition JC1060P470C Debug",
+      "detail": "esp32p4 · build-jc1060p470c-debug",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
@@ -117,12 +86,69 @@
       "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
     },
     {
-      "label": "SimCore: Flash",
+      "label": "SimCore: Build Guition JC1060P470C (Second Link)",
+      "detail": "esp32p4 · build-jc1060p470c-second-link · @SC: on the JTAG port too",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && ESPBAUD=460800 idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION flash"
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c-second-link >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-second-link && idf.py -B build-jc1060p470c-second-link -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-second-link -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.second-link\" build"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": ["$gcc"],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "SimCore: Build Guition JC1060P470C Debug (Second Link)",
+      "detail": "esp32p4 · build-jc1060p470c-debug-2link",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c-debug-2link >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-debug-2link && idf.py -B build-jc1060p470c-debug-2link -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-debug-2link -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.debug;sdkconfig.defaults.second-link\" build"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": ["$gcc"],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "SimCore: Build Guition JC1060P470C (Render Full)",
+      "detail": "esp32p4 · build-jc1060p470c-render-full · whole frame into PSRAM, 512 KB L2",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c-render-full >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-render-full && idf.py -B build-jc1060p470c-render-full -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-render-full -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.render-full\" build"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": ["$gcc"],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "SimCore: Build Guition JC1060P470C (Render Partial)",
+      "detail": "esp32p4 · build-jc1060p470c-render-partial · fastest, accepts the seam",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c-render-partial >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-render-partial && idf.py -B build-jc1060p470c-render-partial -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-render-partial -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.render-partial\" build"
+      ],
+      "options": { "cwd": "${workspaceFolder}/firmware" },
+      "problemMatcher": ["$gcc"],
+      "group": "build",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "SimCore: Flash",
+      "detail": "Flashes an already built directory over ${input:serialPort}",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && ESPBAUD=460800 idf.py -B $DIRECTORY -p ${input:serialPort} flash"
       ],
       "options": { "cwd": "${workspaceFolder}/firmware" },
       "problemMatcher": [],
@@ -130,11 +156,12 @@
     },
     {
       "label": "SimCore: Monitor",
+      "detail": "Opens idf.py monitor on ${input:serialPort}",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION monitor"
+        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && idf.py -B $DIRECTORY -p ${input:serialPort} monitor"
       ],
       "options": { "cwd": "${workspaceFolder}/firmware" },
       "problemMatcher": [],
@@ -142,11 +169,12 @@
     },
     {
       "label": "SimCore: Flash and Monitor",
+      "detail": "Flash then monitor the same build directory",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && case $DIRECTORY in build-jc1060p470c*) TARGET=esp32p4;; *) TARGET=esp32s3;; esac && CONFIGURATION=sdkconfig.generated.${DIRECTORY#build-} && { [ -f $CONFIGURATION ] || { echo \"Run the matching SimCore build task first.\"; exit 1; }; } && ESPBAUD=460800 idf.py -B $DIRECTORY -DIDF_TARGET=$TARGET -DSDKCONFIG=$CONFIGURATION flash monitor"
+        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && ESPBAUD=460800 idf.py -B $DIRECTORY -p ${input:serialPort} flash monitor"
       ],
       "options": { "cwd": "${workspaceFolder}/firmware" },
       "problemMatcher": [],
@@ -165,9 +193,18 @@
         "build-guition-debug",
         "build-jc1060p470c",
         "build-jc1060p470c-debug",
-        "build-jc1060p470c-second-link"
+        "build-jc1060p470c-second-link",
+        "build-jc1060p470c-debug-2link",
+        "build-jc1060p470c-render-full",
+        "build-jc1060p470c-render-partial"
       ],
-      "default": "build-jc1060p470c-debug"
+      "default": "build-jc1060p470c-second-link"
+    },
+    {
+      "id": "serialPort",
+      "type": "promptString",
+      "description": "Serial port (P4: /dev/cu.usbmodem101 is the JTAG port)",
+      "default": "/dev/cu.usbmodem101"
     }
   ]
 }
