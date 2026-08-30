@@ -42,8 +42,21 @@ answers `@SC:ERR:unsupported`. The reply's field list is documented in
 
 ## Measurements
 
+Every figure below covers the **last second, on a window that slides**: the
+sampler folds a 50 ms slice into a twenty-slice ring twenty times a second and
+republishes the whole window each time. A second's worth of frames is what makes
+an average steady — a window as short as a poll would quantize 60 fps into ±17%
+noise — but a reader is never handed the same snapshot twice, so polling
+`@SC:DIAG` at 100 ms shows values that moved since the previous poll instead of
+one frozen block per second. Sums (frames, render, flush, sync, latency, areas)
+span the window; the maxima (`frame_max_us`, `work_max_us`, `gap_max_us`,
+`lat_max_us`) are the largest in it, so a spike appears at once and ages out a
+second later rather than being cleared on a boundary. Heap, PSRAM and the stack
+high-water marks keep the original once-a-second cadence — walking the heap costs
+far more than the frame counters do, and neither figure moves within a window.
+
 - **FPS:** number of LVGL refreshes that performed rendering, divided by the
-  actual sampling interval. Idle refresh callbacks are not counted, so a
+  window's own measured duration. Idle refresh callbacks are not counted, so a
   dashboard whose values change more slowly than the display refreshes reports
   fewer frames without being late. Since [ADR
   0027](adr/0027-partial-render-buffers-and-unsynchronized-scan-out.md) no
@@ -64,7 +77,7 @@ answers `@SC:ERR:unsupported`. The reply's field list is documented in
 - **Sync time:** average time per rendered frame between refresh start and
   render start: layout and, in direct mode with two frame buffers, the copy
   of the previous frame's changed areas into the buffer about to be drawn.
-- **Max:** the slowest single frame in the interval, measured from
+- **Max:** the slowest single frame in the window, measured from
   refresh start to refresh ready. It settles near one display period while
   every frame reaches the display in time; a multiple of that period means
   frames missed their scan-out and the reported FPS is a fraction of the
@@ -77,7 +90,16 @@ answers `@SC:ERR:unsupported`. The reply's field list is documented in
   time from a telemetry value's commit into its slot to the display accepting
   the frame that drew it, and how many frames carried one. The one figure that
   covers the whole path — wake, render and flush together.
-- **Heap:** current free internal 8-bit heap and its largest free block.
+- **Heap:** current free internal 8-bit heap and its largest free block. The two
+  largest-free-block figures are refreshed only every five seconds, and `@SC:DIAG`
+  serves them from that sample rather than measuring them itself: finding the
+  largest free block walks every block of the pool with the heap spinlock held,
+  which disables interrupts for the whole walk. Called per poll on the PSRAM pool
+  — which holds every LVGL allocation — it delayed the display driver's
+  end-of-frame interrupt past the frame boundary often enough to blank single
+  frames on the panel. `heap_caps_get_free_size` and `heap_caps_get_minimum_free_size`
+  read counters and stay per-poll; nothing reaching `heap_caps_get_info` may go on
+  a periodic path while the display runs.
 - **PSRAM:** current free SPIRAM heap, or zero when SPIRAM is unavailable.
 - **Uptime**, and the transport counters **Link** (bytes and reads per second),
   **Queue**, **Overflow**, **Gap**/**Handler** (worst read gap and handler time

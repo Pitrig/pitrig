@@ -44,11 +44,11 @@ void ConfigurationControl::send_diagnostics() {
       static_cast<unsigned>(heap_caps_get_total_size(kInternal)),
       static_cast<unsigned>(heap_caps_get_free_size(kInternal)),
       static_cast<unsigned>(heap_caps_get_minimum_free_size(kInternal)),
-      static_cast<unsigned>(heap_caps_get_largest_free_block(kInternal)),
+      static_cast<unsigned>(stats.largest_heap_block),
       static_cast<unsigned>(heap_caps_get_total_size(kExternal)),
       static_cast<unsigned>(heap_caps_get_free_size(kExternal)),
       static_cast<unsigned>(heap_caps_get_minimum_free_size(kExternal)),
-      static_cast<unsigned>(heap_caps_get_largest_free_block(kExternal)));
+      static_cast<unsigned>(stats.largest_psram_block));
 
   if (written > 0) {
     const Tenths fps = tenths(stats.fps);

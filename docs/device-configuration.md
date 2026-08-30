@@ -1031,10 +1031,12 @@ records.
 ## Runtime diagnostics
 
 `DIAG` reports what the running device costs rather than what it holds: live
-memory figures and the last interval of the frame sampler. It is the same
-measurement the debug overlay draws, answered on the link instead of on the
-panel, so a board whose limits are being measured can be read exactly and from
-a script rather than off its own screen.
+memory figures and the frame sampler's last second, on a window that slides
+twenty times a second — a caller polling faster than that second is answered
+with figures that moved since its previous call, not with one frozen block per
+second. It is the same measurement the debug overlay draws, answered on the link
+instead of on the panel, so a board whose limits are being measured can be read
+exactly and from a script rather than off its own screen.
 
 It is a **debug-build** command. Firmware built without `CONFIG_SIMCORE_DEBUG`
 carries no sampler, so it answers `@SC:ERR:unsupported`; see

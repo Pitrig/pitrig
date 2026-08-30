@@ -49,6 +49,7 @@ struct PerformanceStats {
   std::uint32_t free_heap;
   std::uint32_t largest_heap_block;
   std::uint32_t free_psram;
+  std::uint32_t largest_psram_block;
   std::uint64_t uptime_ms;
   TaskStackStats task_stacks;
   std::uint32_t value_latency_us;

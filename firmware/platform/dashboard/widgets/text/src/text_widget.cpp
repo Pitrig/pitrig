@@ -177,7 +177,10 @@ void Collection::render_state(State& state) {
   lv_obj_get_content_coords(state.container, &content);
   const lv_area_t previous = drawing::value_area(state, content);
   state.displayed_text = next;
-  state.text_width = drawing::text_width_of(state.font, state.displayed_text.data());
+  state.text_width =
+      state.full_width
+          ? 0
+          : drawing::text_width_of(state.font, state.displayed_text.data());
   drawing::invalidate_value(state, first_render ? nullptr : &previous);
 #if SIMCORE_DEBUG
   performance::value_rendered(oldest_commit_us);
