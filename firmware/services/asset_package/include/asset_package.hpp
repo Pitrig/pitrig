@@ -68,4 +68,12 @@ struct Header {
                                    std::span<const std::uint8_t> header_override,
                                    Header& header);
 
+template <typename Asset>
+[[nodiscard]] bool entries_overlap(const Asset& lhs, const Asset& rhs) {
+  const auto* const lhs_begin = lhs.bytes.data();
+  const auto* const rhs_begin = rhs.bytes.data();
+  return lhs_begin < rhs_begin + rhs.bytes.size() &&
+         rhs_begin < lhs_begin + lhs.bytes.size();
+}
+
 }

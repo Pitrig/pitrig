@@ -3,6 +3,7 @@ import type { SerialPort } from 'serialport'
 import { MAXIMUM_CONFIGURATION_PAYLOAD_SIZE, type DeviceErrorCode } from '@shared/device'
 import { describeDeviceError } from '@shared/device-error-message'
 import { DeviceServiceError } from './device-errors'
+import { exchangeLines } from './line-exchange'
 
 export type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
 
@@ -13,6 +14,7 @@ export const MAXIMUM_RESPONSE_BUFFER_SIZE =
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE +
   '\r\n'.length
 const CONTROL_COMMAND_TIMEOUT_MS = 3_000
+const DEVICE_ERROR_PREFIX = '@SC:ERR:'
 
 export function requestResponse(
   port: SerialPort,
@@ -22,60 +24,37 @@ export function requestResponse(
   onTraffic: TrafficCallback,
   rejectionCode: DeviceErrorCode = 'not_simcore'
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let buffer = ''
-    let settled = false
-
-    const cleanup = (): void => {
-      clearTimeout(timeoutTimer)
-      port.off('data', onData)
-      port.off('error', onError)
-      port.off('close', onClose)
-      buffer = ''
-    }
-    const finish = (error?: Error, response?: string): void => {
-      if (settled) return
-      settled = true
-      cleanup()
-      if (error) reject(error)
-      else resolve(response ?? '')
-    }
-    const onData = (chunk: Buffer): void => {
-      const text = chunk.toString('utf8')
-      onTraffic('rx', text)
-      buffer = (buffer + text).slice(-MAXIMUM_RESPONSE_BUFFER_SIZE)
-      const lines = buffer.replaceAll('\r', '').split('\n')
-      buffer = lines.pop() ?? ''
+  return exchangeLines<string>(port, {
+    timeoutMs,
+    bufferLimit: MAXIMUM_RESPONSE_BUFFER_SIZE,
+    onReceive: (text) => onTraffic('rx', text),
+    consume: (lines) => {
       const response = lines.find((line) => line.startsWith(responsePrefix))
-      if (response) {
-        finish(undefined, response)
-        return
+      if (response) return { value: response }
+      const deviceError = lines.find((line) => line.startsWith(DEVICE_ERROR_PREFIX))
+      if (!deviceError) return undefined
+      const token = deviceError.slice(DEVICE_ERROR_PREFIX.length).trim()
+      return {
+        error: new DeviceServiceError(rejectionCode, describeDeviceError(token), token)
       }
-      const deviceError = lines.find((line) => line.startsWith('@SC:ERR:'))
-      if (deviceError) {
-        const token = deviceError.slice('@SC:ERR:'.length).trim()
-        finish(new DeviceServiceError(rejectionCode, describeDeviceError(token), token))
-      }
-    }
-    const onError = (error: Error): void => finish(error)
-    const onClose = (): void => {
-      finish(new DeviceServiceError('serial_error', 'Serial port closed during request.'))
-    }
-    const sendRequest = (): void => {
-      if (!port.isOpen || settled) return
-      port.write(request, (error) => {
-        if (error) finish(error)
-        else onTraffic('tx', request)
+    },
+    onTimeout: () => ({
+      error: new DeviceServiceError(
+        rejectionCode,
+        `The device did not answer ${request.trim()}.`
+      )
+    }),
+    onClose: () =>
+      new DeviceServiceError('serial_error', 'Serial port closed during request.'),
+    send: (fail, isSettled) => {
+      port.flush(() => {
+        if (!port.isOpen || isSettled()) return
+        port.write(request, (error) => {
+          if (error) fail(error)
+          else onTraffic('tx', request)
+        })
       })
     }
-
-    port.on('data', onData)
-    port.once('error', onError)
-    port.once('close', onClose)
-    const timeoutTimer = setTimeout(() => {
-      finish(new DeviceServiceError(rejectionCode, `The device did not answer ${request.trim()}.`))
-    }, timeoutMs)
-    port.flush(() => sendRequest())
   })
 }
 
@@ -84,57 +63,35 @@ export function sendControlCommand(
   command: string,
   onTraffic: TrafficCallback
 ): Promise<string[]> {
-  return new Promise((resolve, reject) => {
-    const request = `${command}\n`
-    const collected: string[] = []
-    let buffer = ''
-    let settled = false
+  const request = `${command}\n`
+  const collected: string[] = []
 
-    const cleanup = (): void => {
-      clearTimeout(timeoutTimer)
-      port.off('data', onData)
-      port.off('error', onError)
-      port.off('close', onClose)
-      buffer = ''
-    }
-    const finish = (error?: Error): void => {
-      if (settled) return
-      settled = true
-      cleanup()
-      if (error) reject(error)
-      else resolve(collected)
-    }
-    const onData = (chunk: Buffer): void => {
-      const text = chunk.toString('utf8')
-      onTraffic('rx', text)
-      buffer = (buffer + text).slice(-MAXIMUM_RESPONSE_BUFFER_SIZE)
-      const lines = buffer.replaceAll('\r', '').split('\n')
-      buffer = lines.pop() ?? ''
+  return exchangeLines<string[]>(port, {
+    timeoutMs: CONTROL_COMMAND_TIMEOUT_MS,
+    bufferLimit: MAXIMUM_RESPONSE_BUFFER_SIZE,
+    onReceive: (text) => onTraffic('rx', text),
+    consume: (lines) => {
       for (const line of lines) {
         if (!line.startsWith('@SC:')) continue
         collected.push(line)
-        if (line.startsWith('@SC:OK:') || line.startsWith('@SC:ERR:')) {
-          finish()
-          return
+        if (line.startsWith('@SC:OK:') || line.startsWith(DEVICE_ERROR_PREFIX)) {
+          return { value: collected }
         }
       }
+      return undefined
+    },
+    onTimeout: () => ({ value: collected }),
+    onClose: () =>
+      new DeviceServiceError('serial_error', 'Serial port closed during the command.'),
+    send: (fail) => {
+      if (!port.isOpen) {
+        fail(new DeviceServiceError('serial_error', 'The serial port is closed.'))
+        return
+      }
+      port.write(request, (error) => {
+        if (error) fail(error)
+        else onTraffic('tx', request)
+      })
     }
-    const onError = (error: Error): void => finish(error)
-    const onClose = (): void => {
-      finish(new DeviceServiceError('serial_error', 'Serial port closed during the command.'))
-    }
-
-    port.on('data', onData)
-    port.once('error', onError)
-    port.once('close', onClose)
-    const timeoutTimer = setTimeout(() => finish(), CONTROL_COMMAND_TIMEOUT_MS)
-    if (!port.isOpen) {
-      finish(new DeviceServiceError('serial_error', 'The serial port is closed.'))
-      return
-    }
-    port.write(request, (error) => {
-      if (error) finish(error)
-      else onTraffic('tx', request)
-    })
   })
 }

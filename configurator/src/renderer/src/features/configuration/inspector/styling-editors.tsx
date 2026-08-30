@@ -1,4 +1,4 @@
-import type { FramedWidget } from './types'
+import type { FramedWidgetConfiguration } from '@shared/configuration-access'
 import { FILL_CORNERS_VALUES, GRADIENT_DIRECTION_VALUES, type GradientDirection, TEXT_ALIGNMENT_VALUES, WIDGET_TITLE_CAPACITY, type WidgetTitleStyle } from '@shared/configuration-schema'
 import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily, useDashboardEditorStore } from '../dashboard-editor'
 import { IconTextField } from './IconPicker'
@@ -13,8 +13,8 @@ import { alignmentAnchor } from '../preview/preview-values'
 import { useDeviceStore } from '@/features/device/device-store'
 
 export function TitleEditor({ widget, update }: {
-  widget: FramedWidget
-  update: (mutation: (next: FramedWidget) => void) => void
+  widget: FramedWidgetConfiguration
+  update: (mutation: (next: FramedWidgetConfiguration) => void) => void
 }): React.JSX.Element {
   const borderWidth = widget.border?.width_px ?? 0
   const borderGap = widget.title?.border_gap ?? true
@@ -106,8 +106,8 @@ export function TitleEditor({ widget, update }: {
 }
 
 export function BoxEditor({ widget, update }: {
-  widget: FramedWidget
-  update: (mutation: (next: FramedWidget) => void) => void
+  widget: FramedWidgetConfiguration
+  update: (mutation: (next: FramedWidgetConfiguration) => void) => void
 }): React.JSX.Element {
   const borderWidth = widget.border?.width_px ?? 0
   const detailed =

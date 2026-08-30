@@ -34,15 +34,6 @@ constexpr std::uint32_t kSfntCollection = 0x7474'6366U;
          signature == kSfntTrue || signature == kSfntCollection;
 }
 
-[[nodiscard]] bool ranges_overlap(const FamilyAsset& lhs,
-                                  const FamilyAsset& rhs) {
-  const auto* const lhs_begin = lhs.bytes.data();
-  const auto* const lhs_end = lhs_begin + lhs.bytes.size();
-  const auto* const rhs_begin = rhs.bytes.data();
-  const auto* const rhs_end = rhs_begin + rhs.bytes.size();
-  return lhs_begin < rhs_end && rhs_begin < lhs_end;
-}
-
 }
 
 bool Service::validate_package(
@@ -95,7 +86,7 @@ bool Service::validate_package(
     }
     for (std::size_t previous = 0; previous < index; ++previous) {
       if (asset.family == parsed.families[previous].family ||
-          ranges_overlap(asset, parsed.families[previous])) {
+          asset_package::entries_overlap(asset, parsed.families[previous])) {
         return false;
       }
     }

@@ -1,5 +1,5 @@
-import { allWidgetsOf, freshWidgetIds, isContainer, pagesOf, subtreeHeight } from '@shared/configuration-access'
-import { MAXIMUM_ACTIONS, MAXIMUM_ARC_WIDGETS, MAXIMUM_NESTING_DEPTH, MAXIMUM_BAR_WIDGETS, MAXIMUM_GRAPH_WIDGETS, MAXIMUM_IMAGE_WIDGETS, MAXIMUM_INDICATOR_WIDGETS, MAXIMUM_SHAPE_WIDGETS, MAXIMUM_SLOT_WIDGETS, MAXIMUM_TEXT_WIDGETS, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
+import { WIDGET_POOL_CAPACITIES, allWidgetsOf, freshWidgetIds, isContainer, pagesOf, subtreeHeight } from '@shared/configuration-access'
+import { MAXIMUM_ACTIONS, MAXIMUM_NESTING_DEPTH, MAXIMUM_WIDGETS_PER_CONTAINER, MAXIMUM_WIDGETS_PER_SCREEN, type WidgetConfiguration, type WidgetPlacement } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import { applyFontFamily } from '@shared/document-fonts'
 import { absolutePlacement, ancestorsOf, completePlacement, findWidget, mutateDraftConfiguration, parentContainerId, parentOf, widgetArrayOf } from './document'
@@ -20,17 +20,6 @@ export {
   draftFontFamily,
   draftValueFont
 } from './widget-defaults'
-
-const WIDGET_CAPACITIES: Record<WidgetConfiguration['type'], number> = {
-  text: MAXIMUM_TEXT_WIDGETS,
-  shape: MAXIMUM_SHAPE_WIDGETS,
-  bar: MAXIMUM_BAR_WIDGETS,
-  arc: MAXIMUM_ARC_WIDGETS,
-  indicator: MAXIMUM_INDICATOR_WIDGETS,
-  graph: MAXIMUM_GRAPH_WIDGETS,
-  image: MAXIMUM_IMAGE_WIDGETS,
-  slot: MAXIMUM_SLOT_WIDGETS
-}
 
 interface InsertionTarget {
   widgets: WidgetConfiguration[]
@@ -105,7 +94,7 @@ export function insertWidget(
   if (box && widget.type === 'slot') return undefined
   if (depth + subtreeHeight(widget) >= MAXIMUM_NESTING_DEPTH) return undefined
   const pooled = allWidgetsOf(configuration).filter(({ type }) => type === widget.type).length
-  if (pooled >= WIDGET_CAPACITIES[widget.type] || widgets.length >= cap) {
+  if (pooled >= WIDGET_POOL_CAPACITIES[widget.type] || widgets.length >= cap) {
     return undefined
   }
   const inserted = freshWidgetIds(structuredClone(widget))
@@ -123,7 +112,7 @@ export function atWidgetCapacity(
 ): boolean {
   if (!configuration) return false
   const pooled = allWidgetsOf(configuration).filter((widget) => widget.type === type).length
-  return pooled >= WIDGET_CAPACITIES[type]
+  return pooled >= WIDGET_POOL_CAPACITIES[type]
 }
 
 export function addWidget(

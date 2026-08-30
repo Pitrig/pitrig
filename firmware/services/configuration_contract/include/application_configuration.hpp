@@ -24,6 +24,30 @@ template <std::size_t Capacity>
   return text_view(binding);
 }
 
+template <typename Predicate>
+[[nodiscard]] bool any_widget_frame(const DashboardConfiguration& dashboard,
+                                    Predicate&& matches) {
+  for (const WidgetTypeTraits& traits : kWidgetTypeTraits) {
+    const std::uint8_t count = traits.count(dashboard);
+    for (std::uint8_t index = 0; index < count; ++index) {
+      const WidgetFrame* const frame = traits.frame(dashboard, index);
+      if (frame != nullptr && matches(*frame)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+template <typename Visitor>
+void for_each_widget_frame(const DashboardConfiguration& dashboard,
+                           Visitor&& visit) {
+  (void)any_widget_frame(dashboard, [&visit](const WidgetFrame& frame) {
+    visit(frame);
+    return false;
+  });
+}
+
 struct DisplayValidationProfile {
   std::int32_t width{};
   std::int32_t height{};

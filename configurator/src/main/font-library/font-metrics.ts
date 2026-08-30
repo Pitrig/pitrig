@@ -1,3 +1,20 @@
+export function missingCharacters(face: Uint8Array, text: string): string[] | undefined {
+  const codes = [...new Set(text)].map((character) => character.codePointAt(0) ?? 0)
+  const glyphs = glyphsFor(face, codes)
+  if (!glyphs) return undefined
+  return [...new Set(text)].filter(
+    (character) => !glyphs.get(character.codePointAt(0) ?? 0)
+  )
+}
+
+function glyphsFor(face: Uint8Array, codes: number[]): Map<number, number> | undefined {
+  const view = new DataView(face.buffer, face.byteOffset, face.byteLength)
+  const directory = tableDirectory(view)
+  const cmap = directory?.get('cmap')
+  if (cmap === undefined) return undefined
+  return characterMap(view, cmap, codes)
+}
+
 export function hasTabularDigits(face: Uint8Array): boolean | undefined {
   const advances = digitAdvances(face)
   if (!advances) return undefined
@@ -7,6 +24,7 @@ export function hasTabularDigits(face: Uint8Array): boolean | undefined {
 }
 
 const DIGITS = '0123456789'
+const DIGIT_CODES = [...DIGITS].map((digit) => digit.codePointAt(0) ?? 0)
 
 function digitAdvances(face: Uint8Array): number[] | undefined {
   const view = new DataView(face.buffer, face.byteOffset, face.byteLength)
@@ -17,7 +35,7 @@ function digitAdvances(face: Uint8Array): number[] | undefined {
   const hmtx = directory.get('hmtx')
   if (cmap === undefined || hhea === undefined || hmtx === undefined) return undefined
 
-  const glyphs = characterMap(view, cmap)
+  const glyphs = characterMap(view, cmap, DIGIT_CODES)
   if (!glyphs) return undefined
   const longMetrics = safeUint16(view, hhea + 34)
   if (longMetrics === undefined || longMetrics === 0) return undefined
@@ -58,7 +76,11 @@ function tableTag(view: DataView, offset: number): string | undefined {
   return tag
 }
 
-function characterMap(view: DataView, cmap: number): Map<number, number> | undefined {
+function characterMap(
+  view: DataView,
+  cmap: number,
+  codes: number[]
+): Map<number, number> | undefined {
   const count = safeUint16(view, cmap + 2)
   if (count === undefined) return undefined
   let chosen: number | undefined
@@ -77,8 +99,8 @@ function characterMap(view: DataView, cmap: number): Map<number, number> | undef
   }
   if (chosen === undefined || chosenScore < 0) return undefined
   const format = safeUint16(view, chosen)
-  if (format === 4) return parseFormat4(view, chosen)
-  if (format === 12) return parseFormat12(view, chosen)
+  if (format === 4) return parseFormat4(view, chosen, codes)
+  if (format === 12) return parseFormat12(view, chosen, codes)
   return undefined
 }
 
@@ -90,7 +112,11 @@ function subtableScore(platform: number, encoding: number): number {
   return -1
 }
 
-function parseFormat4(view: DataView, table: number): Map<number, number> | undefined {
+function parseFormat4(
+  view: DataView,
+  table: number,
+  codes: number[]
+): Map<number, number> | undefined {
   const segmentBytes = safeUint16(view, table + 6)
   if (segmentBytes === undefined) return undefined
   const segments = segmentBytes / 2
@@ -99,8 +125,7 @@ function parseFormat4(view: DataView, table: number): Map<number, number> | unde
   const deltas = starts + segmentBytes
   const ranges = deltas + segmentBytes
   const glyphs = new Map<number, number>()
-  for (const digit of DIGITS) {
-    const code = digit.codePointAt(0) ?? 0
+  for (const code of codes) {
     for (let segment = 0; segment < segments; ++segment) {
       const end = safeUint16(view, ends + segment * 2)
       const start = safeUint16(view, starts + segment * 2)
@@ -124,7 +149,11 @@ function parseFormat4(view: DataView, table: number): Map<number, number> | unde
   return glyphs
 }
 
-function parseFormat12(view: DataView, table: number): Map<number, number> | undefined {
+function parseFormat12(
+  view: DataView,
+  table: number,
+  codes: number[]
+): Map<number, number> | undefined {
   const groups = safeUint32(view, table + 12)
   if (groups === undefined) return undefined
   const glyphs = new Map<number, number>()
@@ -134,8 +163,7 @@ function parseFormat12(view: DataView, table: number): Map<number, number> | und
     const end = safeUint32(view, group + 4)
     const glyph = safeUint32(view, group + 8)
     if (start === undefined || end === undefined || glyph === undefined) return undefined
-    for (const digit of DIGITS) {
-      const code = digit.codePointAt(0) ?? 0
+    for (const code of codes) {
       if (code >= start && code <= end) glyphs.set(code, glyph + (code - start))
     }
   }

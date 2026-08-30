@@ -2,7 +2,8 @@ import { type ShapeWidgetConfiguration } from '@shared/configuration-schema'
 import { useFontFaceStore } from '@/features/font-library/font-face-store'
 import { completePlacement } from '../dashboard-editor'
 import { WidgetFrameShape } from './frame-shape'
-import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR, type FramedWidgetConfiguration } from './preview-theme'
+import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
+import type { FramedWidgetConfiguration } from '@shared/configuration-access'
 import { type PreviewValues, captionGeometry, fontMetrics, normalizeColor, resolvedFont } from './preview-values'
 
 export function CaptionPreview({

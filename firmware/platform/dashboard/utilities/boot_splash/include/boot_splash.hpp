@@ -2,10 +2,7 @@
 
 #include <cstdint>
 
-struct _lv_display_t;
-using lv_display_t = _lv_display_t;
-struct _lv_obj_t;
-using lv_obj_t = _lv_obj_t;
+#include "lvgl_types.hpp"
 
 namespace simcore::dashboard::boot_splash {
 

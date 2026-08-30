@@ -15,25 +15,7 @@ export const DEFAULT_FEED_RATE_HZ = 60
 export const POLL_INTERVALS_MS = [100, 250, 500, 1_000, 2_000] as const
 export const DEFAULT_POLL_INTERVAL_MS = 1_000
 
-export type BenchPatternId =
-  | 'all_widgets'
-  | 'full_screen_bar'
-  | 'text_only'
-  | 'text_16'
-  | 'text_32'
-  | 'text_64'
-  | 'text_32_plain'
-  | 'text_32_shapes'
-  | 'shapes_96'
-  | 'huge_text_4'
-  | 'bars_24'
-  | 'arcs_12'
-  | 'graphs_6'
-  | 'sprites_24'
-  | 'indicators_12'
-  | 'nested_containers'
-
-export const BENCH_PATTERN_IDS: readonly BenchPatternId[] = [
+export const BENCH_PATTERN_IDS = [
   'all_widgets',
   'full_screen_bar',
   'text_only',
@@ -50,7 +32,9 @@ export const BENCH_PATTERN_IDS: readonly BenchPatternId[] = [
   'sprites_24',
   'indicators_12',
   'nested_containers'
-]
+] as const
+
+export type BenchPatternId = (typeof BENCH_PATTERN_IDS)[number]
 
 export const BENCH_PATTERN_LABELS: Record<BenchPatternId, string> = {
   all_widgets: 'All widgets',

@@ -5,9 +5,7 @@
 #include <cstdint>
 
 #include "application_configuration.hpp"
-
-struct _lv_obj_t;
-using lv_obj_t = _lv_obj_t;
+#include "lvgl_types.hpp"
 
 namespace simcore::dashboard {
 

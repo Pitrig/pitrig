@@ -1,5 +1,5 @@
 import type { BrowserWindow } from 'electron'
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { FONT_FAMILY_PATTERN } from '../../shared/font-assets'
@@ -16,6 +16,7 @@ import {
 } from '../../shared/font-library'
 import { FONT_FILE_CHOICE, chooseFile } from '../assets/choose-file'
 import { BUNDLED_FACES } from './bundled-faces'
+import { BundledFaceFacts } from './font-library-bundled'
 import {
   adoptLegacyCache,
   backfillTabularDigits,
@@ -33,7 +34,7 @@ import {
   type StoredEntry,
   type StoredIndex
 } from './font-library-files'
-import { hasTabularDigits } from './font-metrics'
+import { hasTabularDigits, missingCharacters } from './font-metrics'
 
 const INDEX_FILE = 'library.json'
 const FACES_DIRECTORY = 'faces'
@@ -49,8 +50,7 @@ export class FontLibraryService {
   }
   private unreadable = 0
   private loaded = false
-  private bundledSizes: Map<string, number> | undefined
-  private readonly bundledTabular = new Map<string, boolean | null>()
+  private readonly bundled = new BundledFaceFacts((id) => this.readFace(id))
 
   constructor(
     private readonly directory: string,
@@ -62,7 +62,7 @@ export class FontLibraryService {
 
   async list(): Promise<FontLibrarySnapshot> {
     await this.load()
-    const sizes = await this.bundledFaceSizes()
+    const sizes = await this.bundled.fileSizes()
     const entries: FontLibraryEntry[] = []
     for (const face of BUNDLED_FACES) {
       entries.push({
@@ -72,7 +72,7 @@ export class FontLibraryService {
         category: face.category,
         source: { family: face.family, variant: face.variant },
         bytes: sizes.get(face.id) ?? 0,
-        ...optionalTabular(await this.tabularDigitsOf(face.id))
+        ...optionalTabular(await this.bundled.tabularDigitsOf(face.id))
       })
     }
     for (const stored of this.index.entries) {
@@ -89,15 +89,6 @@ export class FontLibraryService {
     return { entries, unreadable: this.unreadable }
   }
 
-  private async tabularDigitsOf(id: string): Promise<boolean | undefined> {
-    const known = this.bundledTabular.get(id)
-    if (known !== undefined) return known ?? undefined
-    const bytes = await this.readFace(id)
-    const tabular = bytes ? hasTabularDigits(bytes) : undefined
-    this.bundledTabular.set(id, tabular ?? null)
-    return tabular
-  }
-
   async readFace(id: string): Promise<Uint8Array | undefined> {
     await this.load()
     const bundled = BUNDLED_FACES.find((face) => face.id === id)
@@ -105,6 +96,13 @@ export class FontLibraryService {
     const stored = this.index.entries.find((entry) => entry.id === id)
     if (!stored) return undefined
     return readFaceFile(join(this.facesDirectory, stored.file))
+  }
+
+  async covers(id: string, characters: string): Promise<boolean | undefined> {
+    const bytes = await this.readFace(id)
+    if (!bytes) return undefined
+    const missing = missingCharacters(bytes, characters)
+    return missing === undefined ? undefined : missing.length === 0
   }
 
   async readFaces(ids: readonly string[]): Promise<FontFaceBytes[]> {
@@ -215,19 +213,6 @@ export class FontLibraryService {
       return failure('write_failed', messageOf(error, 'The library could not be updated.'))
     }
     return { ok: true, value: undefined }
-  }
-
-  private async bundledFaceSizes(): Promise<Map<string, number>> {
-    if (this.bundledSizes) return this.bundledSizes
-    const sizes = new Map<string, number>()
-    for (const face of BUNDLED_FACES) {
-      try {
-        sizes.set(face.id, (await stat(face.path)).size)
-      } catch {
-      }
-    }
-    this.bundledSizes = sizes
-    return sizes
   }
 
   private has(id: string): boolean {

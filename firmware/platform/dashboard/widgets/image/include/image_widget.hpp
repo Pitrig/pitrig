@@ -9,13 +9,9 @@
 #include "dashboard_fonts.hpp"
 #include "dashboard_images.hpp"
 #include "dashboard_layout.hpp"
+#include "lvgl_types.hpp"
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
-
-struct _lv_obj_t;
-using lv_obj_t = _lv_obj_t;
-struct _lv_timer_t;
-using lv_timer_t = _lv_timer_t;
 
 namespace simcore::dashboard::image_widget {
 

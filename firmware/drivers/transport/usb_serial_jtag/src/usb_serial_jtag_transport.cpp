@@ -8,9 +8,6 @@
 #include "esp_log.h"
 #include "simcore_features.hpp"
 #include "transport_watchdog.hpp"
-#if SIMCORE_DEBUG
-#include "performance.hpp"
-#endif
 
 namespace simcore::transport {
 namespace {
@@ -55,8 +52,7 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
   }
 
   instrumentation_.reset();
-  handler_ = handler;
-  handler_context_ = context;
+  handler_.bind(handler, context);
   started_ = true;
   running_.store(true, std::memory_order_release);
   task_ = xTaskCreateStaticPinnedToCore(
@@ -67,15 +63,11 @@ bool UsbSerialJtagTransport::start(const DataHandler handler,
     started_ = false;
     running_.store(false, std::memory_order_release);
     ESP_ERROR_CHECK_WITHOUT_ABORT(usb_serial_jtag_driver_uninstall());
-    handler_ = nullptr;
-    handler_context_ = nullptr;
+    handler_.release();
     release_rtos_objects();
     return false;
   }
-#if SIMCORE_DEBUG
-  performance::register_task(performance::TaskMetric::transport, task_);
-#endif
-
+  register_read_task(task_);
   ESP_LOGI(kTag, "USB Serial/JTAG telemetry transport started");
   return true;
 }
@@ -94,15 +86,12 @@ void UsbSerialJtagTransport::stop() {
   started_ = false;
   running_.store(false, std::memory_order_release);
   if (task_ != nullptr) {
-#if SIMCORE_DEBUG
-    performance::unregister_task(performance::TaskMetric::transport);
-#endif
+    unregister_read_task();
     (void)xSemaphoreTake(stopped_, kReadTimeout * 4);
     task_ = nullptr;
   }
   ESP_ERROR_CHECK_WITHOUT_ABORT(usb_serial_jtag_driver_uninstall());
-  handler_ = nullptr;
-  handler_context_ = nullptr;
+  handler_.release();
   release_rtos_objects();
   log_silencer_.restore();
   ESP_LOGI(kTag, "USB Serial/JTAG telemetry transport stopped");
@@ -161,15 +150,10 @@ void UsbSerialJtagTransport::process() {
     }
 
     instrumentation_.record_read(static_cast<std::size_t>(received));
-
-    if (handler_ != nullptr) {
-      const std::int64_t handler_started_at_us =
-          ReadInstrumentation::handler_started();
-      handler_(std::span<const std::uint8_t>(
-                   data.data(), static_cast<std::size_t>(received)),
-               handler_context_);
-      instrumentation_.record_handler(handler_started_at_us);
-    }
+    handler_.dispatch(
+        std::span<const std::uint8_t>(data.data(),
+                                      static_cast<std::size_t>(received)),
+        instrumentation_);
   }
 
   unwatch_current_task();

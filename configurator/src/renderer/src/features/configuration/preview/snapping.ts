@@ -54,8 +54,6 @@ export interface SnapResolution {
   highlighted: string[]
 }
 
-export const DEFAULT_SNAP_TOLERANCE_PX = 10
-
 const NOTHING: Omit<SnapResolution, 'placement'> = { guides: [], gaps: [], highlighted: [] }
 
 export function guideFor(axis: 'x' | 'y', position: number, moving: Placement, edge: SnapEdge): SnapGuide {

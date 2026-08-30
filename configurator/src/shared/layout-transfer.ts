@@ -11,8 +11,6 @@ export interface DisplaySize {
 
 export type LayoutFit = 'contain' | 'stretch'
 
-export const LAYOUT_FITS: readonly LayoutFit[] = ['contain', 'stretch']
-
 export interface LayoutTransferTarget {
   board: SimCoreBoardId
   display?: DisplaySize

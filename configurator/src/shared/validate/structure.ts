@@ -1,20 +1,18 @@
 import {
   MAXIMUM_ACTIONS,
-  MAXIMUM_ARC_WIDGETS,
-  MAXIMUM_BAR_WIDGETS,
-  MAXIMUM_GRAPH_WIDGETS,
-  MAXIMUM_IMAGE_WIDGETS,
-  MAXIMUM_INDICATOR_WIDGETS,
   MAXIMUM_NESTING_DEPTH,
   MAXIMUM_SCREENS,
-  MAXIMUM_SHAPE_WIDGETS,
-  MAXIMUM_SLOT_WIDGETS,
-  MAXIMUM_TEXT_WIDGETS,
   MAXIMUM_WIDGETS_PER_CONTAINER,
   MAXIMUM_WIDGETS_PER_SCREEN,
-  type ApplicationConfiguration
+  type ApplicationConfiguration,
+  type WidgetConfiguration
 } from '../configuration-schema'
-import { pagesOf, widgetsOf, type WidgetParent } from '../configuration-access'
+import {
+  WIDGET_POOL_CAPACITIES,
+  pagesOf,
+  widgetsOf,
+  type WidgetParent
+} from '../configuration-access'
 import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
 import {
   countLapTimers,
@@ -24,17 +22,6 @@ import {
 } from './widget-rules'
 import { findWidgetGeometryError } from './widget-geometry'
 import { findWidgetValueError } from './widget-values'
-
-const WIDGET_POOL_CAPS: Record<string, number> = {
-  text: MAXIMUM_TEXT_WIDGETS,
-  shape: MAXIMUM_SHAPE_WIDGETS,
-  bar: MAXIMUM_BAR_WIDGETS,
-  arc: MAXIMUM_ARC_WIDGETS,
-  indicator: MAXIMUM_INDICATOR_WIDGETS,
-  graph: MAXIMUM_GRAPH_WIDGETS,
-  image: MAXIMUM_IMAGE_WIDGETS,
-  slot: MAXIMUM_SLOT_WIDGETS
-}
 
 function boardDisplay(
   configuration: ApplicationConfiguration
@@ -53,7 +40,7 @@ export function findScreenError(configuration: ApplicationConfiguration): string
   const screenIds = screens.map((screen) => screen?.id)
   const display = boardDisplay(configuration)
   let actions = 0
-  const pool = new Map<string, number>()
+  const pool = new Map<WidgetConfiguration['type'], number>()
   let lapTimers = 0
 
   const walk = (
@@ -138,8 +125,8 @@ export function findScreenError(configuration: ApplicationConfiguration): string
   }
 
   for (const [type, count] of pool) {
-    const cap = WIDGET_POOL_CAPS[type]
-    if (cap !== undefined && count > cap) {
+    const cap = WIDGET_POOL_CAPACITIES[type]
+    if (count > cap) {
       return `This dashboard uses ${count} ${type} widgets; the device stores ${cap}.`
     }
   }

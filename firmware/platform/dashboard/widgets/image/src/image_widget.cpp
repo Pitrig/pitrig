@@ -115,9 +115,11 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.authored_color =
       recolored ? config.recolor
                 : (alpha_only ? kAlphaOnlyColor : config.frame.border.color);
-  state.authored_opa = alpha_only ? LV_OPA_COVER
-                                  : (recolored ? config.recolor_opa : 0);
-  state.rule_opa = alpha_only ? LV_OPA_COVER : config.recolor_opa;
+  constexpr auto kOpaqueCover = static_cast<std::uint8_t>(LV_OPA_COVER);
+  state.authored_opa =
+      alpha_only ? kOpaqueCover
+                 : static_cast<std::uint8_t>(recolored ? config.recolor_opa : 0);
+  state.rule_opa = alpha_only ? kOpaqueCover : config.recolor_opa;
   lv_obj_set_style_image_recolor(
       state.image, lv_color_hex(state.authored_color), LV_PART_MAIN);
   lv_obj_set_style_image_recolor_opa(state.image, state.authored_opa,

@@ -34,13 +34,3 @@ export function missingFontFamilies(
   }
   return missing
 }
-
-export function groupFontRequirements(required: FontAssetKey[]): Map<string, number[]> {
-  const groups = new Map<string, number[]>()
-  for (const font of required) {
-    const sizes = groups.get(font.family) ?? []
-    sizes.push(font.sizePx)
-    groups.set(font.family, sizes)
-  }
-  return groups
-}

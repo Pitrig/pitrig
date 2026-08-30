@@ -13,6 +13,8 @@ import {
 } from '../../shared/bench'
 import { BENCH_SIGNAL_IDS } from '../../shared/bench-signals'
 import { buildBenchDashboard } from '../../shared/bench-pattern'
+import { benchTextCharacters } from '../../shared/bench-text'
+import { DEFAULT_FONT_FAMILY } from '../../shared/font-assets'
 import type { DeviceResult } from '../../shared/device'
 import { failure, success } from '../device/device-errors'
 import { ensureBenchAssets, type BenchAssetServices } from './bench-assets'
@@ -106,10 +108,23 @@ export class BenchService {
     try {
       outcome = await deviceService.runPipeline(async (): Promise<DeviceResult<void>> => {
         const display = session.info.display
-        const assets = await ensureBenchAssets(this.services, spriteEdge(display), (stage) => {
-          this.patternStage = stage
-          this.publish()
-        })
+        const characters = benchTextCharacters(
+          buildBenchDashboard({
+            board: session.info.boardId,
+            pattern,
+            display,
+            family: DEFAULT_FONT_FAMILY
+          })
+        )
+        const assets = await ensureBenchAssets(
+          this.services,
+          spriteEdge(display),
+          characters,
+          (stage) => {
+            this.patternStage = stage
+            this.publish()
+          }
+        )
         if (!assets.ok) return failure(assets.error)
 
         const current = deviceService.getState().session

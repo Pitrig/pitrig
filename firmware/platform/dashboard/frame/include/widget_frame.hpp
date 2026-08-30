@@ -8,13 +8,9 @@
 #include "application_configuration.hpp"
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
+#include "lvgl_types.hpp"
 #include "widget_conditions.hpp"
 #include "widget_source_binding.hpp"
-
-struct _lv_obj_t;
-using lv_obj_t = _lv_obj_t;
-struct _lv_layer_t;
-using lv_layer_t = _lv_layer_t;
 
 namespace simcore::dashboard::frame {
 

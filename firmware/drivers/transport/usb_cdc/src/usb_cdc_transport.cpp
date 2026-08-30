@@ -7,9 +7,6 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "transport_watchdog.hpp"
-#if SIMCORE_DEBUG
-#include "performance.hpp"
-#endif
 #include "sdkconfig.h"
 #include "tinyusb.h"
 #include "tinyusb_cdc_acm.h"
@@ -49,8 +46,7 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
     return false;
   }
 
-  handler_ = handler;
-  handler_context_ = context;
+  handler_.bind(handler, context);
   instrumentation_.reset();
 #if SIMCORE_DEBUG
   queue_overflows_.store(0, std::memory_order_relaxed);
@@ -112,9 +108,10 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
     return false;
   }
 
-  task_ = xTaskCreateStatic(&UsbCdcTransport::task_entry, "usb_cdc_rx",
-                            task_stack_.size(), this, 5, task_stack_.data(),
-                            &task_state_);
+  task_ = xTaskCreateStaticPinnedToCore(
+      &UsbCdcTransport::task_entry, "usb_cdc_rx", task_stack_.size(), this,
+      kTaskPriority, task_stack_.data(), &task_state_,
+      SIMCORE_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0);
     tinyusb_driver_uninstall();
@@ -122,10 +119,7 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
     release_rtos_objects();
     return false;
   }
-#if SIMCORE_DEBUG
-  performance::register_task(performance::TaskMetric::transport, task_);
-#endif
-
+  register_read_task(task_);
   started_ = true;
   ESP_LOGI(kTag, "Native USB CDC transport started");
   return true;
@@ -138,18 +132,10 @@ void UsbCdcTransport::stop() {
 
   started_ = false;
   active_transport.store(nullptr, std::memory_order_release);
-  if (task_ != nullptr) {
-#if SIMCORE_DEBUG
-    performance::unregister_task(performance::TaskMetric::transport);
-#endif
-    unwatch_task(task_);
-    vTaskDelete(task_);
-    task_ = nullptr;
-  }
+  delete_read_task(task_);
   ESP_ERROR_CHECK_WITHOUT_ABORT(tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0));
   ESP_ERROR_CHECK_WITHOUT_ABORT(tinyusb_driver_uninstall());
-  handler_ = nullptr;
-  handler_context_ = nullptr;
+  handler_.release();
   release_rtos_objects();
   ESP_LOGI(kTag, "Native USB CDC transport stopped");
 }
@@ -238,16 +224,14 @@ void UsbCdcTransport::process() {
     const bool has_chunk =
         xQueueReceive(queue_, &chunk, kWatchdogFeedTicks) == pdTRUE;
     feed_watchdog();
-    if (has_chunk && handler_ != nullptr) {
+    if (has_chunk && handler_.bound()) {
 #if SIMCORE_DEBUG
       queued_bytes_.fetch_sub(static_cast<std::uint32_t>(chunk.size),
                               std::memory_order_relaxed);
 #endif
-      const std::int64_t handler_started_at_us =
-          ReadInstrumentation::handler_started();
-      handler_(std::span<const std::uint8_t>(chunk.data.data(), chunk.size),
-               handler_context_);
-      instrumentation_.record_handler(handler_started_at_us);
+      handler_.dispatch(
+          std::span<const std::uint8_t>(chunk.data.data(), chunk.size),
+          instrumentation_);
     }
   }
 }

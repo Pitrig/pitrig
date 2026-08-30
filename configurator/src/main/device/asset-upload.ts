@@ -3,12 +3,15 @@ import type { SerialPort } from 'serialport'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import { describeDeviceError } from '../../shared/device-error-message'
 import { crc32 } from './asset-crc'
+import { exchangeLines } from './line-exchange'
 
 const FRAME_MAGIC = Buffer.from('SCF1', 'ascii')
 const FRAME_HEADER_SIZE = 14
 const MAXIMUM_CHUNK_SIZE = 4096
 const BEGIN_TIMEOUT_MS = 30_000
 const FRAME_TIMEOUT_MS = 5_000
+const RESPONSE_BUFFER_LIMIT = 8192
+const DEVICE_ERROR_PREFIX = '@SC:ERR:'
 
 class DeviceRejectedUploadError extends Error {}
 
@@ -153,71 +156,40 @@ function exchangeLine(
   callbacks: UploadCallbacks,
   signal: AbortSignal
 ): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let buffer = ''
-    let settled = false
-    const timeout = setTimeout(
-      () => finish(new Error(`The device did not answer ${responsePrefix}.`)),
-      timeoutMs
-    )
-
-    const cleanup = (): void => {
-      clearTimeout(timeout)
-      signal.removeEventListener('abort', onAbort)
-      port.off('data', onData)
-      port.off('error', onError)
-      port.off('close', onClose)
-    }
-    const finish = (error?: Error, response?: string): void => {
-      if (settled) return
-      settled = true
-      cleanup()
-      if (error) reject(error)
-      else resolve(response ?? '')
-    }
-    const onData = (chunk: Buffer): void => {
-      buffer = (buffer + chunk.toString('utf8')).slice(-8192)
-      const lines = buffer.replaceAll('\r', '').split('\n')
-      buffer = lines.pop() ?? ''
+  return exchangeLines<string>(port, {
+    timeoutMs,
+    bufferLimit: RESPONSE_BUFFER_LIMIT,
+    signal,
+    consume: (lines) => {
       const response = lines.find((line) => line.startsWith(responsePrefix))
-      if (response) {
-        finish(undefined, response)
-        return
-      }
-      const deviceError = lines.find((line) => line.startsWith('@SC:ERR:'))
-      if (deviceError) {
-        finish(
-          new DeviceRejectedUploadError(
-            describeDeviceError(deviceError.slice('@SC:ERR:'.length))
-          )
+      if (response) return { value: response }
+      const deviceError = lines.find((line) => line.startsWith(DEVICE_ERROR_PREFIX))
+      if (!deviceError) return undefined
+      return {
+        error: new DeviceRejectedUploadError(
+          describeDeviceError(deviceError.slice(DEVICE_ERROR_PREFIX.length))
         )
       }
-    }
-    const onError = (error: Error): void => finish(error)
-    const onClose = (): void => finish(new Error('The serial port closed during the upload.'))
-    const onAbort = (): void => finish(new Error('The upload was cancelled.'))
-
-    port.on('data', onData)
-    port.once('error', onError)
-    port.once('close', onClose)
-    signal.addEventListener('abort', onAbort, { once: true })
-    if (signal.aborted) {
-      onAbort()
-      return
-    }
-    port.write(request, (error) => {
-      if (error) {
-        finish(error)
-        return
-      }
-      callbacks.onTransmit(
-        request[0] === 0x40 ? request.toString('utf8') : request.toString('hex'),
-        request[0] === 0x40 ? 'utf8' : 'hex'
-      )
-      port.drain((drainError) => {
-        if (drainError) finish(drainError)
+    },
+    onTimeout: () => ({ error: new Error(`The device did not answer ${responsePrefix}.`) }),
+    onClose: () => new Error('The serial port closed during the upload.'),
+    onAbort: () => new Error('The upload was cancelled.'),
+    send: (fail) => {
+      port.write(request, (error) => {
+        if (error) {
+          fail(error)
+          return
+        }
+        const utf8 = request[0] === 0x40
+        callbacks.onTransmit(
+          utf8 ? request.toString('utf8') : request.toString('hex'),
+          utf8 ? 'utf8' : 'hex'
+        )
+        port.drain((drainError) => {
+          if (drainError) fail(drainError)
+        })
       })
-    })
+    }
   })
 }
 

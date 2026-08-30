@@ -57,17 +57,12 @@ using ReferencedImages =
 template <typename Visitor>
 void for_each_caption(
     const configuration::DashboardConfiguration& dashboard, Visitor&& visit) {
-  for (const configuration::WidgetTypeTraits& traits :
-       configuration::kWidgetTypeTraits) {
-    const std::uint8_t count = traits.count(dashboard);
-    for (std::uint8_t index = 0; index < count; ++index) {
-      const configuration::WidgetFrame* const frame =
-          traits.frame(dashboard, index);
-      if (frame != nullptr && frame->title.text.front() != '\0') {
-        visit(frame->title);
-      }
-    }
-  }
+  configuration::for_each_widget_frame(
+      dashboard, [&visit](const configuration::WidgetFrame& frame) {
+        if (frame.title.text.front() != '\0') {
+          visit(frame.title);
+        }
+      });
 }
 
 template <typename Visitor>

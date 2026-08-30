@@ -1,9 +1,11 @@
 import type { BenchImageAsset } from '../../shared/bench-widgets'
 import type { DeviceResult } from '../../shared/device'
-import { DEFAULT_FONT_FAMILY } from '../../shared/font-assets'
+import { DEFAULT_FONT_FAMILY, MAXIMUM_FONT_FAMILIES } from '../../shared/font-assets'
+import { ICON_FAMILY } from '../../shared/icon-glyphs'
 import { failure, success } from '../device/device-errors'
 import type { DeviceService } from '../device/device-service'
 import type { FontAssetService } from '../font-assets/font-asset-service'
+import type { FontLibraryService } from '../font-library/font-library-service'
 import type { ImageAssetService } from '../image-assets/image-asset-service'
 import { BENCH_IMAGE_NAME, writeBenchSprite } from './bench-sprite'
 
@@ -12,6 +14,7 @@ const SPRITE_FRAMES = 12
 export interface BenchAssetServices {
   deviceService: DeviceService
   fontAssets: FontAssetService
+  fontLibrary: FontLibraryService
   imageAssets: ImageAssetService
 }
 
@@ -24,6 +27,7 @@ export interface BenchAssetsReady {
 export async function ensureBenchAssets(
   services: BenchAssetServices,
   spriteEdge: number,
+  characters: string,
   report: (message: string) => void
 ): Promise<DeviceResult<BenchAssetsReady>> {
   const { deviceService } = services
@@ -32,7 +36,7 @@ export async function ensureBenchAssets(
     return failure({ code: 'serial_error', message: 'No SimCore board is connected.' })
   }
 
-  const font = await ensureFamily(services, report, notes)
+  const font = await ensureFamily(services, characters, report, notes)
   if (!font.ok) return font
   const image = await ensureImage(services, spriteEdge, report, notes)
   if (!image.ok) return image
@@ -40,14 +44,35 @@ export async function ensureBenchAssets(
   return success({ ...font.value, ...image.value, notes })
 }
 
+async function textFamily(
+  library: FontLibraryService,
+  families: readonly string[],
+  characters: string
+): Promise<string | undefined> {
+  const preferred = families.includes(DEFAULT_FONT_FAMILY)
+    ? [DEFAULT_FONT_FAMILY, ...families.filter((family) => family !== DEFAULT_FONT_FAMILY)]
+    : families
+  let unverified: string | undefined
+  for (const family of preferred) {
+    const covers = await library.covers(family, characters)
+    if (covers) return family
+    if (covers === undefined && unverified === undefined && family !== ICON_FAMILY) {
+      unverified = family
+    }
+  }
+  return unverified
+}
+
 async function ensureFamily(
   services: BenchAssetServices,
+  characters: string,
   report: (message: string) => void,
   notes: string[]
 ): Promise<DeviceResult<{ family?: string }>> {
-  const { deviceService, fontAssets } = services
+  const { deviceService, fontAssets, fontLibrary } = services
   const installed = deviceService.getState().session?.fontAssets
-  if (installed?.families.length) return success({ family: installed.families[0] })
+  const present = installed && (await textFamily(fontLibrary, installed.families, characters))
+  if (present) return success({ family: present })
   if (!installed?.storageAvailable) {
     notes.push('The board has no font storage, so the pattern carries no text.')
     return success({})
@@ -57,17 +82,28 @@ async function ensureFamily(
     if (!restarted.ok) return restarted
   }
 
+  const keep = (deviceService.getState().session?.fontAssets?.families ?? installed.families).slice(
+    0,
+    MAXIMUM_FONT_FAMILIES - 1
+  )
   report('Uploading fonts…')
-  const uploaded = await fontAssets.upload({ families: [DEFAULT_FONT_FAMILY] }, () => undefined)
+  const uploaded = await fontAssets.upload(
+    { families: [...keep, DEFAULT_FONT_FAMILY] },
+    () => undefined
+  )
   if (!uploaded.ok) {
     return failure({ code: 'configuration_rejected', message: uploaded.error.message })
   }
   const restarted = await restart(deviceService, report)
   if (!restarted.ok) return restarted
 
-  const family = deviceService.getState().session?.fontAssets?.families[0]
+  const family = await textFamily(
+    fontLibrary,
+    deviceService.getState().session?.fontAssets?.families ?? [],
+    characters
+  )
   if (family === undefined) {
-    notes.push('The board reported no font family after the upload; the pattern carries no text.')
+    notes.push('The board reported no text font after the upload; the pattern carries no text.')
   }
   return success({ family })
 }

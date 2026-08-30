@@ -7,16 +7,10 @@
 
 #include "application_configuration.hpp"
 #include "dashboard_layout.hpp"
+#include "lvgl_types.hpp"
 #include "telemetry_registry.hpp"
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
-
-struct _lv_obj_t;
-using lv_obj_t = _lv_obj_t;
-struct _lv_font_t;
-using lv_font_t = _lv_font_t;
-struct _lv_timer_t;
-using lv_timer_t = _lv_timer_t;
 
 namespace simcore::dashboard::fonts {
 class Registry;

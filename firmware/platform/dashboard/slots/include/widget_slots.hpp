@@ -6,14 +6,8 @@
 #include <span>
 
 #include "application_configuration.hpp"
+#include "lvgl_types.hpp"
 #include "widget_frame.hpp"
-
-struct _lv_obj_t;
-using lv_obj_t = _lv_obj_t;
-struct _lv_timer_t;
-using lv_timer_t = _lv_timer_t;
-struct _lv_event_t;
-using lv_event_t = _lv_event_t;
 
 namespace simcore::dashboard::slots {
 

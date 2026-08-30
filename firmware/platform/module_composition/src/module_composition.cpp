@@ -50,16 +50,11 @@ bool has_lap_timer_modifier(
     const configuration::ApplicationConfiguration& configuration) {
   const auto& dashboard = configuration.dashboard;
 
-  for (const configuration::WidgetTypeTraits& traits :
-       configuration::kWidgetTypeTraits) {
-    const std::uint8_t count = traits.count(dashboard);
-    for (std::uint8_t index = 0; index < count; ++index) {
-      const configuration::WidgetFrame* const frame =
-          traits.frame(dashboard, index);
-      if (frame != nullptr && uses_lap_timer(frame->condition_source)) {
-        return true;
-      }
-    }
+  if (configuration::any_widget_frame(
+          dashboard, [](const configuration::WidgetFrame& frame) {
+            return uses_lap_timer(frame.condition_source);
+          })) {
+    return true;
   }
 
   const auto mapped = [](const auto& widgets, const std::size_t count) {

@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import type { FramedWidget } from './types'
+import type { FramedWidgetConfiguration } from '@shared/configuration-access'
 import { COLOR_RAMP_TARGET_VALUES, CONDITION_OPERATOR_VALUES, type ColorStop, MAXIMUM_COLOR_STOPS, MAXIMUM_WIDGET_CONDITIONS, type WidgetCondition } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { BOOLEAN_OPERATORS, MAXIMUM_BLINK_MS, MAXIMUM_HOLD_MS, MINIMUM_BLINK_MS } from '@shared/widget-conditions'
@@ -13,8 +13,8 @@ import { PropertyRow } from './PropertyRow'
 import { CheckboxField, ColorSwatchInput, Hint, NumberInput, OptionalColorField, SelectField, SelectInput } from './fields'
 
 export function ConditionsEditor({ widget, update }: {
-  widget: FramedWidget
-  update: (mutation: (next: FramedWidget) => void) => void
+  widget: FramedWidgetConfiguration
+  update: (mutation: (next: FramedWidgetConfiguration) => void) => void
 }): React.JSX.Element {
   const watched = widget.condition_source?.binding ?? ''
   const field = TELEMETRY_CATALOG.find(({ name }) => name === watched)
@@ -155,8 +155,8 @@ export function ConditionsEditor({ widget, update }: {
 }
 
 function ColorRampEditor({ widget, update, unit }: {
-  widget: FramedWidget
-  update: (mutation: (next: FramedWidget) => void) => void
+  widget: FramedWidgetConfiguration
+  update: (mutation: (next: FramedWidgetConfiguration) => void) => void
   unit?: string
 }): React.JSX.Element {
   const stops = widget.color_ramp?.stops ?? []

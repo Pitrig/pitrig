@@ -33,6 +33,7 @@ class UsbCdcTransport final : public ITransport {
   static constexpr std::size_t kChunkSize = 512;
   static constexpr std::size_t kQueueDepth = 4;
   static constexpr std::size_t kTaskStackSize = 4096;
+  static constexpr UBaseType_t kTaskPriority = 5;
   static constexpr TickType_t kWriteTimeout = pdMS_TO_TICKS(1'000);
 
   struct Chunk {
@@ -47,8 +48,7 @@ class UsbCdcTransport final : public ITransport {
   void process();
   void release_rtos_objects();
 
-  DataHandler handler_{};
-  void* handler_context_{};
+  ReadHandler handler_{};
   QueueHandle_t queue_{};
   StaticQueue_t queue_state_{};
   std::array<std::uint8_t, kQueueDepth * sizeof(Chunk)> queue_storage_{};

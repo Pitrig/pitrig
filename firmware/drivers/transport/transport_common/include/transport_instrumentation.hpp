@@ -3,12 +3,21 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "simcore_features.hpp"
 #include "transport.hpp"
 
 namespace simcore::transport {
+
+void register_read_task(TaskHandle_t task);
+
+void unregister_read_task();
+
+void delete_read_task(TaskHandle_t& task);
 
 class LogSilencer final {
  public:
@@ -33,6 +42,36 @@ class LogSilencer final {
   }
 
   vprintf_like_t previous_{};
+};
+
+class ReadHandler final {
+ public:
+  void bind(const DataHandler handler, void* const context) {
+    context_ = context;
+    handler_ = handler;
+  }
+
+  void release() {
+    handler_ = nullptr;
+    context_ = nullptr;
+  }
+
+  [[nodiscard]] bool bound() const { return handler_ != nullptr; }
+
+  template <typename Instrumentation>
+  void dispatch(const std::span<const std::uint8_t> data,
+                Instrumentation& instrumentation) const {
+    if (handler_ == nullptr) {
+      return;
+    }
+    const std::int64_t started_at_us = Instrumentation::handler_started();
+    handler_(data, context_);
+    instrumentation.record_handler(started_at_us);
+  }
+
+ private:
+  DataHandler handler_{};
+  void* context_{};
 };
 
 class ReadInstrumentation final {

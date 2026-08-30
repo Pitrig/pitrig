@@ -49,8 +49,7 @@ class UsbSerialJtagTransport final : public ITransport {
   void release_rtos_objects();
 
   UsbSerialJtagConfiguration configuration_;
-  DataHandler handler_{};
-  void* handler_context_{};
+  ReadHandler handler_{};
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};

@@ -6,6 +6,7 @@
 
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
+#include "ring_geometry.hpp"
 #include "widget_conditions.hpp"
 
 namespace simcore::dashboard::arc_widget {
@@ -41,21 +42,14 @@ struct Ring {
 
 Ring resolve_ring(const Config& config, const std::int32_t inner_width,
                   const std::int32_t inner_height) {
-  const float thickness = static_cast<float>(config.thickness_px);
-  const float fitted =
-      static_cast<float>(std::min(inner_width, inner_height)) / 2.0F -
-      thickness / 2.0F;
-  const float radius = config.radius_px != 0
-                           ? static_cast<float>(config.radius_px)
-                           : std::max(fitted, 0.0F);
-  const float centre_x = static_cast<float>(inner_width) / 2.0F +
-                         static_cast<float>(config.center_x_px);
-  const float centre_y = static_cast<float>(inner_height) / 2.0F +
-                         static_cast<float>(config.center_y_px);
-  const float side = 2.0F * radius + thickness;
-  return Ring{radius,
-              static_cast<std::int32_t>(std::lround(centre_x - side / 2.0F)),
-              static_cast<std::int32_t>(std::lround(centre_y - side / 2.0F)),
+  const ring::Centre centre =
+      ring::resolve(config.thickness_px, config.radius_px, config.center_x_px,
+                    config.center_y_px, inner_width, inner_height);
+  const float side =
+      2.0F * centre.radius + static_cast<float>(config.thickness_px);
+  return Ring{centre.radius,
+              static_cast<std::int32_t>(std::lround(centre.x - side / 2.0F)),
+              static_cast<std::int32_t>(std::lround(centre.y - side / 2.0F)),
               static_cast<std::int32_t>(std::lround(side))};
 }
 

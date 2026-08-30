@@ -5,9 +5,6 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "transport_watchdog.hpp"
-#if SIMCORE_DEBUG
-#include "performance.hpp"
-#endif
 
 namespace simcore::transport {
 namespace {
@@ -76,8 +73,7 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   fifo_overflows_.store(0, std::memory_order_relaxed);
   buffer_full_events_.store(0, std::memory_order_relaxed);
 #endif
-  handler_ = handler;
-  handler_context_ = context;
+  handler_.bind(handler, context);
   started_ = true;
   task_ = xTaskCreateStaticPinnedToCore(
       &UartTransport::task_entry, "uart_rx", task_stack_.size(), this,
@@ -87,14 +83,10 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
     started_ = false;
     uart_driver_delete(configuration_.port);
     event_queue_ = nullptr;
-    handler_ = nullptr;
-    handler_context_ = nullptr;
+    handler_.release();
     return false;
   }
-#if SIMCORE_DEBUG
-  performance::register_task(performance::TaskMetric::transport, task_);
-#endif
-
+  register_read_task(task_);
   return true;
 }
 
@@ -110,18 +102,10 @@ void UartTransport::stop() {
   }
 
   started_ = false;
-  if (task_ != nullptr) {
-#if SIMCORE_DEBUG
-    performance::unregister_task(performance::TaskMetric::transport);
-#endif
-    unwatch_task(task_);
-    vTaskDelete(task_);
-    task_ = nullptr;
-  }
+  delete_read_task(task_);
   ESP_ERROR_CHECK_WITHOUT_ABORT(uart_driver_delete(configuration_.port));
   event_queue_ = nullptr;
-  handler_ = nullptr;
-  handler_context_ = nullptr;
+  handler_.release();
   log_silencer_.restore();
   ESP_LOGI(kTag, "UART telemetry transport stopped");
 }
@@ -177,15 +161,10 @@ void UartTransport::process() {
       }
 
       instrumentation_.record_read(static_cast<std::size_t>(received));
-
-      if (handler_ != nullptr) {
-        const std::int64_t handler_started_at_us =
-            ReadInstrumentation::handler_started();
-        handler_(std::span<const std::uint8_t>(
-                     data.data(), static_cast<std::size_t>(received)),
-                 handler_context_);
-        instrumentation_.record_handler(handler_started_at_us);
-      }
+      handler_.dispatch(
+          std::span<const std::uint8_t>(data.data(),
+                                        static_cast<std::size_t>(received)),
+          instrumentation_);
     }
   }
 }

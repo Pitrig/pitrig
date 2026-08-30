@@ -6,6 +6,8 @@
 #include <limits>
 #include <numbers>
 
+#include "ring_geometry.hpp"
+
 namespace simcore::dashboard::indicator_widget::geometry {
 namespace {
 
@@ -20,19 +22,11 @@ constexpr float kDegreesPerRadian = 180.0F / std::numbers::pi_v<float>;
 
 Ring resolve_ring(const Config& config, const std::int32_t inner_width,
                   const std::int32_t inner_height) {
-  const float thickness = static_cast<float>(config.thickness_px);
-  const float fitted =
-      static_cast<float>(std::min(inner_width, inner_height)) / 2.0F -
-      thickness / 2.0F;
-  const float radius = config.radius_px != 0
-                           ? static_cast<float>(config.radius_px)
-                           : fitted;
-  const float centre_x = static_cast<float>(inner_width) / 2.0F +
-                         static_cast<float>(config.center_x_px);
-  const float centre_y = static_cast<float>(inner_height) / 2.0F +
-                         static_cast<float>(config.center_y_px);
-  return Ring{radius, static_cast<std::int32_t>(std::lround(centre_x)),
-              static_cast<std::int32_t>(std::lround(centre_y))};
+  const ring::Centre centre =
+      ring::resolve(config.thickness_px, config.radius_px, config.center_x_px,
+                    config.center_y_px, inner_width, inner_height);
+  return Ring{centre.radius, static_cast<std::int32_t>(std::lround(centre.x)),
+              static_cast<std::int32_t>(std::lround(centre.y))};
 }
 
 ArcSlices resolve_arc(const Config& config, const float radius,

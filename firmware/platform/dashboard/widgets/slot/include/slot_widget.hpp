@@ -7,10 +7,8 @@
 #include "application_configuration.hpp"
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
+#include "lvgl_types.hpp"
 #include "widget_frame.hpp"
-
-struct _lv_obj_t;
-using lv_obj_t = _lv_obj_t;
 
 namespace simcore::dashboard::slot_widget {
 

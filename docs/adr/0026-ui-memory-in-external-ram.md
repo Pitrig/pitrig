@@ -52,7 +52,7 @@ attempt to accelerate blending did not.
 ## Decision
 
 **Every LVGL allocation is taken from external RAM.** `LV_USE_CUSTOM_MALLOC`
-selects the allocator in `platform/dashboard/memory/lvgl_heap.cpp`, which
+selects the allocator in `platform/dashboard/memory/src/lvgl_heap.cpp`, which
 forwards to `heap_caps_malloc(MALLOC_CAP_SPIRAM)` and falls back to the internal
 heap, the same fallback the glyph allocator of ADR 0010 already makes. Nothing a
 driver hands to DMA passes through it: `esp_lvgl_port` allocates the display

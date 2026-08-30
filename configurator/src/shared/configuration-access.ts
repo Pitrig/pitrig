@@ -1,6 +1,21 @@
-import { WIDGET_TYPES } from './configuration-schema'
+import {
+  MAXIMUM_ARC_WIDGETS,
+  MAXIMUM_BAR_WIDGETS,
+  MAXIMUM_GRAPH_WIDGETS,
+  MAXIMUM_IMAGE_WIDGETS,
+  MAXIMUM_INDICATOR_WIDGETS,
+  MAXIMUM_SHAPE_WIDGETS,
+  MAXIMUM_SLOT_WIDGETS,
+  MAXIMUM_TEXT_WIDGETS,
+  WIDGET_TYPES
+} from './configuration-schema'
 import type {
   ApplicationConfiguration,
+  ArcWidgetConfiguration,
+  BarWidgetConfiguration,
+  GraphWidgetConfiguration,
+  ImageWidgetConfiguration,
+  IndicatorWidgetConfiguration,
   ScreenConfiguration,
   ShapeWidgetConfiguration,
   SlotPageConfiguration,
@@ -11,6 +26,26 @@ import type {
 } from './configuration-schema'
 
 export type WidgetParent = ScreenConfiguration | ShapeWidgetConfiguration | SlotPageConfiguration
+
+export type FramedWidgetConfiguration =
+  | TextWidgetConfiguration
+  | ShapeWidgetConfiguration
+  | BarWidgetConfiguration
+  | ArcWidgetConfiguration
+  | IndicatorWidgetConfiguration
+  | GraphWidgetConfiguration
+  | ImageWidgetConfiguration
+
+export const WIDGET_POOL_CAPACITIES: Record<WidgetConfiguration['type'], number> = {
+  text: MAXIMUM_TEXT_WIDGETS,
+  shape: MAXIMUM_SHAPE_WIDGETS,
+  bar: MAXIMUM_BAR_WIDGETS,
+  arc: MAXIMUM_ARC_WIDGETS,
+  indicator: MAXIMUM_INDICATOR_WIDGETS,
+  graph: MAXIMUM_GRAPH_WIDGETS,
+  image: MAXIMUM_IMAGE_WIDGETS,
+  slot: MAXIMUM_SLOT_WIDGETS
+}
 
 export function screensOf(
   configuration: ApplicationConfiguration | undefined

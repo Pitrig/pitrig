@@ -59,7 +59,12 @@ const firmwareUpdateService = new FirmwareUpdateService(
   broadcastFirmwareUploadProgress
 )
 const benchService = new BenchService(
-  { deviceService, fontAssets: fontAssetService, imageAssets: imageAssetService },
+  {
+    deviceService,
+    fontAssets: fontAssetService,
+    fontLibrary: fontLibraryService,
+    imageAssets: imageAssetService
+  },
   broadcastBenchStatus,
   broadcastBenchSample
 )

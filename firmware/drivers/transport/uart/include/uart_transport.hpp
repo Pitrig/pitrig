@@ -53,8 +53,7 @@ class UartTransport final : public ITransport {
   void process();
 
   UartConfiguration configuration_;
-  DataHandler handler_{};
-  void* handler_context_{};
+  ReadHandler handler_{};
   TaskHandle_t task_{};
   QueueHandle_t event_queue_{};
   StaticTask_t task_state_{};

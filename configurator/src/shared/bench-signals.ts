@@ -177,10 +177,6 @@ export const BENCH_SIGNALS: readonly BenchSignal[] = [
 
 export const BENCH_SIGNAL_IDS: readonly string[] = BENCH_SIGNALS.map(({ id }) => id)
 
-export function benchSignal(id: string): BenchSignal | undefined {
-  return BENCH_SIGNALS.find((signal) => signal.id === id)
-}
-
 export function benchWireId(signal: BenchSignal): string | undefined {
   return WIRE_IDS.get(signal.binding)
 }

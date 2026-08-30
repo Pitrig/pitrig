@@ -14,7 +14,7 @@
 
 namespace simcore::firmware_update {
 
-inline constexpr std::uint32_t kMagic = 0x5746'4353U;  // "SCFW", little endian
+inline constexpr std::uint32_t kMagic = 0x5746'4353U;
 inline constexpr std::uint16_t kFormatVersion = 1;
 inline constexpr std::uint16_t kManifestEntryCount = 1;
 inline constexpr std::size_t kManifestEntrySize = 2;

@@ -52,14 +52,6 @@ constexpr std::size_t kEntryReservedTailOffset = 60;
   }
 }
 
-[[nodiscard]] bool ranges_overlap(const ImageAsset& lhs, const ImageAsset& rhs) {
-  const auto* const lhs_begin = lhs.bytes.data();
-  const auto* const lhs_end = lhs_begin + lhs.bytes.size();
-  const auto* const rhs_begin = rhs.bytes.data();
-  const auto* const rhs_end = rhs_begin + rhs.bytes.size();
-  return lhs_begin < rhs_end && rhs_begin < lhs_end;
-}
-
 }
 
 bool Service::validate_package(
@@ -127,7 +119,7 @@ bool Service::validate_package(
     }
     for (std::size_t previous = 0; previous < index; ++previous) {
       if (asset.id == parsed.images[previous].id ||
-          ranges_overlap(asset, parsed.images[previous])) {
+          asset_package::entries_overlap(asset, parsed.images[previous])) {
         return false;
       }
     }
