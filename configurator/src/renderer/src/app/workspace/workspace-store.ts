@@ -13,7 +13,7 @@ export const WORKSPACE_TABS = [
 
 export type WorkspaceTab = (typeof WORKSPACE_TABS)[number]
 
-export const DASHBOARD_VIEWS = ['canvas', 'templates', 'fonts', 'images'] as const
+const DASHBOARD_VIEWS = ['canvas', 'templates', 'fonts', 'images'] as const
 
 export type DashboardView = (typeof DASHBOARD_VIEWS)[number]
 

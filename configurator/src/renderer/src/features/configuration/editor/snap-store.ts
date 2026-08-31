@@ -6,7 +6,7 @@ export const MINIMUM_GRID_PX = 1
 export const MAXIMUM_GRID_PX = 64
 export const MINIMUM_TOLERANCE_PX = 1
 export const MAXIMUM_TOLERANCE_PX = 32
-export const DEFAULT_TOLERANCE_PX = 10
+const DEFAULT_TOLERANCE_PX = 10
 
 export interface SnapSettings {
   snapToGrid: boolean
@@ -33,7 +33,7 @@ const DEFAULTS: SnapSettings = {
 const clamp = (value: number, low: number, high: number): number =>
   Math.min(high, Math.max(low, Math.round(value)))
 
-export function defaultGridSize(display: { width: number; height: number }): number {
+function defaultGridSize(display: { width: number; height: number }): number {
   return Math.min(display.width, display.height) <= 480 ? 4 : 8
 }
 

@@ -44,7 +44,7 @@ The checked-in complete profile and the configurator's profile data are
 regenerated together with the catalog:
 
 ```bash
-python3 tools/generate_telemetry_catalog.py
+python3 -m tools.codegen.telemetry_catalog
 ```
 
 Generic property expressions are maintained in

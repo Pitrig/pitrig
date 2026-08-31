@@ -31,7 +31,7 @@ function configurationTimeout(port: SerialPort, payloadBytes: number): number {
   return CONFIGURATION_TIMEOUT_MS + 2 * transferMs
 }
 
-export async function readConfigurationDocument(
+async function readConfigurationDocument(
   port: SerialPort,
   document: ConfigurationDocumentId,
   expectedBoard: SimCoreBoardId,

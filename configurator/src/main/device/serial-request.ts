@@ -8,7 +8,7 @@ import { exchangeLines } from './line-exchange'
 export type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
 
 export const CONFIGURATION_RESPONSE_PREFIX = '@SC:OK:CONFIG:'
-export const MAXIMUM_RESPONSE_BUFFER_SIZE =
+const MAXIMUM_RESPONSE_BUFFER_SIZE =
   CONFIGURATION_RESPONSE_PREFIX.length +
   'dashboard:'.length +
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE +

@@ -67,7 +67,7 @@ store handles and never know source identifiers, SimHub, or canonical names.
 - The field catalog can grow only within its explicit static limit; changing
   the limit requires an intentional RAM-budget review.
 - Catalog edits are generated and validated with
-  `python3 tools/generate_telemetry_catalog.py --check`.
+  `python3 -m tools.codegen.telemetry_catalog --check`.
 - Events are not limited by a 32-bit field mask.
 - Generic widgets can retain bounded source text or apply a compatible typed
   transform while modules consume numeric canonical values.

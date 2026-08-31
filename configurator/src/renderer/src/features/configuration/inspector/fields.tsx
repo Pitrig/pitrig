@@ -20,7 +20,7 @@ export function NumberInput({ id, value, min, max, step, title, onChange }: { id
   return <input id={id} type="number" title={title} className={CONTROL} value={local} min={min} max={max} step={step} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) change(next) }} onBlur={flush} />
 }
 
-export function SliderInput({ id, value, min, max, step, title, onChange }: { id?: string; value: number; min: number; max: number; step?: number; title?: string; onChange: (value: number) => void }): React.JSX.Element {
+function SliderInput({ id, value, min, max, step, title, onChange }: { id?: string; value: number; min: number; max: number; step?: number; title?: string; onChange: (value: number) => void }): React.JSX.Element {
   const [local, change, flush] = useLiveCommit(value, onChange)
   return <input id={id} type="range" title={title} className="h-7 min-w-0 flex-1 accent-sky-400" value={Math.min(Math.max(local, min), max)} min={min} max={max} step={step ?? 1} onChange={(event) => change(Number(event.target.value))} onPointerUp={flush} onKeyUp={flush} onBlur={flush} />
 }
@@ -91,7 +91,7 @@ export function CheckboxField({ label, checked, onChange, ...meta }: PropertyMet
   )
 }
 
-export function ColorControl({ id, label, value, onChange }: { id?: string; label: string; value: string; onChange: (value: RgbColor) => void }): React.JSX.Element {
+function ColorControl({ id, label, value, onChange }: { id?: string; label: string; value: string; onChange: (value: RgbColor) => void }): React.JSX.Element {
   const [local, change, flush] = useLiveCommit(value, (next) => onChange(next as RgbColor))
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1">

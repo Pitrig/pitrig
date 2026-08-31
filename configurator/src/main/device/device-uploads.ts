@@ -98,7 +98,7 @@ export function advanceFirmwareSession(session: DeviceSession): DeviceSession | 
     : undefined
 }
 
-export function clearedFontSession(session: DeviceSession): DeviceSession {
+function clearedFontSession(session: DeviceSession): DeviceSession {
   return {
     ...session,
     fontAssets: {
@@ -113,7 +113,7 @@ export function clearedFontSession(session: DeviceSession): DeviceSession {
   }
 }
 
-export function clearedImageSession(session: DeviceSession): DeviceSession {
+function clearedImageSession(session: DeviceSession): DeviceSession {
   return {
     ...session,
     imageAssets: {

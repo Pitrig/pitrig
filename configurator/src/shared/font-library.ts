@@ -118,7 +118,7 @@ export function normalizeVariant(variant: string): FontVariant {
   return lower
 }
 
-export function variantSuffix(variant: FontVariant): string {
+function variantSuffix(variant: FontVariant): string {
   const normalized = normalizeVariant(variant)
   const italic = normalized.endsWith('italic')
   const weight = italic ? normalized.slice(0, -'italic'.length) : normalized
@@ -127,7 +127,7 @@ export function variantSuffix(variant: FontVariant): string {
   return italic ? `${suffix}_italic` : suffix
 }
 
-export function slugify(name: string): string {
+function slugify(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -159,7 +159,7 @@ function hash6(value: string): string {
   return hash.toString(36).padStart(6, '0').slice(-6)
 }
 
-export const FONT_PACKAGE_DATA_OFFSET = 4096
+const FONT_PACKAGE_DATA_OFFSET = 4096
 
 export interface FontPackageFootprint {
   families: number

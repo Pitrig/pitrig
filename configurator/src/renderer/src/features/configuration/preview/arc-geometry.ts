@@ -4,15 +4,21 @@ export interface Ring {
   centerY: number
 }
 
+export function fittedRingRadius(
+  plot: { width: number; height: number },
+  thickness: number
+): number {
+  return Math.max(0, Math.min(plot.width, plot.height) / 2 - thickness / 2)
+}
+
 export function ringGeometry(
   plot: { x: number; y: number; width: number; height: number },
   thickness: number,
   configuration: { radius_px?: number; center_x_px?: number; center_y_px?: number }
 ): Ring {
-  const fitted = Math.min(plot.width, plot.height) / 2 - thickness / 2
   const authored = configuration.radius_px ?? 0
   return {
-    radius: Math.max(0, authored !== 0 ? authored : fitted),
+    radius: authored !== 0 ? Math.max(0, authored) : fittedRingRadius(plot, thickness),
     centerX: plot.x + plot.width / 2 + (configuration.center_x_px ?? 0),
     centerY: plot.y + plot.height / 2 + (configuration.center_y_px ?? 0)
   }

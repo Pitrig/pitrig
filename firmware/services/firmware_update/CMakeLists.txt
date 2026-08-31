@@ -3,7 +3,7 @@ idf_component_register(
        "src/firmware_update_control.cpp"
   INCLUDE_DIRS "include"
   REQUIRES app_update asset_control asset_package binary binary_session
-           configuration_contract transport
+           configuration_contract
   PRIV_REQUIRES performance simcore_config)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

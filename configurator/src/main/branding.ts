@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import icon from '../../resources/icon.png?asset'
 
-export const APP_NAME = 'SimCore'
+const APP_NAME = 'SimCore'
 
 const LEGACY_VENDOR_DIRECTORY = '@simcore'
 const LEGACY_APPLICATION_DIRECTORY = 'configurator'

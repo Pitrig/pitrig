@@ -34,7 +34,7 @@ export function parseTemplateDocument(value: unknown): DashboardTemplateDocument
   }
 }
 
-export function envelopeOf(
+function envelopeOf(
   value: unknown,
   format: string,
   described: string

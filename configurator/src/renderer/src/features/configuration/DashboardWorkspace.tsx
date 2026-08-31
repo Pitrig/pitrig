@@ -1,6 +1,7 @@
 import { Image, LayoutTemplate, PenTool, Type } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { ColumnResizer, RowResizer } from '@/app/PanelResizer'
 import { SubTabs, type SubTab } from '@/app/workspace/SubTabs'
 import { useWorkspaceStore, type DashboardView } from '@/app/workspace/workspace-store'
@@ -9,10 +10,12 @@ import { LayersPanel } from '@/features/configuration/LayersPanel'
 import { WidgetInspector } from '@/features/configuration/inspector/WidgetInspector'
 import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
 import { useEditorShortcuts } from '@/features/configuration/editor/use-editor-shortcuts'
+import { restartBoard } from '@/features/configuration/configuration-actions'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useDraftState } from '@/features/device/draft-state'
 import { LiveApplyIndicator } from '@/features/device/LiveApplyIndicator'
 import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
+import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
 import { FontsPage } from '@/features/font-library/FontsPage'
 import { ImagesPage } from '@/features/image-assets/ImagesPage'
 import { InsertScreenDialog } from '@/features/templates/InsertScreenDialog'
@@ -61,6 +64,7 @@ export function DashboardWorkspace(): React.JSX.Element {
               </Badge>
             ) : null}
             {view === 'canvas' ? <SaveToTemplatesButton /> : null}
+            <RestartBoardButton />
             <SaveToBoardButton className="flex-none" />
           </>
         }
@@ -76,6 +80,26 @@ export function DashboardWorkspace(): React.JSX.Element {
       )}
       <InsertScreenDialog />
     </div>
+  )
+}
+
+function RestartBoardButton(): React.JSX.Element {
+  const { connected } = useDraftState()
+  const saving = useSaveToBoardStore((state) => state.running)
+  return (
+    <Button
+      className="flex-none"
+      variant="outline"
+      disabled={!connected || saving}
+      title={
+        connected
+          ? 'Restart the connected board'
+          : 'Connect a board to restart it'
+      }
+      onClick={() => void restartBoard()}
+    >
+      Restart
+    </Button>
   )
 }
 

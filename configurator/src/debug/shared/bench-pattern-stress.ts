@@ -38,7 +38,7 @@ function colorAt(index: number): RgbColor {
   return LINE_COLORS[index % LINE_COLORS.length] ?? BENCH_COLORS.cyan
 }
 
-export const BENCH_STRESS_IDS = [
+const BENCH_STRESS_IDS = [
   'text_16',
   'text_32',
   'text_64',

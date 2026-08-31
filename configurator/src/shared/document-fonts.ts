@@ -5,7 +5,7 @@ import type {
   WidgetConfiguration
 } from './configuration-schema'
 
-export function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
+function widgetFonts(widget: WidgetConfiguration): (FontSpec | undefined)[] {
   const caption = widget.title?.text ? [widget.title.font] : []
   switch (widget.type) {
     case 'text':

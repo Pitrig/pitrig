@@ -1,20 +1,23 @@
-export interface RingWidget {
-  start_angle_deg?: number
-  sweep_deg?: number
-  thickness_px?: number
-  radius_px?: number
-  center_x_px?: number
-  center_y_px?: number
-  placement?: { width?: number; height?: number }
-  border?: { width_px?: number }
-  padding?: { left?: number; right?: number; top?: number; bottom?: number }
-}
+import type {
+  ArcWidgetConfiguration,
+  IndicatorWidgetConfiguration
+} from '@shared/configuration-schema'
+import { fittedRingRadius } from '../preview/arc-geometry'
+import { contentArea } from '../preview/preview-geometry-paint'
+
+export type RingWidget = ArcWidgetConfiguration | IndicatorWidgetConfiguration
 
 export function fittedRadius(widget: RingWidget, thickness: number): number {
-  const border = 2 * (widget.border?.width_px ?? 0)
-  const width = (widget.placement?.width ?? 0) - border - (widget.padding?.left ?? 0) - (widget.padding?.right ?? 0)
-  const height = (widget.placement?.height ?? 0) - border - (widget.padding?.top ?? 0) - (widget.padding?.bottom ?? 0)
-  return Math.max(0, Math.round(Math.min(width, height) / 2 - thickness / 2))
+  const box = {
+    x: 0,
+    y: 0,
+    width: widget.placement?.width ?? 0,
+    height: widget.placement?.height ?? 0
+  }
+  return fittedRingRadius(
+    contentArea(box, widget.border?.width_px ?? 0, widget.padding),
+    thickness
+  )
 }
 
 export function ringSummary(widget: RingWidget): string {

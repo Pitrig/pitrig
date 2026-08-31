@@ -9,7 +9,7 @@ import {
 } from '@debug-shared/bench'
 import { BENCH_SIGNAL_IDS } from '@debug-shared/bench-signals'
 
-export const MAXIMUM_BENCH_SAMPLES = 900
+const MAXIMUM_BENCH_SAMPLES = 900
 
 const EMPTY_STATUS: BenchStatus = {
   active: false,

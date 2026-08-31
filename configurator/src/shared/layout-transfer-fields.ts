@@ -9,7 +9,7 @@ import type { Scale } from './layout-transfer'
 
 export type PixelKind = 'int32' | 'int16' | 'uint16'
 
-export const KIND_BOUNDS: Record<PixelKind, { min: number; max: number }> = {
+const KIND_BOUNDS: Record<PixelKind, { min: number; max: number }> = {
   int32: { min: -2147483648, max: 2147483647 },
   int16: { min: -32768, max: 32767 },
   uint16: { min: 0, max: 65535 }
@@ -24,7 +24,7 @@ export interface PixelField {
   maximum?: number
 }
 
-export const FRAME_PIXEL_FIELDS: readonly PixelField[] = [
+const FRAME_PIXEL_FIELDS: readonly PixelField[] = [
   { path: 'padding.left', kind: 'uint16', axis: 'x' },
   { path: 'padding.top', kind: 'uint16', axis: 'y' },
   { path: 'padding.right', kind: 'uint16', axis: 'x' },
@@ -38,7 +38,7 @@ export const FRAME_PIXEL_FIELDS: readonly PixelField[] = [
   { path: 'background_inset_px', kind: 'uint16' }
 ]
 
-export const TYPE_PIXEL_FIELDS: Partial<Record<WidgetType, readonly PixelField[]>> = {
+const TYPE_PIXEL_FIELDS: Partial<Record<WidgetType, readonly PixelField[]>> = {
   text: [{ path: 'value.font.size_px', kind: 'uint16', minimum: 1, maximum: MAXIMUM_FONT_SIZE_PX }],
   arc: [
     { path: 'thickness_px', kind: 'uint16', floorWhenPositive: true },
@@ -117,7 +117,7 @@ function resolveBounds(owner: WidgetType, field: PixelField): { min: number; max
   }
 }
 
-export function leafOwner(
+function leafOwner(
   source: unknown,
   path: string
 ): { owner: Record<string, unknown>; key: string } | undefined {
@@ -133,6 +133,6 @@ export function leafOwner(
   return { owner: value as Record<string, unknown>, key }
 }
 
-export function clampInteger(value: number, minimum: number, maximum: number): number {
+function clampInteger(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), Math.max(minimum, maximum))
 }

@@ -1,0 +1,221 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+  PNPM_VERSION: '11'
+
+jobs:
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - run: npm install --global pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Generated contracts are current
+        run: |
+          python3 -m tools.codegen.configuration_schema --check
+          python3 -m tools.codegen.telemetry_catalog --check
+          python3 -m tools.codegen.font_catalog --check
+
+      - name: Debug hooks unchanged
+        run: python3 tools/check_debug_isolation.py --check
+
+      - name: Configurator typecheck and lint
+        working-directory: configurator
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm run typecheck
+          pnpm run lint
+
+  configurator:
+    name: Configurator (${{ matrix.label }})
+    needs: checks
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            label: macOS
+            artifact: configurator-macos
+            files: |
+              configurator/dist/*.dmg
+              configurator/dist/*.dmg.blockmap
+          - os: windows-latest
+            label: Windows
+            artifact: configurator-windows
+            files: |
+              configurator/dist/*.exe
+              configurator/dist/*.exe.blockmap
+          - os: ubuntu-latest
+            label: Linux
+            artifact: configurator-linux
+            files: |
+              configurator/dist/*.AppImage
+              configurator/dist/*.deb
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - run: npm install --global pnpm@${{ env.PNPM_VERSION }}
+
+      - name: Serial port build dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libudev-dev
+
+      - name: Install
+        working-directory: configurator
+        run: pnpm install --frozen-lockfile
+
+      - name: Package
+        working-directory: configurator
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: pnpm run package
+
+      - name: The package carries no debugger
+        shell: bash
+        working-directory: configurator
+        run: |
+          asar=$(find dist -name app.asar | head -1)
+          if [ -z "$asar" ]; then
+            echo "No app.asar found under dist" >&2
+            exit 1
+          fi
+          for marker in out-debug registerDebugHandlers 'SimCore Debugger' electron-builder.debug; do
+            if grep -qa "$marker" "$asar"; then
+              echo "The production package contains debug code: $marker" >&2
+              exit 1
+            fi
+          done
+          echo "$asar carries no debug code"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  firmware:
+    name: Firmware (${{ matrix.board }})
+    needs: checks
+    runs-on: ubuntu-latest
+    container: espressif/idf:v6.0.2
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - board: t-display-s3
+            directory: t-display
+            target: esp32s3
+            defaults: sdkconfig.defaults;sdkconfig.defaults.t-display-s3
+          - board: guition-4848s040
+            directory: guition
+            target: esp32s3
+            defaults: sdkconfig.defaults;sdkconfig.defaults.guition-esp32-4848s040
+          - board: jc1060p470c
+            directory: jc1060p470c
+            target: esp32p4
+            defaults: sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trust the workspace
+        run: git config --global --add safe.directory '*'
+
+      - name: Build
+        shell: bash
+        working-directory: firmware
+        run: |
+          . "$IDF_PATH/export.sh"
+          build="build-${{ matrix.directory }}"
+          idf.py -B "$build" \
+            -DIDF_TARGET=${{ matrix.target }} \
+            -DSDKCONFIG=sdkconfig.generated.${{ matrix.directory }} \
+            -DSDKCONFIG_DEFAULTS="${{ matrix.defaults }}" \
+            reconfigure
+          idf.py -B "$build" reconfigure
+          idf.py -B "$build" build
+
+      - name: Collect
+        shell: bash
+        run: |
+          build="firmware/build-${{ matrix.directory }}"
+          out="firmware-out/${{ matrix.board }}"
+          mkdir -p "$out"
+          cp "$build/simcore.bin" "$out/simcore-${{ matrix.board }}.bin"
+          cp "$build/bootloader/bootloader.bin" "$out/"
+          cp "$build/partition_table/partition-table.bin" "$out/"
+          cp "$build/ota_data_initial.bin" "$out/"
+          cp "$build/flasher_args.json" "$out/"
+          cp "$build/simcore.elf" "$out/"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-${{ matrix.board }}
+          path: firmware-out/${{ matrix.board }}/**
+          if-no-files-found: error
+
+  release:
+    name: Draft release
+    needs: [configurator, firmware]
+    if: github.ref == 'refs/heads/release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: downloads
+
+      - name: Gather
+        run: |
+          mkdir -p release
+          find downloads -type f \( -name '*.dmg' -o -name '*.exe' -o -name '*.AppImage' -o -name '*.deb' \) \
+            -exec cp {} release/ \;
+          for board in downloads/firmware-*; do
+            name=$(basename "$board")
+            cp "$board"/simcore-*.bin release/
+            tar --create --gzip --directory downloads --file "release/$name.tar.gz" "$name"
+          done
+          ls -l release
+
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./configurator/package.json').version")
+          firmware=$(cat firmware/version.txt)
+          tag="v$version"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" release/* --clobber
+          else
+            gh release create "$tag" release/* \
+              --draft \
+              --target "$GITHUB_SHA" \
+              --title "SimCore $tag" \
+              --notes "Configurator $version for macOS, Windows and Linux, and firmware $firmware for the three boards. Each firmware archive holds the OTA image (\`simcore-<board>.bin\`), the bootloader, the partition table and the flasher arguments."
+          fi

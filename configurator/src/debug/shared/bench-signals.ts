@@ -177,7 +177,7 @@ export const BENCH_SIGNALS: readonly BenchSignal[] = [
 
 export const BENCH_SIGNAL_IDS: readonly string[] = BENCH_SIGNALS.map(({ id }) => id)
 
-export function benchWireId(signal: BenchSignal): string | undefined {
+function benchWireId(signal: BenchSignal): string | undefined {
   return WIRE_IDS.get(signal.binding)
 }
 
@@ -193,7 +193,7 @@ export function benchSignalValue(signal: BenchSignal, elapsedMs: number): number
   return signal.minimum + unitOf(signal, phase) * span
 }
 
-export function benchSignalText(signal: BenchSignal, value: number): string {
+function benchSignalText(signal: BenchSignal, value: number): string {
   if (signal.gearText) {
     const gear = Math.round(value)
     return gear <= 0 ? 'N' : String(gear)

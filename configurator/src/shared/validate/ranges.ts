@@ -2,8 +2,8 @@ import { FIELD_RANGES, type FieldRange } from '../configuration-schema'
 import { pagesOf, screensOf, widgetsOf, type WidgetParent } from '../configuration-access'
 import type { ApplicationConfiguration, WidgetConfiguration } from '../configuration-schema'
 
-export const SLOT_PAGE_RANGES = 'SlotPageConfiguration'
-export const WIDGET_CONDITION_RANGES = 'WidgetCondition'
+const SLOT_PAGE_RANGES = 'SlotPageConfiguration'
+const WIDGET_CONDITION_RANGES = 'WidgetCondition'
 
 function read(source: unknown, key: string): unknown {
   let value = source

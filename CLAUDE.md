@@ -70,6 +70,28 @@ Flash and monitor use the same `-B` build directory, e.g.
 Switching boards means switching `IDF_TARGET`; `esp32p4` uses `dependencies.lock.esp32p4` and applies
 LVGL PPA / DSI patches from `firmware/cmake/`.
 
+### Continuous integration
+
+[.github/workflows/build.yml](.github/workflows/build.yml) runs on a push to `release` and on
+demand: `checks` (the three generators with `--check`, `check_debug_isolation.py --check`, then
+the configurator's typecheck and lint), then `configurator` (electron-builder on macOS, Windows and
+Linux runners) and `firmware` (three boards in `espressif/idf:v6.0.2`), then a **draft** GitHub
+release holding the installers, the three OTA images and a per-board archive.
+
+The two halves carry **separate versions**: `configurator/package.json` versions the desktop
+application and names the release tag, while `firmware/version.txt` is the board's own — ESP-IDF
+reads it into `PROJECT_VER`, and it is what `@SC:INFO` and the OTA status report. Without that file
+the firmware version is whatever `git describe` returns, which is a bare commit id.
+
+The firmware job runs `reconfigure` **twice** before `build`, and a clean checkout needs it:
+`firmware/cmake/` patches `managed_components` during configuration, which is after ESP-IDF has
+already collected component requirements — so the first configure of a fresh tree records the
+*unpatched* `esp_lvgl_port` requirements and the P4 build then fails on `esp_cache.h`. The second
+configure re-reads the patched file. A working tree that has built P4 before does not show this,
+because its `managed_components` is already patched — which is also why
+`apply_esp_lvgl_port_dsi_patch.cmake` is applied for **every** target rather than only for the P4:
+the patch is what declares `full_strips`, and `components/display` sets that flag on every board.
+
 ### VS Code tasks
 
 [.vscode/tasks.json](.vscode/tasks.json) carries every command above, each sourcing the environment
@@ -120,13 +142,14 @@ Run it without `--check` to accept a deliberate change. See ADR 0028.
 
 ### Generated contracts (never hand-edit outputs)
 
-Three generators own checked-in code. All accept `--check`, which reports staleness without
-writing.
+Three generators own checked-in code. Each is a package under `tools/codegen/`, run with `python3
+-m` **from the repository root** — the module path is what resolves the package. All accept
+`--check`, which reports staleness without writing.
 
 `configuration/configuration_schema.json` is the configuration contract:
 
 ```bash
-python3 tools/generate_configuration_schema.py
+python3 -m tools.codegen.configuration_schema
 ```
 
 Outputs: `firmware/services/configuration_contract/include/application_configuration_generated.hpp`,
@@ -139,7 +162,7 @@ Outputs: `firmware/services/configuration_contract/include/application_configura
 Regenerate all consumers together:
 
 ```bash
-python3 tools/generate_telemetry_catalog.py
+python3 -m tools.codegen.telemetry_catalog
 ```
 
 Outputs: `firmware/services/telemetry/include/telemetry_catalog_generated.hpp`,
@@ -153,7 +176,7 @@ Outputs: `firmware/services/telemetry/include/telemetry_catalog_generated.hpp`,
 `fonts/google_fonts_selection.json` (the curation rules) are the sources:
 
 ```bash
-python3 tools/generate_font_catalog.py
+python3 -m tools.codegen.font_catalog
 ```
 
 Output: `configurator/src/main/font-library/google-fonts-catalog.json`, read lazily in the main

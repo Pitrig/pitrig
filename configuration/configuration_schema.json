@@ -1,6 +1,6 @@
 {
   "schema_version": 19,
-  "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
+  "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
 
   "documents": {
     "dashboard": {
@@ -154,7 +154,7 @@
     },
     "kValueBindingCapacity": {
       "value": 40,
-      "doc": "Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py."
+      "doc": "Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/codegen/telemetry_catalog."
     },
     "kValueAffixCapacity": {
       "value": 16,

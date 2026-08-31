@@ -7,7 +7,7 @@ import { SliderField } from './fields'
 export function RingFields({ widget, owner, update }: { widget: RingWidget; owner: 'arc' | 'indicator'; update: (mutation: (next: RingWidget) => void) => void }): React.JSX.Element {
   const thickness = widget.thickness_px ?? 8
   const radius = widget.radius_px ?? 0
-  const fitted = fittedRadius(widget, thickness)
+  const fitted = Math.round(fittedRadius(widget, thickness))
   const angleBounds = fieldBounds(owner, 'start_angle_deg')
   const sweepBounds = fieldBounds(owner, 'sweep_deg')
   const radiusBounds = fieldBounds(owner, 'radius_px')

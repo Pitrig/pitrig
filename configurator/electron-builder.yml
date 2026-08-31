@@ -23,5 +23,7 @@ win:
 linux:
   icon: resources/icon.png
   category: Development
+  maintainer: SimCore <simcoreproject@users.noreply.github.com>
   target:
     - AppImage
+    - deb

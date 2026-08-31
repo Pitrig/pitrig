@@ -50,7 +50,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `kWidgetTitleCapacity` | 16 | Widget title text storage including the terminator (15 usable bytes). |
 | `kUnavailableTextCapacity` | 16 | Placeholder text storage including the terminator (15 usable bytes). |
 | `kValidationPathCapacity` | 48 | Storage for the dotted property path reported with a rejection, including the terminator. |
-| `kValueBindingCapacity` | 40 | Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/generate_telemetry_catalog.py. |
+| `kValueBindingCapacity` | 40 | Canonical telemetry field name storage including the terminator (39 usable bytes). Must match CANONICAL_NAME_CAPACITY in tools/codegen/telemetry_catalog. |
 | `kValueAffixCapacity` | 16 | Transform prefix and suffix storage including the terminator (15 usable bytes). |
 
 ## Enumerations

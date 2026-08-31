@@ -23,14 +23,14 @@ Rejections carried a bare token: a sixteen-widget dashboard with one bad pixel
 answered `invalid_widget`, with no widget index and no property name.
 
 The repository already solves exactly this problem for telemetry:
-`tools/generate_telemetry_catalog.py` generates six consumers from one JSON
+`tools/codegen/telemetry_catalog` generates six consumers from one JSON
 document.
 
 ## Decision
 
 Describe the configuration contract once, in
 `configuration/configuration_schema.json`, and generate its consumers with
-`tools/generate_configuration_schema.py`. The generator mirrors the telemetry
+`tools/codegen/configuration_schema`. The generator mirrors the telemetry
 catalog generator, including a `--check` mode that reports staleness instead of
 writing.
 

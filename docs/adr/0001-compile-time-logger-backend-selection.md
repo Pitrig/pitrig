@@ -13,3 +13,9 @@ Keep the standard ESP-IDF logger as the backend and select its logging mode at c
 - Only the selected logging mode is compiled into the firmware.
 - Logging mode cannot be changed at runtime.
 - Logger call sites and the public API remain unchanged.
+- The API's reach stops where the layer graph does. `core/`, `services/` and
+  `platform/` call `log::`; `drivers/` and `components/` call ESP-IDF's
+  `ESP_LOG*` directly, because both depend only on `interfaces/` and a
+  dependency on the logger service would invert the layering. Both paths end in
+  the same backend, so the console-port link's `esp_log_set_vprintf` silencing
+  covers them together.

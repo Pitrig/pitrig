@@ -4,13 +4,13 @@ import type { LayoutFit } from '@shared/layout-transfer'
 
 const STORAGE_KEY = 'simcore.editor.panels'
 
-export const MINIMUM_INSPECTOR_WIDTH_PX = 288
-export const MAXIMUM_INSPECTOR_WIDTH_PX = 560
-export const DEFAULT_INSPECTOR_WIDTH_PX = 352
+const MINIMUM_INSPECTOR_WIDTH_PX = 288
+const MAXIMUM_INSPECTOR_WIDTH_PX = 560
+const DEFAULT_INSPECTOR_WIDTH_PX = 352
 
-export const MINIMUM_LAYERS_HEIGHT_PX = 120
-export const MAXIMUM_LAYERS_HEIGHT_PX = 720
-export const DEFAULT_LAYERS_HEIGHT_PX = 260
+const MINIMUM_LAYERS_HEIGHT_PX = 120
+const MAXIMUM_LAYERS_HEIGHT_PX = 720
+const DEFAULT_LAYERS_HEIGHT_PX = 260
 
 export type TemplateSort = 'size' | 'name'
 

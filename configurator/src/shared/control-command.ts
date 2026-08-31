@@ -14,7 +14,7 @@ export const MAXIMUM_CONTROL_COMMAND_LENGTH = 256
 
 const BINARY_SESSION_COMMANDS = [/^@SC:(FONT|IMAGE|FW):BEGIN\b/i]
 
-export function isBinarySessionCommand(command: string): boolean {
+function isBinarySessionCommand(command: string): boolean {
   const line = command.trim()
   return BINARY_SESSION_COMMANDS.some((pattern) => pattern.test(line))
 }

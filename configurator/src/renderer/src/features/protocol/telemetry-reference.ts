@@ -11,7 +11,7 @@ const EXPRESSIONS = new Map<string, string>(
   SIMHUB_PROFILE_ENTRIES.map((entry) => [entry.name, entry.expression])
 )
 
-export const TELEMETRY_REFERENCE: TelemetryReferenceEntry[] = TELEMETRY_CATALOG.map(
+const TELEMETRY_REFERENCE: TelemetryReferenceEntry[] = TELEMETRY_CATALOG.map(
   (entry: TelemetryCatalogEntry) => {
     const property = PROPERTY_PATTERN.exec(EXPRESSIONS.get(entry.name) ?? '')?.[1]
     return property ? { ...entry, simHubProperty: property } : entry

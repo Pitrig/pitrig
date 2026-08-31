@@ -11,7 +11,7 @@ export interface UnitPreset {
   suffix: string
 }
 
-export const UNIT_PRESETS: readonly UnitPreset[] = [
+const UNIT_PRESETS: readonly UnitPreset[] = [
   {
     label: 'km/h → mph',
     units: [],

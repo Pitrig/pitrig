@@ -21,7 +21,7 @@ export interface BenchPatternContext {
   image?: BenchImageAsset
 }
 
-export const INDICATOR_PALETTE: readonly RgbColor[] = [
+const INDICATOR_PALETTE: readonly RgbColor[] = [
   BENCH_COLORS.emerald,
   BENCH_COLORS.emerald,
   BENCH_COLORS.cyan,
