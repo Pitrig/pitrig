@@ -6,9 +6,6 @@ import { ConfigsPage } from '@/features/configuration/ConfigsPage'
 import { DashboardWorkspace } from '@/features/configuration/DashboardWorkspace'
 import { saveConfigurationFile } from '@/features/configuration/configuration-actions'
 import { isTextEntry } from '@/features/configuration/editor/keyboard'
-import { DebugWorkspace } from '@/features/debug/DebugWorkspace'
-import { subscribeToBench } from '@/features/debug/bench/bench-store'
-import { useSerialTraffic } from '@/features/debug/use-serial-traffic'
 import { BoardSyncDialog } from '@/features/device/BoardSyncDialog'
 import { useBoardSync, useBoardSyncStore } from '@/features/device/board-sync-store'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
@@ -36,8 +33,6 @@ export function App(): React.JSX.Element {
   const { liveApplyAllowed, dirtyDocuments } = useDraftState()
 
   useEffect(() => subscribeToFontLibrary(), [])
-  useEffect(() => subscribeToBench(), [])
-  useSerialTraffic()
   useBoardSync(dirtyDocuments)
 
   useLiveApply(liveApplyAllowed && !saving && syncQuestion === undefined, reportLiveApply)
@@ -98,7 +93,5 @@ function WorkspacePage(): React.JSX.Element {
       return <ModulesPage />
     case 'firmware':
       return <FirmwarePage />
-    case 'debug':
-      return <DebugWorkspace />
   }
 }

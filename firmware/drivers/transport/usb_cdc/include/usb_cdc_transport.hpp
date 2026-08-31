@@ -27,7 +27,9 @@ class UsbCdcTransport final : public ITransport {
   bool start(DataHandler handler, void* context) override;
   void stop() override;
   bool write(std::span<const std::uint8_t> data) override;
+#if SIMCORE_DEBUG
   [[nodiscard]] Diagnostics diagnostics() const override;
+#endif
 
  private:
   static constexpr std::size_t kChunkSize = 512;

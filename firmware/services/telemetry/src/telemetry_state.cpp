@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "esp_timer.h"
+#include "simcore_features.hpp"
 
 namespace simcore::telemetry {
 
@@ -67,7 +68,9 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
     slot.value = update.value;
   }
   slot.revision = ++revision_;
+#if SIMCORE_DEBUG
   slot.last_change_us = esp_timer_get_time();
+#endif
   std::atomic_thread_fence(std::memory_order_seq_cst);
   slot.sequence.store(sequence + 2, std::memory_order_release);
   return {
@@ -92,7 +95,9 @@ TelemetryRead TelemetryStateService::read(const Handle handle) const {
     }
     result.value = slot.value;
     result.revision = slot.revision;
+#if SIMCORE_DEBUG
     result.last_change_us = slot.last_change_us;
+#endif
     result.available = slot.available;
     std::atomic_thread_fence(std::memory_order_acquire);
     if (slot.sequence.load(std::memory_order_relaxed) == before) {

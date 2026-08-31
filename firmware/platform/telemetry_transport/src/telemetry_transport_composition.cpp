@@ -44,24 +44,12 @@ std::size_t TelemetryComposition::select(
     return 0;
   }
   links[0] = primary;
-  std::size_t count = 1;
-#if SIMCORE_SECOND_TELEMETRY_LINK
-  if (count < links.size() &&
-      usb_serial_jtag_.configure({
-          .silence_esp_logs = SIMCORE_SECOND_TELEMETRY_LINK_SILENCE_LOGS != 0,
-      })) {
-    links[count++] = &usb_serial_jtag_;
-  }
-#endif
-  return count;
+  return 1;
 }
 
 void TelemetryComposition::silence_logs() {
 #if !CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
   uart_.silence_logs();
-#endif
-#if SIMCORE_SECOND_TELEMETRY_LINK
-  usb_serial_jtag_.silence_logs();
 #endif
 }
 

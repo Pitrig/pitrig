@@ -5,6 +5,8 @@
 #include <cstdint>
 #include <span>
 
+#include "simcore_features.hpp"
+
 namespace simcore::telemetry {
 
 inline constexpr std::size_t kMaximumFields = 256;
@@ -70,7 +72,9 @@ struct TelemetryRead {
   Handle handle{};
   Value value{};
   std::uint64_t revision{};
+#if SIMCORE_DEBUG
   std::int64_t last_change_us{};
+#endif
   bool available{};
 };
 

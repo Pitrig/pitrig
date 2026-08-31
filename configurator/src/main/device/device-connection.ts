@@ -1,6 +1,6 @@
 import { SerialPort } from 'serialport'
 
-import type { SerialTrafficLog } from '../../shared/debug'
+import type { SerialTrafficLog } from '../../shared/serial-traffic'
 import type {
   DeviceConnection,
   DeviceError,

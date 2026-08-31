@@ -169,10 +169,10 @@ void UartTransport::process() {
   }
 }
 
+#if SIMCORE_DEBUG
 Diagnostics UartTransport::diagnostics() const {
   Diagnostics diagnostics{};
   instrumentation_.fill(diagnostics);
-#if SIMCORE_DEBUG
   std::size_t buffered_bytes = 0;
   if (started_) {
     ESP_ERROR_CHECK_WITHOUT_ABORT(
@@ -182,8 +182,8 @@ Diagnostics UartTransport::diagnostics() const {
   diagnostics.buffer_full_events =
       buffer_full_events_.load(std::memory_order_relaxed);
   diagnostics.buffered_bytes = static_cast<std::uint32_t>(buffered_bytes);
-#endif
   return diagnostics;
 }
+#endif
 
 }

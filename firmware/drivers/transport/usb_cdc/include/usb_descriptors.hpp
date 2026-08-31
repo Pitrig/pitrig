@@ -14,5 +14,9 @@ extern const std::uint8_t kHighSpeedConfiguration[];
 #endif
 extern const char* kStrings[];
 extern const int kStringCount;
+#if CFG_TUD_HID
+extern const std::uint8_t kGamepadReport[];
+extern const std::uint16_t kGamepadReportLength;
+#endif
 
 }

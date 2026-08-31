@@ -236,15 +236,15 @@ void UsbCdcTransport::process() {
   }
 }
 
+#if SIMCORE_DEBUG
 Diagnostics UsbCdcTransport::diagnostics() const {
   Diagnostics diagnostics{};
   instrumentation_.fill(diagnostics);
-#if SIMCORE_DEBUG
   diagnostics.buffer_full_events =
       queue_overflows_.load(std::memory_order_relaxed);
   diagnostics.buffered_bytes = queued_bytes_.load(std::memory_order_relaxed);
-#endif
   return diagnostics;
 }
+#endif
 
 }

@@ -20,11 +20,7 @@ constexpr char kTag[] = "communication";
 }
 
 Composition::Composition(const telemetry::ITelemetryRegistry& registry)
-#if SIMCORE_SECOND_TELEMETRY_LINK
-    : links_{Link{registry}, Link{registry}} {}
-#else
     : links_{Link{registry}} {}
-#endif
 
 Composition::~Composition() { stop(); }
 

@@ -28,7 +28,9 @@ class TelemetryStateService final : public ITelemetryReader {
     std::atomic<std::uint32_t> sequence{0};
     Value value{};
     std::uint64_t revision{};
+#if SIMCORE_DEBUG
     std::int64_t last_change_us{};
+#endif
     bool available{};
   };
 

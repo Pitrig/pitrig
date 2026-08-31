@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <string_view>
 
-#include "performance.hpp"
 #include "simcore_features.hpp"
 #include "transport.hpp"
+#if SIMCORE_DEBUG
+#include "performance.hpp"
+#endif
 
 namespace simcore::configuration {
 namespace {

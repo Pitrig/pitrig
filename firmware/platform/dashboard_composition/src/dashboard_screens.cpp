@@ -43,7 +43,6 @@ std::size_t create_screens(
   return created;
 }
 
-#if !SIMCORE_DEBUG
 const configuration::ScreenConfiguration& active_screen(
     const configuration::ApplicationConfiguration& configuration) {
   static const configuration::ScreenConfiguration kEmptyScreen{};
@@ -51,7 +50,6 @@ const configuration::ScreenConfiguration& active_screen(
              ? configuration.dashboard.screens[0]
              : kEmptyScreen;
 }
-#endif
 
 std::uint32_t screen_background(
     const configuration::ApplicationConfiguration& configuration,
@@ -77,15 +75,11 @@ lv_obj_t* screen_object(lv_display_t* const display, const std::size_t index) {
 
 bool will_render_content(
     const configuration::ApplicationConfiguration& configuration) {
-#if SIMCORE_DEBUG
-  (void)configuration;
-  return true;
-#else
   const configuration::ScreenConfiguration& screen =
       active_screen(configuration);
-  return screen.background_color != kDefaultBackgroundColor ||
+  return SIMCORE_DEBUG_OVERLAY ||
+         screen.background_color != kDefaultBackgroundColor ||
          screen.widget_count > 0;
-#endif
 }
 
 std::size_t create(lv_display_t* const display,

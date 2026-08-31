@@ -1,6 +1,10 @@
 # ADR 0004: Performance Service and Overlay Boundary
 
 Status: Accepted. Amended by
+[ADR 0028](0028-debug-build-and-debug-application-boundary.md): the service,
+the overlays and the collector now live in `firmware/debug/`, which a production
+build registers as empty components, and the boundary this ADR draws is a build
+boundary as well as a dependency one. Also amended by
 [ADR 0027](0027-partial-render-buffers-and-unsynchronized-scan-out.md): what a
 debug build draws over the dashboard is now the `SIMCORE_DEBUG_OVERLAY` Kconfig
 choice — the full panel this ADR describes, an FPS-only chip that LVGL can draw

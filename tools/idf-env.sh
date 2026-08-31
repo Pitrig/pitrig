@@ -13,6 +13,16 @@ if [ ! -f "${IDF_PATH:-}/export.sh" ]; then
 fi
 export IDF_PATH
 
+if [ -n "${1:-}" ] && [ ! -f "$1/CMakeCache.txt" ] && [ -f "firmware/$1/CMakeCache.txt" ]; then
+  echo "idf-env.sh: '$1' has no CMakeCache.txt here, but 'firmware/$1' does." >&2
+  echo "  The build directory is read as a path from the current directory." >&2
+  echo "  Use:  source tools/idf-env.sh firmware/$1" >&2
+  echo "  or:   cd firmware && source ../tools/idf-env.sh $1" >&2
+  echo "  Continuing would pick the default virtualenv, which that build directory" >&2
+  echo "  may not have been configured with." >&2
+  return 1 2>/dev/null || exit 1
+fi
+
 if [ -z "${IDF_PYTHON_ENV_PATH:-}" ] && [ -f "${1:-}/CMakeCache.txt" ]; then
   _simcore_python=$(sed -n 's/^PYTHON:UNINITIALIZED=//p' "$1/CMakeCache.txt" | head -1)
   if [ -x "$_simcore_python" ]; then

@@ -41,11 +41,7 @@ namespace simcore::communication {
 
 class Composition final {
  public:
-#if SIMCORE_SECOND_TELEMETRY_LINK
-  static constexpr std::size_t kMaximumLinks = 2;
-#else
   static constexpr std::size_t kMaximumLinks = 1;
-#endif
 
   explicit Composition(const telemetry::ITelemetryRegistry& registry);
   ~Composition();

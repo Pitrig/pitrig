@@ -55,18 +55,4 @@ void error(const char* tag, const char* format, ...) {
   va_end(args);
 }
 
-void debug(const char* tag, const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  write(ESP_LOG_DEBUG, tag, format, args);
-  va_end(args);
-}
-
-void verbose(const char* tag, const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  write(ESP_LOG_VERBOSE, tag, format, args);
-  va_end(args);
-}
-
 }

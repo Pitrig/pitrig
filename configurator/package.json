@@ -6,9 +6,11 @@
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
+    "dev:debug": "electron-vite dev --config electron.vite.debug.config.ts --entry out-debug/main/index.js",
     "preview": "electron-vite preview",
     "build": "pnpm run typecheck && electron-vite build",
-    "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
+    "build:debug": "pnpm run typecheck && electron-vite build --config electron.vite.debug.config.ts",
+    "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.debug.json --noEmit",
     "lint": "eslint ."
   },
   "dependencies": {

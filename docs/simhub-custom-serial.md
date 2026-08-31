@@ -139,41 +139,13 @@ The configuration commands themselves name the document they act on:
 documents a board stores. The full command table is in
 [Control commands](device-configuration.md#control-commands).
 
-## Development second link (ESP32-P4)
+## One link per board
 
-A build of the Guition JC1060P470C may attach a second serial link on the
-board's USB-Serial-JTAG port — the one it is flashed over — in addition to the
-native USB CDC port the configuration selects. Both then carry the same three
-things: SimHub telemetry, the `@SC:` control protocol, and asset or firmware
-upload. A host
-can be attached to either, or to both at once, which is what makes it possible
-to leave SimHub streaming while the configurator uploads.
-
-This is a development aid, not a product feature. It is selected by the
-`CONFIG_SIMCORE_SECOND_TELEMETRY_LINK` Kconfig option, appended after the board
-profile the same way the debug defaults are:
-
-```sh
-idf.py -B build-jc1060p470c-second-link -DIDF_TARGET=esp32p4 \
-  -DSDKCONFIG=sdkconfig.generated.jc1060p470c-second-link \
-  -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.second-link" \
-  build
-```
-
-Three consequences are worth knowing before enabling it:
-
-- **The device configuration knows nothing about it.** No property selects it
-  and no enumerator names it; the link is a property of the build. Leaving the
-  option off removes it from the firmware entirely, down to the byte — a product
-  build's flashed sections are the same as if none of this existed.
-- **Flashing is unaffected.** Download mode is entered by the USB-Serial-JTAG
-  peripheral, not by the application, so the port keeps taking `idf.py flash`
-  exactly as before.
-- **ESP logs go quiet.** That port is also the secondary console, so log lines
-  would interleave with telemetry and control replies on it. The transport
-  silences logging while it runs, which is global and therefore also silences
-  the primary UART console. Turn `CONFIG_SIMCORE_SECOND_TELEMETRY_LINK_SILENCE_LOGS`
-  off when reading logs matters more than a clean second stream.
+A board carries exactly one serial link, the one its `protocol` document
+selects. The ESP32-P4 build once attached a second link on the USB-Serial-JTAG
+port as a development aid; that is gone, and the P4's native USB CDC port is
+now its only link. Flashing and the ESP console still use the USB-Serial-JTAG
+port, which the application no longer touches.
 
 Only one upload may own the binary stream at a time, whichever link opens it;
 a `BEGIN`, `INFO` or `CLEAR` for either asset kind arriving on the other link

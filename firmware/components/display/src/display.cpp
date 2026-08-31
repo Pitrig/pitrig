@@ -21,11 +21,7 @@ namespace {
 constexpr char kTag[] = "display";
 constexpr int kLvglTaskCore = SIMCORE_RENDER_CORE;
 constexpr std::uint32_t kInitialFrameTimeoutMs = 1'000;
-#if SIMCORE_DEBUG
-constexpr std::uint32_t kTaskMaxSleepMs = 8;
-#else
 constexpr std::uint32_t kTaskMaxSleepMs = 16;
-#endif
 constexpr std::uint32_t kTimerPeriodMs = 2;
 
 StaticSemaphore_t refresh_signal_storage;

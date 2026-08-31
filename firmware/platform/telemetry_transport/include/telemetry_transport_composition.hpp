@@ -7,9 +7,6 @@
 #include <span>
 #if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
 #include "usb_cdc_transport.hpp"
-#if SIMCORE_SECOND_TELEMETRY_LINK
-#include "usb_serial_jtag_transport.hpp"
-#endif
 #elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
 #include "uart_transport.hpp"
 #else
@@ -39,9 +36,6 @@ class TelemetryComposition final {
  private:
 #if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
   UsbCdcTransport usb_cdc_;
-#if SIMCORE_SECOND_TELEMETRY_LINK
-  UsbSerialJtagTransport usb_serial_jtag_;
-#endif
 #elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
   UartTransport uart_;
 #else

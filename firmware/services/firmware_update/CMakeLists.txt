@@ -4,6 +4,6 @@ idf_component_register(
   INCLUDE_DIRS "include"
   REQUIRES app_update asset_control asset_package binary binary_session
            configuration_contract transport
-  PRIV_REQUIRES performance)
+  PRIV_REQUIRES performance simcore_config)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

@@ -20,7 +20,6 @@ import {
   type ConfigurationPathRequest,
   type ConfigurationSaveRequest
 } from '@shared/config-library'
-import { MAXIMUM_CONTROL_COMMAND_LENGTH, type ControlCommandRequest } from '@shared/debug'
 import { type FirmwareUploadRequest } from '@shared/firmware-update'
 import type {
   ConnectDeviceRequest,
@@ -151,12 +150,6 @@ export function isConfigurationPathRequest(value: unknown): value is Configurati
   if (!value || typeof value !== 'object') return false
   const path = (value as Partial<ConfigurationPathRequest>).path
   return typeof path === 'string' && path.length > 0 && path.length <= 4096
-}
-
-export function isControlCommandRequest(value: unknown): value is ControlCommandRequest {
-  if (!value || typeof value !== 'object') return false
-  const command = (value as Partial<ControlCommandRequest>).command
-  return typeof command === 'string' && command.length <= MAXIMUM_CONTROL_COMMAND_LENGTH
 }
 
 export function invalidConfigurationRequest(): DeviceResult<never> {

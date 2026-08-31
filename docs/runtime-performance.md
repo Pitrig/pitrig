@@ -18,7 +18,7 @@ Build with the debug ESP-IDF defaults appended after the board profile, which
 enables the option together with the FreeRTOS runtime counters it needs:
 
 ```sh
-idf.py -B build-debug \
+idf.py -B build-t-display-debug -DIDF_TARGET=esp32s3 \
   -DSDKCONFIG=sdkconfig.generated.t-display-debug \
   -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.t-display-s3;sdkconfig.defaults.debug" \
   build

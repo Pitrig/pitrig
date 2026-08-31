@@ -1,4 +1,5 @@
-import { controlCommandRefusal, type ControlCommandValue, type SerialTrafficLog } from '../../shared/debug'
+import { type SerialTrafficLog } from '../../shared/serial-traffic'
+import { controlCommandRefusal, type ControlCommandValue } from '../../shared/control-command'
 import type {
   DeviceConfigurationResetResult,
   DeviceConfigurationApplyResult,

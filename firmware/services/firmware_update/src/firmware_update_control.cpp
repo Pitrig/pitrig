@@ -2,6 +2,8 @@
 
 #include <cstdio>
 
+#include "simcore_features.hpp"
+
 namespace simcore::firmware_update {
 namespace {
 
@@ -59,7 +61,9 @@ bool FirmwareUpdateControl::initialize(Service& service,
       {
           .tag = "FW",
           .task_name = "firmware_update",
+#if SIMCORE_DEBUG
           .metric = performance::TaskMetric::firmware_update,
+#endif
       },
       {
           .service = &service,

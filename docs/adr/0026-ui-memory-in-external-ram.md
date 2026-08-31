@@ -9,7 +9,10 @@ stand; the frame-time figures below are superseded — they were measured under
 the direct-mode buffering
 [ADR 0027](0027-partial-render-buffers-and-unsynchronized-scan-out.md)
 replaced, and with the full debug overlay drawn over the widgets under test,
-which ADR 0027 found inflating every small-display figure. Current frame costs
+which ADR 0027 found inflating every small-display figure. They were also taken
+with the LVGL task sleeping 8 ms rather than the product's 16, a divergence
+[ADR 0028](0028-debug-build-and-debug-application-boundary.md) removed, so they
+must be re-measured before being compared with anything. Current frame costs
 are in [runtime-performance.md](../runtime-performance.md).
 
 ## Context

@@ -4,7 +4,7 @@ idf_component_register(
        "src/asset_replies.cpp"
   INCLUDE_DIRS "include"
   PRIV_INCLUDE_DIRS "src"
-  REQUIRES binary_session freertos performance transport
-  PRIV_REQUIRES binary simcore_config)
+  REQUIRES binary_session freertos performance simcore_config transport
+  PRIV_REQUIRES binary)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

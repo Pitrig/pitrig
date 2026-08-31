@@ -3,7 +3,10 @@
 Status: Accepted; the telemetry line format is in force unchanged. The `@SC:`
 configuration commands are amended by ADR 0024, which gives `GET`, `VALIDATE`,
 `APPLY`, `SET` and `RESET` a document name and replaces `INFO`'s single
-`source=`/`generation=` pair with one field per document.
+`source=`/`generation=` pair with one field per document. Narrowed by
+[ADR 0029](0029-single-link-and-composite-usb-gamepad.md): a board carries
+exactly one serial link, and on a board with native USB that link shares its
+USB device with an HID gamepad.
 
 ## Context
 

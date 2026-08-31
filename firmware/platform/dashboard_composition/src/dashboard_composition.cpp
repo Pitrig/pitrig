@@ -224,8 +224,10 @@ void destroy(Dashboard& dashboard) {
     screens::release(dashboard);
     lvgl_port_unlock();
   }
+#if SIMCORE_DEBUG
   dashboard.performance_overlay.destroy();
   dashboard.fps_overlay.destroy();
+#endif
 }
 
 bool start_render_trigger(Dashboard& dashboard, events::EventBus& event_bus) {

@@ -1,6 +1,6 @@
 set(transport_driver_dependencies)
 if(IDF_TARGET STREQUAL "esp32p4")
-    list(APPEND transport_driver_dependencies usb_cdc usb_serial_jtag)
+    list(APPEND transport_driver_dependencies usb_cdc)
 else()
     list(APPEND transport_driver_dependencies uart usb_cdc)
 endif()

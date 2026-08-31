@@ -2,27 +2,13 @@ import { app, ipcMain } from 'electron'
 
 import { broadcastToWindows } from './broadcast'
 import { registerAssetHandlers } from './register-asset-handlers'
-import { registerBenchHandlers } from './register-bench-handlers'
 import { registerLibraryHandlers } from './register-library-handlers'
 import {
   invalidConfigurationRequest,
   isConfigurationResetRequest,
   isConnectRequest,
-  isControlCommandRequest,
   isJsonDocumentRequest
 } from './request-guards'
-import {
-  BENCH_SAMPLE_CHANNEL,
-  BENCH_STATUS_CHANGED_CHANNEL,
-  type BenchSample,
-  type BenchStatus
-} from '../../shared/bench'
-import {
-  CONTROL_COMMAND_CHANNEL,
-  SERIAL_TRAFFIC_CHANNEL,
-  type ControlCommandResult,
-  type SerialTrafficLog
-} from '../../shared/debug'
 import {
   DEVICE_AUTO_CONNECT_CHANNEL,
   DEVICE_CANCEL_AUTO_CONNECT_CHANNEL,
@@ -50,7 +36,6 @@ import {
 } from '../../shared/save-to-board'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import { IMAGE_UPLOAD_PROGRESS_CHANNEL } from '../../shared/image-assets'
-import type { BenchService } from '../bench/bench-service'
 import { DeviceService } from '../device/device-service'
 import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
 import { FirmwareUpdateService } from '../firmware-update/firmware-update-service'
@@ -76,8 +61,7 @@ export function registerIpcHandlers(
   fontLibraryService: FontLibraryService,
   fontCatalogService: FontCatalogService,
   saveToBoardService: SaveToBoardService,
-  configLibraryService: ConfigLibraryService,
-  benchService: BenchService
+  configLibraryService: ConfigLibraryService
 ): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
@@ -95,7 +79,6 @@ export function registerIpcHandlers(
     fontLibraryService,
     fontCatalogService
   )
-  registerBenchHandlers(benchService)
   ipcMain.handle(DEVICE_LIST_PORTS_CHANNEL, () => deviceService.listPorts())
   ipcMain.handle(DEVICE_GET_STATE_CHANNEL, () => deviceService.getState())
   ipcMain.handle(DEVICE_AUTO_CONNECT_CHANNEL, () => deviceService.autoConnect())
@@ -121,16 +104,6 @@ export function registerIpcHandlers(
     return deviceService.saveConfiguration(request.json, request.documents)
   })
   ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.reboot())
-  ipcMain.handle(CONTROL_COMMAND_CHANNEL, (_event, request: unknown) => {
-    if (!isControlCommandRequest(request)) {
-      const result: ControlCommandResult = {
-        ok: false,
-        error: { code: 'invalid_request', message: 'Invalid control command request.' }
-      }
-      return result
-    }
-    return deviceService.sendControlCommand(request.command)
-  })
   ipcMain.handle(SAVE_TO_BOARD_CHANNEL, (_event, request: unknown) => {
     if (!isJsonDocumentRequest(request)) {
       const result: SaveToBoardResult = {
@@ -171,26 +144,4 @@ export function broadcastSaveProgress(progress: SaveProgress): void {
 
 export function broadcastDeviceState(state: DeviceState): void {
   broadcastToWindows(DEVICE_STATE_CHANGED_CHANNEL, state)
-}
-
-const pendingSerialTraffic: SerialTrafficLog[] = []
-let serialTrafficFlushTimer: ReturnType<typeof setTimeout> | undefined
-
-export function broadcastSerialTraffic(log: SerialTrafficLog): void {
-  pendingSerialTraffic.push(log)
-  if (pendingSerialTraffic.length > 4_000) {
-    pendingSerialTraffic.splice(0, pendingSerialTraffic.length - 2_000)
-  }
-  serialTrafficFlushTimer ??= setTimeout(() => {
-    serialTrafficFlushTimer = undefined
-    broadcastToWindows(SERIAL_TRAFFIC_CHANNEL, pendingSerialTraffic.splice(0))
-  }, 100)
-}
-
-export function broadcastBenchStatus(status: BenchStatus): void {
-  broadcastToWindows(BENCH_STATUS_CHANGED_CHANNEL, status)
-}
-
-export function broadcastBenchSample(sample: BenchSample): void {
-  broadcastToWindows(BENCH_SAMPLE_CHANNEL, sample)
 }

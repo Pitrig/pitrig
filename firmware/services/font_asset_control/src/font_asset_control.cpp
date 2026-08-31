@@ -2,6 +2,8 @@
 
 #include <cstdio>
 
+#include "simcore_features.hpp"
+
 namespace simcore::font_assets {
 namespace {
 
@@ -72,7 +74,9 @@ bool FontAssetControl::initialize(Service& service,
       {
           .tag = "FONT",
           .task_name = "font_asset_control",
+#if SIMCORE_DEBUG
           .metric = performance::TaskMetric::font_asset_control,
+#endif
       },
       {
           .service = &service,

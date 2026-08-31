@@ -101,28 +101,4 @@ config SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
 
 endchoice
 
-config SIMCORE_SECOND_TELEMETRY_LINK
-    bool "Second telemetry link on the USB-Serial-JTAG port"
-    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
-    default n
-    help
-        Development aid, not a product feature. Runs telemetry, the @SC:
-        control protocol, and asset upload on the USB-Serial-JTAG port in
-        addition to the native USB CDC port, so a host can be attached to
-        either one. Flashing over that port is unaffected: download mode is
-        entered by the peripheral, not by the application.
-
-        The device configuration knows nothing about this. Leaving the option
-        off compiles the second link out entirely.
-
-config SIMCORE_SECOND_TELEMETRY_LINK_SILENCE_LOGS
-    bool "Silence ESP logs while the second link runs"
-    depends on SIMCORE_SECOND_TELEMETRY_LINK
-    default y
-    help
-        The USB-Serial-JTAG port is also the secondary console, so log lines
-        would interleave with telemetry and control replies on it. Silencing
-        is global, so the primary UART console goes quiet as well; turn this
-        off when reading logs matters more than a clean second stream.
-
 endmenu

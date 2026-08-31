@@ -32,7 +32,8 @@ export function toDeviceError(error: unknown): DeviceError {
   if (normalized.includes('resource busy') || normalized.includes('cannot lock')) {
     return {
       code: 'port_busy',
-      message: 'The serial port is busy. Close SimHub or a serial monitor.'
+      message:
+        'The serial port is busy. Close SimHub, a serial monitor, or the other SimCore app.'
     }
   }
   if (normalized.includes('permission denied') || normalized.includes('access denied')) {

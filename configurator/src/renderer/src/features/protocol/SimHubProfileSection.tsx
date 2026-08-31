@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { PageSection } from '@/app/workspace/PageShell'
 import { bridgeErrorMessage } from '@/features/device/bridge-errors'
-import { writeDebugLog } from '@/features/debug/debug-log'
+import { writeEventLog } from '@/lib/event-log'
 import { useDeviceStore } from '@/features/device/device-store'
 import {
   allTelemetryFieldNames,
@@ -40,14 +40,14 @@ export function SimHubProfileSection(): React.JSX.Element {
     setExporting(true)
     setFeedback(undefined)
     const request = { fieldNames: selection.fieldNames, baudRate }
-    writeDebugLog('SimHub profile export requested', {
+    writeEventLog('SimHub profile export requested', {
       mode,
       fieldCount: selection.fieldNames.length,
       baudRate
     })
     try {
       const result = await window.simcore.exportSimHubProfile(request)
-      writeDebugLog('SimHub profile export completed', result)
+      writeEventLog('SimHub profile export completed', result)
       if (!result.ok) {
         setFeedback({ kind: 'error', message: result.error.message })
       } else if (result.value.saved) {

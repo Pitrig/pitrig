@@ -159,8 +159,9 @@ Dependencies must not point from interfaces or components to a concrete hardware
 
 The last two edges are narrow and deliberate. The display component and the
 transport drivers depend on the performance service so they can report frame and
-transport instrumentation, and that dependency compiles away entirely when
-`CONFIG_SIMCORE_DEBUG` is off. The control services that answer over the serial
+transport instrumentation; that service lives in `firmware/debug/` and registers
+with no sources and no include directories unless `CONFIG_SIMCORE_DEBUG`, so the
+dependency compiles away entirely (ADR 0028). The control services that answer over the serial
 link — configuration control, the shared asset upload engine, and the font and
 image asset controls over it — depend on the `transport` interface because they
 answer over it; they depend on no concrete driver. The debug-only performance
@@ -331,7 +332,7 @@ Services provide shared infrastructure used by the core, components, modules, an
 
 They are:
 
-- Logging, and the debug-only performance collector
+- Logging (the performance collector is a debug component under `firmware/debug/`)
 - The configuration contract, the configuration service over it, and the
   transport-facing configuration control
 - Telemetry — registry, state and the SimHub protocol under it
@@ -439,8 +440,9 @@ What exists:
 - Display drivers, one per board (T-Display-S3, Guition ESP32-4848S040,
   Guition JC1060P470C)
 - One touch driver, the GT911
-- Transport drivers: UART, USB CDC and USB-Serial-JTAG, over a shared
-  `transport_common`
+- Transport drivers: UART and USB CDC, over a shared `transport_common`. The
+  USB CDC driver owns the whole native USB device, which on a board that has
+  one enumerates as a composite CDC serial port plus an HID gamepad
 
 Drivers implement interfaces used by components.
 
@@ -507,7 +509,7 @@ Project JSON and the public device payload are sparse: omitted components stay
 absent instead of being expanded through board profiles.
 
 Its window is a rail of workspaces — Dashboard, Modules, Protocol, Configs,
-Firmware, Info, Debug — over one page at a time, with the serial connection
+Firmware, Info — over one page at a time, with the serial connection
 above all of them. Dashboard carries the canvas and the three libraries it draws
 from; Configs carries everything that replaces the whole document and lists the
 three configuration documents on the board; Modules is the reserved place for
@@ -515,6 +517,14 @@ peripherals, which have no production contract yet. Dashboard, Modules and
 Protocol each own one of the three documents, which is why each can say on its
 own whether its settings are saved. See
 [Authoring in the configurator](device-configuration.md#authoring-in-the-configurator).
+
+Debug tooling is a second Electron application built from the same package
+(`pnpm dev:debug`), holding the serial console, the telemetry bench and the
+`@SC:DIAG` charts, plus firmware upload and raw document editing of its own so a
+debugging session needs nothing else running — one serial port admits one
+process. It composes the same services and IPC handlers as the product; the
+dependency runs one way, and the product bundle carries no debug code
+(ADR 0028).
 
 Firmware builds own one immutable `BoardDefinition`. It binds the board
 identifier, display driver, default telemetry transport, factory payload, and

@@ -1,5 +1,4 @@
-import type { SerialTrafficLog } from '../../shared/debug'
-
+import type { SerialTrafficLog } from '../../shared/serial-traffic'
 const MAXIMUM_BUFFERED_TEXT_SIZE = 8_192
 
 export class SerialTrafficReporter {

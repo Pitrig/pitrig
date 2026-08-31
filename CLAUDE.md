@@ -27,6 +27,14 @@ can carry more than one, and when the running interpreter differs from the recor
 refuses to build and suggests `fullclean`, which throws the build away instead of fixing it. Plain
 `source <idf-path>/export.sh` is enough for a build directory that does not exist yet.
 
+**The build-directory argument is read as a path from the current directory**, because the script
+looks for `<argument>/CMakeCache.txt` — so it is `source tools/idf-env.sh firmware/build-x` from the
+root, or `cd firmware && source ../tools/idf-env.sh build-x`. A bare name from the root used to find
+nothing and fall back to the default virtualenv; the script now prints both correct forms and
+returns 1 instead, because that fallback is right for six of the eight build directories and wrong
+for the two P4 render profiles, which carry the other virtualenv. A build directory that does not
+exist yet still passes quietly.
+
 Run from `firmware/`. Each board is a separate build directory + generated sdkconfig; always pass
 both `-DSDKCONFIG` and `-DSDKCONFIG_DEFAULTS` so board defaults are not lost. ESP-IDF also applies
 `sdkconfig.defaults.<IDF_TARGET>` (`.esp32s3` / `.esp32p4`) on its own, which is where the
@@ -46,8 +54,9 @@ cd firmware && idf.py -B build-jc1060p470c -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkc
 
 Debug builds append `;sdkconfig.defaults.debug` to `SDKCONFIG_DEFAULTS`, which selects
 `CONFIG_SIMCORE_DEBUG`. Feature selection is Kconfig-driven; no source header is edited (see
-[docs/runtime-performance.md](docs/runtime-performance.md)). The same VS Code tasks exist in
-[.vscode/tasks.json](.vscode/tasks.json) ("SimCore: Build …").
+[docs/runtime-performance.md](docs/runtime-performance.md)). A debug build is the product **plus
+observation and nothing else** — it must never change product behaviour, or what it measures is not
+what ships (ADR 0028).
 
 A P4 build is tear-free by default: it composes the frame from internal-RAM strips
 (`CONFIG_SIMCORE_DISPLAY_RENDER_FULL_STRIPS`, L2 stays 256 KB — the strips need the internal RAM —
@@ -55,22 +64,32 @@ with 128-byte lines). It may append `;sdkconfig.defaults.render-partial` for the
 seam-accepting mode, or `;sdkconfig.defaults.render-full` for the whole-frame PSRAM mode, which
 pairs with the 512 KB L2 cache ADR 0027 measured it against.
 
-A P4 build may append `;sdkconfig.defaults.second-link` as well, which selects
-`CONFIG_SIMCORE_SECOND_TELEMETRY_LINK` and runs telemetry, `@SC:` control, and asset upload on the
-USB-Serial-JTAG port too. It is a development aid: the configuration contract has no property for
-it, and with the option off the flashed sections are byte-identical to a build without it. See
-[docs/simhub-custom-serial.md](docs/simhub-custom-serial.md).
-
 Flash and monitor use the same `-B` build directory, e.g.
 `idf.py -B build-t-display -p <port> flash monitor`.
 
 Switching boards means switching `IDF_TARGET`; `esp32p4` uses `dependencies.lock.esp32p4` and applies
 LVGL PPA / DSI patches from `firmware/cmake/`.
 
+### VS Code tasks
+
+[.vscode/tasks.json](.vscode/tasks.json) carries every command above, each sourcing the environment
+for its own build directory: eight `SimCore: Build …` tasks (three boards, their debug profiles and
+the two P4 render profiles), `SimCore: Build All Firmware` (runs them in sequence, esp32s3 first so
+the `IDF_TARGET` switch happens once), `SimCore: Flash` / `Monitor` / `Flash and Monitor` over a
+picked build directory and port, `SimCore: Check Generated Contracts` and `Regenerate Contracts`,
+and `Configurator: …` / `Debugger: …` for both Electron applications. There is deliberately no
+default build task: with eight configurations, the picker is the honest answer.
+
 ### Configurator (Electron + React 19 + TypeScript, pnpm)
 
 ```bash
 cd configurator && pnpm install && pnpm run dev
+```
+
+The debugger is a second application from the same package:
+
+```bash
+cd configurator && pnpm run dev:debug
 ```
 
 ```bash
@@ -81,7 +100,18 @@ cd configurator && pnpm run typecheck
 cd configurator && pnpm run lint
 ```
 
-`pnpm run build` runs typecheck then `electron-vite build`. There is no test runner.
+`pnpm run build` runs typecheck then `electron-vite build`; `pnpm run build:debug` does the same for
+the debugger into `out-debug/`. `typecheck` covers three projects — node, the product renderer, and
+the debug renderer. There is no test runner.
+
+### Debug isolation
+
+```bash
+python3 tools/check_debug_isolation.py --check
+```
+
+Records the `#if SIMCORE_DEBUG` hooks production firmware carries and fails when the set changes.
+Run it without `--check` to accept a deliberate change. See ADR 0028.
 
 ### Generated contracts (never hand-edit outputs)
 
@@ -155,8 +185,11 @@ components → interfaces ← drivers
   on concrete drivers.
 - `drivers/` — board/hardware implementations (`t_display_s3`, `guition_esp32_4848s040`,
   `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`,
-  `transport/usb_serial_jtag`, plus `transport/transport_common` for the read counters every link
-  shares and the log silencing the two console-port links use). No application logic. A board with
+  plus `transport/transport_common` for the read counters every link
+  shares and the log silencing the console-port link uses). Each board has exactly one link.
+  `transport/usb_cdc` owns the whole native USB device: on a board that has one it enumerates as a
+  composite CDC serial port **and** an HID gamepad (`usb_gamepad.hpp`), selected by
+  `CONFIG_TINYUSB_HID_COUNT` in the board defaults. No application logic. A board with
   no digitizer leaves `BoardDefinition::input` null.
 - `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
   code or LVGL, and must not touch hardware directly.
@@ -164,7 +197,7 @@ components → interfaces ← drivers
   `binary_session`, `boot_guard`, `configuration`, `configuration_contract`,
   `configuration_control`, `event_bus`, `firmware_update`, `font_assets`, `font_asset_control`,
   `font_contract`, `image_assets`, `image_asset_control`, `image_contract`, `logger`,
-  `performance`, `telemetry` + `telemetry/protocols/simhub`). `asset_control` is the `SCF1` upload engine;
+  `telemetry` + `telemetry/protocols/simhub`). `asset_control` is the `SCF1` upload engine;
   `font_asset_control`, `image_asset_control` and `firmware_update` are thin per-kind wrappers
   over it that supply the protocol tag and the body of the `INFO` reply. `firmware_update` is one
   component rather than a service plus a wrapper, because nothing reads a firmware image at
@@ -184,6 +217,14 @@ components → interfaces ← drivers
   `simcore_config` is the Kconfig surface and the `SIMCORE_*` feature aliases; it lives here
   because every layer reads it, and it sat under `components/` long enough to give drivers and
   services a dependency on a component, which the layering forbids.
+- `debug/` — everything that exists only to observe the product (`performance`,
+  `diagnostics_command`, `overlays`, `instrumentation`). Each component registers with empty
+  `SRCS` and empty `INCLUDE_DIRS` unless `CONFIG_SIMCORE_DEBUG`, so a production build compiles
+  none of it — and cannot compile an unguarded `#include "performance.hpp"` either. Requirements
+  on these components stay **unconditional**: ESP-IDF resolves requirements in an early pass where
+  `CONFIG_*` is not yet known, so the component turns itself off rather than its callers.
+  Production code keeps only one-line `#if SIMCORE_DEBUG` hooks, and
+  `python3 tools/check_debug_isolation.py --check` fails when their number changes.
 
 Every layer directory listed above is a separate ESP-IDF component. All of them except
 `components/` are registered in `EXTRA_COMPONENT_DIRS` in
@@ -380,20 +421,30 @@ protocol, font, image and firmware upload over one shared `assets/` engine, the 
 face store and Google Fonts catalog, the `save-to-board/` orchestrator, config files,
 the dashboard `templates/` library, the `configs/` folder of saved configurations and the recent-files
 list, SimHub profile export), `preload/`, `renderer/src/` (React +
-Zustand + Tailwind 4, organized by feature: `configuration`, `debug`, `device`, `firmware-update`,
+Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `firmware-update`,
 `font-library`, `image-assets`, `modules`, `protocol`, `templates`). `shared/` holds types
 crossing the boundary; all IPC channels and the `SimCoreApi`
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 
-`app/workspace/` owns the navigation: a collapsible rail (`WorkspaceRail`) over seven workspaces —
-Dashboard, Modules, Protocol, Configs, Firmware, Info, Debug, ordered once in
+`src/debug/` is a **second Electron application** built from the same package: `pnpm run dev:debug`
+(`electron.vite.debug.config.ts` → `out-debug/`) against `pnpm run dev` (`out/`). It holds the
+serial console, the telemetry bench and the `@SC:DIAG` charts, and carries firmware upload and raw
+document editing of its own because one serial port admits one process. It reuses the product by
+composing `createAppServices()` and calling `registerIpcHandlers()` plus its own
+`registerDebugHandlers()`, and extends the bridge as `SimCoreDebugApi`. The dependency runs **one
+way** — `src/debug/**` may import anything; `src/main`, `src/preload`, `src/renderer` and
+`src/shared` may not import `src/debug`, which an ESLint `no-restricted-imports` rule enforces.
+See [ADR 0028](docs/adr/0028-debug-build-and-debug-application-boundary.md).
+
+`app/workspace/` owns the navigation: a collapsible rail (`WorkspaceRail`) over six workspaces —
+Dashboard, Modules, Protocol, Configs, Firmware, Info, ordered once in
 `WORKSPACE_TABS` so the rail and the `Cmd`/`Ctrl`+digit accelerators cannot
 disagree — with the active one, the active
 dashboard page and the rail's width kept across restarts in `workspace-store.ts`, and one page
-chrome (`PageShell`) so the seven read as one application. Only Dashboard has pages of its own
+chrome (`PageShell`) so the six read as one application. Only Dashboard has pages of its own
 (`Canvas`, `Templates`, `Fonts`, `Images`), because all four answer what the dashboard is made of.
-What the window owns rather than a page — live apply, the serial traffic log, `Cmd`/`Ctrl`+`S`, the
+What the window owns rather than a page — live apply, `Cmd`/`Ctrl`+`S`, the
 unresolved-fonts dialog — is mounted in `App.tsx`, so leaving a page never stops it.
 
 The draft is one aggregate `DeviceConfiguration`, sliced into the three device documents only at the

@@ -3,10 +3,13 @@
 #include <cstdint>
 #include <span>
 
+#include "simcore_features.hpp"
+
 namespace simcore::transport {
 
 using DataHandler = void (*)(std::span<const std::uint8_t> data, void* context);
 
+#if SIMCORE_DEBUG
 struct Diagnostics {
   std::uint64_t received_bytes{};
   std::uint64_t read_events{};
@@ -16,6 +19,7 @@ struct Diagnostics {
   std::uint32_t maximum_read_gap_ms{};
   std::uint32_t maximum_handler_time_us{};
 };
+#endif
 
 class ITransport {
  public:
@@ -24,9 +28,11 @@ class ITransport {
   virtual bool start(DataHandler handler, void* context) = 0;
   virtual void stop() = 0;
   [[nodiscard]] virtual bool write(std::span<const std::uint8_t> data) = 0;
+#if SIMCORE_DEBUG
   [[nodiscard]] virtual Diagnostics diagnostics() const {
     return {};
   }
+#endif
 };
 
 }

@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { isUnresolvedFonts, type SaveProgress } from '@shared/save-to-board'
 import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import type { DeviceConfiguration } from '@shared/device'
-import { writeDebugLog } from '@/features/debug/debug-log'
+import { writeEventLog } from '@/lib/event-log'
 import { operationErrorMessage } from './bridge-errors'
 import { formatConfiguration, useDeviceStore } from './device-store'
 
@@ -41,7 +41,7 @@ export async function saveDraftToBoard(
       json,
       ...(documents ? { documents } : {})
     })
-    writeDebugLog('Save to board completed', result)
+    writeEventLog('Save to board completed', result)
     if (!result.ok) {
       if (isUnresolvedFonts(result.error)) {
         useSaveToBoardStore.setState({ unresolvedFonts: result.error.families })

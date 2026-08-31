@@ -1,11 +1,3 @@
-import type {
-  BenchPatternRequest,
-  BenchResult,
-  BenchSample,
-  BenchStartRequest,
-  BenchStatus,
-  BenchUpdateRequest
-} from './bench'
 import type { AssetResult, AssetUploadProgress } from './asset-upload'
 import type { ImageSourceSelection, ImageUploadRequest } from './image-assets'
 import type {
@@ -23,7 +15,6 @@ import type {
   FirmwareSourceSelection,
   FirmwareUpdateResult,
   FirmwareUploadProgress,
-  FirmwareRegisterSourceRequest,
   FirmwareUploadRequest
 } from './firmware-update'
 import type { FontAssetResult } from './font-assets'
@@ -45,7 +36,6 @@ import type {
   SaveToBoardRequest,
   SaveToBoardResult
 } from './save-to-board'
-import type { ControlCommandRequest, ControlCommandResult, SerialTrafficLog } from './debug'
 import type { PreviewAssets } from './preview-assets'
 import type {
   ConfigurationFileLoadValue,
@@ -129,13 +119,6 @@ export interface SimCoreApi {
     request?: DeviceConfigurationResetRequest
   ) => Promise<DeviceResult<DeviceConfigurationResetResult>>
   rebootDevice: () => Promise<DeviceResult<DeviceState>>
-  sendControlCommand: (request: ControlCommandRequest) => Promise<ControlCommandResult>
-  getBenchStatus: () => Promise<BenchStatus>
-  startBench: (request: BenchStartRequest) => Promise<BenchResult<BenchStatus>>
-  updateBench: (request: BenchUpdateRequest) => Promise<BenchResult<BenchStatus>>
-  stopBench: () => Promise<BenchResult<BenchStatus>>
-  applyBenchPattern: (request: BenchPatternRequest) => Promise<BenchResult<BenchStatus>>
-  restoreBenchDashboard: () => Promise<BenchResult<BenchStatus>>
   listFontLibrary: () => Promise<FontLibrarySnapshot>
   readFontFaces: (request: FontFacesRequest) => Promise<FontFaceBytes[]>
   importFontFace: (
@@ -152,9 +135,6 @@ export interface SimCoreApi {
   cancelFontUpload: () => Promise<FontAssetResult<void>>
   clearFontAssets: () => Promise<DeviceResult<DeviceState>>
   selectFirmwareSource: () => Promise<FirmwareUpdateResult<FirmwareSourceSelection | null>>
-  registerFirmwareSource: (
-    request: FirmwareRegisterSourceRequest
-  ) => Promise<FirmwareUpdateResult<FirmwareSourceSelection>>
   uploadFirmware: (request: FirmwareUploadRequest) => Promise<FirmwareUpdateResult<void>>
   cancelFirmwareUpload: () => Promise<FirmwareUpdateResult<void>>
   selectImageSource: () => Promise<AssetResult<ImageSourceSelection | null>>
@@ -172,7 +152,4 @@ export interface SimCoreApi {
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
-  onSerialTraffic: (listener: (logs: SerialTrafficLog[]) => void) => () => void
-  onBenchStatus: (listener: (status: BenchStatus) => void) => () => void
-  onBenchSample: (listener: (sample: BenchSample) => void) => () => void
 }

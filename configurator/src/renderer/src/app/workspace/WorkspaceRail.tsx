@@ -7,8 +7,7 @@ import {
   type LucideIcon,
   PanelLeftClose,
   PanelLeftOpen,
-  Puzzle,
-  Terminal
+  Puzzle
 } from 'lucide-react'
 import { useEffect } from 'react'
 
@@ -37,8 +36,7 @@ const ENTRIES: Record<WorkspaceTab, RailEntry> = {
   protocol: { label: 'Protocol', icon: Cable, hint: 'Telemetry link and SimHub' },
   configs: { label: 'Configs', icon: Files, hint: 'Files, saved configurations and JSON' },
   firmware: { label: 'Firmware', icon: Cpu, hint: 'Install a firmware image over serial' },
-  info: { label: 'Info', icon: Info, hint: 'What the connected board is' },
-  debug: { label: 'Debug', icon: Terminal, hint: 'Serial traffic and control commands' }
+  info: { label: 'Info', icon: Info, hint: 'What the connected board is' }
 }
 
 const OWNED_DOCUMENT: Partial<Record<WorkspaceTab, ConfigurationDocumentId>> = {

@@ -7,8 +7,11 @@
 #include "dashboard_images.hpp"
 #include "dashboard_layout.hpp"
 #include "event_bus.hpp"
+#include "simcore_features.hpp"
+#if SIMCORE_DEBUG
 #include "fps_overlay_widget.hpp"
 #include "performance_overlay_widget.hpp"
+#endif
 #include "arc_widget.hpp"
 #include "bar_widget.hpp"
 #include "graph_binding.hpp"
@@ -162,8 +165,10 @@ struct Dashboard {
   std::array<std::int32_t, configuration::kMaximumSlotWidgets> slot_overflow{};
   dashboard::slots::Controller slots;
   dashboard::navigation::Controller navigation;
+#if SIMCORE_DEBUG
   dashboard::performance_overlay_widget::View performance_overlay;
   dashboard::fps_overlay_widget::View fps_overlay;
+#endif
   dashboard::WidgetManager widgets;
   TextWidgets text;
   ShapeWidgets shape;

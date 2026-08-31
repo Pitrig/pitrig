@@ -9,19 +9,37 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["./src/shared/*"]
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@main/*": [
+        "./src/main/*"
+      ],
+      "@debug-shared/*": [
+        "./src/debug/shared/*"
+      ]
     },
     "tsBuildInfoFile": "./out/.tsbuildinfo/node",
     "noEmit": true,
     "resolveJsonModule": true,
-    "types": ["electron-vite/node", "node"]
+    "types": [
+      "electron-vite/node",
+      "node"
+    ]
   },
   "include": [
     "electron.vite.config.ts",
+    "electron.vite.debug.config.ts",
+    "electron.vite.shared.ts",
     "src/main/**/*.ts",
     "src/main/**/*.json",
     "src/preload/**/*.ts",
-    "src/shared/**/*.ts"
+    "src/shared/**/*.ts",
+    "src/debug/main/**/*.ts",
+    "src/debug/preload/**/*.ts",
+    "src/debug/shared/**/*.ts"
   ],
-  "exclude": ["src/main/font-library/google-fonts-catalog.json"]
+  "exclude": [
+    "src/main/font-library/google-fonts-catalog.json"
+  ]
 }

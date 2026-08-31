@@ -35,6 +35,10 @@ pnpm install
 pnpm run dev
 ```
 
+`pnpm run dev:debug` starts the separate debug application from the same package
+— serial console, telemetry bench, firmware upload and raw document editing. One
+serial port admits one process, so run whichever of the two you need.
+
 The configurator identifies the connected board, reports its read-only display
 descriptor, loads and previews its sparse configuration, validates and
 saves configuration changes, manages uploaded font and image assets, and can

@@ -41,7 +41,6 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/image_assets"
      "${CMAKE_CURRENT_LIST_DIR}/services/image_contract"
      "${CMAKE_CURRENT_LIST_DIR}/services/logger"
-     "${CMAKE_CURRENT_LIST_DIR}/services/performance"
      "${CMAKE_CURRENT_LIST_DIR}/services/telemetry"
      "${CMAKE_CURRENT_LIST_DIR}/services/telemetry/protocols/simhub"
      "${CMAKE_CURRENT_LIST_DIR}/utils/binary"
@@ -50,10 +49,15 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/text_writer"
      "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/time_transform")
 
+list(APPEND EXTRA_COMPONENT_DIRS
+     "${CMAKE_CURRENT_LIST_DIR}/debug/diagnostics_command"
+     "${CMAKE_CURRENT_LIST_DIR}/debug/instrumentation"
+     "${CMAKE_CURRENT_LIST_DIR}/debug/overlays"
+     "${CMAKE_CURRENT_LIST_DIR}/debug/performance")
+
 if(IDF_TARGET STREQUAL "esp32p4")
     list(APPEND EXTRA_COMPONENT_DIRS
-         "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_jc1060p470c"
-         "${CMAKE_CURRENT_LIST_DIR}/drivers/transport/usb_serial_jtag")
+         "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_jc1060p470c")
 else()
     list(APPEND EXTRA_COMPONENT_DIRS
          "${CMAKE_CURRENT_LIST_DIR}/drivers/guition_esp32_4848s040"

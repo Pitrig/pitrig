@@ -1,4 +1,4 @@
-import { writeDebugLog } from '@/features/debug/debug-log'
+import { writeEventLog } from '@/lib/event-log'
 import { bridgeErrorMessage, operationErrorMessage } from '@/features/device/bridge-errors'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
@@ -50,7 +50,7 @@ export async function openConfigurationFile(): Promise<ActionFeedback | undefine
   }
   try {
     const result = await window.simcore.loadConfigurationFile()
-    writeDebugLog('Configuration file load completed', result)
+    writeEventLog('Configuration file load completed', result)
     if (!result.ok) return { kind: 'error', message: result.error.message }
     if (!result.value) return undefined
     adoptNewDocument(result.value.configuration, result.value.fileName)
@@ -67,7 +67,7 @@ export async function saveConfigurationFile(): Promise<ActionFeedback | undefine
     const result = await window.simcore.saveConfigurationFile({
       json: formatConfiguration(draft)
     })
-    writeDebugLog('Configuration file save completed', result)
+    writeEventLog('Configuration file save completed', result)
     if (!result.ok) return { kind: 'error', message: result.error.message }
     if (!result.value.saved) return undefined
     adoptNewDocument(draft, result.value.fileName)
@@ -203,12 +203,12 @@ async function run<T>(
 ): Promise<ActionFeedback> {
   try {
     const result = await action()
-    writeDebugLog(`Configuration ${operation} completed`, result)
+    writeEventLog(`Configuration ${operation} completed`, result)
     if (!result.ok) return { kind: 'error', message: result.error.message }
     return { kind: 'success', message: onSuccess(result.value) }
   } catch (error) {
     const message = operationErrorMessage(error)
-    writeDebugLog(`Configuration ${operation} failed`, { message })
+    writeEventLog(`Configuration ${operation} failed`, { message })
     return { kind: 'error', message }
   }
 }

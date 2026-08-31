@@ -4,8 +4,15 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
+const productSources = [
+  'src/main/**/*.{ts,tsx}',
+  'src/preload/**/*.{ts,tsx}',
+  'src/renderer/**/*.{ts,tsx}',
+  'src/shared/**/*.{ts,tsx}'
+]
+
 export default tseslint.config(
-  { ignores: ['node_modules', 'out'] },
+  { ignores: ['node_modules', 'out', 'out-debug'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
@@ -14,7 +21,24 @@ export default tseslint.config(
     }
   },
   {
-    files: ['src/renderer/src/**/*.{ts,tsx}'],
+    files: productSources,
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/debug/**', '@debug-shared/*'],
+              message:
+                'The product must not import debug code. Debug tooling lives in src/debug and depends on the product, never the other way round.'
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    files: ['src/renderer/src/**/*.{ts,tsx}', 'src/debug/renderer/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser
     },
@@ -33,9 +57,14 @@ export default tseslint.config(
   {
     files: [
       'electron.vite.config.ts',
+      'electron.vite.debug.config.ts',
+      'electron.vite.shared.ts',
       'src/main/**/*.ts',
       'src/preload/**/*.ts',
-      'src/shared/**/*.ts'
+      'src/shared/**/*.ts',
+      'src/debug/main/**/*.ts',
+      'src/debug/preload/**/*.ts',
+      'src/debug/shared/**/*.ts'
     ],
     languageOptions: {
       globals: globals.node

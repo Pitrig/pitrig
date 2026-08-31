@@ -2,6 +2,8 @@
 
 #include <cstdio>
 
+#include "simcore_features.hpp"
+
 namespace simcore::image_assets {
 namespace {
 
@@ -79,7 +81,9 @@ bool ImageAssetControl::initialize(Service& service,
       {
           .tag = "IMAGE",
           .task_name = "image_asset_control",
+#if SIMCORE_DEBUG
           .metric = performance::TaskMetric::image_asset_control,
+#endif
       },
       {
           .service = &service,
