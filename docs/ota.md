@@ -126,7 +126,9 @@ The host can query firmware state without starting an upload:
 
 `storage` reports whether a second slot exists to update into. `running` and
 `target` name the partition in use and the one the next upload lands in.
-`version` is the running image's version string. `pending_verify` is set while
+`version` is the running image's version string, which comes from `firmware/version.txt` through
+ESP-IDF's `PROJECT_VER`; with no such file it is whatever `git describe` returns, which is a bare
+commit id. `pending_verify` is set while
 the running image still has to be confirmed. `reboot_required` is set after a
 successful commit until restart.
 

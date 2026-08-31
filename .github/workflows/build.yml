@@ -19,9 +19,9 @@ jobs:
     name: Checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -70,9 +70,9 @@ jobs:
               configurator/dist/*.AppImage
               configurator/dist/*.deb
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -111,7 +111,7 @@ jobs:
           done
           echo "$asar carries no debug code"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.files }}
@@ -139,7 +139,7 @@ jobs:
             target: esp32p4
             defaults: sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Trust the workspace
         run: git config --global --add safe.directory '*'
@@ -171,7 +171,7 @@ jobs:
           cp "$build/flasher_args.json" "$out/"
           cp "$build/simcore.elf" "$out/"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: firmware-${{ matrix.board }}
           path: firmware-out/${{ matrix.board }}/**
@@ -185,9 +185,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: downloads
 

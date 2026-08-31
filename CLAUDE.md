@@ -75,8 +75,12 @@ LVGL PPA / DSI patches from `firmware/cmake/`.
 [.github/workflows/build.yml](.github/workflows/build.yml) runs on a push to `release` and on
 demand: `checks` (the three generators with `--check`, `check_debug_isolation.py --check`, then
 the configurator's typecheck and lint), then `configurator` (electron-builder on macOS, Windows and
-Linux runners) and `firmware` (three boards in `espressif/idf:v6.0.2`), then a **draft** GitHub
-release holding the installers, the three OTA images and a per-board archive.
+Linux runners: `dmg`, `nsis`, `AppImage` and `deb`) and `firmware` (three boards in
+`espressif/idf:v6.0.2`), then a **draft** GitHub release holding the installers, the three OTA
+images and a per-board archive. Every packaged application is checked for debug traces before it is
+uploaded: the ESLint boundary of ADR 0028 keeps `src/debug` out of the product sources, and the
+`app.asar` grep keeps a packaging mistake from shipping it anyway. Nothing signs the applications,
+so macOS needs `xattr -dr com.apple.quarantine` and Windows shows a SmartScreen warning.
 
 The two halves carry **separate versions**: `configurator/package.json` versions the desktop
 application and names the release tag, while `firmware/version.txt` is the board's own — ESP-IDF
@@ -130,6 +134,13 @@ the debug renderer. There is no test runner.
 `pnpm run package:debug` does the same for the debugger through `electron-builder.debug.yml`
 (`dist-debug/`), which points `main` at `out-debug/` through `extraMetadata`. Both take their icon
 from `resources/icon.png` and neither is code-signed (`identity: null`).
+
+Every dependency whose install script must run is listed in `allowBuilds` in
+[configurator/pnpm-workspace.yaml](configurator/pnpm-workspace.yaml), and **`electron` is one of
+them**: its install script is what downloads the binary, so without the entry `pnpm run dev` fails
+with `Error: Electron uninstall` while packaging still works — electron-builder fetches its own
+copy. An unanswered entry (pnpm writes `set this to true or false` when it meets a new one) makes
+every `pnpm run` fail until it is decided.
 
 ### Debug isolation
 
