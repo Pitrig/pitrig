@@ -24,6 +24,12 @@ linux:
   icon: resources/icon.png
   category: Development
   maintainer: SimCore <simcoreproject@users.noreply.github.com>
+  executableName: simcore
+  syncDesktopName: true
   target:
     - AppImage
     - deb
+
+deb:
+  packageName: simcore
+  artifactName: simcore_${version}_${arch}.${ext}
