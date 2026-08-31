@@ -423,6 +423,9 @@
               },
               "title": {
                 "text": "\ue8b5 RACE LEFT",
+                "source": {
+                  "binding": "session.type"
+                },
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 15,
@@ -518,6 +521,9 @@
               },
               "title": {
                 "text": "\uea0b ENERGY",
+                "source": {
+                  "binding": "vehicle.energy.deployment_mode"
+                },
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 15,

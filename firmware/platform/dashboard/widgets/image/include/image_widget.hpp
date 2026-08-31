@@ -52,6 +52,7 @@ class Binder final {
  private:
   std::array<frame::SourceContext, kMaximumInstances> frame_contexts_{};
   std::array<frame::SourceContext, kMaximumInstances> condition_contexts_{};
+  std::array<frame::SourceContext, kMaximumInstances> caption_contexts_{};
   std::array<frame::ValueBinding, kMaximumInstances> bindings_{};
   std::size_t count_{};
 };

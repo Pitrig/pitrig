@@ -160,6 +160,15 @@ function findSourceError(widget: WidgetConfiguration, label: string): string | u
   return undefined
 }
 
+function findCaptionError(widget: WidgetConfiguration, label: string): string | undefined {
+  const binding = widget.title?.source?.binding
+  if (!binding) return undefined
+  if (!widget.title?.text) {
+    return `The caption of ${label} reads telemetry but has no text of its own to fall back on.`
+  }
+  return bindingError(binding, '', label, 'The caption source')
+}
+
 function findConditionError(widget: WidgetConfiguration, label: string): string | undefined {
   const rules = widget.conditions ?? []
   const stops = widget.color_ramp?.stops ?? []
@@ -215,6 +224,7 @@ export function findWidgetValueError(
     findColorError(widget, label) ??
     findEnumError(widget, label) ??
     findSourceError(widget, label) ??
+    findCaptionError(widget, label) ??
     findConditionError(widget, label) ??
     findSegmentError(widget, label)
   )

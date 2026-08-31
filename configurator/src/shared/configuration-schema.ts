@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 18
+export const CONFIGURATION_SCHEMA_VERSION = 19
 
 export const MAXIMUM_PAYLOAD_SIZE = 131072
 export const MAXIMUM_SCREENS = 4
@@ -171,17 +171,6 @@ export interface WidgetBorder {
   radius_px?: number
 }
 
-export interface WidgetTitleStyle {
-  text?: string
-  font?: FontSpec
-  color?: RgbColor
-  alignment?: TextAlignment
-  offset_x_px?: number
-  offset_y_px?: number
-  border_gap?: boolean
-  gap_padding_px?: number
-}
-
 export interface WidgetValueStyle {
   font?: FontSpec
   color?: RgbColor
@@ -202,6 +191,18 @@ export interface ValueModifier {
 export interface ValueSourceConfiguration {
   binding?: string
   modifiers?: ValueModifier[]
+}
+
+export interface WidgetTitleStyle {
+  text?: string
+  source?: ValueSourceConfiguration
+  font?: FontSpec
+  color?: RgbColor
+  alignment?: TextAlignment
+  offset_x_px?: number
+  offset_y_px?: number
+  border_gap?: boolean
+  gap_padding_px?: number
 }
 
 export interface ColorStop {
@@ -562,11 +563,11 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   WidgetPlacement: ['x', 'y', 'width', 'height'],
   WidgetInsets: ['left', 'top', 'right', 'bottom'],
   WidgetBorder: ['color', 'width_px', 'radius_px'],
-  WidgetTitleStyle: ['text', 'font', 'color', 'alignment', 'offset_x_px', 'offset_y_px', 'border_gap', 'gap_padding_px'],
   WidgetValueStyle: ['font', 'color', 'alignment', 'unavailable_text'],
   ValueTransform: ['type', 'format', 'decimals', 'scale', 'offset', 'prefix', 'suffix'],
   ValueModifier: ['type'],
   ValueSourceConfiguration: ['binding', 'modifiers'],
+  WidgetTitleStyle: ['text', 'source', 'font', 'color', 'alignment', 'offset_x_px', 'offset_y_px', 'border_gap', 'gap_padding_px'],
   ColorStop: ['at', 'color'],
   ColorRamp: ['target', 'stops'],
   WidgetAction: ['type', 'screen'],
@@ -601,9 +602,9 @@ export const SCHEMA_VARIANT_ARRAYS: Record<string, readonly string[]> = {
 
 export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   TelemetryTransportConfiguration: { uart: 'UartTelemetryConfiguration' },
-  WidgetTitleStyle: { font: 'FontSpec' },
   WidgetValueStyle: { font: 'FontSpec' },
   ValueSourceConfiguration: { modifiers: 'ValueModifier' },
+  WidgetTitleStyle: { source: 'ValueSourceConfiguration', font: 'FontSpec' },
   ColorRamp: { stops: 'ColorStop' },
   TextSourceConfiguration: { modifiers: 'ValueModifier', transform: 'ValueTransform' },
   WidgetFrame: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
@@ -622,11 +623,11 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
 }
 
 export const TEXT_CAPACITIES: Record<string, number> = {
-  'WidgetTitleStyle.text': 16,
   'WidgetValueStyle.unavailable_text': 16,
   'ValueTransform.prefix': 16,
   'ValueTransform.suffix': 16,
   'ValueSourceConfiguration.binding': 40,
+  'WidgetTitleStyle.text': 16,
   'WidgetAction.screen': 16,
   'TextSourceConfiguration.binding': 40,
   'WidgetFrame.id': 16,

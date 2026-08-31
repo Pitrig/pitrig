@@ -9,7 +9,8 @@ bool Binder::bind_one(
     const std::span<const configuration::ValueModifier> modifiers,
     const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry,
-    const ModifierReaders& modifier_readers, BoundConfig& bound) {
+    const ModifierReaders& modifier_readers, const std::size_t context_index,
+    BoundConfig& bound) {
   const telemetry::Handle handle = registry.resolve(name);
   if (!handle.valid()) {
     return false;
@@ -23,10 +24,10 @@ bool Binder::bind_one(
     read = reader.read;
     read_context = reader.context;
   } else {
-    if (context_count_ >= source_contexts_.size()) {
+    if (context_index >= source_contexts_.size()) {
       return false;
     }
-    SourceContext& context = source_contexts_[context_count_++];
+    SourceContext& context = source_contexts_[context_index];
     context = {
         .telemetry = &telemetry,
         .handle = handle,
@@ -46,7 +47,7 @@ bool Binder::bind_one(
 }
 
 bool Binder::bind_sources(
-    const Config& configuration,
+    const Config& configuration, const std::size_t instance,
     const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry,
     const ModifierReaders& modifier_readers, WidgetBinding& binding) {
@@ -54,25 +55,38 @@ bool Binder::bind_sources(
       configuration.source_count > binding.sources.size()) {
     return false;
   }
+  const std::size_t base = instance * kContextsPerInstance;
   for (std::size_t index = 0; index < configuration.source_count; ++index) {
     const configuration::TextSourceConfiguration& source =
         configuration.sources[index];
     if (!bind_one(configuration::value_binding_view(source.binding),
                   source.modifier_count, source.modifiers, registry, telemetry,
-                  modifier_readers, binding.sources[index])) {
+                  modifier_readers, base + index, binding.sources[index])) {
       return false;
     }
   }
   binding.count = configuration.source_count;
 
-  if (!frame::watches_value(configuration.frame)) {
+  const configuration::WidgetFrame& widget_frame = configuration.frame;
+  if (frame::watches_value(widget_frame)) {
+    const configuration::ValueSourceConfiguration& watched =
+        widget_frame.condition_source;
+    if (!bind_one(configuration::value_binding_view(watched.binding),
+                  watched.modifier_count, watched.modifiers, registry,
+                  telemetry, modifier_readers, base + kMaximumSources,
+                  binding.condition)) {
+      return false;
+    }
+  }
+  if (!frame::binds_caption(widget_frame)) {
     return true;
   }
-  const configuration::ValueSourceConfiguration& source =
-      configuration.frame.condition_source;
-  return bind_one(configuration::value_binding_view(source.binding),
-                  source.modifier_count, source.modifiers, registry, telemetry,
-                  modifier_readers, binding.condition);
+  const configuration::ValueSourceConfiguration& caption =
+      widget_frame.title.source;
+  return bind_one(configuration::value_binding_view(caption.binding),
+                  caption.modifier_count, caption.modifiers, registry,
+                  telemetry, modifier_readers, base + kMaximumSources + 1,
+                  binding.caption);
 }
 
 bool Binder::bind(
@@ -81,7 +95,6 @@ bool Binder::bind(
     const telemetry::ITelemetryReader& telemetry,
     const ModifierReaders& modifier_readers) {
   count_ = 0;
-  context_count_ = 0;
   if (configurations.size() > bindings_.size()) {
     return false;
   }
@@ -89,10 +102,9 @@ bool Binder::bind(
   for (const Config& configuration : configurations) {
     WidgetBinding& binding = bindings_[count_];
     binding = {};
-    if (!bind_sources(configuration, registry, telemetry, modifier_readers,
-                      binding)) {
+    if (!bind_sources(configuration, count_, registry, telemetry,
+                      modifier_readers, binding)) {
       count_ = 0;
-      context_count_ = 0;
       return false;
     }
     ++count_;

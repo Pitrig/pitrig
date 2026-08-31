@@ -143,6 +143,15 @@ bool Validator::frame(const WidgetFrame& config) {
       (config.title.text.front() != '\0' && !valid_font(config.title.font))) {
     return reject(failure_, ValidationError::invalid_widget, "title");
   }
+  if (const std::string_view caption =
+          value_binding_view(config.title.source.binding);
+      !caption.empty() &&
+      (config.title.text.front() == '\0' ||
+       !registry_.resolve(caption).valid() ||
+       config.title.source.modifier_count >
+           config.title.source.modifiers.size())) {
+    return reject(failure_, ValidationError::invalid_widget, "title.source");
+  }
   return conditions(config);
 }
 

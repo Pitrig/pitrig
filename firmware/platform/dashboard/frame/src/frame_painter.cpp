@@ -1,6 +1,7 @@
 #include "widget_frame.hpp"
 
 #include "lvgl.h"
+#include "value_text.hpp"
 #include "widget_conditions.hpp"
 
 namespace simcore::dashboard::frame {
@@ -28,7 +29,12 @@ void Painter::configure(const Config& config, const Box& box,
   }
   caption_mask_ = box.caption_mask;
   caption_mask_rgb_ = box.caption_mask.rgb;
-  if (caption_mask_.present && box.container != nullptr) {
+  caption_layout_ = box.caption_layout;
+  value_text::copy_text(caption_fallback_, config.title.text);
+  const bool masks = caption_mask_.present ||
+                     (box.caption != nullptr && caption_layout_.border_gap &&
+                      caption_layout_.border_width > 0);
+  if (masks && box.container != nullptr) {
     lv_obj_add_event_cb(box.container, &draw_caption_mask,
                         LV_EVENT_DRAW_POST_END, this);
   }
@@ -96,6 +102,7 @@ void Painter::paint_caption_mask(lv_layer_t* const layer) const {
 }
 
 void Painter::render() {
+  render_caption();
   const telemetry::TelemetryRead value =
       read_ != nullptr ? read_(read_context_) : telemetry::TelemetryRead{};
   bool changed = false;

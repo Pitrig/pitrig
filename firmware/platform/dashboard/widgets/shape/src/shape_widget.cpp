@@ -22,8 +22,8 @@ void apply_kind(const Config& config, const frame::Box& box) {
 
 bool Collection::build(State& state, const Layout& layout,
                        const Config& config,
-                       const frame::ValueReadCallback read,
-                       void* const read_context, const fonts::Registry& fonts) {
+                       const frame::ValueBinding& binding,
+                       const fonts::Registry& fonts) {
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
@@ -36,14 +36,14 @@ bool Collection::build(State& state, const Layout& layout,
   apply_kind(config, box);
   state.painter.configure(config.frame, box, config.frame.border.color,
                           nullptr, nullptr);
-  state.painter.bind(read, read_context);
+  state.painter.bind(binding.condition_read, binding.condition_context);
+  state.painter.bind_caption(binding.caption_read, binding.caption_context);
   return true;
 }
 
 bool Collection::restyle(const std::size_t index, const Layout& layout,
                          const Config& config,
-                         const frame::ValueReadCallback read,
-                         void* const read_context,
+                         const frame::ValueBinding& binding,
                          const fonts::Registry& fonts) {
   return update_one(index, [&](State& state) {
     frame::Box box{.container = state.container,
@@ -55,7 +55,8 @@ bool Collection::restyle(const std::size_t index, const Layout& layout,
     state.painter.release();
     state.painter.configure(config.frame, box, config.frame.border.color,
                             nullptr, nullptr);
-    state.painter.bind(read, read_context);
+    state.painter.bind(binding.condition_read, binding.condition_context);
+    state.painter.bind_caption(binding.caption_read, binding.caption_context);
     return true;
   });
 }
@@ -75,19 +76,17 @@ bool Collection::holds_widgets(const std::size_t index) const {
 
 bool Collection::create(const Layout& layout,
                         const std::span<const Config> configurations,
-                        const std::span<const frame::ValueReadCallback> reads,
-                        const std::span<void* const> read_contexts,
+                        const std::span<const frame::ValueBinding> bindings,
                         const fonts::Registry& fonts,
                         const std::span<lv_obj_t*> containers) {
-  if (layout.display == nullptr || reads.size() != configurations.size() ||
-      read_contexts.size() != configurations.size()) {
+  if (layout.display == nullptr || bindings.size() != configurations.size()) {
     return false;
   }
   containers_ = containers;
   return build_all(configurations.size(),
                    [&](State& state, const std::size_t index) {
                      if (!build(state, layout, configurations[index],
-                                reads[index], read_contexts[index], fonts)) {
+                                bindings[index], fonts)) {
                        return false;
                      }
                      if (index < containers_.size()) {
@@ -99,19 +98,18 @@ bool Collection::create(const Layout& layout,
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
                           const Config& configuration,
-                          const frame::ValueReadCallback read,
-                          void* const read_context,
+                          const frame::ValueBinding& binding,
                           const fonts::Registry& fonts,
                           const std::span<lv_obj_t*> containers) {
   containers_ = containers;
-  if (restyle(index, layout, configuration, read, read_context, fonts)) {
+  if (restyle(index, layout, configuration, binding, fonts)) {
     return true;
   }
   if (holds_widgets(index)) {
     return false;
   }
   const bool built = rebuild_one(index, [&](State& state) {
-    return build(state, layout, configuration, read, read_context, fonts);
+    return build(state, layout, configuration, binding, fonts);
   });
   if (index < containers_.size()) {
     containers_[index] = built ? root_object(index) : nullptr;

@@ -8,6 +8,7 @@ import { draftFontFamily, useDashboardEditorStore } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FontPicker } from '@/features/font-library/FontPicker'
 import { previewFontFamily, useFontFaceStore } from '@/features/font-library/font-face-store'
+import { isIconFace } from '@/features/font-library/icon-face'
 import { findFontEntry, useFontLibraryStore } from '@/features/font-library/font-library-store'
 
 import { NumberInput } from './fields'
@@ -17,6 +18,7 @@ export function FontFamilyPicker({ family, onChange }: { family?: string; onChan
   const entries = useFontLibraryStore((state) => state.entries)
   const loaded = useFontFaceStore((state) => state.loaded)
   const entry = findFontEntry(entries, family)
+  const painted = family && loaded[family] && !isIconFace(family, entry?.category)
   return (
     <>
       <button
@@ -27,7 +29,7 @@ export function FontFamilyPicker({ family, onChange }: { family?: string; onChan
       >
         <span
           className="min-w-0 flex-1 truncate"
-          style={family && loaded[family] ? { fontFamily: previewFontFamily(family) } : undefined}
+          style={painted ? { fontFamily: previewFontFamily(family) } : undefined}
         >
           {entry ? entry.name : family ? `Unresolved: ${family}` : 'Choose font…'}
         </span>

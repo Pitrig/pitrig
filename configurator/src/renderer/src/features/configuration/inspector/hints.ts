@@ -32,6 +32,8 @@ export const HINTS = {
     fallback:
       'A second installed family to try for glyphs the first does not have — an icon family beside a text one, which is how a value carries an icon and its number in one widget. It is built at the same size, so it costs one more font.',
     text: 'A caption drawn on the widget box. Clearing the text removes the caption entirely, which is what a panel used as a container or a tap zone usually wants.',
+    source:
+      'Telemetry the caption reads instead of the text, so a label can name what the widget is showing. The text stays the fallback: it is what the caption reads until the field arrives, and what the widget box is sized against.',
     font: 'The family comes from the font library and the size is this caption’s alone — the board holds one face per family and rasterizes any size from it.',
     alignment:
       'The point on the widget box the caption is anchored to. The top and bottom rows straddle their border line; the middle row sits inside the box.',

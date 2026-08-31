@@ -1,0 +1,29 @@
+appId: dev.simcore.debugger
+productName: SimCore Debugger
+directories:
+  output: dist-debug
+extraMetadata:
+  main: out-debug/main/index.js
+files:
+  - out-debug/main/**
+  - out-debug/preload/**
+  - out-debug/renderer/**
+  - resources/**
+  - package.json
+asarUnpack:
+  - '**/*.node'
+mac:
+  icon: resources/icon.png
+  category: public.app-category.developer-tools
+  identity: null
+  target:
+    - dir
+win:
+  icon: resources/icon.png
+  target:
+    - dir
+linux:
+  icon: resources/icon.png
+  category: Development
+  target:
+    - dir

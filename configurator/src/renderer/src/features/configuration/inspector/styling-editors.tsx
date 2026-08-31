@@ -2,6 +2,7 @@ import type { FramedWidgetConfiguration } from '@shared/configuration-access'
 import { FILL_CORNERS_VALUES, GRADIENT_DIRECTION_VALUES, type GradientDirection, TEXT_ALIGNMENT_VALUES, WIDGET_TITLE_CAPACITY, type WidgetTitleStyle } from '@shared/configuration-schema'
 import { DEFAULT_CAPTION_FONT_SIZE_PX, draftFontFamily, useDashboardEditorStore } from '../dashboard-editor'
 import { IconTextField } from './IconPicker'
+import { TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Advanced, Group } from './Group'
 import { HINTS } from './hints'
@@ -20,6 +21,7 @@ export function TitleEditor({ widget, update }: {
   const borderGap = widget.title?.border_gap ?? true
   const anchor = alignmentAnchor(widget.title?.alignment ?? 'top_center')
   const inCorner = anchor.column !== 'center' && anchor.row !== 'middle'
+  const binding = widget.title?.source?.binding ?? ''
   const placed =
     authored(widget.title?.offset_x_px, 0) ||
     authored(widget.title?.offset_y_px, 0) ||
@@ -31,7 +33,7 @@ export function TitleEditor({ widget, update }: {
       title="Title"
       icon={GROUP_ICONS.title}
       hint={HINTS.title.text}
-      summary={widget.title?.text || 'None'}
+      summary={widget.title?.text ? [widget.title.text, binding].filter(Boolean).join(' · ') : 'None'}
       defaultOpen={Boolean(widget.title?.text)}
     >
       <IconTextField label="Text" capacity={WIDGET_TITLE_CAPACITY} value={widget.title?.text ?? ''} modified={authored(widget.title?.text, '')} onReset={() => update((next) => { delete next.title })} onChange={(value) => update((next) => {
@@ -52,6 +54,11 @@ export function TitleEditor({ widget, update }: {
       })} />
       {widget.title?.text ? (
         <>
+          <TelemetryBindingField label="Text from" hint={HINTS.title.source} value={binding} onReset={() => update((next) => { if (next.title) delete next.title.source })} onChange={(value) => update((next) => {
+            if (!next.title) return
+            if (!value) delete next.title.source
+            else next.title.source = { ...next.title.source, binding: value }
+          })} />
           <FontEditor font={widget.title.font} defaultSizePx={DEFAULT_CAPTION_FONT_SIZE_PX} hint={HINTS.title.font} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} />
           <ColorField label="Color" value={widget.title.color ?? '#E8E8E8'} modified={authored(widget.title.color, '#E8E8E8')} onReset={() => update((next) => { if (next.title) delete next.title.color })} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} />
           <SelectField label="Anchor" hint={HINTS.title.alignment} value={widget.title.alignment ?? 'top_center'} options={TEXT_ALIGNMENT_VALUES} modified={authored(widget.title.alignment, 'top_center')} onReset={() => update((next) => { if (next.title) delete next.title.alignment })} onChange={(value) => update((next) => {

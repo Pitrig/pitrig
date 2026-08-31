@@ -48,10 +48,11 @@ struct Anchor {
   return {Column::center, Row::middle};
 }
 
-[[nodiscard]] Rect caption_rect(const Config& config, const Rect& bounds,
+[[nodiscard]] Rect caption_rect(const CaptionLayout& layout,
                                 const std::int32_t width,
                                 const std::int32_t height) {
-  const Anchor anchor = anchor_of(config.title.alignment);
+  const Rect& bounds = layout.bounds;
+  const Anchor anchor = anchor_of(layout.alignment);
   std::int32_t x = bounds.x;
   switch (anchor.column) {
     case Column::left:
@@ -74,19 +75,24 @@ struct Anchor {
       y = bounds.y + bounds.height - height / 2;
       break;
   }
-  return {.x = x + config.title.offset_x_px,
-          .y = y + config.title.offset_y_px,
+  return {.x = x + layout.offset_x,
+          .y = y + layout.offset_y,
           .width = width,
           .height = height};
 }
 
-[[nodiscard]] bool caption_gap_rect(const Config& config, const Rect& bounds,
+[[nodiscard]] std::int32_t caption_line_height(const CaptionLayout& layout) {
+  return layout.font == nullptr ? 0 : lv_font_get_line_height(layout.font);
+}
+
+[[nodiscard]] bool caption_gap_rect(const CaptionLayout& layout,
                                     const Rect& caption, Rect& gap) {
-  const std::int32_t line = config.border.width_px;
-  if (!config.title.border_gap || line <= 0) {
+  const Rect& bounds = layout.bounds;
+  const std::int32_t line = layout.border_width;
+  if (!layout.border_gap || line <= 0) {
     return false;
   }
-  const std::int32_t pad = config.title.gap_padding_px;
+  const std::int32_t pad = layout.gap_padding;
   const std::int32_t left = caption.x - pad;
   const std::int32_t right = caption.x + caption.width + pad;
   const std::int32_t top = caption.y - pad;
@@ -128,6 +134,30 @@ std::uint32_t background_behind(const lv_obj_t* object) {
 }
 
 namespace internal {
+
+std::int32_t caption_width(const lv_font_t* const font, const char* const text) {
+  return text_width(font, text);
+}
+
+CaptionMask caption_mask_for(const CaptionLayout& layout,
+                             const std::int32_t width,
+                             const std::uint32_t rgb) {
+  const Rect caption = caption_rect(layout, width, caption_line_height(layout));
+  Rect gap{};
+  if (!caption_gap_rect(layout, caption, gap)) {
+    return {.rgb = rgb};
+  }
+  return {.present = true,
+          .x = gap.x - layout.bounds.x,
+          .y = gap.y - layout.bounds.y,
+          .width = gap.width,
+          .height = gap.height,
+          .rgb = rgb};
+}
+
+Rect caption_position(const CaptionLayout& layout, const std::int32_t width) {
+  return caption_rect(layout, width, caption_line_height(layout));
+}
 
 bool resolve_frame_box(const Layout& layout, const Config& config,
                        const char* const tag, const std::int32_t content_width,
@@ -179,20 +209,21 @@ void build_caption(const Config& config, const fonts::Registry& fonts,
   if (title_font == nullptr) {
     return;
   }
-  const Rect caption =
-      caption_rect(config, bounds, text_width(title_font, config.title.text.data()),
-                   lv_font_get_line_height(title_font));
-  if (Rect gap{}; caption_gap_rect(config, bounds, caption, gap)) {
-    const std::uint32_t gap_rgb = caption_mask_reads_parent(config)
-                                      ? background_behind(parent)
-                                      : config.background_color;
-    box.caption_mask = {.present = true,
-                        .x = gap.x - bounds.x,
-                        .y = gap.y - bounds.y,
-                        .width = gap.width,
-                        .height = gap.height,
-                        .rgb = gap_rgb & 0x00FF'FFFFU};
-  }
+  box.caption_layout = {.bounds = bounds,
+                        .font = title_font,
+                        .alignment = config.title.alignment,
+                        .border_width = config.border.width_px,
+                        .offset_x = config.title.offset_x_px,
+                        .offset_y = config.title.offset_y_px,
+                        .gap_padding = config.title.gap_padding_px,
+                        .border_gap = config.title.border_gap};
+  const std::uint32_t gap_rgb = caption_mask_reads_parent(config)
+                                    ? background_behind(parent)
+                                    : config.background_color;
+  const std::int32_t width = text_width(title_font, config.title.text.data());
+  box.caption_mask =
+      caption_mask_for(box.caption_layout, width, gap_rgb & 0x00FF'FFFFU);
+  const Rect caption = caption_position(box.caption_layout, width);
 
   box.caption = lv_label_create(parent);
   lv_obj_remove_style_all(box.caption);

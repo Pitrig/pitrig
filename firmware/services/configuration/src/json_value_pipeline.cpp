@@ -197,6 +197,7 @@ namespace {
     if (!valid_object(title, schema::kWidgetTitleStyleKeys, kTitleName,
                       failure) ||
         !read_text(title, "text", frame.title.text, kTitleName, failure) ||
+        !parse_value_source(title, frame.title.source, kTitleName, failure) ||
         !parse_optional_font(title, frame.title.font, failure) ||
         !read_color(title, "color", frame.title.color, kTitleName, failure) ||
         !read_enum(title, "alignment", frame.title.alignment,

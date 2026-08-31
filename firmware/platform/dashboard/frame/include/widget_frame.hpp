@@ -27,11 +27,23 @@ struct CaptionMask {
   std::uint32_t rgb{};
 };
 
+struct CaptionLayout {
+  Rect bounds{};
+  const lv_font_t* font{};
+  configuration::TextAlignment alignment{};
+  std::int32_t border_width{};
+  std::int16_t offset_x{};
+  std::int16_t offset_y{};
+  std::uint16_t gap_padding{};
+  bool border_gap{};
+};
+
 struct Box {
   lv_obj_t* container{};
   lv_obj_t* background_fill{};
   lv_obj_t* caption{};
   CaptionMask caption_mask{};
+  CaptionLayout caption_layout{};
   std::int32_t caption_height{};
 };
 
@@ -62,6 +74,7 @@ class Painter {
                  std::uint32_t content_color, ApplyContentColor apply_color,
                  void* color_context);
   void bind(ValueReadCallback read, void* context);
+  void bind_caption(ValueReadCallback read, void* context);
   void render();
   void release();
   void paint_caption_mask(lv_layer_t* layer) const;
@@ -73,6 +86,8 @@ class Painter {
   void apply_style(const conditions::ResolvedStyle& style);
   void apply_blink();
   void apply_visibility();
+  void render_caption();
+  void place_caption();
 
   std::array<configuration::WidgetCondition,
              configuration::kMaximumWidgetConditions>
@@ -100,6 +115,14 @@ class Painter {
   std::size_t attachment_count_{};
   CaptionMask caption_mask_{};
   std::uint32_t caption_mask_rgb_{};
+  CaptionLayout caption_layout_{};
+  std::array<char, configuration::kWidgetTitleCapacity> caption_fallback_{};
+  std::array<char, telemetry::kTelemetryTextCapacity> caption_text_{};
+  ValueReadCallback caption_read_{};
+  void* caption_context_{};
+  std::uint64_t caption_revision_{};
+  bool caption_available_{};
+  bool caption_rendered_{};
   ApplyContentColor apply_color_{};
   void* color_context_{};
 };

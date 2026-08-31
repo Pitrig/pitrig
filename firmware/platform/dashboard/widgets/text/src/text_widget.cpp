@@ -122,6 +122,8 @@ bool Collection::build(State& state, const Layout& layout,
   state.painter.configure(frame, box, config.value.color, &drawing::apply_value_color,
                           &state);
   state.painter.bind(binding.condition.read, binding.condition.read_context);
+  state.painter.bind_caption(binding.caption.read,
+                             binding.caption.read_context);
   return true;
 }
 

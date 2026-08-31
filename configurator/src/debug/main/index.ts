@@ -1,6 +1,7 @@
 import { app, BrowserWindow, crashReporter } from 'electron'
 import { join } from 'node:path'
 
+applyBranding()
 crashReporter.start({ uploadToServer: false })
 
 import { BenchService } from './bench/bench-service'
@@ -12,6 +13,7 @@ import {
 } from './ipc/register-debug-handlers'
 import { createAppServices, disposeAppServices, type AppServices } from '@main/app-services'
 import { createAppWindow, isDevelopment } from '@main/app-window'
+import { applyBranding, applyDockIcon } from '@main/branding'
 import {
   broadcastDeviceState,
   broadcastFirmwareUploadProgress,
@@ -53,6 +55,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  applyDockIcon()
   registerIpcHandlers(
     services.deviceService,
     services.fontAssetService,

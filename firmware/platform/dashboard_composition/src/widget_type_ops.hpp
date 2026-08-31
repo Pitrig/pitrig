@@ -87,6 +87,11 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
         return widgets.collection.create(widgets.layout, configurations,
                                          widgets.binder.bindings(),
                                          *widgets.fonts, *widgets.images);
+      } else if constexpr (requires { widgets.container_slots; }) {
+        return widgets.collection.create(widgets.layout, configurations,
+                                         widgets.binder.bindings(),
+                                         *widgets.fonts,
+                                         widgets.container_slots);
       } else {
         return widgets.collection.create(widgets.layout, configurations,
                                          widgets.binder.bindings(),
@@ -108,62 +113,16 @@ struct ValueWidgetOps : WidgetOpsCommon<Storage> {
       return widgets.collection.recreate(
           index, widgets.layout, configurations[index],
           widgets.binder.bindings()[index], *widgets.fonts, *widgets.images);
+    } else if constexpr (requires { widgets.container_slots; }) {
+      return widgets.collection.recreate(
+          index, widgets.layout, configurations[index],
+          widgets.binder.bindings()[index], *widgets.fonts,
+          widgets.container_slots);
     } else {
       return widgets.collection.recreate(index, widgets.layout,
                                          configurations[index],
                                          widgets.binder.bindings()[index],
                                          *widgets.fonts);
-    }
-  }
-};
-
-template <typename Storage>
-struct ConditionWidgetOps : WidgetOpsCommon<Storage> {
-  using Common = WidgetOpsCommon<Storage>;
-
-  static void wake(void* const context) {
-    Common::storage(context).collection.wake();
-  }
-
-  [[nodiscard]] static bool create(void* const context) {
-    Storage& widgets = Common::storage(context);
-    const auto configurations = Common::configurations(widgets);
-    if (!Common::rebind(widgets, configurations)) {
-      return Common::report_bind_failure();
-    }
-    const bool created = [&] {
-      if constexpr (requires { widgets.container_slots; }) {
-        return widgets.collection.create(
-            widgets.layout, configurations, widgets.binder.reads(),
-            widgets.binder.contexts(), *widgets.fonts,
-            widgets.container_slots);
-      } else {
-        return widgets.collection.create(
-            widgets.layout, configurations, widgets.binder.reads(),
-            widgets.binder.contexts(), *widgets.fonts);
-      }
-    }();
-    return created ? true : Common::report_create_failure();
-  }
-
-  [[nodiscard]] static bool update_instance(void* const context,
-                                            const std::uint8_t index) {
-    Storage& widgets = Common::storage(context);
-    const auto configurations = Common::configurations(widgets);
-    if (index >= configurations.size() ||
-        !Common::rebind(widgets, configurations)) {
-      return false;
-    }
-    if constexpr (requires { widgets.container_slots; }) {
-      return widgets.collection.recreate(
-          index, widgets.layout, configurations[index],
-          widgets.binder.reads()[index], widgets.binder.contexts()[index],
-          *widgets.fonts, widgets.container_slots);
-    } else {
-      return widgets.collection.recreate(
-          index, widgets.layout, configurations[index],
-          widgets.binder.reads()[index], widgets.binder.contexts()[index],
-          *widgets.fonts);
     }
   }
 };

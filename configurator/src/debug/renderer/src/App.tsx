@@ -1,3 +1,4 @@
+import wordmark from '@/assets/simcore-wordmark.svg'
 import { Cpu, Files, Terminal } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
@@ -32,9 +33,9 @@ export function App(): React.JSX.Element {
   return (
     <div className="grid h-screen overflow-hidden grid-rows-[3.5rem_minmax(0,1fr)_2.5rem] bg-background text-foreground">
       <header className="flex items-center justify-between border-b px-5">
-        <div>
-          <h1 className="text-sm font-semibold">SimCore Debugger</h1>
-          <p className="text-xs text-muted-foreground">Bench, console and board maintenance</p>
+        <div className="flex items-center gap-2.5">
+          <img alt="SimCore" src={wordmark} className="h-6 w-auto flex-none" />
+          <span className="text-sm font-semibold text-muted-foreground">Debugger</span>
         </div>
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>

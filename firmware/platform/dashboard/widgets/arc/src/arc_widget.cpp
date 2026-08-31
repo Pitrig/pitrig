@@ -152,6 +152,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
                                                   : &apply_indicator_color,
                           state.needle != nullptr ? state.needle : state.arc);
   state.painter.bind(binding.condition_read, binding.condition_context);
+  state.painter.bind_caption(binding.caption_read, binding.caption_context);
   return true;
 }
 

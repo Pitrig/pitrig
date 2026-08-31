@@ -77,8 +77,7 @@ void on_telemetry_updated(const events::Event&, void* const context) {
       dashboard.widgets.add(
           widget_descriptor<SlotWidgetOps<SlotWidgets>>(dashboard.slot)) &&
       dashboard.widgets.add(
-          widget_descriptor<ConditionWidgetOps<ShapeWidgets>>(
-              dashboard.shape)) &&
+          widget_descriptor<ValueWidgetOps<ShapeWidgets>>(dashboard.shape)) &&
       dashboard.widgets.add(
           widget_descriptor<ValueWidgetOps<TextWidgets>>(dashboard.text)) &&
       dashboard.widgets.add(

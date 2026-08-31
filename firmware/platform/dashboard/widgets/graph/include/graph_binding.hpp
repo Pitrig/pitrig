@@ -17,10 +17,13 @@ namespace simcore::dashboard::graph_widget {
 
 using ModifierReaders = frame::ModifierReaders;
 
+inline constexpr std::size_t kContextsPerInstance = kMaximumSources + 2;
+
 struct WidgetBinding {
   std::array<frame::BoundSource, kMaximumSources> sources{};
   std::size_t count{};
   frame::BoundSource condition{};
+  frame::BoundSource caption{};
 };
 
 class Binder final {
@@ -37,19 +40,20 @@ class Binder final {
       const configuration::ValueSourceConfiguration& source,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      const ModifierReaders& modifier_readers, frame::BoundSource& bound);
+      const ModifierReaders& modifier_readers, std::size_t context_index,
+      frame::BoundSource& bound);
 
   [[nodiscard]] bool bind_sources(const Config& configuration,
+                                  std::size_t instance,
                                   const telemetry::ITelemetryRegistry& registry,
                                   const telemetry::ITelemetryReader& telemetry,
                                   const ModifierReaders& modifier_readers,
                                   WidgetBinding& binding);
 
   std::array<WidgetBinding, kMaximumInstances> bindings_{};
-  std::array<frame::SourceContext, kMaximumInstances*(kMaximumSources + 1)>
+  std::array<frame::SourceContext, kMaximumInstances * kContextsPerInstance>
       source_contexts_{};
   std::size_t count_{};
-  std::size_t context_count_{};
 };
 
 }

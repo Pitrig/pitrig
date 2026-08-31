@@ -1,8 +1,9 @@
 import type { FontLibraryEntry } from '@shared/font-library'
 
 import { Badge } from '@/components/ui/badge'
-import { DigitSpecimen } from './DigitSpecimen'
+import { FaceSpecimen } from './FaceSpecimen'
 import { previewFontFamily } from './font-face-store'
+import { isIconFace } from './icon-face'
 import { kilobytes } from './font-library-store'
 
 const ORIGIN_LABELS: Readonly<Record<FontLibraryEntry['origin'], string>> = {
@@ -24,6 +25,7 @@ export function FontPickerRow({
   loaded: boolean
   onChoose: () => void
 }): React.JSX.Element {
+  const icons = isIconFace(entry.id, entry.category)
   return (
     <button
       type="button"
@@ -37,13 +39,14 @@ export function FontPickerRow({
       <span className="min-w-0 flex-1">
         <span
           className="block truncate text-base leading-tight text-foreground"
-          style={loaded ? { fontFamily: previewFontFamily(entry.id) } : undefined}
+          style={loaded && !icons ? { fontFamily: previewFontFamily(entry.id) } : undefined}
         >
           {entry.name}
         </span>
-        <DigitSpecimen
+        <FaceSpecimen
           cssFamily={loaded ? previewFontFamily(entry.id) : undefined}
-          tabularDigits={entry.tabularDigits}
+          tabularDigits={icons ? undefined : entry.tabularDigits}
+          icons={icons}
         />
         <span className="block truncate text-[0.65rem] text-muted-foreground">{entry.id}</span>
       </span>

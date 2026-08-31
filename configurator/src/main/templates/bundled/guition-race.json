@@ -177,6 +177,9 @@
                   },
                   "title": {
                     "text": "LEFT",
+                    "source": {
+                      "binding": "session.type"
+                    },
                     "font": {
                       "family": "roboto_black",
                       "size_px": 16

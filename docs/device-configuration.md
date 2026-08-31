@@ -587,6 +587,22 @@ so moving a caption or turning its cut off never resizes the widget.
 A caption needs a font as soon as it has text, and family resolution is exact —
 see [Fonts](#fonts).
 
+A caption may also read telemetry rather than repeat what was authored, which is
+what lets a panel name the track, the session or the compound it is showing:
+
+```json
+"title": { "text": "TRACK", "source": { "binding": "track.name" } }
+```
+
+`text` is then the fallback: the caption reads it until the field arrives, and
+again whenever the field goes away or reports an empty string, so a source
+without one is rejected. The widget's
+box is measured against the fallback either way — a live string longer than it
+is drawn past the box rather than resizing the widget, which keeps a caption
+from moving the layout every time the value changes. The value is rendered as
+the field reports it, so this is a text field's property above all; a numeric
+one reads as its plain number.
+
 The same nine anchor names position a text widget's `value` label, there against
 the widget's **content area** — the box less its border and padding — rather
 than its outer box, and without straddling anything. That property defaults to

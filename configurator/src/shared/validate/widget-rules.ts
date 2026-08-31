@@ -53,6 +53,7 @@ export function findSlotError(widget: SlotWidgetConfiguration, label: string): s
     (widget.border?.width_px ?? 0) > 0 ||
     (widget.border?.radius_px ?? 0) > 0 ||
     Boolean(widget.title?.text) ||
+    Boolean(widget.title?.source?.binding) ||
     (widget.conditions?.length ?? 0) > 0 ||
     Boolean(widget.condition_source?.binding)
   if (painted) {

@@ -141,21 +141,6 @@ export function DeviceConnection({
 
   return (
     <div className="flex items-center gap-2">
-      <select
-        aria-label="Serial port"
-        className="h-8 w-64 flex-none rounded-md border bg-background px-2 text-xs"
-        value={selectedPortId}
-        disabled={isWorking || status === 'connected'}
-        onChange={(event) => setSelectedPortId(event.target.value)}
-      >
-        <option value={AUTO_PORT_ID}>Auto — detect port and speed</option>
-        {ports.map((port) => (
-          <option key={port.id} value={port.id}>
-            {port.displayName}
-          </option>
-        ))}
-      </select>
-
       <div className="w-28 flex-none">
         {selectedPortId !== AUTO_PORT_ID ? (
           <select
@@ -173,6 +158,21 @@ export function DeviceConnection({
           </select>
         ) : null}
       </div>
+
+      <select
+        aria-label="Serial port"
+        className="h-8 w-64 flex-none rounded-md border bg-background px-2 text-xs"
+        value={selectedPortId}
+        disabled={isWorking || status === 'connected'}
+        onChange={(event) => setSelectedPortId(event.target.value)}
+      >
+        <option value={AUTO_PORT_ID}>Auto — detect port and speed</option>
+        {ports.map((port) => (
+          <option key={port.id} value={port.id}>
+            {port.displayName}
+          </option>
+        ))}
+      </select>
 
       <Button
         className="w-20 flex-none"

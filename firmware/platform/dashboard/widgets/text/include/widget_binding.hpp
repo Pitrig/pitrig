@@ -19,10 +19,13 @@ using ModifierReaders = frame::ModifierReaders;
 
 using BoundConfig = frame::BoundSource;
 
+inline constexpr std::size_t kContextsPerInstance = kMaximumSources + 2;
+
 struct WidgetBinding {
   std::array<BoundConfig, kMaximumSources> sources{};
   std::size_t count{};
   BoundConfig condition{};
+  BoundConfig caption{};
 };
 
 class Binder final {
@@ -42,7 +45,7 @@ class Binder final {
   };
 
   [[nodiscard]] bool bind_sources(
-      const Config& configuration,
+      const Config& configuration, std::size_t instance,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
       const ModifierReaders& modifier_readers, WidgetBinding& binding);
@@ -52,15 +55,15 @@ class Binder final {
       std::span<const configuration::ValueModifier> modifiers,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      const ModifierReaders& modifier_readers, BoundConfig& bound);
+      const ModifierReaders& modifier_readers, std::size_t context_index,
+      BoundConfig& bound);
 
   [[nodiscard]] static telemetry::TelemetryRead read_telemetry(void* context);
 
   std::array<WidgetBinding, kMaximumInstances> bindings_{};
-  std::array<SourceContext, kMaximumInstances*(kMaximumSources + 1)>
+  std::array<SourceContext, kMaximumInstances * kContextsPerInstance>
       source_contexts_{};
   std::size_t count_{};
-  std::size_t context_count_{};
 };
 
 }

@@ -13,12 +13,12 @@ export function ArrangeToolbar(): React.JSX.Element {
   const drillIn = useDashboardEditorStore((state) => state.drillIn)
   const distributable = selectedIds.length >= 3
   return (
-    <div className="flex flex-wrap items-center gap-1 text-xs">
+    <div className="flex flex-wrap items-center gap-1.5 text-xs">
       {drillIn ? <DrillInCrumbs /> : <ScreenTabs />}
       <SlotTabs />
-      <span className="mx-1 h-4 w-px bg-border" />
       {selectedIds.length >= 1 ? (
         <>
+          <span className="mx-1 h-4 w-px bg-border" />
           <button
             type="button"
             title="Wrap the selection in a container (Cmd/Ctrl+G)"

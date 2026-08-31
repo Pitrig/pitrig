@@ -1,6 +1,9 @@
 {
   "name": "@simcore/configurator",
   "version": "0.1.0",
+  "productName": "SimCore",
+  "description": "SimCore dashboard configurator",
+  "author": "SimCore",
   "private": true,
   "type": "module",
   "main": "./out/main/index.js",
@@ -10,6 +13,8 @@
     "preview": "electron-vite preview",
     "build": "pnpm run typecheck && electron-vite build",
     "build:debug": "pnpm run typecheck && electron-vite build --config electron.vite.debug.config.ts",
+    "package": "pnpm run build && electron-builder --config electron-builder.yml",
+    "package:debug": "pnpm run build:debug && electron-builder --config electron-builder.debug.yml",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit && tsc -p tsconfig.debug.json --noEmit",
     "lint": "eslint ."
   },
@@ -31,6 +36,7 @@
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^44.0.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",

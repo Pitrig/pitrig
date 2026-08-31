@@ -20,6 +20,8 @@ node_modules/
 .pnpm-store/
 configurator/out/
 configurator/out-debug/
+configurator/dist/
+configurator/dist-debug/
 
 # Local editor settings
 .vscode/*

@@ -104,6 +104,11 @@ cd configurator && pnpm run lint
 the debugger into `out-debug/`. `typecheck` covers three projects — node, the product renderer, and
 the debug renderer. There is no test runner.
 
+`pnpm run package` builds and then wraps the product in `electron-builder.yml` (`dist/`);
+`pnpm run package:debug` does the same for the debugger through `electron-builder.debug.yml`
+(`dist-debug/`), which points `main` at `out-debug/` through `extraMetadata`. Both take their icon
+from `resources/icon.png` and neither is code-signed (`identity: null`).
+
 ### Debug isolation
 
 ```bash
@@ -426,6 +431,14 @@ Zustand + Tailwind 4, organized by feature: `configuration`, `device`, `firmware
 crossing the boundary; all IPC channels and the `SimCoreApi`
 surface are declared in [configurator/src/shared/ipc.ts](configurator/src/shared/ipc.ts) — add
 channels there, then the main handler in `main/ipc/register-ipc-handlers.ts` and the preload bridge.
+
+Both applications are branded from `src/main/branding.ts`: the name is `SimCore` (dock, menu bar,
+`process.title` and the footer's `app.getName()`), the icon is `resources/icon.png` — rendered from
+`assets/branding/` at the repository root, which stays the master — and the header carries the
+one-line wordmark (`wordmark.svg`, the icon's own letterforms with `core` scaled to `sim` and both
+set on one baseline) rather than a title. Naming the application moves `userData`, so the same module moves a
+`@simcore/configurator` directory left by an earlier build onto the new path, and refuses to when
+the new one already holds anything.
 
 `src/debug/` is a **second Electron application** built from the same package: `pnpm run dev:debug`
 (`electron.vite.debug.config.ts` → `out-debug/`) against `pnpm run dev` (`out/`). It holds the

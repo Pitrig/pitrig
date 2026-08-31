@@ -11,6 +11,7 @@ import {
 import { visibleSlotPage } from './canvas-geometry'
 import { screenName } from './screen-name'
 import { useDeviceStore } from '@/features/device/device-store'
+import { TOOLBAR_GHOST, TOOLBAR_ITEM, TOOLBAR_ITEM_ACTIVE, ToolbarDivider, ToolbarGroup } from './toolbar-parts'
 
 export function SlotTabs(): React.JSX.Element | null {
   const configuration = useDeviceStore((state) => state.draft)
@@ -26,14 +27,15 @@ export function SlotTabs(): React.JSX.Element | null {
   const shown = related.length > 0 ? related : slots
   if (shown.length === 0) return null
   return (
-    <>
-      {shown.map((slot) => {
+    <ToolbarGroup label="Slots">
+      {shown.map((slot, position) => {
         const id = slot.id ?? ''
         const pages = pagesOf(slot)
         const current = visibleSlotPage(slot, slotPage)
         return (
-          <div key={id} className="flex items-center gap-1">
-            <span className="text-muted-foreground">{id}</span>
+          <div key={id} className="flex items-center gap-0.5">
+            {position > 0 ? <ToolbarDivider /> : null}
+            <span className="px-1 text-[11px] text-muted-foreground">{id}</span>
             {pages.map((page, index) => (
               <button
                 key={index}
@@ -44,9 +46,7 @@ export function SlotTabs(): React.JSX.Element | null {
                     : `Page ${index + 1}`
                 }
                 aria-pressed={index === current}
-                className={`h-7 rounded-md border px-2 hover:bg-muted ${
-                  index === current ? 'bg-muted font-medium' : ''
-                }`}
+                className={`${TOOLBAR_ITEM} px-2 ${index === current ? TOOLBAR_ITEM_ACTIVE : ''}`}
                 onClick={() => setSlotPage(id, index)}
               >
                 {page.in_loop === false ? `${index + 1}*` : index + 1}
@@ -56,7 +56,7 @@ export function SlotTabs(): React.JSX.Element | null {
               <button
                 type="button"
                 title="Add a page to this slot"
-                className="h-7 rounded-md border px-2 hover:bg-muted"
+                className={TOOLBAR_GHOST}
                 onClick={() => addSlotPage(id)}
               >
                 +
@@ -65,7 +65,7 @@ export function SlotTabs(): React.JSX.Element | null {
           </div>
         )
       })}
-    </>
+    </ToolbarGroup>
   )
 }
 
@@ -88,11 +88,11 @@ export function DrillInCrumbs(): React.JSX.Element | null {
   if (!drillIn) return null
   const chain = openedChain(configuration, drillIn)
   return (
-    <div className="flex items-center gap-1">
+    <ToolbarGroup label="Inside">
       <button
         type="button"
         title="Leave every container (Escape)"
-        className="h-7 rounded-md border px-2 hover:bg-muted"
+        className={`${TOOLBAR_ITEM} px-2`}
         onClick={() => setDrillIn(undefined)}
       >
         {`← ${screenName(screensOf(configuration), activeScreenIndex)}`}
@@ -104,8 +104,8 @@ export function DrillInCrumbs(): React.JSX.Element | null {
             type="button"
             title={`Work inside ${id}`}
             aria-pressed={index === chain.length - 1}
-            className={`h-7 rounded-md border px-2 hover:bg-muted ${
-              index === chain.length - 1 ? 'bg-muted font-medium' : ''
+            className={`${TOOLBAR_ITEM} px-2 ${
+              index === chain.length - 1 ? TOOLBAR_ITEM_ACTIVE : ''
             }`}
             onClick={() => setDrillIn(id)}
           >
@@ -113,6 +113,6 @@ export function DrillInCrumbs(): React.JSX.Element | null {
           </button>
         </Fragment>
       ))}
-    </div>
+    </ToolbarGroup>
   )
 }

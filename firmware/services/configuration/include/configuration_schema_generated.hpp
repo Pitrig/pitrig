@@ -121,17 +121,6 @@ inline constexpr std::array<std::string_view, 3> kWidgetBorderKeys{{
     "radius_px",
 }};
 
-inline constexpr std::array<std::string_view, 8> kWidgetTitleStyleKeys{{
-    "text",
-    "font",
-    "color",
-    "alignment",
-    "offset_x_px",
-    "offset_y_px",
-    "border_gap",
-    "gap_padding_px",
-}};
-
 inline constexpr std::array<std::string_view, 4> kWidgetValueStyleKeys{{
     "font",
     "color",
@@ -156,6 +145,18 @@ inline constexpr std::array<std::string_view, 1> kValueModifierKeys{{
 inline constexpr std::array<std::string_view, 2> kValueSourceConfigurationKeys{{
     "binding",
     "modifiers",
+}};
+
+inline constexpr std::array<std::string_view, 9> kWidgetTitleStyleKeys{{
+    "text",
+    "source",
+    "font",
+    "color",
+    "alignment",
+    "offset_x_px",
+    "offset_y_px",
+    "border_gap",
+    "gap_padding_px",
 }};
 
 inline constexpr std::array<std::string_view, 2> kColorStopKeys{{

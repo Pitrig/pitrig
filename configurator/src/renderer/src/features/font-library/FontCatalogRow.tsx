@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import type { FontCatalogFamily, FontVariant } from '@shared/font-library'
 
 import { Badge } from '@/components/ui/badge'
-import { DigitSpecimen } from './DigitSpecimen'
+import { FaceSpecimen } from './FaceSpecimen'
 import { variantLabel } from './font-catalog-store'
 
 const DWELL_MS = 150
@@ -65,7 +65,7 @@ export function FontCatalogRow({
           >
             {family.name}
           </span>
-          <DigitSpecimen cssFamily={previewFamily} tabularDigits={tabularDigits} />
+          <FaceSpecimen cssFamily={previewFamily} tabularDigits={tabularDigits} />
           <span className="block truncate text-[0.65rem] text-muted-foreground">
             {family.category}
             {unavailable ? ' · preview unavailable' : ''}

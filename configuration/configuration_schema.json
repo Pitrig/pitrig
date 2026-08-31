@@ -1,5 +1,5 @@
 {
-  "schema_version": 18,
+  "schema_version": 19,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run tools/generate_configuration_schema.py after editing.",
 
   "documents": {
@@ -347,20 +347,6 @@
       ]
     },
 
-    "WidgetTitleStyle": {
-      "doc": "The caption on a widget's frame. It is anchored to a point on the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.",
-      "fields": [
-        { "name": "text", "kind": "text", "capacity": "kWidgetTitleCapacity", "default": "" },
-        { "name": "font", "kind": "external", "external": "FontSpec" },
-        { "name": "color", "kind": "color", "default": "0xE8E8E8" },
-        { "name": "alignment", "kind": "enum", "enum": "TextAlignment", "default": "top_center", "doc": "Which point of the widget's outer box the caption is anchored to before the offsets move it. The top and bottom rows straddle their border line, so the caption breaks it; the middle row sits inside the box and breaks nothing." },
-        { "name": "offset_x_px", "kind": "int16", "default": 0 },
-        { "name": "offset_y_px", "kind": "int16", "default": 0 },
-        { "name": "border_gap", "kind": "bool", "default": true, "doc": "Cuts the border line where the caption crosses it. A caption that crosses no border cuts nothing." },
-        { "name": "gap_padding_px", "kind": "uint16", "default": 4, "maximum": 240, "doc": "Clear space kept around the caption inside that cut, on every side. Bounded like the line it widens the mask over." }
-      ]
-    },
-
     "WidgetValueStyle": {
       "fields": [
         { "name": "font", "kind": "external", "external": "FontSpec" },
@@ -393,6 +379,21 @@
         { "name": "binding", "kind": "text", "capacity": "kValueBindingCapacity", "default": "" },
         { "name": "modifier_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "modifiers", "kind": "array", "struct": "ValueModifier", "capacity": "kMaximumValueModifiers", "count_field": "modifier_count" }
+      ]
+    },
+
+    "WidgetTitleStyle": {
+      "doc": "The caption on a widget's frame. It is anchored to a point on the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.",
+      "fields": [
+        { "name": "text", "kind": "text", "capacity": "kWidgetTitleCapacity", "default": "", "doc": "What the caption reads. With a source bound it is the fallback instead: the caption shows it while the source is unavailable, and the widget's box is measured against it either way, so a caption always needs one." },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the caption reads in place of its own text, so a label can name what the widget is showing rather than repeat what was authored. Unbound leaves the caption static." },
+        { "name": "font", "kind": "external", "external": "FontSpec" },
+        { "name": "color", "kind": "color", "default": "0xE8E8E8" },
+        { "name": "alignment", "kind": "enum", "enum": "TextAlignment", "default": "top_center", "doc": "Which point of the widget's outer box the caption is anchored to before the offsets move it. The top and bottom rows straddle their border line, so the caption breaks it; the middle row sits inside the box and breaks nothing." },
+        { "name": "offset_x_px", "kind": "int16", "default": 0 },
+        { "name": "offset_y_px", "kind": "int16", "default": 0 },
+        { "name": "border_gap", "kind": "bool", "default": true, "doc": "Cuts the border line where the caption crosses it. A caption that crosses no border cuts nothing." },
+        { "name": "gap_padding_px", "kind": "uint16", "default": 4, "maximum": 240, "doc": "Clear space kept around the caption inside that cut, on every side. Bounded like the line it widens the mask over." }
       ]
     },
 

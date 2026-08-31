@@ -11,6 +11,7 @@ import {
 } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
 import { screenName } from './screen-name'
+import { TOOLBAR_GHOST, TOOLBAR_ITEM, TOOLBAR_ITEM_ACTIVE, ToolbarDivider, ToolbarGroup } from './toolbar-parts'
 
 export function ScreenTabs(): React.JSX.Element {
   const configuration = useDeviceStore((state) => state.draft)
@@ -33,7 +34,7 @@ export function ScreenTabs(): React.JSX.Element {
   }
 
   return (
-    <>
+    <ToolbarGroup label="Screens">
       {Array.from({ length: count }, (_, index) => {
         const edge = dropTarget?.index === index ? dropTarget.before : undefined
         const name = screenName(screens, index)
@@ -46,8 +47,8 @@ export function ScreenTabs(): React.JSX.Element {
               ? `${name} · double-click to rename · drag to reorder`
               : `${name} · double-click to rename`
           }
-          className={`relative flex h-7 items-center rounded-md border px-2 hover:bg-muted ${
-            index === activeScreenIndex ? 'bg-muted font-medium' : ''
+          className={`relative ${TOOLBAR_ITEM} ${
+            index === activeScreenIndex ? TOOLBAR_ITEM_ACTIVE : ''
           } ${dragged === index ? 'opacity-50' : ''}`}
           onDragStart={(event) => {
             setDragged(index)
@@ -97,7 +98,7 @@ export function ScreenTabs(): React.JSX.Element {
             <button
               type="button"
               aria-pressed={index === activeScreenIndex}
-              className="max-w-28 truncate"
+              className="max-w-32 self-stretch truncate px-2"
               onClick={() => setActiveScreen(index)}
               onDoubleClick={() => {
                 setActiveScreen(index)
@@ -110,11 +111,12 @@ export function ScreenTabs(): React.JSX.Element {
         </div>
         )
       })}
+      {count < MAXIMUM_SCREENS || activeScreenIndex > 0 ? <ToolbarDivider /> : null}
       {count < MAXIMUM_SCREENS ? (
         <button
           type="button"
           title="Add a screen"
-          className="h-7 rounded-md border px-2 hover:bg-muted"
+          className={TOOLBAR_GHOST}
           onClick={() => {
             const index = addScreen()
             if (index !== undefined) setActiveScreen(index)
@@ -127,13 +129,13 @@ export function ScreenTabs(): React.JSX.Element {
         <button
           type="button"
           title={`Delete ${screenName(screens, activeScreenIndex)} and everything on it`}
-          className="h-7 rounded-md border px-2 hover:bg-muted"
+          className={TOOLBAR_GHOST}
           onClick={() => deleteScreen(activeScreenIndex)}
         >
           −
         </button>
       ) : null}
-    </>
+    </ToolbarGroup>
   )
 }
 
@@ -162,7 +164,7 @@ function ScreenNameField({
       aria-label="Screen name"
       value={value}
       maxLength={WIDGET_ID_CAPACITY - 1}
-      className={`w-24 min-w-0 rounded-sm border bg-transparent px-1 ${
+      className={`mx-2 w-24 min-w-0 rounded-sm border bg-transparent px-1 ${
         rejected ? 'border-red-500' : ''
       }`}
       onChange={(event) => setValue(event.target.value)}

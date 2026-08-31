@@ -1,10 +1,25 @@
-export function DigitSpecimen({
+import { ICON_SPECIMEN } from './icon-face'
+
+export function FaceSpecimen({
   cssFamily,
-  tabularDigits
+  tabularDigits,
+  icons
 }: {
   cssFamily?: string
   tabularDigits?: boolean
+  icons?: boolean
 }): React.JSX.Element | null {
+  if (icons) {
+    if (!cssFamily) return null
+    return (
+      <span
+        className="flex items-center gap-1.5 truncate text-[0.95rem] leading-none"
+        style={{ fontFamily: cssFamily }}
+      >
+        {ICON_SPECIMEN}
+      </span>
+    )
+  }
   if (!cssFamily && tabularDigits === undefined) return null
   return (
     <span className="flex items-baseline gap-2">

@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
-import { DigitSpecimen } from './DigitSpecimen'
+import { FaceSpecimen } from './FaceSpecimen'
+import { isIconFace } from './icon-face'
 import { useFontFaceStore, previewFontFamily } from './font-face-store'
 import {
   dashboardFontFootprint,
@@ -123,6 +124,7 @@ export function FontsPage(): React.JSX.Element {
           <ul className="grid gap-1 sm:grid-cols-2">
             {used.map((family) => {
               const entry = findFontEntry(entries, family)
+              const icons = isIconFace(family, entry?.category)
               return (
                 <li
                   key={family}
@@ -131,13 +133,18 @@ export function FontsPage(): React.JSX.Element {
                   <span className="min-w-0 flex-1">
                     <span
                       className="block truncate text-foreground"
-                      style={loaded[family] ? { fontFamily: previewFontFamily(family) } : undefined}
+                      style={
+                        loaded[family] && !icons
+                          ? { fontFamily: previewFontFamily(family) }
+                          : undefined
+                      }
                     >
                       {entry?.name ?? family}
                     </span>
-                    <DigitSpecimen
+                    <FaceSpecimen
                       cssFamily={loaded[family] ? previewFontFamily(family) : undefined}
-                      tabularDigits={entry?.tabularDigits}
+                      tabularDigits={icons ? undefined : entry?.tabularDigits}
+                      icons={icons}
                     />
                   </span>
                   {!entry ? (
@@ -182,7 +189,9 @@ export function FontsPage(): React.JSX.Element {
           </EmptyState>
         ) : (
           <ul className="grid gap-1 sm:grid-cols-2">
-            {entries.map((entry) => (
+            {entries.map((entry) => {
+              const icons = isIconFace(entry.id, entry.category)
+              return (
               <li
                 key={entry.id}
                 className="flex items-center justify-between gap-2 rounded-md border px-2 py-1.5"
@@ -191,15 +200,18 @@ export function FontsPage(): React.JSX.Element {
                   <span
                     className="block truncate text-foreground"
                     style={
-                      loaded[entry.id] ? { fontFamily: previewFontFamily(entry.id) } : undefined
+                      loaded[entry.id] && !icons
+                        ? { fontFamily: previewFontFamily(entry.id) }
+                        : undefined
                     }
                     title={entry.id}
                   >
                     {entry.name}
                   </span>
-                  <DigitSpecimen
+                  <FaceSpecimen
                     cssFamily={loaded[entry.id] ? previewFontFamily(entry.id) : undefined}
-                    tabularDigits={entry.tabularDigits}
+                    tabularDigits={icons ? undefined : entry.tabularDigits}
+                    icons={icons}
                   />
                   <span className="block text-[11px] text-muted-foreground">
                     {`${entry.origin} · ${kilobytes(entry.bytes)}${used.includes(entry.id) ? ' · in use' : ''}`}
@@ -219,7 +231,8 @@ export function FontsPage(): React.JSX.Element {
                   </Button>
                 )}
               </li>
-            ))}
+              )
+            })}
           </ul>
         )}
       </PageSection>

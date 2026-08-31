@@ -29,13 +29,12 @@ class Collection final
  public:
   [[nodiscard]] bool create(const Layout& layout,
                             std::span<const Config> configurations,
-                            std::span<const frame::ValueReadCallback> reads,
-                            std::span<void* const> read_contexts,
+                            std::span<const frame::ValueBinding> bindings,
                             const fonts::Registry& fonts,
                             std::span<lv_obj_t*> containers);
   [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
                               const Config& configuration,
-                              frame::ValueReadCallback read, void* read_context,
+                              const frame::ValueBinding& binding,
                               const fonts::Registry& fonts,
                               std::span<lv_obj_t*> containers);
 
@@ -44,11 +43,11 @@ class Collection final
 
   [[nodiscard]] bool build(State& state, const Layout& layout,
                            const Config& configuration,
-                           frame::ValueReadCallback read, void* read_context,
+                           const frame::ValueBinding& binding,
                            const fonts::Registry& fonts);
   [[nodiscard]] bool restyle(std::size_t index, const Layout& layout,
                              const Config& configuration,
-                             frame::ValueReadCallback read, void* read_context,
+                             const frame::ValueBinding& binding,
                              const fonts::Registry& fonts);
   [[nodiscard]] bool holds_widgets(std::size_t index) const;
   void on_released(std::size_t index) {

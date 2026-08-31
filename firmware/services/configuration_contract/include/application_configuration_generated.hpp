@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 18;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 19;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -268,17 +268,6 @@ struct WidgetBorder {
   std::uint16_t radius_px{};
 };
 
-struct WidgetTitleStyle {
-  std::array<char, kWidgetTitleCapacity> text{};
-  font_assets::FontSpec font{};
-  std::uint32_t color{0xE8E8E8};
-  TextAlignment alignment{TextAlignment::top_center};
-  std::int16_t offset_x_px{};
-  std::int16_t offset_y_px{};
-  bool border_gap{true};
-  std::uint16_t gap_padding_px{4};
-};
-
 struct WidgetValueStyle {
   font_assets::FontSpec font{};
   std::uint32_t color{0xE8E8E8};
@@ -302,6 +291,18 @@ struct ValueSourceConfiguration {
   std::array<char, kValueBindingCapacity> binding{};
   std::uint8_t modifier_count{};
   std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
+};
+
+struct WidgetTitleStyle {
+  std::array<char, kWidgetTitleCapacity> text{};
+  ValueSourceConfiguration source{};
+  font_assets::FontSpec font{};
+  std::uint32_t color{0xE8E8E8};
+  TextAlignment alignment{TextAlignment::top_center};
+  std::int16_t offset_x_px{};
+  std::int16_t offset_y_px{};
+  bool border_gap{true};
+  std::uint16_t gap_padding_px{4};
 };
 
 struct ColorStop {

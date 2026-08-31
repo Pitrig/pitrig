@@ -139,6 +139,30 @@ bool bind_source(const std::string_view name,
   return read != nullptr && read_context != nullptr;
 }
 
+bool bind_frame(const configuration::WidgetFrame& frame,
+                const telemetry::ITelemetryRegistry& registry,
+                const telemetry::ITelemetryReader& telemetry,
+                const ModifierReaders& modifier_readers,
+                SourceContext& condition_context, SourceContext& caption_context,
+                ValueBinding& binding) {
+  bool fast_updates{};
+  if (watches_value(frame) &&
+      !bind_source(configuration::value_binding_view(
+                       frame.condition_source.binding),
+                   frame.condition_source.modifier_count,
+                   frame.condition_source.modifiers, registry, telemetry,
+                   modifier_readers, condition_context, binding.condition_read,
+                   binding.condition_context, fast_updates)) {
+    return false;
+  }
+  return !binds_caption(frame) ||
+         bind_source(
+             configuration::value_binding_view(frame.title.source.binding),
+             frame.title.source.modifier_count, frame.title.source.modifiers,
+             registry, telemetry, modifier_readers, caption_context,
+             binding.caption_read, binding.caption_context, fast_updates);
+}
+
 bool build(const Layout& layout, const Config& config, const char* const tag,
            const std::int32_t content_width, const std::int32_t content_height,
            const bool fill_available_width, const fonts::Registry& fonts,

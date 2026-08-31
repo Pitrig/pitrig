@@ -1,6 +1,8 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'node:path'
 
+import { appIcon } from './branding'
+
 export interface AppWindowOptions {
   preload: string
   renderer: string
@@ -15,6 +17,7 @@ export function isDevelopment(): boolean {
 export function createAppWindow(options: AppWindowOptions): BrowserWindow {
   const development = isDevelopment()
   const window = new BrowserWindow({
+    icon: appIcon(),
     width: options.width ?? 1280,
     height: options.height ?? 800,
     minWidth: 960,

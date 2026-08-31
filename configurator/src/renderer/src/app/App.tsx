@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import wordmark from '@/assets/simcore-wordmark.svg'
 import { WorkspaceRail } from './workspace/WorkspaceRail'
 import { useWorkspaceStore } from './workspace/workspace-store'
 import { ConfigsPage } from '@/features/configuration/ConfigsPage'
@@ -51,10 +52,7 @@ export function App(): React.JSX.Element {
   return (
     <div className="grid h-screen overflow-hidden grid-rows-[3.5rem_minmax(0,1fr)_2.5rem] bg-background text-foreground">
       <header className="flex items-center justify-between border-b px-5">
-        <div>
-          <h1 className="text-sm font-semibold">SimCore Configurator</h1>
-          <p className="text-xs text-muted-foreground">Desktop configuration workspace</p>
-        </div>
+        <img alt="SimCore" src={wordmark} className="h-6 w-auto flex-none" />
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 

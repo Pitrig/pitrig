@@ -129,6 +129,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.painter.configure(config.frame, box, configuration::kTransparentColor,
                           &apply_line_color, &state);
   state.painter.bind(binding.condition.read, binding.condition.read_context);
+  state.painter.bind_caption(binding.caption.read,
+                             binding.caption.read_context);
   return true;
 }
 

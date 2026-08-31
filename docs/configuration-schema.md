@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 18. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 19. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 18.
+Schema version: 19.
 
 ## Documents
 
@@ -135,21 +135,6 @@ Absolute geometry in logical screen pixels.
 | `width_px` | integer, 0..240 | `0` |
 | `radius_px` | integer, 0..480 | `0` |
 
-### WidgetTitleStyle
-
-The caption on a widget's frame. It is anchored to a point on the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.
-
-| Property | Type | Default |
-| --- | --- | --- |
-| `text` | string, max 15 bytes | empty |
-| `font` | `FontSpec` | absent |
-| `color` | string `#RRGGBB` | `#E8E8E8` |
-| `alignment` | `TextAlignment` | `top_center` |
-| `offset_x_px` | integer, -32768..32767 | `0` |
-| `offset_y_px` | integer, -32768..32767 | `0` |
-| `border_gap` | boolean | `true` |
-| `gap_padding_px` | integer, 0..240 | `4` |
-
 ### WidgetValueStyle
 
 | Property | Type | Default |
@@ -187,6 +172,22 @@ A canonical telemetry binding with its modifier pipeline, consumed as a typed va
 | --- | --- | --- |
 | `binding` | string, max 39 bytes | empty |
 | `modifiers` | array of [`ValueModifier`](#valuemodifier), max 4 | absent |
+
+### WidgetTitleStyle
+
+The caption on a widget's frame. It is anchored to a point on the widget's outer box, moved from there by the offsets, and it cuts the frame line on whichever border it ends up crossing.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `text` | string, max 15 bytes | empty |
+| `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
+| `font` | `FontSpec` | absent |
+| `color` | string `#RRGGBB` | `#E8E8E8` |
+| `alignment` | `TextAlignment` | `top_center` |
+| `offset_x_px` | integer, -32768..32767 | `0` |
+| `offset_y_px` | integer, -32768..32767 | `0` |
+| `border_gap` | boolean | `true` |
+| `gap_padding_px` | integer, 0..240 | `4` |
 
 ### ColorStop
 

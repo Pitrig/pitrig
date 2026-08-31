@@ -77,7 +77,8 @@ bool Validator::slot_widget(const SlotWidgetConfiguration& config) {
   if (box.border.width_px != 0 || box.border.radius_px != 0) {
     return reject(failure_, ValidationError::invalid_slot, "border");
   }
-  if (box.title.text.front() != '\0') {
+  if (box.title.text.front() != '\0' ||
+      !value_binding_view(box.title.source.binding).empty()) {
     return reject(failure_, ValidationError::invalid_slot, "title");
   }
   if (box.condition_count != 0 || box.color_ramp.stop_count != 0 ||

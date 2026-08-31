@@ -42,6 +42,11 @@ struct SourceContext {
   return frame.condition_count > 0 || frame.color_ramp.stop_count >= 2;
 }
 
+[[nodiscard]] inline bool binds_caption(
+    const configuration::WidgetFrame& frame) {
+  return !configuration::value_binding_view(frame.title.source.binding).empty();
+}
+
 [[nodiscard]] bool bind_source(
     std::string_view name, std::uint8_t modifier_count,
     std::span<const configuration::ValueModifier> modifiers,
@@ -62,7 +67,17 @@ struct ValueBinding {
   bool fast_updates{};
   ValueReadCallback condition_read{};
   void* condition_context{};
+  ValueReadCallback caption_read{};
+  void* caption_context{};
 };
+
+[[nodiscard]] bool bind_frame(const configuration::WidgetFrame& frame,
+                              const telemetry::ITelemetryRegistry& registry,
+                              const telemetry::ITelemetryReader& telemetry,
+                              const ModifierReaders& modifier_readers,
+                              SourceContext& condition_context,
+                              SourceContext& caption_context,
+                              ValueBinding& binding);
 
 template <typename WidgetConfig, std::size_t Capacity>
 class ValueBinder final {
@@ -86,16 +101,9 @@ class ValueBinder final {
         count_ = 0;
         return false;
       }
-      const configuration::WidgetFrame& widget_frame = configuration.frame;
-      bool condition_fast{};
-      if (watches_value(widget_frame) &&
-          !bind_source(configuration::value_binding_view(
-                           widget_frame.condition_source.binding),
-                       widget_frame.condition_source.modifier_count,
-                       widget_frame.condition_source.modifiers, registry,
-                       telemetry, modifier_readers,
-                       condition_contexts_[count_], binding.condition_read,
-                       binding.condition_context, condition_fast)) {
+      if (!bind_frame(configuration.frame, registry, telemetry,
+                      modifier_readers, condition_contexts_[count_],
+                      caption_contexts_[count_], binding)) {
         count_ = 0;
         return false;
       }
@@ -112,6 +120,7 @@ class ValueBinder final {
  private:
   std::array<SourceContext, Capacity> value_contexts_{};
   std::array<SourceContext, Capacity> condition_contexts_{};
+  std::array<SourceContext, Capacity> caption_contexts_{};
   std::array<ValueBinding, Capacity> bindings_{};
   std::size_t count_{};
 };
@@ -124,42 +133,31 @@ class ConditionBinder final {
                           const telemetry::ITelemetryReader& telemetry,
                           const ModifierReaders& modifier_readers) {
     count_ = 0;
-    if (configurations.size() > reads_.size()) {
+    if (configurations.size() > bindings_.size()) {
       return false;
     }
     for (const WidgetConfig& configuration : configurations) {
-      ValueReadCallback read{};
-      void* read_context{};
-      bool fast_updates{};
-      const configuration::WidgetFrame& widget_frame = configuration.frame;
-      if (watches_value(widget_frame) &&
-          !bind_source(configuration::value_binding_view(
-                           widget_frame.condition_source.binding),
-                       widget_frame.condition_source.modifier_count,
-                       widget_frame.condition_source.modifiers, registry,
-                       telemetry, modifier_readers, contexts_[count_], read,
-                       read_context, fast_updates)) {
+      ValueBinding binding{};
+      if (!bind_frame(configuration.frame, registry, telemetry,
+                      modifier_readers, condition_contexts_[count_],
+                      caption_contexts_[count_], binding)) {
         count_ = 0;
         return false;
       }
-      reads_[count_] = read;
-      read_contexts_[count_] = read_context;
+      bindings_[count_] = binding;
       ++count_;
     }
     return true;
   }
 
-  [[nodiscard]] std::span<const ValueReadCallback> reads() const {
-    return {reads_.data(), count_};
-  }
-  [[nodiscard]] std::span<void* const> contexts() const {
-    return {read_contexts_.data(), count_};
+  [[nodiscard]] std::span<const ValueBinding> bindings() const {
+    return {bindings_.data(), count_};
   }
 
  private:
-  std::array<SourceContext, Capacity> contexts_{};
-  std::array<ValueReadCallback, Capacity> reads_{};
-  std::array<void*, Capacity> read_contexts_{};
+  std::array<SourceContext, Capacity> condition_contexts_{};
+  std::array<SourceContext, Capacity> caption_contexts_{};
+  std::array<ValueBinding, Capacity> bindings_{};
   std::size_t count_{};
 };
 

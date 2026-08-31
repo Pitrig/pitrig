@@ -134,6 +134,7 @@ export function widgetSources(widget: WidgetConfiguration): ValueSourceConfigura
       ? widget.traces.flatMap((trace) => (trace?.source ? [trace.source] : []))
       : []),
     ...(widget.condition_source ? [widget.condition_source] : []),
+    ...(widget.title?.source ? [widget.title.source] : []),
     ...(widget.type === 'slot'
       ? pagesOf(widget).flatMap((page) => (page.source ? [page.source] : []))
       : [])

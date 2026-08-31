@@ -50,16 +50,9 @@ bool Binder::bind(const std::span<const Config> configurations,
       count_ = 0;
       return false;
     }
-    const configuration::WidgetFrame& widget_frame = configuration.frame;
-    bool condition_fast{};
-    if (frame::watches_value(widget_frame) &&
-        !frame::bind_source(configuration::value_binding_view(
-                                widget_frame.condition_source.binding),
-                            widget_frame.condition_source.modifier_count,
-                            widget_frame.condition_source.modifiers, registry,
-                            telemetry, modifier_readers,
-                            condition_contexts_[count_], binding.condition_read,
-                            binding.condition_context, condition_fast)) {
+    if (!frame::bind_frame(configuration.frame, registry, telemetry,
+                           modifier_readers, condition_contexts_[count_],
+                           caption_contexts_[count_], binding)) {
       count_ = 0;
       return false;
     }
@@ -128,6 +121,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.painter.configure(config.frame, box, state.authored_color,
                           &apply_recolor, &state);
   state.painter.bind(binding.condition_read, binding.condition_context);
+  state.painter.bind_caption(binding.caption_read, binding.caption_context);
   return true;
 }
 

@@ -155,6 +155,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
 
   state.painter.configure(config.frame, box, state.colors[0], nullptr, nullptr);
   state.painter.bind(binding.condition_read, binding.condition_context);
+  state.painter.bind_caption(binding.caption_read, binding.caption_context);
   return true;
 }
 

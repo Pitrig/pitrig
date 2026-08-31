@@ -18,4 +18,14 @@ namespace simcore::dashboard::frame::internal {
 void build_caption(const Config& config, const fonts::Registry& fonts,
                    lv_obj_t* parent, const Rect& bounds, Box& box);
 
+[[nodiscard]] std::int32_t caption_width(const lv_font_t* font,
+                                         const char* text);
+
+[[nodiscard]] Rect caption_position(const CaptionLayout& layout,
+                                    std::int32_t width);
+
+[[nodiscard]] CaptionMask caption_mask_for(const CaptionLayout& layout,
+                                           std::int32_t width,
+                                           std::uint32_t rgb);
+
 }

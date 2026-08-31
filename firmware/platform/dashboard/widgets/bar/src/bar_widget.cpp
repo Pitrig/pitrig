@@ -79,6 +79,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.painter.configure(config.frame, box, config.fill_color,
                           &apply_fill_color, state.fill);
   state.painter.bind(binding.condition_read, binding.condition_context);
+  state.painter.bind_caption(binding.caption_read, binding.caption_context);
   return true;
 }
 
