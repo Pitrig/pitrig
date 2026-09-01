@@ -32,6 +32,7 @@ jobs:
           python3 -m tools.codegen.configuration_schema --check
           python3 -m tools.codegen.telemetry_catalog --check
           python3 -m tools.codegen.font_catalog --check
+          python3 -m tools.codegen.led_font --check
 
       - name: Debug hooks unchanged
         run: python3 tools/check_debug_isolation.py --check
@@ -138,6 +139,10 @@ jobs:
             directory: jc1060p470c
             target: esp32p4
             defaults: sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c
+          - board: esp32s3-devkit
+            directory: devkit
+            target: esp32s3
+            defaults: sdkconfig.defaults;sdkconfig.defaults.esp32s3-devkit
     steps:
       - uses: actions/checkout@v7
 
@@ -217,5 +222,5 @@ jobs:
               --draft \
               --target "$GITHUB_SHA" \
               --title "SimCore $tag" \
-              --notes "Configurator $version for macOS, Windows and Linux, and firmware $firmware for the three boards. Each firmware archive holds the OTA image (\`simcore-<board>.bin\`), the bootloader, the partition table and the flasher arguments."
+              --notes "Configurator $version for macOS, Windows and Linux, and firmware $firmware for the four boards. Each firmware archive holds the OTA image (\`simcore-<board>.bin\`), the bootloader, the partition table and the flasher arguments."
           fi

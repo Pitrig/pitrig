@@ -1180,13 +1180,13 @@ other:
 | Document | Top-level properties | Maximum payload |
 | --- | --- | --- |
 | `dashboard` | `board`, `dashboard.transition`, `dashboard.screens` | 131072 bytes |
-| `modules` | `board`, `hardware` | 1024 bytes |
+| `modules` | `board`, `hardware` | 32768 bytes |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes |
 
 | Property | Shape | Meaning |
 | --- | --- | --- |
 | `board` | string, required | Immutable compatible board identifier. Present in all three documents. |
-| `hardware` | array, optional | User-configured peripherals; currently only `[]` is supported. |
+| `hardware` | array, optional | User-configured peripherals, discriminated by `type`. `rgb_strip` and `rgb_matrix` are the only kinds with a driver. |
 | `telemetry_transport` | object, optional | Transport `id` and optional `uart` settings. |
 | `dashboard.transition` | string, optional | How a move between screens is drawn: `slide` or `none`. Defaults to `slide`. |
 | `dashboard.screens` | array, optional | Bounded screen list, at most four entries. |
@@ -1243,11 +1243,72 @@ to fit its widget, a slot page whose trigger decides what else it may carry —
 stay hand-written on both sides, because none of them can be stated as two
 numbers.
 
-The configurable `hardware` array currently accepts only an empty array because
-no user-configurable peripheral driver has a complete production contract yet.
-Non-empty entries are rejected rather than guessed. Breaking changes to public
-properties require a later documented schema version; compatible bounded
-extensions must be recorded in an ADR.
+A strip and a matrix are authored like this — two devices, two pins:
+
+```json
+{
+  "board": "guition_jc1060p470c",
+  "hardware": [
+    {
+      "type": "rgb_strip", "id": "rev", "pin": 32, "count": 16,
+      "brightness": 120, "current_limit_ma": 1500,
+      "effects": [
+        { "type": "steps", "id": "shift",
+          "source": { "binding": "engine.rpm_percent" },
+          "minimum": 0, "maximum": 100,
+          "steps": [
+            { "threshold": 0.00, "color": "#00C853" },
+            { "threshold": 0.92, "color": "#D50000" }
+          ] },
+        { "type": "solid", "id": "yellow", "color": "#FFBF00",
+          "gate": "conditions",
+          "condition_source": { "binding": "session.flag.yellow" },
+          "conditions": [ { "op": "at_or_above", "value": 1 } ],
+          "hold_ms": 1500, "blink_ms": 250 }
+      ]
+    },
+    {
+      "type": "rgb_matrix", "id": "panel", "pin": 33,
+      "width": 8, "height": 8,
+      "order": "serpentine", "origin": "top_left", "rotation_deg": 0,
+      "effects": [
+        { "type": "text", "id": "gear", "font": "large", "color": "#FFFFFF",
+          "source": { "binding": "transmission.gear" } }
+      ]
+    }
+  ]
+}
+```
+
+The two are **separate devices, not segments of one chain**: each owns a data pin
+and, on the wire, a transmit channel of its own, so neither can disturb the
+other's lamp numbering and either can be removed without renumbering anything.
+A board drives four of them, because four is how many transmit channels both the
+ESP32-S3 and the ESP32-P4 have. Lamp numbering is per device and starts at zero.
+
+Layers are painted in the order they are authored and a later one overwrites the
+lamps it covers, so the flag layer above sits over the shift lights whatever they
+were showing while its rule holds. That is deliberately the opposite of a
+widget's styling rules, where the first match wins: a widget resolves one
+appearance, while a device composes a picture out of several things being true
+at once.
+
+The configurable `hardware` array carries one entry per peripheral, each named
+by a `type` the firmware has a driver for. A type it does not know is rejected
+rather than ignored, so a document authored against a newer firmware fails
+loudly on an older board. Breaking changes to public properties require a later
+documented schema version; compatible bounded extensions must be recorded in an
+ADR.
+
+An `rgb_strip` is a data pin and a `count` of lamps. An `rgb_matrix` is a data
+pin and a grid of `width` by `height`, described by the `order` its rows are
+wired in, the `origin` corner its first lamp sits in, and a quarter-turn
+`rotation_deg` so a panel mounted on its side still reads upright. The pin is
+checked against the pins the board declares free, and two devices may not name
+the same one. Matrix artwork travels inside this document as palette-indexed
+pixels rather than as an uploaded asset, so it costs no partition, no upload and
+no restart; a strip carrying sprites is rejected, because it has nothing to draw
+them on.
 
 The schema retains deterministic limits. They are generated from
 `configuration/configuration_schema.json` together with the firmware structures

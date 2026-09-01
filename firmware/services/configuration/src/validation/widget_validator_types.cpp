@@ -51,7 +51,7 @@ bool Validator::slot_page(const SlotPageConfiguration& config) {
                       "conditions");
       }
       for (std::size_t index = 0; index < config.condition_count; ++index) {
-        const SlotCondition& rule = config.conditions[index];
+        const ValueCondition& rule = config.conditions[index];
         if (!std::isfinite(rule.value) || rule.op < ConditionOperator::above ||
             rule.op > ConditionOperator::not_equal) {
           return reject(failure_, ValidationError::invalid_slot_page,

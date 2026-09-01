@@ -21,6 +21,7 @@ import { ensureBenchAssets, type BenchAssetServices } from './bench-assets'
 import { isDiagnosticsReply, parseBenchDiagnostics } from './bench-diagnostics'
 import { TelemetryFeed } from './telemetry-feed'
 
+const NO_DISPLAY = 'This board has no display, so there is no render pattern to measure.'
 const DIAGNOSTICS_COMMAND = '@SC:DIAG'
 const APPLY_ATTEMPTS = 3
 const APPLY_RETRY_DELAY_MS = 1_500
@@ -108,6 +109,7 @@ export class BenchService {
     try {
       outcome = await deviceService.runPipeline(async (): Promise<DeviceResult<void>> => {
         const display = session.info.display
+        if (!display) return failure({ code: 'serial_error', message: NO_DISPLAY })
         const characters = benchTextCharacters(
           buildBenchDashboard({
             board: session.info.boardId,

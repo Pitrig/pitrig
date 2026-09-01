@@ -17,7 +17,7 @@ namespace simcore::configuration::json::variants {
   if (!valid_object(object, schema::kBarWidgetConfigurationKeys, kName,
                     failure) ||
       !parse_frame(object, config.frame, kName, failure) ||
-      !parse_value_source(object, config.source, kName, failure) ||
+      !parse_value_source(object, "source", config.source, kName, failure) ||
       !read_float(object, "minimum", config.range.minimum, kName, failure) ||
       !read_float(object, "maximum", config.range.maximum, kName, failure) ||
       !read_float(object, "origin", config.origin, kName, failure) ||
@@ -40,7 +40,7 @@ namespace simcore::configuration::json::variants {
   return valid_object(object, schema::kArcWidgetConfigurationKeys, kName,
                       failure) &&
          parse_frame(object, config.frame, kName, failure) &&
-         parse_value_source(object, config.source, kName, failure) &&
+         parse_value_source(object, "source", config.source, kName, failure) &&
          read_float(object, "minimum", config.range.minimum, kName, failure) &&
          read_float(object, "maximum", config.range.maximum, kName, failure) &&
          read_integer(object, "start_angle_deg", config.start_angle_deg, kName,
@@ -84,7 +84,7 @@ namespace simcore::configuration::json::variants {
   return valid_object(object, schema::kIndicatorWidgetConfigurationKeys, kName,
                       failure) &&
          parse_frame(object, config.frame, kName, failure) &&
-         parse_value_source(object, config.source, kName, failure) &&
+         parse_value_source(object, "source", config.source, kName, failure) &&
          read_float(object, "minimum", config.range.minimum, kName, failure) &&
          read_float(object, "maximum", config.range.maximum, kName, failure) &&
          read_enum(object, "shape", config.shape, indicator_shape_from_name,
@@ -123,7 +123,7 @@ namespace simcore::configuration::json::variants {
       [&](const cJSON* const trace, GraphTraceConfiguration& parsed) {
         return valid_object(trace, schema::kGraphTraceConfigurationKeys, kName,
                             failure) &&
-               parse_value_source(trace, parsed.source, kName, failure) &&
+               parse_value_source(trace, "source", parsed.source, kName, failure) &&
                read_float(trace, "minimum", parsed.range.minimum, kName,
                           failure) &&
                read_float(trace, "maximum", parsed.range.maximum, kName,
@@ -140,7 +140,7 @@ namespace simcore::configuration::json::variants {
   return valid_object(object, schema::kGraphWidgetConfigurationKeys, kName,
                       failure) &&
          parse_frame(object, config.frame, kName, failure) &&
-         parse_value_source(object, config.source, kName, failure) &&
+         parse_value_source(object, "source", config.source, kName, failure) &&
          read_float(object, "minimum", config.range.minimum, kName, failure) &&
          read_float(object, "maximum", config.range.maximum, kName, failure) &&
          read_integer(object, "point_count", config.point_count, kName,

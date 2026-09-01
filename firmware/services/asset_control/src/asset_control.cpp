@@ -209,4 +209,19 @@ void AssetControl::consume(const std::span<const std::uint8_t> bytes) {
   }
 }
 
+
+bool report_progress(const AssetControl& control, std::uint8_t& percent) {
+  if (!control.active()) {
+    return false;
+  }
+  const AssetControl::Progress progress = control.progress();
+  percent = progress.total == 0
+                ? 0
+                : static_cast<std::uint8_t>(
+                      std::min<std::size_t>(progress.received * 100 /
+                                                progress.total,
+                                            100));
+  return true;
+}
+
 }

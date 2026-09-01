@@ -8,6 +8,6 @@ endif()
 idf_component_register(SRCS "src/board_registry.cpp"
                        INCLUDE_DIRS "include"
                        REQUIRES configuration_contract interfaces
-                       PRIV_REQUIRES ${board_driver_dependencies})
+                       PRIV_REQUIRES ${board_driver_dependencies} ws2812_rmt)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

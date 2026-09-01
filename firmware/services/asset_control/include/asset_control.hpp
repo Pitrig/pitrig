@@ -43,6 +43,11 @@ struct Operations {
   int (*write_info_body)(void* service, char* out, std::size_t size){};
 };
 
+class AssetControl;
+
+[[nodiscard]] bool report_progress(const AssetControl& control,
+                                   std::uint8_t& percent);
+
 class AssetControl final {
  public:
   ~AssetControl();
@@ -59,6 +64,15 @@ class AssetControl final {
 
   [[nodiscard]] bool active() const {
     return session_active_.load(std::memory_order_acquire);
+  }
+
+  struct Progress {
+    std::size_t received{};
+    std::size_t total{};
+  };
+
+  [[nodiscard]] Progress progress() const {
+    return {.received = received_size_, .total = package_size_};
   }
 
  private:

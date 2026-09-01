@@ -7,7 +7,7 @@
 #include "graph_widget.hpp"
 #include "lvgl.h"
 #include "simcore_features.hpp"
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 
 namespace simcore::dashboard::graph_widget {
 namespace {

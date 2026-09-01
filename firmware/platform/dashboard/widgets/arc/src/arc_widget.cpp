@@ -7,7 +7,7 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 #include "ring_geometry.hpp"
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 
 namespace simcore::dashboard::arc_widget {
 namespace {

@@ -5,6 +5,11 @@ model of [ADR 0009](0009-persistent-runtime-configuration.md) and
 [ADR 0013](0013-generated-configuration-contract.md); rescopes the replacement
 transaction of [ADR 0016](0016-runtime-configuration-ownership.md) and the
 control command set of [ADR 0006](0006-simhub-custom-serial-line-protocol.md).
+Amended by [ADR 0030](0030-addressable-led-peripherals.md): the `hardware`
+section this ADR reserved now carries addressable LED outputs, its payload bound
+rose from 1 KB to 32 KB so a matrix's artwork travels inside the document, and
+applying the `modules` document restarts the modules without rebuilding the
+dashboard.
 
 ## Context
 

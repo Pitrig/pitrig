@@ -41,7 +41,7 @@ export function SourceRangeFields<T extends RangedWidget>({ widget, update }: { 
   )
 }
 
-function RangeRow<T extends RangedWidget>({ widget, update, unit }: { widget: T; update: (mutation: (next: T) => void) => void; unit: string }): React.JSX.Element {
+export function RangeRow<T extends RangedWidget>({ widget, update, unit }: { widget: T; update: (mutation: (next: T) => void) => void; unit: string }): React.JSX.Element {
   return (
     <PropertyRow
       label="Range"

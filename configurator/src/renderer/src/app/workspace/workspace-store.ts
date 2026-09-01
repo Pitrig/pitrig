@@ -17,21 +17,28 @@ const DASHBOARD_VIEWS = ['canvas', 'templates', 'fonts', 'images'] as const
 
 export type DashboardView = (typeof DASHBOARD_VIEWS)[number]
 
+const MODULES_VIEWS = ['leds', 'matrix'] as const
+
+export type ModulesView = (typeof MODULES_VIEWS)[number]
+
 interface PersistedWorkspace {
   tab: WorkspaceTab
   dashboardView: DashboardView
+  modulesView: ModulesView
   railExpanded: boolean
 }
 
 interface WorkspaceStore extends PersistedWorkspace {
   setTab: (tab: WorkspaceTab) => void
   setDashboardView: (view: DashboardView) => void
+  setModulesView: (view: ModulesView) => void
   toggleRail: () => void
 }
 
 const DEFAULTS: PersistedWorkspace = {
   tab: 'dashboard',
   dashboardView: 'canvas',
+  modulesView: 'leds',
   railExpanded: true
 }
 
@@ -47,6 +54,9 @@ function restore(): PersistedWorkspace {
       dashboardView: DASHBOARD_VIEWS.includes(stored.dashboardView as DashboardView)
         ? (stored.dashboardView as DashboardView)
         : DEFAULTS.dashboardView,
+      modulesView: MODULES_VIEWS.includes(stored.modulesView as ModulesView)
+        ? (stored.modulesView as ModulesView)
+        : DEFAULTS.modulesView,
       railExpanded: stored.railExpanded ?? DEFAULTS.railExpanded
     }
   } catch {
@@ -58,14 +68,15 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   ...restore(),
   setTab: (tab) => set({ tab }),
   setDashboardView: (dashboardView) => set({ dashboardView }),
+  setModulesView: (modulesView) => set({ modulesView }),
   toggleRail: () => set((current) => ({ railExpanded: !current.railExpanded }))
 }))
 
-useWorkspaceStore.subscribe(({ tab, dashboardView, railExpanded }) => {
+useWorkspaceStore.subscribe(({ tab, dashboardView, modulesView, railExpanded }) => {
   try {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ tab, dashboardView, railExpanded })
+      JSON.stringify({ tab, dashboardView, modulesView, railExpanded })
     )
   } catch {
   }

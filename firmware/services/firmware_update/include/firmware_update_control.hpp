@@ -20,6 +20,10 @@ class FirmwareUpdateControl final {
   }
   void stop() { control_.stop(); }
 
+  [[nodiscard]] bool progress(std::uint8_t& percent) const {
+    return asset_control::report_progress(control_, percent);
+  }
+
  private:
   asset_control::AssetControl control_;
 };

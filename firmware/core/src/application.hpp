@@ -69,8 +69,6 @@ struct ConfigurationBuffers {
 
 [[nodiscard]] transport::ITransport& primary_transport(Application& application);
 
-[[nodiscard]] bool recompose(Application& application);
-
 configuration::ValidationFailure apply_configuration(
     configuration::ConfigurationDocument document,
     std::span<const std::uint8_t> payload, void* context);

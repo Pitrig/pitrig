@@ -2,7 +2,10 @@
 
 Status: Accepted; the original "every supported display driver is linked into
 the firmware" wording was corrected once the P4 target began linking only its
-own board drivers.
+own board drivers. The open question about authoring for a display-less board is
+answered by [ADR 0030](0030-addressable-led-peripherals.md): `esp32s3_devkit` is
+the first such board, and a `dashboard` section on one is rejected rather than
+ignored.
 
 ## Context
 

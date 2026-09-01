@@ -18,6 +18,8 @@ enum class ValidationError : std::uint8_t {
   invalid_board,
   board_mismatch,
   invalid_hardware,
+  invalid_led_pin,
+  invalid_led_sprite,
   invalid_transport,
   invalid_uart,
   invalid_module,
@@ -30,13 +32,15 @@ enum class ValidationError : std::uint8_t {
   duplicate_property,
 };
 
-inline constexpr std::array<std::string_view, 16> kValidationErrorNames{{
+inline constexpr std::array<std::string_view, 18> kValidationErrorNames{{
     "none",
     "malformed",
     "unsupported_schema",
     "invalid_board",
     "board_mismatch",
     "invalid_hardware",
+    "invalid_led_pin",
+    "invalid_led_sprite",
     "invalid_transport",
     "invalid_uart",
     "invalid_module",
@@ -86,6 +90,64 @@ inline constexpr std::array<std::string_view, 3> kNumberTransformConfigKeys{{
 
 inline constexpr std::array<std::string_view, 1> kBoardConfigurationKeys{{
     "board",
+}};
+
+inline constexpr std::array<std::string_view, 1> kLedPaletteEntryKeys{{
+    "color",
+}};
+
+inline constexpr std::array<std::string_view, 6> kLedSpriteConfigurationKeys{{
+    "id",
+    "width",
+    "height",
+    "frame_count",
+    "palette",
+    "pixels",
+}};
+
+inline constexpr std::array<std::string_view, 24> kLedEffectKeys{{
+    "type",
+    "id",
+    "from",
+    "count",
+    "source",
+    "minimum",
+    "maximum",
+    "gate",
+    "condition_source",
+    "conditions",
+    "hold_ms",
+    "blink_ms",
+    "brightness",
+    "mirrored",
+    "inverted",
+    "color",
+    "stops",
+    "steps",
+    "animation",
+    "speed_ms",
+    "sprite",
+    "sprite_frame",
+    "text",
+    "font",
+}};
+
+inline constexpr std::array<std::string_view, 15> kHardwareDeviceConfigurationKeys{{
+    "type",
+    "id",
+    "pin",
+    "chip",
+    "brightness",
+    "gamma",
+    "current_limit_ma",
+    "count",
+    "width",
+    "height",
+    "order",
+    "origin",
+    "rotation_deg",
+    "effects",
+    "sprites",
 }};
 
 inline constexpr std::array<std::string_view, 5> kUartTelemetryConfigurationKeys{{
@@ -185,7 +247,7 @@ inline constexpr std::array<std::string_view, 8> kWidgetConditionKeys{{
     "hold_ms",
 }};
 
-inline constexpr std::array<std::string_view, 2> kSlotConditionKeys{{
+inline constexpr std::array<std::string_view, 2> kValueConditionKeys{{
     "op",
     "value",
 }};
@@ -493,6 +555,63 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
       return kModulesDocumentKeys;
     case ConfigurationDocument::protocol:
       return kProtocolDocumentKeys;
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const LedSpriteConfiguration& config) {
+  if (config.width < 1 || config.width > kMaximumMatrixSide) {
+    return "width";
+  }
+  if (config.height < 1 || config.height > kMaximumMatrixSide) {
+    return "height";
+  }
+  if (config.frame_count < 1 || config.frame_count > kMaximumLedSpriteFrames) {
+    return "frame_count";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const LedEffect& config) {
+  if (config.from > kMaximumLedsPerOutput) {
+    return "from";
+  }
+  if (config.count != 0 &&
+      (config.count < 1 || config.count > kMaximumLedsPerOutput)) {
+    return "count";
+  }
+  if (config.hold_ms > kMaximumHoldMs) {
+    return "hold_ms";
+  }
+  if (config.blink_ms != 0 &&
+      (config.blink_ms < kMinimumBlinkMs || config.blink_ms > kMaximumBlinkMs)) {
+    return "blink_ms";
+  }
+  if (config.speed_ms < 50 || config.speed_ms > 60000) {
+    return "speed_ms";
+  }
+  if (config.sprite_frame > kMaximumLedSpriteFrames) {
+    return "sprite_frame";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const HardwareDeviceConfiguration& config) {
+  if (config.current_limit_ma != 0 &&
+      (config.current_limit_ma < 100 || config.current_limit_ma > 20000)) {
+    return "current_limit_ma";
+  }
+  if (config.count < 1 || config.count > kMaximumLedsPerOutput) {
+    return "count";
+  }
+  if (config.width < 1 || config.width > kMaximumMatrixSide) {
+    return "width";
+  }
+  if (config.height < 1 || config.height > kMaximumMatrixSide) {
+    return "height";
+  }
+  if (config.rotation_deg > 270) {
+    return "rotation_deg";
   }
   return {};
 }

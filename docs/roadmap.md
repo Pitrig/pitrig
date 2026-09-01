@@ -27,6 +27,7 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [ ] I2C
 - [*] Display interface
 - [*] Input interface (pointer; buttons and encoders still owed)
+- [*] LED interface and the RMT driver behind it
 
 # Phase 3 — Drivers
 
@@ -81,7 +82,14 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
       pointer step and the P4 accelerator is untouched (an arbitrary rectangle
       atlas was rejected for that reason)
 - [ ] Button Matrix
-- [ ] RGB
+- [*] RGB — addressable WS2812B and SK6812 outputs, each a data pin and an
+      ordered chain of strips and matrices. Layers are painted over that chain
+      and a later one overwrites the lamps it covers, which is SimHub's model
+      and the opposite of a widget's first-match styling rules: an output
+      composes a picture out of several things being true at once. Matrix
+      artwork is palette-indexed inside the document rather than uploaded, so
+      the whole feature reaches boards already in the field over the air
+      (ADR 0030)
 
 # Phase 5 — Interaction
 
@@ -118,3 +126,6 @@ foundation for them landed in Phase 1.
 # Phase 6 — Field maintenance
 
 - [*] OTA partition layout and update path
+- [*] A board with no display — the ESP32-S3 DevKitC-1 profile, and the
+      single-lamp status light that reports safe mode and upload progress on a
+      board that has no other way to say anything

@@ -52,6 +52,16 @@ cd firmware && idf.py -B build-guition -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfi
 cd firmware && idf.py -B build-jc1060p470c -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c" build
 ```
 
+```bash
+cd firmware && idf.py -B build-devkit -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.devkit -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.esp32s3-devkit" build
+```
+
+The DevKitC-1 is the board with **no display**: `BoardDefinition::display` and
+`input` are null, a `dashboard` section on it is rejected rather than ignored,
+and its only visible output is the addressable lamp `BoardDefinition::status_led`
+names. That lamp moved between board revisions, so which pin it is on is a
+Kconfig choice (`SIMCORE_STATUS_LED_GPIO38` / `_GPIO48`) rather than a guess.
+
 Debug builds append `;sdkconfig.defaults.debug` to `SDKCONFIG_DEFAULTS`, which selects
 `CONFIG_SIMCORE_DEBUG`. Feature selection is Kconfig-driven; no source header is edited (see
 [docs/runtime-performance.md](docs/runtime-performance.md)). A debug build is the product **plus
@@ -99,12 +109,23 @@ the patch is what declares `full_strips`, and `components/display` sets that fla
 ### VS Code tasks
 
 [.vscode/tasks.json](.vscode/tasks.json) carries every command above, each sourcing the environment
-for its own build directory: eight `SimCore: Build …` tasks (three boards, their debug profiles and
+for its own build directory: ten `SimCore: Build …` tasks (four boards, their debug profiles and
 the two P4 render profiles), `SimCore: Build All Firmware` (runs them in sequence, esp32s3 first so
 the `IDF_TARGET` switch happens once), `SimCore: Flash` / `Monitor` / `Flash and Monitor` over a
-picked build directory and port, `SimCore: Check Generated Contracts` and `Regenerate Contracts`,
+picked build directory, `SimCore: Check Generated Contracts` and `Regenerate Contracts`,
 and `Configurator: …` / `Debugger: …` for both Electron applications. There is deliberately no
-default build task: with eight configurations, the picker is the honest answer.
+default build task: with ten configurations, the picker is the honest answer.
+
+**The port is chosen, not typed.** The three serial tasks run
+[tools/pick-serial-port.py](tools/pick-serial-port.py), which lists the ports that are actually
+present with what each one is — the JTAG unit you flash through, the board's own `SimCore` CDC link
+you do not — stars the flashable one as the default, and offers `auto` to let esptool find the
+board. It prompts on stderr and prints only the chosen device on stdout, so the task captures it
+with `$(…)`. A single port is taken without asking, and a non-interactive run falls back to `auto`.
+This replaced a hardcoded `/dev/cu.usbmodem101`: macOS numbers `usbmodem` ports by which USB socket
+the board is in, so any remembered name goes stale the moment the cable moves. `SIMCORE_PORT`
+overrides the prompt. The script prefers pyserial, which the sourced ESP-IDF environment already
+provides, and falls back to listing `/dev` without the descriptions.
 
 ### Configurator (Electron + React 19 + TypeScript, pnpm)
 
@@ -181,6 +202,20 @@ Outputs: `firmware/services/telemetry/include/telemetry_catalog_generated.hpp`,
 `configurator/src/shared/telemetry-catalog.ts`, `configurator/src/shared/simhub-profile-data.ts`,
 `docs/telemetry-catalog.md`, `simhub/SimCore-telemetry.shsds`.
 
+### LED bitmap fonts
+
+`fonts/led_bitmap_font.json` holds the two faces a matrix draws text with, as
+rows of `#` and space:
+
+```bash
+python3 -m tools.codegen.led_font
+```
+
+Outputs: `firmware/components/led/include/led_font_generated.hpp`,
+`configurator/src/shared/led-font.ts`. Both sides need the same glyphs — the
+firmware to draw them and the configurator to preview them — which is why they
+are generated rather than kept in step by hand.
+
 ### Google Fonts catalog
 
 `fonts/google_fonts_snapshot.json` (fetched from Google, no API key) and
@@ -220,23 +255,37 @@ components → interfaces ← drivers
   compile-time descriptors (function pointers + explicit contexts); no allocation, no name lookup.
 - `interfaces/` — small contracts (`display`, `input`, `transport`) implemented by drivers. The
   `display` and `input` contracts live in one `interfaces` component; `transport` is its own.
-- `components/` — reusable hardware capabilities (`display`, `input`); depend on interfaces, never
-  on concrete drivers.
+- `components/` — reusable hardware capabilities (`display`, `input`, `led`); depend on
+  interfaces, never on concrete drivers, and on no service either — `led` therefore
+  knows nothing of the configuration contract and the module translates for it.
 - `drivers/` — board/hardware implementations (`t_display_s3`, `guition_esp32_4848s040`,
   `guition_jc1060p470c`, `touch/gt911`, `transport/uart`, `transport/usb_cdc`,
   plus `transport/transport_common` for the read counters every link
   shares and the log silencing the console-port link uses). Each board has exactly one link.
+  `led/ws2812_rmt` drives one RMT transmit channel per output, which is why four
+  outputs is the ceiling on both chips.
   `transport/usb_cdc` owns the whole native USB device: on a board that has one it enumerates as a
   composite CDC serial port **and** an HID gamepad (`usb_gamepad.hpp`), selected by
   `CONFIG_TINYUSB_HID_COUNT` in the board defaults. No application logic. A board with
   no digitizer leaves `BoardDefinition::input` null.
-- `modules/` — user-visible functionality (`lap_timer`). Must not depend on platform
-  code or LVGL, and must not touch hardware directly.
+- `modules/` — user-visible functionality (`lap_timer`, `rgb_leds`). Must not depend
+  on platform code or LVGL, and must not touch hardware directly. `rgb_leds` owns
+  the addressable LED outputs: it turns the `hardware` section into chains, binds
+  each layer once, and repaints on its own 60 Hz task, because the event-bus
+  handler runs on the transport read task and blocking it stalls telemetry for
+  the dashboard as well. Layers are painted in order and a later one overwrites
+  the lamps it covers — deliberately the opposite of a widget's first-match
+  styling rules (ADR 0030).
 - `services/` — shared infrastructure (`asset_control`, `asset_package`, `asset_storage`,
   `binary_session`, `boot_guard`, `configuration`, `configuration_contract`,
   `configuration_control`, `event_bus`, `firmware_update`, `font_assets`, `font_asset_control`,
   `font_contract`, `image_assets`, `image_asset_control`, `image_contract`, `logger`,
-  `telemetry` + `telemetry/protocols/simhub`). `asset_control` is the `SCF1` upload engine;
+  `telemetry` + `telemetry/protocols/simhub`, `value_conditions`). `value_conditions` is the
+  LVGL-free rule resolver — it was inside the `dashboard` platform component until an LED
+  layer needed it, and a module may depend on a service but not on platform code
+  (ADR 0030); call sites are unchanged because unqualified `conditions::` still
+  resolves from inside `simcore::dashboard`.
+  `asset_control` is the `SCF1` upload engine;
   `font_asset_control`, `image_asset_control` and `firmware_update` are thin per-kind wrappers
   over it that supply the protocol tag and the body of the `INFO` reply. `firmware_update` is one
   component rather than a service plus a wrapper, because nothing reads a firmware image at
@@ -250,7 +299,10 @@ components → interfaces ← drivers
   LVGL allocation in external RAM, `utilities`, and the embedded boot-splash
   `assets`),
   `dashboard_composition`, `module_composition`, `nvs_config_storage`,
-  `partition_asset_storage`, `telemetry_transport`, `external_memory`.
+  `partition_asset_storage`, `status_light`, `telemetry_transport`, `external_memory`.
+  `status_light` drives the single board-declared lamp: it needs no configuration, so
+  it runs on the recovery surface where no module composes, and reports booting, safe
+  mode, telemetry silence and upload progress.
 - `utils/` — helpers with no dependency on any other layer (`binary`, `simcore_config`,
   `transformers/number_transform`, `transformers/text_writer`, `transformers/time_transform`).
   `simcore_config` is the Kconfig surface and the `SIMCORE_*` feature aliases; it lives here
@@ -489,8 +541,16 @@ Dashboard, Modules, Protocol, Configs, Firmware, Info, ordered once in
 `WORKSPACE_TABS` so the rail and the `Cmd`/`Ctrl`+digit accelerators cannot
 disagree — with the active one, the active
 dashboard page and the rail's width kept across restarts in `workspace-store.ts`, and one page
-chrome (`PageShell`) so the six read as one application. Only Dashboard has pages of its own
-(`Canvas`, `Templates`, `Fonts`, `Images`), because all four answer what the dashboard is made of.
+chrome (`PageShell`) so the six read as one application. Dashboard and Modules have pages of their
+own — `Canvas`, `Templates`, `Fonts`, `Images`, because all four answer what the dashboard is made
+of; and `LEDs`, `Matrix`, because a strip and a panel are separate devices authored nothing alike.
+Each remembers its page across restarts (`dashboardView`, `modulesView` in `workspace-store.ts`).
+
+A strip and a matrix are **separate `hardware` entries on separate pins**, not segments of a shared
+chain (ADR 0030), so each Modules page lists only its own device kind and everything below it — the
+pin, the shape, the layers, the preview — belongs to the one device selected there. Lamp numbering
+is per device and starts at zero, which is what lets a page show one device without knowing what
+else the board drives.
 What the window owns rather than a page — live apply, `Cmd`/`Ctrl`+`S`, the
 unresolved-fonts dialog — is mounted in `App.tsx`, so leaving a page never stops it.
 
@@ -502,7 +562,16 @@ the only things that see three. Everything else keeps working on the whole draft
 The editor mutates one sparse draft document; canvas drag/resize, the inspector, and the advanced
 JSON editor all write the same document — there is no separate editor-only layout model. The draft
 owns its board identity, so it works fully disconnected; device connection and draft have independent
-lifetimes ("Load config from board" is the explicit discard).
+lifetimes ("Load config from board" is the explicit discard). **Modules is authored the same way**:
+its empty state offers the same board choice and the same `createConfiguration` / `openConfigurationFile`
+the empty canvas does, and the same `BoardPicker` sits in its header, because peripherals live in that
+one draft rather than in anything the board has to be present for. A board that publishes no free LED
+pins says so on the page instead of silently hiding the button that would add an output.
+
+`layout-transfer.ts` carries the peripherals too: an output whose pin the target board does not offer
+is moved to one it does, or loses its pin and says so, and a target with no display drops the dashboard
+rather than scaling it against a zero-sized one. Both land in the same transfer report as the image and
+clamping notes.
 
 A dashboard moves to another board through `shared/layout-transfer.ts`: every pixel-valued property
 scaled, either `contain` (one factor, centred, keeps proportions) or `stretch` (a factor per axis,

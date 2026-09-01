@@ -48,7 +48,7 @@ The firmware core coordinates everything.
 
 The firmware core must never depend on specific hardware.
 
-Displays, LEDs, buttons, encoders, touch panels and future peripherals are accessed through components and their interfaces.
+Displays, LEDs, buttons, encoders, touch panels and future peripherals are accessed through components and their interfaces. A board declares which of them it has, and which GPIOs it leaves free for the ones it does not.
 
 Replacing hardware should primarily require implementing a new driver instead of modifying application logic.
 
@@ -262,12 +262,18 @@ lookup.
 
 Components expose reusable hardware capabilities to the core and modules.
 
-Two exist:
+Three exist:
 
 - Display
 - Touch Input
+- LED
 
-LED strips, LED matrices, buttons and encoders are still owed. The input
+Buttons and encoders are still owed. The LED component owns the lamp buffer, the
+colour order each chip family reads, the gamma table, the brightness scaling and
+the current clamp, the mapping from a matrix cell to its place in the chain, and
+the two compiled bitmap faces a matrix draws text with. It knows nothing of the
+configuration contract, so the module translates
+([ADR 0030](adr/0030-addressable-led-peripherals.md)). The input
 component registers the board's pointer with the LVGL port and nothing else —
 the board descriptor carries its input driver as a nullable pointer, so a board
 with no digitizer is a board fact rather than a special case in the core, and a
@@ -282,9 +288,13 @@ Components depend on interfaces rather than concrete drivers.
 
 # Modules
 
-Modules provide user-visible functionality. `lap_timer` is the only one so far:
-it owns lap-time extrapolation, correction and stale-telemetry handling behind
-a value-pipeline callback.
+Modules provide user-visible functionality. Two exist. `lap_timer` owns
+lap-time extrapolation, correction and stale-telemetry handling behind a
+value-pipeline callback. `rgb_leds` owns the addressable LED outputs: it turns
+the `hardware` section into chains, binds each layer's telemetry once, and
+repaints every output on its own task at sixty frames a second, because the
+event-bus handler runs on the transport read task and blocking it would stall
+telemetry for the dashboard too.
 
 Modules communicate through platform services rather than directly with each other whenever possible.
 

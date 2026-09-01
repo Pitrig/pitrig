@@ -67,6 +67,12 @@ class Composition final {
 
   void mark_composed();
 
+  [[nodiscard]] bool upload_progress(std::uint8_t& percent) const {
+    return firmware_update_control_.progress(percent) ||
+           font_asset_control_.progress(percent) ||
+           image_asset_control_.progress(percent);
+  }
+
  private:
   struct Link {
     explicit Link(const telemetry::ITelemetryRegistry& registry)

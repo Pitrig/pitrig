@@ -3,7 +3,7 @@
 #include <optional>
 
 #include "lvgl.h"
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 
 namespace simcore::dashboard::slots {
 namespace {
@@ -177,7 +177,7 @@ bool Controller::raised(Page& page) {
       page.has_last = true;
     } else {
       for (std::size_t rule = 0; rule < page.condition_count; ++rule) {
-        const configuration::SlotCondition& condition = page.conditions[rule];
+        const configuration::ValueCondition& condition = page.conditions[rule];
         if (conditions::condition_holds(condition.op, *value,
                                         static_cast<double>(condition.value))) {
           fires = true;

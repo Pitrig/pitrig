@@ -26,6 +26,7 @@
 #include "nvs_config_storage.hpp"
 #include "partition_asset_storage.hpp"
 #include "simcore_boot.hpp"
+#include "status_light.hpp"
 #include "telemetry_provider.hpp"
 #include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
@@ -94,12 +95,13 @@ void load_uploaded_assets(
 }
 
 bool compose(Application& application,
+             const board_registry::BoardDefinition& board,
              const configuration::ApplicationConfiguration& configuration) {
   if (!module_composition::start(application.modules,
                                  application.services.event_bus,
                                  application.services.telemetry_registry,
                                  application.services.telemetry_state,
-                                 configuration)) {
+                                 board.led, configuration)) {
     log::error(kTag, "One or more configured modules failed to start");
   }
   if (application.display == nullptr) {
@@ -119,6 +121,25 @@ bool compose(Application& application,
                "periodic polling");
   }
   return composed;
+}
+
+bool upload_progress(void* const context, std::uint8_t& percent) {
+  return static_cast<Application*>(context)->communication.upload_progress(
+      percent);
+}
+
+void start_status_light(Application& application,
+                        const board_registry::BoardDefinition& board) {
+  if (board.led == nullptr || board.status_led == nullptr) {
+    return;
+  }
+  if (!status_light::start(*board.led, *board.status_led,
+                           application.services.event_bus)) {
+    log::warn(kTag, "Status lamp is unavailable on this board");
+    return;
+  }
+  status_light::watch_uploads(
+      {.read = &upload_progress, .context = &application});
 }
 
 bool start_communication(Application& application,
@@ -179,7 +200,9 @@ void run() {
   log::info(kTag, "Serial link answering %lu ms after reset",
             static_cast<unsigned long>(esp_timer_get_time() / 1'000));
   application.services.firmware_update.mark_running_image_valid();
+  start_status_light(application, board);
   if (boot_guard::safe_mode()) {
+    status_light::set(status_light::State::safe_mode);
     log::warn(kTag, "Safe mode: waiting for a host on the serial link");
     return;
   }
@@ -190,12 +213,13 @@ void run() {
   boot::open_asset_storage(application);
   load_uploaded_assets(application, configuration);
   boot_guard::reached(boot_guard::Phase::composition);
-  const bool composed = compose(application, configuration);
+  const bool composed = compose(application, board, configuration);
   boot_guard::reached(boot_guard::Phase::complete);
   application.communication.mark_composed();
   if (composed) {
     dashboard_composition::dismiss_startup_screen(configuration, true);
   }
+  status_light::set(status_light::State::running);
   application.platform.telemetry_transport.silence_logs();
   boot_guard::arm_stability_window();
 }

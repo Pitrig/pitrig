@@ -6,6 +6,7 @@
 #include "application_configuration.hpp"
 #include "display_driver.hpp"
 #include "input_driver.hpp"
+#include "led_driver.hpp"
 
 namespace simcore::board_registry {
 
@@ -14,6 +15,8 @@ struct BoardDefinition {
   configuration::ValidationContext validation{};
   const display::driver::Driver* display{};
   const input::driver::Driver* input{};
+  const led::driver::Driver* led{};
+  const led::driver::Configuration* status_led{};
   configuration::TelemetryTransportId default_telemetry_transport{};
   std::array<std::string_view, configuration::kConfigurationDocumentCount>
       factory_configuration_json{};

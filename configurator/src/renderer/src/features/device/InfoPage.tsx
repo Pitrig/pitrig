@@ -47,7 +47,11 @@ export function InfoPage(): React.JSX.Element {
             <ReadOnlyField label="Board" value={session.info.boardId} />
             <ReadOnlyField
               label="Display"
-              value={`${session.info.display.width} × ${session.info.display.height}`}
+              value={
+                session.info.display
+                  ? `${session.info.display.width} × ${session.info.display.height}`
+                  : 'None — this board drives peripherals only'
+              }
             />
             <ReadOnlyField label="Firmware" value={session.info.firmwareVersion} />
             <ReadOnlyField label="Schema version" value={String(session.info.schemaVersion)} />

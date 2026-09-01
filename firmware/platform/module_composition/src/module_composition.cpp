@@ -35,6 +35,39 @@ void stop_lap_timer(void* const context) {
   }
 }
 
+bool start_rgb_leds(void* const context) {
+  auto& binding = *static_cast<Modules::RgbLedsBinding*>(context);
+  if (binding.module == nullptr || binding.event_bus == nullptr ||
+      binding.registry == nullptr || binding.telemetry == nullptr ||
+      binding.driver == nullptr || binding.configuration == nullptr ||
+      binding.started == nullptr) {
+    return false;
+  }
+  *binding.started =
+      binding.module->start(*binding.event_bus, *binding.registry,
+                            *binding.telemetry, *binding.driver,
+                            *binding.configuration);
+  if (!*binding.started) {
+    log::error(kTag, "No addressable LED output came up");
+  }
+  return *binding.started;
+}
+
+void stop_rgb_leds(void* const context) {
+  auto& binding = *static_cast<Modules::RgbLedsBinding*>(context);
+  if (binding.module != nullptr) {
+    binding.module->stop();
+  }
+  if (binding.started != nullptr) {
+    *binding.started = false;
+  }
+}
+
+[[nodiscard]] bool has_rgb_output(
+    const configuration::ApplicationConfiguration& configuration) {
+  return configuration.device_count > 0;
+}
+
 template <typename Source>
 [[nodiscard]] bool uses_lap_timer(const Source& source) {
   for (std::size_t index = 0; index < source.modifier_count; ++index) {
@@ -46,7 +79,9 @@ template <typename Source>
   return false;
 }
 
-bool has_lap_timer_modifier(
+}
+
+bool lap_timer_used(
     const configuration::ApplicationConfiguration& configuration) {
   const auto& dashboard = configuration.dashboard;
 
@@ -99,14 +134,14 @@ bool has_lap_timer_modifier(
   return false;
 }
 
-}
-
 bool start(Modules& modules, events::EventBus& event_bus,
            const telemetry::ITelemetryRegistry& telemetry_registry,
            const telemetry::ITelemetryReader& telemetry,
+           const led::driver::Driver* const led_driver,
            const configuration::ApplicationConfiguration& configuration) {
   modules.manager.clear();
   modules.lap_timer_started = false;
+  modules.rgb_leds_started = false;
   modules.lap_timer_binding = {
       .module = &modules.lap_timer,
       .event_bus = &event_bus,
@@ -115,12 +150,27 @@ bool start(Modules& modules, events::EventBus& event_bus,
       .started = &modules.lap_timer_started,
   };
   const bool registered = modules.manager.add({
-      .enabled = has_lap_timer_modifier(configuration),
+      .enabled = lap_timer_used(configuration),
       .start = &start_lap_timer,
       .stop = &stop_lap_timer,
       .context = &modules.lap_timer_binding,
   });
-  if (!registered) {
+  modules.rgb_leds_binding = {
+      .module = &modules.rgb_leds,
+      .event_bus = &event_bus,
+      .registry = &telemetry_registry,
+      .telemetry = &telemetry,
+      .driver = led_driver,
+      .configuration = &configuration,
+      .started = &modules.rgb_leds_started,
+  };
+  const bool leds_registered = modules.manager.add({
+      .enabled = led_driver != nullptr && has_rgb_output(configuration),
+      .start = &start_rgb_leds,
+      .stop = &stop_rgb_leds,
+      .context = &modules.rgb_leds_binding,
+  });
+  if (!registered || !leds_registered) {
     modules.manager.clear();
     log::error(kTag, "Failed to register configured modules");
     return false;

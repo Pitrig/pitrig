@@ -35,7 +35,7 @@ class Controller final {
     bool in_loop{};
     configuration::SlotTrigger trigger{};
     std::uint8_t condition_count{};
-    std::array<configuration::SlotCondition,
+    std::array<configuration::ValueCondition,
                configuration::kMaximumWidgetConditions>
         conditions{};
     frame::SourceContext source{};

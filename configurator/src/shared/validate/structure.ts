@@ -37,6 +37,10 @@ export function findScreenError(configuration: ApplicationConfiguration): string
   if (screens.length > MAXIMUM_SCREENS) {
     return `A dashboard carries at most ${MAXIMUM_SCREENS} screen(s); this one declares ${screens.length}.`
   }
+  const board = configuration.board as SimCoreBoardId | undefined
+  if (screens.length > 0 && board && BOARD_PROFILES[board] && !BOARD_PROFILES[board].display) {
+    return 'This board has no display, so the dashboard cannot declare screens.'
+  }
   const screenIds = screens.map((screen) => screen?.id)
   const display = boardDisplay(configuration)
   let actions = 0

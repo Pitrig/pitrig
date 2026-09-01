@@ -30,7 +30,9 @@ export function BoardPicker(): React.JSX.Element {
       >
         {boardName(session.info.boardId)}
         <span className="text-emerald-400/70">
-          {`${session.info.display.width} × ${session.info.display.height}`}
+          {session.info.display
+            ? `${session.info.display.width} × ${session.info.display.height}`
+            : 'no display'}
         </span>
       </Badge>
     )

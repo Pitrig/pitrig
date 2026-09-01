@@ -6,6 +6,7 @@
 #include "configuration_json.hpp"
 #include "image_asset_types.hpp"
 #include "validation/document_rules.hpp"
+#include "validation/hardware_rules.hpp"
 #include "validation/value_rules.hpp"
 #include "validation/widget_validator.hpp"
 
@@ -53,8 +54,8 @@ ValidationFailure validate_configuration(
     const ValidationContext& profile) {
   ValidationFailure failure{};
 
-  if (configuration.board.id < BoardId::t_display_s3 ||
-      configuration.board.id > BoardId::guition_jc1060p470c) {
+  if (static_cast<std::size_t>(configuration.board.id) >=
+      kBoardIdNames.size()) {
     (void)reject(failure, ValidationError::invalid_board, "board");
     return failure;
   }
@@ -62,12 +63,22 @@ ValidationFailure validate_configuration(
     (void)reject(failure, ValidationError::board_mismatch, "board");
     return failure;
   }
-  if (profile.display.width <= 0 || profile.display.height <= 0 ||
-      configuration.hardware.device_count != 0) {
-    (void)reject(failure, ValidationError::invalid_hardware, "hardware");
+  if (profile.display.width < 0 || profile.display.height < 0) {
+    (void)reject(failure, ValidationError::invalid_board, "board");
+    return failure;
+  }
+  if (!validation::validate_hardware(configuration, profile, failure)) {
     return failure;
   }
   if (!validation::validate_transport(configuration, profile, failure)) {
+    return failure;
+  }
+  const bool has_display =
+      profile.display.width > 0 && profile.display.height > 0;
+  if (!has_display) {
+    if (configuration.dashboard.screen_count != 0) {
+      (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
+    }
     return failure;
   }
 

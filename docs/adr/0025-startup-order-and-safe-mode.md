@@ -4,7 +4,11 @@ Status: Accepted. Reorders the startup phases of
 [ADR 0011](0011-static-composition-and-module-lifecycle.md), narrows the
 rollback trigger of [ADR 0022](0022-over-the-air-firmware-updates.md), and adds
 two fields to the `INFO` reply of
-[ADR 0006](0006-simhub-custom-serial-line-protocol.md).
+[ADR 0006](0006-simhub-custom-serial-line-protocol.md). Amended by
+[ADR 0030](0030-addressable-led-peripherals.md): a board may declare a
+single-lamp status light, which starts with the link and therefore reports safe
+mode on the recovery surface, where no module composes. It needs no
+configuration, which is what makes it safe to run there.
 
 ## Context
 

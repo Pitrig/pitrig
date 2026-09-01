@@ -107,11 +107,13 @@ export function convertDraftToBoard(
   const { draft, setDraft } = useDeviceStore.getState()
   if (!draft) return { feedback: { kind: 'error', message: 'There is no draft to convert.' } }
   const from = BOARD_PROFILES[draft.board]?.display
-  const to = display ?? BOARD_PROFILES[target].display
+  const to = display ?? BOARD_PROFILES[target].display ?? { width: 0, height: 0 }
   if (!from) return { feedback: { kind: 'error', message: 'The draft names an unknown board.' } }
+  const destination =
+    to.width === 0 || to.height === 0 ? 'a board with no display' : `${to.width} × ${to.height}`
   if (
     !window.confirm(
-      `Convert the draft from ${from.width} × ${from.height} to ${to.width} × ${to.height}? ${fitOutcome(from, to, fit)}`
+      `Convert the draft from ${from.width} × ${from.height} to ${destination}? ${fitOutcome(from, to, fit)}`
     )
   ) {
     return {}

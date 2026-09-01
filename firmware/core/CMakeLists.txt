@@ -8,7 +8,7 @@ idf_component_register(
                 dashboard_composition
                 display esp_timer event_bus external_memory firmware_update
                 font_assets image_assets input logger nvs_config_storage
-                partition_asset_storage
+                partition_asset_storage status_light
                 module_composition simcore_config telemetry
                 telemetry_transport performance)
 

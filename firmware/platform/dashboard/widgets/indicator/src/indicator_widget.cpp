@@ -6,7 +6,7 @@
 #include "indicator_geometry.hpp"
 #include "logger.hpp"
 #include "lvgl.h"
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 
 namespace simcore::dashboard::indicator_widget {
 namespace {

@@ -197,7 +197,8 @@ namespace {
     if (!valid_object(title, schema::kWidgetTitleStyleKeys, kTitleName,
                       failure) ||
         !read_text(title, "text", frame.title.text, kTitleName, failure) ||
-        !parse_value_source(title, frame.title.source, kTitleName, failure) ||
+        !parse_value_source(title, "source", frame.title.source, kTitleName,
+                            failure) ||
         !parse_optional_font(title, frame.title.font, failure) ||
         !read_color(title, "color", frame.title.color, kTitleName, failure) ||
         !read_enum(title, "alignment", frame.title.alignment,
@@ -231,10 +232,11 @@ namespace {
 }
 
 [[nodiscard]] bool parse_value_source(const cJSON* const object,
+                                     const char* const key,
                                      ValueSourceConfiguration& config,
                                      const std::string_view name,
                                      ValidationFailure& failure) {
-  const cJSON* const source = member(object, "source");
+  const cJSON* const source = member(object, key);
   if (source == nullptr) {
     return true;
   }

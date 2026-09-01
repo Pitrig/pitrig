@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 19
+export const CONFIGURATION_SCHEMA_VERSION = 21
 
 export const MAXIMUM_PAYLOAD_SIZE = 131072
 export const MAXIMUM_SCREENS = 4
@@ -38,9 +38,44 @@ export const UNAVAILABLE_TEXT_CAPACITY = 16
 export const VALIDATION_PATH_CAPACITY = 48
 export const VALUE_BINDING_CAPACITY = 40
 export const VALUE_AFFIX_CAPACITY = 16
+export const MAXIMUM_HARDWARE_DEVICES = 4
+export const MAXIMUM_LED_EFFECTS = 32
+export const MAXIMUM_LEDS_PER_OUTPUT = 512
+export const MAXIMUM_LEDS_TOTAL = 1024
+export const MAXIMUM_MATRIX_SIDE = 32
+export const MAXIMUM_LED_SPRITES = 8
+export const MAXIMUM_LED_SPRITE_FRAMES = 16
+export const LED_PALETTE_SIZE = 16
+export const LED_SPRITE_PIXEL_CAPACITY = 1025
+export const LED_TEXT_CAPACITY = 32
+export const LED_TELEMETRY_IDLE_MS = 2000
 
-export type BoardId = 't_display_s3' | 'guition_esp32_4848s040' | 'guition_jc1060p470c'
-export const BOARD_ID_VALUES: readonly BoardId[] = ['t_display_s3', 'guition_esp32_4848s040', 'guition_jc1060p470c']
+export type HardwareDeviceType = 'rgb_strip' | 'rgb_matrix'
+export const HARDWARE_DEVICE_TYPE_VALUES: readonly HardwareDeviceType[] = ['rgb_strip', 'rgb_matrix']
+
+export type LedChip = 'ws2812b' | 'sk6812_rgbw'
+export const LED_CHIP_VALUES: readonly LedChip[] = ['ws2812b', 'sk6812_rgbw']
+
+export type MatrixOrder = 'progressive' | 'serpentine'
+export const MATRIX_ORDER_VALUES: readonly MatrixOrder[] = ['progressive', 'serpentine']
+
+export type MatrixOrigin = 'top_left' | 'top_right' | 'bottom_left' | 'bottom_right'
+export const MATRIX_ORIGIN_VALUES: readonly MatrixOrigin[] = ['top_left', 'top_right', 'bottom_left', 'bottom_right']
+
+export type LedEffectType = 'solid' | 'gradient' | 'steps' | 'gauge' | 'animation' | 'sprite' | 'text'
+export const LED_EFFECT_TYPE_VALUES: readonly LedEffectType[] = ['solid', 'gradient', 'steps', 'gauge', 'animation', 'sprite', 'text']
+
+export type LedAnimationKind = 'rainbow' | 'scan' | 'pulse' | 'wipe' | 'chase'
+export const LED_ANIMATION_KIND_VALUES: readonly LedAnimationKind[] = ['rainbow', 'scan', 'pulse', 'wipe', 'chase']
+
+export type LedGate = 'always' | 'conditions' | 'telemetry_idle'
+export const LED_GATE_VALUES: readonly LedGate[] = ['always', 'conditions', 'telemetry_idle']
+
+export type LedFont = 'small' | 'large'
+export const LED_FONT_VALUES: readonly LedFont[] = ['small', 'large']
+
+export type BoardId = 't_display_s3' | 'guition_esp32_4848s040' | 'guition_jc1060p470c' | 'esp32s3_devkit'
+export const BOARD_ID_VALUES: readonly BoardId[] = ['t_display_s3', 'guition_esp32_4848s040', 'guition_jc1060p470c', 'esp32s3_devkit']
 
 export type TelemetryTransportId = 'board_default' | 'native_usb_cdc' | 'uart'
 export const TELEMETRY_TRANSPORT_ID_VALUES: readonly TelemetryTransportId[] = ['board_default', 'native_usb_cdc', 'uart']
@@ -109,12 +144,15 @@ export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {
   image: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'sprite_frame', minimum: 0, maximum: 64 }],
   shape: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
   slot: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
+  LedEffect: [{ key: 'from', minimum: 0, maximum: 512 }, { key: 'count', minimum: 1, maximum: 512, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'speed_ms', minimum: 50, maximum: 60000 }, { key: 'sprite_frame', minimum: 0, maximum: 16 }],
+  LedSpriteConfiguration: [{ key: 'width', minimum: 1, maximum: 32 }, { key: 'height', minimum: 1, maximum: 32 }, { key: 'frame_count', minimum: 1, maximum: 16 }],
   WidgetCondition: [{ key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }],
   SlotPageConfiguration: [{ key: 'duration_ms', minimum: 0, maximum: 10000 }],
+  HardwareDeviceConfiguration: [{ key: 'current_limit_ma', minimum: 100, maximum: 20000, zeroMeansOff: true }, { key: 'count', minimum: 1, maximum: 512 }, { key: 'width', minimum: 1, maximum: 32 }, { key: 'height', minimum: 1, maximum: 32 }, { key: 'rotation_deg', minimum: 0, maximum: 270 }],
 }
 
-export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'invalid_slot' | 'invalid_slot_page' | 'unknown_property' | 'duplicate_property'
-export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_dashboard', 'invalid_widget', 'invalid_slot', 'invalid_slot_page', 'unknown_property', 'duplicate_property']
+export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_led_pin' | 'invalid_led_sprite' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'invalid_slot' | 'invalid_slot_page' | 'unknown_property' | 'duplicate_property'
+export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_led_pin', 'invalid_led_sprite', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_dashboard', 'invalid_widget', 'invalid_slot', 'invalid_slot_page', 'unknown_property', 'duplicate_property']
 
 export interface FontSpec {
   family?: string
@@ -136,7 +174,92 @@ export interface BoardConfiguration {
   board: BoardId
 }
 
-export type HardwareConfiguration = readonly never[]
+export interface LedPaletteEntry {
+  color?: RgbColor
+}
+
+export interface LedSpriteConfiguration {
+  id: string
+  width?: number
+  height?: number
+  frame_count?: number
+  palette?: LedPaletteEntry[]
+  pixels?: string
+}
+
+export interface ValueModifier {
+  type?: ValueModifierType
+}
+
+export interface ValueSourceConfiguration {
+  binding?: string
+  modifiers?: ValueModifier[]
+}
+
+export interface ValueRange {
+  minimum?: number
+  maximum?: number
+}
+
+export interface ValueCondition {
+  op?: ConditionOperator
+  value?: number
+}
+
+export interface ColorStop {
+  at?: number
+  color?: RgbColor
+}
+
+export interface IndicatorSegment {
+  threshold?: number
+  color?: RgbColor
+}
+
+export interface LedEffect {
+  type?: LedEffectType
+  id?: string
+  from?: number
+  count?: number
+  source?: ValueSourceConfiguration
+  minimum?: number
+  maximum?: number
+  gate?: LedGate
+  condition_source?: ValueSourceConfiguration
+  conditions?: ValueCondition[]
+  hold_ms?: number
+  blink_ms?: number
+  brightness?: number
+  mirrored?: boolean
+  inverted?: boolean
+  color?: RgbColor
+  stops?: ColorStop[]
+  steps?: IndicatorSegment[]
+  animation?: LedAnimationKind
+  speed_ms?: number
+  sprite?: string
+  sprite_frame?: number
+  text?: string
+  font?: LedFont
+}
+
+export interface HardwareDeviceConfiguration {
+  type: HardwareDeviceType
+  id?: string
+  pin?: number
+  chip?: LedChip
+  brightness?: number
+  gamma?: boolean
+  current_limit_ma?: number
+  count?: number
+  width?: number
+  height?: number
+  order?: MatrixOrder
+  origin?: MatrixOrigin
+  rotation_deg?: number
+  effects?: LedEffect[]
+  sprites?: LedSpriteConfiguration[]
+}
 
 export interface UartTelemetryConfiguration {
   port?: number
@@ -184,15 +307,6 @@ export interface ValueTransform extends TimeTransform, NumberTransform {
   suffix?: string
 }
 
-export interface ValueModifier {
-  type?: ValueModifierType
-}
-
-export interface ValueSourceConfiguration {
-  binding?: string
-  modifiers?: ValueModifier[]
-}
-
 export interface WidgetTitleStyle {
   text?: string
   source?: ValueSourceConfiguration
@@ -203,11 +317,6 @@ export interface WidgetTitleStyle {
   offset_y_px?: number
   border_gap?: boolean
   gap_padding_px?: number
-}
-
-export interface ColorStop {
-  at?: number
-  color?: RgbColor
 }
 
 export interface ColorRamp {
@@ -229,11 +338,6 @@ export interface WidgetCondition {
   hidden?: boolean
   blink_ms?: number
   hold_ms?: number
-}
-
-export interface SlotCondition {
-  op?: ConditionOperator
-  value?: number
 }
 
 export interface TextSourceConfiguration {
@@ -279,11 +383,6 @@ export interface TextWidgetConfiguration {
   conditions?: WidgetCondition[]
   sources?: TextSourceConfiguration[]
   value?: WidgetValueStyle
-}
-
-export interface ValueRange {
-  minimum?: number
-  maximum?: number
 }
 
 export interface BarWidgetConfiguration {
@@ -343,11 +442,6 @@ export interface ArcWidgetConfiguration {
   fill_color?: RgbColor
   mark?: ArcMark
   inverted?: boolean
-}
-
-export interface IndicatorSegment {
-  threshold?: number
-  color?: RgbColor
 }
 
 export interface IndicatorWidgetConfiguration {
@@ -472,7 +566,7 @@ export interface SlotPageConfiguration {
   trigger?: SlotTrigger
   source?: ValueSourceConfiguration
   duration_ms?: number
-  conditions?: SlotCondition[]
+  conditions?: ValueCondition[]
   widgets?: WidgetConfiguration[]
 }
 
@@ -510,7 +604,7 @@ export interface DashboardConfiguration {
 
 export interface ApplicationConfiguration {
   board: BoardId
-  hardware?: HardwareConfiguration
+  hardware?: HardwareDeviceConfiguration[]
   telemetry_transport?: TelemetryTransportConfiguration
   dashboard?: DashboardConfiguration
 }
@@ -525,7 +619,7 @@ export interface DashboardDocument {
 
 export interface ModulesDocument {
   board: BoardId
-  hardware?: HardwareConfiguration
+  hardware?: HardwareDeviceConfiguration[]
 }
 
 export interface ProtocolDocument {
@@ -548,7 +642,7 @@ export const CONFIGURATION_DOCUMENTS: Record<
   ConfigurationDocumentDescriptor
 > = {
   dashboard: { id: 'dashboard', sections: ['dashboard'], keys: ['board', 'dashboard'], maxPayload: 131072, rebootRequired: false },
-  modules: { id: 'modules', sections: ['hardware'], keys: ['board', 'hardware'], maxPayload: 1024, rebootRequired: false },
+  modules: { id: 'modules', sections: ['hardware'], keys: ['board', 'hardware'], maxPayload: 32768, rebootRequired: false },
   protocol: { id: 'protocol', sections: ['telemetry_transport'], keys: ['board', 'telemetry_transport'], maxPayload: 1024, rebootRequired: true },
 }
 
@@ -558,6 +652,10 @@ export const WIDGET_TYPES: readonly string[] = ['text', 'bar', 'arc', 'indicator
 
 export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   BoardConfiguration: ['board'],
+  LedPaletteEntry: ['color'],
+  LedSpriteConfiguration: ['id', 'width', 'height', 'frame_count', 'palette', 'pixels'],
+  LedEffect: ['type', 'id', 'from', 'count', 'source', 'minimum', 'maximum', 'gate', 'condition_source', 'conditions', 'hold_ms', 'blink_ms', 'brightness', 'mirrored', 'inverted', 'color', 'stops', 'steps', 'animation', 'speed_ms', 'sprite', 'sprite_frame', 'text', 'font'],
+  HardwareDeviceConfiguration: ['type', 'id', 'pin', 'chip', 'brightness', 'gamma', 'current_limit_ma', 'count', 'width', 'height', 'order', 'origin', 'rotation_deg', 'effects', 'sprites'],
   UartTelemetryConfiguration: ['port', 'tx_pin', 'rx_pin', 'baud_rate', 'silence_esp_logs'],
   TelemetryTransportConfiguration: ['id', 'uart'],
   WidgetPlacement: ['x', 'y', 'width', 'height'],
@@ -572,7 +670,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   ColorRamp: ['target', 'stops'],
   WidgetAction: ['type', 'screen'],
   WidgetCondition: ['op', 'value', 'color', 'background_color', 'border_color', 'hidden', 'blink_ms', 'hold_ms'],
-  SlotCondition: ['op', 'value'],
+  ValueCondition: ['op', 'value'],
   TextSourceConfiguration: ['binding', 'modifiers', 'transform'],
   WidgetFrame: ['id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions'],
   TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'sources', 'value'],
@@ -601,6 +699,9 @@ export const SCHEMA_VARIANT_ARRAYS: Record<string, readonly string[]> = {
 }
 
 export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
+  LedSpriteConfiguration: { palette: 'LedPaletteEntry' },
+  LedEffect: { source: 'ValueSourceConfiguration', condition_source: 'ValueSourceConfiguration', conditions: 'ValueCondition', stops: 'ColorStop', steps: 'IndicatorSegment' },
+  HardwareDeviceConfiguration: { effects: 'LedEffect', sprites: 'LedSpriteConfiguration' },
   TelemetryTransportConfiguration: { uart: 'UartTelemetryConfiguration' },
   WidgetValueStyle: { font: 'FontSpec' },
   ValueSourceConfiguration: { modifiers: 'ValueModifier' },
@@ -616,13 +717,19 @@ export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   GraphWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', source: 'ValueSourceConfiguration', traces: 'GraphTraceConfiguration' },
   ImageWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', sprite_frame_source: 'ValueSourceConfiguration' },
   ShapeWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition' },
-  SlotPageConfiguration: { source: 'ValueSourceConfiguration', conditions: 'SlotCondition' },
+  SlotPageConfiguration: { source: 'ValueSourceConfiguration', conditions: 'ValueCondition' },
   SlotWidgetConfiguration: { placement: 'WidgetPlacement', padding: 'WidgetInsets', border: 'WidgetBorder', title: 'WidgetTitleStyle', action: 'WidgetAction', condition_source: 'ValueSourceConfiguration', color_ramp: 'ColorRamp', conditions: 'WidgetCondition', pages: 'SlotPageConfiguration' },
   DashboardConfiguration: { screens: 'ScreenConfiguration' },
-  ApplicationConfiguration: { hardware: 'HardwareConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', dashboard: 'DashboardConfiguration' },
+  ApplicationConfiguration: { hardware: 'HardwareDeviceConfiguration', telemetry_transport: 'TelemetryTransportConfiguration', dashboard: 'DashboardConfiguration' },
 }
 
 export const TEXT_CAPACITIES: Record<string, number> = {
+  'LedSpriteConfiguration.id': 32,
+  'LedSpriteConfiguration.pixels': 1025,
+  'LedEffect.id': 16,
+  'LedEffect.sprite': 32,
+  'LedEffect.text': 32,
+  'HardwareDeviceConfiguration.id': 16,
   'WidgetValueStyle.unavailable_text': 16,
   'ValueTransform.prefix': 16,
   'ValueTransform.suffix': 16,

@@ -2,7 +2,7 @@
 
 #include "lvgl.h"
 #include "value_text.hpp"
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 
 namespace simcore::dashboard::frame {
 namespace {

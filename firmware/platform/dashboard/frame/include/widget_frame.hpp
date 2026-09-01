@@ -9,7 +9,7 @@
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
 #include "lvgl_types.hpp"
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 #include "widget_source_binding.hpp"
 
 namespace simcore::dashboard::frame {

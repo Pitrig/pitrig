@@ -52,6 +52,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
     selection?.type === 'widget' ? absolutePlacement(draft, selection.id) : undefined
   const kind: TemplateKind = widget && box ? 'widget' : 'dashboard'
   const id = templateIdFor(name.trim())
+  const draftDisplay = draft ? BOARD_PROFILES[draft.board]?.display : undefined
 
   const save = async (): Promise<void> => {
     if (!draft || !id) return
@@ -114,11 +115,8 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
           <div className="group h-32 w-48 flex-none overflow-hidden rounded border bg-black/40 p-1.5">
             {kind === 'widget' && widget && box ? (
               <WidgetThumbnail widget={{ ...widget, placement: box }} className="size-full" />
-            ) : draft ? (
-              <ScreenGallery
-                screens={screensOf(draft)}
-                display={BOARD_PROFILES[draft.board].display}
-              />
+            ) : draft && draftDisplay ? (
+              <ScreenGallery screens={screensOf(draft)} display={draftDisplay} />
             ) : null}
           </div>
           <div className="min-w-0 flex-1 space-y-2">

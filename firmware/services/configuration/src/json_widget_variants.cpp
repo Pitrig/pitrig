@@ -60,8 +60,8 @@ namespace {
   return read_array(
       object, "conditions", config.conditions, config.condition_count, kName,
       ValidationError::invalid_slot_page, failure,
-      [&](const cJSON* const rule, SlotCondition& parsed) {
-        return valid_object(rule, schema::kSlotConditionKeys, kName, failure) &&
+      [&](const cJSON* const rule, ValueCondition& parsed) {
+        return valid_object(rule, schema::kValueConditionKeys, kName, failure) &&
                read_enum(rule, "op", parsed.op, condition_operator_from_name,
                          kName, failure) &&
                read_float(rule, "value", parsed.value, kName, failure);

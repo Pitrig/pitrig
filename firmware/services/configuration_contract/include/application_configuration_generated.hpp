@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 19;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 21;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -51,6 +51,17 @@ inline constexpr std::size_t kUnavailableTextCapacity = 16;
 inline constexpr std::size_t kValidationPathCapacity = 48;
 inline constexpr std::size_t kValueBindingCapacity = 40;
 inline constexpr std::size_t kValueAffixCapacity = 16;
+inline constexpr std::size_t kMaximumHardwareDevices = 4;
+inline constexpr std::size_t kMaximumLedEffects = 32;
+inline constexpr std::size_t kMaximumLedsPerOutput = 512;
+inline constexpr std::size_t kMaximumLedsTotal = 1024;
+inline constexpr std::size_t kMaximumMatrixSide = 32;
+inline constexpr std::size_t kMaximumLedSprites = 8;
+inline constexpr std::size_t kMaximumLedSpriteFrames = 16;
+inline constexpr std::size_t kLedPaletteSize = 16;
+inline constexpr std::size_t kLedSpritePixelCapacity = 1025;
+inline constexpr std::size_t kLedTextCapacity = 32;
+inline constexpr std::size_t kLedTelemetryIdleMs = 2000;
 
 enum class ConfigurationDocument : std::uint8_t {
   dashboard,
@@ -88,7 +99,7 @@ inline constexpr std::array<std::string_view, 3> kConfigurationDocumentNames{{
 
 inline constexpr std::array<std::size_t, 3> kConfigurationDocumentPayloadSizes{{
     131072,
-    1024,
+    32768,
     1024,
 }};
 
@@ -113,10 +124,62 @@ inline constexpr std::array<bool, 3> kConfigurationDocumentRebootRequired{{
          kConfigurationDocumentRebootRequired[index];
 }
 
+enum class HardwareDeviceType : std::uint8_t {
+  rgb_strip,
+  rgb_matrix,
+};
+
+enum class LedChip : std::uint8_t {
+  ws2812b,
+  sk6812_rgbw,
+};
+
+enum class MatrixOrder : std::uint8_t {
+  progressive,
+  serpentine,
+};
+
+enum class MatrixOrigin : std::uint8_t {
+  top_left,
+  top_right,
+  bottom_left,
+  bottom_right,
+};
+
+enum class LedEffectType : std::uint8_t {
+  solid,
+  gradient,
+  steps,
+  gauge,
+  animation,
+  sprite,
+  text,
+};
+
+enum class LedAnimationKind : std::uint8_t {
+  rainbow,
+  scan,
+  pulse,
+  wipe,
+  chase,
+};
+
+enum class LedGate : std::uint8_t {
+  always,
+  conditions,
+  telemetry_idle,
+};
+
+enum class LedFont : std::uint8_t {
+  small,
+  large,
+};
+
 enum class BoardId : std::uint8_t {
   t_display_s3,
   guition_esp32_4848s040,
   guition_jc1060p470c,
+  esp32s3_devkit,
 };
 
 enum class TelemetryTransportId : std::uint8_t {
@@ -231,8 +294,97 @@ struct BoardConfiguration {
   BoardId id{BoardId::t_display_s3};
 };
 
-struct HardwareConfiguration {
-  std::uint8_t device_count{};
+struct LedPaletteEntry {
+  std::uint32_t color{0x000000};
+};
+
+struct LedSpriteConfiguration {
+  std::array<char, kImageIdCapacity> id{};
+  std::uint8_t width{8};
+  std::uint8_t height{8};
+  std::uint8_t frame_count{1};
+  std::uint8_t palette_count{};
+  std::array<LedPaletteEntry, kLedPaletteSize> palette{};
+  std::array<char, kLedSpritePixelCapacity> pixels{};
+};
+
+struct ValueModifier {
+  ValueModifierType type{ValueModifierType::lap_timer};
+};
+
+struct ValueSourceConfiguration {
+  std::array<char, kValueBindingCapacity> binding{};
+  std::uint8_t modifier_count{};
+  std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
+};
+
+struct ValueRange {
+  float minimum{};
+  float maximum{1.0F};
+};
+
+struct ValueCondition {
+  ConditionOperator op{ConditionOperator::at_or_above};
+  float value{};
+};
+
+struct ColorStop {
+  float at{};
+  std::uint32_t color{0xE8E8E8};
+};
+
+struct IndicatorSegment {
+  float threshold{};
+  std::uint32_t color{0x00C853};
+};
+
+struct LedEffect {
+  LedEffectType type{LedEffectType::solid};
+  std::array<char, kWidgetIdCapacity> id{};
+  std::uint16_t from{};
+  std::uint16_t count{};
+  ValueSourceConfiguration source{};
+  ValueRange range{};
+  LedGate gate{LedGate::always};
+  ValueSourceConfiguration condition_source{};
+  std::uint8_t condition_count{};
+  std::array<ValueCondition, kMaximumWidgetConditions> conditions{};
+  std::uint16_t hold_ms{};
+  std::uint16_t blink_ms{};
+  std::uint8_t brightness{255};
+  bool mirrored{false};
+  bool inverted{false};
+  std::uint32_t color{0xFFFFFF};
+  std::uint8_t stop_count{};
+  std::array<ColorStop, kMaximumColorStops> stops{};
+  std::uint8_t step_count{};
+  std::array<IndicatorSegment, kMaximumIndicatorSegments> steps{};
+  LedAnimationKind animation{LedAnimationKind::rainbow};
+  std::uint16_t speed_ms{1000};
+  std::array<char, kImageIdCapacity> sprite{};
+  std::uint8_t sprite_frame{};
+  std::array<char, kLedTextCapacity> text{};
+  LedFont font{LedFont::small};
+};
+
+struct HardwareDeviceConfiguration {
+  HardwareDeviceType type{HardwareDeviceType::rgb_strip};
+  std::array<char, kWidgetIdCapacity> id{};
+  int pin{-1};
+  LedChip chip{LedChip::ws2812b};
+  std::uint8_t brightness{128};
+  bool gamma{true};
+  std::uint16_t current_limit_ma{};
+  std::uint16_t count{1};
+  std::uint8_t width{8};
+  std::uint8_t height{8};
+  MatrixOrder order{MatrixOrder::serpentine};
+  MatrixOrigin origin{MatrixOrigin::top_left};
+  std::uint16_t rotation_deg{};
+  std::uint8_t effect_count{};
+  std::array<LedEffect, kMaximumLedEffects> effects{};
+  std::uint8_t sprite_count{};
+  std::array<LedSpriteConfiguration, kMaximumLedSprites> sprites{};
 };
 
 struct UartTelemetryConfiguration {
@@ -283,16 +435,6 @@ struct ValueTransform {
   std::array<char, kValueAffixCapacity> suffix{};
 };
 
-struct ValueModifier {
-  ValueModifierType type{ValueModifierType::lap_timer};
-};
-
-struct ValueSourceConfiguration {
-  std::array<char, kValueBindingCapacity> binding{};
-  std::uint8_t modifier_count{};
-  std::array<ValueModifier, kMaximumValueModifiers> modifiers{};
-};
-
 struct WidgetTitleStyle {
   std::array<char, kWidgetTitleCapacity> text{};
   ValueSourceConfiguration source{};
@@ -303,11 +445,6 @@ struct WidgetTitleStyle {
   std::int16_t offset_y_px{};
   bool border_gap{true};
   std::uint16_t gap_padding_px{4};
-};
-
-struct ColorStop {
-  float at{};
-  std::uint32_t color{0xE8E8E8};
 };
 
 struct ColorRamp {
@@ -330,11 +467,6 @@ struct WidgetCondition {
   bool hidden{false};
   std::uint16_t blink_ms{};
   std::uint16_t hold_ms{};
-};
-
-struct SlotCondition {
-  ConditionOperator op{ConditionOperator::at_or_above};
-  float value{};
 };
 
 struct WidgetReference {
@@ -379,11 +511,6 @@ struct TextWidgetConfiguration {
   WidgetValueStyle value{};
 };
 
-struct ValueRange {
-  float minimum{};
-  float maximum{1.0F};
-};
-
 struct BarWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
@@ -410,11 +537,6 @@ struct ArcWidgetConfiguration {
   std::uint32_t fill_color{0x38BDF8};
   ArcMark mark{ArcMark::ring};
   bool inverted{false};
-};
-
-struct IndicatorSegment {
-  float threshold{};
-  std::uint32_t color{0x00C853};
 };
 
 struct IndicatorWidgetConfiguration {
@@ -481,7 +603,7 @@ struct SlotPageConfiguration {
   ValueSourceConfiguration source{};
   std::uint16_t duration_ms{};
   std::uint8_t condition_count{};
-  std::array<SlotCondition, kMaximumWidgetConditions> conditions{};
+  std::array<ValueCondition, kMaximumWidgetConditions> conditions{};
   std::uint8_t widget_count{};
   std::array<WidgetReference, kMaximumWidgetsPerContainer> widgets{};
 };
@@ -524,16 +646,197 @@ struct DashboardConfiguration {
 
 struct ApplicationConfiguration {
   BoardConfiguration board{};
-  HardwareConfiguration hardware{};
+  std::uint8_t device_count{};
+  std::array<HardwareDeviceConfiguration, kMaximumHardwareDevices> hardware{};
   bool telemetry_transport_present{false};
   TelemetryTransportConfiguration telemetry_transport{};
   DashboardConfiguration dashboard{};
 };
 
-inline constexpr std::array<std::string_view, 3> kBoardIdNames{{
+inline constexpr std::array<std::string_view, 2> kHardwareDeviceTypeNames{{
+    "rgb_strip",
+    "rgb_matrix",
+}};
+
+[[nodiscard]] inline std::string_view hardware_device_type_name(const HardwareDeviceType value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kHardwareDeviceTypeNames.size() ? kHardwareDeviceTypeNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool hardware_device_type_from_name(const std::string_view name,
+                                                  HardwareDeviceType& value) {
+  for (std::size_t index = 0; index < kHardwareDeviceTypeNames.size(); ++index) {
+    if (kHardwareDeviceTypeNames[index] == name) {
+      value = static_cast<HardwareDeviceType>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kLedChipNames{{
+    "ws2812b",
+    "sk6812_rgbw",
+}};
+
+[[nodiscard]] inline std::string_view led_chip_name(const LedChip value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kLedChipNames.size() ? kLedChipNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool led_chip_from_name(const std::string_view name,
+                                                  LedChip& value) {
+  for (std::size_t index = 0; index < kLedChipNames.size(); ++index) {
+    if (kLedChipNames[index] == name) {
+      value = static_cast<LedChip>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kMatrixOrderNames{{
+    "progressive",
+    "serpentine",
+}};
+
+[[nodiscard]] inline std::string_view matrix_order_name(const MatrixOrder value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kMatrixOrderNames.size() ? kMatrixOrderNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool matrix_order_from_name(const std::string_view name,
+                                                  MatrixOrder& value) {
+  for (std::size_t index = 0; index < kMatrixOrderNames.size(); ++index) {
+    if (kMatrixOrderNames[index] == name) {
+      value = static_cast<MatrixOrder>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 4> kMatrixOriginNames{{
+    "top_left",
+    "top_right",
+    "bottom_left",
+    "bottom_right",
+}};
+
+[[nodiscard]] inline std::string_view matrix_origin_name(const MatrixOrigin value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kMatrixOriginNames.size() ? kMatrixOriginNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool matrix_origin_from_name(const std::string_view name,
+                                                  MatrixOrigin& value) {
+  for (std::size_t index = 0; index < kMatrixOriginNames.size(); ++index) {
+    if (kMatrixOriginNames[index] == name) {
+      value = static_cast<MatrixOrigin>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 7> kLedEffectTypeNames{{
+    "solid",
+    "gradient",
+    "steps",
+    "gauge",
+    "animation",
+    "sprite",
+    "text",
+}};
+
+[[nodiscard]] inline std::string_view led_effect_type_name(const LedEffectType value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kLedEffectTypeNames.size() ? kLedEffectTypeNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool led_effect_type_from_name(const std::string_view name,
+                                                  LedEffectType& value) {
+  for (std::size_t index = 0; index < kLedEffectTypeNames.size(); ++index) {
+    if (kLedEffectTypeNames[index] == name) {
+      value = static_cast<LedEffectType>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 5> kLedAnimationKindNames{{
+    "rainbow",
+    "scan",
+    "pulse",
+    "wipe",
+    "chase",
+}};
+
+[[nodiscard]] inline std::string_view led_animation_kind_name(const LedAnimationKind value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kLedAnimationKindNames.size() ? kLedAnimationKindNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool led_animation_kind_from_name(const std::string_view name,
+                                                  LedAnimationKind& value) {
+  for (std::size_t index = 0; index < kLedAnimationKindNames.size(); ++index) {
+    if (kLedAnimationKindNames[index] == name) {
+      value = static_cast<LedAnimationKind>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 3> kLedGateNames{{
+    "always",
+    "conditions",
+    "telemetry_idle",
+}};
+
+[[nodiscard]] inline std::string_view led_gate_name(const LedGate value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kLedGateNames.size() ? kLedGateNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool led_gate_from_name(const std::string_view name,
+                                                  LedGate& value) {
+  for (std::size_t index = 0; index < kLedGateNames.size(); ++index) {
+    if (kLedGateNames[index] == name) {
+      value = static_cast<LedGate>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kLedFontNames{{
+    "small",
+    "large",
+}};
+
+[[nodiscard]] inline std::string_view led_font_name(const LedFont value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kLedFontNames.size() ? kLedFontNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool led_font_from_name(const std::string_view name,
+                                                  LedFont& value) {
+  for (std::size_t index = 0; index < kLedFontNames.size(); ++index) {
+    if (kLedFontNames[index] == name) {
+      value = static_cast<LedFont>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 4> kBoardIdNames{{
     "t_display_s3",
     "guition_esp32_4848s040",
     "guition_jc1060p470c",
+    "esp32s3_devkit",
 }};
 
 [[nodiscard]] inline std::string_view board_id_name(const BoardId value) {

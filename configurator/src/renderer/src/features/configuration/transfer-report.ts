@@ -6,7 +6,9 @@ export function transferReportLines(result: LayoutTransferResult): string[] {
   const { from, to, fit, scale, notes } = result
   const lines: string[] = []
   const sizes = `${from.width} × ${from.height} → ${to.width} × ${to.height}`
-  if (from.width === to.width && from.height === to.height) {
+  if (to.width === 0 || to.height === 0) {
+    lines.push('This board has no display.')
+  } else if (from.width === to.width && from.height === to.height) {
     lines.push(`The board changed; its display is ${to.width} × ${to.height} either way, so nothing moved.`)
   } else if (fit === 'stretch') {
     lines.push(
@@ -40,6 +42,30 @@ export function transferReportLines(result: LayoutTransferResult): string[] {
       `${count(arcs.length, 'arc')} had its ring thinned so two thicknesses still fit across it: ${list(
         arcs.map((note) => `${label(note)} (${note.from} → ${note.to} px)`)
       )}.`
+    )
+  }
+
+  if (notes.some((note) => note.kind === 'dashboard_dropped')) {
+    lines.push(
+      'This board has no display, so the dashboard was left behind; only its peripherals carried over.'
+    )
+  }
+
+  const moved = notes.filter((note) => note.kind === 'led_pin_moved')
+  if (moved.length > 0) {
+    lines.push(
+      `${count(moved.length, 'LED output')} moved to a pin this board offers: ${list(
+        moved.map((note) => `${note.widgetId} (${note.from} → ${note.to})`)
+      )}. Check it against how the board is actually wired.`
+    )
+  }
+
+  const cleared = notes.filter((note) => note.kind === 'led_pin_cleared')
+  if (cleared.length > 0) {
+    lines.push(
+      `${count(cleared.length, 'LED output')} lost its pin because this board offers none free: ${list(
+        cleared.map((note) => `${note.widgetId} (was ${note.from})`)
+      )}. The board will refuse the document until each one names a pin.`
     )
   }
 

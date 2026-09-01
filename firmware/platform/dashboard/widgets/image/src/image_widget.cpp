@@ -8,7 +8,7 @@
 #include "image_asset_types.hpp"
 #include "logger.hpp"
 #include "lvgl.h"
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 
 namespace simcore::dashboard::image_widget {
 namespace {

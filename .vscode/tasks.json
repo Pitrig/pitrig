@@ -178,6 +178,50 @@
       }
     },
     {
+      "label": "SimCore: Build ESP32-S3 DevKitC-1",
+      "detail": "esp32s3 \u00b7 build-devkit \u00b7 no display",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-devkit >/dev/null && cmake -E rm -f sdkconfig.generated.devkit && idf.py -B build-devkit -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.devkit -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.esp32s3-devkit\" build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/firmware"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
+      "label": "SimCore: Build ESP32-S3 DevKitC-1 Debug",
+      "detail": "esp32s3 \u00b7 build-devkit-debug \u00b7 no display",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-devkit-debug >/dev/null && cmake -E rm -f sdkconfig.generated.devkit-debug && idf.py -B build-devkit-debug -DIDF_TARGET=esp32s3 -DSDKCONFIG=sdkconfig.generated.devkit-debug -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.esp32s3-devkit;sdkconfig.defaults.debug\" build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/firmware"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
       "label": "SimCore: Build All Firmware",
       "detail": "Every board profile, esp32s3 first so the target switch happens once",
       "dependsOrder": "sequence",
@@ -186,6 +230,8 @@
         "SimCore: Build T-Display-S3 Debug",
         "SimCore: Build Guition ESP32-4848S040",
         "SimCore: Build Guition ESP32-4848S040 Debug",
+        "SimCore: Build ESP32-S3 DevKitC-1",
+        "SimCore: Build ESP32-S3 DevKitC-1 Debug",
         "SimCore: Build Guition JC1060P470C",
         "SimCore: Build Guition JC1060P470C Debug",
         "SimCore: Build Guition JC1060P470C (Render Full)",
@@ -196,12 +242,12 @@
     },
     {
       "label": "SimCore: Flash",
-      "detail": "Flashes an already built directory over ${input:serialPort}",
+      "detail": "Picks from the serial ports actually present",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && ESPBAUD=460800 idf.py -B $DIRECTORY -p ${input:serialPort} flash"
+        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for flash) && if [ \"$PORT\" = auto ]; then ESPBAUD=460800 idf.py -B $DIRECTORY flash; else ESPBAUD=460800 idf.py -B $DIRECTORY -p \"$PORT\" flash; fi"
       ],
       "options": {
         "cwd": "${workspaceFolder}/firmware"
@@ -215,12 +261,12 @@
     },
     {
       "label": "SimCore: Monitor",
-      "detail": "Opens idf.py monitor on ${input:serialPort}",
+      "detail": "Picks from the serial ports actually present",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && idf.py -B $DIRECTORY -p ${input:serialPort} monitor"
+        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for monitor) && if [ \"$PORT\" = auto ]; then idf.py -B $DIRECTORY monitor; else idf.py -B $DIRECTORY -p \"$PORT\" monitor; fi"
       ],
       "options": {
         "cwd": "${workspaceFolder}/firmware"
@@ -234,12 +280,12 @@
     },
     {
       "label": "SimCore: Flash and Monitor",
-      "detail": "Flash then monitor the same build directory",
+      "detail": "Picks from the serial ports actually present",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "source \"${workspaceFolder}/tools/idf-env.sh\" ${input:buildDirectory} >/dev/null && DIRECTORY=${input:buildDirectory} && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && ESPBAUD=460800 idf.py -B $DIRECTORY -p ${input:serialPort} flash monitor"
+        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for flash) && if [ \"$PORT\" = auto ]; then ESPBAUD=460800 idf.py -B $DIRECTORY flash monitor; else ESPBAUD=460800 idf.py -B $DIRECTORY -p \"$PORT\" flash monitor; fi"
       ],
       "options": {
         "cwd": "${workspaceFolder}/firmware"
@@ -258,7 +304,7 @@
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "python3 -m tools.codegen.configuration_schema --check && python3 -m tools.codegen.telemetry_catalog --check && python3 -m tools.codegen.font_catalog --check && python3 tools/check_debug_isolation.py --check"
+        "python3 -m tools.codegen.configuration_schema --check && python3 -m tools.codegen.telemetry_catalog --check && python3 -m tools.codegen.font_catalog --check && python3 -m tools.codegen.led_font --check && python3 tools/check_debug_isolation.py --check"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -278,7 +324,7 @@
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "python3 -m tools.codegen.configuration_schema && python3 -m tools.codegen.telemetry_catalog && python3 -m tools.codegen.font_catalog && python3 tools/check_debug_isolation.py"
+        "python3 -m tools.codegen.configuration_schema && python3 -m tools.codegen.telemetry_catalog && python3 -m tools.codegen.font_catalog && python3 -m tools.codegen.led_font && python3 tools/check_debug_isolation.py"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -444,18 +490,14 @@
         "build-t-display-debug",
         "build-guition",
         "build-guition-debug",
+        "build-devkit",
+        "build-devkit-debug",
         "build-jc1060p470c",
         "build-jc1060p470c-debug",
         "build-jc1060p470c-render-full",
         "build-jc1060p470c-render-partial"
       ],
       "default": "build-jc1060p470c"
-    },
-    {
-      "id": "serialPort",
-      "type": "promptString",
-      "description": "Serial port (P4: /dev/cu.usbmodem101 is the JTAG port)",
-      "default": "/dev/cu.usbmodem101"
     }
   ]
 }

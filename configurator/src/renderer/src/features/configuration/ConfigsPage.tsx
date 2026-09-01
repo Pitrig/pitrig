@@ -178,8 +178,9 @@ export function ConfigsPage(): React.JSX.Element {
               <p className="text-[11px] text-muted-foreground">
                 {parsed.ok
                   ? fitOutcome(
-                      BOARD_PROFILES[parsed.configuration.board].display,
-                      session?.info.display ?? BOARD_PROFILES[convertTarget].display,
+                      BOARD_PROFILES[parsed.configuration.board].display ?? { width: 0, height: 0 },
+                      session?.info.display ??
+                        BOARD_PROFILES[convertTarget].display ?? { width: 0, height: 0 },
                       fit
                     )
                   : null}

@@ -1,4 +1,4 @@
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -6,7 +6,7 @@
 
 #include "number_transform.hpp"
 
-namespace simcore::dashboard::conditions {
+namespace simcore::conditions {
 namespace {
 
 [[nodiscard]] std::uint32_t blend(const std::uint32_t from,

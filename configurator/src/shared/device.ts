@@ -97,26 +97,43 @@ export interface DisplayDescriptor {
   configurable: false
 }
 
+export interface LedDescriptor {
+  outputs: number
+  pins: readonly number[]
+}
+
 export interface BoardProfile {
-  display: DisplayDescriptor
+  display?: DisplayDescriptor
   telemetryUartBaudRate?: number
   transports: { uart: boolean; nativeUsbCdc: boolean }
+  led: LedDescriptor
 }
 
 export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
   t_display_s3: {
     display: { width: 320, height: 170, configurable: false },
-    transports: { uart: true, nativeUsbCdc: true }
+    transports: { uart: true, nativeUsbCdc: true },
+    led: { outputs: 4, pins: [1, 2, 10, 11, 12, 13, 16, 17, 18, 21] }
   },
   guition_esp32_4848s040: {
     display: { width: 480, height: 480, configurable: false },
     telemetryUartBaudRate: 460_800,
-    transports: { uart: true, nativeUsbCdc: false }
+    transports: { uart: true, nativeUsbCdc: false },
+    led: { outputs: 4, pins: [1, 2, 40, 41, 42] }
   },
   guition_jc1060p470c: {
     display: { width: 1024, height: 600, configurable: false },
-    transports: { uart: false, nativeUsbCdc: true }
+    transports: { uart: false, nativeUsbCdc: true },
+    led: { outputs: 4, pins: [1, 2, 3, 4, 5, 20, 32, 33, 45, 46, 47] }
+  },
+  esp32s3_devkit: {
+    transports: { uart: true, nativeUsbCdc: true },
+    led: { outputs: 3, pins: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 21] }
   }
+}
+
+export function hasDisplay(board: string): boolean {
+  return BOARD_PROFILES[board as SimCoreBoardId]?.display !== undefined
 }
 
 export function applyBoardTransportDefaults(
@@ -176,7 +193,7 @@ export interface DeviceInfo {
   boardId: SimCoreBoardId
   firmwareVersion: string
   schemaVersion: typeof CONFIGURATION_SCHEMA_VERSION
-  display: DisplayDescriptor
+  display?: DisplayDescriptor
   documents: Record<ConfigurationDocumentId, ConfigurationDocumentState>
   storageAvailable: boolean
   health?: DeviceHealth

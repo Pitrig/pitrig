@@ -4,7 +4,7 @@
 
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
-#include "widget_conditions.hpp"
+#include "value_conditions.hpp"
 
 namespace simcore::dashboard::bar_widget {
 namespace {

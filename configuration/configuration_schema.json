@@ -1,5 +1,5 @@
 {
-  "schema_version": 19,
+  "schema_version": 21,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
 
   "documents": {
@@ -11,9 +11,9 @@
     },
     "modules": {
       "sections": ["hardware"],
-      "max_payload": 1024,
+      "max_payload": 32768,
       "reboot_required": false,
-      "doc": "Peripherals beyond the display. Empty until a peripheral driver has a production contract, and separate so that adding one costs neither the dashboard's bytes nor its restarts."
+      "doc": "Peripherals beyond the display: the addressable LED outputs, and the buttons and encoders that will join them. Separate from the dashboard so that adding one costs neither its bytes nor its restarts, and sized to carry a matrix's artwork inline rather than as an uploaded asset."
     },
     "protocol": {
       "sections": ["telemetry_transport"],
@@ -159,6 +159,50 @@
     "kValueAffixCapacity": {
       "value": 16,
       "doc": "Transform prefix and suffix storage including the terminator (15 usable bytes)."
+    },
+    "kMaximumHardwareDevices": {
+      "value": 4,
+      "doc": "Peripherals one board may declare. It is the number of LED outputs a board can drive: each one owns an RMT transmit channel, and four is what both the ESP32-S3 and the ESP32-P4 have."
+    },
+    "kMaximumLedEffects": {
+      "value": 32,
+      "doc": "Layers one output composes its picture from. Effects overwrite rather than resolve, so the count is how many things may be true at once about one chain, not how many rules describe one lamp."
+    },
+    "kMaximumLedsPerOutput": {
+      "value": 512,
+      "doc": "Lamps on one data line. What sets it is time rather than memory: 512 lamps take 12 ms to clock out at 800 kHz, which is already most of a frame at 60 Hz, and an RGBW chain takes a third longer again."
+    },
+    "kMaximumLedsTotal": {
+      "value": 1024,
+      "doc": "Lamps across every output. Outputs transmit on their own channels at the same time, so what this bounds is the frame buffer and the current the board can plausibly be asked to switch, not the frame time."
+    },
+    "kMaximumMatrixSide": {
+      "value": 32,
+      "doc": "Columns or rows one matrix panel may have. Square at this bound it is already the whole lamp budget, which is what stops it rather than the geometry."
+    },
+    "kMaximumLedSprites": {
+      "value": 8,
+      "doc": "Pictures one output may carry. They travel inside the document, so this and the pixel capacity below are what keep a matrix's artwork inside the payload bound."
+    },
+    "kMaximumLedSpriteFrames": {
+      "value": 16,
+      "doc": "Frames one sprite may hold. Frames share a geometry and a palette and are stored back to back, so a frame is an offset rather than an entry."
+    },
+    "kLedPaletteSize": {
+      "value": 16,
+      "doc": "Colours one sprite names. Sixteen is what one hexadecimal digit addresses, which is why a pixel costs half a byte."
+    },
+    "kLedSpritePixelCapacity": {
+      "value": 1025,
+      "doc": "Pixel digit storage for one sprite including the terminator (1024 usable). Sixteen frames of eight by eight, or four of sixteen by sixteen, and the same budget however it is spent."
+    },
+    "kLedTextCapacity": {
+      "value": 32,
+      "doc": "Static text a text effect may carry including the terminator (31 usable bytes)."
+    },
+    "kLedTelemetryIdleMs": {
+      "value": 2000,
+      "doc": "Silence after which the telemetry_idle gate starts holding. Long enough that a pause between lines is not an outage, short enough that a closed game is noticed before the lamps look stuck."
     }
   },
 
@@ -195,10 +239,50 @@
   },
 
   "enums": {
+    "HardwareDeviceType": {
+      "json_values": ["rgb_strip", "rgb_matrix"],
+      "default": "rgb_strip",
+      "doc": "Peripheral kind discriminator for an entry of the hardware list. A strip and a matrix are separate devices on separate pins rather than segments of one chain: each owns its data line and, on the wire, its own transmit channel. Buttons and encoders become further values of this rather than further sections."
+    },
+    "LedChip": {
+      "json_values": ["ws2812b", "sk6812_rgbw"],
+      "default": "ws2812b",
+      "doc": "Addressable LED family on an output. ws2812b also covers WS2812, WS2813 and WS2815, which differ in supply and redundancy rather than in the three bytes they read. sk6812_rgbw adds a fourth white byte, so the same chain costs a third more time on the wire."
+    },
+    "MatrixOrder": {
+      "json_values": ["progressive", "serpentine"],
+      "default": "serpentine",
+      "doc": "How a matrix panel's rows are wired. progressive starts every row at the same side; serpentine reverses alternate rows, which is what most ready-made panels do. Ignored by a strip."
+    },
+    "MatrixOrigin": {
+      "json_values": ["top_left", "top_right", "bottom_left", "bottom_right"],
+      "default": "top_left",
+      "doc": "Corner the first lamp of a matrix sits in. Ignored by a strip."
+    },
+    "LedEffectType": {
+      "json_values": ["solid", "gradient", "steps", "gauge", "animation", "sprite", "text"],
+      "default": "solid",
+      "doc": "What an effect paints over the lamps it covers. The order of these values indexes the generated painter table, so a new kind is appended rather than inserted."
+    },
+    "LedAnimationKind": {
+      "json_values": ["rainbow", "scan", "pulse", "wipe", "chase"],
+      "default": "rainbow",
+      "doc": "Motion an animation effect draws. Read only by that kind."
+    },
+    "LedGate": {
+      "json_values": ["always", "conditions", "telemetry_idle"],
+      "default": "always",
+      "doc": "When an effect paints at all. always paints on every frame; conditions paints while a rule over condition_source holds; telemetry_idle paints only after kLedTelemetryIdleMs of silence, which is what an idle animation and a lost-link warning both want."
+    },
+    "LedFont": {
+      "json_values": ["small", "large"],
+      "default": "small",
+      "doc": "Built-in bitmap face a text effect draws with: small is three by five and fits two rows on an eight-pixel panel, large is five by seven. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no font partition."
+    },
     "BoardId": {
-      "json_values": ["t_display_s3", "guition_esp32_4848s040", "guition_jc1060p470c"],
+      "json_values": ["t_display_s3", "guition_esp32_4848s040", "guition_jc1060p470c", "esp32s3_devkit"],
       "default": "t_display_s3",
-      "doc": "Immutable hardware identity. Must match the firmware build or the configuration is rejected."
+      "doc": "Immutable hardware identity. Must match the firmware build or the configuration is rejected. A board that declares no display carries no dashboard either: a dashboard section on one is rejected rather than quietly ignored, because an author who wrote it meant it to be drawn somewhere."
     },
     "TelemetryTransportId": {
       "json_values": ["board_default", "native_usb_cdc", "uart"],
@@ -295,11 +379,78 @@
       ]
     },
 
-    "HardwareConfiguration": {
-      "doc": "Reserved bounded peripheral section. No user-configurable peripheral driver has a complete production contract yet, so a non-empty list is rejected rather than guessed.",
-      "json_kind": "empty_array",
+    "LedPaletteEntry": {
+      "doc": "One colour a sprite's pixel digits name.",
       "fields": [
-        { "name": "device_count", "kind": "uint8", "default": 0, "serialized": false }
+        { "name": "color", "kind": "color", "default": "0x000000" }
+      ]
+    },
+
+    "LedSpriteConfiguration": {
+      "doc": "A picture, or several frames of one, drawn on a matrix. Stored palette-indexed at four bits a pixel and carried inside this document rather than uploaded, because a whole icon set is a few kilobytes: nothing to install, nothing to claim the serial link while it installs, no partition to add, and a template carries its artwork with it.",
+      "fields": [
+        { "name": "id", "kind": "text", "capacity": "kImageIdCapacity", "default": "", "required": true },
+        { "name": "width", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide" },
+        { "name": "height", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide" },
+        { "name": "frame_count", "kind": "uint8", "default": 1, "minimum": 1, "maximum": "kMaximumLedSpriteFrames" },
+        { "name": "palette_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "palette", "kind": "array", "struct": "LedPaletteEntry", "capacity": "kLedPaletteSize", "count_field": "palette_count", "doc": "Colours the pixel digits name. Entry zero is the unlit lamp by convention rather than by rule." },
+        { "name": "pixels", "kind": "text", "capacity": "kLedSpritePixelCapacity", "default": "", "doc": "Every frame's pixels back to back, one hexadecimal digit per pixel, row by row from the top left. Exactly width times height times frame_count digits, and rejected at any other length rather than padded. A digit at or past the palette's length is transparent, so a sprite smaller than its box leaves the layers below visible." }
+      ]
+    },
+
+    "LedEffect": {
+      "doc": "One layer of an output's picture. Effects are painted in the order they are authored and a later one overwrites the lamps it covers, so a flag laid over shift lights is simply written after them. This is deliberately the opposite of a widget's styling rules, where the first match wins and the rest are skipped: a widget resolves one appearance for one object, while an output composes a picture out of many independent things being true at once.",
+      "fields": [
+        { "name": "type", "kind": "enum", "enum": "LedEffectType" },
+        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "from", "kind": "uint16", "default": 0, "maximum": "kMaximumLedsPerOutput", "doc": "First lamp of the device this layer covers, in the device's own order. A sprite or text layer covers the whole panel and leaves this at zero." },
+        { "name": "count", "kind": "uint16", "default": 0, "minimum": 1, "maximum": "kMaximumLedsPerOutput", "zero_means_off": true, "doc": "Lamps the layer covers. 0 covers the rest of the device, which is what a layer meant to own a whole strip wants." },
+        { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the effect maps. steps and gauge map it through the range below; sprite rounds it to a frame; text renders it. solid, gradient and animation need none, and a binding on one is rejected rather than left unread." },
+        { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
+        { "name": "gate", "kind": "enum", "enum": "LedGate" },
+        { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the gate watches, independent of what the effect paints: shift lights on engine speed, switched off in the pit lane. Required by the conditions gate and rejected without one, so a binding never sits unread." },
+        { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count", "doc": "Rules over condition_source. The effect paints while one of them holds. Unlike a widget's styling rules these select rather than describe, so which one matched does not change what is drawn." },
+        { "name": "hold_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "Keeps the effect painting for this long after its gate stops holding, so a momentary event such as traction control still produces a visible flash." },
+        { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of everything this effect paints. 0 paints steady." },
+        { "name": "brightness", "kind": "uint8", "default": 255, "doc": "Scales this layer's colours before they are laid down, so one layer can sit under another without matching its intensity. Applied before the output's own brightness." },
+        { "name": "mirrored", "kind": "bool", "default": false, "doc": "Paints the same value outward from the middle of the covered lamps towards both ends at once, which is what a centred rev bar wants." },
+        { "name": "inverted", "kind": "bool", "default": false, "doc": "Fills from the far end of the covered lamps instead of the near one." },
+        { "name": "color", "kind": "color", "default": "0xFFFFFF", "doc": "The colour solid paints, the moving colour of an animation, and the ink text draws with." },
+        { "name": "stop_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "stops", "kind": "array", "struct": "ColorStop", "capacity": "kMaximumColorStops", "count_field": "stop_count", "doc": "Colour ramp. gradient spreads it across the lamps it covers; gauge reads it at the mapped value, so the fill changes colour as the value climbs." },
+        { "name": "step_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "steps", "kind": "array", "struct": "IndicatorSegment", "capacity": "kMaximumIndicatorSegments", "count_field": "step_count", "doc": "Thresholds a steps effect lights at, shared out in order over the lamps it covers: the shift-light idiom. The same struct the on-screen indicator uses, so one authored strip reads the same on glass and on wire." },
+        { "name": "animation", "kind": "enum", "enum": "LedAnimationKind" },
+        { "name": "speed_ms", "kind": "uint16", "default": 1000, "minimum": 50, "maximum": 60000, "doc": "How long one pass of an animation takes, and how long one character of scrolling text stays put." },
+        { "name": "sprite", "kind": "text", "capacity": "kImageIdCapacity", "default": "", "doc": "Sprite this effect draws, by its id among this output's sprites. A missing id is a composition error rather than a blank panel, for the same reason a missing font family is." },
+        { "name": "sprite_frame", "kind": "uint8", "default": 0, "maximum": "kMaximumLedSpriteFrames", "doc": "Frame to draw when no source is bound, rejected when it names a frame the sprite does not hold. With a source, the frame is that value rounded and clamped to the frames the sprite holds." },
+        { "name": "text", "kind": "text", "capacity": "kLedTextCapacity", "default": "", "doc": "Static text a text effect draws. With a source bound this becomes the prefix and the source supplies the rest, which is the same shape a transform's affixes have." },
+        { "name": "font", "kind": "enum", "enum": "LedFont" }
+      ]
+    },
+
+    "HardwareDeviceConfiguration": {
+      "doc": "One peripheral beyond the display, on its own data pin. A strip is a line of lamps and needs only a count; a matrix is a grid whose wiring has to be described before a picture lands the right way up. They are separate devices rather than segments of a shared chain, so each spends a pin and a transmit channel of its own, and neither can disturb the other's lamp numbering.",
+      "fields": [
+        { "name": "type", "kind": "enum", "enum": "HardwareDeviceType", "required": true },
+        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "pin", "kind": "int", "default": -1, "doc": "GPIO this device's data line is wired to. Checked against the pins the board declares free, so a pin the display, the flash, the PSRAM or the serial link already owns is rejected rather than driven. Two devices naming the same pin are rejected together, because neither could then be addressed on its own." },
+        { "name": "chip", "kind": "enum", "enum": "LedChip" },
+        { "name": "brightness", "kind": "uint8", "default": 128, "doc": "Scales every colour on this device on its way to the wire, after each layer's own brightness and before the current limit." },
+        { "name": "gamma", "kind": "bool", "default": true, "doc": "Corrects the perceptual response of the lamps, without which the bottom of the brightness range is a handful of visibly separate steps rather than a fade." },
+        { "name": "current_limit_ma", "kind": "uint16", "default": 0, "minimum": 100, "maximum": 20000, "zero_means_off": true, "doc": "Ceiling on what this device may draw. The whole frame is scaled down when the estimate passes it, so the picture dims evenly rather than the supply sagging and the colours drifting. 0 trusts the author's supply. A lamp at full white draws around 60 mA, so a single eight-by-eight panel is already past what a USB port can give." },
+        { "name": "count", "kind": "uint16", "default": 1, "minimum": 1, "maximum": "kMaximumLedsPerOutput", "doc": "Lamps in a strip. Ignored by a matrix, whose count is width times height." },
+        { "name": "width", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide", "doc": "Matrix columns, as the panel is built rather than as it is mounted. Ignored by a strip." },
+        { "name": "height", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide", "doc": "Matrix rows. Ignored by a strip." },
+        { "name": "order", "kind": "enum", "enum": "MatrixOrder" },
+        { "name": "origin", "kind": "enum", "enum": "MatrixOrigin" },
+        { "name": "rotation_deg", "kind": "uint16", "default": 0, "maximum": 270, "doc": "Quarter turn applied to everything drawn on this panel, so one mounted on its side still reads upright. Accepts 0, 90, 180 and 270; any other multiple is rejected rather than rounded. Ignored by a strip." },
+        { "name": "effect_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "effects", "kind": "array", "struct": "LedEffect", "capacity": "kMaximumLedEffects", "count_field": "effect_count", "doc": "Layers painted in order; a later one overwrites the lamps it covers." },
+        { "name": "sprite_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "sprites", "kind": "array", "struct": "LedSpriteConfiguration", "capacity": "kMaximumLedSprites", "count_field": "sprite_count", "doc": "Pictures this matrix draws, named by id. Ignored by a strip." }
       ]
     },
 
@@ -436,8 +587,8 @@
       ]
     },
 
-    "SlotCondition": {
-      "doc": "One activation rule for a slot page. The first rule whose comparison holds raises the page. Kept separate from a widget's styling rules because selection and appearance watch different fields; how long the page then stays up belongs to the page, not to the rule that raised it.",
+    "ValueCondition": {
+      "doc": "One selection rule: a comparison over a watched value, and nothing else. Kept apart from a widget's styling rules because selecting and describing are different questions — a slot page is raised by one of these, and an LED effect is gated by one, while how long either then lasts belongs to the thing selected rather than to the rule that selected it.",
       "fields": [
         { "name": "op", "kind": "enum", "enum": "ConditionOperator" },
         { "name": "value", "kind": "float", "default": 0 }
@@ -653,7 +804,7 @@
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry this page watches. Required by both triggers and rejected without one, so a binding never sits unread." },
         { "name": "duration_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "How long the page stays up after its event fires, after which the slot returns to whichever loop page was last selected. Required by value_changed, which would otherwise show a single frame; with conditions, 0 keeps the page up only while a rule holds. Bounded like a styling hold." },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "conditions", "kind": "array", "struct": "SlotCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
+        { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count" },
         { "name": "widget_count", "kind": "uint8", "default": 0, "serialized": false },
         {
           "name": "widgets",
@@ -742,7 +893,8 @@
       "root": true,
       "fields": [
         { "name": "board", "kind": "struct", "struct": "BoardConfiguration", "flatten": true },
-        { "name": "hardware", "kind": "struct", "struct": "HardwareConfiguration" },
+        { "name": "device_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "hardware", "kind": "array", "struct": "HardwareDeviceConfiguration", "capacity": "kMaximumHardwareDevices", "count_field": "device_count" },
         { "name": "telemetry_transport_present", "kind": "bool", "default": false, "serialized": false },
         { "name": "telemetry_transport", "kind": "struct", "struct": "TelemetryTransportConfiguration" },
         { "name": "dashboard", "kind": "struct", "struct": "DashboardConfiguration" }
@@ -756,10 +908,12 @@
     { "name": "unsupported_schema", "doc": "Stored record uses a schema version this firmware does not accept." },
     { "name": "invalid_board", "doc": "Missing or unknown board identifier." },
     { "name": "board_mismatch", "doc": "Board identifier does not match the firmware build." },
-    { "name": "invalid_hardware", "doc": "Hardware list is not an empty array." },
+    { "name": "invalid_hardware", "doc": "Hardware list is malformed, holds more devices than the board can drive, or an entry is not a peripheral this firmware knows." },
+    { "name": "invalid_led_pin", "doc": "LED output names a pin this board does not offer, or two outputs name the same one." },
+    { "name": "invalid_led_sprite", "doc": "LED sprite geometry, palette or pixel digits do not agree, or an effect names a sprite that is not declared." },
     { "name": "invalid_transport", "doc": "Unknown transport or one the board does not support." },
     { "name": "invalid_uart", "doc": "UART pins do not match the board or baud rate is out of range." },
-    { "name": "invalid_module", "doc": "Module section value out of range." },
+    { "name": "invalid_module", "doc": "Peripheral segment or effect is out of range, names a segment its chain does not have, or carries a property its kind has none of." },
     { "name": "invalid_screen", "doc": "Screen section is malformed or the screen count is out of range." },
     { "name": "invalid_dashboard", "doc": "Dashboard section is malformed or references an absent module." },
     { "name": "invalid_widget", "doc": "Widget property is malformed, out of range, entirely off the display, or nested deeper than kMaximumNestingDepth." },

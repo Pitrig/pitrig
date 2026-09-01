@@ -1,5 +1,4 @@
 set(component_sources
-    "conditions/src/widget_conditions.cpp"
     "frame/src/widget_collection.cpp"
     "frame/src/frame_caption.cpp"
     "frame/src/frame_geometry.cpp"
@@ -33,7 +32,6 @@ set(component_sources
     "src/widget_descriptor.cpp")
 set(component_include_dirs
     "include"
-    "conditions/include"
     "frame/include"
     "fonts/include"
     "images/include"
@@ -70,7 +68,7 @@ idf_component_register(
     EMBED_FILES ${boot_splash_asset}
     LDFRAGMENTS ${lvgl_ldfragments}
     REQUIRES configuration_contract font_assets image_assets lvgl__lvgl
-             telemetry
+             telemetry value_conditions
     PRIV_REQUIRES display esp_lvgl_port esp_rom esp_system esp_timer heap logger
                   number_transform performance simcore_config text_writer
                   time_transform)

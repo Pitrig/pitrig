@@ -1,38 +1,160 @@
-import { Puzzle } from 'lucide-react'
+import { Grid3x3, Lightbulb, Plus, Puzzle } from 'lucide-react'
 
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
+import { SubTabs } from '@/app/workspace/SubTabs'
+import { useWorkspaceStore, type ModulesView } from '@/app/workspace/workspace-store'
 import { DocumentStatusChip } from '@/features/device/document-status'
 import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
+import { useDeviceStore } from '@/features/device/device-store'
+import { BoardPicker } from '@/features/configuration/preview/BoardPicker'
+import { boardName } from '@/features/configuration/board-labels'
+import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
+import type { HardwareDeviceType } from '@shared/configuration-schema'
+import { EffectEditor } from './EffectEditor'
+import { EffectList } from './EffectList'
+import { LedPreview } from './LedPreview'
+import { NoConfiguration } from './NoConfiguration'
+import { OutputEditor } from './OutputEditor'
+import { SpriteEditor } from './SpriteEditor'
+import { addDevice, canAddDevice, devicesOf, ledPinsOf, removeDevice } from './modules-document'
+import { useModulesStore } from './modules-store'
+
+const TABS: ReadonlyArray<{ id: ModulesView; label: string; icon: typeof Lightbulb }> = [
+  { id: 'leds', label: 'LEDs', icon: Lightbulb },
+  { id: 'matrix', label: 'Matrix', icon: Grid3x3 }
+]
+
+const TYPE: Record<ModulesView, HardwareDeviceType> = {
+  leds: 'rgb_strip',
+  matrix: 'rgb_matrix'
+}
 
 export function ModulesPage(): React.JSX.Element {
+  const draft = useDeviceStore((state) => state.draft)
+  const selected = useModulesStore((state) => state.output)
+  const select = useModulesStore((state) => state.select)
+  const effect = useModulesStore((state) => state.effect)
+  const view = useWorkspaceStore((state) => state.modulesView)
+  const setView = useWorkspaceStore((state) => state.setModulesView)
+  const clearGates = useModulesStore((state) => state.clearGates)
+
+  const all = devicesOf(draft)
+  const type = TYPE[view]
+  const mine = all
+    .map((device, index) => ({ device, index }))
+    .filter(({ device }) => device.type === type)
+  const active = mine.find(({ index }) => index === selected) ?? mine[0]
+  const pins = ledPinsOf(draft)
+  const noun = view === 'matrix' ? 'matrix' : 'strip'
+
   return (
     <PageShell
       title="Modules"
-      description="Peripherals beyond the display: buttons, encoders and LEDs."
+      description="Peripherals beyond the display, each on its own data pin."
       actions={
         <>
+          <BoardPicker />
           <DocumentStatusChip document="modules" />
           <SaveToBoardButton />
         </>
       }
     >
-      <PageSection
-        title="Nothing to configure yet"
-        description="This is where the board's extra hardware will be set up."
-      >
-        <EmptyState icon={<Puzzle aria-hidden="true" className="size-6" />} title="No modules">
-          <p>
-            The board stores a <code className="font-mono">modules</code> configuration beside the
-            dashboard and the protocol, and the firmware rejects it while it holds anything: no
-            peripheral driver has a complete contract yet, so a value here would be a guess rather
-            than a setting.
-          </p>
-          <p className="mt-2">
-            Buttons, encoders and LEDs will appear on this page as their drivers land. Until then a
-            widget can still react to a touch — give it an action on the Dashboard page.
-          </p>
-        </EmptyState>
-      </PageSection>
+      {!draft ? (
+        <NoConfiguration />
+      ) : (
+        <>
+          <SubTabs
+            label="Modules view"
+            tabs={TABS.map((tab) => ({
+              ...tab,
+              badge: (
+                <span className="text-[10px] text-muted-foreground">
+                  {all.filter((device) => device.type === TYPE[tab.id]).length}
+                </span>
+              )
+            }))}
+            value={view}
+            onChange={(next) => {
+              setView(next)
+              select(-1)
+            }}
+          />
+          <PageSection
+            title={view === 'matrix' ? 'Matrices' : 'Strips'}
+            description={`Each ${noun} owns one data pin and one transmit channel; a board drives four devices in all.`}
+            actions={
+              canAddDevice(draft) ? (
+                <button
+                  type="button"
+                  className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-white/5"
+                  onClick={() => select(addDevice(draft, type))}
+                >
+                  <Plus className="size-3.5" /> {`Add ${noun}`}
+                </button>
+              ) : null
+            }
+          >
+            {pins.length === 0 ? (
+              <p className="pb-2 text-[11px] text-amber-400/80">
+                {`${boardName(draft.board)} publishes no free pins for LEDs yet, so a device on it
+                  would be refused by the firmware.`}
+              </p>
+            ) : null}
+            {mine.length === 0 ? (
+              <EmptyState
+                icon={<Puzzle aria-hidden="true" className="size-6" />}
+                title={view === 'matrix' ? 'No matrices' : 'No strips'}
+              >
+                <p>{`Nothing is wired yet. Add a ${noun} to describe its pin and what it shows.`}</p>
+              </EmptyState>
+            ) : (
+              <div className="flex flex-wrap gap-1">
+                {mine.map(({ device, index }) => (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-1 rounded border px-2 py-1 text-xs ${index === active?.index ? 'border-sky-500/50 bg-sky-500/10' : 'hover:bg-white/5'}`}
+                  >
+                    <button type="button" onClick={() => select(index)}>
+                      {device.id || `${view === 'matrix' ? 'Matrix' : 'Strip'} ${index + 1}`}
+                      <span className="ml-1 text-muted-foreground">pin {device.pin ?? '—'}</span>
+                    </button>
+                    <RemoveButton
+                      label={`Remove device ${index + 1}`}
+                      onClick={() => {
+                        removeDevice(index)
+                        clearGates()
+                        select(-1)
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </PageSection>
+
+          {active ? (
+            <>
+              <LedPreview index={active.index} device={active.device} />
+              <PageSection title="Wiring">
+                <OutputEditor draft={draft} index={active.index} device={active.device} />
+              </PageSection>
+              <PageSection title="What it shows">
+                <EffectList output={active.index} device={active.device} />
+                {view === 'matrix' ? (
+                  <SpriteEditor output={active.index} device={active.device} />
+                ) : null}
+                {effect >= 0 && (active.device.effects ?? [])[effect] ? (
+                  <EffectEditor output={active.index} device={active.device} index={effect} />
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Pick a layer to edit what it paints.
+                  </p>
+                )}
+              </PageSection>
+            </>
+          ) : null}
+        </>
+      )}
     </PageShell>
   )
 }

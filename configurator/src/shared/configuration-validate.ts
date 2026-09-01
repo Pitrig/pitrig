@@ -8,6 +8,7 @@ import {
   documentPayloadBytes
 } from './configuration-documents'
 import { findFontError } from './validate/fonts'
+import { findHardwareError } from './validate/hardware'
 import { findRangeError } from './validate/ranges'
 import { findUnknownProperty } from './validate/schema-keys'
 import { findScreenError } from './validate/structure'
@@ -35,15 +36,11 @@ export function validateConfigurationDocument(
   ) {
     return { ok: false, error: 'Configuration must target a supported board.' }
   }
-  if (
-    configuration.hardware !== undefined &&
-    (!Array.isArray(configuration.hardware) || configuration.hardware.length !== 0)
-  ) {
-    return { ok: false, error: 'The hardware list must be an empty array.' }
-  }
-
   const unknown = findUnknownProperty(value, 'ApplicationConfiguration', '')
   if (unknown) return { ok: false, error: unknown }
+
+  const hardwareError = findHardwareError(configuration)
+  if (hardwareError) return { ok: false, error: hardwareError }
 
   const screenError = findScreenError(configuration)
   if (screenError) return { ok: false, error: screenError }

@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "configuration_schema_generated.hpp"
+#include "json_hardware.hpp"
 #include "json_readers.hpp"
 #include "json_value_pipeline.hpp"
 #include "json_widgets.hpp"
@@ -137,11 +138,10 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 
   if (owns(keys, "hardware")) {
     configuration.hardware = {};
+    configuration.device_count = 0;
     const cJSON* const hardware = member(root, "hardware");
     if (hardware != nullptr &&
-        (!cJSON_IsArray(hardware) || cJSON_GetArraySize(hardware) != 0)) {
-      (void)reject(failure, ValidationError::invalid_hardware, kName,
-                   "hardware");
+        !parse_hardware(hardware, configuration, failure)) {
       return failure;
     }
   }

@@ -14,7 +14,7 @@ function read(source: unknown, key: string): unknown {
   return value
 }
 
-function findBoundError(
+export function findBoundError(
   source: unknown,
   ranges: readonly FieldRange[] | undefined,
   owner: string

@@ -28,6 +28,9 @@ export type LayoutTransferNoteKind =
   | 'field_clamped'
   | 'arc_thickness_reduced'
   | 'widget_off_display'
+  | 'dashboard_dropped'
+  | 'led_pin_moved'
+  | 'led_pin_cleared'
 
 export interface LayoutTransferNote {
   kind: LayoutTransferNoteKind
@@ -53,6 +56,33 @@ export interface LayoutTransferResult {
 
 const MAXIMUM_NOTES = 200
 
+function carryOutputs(
+  configuration: ApplicationConfiguration,
+  board: SimCoreBoardId,
+  note: (entry: LayoutTransferNote) => void
+): void {
+  const offered = BOARD_PROFILES[board]?.led.pins ?? []
+  const taken = new Set(
+    (configuration.hardware ?? [])
+      .map((output) => output.pin ?? -1)
+      .filter((pin) => offered.includes(pin))
+  )
+  for (const [index, output] of (configuration.hardware ?? []).entries()) {
+    const pin = output.pin ?? -1
+    if (offered.includes(pin)) continue
+    const free = offered.find((candidate) => !taken.has(candidate))
+    const name = output.id || `output ${index + 1}`
+    if (free === undefined) {
+      delete output.pin
+      note({ kind: 'led_pin_cleared', screenIndex: 0, widgetId: name, from: pin })
+      continue
+    }
+    output.pin = free
+    taken.add(free)
+    note({ kind: 'led_pin_moved', screenIndex: 0, widgetId: name, from: pin, to: free })
+  }
+}
+
 export function transferConfiguration(
   configuration: ApplicationConfiguration,
   target: LayoutTransferTarget
@@ -64,6 +94,38 @@ export function transferConfiguration(
 
   const fit = target.fit ?? 'contain'
   const notes: LayoutTransferNote[] = []
+  const note = (entry: LayoutTransferNote): void => {
+    if (notes.length < MAXIMUM_NOTES) notes.push(entry)
+  }
+  carryOutputs(next, target.board, note)
+
+  if (to === undefined) {
+    if (next.dashboard !== undefined) {
+      delete next.dashboard
+      note({ kind: 'dashboard_dropped', screenIndex: 0 })
+    }
+    const none = { width: 0, height: 0 }
+    return {
+      configuration: next,
+      fit,
+      scale: { x: 1, y: 1, min: 1 },
+      offset: { x: 0, y: 0 },
+      from: from ?? none,
+      to: none,
+      notes
+    }
+  }
+  if (from === undefined) {
+    return {
+      configuration: next,
+      fit,
+      scale: { x: 1, y: 1, min: 1 },
+      offset: { x: 0, y: 0 },
+      from: to,
+      to,
+      notes
+    }
+  }
   if (from.width === to.width && from.height === to.height) {
     const unchanged = { x: 1, y: 1, min: 1 }
     return { configuration: next, fit, scale: unchanged, offset: { x: 0, y: 0 }, from, to, notes }
@@ -82,10 +144,6 @@ export function transferConfiguration(
           x: Math.floor((to.width - Math.round(from.width * scale.x)) / 2),
           y: Math.floor((to.height - Math.round(from.height * scale.y)) / 2)
         }
-
-  const note = (entry: LayoutTransferNote): void => {
-    if (notes.length < MAXIMUM_NOTES) notes.push(entry)
-  }
 
   const visit = (
     widgets: readonly WidgetConfiguration[],

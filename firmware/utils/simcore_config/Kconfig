@@ -99,6 +99,36 @@ config SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
     bool "Guition JC1060P470C"
     depends on IDF_TARGET_ESP32P4
 
+config SIMCORE_FACTORY_BOARD_ESP32S3_DEVKIT
+    bool "Espressif ESP32-S3-DevKitC-1 (no display)"
+    depends on IDF_TARGET_ESP32S3
+    help
+        Needs a module with octal PSRAM (N8R8, N16R8V): the build inherits
+        the target-wide CONFIG_SPIRAM_MODE_OCT and the configuration
+        buffers live in external RAM, so a module without it (N8, N8R2)
+        panics before the serial link comes up and never reaches the
+        recovery surface.
+
+endchoice
+
+choice SIMCORE_STATUS_LED_PIN
+    prompt "On-board status LED pin"
+    depends on SIMCORE_FACTORY_BOARD_ESP32S3_DEVKIT
+    default SIMCORE_STATUS_LED_GPIO38
+    help
+        Which pin the DevKitC-1's addressable status LED is wired to. The
+        board moved it between revisions — v1.0 drives it from GPIO 48 and
+        v1.1 from GPIO 38 — and nothing on the board reports which one it
+        is, so it is asked rather than guessed. On a board with no display
+        this lamp is the only thing that can report safe mode, so getting
+        it wrong costs the one diagnostic the board has.
+
+config SIMCORE_STATUS_LED_GPIO38
+    bool "GPIO 38 (DevKitC-1 v1.1)"
+
+config SIMCORE_STATUS_LED_GPIO48
+    bool "GPIO 48 (DevKitC-1 v1.0)"
+
 endchoice
 
 endmenu

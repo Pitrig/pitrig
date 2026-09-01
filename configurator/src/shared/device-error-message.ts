@@ -9,10 +9,16 @@ const VALIDATION_MESSAGES: Record<ValidationErrorToken, string> = {
   invalid_board: 'The configuration does not name a board the device recognises.',
   board_mismatch:
     'This configuration was authored for a different board than the connected device.',
-  invalid_hardware: 'The hardware section must be an empty list.',
+  invalid_hardware:
+    'The hardware section is malformed, declares more peripherals than the board drives, or names a peripheral this firmware has no driver for.',
+  invalid_led_pin:
+    'An LED output names a pin this board does not offer, or two outputs are wired to the same one.',
+  invalid_led_sprite:
+    'An LED sprite\u2019s geometry, palette and pixels do not agree, or an effect draws a sprite the output does not carry.',
   invalid_transport: 'This board does not support the selected telemetry transport.',
   invalid_uart: 'The UART pins or baud rate are not valid for this board.',
-  invalid_module: 'A module setting is outside the range the device accepts.',
+  invalid_module:
+    'An LED segment or effect is out of range, names a segment its chain does not have, or carries a property its kind has none of.',
   invalid_screen: 'A screen is malformed, or the configuration has more screens than the device allows.',
   invalid_dashboard: 'The dashboard is malformed, or it uses a module that is not enabled.',
   invalid_widget:

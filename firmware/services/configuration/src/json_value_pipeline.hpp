@@ -51,7 +51,7 @@ template <typename Source>
                                std::string_view name,
                                ValidationFailure& failure);
 
-[[nodiscard]] bool parse_value_source(const cJSON* object,
+[[nodiscard]] bool parse_value_source(const cJSON* object, const char* key,
                                       ValueSourceConfiguration& config,
                                       std::string_view name,
                                       ValidationFailure& failure);
