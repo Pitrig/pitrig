@@ -14,8 +14,16 @@ namespace {
 constexpr std::size_t kOffPanel = static_cast<std::size_t>(-1);
 
 [[nodiscard]] led::Font font_of(const configuration::LedFont font) {
-  return font == configuration::LedFont::large ? led::Font::large
-                                               : led::Font::small;
+  switch (font) {
+    case configuration::LedFont::bold_4x6:
+      return led::Font::bold_4x6;
+    case configuration::LedFont::regular_5x8:
+      return led::Font::regular_5x8;
+    case configuration::LedFont::bold_5x8:
+      return led::Font::bold_5x8;
+    default:
+      return led::Font::regular_4x6;
+  }
 }
 
 }
@@ -24,24 +32,30 @@ void Panel::set(const int x, const int y, const led::Color color) const {
   if (output == nullptr || matrix == nullptr) {
     return;
   }
-  const std::size_t lamp = led::matrix_lamp(*matrix, x, y);
+  if (x < 0 || y < 0 || x >= area.width || y >= area.height) {
+    return;
+  }
+  const std::size_t lamp = led::matrix_lamp(*matrix, area.x + x, area.y + y);
   if (lamp == kOffPanel) {
     return;
   }
   output->set(lamp, color);
 }
 
-std::optional<Panel> panel_of(led::Output& output, const led::Matrix& matrix) {
-  if (matrix.width == 0 || matrix.height == 0) {
+std::optional<Panel> panel_of(led::Output& output, const led::Matrix& matrix,
+                              const configuration::LedEffect& effect) {
+  const std::optional<Area> area = area_of(matrix, effect);
+  if (!area.has_value()) {
     return std::nullopt;
   }
-  return Panel{.output = &output, .matrix = &matrix};
+  return Panel{.output = &output, .matrix = &matrix, .area = *area};
 }
 
 void paint_sprite(const Panel& panel,
                   const configuration::LedSpriteConfiguration* const sprite,
                   const configuration::LedEffect& effect,
-                  const std::optional<double> value) {
+                  const std::optional<double> value,
+                  const std::uint64_t elapsed_us) {
   if (sprite == nullptr || sprite->width == 0 || sprite->height == 0) {
     return;
   }
@@ -54,6 +68,11 @@ void paint_sprite(const Panel& panel,
     frame = rounded <= 0 ? 0
                          : static_cast<std::size_t>(
                                std::min<double>(rounded, sprite->frame_count - 1));
+  } else if (effect.sprite_loop && sprite->frame_count > 1) {
+    const std::uint64_t step =
+        static_cast<std::uint64_t>(effect.speed_ms == 0 ? 1000 : effect.speed_ms) *
+        1000;
+    frame = static_cast<std::size_t>((elapsed_us / step) % sprite->frame_count);
   }
   frame = std::min<std::size_t>(frame, sprite->frame_count - 1);
   const std::size_t base = frame * area;
@@ -62,11 +81,10 @@ void paint_sprite(const Panel& panel,
   }
   std::array<led::Color, configuration::kLedPaletteSize> palette{};
   for (std::uint8_t index = 0; index < sprite->palette_count; ++index) {
-    palette[index] = led::Color::from_rgb(sprite->palette[index].color)
-                         .scaled(effect.brightness);
+    palette[index] = led::Color::from_rgb(sprite->palette[index].color);
   }
-  const int origin_x = (panel.matrix->drawn_width() - sprite->width) / 2;
-  const int origin_y = (panel.matrix->drawn_height() - sprite->height) / 2;
+  const int origin_x = (panel.area.width - sprite->width) / 2;
+  const int origin_y = (panel.area.height - sprite->height) / 2;
   for (std::uint8_t y = 0; y < sprite->height; ++y) {
     for (std::uint8_t x = 0; x < sprite->width; ++x) {
       const int index =
@@ -87,11 +105,10 @@ void paint_text(const Panel& panel, const configuration::LedEffect& effect,
   const led::Font font = font_of(effect.font);
   const int advance = led::font_width(font) + 1;
   const auto width = static_cast<int>(led::text_width(font, text.size()));
-  const int panel_width = panel.matrix->drawn_width();
-  const int panel_height = panel.matrix->drawn_height();
+  const int panel_width = panel.area.width;
+  const int panel_height = panel.area.height;
   const int top = (panel_height - led::font_height(font)) / 2;
-  const led::Color color =
-      led::Color::from_rgb(effect.color).scaled(effect.brightness);
+  const led::Color color = led::Color::from_rgb(effect.color);
 
   int left = (panel_width - width) / 2;
   if (width > panel_width) {
@@ -109,7 +126,7 @@ void paint_text(const Panel& panel, const configuration::LedEffect& effect,
       continue;
     }
     for (std::uint8_t row = 0; row < led::font_height(font); ++row) {
-      const std::uint8_t bits = led::glyph_row(font, text[index], row);
+      const std::uint16_t bits = led::glyph_row(font, text[index], row);
       for (std::uint8_t column = 0; column < led::font_width(font); ++column) {
         if ((bits & (1U << (led::font_width(font) - 1 - column))) != 0) {
           panel.set(glyph_left + column, top + row, color);

@@ -3,23 +3,39 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <string_view>
 
 #include "application_configuration.hpp"
+#include "led_geometry.hpp"
 #include "led_output.hpp"
 #include "rgb_leds.hpp"
 
 namespace simcore::rgb_leds {
 
+struct Area {
+  std::uint16_t x{};
+  std::uint16_t y{};
+  std::uint16_t width{};
+  std::uint16_t height{};
+  std::string_view mask{};
+  std::uint16_t stride{};
+
+  [[nodiscard]] bool holds(std::uint16_t column, std::uint16_t row) const;
+};
+
+[[nodiscard]] std::optional<Area> area_of(const led::Matrix& matrix,
+                                          const configuration::LedEffect& effect);
+
 class Surface final {
  public:
-  Surface(led::Output& output, std::uint16_t first, std::uint16_t count,
-          bool inverted, bool mirrored, std::uint8_t brightness)
+  Surface(led::Output& output, const led::Matrix& matrix, const Area& area,
+          bool inverted, bool mirrored)
       : output_(&output),
-        first_(first),
-        count_(count),
+        matrix_(&matrix),
+        area_(area),
+        count_(static_cast<std::uint16_t>(area.width * area.height)),
         inverted_(inverted),
-        mirrored_(mirrored),
-        brightness_(brightness) {}
+        mirrored_(mirrored) {}
 
   [[nodiscard]] std::size_t size() const {
     return mirrored_ ? (count_ + 1U) / 2U : count_;
@@ -28,20 +44,18 @@ class Surface final {
   void set(std::size_t index, led::Color color) const;
 
  private:
-  [[nodiscard]] std::size_t physical(std::size_t index) const {
-    return first_ + (inverted_ ? count_ - 1 - index : index);
-  }
+  void put(std::size_t offset, led::Color color) const;
 
   led::Output* output_;
-  std::uint16_t first_;
+  const led::Matrix* matrix_;
+  Area area_;
   std::uint16_t count_;
   bool inverted_;
   bool mirrored_;
-  std::uint8_t brightness_;
 };
 
 [[nodiscard]] std::optional<Surface> surface_of(
-    led::Output& output, std::size_t lamps,
+    led::Output& output, const led::Matrix& matrix,
     const configuration::LedEffect& effect);
 
 void paint(const Surface& surface, const configuration::LedEffect& effect,

@@ -1,26 +1,28 @@
-import { ArrowDown, ArrowUp, Eye, EyeOff, Layers } from 'lucide-react'
+import { ArrowDown, ArrowUp, Layers, Pause, Play } from 'lucide-react'
 
-import { MAXIMUM_LED_EFFECTS, type HardwareDeviceConfiguration } from '@shared/configuration-schema'
+import type { HardwareDeviceConfiguration } from '@shared/configuration-schema'
 import { Group } from '@/features/configuration/inspector/Group'
-import { Hint } from '@/features/configuration/inspector/fields'
-import { AddButton, RemoveButton } from '@/features/configuration/inspector/widget-editors'
+import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
 import { HINTS } from './hints'
+import { layerName } from './layer-name'
 import { mutateEffects, moveEffect } from './modules-document'
 import { useModulesStore } from './modules-store'
 
 export function EffectList({
   output,
-  device
+  device,
+  children
 }: {
   output: number
   device: HardwareDeviceConfiguration
+  children?: React.ReactNode
 }): React.JSX.Element {
   const effects = (device.effects ?? []).map((effect, index) => ({ effect, index }))
   const selected = useModulesStore((state) => state.effect)
   const selectEffect = useModulesStore((state) => state.selectEffect)
-  const gates = useModulesStore((state) => state.gates)
-  const toggleGate = useModulesStore((state) => state.toggleGate)
-  const clearGates = useModulesStore((state) => state.clearGates)
+  const preview = useModulesStore((state) => state.preview)
+  const togglePreview = useModulesStore((state) => state.togglePreview)
+  const clearPreview = useModulesStore((state) => state.clearPreview)
 
   return (
     <Group
@@ -35,8 +37,7 @@ export function EffectList({
         Painted in order; a later layer overwrites the lamps it covers.
       </p>
       {effects.map(({ effect, index }, position) => {
-        const key = `${output}:${index}`
-        const shown = gates[key] !== false
+        const playing = preview?.output === output && preview.effect === index
         return (
           <div
             key={index}
@@ -55,12 +56,17 @@ export function EffectList({
             </button>
             <button
               type="button"
-              aria-label={shown ? `Hide layer ${index + 1} in the preview` : `Show layer ${index + 1} in the preview`}
-              title="Only affects this preview, not the board"
-              className="rounded p-1 text-muted-foreground hover:bg-white/5"
-              onClick={() => toggleGate(key)}
+              aria-pressed={playing}
+              aria-label={
+                playing
+                  ? `Stop previewing ${layerName(effect, index)}`
+                  : `Preview ${layerName(effect, index)} on its own`
+              }
+              title="Plays this layer on its own in the preview above, until it is pressed again"
+              className={`rounded p-1 ${playing ? 'bg-sky-500/25 text-sky-300' : 'text-muted-foreground hover:bg-white/5'}`}
+              onClick={() => togglePreview(output, index)}
             >
-              {shown ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5 opacity-40" />}
+              {playing ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
             </button>
             <button
               type="button"
@@ -69,7 +75,7 @@ export function EffectList({
               className="rounded p-1 text-muted-foreground hover:bg-white/5 disabled:opacity-30"
               onClick={() => {
                 moveEffect(output, index, effects[position - 1]?.index ?? index)
-                clearGates(output)
+                clearPreview(output)
               }}
             >
               <ArrowUp className="size-3.5" />
@@ -81,7 +87,7 @@ export function EffectList({
               className="rounded p-1 text-muted-foreground hover:bg-white/5 disabled:opacity-30"
               onClick={() => {
                 moveEffect(output, index, effects[position + 1]?.index ?? index)
-                clearGates(output)
+                clearPreview(output)
               }}
             >
               <ArrowDown className="size-3.5" />
@@ -92,27 +98,14 @@ export function EffectList({
                 mutateEffects(output, (list) => {
                   list.splice(index, 1)
                 })
-                clearGates(output)
+                clearPreview(output)
                 selectEffect(-1)
               }}
             />
           </div>
         )
       })}
-      {effects.length < MAXIMUM_LED_EFFECTS ? (
-        <AddButton
-          label="Add layer"
-          onClick={() => {
-            const at = effects.length
-            mutateEffects(output, (list) => {
-              list.push({ type: 'solid', color: '#38BDF8' })
-            })
-            selectEffect(at)
-          }}
-        />
-      ) : (
-        <Hint>{`One device composes at most ${MAXIMUM_LED_EFFECTS} layers.`}</Hint>
-      )}
+      {children}
     </Group>
   )
 }

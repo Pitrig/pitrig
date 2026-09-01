@@ -105,11 +105,12 @@ inline constexpr std::array<std::string_view, 6> kLedSpriteConfigurationKeys{{
     "pixels",
 }};
 
-inline constexpr std::array<std::string_view, 24> kLedEffectKeys{{
+inline constexpr std::array<std::string_view, 25> kLedEffectKeys{{
     "type",
     "id",
     "from",
     "count",
+    "panel_mask",
     "source",
     "minimum",
     "maximum",
@@ -118,7 +119,6 @@ inline constexpr std::array<std::string_view, 24> kLedEffectKeys{{
     "conditions",
     "hold_ms",
     "blink_ms",
-    "brightness",
     "mirrored",
     "inverted",
     "color",
@@ -128,11 +128,17 @@ inline constexpr std::array<std::string_view, 24> kLedEffectKeys{{
     "speed_ms",
     "sprite",
     "sprite_frame",
+    "sprite_loop",
     "text",
     "font",
 }};
 
-inline constexpr std::array<std::string_view, 15> kHardwareDeviceConfigurationKeys{{
+inline constexpr std::array<std::string_view, 2> kLedSegmentConfigurationKeys{{
+    "count",
+    "direction",
+}};
+
+inline constexpr std::array<std::string_view, 16> kHardwareDeviceConfigurationKeys{{
     "type",
     "id",
     "pin",
@@ -141,6 +147,7 @@ inline constexpr std::array<std::string_view, 15> kHardwareDeviceConfigurationKe
     "gamma",
     "current_limit_ma",
     "count",
+    "segments",
     "width",
     "height",
     "order",
@@ -592,6 +599,13 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
   }
   if (config.sprite_frame > kMaximumLedSpriteFrames) {
     return "sprite_frame";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const LedSegmentConfiguration& config) {
+  if (config.count < 1 || config.count > kMaximumLedsPerOutput) {
+    return "count";
   }
   return {};
 }

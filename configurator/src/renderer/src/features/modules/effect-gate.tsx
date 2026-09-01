@@ -8,8 +8,6 @@ import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { BOOLEAN_OPERATORS } from '@shared/widget-conditions'
 import { fieldBounds } from '@shared/validate/ranges'
 import { authored } from '@/features/configuration/inspector/authored'
-import { Group } from '@/features/configuration/inspector/Group'
-import { GROUP_ICONS } from '@/features/configuration/inspector/icons'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { TelemetryBindingField } from '@/features/configuration/inspector/TelemetryBindingField'
 import {
@@ -23,6 +21,7 @@ import {
   RemoveButton
 } from '@/features/configuration/inspector/widget-editors'
 import { HINTS } from './hints'
+import { Subsection } from './Subsection'
 
 export function EffectGate({
   effect,
@@ -37,7 +36,7 @@ export function EffectGate({
   const boolean = field?.type === 'boolean'
   const operators = boolean ? BOOLEAN_OPERATORS : CONDITION_OPERATOR_VALUES
   return (
-      <Group id="LedGate" title="When it paints" icon={GROUP_ICONS.conditions} summary={effect.gate ?? 'always'} defaultOpen={gated}>
+      <Subsection title="When it paints">
         <SelectField
           label="Gate"
           hint={HINTS.effect.gate}
@@ -142,6 +141,6 @@ export function EffectGate({
           modified={authored(effect.blink_ms, 0)}
           onChange={(blink_ms) => update((next) => { next.blink_ms = blink_ms })}
         />
-      </Group>
+      </Subsection>
   )
 }

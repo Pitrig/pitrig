@@ -23,11 +23,15 @@ void RgbLeds::task_entry(void* const context) {
 
 void RgbLeds::run() {
   (void)esp_task_wdt_add(nullptr);
+  const TickType_t period = pdMS_TO_TICKS(kFramePeriodMs);
   TickType_t wake = xTaskGetTickCount();
   while (running_.load()) {
     render(static_cast<std::uint64_t>(esp_timer_get_time()));
     (void)esp_task_wdt_reset();
-    vTaskDelayUntil(&wake, pdMS_TO_TICKS(kFramePeriodMs));
+    if (xTaskDelayUntil(&wake, period) == pdFALSE) {
+      wake = xTaskGetTickCount();
+      vTaskDelay(period);
+    }
   }
   (void)esp_task_wdt_delete(nullptr);
   finished_.store(true);
@@ -72,12 +76,13 @@ bool RgbLeds::paint_output(const std::size_t output,
     }
     if (configuration::led_effect_draws_pixels(effect.type)) {
       const std::optional<Panel> panel =
-          panel_of(outputs_[output], geometry_[output]);
+          panel_of(outputs_[output], geometry_[output], effect);
       if (!panel.has_value()) {
         continue;
       }
       if (effect.type == configuration::LedEffectType::sprite) {
-        paint_sprite(*panel, binding.sprite, effect, value);
+        paint_sprite(*panel, binding.sprite, effect, value,
+                     now_us - state.started_us);
       } else {
         std::array<char, configuration::kLedTextCapacity + 24> scratch{};
         paint_text(*panel, effect, effect_text(effect, read, scratch),
@@ -86,7 +91,7 @@ bool RgbLeds::paint_output(const std::size_t output,
       continue;
     }
     const std::optional<Surface> surface =
-        surface_of(outputs_[output], geometry_[output].lamps(), effect);
+        surface_of(outputs_[output], geometry_[output], effect);
     if (!surface.has_value()) {
       continue;
     }

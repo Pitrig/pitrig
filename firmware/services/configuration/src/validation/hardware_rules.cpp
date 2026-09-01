@@ -74,6 +74,23 @@ namespace {
     return reject(failure, ValidationError::invalid_hardware,
                   "hardware.sprites");
   }
+  if (matrix && device.segment_count != 0) {
+    return reject(failure, ValidationError::invalid_hardware,
+                  "hardware.segments");
+  }
+  std::size_t arranged = 0;
+  for (std::uint8_t segment = 0; segment < device.segment_count; ++segment) {
+    if (const std::string_view out_of_range =
+            schema::range_error(device.segments[segment]);
+        !out_of_range.empty()) {
+      return reject(failure, ValidationError::invalid_hardware, out_of_range);
+    }
+    arranged += device.segments[segment].count;
+  }
+  if (device.segment_count != 0 && arranged != device.count) {
+    return reject(failure, ValidationError::invalid_hardware,
+                  "hardware.segments");
+  }
   lamps = led_device_lamps(device);
   if (lamps == 0 || lamps > kMaximumLedsPerOutput) {
     return reject(failure, ValidationError::invalid_hardware, "hardware");

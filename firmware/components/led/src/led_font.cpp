@@ -11,8 +11,8 @@ namespace {
 
 }
 
-std::uint8_t glyph_row(const Font font, const char character,
-                       const std::uint8_t row) {
+std::uint16_t glyph_row(const Font font, const char character,
+                        const std::uint8_t row) {
   const char resolved = upper(character);
   if (resolved < kFirstGlyph || resolved > kLastGlyph ||
       row >= font_height(font)) {
@@ -20,7 +20,7 @@ std::uint8_t glyph_row(const Font font, const char character,
   }
   const std::size_t index = static_cast<std::size_t>(resolved - kFirstGlyph);
   const std::size_t offset = index * font_height(font) + row;
-  return font == Font::large ? kLargeGlyphs[offset] : kSmallGlyphs[offset];
+  return face_of(font).rows[offset];
 }
 
 std::size_t text_width(const Font font, const std::size_t characters) {

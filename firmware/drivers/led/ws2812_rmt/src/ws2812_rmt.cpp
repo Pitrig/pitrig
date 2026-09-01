@@ -62,7 +62,7 @@ driver::Handle open(const driver::Configuration& configuration) {
       .resolution_hz = kResolutionHz,
       .mem_block_symbols = kMemoryBlockSymbols,
       .trans_queue_depth = 1,
-      .intr_priority = 0,
+      .intr_priority = 3,
       .flags = {},
   };
   if (rmt_new_tx_channel(&config, &slot.channel) != ESP_OK) {

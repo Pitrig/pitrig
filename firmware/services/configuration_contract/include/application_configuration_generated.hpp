@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 21;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 22;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -55,11 +55,13 @@ inline constexpr std::size_t kMaximumHardwareDevices = 4;
 inline constexpr std::size_t kMaximumLedEffects = 32;
 inline constexpr std::size_t kMaximumLedsPerOutput = 512;
 inline constexpr std::size_t kMaximumLedsTotal = 1024;
+inline constexpr std::size_t kMaximumLedSegments = 8;
 inline constexpr std::size_t kMaximumMatrixSide = 32;
 inline constexpr std::size_t kMaximumLedSprites = 8;
 inline constexpr std::size_t kMaximumLedSpriteFrames = 16;
 inline constexpr std::size_t kLedPaletteSize = 16;
 inline constexpr std::size_t kLedSpritePixelCapacity = 1025;
+inline constexpr std::size_t kLedPanelMaskCapacity = 257;
 inline constexpr std::size_t kLedTextCapacity = 32;
 inline constexpr std::size_t kLedTelemetryIdleMs = 2000;
 
@@ -146,6 +148,13 @@ enum class MatrixOrigin : std::uint8_t {
   bottom_right,
 };
 
+enum class LedSegmentDirection : std::uint8_t {
+  right,
+  left,
+  up,
+  down,
+};
+
 enum class LedEffectType : std::uint8_t {
   solid,
   gradient,
@@ -171,8 +180,10 @@ enum class LedGate : std::uint8_t {
 };
 
 enum class LedFont : std::uint8_t {
-  small,
-  large,
+  regular_4x6,
+  bold_4x6,
+  regular_5x8,
+  bold_5x8,
 };
 
 enum class BoardId : std::uint8_t {
@@ -343,6 +354,7 @@ struct LedEffect {
   std::array<char, kWidgetIdCapacity> id{};
   std::uint16_t from{};
   std::uint16_t count{};
+  std::array<char, kLedPanelMaskCapacity> panel_mask{};
   ValueSourceConfiguration source{};
   ValueRange range{};
   LedGate gate{LedGate::always};
@@ -351,7 +363,6 @@ struct LedEffect {
   std::array<ValueCondition, kMaximumWidgetConditions> conditions{};
   std::uint16_t hold_ms{};
   std::uint16_t blink_ms{};
-  std::uint8_t brightness{255};
   bool mirrored{false};
   bool inverted{false};
   std::uint32_t color{0xFFFFFF};
@@ -363,8 +374,14 @@ struct LedEffect {
   std::uint16_t speed_ms{1000};
   std::array<char, kImageIdCapacity> sprite{};
   std::uint8_t sprite_frame{};
+  bool sprite_loop{false};
   std::array<char, kLedTextCapacity> text{};
-  LedFont font{LedFont::small};
+  LedFont font{LedFont::regular_4x6};
+};
+
+struct LedSegmentConfiguration {
+  std::uint16_t count{1};
+  LedSegmentDirection direction{LedSegmentDirection::right};
 };
 
 struct HardwareDeviceConfiguration {
@@ -376,6 +393,8 @@ struct HardwareDeviceConfiguration {
   bool gamma{true};
   std::uint16_t current_limit_ma{};
   std::uint16_t count{1};
+  std::uint8_t segment_count{};
+  std::array<LedSegmentConfiguration, kMaximumLedSegments> segments{};
   std::uint8_t width{8};
   std::uint8_t height{8};
   MatrixOrder order{MatrixOrder::serpentine};
@@ -739,6 +758,29 @@ inline constexpr std::array<std::string_view, 4> kMatrixOriginNames{{
   return false;
 }
 
+inline constexpr std::array<std::string_view, 4> kLedSegmentDirectionNames{{
+    "right",
+    "left",
+    "up",
+    "down",
+}};
+
+[[nodiscard]] inline std::string_view led_segment_direction_name(const LedSegmentDirection value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kLedSegmentDirectionNames.size() ? kLedSegmentDirectionNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool led_segment_direction_from_name(const std::string_view name,
+                                                  LedSegmentDirection& value) {
+  for (std::size_t index = 0; index < kLedSegmentDirectionNames.size(); ++index) {
+    if (kLedSegmentDirectionNames[index] == name) {
+      value = static_cast<LedSegmentDirection>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
 inline constexpr std::array<std::string_view, 7> kLedEffectTypeNames{{
     "solid",
     "gradient",
@@ -811,9 +853,11 @@ inline constexpr std::array<std::string_view, 3> kLedGateNames{{
   return false;
 }
 
-inline constexpr std::array<std::string_view, 2> kLedFontNames{{
-    "small",
-    "large",
+inline constexpr std::array<std::string_view, 4> kLedFontNames{{
+    "regular_4x6",
+    "bold_4x6",
+    "regular_5x8",
+    "bold_5x8",
 }};
 
 [[nodiscard]] inline std::string_view led_font_name(const LedFont value) {

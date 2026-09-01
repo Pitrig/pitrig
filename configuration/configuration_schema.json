@@ -1,5 +1,5 @@
 {
-  "schema_version": 21,
+  "schema_version": 22,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
 
   "documents": {
@@ -176,6 +176,10 @@
       "value": 1024,
       "doc": "Lamps across every output. Outputs transmit on their own channels at the same time, so what this bounds is the frame buffer and the current the board can plausibly be asked to switch, not the frame time."
     },
+    "kMaximumLedSegments": {
+      "value": 8,
+      "doc": "Straight runs one strip's physical arrangement may describe. A wheel rim is three runs and a halo around a screen is four, so eight covers every mounting anyone has asked for while keeping the description readable."
+    },
     "kMaximumMatrixSide": {
       "value": 32,
       "doc": "Columns or rows one matrix panel may have. Square at this bound it is already the whole lamp budget, which is what stops it rather than the geometry."
@@ -195,6 +199,10 @@
     "kLedSpritePixelCapacity": {
       "value": 1025,
       "doc": "Pixel digit storage for one sprite including the terminator (1024 usable). Sixteen frames of eight by eight, or four of sixteen by sixteen, and the same budget however it is spent."
+    },
+    "kLedPanelMaskCapacity": {
+      "value": 257,
+      "doc": "Panel mask storage including the terminator (256 usable digits). Four pixels to a digit covers the whole 32 by 32 panel a matrix may have, and an eight by eight one spends sixteen characters on saying where a layer shows."
     },
     "kLedTextCapacity": {
       "value": 32,
@@ -259,6 +267,11 @@
       "default": "top_left",
       "doc": "Corner the first lamp of a matrix sits in. Ignored by a strip."
     },
+    "LedSegmentDirection": {
+      "json_values": ["right", "left", "up", "down"],
+      "default": "right",
+      "doc": "Way a run of a strip's arrangement extends across the mounting, read while drawing the strip rather than while driving it. Each run starts one step from where the previous one ended, in its own direction, which is how a chain bends around a corner."
+    },
     "LedEffectType": {
       "json_values": ["solid", "gradient", "steps", "gauge", "animation", "sprite", "text"],
       "default": "solid",
@@ -275,9 +288,9 @@
       "doc": "When an effect paints at all. always paints on every frame; conditions paints while a rule over condition_source holds; telemetry_idle paints only after kLedTelemetryIdleMs of silence, which is what an idle animation and a lost-link warning both want."
     },
     "LedFont": {
-      "json_values": ["small", "large"],
-      "default": "small",
-      "doc": "Built-in bitmap face a text effect draws with: small is three by five and fits two rows on an eight-pixel panel, large is five by seven. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no font partition."
+      "json_values": ["regular_4x6", "bold_4x6", "regular_5x8", "bold_5x8"],
+      "default": "regular_4x6",
+      "doc": "Built-in bitmap face a text effect draws with, named by the pixels one glyph occupies and its weight. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no font partition. Each face carries only the digits, N and R, which is what a gear readout spells and all a panel this small can spell legibly."
     },
     "BoardId": {
       "json_values": ["t_display_s3", "guition_esp32_4848s040", "guition_jc1060p470c", "esp32s3_devkit"],
@@ -406,6 +419,7 @@
         { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
         { "name": "from", "kind": "uint16", "default": 0, "maximum": "kMaximumLedsPerOutput", "doc": "First lamp of the device this layer covers, in the device's own order. A sprite or text layer covers the whole panel and leaves this at zero." },
         { "name": "count", "kind": "uint16", "default": 0, "minimum": 1, "maximum": "kMaximumLedsPerOutput", "zero_means_off": true, "doc": "Lamps the layer covers. 0 covers the rest of the device, which is what a layer meant to own a whole strip wants." },
+        { "name": "panel_mask", "kind": "text", "capacity": "kLedPanelMaskCapacity", "default": "", "doc": "Which pixels of a panel this layer paints on, four to a hexadecimal digit, row by row from the top left of the panel as it is drawn - the high bit of a digit is the leftmost of its four. Empty means the whole panel, which is what almost every layer wants. The layer works over the smallest box holding the chosen pixels and the mask clips it, so text and a picture still centre on the shape rather than on the panel. Read only by a matrix; a strip says where it paints with from and count." },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the effect maps. steps and gauge map it through the range below; sprite rounds it to a frame; text renders it. solid, gradient and animation need none, and a binding on one is rejected rather than left unread." },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
         { "name": "gate", "kind": "enum", "enum": "LedGate" },
@@ -414,9 +428,8 @@
         { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count", "doc": "Rules over condition_source. The effect paints while one of them holds. Unlike a widget's styling rules these select rather than describe, so which one matched does not change what is drawn." },
         { "name": "hold_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "Keeps the effect painting for this long after its gate stops holding, so a momentary event such as traction control still produces a visible flash." },
         { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of everything this effect paints. 0 paints steady." },
-        { "name": "brightness", "kind": "uint8", "default": 255, "doc": "Scales this layer's colours before they are laid down, so one layer can sit under another without matching its intensity. Applied before the output's own brightness." },
-        { "name": "mirrored", "kind": "bool", "default": false, "doc": "Paints the same value outward from the middle of the covered lamps towards both ends at once, which is what a centred rev bar wants." },
-        { "name": "inverted", "kind": "bool", "default": false, "doc": "Fills from the far end of the covered lamps instead of the near one." },
+        { "name": "mirrored", "kind": "bool", "default": false, "doc": "Paints the same value outward from the middle of the covered lamps towards both ends at once, which is what a centred rev bar wants. Combined with inverted it reverses that: the fill starts at both ends and closes on the middle." },
+        { "name": "inverted", "kind": "bool", "default": false, "doc": "Fills from the far end of the covered lamps instead of the near one. On a mirrored layer it turns the mirror around instead, so the fill closes on the middle rather than spreading from it - the two flags together are a direction rather than two independent switches." },
         { "name": "color", "kind": "color", "default": "0xFFFFFF", "doc": "The colour solid paints, the moving colour of an animation, and the ink text draws with." },
         { "name": "stop_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "stops", "kind": "array", "struct": "ColorStop", "capacity": "kMaximumColorStops", "count_field": "stop_count", "doc": "Colour ramp. gradient spreads it across the lamps it covers; gauge reads it at the mapped value, so the fill changes colour as the value climbs." },
@@ -425,9 +438,18 @@
         { "name": "animation", "kind": "enum", "enum": "LedAnimationKind" },
         { "name": "speed_ms", "kind": "uint16", "default": 1000, "minimum": 50, "maximum": 60000, "doc": "How long one pass of an animation takes, and how long one character of scrolling text stays put." },
         { "name": "sprite", "kind": "text", "capacity": "kImageIdCapacity", "default": "", "doc": "Sprite this effect draws, by its id among this output's sprites. A missing id is a composition error rather than a blank panel, for the same reason a missing font family is." },
-        { "name": "sprite_frame", "kind": "uint8", "default": 0, "maximum": "kMaximumLedSpriteFrames", "doc": "Frame to draw when no source is bound, rejected when it names a frame the sprite does not hold. With a source, the frame is that value rounded and clamped to the frames the sprite holds." },
+        { "name": "sprite_frame", "kind": "uint8", "default": 0, "maximum": "kMaximumLedSpriteFrames", "doc": "Frame to draw when no source is bound and the sprite is not looping, rejected when it names a frame the sprite does not hold. With a source, the frame is that value rounded and clamped to the frames the sprite holds." },
+        { "name": "sprite_loop", "kind": "bool", "default": false, "doc": "Plays the sprite's frames on the layer's own timebase, one every speed_ms, which is how a picture moves without telemetry to drive it. Ignored when a source is bound, because the value is then what picks the frame." },
         { "name": "text", "kind": "text", "capacity": "kLedTextCapacity", "default": "", "doc": "Static text a text effect draws. With a source bound this becomes the prefix and the source supplies the rest, which is the same shape a transform's affixes have." },
         { "name": "font", "kind": "enum", "enum": "LedFont" }
+      ]
+    },
+
+    "LedSegmentConfiguration": {
+      "doc": "One straight run of a strip's physical arrangement: how many lamps continue in which direction across the mounting. The runs together must account for every lamp the strip drives, so the description and the wire can never disagree about how many lamps there are. Nothing on the device reads them - the strip is clocked out in wire order whatever shape it is bent into - but they travel in the document so a configuration carries its own picture of where each lamp sits.",
+      "fields": [
+        { "name": "count", "kind": "uint16", "default": 1, "minimum": 1, "maximum": "kMaximumLedsPerOutput", "doc": "Lamps this run covers, in wire order." },
+        { "name": "direction", "kind": "enum", "enum": "LedSegmentDirection" }
       ]
     },
 
@@ -442,6 +464,8 @@
         { "name": "gamma", "kind": "bool", "default": true, "doc": "Corrects the perceptual response of the lamps, without which the bottom of the brightness range is a handful of visibly separate steps rather than a fade." },
         { "name": "current_limit_ma", "kind": "uint16", "default": 0, "minimum": 100, "maximum": 20000, "zero_means_off": true, "doc": "Ceiling on what this device may draw. The whole frame is scaled down when the estimate passes it, so the picture dims evenly rather than the supply sagging and the colours drifting. 0 trusts the author's supply. A lamp at full white draws around 60 mA, so a single eight-by-eight panel is already past what a USB port can give." },
         { "name": "count", "kind": "uint16", "default": 1, "minimum": 1, "maximum": "kMaximumLedsPerOutput", "doc": "Lamps in a strip. Ignored by a matrix, whose count is width times height." },
+        { "name": "segment_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "segments", "kind": "array", "struct": "LedSegmentConfiguration", "capacity": "kMaximumLedSegments", "count_field": "segment_count", "doc": "Physical arrangement of a strip as straight runs, first lamp first. Their counts must sum to the strip's own, and a matrix - whose arrangement is its grid - is rejected for carrying any." },
         { "name": "width", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide", "doc": "Matrix columns, as the panel is built rather than as it is mounted. Ignored by a strip." },
         { "name": "height", "kind": "uint8", "default": 8, "minimum": 1, "maximum": "kMaximumMatrixSide", "doc": "Matrix rows. Ignored by a strip." },
         { "name": "order", "kind": "enum", "enum": "MatrixOrder" },

@@ -1,9 +1,10 @@
-import { Grid3x3, Lightbulb, Plus, Puzzle } from 'lucide-react'
+import { useEffect } from 'react'
+import { Cable, Grid3x3, Layers, Lightbulb, Plus, Puzzle } from 'lucide-react'
 
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { SubTabs } from '@/app/workspace/SubTabs'
 import { useWorkspaceStore, type ModulesView } from '@/app/workspace/workspace-store'
-import { DocumentStatusChip } from '@/features/device/document-status'
+import { ModulesStatusChip } from './preview-status'
 import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
 import { useDeviceStore } from '@/features/device/device-store'
 import { BoardPicker } from '@/features/configuration/preview/BoardPicker'
@@ -15,13 +16,20 @@ import { EffectList } from './EffectList'
 import { LedPreview } from './LedPreview'
 import { NoConfiguration } from './NoConfiguration'
 import { OutputEditor } from './OutputEditor'
-import { SpriteEditor } from './SpriteEditor'
+import { ProfilePicker } from './ProfilePicker'
+import { SegmentEditor } from './SegmentEditor'
+import { SpriteList } from './SpriteList'
 import { addDevice, canAddDevice, devicesOf, ledPinsOf, removeDevice } from './modules-document'
-import { useModulesStore } from './modules-store'
+import { useModulesStore, type DeviceView } from './modules-store'
 
 const TABS: ReadonlyArray<{ id: ModulesView; label: string; icon: typeof Lightbulb }> = [
   { id: 'leds', label: 'LEDs', icon: Lightbulb },
   { id: 'matrix', label: 'Matrix', icon: Grid3x3 }
+]
+
+const DEVICE_TABS: ReadonlyArray<{ id: DeviceView; label: string; icon: typeof Cable }> = [
+  { id: 'wiring', label: 'Wiring', icon: Cable },
+  { id: 'layers', label: 'Layers', icon: Layers }
 ]
 
 const TYPE: Record<ModulesView, HardwareDeviceType> = {
@@ -36,7 +44,11 @@ export function ModulesPage(): React.JSX.Element {
   const effect = useModulesStore((state) => state.effect)
   const view = useWorkspaceStore((state) => state.modulesView)
   const setView = useWorkspaceStore((state) => state.setModulesView)
-  const clearGates = useModulesStore((state) => state.clearGates)
+  const clearPreview = useModulesStore((state) => state.clearPreview)
+  const deviceView = useModulesStore((state) => state.deviceView)
+  const setDeviceView = useModulesStore((state) => state.setDeviceView)
+
+  useEffect(() => () => clearPreview(), [clearPreview])
 
   const all = devicesOf(draft)
   const type = TYPE[view]
@@ -54,7 +66,7 @@ export function ModulesPage(): React.JSX.Element {
       actions={
         <>
           <BoardPicker />
-          <DocumentStatusChip document="modules" />
+          <ModulesStatusChip />
           <SaveToBoardButton />
         </>
       }
@@ -122,7 +134,7 @@ export function ModulesPage(): React.JSX.Element {
                       label={`Remove device ${index + 1}`}
                       onClick={() => {
                         removeDevice(index)
-                        clearGates()
+                        clearPreview()
                         select(-1)
                       }}
                     />
@@ -135,22 +147,49 @@ export function ModulesPage(): React.JSX.Element {
           {active ? (
             <>
               <LedPreview index={active.index} device={active.device} />
-              <PageSection title="Wiring">
-                <OutputEditor draft={draft} index={active.index} device={active.device} />
-              </PageSection>
-              <PageSection title="What it shows">
-                <EffectList output={active.index} device={active.device} />
-                {view === 'matrix' ? (
-                  <SpriteEditor output={active.index} device={active.device} />
-                ) : null}
-                {effect >= 0 && (active.device.effects ?? [])[effect] ? (
-                  <EffectEditor output={active.index} device={active.device} index={effect} />
-                ) : (
-                  <p className="text-[11px] text-muted-foreground">
-                    Pick a layer to edit what it paints.
-                  </p>
-                )}
-              </PageSection>
+              <SubTabs
+                label="Device view"
+                tabs={DEVICE_TABS.map((tab) => ({
+                  ...tab,
+                  badge:
+                    tab.id === 'layers' ? (
+                      <span className="text-[10px] text-muted-foreground">
+                        {(active.device.effects ?? []).length}
+                      </span>
+                    ) : undefined
+                }))}
+                value={deviceView}
+                onChange={setDeviceView}
+              />
+              {deviceView === 'wiring' ? (
+                <PageSection
+                  title="Wiring"
+                  description="The pin, the shape and the limits of this device."
+                >
+                  <OutputEditor draft={draft} index={active.index} device={active.device} />
+                  {active.device.type === 'rgb_strip' ? (
+                    <SegmentEditor index={active.index} device={active.device} />
+                  ) : (
+                    <SpriteList index={active.index} device={active.device} />
+                  )}
+                </PageSection>
+              ) : (
+                <PageSection
+                  title="What it shows"
+                  description="Layers composed onto this device, or a profile that adds a ready-made one."
+                >
+                  <EffectList output={active.index} device={active.device}>
+                    <ProfilePicker output={active.index} device={active.device} />
+                  </EffectList>
+                  {effect >= 0 && (active.device.effects ?? [])[effect] ? (
+                    <EffectEditor output={active.index} device={active.device} index={effect} />
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      Pick a layer to edit what it paints.
+                    </p>
+                  )}
+                </PageSection>
+              )}
             </>
           ) : null}
         </>

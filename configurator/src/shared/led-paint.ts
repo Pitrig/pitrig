@@ -1,7 +1,17 @@
 import { rampColor } from './color-ramp'
 import { rangeFraction } from './telemetry-value'
-import { OFF, isMatrix, lampsOf, scaledColor } from './led-render'
-import { paintSprite, paintText, spriteOf } from './led-matrix-paint'
+import {
+  OFF,
+  areaOf,
+  deviceShape,
+  isMatrix,
+  lampsOf,
+  matrixLamp,
+  maskHolds,
+  type LampArea,
+  type MatrixShape
+} from './led-render'
+import { paintSprite, paintText, panelOf, spriteOf } from './led-matrix-paint'
 import type {
   HardwareDeviceConfiguration,
   LedEffect,
@@ -21,24 +31,23 @@ function rawValueOf(effect: LedEffect, sweep: number): number {
 }
 
 interface Surface {
-  first: number
+  shape: MatrixShape
+  area: LampArea
   count: number
   inverted: boolean
   mirrored: boolean
 }
 
-function surfaceOf(lamps: number, effect: LedEffect): Surface | undefined {
-  const from = effect.from ?? 0
-  if (from >= lamps) return undefined
-  const available = lamps - from
-  const count =
-    effect.count === undefined || effect.count === 0
-      ? available
-      : Math.min(effect.count, available)
-  if (count <= 0) return undefined
+function surfaceOf(
+  device: HardwareDeviceConfiguration,
+  effect: LedEffect
+): Surface | undefined {
+  const area = areaOf(device, effect)
+  if (!area) return undefined
   return {
-    first: from,
-    count,
+    shape: deviceShape(device),
+    area,
+    count: area.width * area.height,
     inverted: effect.inverted ?? false,
     mirrored: effect.mirrored ?? false
   }
@@ -49,23 +58,26 @@ function surfaceSize(surface: Surface): number {
 }
 
 function place(frame: RgbColor[], surface: Surface, index: number, color: RgbColor): void {
-  const physical = (offset: number): void => {
-    const lamp = surface.first + (surface.inverted ? surface.count - 1 - offset : offset)
+  const put = (offset: number): void => {
+    const column = offset % surface.area.width
+    const row = Math.floor(offset / surface.area.width)
+    if (!maskHolds(surface.area, column, row)) return
+    const lamp = matrixLamp(surface.shape, surface.area.x + column, surface.area.y + row)
     if (lamp >= 0 && lamp < frame.length) frame[lamp] = color
   }
   if (!surface.mirrored) {
-    physical(index)
+    put(surface.inverted ? surface.count - 1 - index : index)
     return
   }
   const half = surfaceSize(surface)
-  physical(half - 1 - index)
-  physical(surface.count - half + index)
+  put(surface.inverted ? index : half - 1 - index)
+  put(surface.inverted ? surface.count - 1 - index : surface.count - half + index)
 }
 
 function dim(color: RgbColor, level: number): RgbColor {
   const clamped = Math.max(0, Math.min(1, level))
   const channel = (at: number): number =>
-    Math.round(Number.parseInt(color.slice(at, at + 2), 16) * clamped)
+    Math.trunc(Number.parseInt(color.slice(at, at + 2), 16) * clamped)
   const hex = (value: number): string => value.toString(16).padStart(2, '0')
   return `#${hex(channel(1))}${hex(channel(3))}${hex(channel(5))}` as RgbColor
 }
@@ -73,7 +85,7 @@ function dim(color: RgbColor, level: number): RgbColor {
 function wheel(turn: number): RgbColor {
   const hue = (turn - Math.floor(turn)) * 6
   const sector = Math.floor(hue)
-  const rise = Math.round((hue - sector) * 255)
+  const rise = Math.trunc((hue - sector) * 255)
   const fall = 255 - rise
   const hex = (r: number, g: number, b: number): RgbColor =>
     `#${[r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('')}` as RgbColor
@@ -89,15 +101,14 @@ function wheel(turn: number): RgbColor {
 
 function paintEffect(
   frame: RgbColor[],
-  deviceLamps: number,
+  device: HardwareDeviceConfiguration,
   effect: LedEffect,
   input: PaintInput
 ): void {
-  const surface = surfaceOf(deviceLamps, effect)
+  const surface = surfaceOf(device, effect)
   if (!surface) return
   const lamps = surfaceSize(surface)
-  const brightness = effect.brightness ?? 255
-  const color = scaledColor(effect.color ?? '#ffffff', brightness)
+  const color = effect.color ?? '#ffffff'
   const value = rawValueOf(effect, input.value)
   const fraction = rangeFraction(value, effect.minimum, effect.maximum)
   const period = (effect.speed_ms ?? 1000) || 1000
@@ -110,7 +121,7 @@ function paintEffect(
     case 'gradient':
       for (let index = 0; index < lamps; ++index) {
         const position = lamps <= 1 ? 0 : index / (lamps - 1)
-        place(frame, surface, index, scaledColor(rampColor(effect.stops, position) ?? color, brightness))
+        place(frame, surface, index, rampColor(effect.stops, position) ?? color)
       }
       break
     case 'steps': {
@@ -119,12 +130,12 @@ function paintEffect(
       for (let index = 0; index < lamps; ++index) {
         const step = steps[Math.min(Math.floor((index * steps.length) / lamps), steps.length - 1)]
         if (!step || fraction + 1e-6 < (step.threshold ?? 0)) continue
-        place(frame, surface, index, scaledColor(step.color ?? color, brightness))
+        place(frame, surface, index, step.color ?? color)
       }
       break
     }
     case 'gauge': {
-      const filled = scaledColor(rampColor(effect.stops, value) ?? color, brightness)
+      const filled = rampColor(effect.stops, value) ?? color
       const lit = Math.round(fraction * lamps)
       for (let index = 0; index < lit && index < lamps; ++index) {
         place(frame, surface, index, filled)
@@ -138,7 +149,7 @@ function paintEffect(
       for (let index = 0; index < lamps; ++index) {
         switch (effect.animation ?? 'rainbow') {
           case 'rainbow':
-            place(frame, surface, index, scaledColor(wheel(phase + index / lamps), brightness))
+            place(frame, surface, index, wheel(phase + index / lamps))
             break
           case 'pulse':
             place(frame, surface, index, dim(color, breath))
@@ -168,11 +179,12 @@ function paintMatrix(
   input: PaintInput
 ): void {
   if (!isMatrix(device)) return
-  const panel = { device, frame }
+  const panel = panelOf(device, frame, effect)
+  if (!panel) return
   if ((effect.type ?? 'solid') === 'sprite') {
     const frames = spriteOf(device, effect.sprite)?.frame_count ?? 1
     const value = (effect.source?.binding ?? '') === '' ? undefined : input.value * (frames - 1)
-    paintSprite(panel, device, effect, value)
+    paintSprite(panel, device, effect, value, input.elapsedMs)
     return
   }
   const bound = (effect.source?.binding ?? '') !== ''
@@ -197,7 +209,7 @@ export function paintOutput(
       paintMatrix(frame, device, effect, input)
       continue
     }
-    paintEffect(frame, lamps, effect, input)
+    paintEffect(frame, device, effect, input)
   }
   return frame
 }

@@ -110,6 +110,14 @@ event-bus handler runs on the transport read task and blocking it would stall
 telemetry for every widget as well. The handler does one atomic store — the
 timestamp the `telemetry_idle` gate reads — and nothing else.
 
+**A dropped frame is dropped, not caught up.** `xTaskDelayUntil` returns
+immediately for every deadline already in the past, so a task starved for a
+tenth of a second then runs six renders back to back — six chains clocked out
+with nothing between them, which is where a stall turned into lamps lighting at
+random. The loop now re-seeds its cadence when it finds itself late, and the RMT
+channel takes a raised interrupt priority so a refill is less likely to be the
+thing that made it late.
+
 **A `modules` apply restarts modules only.** Applying that document no longer
 falls through to the full recompose, which destroys and rebuilds the dashboard.
 Live apply fires on a 250 ms debounce while a slider is being dragged, so the
@@ -139,3 +147,99 @@ and what enables the Lap Timer is decided by the `dashboard` section.
   gradient. Animation belongs to the `animation` effect, which is not indexed.
 - A board that declares no free LED pins can carry no LED output at all. The two
   Guition boards are in that state until their connectors are verified.
+- **Releasing an output darkens it first.** These lamps latch the last frame they
+  were sent, so a chain whose transmit channel is simply torn down goes on
+  showing it for as long as it has power. `led::Output::close()` therefore
+  transmits an all-zero frame and waits for it before releasing the channel —
+  without which a `modules` apply that moves a device to another pin leaves the
+  old pin lit beside the new one, and so does removing a device or shortening a
+  chain.
+
+## Amendment: physical arrangement, and one brightness (schema 22)
+
+**A strip may describe its mounting.** `segments` on an `rgb_strip` is a list of
+straight runs — a lamp `count` in a `direction`, in wire order — so "eight up
+the left, sixteen across the top, eight down the right" is authored once and
+travels with the document. The firmware validates the runs (strip only, counts
+summing to the strip's own) and reads them for nothing else: a WS2812 chain is
+clocked out in wire order whatever shape it is bent into. What the field buys is
+authoring — the configurator bends its previews to match the mounting, numbers
+the run boundaries, and offers the runs as ready-made targets when a layer is
+placed — and it lives in the document rather than in editor state because the
+arrangement belongs to the configuration, not to the machine it was authored on.
+A turn is drawn as a diagonal step, one lamp along each direction, so a column
+and the row leaving it never share a cell; and the configurator numbers lamps
+from **one** throughout, while `from` in the document stays zero-based, because
+the author is counting physical lamps rather than indexing an array.
+
+**A layer has no brightness of its own.** `LedEffect.brightness` is removed; the
+device's `brightness` is the one knob, applied to the whole frame on its way to
+the wire. Per-layer scaling let one layer sit dimmer under another, but in
+practice it multiplied every colour choice by a second axis nobody asked for —
+a dimmer layer is authored with a dimmer colour. The configurator drops the key
+from older saved files on load; the firmware, per ADR 0024, refuses rather than
+migrates.
+
+**`mirrored` and `inverted` are one direction, not two switches.** The pair had
+three meanings and four combinations: a mirrored layer's lamps are symmetric
+about its centre, so inverting them mapped the set onto itself and the second
+flag did nothing at all. It now reverses the mirror instead — the fill starts at
+both ends and closes on the middle — which is the fourth direction a rev bar
+actually wants and the only combination that was free to take. The configurator
+offers the four as one `Direction` choice rather than two checkboxes, since
+"invert" meant nothing on its own once mirroring was on.
+
+**A layer on a panel names pixels, not a run.** `panel_mask` says which pixels a
+layer paints on, four to a hexadecimal digit, because `from` and `count` address
+lamps in *wire* order — on a serpentine panel that is not even a straight line,
+so no author can see the shape they are choosing. It is a mask rather than a
+rectangle because the author picks pixels by clicking them, and a ring or a
+diagonal is not a box. The layer then works over the smallest box holding the
+chosen pixels, and the mask clips inside it, so text and a picture still centre
+on the shape rather than on the panel. An empty mask means the whole panel,
+which is what almost every layer wants and what costs the document nothing; an
+eight by eight panel spends sixteen characters on saying anything else. A strip
+keeps `from`/`count`, and the two are the same mechanism underneath: a strip is
+already modelled as a matrix one row tall, so `Surface` walks a box in both
+cases and the linear path disappeared.
+
+**A face is a size, and carries only what a gear spells.** The faces are named
+by the pixels one glyph occupies and its weight — `regular_4x6`, `bold_4x6`,
+`regular_5x8`, `bold_5x8` — because "small" and "large" say nothing about
+whether a glyph fits the panel in front of you. Each carries the digits, `N` and
+`R` and nothing else: a gear readout is what a panel this small can spell
+legibly, and dropping the rest of the alphabet took the compiled tables from
+fifty-nine glyphs to twelve. Glyph rows widened from one byte to two while a
+ten-pixel face was tried, which is why a face may now be up to sixteen wide.
+
+Bold is drawn rather than derived. Thickening a face by rule — smearing each
+lit pixel one column right — was tried first and closes the counters: at four
+columns a `0` fills in and an `N` becomes a block. Four columns leave so little
+room that the bold face differs from the regular one mostly in its horizontals.
+
+**A sprite can play itself.** `sprite_loop` walks a sprite's frames on the
+layer's own timebase, one every `speed_ms`, the way `animation` and scrolling
+`text` already move. Until it existed a sprite's frame came only from telemetry,
+so a picture could not move on its own — and a matrix is the one surface where
+`gradient` and `steps` say nothing useful, because they run along the wire order
+rather than across the panel, which on a serpentine board is not even a straight
+line. It is a flag rather than the default so `sprite_frame` keeps meaning what
+it says: one named frame, held.
+
+This is what lets the configurator's flag profiles carry real artwork for a
+panel — a diagonal band sweeping for the two black flags, a rippling
+chequerboard for the chequered — generated into `sprites` when the profile is
+added to a matrix, and falling back to a blinking blob and a running lamp on a
+strip. The generated frames fill the 1024-digit pixel budget exactly, whatever
+the panel size: sixteen frames of eight by eight, four of sixteen by sixteen.
+
+**Sprites stay in the contract, not in the editor.** The configurator no longer
+authors matrix sprites or offers the sprite layer type; documents that carry
+them remain valid and the firmware still draws them. This is a product
+simplification, not a contract change — profiles over the existing layer kinds
+turned out to cover what sprites were reached for.
+
+The `modules` document's layer profiles (shift lights, flags, ABS, traction
+control, pit limiter, DRS, link-lost) are configurator data: each expands to
+plain `LedEffect` entries over the contract above, and the firmware knows
+nothing of them.

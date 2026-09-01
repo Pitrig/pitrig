@@ -6,7 +6,9 @@ from typing import Any
 from . import SOURCE
 from .errors import fail
 
-FACES = ("small", "large")
+FACES = ("regular_4x6", "bold_4x6", "regular_5x8", "bold_5x8")
+
+MAXIMUM_WIDTH = 16
 
 
 def load_font() -> dict[str, Any]:
@@ -32,8 +34,8 @@ def load_font() -> dict[str, Any]:
         for key in ("width", "height", "glyphs"):
             if key not in face:
                 fail(f"face {name}: missing key '{key}'")
-        if not 1 <= face["width"] <= 8:
-            fail(f"face {name}: width must be 1 to 8, so a row fits one byte")
+        if not 1 <= face["width"] <= MAXIMUM_WIDTH:
+            fail(f"face {name}: width must be 1 to {MAXIMUM_WIDTH}, so a row fits two bytes")
         for glyph, rows in face["glyphs"].items():
             if len(glyph) != 1:
                 fail(f"face {name}: '{glyph}' is not a single character")

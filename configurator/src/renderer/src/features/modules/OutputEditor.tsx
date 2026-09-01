@@ -125,6 +125,12 @@ export function OutputEditor({
             </div>
           </PropertyRow>
         </>
+      ) : (device.segments ?? []).length > 0 ? (
+        <PropertyRow label="Lamps" hint={HINTS.device.count}>
+          <p className="pt-1 text-xs text-muted-foreground">
+            {`${lamps}, summed over the runs in the arrangement below.`}
+          </p>
+        </PropertyRow>
       ) : (
         <NumberField
           label="Lamps"

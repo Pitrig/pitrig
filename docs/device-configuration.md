@@ -1300,15 +1300,22 @@ loudly on an older board. Breaking changes to public properties require a later
 documented schema version; compatible bounded extensions must be recorded in an
 ADR.
 
-An `rgb_strip` is a data pin and a `count` of lamps. An `rgb_matrix` is a data
-pin and a grid of `width` by `height`, described by the `order` its rows are
-wired in, the `origin` corner its first lamp sits in, and a quarter-turn
-`rotation_deg` so a panel mounted on its side still reads upright. The pin is
-checked against the pins the board declares free, and two devices may not name
-the same one. Matrix artwork travels inside this document as palette-indexed
-pixels rather than as an uploaded asset, so it costs no partition, no upload and
-no restart; a strip carrying sprites is rejected, because it has nothing to draw
-them on.
+An `rgb_strip` is a data pin and a `count` of lamps. It may also carry
+`segments` — straight runs of `count` lamps in a `direction`, in wire order —
+describing how the chain is physically mounted: eight up the left edge, sixteen
+across the top, eight down the right. The device clocks the chain out the same
+either way; the runs are what bends the configurator's previews to match the
+mounting, and their counts must sum to the strip's own or the document is
+rejected, as it is for a matrix carrying any, whose arrangement is its grid. An
+`rgb_matrix` is a data pin and a grid of `width` by `height`, described by the
+`order` its rows are wired in, the `origin` corner its first lamp sits in, and a
+quarter-turn `rotation_deg` so a panel mounted on its side still reads upright.
+The pin is checked against the pins the board declares free, and two devices may
+not name the same one. A layer carries no brightness of its own — the device's
+`brightness` is the one knob, applied to the whole frame on its way to the wire.
+Matrix artwork travels inside this document as palette-indexed pixels rather
+than as an uploaded asset, so it costs no partition, no upload and no restart; a
+strip carrying sprites is rejected, because it has nothing to draw them on.
 
 The schema retains deterministic limits. They are generated from
 `configuration/configuration_schema.json` together with the firmware structures

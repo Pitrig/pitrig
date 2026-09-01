@@ -18,6 +18,8 @@ import { SafeModeBanner } from '@/features/device/SafeModeBanner'
 import { UnresolvedFontsGate } from '@/features/device/save-to-board-ui'
 import { useSaveToBoardStore } from '@/features/device/save-to-board-store'
 import { useLiveApply } from '@/features/device/use-live-apply'
+import { useBoardPreview } from '@/features/modules/use-board-preview'
+import { useModulesStore } from '@/features/modules/modules-store'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FirmwarePage } from '@/features/firmware-update/FirmwarePage'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
@@ -32,11 +34,14 @@ export function App(): React.JSX.Element {
   const saving = useSaveToBoardStore((state) => state.running)
   const syncQuestion = useBoardSyncStore((state) => state.question)
   const { liveApplyAllowed, dirtyDocuments } = useDraftState()
+  const layerPreview = useModulesStore((state) => state.preview)
 
   useEffect(() => subscribeToFontLibrary(), [])
   useBoardSync(dirtyDocuments)
 
-  useLiveApply(liveApplyAllowed && !saving && syncQuestion === undefined, reportLiveApply)
+  const mirroring = liveApplyAllowed && !saving && syncQuestion === undefined
+  useLiveApply(mirroring && layerPreview === null, reportLiveApply)
+  useBoardPreview(mirroring)
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {

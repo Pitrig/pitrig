@@ -18,6 +18,14 @@ const DEFAULT_SCALE_RANGE_MS = 2000
 
 export function migrateConfigurationDocument(document: unknown): unknown {
   if (!isObject(document)) return document
+  if (Array.isArray(document.hardware)) {
+    for (const device of document.hardware) {
+      if (!isObject(device) || !Array.isArray(device.effects)) continue
+      for (const effect of device.effects) {
+        if (isObject(effect)) delete effect.brightness
+      }
+    }
+  }
   const module = isObject(document.delta_time) ? document.delta_time : undefined
   const dashboard = document.dashboard
   if (isObject(dashboard) && Array.isArray(dashboard.screens)) {

@@ -65,6 +65,8 @@ constexpr std::string_view kName = "hardware.effects";
          read_text(object, "sprite", config.sprite, kName, failure) &&
          read_integer(object, "sprite_frame", config.sprite_frame, kName,
                       failure) &&
+         read_boolean(object, "sprite_loop", config.sprite_loop, kName,
+                      failure) &&
          read_text(object, "text", config.text, kName, failure) &&
          read_enum(object, "font", config.font, led_font_from_name, kName,
                    failure);
@@ -80,13 +82,13 @@ bool parse_led_effect(const cJSON* const object, LedEffect& config,
       !read_text(object, "id", config.id, kName, failure) ||
       !read_integer(object, "from", config.from, kName, failure) ||
       !read_integer(object, "count", config.count, kName, failure) ||
+      !read_text(object, "panel_mask", config.panel_mask, kName, failure) ||
       !parse_value_source(object, "source", config.source, kName, failure) ||
       !read_float(object, "minimum", config.range.minimum, kName, failure) ||
       !read_float(object, "maximum", config.range.maximum, kName, failure) ||
       !parse_gate(object, config, failure) ||
       !read_integer(object, "hold_ms", config.hold_ms, kName, failure) ||
       !read_integer(object, "blink_ms", config.blink_ms, kName, failure) ||
-      !read_integer(object, "brightness", config.brightness, kName, failure) ||
       !read_boolean(object, "mirrored", config.mirrored, kName, failure) ||
       !read_boolean(object, "inverted", config.inverted, kName, failure)) {
     return false;

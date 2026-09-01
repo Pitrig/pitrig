@@ -1,4 +1,9 @@
-import type { HardwareDeviceConfiguration, RgbColor } from './configuration-schema'
+import type {
+  HardwareDeviceConfiguration,
+  LedEffect,
+  LedSegmentDirection,
+  RgbColor
+} from './configuration-schema'
 
 export interface MatrixShape {
   width: number
@@ -9,14 +14,6 @@ export interface MatrixShape {
 }
 
 export const OFF: RgbColor = '#000000'
-
-export function scaledColor(color: RgbColor, brightness: number): RgbColor {
-  if (brightness >= 255) return color
-  const channel = (at: number): number =>
-    Math.floor((Number.parseInt(color.slice(at, at + 2), 16) * brightness + 127) / 255)
-  const hex = (value: number): string => value.toString(16).padStart(2, '0')
-  return `#${hex(channel(1))}${hex(channel(3))}${hex(channel(5))}` as RgbColor
-}
 
 export const LED_EFFECT_DRAWS_PIXELS: ReadonlySet<string> = new Set(['sprite', 'text'])
 export const LED_EFFECT_READS_VALUE: ReadonlySet<string> = new Set([
@@ -30,6 +27,154 @@ export const LED_EFFECT_USES_RANGE: ReadonlySet<string> = new Set(['steps', 'gau
 
 export function isMatrix(device: HardwareDeviceConfiguration): boolean {
   return device.type === 'rgb_matrix'
+}
+
+export interface LampArea {
+  x: number
+  y: number
+  width: number
+  height: number
+  mask?: string
+  stride?: number
+}
+
+export function maskHolds(area: LampArea, column: number, row: number): boolean {
+  if (!area.mask) return true
+  const pixel = (area.y + row) * (area.stride ?? area.width) + (area.x + column)
+  const value = Number.parseInt(area.mask[Math.floor(pixel / 4)] ?? '', 16)
+  return Number.isInteger(value) && (value & (1 << (3 - (pixel % 4)))) !== 0
+}
+
+export function deviceShape(device: HardwareDeviceConfiguration): MatrixShape {
+  return (
+    shapeOf(device) ?? {
+      width: device.count ?? 1,
+      height: 1,
+      order: 'progressive',
+      origin: 'top_left',
+      rotation: 0
+    }
+  )
+}
+
+export function areaOf(
+  device: HardwareDeviceConfiguration,
+  effect: LedEffect
+): LampArea | undefined {
+  const drawn = drawnSize(deviceShape(device))
+  if (drawn.width === 0 || drawn.height === 0) return undefined
+  if (drawn.height === 1) {
+    const from = effect.from ?? 0
+    if (from >= drawn.width) return undefined
+    const available = drawn.width - from
+    const asked = effect.count ?? 0
+    const count = asked === 0 ? available : Math.min(asked, available)
+    return count === 0 ? undefined : { x: from, y: 0, width: count, height: 1 }
+  }
+  const mask = effect.panel_mask ?? ''
+  if (mask === '') return { x: 0, y: 0, width: drawn.width, height: drawn.height }
+  const whole: LampArea = { x: 0, y: 0, ...drawn, mask, stride: drawn.width }
+  let left = drawn.width
+  let top = drawn.height
+  let right = -1
+  let bottom = -1
+  for (let row = 0; row < drawn.height; ++row) {
+    for (let column = 0; column < drawn.width; ++column) {
+      if (!maskHolds(whole, column, row)) continue
+      left = Math.min(left, column)
+      top = Math.min(top, row)
+      right = Math.max(right, column)
+      bottom = Math.max(bottom, row)
+    }
+  }
+  if (right < left || bottom < top) return undefined
+  return {
+    x: left,
+    y: top,
+    width: right - left + 1,
+    height: bottom - top + 1,
+    mask,
+    stride: drawn.width
+  }
+}
+
+export interface StripLayout {
+  positions: readonly { x: number; y: number }[]
+  width: number
+  height: number
+}
+
+export interface SegmentBounds {
+  start: number
+  end: number
+}
+
+interface Step {
+  x: number
+  y: number
+}
+
+const SEGMENT_STEP: Record<LedSegmentDirection, Step> = {
+  right: { x: 1, y: 0 },
+  left: { x: -1, y: 0 },
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 }
+}
+
+function turnStep(previous: Step | undefined, next: Step): Step {
+  if (!previous) return next
+  if (previous.x === next.x && previous.y === next.y) return next
+  if (previous.x === -next.x && previous.y === -next.y) {
+    return next.y === 0 ? SEGMENT_STEP.down : SEGMENT_STEP.right
+  }
+  return { x: previous.x + next.x, y: previous.y + next.y }
+}
+
+export function segmentBoundsOf(device: HardwareDeviceConfiguration): SegmentBounds[] {
+  const bounds: SegmentBounds[] = []
+  let start = 0
+  for (const segment of device.segments ?? []) {
+    const count = Math.max(1, segment.count ?? 1)
+    bounds.push({ start, end: start + count - 1 })
+    start += count
+  }
+  return bounds
+}
+
+export function stripLayout(device: HardwareDeviceConfiguration): StripLayout | undefined {
+  if (isMatrix(device) || (device.segments ?? []).length === 0) return undefined
+  const total = lampsOf(device)
+  const positions: { x: number; y: number }[] = []
+  let x = 0
+  let y = 0
+  let step = SEGMENT_STEP.right
+  let previous: Step | undefined
+  for (const segment of device.segments ?? []) {
+    step = SEGMENT_STEP[segment.direction ?? 'right']
+    const count = Math.max(1, segment.count ?? 1)
+    for (let lamp = 0; lamp < count && positions.length < total; ++lamp) {
+      if (positions.length > 0) {
+        const move = lamp === 0 ? turnStep(previous, step) : step
+        x += move.x
+        y += move.y
+      }
+      positions.push({ x, y })
+    }
+    previous = step
+  }
+  while (positions.length < total) {
+    x += step.x
+    y += step.y
+    positions.push({ x, y })
+  }
+  const minX = Math.min(...positions.map((at) => at.x))
+  const minY = Math.min(...positions.map((at) => at.y))
+  const shifted = positions.map((at) => ({ x: at.x - minX, y: at.y - minY }))
+  return {
+    positions: shifted,
+    width: Math.max(...shifted.map((at) => at.x)) + 1,
+    height: Math.max(...shifted.map((at) => at.y)) + 1
+  }
 }
 
 export function shapeOf(device: HardwareDeviceConfiguration): MatrixShape | undefined {

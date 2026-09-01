@@ -8,9 +8,10 @@ import {
 import { LED_EFFECT_READS_VALUE, LED_EFFECT_USES_RANGE } from '@shared/led-render'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { fieldBounds } from '@shared/validate/ranges'
+import { SlidersHorizontal } from 'lucide-react'
+
 import { authored } from '@/features/configuration/inspector/authored'
-import { Advanced, Group } from '@/features/configuration/inspector/Group'
-import { GROUP_ICONS } from '@/features/configuration/inspector/icons'
+import { Group } from '@/features/configuration/inspector/Group'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { TelemetryBindingField } from '@/features/configuration/inspector/TelemetryBindingField'
 import { RangeRow } from '@/features/configuration/inspector/section-editors'
@@ -22,7 +23,15 @@ import {
   SelectField,
   TextField
 } from '@/features/configuration/inspector/fields'
+import {
+  applyDirection,
+  directionOf,
+  LAYER_DIRECTIONS,
+  LED_EFFECT_USES_DIRECTION
+} from './direction'
 import { HINTS } from './hints'
+import { layerName } from './layer-name'
+import { PanelAreaField } from './PanelArea'
 import { mutateEffects } from './modules-document'
 import { EffectGate } from './effect-gate'
 import { EffectPayload } from './effect-payload'
@@ -39,6 +48,15 @@ export function EffectEditor({
   const effect = (device.effects ?? [])[index]
   if (!effect) return null
   const type = effect.type ?? 'solid'
+  const matrix = device.type === 'rgb_matrix'
+  const pictures = (device.sprites ?? []).map((sprite) => sprite.id ?? '')
+  const offered = LED_EFFECT_TYPE_VALUES.filter(
+    (value) =>
+      value === type ||
+      (value === 'sprite'
+        ? matrix && pictures.length > 0
+        : matrix || value !== 'text')
+  )
   const update = (mutation: (next: LedEffect) => void): void =>
     mutateEffects(output, (effects) => {
       const next = structuredClone(effects[index] as LedEffect)
@@ -48,12 +66,18 @@ export function EffectEditor({
 
   return (
     <>
-      <Group id="LedLayer" title="Layer" icon={GROUP_ICONS.data} summary={type} defaultOpen>
+      <Group
+        id="LedLayer"
+        title={layerName(effect, index)}
+        icon={SlidersHorizontal}
+        summary={type}
+        defaultOpen
+      >
         <SelectField
           label="Paints"
           hint={HINTS.effect.type}
           value={type}
-          options={LED_EFFECT_TYPE_VALUES}
+          options={offered}
           modified={authored(effect.type, 'solid')}
           onChange={(value) => update((next) => {
             next.type = value
@@ -69,13 +93,16 @@ export function EffectEditor({
           value={effect.id ?? ''}
           onChange={(id) => update((next) => { if (id) next.id = id; else delete next.id })}
         />
+        {matrix ? (
+          <PanelAreaField device={device} effect={effect} update={update} />
+        ) : (
         <PropertyRow label="Area" hint={HINTS.effect.area}>
           <div className="grid grid-cols-2 gap-1">
             <NumberInput
-              title="First lamp of this device"
-              value={effect.from ?? 0}
-              min={0}
-              onChange={(from) => update((next) => { next.from = from })}
+              title="First lamp of this device, counted from 1"
+              value={(effect.from ?? 0) + 1}
+              min={1}
+              onChange={(from) => update((next) => { next.from = Math.max(0, from - 1) })}
             />
             <NumberInput
               title="Lamps covered; 0 covers the rest"
@@ -89,6 +116,7 @@ export function EffectEditor({
             <span>Count</span>
           </div>
         </PropertyRow>
+        )}
         {LED_EFFECT_READS_VALUE.has(type) ? (
           <TelemetryBindingField
             value={effect.source?.binding ?? ''}
@@ -123,21 +151,44 @@ export function EffectEditor({
         {type === 'sprite' ? (
           <>
             <SelectField
-              label="Sprite"
+              label="Picture"
+              hint={HINTS.effect.sprite}
               value={effect.sprite ?? ''}
-              options={['', ...(device.sprites ?? []).map((sprite) => sprite.id ?? '')]}
+              options={effect.sprite && !pictures.includes(effect.sprite)
+                ? [effect.sprite, ...pictures]
+                : ['', ...pictures]}
               onChange={(sprite) => update((next) => {
                 if (sprite) next.sprite = sprite
                 else delete next.sprite
               })}
             />
-            <NumberField
-              label="Frame"
-              hint="Drawn when no telemetry is bound. With a source, the value picks the frame."
-              value={effect.sprite_frame ?? 0}
-              {...fieldBounds('LedEffect', 'sprite_frame')}
-              onChange={(value) => update((next) => { next.sprite_frame = value })}
+            <CheckboxField
+              label="Play frames"
+              hint={HINTS.effect.loop}
+              checked={effect.sprite_loop ?? false}
+              modified={authored(effect.sprite_loop, false)}
+              onChange={(checked) => update((next) => {
+                if (checked) next.sprite_loop = true
+                else delete next.sprite_loop
+              })}
             />
+            {effect.sprite_loop ? (
+              <NumberField
+                label="Frame holds"
+                suffix="ms"
+                value={effect.speed_ms ?? 1000}
+                {...fieldBounds('LedEffect', 'speed_ms')}
+                onChange={(value) => update((next) => { next.speed_ms = value })}
+              />
+            ) : (
+              <NumberField
+                label="Frame"
+                hint="Which frame to hold still. With telemetry bound the value picks it instead."
+                value={effect.sprite_frame ?? 0}
+                {...fieldBounds('LedEffect', 'sprite_frame')}
+                onChange={(value) => update((next) => { next.sprite_frame = value })}
+              />
+            )}
           </>
         ) : null}
         {type === 'text' ? (
@@ -153,7 +204,7 @@ export function EffectEditor({
             />
             <SelectField
               label="Face"
-              value={effect.font ?? 'small'}
+              value={effect.font ?? 'regular_4x6'}
               options={LED_FONT_VALUES}
               onChange={(font) => update((next) => { next.font = font })}
             />
@@ -184,33 +235,19 @@ export function EffectEditor({
             />
           </>
         ) : null}
-        <Advanced
-          id="LedLayer"
-          active={authored(effect.mirrored, false) || authored(effect.inverted, false) || authored(effect.brightness, 255)}
-        >
-          <CheckboxField
-            label="Mirror"
+        {LED_EFFECT_USES_DIRECTION.has(type) ? (
+          <SelectField
+            label="Direction"
             hint={HINTS.effect.shape}
-            checked={effect.mirrored ?? false}
-            onChange={(checked) => update((next) => { if (checked) next.mirrored = true; else delete next.mirrored })}
+            value={directionOf(effect)}
+            options={LAYER_DIRECTIONS}
+            modified={directionOf(effect) !== 'along the run'}
+            onChange={(direction) => update((next) => applyDirection(next, direction))}
           />
-          <CheckboxField
-            label="Invert"
-            checked={effect.inverted ?? false}
-            onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })}
-          />
-          <NumberField
-            label="Brightness"
-            value={effect.brightness ?? 255}
-            min={0}
-            max={255}
-            onChange={(brightness) => update((next) => { next.brightness = brightness })}
-          />
-        </Advanced>
+        ) : null}
+        <EffectPayload effect={effect} type={type} update={update} />
+        <EffectGate effect={effect} update={update} />
       </Group>
-
-      <EffectPayload effect={effect} type={type} update={update} />
-      <EffectGate effect={effect} update={update} />
     </>
   )
 }

@@ -7,6 +7,7 @@
 
 #include "application_configuration.hpp"
 #include "led_output.hpp"
+#include "led_paint.hpp"
 #include "rgb_leds.hpp"
 
 namespace simcore::rgb_leds {
@@ -14,6 +15,7 @@ namespace simcore::rgb_leds {
 struct Panel {
   led::Output* output{};
   const led::Matrix* matrix{};
+  Area area{};
 
   void set(int x, int y, led::Color color) const;
 };
@@ -23,12 +25,13 @@ struct Panel {
                                            std::span<char> scratch);
 
 [[nodiscard]] std::optional<Panel> panel_of(led::Output& output,
-                                            const led::Matrix& matrix);
+                                            const led::Matrix& matrix,
+                                            const configuration::LedEffect& effect);
 
 void paint_sprite(const Panel& panel,
                   const configuration::LedSpriteConfiguration* sprite,
                   const configuration::LedEffect& effect,
-                  std::optional<double> value);
+                  std::optional<double> value, std::uint64_t elapsed_us);
 
 void paint_text(const Panel& panel, const configuration::LedEffect& effect,
                 std::string_view text, std::uint64_t elapsed_us);

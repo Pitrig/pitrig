@@ -36,12 +36,27 @@ def cpp(document: dict[str, Any]) -> str:
         parts += [
             f"inline constexpr std::uint8_t k{title}Width = {face['width']};",
             f"inline constexpr std::uint8_t k{title}Height = {face['height']};",
-            f"inline constexpr std::array<std::uint8_t, {len(rows)}> k{title}Glyphs{{{{",
-            _table(rows, face["height"], "    ", "0x%02X"),
+            f"inline constexpr std::array<std::uint16_t, {len(rows)}> k{title}Glyphs{{{{",
+            _table(rows, face["height"], "    ", "0x%04X"),
             "}};",
             "",
         ]
-    parts.append("}")
+    parts += [
+        "struct FaceData {",
+        "  std::uint8_t width;",
+        "  std::uint8_t height;",
+        "  const std::uint16_t* rows;",
+        "};",
+        "",
+        f"inline constexpr std::array<FaceData, {len(FACES)}> kFaces{{{{",
+    ]
+    for name in FACES:
+        face = document["faces"][name]
+        title = name.capitalize()
+        parts.append(
+            f"    {{{face['width']}, {face['height']}, k{title}Glyphs.data()}},"
+        )
+    parts += ["}};", "", "}"]
     return "\n".join(parts) + "\n"
 
 
@@ -49,7 +64,7 @@ def typescript(document: dict[str, Any]) -> str:
     parts = [
         f"// {BANNER}",
         "",
-        "export type LedFontName = 'small' | 'large'",
+        "export type LedFontName = " + " | ".join(f"'{name}'" for name in FACES),
         "",
         f"export const LED_FIRST_GLYPH = {document['first']!r}".replace("'", "'"),
         f"export const LED_LAST_GLYPH = '{document['last']}'",
@@ -70,7 +85,7 @@ def typescript(document: dict[str, Any]) -> str:
             f"    width: {face['width']},",
             f"    height: {face['height']},",
             "    rows: [",
-            _table(rows, face["height"], "      ", "0x%02X"),
+            _table(rows, face["height"], "      ", "0x%04X"),
             "    ]",
             "  },",
         ]

@@ -11,8 +11,10 @@ import {
   LED_EFFECT_DRAWS_PIXELS,
   LED_EFFECT_NEEDS_VALUE,
   LED_EFFECT_READS_VALUE,
+  drawnSize,
   isMatrix,
-  lampsOf
+  lampsOf,
+  shapeOf
 } from '../led-render'
 import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
 import { findBoundError } from './ranges'
@@ -55,6 +57,31 @@ function findContentError(
   }
 }
 
+function findPanelAreaError(
+  device: HardwareDeviceConfiguration,
+  effect: LedEffect,
+  label: string
+): string | undefined {
+  const mask = effect.panel_mask ?? ''
+  if (mask === '') return undefined
+  const shape = shapeOf(device)
+  if (!shape) return `${label} names panel pixels, which only a matrix has.`
+  const drawn = drawnSize(shape)
+  const expected = Math.ceil((drawn.width * drawn.height) / 4)
+  if (mask.length !== expected) {
+    return `${label} carries ${mask.length} mask digits; a ${drawn.width} by ${drawn.height} panel needs ${expected}.`
+  }
+  let lit = false
+  for (const digit of mask) {
+    const value = Number.parseInt(digit, 16)
+    if (!Number.isInteger(value)) {
+      return `${label} carries ${JSON.stringify(digit)} in its mask, which is not a hexadecimal digit.`
+    }
+    lit = lit || value !== 0
+  }
+  return lit ? undefined : `${label} selects no pixels at all.`
+}
+
 function findEffectError(
   device: HardwareDeviceConfiguration,
   effect: LedEffect,
@@ -68,6 +95,8 @@ function findEffectError(
   if (from >= lamps || (count !== 0 && from + count > lamps)) {
     return `${label} covers lamps ${from} to ${from + count} of a device that has ${lamps}.`
   }
+  const panelError = findPanelAreaError(device, effect, label)
+  if (panelError) return panelError
   const type = effect.type ?? 'solid'
   if (LED_EFFECT_DRAWS_PIXELS.has(type) && !isMatrix(device)) {
     return `${label} is a ${type} layer, which needs a matrix rather than a strip.`
@@ -88,6 +117,29 @@ function findEffectError(
     return `${label} gates on conditions, so it needs a condition source and at least one rule.`
   }
   return findContentError(device, effect, label)
+}
+
+function findSegmentError(device: HardwareDeviceConfiguration, label: string): string | undefined {
+  const segments = device.segments ?? []
+  if (segments.length === 0) return undefined
+  if (isMatrix(device)) {
+    return `${label} is a matrix, whose arrangement is its grid rather than a list of runs.`
+  }
+  let arranged = 0
+  for (const [index, segment] of segments.entries()) {
+    const boundError = findBoundError(
+      segment,
+      FIELD_RANGES['LedSegmentConfiguration'],
+      `${label} run ${index + 1}`
+    )
+    if (boundError) return boundError
+    arranged += segment.count ?? 1
+  }
+  const lamps = device.count ?? 1
+  if (arranged !== lamps) {
+    return `${label} arranges ${arranged} lamps over its runs, but the strip drives ${lamps}.`
+  }
+  return undefined
 }
 
 function findSpriteError(device: HardwareDeviceConfiguration, label: string): string | undefined {
@@ -154,6 +206,8 @@ export function findHardwareError(
     if (isMatrix(device) && (device.rotation_deg ?? 0) % 90 !== 0) {
       return `${label} is rotated by ${device.rotation_deg}°; only 0, 90, 180 and 270 are quarter turns.`
     }
+    const segmentError = findSegmentError(device, label)
+    if (segmentError) return segmentError
     const lamps = lampsOf(device)
     if (lamps === 0 || lamps > MAXIMUM_LEDS_PER_OUTPUT) {
       return `${label} drives ${lamps} lamps; one device carries at most ${MAXIMUM_LEDS_PER_OUTPUT}.`

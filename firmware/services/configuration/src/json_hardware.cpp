@@ -11,6 +11,17 @@ namespace {
 
 constexpr std::string_view kDeviceName = "hardware";
 constexpr std::string_view kSpriteName = "hardware.sprites";
+constexpr std::string_view kSegmentName = "hardware.segments";
+
+[[nodiscard]] bool parse_segment(const cJSON* const object,
+                                 LedSegmentConfiguration& config,
+                                 ValidationFailure& failure) {
+  return valid_object(object, schema::kLedSegmentConfigurationKeys,
+                      kSegmentName, failure) &&
+         read_integer(object, "count", config.count, kSegmentName, failure) &&
+         read_enum(object, "direction", config.direction,
+                   led_segment_direction_from_name, kSegmentName, failure);
+}
 
 [[nodiscard]] bool parse_sprite(const cJSON* const object,
                                 LedSpriteConfiguration& config,
@@ -53,6 +64,13 @@ constexpr std::string_view kSpriteName = "hardware.sprites";
   if (!read_text(object, "id", config.id, kDeviceName, failure) ||
       !read_integer(object, "pin", config.pin, kDeviceName, failure) ||
       !read_integer(object, "count", config.count, kDeviceName, failure) ||
+      !read_array(object, "segments", config.segments, config.segment_count,
+                  kDeviceName, ValidationError::invalid_hardware, failure,
+                  [&](const cJSON* const entry,
+                      LedSegmentConfiguration& parsed) {
+                    return parse_segment(entry, parsed, failure);
+                  },
+                  "segments") ||
       !read_integer(object, "width", config.width, kDeviceName, failure) ||
       !read_integer(object, "height", config.height, kDeviceName, failure) ||
       !read_enum(object, "order", config.order, matrix_order_from_name,

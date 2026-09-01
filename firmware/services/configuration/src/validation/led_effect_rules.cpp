@@ -27,6 +27,37 @@ namespace {
   return nullptr;
 }
 
+[[nodiscard]] bool validate_panel_area(const HardwareDeviceConfiguration& device,
+                                       const LedEffect& effect,
+                                       ValidationFailure& failure) {
+  const std::string_view mask = text_view(effect.panel_mask);
+  if (mask.empty()) {
+    return true;
+  }
+  if (device.type != HardwareDeviceType::rgb_matrix) {
+    return reject(failure, ValidationError::invalid_module,
+                  "hardware.effects.panel_mask");
+  }
+  const std::size_t pixels =
+      static_cast<std::size_t>(device.width) * device.height;
+  if (mask.size() != (pixels + 3) / 4) {
+    return reject(failure, ValidationError::invalid_module,
+                  "hardware.effects.panel_mask");
+  }
+  bool lit = false;
+  for (const char digit : mask) {
+    const int value = led_palette_digit(digit);
+    if (value < 0) {
+      return reject(failure, ValidationError::invalid_module,
+                    "hardware.effects.panel_mask");
+    }
+    lit = lit || value != 0;
+  }
+  return lit ? true
+             : reject(failure, ValidationError::invalid_module,
+                      "hardware.effects.panel_mask");
+}
+
 [[nodiscard]] bool validate_content(const HardwareDeviceConfiguration& device,
                                     const LedEffect& effect,
                                     ValidationFailure& failure) {
@@ -87,6 +118,9 @@ namespace {
       device.type != HardwareDeviceType::rgb_matrix) {
     return reject(failure, ValidationError::invalid_module,
                   "hardware.effects.type");
+  }
+  if (!validate_panel_area(device, effect, failure)) {
+    return false;
   }
   if (effect.source.modifier_count != 0 ||
       effect.condition_source.modifier_count != 0) {

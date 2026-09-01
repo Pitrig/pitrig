@@ -75,6 +75,7 @@ bool Output::open(const driver::Driver& driver,
 
 void Output::close() {
   if (driver_ != nullptr && handle_.valid()) {
+    darken();
     driver_->close(handle_);
   }
   driver_ = nullptr;
@@ -83,6 +84,16 @@ void Output::close() {
   shadow_ = {};
   wire_ = {};
   lamps_ = 0;
+}
+
+void Output::darken() {
+  if (wire_.empty()) {
+    return;
+  }
+  std::fill(wire_.begin(), wire_.end(), 0);
+  if (driver_->transmit(handle_, wire_)) {
+    (void)driver_->wait(handle_, kTransmitTimeoutMs);
+  }
 }
 
 void Output::clear() { std::fill(working_.begin(), working_.end(), 0); }

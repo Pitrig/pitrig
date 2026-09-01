@@ -71,6 +71,8 @@ class Output final {
   [[nodiscard]] bool finish(std::uint32_t timeout_ms) const;
 
  private:
+  void darken();
+
   [[nodiscard]] std::uint8_t scale(std::uint8_t channel,
                                    std::uint8_t brightness, bool gamma) const;
 
