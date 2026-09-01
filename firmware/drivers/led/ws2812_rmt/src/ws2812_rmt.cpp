@@ -15,7 +15,19 @@ namespace {
 constexpr char kTag[] = "ws2812";
 constexpr std::uint32_t kResolutionHz = 10'000'000;
 constexpr std::size_t kMemoryBlockSymbols = SOC_RMT_MEM_WORDS_PER_CHANNEL;
+constexpr std::size_t kDmaBlockSymbols = 512;
+constexpr std::size_t kDmaLampThreshold = 32;
 constexpr std::size_t kMaximumChannels = 4;
+
+struct Attempt {
+  std::size_t symbols{};
+  bool with_dma{};
+};
+
+constexpr std::array<Attempt, 2> kAttempts{{
+    {kDmaBlockSymbols, true},
+    {kMemoryBlockSymbols, false},
+}};
 
 struct Channel {
   rmt_channel_handle_t channel{};
@@ -56,19 +68,30 @@ driver::Handle open(const driver::Configuration& configuration) {
     return {};
   }
   Channel& slot = channels[index];
-  const rmt_tx_channel_config_t config{
-      .gpio_num = static_cast<gpio_num_t>(configuration.pin),
-      .clk_src = RMT_CLK_SRC_DEFAULT,
-      .resolution_hz = kResolutionHz,
-      .mem_block_symbols = kMemoryBlockSymbols,
-      .trans_queue_depth = 1,
-      .intr_priority = 3,
-      .flags = {},
-  };
-  if (rmt_new_tx_channel(&config, &slot.channel) != ESP_OK) {
+  const std::size_t first = configuration.lamps >= kDmaLampThreshold ? 0 : 1;
+  const Attempt* taken = nullptr;
+  for (std::size_t attempt = first; attempt < kAttempts.size(); ++attempt) {
+    const rmt_tx_channel_config_t config{
+        .gpio_num = static_cast<gpio_num_t>(configuration.pin),
+        .clk_src = RMT_CLK_SRC_DEFAULT,
+        .resolution_hz = kResolutionHz,
+        .mem_block_symbols = kAttempts[attempt].symbols,
+        .trans_queue_depth = 1,
+        .intr_priority = 3,
+        .flags = {.invert_out = 0,
+                  .with_dma = kAttempts[attempt].with_dma ? 1U : 0U,
+                  .allow_pd = 0,
+                  .init_level = 0},
+    };
+    if (rmt_new_tx_channel(&config, &slot.channel) == ESP_OK) {
+      taken = &kAttempts[attempt];
+      break;
+    }
+    slot.channel = nullptr;
+  }
+  if (taken == nullptr) {
     ESP_LOGE(kTag, "Pin %d could not take a transmit channel",
              configuration.pin);
-    slot.channel = nullptr;
     return {};
   }
   if (encoder_open(slot.encoder, kResolutionHz) != ESP_OK ||
@@ -78,6 +101,10 @@ driver::Handle open(const driver::Configuration& configuration) {
     return {};
   }
   slot.open = true;
+  ESP_LOGI(kTag, "Pin %d clocks %u lamps from %u symbols%s", configuration.pin,
+           static_cast<unsigned>(configuration.lamps),
+           static_cast<unsigned>(taken->symbols),
+           taken->with_dma ? " over dma" : "");
   return {.index = static_cast<std::uint8_t>(index)};
 }
 
@@ -87,7 +114,8 @@ bool transmit(const driver::Handle handle,
   if (slot == nullptr || bytes.empty()) {
     return false;
   }
-  const rmt_transmit_config_t config{.loop_count = 0, .flags = {}};
+  const rmt_transmit_config_t config{
+      .loop_count = 0, .flags = {.eot_level = 0, .queue_nonblocking = 1}};
   return rmt_transmit(slot->channel, &slot->encoder.base, bytes.data(),
                       bytes.size(), &config) == ESP_OK;
 }

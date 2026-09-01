@@ -147,6 +147,7 @@ bool RgbLeds::start(events::EventBus& event_bus,
     devices_[slot] = &device;
     geometry_[slot] = geometry;
     pushed_[slot] = false;
+    in_flight_[slot] = false;
     for (std::uint8_t effect = 0; effect < device.effect_count; ++effect) {
       const configuration::LedEffect& layer = device.effects[effect];
       states_[slot * kMaximumEffects + effect] = {};

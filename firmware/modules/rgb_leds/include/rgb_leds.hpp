@@ -64,6 +64,7 @@ class RgbLeds final {
   std::array<led::Matrix, kMaximumOutputs> geometry_{};
   std::array<led::Output, kMaximumOutputs> outputs_{};
   std::array<bool, kMaximumOutputs> pushed_{};
+  std::array<bool, kMaximumOutputs> in_flight_{};
   configuration::HardwareDeviceConfiguration* device_store_{};
   EffectBinding* bindings_{};
   EffectState* states_{};

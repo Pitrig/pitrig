@@ -39,19 +39,23 @@ void RgbLeds::run() {
 }
 
 void RgbLeds::render(const std::uint64_t now_us) {
-  std::array<bool, kMaximumOutputs> transmitted{};
   for (std::size_t index = 0; index < output_count_; ++index) {
-    transmitted[index] = paint_output(index, now_us);
+    if (paint_output(index, now_us)) {
+      in_flight_[index] = true;
+    }
   }
   for (std::size_t index = 0; index < output_count_; ++index) {
-    if (transmitted[index]) {
-      (void)outputs_[index].finish(led::kTransmitTimeoutMs);
+    if (in_flight_[index]) {
+      in_flight_[index] = !outputs_[index].finish(led::kTransmitTimeoutMs);
     }
   }
 }
 
 bool RgbLeds::paint_output(const std::size_t output,
                            const std::uint64_t now_us) {
+  if (in_flight_[output]) {
+    return false;
+  }
   const configuration::HardwareDeviceConfiguration& device = *devices_[output];
   outputs_[output].clear();
   for (std::uint8_t index = 0; index < device.effect_count; ++index) {
