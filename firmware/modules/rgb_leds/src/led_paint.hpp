@@ -23,8 +23,8 @@ struct Area {
   [[nodiscard]] bool holds(std::uint16_t column, std::uint16_t row) const;
 };
 
-[[nodiscard]] std::optional<Area> area_of(const led::Matrix& matrix,
-                                          const configuration::LedEffect& effect);
+[[nodiscard]] Area area_of(const led::Matrix& matrix,
+                           const configuration::LedEffect& effect);
 
 class Surface final {
  public:
@@ -54,9 +54,9 @@ class Surface final {
   bool mirrored_;
 };
 
-[[nodiscard]] std::optional<Surface> surface_of(
-    led::Output& output, const led::Matrix& matrix,
-    const configuration::LedEffect& effect);
+[[nodiscard]] Surface surface_of(led::Output& output, const led::Matrix& matrix,
+                                 const Area& area,
+                                 const configuration::LedEffect& effect);
 
 void paint(const Surface& surface, const configuration::LedEffect& effect,
            std::optional<double> value, std::uint64_t elapsed_us);

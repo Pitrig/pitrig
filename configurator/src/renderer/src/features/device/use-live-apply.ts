@@ -14,6 +14,12 @@ export interface LiveApplyState {
   error?: string
 }
 
+export function recordRunningConfiguration(configuration: DeviceConfiguration | undefined): void {
+  const store = useDeviceStore.getState()
+  if (configuration) store.markLiveApplied(configuration)
+  else store.markRunningUnknown()
+}
+
 export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) => void): void {
   const draft = useDeviceStore((state) => state.draft)
   const running = useDeviceStore((state) => state.runningConfiguration)
@@ -32,7 +38,7 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
     const send = async (configuration: DeviceConfiguration): Promise<void> => {
       const changed = documentsDiffering(configuration, running)
       if (changed.length === 0) {
-        useDeviceStore.getState().markLiveApplied(configuration)
+        recordRunningConfiguration(configuration)
         return
       }
       inFlight.current = true
@@ -42,18 +48,17 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
         documents: changed
       })
       inFlight.current = false
+      recordRunningConfiguration(result.ok ? configuration : undefined)
+      report.current({
+        pending: false,
+        error: result.ok || cancelled ? undefined : result.error.message
+      })
       if (cancelled) return
-      if (result.ok) {
-        useDeviceStore.getState().markLiveApplied(configuration)
-        report.current({ pending: false })
-      } else {
-        report.current({ pending: false, error: result.error.message })
-        if (result.error.code === 'busy' && ++attempts <= BUSY_RETRIES) {
-          window.setTimeout(() => {
-            if (!cancelled && !inFlight.current) void send(configuration)
-          }, BUSY_RETRY_DELAY_MS)
-          return
-        }
+      if (!result.ok && result.error.code === 'busy' && ++attempts <= BUSY_RETRIES) {
+        window.setTimeout(() => {
+          if (!cancelled && !inFlight.current) void send(configuration)
+        }, BUSY_RETRY_DELAY_MS)
+        return
       }
       const next = queued.current
       queued.current = undefined

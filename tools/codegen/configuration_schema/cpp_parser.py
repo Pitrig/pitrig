@@ -11,6 +11,14 @@ from .model import (
     object_keys,
     struct_order,
 )
+from .scalars import SCALAR_RANGES
+
+
+def unreachable_bound(kind: str, edge: str, value: int) -> bool:
+    limits = SCALAR_RANGES.get(kind)
+    if limits is None:
+        return False
+    return value <= limits[0] if edge == "minimum" else value >= limits[1]
 
 
 def generate_cpp_document_keys(document: dict[str, Any]) -> list[str]:
@@ -131,10 +139,13 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
         for entry in entries:
             member = f"config.{entry['accessor']}"
             tests = []
-            if entry["minimum"] is not None:
-                tests.append(f"{member} < {entry['minimum'][0]}")
-            if entry["maximum"] is not None:
-                tests.append(f"{member} > {entry['maximum'][0]}")
+            for edge, comparison in (("minimum", "<"), ("maximum", ">")):
+                limit = entry[edge]
+                if limit is None or unreachable_bound(entry["kind"], edge, limit[1]):
+                    continue
+                tests.append(f"{member} {comparison} {limit[0]}")
+            if not tests:
+                continue
             test = " || ".join(tests)
             if entry["zero_means_off"]:
                 lines.append(f"  if ({member} != 0 &&")

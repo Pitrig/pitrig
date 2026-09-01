@@ -29,8 +29,8 @@ void RgbLeds::run() {
     render(static_cast<std::uint64_t>(esp_timer_get_time()));
     (void)esp_task_wdt_reset();
     if (xTaskDelayUntil(&wake, period) == pdFALSE) {
+      vTaskDelay(1);
       wake = xTaskGetTickCount();
-      vTaskDelay(period);
     }
   }
   (void)esp_task_wdt_delete(nullptr);
@@ -74,28 +74,25 @@ bool RgbLeds::paint_output(const std::size_t output,
     if (binding.value.valid()) {
       value = conditions::condition_value(read);
     }
+    if (binding.area.width == 0) {
+      continue;
+    }
     if (configuration::led_effect_draws_pixels(effect.type)) {
-      const std::optional<Panel> panel =
-          panel_of(outputs_[output], geometry_[output], effect);
-      if (!panel.has_value()) {
-        continue;
-      }
+      const Panel panel =
+          panel_of(outputs_[output], geometry_[output], binding.area);
       if (effect.type == configuration::LedEffectType::sprite) {
-        paint_sprite(*panel, binding.sprite, effect, value,
+        paint_sprite(panel, binding.sprite, effect, value,
                      now_us - state.started_us);
       } else {
         std::array<char, configuration::kLedTextCapacity + 24> scratch{};
-        paint_text(*panel, effect, effect_text(effect, read, scratch),
+        paint_text(panel, effect, effect_text(effect, read, scratch),
                    now_us - state.started_us);
       }
       continue;
     }
-    const std::optional<Surface> surface =
-        surface_of(outputs_[output], geometry_[output], effect);
-    if (!surface.has_value()) {
-      continue;
-    }
-    paint(*surface, effect, value, now_us - state.started_us);
+    const Surface surface =
+        surface_of(outputs_[output], geometry_[output], binding.area, effect);
+    paint(surface, effect, value, now_us - state.started_us);
   }
   if (pushed_[output] && !outputs_[output].changed()) {
     return false;

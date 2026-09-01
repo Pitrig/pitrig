@@ -8,6 +8,19 @@ import { layerName } from './layer-name'
 import { mutateEffects, moveEffect } from './modules-document'
 import { useModulesStore } from './modules-store'
 
+function selectionAfterMove(selected: number, from: number, to: number): number {
+  if (selected < 0) return selected
+  if (selected === from) return to
+  if (from < selected && to >= selected) return selected - 1
+  if (from > selected && to <= selected) return selected + 1
+  return selected
+}
+
+function selectionAfterRemoval(selected: number, removed: number): number {
+  if (selected < 0 || selected === removed) return -1
+  return selected > removed ? selected - 1 : selected
+}
+
 export function EffectList({
   output,
   device,
@@ -38,6 +51,12 @@ export function EffectList({
       </p>
       {effects.map(({ effect, index }, position) => {
         const playing = preview?.output === output && preview.effect === index
+        const reorder = (to: number): void => {
+          if (to === index) return
+          moveEffect(output, index, to)
+          selectEffect(selectionAfterMove(selected, index, to))
+          clearPreview(output)
+        }
         return (
           <div
             key={index}
@@ -73,10 +92,7 @@ export function EffectList({
               aria-label={`Move layer ${position + 1} down the stack`}
               disabled={position === 0}
               className="rounded p-1 text-muted-foreground hover:bg-white/5 disabled:opacity-30"
-              onClick={() => {
-                moveEffect(output, index, effects[position - 1]?.index ?? index)
-                clearPreview(output)
-              }}
+              onClick={() => reorder(effects[position - 1]?.index ?? index)}
             >
               <ArrowUp className="size-3.5" />
             </button>
@@ -85,10 +101,7 @@ export function EffectList({
               aria-label={`Move layer ${position + 1} up the stack`}
               disabled={position === effects.length - 1}
               className="rounded p-1 text-muted-foreground hover:bg-white/5 disabled:opacity-30"
-              onClick={() => {
-                moveEffect(output, index, effects[position + 1]?.index ?? index)
-                clearPreview(output)
-              }}
+              onClick={() => reorder(effects[position + 1]?.index ?? index)}
             >
               <ArrowDown className="size-3.5" />
             </button>
@@ -99,7 +112,7 @@ export function EffectList({
                   list.splice(index, 1)
                 })
                 clearPreview(output)
-                selectEffect(-1)
+                selectEffect(selectionAfterRemoval(selected, index))
               }}
             />
           </div>

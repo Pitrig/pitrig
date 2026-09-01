@@ -1,122 +1,39 @@
 import {
   FIELD_RANGES,
+  LED_CHIP_VALUES,
+  LED_PALETTE_SIZE,
+  LED_SEGMENT_DIRECTION_VALUES,
+  MATRIX_ORDER_VALUES,
+  MATRIX_ORIGIN_VALUES,
   MAXIMUM_HARDWARE_DEVICES,
   MAXIMUM_LEDS_PER_OUTPUT,
   MAXIMUM_LEDS_TOTAL,
+  MAXIMUM_LED_EFFECTS,
+  MAXIMUM_LED_SEGMENTS,
+  MAXIMUM_LED_SPRITES,
   type ApplicationConfiguration,
   type HardwareDeviceConfiguration,
   type LedEffect
 } from '../configuration-schema'
-import {
-  LED_EFFECT_DRAWS_PIXELS,
-  LED_EFFECT_NEEDS_VALUE,
-  LED_EFFECT_READS_VALUE,
-  drawnSize,
-  isMatrix,
-  lampsOf,
-  shapeOf
-} from '../led-render'
 import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
+import { isMatrix, lampsOf } from '../led-render'
+import { badColors, badEnum, badList, findEffectError } from './led-values'
 import { findBoundError } from './ranges'
 
-function findContentError(
-  device: HardwareDeviceConfiguration,
-  effect: LedEffect,
-  label: string
-): string | undefined {
-  switch (effect.type ?? 'solid') {
-    case 'gradient':
-      return (effect.stops ?? []).length >= 2
-        ? undefined
-        : `${label} is a gradient, which needs at least two colour stops.`
-    case 'steps':
-      return (effect.steps ?? []).length >= 1
-        ? undefined
-        : `${label} is a steps layer, which needs at least one step.`
-    case 'gauge':
-      return (effect.stops ?? []).length !== 1
-        ? undefined
-        : `${label} is a gauge with a single colour stop; give it none, or two or more.`
-    case 'sprite': {
-      const sprite = (device.sprites ?? []).find((entry) => entry.id === effect.sprite)
-      if (!sprite) {
-        return `${label} draws a sprite named ${JSON.stringify(effect.sprite ?? '')}, which this device does not carry.`
-      }
-      const frames = sprite.frame_count ?? 1
-      if ((effect.sprite_frame ?? 0) >= frames) {
-        return `${label} names frame ${effect.sprite_frame}, but the sprite holds ${frames}.`
-      }
-      return undefined
-    }
-    case 'text':
-      return (effect.text ?? '') !== '' || (effect.source?.binding ?? '') !== ''
-        ? undefined
-        : `${label} is a text layer with neither text nor a source to render.`
-    default:
-      return undefined
-  }
+function findListError(device: HardwareDeviceConfiguration, label: string): string | undefined {
+  return (
+    badList(device.segments, MAXIMUM_LED_SEGMENTS, label, 'runs') ??
+    badList(device.sprites, MAXIMUM_LED_SPRITES, label, 'sprites') ??
+    badList(device.effects, MAXIMUM_LED_EFFECTS, label, 'layers')
+  )
 }
 
-function findPanelAreaError(
-  device: HardwareDeviceConfiguration,
-  effect: LedEffect,
-  label: string
-): string | undefined {
-  const mask = effect.panel_mask ?? ''
-  if (mask === '') return undefined
-  const shape = shapeOf(device)
-  if (!shape) return `${label} names panel pixels, which only a matrix has.`
-  const drawn = drawnSize(shape)
-  const expected = Math.ceil((drawn.width * drawn.height) / 4)
-  if (mask.length !== expected) {
-    return `${label} carries ${mask.length} mask digits; a ${drawn.width} by ${drawn.height} panel needs ${expected}.`
-  }
-  let lit = false
-  for (const digit of mask) {
-    const value = Number.parseInt(digit, 16)
-    if (!Number.isInteger(value)) {
-      return `${label} carries ${JSON.stringify(digit)} in its mask, which is not a hexadecimal digit.`
-    }
-    lit = lit || value !== 0
-  }
-  return lit ? undefined : `${label} selects no pixels at all.`
-}
-
-function findEffectError(
-  device: HardwareDeviceConfiguration,
-  effect: LedEffect,
-  label: string
-): string | undefined {
-  const rangeError = findBoundError(effect, FIELD_RANGES['LedEffect'], label)
-  if (rangeError) return rangeError
-  const lamps = lampsOf(device)
-  const from = effect.from ?? 0
-  const count = effect.count ?? 0
-  if (from >= lamps || (count !== 0 && from + count > lamps)) {
-    return `${label} covers lamps ${from} to ${from + count} of a device that has ${lamps}.`
-  }
-  const panelError = findPanelAreaError(device, effect, label)
-  if (panelError) return panelError
-  const type = effect.type ?? 'solid'
-  if (LED_EFFECT_DRAWS_PIXELS.has(type) && !isMatrix(device)) {
-    return `${label} is a ${type} layer, which needs a matrix rather than a strip.`
-  }
-  if ((effect.source?.modifiers ?? []).length > 0 || (effect.condition_source?.modifiers ?? []).length > 0) {
-    return `${label} carries a source modifier, which an LED layer cannot apply.`
-  }
-  const bound = (effect.source?.binding ?? '') !== ''
-  if (bound && !LED_EFFECT_READS_VALUE.has(type)) {
-    return `${label} is a ${type} layer and reads no telemetry, so its source would sit unread.`
-  }
-  if (!bound && LED_EFFECT_NEEDS_VALUE.has(type)) {
-    return `${label} is a ${type} layer and needs telemetry to map.`
-  }
-  const gated = effect.gate === 'conditions'
-  const watched = (effect.condition_source?.binding ?? '') !== ''
-  if (gated !== watched || (gated && (effect.conditions ?? []).length === 0)) {
-    return `${label} gates on conditions, so it needs a condition source and at least one rule.`
-  }
-  return findContentError(device, effect, label)
+function findEnumError(device: HardwareDeviceConfiguration, label: string): string | undefined {
+  return (
+    badEnum(device.chip, LED_CHIP_VALUES, label, 'chip') ??
+    badEnum(device.order, MATRIX_ORDER_VALUES, label, 'order') ??
+    badEnum(device.origin, MATRIX_ORIGIN_VALUES, label, 'origin')
+  )
 }
 
 function findSegmentError(device: HardwareDeviceConfiguration, label: string): string | undefined {
@@ -127,12 +44,11 @@ function findSegmentError(device: HardwareDeviceConfiguration, label: string): s
   }
   let arranged = 0
   for (const [index, segment] of segments.entries()) {
-    const boundError = findBoundError(
-      segment,
-      FIELD_RANGES['LedSegmentConfiguration'],
-      `${label} run ${index + 1}`
-    )
+    const run = `${label} run ${index + 1}`
+    const boundError = findBoundError(segment, FIELD_RANGES['LedSegmentConfiguration'], run)
     if (boundError) return boundError
+    const enumError = badEnum(segment.direction, LED_SEGMENT_DIRECTION_VALUES, run, 'direction')
+    if (enumError) return enumError
     arranged += segment.count ?? 1
   }
   const lamps = device.count ?? 1
@@ -153,26 +69,32 @@ function findSpriteError(device: HardwareDeviceConfiguration, label: string): st
     if (!id) return `${label} carries a sprite with no id.`
     if (seen.has(id)) return `${label} carries two sprites named ${JSON.stringify(id)}.`
     seen.add(id)
-    const boundError = findBoundError(
-      sprite,
-      FIELD_RANGES['LedSpriteConfiguration'],
-      `Sprite ${JSON.stringify(id)}`
-    )
+    const owner = `Sprite ${JSON.stringify(id)}`
+    const boundError = findBoundError(sprite, FIELD_RANGES['LedSpriteConfiguration'], owner)
     if (boundError) return boundError
+    const listError = badList(sprite.palette, LED_PALETTE_SIZE, owner, 'palette colours')
+    if (listError) return listError
+    const colorError = badColors(sprite, owner)
+    if (colorError) return colorError
     const palette = sprite.palette ?? []
-    if (palette.length === 0) return `Sprite ${JSON.stringify(id)} names no palette colours.`
+    if (palette.length === 0) return `${owner} names no palette colours.`
     const pixels = sprite.pixels ?? ''
     const expected = (sprite.width ?? 8) * (sprite.height ?? 8) * (sprite.frame_count ?? 1)
     if (pixels.length !== expected) {
-      return `Sprite ${JSON.stringify(id)} carries ${pixels.length} pixel digits; its geometry needs ${expected}.`
+      return `${owner} carries ${pixels.length} pixel digits; its geometry needs ${expected}.`
     }
     for (const digit of pixels) {
       if (!Number.isInteger(Number.parseInt(digit, 16))) {
-        return `Sprite ${JSON.stringify(id)} carries ${JSON.stringify(digit)}, which is not a hexadecimal pixel digit.`
+        return `${owner} carries ${JSON.stringify(digit)}, which is not a hexadecimal pixel digit.`
       }
     }
   }
   return undefined
+}
+
+function labelOfEffect(effect: LedEffect, index: number, label: string): string {
+  const layer = effect?.id ? `Layer ${JSON.stringify(effect.id)}` : `Layer ${index + 1}`
+  return `${layer} of ${label}`
 }
 
 export function findHardwareError(
@@ -189,10 +111,17 @@ export function findHardwareError(
   const pins = new Set<number>()
   let total = 0
   for (const [index, device] of devices.entries()) {
-    const label = device.id ? `Device ${JSON.stringify(device.id)}` : `Device ${index + 1}`
+    const label = device?.id ? `Device ${JSON.stringify(device.id)}` : `Device ${index + 1}`
+    if (device?.type === undefined) {
+      return `${label} names no "type", so nothing says which peripheral it is.`
+    }
     if (device.type !== 'rgb_strip' && device.type !== 'rgb_matrix') {
       return `${label} is a ${JSON.stringify(device.type)} peripheral, which this firmware has no driver for.`
     }
+    const listError = findListError(device, label)
+    if (listError) return listError
+    const enumError = findEnumError(device, label)
+    if (enumError) return enumError
     const boundError = findBoundError(device, FIELD_RANGES['HardwareDeviceConfiguration'], label)
     if (boundError) return boundError
     const pin = device.pin ?? -1
@@ -214,8 +143,8 @@ export function findHardwareError(
     }
     const spriteError = findSpriteError(device, label)
     if (spriteError) return spriteError
-    for (const effect of device.effects ?? []) {
-      const effectError = findEffectError(device, effect, label)
+    for (const [order, effect] of (device.effects ?? []).entries()) {
+      const effectError = findEffectError(device, effect, labelOfEffect(effect, order, label))
       if (effectError) return effectError
     }
     total += lamps

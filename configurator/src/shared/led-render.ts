@@ -45,6 +45,30 @@ export function maskHolds(area: LampArea, column: number, row: number): boolean 
   return Number.isInteger(value) && (value & (1 << (3 - (pixel % 4)))) !== 0
 }
 
+export function maskDigits(pixels: number): number {
+  return Math.ceil(pixels / 4)
+}
+
+export function readMask(mask: string, pixels: number): boolean[] {
+  if (mask === '') return Array.from({ length: pixels }, () => true)
+  return Array.from({ length: pixels }, (_, pixel) => {
+    const value = Number.parseInt(mask[Math.floor(pixel / 4)] ?? '', 16)
+    return Number.isInteger(value) && (value & (1 << (3 - (pixel % 4)))) !== 0
+  })
+}
+
+export function writeMask(chosen: readonly boolean[]): string {
+  let mask = ''
+  for (let digit = 0; digit * 4 < chosen.length; ++digit) {
+    let value = 0
+    for (let bit = 0; bit < 4; ++bit) {
+      if (chosen[digit * 4 + bit]) value |= 1 << (3 - bit)
+    }
+    mask += value.toString(16)
+  }
+  return mask
+}
+
 export function deviceShape(device: HardwareDeviceConfiguration): MatrixShape {
   return (
     shapeOf(device) ?? {

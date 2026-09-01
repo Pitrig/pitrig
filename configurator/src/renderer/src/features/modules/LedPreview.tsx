@@ -44,6 +44,7 @@ export function LedPreview({
   const effects = device.effects ?? []
   const focused = preview?.output === index ? preview.effect : -1
   const alone = effects[focused]
+  const gates = effects.map((_, at) => at === focused)
   const elapsed = useElapsed(alone !== undefined)
   const sweep = (elapsed % SWEEP_MS) / SWEEP_MS
 
@@ -58,15 +59,7 @@ export function LedPreview({
     >
       <DevicePreview
         device={device}
-        frame={
-          alone
-            ? paintOutput(device, {
-                value: sweep,
-                elapsedMs: elapsed,
-                gates: effects.map((_, at) => at === focused)
-              })
-            : UNLIT
-        }
+        frame={alone ? paintOutput(device, { value: sweep, elapsedMs: elapsed, gates }) : UNLIT}
         highlight={highlight?.output === index ? highlight : null}
       />
     </PageSection>

@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 22. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 23. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 22.
+Schema version: 23.
 
 ## Documents
 
@@ -57,12 +57,12 @@ The configuration is transferred and stored as three independent documents. Each
 | `kMaximumLedsPerOutput` | 512 | Lamps on one data line. What sets it is time rather than memory: 512 lamps take 12 ms to clock out at 800 kHz, which is already most of a frame at 60 Hz, and an RGBW chain takes a third longer again. |
 | `kMaximumLedsTotal` | 1024 | Lamps across every output. Outputs transmit on their own channels at the same time, so what this bounds is the frame buffer and the current the board can plausibly be asked to switch, not the frame time. |
 | `kMaximumLedSegments` | 8 | Straight runs one strip's physical arrangement may describe. A wheel rim is three runs and a halo around a screen is four, so eight covers every mounting anyone has asked for while keeping the description readable. |
-| `kMaximumMatrixSide` | 32 | Columns or rows one matrix panel may have. Square at this bound it is already the whole lamp budget, which is what stops it rather than the geometry. |
+| `kMaximumMatrixSide` | 16 | Columns or rows one matrix panel may have, and the same ceiling on a sprite's own geometry. Sixteen is where the panels stop rather than where the lamp budget does - a square panel at this bound is 256 lamps, half of what one output may drive - and eight by eight, the default above, is what nearly everyone mounts. It is also what keeps a layer's panel mask to sixty-four digits. |
 | `kMaximumLedSprites` | 8 | Pictures one output may carry. They travel inside the document, so this and the pixel capacity below are what keep a matrix's artwork inside the payload bound. |
 | `kMaximumLedSpriteFrames` | 16 | Frames one sprite may hold. Frames share a geometry and a palette and are stored back to back, so a frame is an offset rather than an entry. |
 | `kLedPaletteSize` | 16 | Colours one sprite names. Sixteen is what one hexadecimal digit addresses, which is why a pixel costs half a byte. |
 | `kLedSpritePixelCapacity` | 1025 | Pixel digit storage for one sprite including the terminator (1024 usable). Sixteen frames of eight by eight, or four of sixteen by sixteen, and the same budget however it is spent. |
-| `kLedPanelMaskCapacity` | 257 | Panel mask storage including the terminator (256 usable digits). Four pixels to a digit covers the whole 32 by 32 panel a matrix may have, and an eight by eight one spends sixteen characters on saying where a layer shows. |
+| `kLedPanelMaskCapacity` | 65 | Panel mask storage including the terminator (64 usable digits). Four pixels to a digit covers the whole 16 by 16 panel a matrix may have, and an eight by eight one spends sixteen characters on saying where a layer shows. |
 | `kLedTextCapacity` | 32 | Static text a text effect may carry including the terminator (31 usable bytes). |
 | `kLedTelemetryIdleMs` | 2000 | Silence after which the telemetry_idle gate starts holding. Long enough that a pause between lines is not an outage, short enough that a closed game is noticed before the lamps look stuck. |
 
@@ -78,7 +78,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `LedEffectType` | `solid`, `gradient`, `steps`, `gauge`, `animation`, `sprite`, `text` | What an effect paints over the lamps it covers. The order of these values indexes the generated painter table, so a new kind is appended rather than inserted. |
 | `LedAnimationKind` | `rainbow`, `scan`, `pulse`, `wipe`, `chase` | Motion an animation effect draws. Read only by that kind. |
 | `LedGate` | `always`, `conditions`, `telemetry_idle` | When an effect paints at all. always paints on every frame; conditions paints while a rule over condition_source holds; telemetry_idle paints only after kLedTelemetryIdleMs of silence, which is what an idle animation and a lost-link warning both want. |
-| `LedFont` | `regular_4x6`, `bold_4x6`, `regular_5x8`, `bold_5x8` | Built-in bitmap face a text effect draws with, named by the pixels one glyph occupies and its weight. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no font partition. Each face carries only the digits, N and R, which is what a gear readout spells and all a panel this small can spell legibly. |
+| `LedFont` | `regular_4x6`, `bold_4x6`, `regular_5x8`, `bold_5x8` | Built-in bitmap face a text effect draws with, named by the pixels one glyph occupies and its weight. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no display to install a font package for. Each face carries only the digits, N and R, which is what a gear readout spells and all a panel this small can spell legibly. |
 | `BoardId` | `t_display_s3`, `guition_esp32_4848s040`, `guition_jc1060p470c`, `esp32s3_devkit` | Immutable hardware identity. Must match the firmware build or the configuration is rejected. A board that declares no display carries no dashboard either: a dashboard section on one is rejected rather than quietly ignored, because an author who wrote it meant it to be drawn somewhere. |
 | `TelemetryTransportId` | `board_default`, `native_usb_cdc`, `uart` | Telemetry transport selection. board_default defers to the immutable board descriptor. |
 | `TextAlignment` | `top_left`, `top_center`, `top_right`, `left`, `center`, `right`, `bottom_left`, `bottom_center`, `bottom_right` | Which point of a box the text is anchored to, on both axes. The unprefixed names are the middle row, so left, center and right sit vertically centred. Used for a text widget's value inside its content area and for a frame caption on its outer box. |
@@ -121,8 +121,8 @@ A picture, or several frames of one, drawn on a matrix. Stored palette-indexed a
 | Property | Type | Default |
 | --- | --- | --- |
 | `id` | string, max 31 bytes | empty |
-| `width` | integer, 1..32 | `8` |
-| `height` | integer, 1..32 | `8` |
+| `width` | integer, 1..16 | `8` |
+| `height` | integer, 1..16 | `8` |
 | `frame_count` | integer, 1..16 | `1` |
 | `palette` | array of [`LedPaletteEntry`](#ledpaletteentry), max 16 | absent |
 | `pixels` | string, max 1024 bytes | empty |
@@ -139,7 +139,7 @@ Also carries the properties of [`ValueRange`](#valuerange), flattened: they are 
 | `id` | string, max 15 bytes | empty |
 | `from` | integer, 0..512 | `0` |
 | `count` | integer, 0 or 1..512 | `0` |
-| `panel_mask` | string, max 256 bytes | empty |
+| `panel_mask` | string, max 64 bytes | empty |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `gate` | `LedGate` | `always` |
 | `condition_source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
@@ -183,8 +183,8 @@ One peripheral beyond the display, on its own data pin. A strip is a line of lam
 | `current_limit_ma` | integer, 0 or 100..20000 | `0` |
 | `count` | integer, 1..512 | `1` |
 | `segments` | array of [`LedSegmentConfiguration`](#ledsegmentconfiguration), max 8 | absent |
-| `width` | integer, 1..32 | `8` |
-| `height` | integer, 1..32 | `8` |
+| `width` | integer, 1..16 | `8` |
+| `height` | integer, 1..16 | `8` |
 | `order` | `MatrixOrder` | `serpentine` |
 | `origin` | `MatrixOrigin` | `top_left` |
 | `rotation_deg` | integer, 0..270 | `0` |

@@ -204,7 +204,7 @@ Outputs: `firmware/services/telemetry/include/telemetry_catalog_generated.hpp`,
 
 ### LED bitmap fonts
 
-`fonts/led_bitmap_font.json` holds the two faces a matrix draws text with, as
+`fonts/led_bitmap_font.json` holds the four faces a matrix draws text with, as
 rows of `#` and space:
 
 ```bash
@@ -378,10 +378,10 @@ the configuration service; the configurator must not depend on it.
 ### Configuration documents
 
 The configuration is **three documents**, not one: `dashboard` (`board` +
-`dashboard`), `modules` (`board` + `hardware`, empty until a peripheral driver has a contract) and
+`dashboard`), `modules` (`board` + `hardware`, the addressable LED outputs) and
 `protocol` (`board` + `telemetry_transport`). Each is transferred, stored, validated and applied on
 its own — `@SC:GET:<doc>`, `@SC:SET:<doc>:<json>`, one NVS record and generation each, its own
-payload bound (128 KB / 1 KB / 1 KB) and its own answer to whether a restart is owed. They are
+payload bound (128 KB / 32 KB / 1 KB) and its own answer to whether a restart is owed. They are
 declared in the `documents` block of `configuration/configuration_schema.json`, which must partition
 every serialized root section, and the generator emits the enum, key allow-lists, bounds and restart
 flags for both firmware and configurator. In memory they are still one `ApplicationConfiguration`, so

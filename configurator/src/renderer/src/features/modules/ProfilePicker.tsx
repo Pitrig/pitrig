@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 
 import { MAXIMUM_LED_EFFECTS, type HardwareDeviceConfiguration } from '@shared/configuration-schema'
-import { isMatrix, lampsOf, segmentBoundsOf } from '@shared/led-render'
+import { drawnSize, isMatrix, lampsOf, segmentBoundsOf, shapeOf } from '@shared/led-render'
 import { Hint, NumberInput } from '@/features/configuration/inspector/fields'
 import { AddButton } from '@/features/configuration/inspector/widget-editors'
 import { addProfile, mutateEffects } from './modules-document'
@@ -29,9 +29,8 @@ export function ProfilePicker({
   const used = (device.effects ?? []).length
   const ranged = !isMatrix(device) && lamps > 1
   const bounds = segmentBoundsOf(device)
-  const panel = isMatrix(device)
-    ? { width: device.width ?? 8, height: device.height ?? 8 }
-    : undefined
+  const shape = shapeOf(device)
+  const panel = shape ? drawnSize(shape) : undefined
 
   useEffect(() => () => setHighlight(null), [setHighlight])
 

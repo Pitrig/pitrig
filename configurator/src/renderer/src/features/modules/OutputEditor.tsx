@@ -21,11 +21,42 @@ import {
   TextField
 } from '@/features/configuration/inspector/fields'
 import { HINTS } from './hints'
-import { freePins, mutateDevice } from './modules-document'
+import { carryGeometry, drawnOf, freePins, mutateDevice } from './modules-document'
 import type { DeviceConfiguration } from '@shared/device'
 
 const MILLIAMPS_PER_LAMP = 60
 const ROTATIONS = ['0', '90', '180', '270'] as const
+
+function mutateGeometry(
+  index: number,
+  change: (device: HardwareDeviceConfiguration) => void,
+  turns = 0
+): void {
+  mutateDevice(index, (next) => {
+    const before = drawnOf(next)
+    change(next)
+    carryGeometry(next, before, turns)
+  })
+}
+
+function sizeGeometry(
+  index: number,
+  minimum: number,
+  value: number,
+  change: (device: HardwareDeviceConfiguration, value: number) => void
+): void {
+  if (!Number.isFinite(value) || value < minimum) return
+  mutateGeometry(index, (next) => change(next, value))
+}
+
+function rotateGeometry(index: number, degrees: number): void {
+  mutateDevice(index, (next) => {
+    const before = drawnOf(next)
+    const turns = (((degrees - (next.rotation_deg ?? 0)) / 90) % 4 + 4) % 4
+    next.rotation_deg = degrees
+    carryGeometry(next, before, turns)
+  })
+}
 
 export function OutputEditor({
   draft,
@@ -84,13 +115,13 @@ export function OutputEditor({
                 title="Columns"
                 value={device.width ?? 8}
                 {...fieldBounds('HardwareDeviceConfiguration', 'width')}
-                onChange={(width) => mutateDevice(index, (next) => { next.width = width })}
+                onChange={(width) => sizeGeometry(index, 1, width, (next, value) => { next.width = value })}
               />
               <NumberInput
                 title="Rows"
                 value={device.height ?? 8}
                 {...fieldBounds('HardwareDeviceConfiguration', 'height')}
-                onChange={(height) => mutateDevice(index, (next) => { next.height = height })}
+                onChange={(height) => sizeGeometry(index, 1, height, (next, value) => { next.height = value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground">
@@ -114,7 +145,7 @@ export function OutputEditor({
                 value={String(device.rotation_deg ?? 0)}
                 options={ROTATIONS}
                 onChange={(value) =>
-                  mutateDevice(index, (next) => { next.rotation_deg = Number(value) })
+                  rotateGeometry(index, Number(value))
                 }
               />
             </div>
@@ -138,7 +169,7 @@ export function OutputEditor({
           value={device.count ?? 1}
           {...fieldBounds('HardwareDeviceConfiguration', 'count')}
           modified={authored(device.count, 1)}
-          onChange={(count) => mutateDevice(index, (next) => { next.count = count })}
+          onChange={(count) => sizeGeometry(index, 1, count, (next, value) => { next.count = value })}
         />
       )}
       <SelectField
@@ -153,8 +184,7 @@ export function OutputEditor({
         label="Brightness"
         hint={HINTS.output.brightness}
         value={device.brightness ?? 128}
-        min={0}
-        max={255}
+        {...fieldBounds('HardwareDeviceConfiguration', 'brightness')}
         modified={authored(device.brightness, 128)}
         onChange={(brightness) => mutateDevice(index, (next) => { next.brightness = brightness })}
       />

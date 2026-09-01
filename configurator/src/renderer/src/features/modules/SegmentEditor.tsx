@@ -12,7 +12,7 @@ import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { Hint, NumberInput, SelectInput } from '@/features/configuration/inspector/fields'
 import { AddButton, RemoveButton } from '@/features/configuration/inspector/widget-editors'
 import { HINTS } from './hints'
-import { mutateDevice } from './modules-document'
+import { carryGeometry, drawnOf, mutateDevice } from './modules-document'
 
 const CELL = 22
 const LAMP = 16
@@ -77,6 +77,7 @@ export function SegmentEditor({
 
   const apply = (mutate: (next: LedSegmentConfiguration[]) => void): void =>
     mutateDevice(index, (next) => {
+      const before = drawnOf(next)
       const list = [...(next.segments ?? [])]
       mutate(list)
       if (list.length === 0) {
@@ -85,6 +86,7 @@ export function SegmentEditor({
       }
       next.segments = list
       next.count = list.reduce((total, run) => total + Math.max(1, run.count ?? 1), 0)
+      carryGeometry(next, before, 0)
     })
 
   return (

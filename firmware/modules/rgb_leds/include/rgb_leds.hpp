@@ -20,17 +20,8 @@ inline constexpr std::size_t kMaximumOutputs =
     configuration::kMaximumHardwareDevices;
 inline constexpr std::size_t kMaximumEffects = configuration::kMaximumLedEffects;
 
-struct EffectBinding {
-  telemetry::Handle value{};
-  telemetry::Handle condition{};
-  const configuration::LedSpriteConfiguration* sprite{};
-};
-
-struct EffectState {
-  std::uint64_t hold_until_us{};
-  std::uint64_t started_us{};
-  bool holding{};
-};
+struct EffectBinding;
+struct EffectState;
 
 class RgbLeds final {
  public:

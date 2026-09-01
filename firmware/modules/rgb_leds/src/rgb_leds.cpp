@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "led_device.hpp"
+#include "led_paint.hpp"
 #include "logger.hpp"
 #include "rgb_frames.hpp"
 #include "simcore_features.hpp"
@@ -54,10 +55,9 @@ bool RgbLeds::reserve_frames(
     return false;
   }
   const std::size_t layers = kMaximumOutputs * kMaximumEffects;
-  bindings_ = static_cast<EffectBinding*>(
-      heap_caps_calloc(layers, sizeof(EffectBinding), MALLOC_CAP_8BIT));
-  states_ = static_cast<EffectState*>(
-      heap_caps_calloc(layers, sizeof(EffectState), MALLOC_CAP_8BIT));
+  bindings_ =
+      static_cast<EffectBinding*>(allocate(layers * sizeof(EffectBinding)));
+  states_ = static_cast<EffectState*>(allocate(layers * sizeof(EffectState)));
   device_store_ = static_cast<configuration::HardwareDeviceConfiguration*>(
       allocate(configuration.device_count *
                sizeof(configuration::HardwareDeviceConfiguration)));
@@ -159,6 +159,7 @@ bool RgbLeds::start(events::EventBus& event_bus,
                         ? sprite_of(device,
                                     configuration::text_view(layer.sprite))
                         : nullptr,
+          .area = area_of(geometry, layer),
       };
     }
     ++output_count_;

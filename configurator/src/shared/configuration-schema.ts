@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 22
+export const CONFIGURATION_SCHEMA_VERSION = 23
 
 export const MAXIMUM_PAYLOAD_SIZE = 131072
 export const MAXIMUM_SCREENS = 4
@@ -43,12 +43,12 @@ export const MAXIMUM_LED_EFFECTS = 32
 export const MAXIMUM_LEDS_PER_OUTPUT = 512
 export const MAXIMUM_LEDS_TOTAL = 1024
 export const MAXIMUM_LED_SEGMENTS = 8
-export const MAXIMUM_MATRIX_SIDE = 32
+export const MAXIMUM_MATRIX_SIDE = 16
 export const MAXIMUM_LED_SPRITES = 8
 export const MAXIMUM_LED_SPRITE_FRAMES = 16
 export const LED_PALETTE_SIZE = 16
 export const LED_SPRITE_PIXEL_CAPACITY = 1025
-export const LED_PANEL_MASK_CAPACITY = 257
+export const LED_PANEL_MASK_CAPACITY = 65
 export const LED_TEXT_CAPACITY = 32
 export const LED_TELEMETRY_IDLE_MS = 2000
 
@@ -151,10 +151,10 @@ export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {
   slot: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
   LedSegmentConfiguration: [{ key: 'count', minimum: 1, maximum: 512 }],
   LedEffect: [{ key: 'from', minimum: 0, maximum: 512 }, { key: 'count', minimum: 1, maximum: 512, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'speed_ms', minimum: 50, maximum: 60000 }, { key: 'sprite_frame', minimum: 0, maximum: 16 }],
-  LedSpriteConfiguration: [{ key: 'width', minimum: 1, maximum: 32 }, { key: 'height', minimum: 1, maximum: 32 }, { key: 'frame_count', minimum: 1, maximum: 16 }],
+  LedSpriteConfiguration: [{ key: 'width', minimum: 1, maximum: 16 }, { key: 'height', minimum: 1, maximum: 16 }, { key: 'frame_count', minimum: 1, maximum: 16 }],
   WidgetCondition: [{ key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }],
   SlotPageConfiguration: [{ key: 'duration_ms', minimum: 0, maximum: 10000 }],
-  HardwareDeviceConfiguration: [{ key: 'current_limit_ma', minimum: 100, maximum: 20000, zeroMeansOff: true }, { key: 'count', minimum: 1, maximum: 512 }, { key: 'width', minimum: 1, maximum: 32 }, { key: 'height', minimum: 1, maximum: 32 }, { key: 'rotation_deg', minimum: 0, maximum: 270 }],
+  HardwareDeviceConfiguration: [{ key: 'brightness', minimum: 0, maximum: 255 }, { key: 'current_limit_ma', minimum: 100, maximum: 20000, zeroMeansOff: true }, { key: 'count', minimum: 1, maximum: 512 }, { key: 'width', minimum: 1, maximum: 16 }, { key: 'height', minimum: 1, maximum: 16 }, { key: 'rotation_deg', minimum: 0, maximum: 270 }],
 }
 
 export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_led_pin' | 'invalid_led_sprite' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'invalid_slot' | 'invalid_slot_page' | 'unknown_property' | 'duplicate_property'
@@ -741,7 +741,7 @@ export const TEXT_CAPACITIES: Record<string, number> = {
   'LedSpriteConfiguration.id': 32,
   'LedSpriteConfiguration.pixels': 1025,
   'LedEffect.id': 16,
-  'LedEffect.panel_mask': 257,
+  'LedEffect.panel_mask': 65,
   'LedEffect.sprite': 32,
   'LedEffect.text': 32,
   'HardwareDeviceConfiguration.id': 16,

@@ -72,17 +72,19 @@ it was first needed. Call sites are unchanged: unqualified `conditions::` still
 resolves from inside `simcore::dashboard`.
 
 **Artwork travels in the document.** A sprite is palette-indexed at four bits a
-pixel — an eight-by-eight frame is thirty-two bytes — so a whole icon set is a
+pixel — an eight-by-eight frame is sixty-four digits — so a whole icon set is a
 few kilobytes and fits inside the `modules` payload, raised from 1 KB to 32 KB.
 This is the decisive simplification: no new partition, and therefore no
 `erase-flash` over a cable, so the whole feature reaches boards already in the
 field over the air. It also means no fourth asset kind, no upload session to
 arbitrate, and a saved configuration that carries its own artwork.
 
-**Text uses a compiled bitmap face.** Two faces, three by five and five by
-seven, generated from `fonts/led_bitmap_font.json` into both the firmware table
-and the configurator's preview. TinyTTF at eight pixels is unreadable, and the
-board that most wants a matrix is the one with no font partition at all.
+**Text uses a compiled bitmap face.** The faces are generated from
+`fonts/led_bitmap_font.json` into both the firmware table and the
+configurator's preview, and are named by the pixels a glyph occupies and its
+weight; the amendment below carries the current set. TinyTTF at eight pixels is
+unreadable, and the board that most wants a matrix is the one with no display to
+install a font package for.
 
 **A board declares its free pins.** `ValidationContext` grows the list of pins
 the board leaves free, and an authored pin is checked against it — the same
@@ -134,7 +136,7 @@ and what enables the Lap Timer is decided by the `dashboard` section.
   DevKitC-1 the status lamp holds one of them for the whole boot, so its
   board profile admits three. A fifth needs a second backend, or the chaining
   this ADR rejected.
-- `ApplicationConfiguration` grows about 90 KB, doubled by the active/scratch
+- `ApplicationConfiguration` grows about 95 KB, doubled by the active/scratch
   pair. It lives in external RAM, which every supported board has.
 - The frame buffers are sized by the configured devices and allocated when the
   module starts: working and shadow colour bytes prefer external RAM, the wire
@@ -145,8 +147,9 @@ and what enables the Lap Timer is decided by the `dashboard` section.
   is no automated lamp-for-lamp comparison.
 - Indexed sprite colour means a sprite cannot fade; a frame is a lookup, not a
   gradient. Animation belongs to the `animation` effect, which is not indexed.
-- A board that declares no free LED pins can carry no LED output at all. The two
-  Guition boards are in that state until their connectors are verified.
+- A board that declares no free LED pins can carry no LED output at all. Every
+  board declares some today — five pins on the 4848S040, eleven on the
+  JC1060P470C, ten on the T-Display and sixteen on the DevKitC-1.
 - **Releasing an output darkens it first.** These lamps latch the last frame they
   were sent, so a chain whose transmit channel is simply torn down goes on
   showing it for as long as it has power. `led::Output::close()` therefore
@@ -208,9 +211,10 @@ by the pixels one glyph occupies and its weight — `regular_4x6`, `bold_4x6`,
 `regular_5x8`, `bold_5x8` — because "small" and "large" say nothing about
 whether a glyph fits the panel in front of you. Each carries the digits, `N` and
 `R` and nothing else: a gear readout is what a panel this small can spell
-legibly, and dropping the rest of the alphabet took the compiled tables from
-fifty-nine glyphs to twelve. Glyph rows widened from one byte to two while a
-ten-pixel face was tried, which is why a face may now be up to sixteen wide.
+legibly, and dropping the rest of the alphabet took each compiled table from
+fifty-nine entries to thirty-five, twelve of which carry a glyph. Glyph rows
+widened from one byte to two while a ten-pixel face was tried, which is why a
+face may now be up to sixteen wide.
 
 Bold is drawn rather than derived. Thickening a face by rule — smearing each
 lit pixel one column right — was tried first and closes the counters: at four
@@ -220,26 +224,59 @@ room that the bold face differs from the regular one mostly in its horizontals.
 **A sprite can play itself.** `sprite_loop` walks a sprite's frames on the
 layer's own timebase, one every `speed_ms`, the way `animation` and scrolling
 `text` already move. Until it existed a sprite's frame came only from telemetry,
-so a picture could not move on its own — and a matrix is the one surface where
-`gradient` and `steps` say nothing useful, because they run along the wire order
-rather than across the panel, which on a serpentine board is not even a straight
-line. It is a flag rather than the default so `sprite_frame` keeps meaning what
-it says: one named frame, held.
+so a picture could not move on its own. It is a flag rather than the default so
+`sprite_frame` keeps meaning what it says: one named frame, held.
 
 This is what lets the configurator's flag profiles carry real artwork for a
-panel — a diagonal band sweeping for the two black flags, a rippling
-chequerboard for the chequered — generated into `sprites` when the profile is
-added to a matrix, and falling back to a blinking blob and a running lamp on a
-strip. The generated frames fill the 1024-digit pixel budget exactly, whatever
-the panel size: sixteen frames of eight by eight, four of sixteen by sixteen.
+panel — a diagonal band sweeping for the black and white, an orange disc
+blinking for the meatball, a rippling chequerboard for the chequered —
+generated into `sprites` when the profile is added to a matrix, and falling back
+to a blinking blob and a running lamp on a strip. A moving one takes as many
+whole frames as the 1024-digit pixel budget holds — sixteen of eight by eight,
+four of sixteen by sixteen — while the meatball disc is a single frame that
+blinks.
 
-**Sprites stay in the contract, not in the editor.** The configurator no longer
-authors matrix sprites or offers the sprite layer type; documents that carry
-them remain valid and the firmware still draws them. This is a product
-simplification, not a contract change — profiles over the existing layer kinds
-turned out to cover what sprites were reached for.
+**Sprites arrive with a profile, not from an editor.** There is no sprite
+editor: no pixel drawing and no import. Pictures are listed and removed under
+Pictures, and the sprite layer type is offered only on a matrix that already
+carries one. Profiles over the existing layer kinds cover what a sprite editor
+would have been reached for.
 
 The `modules` document's layer profiles (shift lights, flags, ABS, traction
 control, pit limiter, DRS, link-lost) are configurator data: each expands to
 plain `LedEffect` entries over the contract above, and the firmware knows
 nothing of them.
+
+## Amendment: a sixteen-pixel panel (schema 23)
+
+**Sixteen on a side, not thirty-two.** `kMaximumMatrixSide` becomes 16, and
+eight by eight — the contract's own default, which does not move — stays what
+nearly everyone mounts. The old bound was set where the lamp budget ran out
+rather than where panels are built, and it was half unusable anyway: a square
+panel at thirty-two is 1024 lamps and one output is refused above 512, so the
+largest square that ever validated was twenty-two.
+
+The bound is not free, because `panel_mask` is sized from it. Describing a
+thirty-two by thirty-two panel costs 257 bytes in *every* layer of *every*
+device, where a sixteen-pixel side needs sixty-four digits and a terminator.
+That takes 192 bytes off `LedEffect`, so the mask costs about 8 KB per copy of
+`ApplicationConfiguration` where it had cost 32 — 48 KB of external RAM
+returned across the active/scratch pair, measured as 414,204 bytes down to
+389,628. The capacity actually follows the panel's *area* rather than its side:
+64 digits cover any panel of 256 pixels, which is what a sixteen-a-side ceiling
+guarantees. A wider-than-tall panel of the same area — eight by thirty-two is
+sold as widely as sixteen by sixteen — would fit the same 65 bytes and is
+refused only by the side bound, so that is the line to move if one is ever
+wanted, not the capacity.
+
+The bound covers a sprite's own geometry too, since `LedSpriteConfiguration`
+shares it, which is sound because a sprite is drawn centred on a panel and
+clipped to it.
+
+**The schema version moves to 23.** Narrowing the range of a public property is
+a breaking change, and this document already requires a later schema version for
+one. It is not the same as the bound raises of earlier work, which no stored
+document could fail. A record written against 22 is therefore refused whole and
+each document falls back to its factory payload, per ADR 0024 — the cost of
+saying so loudly rather than letting a stored thirty-two-pixel panel be
+reinterpreted.

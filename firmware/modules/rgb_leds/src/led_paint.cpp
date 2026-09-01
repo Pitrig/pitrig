@@ -170,26 +170,25 @@ bool Area::holds(const std::uint16_t column, const std::uint16_t row) const {
   return value >= 0 && (value & (1 << (3 - pixel % 4))) != 0;
 }
 
-std::optional<Area> area_of(const led::Matrix& matrix,
-                            const configuration::LedEffect& effect) {
+Area area_of(const led::Matrix& matrix,
+             const configuration::LedEffect& effect) {
   const std::uint16_t across = matrix.drawn_width();
   const std::uint16_t down = matrix.drawn_height();
   if (across == 0 || down == 0) {
-    return std::nullopt;
+    return {};
   }
   if (down == 1) {
     if (effect.from >= across) {
-      return std::nullopt;
+      return {};
     }
     const auto available = static_cast<std::uint16_t>(across - effect.from);
     const std::uint16_t count =
         effect.count == 0 ? available : std::min(effect.count, available);
-    return count == 0 ? std::nullopt
-                      : std::optional<Area>{{effect.from, 0, count, 1, {}, across}};
+    return count == 0 ? Area{} : Area{effect.from, 0, count, 1, {}, across};
   }
   const std::string_view mask = configuration::text_view(effect.panel_mask);
   if (mask.empty()) {
-    return std::optional<Area>{{0, 0, across, down, {}, across}};
+    return Area{0, 0, across, down, {}, across};
   }
   Area whole{0, 0, across, down, mask, across};
   std::uint16_t left = across;
@@ -208,22 +207,15 @@ std::optional<Area> area_of(const led::Matrix& matrix,
     }
   }
   if (left > right || top > bottom) {
-    return std::nullopt;
+    return {};
   }
-  return std::optional<Area>{{left, top,
-                              static_cast<std::uint16_t>(right - left + 1),
-                              static_cast<std::uint16_t>(bottom - top + 1), mask,
-                              across}};
+  return Area{left, top, static_cast<std::uint16_t>(right - left + 1),
+              static_cast<std::uint16_t>(bottom - top + 1), mask, across};
 }
 
-std::optional<Surface> surface_of(led::Output& output,
-                                  const led::Matrix& matrix,
-                                  const configuration::LedEffect& effect) {
-  const std::optional<Area> area = area_of(matrix, effect);
-  if (!area.has_value()) {
-    return std::nullopt;
-  }
-  return Surface{output, matrix, *area, effect.inverted, effect.mirrored};
+Surface surface_of(led::Output& output, const led::Matrix& matrix,
+                   const Area& area, const configuration::LedEffect& effect) {
+  return Surface{output, matrix, area, effect.inverted, effect.mirrored};
 }
 
 void paint(const Surface& surface, const configuration::LedEffect& effect,

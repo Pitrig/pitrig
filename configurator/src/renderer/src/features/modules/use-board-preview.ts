@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 
 import { documentsDiffering } from '@shared/configuration-documents'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
+import { recordRunningConfiguration } from '@/features/device/use-live-apply'
 import { soloConfiguration } from './board-preview'
 import { useModulesStore } from './modules-store'
 
@@ -26,13 +27,9 @@ export function useBoardPreview(enabled: boolean): void {
           json: formatConfiguration(configuration),
           documents: ['modules']
         })
+        recordRunningConfiguration(result.ok ? configuration : undefined)
         if (cancelled) return
-        if (result.ok) {
-          useDeviceStore.getState().markLiveApplied(configuration)
-          reportPreviewError(undefined)
-        } else {
-          reportPreviewError(result.error.message)
-        }
+        reportPreviewError(result.ok ? undefined : result.error.message)
       })()
     }, APPLY_DELAY_MS)
     return () => {

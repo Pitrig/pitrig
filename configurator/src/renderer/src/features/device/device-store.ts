@@ -56,6 +56,7 @@ interface DeviceStore {
   markConfigurationSaved: (configuration: DeviceConfiguration, applied: boolean) => void
   markConfigurationReset: (configuration: DeviceConfiguration) => void
   markLiveApplied: (configuration: DeviceConfiguration) => void
+  markRunningUnknown: () => void
   beginEdit: () => void
   endEdit: () => void
   undo: () => void
@@ -198,6 +199,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
       ...clearedHistory()
     }),
   markLiveApplied: (configuration) => set({ runningConfiguration: configuration }),
+  markRunningUnknown: () => set({ runningConfiguration: undefined }),
   beginEdit: () =>
     set((current) => ({ editDepth: current.editDepth + 1, editRecorded: false })),
   endEdit: () => set((current) => ({ editDepth: Math.max(0, current.editDepth - 1) })),

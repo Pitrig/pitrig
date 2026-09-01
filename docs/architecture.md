@@ -271,7 +271,7 @@ Three exist:
 Buttons and encoders are still owed. The LED component owns the lamp buffer, the
 colour order each chip family reads, the gamma table, the brightness scaling and
 the current clamp, the mapping from a matrix cell to its place in the chain, and
-the two compiled bitmap faces a matrix draws text with. It knows nothing of the
+the four compiled bitmap faces a matrix draws text with. It knows nothing of the
 configuration contract, so the module translates
 ([ADR 0030](adr/0030-addressable-led-peripherals.md)). The input
 component registers the board's pointer with the LVGL port and nothing else —

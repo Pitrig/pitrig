@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 22;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 23;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -56,12 +56,12 @@ inline constexpr std::size_t kMaximumLedEffects = 32;
 inline constexpr std::size_t kMaximumLedsPerOutput = 512;
 inline constexpr std::size_t kMaximumLedsTotal = 1024;
 inline constexpr std::size_t kMaximumLedSegments = 8;
-inline constexpr std::size_t kMaximumMatrixSide = 32;
+inline constexpr std::size_t kMaximumMatrixSide = 16;
 inline constexpr std::size_t kMaximumLedSprites = 8;
 inline constexpr std::size_t kMaximumLedSpriteFrames = 16;
 inline constexpr std::size_t kLedPaletteSize = 16;
 inline constexpr std::size_t kLedSpritePixelCapacity = 1025;
-inline constexpr std::size_t kLedPanelMaskCapacity = 257;
+inline constexpr std::size_t kLedPanelMaskCapacity = 65;
 inline constexpr std::size_t kLedTextCapacity = 32;
 inline constexpr std::size_t kLedTelemetryIdleMs = 2000;
 

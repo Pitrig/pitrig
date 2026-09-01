@@ -1272,7 +1272,7 @@ A strip and a matrix are authored like this — two devices, two pins:
       "width": 8, "height": 8,
       "order": "serpentine", "origin": "top_left", "rotation_deg": 0,
       "effects": [
-        { "type": "text", "id": "gear", "font": "large", "color": "#FFFFFF",
+        { "type": "text", "id": "gear", "font": "bold_5x8", "color": "#FFFFFF",
           "source": { "binding": "transmission.gear" } }
       ]
     }
@@ -1284,7 +1284,9 @@ The two are **separate devices, not segments of one chain**: each owns a data pi
 and, on the wire, a transmit channel of its own, so neither can disturb the
 other's lamp numbering and either can be removed without renumbering anything.
 A board drives four of them, because four is how many transmit channels both the
-ESP32-S3 and the ESP32-P4 have. Lamp numbering is per device and starts at zero.
+ESP32-S3 and the ESP32-P4 have — except the DevKitC-1, whose status lamp holds
+one for the whole boot, so it drives three. Lamp numbering is per device and
+starts at zero.
 
 Layers are painted in the order they are authored and a later one overwrites the
 lamps it covers, so the flag layer above sits over the shift lights whatever they
@@ -1307,11 +1309,12 @@ across the top, eight down the right. The device clocks the chain out the same
 either way; the runs are what bends the configurator's previews to match the
 mounting, and their counts must sum to the strip's own or the document is
 rejected, as it is for a matrix carrying any, whose arrangement is its grid. An
-`rgb_matrix` is a data pin and a grid of `width` by `height`, described by the
-`order` its rows are wired in, the `origin` corner its first lamp sits in, and a
-quarter-turn `rotation_deg` so a panel mounted on its side still reads upright.
-The pin is checked against the pins the board declares free, and two devices may
-not name the same one. A layer carries no brightness of its own — the device's
+`rgb_matrix` is a data pin and a grid of `width` by `height` — eight by eight by
+default, sixteen by sixteen at most — described by the `order` its rows are
+wired in, the `origin` corner its first lamp sits in, and a quarter-turn
+`rotation_deg` so a panel mounted on its side still reads upright. The pin is
+checked against the pins the board declares free, and two devices may not name
+the same one. A layer carries no brightness of its own — the device's
 `brightness` is the one knob, applied to the whole frame on its way to the wire.
 Matrix artwork travels inside this document as palette-indexed pixels rather
 than as an uploaded asset, so it costs no partition, no upload and no restart; a
@@ -1323,7 +1326,8 @@ and the configurator types, and the current values are listed in
 [configuration-schema.md](configuration-schema.md). The widest payload bound is
 131072 bytes of compact JSON — the dashboard's, which at the ~350 bytes a widget
 measures carries around 370 of them; it is what sizes the shared line, record and
-reply buffers, while the other two documents are held to a kilobyte each. That is
+reply buffers, while the `modules` document is held to 32 KB — enough for a
+matrix's artwork to travel inline — and `protocol` to a kilobyte. That is
 the tighter of the two bounds a dense dashboard meets: the per-type widget pools
 add up to more widgets than one payload can carry, and a single screen addresses
 at most 255 of them whatever the pools hold. Those buffers live in external memory, and so does the parser's document:

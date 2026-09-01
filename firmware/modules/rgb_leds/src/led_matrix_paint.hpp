@@ -24,9 +24,8 @@ struct Panel {
                                            const telemetry::TelemetryRead& read,
                                            std::span<char> scratch);
 
-[[nodiscard]] std::optional<Panel> panel_of(led::Output& output,
-                                            const led::Matrix& matrix,
-                                            const configuration::LedEffect& effect);
+[[nodiscard]] Panel panel_of(led::Output& output, const led::Matrix& matrix,
+                             const Area& area);
 
 void paint_sprite(const Panel& panel,
                   const configuration::LedSpriteConfiguration* sprite,

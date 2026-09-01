@@ -35,6 +35,9 @@ void Panel::set(const int x, const int y, const led::Color color) const {
   if (x < 0 || y < 0 || x >= area.width || y >= area.height) {
     return;
   }
+  if (!area.holds(static_cast<std::uint16_t>(x), static_cast<std::uint16_t>(y))) {
+    return;
+  }
   const std::size_t lamp = led::matrix_lamp(*matrix, area.x + x, area.y + y);
   if (lamp == kOffPanel) {
     return;
@@ -42,13 +45,9 @@ void Panel::set(const int x, const int y, const led::Color color) const {
   output->set(lamp, color);
 }
 
-std::optional<Panel> panel_of(led::Output& output, const led::Matrix& matrix,
-                              const configuration::LedEffect& effect) {
-  const std::optional<Area> area = area_of(matrix, effect);
-  if (!area.has_value()) {
-    return std::nullopt;
-  }
-  return Panel{.output = &output, .matrix = &matrix, .area = *area};
+Panel panel_of(led::Output& output, const led::Matrix& matrix,
+               const Area& area) {
+  return Panel{.output = &output, .matrix = &matrix, .area = area};
 }
 
 void paint_sprite(const Panel& panel,
