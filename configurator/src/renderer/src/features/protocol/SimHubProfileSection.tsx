@@ -11,6 +11,7 @@ import {
   effectiveSimHubBaudRate,
   type SimHubProfileMode
 } from '@shared/simhub-profile'
+import { t } from '@shared/ui-text'
 
 type Feedback = { kind: 'success' | 'error'; message: string }
 
@@ -68,23 +69,23 @@ export function SimHubProfileSection(): React.JSX.Element {
 
   return (
     <PageSection
-      title="SimHub profile"
-      description="Generate a Custom Serial Device profile that feeds this dashboard."
+      title={t('protocol.simHubProfileSection.simHubProfile')}
+      description={t('protocol.simHubProfileSection.generateACustomSerialDevice')}
       actions={
         <Button
           disabled={exporting || blockedReason !== undefined}
           title={blockedReason}
           onClick={() => void exportProfile()}
         >
-          {exporting ? 'Generating…' : 'Generate profile'}
+          {exporting ? t('protocol.simHubProfileSection.generating') : t('protocol.simHubProfileSection.generateProfile')}
         </Button>
       }
     >
       <fieldset className="grid gap-2 sm:grid-cols-2" disabled={exporting}>
         <ProfileModeOption
           checked={mode === 'dashboard'}
-          description="Only the bindings and module inputs the current draft uses."
-          label="Dashboard only"
+          description={t('protocol.simHubProfileSection.onlyTheBindingsAndModule')}
+          label={t('protocol.simHubProfileSection.dashboardOnly')}
           onChange={() => {
             setMode('dashboard')
             setFeedback(undefined)
@@ -92,8 +93,8 @@ export function SimHubProfileSection(): React.JSX.Element {
         />
         <ProfileModeOption
           checked={mode === 'all'}
-          description="The complete canonical telemetry catalog."
-          label="All telemetry"
+          description={t('protocol.simHubProfileSection.theCompleteCanonicalTelemetryCatalog')}
+          label={t('protocol.simHubProfileSection.allTelemetry')}
           onChange={() => {
             setMode('all')
             setFeedback(undefined)
@@ -102,9 +103,9 @@ export function SimHubProfileSection(): React.JSX.Element {
       </fieldset>
 
       <div className="mt-3 flex items-center justify-between rounded-md border bg-muted/20 px-2 py-1.5 text-[11px]">
-        <span>{selection ? `${selection.fieldNames.length} fields` : 'No valid draft'}</span>
+        <span>{selection ? t('protocol.simHubProfileSection.lengthFields', { length: selection.fieldNames.length }) : t('protocol.simHubProfileSection.noValidDraft')}</span>
         <span className="text-muted-foreground">
-          {baudRate ? `${baudRate} baud` : 'Baud unavailable'}
+          {baudRate ? t('protocol.simHubProfileSection.baudRateBaud', { baudRate: baudRate }) : t('protocol.simHubProfileSection.baudUnavailable')}
         </span>
       </div>
 

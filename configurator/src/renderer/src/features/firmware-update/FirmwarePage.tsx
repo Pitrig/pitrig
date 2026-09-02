@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection, PageShell, ReadOnlyField } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useFirmwareUpdateStore } from './firmware-update-store'
+import { t } from '@shared/ui-text'
 
 export function FirmwarePage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -53,41 +54,38 @@ export function FirmwarePage(): React.JSX.Element {
 
   return (
     <PageShell
-      title="Firmware"
-      description="Install a firmware image into the slot the board is not running from."
+      title={t('device.infoPage.firmware')}
+      description={t('firmware.firmwarePage.installAFirmwareImageInto')}
       actions={
         firmware?.rebootRequired && !running ? (
-          <Button onClick={() => void window.simcore.rebootDevice()}>Restart board</Button>
+          <Button onClick={() => void window.simcore.rebootDevice()}>{t('firmware.firmwarePage.restartBoard')}</Button>
         ) : null
       }
     >
       {firmware ? (
         <>
           <PageSection
-            title="Slots"
-            description="The image takes over at the next restart; a startup that never finishes returns the board to the slot it came from."
+            title={t('firmware.firmwarePage.slots')}
+            description={t('firmware.firmwarePage.theImageTakesOverAt')}
           >
             <div className="grid gap-3 sm:grid-cols-3">
-              <ReadOnlyField label="Running" value={firmware.running} />
-              <ReadOnlyField label="Version" value={firmware.version} />
-              <ReadOnlyField label="Installs into" value={firmware.target} />
+              <ReadOnlyField label={t('firmware.firmwarePage.running')} value={firmware.running} />
+              <ReadOnlyField label={t('device.infoPage.version')} value={firmware.version} />
+              <ReadOnlyField label={t('firmware.firmwarePage.installsInto')} value={firmware.target} />
             </div>
             {firmware.pendingVerify ? (
               <p className="mt-3 text-[11px] text-amber-400">
-                This image has not been confirmed yet. A restart now returns the board to the
-                previous firmware.
-              </p>
+                {t('firmware.firmwarePage.thisImageHasNotBeen')}</p>
             ) : null}
             {firmware.rebootRequired ? (
               <p className="mt-3 text-[11px] text-amber-400">
-                Restart the board to run the firmware already installed.
-              </p>
+                {t('firmware.firmwarePage.restartTheBoardToRun')}</p>
             ) : null}
           </PageSection>
 
           <PageSection
-            title="Image"
-            description="A packaged SimCore firmware image, named for the board it was built for."
+            title={t('firmware.firmwarePage.image')}
+            description={t('firmware.firmwarePage.aPackagedSimcoreFirmwareImage')}
           >
             <div className="space-y-3">
               {source ? (
@@ -95,10 +93,10 @@ export function FirmwarePage(): React.JSX.Element {
                   <span className="min-w-0 truncate" title={source.name}>
                     {source.name}
                   </span>
-                  <span className="flex-none text-muted-foreground">{`${source.size} bytes`}</span>
+                  <span className="flex-none text-muted-foreground">{t('firmware.firmwarePage.sizeBytes', { size: source.size })}</span>
                 </div>
               ) : (
-                <p className="text-muted-foreground">No image selected.</p>
+                <p className="text-muted-foreground">{t('firmware.firmwarePage.noImageSelected')}</p>
               )}
 
               {progress ? (
@@ -111,7 +109,7 @@ export function FirmwarePage(): React.JSX.Element {
                   </div>
                   <p className="break-words">
                     {progress.message}
-                    {progress.total > 0 ? ` (${percent}%)` : ''}
+                    {progress.total > 0 ? t('firmware.firmwarePage.percent', { percent: percent }) : ''}
                   </p>
                 </div>
               ) : null}
@@ -124,10 +122,9 @@ export function FirmwarePage(): React.JSX.Element {
                   disabled={busy}
                   onClick={() => void selectSource()}
                 >
-                  Select image…
-                </Button>
+                  {t('firmware.firmwarePage.selectImage')}</Button>
                 <Button className="flex-1" disabled={!uploadable} onClick={() => void upload()}>
-                  {running ? 'Installing…' : 'Install'}
+                  {running ? t('firmware.firmwarePage.installing') : t('common.install')}
                 </Button>
               </div>
               {running ? (
@@ -136,18 +133,17 @@ export function FirmwarePage(): React.JSX.Element {
                   variant="outline"
                   onClick={() => void window.simcore.cancelFirmwareUpload()}
                 >
-                  Cancel
-                </Button>
+                  {t('common.cancel')}</Button>
               ) : null}
             </div>
           </PageSection>
         </>
       ) : (
-        <PageSection title="Not available" description="What this board can do over serial.">
-          <EmptyState icon={<Cpu aria-hidden="true" className="size-6" />} title="No second slot">
+        <PageSection title={t('firmware.firmwarePage.notAvailable')} description={t('firmware.firmwarePage.whatThisBoardCanDo')}>
+          <EmptyState icon={<Cpu aria-hidden="true" className="size-6" />} title={t('firmware.firmwarePage.noSecondSlot')}>
             {session
-              ? 'The connected firmware predates the two-slot partition layout, so it cannot replace itself over serial. Flash it once over USB with idf.py, and every update after that can come this way.'
-              : 'Connect a board with two firmware slots.'}
+              ? t('firmware.firmwarePage.theConnectedFirmwarePredatesThe')
+              : t('firmware.firmwarePage.connectABoardWithTwo')}
           </EmptyState>
         </PageSection>
       )}

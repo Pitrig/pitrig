@@ -9,6 +9,7 @@ import { DeviceServiceError, failure, toDeviceError } from './device-errors'
 import { isBluetoothPort, serialIdentity, type PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
 import type { ConnectionManager } from './device-connection'
+import { t } from '@shared/ui-text'
 
 export interface Match {
   record: PortRecord
@@ -23,7 +24,7 @@ export async function scanForDevice(
   connection.ensureCurrent(token)
   const candidates = records.filter(({ likelyUsb, path }) => likelyUsb && !isBluetoothPort(path))
   if (candidates.length === 0) {
-    throw new DeviceServiceError('no_device', 'No USB serial ports were found.')
+    throw new DeviceServiceError('no_device', t('device.deviceScan.noUsbSerialPortsWere'))
   }
 
   const totalAttempts = candidates.length * AUTOMATIC_BAUD_RATES.length
@@ -73,19 +74,19 @@ export async function scanForDevice(
     }
     throw new DeviceServiceError(
       'no_device',
-      'No compatible SimCore device responded to the INFO probe.'
+      t('device.deviceScan.noCompatibleSimcoreDeviceResponded')
     )
   }
   if (matches.length > 1) {
     throw new DeviceServiceError(
       'multiple_devices',
-      'Multiple SimCore devices were found. Select a port manually.'
+      t('device.deviceScan.multipleSimcoreDevicesWereFound')
     )
   }
 
   const match = matches[0]
   if (!match) {
-    throw new DeviceServiceError('no_device', 'No SimCore device was found.')
+    throw new DeviceServiceError('no_device', t('device.deviceScan.noSimcoreDeviceWasFound'))
   }
   return match
 }
@@ -130,7 +131,7 @@ export async function reconnectToBoard(
   }
   const error: DeviceError = {
     code: 'port_missing',
-    message: 'The board restarted but did not come back on its port. Reconnect it by hand.'
+    message: t('device.deviceScan.theBoardRestartedButDid')
   }
   manager.setState({ status: 'error', error })
   return failure(error)

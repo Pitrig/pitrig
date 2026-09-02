@@ -8,6 +8,7 @@ import { AddButton } from '@/features/configuration/inspector/widget-editors'
 import { addProfile, mutateEffects } from './modules-document'
 import { useModulesStore } from './modules-store'
 import { LED_PROFILES, type LampRange, type LedProfile } from './profiles'
+import { t } from '@shared/ui-text'
 
 const CUSTOM_LAYER = { type: 'solid', color: '#38BDF8' } as const
 
@@ -70,18 +71,18 @@ export function ProfilePicker({
     from === 0 && to === lamps - 1 ? { from: 0, count: 0 } : { from, count: to - from + 1 }
 
   if (!open) {
-    return <AddButton label="Add layer…" onClick={() => setOpen(true)} />
+    return <AddButton label={t('modules.profilePicker.addLayer')} onClick={() => setOpen(true)} />
   }
 
   return (
     <div className="mt-1 rounded border border-white/10 bg-black/20 p-2">
       <div className="flex items-center justify-between pb-1">
         <span className="text-xs font-medium">
-          {chosen ? chosen.label : 'What should the new layer do?'}
+          {chosen ? chosen.label : t('modules.profilePicker.whatShouldTheNewLayer')}
         </span>
         <button
           type="button"
-          aria-label="Close the layer picker"
+          aria-label={t('modules.profilePicker.closeTheLayerPicker')}
           className="rounded p-1 text-muted-foreground hover:bg-white/5"
           onClick={close}
         >
@@ -120,18 +121,17 @@ export function ProfilePicker({
               close()
             }}
           >
-            <span className="block text-xs font-medium">Custom layer</span>
+            <span className="block text-xs font-medium">{t('modules.profilePicker.customLayer')}</span>
             <span className="block pt-0.5 text-[10px] text-muted-foreground">
-              A blank layer with every control open.
-            </span>
+              {t('modules.profilePicker.aBlankLayerWithEvery')}</span>
           </button>
         </div>
       ) : (
         <>
           <div className="flex items-center gap-2 pb-1">
-            <span className="text-[11px] text-muted-foreground">Lamps</span>
+            <span className="text-[11px] text-muted-foreground">{t('modules.outputEditor.lamps')}</span>
             <NumberInput
-              title="First lamp of the profile"
+              title={t('modules.profilePicker.firstLampOfTheProfile')}
               value={from + 1}
               min={1}
               max={to + 1}
@@ -141,9 +141,9 @@ export function ProfilePicker({
                 highlight(first, to)
               }}
             />
-            <span className="text-[11px] text-muted-foreground">to</span>
+            <span className="text-[11px] text-muted-foreground">{t('modules.profilePicker.to')}</span>
             <NumberInput
-              title="Last lamp of the profile"
+              title={t('modules.profilePicker.lastLampOfTheProfile')}
               value={to + 1}
               min={from + 1}
               max={lamps}
@@ -172,15 +172,14 @@ export function ProfilePicker({
               ))}
             </div>
           ) : null}
-          <Hint>The covered lamps glow in the preview above.</Hint>
+          <Hint>{t('modules.profilePicker.theCoveredLampsGlowIn')}</Hint>
           <div className="flex gap-1 pt-1">
             <button
               type="button"
               className="rounded border border-sky-500/50 bg-sky-500/10 px-2 py-1 text-xs hover:bg-sky-500/20"
               onClick={() => insert(chosen, rangeOf())}
             >
-              Add to this device
-            </button>
+              {t('modules.profilePicker.addToThisDevice')}</button>
             <button
               type="button"
               className="rounded border px-2 py-1 text-xs hover:bg-white/5"
@@ -189,8 +188,7 @@ export function ProfilePicker({
                 setHighlight(null)
               }}
             >
-              Back
-            </button>
+              {t('templates.insertScreenDialog.back')}</button>
           </div>
         </>
       )}

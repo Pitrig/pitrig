@@ -8,6 +8,7 @@ import { previewDrive, previewNote } from './preview-values'
 import { DevicePreview } from './DevicePreview'
 import { layerName } from './layer-name'
 import { useModulesStore } from './modules-store'
+import { t } from '@shared/ui-text'
 
 const SWEEP_MS = 4000
 const TICK_MS = 33
@@ -53,7 +54,7 @@ export function LedPreview({
   const drives = layers.map((layer) => previewDrive(layer, elapsed))
 
   return (
-    <PageSection title="Preview" description={describe(played)}>
+    <PageSection title={t('modules.ledPreview.preview')} description={describe(played)}>
       <DevicePreview
         device={device}
         frame={

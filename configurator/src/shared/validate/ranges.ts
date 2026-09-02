@@ -1,6 +1,7 @@
 import { FIELD_RANGES, type FieldRange } from '../configuration-schema'
 import { pagesOf, screensOf, widgetsOf, type WidgetParent } from '../configuration-access'
 import type { ApplicationConfiguration, WidgetConfiguration } from '../configuration-schema'
+import { t } from '../ui-text'
 
 const SLOT_PAGE_RANGES = 'SlotPageConfiguration'
 const WIDGET_CONDITION_RANGES = 'WidgetCondition'
@@ -23,19 +24,19 @@ export function findBoundError(
     const value = read(source, range.key)
     if (value === undefined) continue
     if (typeof value !== 'number' || !Number.isFinite(value)) {
-      return `${owner} sets "${range.key}" to something that is not a number.`
+      return t('validation.ranges.ownerSetsKeyToSomething', { owner: owner, key: range.key })
     }
     if (range.zeroMeansOff && value === 0) continue
     if (value < range.minimum || value > range.maximum) {
-      return `${owner} sets "${range.key}" to ${value}; the device accepts ${describe(range)}.`
+      return t('validation.ranges.ownerSetsKeyToValue', { owner: owner, key: range.key, value: value, range: describe(range) })
     }
   }
   return undefined
 }
 
 function describe(range: FieldRange): string {
-  const window = `${range.minimum} to ${range.maximum}`
-  return range.zeroMeansOff ? `0 or ${window}` : window
+  const window = t('validation.ranges.minimumToMaximum', { minimum: range.minimum, maximum: range.maximum })
+  return range.zeroMeansOff ? t('validation.ranges.text0OrWindow', { window: window }) : window
 }
 
 function findWidgetError(widget: WidgetConfiguration): string | undefined {

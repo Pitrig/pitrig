@@ -16,6 +16,7 @@ import { useDeviceStore } from '@/features/device/device-store'
 import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import { useDraftState } from '@/features/device/draft-state'
 import { useWorkspaceStore, WORKSPACE_TABS, type WorkspaceTab } from './workspace-store'
+import { t } from '@shared/ui-text'
 
 const COLLAPSED_WIDTH = '3.5rem'
 const EXPANDED_WIDTH = '11.25rem'
@@ -28,15 +29,15 @@ interface RailEntry {
 
 const ENTRIES: Record<WorkspaceTab, RailEntry> = {
   dashboard: {
-    label: 'Dashboard',
+    label: t('documents.label.dashboard'),
     icon: LayoutDashboard,
-    hint: 'Draw the dashboard, and the fonts, images and templates it is made of'
+    hint: t('misc.workspaceRail.drawTheDashboardAndThe')
   },
-  modules: { label: 'Modules', icon: Puzzle, hint: 'Buttons, encoders and LEDs' },
-  protocol: { label: 'Protocol', icon: Cable, hint: 'Telemetry link and SimHub' },
-  configs: { label: 'Configs', icon: Files, hint: 'Files, saved configurations and JSON' },
-  firmware: { label: 'Firmware', icon: Cpu, hint: 'Install a firmware image over serial' },
-  info: { label: 'Info', icon: Info, hint: 'What the connected board is' }
+  modules: { label: t('documents.label.modules'), icon: Puzzle, hint: t('misc.workspaceRail.buttonsEncodersAndLeds') },
+  protocol: { label: t('documents.label.protocol'), icon: Cable, hint: t('misc.workspaceRail.telemetryLinkAndSimhub') },
+  configs: { label: t('dashboard.configsPage.configs'), icon: Files, hint: t('misc.workspaceRail.filesSavedConfigurationsAndJson') },
+  firmware: { label: t('device.infoPage.firmware'), icon: Cpu, hint: t('misc.workspaceRail.installAFirmwareImageOver') },
+  info: { label: t('device.infoPage.info'), icon: Info, hint: t('misc.workspaceRail.whatTheConnectedBoardIs') }
 }
 
 const OWNED_DOCUMENT: Partial<Record<WorkspaceTab, ConfigurationDocumentId>> = {
@@ -77,19 +78,19 @@ export function WorkspaceRail(): React.JSX.Element {
   const ToggleIcon = expanded ? PanelLeftClose : PanelLeftOpen
   return (
     <nav
-      aria-label="Workspace"
+      aria-label={t('app.workspaceRail.workspace')}
       className="flex min-h-0 flex-none flex-col gap-1 border-r p-2 transition-[width] duration-150"
       style={{ width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
     >
       <button
         type="button"
-        aria-label={expanded ? 'Collapse the workspace rail' : 'Expand the workspace rail'}
-        title={expanded ? 'Collapse' : 'Expand'}
+        aria-label={expanded ? t('app.workspaceRail.collapseTheWorkspaceRail') : t('app.workspaceRail.expandTheWorkspaceRail')}
+        title={expanded ? t('app.workspaceRail.collapse') : t('app.workspaceRail.expand')}
         className="flex h-9 flex-none items-center gap-2.5 rounded-md px-2.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         onClick={toggleRail}
       >
         <ToggleIcon aria-hidden="true" className="size-4 flex-none" />
-        {expanded ? <span className="truncate text-xs">Collapse</span> : null}
+        {expanded ? <span className="truncate text-xs">{t('app.workspaceRail.collapse')}</span> : null}
       </button>
 
       <div className="mt-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
@@ -102,7 +103,7 @@ export function WorkspaceRail(): React.JSX.Element {
               key={candidate}
               type="button"
               aria-current={active ? 'page' : undefined}
-              title={expanded ? entry.hint : `${entry.label} — ${entry.hint}`}
+              title={expanded ? entry.hint : t('app.workspaceRail.labelHint', { label: entry.label, hint: entry.hint })}
               className={cn(
                 'relative flex h-10 flex-none items-center gap-2.5 rounded-md px-2.5 text-left text-xs font-medium transition-colors',
                 active

@@ -3,6 +3,7 @@ import {
   type ApplicationConfiguration
 } from '../configuration-schema'
 import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
+import { t } from '../ui-text'
 
 const MINIMUM_BAUD_RATE = 9_600
 const MAXIMUM_BAUD_RATE = 2_000_000
@@ -14,16 +15,16 @@ export function findTransportError(
   if (transport === undefined) return undefined
   const id = transport.id
   if (id !== undefined && !TELEMETRY_TRANSPORT_ID_VALUES.includes(id)) {
-    return `"telemetry_transport.id" is ${JSON.stringify(id)}; the device knows ${TELEMETRY_TRANSPORT_ID_VALUES.join(', ')}.`
+    return t('validation.transport.telemetryTransportIdIsId', { id: JSON.stringify(id), join: TELEMETRY_TRANSPORT_ID_VALUES.join(', ') })
   }
   const board = configuration.board as SimCoreBoardId | undefined
   const profile = board ? BOARD_PROFILES[board] : undefined
   if (id === 'native_usb_cdc' && profile && !profile.transports.nativeUsbCdc) {
-    return 'This board has no native USB port; telemetry has to run over its UART.'
+    return t('validation.transport.thisBoardHasNoNative')
   }
   if (id === 'uart') {
     if (profile && !profile.transports.uart) {
-      return 'This board has no UART for telemetry; it talks over its native USB port.'
+      return t('validation.transport.thisBoardHasNoUart')
     }
     const baudRate = transport.uart?.baud_rate
     if (
@@ -32,7 +33,7 @@ export function findTransportError(
         baudRate < MINIMUM_BAUD_RATE ||
         baudRate > MAXIMUM_BAUD_RATE)
     ) {
-      return `The UART runs at ${baudRate} bits per second; the device accepts ${MINIMUM_BAUD_RATE} to ${MAXIMUM_BAUD_RATE}.`
+      return t('validation.transport.theUartRunsAtBaudrate', { baudRate: baudRate, mINIMUM_BAUD_RATE: MINIMUM_BAUD_RATE, mAXIMUM_BAUD_RATE: MAXIMUM_BAUD_RATE })
     }
   }
   return undefined

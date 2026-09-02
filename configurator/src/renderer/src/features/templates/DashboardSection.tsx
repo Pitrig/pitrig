@@ -28,6 +28,7 @@ import { EVERY_BOARD, listedDashboards } from './dashboard-listing'
 import { TemplateCard } from './TemplateCard'
 import { useInsertScreenStore } from './insert-screen-store'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
+import { t } from '@shared/ui-text'
 
 export function DashboardSection({
   busy,
@@ -65,7 +66,7 @@ export function DashboardSection({
     if (
       hasLocalDraft &&
       !window.confirm(
-        `Replace everything you have open with "${summary.name}"? Every screen and every widget in the current draft is discarded.`
+        t('templates.dashboardSection.replaceEverythingYouHaveOpen2', { name: summary.name })
       )
     ) {
       return
@@ -81,7 +82,7 @@ export function DashboardSection({
         return
       }
       if (result.value.format !== 'simcore-dashboard-template') {
-        setError('That entry is not a dashboard.')
+        setError(t('templates.dashboardSection.thatEntryIsNotA'))
         return
       }
       const board = session?.info.boardId ?? draft?.board ?? result.value.configuration.board
@@ -99,7 +100,7 @@ export function DashboardSection({
       })
       if (!validated.ok) {
         setError(
-          `"${summary.name}" would not be accepted on this board, so the draft was left alone. ${validated.error}`
+          t('templates.dashboardSection.nameWouldNotBeAccepted', { name: summary.name, error: validated.error })
         )
         return
       }
@@ -113,7 +114,7 @@ export function DashboardSection({
       )
       onNotice(`"${summary.name}" is now the local draft.`)
     } catch (bridgeError) {
-      setError(bridgeError instanceof Error ? bridgeError.message : 'Failed to apply the template.')
+      setError(bridgeError instanceof Error ? bridgeError.message : t('templates.dashboardSection.failedToApplyTheTemplate'))
     } finally {
       setBusy(false)
     }
@@ -121,21 +122,22 @@ export function DashboardSection({
 
   return (
     <PageSection
-      title="Dashboards"
+      title={t('templates.dashboardSection.dashboards')}
       description={
         targetBoard
           ? `Whole layouts, scaled to ${displaySize(targetBoard) ?? targetBoard} on the way in. Add takes screens from one; Use replaces what you have open.`
-          : 'Whole layouts. Add takes screens from one; Use replaces what you have open.'
+          : t('templates.dashboardSection.wholeLayoutsAddTakesScreens')
       }
       actions={<DashboardListControls entries={templates} />}
     >
       {templates.length === 0 ? (
         <EmptyState
           icon={<LayoutTemplate aria-hidden="true" className="size-6" />}
-          title="No dashboards"
+          title={t('templates.dashboardSection.noDashboards')}
         >
-          Save the dashboard you are working on with <b>Save to templates</b> on the canvas, and it
-          will be here next time.
+          {t('templates.dashboardSection.emptyBefore')}
+          <b>{t('templates.dashboardSection.saveToTemplates')}</b>
+          {t('templates.dashboardSection.emptyAfter')}
         </EmptyState>
       ) : listed.length === 0 ? (
         <p className="rounded-md border p-3 text-xs text-muted-foreground">
@@ -145,8 +147,7 @@ export function DashboardSection({
             type="button"
             onClick={() => setBoard(EVERY_BOARD)}
           >
-            Show every size
-          </button>
+            {t('templates.dashboardSection.showEverySize')}</button>
         </p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
@@ -164,8 +165,7 @@ export function DashboardSection({
                       className="flex-none border-zinc-500/40 bg-zinc-500/15 text-zinc-300"
                       variant="outline"
                     >
-                      Starter
-                    </Badge>
+                      {t('templates.dashboardSection.starter')}</Badge>
                   ) : null}
                   <Badge className="flex-none" variant="outline" title={summary.board}>
                     {displaySize(summary.board) ?? summary.board}
@@ -180,26 +180,24 @@ export function DashboardSection({
                     disabled={busy || !hasLocalDraft}
                     title={
                       hasLocalDraft
-                        ? 'Add screens from this template to the dashboard you have open'
-                        : 'Open a dashboard first — there is nothing to add screens to'
+                        ? t('templates.dashboardSection.addScreensFromThisTemplate')
+                        : t('templates.dashboardSection.openADashboardFirstThere')
                     }
                     onClick={() => openPicker(summary)}
                   >
                     <Plus aria-hidden="true" className="mr-1 size-3.5" />
-                    Add
-                  </Button>
+                    {t('common.add')}</Button>
                   <Button
                     className="h-7 px-2"
                     variant="outline"
                     disabled={busy}
-                    title="Replace everything you have open with this template"
+                    title={t('templates.dashboardSection.replaceEverythingYouHaveOpen')}
                     onClick={() => void use(summary)}
                   >
-                    Use
-                  </Button>
+                    {t('templates.dashboardSection.use')}</Button>
                   {summary.origin === 'user' ? (
                     <Button
-                      aria-label={`Delete ${summary.name}`}
+                      aria-label={t('configs.librarySection.deleteName', { name: summary.name })}
                       className="h-7 px-2 text-red-400 hover:text-red-300"
                       variant="outline"
                       disabled={busy}
@@ -223,14 +221,13 @@ export function DashboardSection({
       {report ? (
         <div className="mt-3 space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
           <div className="flex items-start justify-between gap-2">
-            <span className="font-medium">Layout transfer</span>
+            <span className="font-medium">{t('templates.dashboardSection.layoutTransfer')}</span>
             <button
               className="text-sky-300/70 hover:text-sky-200"
               type="button"
               onClick={() => setReport(undefined)}
             >
-              Dismiss
-            </button>
+              {t('templates.dashboardSection.dismiss')}</button>
           </div>
           <ul className="list-disc space-y-0.5 pl-4">
             {transferReportLines(report).map((line) => (

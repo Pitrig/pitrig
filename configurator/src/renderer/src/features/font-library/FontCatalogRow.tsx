@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 import type { FontCatalogFamily, FontVariant } from '@shared/font-library'
+import { t } from '@shared/ui-text'
 
 import { Badge } from '@/components/ui/badge'
 import { FaceSpecimen } from './FaceSpecimen'
@@ -68,11 +69,11 @@ export function FontCatalogRow({
           <FaceSpecimen cssFamily={previewFamily} tabularDigits={tabularDigits} />
           <span className="block truncate text-[0.65rem] text-muted-foreground">
             {family.category}
-            {unavailable ? ' · preview unavailable' : ''}
+            {unavailable ? t('fonts.fontCatalogRow.previewUnavailable') : ''}
           </span>
         </span>
         <Badge variant="outline" className="shrink-0 text-[0.65rem]">
-          {family.variants.length} {family.variants.length === 1 ? 'weight' : 'weights'}
+          {t('fonts.catalog.weightCount', { count: family.variants.length })}
         </Badge>
       </button>
       {expanded ? (

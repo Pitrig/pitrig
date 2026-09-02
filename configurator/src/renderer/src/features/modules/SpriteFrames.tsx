@@ -4,7 +4,7 @@ import type { LedSpriteConfiguration } from '@shared/configuration-schema'
 import { frameOf, inkAt, inkColor, maxFramesFor, spriteGeometry } from '@shared/led-sprite'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { addFrame, dropFrame, reorderFrame } from './sprite-document'
 
 const THUMB = 44
@@ -66,13 +66,13 @@ export function SpriteFrames({
   }
 
   return (
-    <PropertyRow label="Frames" hint={HINTS.sprite.frames} block>
+    <PropertyRow label={t('modules.spriteFrames.frames')} hint={t('modules.hints.sprite.frames')} block>
       <div className="flex items-center gap-1 pb-1 text-[10px] text-muted-foreground">
-        <span>{`${frames} of ${ceiling} this size allows`}</span>
+        <span>{t('modules.spriteFrames.framesOfCeilingThisSize', { frames: frames, ceiling: ceiling })}</span>
         <button
           type="button"
           aria-pressed={playing}
-          aria-label={playing ? 'Stop playing the frames' : 'Play the frames'}
+          aria-label={playing ? t('modules.spriteFrames.stopPlayingTheFrames') : t('modules.spriteFrames.playTheFrames')}
           disabled={frames < 2}
           className={`ml-auto rounded p-1 hover:bg-white/5 disabled:opacity-30 ${
             playing ? 'bg-sky-500/25 text-sky-300' : ''
@@ -83,7 +83,7 @@ export function SpriteFrames({
         </button>
         <button
           type="button"
-          aria-label="Move this frame earlier"
+          aria-label={t('modules.spriteFrames.moveThisFrameEarlier')}
           disabled={frame === 0}
           className="rounded p-1 hover:bg-white/5 disabled:opacity-30"
           onClick={() => move(frame - 1)}
@@ -92,7 +92,7 @@ export function SpriteFrames({
         </button>
         <button
           type="button"
-          aria-label="Move this frame later"
+          aria-label={t('modules.spriteFrames.moveThisFrameLater')}
           disabled={frame >= frames - 1}
           className="rounded p-1 hover:bg-white/5 disabled:opacity-30"
           onClick={() => move(frame + 1)}
@@ -101,8 +101,8 @@ export function SpriteFrames({
         </button>
         <button
           type="button"
-          aria-label="Duplicate this frame"
-          title="Copies this frame after it, which is how one drawing becomes the next"
+          aria-label={t('modules.spriteFrames.duplicateThisFrame')}
+          title={t('modules.spriteFrames.copiesThisFrameAfterIt')}
           disabled={full}
           className="rounded p-1 hover:bg-white/5 disabled:opacity-30"
           onClick={() => {
@@ -114,9 +114,9 @@ export function SpriteFrames({
         </button>
         <button
           type="button"
-          aria-label="Add an empty frame"
+          aria-label={t('modules.spriteFrames.addAnEmptyFrame')}
           disabled={full}
-          title={full ? `A ${width} by ${height} picture holds ${ceiling} frames` : undefined}
+          title={full ? t('modules.spriteFrames.aWidthByHeightPicture', { width: width, height: height, ceiling: ceiling }) : undefined}
           className="rounded p-1 hover:bg-white/5 disabled:opacity-30"
           onClick={() => {
             addFrame(output, at, frame, false)
@@ -126,7 +126,7 @@ export function SpriteFrames({
           <Plus className="size-3.5" />
         </button>
         <RemoveButton
-          label="Remove this frame"
+          label={t('modules.spriteFrames.removeThisFrame')}
           disabled={frames <= 1}
           onClick={() => {
             dropFrame(output, at, frame)

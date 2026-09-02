@@ -31,6 +31,8 @@ export function failure<T>(code: AssetError['code'], message: string): AssetResu
   return { ok: false, error: { code, message } }
 }
 
+export class PackageTooLargeError extends Error {}
+
 export abstract class AssetServiceBase {
   protected readonly sources = new Map<string, SourceRecord>()
   protected activeOperation: AbortController | undefined

@@ -21,12 +21,13 @@ import { ImagesPage } from '@/features/image-assets/ImagesPage'
 import { InsertScreenDialog } from '@/features/templates/InsertScreenDialog'
 import { SaveToTemplatesButton } from '@/features/templates/SaveToTemplates'
 import { TemplatesPage } from '@/features/templates/TemplatesPage'
+import { t } from '@shared/ui-text'
 
 const VIEWS: ReadonlyArray<SubTab<DashboardView>> = [
-  { id: 'canvas', label: 'Canvas', icon: PenTool },
-  { id: 'templates', label: 'Templates', icon: LayoutTemplate },
-  { id: 'fonts', label: 'Fonts', icon: Type },
-  { id: 'images', label: 'Images', icon: Image }
+  { id: 'canvas', label: t('dashboard.dashboardWorkspace.canvas'), icon: PenTool },
+  { id: 'templates', label: t('dashboard.dashboardWorkspace.templates'), icon: LayoutTemplate },
+  { id: 'fonts', label: t('fonts.fontsPage.fonts'), icon: Type },
+  { id: 'images', label: t('images.imagesPage.images'), icon: Image }
 ]
 
 export function DashboardWorkspace(): React.JSX.Element {
@@ -41,7 +42,7 @@ export function DashboardWorkspace(): React.JSX.Element {
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <SubTabs
-        label="Dashboard pages"
+        label={t('dashboard.dashboardWorkspace.dashboardPages')}
         tabs={VIEWS}
         value={view}
         onChange={setView}
@@ -53,15 +54,13 @@ export function DashboardWorkspace(): React.JSX.Element {
                 className="flex-none border-amber-500/40 bg-amber-500/15 text-amber-300"
                 variant="outline"
               >
-                Restart required
-              </Badge>
+                {t('dashboard.configsPage.restartRequired')}</Badge>
             ) : dirty ? (
               <Badge
                 className="flex-none border-sky-500/40 bg-sky-500/15 text-sky-300"
                 variant="outline"
               >
-                Modified
-              </Badge>
+                {t('dashboard.configsPage.modified')}</Badge>
             ) : null}
             {view === 'canvas' ? <SaveToTemplatesButton /> : null}
             <RestartBoardButton />
@@ -93,13 +92,12 @@ function RestartBoardButton(): React.JSX.Element {
       disabled={!connected || saving}
       title={
         connected
-          ? 'Restart the connected board'
-          : 'Connect a board to restart it'
+          ? t('dashboard.dashboardWorkspace.restartTheConnectedBoard')
+          : t('dashboard.dashboardWorkspace.connectABoardToRestart')
       }
       onClick={() => void restartBoard()}
     >
-      Restart
-    </Button>
+      {t('dashboard.dashboardWorkspace.restart')}</Button>
   )
 }
 

@@ -15,6 +15,7 @@ import { usePreviewAssetStore } from '@/features/configuration/preview/preview-a
 import { useImageAssetsStore } from './image-assets-store'
 import { StagedImageCard } from './StagedImageCard'
 import { StorageBar, Thumbnail } from './image-page-parts'
+import { t } from '@shared/ui-text'
 
 export function ImagesPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -107,26 +108,26 @@ export function ImagesPage(): React.JSX.Element {
   }
 
   const clearBoard = async (): Promise<void> => {
-    if (!window.confirm('Erase every image installed on the board?')) return
+    if (!window.confirm(t('images.imagesPage.eraseEveryImageInstalledOn'))) return
     setBusy(true)
     setMessage(undefined)
     const result = await window.simcore.clearImageAssets().catch(() => undefined)
     setBusy(false)
-    if (!result) return setMessage('The board could not be reached.')
+    if (!result) return setMessage(t('fonts.fontsPage.theBoardCouldNotBe'))
     setMessage(
       result.ok
-        ? 'Board image package erased. Restart the board, then install again.'
+        ? t('images.imagesPage.boardImagePackageErasedRestart')
         : result.error.message
     )
   }
 
   return (
     <PageShell
-      title="Images"
+      title={t('images.imagesPage.images')}
       description={
         images
-          ? 'Converted here and stored on the board as one package. Installing replaces every image and needs a restart.'
-          : 'The connected firmware does not support uploaded images.'
+          ? t('images.imagesPage.convertedHereAndStoredOn')
+          : t('images.imagesPage.theConnectedFirmwareDoesNot')
       }
       actions={
         <>
@@ -135,16 +136,14 @@ export function ImagesPage(): React.JSX.Element {
             disabled={busy || !images || entries.length >= MAXIMUM_IMAGES}
             onClick={() => void addSource()}
           >
-            Add image…
-          </Button>
+            {t('images.imagesPage.addImage')}</Button>
           <Button
             className="text-red-400 hover:text-red-300"
             variant="outline"
             disabled={busy || !images?.storageAvailable || !images?.packageAvailable}
             onClick={() => void clearBoard()}
           >
-            Erase on board
-          </Button>
+            {t('fonts.fontsPage.eraseOnBoard')}</Button>
         </>
       }
     >
@@ -153,12 +152,12 @@ export function ImagesPage(): React.JSX.Element {
       ) : null}
 
       <PageSection
-        title="On the board"
-        description="What the installed package holds. A widget refers to one of these names."
+        title={t('images.imagesPage.onTheBoard')}
+        description={t('images.imagesPage.whatTheInstalledPackageHolds')}
       >
         <StorageBar
           className="mb-3"
-          label="Installed"
+          label={t('images.imagesPage.installed')}
           used={images?.packageSize ?? 0}
           available={Boolean(images)}
         />
@@ -176,8 +175,8 @@ export function ImagesPage(): React.JSX.Element {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-mono">{image.name}</span>
                   <span className="block text-[11px] text-muted-foreground">
-                    {`${image.width}×${image.height} · ${image.format}`}
-                    {image.frameCount > 1 ? ` · ${image.frameCount} frames` : ''}
+                    {t('images.imagesPage.widthHeightFormat', { width: image.width, height: image.height, format: image.format })}
+                    {image.frameCount > 1 ? t('images.imagesPage.frameCountFrames', { frameCount: image.frameCount }) : ''}
                   </span>
                 </span>
               </li>
@@ -186,30 +185,29 @@ export function ImagesPage(): React.JSX.Element {
         ) : (
           <EmptyState
             icon={<ImageIcon aria-hidden="true" className="size-6" />}
-            title={images ? 'No images installed' : 'No image support'}
+            title={images ? t('images.imagesPage.noImagesInstalled') : t('images.imagesPage.noImageSupport')}
           >
             {images
-              ? 'Add a PNG or JPEG below, give it the name a widget will refer to, and install.'
-              : 'Connect a board whose firmware carries an image partition.'}
+              ? t('images.imagesPage.addAPngOrJpeg')
+              : t('images.imagesPage.connectABoardWhoseFirmware')}
           </EmptyState>
         )}
         {images?.rebootRequired ? (
-          <p className="mt-3 text-amber-400">Restart the board before uploading again.</p>
+          <p className="mt-3 text-amber-400">{t('images.imagesPage.restartTheBoardBeforeUploading')}</p>
         ) : null}
       </PageSection>
 
       <PageSection
-        title="Ready to install"
-        description="The whole package is replaced at once, so this list is what the board will hold."
+        title={t('images.imagesPage.readyToInstall')}
+        description={t('images.imagesPage.theWholePackageIsReplaced')}
         actions={
           <>
             <Button disabled={!uploadable} onClick={() => void upload()}>
-              {running ? 'Uploading…' : `Install ${entries.length || ''}`.trim()}
+              {running ? t('images.imagesPage.uploading') : `Install ${entries.length || ''}`.trim()}
             </Button>
             {running ? (
               <Button variant="outline" onClick={() => void window.simcore.cancelImageUpload()}>
-                Cancel
-              </Button>
+                {t('common.cancel')}</Button>
             ) : null}
           </>
         }
@@ -217,17 +215,15 @@ export function ImagesPage(): React.JSX.Element {
         {entries.length > 0 ? (
           <StorageBar
             className="mb-3"
-            label="This selection"
+            label={t('images.imagesPage.thisSelection')}
             used={staged}
             available
             over={staged > MAXIMUM_IMAGE_PACKAGE_SIZE}
           />
         ) : null}
         {entries.length === 0 ? (
-          <EmptyState title="Nothing staged">
-            Adding an image converts it here, at the size the board will draw it — the device
-            neither scales nor rotates.
-          </EmptyState>
+          <EmptyState title={t('images.imagesPage.nothingStaged')}>
+            {t('images.imagesPage.addingAnImageConvertsIt')}</EmptyState>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             {entries.map((entry) => (
@@ -243,10 +239,9 @@ export function ImagesPage(): React.JSX.Element {
 
         {invalid.length > 0 ? (
           <p className="mt-3 text-amber-400">
-            A name uses lower case letters, digits, dash and underscore, up to 31 characters.
-          </p>
+            {t('images.imagesPage.aNameUsesLowerCase')}</p>
         ) : null}
-        {duplicated ? <p className="mt-2 text-amber-400">Two images share a name.</p> : null}
+        {duplicated ? <p className="mt-2 text-amber-400">{t('images.imagesPage.twoImagesShareAName')}</p> : null}
         {progress ? (
           <p className="mt-3 text-muted-foreground">
             {`${progress.message}${progress.total > 0 ? ` (${Math.round((progress.completed / progress.total) * 100)}%)` : ''}`}

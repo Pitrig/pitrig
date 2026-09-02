@@ -4,6 +4,7 @@ import type { DeviceResult } from '../../shared/device'
 import { failure, success, toDeviceError } from './device-errors'
 import type { ConnectionManager, OpenedDevice } from './device-connection'
 import type { SerialTrafficReporter } from './serial-traffic-reporter'
+import { t } from '@shared/ui-text'
 
 export class OperationRunner {
   private deviceOperationActive = false
@@ -56,15 +57,15 @@ export class OperationRunner {
     const session = this.connection.getState().session
     const traffic = this.connection.traffic
     if (!port?.isOpen || !session || !traffic) {
-      return failure({ code: 'serial_error', message: 'No SimCore device is connected.' })
+      return failure({ code: 'serial_error', message: t('device.deviceOperation.noSimcoreDeviceIsConnected') })
     }
     if (this.deviceOperationActive) {
-      return failure({ code: 'busy', message: 'Another device operation is already running.' })
+      return failure({ code: 'busy', message: t('device.deviceOperation.anotherDeviceOperationIsAlready') })
     }
     if (this.pipelineActive && this.pipelineScope.getStore() === undefined) {
       return failure({
         code: 'busy',
-        message: 'The board is busy with a multi-step operation. Try again when it finishes.'
+        message: t('device.deviceOperation.theBoardIsBusyWith')
       })
     }
     return success({ port, session, traffic })

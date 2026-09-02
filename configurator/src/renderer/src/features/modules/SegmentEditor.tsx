@@ -11,7 +11,7 @@ import { Group } from '@/features/configuration/inspector/Group'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { Hint, NumberInput, SelectInput } from '@/features/configuration/inspector/fields'
 import { AddButton, RemoveButton } from '@/features/configuration/inspector/widget-editors'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { carryGeometry, drawnOf, mutateDevice } from './modules-document'
 
 const CELL = 22
@@ -92,24 +92,22 @@ export function SegmentEditor({
   return (
     <Group
       id="LedStripArrangement"
-      title="Arrangement"
+      title={t('modules.segmentEditor.arrangement')}
       icon={Route}
-      hint={HINTS.device.segments}
-      summary={runs.length === 0 ? 'straight line' : `${runs.length} run(s)`}
+      hint={t('modules.hints.device.segments')}
+      summary={runs.length === 0 ? t('modules.segmentEditor.straightLine') : t('modules.segmentEditor.lengthRunS', { length: runs.length })}
       defaultOpen
     >
       {runs.length === 0 ? (
         <Hint>
-          Drawn as a straight line. Describe the strip as runs — say 8 lamps up, 16 right, 8
-          down — and the previews bend to match the mounting.
-        </Hint>
+          {t('modules.segmentEditor.drawnAsAStraightLine')}</Hint>
       ) : (
         <>
           {runs.map((run, position) => (
             <PropertyRow key={position} label={`Run ${position + 1}`}>
               <div className="flex items-center gap-1">
                 <NumberInput
-                  title="Lamps in this run"
+                  title={t('modules.segmentEditor.lampsInThisRun')}
                   value={run.count ?? 1}
                   min={1}
                   onChange={(count) =>
@@ -143,7 +141,7 @@ export function SegmentEditor({
       )}
       {runs.length < MAXIMUM_LED_SEGMENTS ? (
         <AddButton
-          label="Add run"
+          label={t('modules.segmentEditor.addRun')}
           onClick={() =>
             apply((list) => {
               list.push({
@@ -154,7 +152,7 @@ export function SegmentEditor({
           }
         />
       ) : (
-        <Hint>{`An arrangement holds at most ${MAXIMUM_LED_SEGMENTS} runs.`}</Hint>
+        <Hint>{t('modules.segmentEditor.anArrangementHoldsAtMost', { mAXIMUM_LED_SEGMENTS: MAXIMUM_LED_SEGMENTS })}</Hint>
       )}
     </Group>
   )

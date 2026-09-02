@@ -22,6 +22,7 @@ import {
 } from './widget-rules'
 import { findWidgetGeometryError } from './widget-geometry'
 import { findWidgetValueError } from './widget-values'
+import { t } from '../ui-text'
 
 function boardDisplay(
   configuration: ApplicationConfiguration
@@ -33,13 +34,13 @@ function boardDisplay(
 export function findScreenError(configuration: ApplicationConfiguration): string | undefined {
   const screens = configuration.dashboard?.screens
   if (screens === undefined) return undefined
-  if (!Array.isArray(screens)) return '"dashboard.screens" must be an array of screens.'
+  if (!Array.isArray(screens)) return t('validation.structure.dashboardScreensMustBeAn')
   if (screens.length > MAXIMUM_SCREENS) {
-    return `A dashboard carries at most ${MAXIMUM_SCREENS} screen(s); this one declares ${screens.length}.`
+    return t('validation.structure.aDashboardCarriesAtMost', { mAXIMUM_SCREENS: MAXIMUM_SCREENS, length: screens.length })
   }
   const board = configuration.board as SimCoreBoardId | undefined
   if (screens.length > 0 && board && BOARD_PROFILES[board] && !BOARD_PROFILES[board].display) {
-    return 'This board has no display, so the dashboard cannot declare screens.'
+    return t('validation.structure.thisBoardHasNoDisplay')
   }
   const screenIds = screens.map((screen) => screen?.id)
   const display = boardDisplay(configuration)
@@ -57,8 +58,8 @@ export function findScreenError(configuration: ApplicationConfiguration): string
     const widgets = widgetsOf(parent)
     const cap = depth === 0 ? MAXIMUM_WIDGETS_PER_SCREEN : MAXIMUM_WIDGETS_PER_CONTAINER
     if (widgets.length > cap) {
-      const where = depth === 0 ? `Screen ${screenIndex + 1}` : 'A container'
-      return `${where} holds ${widgets.length} widgets; the device holds ${cap}.`
+      const where = depth === 0 ? `Screen ${screenIndex + 1}` : t('validation.structure.aContainer')
+      return t('validation.structure.whereHoldsLengthWidgetsThe', { where: where, length: widgets.length, cap: cap })
     }
     if (widgets.length > 0 && depth >= MAXIMUM_NESTING_DEPTH) {
       return `Containers are nested ${depth + 1} deep; the device nests ${MAXIMUM_NESTING_DEPTH}.`
@@ -105,7 +106,7 @@ export function findScreenError(configuration: ApplicationConfiguration): string
 
       if (widget.type !== 'slot') continue
       if (depth > 0) {
-        return `${label} is a slot inside a container; a slot sits directly on a screen.`
+        return t('validation.structure.labelIsASlotInside', { label: label })
       }
       const slotError = findSlotError(widget, label)
       if (slotError) return slotError
@@ -131,14 +132,14 @@ export function findScreenError(configuration: ApplicationConfiguration): string
   for (const [type, count] of pool) {
     const cap = WIDGET_POOL_CAPACITIES[type]
     if (count > cap) {
-      return `This dashboard uses ${count} ${type} widgets; the device stores ${cap}.`
+      return t('validation.structure.thisDashboardUsesCountType', { count: count, type: type, cap: cap })
     }
   }
   if (actions > MAXIMUM_ACTIONS) {
-    return `This dashboard has ${actions} tap targets; the device binds at most ${MAXIMUM_ACTIONS}.`
+    return t('validation.structure.thisDashboardHasActionsTap', { actions: actions, mAXIMUM_ACTIONS: MAXIMUM_ACTIONS })
   }
   if (lapTimers > 1) {
-    return `This dashboard has ${lapTimers} sources using the lap timer; the device runs one.`
+    return t('validation.structure.thisDashboardHasLaptimersSources', { lapTimers: lapTimers })
   }
   return undefined
 }

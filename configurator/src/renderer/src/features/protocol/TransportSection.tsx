@@ -11,6 +11,7 @@ import {
   type TelemetryTransportId
 } from '@shared/configuration-schema'
 import { effectiveSimHubBaudRate } from '@shared/simhub-profile'
+import { t } from '@shared/ui-text'
 
 const TRANSPORT_LABELS: Record<TelemetryTransportId, string> = {
   board_default: 'Board default',
@@ -26,11 +27,9 @@ export function TransportSection(): React.JSX.Element {
 
   if (!draft) {
     return (
-      <PageSection title="Transport" collapsible description="The link the board talks over.">
-        <EmptyState title="No configuration open">
-          Create or open a configuration on the Configs page first — the transport travels with the
-          dashboard rather than being set on the board.
-        </EmptyState>
+      <PageSection title={t('protocol.transportSection.transport')} collapsible description={t('protocol.transportSection.theLinkTheBoardTalks')}>
+        <EmptyState title={t('protocol.transportSection.noConfigurationOpen')}>
+          {t('protocol.transportSection.createOrOpenAConfiguration')}</EmptyState>
       </PageSection>
     )
   }
@@ -48,28 +47,23 @@ export function TransportSection(): React.JSX.Element {
 
   return (
     <PageSection
-      title="Transport"
+      title={t('protocol.transportSection.transport')}
       collapsible
-      description="The link the board talks over. Its own stored configuration, saved and restarted on its own — and changing it can cut the board off."
+      description={t('protocol.transportSection.theLinkTheBoardTalks2')}
       actions={<SaveToBoardButton />}
     >
       <div className="mb-3 space-y-2 rounded-md border border-red-500/40 bg-red-500/10 p-2.5">
-        <p className="font-medium text-red-300">Changing this can cut the board off</p>
+        <p className="font-medium text-red-300">{t('protocol.transportSection.changingThisCanCutThe')}</p>
         <ul className="list-disc space-y-1 pl-4 text-[11px] leading-4 text-red-200/80">
           <li>
-            A saved change restarts the board, and the board comes back on the new link — at the
-            new speed, if that is what changed. This window reconnects at the old one and will
-            report that the board did not come back.
-          </li>
+            {t('protocol.transportSection.aSavedChangeRestartsThe')}</li>
           <li>
-            Not every speed survives every board. A USB-serial bridge is what limits it, not the
-            firmware, and a rate the bridge cannot hold leaves a board that answers nothing.
-          </li>
+            {t('protocol.transportSection.notEverySpeedSurvivesEvery')}</li>
         </ul>
         <p className="text-[11px] leading-4 text-red-200/80">
-          Nothing here is permanent: <b>Auto</b> at the top of the window walks the speeds a
-          SimCore board answers on, and a board that cannot be reached at all can still be flashed
-          over USB.
+          {t('protocol.transportSection.notPermanentBefore')}
+          <b>{t('protocol.transportSection.auto')}</b>
+          {t('protocol.transportSection.notPermanentAfter')}
         </p>
         <label className="flex items-center gap-2 pt-0.5 text-[11px] text-red-200">
           <input
@@ -78,13 +72,12 @@ export function TransportSection(): React.JSX.Element {
             type="checkbox"
             onChange={(event) => setUnlocked(event.target.checked)}
           />
-          I know what these do — let me change them
-        </label>
+          {t('protocol.transportSection.iKnowWhatTheseDo')}</label>
       </div>
       <fieldset className="space-y-1 disabled:opacity-50" disabled={!unlocked}>
         <SelectField
-          label="Transport"
-          hint="Which link carries telemetry and @SC: control. The board default is what the firmware was built for."
+          label={t('protocol.transportSection.transport')}
+          hint={t('protocol.transportSection.whichLinkCarriesTelemetryAnd')}
           value={transport?.id ?? 'board_default'}
           options={TELEMETRY_TRANSPORT_ID_VALUES}
           modified={transport?.id !== undefined}
@@ -105,15 +98,15 @@ export function TransportSection(): React.JSX.Element {
         <p className="pb-1 text-[11px] text-muted-foreground">
           {TRANSPORT_LABELS[transport?.id ?? 'board_default']} —{' '}
           {transport?.id === 'uart'
-            ? 'the board’s UART pins, reached through a USB-serial bridge.'
+            ? t('protocol.transportSection.theBoardSUartPins')
             : transport?.id === 'native_usb_cdc'
-              ? 'the chip’s own USB port, no bridge in between.'
-              : 'whatever this board was built to use.'}
+              ? t('protocol.transportSection.theChipSOwnUsb')
+              : t('protocol.transportSection.whateverThisBoardWasBuilt')}
         </p>
 
         <SelectField
-          label="Speed"
-          hint="Bits per second on the UART link. A USB-serial bridge is what limits this, not the board."
+          label={t('device.infoPage.speed')}
+          hint={t('protocol.transportSection.bitsPerSecondOnThe')}
           value={String(baudRate)}
           options={baudOptions}
           modified={uart?.baud_rate !== undefined}
@@ -123,15 +116,12 @@ export function TransportSection(): React.JSX.Element {
       </fieldset>
 
       <details className="mt-3 rounded-md border">
-        <summary className="cursor-pointer px-3 py-2 font-medium">UART pins</summary>
+        <summary className="cursor-pointer px-3 py-2 font-medium">{t('protocol.transportSection.uARTPins')}</summary>
         <fieldset className="space-y-1 border-t p-2 disabled:opacity-50" disabled={!unlocked}>
           <p className="pb-1 text-[11px] text-muted-foreground">
-            The firmware checks these against the board’s own pin pair and refuses a document that
-            names another, so a wrong number costs a refused save rather than a dark board — the
-            one setting here that cannot go wrong quietly.
-          </p>
+            {t('protocol.transportSection.theFirmwareChecksTheseAgainst')}</p>
           <NumberField
-            label="TX pin"
+            label={t('protocol.transportSection.tXPin')}
             value={uart?.tx_pin ?? 43}
             min={0}
             max={63}
@@ -140,7 +130,7 @@ export function TransportSection(): React.JSX.Element {
             onChange={(value) => writeUart((current) => (current.tx_pin = value))}
           />
           <NumberField
-            label="RX pin"
+            label={t('protocol.transportSection.rXPin')}
             value={uart?.rx_pin ?? 44}
             min={0}
             max={63}
@@ -149,7 +139,7 @@ export function TransportSection(): React.JSX.Element {
             onChange={(value) => writeUart((current) => (current.rx_pin = value))}
           />
           <NumberField
-            label="Port"
+            label={t('device.infoPage.port')}
             value={uart?.port ?? 0}
             min={0}
             max={2}
@@ -158,8 +148,8 @@ export function TransportSection(): React.JSX.Element {
             onChange={(value) => writeUart((current) => (current.port = value))}
           />
           <CheckboxField
-            label="Silence ESP logs"
-            hint="Keeps the firmware's own log off the telemetry link, where it would be read as malformed lines."
+            label={t('protocol.transportSection.silenceEspLogs')}
+            hint={t('protocol.transportSection.keepsTheFirmwareSOwn')}
             checked={uart?.silence_esp_logs ?? true}
             modified={uart?.silence_esp_logs !== undefined}
             onReset={() => writeUart((current) => delete current.silence_esp_logs)}

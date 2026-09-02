@@ -3,7 +3,7 @@ import { WIDGET_ID_CAPACITY, type WidgetConfiguration } from '@shared/configurat
 import { ActionEditor } from './ActionEditor'
 import { completePlacement, mutateSelectedWidget, renameWidget, selectedWidget, useDashboardEditorStore } from '../dashboard-editor'
 import { Hint } from './fields'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { WIDGET_ICONS } from './icons'
 import { InfoHint } from './InfoHint'
 import { DashboardSection, ScreenEditor } from './document-sections'
@@ -32,7 +32,7 @@ export function WidgetInspector(): React.JSX.Element {
             <WidgetIdentity key={widget.id ?? ''} widget={widget} />
           ) : (
             <span className="font-semibold">
-              {selection?.type === 'screen' ? `Screen ${activeScreenIndex + 1}` : 'Dashboard'}
+              {selection?.type === 'screen' ? `Screen ${activeScreenIndex + 1}` : t('documents.label.dashboard')}
             </span>
           )}
         </header>
@@ -43,7 +43,7 @@ export function WidgetInspector(): React.JSX.Element {
           <ScreenEditor configuration={configuration} />
         ) : null}
         {configuration && selection?.type === 'widget' && !widget ? (
-          <Hint>Select an existing widget on the display.</Hint>
+          <Hint>{t('inspector.widgetInspector.selectAnExistingWidgetOn')}</Hint>
         ) : null}
         {configuration && widget && selection?.type === 'widget' ? (
           <>
@@ -106,7 +106,7 @@ function WidgetIdentity({ widget }: { widget: WidgetConfiguration }): React.JSX.
     <div className="flex items-center gap-2">
       <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
       <input
-        aria-label="Widget name"
+        aria-label={t('inspector.widgetInspector.widgetName')}
         value={draft}
         maxLength={WIDGET_ID_CAPACITY - 1}
         className={`h-7 min-w-0 flex-1 rounded-md border bg-background px-2 font-medium text-foreground ${rejected ? 'border-red-500' : ''}`}
@@ -120,7 +120,7 @@ function WidgetIdentity({ widget }: { widget: WidgetConfiguration }): React.JSX.
         }}
       />
       <span className="flex-none text-muted-foreground">{widget.type}</span>
-      <InfoHint text={HINTS.widget.id} label="Widget name" />
+      <InfoHint text={t('inspector.hints.widget.id')} label={t('inspector.widgetInspector.widgetName')} />
     </div>
   )
 }

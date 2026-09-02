@@ -1,4 +1,5 @@
 import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
+import { t } from '@shared/ui-text'
 
 function drag(onDelta: (delta: number) => void, axis: 'x' | 'y'): (event: React.PointerEvent) => void {
   return (event) => {
@@ -25,7 +26,7 @@ export function ColumnResizer(): React.JSX.Element {
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize the property panel"
+      aria-label={t('app.panelResizer.resizeThePropertyPanel')}
       className="w-1 flex-none cursor-col-resize hover:bg-muted"
       onPointerDown={(event: React.PointerEvent) => {
         const width = useEditorPanelStore.getState().inspectorWidth
@@ -41,7 +42,7 @@ export function RowResizer(): React.JSX.Element {
     <div
       role="separator"
       aria-orientation="horizontal"
-      aria-label="Resize the layer list"
+      aria-label={t('app.panelResizer.resizeTheLayerList')}
       className="-my-1 h-2 flex-none cursor-row-resize"
       onPointerDown={(event: React.PointerEvent) => {
         const height = useEditorPanelStore.getState().layersHeight

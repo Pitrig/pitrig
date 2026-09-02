@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '@shared/ui-text'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,8 +20,6 @@ import { FeedbackNote } from './FeedbackNote'
 import type { ConfigurationDocumentOutcome } from '@shared/device'
 import { CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
 import {
-  CONFIGURATION_DOCUMENT_LABELS,
-  CONFIGURATION_DOCUMENT_SUMMARIES,
   documentPayloadBytes
 } from '@shared/configuration-documents'
 
@@ -39,8 +38,8 @@ export function BoardDocumentsSection({
 
   return (
     <PageSection
-      title="Configs on the board"
-      description="Three documents, stored and written independently."
+      title={t('configs.boardDocumentsSection.configsOnTheBoard')}
+      description={t('configs.boardDocumentsSection.threeDocumentsStoredAndWritten')}
     >
       <div className="space-y-3">
         <SaveProgressBar />
@@ -49,10 +48,7 @@ export function BoardDocumentsSection({
           <p className="text-[11px] text-muted-foreground">{saveBlockedReason}</p>
         ) : (
           <p className="text-[11px] text-muted-foreground">
-            Saving writes only the documents that differ. The board restarts when a font had to
-            be installed, or when the protocol config changed — the link is chosen once at
-            startup, so that one cannot take effect any other way.
-          </p>
+            {t('configs.boardDocumentsSection.savingWritesOnlyTheDocuments')}</p>
         )}
 
         <ul className="divide-y rounded-md border">
@@ -66,7 +62,7 @@ export function BoardDocumentsSection({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-foreground">
-                        {CONFIGURATION_DOCUMENT_LABELS[id]}
+                        {t(`documents.label.${id}`)}
                       </span>
                       <DocumentStatusBadge
                         connected={connected}
@@ -75,9 +71,9 @@ export function BoardDocumentsSection({
                       />
                     </div>
                     <p className="truncate text-[11px] text-muted-foreground">
-                      {CONFIGURATION_DOCUMENT_SUMMARIES[id]}
-                      {draft ? ` · ${bytes} bytes` : ''}
-                      {stored?.outcome === 'valid' ? ` · generation ${stored.generation}` : ''}
+                      {t(`documents.summary.${id}`)}
+                      {draft ? t('configs.boardDocumentsSection.bytesBytes', { bytes: bytes }) : ''}
+                      {stored?.outcome === 'valid' ? t('configs.boardDocumentsSection.generationGeneration', { generation: stored.generation }) : ''}
                     </p>
                   </div>
                 </div>
@@ -85,28 +81,25 @@ export function BoardDocumentsSection({
                   <Button
                     variant="outline"
                     disabled={!connected || working || !activeConfiguration || !draft}
-                    title="Take this document back from the board, leaving the rest of the draft alone"
+                    title={t('configs.boardDocumentsSection.takeThisDocumentBackFrom')}
                     onClick={() => setFeedback(loadDocumentFromBoard(id))}
                   >
-                    Load
-                  </Button>
+                    {t('common.load')}</Button>
                   <Button
                     variant="outline"
                     disabled={!connected || working || !modified || Boolean(saveBlockedReason)}
-                    title="Write only this document to the board"
+                    title={t('configs.boardDocumentsSection.writeOnlyThisDocumentTo')}
                     onClick={() => void saveDraftToBoard([id])}
                   >
-                    Save
-                  </Button>
+                    {t('common.save')}</Button>
                   <Button
                     className="text-red-400 hover:text-red-300"
                     variant="outline"
                     disabled={!connected || working || !session?.info.storageAvailable}
-                    title="Erase this document from the board's storage"
+                    title={t('configs.boardDocumentsSection.eraseThisDocumentFromThe')}
                     onClick={() => void onAct(() => resetBoardDocument(id))}
                   >
-                    Reset
-                  </Button>
+                    {t('common.reset')}</Button>
                 </div>
               </li>
             )
@@ -121,23 +114,20 @@ export function BoardDocumentsSection({
             disabled={!connected || working}
             onClick={() => void onAct(readConfigurationFromBoard)}
           >
-            Load all from board
-          </Button>
+            {t('configs.boardDocumentsSection.loadAllFromBoard')}</Button>
           <Button
             variant="outline"
             disabled={!connected || working}
             onClick={() => void onAct(restartBoard)}
           >
-            Restart board
-          </Button>
+            {t('firmware.firmwarePage.restartBoard')}</Button>
           <Button
             className="col-span-2 text-red-400 hover:text-red-300"
             variant="outline"
             disabled={!connected || working || !session?.info.storageAvailable}
             onClick={() => void onAct(resetBoardConfiguration)}
           >
-            Reset to factory configuration
-          </Button>
+            {t('configs.boardDocumentsSection.resetToFactoryConfiguration')}</Button>
         </div>
       </div>
     </PageSection>
@@ -157,27 +147,23 @@ function DocumentStatusBadge({
   if (outcome && outcome !== 'valid' && outcome !== 'absent') {
     return (
       <Badge className="border-red-500/40 bg-red-500/15 text-red-300" variant="outline">
-        Refused
-      </Badge>
+        {t('configs.boardDocumentsSection.refused')}</Badge>
     )
   }
   if (modified) {
     return (
       <Badge className="border-sky-500/40 bg-sky-500/15 text-sky-300" variant="outline">
-        Modified
-      </Badge>
+        {t('dashboard.configsPage.modified')}</Badge>
     )
   }
   if (outcome === 'absent') {
     return (
       <Badge className="text-muted-foreground" variant="outline">
-        Factory
-      </Badge>
+        {t('configs.boardDocumentsSection.factory')}</Badge>
     )
   }
   return (
     <Badge className="border-emerald-500/40 bg-emerald-500/15 text-emerald-300" variant="outline">
-      In sync
-    </Badge>
+      {t('configs.boardDocumentsSection.inSync')}</Badge>
   )
 }

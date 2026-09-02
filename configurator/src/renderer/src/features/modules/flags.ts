@@ -5,6 +5,7 @@ import type {
 } from '@shared/configuration-schema'
 import { chequerSprite, diagonalSprite, discSprite } from './matrix-art'
 import { area, whenTrue, type LedProfile, type MatrixSize } from './profile-types'
+import { t } from '@shared/ui-text'
 
 const RIPPLE_MS = 110
 const CHEQUER_MS = 55
@@ -73,9 +74,9 @@ const FLAGS: readonly FlagSpec[] = [
 
 export const FLAGS_PROFILE: LedProfile = {
   id: 'flags',
-  label: 'Race flags',
+  label: t('modules.flags.raceFlags'),
   description:
-    'All eight flags at once. On a panel the black and white sweeps a diagonal band, the black and orange blinks its orange disc, and the chequered ripples as a real chequerboard; on a strip they fall back to a blinking blob and a running lamp. The more urgent a flag, the later it paints, so red covers the rest.',
+    t('modules.flags.allEightFlagsAtOnce'),
   build: (range, _lamps, matrix) => {
     const sprites: LedSpriteConfiguration[] = []
     const effects = FLAGS.map(({ binding, layer, art, speed, blink }) => {

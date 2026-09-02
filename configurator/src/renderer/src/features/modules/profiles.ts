@@ -6,6 +6,7 @@ import {
 } from '@shared/configuration-schema'
 import { FLAGS_PROFILE } from './flags'
 import { area, whenTrue, type LedProfile, type MatrixSize } from './profile-types'
+import { t } from '@shared/ui-text'
 
 export type { LampRange, LedProfile, MatrixSize, ProfileParts } from './profile-types'
 
@@ -52,9 +53,9 @@ function shiftSteps(lamps: number): IndicatorSegment[] {
 export const LED_PROFILES: readonly LedProfile[] = [
   {
     id: 'shift_lights',
-    label: 'Shift lights',
+    label: t('modules.profiles.shiftLights'),
     description:
-      'One step per lamp from 70% to 97% of the revs, green through yellow to pink, then the whole run flashes red.',
+      t('modules.profiles.oneStepPerLampFrom'),
     build: (range, lamps) => ({
       effects: [
         {
@@ -82,10 +83,10 @@ export const LED_PROFILES: readonly LedProfile[] = [
   FLAGS_PROFILE,
   {
     id: 'gear',
-    label: 'Gear',
+    label: t('modules.profiles.gear'),
     panelOnly: true,
     description:
-      'The selected gear, drawn in the largest built-in face the panel can hold, turning amber and then red as the revs climb. Change the face on the layer if you want it smaller. A panel only, since a strip has nowhere to draw a glyph.',
+      t('modules.profiles.theSelectedGearDrawnIn'),
     build: (range, _lamps, matrix) => ({
       effects: [
         {
@@ -106,8 +107,8 @@ export const LED_PROFILES: readonly LedProfile[] = [
   },
   {
     id: 'abs_active',
-    label: 'ABS',
-    description: 'Red flash while ABS is intervening.',
+    label: t('modules.profiles.aBS'),
+    description: t('modules.profiles.redFlashWhileAbsIs'),
     build: (range) => ({
       effects: [
         {
@@ -124,8 +125,8 @@ export const LED_PROFILES: readonly LedProfile[] = [
   },
   {
     id: 'tc_active',
-    label: 'Traction control',
-    description: 'Orange flash while traction control is intervening.',
+    label: t('modules.profiles.tractionControl'),
+    description: t('modules.profiles.orangeFlashWhileTractionControl'),
     build: (range) => ({
       effects: [
         {
@@ -142,8 +143,8 @@ export const LED_PROFILES: readonly LedProfile[] = [
   },
   {
     id: 'pit_limiter',
-    label: 'Pit limiter',
-    description: 'Steady blue while the limiter is on, so it never reads as a blue flag.',
+    label: t('modules.profiles.pitLimiter'),
+    description: t('modules.profiles.steadyBlueWhileTheLimiter'),
     build: (range) => ({
       effects: [
         {
@@ -158,8 +159,8 @@ export const LED_PROFILES: readonly LedProfile[] = [
   },
   {
     id: 'drs',
-    label: 'DRS',
-    description: 'Dim green when available, bright green while open.',
+    label: t('modules.profiles.dRS'),
+    description: t('modules.profiles.dimGreenWhenAvailableBright'),
     build: (range) => ({
       effects: [
         {
@@ -181,8 +182,8 @@ export const LED_PROFILES: readonly LedProfile[] = [
   },
   {
     id: 'idle',
-    label: 'Link lost',
-    description: 'A slow rainbow once telemetry has been silent for two seconds.',
+    label: t('modules.profiles.linkLost'),
+    description: t('modules.profiles.aSlowRainbowOnceTelemetry'),
     build: (range) => ({
       effects: [
         {

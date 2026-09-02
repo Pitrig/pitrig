@@ -32,6 +32,7 @@ import {
 import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
 import { ConfigLibraryService } from '../configs/config-library-service'
 import { TemplateService } from '../templates/template-service'
+import { t } from '@shared/ui-text'
 
 export function registerLibraryHandlers(
   configurationFileService: ConfigurationFileService,
@@ -47,7 +48,7 @@ export function registerLibraryHandlers(
     if (!isJsonDocumentRequest(request)) {
       const result: ConfigurationFileResult<never> = {
         ok: false,
-        error: { code: 'invalid_configuration', message: 'Invalid configuration file request.' }
+        error: { code: 'invalid_configuration', message: t('ipc.registerLibraryHandlers.invalidConfigurationFileRequest') }
       }
       return result
     }
@@ -95,10 +96,10 @@ export function registerLibraryHandlers(
 function invalidConfigLibraryRequest(): ConfigLibraryResult<never> {
   return {
     ok: false,
-    error: { code: 'invalid_configuration', message: 'Invalid configuration library request.' }
+    error: { code: 'invalid_configuration', message: t('ipc.registerLibraryHandlers.invalidConfigurationLibraryRequest') }
   }
 }
 
 function invalidTemplateRequest(): TemplateResult<never> {
-  return { ok: false, error: { code: 'invalid_template', message: 'Invalid template request.' } }
+  return { ok: false, error: { code: 'invalid_template', message: t('ipc.registerLibraryHandlers.invalidTemplateRequest') } }
 }

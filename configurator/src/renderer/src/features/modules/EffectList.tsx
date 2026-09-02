@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Layers, Pause, Play } from 'lucide-react'
 import type { HardwareDeviceConfiguration } from '@shared/configuration-schema'
 import { Group } from '@/features/configuration/inspector/Group'
 import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { layerName } from './layer-name'
 import { mutateEffects, moveEffect } from './modules-document'
 import { playingLayer, useModulesStore } from './modules-store'
@@ -40,15 +40,14 @@ export function EffectList({
   return (
     <Group
       id={device.type === 'rgb_matrix' ? 'LedMatrixLayers' : 'LedStripLayers'}
-      title="Layers"
+      title={t('modules.effectList.layers')}
       icon={Layers}
-      hint={HINTS.effect.stack}
-      summary={`${effects.length} layer(s)`}
+      hint={t('modules.hints.effect.stack')}
+      summary={t('modules.effectList.lengthLayerS', { length: effects.length })}
       defaultOpen
     >
       <p className="pb-1 text-[10px] text-muted-foreground">
-        All painted at once; where two share a lamp, the one that lit last wins it.
-      </p>
+        {t('modules.effectList.allPaintedAtOnceWhere')}</p>
       {effects.map(({ effect, index }, position) => {
         const playing = preview.some(playingLayer(output, index))
         const reorder = (to: number): void => {
@@ -78,10 +77,10 @@ export function EffectList({
               aria-pressed={playing}
               aria-label={
                 playing
-                  ? `Stop previewing ${layerName(effect, index)}`
-                  : `Preview ${layerName(effect, index)}`
+                  ? t('modules.effectList.stopPreviewingIndex', { index: layerName(effect, index) })
+                  : t('modules.effectList.previewIndex', { index: layerName(effect, index) })
               }
-              title="Plays this layer in the preview above, beside anything else playing, until it is pressed again"
+              title={t('modules.effectList.playsThisLayerInThe')}
               className={`rounded p-1 ${playing ? 'bg-sky-500/25 text-sky-300' : 'text-muted-foreground hover:bg-white/5'}`}
               onClick={() => togglePreview(output, index)}
             >

@@ -20,7 +20,7 @@ import {
   SelectInput,
   TextField
 } from '@/features/configuration/inspector/fields'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { carryGeometry, drawnOf, freePins, mutateDevice } from './modules-document'
 import type { DeviceConfiguration } from '@shared/device'
 
@@ -78,18 +78,18 @@ export function OutputEditor({
   return (
     <Group
       id={matrix ? 'LedMatrixDevice' : 'LedStripDevice'}
-      title="Device"
+      title={t('modules.outputEditor.device')}
       icon={Cable}
       summary={`pin ${device.pin ?? '—'} · ${lamps} lamps`}
       defaultOpen
     >
       <TextField
-        label="Name"
+        label={t('device.infoPage.name')}
         value={device.id ?? ''}
         onChange={(id) => mutateDevice(index, (next) => { if (id) next.id = id; else delete next.id })}
       />
       {choices.length > 0 ? (
-        <PropertyRow label="Pin" hint={HINTS.output.pin}>
+        <PropertyRow label={t('modules.outputEditor.pin')} hint={t('modules.hints.output.pin')}>
           <SelectInput
             value={device.pin === undefined ? '' : String(device.pin)}
             options={device.pin === undefined ? ['', ...choices] : choices}
@@ -100,36 +100,35 @@ export function OutputEditor({
           />
           {device.pin === undefined ? (
             <p className="pt-0.5 text-[10px] text-amber-400/80">
-              No pin yet — the board rejects the document until one is picked.
-            </p>
+              {t('modules.outputEditor.noPinYetTheBoard')}</p>
           ) : null}
         </PropertyRow>
       ) : (
-        <Hint>This board publishes no free pins for LEDs yet.</Hint>
+        <Hint>{t('modules.outputEditor.thisBoardPublishesNoFree')}</Hint>
       )}
       {matrix ? (
         <>
-          <PropertyRow label="Size" hint={HINTS.device.size}>
+          <PropertyRow label={t('modules.outputEditor.size')} hint={t('modules.hints.device.size')}>
             <div className="grid grid-cols-2 gap-1">
               <NumberInput
-                title="Columns"
+                title={t('modules.outputEditor.columns')}
                 value={device.width ?? 8}
                 {...fieldBounds('HardwareDeviceConfiguration', 'width')}
                 onChange={(width) => sizeGeometry(index, 1, width, (next, value) => { next.width = value })}
               />
               <NumberInput
-                title="Rows"
+                title={t('modules.outputEditor.rows')}
                 value={device.height ?? 8}
                 {...fieldBounds('HardwareDeviceConfiguration', 'height')}
                 onChange={(height) => sizeGeometry(index, 1, height, (next, value) => { next.height = value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground">
-              <span>Columns</span>
-              <span>Rows</span>
+              <span>{t('modules.outputEditor.columns')}</span>
+              <span>{t('modules.outputEditor.rows')}</span>
             </div>
           </PropertyRow>
-          <PropertyRow label="Wiring" hint={HINTS.device.wiring}>
+          <PropertyRow label={t('modules.modulesPage.wiring')} hint={t('modules.hints.device.wiring')}>
             <div className="grid grid-cols-3 gap-1">
               <SelectInput
                 value={device.order ?? 'serpentine'}
@@ -150,22 +149,22 @@ export function OutputEditor({
               />
             </div>
             <div className="grid grid-cols-3 gap-1 pt-0.5 text-[10px] text-muted-foreground">
-              <span>Rows</span>
-              <span>First lamp</span>
-              <span>Turn</span>
+              <span>{t('modules.outputEditor.rows')}</span>
+              <span>{t('modules.outputEditor.firstLamp')}</span>
+              <span>{t('modules.outputEditor.turn')}</span>
             </div>
           </PropertyRow>
         </>
       ) : (device.segments ?? []).length > 0 ? (
-        <PropertyRow label="Lamps" hint={HINTS.device.count}>
+        <PropertyRow label={t('modules.outputEditor.lamps')} hint={t('modules.hints.device.count')}>
           <p className="pt-1 text-xs text-muted-foreground">
-            {`${lamps}, summed over the runs in the arrangement below.`}
+            {t('modules.outputEditor.lampsSummedOverTheRuns', { lamps: lamps })}
           </p>
         </PropertyRow>
       ) : (
         <NumberField
-          label="Lamps"
-          hint={HINTS.device.count}
+          label={t('modules.outputEditor.lamps')}
+          hint={t('modules.hints.device.count')}
           value={device.count ?? 1}
           {...fieldBounds('HardwareDeviceConfiguration', 'count')}
           modified={authored(device.count, 1)}
@@ -173,16 +172,16 @@ export function OutputEditor({
         />
       )}
       <SelectField
-        label="Chip"
-        hint={HINTS.output.chip}
+        label={t('modules.outputEditor.chip')}
+        hint={t('modules.hints.output.chip')}
         value={device.chip ?? 'ws2812b'}
         options={LED_CHIP_VALUES}
         modified={authored(device.chip, 'ws2812b')}
         onChange={(chip) => mutateDevice(index, (next) => { next.chip = chip })}
       />
       <NumberField
-        label="Brightness"
-        hint={HINTS.output.brightness}
+        label={t('modules.outputEditor.brightness')}
+        hint={t('modules.hints.output.brightness')}
         value={device.brightness ?? 128}
         {...fieldBounds('HardwareDeviceConfiguration', 'brightness')}
         modified={authored(device.brightness, 128)}
@@ -193,16 +192,16 @@ export function OutputEditor({
         active={authored(device.gamma, true) || authored(device.current_limit_ma, 0)}
       >
         <CheckboxField
-          label="Gamma"
-          hint={HINTS.output.gamma}
+          label={t('modules.outputEditor.gamma')}
+          hint={t('modules.hints.output.gamma')}
           checked={device.gamma ?? true}
           modified={authored(device.gamma, true)}
           onChange={(gamma) => mutateDevice(index, (next) => { next.gamma = gamma })}
         />
         <NumberField
-          label="Current cap"
+          label={t('modules.outputEditor.currentCap')}
           suffix="mA"
-          hint={HINTS.output.current}
+          hint={t('modules.hints.output.current')}
           value={device.current_limit_ma ?? 0}
           {...fieldBounds('HardwareDeviceConfiguration', 'current_limit_ma')}
           modified={authored(device.current_limit_ma, 0)}
@@ -210,8 +209,8 @@ export function OutputEditor({
         />
       </Advanced>
       <p className="text-[10px] text-muted-foreground">
-        {lamps} lamps could draw about {peak} mA at full white and this brightness.
-        {device.current_limit_ma ? ` The cap holds it to ${device.current_limit_ma} mA.` : ''}
+        {t('modules.outputEditor.currentEstimate', { lamps, peak })}
+        {device.current_limit_ma ? t('modules.outputEditor.theCapHoldsItTo', { current_limit_ma: device.current_limit_ma }) : ''}
       </p>
     </Group>
   )

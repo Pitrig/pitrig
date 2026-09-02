@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { useFontLibraryStore } from './font-library-store'
+import { t } from '@shared/ui-text'
 
 export function UnresolvedFontsDialog({
   families,
@@ -23,7 +24,7 @@ export function UnresolvedFontsDialog({
     setError(undefined)
     const result = await window.simcore.importFontFace({ id: family }).catch(() => undefined)
     setBusy(undefined)
-    if (!result) return setError('The font could not be imported.')
+    if (!result) return setError(t('fonts.fontsPage.theFontCouldNotBe'))
     if (!result.ok) return setError(result.error.message)
     await refresh()
   }
@@ -33,14 +34,13 @@ export function UnresolvedFontsDialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Fonts this dashboard needs"
+        aria-label={t('fonts.unresolvedFontsDialog.fontsThisDashboardNeeds')}
         className="w-[28rem] space-y-3 rounded-lg border bg-background p-4 text-xs shadow-lg"
       >
         <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-foreground">Fonts this dashboard needs</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t('fonts.unresolvedFontsDialog.fontsThisDashboardNeeds')}</h2>
           <p className="text-muted-foreground">
-            Nothing was written to the board. It is still running what it was running.
-          </p>
+            {t('fonts.unresolvedFontsDialog.nothingWasWrittenToThe')}</p>
         </div>
         <ul className="space-y-1">
           {families.map((family) => {
@@ -54,14 +54,14 @@ export function UnresolvedFontsDialog({
                   {family}
                 </span>
                 {resolved ? (
-                  <span className="shrink-0 text-emerald-500">Found</span>
+                  <span className="shrink-0 text-emerald-500">{t('fonts.unresolvedFontsDialog.found')}</span>
                 ) : (
                   <Button
                     variant="outline"
                     disabled={busy !== undefined}
                     onClick={() => void choose(family)}
                   >
-                    {busy === family ? 'Opening…' : 'Choose .ttf/.otf…'}
+                    {busy === family ? t('fonts.unresolvedFontsDialog.opening') : t('fonts.unresolvedFontsDialog.chooseTtfOtf')}
                   </Button>
                 )}
               </li>
@@ -70,16 +70,12 @@ export function UnresolvedFontsDialog({
         </ul>
         {error ? <p className="text-red-400">{error}</p> : null}
         <p className="text-muted-foreground">
-          Or pick a different font for those widgets in the inspector — anything from the library
-          resolves on its own.
-        </p>
+          {t('fonts.unresolvedFontsDialog.orPickADifferentFont')}</p>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
+            {t('common.close')}</Button>
           <Button disabled={outstanding.length > 0} onClick={onRetry}>
-            Save again
-          </Button>
+            {t('fonts.unresolvedFontsDialog.saveAgain')}</Button>
         </div>
       </div>
     </div>

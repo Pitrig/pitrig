@@ -9,6 +9,7 @@ import type { WidgetTemplateSummary } from '@shared/templates'
 import { TemplateCard } from './TemplateCard'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
 import { WidgetThumbnail } from './WidgetThumbnail'
+import { t } from '@shared/ui-text'
 
 export function WidgetSection({
   busy,
@@ -29,13 +30,14 @@ export function WidgetSection({
 
   return (
     <PageSection
-      title="Widgets"
-      description="Parts of a dashboard kept for reuse. A container brings everything inside it."
+      title={t('templates.widgetSection.widgets')}
+      description={t('templates.widgetSection.partsOfADashboardKept')}
     >
       {widgets.length === 0 ? (
-        <EmptyState icon={<Shapes aria-hidden="true" className="size-6" />} title="No widgets">
-          Select a widget on the canvas and press <b>Save to templates</b>. A container saves its
-          whole cluster, which is how a rev-counter with its lights becomes one entry.
+        <EmptyState icon={<Shapes aria-hidden="true" className="size-6" />} title={t('templates.widgetSection.noWidgets')}>
+          {t('templates.widgetSection.emptyBefore')}
+          <b>{t('templates.dashboardSection.saveToTemplates')}</b>
+          {t('templates.widgetSection.emptyAfter')}
         </EmptyState>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
@@ -54,16 +56,15 @@ export function WidgetSection({
                     disabled={busy || !hasLocalDraft}
                     title={
                       hasLocalDraft
-                        ? 'Place this on the canvas'
-                        : 'Open a dashboard first — there is nothing to place it on'
+                        ? t('templates.widgetSection.placeThisOnTheCanvas')
+                        : t('templates.widgetSection.openADashboardFirstThere')
                     }
                     onClick={() => add(entry)}
                   >
                     <Plus aria-hidden="true" className="mr-1 size-3.5" />
-                    Add
-                  </Button>
+                    {t('common.add')}</Button>
                   <Button
-                    aria-label={`Delete ${entry.name}`}
+                    aria-label={t('configs.librarySection.deleteName', { name: entry.name })}
                     className="h-7 px-2 text-red-400 hover:text-red-300"
                     variant="outline"
                     disabled={busy}

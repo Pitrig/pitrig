@@ -8,6 +8,7 @@ import { convertDraftToBoard } from '@/features/configuration/configuration-acti
 import { transferReportLines } from '@/features/configuration/transfer-report'
 import { SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
 import type { LayoutTransferResult } from '@shared/layout-transfer'
+import { t } from '@shared/ui-text'
 
 export function BoardPicker(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -26,13 +27,13 @@ export function BoardPicker(): React.JSX.Element {
       <Badge
         className="gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
         variant="outline"
-        title="The connected board decides the display while it is plugged in."
+        title={t('canvas.boardPicker.theConnectedBoardDecidesThe')}
       >
         {boardName(session.info.boardId)}
         <span className="text-emerald-400/70">
           {session.info.display
-            ? `${session.info.display.width} × ${session.info.display.height}`
-            : 'no display'}
+            ? t('canvas.menuEntries.widthHeight', { width: session.info.display.width, height: session.info.display.height })
+            : t('boards.noDisplay')}
         </span>
       </Badge>
     )
@@ -59,13 +60,13 @@ export function BoardPicker(): React.JSX.Element {
   return (
     <div className="flex items-center gap-1.5">
       <select
-        aria-label="Board"
+        aria-label={t('device.infoPage.board')}
         className="h-6 max-w-52 rounded-md border bg-transparent px-1 text-xs text-foreground"
-        title="Which board this dashboard is authored for"
+        title={t('canvas.boardPicker.whichBoardThisDashboardIs')}
         value={board}
         onChange={(event) => choose(event.target.value as SimCoreBoardId | '')}
       >
-        <option value="">Select a board…</option>
+        <option value="">{t('canvas.boardPicker.selectABoard')}</option>
         {SIMCORE_BOARD_IDS.map((id) => (
           <option key={id} value={id}>
             {boardLabel(id)}
@@ -74,7 +75,7 @@ export function BoardPicker(): React.JSX.Element {
       </select>
 
       {draft ? (
-        <div className="flex items-center rounded-md border" role="group" aria-label="Fit">
+        <div className="flex items-center rounded-md border" role="group" aria-label={t('canvas.boardPicker.fit')}>
           {(['contain', 'stretch'] as const).map((option) => (
             <button
               key={option}
@@ -82,8 +83,8 @@ export function BoardPicker(): React.JSX.Element {
               aria-pressed={fit === option}
               title={
                 option === 'contain'
-                  ? 'Moving to another board keeps proportions and centres the layout'
-                  : 'Moving to another board scales each axis on its own to fill the display'
+                  ? t('canvas.boardPicker.movingToAnotherBoardKeeps')
+                  : t('canvas.boardPicker.movingToAnotherBoardScales')
               }
               className={`h-6 rounded-md px-1.5 text-[11px] transition-colors ${
                 fit === option
@@ -92,7 +93,7 @@ export function BoardPicker(): React.JSX.Element {
               }`}
               onClick={() => setFit(option)}
             >
-              {option === 'contain' ? 'Fit' : 'Stretch'}
+              {option === 'contain' ? t('canvas.boardPicker.fit') : t('canvas.boardPicker.stretch')}
             </button>
           ))}
         </div>
@@ -108,7 +109,7 @@ export function BoardPicker(): React.JSX.Element {
           className="cursor-default text-[11px] text-sky-300"
           title={transferReportLines(report).join('\n')}
         >
-          {`${transferReportLines(report).length} notes`}
+          {t('canvas.boardPicker.lengthNotes', { length: transferReportLines(report).length })}
         </span>
       ) : null}
     </div>
@@ -124,13 +125,13 @@ export function BoardChoice({
 }): React.JSX.Element {
   return (
     <label className="flex w-64 flex-col gap-1 text-left text-[11px] text-muted-foreground">
-      <span>Board</span>
+      <span>{t('device.infoPage.board')}</span>
       <select
         className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
         value={value}
         onChange={(event) => onChange(event.target.value as SimCoreBoardId | '')}
       >
-        <option value="">Select a board…</option>
+        <option value="">{t('canvas.boardPicker.selectABoard')}</option>
         {SIMCORE_BOARD_IDS.map((id) => (
           <option key={id} value={id}>
             {boardLabel(id)}
@@ -138,9 +139,9 @@ export function BoardChoice({
         ))}
       </select>
       {value ? (
-        <span>{`The canvas draws at ${displaySize(value)} logical pixels.`}</span>
+        <span>{t('canvas.boardPicker.theCanvasDrawsAtValue', { value: displaySize(value) ?? '' })}</span>
       ) : (
-        <span>Every widget is placed in that display&rsquo;s own pixels.</span>
+        <span>{t('canvas.boardPicker.everyWidgetIsPlacedIn')}</span>
       )}
     </label>
   )

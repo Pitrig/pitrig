@@ -5,18 +5,19 @@ import { atWidgetCapacity, useDashboardEditorStore } from '../dashboard-editor'
 import type { CanvasTool } from '../editor/store'
 import { WIDGET_ICONS } from '../inspector/icons'
 import { useDeviceStore } from '@/features/device/device-store'
+import { t } from '@shared/ui-text'
 
 const TOOLS: { tool: CanvasTool; label: string; icon: LucideIcon; hint: string }[] = [
-  { tool: 'select', label: 'Select', icon: MousePointer2, hint: 'Pick, move and resize widgets' },
-  { tool: 'text', label: 'Text', icon: WIDGET_ICONS.text, hint: 'A reading, drawn from telemetry' },
-  { tool: 'shape', label: 'Shape', icon: WIDGET_ICONS.shape, hint: 'A plate, and the container other widgets go inside' },
-  { tool: 'bar', label: 'Bar', icon: WIDGET_ICONS.bar, hint: 'A filling bar over a value window' },
-  { tool: 'arc', label: 'Arc', icon: WIDGET_ICONS.arc, hint: 'A ring gauge' },
-  { tool: 'indicator', label: 'Lights', icon: WIDGET_ICONS.indicator, hint: 'A strip of lamps' },
-  { tool: 'graph', label: 'Graph', icon: WIDGET_ICONS.graph, hint: 'A trace over time' },
-  { tool: 'image', label: 'Image', icon: WIDGET_ICONS.image, hint: 'An uploaded bitmap' },
-  { tool: 'slot', label: 'Slot', icon: WIDGET_ICONS.slot, hint: 'An area that switches between pages' },
-  { tool: 'tap_zone', label: 'Tap zone', icon: MousePointerClick, hint: 'An invisible rectangle that takes a tap' }
+  { tool: 'select', label: t('canvas.toolPalette.select'), icon: MousePointer2, hint: t('canvas.toolPalette.pickMoveAndResizeWidgets') },
+  { tool: 'text', label: t('modules.effectEditor.text'), icon: WIDGET_ICONS.text, hint: t('canvas.toolPalette.aReadingDrawnFromTelemetry') },
+  { tool: 'shape', label: t('inspector.indicatorEditor.shape'), icon: WIDGET_ICONS.shape, hint: t('canvas.toolPalette.aPlateAndTheContainer') },
+  { tool: 'bar', label: t('inspector.gaugeEditors.bar'), icon: WIDGET_ICONS.bar, hint: t('canvas.toolPalette.aFillingBarOverA') },
+  { tool: 'arc', label: t('inspector.gaugeEditors.arc'), icon: WIDGET_ICONS.arc, hint: t('canvas.toolPalette.aRingGauge') },
+  { tool: 'indicator', label: t('canvas.toolPalette.lights'), icon: WIDGET_ICONS.indicator, hint: t('canvas.toolPalette.aStripOfLamps') },
+  { tool: 'graph', label: t('canvas.toolPalette.graph'), icon: WIDGET_ICONS.graph, hint: t('canvas.toolPalette.aTraceOverTime') },
+  { tool: 'image', label: t('firmware.firmwarePage.image'), icon: WIDGET_ICONS.image, hint: t('canvas.toolPalette.anUploadedBitmap') },
+  { tool: 'slot', label: t('canvas.toolPalette.slot'), icon: WIDGET_ICONS.slot, hint: t('canvas.toolPalette.anAreaThatSwitchesBetween') },
+  { tool: 'tap_zone', label: t('canvas.toolPalette.tapZone'), icon: MousePointerClick, hint: t('canvas.toolPalette.anInvisibleRectangleThatTakes') }
 ]
 
 export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Element {
@@ -26,7 +27,7 @@ export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Elemen
   return (
     <div
       role="toolbar"
-      aria-label="Widget tools"
+      aria-label={t('canvas.toolPalette.widgetTools')}
       aria-orientation="vertical"
       className="flex min-h-0 flex-none flex-col gap-1 overflow-y-auto overscroll-contain rounded-md border bg-card/60 p-1"
       style={{ scrollbarWidth: 'thin' }}
@@ -44,10 +45,10 @@ export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Elemen
             disabled={!enabled || full}
             title={
               full
-                ? `The dashboard already holds as many ${label.toLowerCase()} widgets as the board has room for.`
+                ? t('canvas.toolPalette.theDashboardAlreadyHoldsAs', { toLowerCase: label.toLowerCase() })
                 : tool === 'select'
                   ? hint
-                  : `${label} — ${hint}. Drag a box on the display, or click to place one.`
+                  : t('canvas.toolPalette.labelHintDragABox', { label: label, hint: hint })
             }
             className={`flex size-8 flex-none items-center justify-center rounded-md border transition-colors disabled:opacity-30 ${
               active

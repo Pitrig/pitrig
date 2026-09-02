@@ -6,8 +6,8 @@ import {
   MAXIMUM_SPRITE_FRAMES,
   type ImageColorFormat
 } from '@shared/image-assets'
+import { t } from '@shared/ui-text'
 import { useImageAssetsStore, type ImageEntry } from './image-assets-store'
-import { FORMAT_LABELS } from './image-format-labels'
 import { SizeReadout, Thumbnail } from './image-page-parts'
 
 export function StagedImageCard({
@@ -28,7 +28,7 @@ export function StagedImageCard({
         {entry.sources[0]?.name}
       </span>
       <Button
-        aria-label={`Remove ${entry.name}`}
+        aria-label={t('fonts.fontsPage.removeName', { name: entry.name })}
         className="flex-none px-2"
         variant="outline"
         onClick={() => store.getState().removeEntry(entry.id)}
@@ -45,7 +45,7 @@ export function StagedImageCard({
               {source.name}
             </span>
             <button
-              aria-label={`Remove frame ${index}`}
+              aria-label={t('images.stagedImageCard.removeFrameIndex', { index: index })}
               className="text-muted-foreground hover:text-foreground"
               onClick={() => store.getState().removeFrame(entry.id, source.id)}
             >
@@ -62,11 +62,11 @@ export function StagedImageCard({
       onClick={() => onAddFrame(entry.id)}
     >
       {entry.sources.length > 1
-        ? `Add frame (${entry.sources.length})`
-        : 'Make a sprite sheet…'}
+        ? t('images.stagedImageCard.addFrameLength', { length: entry.sources.length })
+        : t('images.stagedImageCard.makeASpriteSheet')}
     </Button>
     <label className="grid gap-1">
-      <span className="text-muted-foreground">Name a widget refers to</span>
+      <span className="text-muted-foreground">{t('images.stagedImageCard.nameAWidgetRefersTo')}</span>
       <input
         value={entry.name}
         maxLength={31}
@@ -77,7 +77,7 @@ export function StagedImageCard({
       />
     </label>
     <label className="grid gap-1">
-      <span className="text-muted-foreground">Format</span>
+      <span className="text-muted-foreground">{t('images.stagedImageCard.format')}</span>
       <select
         value={entry.format}
         className="h-7 rounded-md border bg-transparent px-1"
@@ -89,14 +89,14 @@ export function StagedImageCard({
       >
         {(['rgb565a8', 'rgb565', 'alpha8'] as const).map((format) => (
           <option key={format} value={format}>
-            {FORMAT_LABELS[format]}
+            {t(`images.format.${format}`)}
           </option>
         ))}
       </select>
     </label>
     <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
       <label className="grid gap-1">
-        <span className="text-muted-foreground">Width</span>
+        <span className="text-muted-foreground">{t('images.stagedImageCard.width')}</span>
         <input
           type="number"
           min={1}
@@ -111,11 +111,11 @@ export function StagedImageCard({
       <button
         type="button"
         aria-pressed={entry.lockAspect}
-        aria-label={entry.lockAspect ? 'Unlock proportions' : 'Lock proportions'}
+        aria-label={entry.lockAspect ? t('images.stagedImageCard.unlockProportions') : t('images.stagedImageCard.lockProportions')}
         title={
           entry.lockAspect
-            ? 'Proportions locked: changing one side carries the other'
-            : 'Proportions free: each side is set on its own'
+            ? t('images.stagedImageCard.proportionsLockedChangingOneSide')
+            : t('images.stagedImageCard.proportionsFreeEachSideIs')
         }
         className={`mb-0.5 rounded-md border p-1.5 ${entry.lockAspect ? 'text-foreground' : 'text-muted-foreground'}`}
         onClick={() =>
@@ -129,7 +129,7 @@ export function StagedImageCard({
         )}
       </button>
       <label className="grid gap-1">
-        <span className="text-muted-foreground">Height</span>
+        <span className="text-muted-foreground">{t('images.stagedImageCard.height')}</span>
         <input
           type="number"
           min={1}

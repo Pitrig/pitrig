@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useDeviceStore } from '@/features/device/device-store'
 import { withEditGroup } from '@/features/device/edit-group'
+import { t } from '@shared/ui-text'
 
 export function DisplayPreview(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -71,21 +72,21 @@ export function DisplayPreview(): React.JSX.Element {
     <Card className="flex h-full w-full flex-col bg-background/70">
       <CardHeader className="flex-none gap-2 py-3">
         <div className="flex items-center justify-between gap-3">
-          <CardTitle>Display preview</CardTitle>
+          <CardTitle>{t('canvas.displayPreview.displayPreview')}</CardTitle>
           <div className="flex flex-none gap-1">
-            <Button className="size-8 p-0" variant="outline" disabled={!canUndo} title="Undo (Cmd/Ctrl+Z)" onClick={() => undo()}>
+            <Button className="size-8 p-0" variant="outline" disabled={!canUndo} title={t('canvas.displayPreview.undoCmdCtrlZ')} onClick={() => undo()}>
               <Undo2 className="size-4" aria-hidden />
-              <span className="sr-only">Undo</span>
+              <span className="sr-only">{t('canvas.displayPreview.undo')}</span>
             </Button>
-            <Button className="size-8 p-0" variant="outline" disabled={!canRedo} title="Redo (Shift+Cmd/Ctrl+Z)" onClick={() => redo()}>
+            <Button className="size-8 p-0" variant="outline" disabled={!canRedo} title={t('canvas.displayPreview.redoShiftCmdCtrlZ')} onClick={() => redo()}>
               <Redo2 className="size-4" aria-hidden />
-              <span className="sr-only">Redo</span>
+              <span className="sr-only">{t('canvas.displayPreview.redo')}</span>
             </Button>
             <Button
               className="size-8 p-0"
               variant="outline"
               disabled={!selectedExists}
-              title="Duplicate the selection (Cmd/Ctrl+D)"
+              title={t('canvas.displayPreview.duplicateTheSelectionCmdCtrl')}
               onClick={() => {
                 if (!display) return
                 withEditGroup(() => {
@@ -97,20 +98,20 @@ export function DisplayPreview(): React.JSX.Element {
               }}
             >
               <Copy className="size-4" aria-hidden />
-              <span className="sr-only">Duplicate</span>
+              <span className="sr-only">{t('canvas.displayPreview.duplicate')}</span>
             </Button>
             <Button
               className="size-8 p-0 text-red-400 hover:text-red-300"
               variant="outline"
               disabled={!selectedExists}
-              title="Delete the selection (Delete)"
+              title={t('canvas.displayPreview.deleteTheSelectionDelete')}
               onClick={() => {
                 if (liveSelection.length > 0) deleteSelection(liveSelection)
                 else select(undefined)
               }}
             >
               <Trash2 className="size-4" aria-hidden />
-              <span className="sr-only">Delete</span>
+              <span className="sr-only">{t('common.delete')}</span>
             </Button>
           </div>
         </div>
@@ -157,10 +158,10 @@ function EmptyCanvas(): React.JSX.Element {
 
   return (
     <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
-      <p className="text-sm text-zinc-400">No dashboard open</p>
+      <p className="text-sm text-zinc-400">{t('canvas.displayPreview.noDashboardOpen')}</p>
       {session ? (
         <p className="max-w-xs text-[11px] text-zinc-500">
-          {`Authoring for the connected ${session.info.boardId}.`}
+          {t('canvas.displayPreview.authoringForTheConnectedBoardid', { boardId: session.info.boardId })}
         </p>
       ) : (
         <BoardChoice
@@ -174,20 +175,17 @@ function EmptyCanvas(): React.JSX.Element {
       <div className="flex flex-wrap items-center justify-center gap-2">
         <Button
           disabled={!board}
-          title={board ? undefined : 'Choose a board first'}
+          title={board ? undefined : t('canvas.displayPreview.chooseABoardFirst')}
           onClick={() => setMessage(createConfiguration(board as SimCoreBoardId).message)}
         >
-          New dashboard
-        </Button>
+          {t('canvas.displayPreview.newDashboard')}</Button>
         <Button
           variant="outline"
           onClick={() => void openConfigurationFile().then((result) => setMessage(result?.message))}
         >
-          Open file…
-        </Button>
+          {t('modules.noConfiguration.openFile')}</Button>
         <Button variant="outline" onClick={() => setDashboardView('templates')}>
-          Browse templates
-        </Button>
+          {t('canvas.displayPreview.browseTemplates')}</Button>
       </div>
       {message ? <p className="max-w-xs text-[11px] text-zinc-500">{message}</p> : null}
     </div>

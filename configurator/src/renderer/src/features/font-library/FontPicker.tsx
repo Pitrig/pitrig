@@ -11,6 +11,7 @@ import { FontCatalogRow } from './FontCatalogRow'
 import { useFontFaceStore } from './font-face-store'
 import { FontPickerRow } from './FontPickerRow'
 import { dashboardFontFootprint, kilobytes, useFontLibraryStore } from './font-library-store'
+import { t } from '@shared/ui-text'
 
 const CATALOG_RESULT_LIMIT = 60
 
@@ -140,28 +141,27 @@ export function FontPicker({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Choose a font"
+        aria-label={t('fonts.fontPicker.chooseAFont')}
         className="flex max-h-[80vh] w-[32rem] flex-col overflow-hidden rounded-lg border bg-background text-xs shadow-lg"
       >
         <div className="space-y-2 border-b p-3">
           <div className="flex items-baseline justify-between gap-2">
-            <h2 className="text-sm font-semibold text-foreground">Choose a font</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t('fonts.fontPicker.chooseAFont')}</h2>
             <p className="text-muted-foreground">
-              {footprint.families} of {MAXIMUM_FONT_FAMILIES} families ·{' '}
-              {kilobytes(footprint.bytes)} of 2 MiB
+              {t('fonts.footprint', { families: footprint.families, maximum: MAXIMUM_FONT_FAMILIES, kilobytes: kilobytes(footprint.bytes) })}
             </p>
           </div>
           <input
             ref={searchRef}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search fonts"
+            placeholder={t('fonts.fontPicker.searchFonts')}
             className="h-8 w-full rounded-md border bg-background px-2 text-foreground"
           />
         </div>
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-          <Group title="In this dashboard" hint="Already used, so it costs no slot.">
+          <Group title={t('fonts.fontPicker.inThisDashboard')} hint={t('fonts.fontPicker.alreadyUsedSoItCosts')}>
             {inDashboard.map((entry) => (
               <FontPickerRow
                 key={entry.id}
@@ -172,7 +172,7 @@ export function FontPicker({
               />
             ))}
           </Group>
-          <Group title="Library" hint="Bundled with the app, imported, or downloaded.">
+          <Group title={t('fonts.fontPicker.library')} hint={t('fonts.fontPicker.bundledWithTheAppImported')}>
             {library.map((entry) => (
               <FontPickerRow
                 key={entry.id}
@@ -185,11 +185,11 @@ export function FontPicker({
             ))}
           </Group>
           <Group
-            title="Google Fonts"
+            title={t('fonts.fontPicker.googleFonts')}
             hint={
               needle
-                ? 'Downloaded when you pick a weight.'
-                : `Most used first — search to reach the rest of the ${catalog.length}.`
+                ? t('fonts.fontPicker.downloadedWhenYouPickA')
+                : t('fonts.fontPicker.mostUsedFirstSearchTo', { length: catalog.length })
             }
           >
             {catalogMatches.map((family) => (
@@ -215,7 +215,7 @@ export function FontPicker({
           </Group>
           {inDashboard.length + library.length + catalogMatches.length === 0 ? (
             <p className="rounded-md border p-2 text-muted-foreground">
-              Nothing matches “{query}”. Import a file to add your own.
+              {t('fonts.fontPicker.nothingMatches', { query })}
             </p>
           ) : null}
         </div>
@@ -225,11 +225,10 @@ export function FontPicker({
             {importError ?? 'A weight is its own font here, because the board holds one face per family.'}
           </span>
           <Button variant="outline" disabled={importing} onClick={() => void importFace()}>
-            {importing ? 'Importing…' : 'Import font…'}
+            {importing ? t('fonts.fontPicker.importing') : t('fonts.fontsPage.importFont')}
           </Button>
           <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
+            {t('common.close')}</Button>
         </div>
       </div>
     </div>

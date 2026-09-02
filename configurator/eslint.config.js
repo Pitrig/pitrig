@@ -38,6 +38,25 @@ export default tseslint.config(
     }
   },
   {
+    files: ['src/renderer/src/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXText[value=/[A-Za-z]{2}/]',
+          message:
+            'User-visible text belongs in i18n/en.json. Draw it with t() from @shared/ui-text.'
+        },
+        {
+          selector:
+            'JSXAttribute[name.name=/^(alt|aria-description|aria-label|buttonLabel|caption|description|hint|label|message|placeholder|summary|title)$/] > Literal[value=/[A-Za-z]{2}/]',
+          message:
+            'User-visible text belongs in i18n/en.json. Draw it with t() from @shared/ui-text.'
+        }
+      ]
+    }
+  },
+  {
     files: ['src/renderer/src/**/*.{ts,tsx}', 'src/debug/renderer/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser

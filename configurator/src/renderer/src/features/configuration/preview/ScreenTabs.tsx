@@ -12,6 +12,7 @@ import {
 import { useDeviceStore } from '@/features/device/device-store'
 import { screenName } from './screen-name'
 import { TOOLBAR_GHOST, TOOLBAR_ITEM, TOOLBAR_ITEM_ACTIVE, ToolbarDivider, ToolbarGroup } from './toolbar-parts'
+import { t } from '@shared/ui-text'
 
 export function ScreenTabs(): React.JSX.Element {
   const configuration = useDeviceStore((state) => state.draft)
@@ -34,7 +35,7 @@ export function ScreenTabs(): React.JSX.Element {
   }
 
   return (
-    <ToolbarGroup label="Screens">
+    <ToolbarGroup label={t('canvas.screenTabs.screens')}>
       {Array.from({ length: count }, (_, index) => {
         const edge = dropTarget?.index === index ? dropTarget.before : undefined
         const name = screenName(screens, index)
@@ -44,8 +45,8 @@ export function ScreenTabs(): React.JSX.Element {
           draggable={reorderable && renaming !== index}
           title={
             reorderable
-              ? `${name} · double-click to rename · drag to reorder`
-              : `${name} · double-click to rename`
+              ? t('canvas.screenTabs.nameDoubleClickToRename', { name: name })
+              : t('canvas.screenTabs.nameDoubleClickToRename2', { name: name })
           }
           className={`relative ${TOOLBAR_ITEM} ${
             index === activeScreenIndex ? TOOLBAR_ITEM_ACTIVE : ''
@@ -115,7 +116,7 @@ export function ScreenTabs(): React.JSX.Element {
       {count < MAXIMUM_SCREENS ? (
         <button
           type="button"
-          title="Add a screen"
+          title={t('templates.insertScreenDialog.addAScreen')}
           className={TOOLBAR_GHOST}
           onClick={() => {
             const index = addScreen()
@@ -128,7 +129,7 @@ export function ScreenTabs(): React.JSX.Element {
       {activeScreenIndex > 0 ? (
         <button
           type="button"
-          title={`Delete ${screenName(screens, activeScreenIndex)} and everything on it`}
+          title={t('canvas.screenTabs.deleteActivescreenindexAndEverythingOn', { activeScreenIndex: screenName(screens, activeScreenIndex) })}
           className={TOOLBAR_GHOST}
           onClick={() => deleteScreen(activeScreenIndex)}
         >
@@ -161,7 +162,7 @@ function ScreenNameField({
   return (
     <input
       autoFocus
-      aria-label="Screen name"
+      aria-label={t('canvas.screenTabs.screenName')}
       value={value}
       maxLength={WIDGET_ID_CAPACITY - 1}
       className={`mx-2 w-24 min-w-0 rounded-sm border bg-transparent px-1 ${

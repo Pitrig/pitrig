@@ -6,7 +6,7 @@ import { MAXIMUM_FONT_FAMILIES } from '@shared/font-assets'
 import { applyFontFamilyToDashboard, draftFontFamily, mutateActiveScreen, mutateDraftConfiguration, renameScreen, useDashboardEditorStore } from '../dashboard-editor'
 import { authored } from './authored'
 import { Group } from './Group'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { InfoHint } from './InfoHint'
 import { GROUP_ICONS } from './icons'
 import { ColorField, FontFamilyField, IdField, SelectField } from './fields'
@@ -20,14 +20,14 @@ export function ScreenEditor({ configuration }: { configuration: DeviceConfigura
     <Group id="Screen" title={`Screen ${activeScreenIndex + 1}`} icon={GROUP_ICONS.screen}>
       <IdField
         key={screen?.id ?? activeScreenIndex}
-        label="Name"
-        hint={HINTS.screen.name}
+        label={t('device.infoPage.name')}
+        hint={t('inspector.hints.screen.name')}
         value={screen?.id ?? `screen${activeScreenIndex + 1}`}
         onCommit={(name) => renameScreen(activeScreenIndex, name)}
       />
       <ColorField
-        label="Background"
-        hint={HINTS.screen.background}
+        label={t('modules.effectColors.background')}
+        hint={t('inspector.hints.screen.background')}
         value={screen?.background_color ?? '#000000'}
         modified={authored(screen?.background_color, '#000000')}
         onReset={() => mutateActiveScreen((screen) => { delete screen.background_color })}
@@ -59,10 +59,10 @@ export function DashboardSection({
   ].sort()
   const footprint = dashboardFontFootprint(entries, used)
   return (
-    <Group id="Dashboard" title="Dashboard" icon={GROUP_ICONS.dashboard}>
+    <Group id="Dashboard" title={t('documents.label.dashboard')} icon={GROUP_ICONS.dashboard}>
       <SelectField
-        label="Transition"
-        hint={HINTS.dashboard.transition}
+        label={t('inspector.documentSections.transition')}
+        hint={t('inspector.hints.dashboard.transition')}
         value={configuration.dashboard?.transition ?? 'slide'}
         options={SCREEN_TRANSITION_VALUES}
         modified={authored(configuration.dashboard?.transition, 'slide')}
@@ -72,29 +72,27 @@ export function DashboardSection({
           else draft.dashboard = { ...draft.dashboard, transition }
         })}
       />
-      <FontFamilyField label="New widgets" family={family} onChange={setDefaultFontFamily} hint={HINTS.dashboard.font} />
+      <FontFamilyField label={t('inspector.documentSections.newWidgets')} family={family} onChange={setDefaultFontFamily} hint={t('inspector.hints.dashboard.font')} />
       <Button
         variant="outline"
         className="w-full"
         disabled={used.length === 0}
         onClick={() => applyFontFamilyToDashboard(family)}
       >
-        Apply to every widget
-      </Button>
+        {t('inspector.documentSections.applyToEveryWidget')}</Button>
       <div className="space-y-1 rounded-md border p-2 text-muted-foreground">
         <p className="flex items-center gap-1">
           <span>
-            {footprint.families} of {MAXIMUM_FONT_FAMILIES} families ·{' '}
-            {kilobytes(footprint.bytes)} of 2 MiB
+            {t('fonts.footprint', { families: footprint.families, maximum: MAXIMUM_FONT_FAMILIES, kilobytes: kilobytes(footprint.bytes) })}
           </span>
-          <InfoHint text={HINTS.dashboard.budget} label="Font budget" />
+          <InfoHint text={t('inspector.hints.dashboard.budget')} label={t('inspector.documentSections.fontBudget')} />
         </p>
         <ul className="space-y-0.5">
           {used.map((id) => {
             const entry = findFontEntry(entries, id)
             return (
               <li key={id} className={entry ? '' : 'text-amber-500'}>
-                {entry ? entry.name : `${id} — not in the library`}
+                {entry ? entry.name : t('inspector.documentSections.idNotInTheLibrary', { id: id })}
               </li>
             )
           })}

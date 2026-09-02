@@ -1,8 +1,8 @@
 import { useState } from 'react'
+import { t } from '@shared/ui-text'
 
 import { Button } from '@/components/ui/button'
 import { readConfigurationFromBoard } from '@/features/configuration/configuration-actions'
-import { CONFIGURATION_DOCUMENT_LABELS } from '@shared/configuration-documents'
 import { useBoardSyncStore } from './board-sync-store'
 import { useDeviceStore } from './device-store'
 import { useDraftState } from './draft-state'
@@ -52,20 +52,22 @@ export function BoardSyncDialog(): React.JSX.Element | null {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="The board and the draft differ"
+        aria-label={t('device.boardSyncDialog.theBoardAndTheDraft')}
         className="w-[30rem] space-y-3 rounded-lg border bg-background p-4 text-xs shadow-lg"
       >
         <div className="space-y-1">
-          <h2 className="text-sm font-semibold text-foreground">Board and draft differ</h2>
+          <h2 className="text-sm font-semibold text-foreground">{t('device.boardSyncDialog.boardAndDraftDiffer')}</h2>
           <p className="text-muted-foreground">
-            {REASON_TEXT[question.reason]} Nothing has been written or applied yet
-            {boardId ? ` on ${boardId}` : ''}. Pick which one both sides should follow.
+            {t('device.boardSyncDialog.explanation', {
+              reason: REASON_TEXT[question.reason],
+              board: boardId ? t('device.boardSyncDialog.onBoardid', { boardId }) : ''
+            })}
           </p>
         </div>
         <ul className="space-y-1">
           {question.documents.map((document) => (
             <li key={document} className="rounded-md border px-2 py-1.5 text-foreground">
-              {CONFIGURATION_DOCUMENT_LABELS[document]} differs
+              {t('device.boardSyncDialog.documentDiffers', { label: t(`documents.label.${document}`) })}
             </li>
           ))}
         </ul>
@@ -80,7 +82,7 @@ export function BoardSyncDialog(): React.JSX.Element | null {
             variant="outline"
             onClick={() => void loadFromBoard()}
           >
-            {busy === 'board' ? 'Reading…' : 'Take the board’s configuration'}
+            {busy === 'board' ? t('templates.dashboardThumbnail.reading') : t('device.boardSyncDialog.takeTheBoardSConfiguration')}
           </Button>
           <Button
             disabled={busy !== undefined || saving || liveApplyBlockedReason !== undefined}
@@ -88,23 +90,20 @@ export function BoardSyncDialog(): React.JSX.Element | null {
             variant="outline"
             onClick={resolve}
           >
-            Show the draft on the board
-          </Button>
+            {t('device.boardSyncDialog.showTheDraftOnThe')}</Button>
           <Button
             disabled={busy !== undefined || saving || saveBlockedReason !== undefined}
             title={saveBlockedReason ?? 'Write the draft to the board and keep it there'}
             onClick={() => void saveToBoard()}
           >
-            Save the draft to the board
-          </Button>
+            {t('device.boardSyncDialog.saveTheDraftToThe')}</Button>
         </div>
         <button
           type="button"
           className="w-full text-center text-muted-foreground hover:text-foreground"
           onClick={defer}
         >
-          Decide later — the board keeps running what it has
-        </button>
+          {t('device.boardSyncDialog.decideLaterTheBoardKeeps')}</button>
       </div>
     </div>
   )

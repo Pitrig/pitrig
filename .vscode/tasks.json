@@ -304,7 +304,7 @@
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "python3 -m tools.codegen.configuration_schema --check && python3 -m tools.codegen.telemetry_catalog --check && python3 -m tools.codegen.font_catalog --check && python3 -m tools.codegen.led_font --check && python3 tools/check_debug_isolation.py --check"
+        "python3 -m tools.codegen.configuration_schema --check && python3 -m tools.codegen.telemetry_catalog --check && python3 -m tools.codegen.font_catalog --check && python3 -m tools.codegen.led_font --check && python3 -m tools.codegen.ui_strings --check && python3 tools/check_debug_isolation.py --check"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -324,7 +324,7 @@
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "python3 -m tools.codegen.configuration_schema && python3 -m tools.codegen.telemetry_catalog && python3 -m tools.codegen.font_catalog && python3 -m tools.codegen.led_font && python3 tools/check_debug_isolation.py"
+        "python3 -m tools.codegen.configuration_schema && python3 -m tools.codegen.telemetry_catalog && python3 -m tools.codegen.font_catalog && python3 -m tools.codegen.led_font && python3 -m tools.codegen.ui_strings && python3 tools/check_debug_isolation.py"
       ],
       "options": {
         "cwd": "${workspaceFolder}"

@@ -38,6 +38,7 @@ import {
   type TemplateSaveRequest
 } from '@shared/templates'
 import { SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
+import { t } from '@shared/ui-text'
 
 export function isImageUploadRequest(value: unknown): value is ImageUploadRequest {
   if (typeof value !== 'object' || value === null) return false
@@ -155,7 +156,7 @@ export function isConfigurationPathRequest(value: unknown): value is Configurati
 export function invalidConfigurationRequest(): DeviceResult<never> {
   return {
     ok: false,
-    error: { code: 'invalid_request', message: 'Invalid device configuration request.' }
+    error: { code: 'invalid_request', message: t('ipc.requestGuards.invalidDeviceConfigurationRequest') }
   }
 }
 

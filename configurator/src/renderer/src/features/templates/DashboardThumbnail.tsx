@@ -5,6 +5,7 @@ import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
 
 import { ScreenGallery } from './ScreenGallery'
 import { useTemplatesStore } from './templates-store'
+import { t } from '@shared/ui-text'
 
 export function DashboardThumbnail({
   id,
@@ -29,10 +30,10 @@ export function DashboardThumbnail({
   const display = BOARD_PROFILES[board]?.display
 
   if (document === 'failed' || !display) {
-    return <Note className={className}>No preview</Note>
+    return <Note className={className}>{t('templates.dashboardThumbnail.noPreview')}</Note>
   }
   if (typeof document !== 'object') {
-    return <Note className={className}>Reading…</Note>
+    return <Note className={className}>{t('templates.dashboardThumbnail.reading')}</Note>
   }
   return <ScreenGallery screens={screens} display={display} className={className} />
 }

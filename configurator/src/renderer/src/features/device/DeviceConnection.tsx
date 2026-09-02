@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { writeEventLog } from '@/lib/event-log'
 import { useDeviceStore } from '@/features/device/device-store'
+import { t } from '@shared/ui-text'
 import {
   DEFAULT_BAUD_RATE,
   SUPPORTED_BAUD_RATES,
@@ -132,19 +133,19 @@ export function DeviceConnection({
 
   const actionLabel =
     status === 'connected'
-      ? 'Disconnect'
+      ? t('device.connection.disconnect')
       : status === 'scanning' || status === 'connecting'
-        ? 'Cancel'
+        ? t('device.connection.cancel')
         : status === 'disconnecting'
-          ? 'Disconnecting…'
-          : 'Connect'
+          ? t('device.connection.disconnecting')
+          : t('device.connection.connect')
 
   return (
     <div className="flex items-center gap-2">
       <div className="w-28 flex-none">
         {selectedPortId !== AUTO_PORT_ID ? (
           <select
-            aria-label="Baud rate"
+            aria-label={t('device.connection.baudRateLabel')}
             className="h-8 w-full rounded-md border bg-background px-2 text-xs"
             value={selectedBaudRate}
             disabled={isWorking || status === 'connected'}
@@ -160,13 +161,13 @@ export function DeviceConnection({
       </div>
 
       <select
-        aria-label="Serial port"
+        aria-label={t('device.connection.portLabel')}
         className="h-8 w-64 flex-none rounded-md border bg-background px-2 text-xs"
         value={selectedPortId}
         disabled={isWorking || status === 'connected'}
         onChange={(event) => setSelectedPortId(event.target.value)}
       >
-        <option value={AUTO_PORT_ID}>Auto — detect port and speed</option>
+        <option value={AUTO_PORT_ID}>{t('device.connection.autoPort')}</option>
         {ports.map((port) => (
           <option key={port.id} value={port.id}>
             {port.displayName}
@@ -180,7 +181,7 @@ export function DeviceConnection({
         disabled={isWorking || status === 'connected'}
         onClick={() => void refreshPorts()}
       >
-        Refresh
+        {t('device.connection.refresh')}
       </Button>
       <Button
         className="w-28 flex-none"
@@ -197,7 +198,7 @@ export function DeviceConnection({
           aria-hidden="true"
           className={`size-1.5 rounded-full ${statusBadgeStyle.indicator}`}
         />
-        {status}
+        {t(`device.status.${status}`)}
       </Badge>
     </div>
   )
@@ -205,13 +206,19 @@ export function DeviceConnection({
 
 function formatStatus(state: Pick<DeviceState, 'connection' | 'scan' | 'error'>): string {
   if (state.connection) {
-    return `${state.connection.displayName} at ${state.connection.baudRate}`
+    return t('device.connection.connectedAt', {
+      displayName: state.connection.displayName,
+      baudRate: state.connection.baudRate
+    })
   }
   if (state.scan) {
-    return `Scanning ${state.scan.displayName} at ${state.scan.baudRate}`
+    return t('device.connection.scanningAt', {
+      displayName: state.scan.displayName,
+      baudRate: state.scan.baudRate
+    })
   }
   if (state.error) {
     return state.error.message
   }
-  return 'Device disconnected'
+  return t('device.connection.disconnected')
 }

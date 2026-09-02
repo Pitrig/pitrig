@@ -6,6 +6,7 @@ import {
   TEXT_CAPACITIES,
   WIDGET_TYPES
 } from '../configuration-schema'
+import { t } from '../ui-text'
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -22,7 +23,7 @@ export function findUnknownProperty(
   for (const [key, child] of Object.entries(node)) {
     const here = path ? `${path}.${key}` : key
     if (allowed && !allowed.includes(key)) {
-      return `Unknown property "${here}" is not part of the configuration schema.`
+      return t('validation.schemaKeys.unknownPropertyHereIsNot', { here: here })
     }
     const capacity = TEXT_CAPACITIES[`${structName}.${key}`]
     if (capacity !== undefined && typeof child === 'string') {
@@ -52,17 +53,17 @@ export function findUnknownProperty(
 }
 
 function checkWidgets(value: unknown, path: string): string | undefined {
-  if (!Array.isArray(value)) return `"${path}" must be an array of widgets.`
+  if (!Array.isArray(value)) return t('validation.schemaKeys.pathMustBeAnArray', { path: path })
   for (let index = 0; index < value.length; ++index) {
     const widget = value[index]
     const here = `${path}[${index}]`
-    if (!isObject(widget)) return `"${here}" must be an object.`
+    if (!isObject(widget)) return t('validation.schemaKeys.hereMustBeAnObject', { here: here })
     const type = (widget as { type?: unknown }).type
     if (typeof type !== 'string' || !WIDGET_TYPES.includes(type)) {
-      return `"${here}.type" must be one of ${WIDGET_TYPES.join(', ')}.`
+      return t('validation.schemaKeys.hereTypeMustBeOne', { here: here, join: WIDGET_TYPES.join(', ') })
     }
     const structName = SCHEMA_WIDGET_STRUCTS[type]
-    if (!structName) return `"${here}.type" must be one of ${WIDGET_TYPES.join(', ')}.`
+    if (!structName) return t('validation.schemaKeys.hereTypeMustBeOne', { here: here, join: WIDGET_TYPES.join(', ') })
     const error = findUnknownProperty(widget, structName, here)
     if (error) return error
   }

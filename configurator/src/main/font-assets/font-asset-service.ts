@@ -12,21 +12,23 @@ import {
   success,
   type AssetKind
 } from '../assets/asset-service-base'
+import { PackageTooLargeError } from '../assets/asset-service-base'
 import { DeviceService } from '../device/device-service'
 import { FontLibraryService } from '../font-library/font-library-service'
 import { buildFontPackage, type BuiltFontPackage, type FontFamilyAsset } from './font-package'
+import { t } from '@shared/ui-text'
 
 const kFonts: AssetKind = {
   sessionKey: 'fontAssets',
-  dialogTitle: 'Select font source',
-  dialogButton: 'Select font',
-  filters: [{ name: 'OpenType fonts', extensions: ['ttf', 'otf'] }],
+  dialogTitle: t('fonts.fontAssetService.selectFontSource'),
+  dialogButton: t('fonts.fontAssetService.selectFont'),
+  filters: [{ name: t('fonts.dialog.filter'), extensions: ['ttf', 'otf'] }],
   extensions: ['.ttf', '.otf'],
-  wrongExtension: 'Select a TTF or OTF font file.',
-  busy: 'A font upload is already running.',
-  unsupported: 'The connected firmware does not support font asset upload.',
-  storageUnavailable: 'Font asset storage is unavailable on this device.',
-  rebootRequired: 'Restart the device before uploading another font package.'
+  wrongExtension: t('fonts.fontLibraryService.selectATtfOrOtf'),
+  busy: t('fonts.fontAssetService.aFontUploadIsAlready'),
+  unsupported: t('fonts.fontAssetService.theConnectedFirmwareDoesNot'),
+  storageUnavailable: t('fonts.fontAssetService.fontAssetStorageIsUnavailable'),
+  rebootRequired: t('fonts.fontAssetService.restartTheDeviceBeforeUploading')
 }
 
 export class FontAssetService extends AssetServiceBase {
@@ -44,15 +46,17 @@ export class FontAssetService extends AssetServiceBase {
     for (const family of families) {
       const bytes = await this.library.readFace(family)
       if (!bytes) {
-        return failure('source_missing', `The font library holds no face called "${family}".`)
+        return failure('source_missing', t('fonts.fontAssetService.theFontLibraryHoldsNo', { family: family }))
       }
       faces.push({ family, bytes })
     }
     try {
       return success(buildFontPackage(faces))
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'The font package could not be built.'
-      return failure(message.includes('2 MiB') ? 'package_too_large' : 'invalid_request', message)
+      const message =
+        error instanceof Error ? error.message : t('fonts.fontAssetService.packageBuildFailed')
+      const code = error instanceof PackageTooLargeError ? 'package_too_large' : 'invalid_request'
+      return failure(code, message)
     }
   }
 
@@ -71,7 +75,7 @@ export class FontAssetService extends AssetServiceBase {
         stage: 'building',
         completed: 0,
         total: request.families.length,
-        message: `Building one font package from ${request.families.length} font families`
+        message: t('fonts.fontAssetService.buildingOneFontPackageFrom', { length: request.families.length })
       })
       operation.signal.throwIfAborted()
       const built = await this.buildPackage(request.families)
@@ -84,7 +88,7 @@ export class FontAssetService extends AssetServiceBase {
         stage: 'building',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
-        message: `Built font package: ${packageBytes.byteLength} bytes`
+        message: t('fonts.fontAssetService.builtFontPackageBytelengthBytes', { byteLength: packageBytes.byteLength })
       })
 
       if (this.deviceService.getState().session !== deviceSession) {
@@ -100,14 +104,14 @@ export class FontAssetService extends AssetServiceBase {
         stage: 'completed',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
-        message: 'Font package committed. Restart the device to activate it.'
+        message: t('fonts.fontAssetService.fontPackageCommittedRestartThe')
       })
       return success(undefined)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown font asset error.'
       if (operation.signal.aborted) {
-        report({ stage: 'cancelled', completed: 0, total: 0, message: 'Font upload cancelled.' })
-        return failure('cancelled', 'Font upload was cancelled.')
+        report({ stage: 'cancelled', completed: 0, total: 0, message: t('fonts.fontAssetService.fontUploadCancelled') })
+        return failure('cancelled', t('fonts.fontAssetService.fontUploadWasCancelled'))
       }
       report({ stage: 'error', completed: 0, total: 0, message })
       return failure('device_error', message)
@@ -126,16 +130,16 @@ function validateFamilies(families: readonly string[]): FontAssetError | undefin
   if (families.length > MAXIMUM_FONT_FAMILIES) {
     return {
       code: 'invalid_request',
-      message: `At most ${MAXIMUM_FONT_FAMILIES} font families can be installed.`
+      message: t('fonts.fontAssetService.atMostMaximumFontFamilies', { mAXIMUM_FONT_FAMILIES: MAXIMUM_FONT_FAMILIES })
     }
   }
   const seen = new Set<string>()
   for (const family of families) {
     if (!FONT_FAMILY_PATTERN.test(family)) {
-      return { code: 'invalid_request', message: `Invalid font family identifier: ${family}` }
+      return { code: 'invalid_request', message: t('fonts.fontAssetService.invalidFontFamilyIdentifierFamily', { family: family }) }
     }
     if (seen.has(family)) {
-      return { code: 'invalid_request', message: `Duplicate font family: ${family}` }
+      return { code: 'invalid_request', message: t('fonts.fontAssetService.duplicateFontFamilyFamily', { family: family }) }
     }
     seen.add(family)
   }

@@ -15,6 +15,7 @@ import { closePort, openPort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
 import { probeSimCore } from './device-probe'
 import { reconnectToBoard, scanForDevice } from './device-scan'
+import { t } from '@shared/ui-text'
 
 export interface OpenedDevice {
   port: SerialPort
@@ -76,14 +77,14 @@ export class ConnectionManager {
     quiet = false
   ): Promise<DeviceResult<DeviceState>> {
     if (this.activePort?.isOpen) {
-      return failure({ code: 'busy', message: 'A device is already connected.' })
+      return failure({ code: 'busy', message: t('device.deviceConnection.aDeviceIsAlreadyConnected') })
     }
 
     const record = this.portRegistry.get(portId)
     if (!record) {
       const error: DeviceError = {
         code: 'port_missing',
-        message: 'The selected serial port is no longer available. Refresh the port list.'
+        message: t('device.deviceConnection.theSelectedSerialPortIs')
       }
       if (!quiet) this.setState({ status: 'error', error })
       return failure(error)
@@ -103,7 +104,7 @@ export class ConnectionManager {
 
   async autoConnect(): Promise<DeviceResult<DeviceState>> {
     if (this.activePort?.isOpen) {
-      return failure({ code: 'busy', message: 'A device is already connected.' })
+      return failure({ code: 'busy', message: t('device.deviceConnection.aDeviceIsAlreadyConnected') })
     }
 
     const token = ++this.operationToken
@@ -211,7 +212,7 @@ export class ConnectionManager {
         status: 'error',
         error: {
           code: 'serial_error',
-          message: 'The serial device was disconnected.'
+          message: t('device.deviceConnection.theSerialDeviceWasDisconnected')
         }
       })
     }
@@ -248,7 +249,7 @@ export class ConnectionManager {
 
   ensureCurrent(token: number): void {
     if (token !== this.operationToken) {
-      throw new DeviceServiceError('cancelled', 'Device scan was cancelled.')
+      throw new DeviceServiceError('cancelled', t('device.deviceConnection.deviceScanWasCancelled'))
     }
   }
 }

@@ -2,6 +2,7 @@ import type { RgbColor } from '@shared/configuration-schema'
 import { PropertyRow } from './PropertyRow'
 import { ColorSwatchInput, Hint, NumberInput } from './fields'
 import { AddButton, RemoveButton } from './widget-editors'
+import { t } from '@shared/ui-text'
 
 export interface ValueColorEntry {
   value: number
@@ -43,7 +44,7 @@ export function ValueColorList({
               }
             />
             <ColorSwatchInput
-              label={`${label(position)} colour`}
+              label={t('inspector.valueColorList.positionColour', { position: label(position) })}
               value={entry.color}
               onChange={(color) =>
                 onChange(entries.map((at, here) => (here === position ? { ...at, color } : at)))
@@ -58,7 +59,7 @@ export function ValueColorList({
       ))}
       {entries.length < capacity ? (
         <AddButton
-          label={`Add ${noun}`}
+          label={t('modules.modulesPage.addNoun', { noun: noun })}
           onClick={() => onChange([...entries, { value: seedValue(entries), color: defaultColor }])}
         />
       ) : (

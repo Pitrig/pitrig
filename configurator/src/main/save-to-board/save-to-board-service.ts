@@ -1,10 +1,10 @@
 import { documentFonts } from '../../shared/document-fonts'
+import { t } from '@shared/ui-text'
 import {
   CONFIGURATION_DOCUMENT_IDS,
   type ConfigurationDocumentId
 } from '../../shared/configuration-schema'
 import {
-  CONFIGURATION_DOCUMENT_LABELS,
   documentsDiffering
 } from '../../shared/configuration-documents'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
@@ -34,14 +34,14 @@ export class SaveToBoardService {
   async save(request: SaveToBoardRequest): Promise<SaveToBoardResult> {
     const session = this.deviceService.getState().session
     if (!session) {
-      return failure('device_error', 'No SimCore board is connected.')
+      return failure('device_error', t('save.saveToBoardService.noSimcoreBoardIsConnected'))
     }
 
     let configuration: DeviceConfiguration
     try {
       configuration = parseDeviceConfigurationJson(request.json)
     } catch (error) {
-      return failure('invalid_configuration', messageOf(error, 'The configuration is not valid.'))
+      return failure('invalid_configuration', messageOf(error, t('save.saveToBoardService.theConfigurationIsNotValid')))
     }
 
     const requested = request.documents
@@ -54,7 +54,7 @@ export class SaveToBoardService {
     const families =
       !safeMode && changed.includes('dashboard') ? requiredFamilies(configuration) : []
 
-    this.report('preparing', 0, 1, 'Checking the fonts this dashboard needs')
+    this.report('preparing', 0, 1, t('save.saveToBoardService.checkingTheFontsThisDashboard'))
     const unresolved = await this.library.unresolved(families)
     if (unresolved.length > 0) {
       return {
@@ -73,7 +73,7 @@ export class SaveToBoardService {
     return this.deviceService.runPipeline(async () => {
       let fontsUploaded = false
       if (families.length > 0 && session.fontAssets?.storageAvailable) {
-        this.report('building', 0, 1, 'Building the font package')
+        this.report('building', 0, 1, t('save.stage.building'))
         const built = await this.fontAssets.buildPackage(families)
         if (!built.ok) return failure('font_upload_failed', built.error.message)
 
@@ -117,8 +117,8 @@ export class SaveToBoardService {
           1,
           1,
           leavingSafeMode
-            ? 'Saved. The board is restarting out of safe mode.'
-            : 'Saved. The board is running the new dashboard.'
+            ? t('save.saveToBoardService.savedTheBoardIsRestarting')
+            : t('save.saveToBoardService.savedTheBoardIsRunning')
         )
         return {
           ok: true,
@@ -140,8 +140,8 @@ export class SaveToBoardService {
         1,
         1,
         written
-          ? 'Saved. The board is running the new dashboard.'
-          : 'Nothing to save — the board already holds this configuration.'
+          ? t('save.saveToBoardService.savedTheBoardIsRunning')
+          : t('save.saveToBoardService.nothingToSaveTheBoard')
       )
       return {
         ok: true,
@@ -160,7 +160,7 @@ export class SaveToBoardService {
   }
 
   private async restart(): Promise<{ ok: true } | { ok: false; error: SaveToBoardResult }> {
-    this.report('rebooting', 0, 1, 'Restarting the board')
+    this.report('rebooting', 0, 1, t('save.stage.rebooting'))
     const result = await this.deviceService.rebootAndReconnect()
     if (result.ok) return { ok: true }
     this.report('reconnecting', 0, 1, result.error.message)
@@ -179,12 +179,12 @@ export class SaveToBoardService {
 
 function describeSaving(documents: ConfigurationDocumentId[]): string {
   if (documents.length === CONFIGURATION_DOCUMENT_IDS.length) {
-    return 'Saving the configuration'
+    return t('save.stage.saving')
   }
   const names = documents.map((document) =>
-    CONFIGURATION_DOCUMENT_LABELS[document].toLowerCase()
+    t(`documents.labelLower.${document}`)
   )
-  return `Saving the ${names.join(' and ')} configuration`
+  return t('save.saveToBoardService.savingTheAndConfiguration', { and: names.join(' and ') })
 }
 
 function assetsAwaitingRestart(session: DeviceSession | undefined): boolean {

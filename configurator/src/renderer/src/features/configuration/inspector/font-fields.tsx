@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FontSpec } from '@shared/configuration-schema'
 import { MAXIMUM_FONT_SIZE_PX } from '@shared/font-assets'
 import { authored } from './authored'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { PropertyRow } from './PropertyRow'
 import { draftFontFamily, useDashboardEditorStore } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -31,7 +31,7 @@ export function FontFamilyPicker({ family, onChange }: { family?: string; onChan
           className="min-w-0 flex-1 truncate"
           style={painted ? { fontFamily: previewFontFamily(family) } : undefined}
         >
-          {entry ? entry.name : family ? `Unresolved: ${family}` : 'Choose font…'}
+          {entry ? entry.name : family ? t('inspector.fontFields.unresolvedFamily', { family: family }) : t('inspector.fontFields.chooseFont')}
         </span>
         <BrowseIcon />
       </button>
@@ -70,14 +70,14 @@ export function FontEditor({ font, defaultSizePx, onChange, hint }: { font?: Fon
   )
   return (
     <PropertyRow
-      label="Font"
+      label={t('inspector.fontFields.font')}
       hint={hint}
       modified={authored(font?.family, family) || authored(font?.size_px, defaultSizePx)}
       onReset={() => onChange({ family, size_px: defaultSizePx })}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] gap-1">
         <FontFamilyPicker family={font?.family} onChange={(family) => onChange({ ...font, family })} />
-        <NumberInput title="Size in pixels" value={font?.size_px ?? defaultSizePx} min={1} max={MAXIMUM_FONT_SIZE_PX} onChange={(size_px) => onChange({ ...font, size_px })} />
+        <NumberInput title={t('inspector.fontFields.sizeInPixels')} value={font?.size_px ?? defaultSizePx} min={1} max={MAXIMUM_FONT_SIZE_PX} onChange={(size_px) => onChange({ ...font, size_px })} />
       </div>
       <FallbackRow font={font} onChange={onChange} />
     </PropertyRow>
@@ -90,12 +90,11 @@ function FallbackRow({ font, onChange }: { font?: FontSpec; onChange: (font: Fon
     return (
       <button
         type="button"
-        title={HINTS.title.fallback}
+        title={t('inspector.hints.title.fallback')}
         className="mt-1 text-[10px] text-muted-foreground hover:text-foreground"
         onClick={() => setAdding(true)}
       >
-        + Fallback family
-      </button>
+        {t('inspector.fontFields.fallbackFamily')}</button>
     )
   }
   return (
@@ -103,8 +102,8 @@ function FallbackRow({ font, onChange }: { font?: FontSpec; onChange: (font: Fon
       <FontFamilyPicker family={font?.fallback} onChange={(fallback) => onChange({ ...font, fallback })} />
       <button
         type="button"
-        aria-label="Remove the fallback family"
-        title="Draw missing glyphs as nothing again"
+        aria-label={t('inspector.fontFields.removeTheFallbackFamily')}
+        title={t('inspector.fontFields.drawMissingGlyphsAsNothing')}
         className="h-7 rounded-md border text-muted-foreground hover:text-foreground"
         onClick={() => {
           setAdding(false)

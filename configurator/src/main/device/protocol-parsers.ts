@@ -15,6 +15,7 @@ import {
   type ConfigurationDocumentId
 } from '@shared/configuration-schema'
 import { DeviceServiceError } from './device-errors'
+import { t } from '@shared/ui-text'
 
 export function parseFields(line: string, prefix: string, fieldName: string): Map<string, string> {
   const fields = new Map<string, string>()
@@ -23,7 +24,7 @@ export function parseFields(line: string, prefix: string, fieldName: string): Ma
     if (separator <= 0) {
       throw new DeviceServiceError(
         'not_simcore',
-        `The device returned malformed ${fieldName}.`
+        t('device.protocolParsers.theDeviceReturnedMalformedFieldname', { fieldName: fieldName })
       )
     }
     fields.set(entry.slice(0, separator), entry.slice(separator + 1))
@@ -79,7 +80,7 @@ export function parseAssetStatus(line: string, limits: AssetStatusLimits): Asset
   ) {
     throw new DeviceServiceError(
       'not_simcore',
-      `The device returned malformed ${limits.label}.`
+      t('device.protocolParsers.theDeviceReturnedMalformedLabel', { label: limits.label })
     )
   }
   return {
@@ -108,7 +109,7 @@ export function parseDeviceInfo(line: string): DeviceInfo {
   }
   const firmwareVersion = fields.get('firmware')
   if (!firmwareVersion || !isBooleanField(fields.get('storage'))) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+    throw new DeviceServiceError('not_simcore', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
   }
   const documents = {} as Record<ConfigurationDocumentId, ConfigurationDocumentState>
   for (const document of CONFIGURATION_DOCUMENT_IDS) {
@@ -159,7 +160,7 @@ function parseDeviceHealth(fields: Map<string, string>): DeviceHealth | undefine
     !RESET_CAUSES.includes(resetCause as DeviceResetCause) ||
     !STARTUP_PHASES.includes(lastPhase as DeviceStartupPhase)
   ) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+    throw new DeviceServiceError('not_simcore', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
   }
   return {
     safeMode: safeMode === '1',
@@ -187,7 +188,7 @@ function parseDocumentState(value: string | undefined): ConfigurationDocumentSta
     !Number.isSafeInteger(generation) ||
     generation < 0
   ) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed INFO data.')
+    throw new DeviceServiceError('not_simcore', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
   }
   return { outcome: outcome as ConfigurationDocumentOutcome, generation }
 }

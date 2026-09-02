@@ -7,7 +7,7 @@ import { DEFAULT_WIDGET_FONT_SIZE_PX, type WidgetSelection, mutateSelectedWidget
 import { SourceEditor, TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Group } from './Group'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
 import { ColorField, FontEditor, Hint, NumberField, OptionalColorField, SelectField, TextField } from './fields'
 import { ContainerEditor } from './section-editors'
@@ -40,26 +40,26 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
   const frameBinding = widget.sprite_frame_source?.binding ?? ''
   return (
     <>
-      <Group id="Image" title="Image" icon={GROUP_ICONS.image} summary={widget.image || 'Unassigned'}>
-        <SelectField label="Bitmap" hint={HINTS.image.image} block value={widget.image ?? ''} options={['', ...installed.map(({ name }) => name)]} modified={authored(widget.image, '')} onReset={() => update((next) => { delete next.image })} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
-        {installed.length === 0 ? <Hint>Upload images to the board to choose one here.</Hint> : null}
-        {widget.image && !known && installed.length > 0 ? <Hint>{`"${widget.image}" is not installed on the connected board, so the device will refuse this configuration.`}</Hint> : null}
+      <Group id="Image" title={t('firmware.firmwarePage.image')} icon={GROUP_ICONS.image} summary={widget.image || 'Unassigned'}>
+        <SelectField label={t('inspector.widgetEditors.bitmap')} hint={t('inspector.hints.image.image')} block value={widget.image ?? ''} options={['', ...installed.map(({ name }) => name)]} modified={authored(widget.image, '')} onReset={() => update((next) => { delete next.image })} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
+        {installed.length === 0 ? <Hint>{t('inspector.widgetEditors.uploadImagesToTheBoard')}</Hint> : null}
+        {widget.image && !known && installed.length > 0 ? <Hint>{t('inspector.widgetEditors.imageIsNotInstalledOn', { image: widget.image ?? '' })}</Hint> : null}
         {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}${sheet ? ` · ${frames} frames` : ''}`}</p> : null}
         {sheet ? (
           <>
-            <TelemetryBindingField label="Frame from" hint={HINTS.image.frameSource} value={frameBinding} onReset={() => update((next) => { delete next.sprite_frame_source })} onChange={(value) => update((next) => {
+            <TelemetryBindingField label={t('inspector.widgetEditors.frameFrom')} hint={t('inspector.hints.image.frameSource')} value={frameBinding} onReset={() => update((next) => { delete next.sprite_frame_source })} onChange={(value) => update((next) => {
               if (!value) { delete next.sprite_frame_source; return }
               next.sprite_frame_source = { ...next.sprite_frame_source, binding: value }
               delete next.sprite_frame
             })} />
             {frameBinding ? null : (
-              <NumberField label="Frame" hint={HINTS.image.frame} value={widget.sprite_frame ?? 0} min={0} max={frames - 1} modified={authored(widget.sprite_frame, 0)} onReset={() => update((next) => { delete next.sprite_frame })} onChange={(value) => update((next) => { next.sprite_frame = Math.min(frames - 1, Math.max(0, Math.round(value))) })} />
+              <NumberField label={t('modules.effectEditor.frame')} hint={t('inspector.hints.image.frame')} value={widget.sprite_frame ?? 0} min={0} max={frames - 1} modified={authored(widget.sprite_frame, 0)} onReset={() => update((next) => { delete next.sprite_frame })} onChange={(value) => update((next) => { next.sprite_frame = Math.min(frames - 1, Math.max(0, Math.round(value))) })} />
             )}
           </>
         ) : null}
-        {!sheet && (widget.sprite_frame || widget.sprite_frame_source) ? <Hint>{`"${widget.image}" has a single frame, so the device will refuse a frame or a frame source on it.`}</Hint> : null}
-        <OptionalColorField label="Recolor" hint={HINTS.image.recolor} value={widget.recolor} onChange={(value) => update((next) => { if (value) next.recolor = value; else { delete next.recolor; delete next.recolor_opa } })} />
-        {widget.recolor ? <NumberField label="Strength" hint={HINTS.image.strength} value={widget.recolor_opa ?? 255} min={0} max={255} modified={authored(widget.recolor_opa, 255)} onReset={() => update((next) => { delete next.recolor_opa })} onChange={(value) => update((next) => { next.recolor_opa = Math.min(255, Math.max(0, Math.round(value))) })} /> : null}
+        {!sheet && (widget.sprite_frame || widget.sprite_frame_source) ? <Hint>{t('inspector.widgetEditors.imageHasASingleFrame', { image: widget.image ?? '' })}</Hint> : null}
+        <OptionalColorField label={t('inspector.widgetEditors.recolor')} hint={t('inspector.hints.image.recolor')} value={widget.recolor} onChange={(value) => update((next) => { if (value) next.recolor = value; else { delete next.recolor; delete next.recolor_opa } })} />
+        {widget.recolor ? <NumberField label={t('inspector.widgetEditors.strength')} hint={t('inspector.hints.image.strength')} value={widget.recolor_opa ?? 255} min={0} max={255} modified={authored(widget.recolor_opa, 255)} onReset={() => update((next) => { delete next.recolor_opa })} onChange={(value) => update((next) => { next.recolor_opa = Math.min(255, Math.max(0, Math.round(value))) })} /> : null}
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
@@ -73,8 +73,8 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
   const held = widgetsOf(widget).length
   return (
     <>
-      <Group id="Shape" title="Shape" icon={GROUP_ICONS.shape} summary={widget.kind ?? 'rectangle'}>
-        <SelectField label="Kind" hint={HINTS.shape.kind} value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} modified={authored(widget.kind, 'rectangle')} onReset={() => update((next) => { delete next.kind })} onChange={(value) => update((next) => { next.kind = value })} />
+      <Group id="Shape" title={t('inspector.indicatorEditor.shape')} icon={GROUP_ICONS.shape} summary={widget.kind ?? 'rectangle'}>
+        <SelectField label={t('inspector.widgetEditors.kind')} hint={t('inspector.hints.shape.kind')} value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} modified={authored(widget.kind, 'rectangle')} onReset={() => update((next) => { delete next.kind })} onChange={(value) => update((next) => { next.kind = value })} />
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />
@@ -85,8 +85,8 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
         count={held}
         summary={
           held === 0
-            ? 'This shape holds no widgets. Select some and wrap them to make it a container; an empty one with an action is an invisible tap zone.'
-            : `Holds ${held} widget(s), placed relative to this box.`
+            ? t('inspector.widgetEditors.thisShapeHoldsNoWidgets')
+            : t('inspector.widgetEditors.holdsHeldWidgetSPlaced', { held: held })
         }
       />
     </>
@@ -102,7 +102,7 @@ export function SlotEditor({ selection, widget }: { selection: WidgetSelection; 
         widget={widget}
         update={update}
         count={pages.reduce((total, page) => total + widgetsOf(page).length, 0)}
-        summary="The slot draws nothing itself — put a shape behind it for a background. Every page is this box, and its widgets are placed relative to it."
+        summary={t('inspector.widgetEditors.theSlotDrawsNothingItself')}
       />
       {widget.id ? <SlotPagesEditor slotId={widget.id} pages={pages} /> : null}
     </>
@@ -116,10 +116,10 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
     <>
       <Group
         id="Data"
-        title="Data"
+        title={t('inspector.sectionEditors.data')}
         icon={GROUP_ICONS.data}
-        hint={HINTS.text.sources}
-        summary={sources.length > 1 ? `${sources.length} sources` : sources[0]?.binding || 'Unbound'}
+        hint={t('inspector.hints.text.sources')}
+        summary={sources.length > 1 ? t('inspector.widgetEditors.lengthSources', { length: sources.length }) : sources[0]?.binding || 'Unbound'}
       >
         {sources.map((source, index) => (
           <SourceEditor
@@ -137,16 +137,16 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
           />
         ))}
         {sources.length < MAXIMUM_TEXT_SOURCES ? (
-          <AddButton label="Add source" onClick={() => update((next) => {
+          <AddButton label={t('inspector.widgetEditors.addSource')} onClick={() => update((next) => {
             next.sources = [...(next.sources ?? []), {}]
           })} />
         ) : null}
       </Group>
-      <Group id="Value" title="Value" icon={GROUP_ICONS.value}>
+      <Group id="Value" title={t('inspector.conditionsEditor.value')} icon={GROUP_ICONS.value}>
         <FontEditor font={widget.value?.font} defaultSizePx={DEFAULT_WIDGET_FONT_SIZE_PX} onChange={(font) => update((next) => { next.value = { ...next.value, font } })} />
-        <ColorField label="Color" value={widget.value?.color ?? '#E8E8E8'} modified={authored(widget.value?.color, '#E8E8E8')} onReset={() => update((next) => { if (next.value) delete next.value.color })} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
-        <SelectField label="Alignment" hint={HINTS.text.alignment} value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} modified={authored(widget.value?.alignment, 'center')} onReset={() => update((next) => { if (next.value) delete next.value.alignment })} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value } })} />
-        <TextField label="Fallback" hint={HINTS.text.fallback} value={widget.value?.unavailable_text ?? ''} modified={authored(widget.value?.unavailable_text, '')} onReset={() => update((next) => { if (next.value) delete next.value.unavailable_text })} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
+        <ColorField label={t('inspector.stylingEditors.color')} value={widget.value?.color ?? '#E8E8E8'} modified={authored(widget.value?.color, '#E8E8E8')} onReset={() => update((next) => { if (next.value) delete next.value.color })} onChange={(value) => update((next) => { next.value = { ...next.value, color: value } })} />
+        <SelectField label={t('inspector.widgetEditors.alignment')} hint={t('inspector.hints.text.alignment')} value={widget.value?.alignment ?? 'center'} options={TEXT_ALIGNMENT_VALUES} modified={authored(widget.value?.alignment, 'center')} onReset={() => update((next) => { if (next.value) delete next.value.alignment })} onChange={(value) => update((next) => { next.value = { ...next.value, alignment: value } })} />
+        <TextField label={t('inspector.widgetEditors.fallback')} hint={t('inspector.hints.text.fallback')} value={widget.value?.unavailable_text ?? ''} modified={authored(widget.value?.unavailable_text, '')} onReset={() => update((next) => { if (next.value) delete next.value.unavailable_text })} onChange={(value) => update((next) => { next.value = { ...next.value, unavailable_text: value } })} />
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />

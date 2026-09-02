@@ -8,6 +8,7 @@ import {
   type ValueColorEntry
 } from '@/features/configuration/inspector/ValueColorList'
 import { Subsection } from './Subsection'
+import { t } from '@shared/ui-text'
 
 export function EffectPayload({
   effect,
@@ -21,7 +22,7 @@ export function EffectPayload({
   if (type === 'steps') {
     const steps = effect.steps ?? []
     return (
-      <Subsection title="Thresholds">
+      <Subsection title={t('modules.effectPayload.thresholds')}>
         <ValueColorList
           noun="step"
           valueTitle="Lights at this fraction of the range"
@@ -50,7 +51,7 @@ export function EffectPayload({
 
   const stops = effect.stops ?? []
   return (
-    <Subsection title="Colour ramp">
+    <Subsection title={t('modules.effectPayload.colourRamp')}>
       <ValueColorList
         noun="stop"
         valueTitle={

@@ -9,19 +9,21 @@ import {
   FIRMWARE_PACKAGE_MAGIC,
   MAXIMUM_FIRMWARE_IMAGE_SIZE
 } from '../../shared/firmware-update'
+import { t } from '@shared/ui-text'
+import { PackageTooLargeError } from '../assets/asset-service-base'
 
 export function buildFirmwarePackage(image: Buffer, board: SimCoreBoardId): Buffer {
   if (image.byteLength === 0) {
-    throw new Error('The firmware image is empty.')
+    throw new Error(t('firmware.firmwarePackage.theFirmwareImageIsEmpty'))
   }
   if (image.byteLength > MAXIMUM_FIRMWARE_IMAGE_SIZE) {
-    throw new Error(
-      `The firmware image is ${image.byteLength} bytes, which does not fit the 2 MiB firmware slot.`
+    throw new PackageTooLargeError(
+      t('firmware.firmwarePackage.theFirmwareImageIsBytelength', { byteLength: image.byteLength })
     )
   }
   const boardIndex = BOARD_ID_VALUES.indexOf(board)
   if (boardIndex < 0) {
-    throw new Error(`Unsupported SimCore board: ${board}.`)
+    throw new Error(t('firmware.firmwarePackage.unsupportedSimcoreBoardBoard', { board: board }))
   }
 
   const buffer = Buffer.alloc(FIRMWARE_IMAGE_OFFSET + image.byteLength)

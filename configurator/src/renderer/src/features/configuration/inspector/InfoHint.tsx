@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Info } from 'lucide-react'
+import { t } from '@shared/ui-text'
 
 const MARGIN = 6
 const WIDTH_PX = 288
@@ -52,7 +53,7 @@ export function InfoHint({ text, label }: { text: string; label?: string }): Rea
         ref={button}
         type="button"
         aria-expanded={open}
-        aria-label={label ? `About ${label}` : 'About this property'}
+        aria-label={label ? t('inspector.infoHint.aboutLabel', { label: label }) : t('inspector.infoHint.aboutThisProperty')}
         className={`shrink-0 rounded-sm ${open ? 'text-foreground' : 'text-muted-foreground/60 hover:text-foreground'}`}
         onClick={(event) => {
           event.preventDefault()

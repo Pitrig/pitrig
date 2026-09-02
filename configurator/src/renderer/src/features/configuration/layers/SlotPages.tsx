@@ -7,6 +7,7 @@ import { canMoveWidgetInto, moveWidgetInto, useDashboardEditorStore } from '../d
 import { LayerList } from './LayerList'
 import { dropOrder } from './layer-row-state'
 import type { RowState } from './layer-row-state'
+import { t } from '@shared/ui-text'
 
 export function SlotPages({
   slot,
@@ -55,7 +56,7 @@ export function SlotPages({
               <button
                 type="button"
                 aria-pressed={index === visible}
-                title="Draw this page on the canvas"
+                title={t('layers.slotPages.drawThisPageOnThe')}
                 className={`min-w-0 flex-1 truncate text-left ${
                   index === visible ? 'font-medium' : 'text-muted-foreground'
                 }`}

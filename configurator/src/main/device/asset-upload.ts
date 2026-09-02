@@ -4,6 +4,7 @@ import type { AssetUploadProgress } from '../../shared/asset-upload'
 import { describeDeviceError } from '../../shared/device-error-message'
 import { crc32 } from './asset-crc'
 import { exchangeLines } from './line-exchange'
+import { t } from '@shared/ui-text'
 
 const FRAME_MAGIC = Buffer.from('SCF1', 'ascii')
 const FRAME_HEADER_SIZE = 14
@@ -41,7 +42,7 @@ export async function uploadAssetPackage(
       stage: 'erasing',
       completed: 0,
       total: packageBytes.byteLength,
-      message: `Preparing ${namespace.label} storage`
+      message: t('device.assetUpload.preparingLabelStorage', { label: namespace.label })
     })
     const begin = `@SC:${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`
     beginMayBeActive = true
@@ -74,14 +75,14 @@ export async function uploadAssetPackage(
       const ack = parseAck(namespace, response)
       const nextReceived = received + payload.byteLength
       if (ack.sequence !== sequence || ack.received !== nextReceived) {
-        throw new Error(`The device returned an invalid ${namespace.label} upload acknowledgement.`)
+        throw new Error(t('device.assetUpload.theDeviceReturnedAnInvalid', { label: namespace.label }))
       }
       received = nextReceived
       callbacks.onProgress({
         stage: 'uploading',
         completed: received,
         total: packageBytes.byteLength,
-        message: `Uploaded ${received} of ${packageBytes.byteLength} bytes`
+        message: t('device.assetUpload.uploadedReceivedOfBytelengthBytes', { received: received, byteLength: packageBytes.byteLength })
       })
       ++sequence
     }
@@ -90,7 +91,7 @@ export async function uploadAssetPackage(
       stage: 'committing',
       completed: packageBytes.byteLength,
       total: packageBytes.byteLength,
-      message: `Validating and committing the ${namespace.label} package`
+      message: t('device.assetUpload.validatingAndCommittingTheLabel', { label: namespace.label })
     })
     await exchangeLine(
       port,
@@ -171,9 +172,9 @@ function exchangeLine(
         )
       }
     },
-    onTimeout: () => ({ error: new Error(`The device did not answer ${responsePrefix}.`) }),
-    onClose: () => new Error('The serial port closed during the upload.'),
-    onAbort: () => new Error('The upload was cancelled.'),
+    onTimeout: () => ({ error: new Error(t('device.assetUpload.theDeviceDidNotAnswer', { responsePrefix: responsePrefix })) }),
+    onClose: () => new Error(t('device.assetUpload.theSerialPortClosedDuring')),
+    onAbort: () => new Error(t('device.assetUpload.theUploadWasCancelled')),
     send: (fail) => {
       port.write(request, (error) => {
         if (error) {
@@ -201,12 +202,12 @@ function parseAck(
     `^@SC:OK:${namespace.command}:ACK:sequence=(\\d+),received=(\\d+)$`
   ).exec(line)
   if (!match) {
-    throw new Error(`The device returned a malformed ${namespace.label} acknowledgement.`)
+    throw new Error(t('device.assetUpload.theDeviceReturnedAMalformed', { label: namespace.label }))
   }
   const sequence = Number(match[1])
   const received = Number(match[2])
   if (!Number.isSafeInteger(sequence) || !Number.isSafeInteger(received)) {
-    throw new Error(`The device returned an invalid ${namespace.label} acknowledgement.`)
+    throw new Error(t('device.assetUpload.theDeviceReturnedAnInvalid2', { label: namespace.label }))
   }
   return { sequence, received }
 }

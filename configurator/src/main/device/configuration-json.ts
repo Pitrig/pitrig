@@ -1,4 +1,5 @@
 import { migrateConfigurationDocument } from '../../shared/configuration-migrate'
+import { t } from '@shared/ui-text'
 import { validateConfigurationDocument } from '../../shared/configuration-validate'
 import {
   CONFIGURATION_DOCUMENTS,
@@ -7,7 +8,6 @@ import {
   type WidgetConfiguration
 } from '../../shared/configuration-schema'
 import {
-  CONFIGURATION_DOCUMENT_LABELS,
   documentJson
 } from '../../shared/configuration-documents'
 import {
@@ -63,7 +63,7 @@ export function prepareDeviceConfigurationJson(
     const limit = CONFIGURATION_DOCUMENTS[document].maxPayload
     if (Buffer.byteLength(payload, 'utf8') > limit) {
       throw new Error(
-        `The ${CONFIGURATION_DOCUMENT_LABELS[document].toLowerCase()} configuration exceeds ` +
+        `The ${t(`documents.labelLower.${document}`)} configuration exceeds ` +
           `the ${limit}-byte device limit.`
       )
     }

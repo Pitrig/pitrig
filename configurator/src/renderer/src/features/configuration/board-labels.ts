@@ -1,4 +1,5 @@
 import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
+import { t } from '@shared/ui-text'
 
 export const BOARD_NAMES: Record<SimCoreBoardId, string> = {
   t_display_s3: 'T-Display S3',
@@ -13,12 +14,12 @@ export function boardName(board: string): string {
 
 export function boardLabel(board: SimCoreBoardId): string {
   const size = displaySize(board)
-  return size ? `${BOARD_NAMES[board]} · ${size}` : `${BOARD_NAMES[board]} · no display`
+  return size ? t('dashboard.boardLabels.boardSize', { board: BOARD_NAMES[board], size: size }) : t('dashboard.boardLabels.boardNodisplay', { board: BOARD_NAMES[board], noDisplay: t('boards.noDisplay') })
 }
 
 export function displaySize(board: string): string | undefined {
   const display = BOARD_PROFILES[board as SimCoreBoardId]?.display
-  return display ? `${display.width} × ${display.height}` : undefined
+  return display ? t('canvas.menuEntries.widthHeight', { width: display.width, height: display.height }) : undefined
 }
 
 export function displayPixels(board: string): number {
@@ -32,16 +33,16 @@ export function fitOutcome(
   fit: 'contain' | 'stretch'
 ): string {
   if (to.width === 0 || to.height === 0) {
-    return 'This board has no display, so the dashboard is left behind and only its peripherals carry over.'
+    return t('dashboard.boardLabels.thisBoardHasNoDisplay')
   }
   if (from.width === to.width && from.height === to.height) {
-    return 'The display is the same size, so nothing moves.'
+    return t('dashboard.boardLabels.theDisplayIsTheSame')
   }
   if (fit === 'stretch') {
-    return `Each axis is scaled on its own, so the layout fills all ${to.width} × ${to.height}. Round shapes become oval.`
+    return t('dashboard.boardLabels.eachAxisIsScaledOn', { width: to.width, height: to.height })
   }
   const scale = Math.min(to.width / from.width, to.height / from.height)
   const width = Math.round(from.width * scale)
   const height = Math.round(from.height * scale)
-  return `One factor for both axes, centred: the layout becomes ${width} × ${height} on a ${to.width} × ${to.height} display.`
+  return t('dashboard.boardLabels.oneFactorForBothAxes', { width: width, height: height, width2: to.width, height2: to.height })
 }

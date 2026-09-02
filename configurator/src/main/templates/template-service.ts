@@ -30,6 +30,7 @@ import {
   widgetSummary
 } from './template-documents'
 import { BUNDLED_TEMPLATE_SOURCES } from './bundled-templates'
+import { t } from '@shared/ui-text'
 
 const FILE_EXTENSION = '.json'
 
@@ -95,17 +96,17 @@ export class TemplateService {
         } catch (error) {
           return failure(
             'invalid_template',
-            messageOf(error, 'The starter template is unreadable.')
+            messageOf(error, t('templates.templateService.theStarterTemplateIsUnreadable'))
           )
         }
       }
-      if (isBundledTemplateId(id)) return failure('not_found', `No starter template named "${id}".`)
+      if (isBundledTemplateId(id)) return failure('not_found', t('templates.templateService.noStarterTemplateNamedId', { id: id }))
     }
     try {
       return { ok: true, value: await this.readSaved(id, kind) }
     } catch (error) {
-      if (isMissing(error)) return failure('not_found', `No template named "${id}".`)
-      return failure('invalid_template', messageOf(error, 'The template is unreadable.'))
+      if (isMissing(error)) return failure('not_found', t('templates.templateService.noTemplateNamedId', { id: id }))
+      return failure('invalid_template', messageOf(error, t('templates.templateService.theTemplateIsUnreadable')))
     }
   }
 
@@ -114,7 +115,7 @@ export class TemplateService {
     const description = request.description?.trim()
     const id = templateIdFor(name)
     if (!id) {
-      return failure('invalid_template', 'A template name needs at least one letter or digit.')
+      return failure('invalid_template', t('templates.templateService.aTemplateNameNeedsAt'))
     }
 
     let document: TemplateDocument
@@ -140,7 +141,7 @@ export class TemplateService {
     } catch (error) {
       return failure(
         'invalid_template',
-        messageOf(error, 'That cannot be saved as a template.')
+        messageOf(error, t('templates.templateService.thatCannotBeSavedAs'))
       )
     }
 
@@ -151,7 +152,7 @@ export class TemplateService {
       if (!saved.includes(id) && saved.length >= MAXIMUM_USER_TEMPLATES) {
         return failure(
           'limit_reached',
-          `The library holds at most ${MAXIMUM_USER_TEMPLATES} saved ${request.kind}s.`
+          t('templates.templateService.theLibraryHoldsAtMost', { mAXIMUM_USER_TEMPLATES: MAXIMUM_USER_TEMPLATES, kind: request.kind })
         )
       }
       await writeFile(
@@ -160,7 +161,7 @@ export class TemplateService {
         'utf8'
       )
     } catch (error) {
-      return failure('write_failed', messageOf(error, 'Failed to write the template.'))
+      return failure('write_failed', messageOf(error, t('templates.templateService.failedToWriteTheTemplate')))
     }
     return {
       ok: true,
@@ -173,14 +174,14 @@ export class TemplateService {
 
   async remove(id: string, kind: TemplateKind): Promise<TemplateResult<void>> {
     if (isBundledTemplateId(id)) {
-      return failure('read_only', 'A starter template cannot be deleted.')
+      return failure('read_only', t('templates.templateService.aStarterTemplateCannotBe'))
     }
     try {
       await rm(this.pathFor(id, kind))
       return { ok: true, value: undefined }
     } catch (error) {
-      if (isMissing(error)) return failure('not_found', `No template named "${id}".`)
-      return failure('write_failed', messageOf(error, 'Failed to delete the template.'))
+      if (isMissing(error)) return failure('not_found', t('templates.templateService.noTemplateNamedId', { id: id }))
+      return failure('write_failed', messageOf(error, t('templates.templateService.failedToDeleteTheTemplate')))
     }
   }
 

@@ -12,6 +12,7 @@ import { DeviceServiceError, failure, success } from './device-errors'
 import type { ConnectionManager } from './device-connection'
 import type { OperationRunner } from './device-operation'
 import { clearFontAssets, clearImageAssets } from './simcore-protocol'
+import { t } from '@shared/ui-text'
 
 export async function uploadPackage(
   connection: ConnectionManager,
@@ -27,10 +28,10 @@ export async function uploadPackage(
   const session = state.session
   const traffic = connection.traffic
   if (!port?.isOpen || !state.connection || !session) {
-    throw new DeviceServiceError('serial_error', 'No SimCore device is connected.')
+    throw new DeviceServiceError('serial_error', t('device.deviceOperation.noSimcoreDeviceIsConnected'))
   }
   if (runner.operationActive) {
-    throw new DeviceServiceError('busy', 'Another device operation is already running.')
+    throw new DeviceServiceError('busy', t('device.deviceOperation.anotherDeviceOperationIsAlready'))
   }
   await runner.withLock(async () => {
     await uploadAssetPackage(

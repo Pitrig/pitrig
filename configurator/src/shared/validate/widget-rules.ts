@@ -7,6 +7,7 @@ import {
 } from '../configuration-schema'
 import { isTextWidget, pagesOf, widgetSources } from '../configuration-access'
 import { MAXIMUM_HOLD_MS } from '../widget-conditions'
+import { t } from '../ui-text'
 
 const LAP_TIMER_BINDING = 'session.lap.current_time'
 
@@ -57,46 +58,46 @@ export function findSlotError(widget: SlotWidgetConfiguration, label: string): s
     (widget.conditions?.length ?? 0) > 0 ||
     Boolean(widget.condition_source?.binding)
   if (painted) {
-    return `${label} is a slot with an appearance; a slot draws nothing, so put a shape behind it.`
+    return t('validation.widgetRules.labelIsASlotWith', { label: label })
   }
   if (widget.action && widget.action.type !== 'none') {
-    return `${label} is a slot and also navigates; its tap already means "next page".`
+    return t('validation.widgetRules.labelIsASlotAnd', { label: label })
   }
   const pages = pagesOf(widget)
   if (pages.length === 0) {
-    return `${label} is a slot with no pages.`
+    return t('validation.widgetRules.labelIsASlotWith2', { label: label })
   }
   if (pages.length > MAXIMUM_SLOT_PAGES) {
-    return `${label} has ${pages.length} pages; the device holds ${MAXIMUM_SLOT_PAGES}.`
+    return t('validation.widgetRules.labelHasLengthPagesThe', { label: label, length: pages.length, mAXIMUM_SLOT_PAGES: MAXIMUM_SLOT_PAGES })
   }
   if (!pages.some((page) => page.in_loop !== false)) {
-    return `${label} has no page in the loop, so nothing would bring one back after an event.`
+    return t('validation.widgetRules.labelHasNoPageIn', { label: label })
   }
   for (const [index, page] of pages.entries()) {
     const where = `Page ${index + 1} of ${label}`
     const duration = page.duration_ms ?? 0
     const rules = page.conditions?.length ?? 0
     if (duration > MAXIMUM_HOLD_MS) {
-      return `${where} stays up for ${duration} ms; the device holds one for ${MAXIMUM_HOLD_MS}.`
+      return t('validation.widgetRules.whereStaysUpForDuration', { where: where, duration: duration, mAXIMUM_HOLD_MS: MAXIMUM_HOLD_MS })
     }
     const trigger = page.trigger ?? 'none'
     if (trigger === 'none') {
       if (page.source?.binding || rules > 0 || duration > 0) {
-        return `${where} has no trigger, so its telemetry, rules and duration would never be read.`
+        return t('validation.widgetRules.whereHasNoTriggerSo', { where: where })
       }
       continue
     }
     if (!page.source?.binding) {
-      return `${where} has a trigger but watches no telemetry.`
+      return t('validation.widgetRules.whereHasATriggerBut', { where: where })
     }
     if (trigger === 'value_changed' && duration === 0) {
-      return `${where} appears on a change but for no time at all; give it a duration.`
+      return t('validation.widgetRules.whereAppearsOnAChange', { where: where })
     }
     if (trigger === 'value_changed' && rules > 0) {
-      return `${where} appears on a change, so its comparison rules would never be read.`
+      return t('validation.widgetRules.whereAppearsOnAChange2', { where: where })
     }
     if (trigger === 'conditions' && rules === 0) {
-      return `${where} appears on a comparison but has no rule to compare.`
+      return t('validation.widgetRules.whereAppearsOnAComparison', { where: where })
     }
   }
   return undefined
@@ -109,14 +110,14 @@ export function findActionError(
 ): string | undefined {
   if (!action || action.type === 'none') return undefined
   if (action.type === 'goto_screen') {
-    if (!action.screen) return `${owner} navigates to a screen but names none.`
+    if (!action.screen) return t('validation.widgetRules.ownerNavigatesToAScreen', { owner: owner })
     if (!screenIds.includes(action.screen)) {
-      return `${owner} navigates to screen "${action.screen}", which this dashboard does not have.`
+      return t('validation.widgetRules.ownerNavigatesToScreenScreen', { owner: owner, screen: action.screen })
     }
     return undefined
   }
   if (action.screen) {
-    return `${owner} names a screen for ${action.type}, which navigates relatively; drop the screen.`
+    return t('validation.widgetRules.ownerNamesAScreenFor', { owner: owner, type: action.type ?? '' })
   }
   return undefined
 }

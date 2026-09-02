@@ -32,6 +32,7 @@ import {
   uploadPackage
 } from './device-uploads'
 import { requestResponse, sendControlCommand } from './simcore-protocol'
+import { t } from '@shared/ui-text'
 
 export class DeviceService {
   private readonly connection: ConnectionManager
@@ -58,14 +59,14 @@ export class DeviceService {
 
   async connect(portId: string, baudRate: number): Promise<DeviceResult<DeviceState>> {
     if (this.isBusy()) {
-      return failure({ code: 'busy', message: 'Another device operation is already running.' })
+      return failure({ code: 'busy', message: t('device.deviceOperation.anotherDeviceOperationIsAlready') })
     }
     return this.connection.openConnection(portId, baudRate)
   }
 
   async autoConnect(): Promise<DeviceResult<DeviceState>> {
     if (this.isBusy()) {
-      return failure({ code: 'busy', message: 'Another device operation is already running.' })
+      return failure({ code: 'busy', message: t('device.deviceOperation.anotherDeviceOperationIsAlready') })
     }
     return this.connection.autoConnect()
   }
@@ -78,7 +79,7 @@ export class DeviceService {
     if (this.runner.operationActive) {
       return failure({
         code: 'busy',
-        message: 'Cancel the active device operation before disconnecting.'
+        message: t('device.deviceService.cancelTheActiveDeviceOperation')
       })
     }
     await this.connection.closeDevicePorts()
@@ -94,7 +95,7 @@ export class DeviceService {
     documents?: ConfigurationDocumentId[]
   ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
     if (this.runner.inPipeline) {
-      return failure({ code: 'busy', message: 'A save is running on the connected device.' })
+      return failure({ code: 'busy', message: t('device.deviceService.aSaveIsRunningOn') })
     }
     return this.applyConfigurationNow(json, documents)
   }
@@ -158,7 +159,7 @@ export class DeviceService {
     const connection = this.getState().connection
     const traffic = this.connection.traffic
     if (!port?.isOpen || !connection || this.runner.operationActive) {
-      return failure({ code: 'busy', message: 'The connected device is busy or unavailable.' })
+      return failure({ code: 'busy', message: t('device.deviceService.theConnectedDeviceIsBusy') })
     }
     try {
       return await this.runner.withLock(async () => {
@@ -192,7 +193,7 @@ export class DeviceService {
     return uploadPackage(
       this.connection,
       this.runner,
-      { command: 'FONT', label: 'font' },
+      { command: 'FONT', label: t('device.deviceService.font') },
       packageBytes,
       onProgress,
       signal,
@@ -209,7 +210,7 @@ export class DeviceService {
     return uploadPackage(
       this.connection,
       this.runner,
-      { command: 'IMAGE', label: 'image' },
+      { command: 'IMAGE', label: t('device.deviceService.image') },
       packageBytes,
       onProgress,
       signal,
@@ -225,7 +226,7 @@ export class DeviceService {
     return uploadPackage(
       this.connection,
       this.runner,
-      { command: 'FW', label: 'firmware' },
+      { command: 'FW', label: t('device.deviceService.firmware') },
       packageBytes,
       onProgress,
       signal,

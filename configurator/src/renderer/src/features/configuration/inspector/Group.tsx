@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, type LucideIcon } from 'lucide-react'
 import { InfoHint } from './InfoHint'
 import { useEditorPanelStore } from '../editor/panel-store'
+import { t } from '@shared/ui-text'
 
 export function Group({
   id,
@@ -76,8 +77,8 @@ export function Advanced({
         ) : (
           <ChevronRight aria-hidden className="size-3 shrink-0" />
         )}
-        <span>Advanced</span>
-        {!open && active ? <span className="ml-auto text-[10px]">set</span> : null}
+        <span>{t('inspector.group.advanced')}</span>
+        {!open && active ? <span className="ml-auto text-[10px]">{t('inspector.group.set')}</span> : null}
       </button>
       {open ? <div className="space-y-2 px-2 pb-2">{children}</div> : null}
     </div>

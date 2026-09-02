@@ -14,6 +14,7 @@ import { useDashboardEditorStore } from '../dashboard-editor'
 import { BOARD_NAMES } from '../board-labels'
 import type { SimCoreBoardId } from '@shared/device'
 import { MAXIMUM_CONFIGURATION_NAME, configurationIdFor } from '@shared/config-library'
+import { t } from '@shared/ui-text'
 
 export function LibrarySection({
   working,
@@ -34,12 +35,12 @@ export function LibrarySection({
     const trimmed = name.trim()
     const id = configurationIdFor(trimmed)
     if (!id) {
-      onFeedback({ kind: 'error', message: 'A name needs at least one letter or digit.' })
+      onFeedback({ kind: 'error', message: t('templates.saveToTemplates.aNameNeedsAtLeast') })
       return
     }
     if (
       library?.saved.some((entry) => entry.id === id) &&
-      !window.confirm(`Replace the saved configuration "${id}"?`)
+      !window.confirm(t('configs.librarySection.replaceTheSavedConfigurationId', { id: id }))
     ) {
       return
     }
@@ -51,7 +52,7 @@ export function LibrarySection({
       })
       onFeedback(
         result.ok
-          ? { kind: 'success', message: `Saved as "${result.value.name}".` }
+          ? { kind: 'success', message: t('configs.librarySection.savedAsName', { name: result.value.name }) }
           : { kind: 'error', message: result.error.message }
       )
       if (result.ok) {
@@ -64,7 +65,7 @@ export function LibrarySection({
   }
 
   const remove = async (id: string): Promise<void> => {
-    if (!window.confirm(`Delete the saved configuration "${id}"?`)) return
+    if (!window.confirm(t('configs.librarySection.deleteTheSavedConfigurationId', { id: id }))) return
     setBusy(true)
     try {
       const result = await window.simcore.deleteSavedConfiguration({ id })
@@ -94,12 +95,12 @@ export function LibrarySection({
   return (
     <>
       <PageSection
-        title="Saved configurations"
-        description="Kept in the application's own folder, so the list is always accurate."
+        title={t('configs.librarySection.savedConfigurations')}
+        description={t('configs.librarySection.keptInTheApplicationS')}
       >
         {error ? <p className="mb-2 text-[11px] text-red-400">{error}</p> : null}
         {loading && !library ? (
-          <p className="text-muted-foreground">Reading the folder…</p>
+          <p className="text-muted-foreground">{t('configs.librarySection.readingTheFolder')}</p>
         ) : library && library.saved.length > 0 ? (
           <ul className="space-y-1">
             {library.saved.map((entry) => (
@@ -120,10 +121,9 @@ export function LibrarySection({
                   onClick={() => void open(() => openSavedConfiguration(entry.id))}
                 >
                   <FolderOpen aria-hidden="true" className="mr-1.5 size-3.5" />
-                  Open
-                </Button>
+                  {t('common.open')}</Button>
                 <Button
-                  aria-label={`Delete ${entry.name}`}
+                  aria-label={t('configs.librarySection.deleteName', { name: entry.name })}
                   className="flex-none px-2 text-red-400 hover:text-red-300"
                   variant="outline"
                   disabled={disabled}
@@ -137,11 +137,9 @@ export function LibrarySection({
         ) : (
           <EmptyState
             icon={<FileJson aria-hidden="true" className="size-6" />}
-            title="Nothing saved yet"
+            title={t('configs.librarySection.nothingSavedYet')}
           >
-            Save the current dashboard below to keep a copy that does not depend on where a file
-            happens to live.
-          </EmptyState>
+            {t('configs.librarySection.saveTheCurrentDashboardBelow')}</EmptyState>
         )}
         {library && library.unreadable > 0 ? (
           <p className="mt-2 text-[11px] text-amber-400">
@@ -151,12 +149,12 @@ export function LibrarySection({
 
         <div className="mt-3 flex items-end gap-2 border-t pt-3">
           <label className="min-w-0 flex-1 space-y-1 text-[11px] text-muted-foreground">
-            <span>Save the current draft as</span>
+            <span>{t('configs.librarySection.saveTheCurrentDraftAs')}</span>
             <input
               className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
               disabled={disabled || !draft}
               maxLength={MAXIMUM_CONFIGURATION_NAME}
-              placeholder="endurance"
+              placeholder={t('configs.librarySection.endurance')}
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -167,14 +165,13 @@ export function LibrarySection({
             disabled={disabled || !draft || name.trim().length === 0}
             onClick={() => void saveToLibrary()}
           >
-            Save to library
-          </Button>
+            {t('configs.librarySection.saveToLibrary')}</Button>
         </div>
       </PageSection>
 
       <PageSection
-        title="Recent files"
-        description="Files opened or saved through the system dialogs, wherever they live."
+        title={t('configs.librarySection.recentFiles')}
+        description={t('configs.librarySection.filesOpenedOrSavedThrough')}
       >
         {library && library.recent.length > 0 ? (
           <ul className="space-y-1">
@@ -188,7 +185,7 @@ export function LibrarySection({
                     {entry.fileName}
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground" title={entry.path}>
-                    {entry.missing ? 'No longer at this path' : entry.path}
+                    {entry.missing ? t('configs.librarySection.noLongerAtThisPath') : entry.path}
                   </span>
                 </span>
                 <Button
@@ -197,10 +194,9 @@ export function LibrarySection({
                   disabled={disabled || entry.missing}
                   onClick={() => void open(() => openRecentConfiguration(entry.path))}
                 >
-                  Open
-                </Button>
+                  {t('common.open')}</Button>
                 <Button
-                  aria-label={`Forget ${entry.fileName}`}
+                  aria-label={t('configs.librarySection.forgetFilename', { fileName: entry.fileName })}
                   className="flex-none px-2"
                   variant="outline"
                   disabled={disabled}
@@ -212,9 +208,8 @@ export function LibrarySection({
             ))}
           </ul>
         ) : (
-          <EmptyState title="No recent files">
-            Opening or saving a JSON file through the dialogs lists it here.
-          </EmptyState>
+          <EmptyState title={t('configs.librarySection.noRecentFiles')}>
+            {t('configs.librarySection.openingOrSavingAJson')}</EmptyState>
         )}
       </PageSection>
     </>

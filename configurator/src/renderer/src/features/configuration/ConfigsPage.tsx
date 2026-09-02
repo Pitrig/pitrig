@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '@shared/ui-text'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,6 @@ import { FeedbackNote } from './configs/FeedbackNote'
 import { BOARD_PROFILES, SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
 import { CONFIGURATION_DOCUMENTS, CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
 import {
-  CONFIGURATION_DOCUMENT_LABELS,
   documentPayloadBytes
 } from '@shared/configuration-documents'
 import type { LayoutFit, LayoutTransferResult } from '@shared/layout-transfer'
@@ -74,32 +74,30 @@ export function ConfigsPage(): React.JSX.Element {
 
   return (
     <PageShell
-      title="Configs"
-      description="The dashboard document: files, saved copies, and what the board is holding."
+      title={t('dashboard.configsPage.configs')}
+      description={t('dashboard.configsPage.theDashboardDocumentFilesSaved')}
       actions={
         <>
           {rebootRequired ? (
             <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-300" variant="outline">
-              Restart required
-            </Badge>
+              {t('dashboard.configsPage.restartRequired')}</Badge>
           ) : dirty ? (
             <Badge className="border-sky-500/40 bg-sky-500/15 text-sky-300" variant="outline">
-              Modified
-            </Badge>
+              {t('dashboard.configsPage.modified')}</Badge>
           ) : null}
           <SaveToBoardButton disabled={busy} />
         </>
       }
     >
       <PageSection
-        title="Document"
+        title={t('dashboard.configsPage.document')}
         description={
           draftFileName ?? (hasLocalDraft ? 'Unsaved local draft' : 'No local configuration')
         }
       >
         <div className="space-y-3">
           <label className="block space-y-1 text-[11px] text-muted-foreground">
-            <span>Board</span>
+            <span>{t('device.infoPage.board')}</span>
             <select
               className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
               disabled={working || connected}
@@ -108,7 +106,7 @@ export function ConfigsPage(): React.JSX.Element {
                 setOfflineBoard((event.target.value as SimCoreBoardId | '') || undefined)
               }
             >
-              <option value="">Select board</option>
+              <option value="">{t('dashboard.configsPage.selectBoard')}</option>
               {SIMCORE_BOARD_IDS.map((id) => (
                 <option key={id} value={id}>
                   {boardLabel(id)}
@@ -116,7 +114,7 @@ export function ConfigsPage(): React.JSX.Element {
               ))}
             </select>
             {connected ? (
-              <span className="block">The connected board decides this while it is plugged in.</span>
+              <span className="block">{t('dashboard.configsPage.theConnectedBoardDecidesThis')}</span>
             ) : null}
           </label>
 
@@ -126,19 +124,16 @@ export function ConfigsPage(): React.JSX.Element {
               disabled={working || !targetBoard}
               onClick={() => setFeedback(createConfiguration(targetBoard as SimCoreBoardId))}
             >
-              New
-            </Button>
+              {t('dashboard.configsPage.new')}</Button>
             <Button variant="outline" disabled={working} onClick={() => void act(openConfigurationFile)}>
-              Open…
-            </Button>
+              {t('dashboard.configsPage.open')}</Button>
             <Button
               variant="outline"
               disabled={working || !parsed.ok}
-              title="Save the configuration to a file (Cmd/Ctrl+S)"
+              title={t('dashboard.configsPage.saveTheConfigurationToA')}
               onClick={() => void act(saveConfigurationFile)}
             >
-              Save as…
-            </Button>
+              {t('dashboard.configsPage.saveAs')}</Button>
           </div>
 
           {parsed.ok ? (
@@ -148,31 +143,31 @@ export function ConfigsPage(): React.JSX.Element {
                 const limit = CONFIGURATION_DOCUMENTS[id].maxPayload
                 return (
                   <div key={id} className="flex items-center justify-between">
-                    <span>{CONFIGURATION_DOCUMENT_LABELS[id]}</span>
+                    <span>{t(`documents.label.${id}`)}</span>
                     <span className={bytes > limit ? 'text-red-400' : undefined}>
-                      {bytes} / {limit} bytes
+                      {t('configs.configsPage.bytesOfLimit', { bytes: bytes, limit: limit })}
                     </span>
                   </div>
                 )
               })}
             </div>
           ) : (
-            <p className="text-[11px] text-muted-foreground">Invalid JSON</p>
+            <p className="text-[11px] text-muted-foreground">{t('dashboard.configsPage.invalidJson')}</p>
           )}
           {parsed.ok ? null : <p className="text-[11px] text-red-400">{parsed.error}</p>}
 
           {convertTarget ? (
             <div className="space-y-2 rounded-md border border-dashed p-2">
               <label className="block space-y-1 text-[11px] text-muted-foreground">
-                <span>Fit to the new display</span>
+                <span>{t('dashboard.configsPage.fitToTheNewDisplay')}</span>
                 <select
                   className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
                   disabled={working}
                   value={fit}
                   onChange={(event) => setFit(event.target.value as LayoutFit)}
                 >
-                  <option value="contain">Keep proportions, centre</option>
-                  <option value="stretch">Stretch to fill the display</option>
+                  <option value="contain">{t('dashboard.configsPage.keepProportionsCentre')}</option>
+                  <option value="stretch">{t('dashboard.configsPage.stretchToFillTheDisplay')}</option>
                 </select>
               </label>
               <p className="text-[11px] text-muted-foreground">
@@ -191,7 +186,7 @@ export function ConfigsPage(): React.JSX.Element {
                 disabled={working}
                 onClick={() => convert(convertTarget)}
               >
-                {`Convert draft to ${BOARD_NAMES[convertTarget]}…`}
+                {t('dashboard.configsPage.convertDraftToConverttarget', { convertTarget: BOARD_NAMES[convertTarget] })}
               </Button>
             </div>
           ) : null}
@@ -199,14 +194,13 @@ export function ConfigsPage(): React.JSX.Element {
           {report ? (
             <div className="space-y-1 rounded-md border border-sky-500/30 bg-sky-500/10 p-2 text-[11px] text-sky-200">
               <div className="flex items-start justify-between gap-2">
-                <span className="font-medium">Layout transfer</span>
+                <span className="font-medium">{t('templates.dashboardSection.layoutTransfer')}</span>
                 <button
                   className="text-sky-300/70 hover:text-sky-200"
                   type="button"
                   onClick={() => setReport(undefined)}
                 >
-                  Dismiss
-                </button>
+                  {t('templates.dashboardSection.dismiss')}</button>
               </div>
               <ul className="list-disc space-y-0.5 pl-4">
                 {transferReportLines(report).map((line) => (

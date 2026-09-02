@@ -4,6 +4,7 @@ import { MAXIMUM_CONFIGURATION_PAYLOAD_SIZE, type DeviceErrorCode } from '@share
 import { describeDeviceError } from '@shared/device-error-message'
 import { DeviceServiceError } from './device-errors'
 import { exchangeLines } from './line-exchange'
+import { t } from '@shared/ui-text'
 
 export type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
 
@@ -41,11 +42,11 @@ export function requestResponse(
     onTimeout: () => ({
       error: new DeviceServiceError(
         rejectionCode,
-        `The device did not answer ${request.trim()}.`
+        t('device.serialRequest.theDeviceDidNotAnswer', { trim: request.trim() })
       )
     }),
     onClose: () =>
-      new DeviceServiceError('serial_error', 'Serial port closed during request.'),
+      new DeviceServiceError('serial_error', t('device.serialRequest.serialPortClosedDuringRequest')),
     send: (fail, isSettled) => {
       port.flush(() => {
         if (!port.isOpen || isSettled()) return
@@ -82,10 +83,10 @@ export function sendControlCommand(
     },
     onTimeout: () => ({ value: collected }),
     onClose: () =>
-      new DeviceServiceError('serial_error', 'Serial port closed during the command.'),
+      new DeviceServiceError('serial_error', t('device.serialRequest.serialPortClosedDuringThe')),
     send: (fail) => {
       if (!port.isOpen) {
-        fail(new DeviceServiceError('serial_error', 'The serial port is closed.'))
+        fail(new DeviceServiceError('serial_error', t('device.serialRequest.theSerialPortIsClosed')))
         return
       }
       port.write(request, (error) => {

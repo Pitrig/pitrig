@@ -16,7 +16,7 @@ import {
 import { Group } from '@/features/configuration/inspector/Group'
 import { IdField, NumberInput } from '@/features/configuration/inspector/fields'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { drawnOf, mutateEffects } from './modules-document'
 import { playingSprite, useModulesStore } from './modules-store'
 import { SpriteCanvas } from './SpriteCanvas'
@@ -88,27 +88,27 @@ export function SpriteEditor({
       id="LedSpriteEditor"
       title={sprite.id || 'Picture'}
       icon={Brush}
-      summary={`${width}×${height} · ${frames} frame(s)`}
+      summary={t('modules.spriteEditor.widthHeightFramesFrameS', { width: width, height: height, frames: frames })}
       defaultOpen
     >
       <IdField
-        label="Name"
-        hint={HINTS.sprite.name}
+        label={t('device.infoPage.name')}
+        hint={t('modules.hints.sprite.name')}
         value={sprite.id}
         capacity={IMAGE_ID_CAPACITY}
         onCommit={(name) => renameSprite(output, device, at, name)}
       />
-      <PropertyRow label="Size" hint={HINTS.sprite.size}>
+      <PropertyRow label={t('modules.outputEditor.size')} hint={t('modules.hints.sprite.size')}>
         <div className="flex items-center gap-1">
           <NumberInput
-            title="Columns"
+            title={t('modules.outputEditor.columns')}
             value={width}
             min={1}
             max={MAXIMUM_MATRIX_SIDE}
             onChange={(value) => resizeSprite(output, at, Math.max(1, value), height)}
           />
           <NumberInput
-            title="Rows"
+            title={t('modules.outputEditor.rows')}
             value={height}
             min={1}
             max={MAXIMUM_MATRIX_SIDE}
@@ -117,12 +117,11 @@ export function SpriteEditor({
           <button
             type="button"
             disabled={fitted}
-            title={`Matches the panel, ${panel.width} by ${panel.height}`}
+            title={t('modules.spriteEditor.matchesThePanelWidthBy', { width: panel.width, height: panel.height })}
             className="flex-none rounded border px-1.5 py-1 text-[10px] hover:bg-white/5 disabled:opacity-30"
             onClick={() => resizeSprite(output, at, panel.width, panel.height)}
           >
-            Fit panel
-          </button>
+            {t('modules.spriteEditor.fitPanel')}</button>
         </div>
       </PropertyRow>
       <SpritePalette output={output} at={at} sprite={sprite} ink={ink} onPick={selectInk} />
@@ -130,18 +129,18 @@ export function SpriteEditor({
         <button
           type="button"
           className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px] hover:bg-white/5"
-          title="Paints every pixel of this frame with the chosen ink"
+          title={t('modules.spriteEditor.paintsEveryPixelOfThis')}
           onClick={() => fillFrame(output, at, shown, ink)}
         >
-          <PaintBucket className="size-3" /> Fill frame
+          <PaintBucket className="size-3" /> {t('modules.spriteEditor.fillFrame')}
         </button>
         <button
           type="button"
           className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px] hover:bg-white/5"
-          title="Clears this frame, leaving the layers below it visible"
+          title={t('modules.spriteEditor.clearsThisFrameLeavingThe')}
           onClick={() => fillFrame(output, at, shown, TRANSPARENT_INK)}
         >
-          <Eraser className="size-3" /> Clear frame
+          <Eraser className="size-3" /> {t('modules.spriteEditor.clearFrame')}
         </button>
         <label className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px]">
           <input
@@ -150,11 +149,9 @@ export function SpriteEditor({
             checked={onion}
             onChange={(event) => setOnion(event.target.checked)}
           />
-          Ghost previous frame
-        </label>
+          {t('modules.spriteEditor.ghostPreviousFrame')}</label>
         <label className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px]">
-          Frame holds
-          <select
+          {t('modules.effectEditor.frameHolds')}<select
             className="rounded bg-background px-1 py-0.5"
             value={speed}
             onChange={(event) => {
@@ -163,7 +160,7 @@ export function SpriteEditor({
             }}
           >
             {SPEEDS.map((value) => (
-              <option key={value} value={value}>{`${value} ms`}</option>
+              <option key={value} value={value}>{t('modules.spriteEditor.valueMs', { value: value })}</option>
             ))}
           </select>
         </label>
@@ -172,24 +169,24 @@ export function SpriteEditor({
           disabled={layers.length >= MAXIMUM_LED_EFFECTS}
           title={
             drawn
-              ? 'Adds another layer drawing this picture'
-              : 'Adds a layer that draws this picture, which is what puts it on the panel'
+              ? t('modules.spriteEditor.addsAnotherLayerDrawingThis')
+              : t('modules.spriteEditor.addsALayerThatDraws')
           }
           className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px] hover:bg-white/5 disabled:opacity-30"
           onClick={addLayer}
         >
-          <Layers className="size-3" /> {drawn ? 'Add another layer' : 'Add a layer'}
+          <Layers className="size-3" /> {drawn ? t('modules.spriteEditor.addAnotherLayer') : t('modules.spriteEditor.addALayer')}
         </button>
         <button
           type="button"
           aria-pressed={mirrored}
-          title={HINTS.sprite.mirror}
+          title={t('modules.hints.sprite.mirror')}
           className={`flex items-center gap-1 rounded border px-1.5 py-1 text-[10px] hover:bg-white/5 ${
             mirrored ? 'border-sky-500/60 bg-sky-500/10 text-sky-300' : ''
           }`}
           onClick={() => toggleSpritePreview(output, sprite.id, speed)}
         >
-          <Monitor className="size-3" /> {mirrored ? 'Showing on panel' : 'Show on panel'}
+          <Monitor className="size-3" /> {mirrored ? t('modules.spriteEditor.showingOnPanel') : t('modules.spriteEditor.showOnPanel')}
         </button>
       </div>
       <SpriteCanvas
@@ -213,7 +210,7 @@ export function SpriteEditor({
         onPlay={() => setPlaying(!playing)}
       />
       <p className="text-[10px] text-muted-foreground">
-        {`${spriteDigits(sprite)} of ${SPRITE_DIGIT_BUDGET} pixel digits, carried inside the modules document.`}
+        {t('modules.spriteEditor.spriteOfSpriteDigitBudget', { sprite: spriteDigits(sprite), sPRITE_DIGIT_BUDGET: SPRITE_DIGIT_BUDGET })}
       </p>
     </Group>
   )

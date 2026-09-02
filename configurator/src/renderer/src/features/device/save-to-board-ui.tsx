@@ -2,7 +2,8 @@ import { Button } from '@/components/ui/button'
 import { UnresolvedFontsDialog } from '@/features/font-library/UnresolvedFontsDialog'
 import { useDeviceStore } from './device-store'
 import { useDraftState } from './draft-state'
-import { SAVE_STAGE_LABELS, saveDraftToBoard, useSaveToBoardStore } from './save-to-board-store'
+import { saveDraftToBoard, useSaveToBoardStore } from './save-to-board-store'
+import { t } from '@shared/ui-text'
 
 export function SaveToBoardButton({
   className,
@@ -20,7 +21,7 @@ export function SaveToBoardButton({
       title={saveBlockedReason ?? 'Write the dashboard to the board (fonts install with it)'}
       onClick={() => void saveDraftToBoard()}
     >
-      {running ? 'Saving…' : 'Save to board'}
+      {running ? t('device.saveToBoardUi.saving') : t('device.saveToBoardUi.saveToBoard')}
     </Button>
   )
 }
@@ -33,15 +34,14 @@ export function SaveProgressBar(): React.JSX.Element | null {
   return (
     <div className="space-y-1.5 rounded-md border bg-muted/20 p-2 text-[11px] text-muted-foreground">
       <div className="flex items-center justify-between gap-2">
-        <span className="font-medium text-foreground">{SAVE_STAGE_LABELS[progress.stage]}</span>
+        <span className="font-medium text-foreground">{t(`save.stage.${progress.stage}`)}</span>
         {progress.stage === 'uploading' ? (
           <button
             type="button"
             className="text-sky-300/70 hover:text-sky-200"
             onClick={() => void window.simcore.cancelFontUpload()}
           >
-            Cancel
-          </button>
+            {t('common.cancel')}</button>
         ) : null}
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-muted">

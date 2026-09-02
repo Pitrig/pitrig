@@ -11,6 +11,7 @@ import {
   openConfigurationFile
 } from '@/features/configuration/configuration-actions'
 import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
+import { t } from '@shared/ui-text'
 
 export function NoConfiguration(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -22,17 +23,17 @@ export function NoConfiguration(): React.JSX.Element {
 
   return (
     <PageSection
-      title="No configuration open"
-      description="Peripherals live in the same draft the dashboard uses, so this needs no board plugged in."
+      title={t('protocol.transportSection.noConfigurationOpen')}
+      description={t('modules.noConfiguration.peripheralsLiveInTheSame')}
     >
       <EmptyState
         icon={<Puzzle aria-hidden="true" className="size-6" />}
-        title="Nothing to configure yet"
+        title={t('modules.noConfiguration.nothingToConfigureYet')}
       >
         <div className="flex flex-col items-center gap-3">
           {session ? (
             <p className="text-[11px] text-muted-foreground">
-              {`Authoring for the connected ${boardName(session.info.boardId)}.`}
+              {t('canvas.displayPreview.authoringForTheConnectedBoardid', { boardId: boardName(session.info.boardId) })}
             </p>
           ) : (
             <BoardChoice
@@ -45,26 +46,22 @@ export function NoConfiguration(): React.JSX.Element {
           )}
           {board && pins.length === 0 ? (
             <p className="max-w-sm text-[11px] text-amber-400/80">
-              This board publishes no free pins for LEDs yet, so the firmware will refuse any output
-              on it. You can still author one and move the draft to another board later.
-            </p>
+              {t('modules.noConfiguration.thisBoardPublishesNoFree')}</p>
           ) : null}
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               disabled={!board}
-              title={board ? undefined : 'Choose a board first'}
+              title={board ? undefined : t('canvas.displayPreview.chooseABoardFirst')}
               onClick={() => setMessage(createConfiguration(board as SimCoreBoardId).message)}
             >
-              New configuration
-            </Button>
+              {t('modules.noConfiguration.newConfiguration')}</Button>
             <Button
               variant="outline"
               onClick={() =>
                 void openConfigurationFile().then((result) => setMessage(result?.message))
               }
             >
-              Open file…
-            </Button>
+              {t('modules.noConfiguration.openFile')}</Button>
           </div>
           {message ? (
             <p className="max-w-sm text-[11px] text-muted-foreground">{message}</p>

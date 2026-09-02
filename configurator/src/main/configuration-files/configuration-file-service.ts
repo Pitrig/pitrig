@@ -11,16 +11,17 @@ import {
 import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from '../../shared/configuration-documents'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import type { RecentConfigurations } from '../configs/recent-configurations'
+import { t } from '@shared/ui-text'
 
 export class ConfigurationFileService {
   constructor(private readonly recent: RecentConfigurations) {}
 
   async load(owner?: BrowserWindow): Promise<ConfigurationFileResult<ConfigurationFileLoadValue | null>> {
     const options: OpenDialogOptions = {
-      title: 'Load SimCore configuration',
-      buttonLabel: 'Load configuration',
+      title: t('configs.dialog.loadTitle'),
+      buttonLabel: t('configs.configurationFileService.loadConfiguration'),
       properties: ['openFile'],
-      filters: [{ name: 'SimCore configuration', extensions: ['json'] }]
+      filters: [{ name: t('configs.dialog.filter'), extensions: ['json'] }]
     }
     const result = owner
       ? await dialog.showOpenDialog(owner, options)
@@ -34,7 +35,7 @@ export class ConfigurationFileService {
       if (!metadata.isFile() || metadata.size > MAXIMUM_CONFIGURATION_TEXT_SIZE) {
         return failure(
           'invalid_configuration',
-          `Configuration file must not exceed ${MAXIMUM_CONFIGURATION_TEXT_SIZE} bytes.`
+          t('configs.configurationFileService.configurationFileMustNotExceed', { mAXIMUM_CONFIGURATION_TEXT_SIZE: MAXIMUM_CONFIGURATION_TEXT_SIZE })
         )
       }
       const json = await readFile(path, 'utf8')
@@ -44,7 +45,7 @@ export class ConfigurationFileService {
     } catch (error) {
       return failure(
         isConfigurationError(error) ? 'invalid_configuration' : 'read_failed',
-        error instanceof Error ? error.message : 'Failed to load the configuration file.'
+        error instanceof Error ? error.message : t('configs.configurationFileService.failedToLoadTheConfiguration')
       )
     }
   }
@@ -60,15 +61,15 @@ export class ConfigurationFileService {
     } catch (error) {
       return failure(
         'invalid_configuration',
-        error instanceof Error ? error.message : 'Invalid configuration JSON.'
+        error instanceof Error ? error.message : t('configs.configurationFileService.invalidConfigurationJson')
       )
     }
 
     const options: SaveDialogOptions = {
-      title: 'Save SimCore configuration',
-      buttonLabel: 'Save configuration',
+      title: t('configs.dialog.saveTitle'),
+      buttonLabel: t('configs.configurationFileService.saveConfiguration'),
       defaultPath: DEFAULT_CONFIGURATION_FILE_NAME,
-      filters: [{ name: 'SimCore configuration', extensions: ['json'] }]
+      filters: [{ name: t('configs.dialog.filter'), extensions: ['json'] }]
     }
     const result = owner
       ? await dialog.showSaveDialog(owner, options)
@@ -86,7 +87,7 @@ export class ConfigurationFileService {
     } catch (error) {
       return failure(
         'write_failed',
-        error instanceof Error ? error.message : 'Failed to save the configuration file.'
+        error instanceof Error ? error.message : t('configs.configurationFileService.failedToSaveTheConfiguration')
       )
     }
   }

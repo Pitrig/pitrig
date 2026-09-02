@@ -25,16 +25,17 @@ import { SpriteEditor } from './SpriteEditor'
 import { SpriteList } from './SpriteList'
 import { addDevice, canAddDevice, devicesOf, ledPinsOf, removeDevice } from './modules-document'
 import { useModulesStore, type DeviceView } from './modules-store'
+import { t } from '@shared/ui-text'
 
 const TABS: ReadonlyArray<{ id: ModulesView; label: string; icon: typeof Lightbulb }> = [
-  { id: 'leds', label: 'LEDs', icon: Lightbulb },
-  { id: 'matrix', label: 'Matrix', icon: Grid3x3 }
+  { id: 'leds', label: t('modules.modulesPage.lEDs'), icon: Lightbulb },
+  { id: 'matrix', label: t('modules.modulesPage.matrix'), icon: Grid3x3 }
 ]
 
 const DEVICE_TABS: ReadonlyArray<{ id: DeviceView; label: string; icon: typeof Cable }> = [
-  { id: 'wiring', label: 'Wiring', icon: Cable },
-  { id: 'pictures', label: 'Pictures', icon: Images },
-  { id: 'layers', label: 'Layers', icon: Layers }
+  { id: 'wiring', label: t('modules.modulesPage.wiring'), icon: Cable },
+  { id: 'pictures', label: t('modules.modulesPage.pictures'), icon: Images },
+  { id: 'layers', label: t('modules.effectList.layers'), icon: Layers }
 ]
 
 const TYPE: Record<ModulesView, HardwareDeviceType> = {
@@ -69,8 +70,8 @@ export function ModulesPage(): React.JSX.Element {
 
   return (
     <PageShell
-      title="Modules"
-      description="Peripherals beyond the display, each on its own data pin."
+      title={t('documents.label.modules')}
+      description={t('modules.modulesPage.peripheralsBeyondTheDisplayEach')}
       actions={
         <>
           <BoardPicker />
@@ -84,7 +85,7 @@ export function ModulesPage(): React.JSX.Element {
       ) : (
         <>
           <SubTabs
-            label="Modules view"
+            label={t('modules.modulesPage.modulesView')}
             tabs={TABS.map((tab) => ({
               ...tab,
               badge: (
@@ -100,8 +101,8 @@ export function ModulesPage(): React.JSX.Element {
             }}
           />
           <PageSection
-            title={view === 'matrix' ? 'Matrices' : 'Strips'}
-            description={`Each ${noun} owns one data pin and one transmit channel; a board drives four devices in all.`}
+            title={view === 'matrix' ? t('modules.modulesPage.matrices') : t('modules.modulesPage.strips')}
+            description={t('modules.modulesPage.eachNounOwnsOneData', { noun: noun })}
             actions={
               canAddDevice(draft) ? (
                 <button
@@ -109,23 +110,22 @@ export function ModulesPage(): React.JSX.Element {
                   className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-white/5"
                   onClick={() => select(addDevice(draft, type))}
                 >
-                  <Plus className="size-3.5" /> {`Add ${noun}`}
+                  <Plus className="size-3.5" /> {t('modules.modulesPage.addNoun', { noun: noun })}
                 </button>
               ) : null
             }
           >
             {pins.length === 0 ? (
               <p className="pb-2 text-[11px] text-amber-400/80">
-                {`${boardName(draft.board)} publishes no free pins for LEDs yet, so a device on it
-                  would be refused by the firmware.`}
+                {t('modules.modulesPage.boardPublishesNoFreePins', { board: boardName(draft.board) })}
               </p>
             ) : null}
             {mine.length === 0 ? (
               <EmptyState
                 icon={<Puzzle aria-hidden="true" className="size-6" />}
-                title={view === 'matrix' ? 'No matrices' : 'No strips'}
+                title={view === 'matrix' ? t('modules.modulesPage.noMatrices') : t('modules.modulesPage.noStrips')}
               >
-                <p>{`Nothing is wired yet. Add a ${noun} to describe its pin and what it shows.`}</p>
+                <p>{t('modules.modulesPage.nothingIsWiredYetAdd', { noun: noun })}</p>
               </EmptyState>
             ) : (
               <div className="flex flex-wrap gap-1">
@@ -136,7 +136,7 @@ export function ModulesPage(): React.JSX.Element {
                   >
                     <button type="button" onClick={() => select(index)}>
                       {device.id || `${view === 'matrix' ? 'Matrix' : 'Strip'} ${index + 1}`}
-                      <span className="ml-1 text-muted-foreground">pin {device.pin ?? '—'}</span>
+                      <span className="ml-1 text-muted-foreground">{t('modules.modulesPage.pinNumber', { pin: device.pin ?? '—' })}</span>
                     </button>
                     <RemoveButton
                       label={`Remove device ${index + 1}`}
@@ -156,7 +156,7 @@ export function ModulesPage(): React.JSX.Element {
             <>
               <LedPreview index={active.index} device={active.device} />
               <SubTabs
-                label="Device view"
+                label={t('modules.modulesPage.deviceView')}
                 tabs={tabs.map((tab) => ({
                   ...tab,
                   badge:
@@ -175,8 +175,8 @@ export function ModulesPage(): React.JSX.Element {
               />
               {page === 'wiring' ? (
                 <PageSection
-                  title="Wiring"
-                  description="The pin, the shape and the limits of this device."
+                  title={t('modules.modulesPage.wiring')}
+                  description={t('modules.modulesPage.thePinTheShapeAnd')}
                 >
                   <OutputEditor draft={draft} index={active.index} device={active.device} />
                   {active.device.type === 'rgb_strip' ? (
@@ -187,8 +187,8 @@ export function ModulesPage(): React.JSX.Element {
                 <PicturesSection output={active.index} device={active.device} />
               ) : (
                 <PageSection
-                  title="What it shows"
-                  description="Layers composed onto this device, or a profile that adds a ready-made one."
+                  title={t('modules.modulesPage.whatItShows')}
+                  description={t('modules.modulesPage.layersComposedOntoThisDevice')}
                 >
                   <EffectList output={active.index} device={active.device}>
                     <ProfilePicker output={active.index} device={active.device} />
@@ -197,8 +197,7 @@ export function ModulesPage(): React.JSX.Element {
                     <EffectEditor output={active.index} device={active.device} index={effect} />
                   ) : (
                     <p className="text-[11px] text-muted-foreground">
-                      Pick a layer to edit what it paints.
-                    </p>
+                      {t('modules.modulesPage.pickALayerToEdit')}</p>
                   )}
                 </PageSection>
               )}
@@ -222,16 +221,15 @@ function PicturesSection({
 
   return (
     <PageSection
-      title="Pictures"
-      description="Artwork this panel draws, drawn here and carried inside the modules document."
+      title={t('modules.modulesPage.pictures')}
+      description={t('modules.modulesPage.artworkThisPanelDrawsDrawn')}
     >
       <SpriteList output={output} device={device} />
       {sprite ? (
         <SpriteEditor output={output} device={device} at={selected} />
       ) : (
         <p className="text-[11px] text-muted-foreground">
-          Pick a picture to draw it, or make a new one.
-        </p>
+          {t('modules.modulesPage.pickAPictureToDraw')}</p>
       )}
     </PageSection>
   )

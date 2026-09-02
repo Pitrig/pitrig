@@ -19,6 +19,7 @@ import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
 import { isMatrix, lampsOf } from '../led-render'
 import { badColors, badEnum, badList, findEffectError } from './led-values'
 import { findBoundError } from './ranges'
+import { t } from '../ui-text'
 
 function findListError(device: HardwareDeviceConfiguration, label: string): string | undefined {
   return (
@@ -40,7 +41,7 @@ function findSegmentError(device: HardwareDeviceConfiguration, label: string): s
   const segments = device.segments ?? []
   if (segments.length === 0) return undefined
   if (isMatrix(device)) {
-    return `${label} is a matrix, whose arrangement is its grid rather than a list of runs.`
+    return t('validation.hardware.labelIsAMatrixWhose', { label: label })
   }
   let arranged = 0
   for (const [index, segment] of segments.entries()) {
@@ -53,7 +54,7 @@ function findSegmentError(device: HardwareDeviceConfiguration, label: string): s
   }
   const lamps = device.count ?? 1
   if (arranged !== lamps) {
-    return `${label} arranges ${arranged} lamps over its runs, but the strip drives ${lamps}.`
+    return t('validation.hardware.labelArrangesArrangedLampsOver', { label: label, arranged: arranged, lamps: lamps })
   }
   return undefined
 }
@@ -61,31 +62,31 @@ function findSegmentError(device: HardwareDeviceConfiguration, label: string): s
 function findSpriteError(device: HardwareDeviceConfiguration, label: string): string | undefined {
   const sprites = device.sprites ?? []
   if (sprites.length > 0 && !isMatrix(device)) {
-    return `${label} is a strip, so it has nothing to draw a sprite on.`
+    return t('validation.hardware.labelIsAStripSo', { label: label })
   }
   const seen = new Set<string>()
   for (const sprite of sprites) {
     const id = sprite.id ?? ''
-    if (!id) return `${label} carries a sprite with no id.`
-    if (seen.has(id)) return `${label} carries two sprites named ${JSON.stringify(id)}.`
+    if (!id) return t('validation.hardware.labelCarriesASpriteWith', { label: label })
+    if (seen.has(id)) return t('validation.hardware.labelCarriesTwoSpritesNamed', { label: label, id: JSON.stringify(id) })
     seen.add(id)
-    const owner = `Sprite ${JSON.stringify(id)}`
+    const owner = t('validation.hardware.spriteId', { id: JSON.stringify(id) })
     const boundError = findBoundError(sprite, FIELD_RANGES['LedSpriteConfiguration'], owner)
     if (boundError) return boundError
-    const listError = badList(sprite.palette, LED_PALETTE_SIZE, owner, 'palette colours')
+    const listError = badList(sprite.palette, LED_PALETTE_SIZE, owner, t('validation.hardware.paletteColours'))
     if (listError) return listError
     const colorError = badColors(sprite, owner)
     if (colorError) return colorError
     const palette = sprite.palette ?? []
-    if (palette.length === 0) return `${owner} names no palette colours.`
+    if (palette.length === 0) return t('validation.hardware.ownerNamesNoPaletteColours', { owner: owner })
     const pixels = sprite.pixels ?? ''
     const expected = (sprite.width ?? 8) * (sprite.height ?? 8) * (sprite.frame_count ?? 1)
     if (pixels.length !== expected) {
-      return `${owner} carries ${pixels.length} pixel digits; its geometry needs ${expected}.`
+      return t('validation.hardware.ownerCarriesLengthPixelDigits', { owner: owner, length: pixels.length, expected: expected })
     }
     for (const digit of pixels) {
       if (!Number.isInteger(Number.parseInt(digit, 16))) {
-        return `${owner} carries ${JSON.stringify(digit)}, which is not a hexadecimal pixel digit.`
+        return t('validation.hardware.ownerCarriesDigitWhichIs', { owner: owner, digit: JSON.stringify(digit) })
       }
     }
   }
@@ -93,8 +94,8 @@ function findSpriteError(device: HardwareDeviceConfiguration, label: string): st
 }
 
 function labelOfEffect(effect: LedEffect, index: number, label: string): string {
-  const layer = effect?.id ? `Layer ${JSON.stringify(effect.id)}` : `Layer ${index + 1}`
-  return `${layer} of ${label}`
+  const layer = effect?.id ? t('validation.hardware.layerId', { id: JSON.stringify(effect.id) }) : `Layer ${index + 1}`
+  return t('validation.hardware.layerOfLabel', { layer: layer, label: label })
 }
 
 export function findHardwareError(
@@ -102,21 +103,21 @@ export function findHardwareError(
 ): string | undefined {
   const devices = configuration.hardware
   if (devices === undefined) return undefined
-  if (!Array.isArray(devices)) return 'The hardware section must be a list of peripherals.'
+  if (!Array.isArray(devices)) return t('validation.hardware.theHardwareSectionMustBe')
   const profile = BOARD_PROFILES[configuration.board as SimCoreBoardId]
   const outputs = Math.min(profile?.led.outputs ?? MAXIMUM_HARDWARE_DEVICES, MAXIMUM_HARDWARE_DEVICES)
   if (devices.length > outputs) {
-    return `The configuration declares ${devices.length} devices; this board drives at most ${outputs}, one transmit channel each.`
+    return t('validation.hardware.theConfigurationDeclaresLengthDevices', { length: devices.length, outputs: outputs })
   }
   const pins = new Set<number>()
   let total = 0
   for (const [index, device] of devices.entries()) {
-    const label = device?.id ? `Device ${JSON.stringify(device.id)}` : `Device ${index + 1}`
+    const label = device?.id ? t('validation.hardware.deviceId', { id: JSON.stringify(device.id) }) : `Device ${index + 1}`
     if (device?.type === undefined) {
-      return `${label} names no "type", so nothing says which peripheral it is.`
+      return t('validation.hardware.labelNamesNoTypeSo', { label: label })
     }
     if (device.type !== 'rgb_strip' && device.type !== 'rgb_matrix') {
-      return `${label} is a ${JSON.stringify(device.type)} peripheral, which this firmware has no driver for.`
+      return t('validation.hardware.labelIsATypePeripheral', { label: label, type: JSON.stringify(device.type) })
     }
     const listError = findListError(device, label)
     if (listError) return listError
@@ -127,19 +128,19 @@ export function findHardwareError(
     const pin = device.pin ?? -1
     if (profile && !profile.led.pins.includes(pin)) {
       return profile.led.pins.length === 0
-        ? `${label} names pin ${pin}, but this board publishes no free pins for LEDs yet.`
-        : `${label} names pin ${pin}; this board offers ${profile.led.pins.join(', ')}.`
+        ? t('validation.hardware.labelNamesPinPinBut', { label: label, pin: pin })
+        : t('validation.hardware.labelNamesPinPinThis', { label: label, pin: pin, join: profile.led.pins.join(', ') })
     }
-    if (pins.has(pin)) return `Two devices are wired to pin ${pin}.`
+    if (pins.has(pin)) return t('validation.hardware.twoDevicesAreWiredTo', { pin: pin })
     pins.add(pin)
     if (isMatrix(device) && (device.rotation_deg ?? 0) % 90 !== 0) {
-      return `${label} is rotated by ${device.rotation_deg}°; only 0, 90, 180 and 270 are quarter turns.`
+      return t('validation.hardware.labelIsRotatedByRotation', { label: label, rotation_deg: device.rotation_deg ?? 0 })
     }
     const segmentError = findSegmentError(device, label)
     if (segmentError) return segmentError
     const lamps = lampsOf(device)
     if (lamps === 0 || lamps > MAXIMUM_LEDS_PER_OUTPUT) {
-      return `${label} drives ${lamps} lamps; one device carries at most ${MAXIMUM_LEDS_PER_OUTPUT}.`
+      return t('validation.hardware.labelDrivesLampsLampsOne', { label: label, lamps: lamps, mAXIMUM_LEDS_PER_OUTPUT: MAXIMUM_LEDS_PER_OUTPUT })
     }
     const spriteError = findSpriteError(device, label)
     if (spriteError) return spriteError
@@ -150,7 +151,7 @@ export function findHardwareError(
     total += lamps
   }
   if (total > MAXIMUM_LEDS_TOTAL) {
-    return `The configuration drives ${total} lamps; a board carries at most ${MAXIMUM_LEDS_TOTAL}.`
+    return t('validation.hardware.theConfigurationDrivesTotalLamps', { total: total, mAXIMUM_LEDS_TOTAL: MAXIMUM_LEDS_TOTAL })
   }
   return undefined
 }

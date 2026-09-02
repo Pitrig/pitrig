@@ -5,6 +5,7 @@ import {
 } from '@/features/configuration/editor/panel-store'
 import type { DashboardTemplateSummary } from '@shared/templates'
 import { EVERY_BOARD, boardsPresent } from './dashboard-listing'
+import { t } from '@shared/ui-text'
 
 const CONTROL = 'h-6 rounded-md border bg-transparent px-1 text-xs text-foreground'
 
@@ -23,13 +24,13 @@ export function DashboardListControls({
     <>
       {boards.length > 1 ? (
         <select
-          aria-label="Show dashboards for"
+          aria-label={t('templates.dashboardListControls.showDashboardsFor')}
           className={CONTROL}
-          title="Show only the dashboards drawn for one display size"
+          title={t('templates.dashboardListControls.showOnlyTheDashboardsDrawn')}
           value={boards.includes(board) ? board : EVERY_BOARD}
           onChange={(event) => setBoard(event.target.value)}
         >
-          <option value={EVERY_BOARD}>{`All sizes (${entries.length})`}</option>
+          <option value={EVERY_BOARD}>{t('templates.dashboardListControls.allSizesLength', { length: entries.length })}</option>
           {boards.map((id) => (
             <option key={id} value={id}>
               {`${displaySize(id) ?? id} (${entries.filter((entry) => entry.board === id).length})`}
@@ -38,14 +39,14 @@ export function DashboardListControls({
         </select>
       ) : null}
       <select
-        aria-label="Order dashboards"
+        aria-label={t('templates.dashboardListControls.orderDashboards')}
         className={CONTROL}
-        title="Smallest display first, or by name"
+        title={t('templates.dashboardListControls.smallestDisplayFirstOrBy')}
         value={sort}
         onChange={(event) => setSort(event.target.value as TemplateSort)}
       >
-        <option value="size">Screen size</option>
-        <option value="name">Name</option>
+        <option value="size">{t('templates.dashboardListControls.screenSize')}</option>
+        <option value="name">{t('device.infoPage.name')}</option>
       </select>
     </>
   )

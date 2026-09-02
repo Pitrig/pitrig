@@ -7,7 +7,7 @@ import { TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Group } from './Group'
 import { InfoHint } from './InfoHint'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
 import { CheckboxField, ColorSwatchInput, Hint, NumberInput, OptionalColorField, SelectField, SelectInput } from './fields'
@@ -28,13 +28,13 @@ export function ConditionsEditor({ widget, update }: {
   return (
     <Group
       id="Conditions"
-      title="Conditions"
+      title={t('inspector.conditionsEditor.conditions')}
       icon={GROUP_ICONS.conditions}
-      hint={HINTS.conditions.source}
-      summary={watched ? `${rules.length} rule(s)` : 'None'}
+      hint={t('inspector.hints.conditions.source')}
+      summary={watched ? t('inspector.conditionsEditor.lengthRuleS', { length: rules.length }) : t('common.none')}
       defaultOpen={Boolean(watched)}
     >
-      <TelemetryBindingField label="Watch" value={watched} onReset={() => update((next) => {
+      <TelemetryBindingField label={t('inspector.conditionsEditor.watch')} value={watched} onReset={() => update((next) => {
         delete next.condition_source
         delete next.conditions
       })} onChange={(value) => update((next) => {
@@ -53,8 +53,8 @@ export function ConditionsEditor({ widget, update }: {
       })} />
       {watched ? (
         <SelectField
-          label="Modifier"
-          hint={HINTS.data.modifier}
+          label={t('inspector.conditionsEditor.modifier')}
+          hint={t('inspector.hints.data.modifier')}
           value={
             widget.condition_source?.modifiers?.some(({ type }) => type === 'lap_timer')
               ? 'lap_timer'
@@ -85,8 +85,8 @@ export function ConditionsEditor({ widget, update }: {
           {rules.map((rule, index) => (
             <div key={index} className="space-y-2 rounded-md border p-2">
               <div className="flex items-center justify-between">
-                <span className="font-medium">Rule {index + 1}</span>
-                <button type="button" aria-label={`Remove rule ${index + 1}`} title="Remove this rule" className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={() => update((next) => {
+                <span className="font-medium">{t('inspector.conditionsEditor.ruleNumber', { number: index + 1 })}</span>
+                <button type="button" aria-label={`Remove rule ${index + 1}`} title={t('inspector.conditionsEditor.removeThisRule')} className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={() => update((next) => {
                   next.conditions = (next.conditions ?? []).filter((_, position) => position !== index)
                   if (next.conditions.length === 0) delete next.conditions
                 })}>
@@ -94,8 +94,8 @@ export function ConditionsEditor({ widget, update }: {
                 </button>
               </div>
               <PropertyRow
-                label="When"
-                hint={HINTS.conditions.rule}
+                label={t('inspector.conditionsEditor.when')}
+                hint={t('inspector.hints.conditions.rule')}
                 modified={authored(rule.op, 'at_or_above') || authored(rule.value, 0)}
                 onReset={() => changeRule(index, (next) => {
                   delete next.op
@@ -107,17 +107,17 @@ export function ConditionsEditor({ widget, update }: {
                   {boolean ? (
                     <SelectInput value={(rule.value ?? 0) >= 1 ? 'true' : 'false'} options={['true', 'false']} onChange={(value) => changeRule(index, (next) => { next.value = value === 'true' ? 1 : 0 })} />
                   ) : (
-                    <NumberInput title={field?.unit && field.unit !== 'source' ? `Threshold in ${field.unit}` : 'Threshold'} value={rule.value ?? 0} step="any" onChange={(value) => changeRule(index, (next) => { next.value = value })} />
+                    <NumberInput title={field?.unit && field.unit !== 'source' ? t('inspector.conditionsEditor.thresholdInUnit', { unit: field.unit }) : t('inspector.slotPagesEditor.threshold')} value={rule.value ?? 0} step="any" onChange={(value) => changeRule(index, (next) => { next.value = value })} />
                   )}
                 </div>
               </PropertyRow>
-              <OptionalColorField label="Value" value={rule.color} onChange={(value) => changeRule(index, (next) => { if (value) next.color = value; else delete next.color })} />
-              <OptionalColorField label="Background" value={rule.background_color} onChange={(value) => changeRule(index, (next) => { if (value) next.background_color = value; else delete next.background_color })} />
-              <OptionalColorField label="Border" value={rule.border_color} onChange={(value) => changeRule(index, (next) => { if (value) next.border_color = value; else delete next.border_color })} />
-              <CheckboxField label="Hide" checked={rule.hidden ?? false} modified={authored(rule.hidden, false)} onReset={() => changeRule(index, (next) => { delete next.hidden })} onChange={(checked) => changeRule(index, (next) => { if (checked) next.hidden = true; else delete next.hidden })} />
+              <OptionalColorField label={t('inspector.conditionsEditor.value')} value={rule.color} onChange={(value) => changeRule(index, (next) => { if (value) next.color = value; else delete next.color })} />
+              <OptionalColorField label={t('modules.effectColors.background')} value={rule.background_color} onChange={(value) => changeRule(index, (next) => { if (value) next.background_color = value; else delete next.background_color })} />
+              <OptionalColorField label={t('inspector.conditionsEditor.border')} value={rule.border_color} onChange={(value) => changeRule(index, (next) => { if (value) next.border_color = value; else delete next.border_color })} />
+              <CheckboxField label={t('inspector.conditionsEditor.hide')} checked={rule.hidden ?? false} modified={authored(rule.hidden, false)} onReset={() => changeRule(index, (next) => { delete next.hidden })} onChange={(checked) => changeRule(index, (next) => { if (checked) next.hidden = true; else delete next.hidden })} />
               <PropertyRow
-                label="Timing"
-                hint={`${HINTS.conditions.blink} ${HINTS.conditions.hold}`}
+                label={t('modules.effectColors.timing')}
+                hint={t('inspector.conditionsEditor.blinkHold', { blink: t('inspector.hints.conditions.blink'), hold: t('inspector.hints.conditions.hold') })}
                 modified={authored(rule.blink_ms, 0) || authored(rule.hold_ms, 0)}
                 onReset={() => changeRule(index, (next) => {
                   delete next.blink_ms
@@ -125,18 +125,18 @@ export function ConditionsEditor({ widget, update }: {
                 })}
               >
                 <div className="grid grid-cols-2 gap-1">
-                  <NumberInput title="Blink period in milliseconds, 0 is steady" value={rule.blink_ms ?? 0} min={0} max={MAXIMUM_BLINK_MS} onChange={(value) => changeRule(index, (next) => {
+                  <NumberInput title={t('inspector.conditionsEditor.blinkPeriodInMilliseconds0')} value={rule.blink_ms ?? 0} min={0} max={MAXIMUM_BLINK_MS} onChange={(value) => changeRule(index, (next) => {
                     const period = Math.round(value)
                     if (period <= 0) delete next.blink_ms
                     else next.blink_ms = Math.min(MAXIMUM_BLINK_MS, Math.max(MINIMUM_BLINK_MS, period))
                   })} />
-                  <NumberInput title="Hold in milliseconds after the rule stops holding" value={rule.hold_ms ?? 0} min={0} max={MAXIMUM_HOLD_MS} onChange={(value) => changeRule(index, (next) => {
+                  <NumberInput title={t('inspector.conditionsEditor.holdInMillisecondsAfterThe')} value={rule.hold_ms ?? 0} min={0} max={MAXIMUM_HOLD_MS} onChange={(value) => changeRule(index, (next) => {
                     const hold = Math.round(value)
                     if (hold <= 0) delete next.hold_ms
                     else next.hold_ms = Math.min(MAXIMUM_HOLD_MS, hold)
                   })} />
                 </div>
-                <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Blink (ms)</span><span>Hold (ms)</span></div>
+                <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>{t('modules.effectColors.blinkMs')}</span><span>{t('modules.effectColors.holdMs')}</span></div>
               </PropertyRow>
             </div>
           ))}
@@ -145,8 +145,7 @@ export function ConditionsEditor({ widget, update }: {
               next.conditions = [...(next.conditions ?? []), { op: 'at_or_above', value: 0 }]
             })}>
               <Plus aria-hidden className="size-3" />
-              Add rule
-            </button>
+              {t('modules.effectGate.addRule')}</button>
           ) : null}
         </>
       ) : null}
@@ -172,18 +171,17 @@ function ColorRampEditor({ widget, update, unit }: {
     <div className="space-y-2 rounded-md border p-2">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1 font-medium">
-          Colour ramp
-          <InfoHint text={HINTS.conditions.ramp} label="Colour ramp" />
+          {t('modules.effectPayload.colourRamp')}<InfoHint text={t('inspector.hints.conditions.ramp')} label={t('modules.effectPayload.colourRamp')} />
         </span>
         {stops.length > 0 ? (
-          <button type="button" aria-label="Remove the colour ramp" title="Remove the colour ramp" className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={() => update((next) => { delete next.color_ramp })}>
+          <button type="button" aria-label={t('inspector.conditionsEditor.removeTheColourRamp')} title={t('inspector.conditionsEditor.removeTheColourRamp')} className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={() => update((next) => { delete next.color_ramp })}>
             <Trash2 aria-hidden className="size-3" />
           </button>
         ) : null}
       </div>
       {stops.length > 0 ? (
         <>
-          <SelectField label="Paints" hint={HINTS.conditions.rampTarget} value={widget.color_ramp?.target ?? 'content'} options={COLOR_RAMP_TARGET_VALUES} modified={authored(widget.color_ramp?.target, 'content')} onReset={() => update((next) => { if (next.color_ramp) delete next.color_ramp.target })} onChange={(value) => update((next) => {
+          <SelectField label={t('modules.effectEditor.paints')} hint={t('inspector.hints.conditions.rampTarget')} value={widget.color_ramp?.target ?? 'content'} options={COLOR_RAMP_TARGET_VALUES} modified={authored(widget.color_ramp?.target, 'content')} onReset={() => update((next) => { if (next.color_ramp) delete next.color_ramp.target })} onChange={(value) => update((next) => {
             next.color_ramp = { ...next.color_ramp, target: value }
           })} />
           {stops.map((stop, index) => (
@@ -200,7 +198,7 @@ function ColorRampEditor({ widget, update, unit }: {
               })}
             >
               <div className="flex items-center gap-1">
-                <NumberInput title={unit ? `At, in ${unit}` : 'At'} value={stop.at ?? 0} step="any" onChange={(value) => changeStops((list) => {
+                <NumberInput title={unit ? t('inspector.conditionsEditor.atInUnit', { unit: unit }) : t('inspector.conditionsEditor.at')} value={stop.at ?? 0} step="any" onChange={(value) => changeStops((list) => {
                   list[index] = { ...list[index], at: value }
                   return list
                 })} />
@@ -208,7 +206,7 @@ function ColorRampEditor({ widget, update, unit }: {
                   list[index] = { ...list[index], color }
                   return list
                 })} />
-                <button type="button" aria-label={`Remove stop ${index + 1}`} title="Remove this stop" className="flex-none rounded-md border p-1.5 text-muted-foreground hover:text-foreground" onClick={() => changeStops((list) => list.filter((_, position) => position !== index))}>
+                <button type="button" aria-label={`Remove stop ${index + 1}`} title={t('inspector.conditionsEditor.removeThisStop')} className="flex-none rounded-md border p-1.5 text-muted-foreground hover:text-foreground" onClick={() => changeStops((list) => list.filter((_, position) => position !== index))}>
                   <Trash2 aria-hidden className="size-3" />
                 </button>
               </div>
@@ -220,10 +218,9 @@ function ColorRampEditor({ widget, update, unit }: {
               return [...list, { at: (previous?.at ?? 0) + 1, color: previous?.color ?? '#E8E8E8' }]
             })}>
               <Plus aria-hidden className="size-3" />
-              Add stop
-            </button>
+              {t('inspector.conditionsEditor.addStop')}</button>
           ) : null}
-          {stops.length < 2 ? <Hint>A ramp needs at least two stops to interpolate between.</Hint> : null}
+          {stops.length < 2 ? <Hint>{t('inspector.conditionsEditor.aRampNeedsAtLeast')}</Hint> : null}
         </>
       ) : (
         <button type="button" className="flex h-7 w-full items-center justify-center gap-1 rounded-md border text-foreground hover:bg-muted" onClick={() => changeStops(() => [
@@ -231,8 +228,7 @@ function ColorRampEditor({ widget, update, unit }: {
           { at: 1, color: '#D50000' }
         ])}>
           <Plus aria-hidden className="size-3" />
-          Add a colour ramp
-        </button>
+          {t('inspector.conditionsEditor.addAColourRamp')}</button>
       )}
     </div>
   )

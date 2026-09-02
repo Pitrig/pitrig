@@ -6,6 +6,7 @@ import type { FontVariant } from '@shared/font-library'
 import { EmptyState, PageSection } from '@/app/workspace/PageShell'
 import { catalogPreviewFamily, useFontCatalogStore } from './font-catalog-store'
 import { FontCatalogRow } from './FontCatalogRow'
+import { t } from '@shared/ui-text'
 
 const CATALOG_RESULT_LIMIT = 60
 
@@ -43,15 +44,15 @@ export function CatalogSection({ onMessage }: { onMessage: (message: string) => 
 
   return (
     <PageSection
-      title="Add from Google Fonts"
-      description="Downloaded into the library on demand; nothing reaches the board until you save."
+      title={t('fonts.catalogSection.addFromGoogleFonts')}
+      description={t('fonts.catalogSection.downloadedIntoTheLibraryOn')}
       actions={
         <label className="flex h-8 items-center gap-1.5 rounded-md border bg-background px-2">
           <Search aria-hidden="true" className="size-3.5 text-muted-foreground" />
           <input
-            aria-label="Search Google Fonts"
+            aria-label={t('fonts.catalogSection.searchGoogleFonts')}
             className="w-44 bg-transparent text-xs outline-none"
-            placeholder="Orbitron, Inter…"
+            placeholder={t('fonts.catalogSection.orbitronInter')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -59,9 +60,9 @@ export function CatalogSection({ onMessage }: { onMessage: (message: string) => 
       }
     >
       {catalog.length === 0 ? (
-        <p className="text-muted-foreground">Reading the catalog…</p>
+        <p className="text-muted-foreground">{t('fonts.catalogSection.readingTheCatalog')}</p>
       ) : results.length === 0 ? (
-        <EmptyState title="No family matches">Try a shorter word.</EmptyState>
+        <EmptyState title={t('fonts.catalogSection.noFamilyMatches')}>{t('fonts.catalogSection.tryAShorterWord')}</EmptyState>
       ) : (
         <div className="max-h-96 space-y-1 overflow-y-auto pr-1">
           {results.map((family) => (

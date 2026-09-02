@@ -3,6 +3,7 @@ import { type RgbColor, WIDGET_ID_CAPACITY } from '@shared/configuration-schema'
 import { ColorPicker } from './ColorPicker'
 import { PropertyRow, type PropertyMeta } from './PropertyRow'
 import { useDeviceStore } from '@/features/device/device-store'
+import { t } from '@shared/ui-text'
 
 export const CONTROL = 'h-7 w-full min-w-0 rounded-md border bg-background px-2 text-foreground'
 
@@ -29,9 +30,9 @@ export function SliderField({ label, value, min, max, softMin, softMax, step, su
   return (
     <PropertyRow label={label} {...meta}>
       <div className="flex items-center gap-1.5">
-        <SliderInput title={suffix ? `${label} in ${suffix}` : label} value={value} min={softMin ?? min} max={softMax ?? max} step={step} onChange={onChange} />
+        <SliderInput title={suffix ? t('inspector.fields.labelInSuffix', { label: label, suffix: suffix }) : label} value={value} min={softMin ?? min} max={softMax ?? max} step={step} onChange={onChange} />
         <div className="w-16 flex-none">
-          <NumberInput title={suffix ? `${label} in ${suffix}` : label} value={value} min={min} max={max} step={step} onChange={onChange} />
+          <NumberInput title={suffix ? t('inspector.fields.labelInSuffix', { label: label, suffix: suffix }) : label} value={value} min={min} max={max} step={step} onChange={onChange} />
         </div>
       </div>
       {caption ? <p className="pt-1 text-[10px] text-muted-foreground">{caption}</p> : null}
@@ -42,7 +43,7 @@ export function SliderField({ label, value, min, max, softMin, softMax, step, su
 export function SelectInput<T extends string>({ id, value, options, onChange }: { id?: string; value: string; options: readonly T[]; onChange: (value: T) => void }): React.JSX.Element {
   return (
     <select id={id} className={CONTROL} value={value} onChange={(event) => onChange(event.target.value as T)}>
-      {value === '' ? <option value="">Not set</option> : null}
+      {value === '' ? <option value="">{t('inspector.fields.notSet')}</option> : null}
       {options.map((option) => <option key={option} value={option}>{option}</option>)}
     </select>
   )
@@ -126,8 +127,8 @@ export function OptionalColorField({ label, value, onChange, hint }: { label: st
       onReset={() => onChange(undefined)}
     >
       <div className="flex items-center gap-1.5">
-        <input id={value === undefined ? id : undefined} type="checkbox" className="size-3.5 flex-none" aria-label={`${label} set`} checked={value !== undefined} onChange={(event) => onChange(event.target.checked ? '#000000' : undefined)} />
-        {value !== undefined ? <ColorControl label={label} value={value} onChange={onChange} /> : <span className="text-muted-foreground">Not set</span>}
+        <input id={value === undefined ? id : undefined} type="checkbox" className="size-3.5 flex-none" aria-label={t('inspector.fields.labelSet', { label: label })} checked={value !== undefined} onChange={(event) => onChange(event.target.checked ? '#000000' : undefined)} />
+        {value !== undefined ? <ColorControl label={label} value={value} onChange={onChange} /> : <span className="text-muted-foreground">{t('inspector.fields.notSet')}</span>}
       </div>
     </PropertyRow>
   )

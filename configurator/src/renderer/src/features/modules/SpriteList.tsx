@@ -9,7 +9,7 @@ import { spriteDigits, spriteGeometry } from '@shared/led-sprite'
 import { Group } from '@/features/configuration/inspector/Group'
 import { Hint } from '@/features/configuration/inspector/fields'
 import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { chequerSprite, diagonalSprite, discSprite } from './matrix-art'
 import { drawnOf } from './modules-document'
 import { playingSprite, useModulesStore } from './modules-store'
@@ -31,20 +31,20 @@ const PRESETS: ReadonlyArray<{
 }> = [
   {
     id: 'sweep',
-    label: 'Sweep',
-    title: 'A diagonal band travelling across the panel, as many frames as the size allows',
+    label: t('inspector.ringEditor.sweep'),
+    title: t('modules.spriteList.aDiagonalBandTravellingAcross'),
     build: (id, width, height) => diagonalSprite(id, width, height, '#ffffff')
   },
   {
     id: 'disc',
-    label: 'Disc',
-    title: 'A filled circle on one frame, ready to be recoloured or blinked by its layer',
+    label: t('modules.spriteList.disc'),
+    title: t('modules.spriteList.aFilledCircleOnOne'),
     build: (id, width, height) => discSprite(id, width, height, '#ff6d00')
   },
   {
     id: 'chequer',
-    label: 'Chequer',
-    title: 'A rippling chequerboard, the artwork the chequered flag draws with',
+    label: t('modules.spriteList.chequer'),
+    title: t('modules.spriteList.aRipplingChequerboardTheArtwork'),
     build: (id, width, height) => chequerSprite(id, width, height)
   }
 ]
@@ -73,23 +73,23 @@ export function SpriteList({
   return (
     <Group
       id="LedMatrixPictures"
-      title="Pictures"
+      title={t('modules.modulesPage.pictures')}
       icon={Images}
-      hint={HINTS.sprite.pictures}
-      summary={`${sprites.length} of ${MAXIMUM_LED_SPRITES}`}
+      hint={t('modules.hints.sprite.pictures')}
+      summary={t('modules.spriteList.lengthOfMaximumLedSprites', { length: sprites.length, mAXIMUM_LED_SPRITES: MAXIMUM_LED_SPRITES })}
       defaultOpen
     >
       <div className="flex flex-wrap items-center gap-1 pb-1">
         <button
           type="button"
           disabled={!room}
-          title={room ? 'Draws a new picture at the size of this panel' : `A panel carries ${MAXIMUM_LED_SPRITES} pictures`}
+          title={room ? t('modules.spriteList.drawsANewPictureAt') : t('modules.spriteList.aPanelCarriesMaximumLed', { mAXIMUM_LED_SPRITES: MAXIMUM_LED_SPRITES })}
           className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-white/5 disabled:opacity-30"
           onClick={() => create(addBlankSprite(output, device, panel.width, panel.height))}
         >
-          <Plus className="size-3.5" /> New picture
+          <Plus className="size-3.5" /> {t('modules.spriteList.newPicture')}
         </button>
-        <span className="text-[10px] text-muted-foreground">or start from</span>
+        <span className="text-[10px] text-muted-foreground">{t('modules.spriteList.orStartFrom')}</span>
         {PRESETS.map((preset) => (
           <button
             key={preset.id}
@@ -113,9 +113,7 @@ export function SpriteList({
       </div>
       {sprites.length === 0 ? (
         <Hint>
-          None yet. Draw one, or start from a pattern — a picture is palette-indexed pixels that
-          travel inside the modules document, so it needs no upload and no restart.
-        </Hint>
+          {t('modules.spriteList.noneYetDrawOneOr')}</Hint>
       ) : (
         sprites.map((sprite, at) => {
           const { width, height, frames } = spriteGeometry(sprite)
@@ -134,17 +132,17 @@ export function SpriteList({
               >
                 {sprite.id}
                 <span className="ml-2 text-[10px] text-muted-foreground">
-                  {`${width}×${height} · ${frames} frame(s) · ${spriteDigits(sprite)} digits`}
+                  {t('modules.spriteList.widthHeightFramesFrameS', { width: width, height: height, frames: frames, sprite: spriteDigits(sprite) })}
                 </span>
               </button>
               {used.has(sprite.id) ? (
-                <span className="flex-none text-[10px] text-sky-300/80">in use</span>
+                <span className="flex-none text-[10px] text-sky-300/80">{t('modules.spriteList.inUse')}</span>
               ) : null}
               <button
                 type="button"
                 aria-pressed={playing}
-                aria-label={playing ? `Stop showing ${sprite.id}` : `Show ${sprite.id} on its own`}
-                title="Plays this picture in the preview above, and on the panel while mirroring is on"
+                aria-label={playing ? t('modules.spriteList.stopShowingId', { id: sprite.id }) : t('modules.spriteList.showIdOnItsOwn', { id: sprite.id })}
+                title={t('modules.spriteList.playsThisPictureInThe')}
                 className={`rounded p-1 ${playing ? 'bg-sky-500/25 text-sky-300' : 'text-muted-foreground hover:bg-white/5'}`}
                 onClick={() => toggleSpritePreview(output, sprite.id, 120)}
               >
@@ -152,7 +150,7 @@ export function SpriteList({
               </button>
               <button
                 type="button"
-                aria-label={`Duplicate ${sprite.id}`}
+                aria-label={t('modules.spriteList.duplicateId', { id: sprite.id })}
                 disabled={!room}
                 className="rounded p-1 text-muted-foreground hover:bg-white/5 disabled:opacity-30"
                 onClick={() => create(duplicateSprite(output, device, at))}
@@ -160,7 +158,7 @@ export function SpriteList({
                 <Copy className="size-3.5" />
               </button>
               <RemoveButton
-                label={`Remove picture ${sprite.id}`}
+                label={t('modules.spriteList.removePictureId', { id: sprite.id })}
                 disabled={used.has(sprite.id)}
                 onClick={() => {
                   removeSprite(output, at)

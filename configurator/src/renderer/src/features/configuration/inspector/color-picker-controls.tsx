@@ -1,4 +1,5 @@
 import { clamp, type Hsv } from './color-math'
+import { t } from '@shared/ui-text'
 
 const SQUARE_HEIGHT_PX = 132
 
@@ -34,7 +35,7 @@ export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: numb
   return (
     <div
       role="slider"
-      aria-label="Hue"
+      aria-label={t('inspector.colorPickerControls.hue')}
       aria-valuemin={0}
       aria-valuemax={359}
       aria-valuenow={Math.round(hue)}

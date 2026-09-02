@@ -12,6 +12,7 @@ import { visibleSlotPage } from './canvas-geometry'
 import { screenName } from './screen-name'
 import { useDeviceStore } from '@/features/device/device-store'
 import { TOOLBAR_GHOST, TOOLBAR_ITEM, TOOLBAR_ITEM_ACTIVE, ToolbarDivider, ToolbarGroup } from './toolbar-parts'
+import { t } from '@shared/ui-text'
 
 export function SlotTabs(): React.JSX.Element | null {
   const configuration = useDeviceStore((state) => state.draft)
@@ -27,7 +28,7 @@ export function SlotTabs(): React.JSX.Element | null {
   const shown = related.length > 0 ? related : slots
   if (shown.length === 0) return null
   return (
-    <ToolbarGroup label="Slots">
+    <ToolbarGroup label={t('firmware.firmwarePage.slots')}>
       {shown.map((slot, position) => {
         const id = slot.id ?? ''
         const pages = pagesOf(slot)
@@ -55,7 +56,7 @@ export function SlotTabs(): React.JSX.Element | null {
             {drillIn === id && pages.length < MAXIMUM_SLOT_PAGES ? (
               <button
                 type="button"
-                title="Add a page to this slot"
+                title={t('canvas.slotTabs.addAPageToThis')}
                 className={TOOLBAR_GHOST}
                 onClick={() => addSlotPage(id)}
               >
@@ -88,21 +89,21 @@ export function DrillInCrumbs(): React.JSX.Element | null {
   if (!drillIn) return null
   const chain = openedChain(configuration, drillIn)
   return (
-    <ToolbarGroup label="Inside">
+    <ToolbarGroup label={t('canvas.slotTabs.inside')}>
       <button
         type="button"
-        title="Leave every container (Escape)"
+        title={t('canvas.slotTabs.leaveEveryContainerEscape')}
         className={`${TOOLBAR_ITEM} px-2`}
         onClick={() => setDrillIn(undefined)}
       >
-        {`← ${screenName(screensOf(configuration), activeScreenIndex)}`}
+        {t('canvas.slotTabs.activeScreenIndex', { activeScreenIndex: screenName(screensOf(configuration), activeScreenIndex) })}
       </button>
       {chain.map((id, index) => (
         <Fragment key={id}>
           <span className="text-muted-foreground">›</span>
           <button
             type="button"
-            title={`Work inside ${id}`}
+            title={t('canvas.slotTabs.workInsideId', { id: id })}
             aria-pressed={index === chain.length - 1}
             className={`${TOOLBAR_ITEM} px-2 ${
               index === chain.length - 1 ? TOOLBAR_ITEM_ACTIVE : ''

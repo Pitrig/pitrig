@@ -4,7 +4,7 @@ import { fieldBounds } from '@shared/validate/ranges'
 import { type WidgetSelection, mutateSelectedWidget } from '../dashboard-editor'
 import { authored } from './authored'
 import { Advanced, Group } from './Group'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
 import { CheckboxField, ColorSwatchInput, Hint, NumberInput, OptionalColorField, SelectField } from './fields'
@@ -21,16 +21,16 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
   return (
     <>
       <SourceRangeSection widget={widget} update={update} />
-      <Group id="Strip" title="Strip" icon={GROUP_ICONS.strip} summary={arcShape ? `arc ${ringSummary(widget)}` : (widget.orientation ?? 'horizontal')}>
-        <SelectField label="Shape" hint={HINTS.strip.shape} value={widget.shape ?? 'strip'} options={INDICATOR_SHAPE_VALUES} modified={authored(widget.shape, 'strip')} onReset={() => update((next) => { delete next.shape })} onChange={(value) => update((next) => { next.shape = value })} />
+      <Group id="Strip" title={t('inspector.indicatorEditor.strip')} icon={GROUP_ICONS.strip} summary={arcShape ? t('inspector.indicatorEditor.arcWidget', { widget: ringSummary(widget) }) : (widget.orientation ?? 'horizontal')}>
+        <SelectField label={t('inspector.indicatorEditor.shape')} hint={t('inspector.hints.strip.shape')} value={widget.shape ?? 'strip'} options={INDICATOR_SHAPE_VALUES} modified={authored(widget.shape, 'strip')} onReset={() => update((next) => { delete next.shape })} onChange={(value) => update((next) => { next.shape = value })} />
         {arcShape ? (
           <RingFields widget={widget} owner="indicator" update={update} />
         ) : (
-          <SelectField label="Orientation" value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} modified={authored(widget.orientation, 'horizontal')} onReset={() => update((next) => { delete next.orientation })} onChange={(value) => update((next) => { next.orientation = value })} />
+          <SelectField label={t('inspector.gaugeEditors.orientation')} value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} modified={authored(widget.orientation, 'horizontal')} onReset={() => update((next) => { delete next.orientation })} onChange={(value) => update((next) => { next.orientation = value })} />
         )}
         <PropertyRow
-          label="Lamps"
-          hint={HINTS.strip.gap}
+          label={t('modules.outputEditor.lamps')}
+          hint={t('inspector.hints.strip.gap')}
           modified={authored(widget.segment_gap_px, 4) || authored(widget.segment_radius_px, 0)}
           onReset={() => update((next) => {
             delete next.segment_gap_px
@@ -38,17 +38,17 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
           })}
         >
           <div className="grid grid-cols-2 gap-1">
-            <NumberInput title="Gap between lamps in pixels" value={widget.segment_gap_px ?? 4} min={0} onChange={(value) => update((next) => { next.segment_gap_px = value })} />
-            <NumberInput title={arcShape ? 'Non-zero rounds the lamp ends' : 'Lamp corner radius in pixels'} value={widget.segment_radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.segment_radius_px = value })} />
+            <NumberInput title={t('inspector.indicatorEditor.gapBetweenLampsInPixels')} value={widget.segment_gap_px ?? 4} min={0} onChange={(value) => update((next) => { next.segment_gap_px = value })} />
+            <NumberInput title={arcShape ? t('inspector.indicatorEditor.nonZeroRoundsTheLamp') : t('inspector.indicatorEditor.lampCornerRadiusInPixels')} value={widget.segment_radius_px ?? 0} min={0} onChange={(value) => update((next) => { next.segment_radius_px = value })} />
           </div>
-          <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>Gap</span><span>Radius</span></div>
+          <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>{t('inspector.indicatorEditor.gap')}</span><span>{t('inspector.indicatorEditor.radius')}</span></div>
         </PropertyRow>
-        <OptionalColorField label="Unlit" hint={HINTS.strip.off} value={widget.off_color} onChange={(value) => update((next) => { if (value === undefined) delete next.off_color; else next.off_color = value })} />
+        <OptionalColorField label={t('inspector.indicatorEditor.unlit')} hint={t('inspector.hints.strip.off')} value={widget.off_color} onChange={(value) => update((next) => { if (value === undefined) delete next.off_color; else next.off_color = value })} />
         <Advanced id="Strip" active={authored(widget.blink_threshold, 2) || authored(widget.blink_ms, 0) || authored(widget.inverted, false)}>
-          <CheckboxField label="Invert" hint={HINTS.strip.inverted} checked={widget.inverted ?? false} modified={authored(widget.inverted, false)} onReset={() => update((next) => { delete next.inverted })} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
+          <CheckboxField label={t('modules.panelArea.invert')} hint={t('inspector.hints.strip.inverted')} checked={widget.inverted ?? false} modified={authored(widget.inverted, false)} onReset={() => update((next) => { delete next.inverted })} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
           <PropertyRow
-            label="Blink"
-            hint={HINTS.strip.blink}
+            label={t('modules.effectGate.blink')}
+            hint={t('inspector.hints.strip.blink')}
             modified={authored(widget.blink_threshold, 2) || authored(widget.blink_ms, 0)}
             onReset={() => update((next) => {
               delete next.blink_threshold
@@ -56,14 +56,14 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
             })}
           >
             <div className="grid grid-cols-2 gap-1">
-              <NumberInput title="Blink from this fraction of the range" value={widget.blink_threshold ?? 2} step="any" onChange={(value) => update((next) => { next.blink_threshold = value })} />
-              <NumberInput title="Blink period in milliseconds" value={widget.blink_ms ?? 0} {...fieldBounds('indicator', 'blink_ms')} onChange={(value) => update((next) => { next.blink_ms = value })} />
+              <NumberInput title={t('inspector.indicatorEditor.blinkFromThisFractionOf')} value={widget.blink_threshold ?? 2} step="any" onChange={(value) => update((next) => { next.blink_threshold = value })} />
+              <NumberInput title={t('inspector.indicatorEditor.blinkPeriodInMilliseconds')} value={widget.blink_ms ?? 0} {...fieldBounds('indicator', 'blink_ms')} onChange={(value) => update((next) => { next.blink_ms = value })} />
             </div>
-            <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>From</span><span>Period (ms)</span></div>
+            <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>{t('modules.effectEditor.from')}</span><span>{t('inspector.indicatorEditor.periodMs')}</span></div>
           </PropertyRow>
         </Advanced>
       </Group>
-      <Group id="Segments" title="Segments" icon={GROUP_ICONS.segments} hint={HINTS.strip.segments} summary={`${segments.length} lamp(s)`}>
+      <Group id="Segments" title={t('inspector.indicatorEditor.segments')} icon={GROUP_ICONS.segments} hint={t('inspector.hints.strip.segments')} summary={t('inspector.indicatorEditor.lengthLampS', { length: segments.length })}>
         {segments.map((segment, index) => (
           <PropertyRow
             key={index}
@@ -96,12 +96,12 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
           </PropertyRow>
         ))}
         {segments.length < MAXIMUM_INDICATOR_SEGMENTS ? (
-          <AddButton label="Add lamp" onClick={() => update((next) => {
+          <AddButton label={t('inspector.indicatorEditor.addLamp')} onClick={() => update((next) => {
             const list = next.segments ?? []
             const previous = list[list.length - 1]
             next.segments = [...list, { threshold: previous?.threshold ?? 0, color: previous?.color ?? '#00C853' }]
           })} />
-        ) : <Hint>{`A strip holds at most ${MAXIMUM_INDICATOR_SEGMENTS} lamps.`}</Hint>}
+        ) : <Hint>{t('inspector.indicatorEditor.aStripHoldsAtMost', { mAXIMUM_INDICATOR_SEGMENTS: MAXIMUM_INDICATOR_SEGMENTS })}</Hint>}
       </Group>
       <TitleEditor widget={widget} update={update} />
       <BoxEditor widget={widget} update={update} />

@@ -48,6 +48,7 @@ import { TemplateService } from '../templates/template-service'
 import { ConfigLibraryService } from '../configs/config-library-service'
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
+import { t } from '@shared/ui-text'
 
 export function registerIpcHandlers(
   deviceService: DeviceService,
@@ -108,7 +109,7 @@ export function registerIpcHandlers(
     if (!isJsonDocumentRequest(request)) {
       const result: SaveToBoardResult = {
         ok: false,
-        error: { code: 'invalid_configuration', message: 'Invalid save request.' }
+        error: { code: 'invalid_configuration', message: t('ipc.registerIpcHandlers.invalidSaveRequest') }
       }
       return result
     }
@@ -118,7 +119,7 @@ export function registerIpcHandlers(
     if (!isConnectRequest(request)) {
       const result: DeviceResult<DeviceState> = {
         ok: false,
-        error: { code: 'invalid_request', message: 'Invalid serial connection request.' }
+        error: { code: 'invalid_request', message: t('ipc.registerIpcHandlers.invalidSerialConnectionRequest') }
       }
       return result
     }

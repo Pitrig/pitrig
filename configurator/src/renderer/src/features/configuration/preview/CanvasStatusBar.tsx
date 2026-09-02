@@ -7,6 +7,7 @@ import { MAXIMUM_GRID_PX, MAXIMUM_TOLERANCE_PX, MINIMUM_GRID_PX, MINIMUM_TOLERAN
 import { BoardPicker } from './BoardPicker'
 import { clampPan, viewForBox } from './canvas-geometry'
 import { useDeviceStore } from '@/features/device/device-store'
+import { t } from '@shared/ui-text'
 
 export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): React.JSX.Element {
   const view = useDashboardEditorStore((state) => state.view)
@@ -27,11 +28,11 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-1 pt-2 text-xs text-muted-foreground">
       <div className="flex items-center gap-1">
-        <IconButton title="Zoom out" onClick={() => zoomTo(view.zoom * 0.8)}>
+        <IconButton title={t('canvas.canvasStatusBar.zoomOut')} onClick={() => zoomTo(view.zoom * 0.8)}>
           <Minus className="size-3" aria-hidden />
         </IconButton>
         <input
-          aria-label="Zoom"
+          aria-label={t('canvas.canvasStatusBar.zoom')}
           type="number"
           min={Math.round(MINIMUM_ZOOM * 100)}
           max={Math.round(MAXIMUM_ZOOM * 100)}
@@ -41,17 +42,17 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
           onChange={(event) => zoomTo((Number(event.target.value) || 100) / 100)}
         />
         <span>%</span>
-        <IconButton title="Zoom in" onClick={() => zoomTo(view.zoom * 1.25)}>
+        <IconButton title={t('canvas.canvasStatusBar.zoomIn')} onClick={() => zoomTo(view.zoom * 1.25)}>
           <Plus className="size-3" aria-hidden />
         </IconButton>
         <IconButton
-          title="Fit the whole display (Cmd/Ctrl+0)"
+          title={t('canvas.canvasStatusBar.fitTheWholeDisplayCmd')}
           onClick={() => setView({ zoom: 1, panX: 0, panY: 0 })}
         >
           <Maximize2 className="size-3" aria-hidden />
         </IconButton>
         <IconButton
-          title="Zoom to the selection (Shift+Cmd/Ctrl+0)"
+          title={t('canvas.canvasStatusBar.zoomToTheSelectionShift')}
           disabled={!box}
           onClick={() =>
             box &&
@@ -64,16 +65,15 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
 
       <span className="h-4 w-px bg-border" />
 
-      <label className="flex items-center gap-1" title="Snap to a fixed step">
+      <label className="flex items-center gap-1" title={t('canvas.canvasStatusBar.snapToAFixedStep')}>
         <input
           type="checkbox"
           checked={snap.snapToGrid}
           onChange={(event) => snap.setSnap({ snapToGrid: event.target.checked })}
         />
-        Grid
-      </label>
+        {t('canvas.canvasStatusBar.grid')}</label>
       <input
-        aria-label="Grid step"
+        aria-label={t('canvas.canvasStatusBar.gridStep')}
         type="number"
         min={MINIMUM_GRID_PX}
         max={MAXIMUM_GRID_PX}
@@ -81,8 +81,8 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
         disabled={!snap.snapToGrid}
         title={
           snap.gridSize === undefined
-            ? `${gridSize} px, chosen for this board's display`
-            : `${gridSize} px`
+            ? t('canvas.canvasStatusBar.gridSizePxChosenForThis', { gridSize: gridSize })
+            : t('canvas.canvasStatusBar.gridSizePx', { gridSize: gridSize })
         }
         className="h-6 w-12 rounded-md border bg-transparent px-1 disabled:opacity-40"
         onChange={(event) =>
@@ -91,30 +91,27 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
       />
       <label
         className="flex items-center gap-1"
-        title="Line up with the edges and centres of the neighbouring widgets"
+        title={t('canvas.canvasStatusBar.lineUpWithTheEdges')}
       >
         <input
           type="checkbox"
           checked={snap.snapToWidgets}
           onChange={(event) => snap.setSnap({ snapToWidgets: event.target.checked })}
         />
-        Widgets
-      </label>
+        {t('templates.widgetSection.widgets')}</label>
       <label
         className="flex items-center gap-1"
-        title="Repeat a gap the row already has, so tiles stay evenly spaced"
+        title={t('canvas.canvasStatusBar.repeatAGapTheRow')}
       >
         <input
           type="checkbox"
           checked={snap.snapToSpacing}
           onChange={(event) => snap.setSnap({ snapToSpacing: event.target.checked })}
         />
-        Gaps
-      </label>
-      <label className="flex items-center gap-1" title="How close a box has to be before it snaps">
-        Reach
-        <input
-          aria-label="Snap reach"
+        {t('canvas.canvasStatusBar.gaps')}</label>
+      <label className="flex items-center gap-1" title={t('canvas.canvasStatusBar.howCloseABoxHas')}>
+        {t('canvas.canvasStatusBar.reach')}<input
+          aria-label={t('canvas.canvasStatusBar.snapReach')}
           type="number"
           min={MINIMUM_TOLERANCE_PX}
           max={MAXIMUM_TOLERANCE_PX}
@@ -130,21 +127,20 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
 
       <label
         className="flex items-center gap-1"
-        title="Resizing a widget scales what is inside it — a container's children, and every font size, radius and thickness with them (Shift+Cmd/Ctrl+C)"
+        title={t('canvas.canvasStatusBar.resizingAWidgetScalesWhat')}
       >
         <input
           type="checkbox"
           checked={snap.scaleContents}
           onChange={() => snap.toggleScaleContents()}
         />
-        Scale contents
-      </label>
+        {t('canvas.canvasStatusBar.scaleContents')}</label>
 
       <span className="ml-auto flex items-center gap-3">
         {box ? (
           <span className="tabular-nums">
-            {selectedIds.length > 1 ? `${selectedIds.length} selected · ` : ''}
-            {`X ${box.x}  Y ${box.y}  W ${box.width}  H ${box.height}`}
+            {selectedIds.length > 1 ? t('canvas.canvasStatusBar.lengthSelected', { length: selectedIds.length }) : ''}
+            {t('canvas.canvasStatusBar.xXYYW', { x: box.x, y: box.y, width: box.width, height: box.height })}
           </span>
         ) : null}
         <BoardPicker />

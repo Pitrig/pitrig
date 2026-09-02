@@ -23,7 +23,7 @@ import {
   AddButton,
   RemoveButton
 } from '@/features/configuration/inspector/widget-editors'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { Subsection } from './Subsection'
 import { applyWatchedBinding, releaseWatchedBinding } from './watched-source'
 
@@ -54,10 +54,10 @@ export function EffectColors({
     })
 
   return (
-    <Subsection title="Colour when">
+    <Subsection title={t('modules.effectColors.colourWhen')}>
       <OptionalColorField
-        label="Background"
-        hint={HINTS.effect.background}
+        label={t('modules.effectColors.background')}
+        hint={t('modules.hints.effect.background')}
         value={effect.background_color}
         onChange={(color) =>
           update((next) => {
@@ -68,14 +68,14 @@ export function EffectColors({
       />
       {rules.length > 0 && effect.gate !== 'conditions' ? (
         <TelemetryBindingField
-          label="Watches"
+          label={t('modules.effectColors.watches')}
           value={watched}
           onChange={(binding) => update((next) => applyWatchedBinding(next, binding))}
         />
       ) : null}
       {rules.map((rule, position) => (
         <div key={position} className="space-y-1 rounded-md border p-2">
-          <PropertyRow label={`Rule ${position + 1}`} hint={position === 0 ? HINTS.effect.colors : undefined}>
+          <PropertyRow label={`Rule ${position + 1}`} hint={position === 0 ? t('modules.hints.effect.colors') : undefined}>
             <div className="flex items-center gap-1">
               <SelectInput
                 value={rule.op ?? 'at_or_above'}
@@ -94,8 +94,8 @@ export function EffectColors({
                 <NumberInput
                   title={
                     field?.unit && field.unit !== 'source'
-                      ? `Threshold in ${field.unit}`
-                      : 'Threshold'
+                      ? t('inspector.conditionsEditor.thresholdInUnit', { unit: field.unit })
+                      : t('inspector.slotPagesEditor.threshold')
                   }
                   value={rule.value ?? 0}
                   step="any"
@@ -121,7 +121,7 @@ export function EffectColors({
             </div>
           </PropertyRow>
           <OptionalColorField
-            label="Background"
+            label={t('modules.effectColors.background')}
             value={rule.background_color}
             onChange={(color) =>
               changeRule(position, (next) => {
@@ -130,10 +130,10 @@ export function EffectColors({
               })
             }
           />
-          <PropertyRow label="Timing" hint={HINTS.effect.ruleTiming}>
+          <PropertyRow label={t('modules.effectColors.timing')} hint={t('modules.hints.effect.ruleTiming')}>
             <div className="grid grid-cols-2 gap-1">
               <NumberInput
-                title="Blink period in milliseconds while this rule holds, 0 is steady"
+                title={t('modules.effectColors.blinkPeriodInMillisecondsWhile')}
                 value={rule.blink_ms ?? 0}
                 min={0}
                 max={MAXIMUM_BLINK_MS}
@@ -146,7 +146,7 @@ export function EffectColors({
                 }
               />
               <NumberInput
-                title="Hold in milliseconds after this rule stops matching"
+                title={t('modules.effectColors.holdInMillisecondsAfterThis')}
                 value={rule.hold_ms ?? 0}
                 min={0}
                 max={MAXIMUM_HOLD_MS}
@@ -160,15 +160,15 @@ export function EffectColors({
               />
             </div>
             <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground">
-              <span>Blink (ms)</span>
-              <span>Hold (ms)</span>
+              <span>{t('modules.effectColors.blinkMs')}</span>
+              <span>{t('modules.effectColors.holdMs')}</span>
             </div>
           </PropertyRow>
         </div>
       ))}
       {rules.length < MAXIMUM_LED_COLOR_RULES ? (
         <AddButton
-          label="Add colour rule"
+          label={t('modules.effectColors.addColourRule')}
           onClick={() =>
             update((next) => {
               if (!next.condition_source?.binding) applyWatchedBinding(next, DEFAULT_WATCH)

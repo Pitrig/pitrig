@@ -17,6 +17,7 @@ import { isTextWidget } from '../configuration-access'
 import { IMAGE_ID_PATTERN } from '../image-assets'
 import { TELEMETRY_CATALOG } from '../telemetry-catalog'
 import { transformError } from './transforms'
+import { t } from '../ui-text'
 
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 
@@ -56,7 +57,7 @@ function badEnum(
   if (value === undefined) return undefined
   return values.includes(value as string)
     ? undefined
-    : `${label} sets "${key}" to ${JSON.stringify(value)}; the device knows ${values.join(', ')}.`
+    : t('validation.ledValues.labelSetsKeyToValue', { label: label, key: key, value: JSON.stringify(value), join: values.join(', ') })
 }
 
 function findEnumError(widget: WidgetConfiguration, label: string): string | undefined {
@@ -93,8 +94,8 @@ function bindingError(
   const name = binding ?? fallback
   if (BINDINGS.has(name)) return undefined
   return name === ''
-    ? `${what} of ${label} has no telemetry field.`
-    : `${what} of ${label} reads "${name}", which is not a telemetry field.`
+    ? t('validation.widgetValues.whatOfLabelHasNo', { what: what, label: label })
+    : t('validation.widgetValues.whatOfLabelReadsName', { what: what, label: label, name: name })
 }
 
 function rangeError(
@@ -105,15 +106,15 @@ function rangeError(
   const minimum = widget.minimum ?? 0
   const maximum = widget.maximum ?? 1
   if (Number.isFinite(minimum) && Number.isFinite(maximum) && maximum > minimum) return undefined
-  return `${what} of ${label} runs ${minimum} to ${maximum}; the device needs a maximum above the minimum.`
+  return t('validation.widgetValues.whatOfLabelRunsMinimum', { what: what, label: label, minimum: minimum, maximum: maximum })
 }
 
 function findSourceError(widget: WidgetConfiguration, label: string): string | undefined {
   if (isTextWidget(widget)) {
     const sources = widget.sources ?? []
-    if (sources.length === 0) return `${label} has no source, so it would render nothing.`
+    if (sources.length === 0) return t('validation.widgetValues.labelHasNoSourceSo', { label: label })
     if (sources.length > MAXIMUM_TEXT_SOURCES) {
-      return `${label} composes ${sources.length} sources; the device composes ${MAXIMUM_TEXT_SOURCES}.`
+      return t('validation.widgetValues.labelComposesLengthSourcesThe', { label: label, length: sources.length, mAXIMUM_TEXT_SOURCES: MAXIMUM_TEXT_SOURCES })
     }
     for (const [index, source] of sources.entries()) {
       const what = `Source ${index + 1}`
@@ -130,9 +131,9 @@ function findSourceError(widget: WidgetConfiguration, label: string): string | u
     return undefined
   }
   if (widget.type === 'bar' || widget.type === 'arc' || widget.type === 'indicator' || widget.type === 'graph') {
-    const error = bindingError(widget.source?.binding, '', label, 'The source')
+    const error = bindingError(widget.source?.binding, '', label, t('validation.widgetValues.theSource'))
     if (error) return error
-    const window = rangeError(widget, label, 'The value window')
+    const window = rangeError(widget, label, t('validation.widgetValues.theValueWindow'))
     if (window) return window
   }
   if (widget.type === 'graph') {
@@ -150,10 +151,10 @@ function findSourceError(widget: WidgetConfiguration, label: string): string | u
   if (widget.type === 'image') {
     const image = widget.image ?? ''
     if (image !== '' && !IMAGE_ID_PATTERN.test(image)) {
-      return `${label} names the image "${image}", which is not an image identifier.`
+      return t('validation.widgetValues.labelNamesTheImageImage', { label: label, image: image })
     }
     if (widget.sprite_frame_source) {
-      const error = bindingError(widget.sprite_frame_source.binding, '', label, 'The sprite frame source')
+      const error = bindingError(widget.sprite_frame_source.binding, '', label, t('validation.widgetValues.theSpriteFrameSource'))
       if (error) return error
     }
   }
@@ -164,22 +165,22 @@ function findCaptionError(widget: WidgetConfiguration, label: string): string | 
   const binding = widget.title?.source?.binding
   if (!binding) return undefined
   if (!widget.title?.text) {
-    return `The caption of ${label} reads telemetry but has no text of its own to fall back on.`
+    return t('validation.widgetValues.theCaptionOfLabelReads', { label: label })
   }
-  return bindingError(binding, '', label, 'The caption source')
+  return bindingError(binding, '', label, t('validation.widgetValues.theCaptionSource'))
 }
 
 function findConditionError(widget: WidgetConfiguration, label: string): string | undefined {
   const rules = widget.conditions ?? []
   const stops = widget.color_ramp?.stops ?? []
   if (rules.length > MAXIMUM_WIDGET_CONDITIONS) {
-    return `${label} has ${rules.length} styling rules; the device holds ${MAXIMUM_WIDGET_CONDITIONS}.`
+    return t('validation.widgetValues.labelHasLengthStylingRules', { label: label, length: rules.length, mAXIMUM_WIDGET_CONDITIONS: MAXIMUM_WIDGET_CONDITIONS })
   }
   if (stops.length === 1) {
-    return `${label} has a colour ramp with one stop; a ramp interpolates between two.`
+    return t('validation.widgetValues.labelHasAColourRamp', { label: label })
   }
   if (stops.length > MAXIMUM_COLOR_STOPS) {
-    return `${label} has a colour ramp with ${stops.length} stops; the device holds ${MAXIMUM_COLOR_STOPS}.`
+    return t('validation.widgetValues.labelHasAColourRamp2', { label: label, length: stops.length, mAXIMUM_COLOR_STOPS: MAXIMUM_COLOR_STOPS })
   }
   let previous = Number.NEGATIVE_INFINITY
   for (const [index, stop] of stops.entries()) {
@@ -195,15 +196,15 @@ function findConditionError(widget: WidgetConfiguration, label: string): string 
     }
   }
   if (rules.length === 0 && stops.length === 0) return undefined
-  return bindingError(widget.condition_source?.binding, '', label, 'The watched source')
+  return bindingError(widget.condition_source?.binding, '', label, t('validation.widgetValues.theWatchedSource'))
 }
 
 function findSegmentError(widget: WidgetConfiguration, label: string): string | undefined {
   if (widget.type !== 'indicator') return undefined
   const segments = widget.segments ?? []
-  if (segments.length === 0) return `${label} has no segments, so nothing would light.`
+  if (segments.length === 0) return t('validation.widgetValues.labelHasNoSegmentsSo', { label: label })
   if (segments.length > MAXIMUM_INDICATOR_SEGMENTS) {
-    return `${label} has ${segments.length} segments; the device holds ${MAXIMUM_INDICATOR_SEGMENTS}.`
+    return t('validation.widgetValues.labelHasLengthSegmentsThe', { label: label, length: segments.length, mAXIMUM_INDICATOR_SEGMENTS: MAXIMUM_INDICATOR_SEGMENTS })
   }
   let previous = Number.NEGATIVE_INFINITY
   for (const [index, segment] of segments.entries()) {

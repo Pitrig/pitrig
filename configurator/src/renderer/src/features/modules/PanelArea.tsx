@@ -4,7 +4,7 @@ import type { HardwareDeviceConfiguration, LedEffect } from '@shared/configurati
 import { drawnSize, readMask, shapeOf, writeMask } from '@shared/led-render'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { useDeviceStore } from '@/features/device/device-store'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 
 const CELL = 13
 const GAP = 2
@@ -66,31 +66,29 @@ export function PanelAreaField({
   }
 
   return (
-    <PropertyRow label="Shows on" hint={HINTS.effect.panel} block>
+    <PropertyRow label={t('modules.panelArea.showsOn')} hint={t('modules.hints.effect.panel')} block>
       <div className="flex items-center gap-2 pb-1">
         <span className="text-[11px] text-muted-foreground">
-          {everyPixel ? 'every pixel' : `${count} of ${pixels} pixels`}
+          {everyPixel ? t('modules.panelArea.everyPixel') : t('modules.panelArea.countOfPixelsPixels', { count: count, pixels: pixels })}
         </span>
         <button
           type="button"
           className="rounded border px-1.5 py-0.5 text-[10px] hover:bg-white/5"
           onClick={() => commit(Array.from({ length: pixels }, () => true))}
         >
-          All
-        </button>
+          {t('modules.panelArea.all')}</button>
         <button
           type="button"
           disabled={everyPixel}
           title={
             everyPixel
-              ? 'Every pixel is chosen, so inverting would leave the layer nothing to paint on'
-              : 'Chooses the pixels this layer is not shown on'
+              ? t('modules.panelArea.everyPixelIsChosenSo')
+              : t('modules.panelArea.choosesThePixelsThisLayer')
           }
           className="rounded border px-1.5 py-0.5 text-[10px] hover:bg-white/5 disabled:opacity-30"
           onClick={() => commit(chosen.map((lit) => !lit))}
         >
-          Invert
-        </button>
+          {t('modules.panelArea.invert')}</button>
       </div>
       <div
         className="w-fit max-w-full overflow-auto rounded border border-white/10 bg-black/40 p-1"
@@ -112,7 +110,7 @@ export function PanelAreaField({
                   aria-pressed={lit}
                   aria-label={`Pixel ${x + 1}, ${y + 1}`}
                   disabled={kept}
-                  title={kept ? 'A layer keeps at least one pixel' : undefined}
+                  title={kept ? t('modules.panelArea.aLayerKeepsAtLeast') : undefined}
                   className={`rounded-sm ${lit ? 'bg-sky-400/80 hover:bg-sky-300' : 'bg-white/10 hover:bg-white/25'}`}
                   style={{ width: CELL, height: CELL }}
                   onPointerDown={() => {

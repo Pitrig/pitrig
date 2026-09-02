@@ -1,6 +1,7 @@
 import type { ValueTransform } from '../configuration-schema'
 import { TELEMETRY_CATALOG, type TelemetryValueType } from '../telemetry-catalog'
 import { MAXIMUM_TRANSFORM_DECIMALS } from '../value-transform'
+import { t } from '../ui-text'
 
 const FIELD_TYPES: ReadonlyMap<string, TelemetryValueType> = new Map(
   TELEMETRY_CATALOG.map(({ name, type }) => [name, type])
@@ -26,22 +27,22 @@ export function transformError(
   if (kind === 'time') {
     const format = transform?.format
     if (format === undefined || !(format in READS)) {
-      return `${what} of ${label} is a time transform with no format; the device needs "duration_ms", "clock_ms" or "signed_duration_ms".`
+      return t('validation.transforms.whatOfLabelIsA', { what: what, label: label })
     }
     if (type === READS[format]) return undefined
-    const counted = format === 'signed_duration_ms' ? 'a signed' : 'an unsigned'
-    return `${what} of ${label} times "${binding}", which the device carries as ${type}; a ${format.replace('_ms', '')} is ${counted} whole number of milliseconds.`
+    const counted = format === 'signed_duration_ms' ? t('validation.transforms.aSigned') : t('validation.transforms.anUnsigned')
+    return t('validation.transforms.whatOfLabelTimesBinding', { what: what, label: label, binding: binding, type: type, _ms: format.replace('_ms', ''), counted: counted })
   }
 
   if (type === 'boolean') {
-    return `${what} of ${label} puts a number transform on "${binding}", which is true or false and has nothing to scale.`
+    return t('validation.transforms.whatOfLabelPutsA', { what: what, label: label, binding: binding })
   }
   const decimals = transform?.decimals ?? 0
   if (!Number.isInteger(decimals) || decimals < 0 || decimals > MAXIMUM_TRANSFORM_DECIMALS) {
-    return `${what} of ${label} asks for ${decimals} decimals; the device writes at most ${MAXIMUM_TRANSFORM_DECIMALS}.`
+    return t('validation.transforms.whatOfLabelAsksFor', { what: what, label: label, decimals: decimals, mAXIMUM_TRANSFORM_DECIMALS: MAXIMUM_TRANSFORM_DECIMALS })
   }
   if (!Number.isFinite(transform?.scale ?? 1) || !Number.isFinite(transform?.offset ?? 0)) {
-    return `${what} of ${label} scales "${binding}" by something that is not a finite number.`
+    return t('validation.transforms.whatOfLabelScalesBinding', { what: what, label: label, binding: binding })
   }
   return undefined
 }

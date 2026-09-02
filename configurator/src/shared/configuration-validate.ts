@@ -3,10 +3,8 @@ import {
   CONFIGURATION_DOCUMENT_IDS,
   type ApplicationConfiguration
 } from './configuration-schema'
-import {
-  CONFIGURATION_DOCUMENT_LABELS,
-  documentPayloadBytes
-} from './configuration-documents'
+import { documentPayloadBytes } from './configuration-documents'
+import { t } from './ui-text'
 import { findFontError } from './validate/fonts'
 import { findHardwareError } from './validate/hardware'
 import { findRangeError } from './validate/ranges'
@@ -60,7 +58,7 @@ export function validateConfigurationDocument(
       return {
         ok: false,
         error:
-          `The ${CONFIGURATION_DOCUMENT_LABELS[document].toLowerCase()} configuration exceeds ` +
+          `The ${t(`documents.labelLower.${document}`)} configuration exceeds ` +
           `the ${limit}-byte device limit.`
       }
     }

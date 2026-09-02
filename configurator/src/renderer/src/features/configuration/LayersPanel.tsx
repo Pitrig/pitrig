@@ -17,6 +17,7 @@ import {
 } from './dashboard-editor'
 import { LayerList } from './layers/LayerList'
 import type { Dragged, DropTarget } from './layers/layer-row-state'
+import { t } from '@shared/ui-text'
 
 export function LayersPanel(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
@@ -75,7 +76,7 @@ export function LayersPanel(): React.JSX.Element {
     <Card className="flex h-full min-h-0 flex-col">
       <CardHeader className="flex-none py-3">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle>Layers</CardTitle>
+          <CardTitle>{t('modules.effectList.layers')}</CardTitle>
           <div className="flex items-center gap-1 text-xs">
             {STACK_BUTTONS.map(({ move, label, title }) => (
               <button
@@ -109,7 +110,7 @@ export function LayersPanel(): React.JSX.Element {
           }}
         >
           {widgets.length === 0 ? (
-            <p className="text-muted-foreground">No widgets yet.</p>
+            <p className="text-muted-foreground">{t('dashboard.layersPanel.noWidgetsYet')}</p>
           ) : null}
           <LayerList widgets={widgets} {...rowProps} />
         </div>
@@ -125,8 +126,7 @@ export function LayersPanel(): React.JSX.Element {
         ) : null}
         {widgets.length > 0 ? (
           <p className="pt-1 text-muted-foreground">
-            Hiding and locking apply to this editing session only; the board draws every widget.
-          </p>
+            {t('dashboard.layersPanel.hidingAndLockingApplyTo')}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -134,8 +134,8 @@ export function LayersPanel(): React.JSX.Element {
 }
 
 const STACK_BUTTONS: { move: StackMove; label: string; title: string }[] = [
-  { move: 'front', label: '⤒', title: 'Bring to front (Cmd/Ctrl+])' },
-  { move: 'forward', label: '↑', title: 'Bring forward (Alt+Cmd/Ctrl+])' },
-  { move: 'backward', label: '↓', title: 'Send backward (Alt+Cmd/Ctrl+[)' },
-  { move: 'back', label: '⤓', title: 'Send to back (Cmd/Ctrl+[)' }
+  { move: 'front', label: '⤒', title: t('dashboard.layersPanel.bringToFrontCmdCtrl') },
+  { move: 'forward', label: '↑', title: t('dashboard.layersPanel.bringForwardAltCmdCtrl') },
+  { move: 'backward', label: '↓', title: t('dashboard.layersPanel.sendBackwardAltCmdCtrl') },
+  { move: 'back', label: '⤓', title: t('dashboard.layersPanel.sendToBackCmdCtrl') }
 ]

@@ -11,6 +11,7 @@ import {
   type FontLibraryResult,
   type FontVariant
 } from '../../shared/font-library'
+import { t } from '@shared/ui-text'
 
 export const FACE_EXTENSION = '.ttf'
 
@@ -76,9 +77,9 @@ const WEIGHT_NAMES: Readonly<Record<string, string>> = {
 }
 
 export function parseIndex(value: unknown): StoredIndex {
-  if (typeof value !== 'object' || value === null) throw new Error('not an object')
+  if (typeof value !== 'object' || value === null) throw new Error(t('fonts.fontLibraryFiles.notAnObject'))
   const record = value as Record<string, unknown>
-  if (record.format !== FONT_LIBRARY_FORMAT) throw new Error('not a font library')
+  if (record.format !== FONT_LIBRARY_FORMAT) throw new Error(t('fonts.fontLibraryFiles.notAFontLibrary'))
   const entries = Array.isArray(record.entries) ? record.entries : []
   return {
     format: FONT_LIBRARY_FORMAT,

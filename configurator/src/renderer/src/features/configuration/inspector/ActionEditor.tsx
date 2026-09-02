@@ -3,7 +3,7 @@ import { MAXIMUM_ACTIONS, WIDGET_ACTION_TYPE_VALUES, type WidgetAction, type Wid
 import { type DeviceConfiguration } from '@shared/device'
 import { actionCount, useDashboardEditorStore } from '../dashboard-editor'
 import { Group } from './Group'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
 import { SelectField } from './fields'
 
@@ -26,10 +26,10 @@ export function ActionEditor({
   return (
     <Group
       id="Action"
-      title="Action"
+      title={t('inspector.actionEditor.action')}
       icon={GROUP_ICONS.action}
-      hint={HINTS.action.tap}
-      summary={type === 'goto_screen' ? `Go to ${action?.screen || '—'}` : type === 'none' ? 'None' : type}
+      hint={t('inspector.hints.action.tap')}
+      summary={type === 'goto_screen' ? `Go to ${action?.screen || '—'}` : type === 'none' ? t('common.none') : type}
       defaultOpen={type !== 'none'}
     >
       {disabledReason ? (
@@ -37,7 +37,7 @@ export function ActionEditor({
       ) : (
         <>
           <SelectField
-            label="On tap"
+            label={t('inspector.actionEditor.onTap')}
             value={type}
             options={WIDGET_ACTION_TYPE_VALUES}
             modified={action !== undefined}
@@ -56,8 +56,8 @@ export function ActionEditor({
           />
           {type === 'goto_screen' ? (
             <SelectField
-              label="Screen"
-              hint={HINTS.action.screen}
+              label={t('inspector.actionEditor.screen')}
+              hint={t('inspector.hints.action.screen')}
               value={action?.screen ?? ''}
               options={screens.map((screen, index) => screen.id ?? `screen${index + 1}`)}
               onChange={(screen) => onChange({ type: 'goto_screen', screen })}
@@ -76,12 +76,11 @@ export function ActionEditor({
                 if (index >= 0) setActiveScreen(index)
               }}
             >
-              Follow this action
-            </button>
+              {t('inspector.actionEditor.followThisAction')}</button>
           ) : null}
           {atCapacity ? (
             <p className="text-muted-foreground">
-              {`This dashboard already uses all ${MAXIMUM_ACTIONS} tap targets.`}
+              {t('inspector.actionEditor.thisDashboardAlreadyUsesAll', { mAXIMUM_ACTIONS: MAXIMUM_ACTIONS })}
             </p>
           ) : null}
         </>

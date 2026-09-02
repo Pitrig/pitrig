@@ -4,6 +4,8 @@ import {
   MAXIMUM_FONT_FAMILIES,
   MAXIMUM_FONT_PACKAGE_SIZE
 } from '../../shared/font-assets'
+import { t } from '@shared/ui-text'
+import { PackageTooLargeError } from '../assets/asset-service-base'
 
 const HEADER_SIZE = 32
 const MANIFEST_ENTRY_SIZE = 48
@@ -37,7 +39,7 @@ export function buildFontPackage(assets: FontFamilyAsset[]): BuiltFontPackage {
     packageSize += asset.bytes.byteLength
   }
   if (packageSize > MAXIMUM_FONT_PACKAGE_SIZE) {
-    throw new Error('The font package exceeds the 2 MiB device limit.')
+    throw new PackageTooLargeError(t('fonts.fontPackage.theFontPackageExceedsThe'))
   }
 
   const output = new Uint8Array(packageSize)
@@ -74,21 +76,21 @@ export function buildFontPackage(assets: FontFamilyAsset[]): BuiltFontPackage {
 
 function validateAssets(assets: FontFamilyAsset[]): void {
   if (assets.length > MAXIMUM_FONT_FAMILIES) {
-    throw new Error(`A font package supports at most ${MAXIMUM_FONT_FAMILIES} families.`)
+    throw new Error(t('fonts.fontPackage.aFontPackageSupportsAt', { mAXIMUM_FONT_FAMILIES: MAXIMUM_FONT_FAMILIES }))
   }
   if (HEADER_SIZE + assets.length * MANIFEST_ENTRY_SIZE > ASSET_DATA_OFFSET) {
-    throw new Error('The font package manifest exceeds its reserved area.')
+    throw new Error(t('fonts.fontPackage.theFontPackageManifestExceeds'))
   }
   const families = new Set<string>()
   for (const asset of assets) {
     if (!FONT_FAMILY_PATTERN.test(asset.family)) {
-      throw new Error(`Invalid font family: ${asset.family}`)
+      throw new Error(t('fonts.fontPackage.invalidFontFamilyFamily', { family: asset.family }))
     }
     if (asset.bytes.byteLength < MINIMUM_FACE_SIZE || !isFontFace(asset.bytes)) {
-      throw new Error(`${asset.family} is not a TTF or OTF font file.`)
+      throw new Error(t('fonts.fontPackage.familyIsNotATtf', { family: asset.family }))
     }
     if (families.has(asset.family)) {
-      throw new Error(`Duplicate font family: ${asset.family}.`)
+      throw new Error(t('fonts.fontPackage.duplicateFontFamilyFamily', { family: asset.family }))
     }
     families.add(asset.family)
   }

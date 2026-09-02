@@ -18,6 +18,7 @@ import {
   kilobytes,
   useFontLibraryStore
 } from './font-library-store'
+import { t } from '@shared/ui-text'
 
 export function FontsPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -53,57 +54,55 @@ export function FontsPage(): React.JSX.Element {
     setMessage(undefined)
     const result = await window.simcore.importFontFace({}).catch(() => undefined)
     setBusy(false)
-    if (!result) return setMessage('The font could not be imported.')
+    if (!result) return setMessage(t('fonts.fontsPage.theFontCouldNotBe'))
     if (!result.ok) return setMessage(result.error.message)
-    if (result.value) setMessage(`Imported ${result.value.name}.`)
+    if (result.value) setMessage(t('fonts.fontsPage.importedName', { name: result.value.name }))
   }
 
   const removeFace = async (id: string, name: string): Promise<void> => {
     if (used.includes(id)) {
-      setMessage(`${name} is used by this dashboard. Change those widgets first.`)
+      setMessage(t('fonts.fontsPage.nameIsUsedByThis', { name: name }))
       return
     }
-    if (!window.confirm(`Remove ${name} from the library?`)) return
+    if (!window.confirm(t('fonts.fontsPage.removeNameFromTheLibrary', { name: name }))) return
     setBusy(true)
     setMessage(undefined)
     const result = await window.simcore.removeFontFace({ id }).catch(() => undefined)
     setBusy(false)
-    if (!result) return setMessage('The face could not be removed.')
-    setMessage(result.ok ? `${name} removed from the library.` : result.error.message)
+    if (!result) return setMessage(t('fonts.fontsPage.theFaceCouldNotBe'))
+    setMessage(result.ok ? t('fonts.fontsPage.nameRemovedFromTheLibrary', { name: name }) : result.error.message)
   }
 
   const clearBoard = async (): Promise<void> => {
-    if (!window.confirm('Erase the font package installed on the board?')) return
+    if (!window.confirm(t('fonts.fontsPage.eraseTheFontPackageInstalled'))) return
     setBusy(true)
     setMessage(undefined)
     const result = await window.simcore.clearFontAssets().catch(() => undefined)
     setBusy(false)
-    if (!result) return setMessage('The board could not be reached.')
+    if (!result) return setMessage(t('fonts.fontsPage.theBoardCouldNotBe'))
     setMessage(
       result.ok
-        ? 'Board font package erased. Restart the board, then save to reinstall.'
+        ? t('fonts.fontsPage.boardFontPackageErasedRestart')
         : result.error.message
     )
   }
 
   return (
     <PageShell
-      title="Fonts"
-      description={`${footprint.families} of ${MAXIMUM_FONT_FAMILIES} families · ${kilobytes(footprint.bytes)} of 2 MiB. A size never needs an upload — the board rasterizes every size from the installed face.`}
+      title={t('fonts.fontsPage.fonts')}
+      description={t('fonts.fontsPage.familiesOfMaximumFontFamilies', { families: footprint.families, mAXIMUM_FONT_FAMILIES: MAXIMUM_FONT_FAMILIES, bytes: kilobytes(footprint.bytes) })}
       actions={
         <>
           <Button variant="outline" disabled={busy} onClick={() => void importFace()}>
-            Import font…
-          </Button>
+            {t('fonts.fontsPage.importFont')}</Button>
           <Button
             className="text-red-400 hover:text-red-300"
             variant="outline"
             disabled={busy || !session?.fontAssets?.storageAvailable}
-            title="Erase the package installed on the connected board"
+            title={t('fonts.fontsPage.eraseThePackageInstalledOn')}
             onClick={() => void clearBoard()}
           >
-            Erase on board
-          </Button>
+            {t('fonts.fontsPage.eraseOnBoard')}</Button>
         </>
       }
     >
@@ -112,14 +111,12 @@ export function FontsPage(): React.JSX.Element {
       ) : null}
 
       <PageSection
-        title="Used by this dashboard"
-        description="Fonts install themselves when you save to the board."
+        title={t('fonts.fontsPage.usedByThisDashboard')}
+        description={t('fonts.fontsPage.fontsInstallThemselvesWhenYou')}
       >
         {used.length === 0 ? (
-          <EmptyState icon={<Type aria-hidden="true" className="size-6" />} title="No fonts named">
-            Every text widget carries a family and a size. Pick one in the inspector and it appears
-            here.
-          </EmptyState>
+          <EmptyState icon={<Type aria-hidden="true" className="size-6" />} title={t('fonts.fontsPage.noFontsNamed')}>
+            {t('fonts.fontsPage.everyTextWidgetCarriesA')}</EmptyState>
         ) : (
           <ul className="grid gap-1 sm:grid-cols-2">
             {used.map((family) => {
@@ -149,14 +146,12 @@ export function FontsPage(): React.JSX.Element {
                   </span>
                   {!entry ? (
                     <Badge variant="outline" className="border-amber-500 text-amber-500">
-                      Not in library
-                    </Badge>
+                      {t('fonts.fontsPage.notInLibrary')}</Badge>
                   ) : installed.includes(family) ? (
                     <Badge variant="outline" className="border-emerald-600 text-emerald-500">
-                      On board
-                    </Badge>
+                      {t('fonts.fontsPage.onBoard')}</Badge>
                   ) : (
-                    <Badge variant="outline">Installs on save</Badge>
+                    <Badge variant="outline">{t('fonts.fontsPage.installsOnSave')}</Badge>
                   )}
                 </li>
               )
@@ -166,27 +161,23 @@ export function FontsPage(): React.JSX.Element {
 
         {unresolved.length > 0 ? (
           <p className="mt-3 text-amber-400">
-            {unresolved.length === 1 ? 'One family is' : `${unresolved.length} families are`} not in
-            the library. Import the face, or pick another font in the inspector — saving stops until
-            every family resolves.
+            {t('fonts.fontsPage.unresolvedFamilies', { count: unresolved.length })}
           </p>
         ) : null}
         {unreadable > 0 ? (
           <p className="mt-2 text-amber-400">
-            {unreadable} library {unreadable === 1 ? 'entry has' : 'entries have'} lost their face
-            file.
+            {t('fonts.fontsPage.unreadableEntries', { count: unreadable })}
           </p>
         ) : null}
       </PageSection>
 
       <PageSection
-        title="Library"
-        description="Faces this application can install. A weight is its own entry, because the board holds one face per family."
+        title={t('fonts.fontPicker.library')}
+        description={t('fonts.fontsPage.facesThisApplicationCanInstall')}
       >
         {entries.length === 0 ? (
-          <EmptyState title="The library is empty">
-            Import a TTF or OTF file, or add one from Google Fonts below.
-          </EmptyState>
+          <EmptyState title={t('fonts.fontsPage.theLibraryIsEmpty')}>
+            {t('fonts.fontsPage.importATtfOrOtf')}</EmptyState>
         ) : (
           <ul className="grid gap-1 sm:grid-cols-2">
             {entries.map((entry) => {
@@ -218,10 +209,10 @@ export function FontsPage(): React.JSX.Element {
                   </span>
                 </span>
                 {entry.origin === 'bundled' ? (
-                  <Badge variant="outline">Bundled</Badge>
+                  <Badge variant="outline">{t('fonts.fontsPage.bundled')}</Badge>
                 ) : (
                   <Button
-                    aria-label={`Remove ${entry.name}`}
+                    aria-label={t('fonts.fontsPage.removeName', { name: entry.name })}
                     className="flex-none px-2 text-red-400 hover:text-red-300"
                     variant="outline"
                     disabled={busy}

@@ -3,6 +3,7 @@ import type {
   DeviceErrorCode,
   DeviceResult
 } from '../../shared/device'
+import { t } from '@shared/ui-text'
 
 export class DeviceServiceError extends Error {
   constructor(
@@ -33,17 +34,17 @@ export function toDeviceError(error: unknown): DeviceError {
     return {
       code: 'port_busy',
       message:
-        'The serial port is busy. Close SimHub, a serial monitor, or the other SimCore app.'
+        t('device.deviceErrors.theSerialPortIsBusy')
     }
   }
   if (normalized.includes('permission denied') || normalized.includes('access denied')) {
     return {
       code: 'permission_denied',
-      message: 'Permission to open the serial port was denied.'
+      message: t('device.deviceErrors.permissionToOpenTheSerial')
     }
   }
   if (normalized.includes('no such file') || normalized.includes('cannot find')) {
-    return { code: 'port_missing', message: 'The serial port is no longer available.' }
+    return { code: 'port_missing', message: t('device.deviceErrors.theSerialPortIsNo') }
   }
   return { code: 'serial_error', message }
 }

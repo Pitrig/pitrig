@@ -6,6 +6,7 @@ import { Pipette } from 'lucide-react'
 import type { RgbColor } from '@shared/configuration-schema'
 import { dashboardPalette } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
+import { t } from '@shared/ui-text'
 
 interface EyeDropperResult {
   sRGBHex: string
@@ -87,7 +88,7 @@ export function ColorPicker({
       <button
         ref={trigger}
         type="button"
-        aria-label={`${label} picker`}
+        aria-label={t('inspector.colorPicker.labelPicker', { label: label })}
         aria-expanded={open}
         title={value}
         className="size-7 flex-none rounded border bg-background p-0.5"
@@ -107,7 +108,7 @@ export function ColorPicker({
             <div
               ref={popover}
               role="dialog"
-              aria-label={`${label} picker`}
+              aria-label={t('inspector.colorPicker.labelPicker', { label: label })}
               className="fixed z-50 overflow-hidden rounded-md border bg-background text-xs shadow-lg"
               style={{ left: anchor.left, top: anchor.top, bottom: anchor.bottom, width: WIDTH_PX }}
             >
@@ -121,8 +122,8 @@ export function ColorPicker({
                   {window.EyeDropper ? (
                     <button
                       type="button"
-                      aria-label="Pick a colour from the screen"
-                      title="Pick a colour from the screen"
+                      aria-label={t('inspector.colorPicker.pickAColourFromThe')}
+                      title={t('inspector.colorPicker.pickAColourFromThe')}
                       className="flex-none rounded p-1 text-muted-foreground hover:text-foreground"
                       onClick={() => {
                         const dropper = window.EyeDropper
@@ -198,8 +199,8 @@ function DashboardPalette({
   if (palette.length === 0) return null
   return (
     <div className="space-y-1 border-t pt-2">
-      <span className="block text-[10px] text-muted-foreground">On this dashboard</span>
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Colors already on the dashboard">
+      <span className="block text-[10px] text-muted-foreground">{t('inspector.colorPicker.onThisDashboard')}</span>
+      <div className="flex flex-wrap gap-1" role="group" aria-label={t('inspector.colorPicker.colorsAlreadyOnTheDashboard')}>
         {palette.map((color) => (
           <button
             key={color}

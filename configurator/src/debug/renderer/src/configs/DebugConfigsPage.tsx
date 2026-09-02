@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
+import { t } from '@shared/ui-text'
 
 import { Button } from '@/components/ui/button'
 import { PageShell } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
 import { writeEventLog } from '@/lib/event-log'
-import { CONFIGURATION_DOCUMENT_LABELS, documentJson } from '@shared/configuration-documents'
+import { documentJson } from '@shared/configuration-documents'
 import {
   CONFIGURATION_DOCUMENT_IDS,
   type ConfigurationDocumentId
@@ -81,7 +82,7 @@ export function DebugConfigsPage(): React.JSX.Element {
               variant={id === document ? 'default' : 'outline'}
               onClick={() => selectDocument(id)}
             >
-              {CONFIGURATION_DOCUMENT_LABELS[id]}
+              {t(`documents.label.${id}`)}
             </Button>
           ))}
           <span className="ml-auto flex items-center gap-2">

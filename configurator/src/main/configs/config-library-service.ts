@@ -19,6 +19,7 @@ import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from '../../shared/configuration-docu
 import type { DeviceConfiguration } from '../../shared/device'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import type { RecentConfigurations } from './recent-configurations'
+import { t } from '@shared/ui-text'
 
 const FILE_EXTENSION = '.json'
 
@@ -36,7 +37,7 @@ export class ConfigLibraryService {
       fileNames = await readdir(this.directory)
     } catch (error) {
       if (isMissing(error)) return { ok: true, value: { saved: [], recent, unreadable: 0 } }
-      return failure('read_failed', messageOf(error, 'Failed to read the configuration folder.'))
+      return failure('read_failed', messageOf(error, t('configs.configLibraryService.failedToReadTheConfiguration')))
     }
 
     const saved: SavedConfigurationSummary[] = []
@@ -62,10 +63,10 @@ export class ConfigLibraryService {
     try {
       return { ok: true, value: { name: id, configuration: await this.readSaved(id) } }
     } catch (error) {
-      if (isMissing(error)) return failure('not_found', `No saved configuration named "${id}".`)
+      if (isMissing(error)) return failure('not_found', t('configs.configLibraryService.noSavedConfigurationNamedId', { id: id }))
       return failure(
         'invalid_configuration',
-        messageOf(error, 'The saved configuration is unreadable.')
+        messageOf(error, t('configs.configLibraryService.theSavedConfigurationIsUnreadable'))
       )
     }
   }
@@ -77,12 +78,12 @@ export class ConfigLibraryService {
     if (name.length === 0 || name.length > MAXIMUM_CONFIGURATION_NAME) {
       return failure(
         'invalid_configuration',
-        `A configuration name is 1 to ${MAXIMUM_CONFIGURATION_NAME} characters.`
+        t('configs.configLibraryService.aConfigurationNameIs1', { mAXIMUM_CONFIGURATION_NAME: MAXIMUM_CONFIGURATION_NAME })
       )
     }
     const id = configurationIdFor(name)
     if (!id) {
-      return failure('invalid_configuration', 'A name needs at least one letter or digit.')
+      return failure('invalid_configuration', t('templates.saveToTemplates.aNameNeedsAtLeast'))
     }
 
     let content: string
@@ -91,7 +92,7 @@ export class ConfigLibraryService {
     } catch (error) {
       return failure(
         'invalid_configuration',
-        messageOf(error, 'The draft cannot be saved to the library.')
+        messageOf(error, t('configs.configLibraryService.theDraftCannotBeSaved'))
       )
     }
 
@@ -101,13 +102,13 @@ export class ConfigLibraryService {
       if (!existing.includes(id) && existing.length >= MAXIMUM_SAVED_CONFIGURATIONS) {
         return failure(
           'limit_reached',
-          `The library holds at most ${MAXIMUM_SAVED_CONFIGURATIONS} configurations.`
+          t('configs.configLibraryService.theLibraryHoldsAtMost', { mAXIMUM_SAVED_CONFIGURATIONS: MAXIMUM_SAVED_CONFIGURATIONS })
         )
       }
       await writeFile(this.pathFor(id), content, 'utf8')
       return { ok: true, value: await this.summaryOf(id) }
     } catch (error) {
-      return failure('write_failed', messageOf(error, 'Failed to write the configuration.'))
+      return failure('write_failed', messageOf(error, t('configs.configLibraryService.failedToWriteTheConfiguration')))
     }
   }
 
@@ -116,18 +117,18 @@ export class ConfigLibraryService {
       await rm(this.pathFor(id))
       return { ok: true, value: undefined }
     } catch (error) {
-      if (isMissing(error)) return failure('not_found', `No saved configuration named "${id}".`)
-      return failure('write_failed', messageOf(error, 'Failed to delete the configuration.'))
+      if (isMissing(error)) return failure('not_found', t('configs.configLibraryService.noSavedConfigurationNamedId', { id: id }))
+      return failure('write_failed', messageOf(error, t('configs.configLibraryService.failedToDeleteTheConfiguration')))
     }
   }
 
   async readRecent(path: string): Promise<ConfigLibraryResult<RecentConfigurationValue>> {
     const listed = (await this.recent.list()).some((entry) => entry.path === path)
-    if (!listed) return failure('not_found', 'That file is not in the recent list any more.')
+    if (!listed) return failure('not_found', t('configs.configLibraryService.thatFileIsNotIn'))
     try {
       const metadata = await stat(path)
       if (!metadata.isFile() || metadata.size > MAXIMUM_CONFIGURATION_TEXT_SIZE) {
-        return failure('invalid_configuration', 'That file is not a configuration document.')
+        return failure('invalid_configuration', t('configs.configLibraryService.thatFileIsNotA'))
       }
       return {
         ok: true,
@@ -137,8 +138,8 @@ export class ConfigLibraryService {
         }
       }
     } catch (error) {
-      if (isMissing(error)) return failure('not_found', 'That file is no longer where it was.')
-      return failure('invalid_configuration', messageOf(error, 'The file is unreadable.'))
+      if (isMissing(error)) return failure('not_found', t('configs.configLibraryService.thatFileIsNoLonger'))
+      return failure('invalid_configuration', messageOf(error, t('configs.configLibraryService.theFileIsUnreadable')))
     }
   }
 

@@ -1,6 +1,7 @@
 import { dialog, type BrowserWindow, type OpenDialogOptions } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { basename, extname } from 'node:path'
+import { t } from '@shared/ui-text'
 
 export interface ChosenFile {
   id: string
@@ -42,8 +43,8 @@ export async function chooseFile(
 }
 
 export const FONT_FILE_CHOICE: FileChoice = {
-  title: 'Select a font face',
-  buttonLabel: 'Select',
-  filters: [{ name: 'Fonts', extensions: ['ttf', 'otf'] }],
+  title: t('assets.chooseFile.fontTitle'),
+  buttonLabel: t('common.select'),
+  filters: [{ name: t('assets.chooseFile.fontFilter'), extensions: ['ttf', 'otf'] }],
   extensions: ['.ttf', '.otf']
 }

@@ -4,6 +4,7 @@ import { ICON_FAMILY, ICON_GLYPHS, ICON_GROUPS, textFits } from '@shared/icon-gl
 import { previewFontFamily, useFontFaceStore } from '@/features/font-library/font-face-store'
 import { TextInput } from './fields'
 import { PropertyRow, type PropertyMeta } from './PropertyRow'
+import { t } from '@shared/ui-text'
 
 function IconGrid({ onPick }: { onPick: (glyph: string) => void }): React.JSX.Element {
   const loaded = useFontFaceStore((state) => state.loaded[ICON_FAMILY])
@@ -22,7 +23,7 @@ function IconGrid({ onPick }: { onPick: (glyph: string) => void }): React.JSX.El
                 key={icon.name}
                 type="button"
                 title={icon.name}
-                aria-label={`Insert the ${icon.name} icon`}
+                aria-label={t('inspector.iconPicker.insertTheNameIcon', { name: icon.name })}
                 className="flex size-6 items-center justify-center rounded border text-[9px] text-foreground hover:bg-accent"
                 style={loaded ? { fontFamily: previewFontFamily(ICON_FAMILY), fontSize: 15 } : undefined}
                 onClick={() => onPick(icon.glyph)}
@@ -34,8 +35,7 @@ function IconGrid({ onPick }: { onPick: (glyph: string) => void }): React.JSX.El
         </div>
       ))}
       <p className="pt-1 text-[10px] text-muted-foreground">
-        An icon is a glyph of the Material Icons family — set that family on the text it lands in.
-      </p>
+        {t('inspector.iconPicker.anIconIsAGlyph')}</p>
     </div>
   )
 }
@@ -57,8 +57,8 @@ export function IconTextInput({
       <TextInput value={value} onChange={onChange} placeholder={placeholder} />
       <button
         type="button"
-        aria-label="Insert an icon"
-        title="Insert an icon glyph"
+        aria-label={t('inspector.iconPicker.insertAnIcon')}
+        title={t('inspector.iconPicker.insertAnIconGlyph')}
         className="flex size-5 flex-none items-center justify-center rounded border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
         onClick={() => setOpen(!open)}
       >

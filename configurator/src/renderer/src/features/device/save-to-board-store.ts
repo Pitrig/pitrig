@@ -6,6 +6,7 @@ import type { DeviceConfiguration } from '@shared/device'
 import { writeEventLog } from '@/lib/event-log'
 import { operationErrorMessage } from './bridge-errors'
 import { formatConfiguration, useDeviceStore } from './device-store'
+import { t } from '@shared/ui-text'
 
 interface SaveToBoardStore {
   running: boolean
@@ -26,7 +27,7 @@ export async function saveDraftToBoard(
   const device = useDeviceStore.getState()
   const draft = device.draft
   if (!draft) {
-    device.setSaveFeedback({ kind: 'error', message: 'There is no configuration to save.' })
+    device.setSaveFeedback({ kind: 'error', message: t('dashboard.configurationActions.thereIsNoConfigurationTo') })
     return
   }
   const json = formatConfiguration(draft)
@@ -76,24 +77,14 @@ function describeSave(value: {
   applyFailed?: string
 }): string {
   if (value.reconnectFailed) {
-    return 'Saved, but the board did not come back on its port. Reconnect it by hand.'
+    return t('device.saveToBoardStore.savedButTheBoardDid')
   }
   if (value.applyFailed) {
-    return `Saved. The board keeps showing the previous dashboard until it restarts: ${value.applyFailed}`
+    return t('device.saveToBoardStore.savedTheBoardKeepsShowing', { applyFailed: value.applyFailed })
   }
   if (value.fontsUploaded) {
-    return 'Fonts installed and configuration saved. The board restarted and is running the new dashboard.'
+    return t('device.saveToBoardStore.fontsInstalledAndConfigurationSaved')
   }
-  return 'Saved. The board is running the new dashboard — no restart needed.'
+  return t('device.saveToBoardStore.savedTheBoardIsRunning')
 }
 
-export const SAVE_STAGE_LABELS: Record<SaveProgress['stage'], string> = {
-  preparing: 'Checking fonts',
-  building: 'Building the font package',
-  uploading: 'Installing fonts',
-  saving: 'Saving the configuration',
-  applying: 'Applying to the board',
-  rebooting: 'Restarting the board',
-  reconnecting: 'Reconnecting',
-  completed: 'Saved'
-}

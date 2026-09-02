@@ -19,11 +19,12 @@ import {
   type WidgetTemplateDocument,
   type WidgetTemplateSummary
 } from '../../shared/templates'
+import { t } from '@shared/ui-text'
 
 export function parseTemplateDocument(value: unknown): DashboardTemplateDocument {
   const record = envelopeOf(value, TEMPLATE_FORMAT, 'a SimCore dashboard template')
   if (typeof record.configuration !== 'object' || record.configuration === null) {
-    throw new Error('The template carries no configuration.')
+    throw new Error(t('templates.templateDocuments.theTemplateCarriesNoConfiguration'))
   }
   return {
     format: TEMPLATE_FORMAT,
@@ -40,29 +41,29 @@ function envelopeOf(
   described: string
 ): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    throw new Error('A template file holds a JSON object.')
+    throw new Error(t('templates.templateDocuments.aTemplateFileHoldsA'))
   }
   const record = value as Record<string, unknown>
   if (record.format !== format) {
-    throw new Error(`This file is not ${described}.`)
+    throw new Error(t('templates.templateDocuments.thisFileIsNotDescribed', { described: described }))
   }
   const version = record.format_version
   if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
-    throw new Error('The template declares no format version.')
+    throw new Error(t('templates.templateDocuments.theTemplateDeclaresNoFormat'))
   }
   if (version > TEMPLATE_FORMAT_VERSION) {
-    throw new Error(`The template was written by a newer build (format ${version}).`)
+    throw new Error(t('templates.templateDocuments.theTemplateWasWrittenBy', { version: version }))
   }
   const name = record.name
   if (typeof name !== 'string' || name.trim().length === 0 || name.length > MAXIMUM_TEMPLATE_NAME) {
-    throw new Error(`A template name is 1 to ${MAXIMUM_TEMPLATE_NAME} characters.`)
+    throw new Error(t('templates.templateDocuments.aTemplateNameIs1', { mAXIMUM_TEMPLATE_NAME: MAXIMUM_TEMPLATE_NAME }))
   }
   const description = record.description
   if (
     description !== undefined &&
     (typeof description !== 'string' || description.length > MAXIMUM_TEMPLATE_DESCRIPTION)
   ) {
-    throw new Error(`A template description is at most ${MAXIMUM_TEMPLATE_DESCRIPTION} characters.`)
+    throw new Error(t('templates.templateDocuments.aTemplateDescriptionIsAt', { mAXIMUM_TEMPLATE_DESCRIPTION: MAXIMUM_TEMPLATE_DESCRIPTION }))
   }
   return record
 }
@@ -88,10 +89,10 @@ export function parseWidgetTemplateDocument(value: unknown): WidgetTemplateDocum
   const record = envelopeOf(value, WIDGET_TEMPLATE_FORMAT, 'a SimCore widget template')
   const board = record.board
   if (typeof board !== 'string' || !SIMCORE_BOARD_IDS.includes(board as SimCoreBoardId)) {
-    throw new Error('The widget template names no known board.')
+    throw new Error(t('templates.templateDocuments.theWidgetTemplateNamesNo'))
   }
   if (typeof record.widget !== 'object' || record.widget === null) {
-    throw new Error('The template carries no widget.')
+    throw new Error(t('templates.templateDocuments.theTemplateCarriesNoWidget'))
   }
   return {
     format: WIDGET_TEMPLATE_FORMAT,
@@ -105,7 +106,7 @@ export function parseWidgetTemplateDocument(value: unknown): WidgetTemplateDocum
 
 export function widgetSummary(id: string, document: TemplateDocument): WidgetTemplateSummary {
   if (document.format !== WIDGET_TEMPLATE_FORMAT) {
-    throw new Error('That template is not a widget.')
+    throw new Error(t('templates.templateDocuments.thatTemplateIsNotA'))
   }
   const placement = document.widget.placement
   return {

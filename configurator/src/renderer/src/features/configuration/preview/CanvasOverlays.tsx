@@ -3,6 +3,7 @@ import React from 'react'
 import type { DisplayDescriptor } from '@shared/device'
 import type { Placement, ResizeMode } from './canvas-geometry'
 import type { GapLabel, SnapGuide } from './snapping'
+import { t } from '@shared/ui-text'
 
 const GUIDE_COLOR = '#F472B6'
 const SELECTION_COLOR = '#38BDF8'
@@ -177,7 +178,7 @@ export function SelectionFrame({
     ['se', placement.x + placement.width, placement.y + placement.height], ['s', placement.x + placement.width / 2, placement.y + placement.height],
     ['sw', placement.x, placement.y + placement.height], ['w', placement.x, placement.y + placement.height / 2]
   ]
-  return <g aria-label={group ? 'Selected widgets bounds' : 'Selected widget bounds'}>
+  return <g aria-label={group ? t('canvas.canvasOverlays.selectedWidgetsBounds') : t('canvas.canvasOverlays.selectedWidgetBounds')}>
     <rect {...placement} fill="none" stroke={SELECTION_COLOR} strokeWidth={2 / zoom} strokeDasharray={`${5 / zoom} ${3 / zoom}`} pointerEvents="none" />
     {points.map(([mode, cx, cy]) => (
       <rect

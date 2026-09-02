@@ -27,6 +27,7 @@ import {
   resetConfigurationDocument,
   saveConfiguration
 } from './simcore-protocol'
+import { t } from '@shared/ui-text'
 
 export async function readDeviceConfiguration(
   connection: ConnectionManager,
@@ -39,7 +40,7 @@ export async function readDeviceConfiguration(
       runner.operationTraffic(traffic)
     )
     if (connection.port !== port || connection.getState().session !== session) {
-      throw new DeviceServiceError('serial_error', 'The connected device changed during read.')
+      throw new DeviceServiceError('serial_error', t('device.deviceConfigCommands.theConnectedDeviceChangedDuring'))
     }
     connection.setState({ ...connection.getState(), session: { ...session, configuration } })
     return success(connection.getState())

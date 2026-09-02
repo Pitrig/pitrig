@@ -1,4 +1,5 @@
 import { ICON_SPECIMEN } from './icon-face'
+import { t } from '@shared/ui-text'
 
 export function FaceSpecimen({
   cssFamily,
@@ -32,7 +33,7 @@ export function FaceSpecimen({
         <span
           className={`shrink-0 text-[0.6rem] ${tabularDigits ? 'text-emerald-500' : 'text-amber-500'}`}
         >
-          {tabularDigits ? 'fixed-width' : 'varying-width'}
+          {tabularDigits ? t('fonts.faceSpecimen.fixedWidth') : t('fonts.faceSpecimen.varyingWidth')}
         </span>
       )}
     </span>

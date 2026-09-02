@@ -14,6 +14,7 @@ import {
   imageAssetBytes,
   type ImageColorFormat
 } from '../../shared/image-assets'
+import { t } from '@shared/ui-text'
 
 const HEADER_SIZE = 32
 const MANIFEST_ENTRY_SIZE = 64
@@ -57,11 +58,11 @@ export interface ConvertedImage {
 
 export function convertImage(source: ImageSource): ConvertedImage {
   if (source.paths.length === 0) {
-    throw new Error(`"${source.name}" has no image file.`)
+    throw new Error(t('images.imagePackage.nameHasNoImageFile', { name: source.name }))
   }
   if (source.paths.length > MAXIMUM_SPRITE_FRAMES) {
     throw new Error(
-      `"${source.name}" has ${source.paths.length} frames; an image holds at most ${MAXIMUM_SPRITE_FRAMES}.`
+      t('images.imagePackage.nameHasLengthFramesAn', { name: source.name, length: source.paths.length, mAXIMUM_SPRITE_FRAMES: MAXIMUM_SPRITE_FRAMES })
     )
   }
   const frames = source.paths.map((path) => convertFrame(source, path))
@@ -79,7 +80,7 @@ export function convertImage(source: ImageSource): ConvertedImage {
 function convertFrame(source: ImageSource, path: string): Buffer {
   const decoded = nativeImage.createFromPath(path)
   if (decoded.isEmpty()) {
-    throw new Error(`"${path}" is not a readable image.`)
+    throw new Error(t('images.imagePackage.pathIsNotAReadable', { path: path }))
   }
   const resized =
     decoded.getSize().width === source.width && decoded.getSize().height === source.height
@@ -88,7 +89,7 @@ function convertFrame(source: ImageSource, path: string): Buffer {
   const { width, height } = resized.getSize()
   const bgra = resized.toBitmap()
   if (bgra.byteLength < width * height * 4) {
-    throw new Error(`"${source.name}" decoded to an unexpected size.`)
+    throw new Error(t('images.imagePackage.nameDecodedToAnUnexpected', { name: source.name }))
   }
 
   const pixels = width * height
@@ -112,7 +113,7 @@ function convertFrame(source: ImageSource, path: string): Buffer {
     }
   }
   if (width !== source.width || height !== source.height) {
-    throw new Error(`"${source.name}" could not be resized to ${source.width} × ${source.height}.`)
+    throw new Error(t('images.imagePackage.nameCouldNotBeResized', { name: source.name, width: source.width, height: source.height }))
   }
   return bytes
 }
@@ -145,7 +146,7 @@ export function buildImagePackage(images: readonly ConvertedImage[]): Buffer {
   const packageSize = Math.max(offset, ASSET_DATA_OFFSET)
   if (packageSize > MAXIMUM_IMAGE_PACKAGE_SIZE) {
     throw new Error(
-      `The image package is ${packageSize} bytes; the device stores at most ${MAXIMUM_IMAGE_PACKAGE_SIZE}.`
+      t('images.imagePackage.theImagePackageIsPackagesize', { packageSize: packageSize, mAXIMUM_IMAGE_PACKAGE_SIZE: MAXIMUM_IMAGE_PACKAGE_SIZE })
     )
   }
   const buffer = Buffer.alloc(packageSize)
@@ -167,23 +168,23 @@ export function buildImagePackage(images: readonly ConvertedImage[]): Buffer {
 
 function validateImages(images: readonly ConvertedImage[]): void {
   if (images.length === 0) {
-    throw new Error('An image package needs at least one image.')
+    throw new Error(t('images.imagePackage.anImagePackageNeedsAt'))
   }
   if (images.length > MAXIMUM_IMAGES) {
-    throw new Error(`The device stores at most ${MAXIMUM_IMAGES} images.`)
+    throw new Error(t('images.imageAssetService.theDeviceStoresAtMost', { mAXIMUM_IMAGES: MAXIMUM_IMAGES }))
   }
   if (HEADER_SIZE + images.length * MANIFEST_ENTRY_SIZE > ASSET_DATA_OFFSET) {
-    throw new Error('The image manifest does not fit before the pixel data.')
+    throw new Error(t('images.imagePackage.theImageManifestDoesNot'))
   }
   const names = new Set<string>()
   for (const image of images) {
     if (!IMAGE_ID_PATTERN.test(image.name)) {
       throw new Error(
-        `"${image.name}" is not a valid image name: lower case letters, digits, dash and underscore, up to 31 characters.`
+        t('images.imagePackage.nameIsNotAValid', { name: image.name })
       )
     }
     if (names.has(image.name)) {
-      throw new Error(`Image "${image.name}" is listed twice.`)
+      throw new Error(t('images.imageAssetService.imageNameIsListedTwice', { name: image.name }))
     }
     names.add(image.name)
     if (
@@ -193,18 +194,18 @@ function validateImages(images: readonly ConvertedImage[]): void {
       image.height > MAXIMUM_IMAGE_DIMENSION
     ) {
       throw new Error(
-        `"${image.name}" is ${image.width}×${image.height}; the device accepts up to ${MAXIMUM_IMAGE_DIMENSION} on each side.`
+        t('images.imagePackage.nameIsWidthHeightThe', { name: image.name, width: image.width, height: image.height, mAXIMUM_IMAGE_DIMENSION: MAXIMUM_IMAGE_DIMENSION })
       )
     }
     if (image.frameCount < 1 || image.frameCount > MAXIMUM_SPRITE_FRAMES) {
       throw new Error(
-        `"${image.name}" has ${image.frameCount} frames; the device accepts 1 to ${MAXIMUM_SPRITE_FRAMES}.`
+        t('images.imagePackage.nameHasFramecountFramesThe', { name: image.name, frameCount: image.frameCount, mAXIMUM_SPRITE_FRAMES: MAXIMUM_SPRITE_FRAMES })
       )
     }
     const expected = imageAssetBytes(image.width, image.height, image.format) * image.frameCount
     if (image.bytes.byteLength !== expected) {
       throw new Error(
-        `"${image.name}" is ${image.bytes.byteLength} bytes; its geometry implies ${expected}.`
+        t('images.imagePackage.nameIsBytelengthBytesIts', { name: image.name, byteLength: image.bytes.byteLength, expected: expected })
       )
     }
   }

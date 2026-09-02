@@ -25,6 +25,7 @@ import { FirmwarePage } from '@/features/firmware-update/FirmwarePage'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
 import { ModulesPage } from '@/features/modules/ModulesPage'
 import { ProtocolPage } from '@/features/protocol/ProtocolPage'
+import { t } from '@shared/ui-text'
 
 export function App(): React.JSX.Element {
   const [deviceStatusText, setDeviceStatusText] = useState<string>()
@@ -57,7 +58,7 @@ export function App(): React.JSX.Element {
   return (
     <div className="grid h-screen overflow-hidden grid-rows-[3.5rem_minmax(0,1fr)_2.5rem] bg-background text-foreground">
       <header className="flex items-center justify-between border-b px-5">
-        <img alt="SimCore" src={wordmark} className="h-6 w-auto flex-none" />
+        <img alt={t('app.app.simCore')} src={wordmark} className="h-6 w-auto flex-none" />
         <DeviceConnection onDetailedStatusChange={setDeviceStatusText} />
       </header>
 
@@ -74,7 +75,7 @@ export function App(): React.JSX.Element {
       <footer className="flex min-w-0 items-center justify-between gap-4 border-t px-5 text-xs text-muted-foreground">
         <span className="min-w-0 truncate">{deviceStatusText ?? 'Application ready'}</span>
         <span className="flex-none">
-          {appInfo ? `${appInfo.name} ${appInfo.version}` : 'Loading application info…'}
+          {appInfo ? t('app.app.nameVersion', { name: appInfo.name, version: appInfo.version }) : t('app.app.loadingApplicationInfo')}
         </span>
       </footer>
     </div>

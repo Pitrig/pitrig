@@ -1,28 +1,18 @@
 import { Plug } from 'lucide-react'
+import { t } from '@shared/ui-text'
 
 import { EmptyState, PageSection, PageShell, ReadOnlyField } from '@/app/workspace/PageShell'
 import { CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
-import { CONFIGURATION_DOCUMENT_LABELS } from '@shared/configuration-documents'
-import type {
-  ConfigurationDocumentOutcome,
-  ConfigurationDocumentState
-} from '@shared/device'
+import type { ConfigurationDocumentState } from '@shared/device'
 import { useAppInfo } from './app-info'
 import { describeBootFailures, describeLastBoot } from './device-health'
 import { useDeviceStore } from './device-store'
 
-const DOCUMENT_STATE_LABELS: Record<ConfigurationDocumentOutcome, string> = {
-  absent: 'Factory defaults',
-  malformed_record: 'Stored record is malformed; ignored',
-  unsupported_schema: 'Stored for another schema version; ignored',
-  corrupt_payload: 'Stored record failed its checksum; ignored',
-  rejected: 'Stored record was refused; ignored',
-  valid: 'Stored'
-}
-
 function describeDocumentState(state: ConfigurationDocumentState): string {
-  const label = DOCUMENT_STATE_LABELS[state.outcome]
-  return state.outcome === 'valid' ? `${label} · generation ${state.generation}` : label
+  const label = t(`device.documentState.${state.outcome}`)
+  return state.outcome === 'valid'
+    ? t('device.documentState.withGeneration', { label, generation: state.generation })
+    : label
 }
 
 export function InfoPage(): React.JSX.Element {
@@ -33,60 +23,66 @@ export function InfoPage(): React.JSX.Element {
   const appInfo = useAppInfo()
 
   return (
-    <PageShell title="Info" description="The connected board, the link, and this application.">
+    <PageShell title={t('device.infoPage.info')} description={t('device.infoPage.theConnectedBoardTheLink')}>
       <PageSection
-        title="Board"
+        title={t('device.infoPage.board')}
         description={
           session
-            ? 'Reported by the firmware itself. Nothing here is editable.'
-            : 'Connect a SimCore board to read its information.'
+            ? t('device.infoPage.reportedByTheFirmwareItself')
+            : t('device.infoPage.connectASimcoreBoardTo')
         }
       >
         {session ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <ReadOnlyField label="Board" value={session.info.boardId} />
+            <ReadOnlyField label={t('device.infoPage.board')} value={session.info.boardId} />
             <ReadOnlyField
-              label="Display"
+              label={t('device.infoPage.display')}
               value={
                 session.info.display
-                  ? `${session.info.display.width} × ${session.info.display.height}`
-                  : 'None — this board drives peripherals only'
+                  ? t('device.infoPage.displaySize', {
+                      width: session.info.display.width,
+                      height: session.info.display.height
+                    })
+                  : t('device.infoPage.noDisplay')
               }
             />
-            <ReadOnlyField label="Firmware" value={session.info.firmwareVersion} />
-            <ReadOnlyField label="Schema version" value={String(session.info.schemaVersion)} />
+            <ReadOnlyField label={t('device.infoPage.firmware')} value={session.info.firmwareVersion} />
+            <ReadOnlyField label={t('device.infoPage.schemaVersion')} value={String(session.info.schemaVersion)} />
             {CONFIGURATION_DOCUMENT_IDS.map((id) => (
               <ReadOnlyField
                 key={id}
-                label={`${CONFIGURATION_DOCUMENT_LABELS[id]} config`}
+                label={t('device.infoPage.idConfig', { id: t(`documents.label.${id}`) })}
                 value={describeDocumentState(session.info.documents[id])}
               />
             ))}
             <ReadOnlyField
-              label="Persistent storage"
-              value={session.info.storageAvailable ? 'Available' : 'Unavailable'}
+              label={t('device.infoPage.persistentStorage')}
+              value={session.info.storageAvailable ? t('device.infoPage.available') : t('device.infoPage.unavailable')}
             />
             <ReadOnlyField
-              label="Firmware slots"
+              label={t('device.infoPage.firmwareSlots')}
               value={
                 session.firmware
-                  ? `${session.firmware.running} running · installs into ${session.firmware.target}`
-                  : 'Single application partition'
+                  ? t('device.infoPage.firmwareSlotsValue', {
+                      running: session.firmware.running,
+                      target: session.firmware.target
+                    })
+                  : t('device.infoPage.singlePartition')
               }
             />
             {session.info.health ? (
               <>
                 <ReadOnlyField
-                  label="Startup"
+                  label={t('device.infoPage.startup')}
                   value={
                     session.info.health.safeMode
-                      ? 'Safe mode — serial link only'
-                      : 'Normal — everything composed'
+                      ? t('device.infoPage.safeMode')
+                      : t('device.infoPage.normalMode')
                   }
                 />
-                <ReadOnlyField label="Last boot" value={describeLastBoot(session.info.health)} />
+                <ReadOnlyField label={t('device.infoPage.lastBoot')} value={describeLastBoot(session.info.health)} />
                 <ReadOnlyField
-                  label="Recent failures"
+                  label={t('device.infoPage.recentFailures')}
                   value={describeBootFailures(session.info.health)}
                 />
               </>
@@ -95,32 +91,30 @@ export function InfoPage(): React.JSX.Element {
         ) : (
           <EmptyState
             icon={<Plug aria-hidden="true" className="size-6" />}
-            title="No board connected"
+            title={t('device.infoPage.noBoardConnected')}
           >
-            Pick a port at the top of the window, or leave it on Auto and press Connect — the
-            configurator walks the speeds a SimCore board answers on.
-          </EmptyState>
+            {t('device.infoPage.pickAPortAtThe')}</EmptyState>
         )}
       </PageSection>
 
-      <PageSection title="Connection" description="The serial link this window is using.">
+      <PageSection title={t('device.infoPage.connection')} description={t('device.infoPage.theSerialLinkThisWindow')}>
         <div className="grid gap-3 sm:grid-cols-2">
-          <ReadOnlyField label="Status" value={status} />
-          <ReadOnlyField label="Port" value={connection?.displayName ?? 'Not connected'} />
-          <ReadOnlyField label="Path" value={connection?.path ?? '—'} />
+          <ReadOnlyField label={t('device.infoPage.status')} value={status} />
+          <ReadOnlyField label={t('device.infoPage.port')} value={connection?.displayName ?? t('device.infoPage.notConnected')} />
+          <ReadOnlyField label={t('device.infoPage.path')} value={connection?.path ?? '—'} />
           <ReadOnlyField
-            label="Speed"
-            value={connection ? `${connection.baudRate} baud` : '—'}
+            label={t('device.infoPage.speed')}
+            value={connection ? t('device.infoPage.baudRate', { baudRate: connection.baudRate }) : '—'}
           />
         </div>
         {error ? <p className="mt-3 text-[11px] text-red-400">{error.message}</p> : null}
       </PageSection>
 
-      <PageSection title="Application" description="This build of the configurator.">
+      <PageSection title={t('device.infoPage.application')} description={t('device.infoPage.thisBuildOfTheConfigurator')}>
         <div className="grid gap-3 sm:grid-cols-2">
-          <ReadOnlyField label="Name" value={appInfo?.name ?? '—'} />
-          <ReadOnlyField label="Version" value={appInfo?.version ?? '—'} />
-          <ReadOnlyField label="Platform" value={appInfo?.platform ?? '—'} />
+          <ReadOnlyField label={t('device.infoPage.name')} value={appInfo?.name ?? '—'} />
+          <ReadOnlyField label={t('device.infoPage.version')} value={appInfo?.version ?? '—'} />
+          <ReadOnlyField label={t('device.infoPage.platform')} value={appInfo?.platform ?? '—'} />
         </div>
       </PageSection>
     </PageShell>

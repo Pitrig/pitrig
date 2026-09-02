@@ -1,14 +1,14 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { PropertyRow } from './PropertyRow'
 
 const MARGIN = 4
 const MINIMUM_POPUP_PX = 160
 const MAXIMUM_POPUP_PX = 256
 
-export function TelemetryBindingField({ value, onChange, onReset, label = 'Binding', hint = HINTS.data.binding }: { value: string; onChange: (value: string) => void; onReset?: () => void; label?: string; hint?: string }): React.JSX.Element {
+export function TelemetryBindingField({ value, onChange, onReset, label = 'Binding', hint = t('inspector.hints.data.binding') }: { value: string; onChange: (value: string) => void; onReset?: () => void; label?: string; hint?: string }): React.JSX.Element {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
@@ -79,7 +79,7 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
         aria-expanded={open}
         aria-controls="telemetry-binding-list"
         className="h-7 w-full rounded-md border bg-background px-2 text-foreground"
-        placeholder="Search telemetry fields"
+        placeholder={t('protocol.catalogSection.searchTelemetryFields')}
         value={value}
         onFocus={() => {
           setActive(0)
@@ -154,10 +154,10 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
         : null}
       {selected ? (
         <span className="block text-[11px] leading-4">
-          {selected.categoryLabel} · {selected.type} · {selected.unit} · {selected.rate} · ID {selected.wireId}
+          {t('inspector.telemetryBindingField.fieldSummary', { category: selected.categoryLabel, type: selected.type, unit: selected.unit, rate: selected.rate, wireId: selected.wireId })}
         </span>
       ) : value ? (
-        <span className="block text-[11px] leading-4 text-amber-400">Unknown telemetry binding</span>
+        <span className="block text-[11px] leading-4 text-amber-400">{t('inspector.telemetryBindingField.unknownTelemetryBinding')}</span>
       ) : null}
       </div>
     </PropertyRow>

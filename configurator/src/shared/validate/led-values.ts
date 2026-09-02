@@ -22,6 +22,7 @@ import {
   shapeOf
 } from '../led-render'
 import { findBoundError } from './ranges'
+import { t } from '../ui-text'
 
 const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
 
@@ -34,7 +35,7 @@ export function badEnum(
   if (value === undefined) return undefined
   return values.includes(value as string)
     ? undefined
-    : `${label} sets "${key}" to ${JSON.stringify(value)}; the device knows ${values.join(', ')}.`
+    : t('validation.ledValues.labelSetsKeyToValue', { label: label, key: key, value: JSON.stringify(value), join: values.join(', ') })
 }
 
 export function badList(
@@ -44,16 +45,16 @@ export function badList(
   what: string
 ): string | undefined {
   if (value === undefined) return undefined
-  if (!Array.isArray(value)) return `${label} must carry its ${what} as a list.`
+  if (!Array.isArray(value)) return t('validation.ledValues.labelMustCarryItsWhat', { label: label, what: what })
   if (value.length > capacity) {
-    return `${label} carries ${value.length} ${what}; the device holds ${capacity}.`
+    return t('validation.ledValues.labelCarriesLengthWhatThe', { label: label, length: value.length, what: what, capacity: capacity })
   }
   const stray = value.findIndex(
     (entry) => typeof entry !== 'object' || entry === null || Array.isArray(entry)
   )
   return stray < 0
     ? undefined
-    : `${label} carries ${JSON.stringify(value[stray])} among its ${what}, which is not one.`
+    : t('validation.ledValues.labelCarriesStrayAmongIts', { label: label, stray: JSON.stringify(value[stray]), what: what })
 }
 
 export function badColors(value: unknown, label: string): string | undefined {
@@ -84,7 +85,7 @@ function badNumber(value: unknown, label: string, key: string): string | undefin
   if (value === undefined) return undefined
   return Number.isFinite(value)
     ? undefined
-    : `${label} sets "${key}" to something that is not a number.`
+    : t('validation.ledValues.labelSetsKeyToSomething', { label: label, key: key })
 }
 
 function findContentError(
@@ -96,30 +97,30 @@ function findContentError(
     case 'gradient':
       return (effect.stops ?? []).length >= 2
         ? undefined
-        : `${label} is a gradient, which needs at least two colour stops.`
+        : t('validation.ledValues.labelIsAGradientWhich', { label: label })
     case 'steps':
       return (effect.steps ?? []).length >= 1
         ? undefined
-        : `${label} is a steps layer, which needs at least one step.`
+        : t('validation.ledValues.labelIsAStepsLayer', { label: label })
     case 'gauge':
       return (effect.stops ?? []).length !== 1
         ? undefined
-        : `${label} is a gauge with a single colour stop; give it none, or two or more.`
+        : t('validation.ledValues.labelIsAGaugeWith', { label: label })
     case 'sprite': {
       const sprite = (device.sprites ?? []).find((entry) => entry.id === effect.sprite)
       if (!sprite) {
-        return `${label} draws a sprite named ${JSON.stringify(effect.sprite ?? '')}, which this device does not carry.`
+        return t('validation.ledValues.labelDrawsASpriteNamed', { label: label, sprite: JSON.stringify(effect.sprite ?? '') })
       }
       const frames = sprite.frame_count ?? 1
       if ((effect.sprite_frame ?? 0) >= frames) {
-        return `${label} names frame ${effect.sprite_frame}, but the sprite holds ${frames}.`
+        return t('validation.ledValues.labelNamesFrameSpriteFrame', { label: label, sprite_frame: effect.sprite_frame ?? 0, frames: frames })
       }
       return undefined
     }
     case 'text':
       return (effect.text ?? '') !== '' || (effect.source?.binding ?? '') !== ''
         ? undefined
-        : `${label} is a text layer with neither text nor a source to render.`
+        : t('validation.ledValues.labelIsATextLayer', { label: label })
     default:
       return undefined
   }
@@ -133,29 +134,29 @@ function findPanelAreaError(
   const mask = effect.panel_mask ?? ''
   if (mask === '') return undefined
   const shape = shapeOf(device)
-  if (!shape) return `${label} names panel pixels, which only a matrix has.`
+  if (!shape) return t('validation.ledValues.labelNamesPanelPixelsWhich', { label: label })
   const drawn = drawnSize(shape)
   const expected = Math.ceil((drawn.width * drawn.height) / 4)
   if (mask.length !== expected) {
-    return `${label} carries ${mask.length} mask digits; a ${drawn.width} by ${drawn.height} panel needs ${expected}.`
+    return t('validation.ledValues.labelCarriesLengthMaskDigits', { label: label, length: mask.length, width: drawn.width, height: drawn.height, expected: expected })
   }
   let lit = false
   for (const digit of mask) {
     const value = Number.parseInt(digit, 16)
     if (!Number.isInteger(value)) {
-      return `${label} carries ${JSON.stringify(digit)} in its mask, which is not a hexadecimal digit.`
+      return t('validation.ledValues.labelCarriesDigitInIts', { label: label, digit: JSON.stringify(digit) })
     }
     lit = lit || value !== 0
   }
-  return lit ? undefined : `${label} selects no pixels at all.`
+  return lit ? undefined : t('validation.ledValues.labelSelectsNoPixelsAt', { label: label })
 }
 
 function findListError(effect: LedEffect, label: string): string | undefined {
   return (
-    badList(effect.stops, MAXIMUM_COLOR_STOPS, label, 'colour stops') ??
+    badList(effect.stops, MAXIMUM_COLOR_STOPS, label, t('validation.ledValues.colourStops')) ??
     badList(effect.steps, MAXIMUM_INDICATOR_SEGMENTS, label, 'steps') ??
     badList(effect.conditions, MAXIMUM_WIDGET_CONDITIONS, label, 'rules') ??
-    badList(effect.color_rules, MAXIMUM_LED_COLOR_RULES, label, 'colour rules')
+    badList(effect.color_rules, MAXIMUM_LED_COLOR_RULES, label, t('validation.ledValues.colourRules'))
   )
 }
 
@@ -203,9 +204,9 @@ function findModifierError(effect: LedEffect, label: string): string | undefined
   for (const source of [effect.source, effect.condition_source]) {
     const modifiers = source?.modifiers
     if (modifiers === undefined) continue
-    if (!Array.isArray(modifiers)) return `${label} must carry its source modifiers as a list.`
+    if (!Array.isArray(modifiers)) return t('validation.ledValues.labelMustCarryItsSource', { label: label })
     if (modifiers.length > 0) {
-      return `${label} carries a source modifier, which an LED layer cannot apply.`
+      return t('validation.ledValues.labelCarriesASourceModifier', { label: label })
     }
   }
   return undefined
@@ -236,22 +237,22 @@ export function findEffectError(
   if (panelError) return panelError
   const type = effect.type ?? 'solid'
   if (LED_EFFECT_DRAWS_PIXELS.has(type) && !isMatrix(device)) {
-    return `${label} is a ${type} layer, which needs a matrix rather than a strip.`
+    return t('validation.ledValues.labelIsATypeLayer', { label: label, type: type })
   }
   const modifierError = findModifierError(effect, label)
   if (modifierError) return modifierError
   const bound = (effect.source?.binding ?? '') !== ''
   if (bound && !LED_EFFECT_READS_VALUE.has(type)) {
-    return `${label} is a ${type} layer and reads no telemetry, so its source would sit unread.`
+    return t('validation.ledValues.labelIsATypeLayer2', { label: label, type: type })
   }
   if (!bound && LED_EFFECT_NEEDS_VALUE.has(type)) {
-    return `${label} is a ${type} layer and needs telemetry to map.`
+    return t('validation.ledValues.labelIsATypeLayer3', { label: label, type: type })
   }
   const gated = effect.gate === 'conditions'
   const coloured = (effect.color_rules ?? []).length > 0
   const watched = (effect.condition_source?.binding ?? '') !== ''
   if (watched !== (gated || coloured) || (gated && (effect.conditions ?? []).length === 0)) {
-    return `${label} needs a watched source for its gate and its colour rules, and none without them.`
+    return t('validation.ledValues.labelNeedsAWatchedSource', { label: label })
   }
   for (const [index, rule] of (effect.color_rules ?? []).entries()) {
     const ruleRange = findBoundError(

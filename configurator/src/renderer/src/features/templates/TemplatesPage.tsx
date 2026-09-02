@@ -8,6 +8,7 @@ import type { DashboardTemplateSummary, WidgetTemplateSummary } from '@shared/te
 import { useTemplatesStore } from './templates-store'
 import { DashboardSection } from './DashboardSection'
 import { WidgetSection } from './WidgetSection'
+import { t } from '@shared/ui-text'
 
 export function TemplatesPage(): React.JSX.Element {
   const library = useTemplatesStore((state) => state.library)
@@ -44,7 +45,7 @@ export function TemplatesPage(): React.JSX.Element {
   const remove = async (
     entry: DashboardTemplateSummary | WidgetTemplateSummary
   ): Promise<void> => {
-    if (!window.confirm(`Delete the saved ${entry.kind} "${entry.name}"?`)) return
+    if (!window.confirm(t('templates.templatesPage.deleteTheSavedKindName', { kind: entry.kind, name: entry.name }))) return
     setBusy(true)
     setError(undefined)
     setNotice(undefined)
@@ -54,7 +55,7 @@ export function TemplatesPage(): React.JSX.Element {
         setError(result.error.message)
         return
       }
-      setNotice(`"${entry.name}" deleted.`)
+      setNotice(t('templates.templatesPage.nameDeleted', { name: entry.name }))
       await refresh()
     } finally {
       setBusy(false)
@@ -72,7 +73,7 @@ export function TemplatesPage(): React.JSX.Element {
       <WidgetSection busy={busy} onDelete={(entry) => void remove(entry)} />
 
       {loading && !library ? (
-        <p className="text-xs text-muted-foreground">Reading the library…</p>
+        <p className="text-xs text-muted-foreground">{t('templates.templatesPage.readingTheLibrary')}</p>
       ) : null}
       {library && library.unreadable > 0 ? (
         <p className="text-[11px] text-amber-400">

@@ -14,6 +14,7 @@ import {
 import { dropOrder, type RowState } from './layer-row-state'
 import { RenameField } from './RenameField'
 import { SlotPages } from './SlotPages'
+import { t } from '@shared/ui-text'
 
 export function LayerList({
   widgets,
@@ -118,7 +119,7 @@ export function LayerList({
             ) : null}
             <span
               className="cursor-grab text-muted-foreground"
-              title="Drag to restack, or onto the middle of a container to move it inside"
+              title={t('shortcuts.dragToRestackOrOntoTheMiddleOfAContainerToMoveItInside')}
             >
               ⠿
             </span>
@@ -138,7 +139,7 @@ export function LayerList({
               <button
                 type="button"
                 className={`min-w-0 flex-1 truncate text-left ${hidden[id] ? 'text-muted-foreground line-through' : ''}`}
-                title={`${widget.type} · double-click to rename`}
+                title={t('layers.layerList.typeDoubleClickToRename', { type: widget.type })}
                 onClick={(event) =>
                   event.shiftKey ? extendSelection(id) : select({ type: 'widget', id })
                 }
@@ -152,7 +153,7 @@ export function LayerList({
               <button
                 type="button"
                 className="flex-none px-1 text-muted-foreground hover:text-foreground"
-                title="Unwrap, putting the widgets back beside this one"
+                title={t('layers.layerList.unwrapPuttingTheWidgetsBack')}
                 onClick={() => {
                   const released = unwrapShape(id)
                   if (released.length > 0) {
@@ -168,7 +169,7 @@ export function LayerList({
               className={`flex-none px-1 hover:text-foreground ${
                 locked[id] ? 'text-foreground' : 'text-muted-foreground'
               }`}
-              title={locked[id] ? 'Unlock' : 'Lock so the canvas cannot move it'}
+              title={locked[id] ? t('layers.layerList.unlock') : t('layers.layerList.lockSoTheCanvasCannot')}
               onClick={() => toggleLocked(id)}
             >
               {locked[id] ? (
@@ -182,7 +183,7 @@ export function LayerList({
               className={`flex-none px-1 hover:text-foreground ${
                 hidden[id] ? 'text-foreground' : 'text-muted-foreground'
               }`}
-              title={hidden[id] ? 'Show in the editor' : 'Hide in the editor only'}
+              title={hidden[id] ? t('layers.layerList.showInTheEditor') : t('layers.layerList.hideInTheEditorOnly')}
               onClick={() => toggleHidden(id)}
             >
               {hidden[id] ? (

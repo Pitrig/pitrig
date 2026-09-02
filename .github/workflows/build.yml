@@ -33,6 +33,7 @@ jobs:
           python3 -m tools.codegen.telemetry_catalog --check
           python3 -m tools.codegen.font_catalog --check
           python3 -m tools.codegen.led_font --check
+          python3 -m tools.codegen.ui_strings --check
 
       - name: Debug hooks unchanged
         run: python3 tools/check_debug_isolation.py --check

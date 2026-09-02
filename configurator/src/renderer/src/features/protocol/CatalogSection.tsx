@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 
 import { EmptyState, PageSection } from '@/app/workspace/PageShell'
 import { searchTelemetryReference } from './telemetry-reference'
+import { t } from '@shared/ui-text'
 
 export function CatalogSection(): React.JSX.Element {
   const [query, setQuery] = useState('')
@@ -10,15 +11,15 @@ export function CatalogSection(): React.JSX.Element {
 
   return (
     <PageSection
-      title="Telemetry catalog"
-      description={`${entries.length} of ${searchTelemetryReference('').length} fields. A widget binds one of these names; the wire id is what actually travels.`}
+      title={t('protocol.catalogSection.telemetryCatalog')}
+      description={t('protocol.catalogSection.lengthOfLength2FieldsA', { length: entries.length, length2: searchTelemetryReference('').length })}
       actions={
         <label className="flex h-8 items-center gap-1.5 rounded-md border bg-background px-2">
           <Search aria-hidden="true" className="size-3.5 text-muted-foreground" />
           <input
-            aria-label="Search telemetry fields"
+            aria-label={t('protocol.catalogSection.searchTelemetryFields')}
             className="w-44 bg-transparent text-xs outline-none"
-            placeholder="fuel, rpm, lap…"
+            placeholder={t('protocol.catalogSection.fuelRpmLap')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -28,21 +29,19 @@ export function CatalogSection(): React.JSX.Element {
     >
       {entries.length === 0 ? (
         <div className="px-4 pb-4">
-          <EmptyState title="No field matches">
-            Try a shorter word — the search covers the name, the wire id, the unit, the category and
-            the SimHub property.
-          </EmptyState>
+          <EmptyState title={t('protocol.catalogSection.noFieldMatches')}>
+            {t('protocol.catalogSection.tryAShorterWordThe')}</EmptyState>
         </div>
       ) : (
         <div className="max-h-96 overflow-auto border-t">
           <table className="w-full border-collapse text-left">
             <thead className="sticky top-0 bg-card text-[11px] text-muted-foreground">
               <tr>
-                <th className="px-4 py-1.5 font-medium">Field</th>
-                <th className="px-2 py-1.5 font-medium">Wire</th>
-                <th className="px-2 py-1.5 font-medium">Type</th>
-                <th className="px-2 py-1.5 font-medium">Unit</th>
-                <th className="px-4 py-1.5 font-medium">SimHub property</th>
+                <th className="px-4 py-1.5 font-medium">{t('protocol.catalogSection.field')}</th>
+                <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.wire')}</th>
+                <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.type')}</th>
+                <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.unit')}</th>
+                <th className="px-4 py-1.5 font-medium">{t('protocol.catalogSection.simHubProperty')}</th>
               </tr>
             </thead>
             <tbody>

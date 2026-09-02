@@ -5,7 +5,7 @@ import { addSlotPage, deleteSlotPage, mutateSlotPage, useDashboardEditorStore } 
 import { TelemetryBindingField } from './TelemetryBindingField'
 import { authored } from './authored'
 import { Group } from './Group'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
 import { CheckboxField, NumberField, NumberInput, SelectField, SelectInput } from './fields'
@@ -29,10 +29,10 @@ export function SlotPagesEditor({
   return (
     <Group
       id="Pages"
-      title="Pages"
+      title={t('inspector.slotPagesEditor.pages')}
       icon={GROUP_ICONS.pages}
-      hint={HINTS.slot.pages}
-      summary={`${pages.length} page(s)`}
+      hint={t('inspector.hints.slot.pages')}
+      summary={t('inspector.slotPagesEditor.lengthPageS', { length: pages.length })}
     >
       <div className="flex flex-wrap items-center gap-1">
         {pages.map((_, index) => (
@@ -49,8 +49,8 @@ export function SlotPagesEditor({
         {pages.length < MAXIMUM_SLOT_PAGES ? (
           <button
             type="button"
-            aria-label="Add page"
-            title="Add page"
+            aria-label={t('inspector.slotPagesEditor.addPage')}
+            title={t('inspector.slotPagesEditor.addPage')}
             className="flex size-7 items-center justify-center rounded-md border text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={() => addSlotPage(slotId)}
           >
@@ -75,13 +75,13 @@ export function SlotPagesEditor({
         onClick={() => setDrillIn(drillIn === slotId ? undefined : slotId)}
       >
         <Pencil aria-hidden className="size-3" />
-        {drillIn === slotId ? 'Close this slot' : 'Edit pages on the canvas'}
+        {drillIn === slotId ? t('inspector.slotPagesEditor.closeThisSlot') : t('inspector.slotPagesEditor.editPagesOnTheCanvas')}
       </button>
       {page ? (
         <>
           <CheckboxField
-            label="In loop"
-            hint={HINTS.slot.loop}
+            label={t('inspector.slotPagesEditor.inLoop')}
+            hint={t('inspector.hints.slot.loop')}
             checked={page.in_loop !== false}
             modified={authored(page.in_loop, true)}
             onReset={() => change((next) => { delete next.in_loop })}
@@ -93,8 +93,8 @@ export function SlotPagesEditor({
             }
           />
           <SelectField
-            label="Trigger"
-            hint={HINTS.slot.trigger}
+            label={t('inspector.slotPagesEditor.trigger')}
+            hint={t('inspector.hints.slot.trigger')}
             value={trigger}
             options={SLOT_TRIGGER_VALUES}
             modified={page.trigger !== undefined}
@@ -128,7 +128,7 @@ export function SlotPagesEditor({
           {trigger === 'none' ? null : (
             <>
               <TelemetryBindingField
-                label="Watch"
+                label={t('inspector.conditionsEditor.watch')}
                 value={page.source?.binding ?? ''}
                 onReset={() => change((next) => { delete next.source })}
                 onChange={(binding) =>
@@ -139,8 +139,8 @@ export function SlotPagesEditor({
                 }
               />
               <NumberField
-                label="Duration"
-                hint={HINTS.slot.duration}
+                label={t('inspector.slotPagesEditor.duration')}
+                hint={t('inspector.hints.slot.duration')}
                 suffix="ms"
                 value={page.duration_ms ?? 0}
                 min={0}
@@ -185,7 +185,7 @@ export function SlotPagesEditor({
                           }
                         />
                         <NumberInput
-                          title="Threshold"
+                          title={t('inspector.slotPagesEditor.threshold')}
                           value={rule.value ?? 0}
                           step="any"
                           onChange={(value) =>
@@ -199,7 +199,7 @@ export function SlotPagesEditor({
                         <button
                           type="button"
                           aria-label={`Remove rule ${index + 1}`}
-                          title="Remove this rule"
+                          title={t('inspector.conditionsEditor.removeThisRule')}
                           className="flex-none rounded-md border p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40"
                           disabled={(page.conditions ?? []).length <= 1}
                           onClick={() =>
@@ -228,8 +228,7 @@ export function SlotPagesEditor({
                       }
                     >
                       <Plus aria-hidden className="size-3" />
-                      Add activation rule
-                    </button>
+                      {t('inspector.slotPagesEditor.addActivationRule')}</button>
                   ) : null}
                 </>
               ) : null}

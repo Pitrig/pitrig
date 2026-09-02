@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '@shared/ui-text'
 
 import { cn } from '@/lib/utils'
 import { PageSection } from '@/app/workspace/PageShell'
@@ -11,7 +12,6 @@ import {
   CONFIGURATION_DOCUMENT_IDS,
   type ConfigurationDocumentId
 } from '@shared/configuration-schema'
-import { CONFIGURATION_DOCUMENT_LABELS } from '@shared/configuration-documents'
 
 export function AdvancedJsonSection({
   working,
@@ -30,11 +30,11 @@ export function AdvancedJsonSection({
 
   return (
     <PageSection
-      title="Advanced JSON"
-      description="Each document exactly as the board receives it."
+      title={t('configs.advancedJsonSection.advancedJson')}
+      description={t('configs.advancedJsonSection.eachDocumentExactlyAsThe')}
       className="px-0 pb-0"
       actions={
-        <div aria-label="Configuration documents" className="flex gap-1" role="tablist">
+        <div aria-label={t('configs.advancedJsonSection.configurationDocuments')} className="flex gap-1" role="tablist">
           {CONFIGURATION_DOCUMENT_IDS.map((id) => (
             <button
               key={id}
@@ -49,7 +49,7 @@ export function AdvancedJsonSection({
               )}
               onClick={() => setActive(id)}
             >
-              {CONFIGURATION_DOCUMENT_LABELS[id]}
+              {t(`documents.label.${id}`)}
             </button>
           ))}
         </div>
@@ -57,14 +57,13 @@ export function AdvancedJsonSection({
     >
       {broken ? (
         <p className="px-3 pb-2 text-[11px] text-red-400">
-          This is not valid JSON. The board keeps the last valid version until it is.
-        </p>
+          {t('configs.advancedJsonSection.thisIsNotValidJson')}</p>
       ) : null}
       <textarea
-        aria-label={`${CONFIGURATION_DOCUMENT_LABELS[active]} configuration JSON`}
+        aria-label={t('configs.advancedJsonSection.activeConfigurationJson', { active: t(`documents.label.${active}`) })}
         className="h-96 w-full resize-y rounded-b-xl border-t bg-black/30 p-3 font-mono text-[11px] leading-4 outline-none focus:border-zinc-500 disabled:opacity-50"
         disabled={!hasLocalDraft || working}
-        placeholder="Create, open, or connect a configuration to begin editing."
+        placeholder={t('configs.advancedJsonSection.createOpenOrConnectA')}
         spellCheck={false}
         value={text}
         onChange={(event) => {

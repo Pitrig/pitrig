@@ -17,6 +17,7 @@ import { type FirmwareUpdateState } from '@shared/firmware-update'
 import type { FontAssetDeviceInfo } from '@shared/device'
 import { DeviceServiceError } from './device-errors'
 import { isBooleanField, parseAssetStatus, parseFields } from './protocol-parsers'
+import { t } from '@shared/ui-text'
 
 export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
   const fields = parseFields(line, '@SC:OK:FW:INFO:', 'firmware status')
@@ -31,7 +32,7 @@ export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
     target === undefined ||
     version === undefined
   ) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed firmware status.')
+    throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedFirmware'))
   }
   return {
     storageAvailable: fields.get('storage') === '1',
@@ -46,7 +47,7 @@ export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
 export function parseImageAssetInfo(line: string): ImageAssetState {
   const status = parseAssetStatus(line, {
     prefix: '@SC:OK:IMAGE:INFO:',
-    label: 'image status',
+    label: t('device.assetInfoParsers.imageStatus'),
     countField: 'images',
     maximumCount: MAXIMUM_IMAGES,
     formatVersion: IMAGE_PACKAGE_FORMAT_VERSION,
@@ -55,7 +56,7 @@ export function parseImageAssetInfo(line: string): ImageAssetState {
   })
   const images = parseInstalledImages(status.entries)
   if (status.entries !== undefined && images.length !== status.count) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed image status.')
+    throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedImage'))
   }
   return {
     storageAvailable: status.storageAvailable,
@@ -97,7 +98,7 @@ function parseInstalledImages(value: string | undefined): InstalledImage[] {
 export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   const status = parseAssetStatus(line, {
     prefix: '@SC:OK:FONT:INFO:',
-    label: 'font status',
+    label: t('device.assetInfoParsers.fontStatus'),
     countField: 'families',
     maximumCount: MAXIMUM_FONT_FAMILIES,
     formatVersion: 3,
@@ -105,7 +106,7 @@ export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   })
   const families = parseFontFamilies(status.entries)
   if (status.entries !== undefined && families.length !== status.count) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
+    throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedFont'))
   }
   const payloadCrc = parsePayloadCrc(status.crc)
   return {
@@ -124,7 +125,7 @@ function parsePayloadCrc(value: string | undefined): number | undefined {
   if (value === undefined) return undefined
   const crc = Number(value)
   if (!Number.isSafeInteger(crc) || crc < 0 || crc > 0xffff_ffff) {
-    throw new DeviceServiceError('not_simcore', 'The device returned malformed font status.')
+    throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedFont'))
   }
   return crc
 }
@@ -134,7 +135,7 @@ function parseFontFamilies(value: string | undefined): string[] {
   const families: string[] = []
   for (const family of value.split(';')) {
     if (!FONT_FAMILY_PATTERN.test(family) || families.includes(family)) {
-      throw new DeviceServiceError('not_simcore', 'The device returned malformed font entries.')
+      throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedFont2'))
     }
     families.push(family)
   }

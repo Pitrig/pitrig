@@ -19,18 +19,19 @@ import {
 import { PreviewAssetCache } from '../assets/preview-asset-cache'
 import { DeviceService } from '../device/device-service'
 import { buildImagePackage, convertImage, type ConvertedImage } from './image-package'
+import { t } from '@shared/ui-text'
 
 const kImages: AssetKind = {
   sessionKey: 'imageAssets',
-  dialogTitle: 'Select image source',
-  dialogButton: 'Select image',
-  filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'bmp'] }],
+  dialogTitle: t('images.imageAssetService.selectImageSource'),
+  dialogButton: t('firmware.firmwareUpdateService.selectImage'),
+  filters: [{ name: t('images.dialog.filter'), extensions: ['png', 'jpg', 'jpeg', 'bmp'] }],
   extensions: ['.png', '.jpg', '.jpeg', '.bmp'],
-  wrongExtension: 'Select a PNG, JPEG or BMP image.',
-  busy: 'An image upload is already running.',
-  unsupported: 'The connected firmware does not support image upload.',
-  storageUnavailable: 'Image storage is unavailable on this device.',
-  rebootRequired: 'Restart the device before uploading another image package.'
+  wrongExtension: t('images.imageAssetService.selectAPngJpegOr'),
+  busy: t('images.imageAssetService.anImageUploadIsAlready'),
+  unsupported: t('images.imageAssetService.theConnectedFirmwareDoesNot'),
+  storageUnavailable: t('images.imageAssetService.imageStorageIsUnavailableOn'),
+  rebootRequired: t('images.imageAssetService.restartTheDeviceBeforeUploading')
 }
 
 interface ImageSourceRecord extends ImageSourceSelection {
@@ -92,7 +93,7 @@ export class ImageAssetService extends AssetServiceBase {
   ): AssetResult<ImageSourceSelection> {
     const decoded = nativeImage.createFromPath(path)
     if (decoded.isEmpty()) {
-      return failure('source_unreadable', `"${basename(path)}" could not be read as an image.`)
+      return failure('source_unreadable', t('images.imageAssetService.pathCouldNotBeRead', { path: basename(path) }))
     }
     const { width, height } = decoded.getSize()
     const hasAlpha = hasTransparency(decoded)
@@ -123,7 +124,7 @@ export class ImageAssetService extends AssetServiceBase {
         stage: 'reading',
         completed: 0,
         total: 0,
-        message: 'Reading image sources'
+        message: t('images.imageAssetService.readingImageSources')
       })
       const converted: ConvertedImage[] = []
       for (const asset of request.assets) {
@@ -132,7 +133,7 @@ export class ImageAssetService extends AssetServiceBase {
         for (const sourceId of asset.sourceIds) {
           const source = this.sources.get(sourceId)
           if (!source) {
-            return failure('source_missing', 'Select the image file again and retry.')
+            return failure('source_missing', t('images.imageAssetService.selectTheImageFileAgain'))
           }
           paths.push(source.path)
         }
@@ -151,12 +152,12 @@ export class ImageAssetService extends AssetServiceBase {
         stage: 'building',
         completed: 0,
         total: 0,
-        message: 'Building the image package'
+        message: t('images.imageAssetService.buildingTheImagePackage')
       })
       const packageBytes = buildImagePackage(converted)
 
       if (this.deviceService.getState().session !== session) {
-        return failure('device_error', 'The connected device changed during the upload.')
+        return failure('device_error', t('images.imageAssetService.theConnectedDeviceChangedDuring'))
       }
       await this.deviceService.uploadImages(
         packageBytes,
@@ -175,7 +176,7 @@ export class ImageAssetService extends AssetServiceBase {
         stage: 'completed',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
-        message: 'Images installed; restart the device to use them'
+        message: t('images.imageAssetService.imagesInstalledRestartTheDevice')
       })
       return success(undefined)
     } catch (error) {
@@ -201,12 +202,12 @@ export class ImageAssetService extends AssetServiceBase {
 
   private validateRequest(request: ImageUploadRequest): AssetError | undefined {
     if (!Array.isArray(request.assets) || request.assets.length === 0) {
-      return { code: 'invalid_request', message: 'Select at least one image to upload.' }
+      return { code: 'invalid_request', message: t('images.imageAssetService.selectAtLeastOneImage') }
     }
     if (request.assets.length > MAXIMUM_IMAGES) {
       return {
         code: 'invalid_request',
-        message: `The device stores at most ${MAXIMUM_IMAGES} images.`
+        message: t('images.imageAssetService.theDeviceStoresAtMost', { mAXIMUM_IMAGES: MAXIMUM_IMAGES })
       }
     }
     const names = new Set<string>()
@@ -214,11 +215,11 @@ export class ImageAssetService extends AssetServiceBase {
       if (!IMAGE_ID_PATTERN.test(asset.name)) {
         return {
           code: 'invalid_request',
-          message: `"${asset.name}" is not a valid image name.`
+          message: t('images.imageAssetService.nameIsNotAValid', { name: asset.name })
         }
       }
       if (names.has(asset.name)) {
-        return { code: 'invalid_request', message: `Image "${asset.name}" is listed twice.` }
+        return { code: 'invalid_request', message: t('images.imageAssetService.imageNameIsListedTwice', { name: asset.name }) }
       }
       names.add(asset.name)
     }

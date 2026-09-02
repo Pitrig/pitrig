@@ -6,6 +6,7 @@ import type { ScreenConfiguration } from '@shared/configuration-schema'
 import { flattenScreen } from '@/features/configuration/preview/preview-layers'
 import { SCREEN_BACKGROUND } from '@/features/configuration/preview/preview-theme'
 import { WidgetLayers } from '@/features/configuration/preview/WidgetLayers'
+import { t } from '@shared/ui-text'
 
 const SWIPE_THRESHOLD_PX = 32
 
@@ -114,7 +115,7 @@ function GalleryStep({
   return (
     <button
       type="button"
-      aria-label={side === 'left' ? 'Previous screen' : 'Next screen'}
+      aria-label={side === 'left' ? t('templates.screenGallery.previousScreen') : t('templates.screenGallery.nextScreen')}
       className={`absolute top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-0.5 text-white/70 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 ${
         side === 'left' ? 'left-1' : 'right-1'
       }`}

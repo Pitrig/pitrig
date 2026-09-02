@@ -13,6 +13,7 @@ import { insertScreenFromDocument } from './insert-screen'
 import { useInsertScreenStore } from './insert-screen-store'
 import { ScreenView } from './ScreenGallery'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
+import { t } from '@shared/ui-text'
 
 export function InsertScreenDialog(): React.JSX.Element | null {
   const open = useInsertScreenStore((state) => state.open)
@@ -53,7 +54,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
         return
       }
       if (result.value.format !== TEMPLATE_FORMAT) {
-        setError('That entry is not a dashboard.')
+        setError(t('templates.dashboardSection.thatEntryIsNotA'))
         return
       }
       setChosen(summary)
@@ -69,7 +70,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
     if (indices.length > room) {
       setError(
         room === 0
-          ? `This dashboard already holds ${MAXIMUM_SCREENS} screens, which is all a board has.`
+          ? t('templates.insertScreenDialog.thisDashboardAlreadyHoldsMaximum', { mAXIMUM_SCREENS: MAXIMUM_SCREENS })
           : `Only ${room} more screen${room === 1 ? '' : 's'} fit; that would add ${indices.length}.`
       )
       return
@@ -103,17 +104,17 @@ export function InsertScreenDialog(): React.JSX.Element | null {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Add a screen"
+        aria-label={t('templates.insertScreenDialog.addAScreen')}
         className="flex max-h-[34rem] w-[30rem] flex-col gap-3 rounded-lg border bg-background p-4 text-xs shadow-lg"
       >
         <div className="space-y-1">
           <h2 className="text-sm font-semibold text-foreground">
-            {chosen ? `Screens in "${chosen.name}"` : 'Add a screen'}
+            {chosen ? t('templates.insertScreenDialog.screensInName', { name: chosen.name }) : t('templates.insertScreenDialog.addAScreen')}
           </h2>
           <p className="text-muted-foreground">
             {chosen
-              ? 'Added at the end. Nothing already on this dashboard changes.'
-              : 'Pick the dashboard to take a screen from.'}
+              ? t('templates.insertScreenDialog.addedAtTheEndNothing')
+              : t('templates.insertScreenDialog.pickTheDashboardToTake')}
           </p>
         </div>
 
@@ -135,7 +136,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
                 </button>
               ))}
               {dashboards.length === 0 ? (
-                <p className="text-muted-foreground">The library holds no dashboards yet.</p>
+                <p className="text-muted-foreground">{t('templates.insertScreenDialog.theLibraryHoldsNoDashboards')}</p>
               ) : null}
             </>
           ) : (
@@ -146,9 +147,9 @@ export function InsertScreenDialog(): React.JSX.Element | null {
                   className="flex w-full items-center justify-between gap-2 rounded-md border border-dashed px-2 py-2 text-left hover:bg-muted"
                   onClick={() => take(screens.map((_, index) => index))}
                 >
-                  <span>All screens</span>
+                  <span>{t('templates.insertScreenDialog.allScreens')}</span>
                   <span className="flex-none text-[11px] text-muted-foreground">
-                    {`adds ${screens.length}`}
+                    {t('templates.insertScreenDialog.addsLength', { length: screens.length })}
                   </span>
                 </button>
               ) : null}
@@ -166,13 +167,13 @@ export function InsertScreenDialog(): React.JSX.Element | null {
                       <span className="min-w-0 flex-1">
                         <span className="block truncate">{screen.id ?? `screen${index + 1}`}</span>
                         <span className="block text-[11px] text-muted-foreground">
-                          {`${screenWidgetsOf(screen).length} widgets`}
+                          {t('templates.insertScreenDialog.lengthWidgets', { length: screenWidgetsOf(screen).length })}
                         </span>
                       </span>
                     </button>
                   ))
                 : null}
-              {busy ? <p className="text-muted-foreground">Reading…</p> : null}
+              {busy ? <p className="text-muted-foreground">{t('templates.dashboardThumbnail.reading')}</p> : null}
             </>
           )}
         </div>
@@ -182,14 +183,12 @@ export function InsertScreenDialog(): React.JSX.Element | null {
         <div className="flex justify-between gap-2">
           {chosen && !preselected ? (
             <Button variant="outline" onClick={() => setChosen(undefined)}>
-              Back
-            </Button>
+              {t('templates.insertScreenDialog.back')}</Button>
           ) : (
             <span />
           )}
           <Button variant="outline" onClick={dismiss}>
-            Cancel
-          </Button>
+            {t('common.cancel')}</Button>
         </div>
       </div>
     </div>

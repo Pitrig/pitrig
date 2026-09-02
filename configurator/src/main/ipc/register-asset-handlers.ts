@@ -48,6 +48,7 @@ import { FontLibraryService } from '../font-library/font-library-service'
 import { ImageAssetService } from '../image-assets/image-asset-service'
 import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
 import { broadcastFontLibraryChanged } from './register-ipc-handlers'
+import { t } from '@shared/ui-text'
 
 export function registerAssetHandlers(
   deviceService: DeviceService,
@@ -86,7 +87,7 @@ export function registerAssetHandlers(
         ok: false as const,
         error: {
           code: 'download_failed' as const,
-          message: `${request.family} could not be downloaded. Check the connection, or import the file.`
+          message: t('ipc.registerAssetHandlers.familyCouldNotBeDownloaded', { family: request.family })
         }
       }
     }
@@ -115,7 +116,7 @@ export function registerAssetHandlers(
     if (!isFirmwareUploadRequest(request)) {
       const result: FirmwareUpdateResult<void> = {
         ok: false,
-        error: { code: 'invalid_request', message: 'Invalid firmware upload request.' }
+        error: { code: 'invalid_request', message: t('ipc.registerAssetHandlers.invalidFirmwareUploadRequest') }
       }
       return result
     }
@@ -135,7 +136,7 @@ export function registerAssetHandlers(
     if (!isImageUploadRequest(request)) {
       const result: AssetResult<void> = {
         ok: false,
-        error: { code: 'invalid_request', message: 'Invalid image upload request.' }
+        error: { code: 'invalid_request', message: t('ipc.registerAssetHandlers.invalidImageUploadRequest') }
       }
       return result
     }
@@ -145,7 +146,7 @@ export function registerAssetHandlers(
     if (!isSimHubProfileExportRequest(request)) {
       const result: SimHubProfileResult<never> = {
         ok: false,
-        error: { code: 'invalid_request', message: 'Invalid SimHub profile request.' }
+        error: { code: 'invalid_request', message: t('ipc.registerAssetHandlers.invalidSimhubProfileRequest') }
       }
       return result
     }
@@ -159,7 +160,7 @@ export function registerAssetHandlers(
 function invalidFontLibraryRequest(): FontLibraryResult<never> {
   return {
     ok: false,
-    error: { code: 'invalid_request', message: 'Invalid font library request.' }
+    error: { code: 'invalid_request', message: t('ipc.registerAssetHandlers.invalidFontLibraryRequest') }
   }
 }
 

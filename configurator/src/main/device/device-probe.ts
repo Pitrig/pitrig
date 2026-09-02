@@ -10,6 +10,7 @@ import {
 } from './protocol-parsers'
 import { requestResponse, type TrafficCallback } from './serial-request'
 import { readConfiguration } from './simcore-protocol'
+import { t } from '@shared/ui-text'
 
 const PROBE_TIMEOUT_MS = 1_000
 const INFO_REQUEST = '\n@SC:INFO\n'
@@ -33,7 +34,7 @@ export async function probeSimCore(
   if (configuration.board !== info.boardId) {
     throw new DeviceServiceError(
       'not_simcore',
-      'The device configuration board does not match the connected hardware.'
+      t('device.deviceProbe.theDeviceConfigurationBoardDoes')
     )
   }
   const fontAssets = await probeCapability(

@@ -1,4 +1,5 @@
 import { InfoHint } from './InfoHint'
+import { t } from '@shared/ui-text'
 
 export interface PropertyMeta {
   hint?: string
@@ -49,8 +50,8 @@ function ResetDot({ label, onReset }: { label: string; onReset: () => void }): R
   return (
     <button
       type="button"
-      title={`${label} is set in this document — click to clear it`}
-      aria-label={`Clear ${label}`}
+      title={t('inspector.propertyRow.labelIsSetInThis', { label: label })}
+      aria-label={t('inspector.propertyRow.clearLabel', { label: label })}
       className="size-3 shrink-0 rounded-full p-[3px] hover:bg-muted"
       onClick={(event) => {
         event.preventDefault()

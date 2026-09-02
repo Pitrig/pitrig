@@ -1,99 +1,144 @@
 import { type LayoutTransferNote, type LayoutTransferResult } from '@shared/layout-transfer'
+import { formatList, t } from '@shared/ui-text'
 
 const NAMES_SHOWN = 4
 
 export function transferReportLines(result: LayoutTransferResult): string[] {
   const { from, to, fit, scale, notes } = result
   const lines: string[] = []
-  const sizes = `${from.width} × ${from.height} → ${to.width} × ${to.height}`
+  const sizes = t('dashboard.transfer.sizes', {
+    fromWidth: from.width,
+    fromHeight: from.height,
+    toWidth: to.width,
+    toHeight: to.height
+  })
   if (to.width === 0 || to.height === 0) {
-    lines.push('This board has no display.')
+    lines.push(t('dashboard.transfer.noDisplay'))
   } else if (from.width === to.width && from.height === to.height) {
-    lines.push(`The board changed; its display is ${to.width} × ${to.height} either way, so nothing moved.`)
+    lines.push(t('dashboard.transfer.sameSize', { width: to.width, height: to.height }))
   } else if (fit === 'stretch') {
-    lines.push(
-      `Stretched by ${trim(scale.x)} across and ${trim(scale.y)} down to fill the display; ${sizes}.`
-    )
+    lines.push(t('dashboard.transfer.stretched', { x: trim(scale.x), y: trim(scale.y), sizes }))
   } else {
-    lines.push(`Scaled by ${trim(scale.min)} and centred; ${sizes}.`)
+    lines.push(t('dashboard.transfer.scaled', { scale: trim(scale.min), sizes }))
   }
 
   const images = notes.filter((note) => note.kind === 'image_resize_required')
   if (images.length > 0) {
     lines.push(
-      `${count(images.length, 'image')} now ${images.length === 1 ? 'draws' : 'draw'} at a new size and must be uploaded again: ${list(
-        images.map((note) => `${note.imageId ?? 'image'} at ${note.size?.width} × ${note.size?.height}`)
-      )}.`
+      t('dashboard.transfer.imagesResized', {
+        count: images.length,
+        list: list(
+          images.map((note) =>
+            t('dashboard.transfer.imageEntry', {
+              image: note.imageId ?? t('dashboard.transfer.unnamedImage'),
+              width: note.size?.width ?? 0,
+              height: note.size?.height ?? 0
+            })
+          )
+        )
+      })
     )
   }
 
   const clamped = notes.filter((note) => note.kind === 'field_clamped')
   if (clamped.length > 0) {
     lines.push(
-      `${count(clamped.length, 'property')} did not fit the range the device accepts and ${clamped.length === 1 ? 'was' : 'were'} limited: ${list(
-        clamped.map((note) => `${note.field} on ${label(note)} (${note.from} → ${note.to})`)
-      )}.`
+      t('dashboard.transfer.propertiesClamped', {
+        count: clamped.length,
+        list: list(
+          clamped.map((note) =>
+            t('dashboard.transfer.clampedEntry', {
+              field: note.field ?? '',
+              label: label(note),
+              from: note.from ?? '',
+              to: note.to ?? ''
+            })
+          )
+        )
+      })
     )
   }
 
   const arcs = notes.filter((note) => note.kind === 'arc_thickness_reduced')
   if (arcs.length > 0) {
     lines.push(
-      `${count(arcs.length, 'arc')} had its ring thinned so two thicknesses still fit across it: ${list(
-        arcs.map((note) => `${label(note)} (${note.from} → ${note.to} px)`)
-      )}.`
+      t('dashboard.transfer.arcsThinned', {
+        count: arcs.length,
+        list: list(
+          arcs.map((note) =>
+            t('dashboard.transfer.arcEntry', {
+              label: label(note),
+              from: note.from ?? '',
+              to: note.to ?? ''
+            })
+          )
+        )
+      })
     )
   }
 
   if (notes.some((note) => note.kind === 'dashboard_dropped')) {
-    lines.push(
-      'This board has no display, so the dashboard was left behind; only its peripherals carried over.'
-    )
+    lines.push(t('dashboard.transfer.dashboardDropped'))
   }
 
   const moved = notes.filter((note) => note.kind === 'led_pin_moved')
   if (moved.length > 0) {
     lines.push(
-      `${count(moved.length, 'LED output')} moved to a pin this board offers: ${list(
-        moved.map((note) => `${note.widgetId} (${note.from} → ${note.to})`)
-      )}. Check it against how the board is actually wired.`
+      t('dashboard.transfer.pinsMoved', {
+        count: moved.length,
+        list: list(
+          moved.map((note) =>
+            t('dashboard.transfer.movedEntry', {
+              output: note.widgetId ?? '',
+              from: note.from ?? '',
+              to: note.to ?? ''
+            })
+          )
+        )
+      })
     )
   }
 
   const cleared = notes.filter((note) => note.kind === 'led_pin_cleared')
   if (cleared.length > 0) {
     lines.push(
-      `${count(cleared.length, 'LED output')} lost its pin because this board offers none free: ${list(
-        cleared.map((note) => `${note.widgetId} (was ${note.from})`)
-      )}. The board will refuse the document until each one names a pin.`
+      t('dashboard.transfer.pinsCleared', {
+        count: cleared.length,
+        list: list(
+          cleared.map((note) =>
+            t('dashboard.transfer.clearedEntry', {
+              output: note.widgetId ?? '',
+              from: note.from ?? ''
+            })
+          )
+        )
+      })
     )
   }
 
   const off = notes.filter((note) => note.kind === 'widget_off_display')
   if (off.length > 0) {
     lines.push(
-      `${count(off.length, 'widget')} would sit entirely off the ${to.width} × ${to.height} display and the board will reject the document: ${list(
-        off.map(label)
-      )}.`
+      t('dashboard.transfer.widgetsOffDisplay', {
+        count: off.length,
+        width: to.width,
+        height: to.height,
+        list: list(off.map(label))
+      })
     )
   }
   return lines
 }
 
 function label(note: LayoutTransferNote): string {
-  const name = note.widgetId ?? note.widgetType ?? 'widget'
-  return `"${name}" on screen ${note.screenIndex + 1}`
-}
-
-function count(total: number, noun: string): string {
-  const plural = noun.endsWith('y') ? `${noun.slice(0, -1)}ies` : `${noun}s`
-  return `${total} ${total === 1 ? noun : plural}`
+  return t('dashboard.transfer.widgetLabel', {
+    name: note.widgetId ?? note.widgetType ?? t('dashboard.transfer.unnamedWidget'),
+    number: note.screenIndex + 1
+  })
 }
 
 function list(entries: readonly string[]): string {
-  const shown = entries.slice(0, NAMES_SHOWN)
-  const rest = entries.length - shown.length
-  return rest > 0 ? `${shown.join(', ')} and ${rest} more` : shown.join(', ')
+  return formatList(entries, NAMES_SHOWN)
 }
 
 function trim(scale: number): string {

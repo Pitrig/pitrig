@@ -10,6 +10,7 @@ import {
   missingFontFamilies
 } from '@/features/font-library/font-requirements'
 import { draftText, parseConfiguration, useDeviceStore } from './device-store'
+import { t } from '@shared/ui-text'
 
 export interface DraftState {
   draftJson: string
@@ -117,18 +118,18 @@ function liveApplyBlocker(state: {
   boardId?: string
   missingFamilies: string[]
 }): string | undefined {
-  if (!state.connected) return 'Connect a SimCore board to mirror the draft on it.'
+  if (!state.connected) return t('device.draftState.connectASimcoreBoardTo')
   if (state.safeMode) {
-    return 'The board is in safe mode. It draws nothing until it is repaired and restarted.'
+    return t('device.draftState.theBoardIsInSafe')
   }
   if (!state.parsed.ok) {
-    return `The draft is not valid, so the board keeps what it runs. ${state.parsed.error}`
+    return t('device.draftState.theDraftIsNotValid', { error: state.parsed.error })
   }
   if (state.boardMismatch) {
-    return `The draft targets ${state.parsed.configuration.board}, the board is ${state.boardId}.`
+    return t('device.draftState.theDraftTargetsBoardThe', { board: state.parsed.configuration.board, boardId: state.boardId ?? '' })
   }
   if (state.missingFamilies.length > 0) {
-    return `The board lacks ${state.missingFamilies.join(', ')}. Saving installs the fonts.`
+    return t('device.draftState.theBoardLacksJoinSaving', { join: state.missingFamilies.join(', ') })
   }
   return undefined
 }

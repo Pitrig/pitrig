@@ -18,6 +18,7 @@ import { BOARD_PROFILES, type DeviceConfiguration } from '@shared/device'
 import { ScreenGallery } from './ScreenGallery'
 import { useTemplatesStore } from './templates-store'
 import { WidgetThumbnail } from './WidgetThumbnail'
+import { t } from '@shared/ui-text'
 
 export function SaveToTemplatesButton(): React.JSX.Element {
   const [open, setOpen] = useState(false)
@@ -27,11 +28,10 @@ export function SaveToTemplatesButton(): React.JSX.Element {
       <Button
         variant="outline"
         disabled={!hasLocalDraft}
-        title="Keep this dashboard, or the selected widget, in the template library"
+        title={t('templates.saveToTemplates.keepThisDashboardOrThe')}
         onClick={() => setOpen(true)}
       >
-        Save to templates
-      </Button>
+        {t('templates.dashboardSection.saveToTemplates')}</Button>
       {open ? <SaveToTemplatesDialog onClose={() => setOpen(false)} /> : null}
     </>
   )
@@ -60,7 +60,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
       kind === 'dashboard'
         ? library?.dashboards.some((entry) => entry.origin === 'user' && entry.id === id)
         : library?.widgets.some((entry) => entry.id === id)
-    if (existing && !window.confirm(`Replace the saved ${kind} "${id}"?`)) return
+    if (existing && !window.confirm(t('templates.saveToTemplates.replaceTheSavedKindId', { kind: kind, id: id }))) return
 
     setBusy(true)
     setError(undefined)
@@ -89,7 +89,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
       await refresh()
       onClose()
     } catch (bridgeError) {
-      setError(bridgeError instanceof Error ? bridgeError.message : 'The template was not saved.')
+      setError(bridgeError instanceof Error ? bridgeError.message : t('templates.saveToTemplates.theTemplateWasNotSaved'))
     } finally {
       setBusy(false)
     }
@@ -106,10 +106,10 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Save to templates"
+        aria-label={t('templates.dashboardSection.saveToTemplates')}
         className="w-[34rem] space-y-3 rounded-lg border bg-background p-4 text-xs shadow-lg"
       >
-        <h2 className="text-sm font-semibold text-foreground">Save to templates</h2>
+        <h2 className="text-sm font-semibold text-foreground">{t('templates.dashboardSection.saveToTemplates')}</h2>
 
         <div className="flex gap-3">
           <div className="group h-32 w-48 flex-none overflow-hidden rounded border bg-black/40 p-1.5">
@@ -121,13 +121,13 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
           </div>
           <div className="min-w-0 flex-1 space-y-2">
             <label className="block space-y-1 text-muted-foreground">
-              <span>Name</span>
+              <span>{t('device.infoPage.name')}</span>
               <input
                 autoFocus
                 className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
                 disabled={busy}
                 maxLength={MAXIMUM_TEMPLATE_NAME}
-                placeholder={kind === 'widget' ? 'RPM gauge' : 'Endurance layout'}
+                placeholder={kind === 'widget' ? t('templates.saveToTemplates.rPMGauge') : t('templates.saveToTemplates.enduranceLayout')}
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 onKeyDown={(event) => {
@@ -136,15 +136,15 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
               />
             </label>
             <label className="block space-y-1 text-muted-foreground">
-              <span>Description (optional)</span>
+              <span>{t('templates.saveToTemplates.descriptionOptional')}</span>
               <input
                 className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
                 disabled={busy}
                 maxLength={MAXIMUM_TEMPLATE_DESCRIPTION}
                 placeholder={
                   kind === 'widget'
-                    ? 'Green below 6000, red above'
-                    : 'Fuel and tyres for long runs'
+                    ? t('templates.saveToTemplates.greenBelow6000RedAbove')
+                    : t('templates.saveToTemplates.fuelAndTyresForLong')
                 }
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
@@ -153,22 +153,21 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
             <p className="text-muted-foreground">
               {kind === 'widget'
                 ? `The selected widget${widget && countsAsGroup(widget) ? ' and everything inside it' : ''} goes to the widget library, at ${box?.width} × ${box?.height}.`
-                : `The whole dashboard goes to the dashboard library — ${screenSummary(draft)}.`}
+                : t('templates.saveToTemplates.theWholeDashboardGoesTo', { draft: screenSummary(draft) })}
             </p>
           </div>
         </div>
 
         {error ? <p className="text-red-400">{error}</p> : null}
         {name.trim().length > 0 && !id ? (
-          <p className="text-amber-400">A name needs at least one letter or digit.</p>
+          <p className="text-amber-400">{t('templates.saveToTemplates.aNameNeedsAtLeast')}</p>
         ) : null}
 
         <div className="flex justify-end gap-2 pt-1">
           <Button variant="outline" disabled={busy} onClick={onClose}>
-            Cancel
-          </Button>
+            {t('common.cancel')}</Button>
           <Button disabled={busy || !id} onClick={() => void save()}>
-            {busy ? 'Saving…' : 'Save'}
+            {busy ? t('device.saveToBoardUi.saving') : t('common.save')}
           </Button>
         </div>
       </div>

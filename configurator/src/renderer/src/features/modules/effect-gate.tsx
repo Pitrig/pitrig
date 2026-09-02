@@ -20,7 +20,7 @@ import {
   AddButton,
   RemoveButton
 } from '@/features/configuration/inspector/widget-editors'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { Subsection } from './Subsection'
 import { applyWatchedBinding, releaseWatchedBinding } from './watched-source'
 
@@ -37,10 +37,10 @@ export function EffectGate({
   const boolean = field?.type === 'boolean'
   const operators = boolean ? BOOLEAN_OPERATORS : CONDITION_OPERATOR_VALUES
   return (
-      <Subsection title="When it paints">
+      <Subsection title={t('modules.effectGate.whenItPaints')}>
         <SelectField
-          label="Gate"
-          hint={HINTS.effect.gate}
+          label={t('modules.effectGate.gate')}
+          hint={t('modules.hints.effect.gate')}
           value={effect.gate ?? 'always'}
           options={LED_GATE_VALUES}
           modified={authored(effect.gate, 'always')}
@@ -55,7 +55,7 @@ export function EffectGate({
         {gated ? (
           <>
             <TelemetryBindingField
-              label="Watches"
+              label={t('modules.effectColors.watches')}
               value={watched}
               onChange={(binding) => update((next) => applyWatchedBinding(next, binding))}
             />
@@ -83,7 +83,7 @@ export function EffectGate({
                     />
                   ) : (
                     <NumberInput
-                      title={field?.unit && field.unit !== 'source' ? `Threshold in ${field.unit}` : 'Threshold'}
+                      title={field?.unit && field.unit !== 'source' ? t('inspector.conditionsEditor.thresholdInUnit', { unit: field.unit }) : t('inspector.slotPagesEditor.threshold')}
                       value={rule.value ?? 0}
                       step="any"
                       onChange={(value) => update((next) => {
@@ -104,7 +104,7 @@ export function EffectGate({
             ))}
             {(effect.conditions ?? []).length < MAXIMUM_WIDGET_CONDITIONS ? (
               <AddButton
-                label="Add rule"
+                label={t('modules.effectGate.addRule')}
                 onClick={() => update((next) => {
                   next.conditions = [...(next.conditions ?? []), { op: 'at_or_above', value: 1 }]
                 })}
@@ -113,18 +113,18 @@ export function EffectGate({
           </>
         ) : null}
         <NumberField
-          label="Hold"
+          label={t('modules.effectGate.hold')}
           suffix="ms"
-          hint={HINTS.effect.hold}
+          hint={t('modules.hints.effect.hold')}
           value={effect.hold_ms ?? 0}
           {...fieldBounds('LedEffect', 'hold_ms')}
           modified={authored(effect.hold_ms, 0)}
           onChange={(hold_ms) => update((next) => { next.hold_ms = hold_ms })}
         />
         <NumberField
-          label="Blink"
+          label={t('modules.effectGate.blink')}
           suffix="ms"
-          hint={HINTS.effect.blink}
+          hint={t('modules.hints.effect.blink')}
           value={effect.blink_ms ?? 0}
           {...fieldBounds('LedEffect', 'blink_ms')}
           modified={authored(effect.blink_ms, 0)}

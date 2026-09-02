@@ -35,6 +35,7 @@ import {
   type StoredIndex
 } from './font-library-files'
 import { hasTabularDigits, missingCharacters } from './font-metrics'
+import { t } from '@shared/ui-text'
 
 const INDEX_FILE = 'library.json'
 const FACES_DIRECTORY = 'faces'
@@ -129,26 +130,26 @@ export class FontLibraryService {
   ): Promise<FontLibraryResult<FontLibraryEntry | null>> {
     await this.load()
     if (id !== undefined && !FONT_FAMILY_PATTERN.test(id)) {
-      return failure('invalid_request', `"${id}" is not a valid font family identifier.`)
+      return failure('invalid_request', t('fonts.fontLibraryService.idIsNotAValid', { id: id }))
     }
     if (id !== undefined && this.has(id)) {
-      return failure('id_taken', `The library already holds a font called "${id}".`)
+      return failure('id_taken', t('fonts.fontLibraryService.theLibraryAlreadyHoldsA', { id: id }))
     }
     if (this.index.entries.length >= MAXIMUM_USER_FACES) {
-      return failure('limit_reached', `The library holds at most ${MAXIMUM_USER_FACES} imported faces.`)
+      return failure('limit_reached', t('fonts.fontLibraryService.theLibraryHoldsAtMost', { mAXIMUM_USER_FACES: MAXIMUM_USER_FACES }))
     }
 
     const outcome = await chooseFile(FONT_FILE_CHOICE, owner)
     if (outcome.kind === 'cancelled') return { ok: true, value: null }
     if (outcome.kind === 'wrong_extension') {
-      return failure('not_a_font', 'Select a TTF or OTF font file.')
+      return failure('not_a_font', t('fonts.fontLibraryService.selectATtfOrOtf'))
     }
 
     let bytes: Uint8Array
     try {
       bytes = new Uint8Array(await readFile(outcome.file.path))
     } catch (error) {
-      return failure('read_failed', messageOf(error, 'The font file could not be read.'))
+      return failure('read_failed', messageOf(error, t('fonts.fontLibraryService.theFontFileCouldNot')))
     }
     const invalid = faceProblem(bytes)
     if (invalid) return failure('not_a_font', invalid)
@@ -156,10 +157,10 @@ export class FontLibraryService {
     const name = outcome.file.name.replace(/\.[^.]+$/, '')
     const resolved = id ?? fontFamilyId(name)
     if (!resolved) {
-      return failure('invalid_request', `"${name}" does not reduce to a font family identifier.`)
+      return failure('invalid_request', t('fonts.fontLibraryService.nameDoesNotReduceTo', { name: name }))
     }
     if (this.has(resolved)) {
-      return failure('id_taken', `The library already holds a font called "${resolved}".`)
+      return failure('id_taken', t('fonts.fontLibraryService.theLibraryAlreadyHoldsA2', { resolved: resolved }))
     }
     return this.store({
       id: resolved,
@@ -180,7 +181,7 @@ export class FontLibraryService {
     await this.load()
     const id = fontFamilyId(family, variant)
     if (!id) {
-      return failure('invalid_request', `"${family}" does not reduce to a font family identifier.`)
+      return failure('invalid_request', t('fonts.fontLibraryService.familyDoesNotReduceTo', { family: family }))
     }
     const existing = await this.entry(id)
     if (existing) return { ok: true, value: existing }
@@ -201,16 +202,16 @@ export class FontLibraryService {
   async remove(id: string): Promise<FontLibraryResult<void>> {
     await this.load()
     if (BUNDLED_FACES.some((face) => face.id === id)) {
-      return failure('read_only', 'A bundled font cannot be removed.')
+      return failure('read_only', t('fonts.fontLibraryService.aBundledFontCannotBe'))
     }
     const index = this.index.entries.findIndex((entry) => entry.id === id)
-    if (index < 0) return failure('not_found', `The library holds no font called "${id}".`)
+    if (index < 0) return failure('not_found', t('fonts.fontLibraryService.theLibraryHoldsNoFont', { id: id }))
     const [removed] = this.index.entries.splice(index, 1)
     try {
       if (removed) await rm(join(this.facesDirectory, removed.file), { force: true })
       await this.writeIndex()
     } catch (error) {
-      return failure('write_failed', messageOf(error, 'The library could not be updated.'))
+      return failure('write_failed', messageOf(error, t('fonts.fontLibraryService.theLibraryCouldNotBe')))
     }
     return { ok: true, value: undefined }
   }
@@ -238,7 +239,7 @@ export class FontLibraryService {
       this.index.entries.sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
       await this.writeIndex()
     } catch (error) {
-      return failure('write_failed', messageOf(error, 'The font could not be added to the library.'))
+      return failure('write_failed', messageOf(error, t('fonts.fontLibraryService.theFontCouldNotBe')))
     }
     return {
       ok: true,

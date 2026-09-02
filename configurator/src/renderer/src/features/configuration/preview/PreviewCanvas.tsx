@@ -26,6 +26,7 @@ import { useCanvasInsert } from './use-canvas-insert'
 import { useCanvasView } from './use-canvas-view'
 import { CanvasWidgetLayer } from './CanvasWidgetLayer'
 import { ClippedAwayOutlines, ContainerHints, InsertGhost, TapTargets } from './CanvasDecorations'
+import { t } from '@shared/ui-text'
 
 export function Widgets({
   configuration,
@@ -150,7 +151,7 @@ export function Widgets({
     <>
     <svg
       ref={svgRef}
-      aria-label="Dashboard display preview"
+      aria-label={t('canvas.previewCanvas.dashboardDisplayPreview')}
       className={`block size-full touch-none select-none ${
         spaceHeld
           ? 'cursor-grab'

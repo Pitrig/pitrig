@@ -29,7 +29,7 @@ import {
   LAYER_DIRECTIONS,
   LED_EFFECT_USES_DIRECTION
 } from './direction'
-import { HINTS } from './hints'
+import { t } from '@shared/ui-text'
 import { layerName } from './layer-name'
 import { PanelAreaField } from './PanelArea'
 import { mutateEffects } from './modules-document'
@@ -75,8 +75,8 @@ export function EffectEditor({
         defaultOpen
       >
         <SelectField
-          label="Paints"
-          hint={HINTS.effect.type}
+          label={t('modules.effectEditor.paints')}
+          hint={t('modules.hints.effect.type')}
           value={type}
           options={offered}
           modified={authored(effect.type, 'solid')}
@@ -90,31 +90,31 @@ export function EffectEditor({
           })}
         />
         <TextField
-          label="Name"
+          label={t('device.infoPage.name')}
           value={effect.id ?? ''}
           onChange={(id) => update((next) => { if (id) next.id = id; else delete next.id })}
         />
         {matrix ? (
           <PanelAreaField device={device} effect={effect} update={update} />
         ) : (
-        <PropertyRow label="Area" hint={HINTS.effect.area}>
+        <PropertyRow label={t('modules.effectEditor.area')} hint={t('modules.hints.effect.area')}>
           <div className="grid grid-cols-2 gap-1">
             <NumberInput
-              title="First lamp of this device, counted from 1"
+              title={t('modules.effectEditor.firstLampOfThisDevice')}
               value={(effect.from ?? 0) + 1}
               min={1}
               onChange={(from) => update((next) => { next.from = Math.max(0, from - 1) })}
             />
             <NumberInput
-              title="Lamps covered; 0 covers the rest"
+              title={t('modules.effectEditor.lampsCovered0CoversThe')}
               value={effect.count ?? 0}
               min={0}
               onChange={(count) => update((next) => { next.count = count })}
             />
           </div>
           <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground">
-            <span>From</span>
-            <span>Count</span>
+            <span>{t('modules.effectEditor.from')}</span>
+            <span>{t('modules.effectEditor.count')}</span>
           </div>
         </PropertyRow>
         )}
@@ -143,7 +143,7 @@ export function EffectEditor({
         ) : null}
         {type === 'solid' || type === 'animation' || type === 'gauge' || type === 'text' ? (
           <ColorField
-            label="Colour"
+            label={t('modules.effectEditor.colour')}
             value={effect.color ?? '#ffffff'}
             modified={authored(effect.color, '#ffffff')}
             onChange={(color) => update((next) => { next.color = color })}
@@ -152,8 +152,8 @@ export function EffectEditor({
         {type === 'sprite' ? (
           <>
             <SelectField
-              label="Picture"
-              hint={HINTS.effect.sprite}
+              label={t('modules.effectEditor.picture')}
+              hint={t('modules.hints.effect.sprite')}
               value={effect.sprite ?? ''}
               options={effect.sprite && !pictures.includes(effect.sprite)
                 ? [effect.sprite, ...pictures]
@@ -164,8 +164,8 @@ export function EffectEditor({
               })}
             />
             <CheckboxField
-              label="Play frames"
-              hint={HINTS.effect.loop}
+              label={t('modules.effectEditor.playFrames')}
+              hint={t('modules.hints.effect.loop')}
               checked={effect.sprite_loop ?? false}
               modified={authored(effect.sprite_loop, false)}
               onChange={(checked) => update((next) => {
@@ -175,7 +175,7 @@ export function EffectEditor({
             />
             {effect.sprite_loop ? (
               <NumberField
-                label="Frame holds"
+                label={t('modules.effectEditor.frameHolds')}
                 suffix="ms"
                 value={effect.speed_ms ?? 1000}
                 {...fieldBounds('LedEffect', 'speed_ms')}
@@ -183,8 +183,8 @@ export function EffectEditor({
               />
             ) : (
               <NumberField
-                label="Frame"
-                hint="Which frame to hold still. With telemetry bound the value picks it instead."
+                label={t('modules.effectEditor.frame')}
+                hint={t('modules.effectEditor.whichFrameToHoldStill')}
                 value={effect.sprite_frame ?? 0}
                 {...fieldBounds('LedEffect', 'sprite_frame')}
                 onChange={(value) => update((next) => { next.sprite_frame = value })}
@@ -195,8 +195,8 @@ export function EffectEditor({
         {type === 'text' ? (
           <>
             <TextField
-              label="Text"
-              hint="Drawn as authored. With a source bound this becomes the prefix and the source supplies the rest."
+              label={t('modules.effectEditor.text')}
+              hint={t('modules.effectEditor.drawnAsAuthoredWithA')}
               value={effect.text ?? ''}
               onChange={(value) => update((next) => {
                 if (value) next.text = value
@@ -204,15 +204,15 @@ export function EffectEditor({
               })}
             />
             <SelectField
-              label="Face"
+              label={t('modules.effectEditor.face')}
               value={effect.font ?? 'regular_4x6'}
               options={LED_FONT_VALUES}
               onChange={(font) => update((next) => { next.font = font })}
             />
             <NumberField
-              label="Scroll step"
+              label={t('modules.effectEditor.scrollStep')}
               suffix="ms"
-              hint="How long one column of a scrolling string stays put. Text that fits the panel is centred and does not scroll."
+              hint={t('modules.effectEditor.howLongOneColumnOf')}
               value={effect.speed_ms ?? 1000}
               {...fieldBounds('LedEffect', 'speed_ms')}
               onChange={(value) => update((next) => { next.speed_ms = value })}
@@ -222,13 +222,13 @@ export function EffectEditor({
         {type === 'animation' ? (
           <>
             <SelectField
-              label="Motion"
+              label={t('modules.effectEditor.motion')}
               value={effect.animation ?? 'rainbow'}
               options={LED_ANIMATION_KIND_VALUES}
               onChange={(value) => update((next) => { next.animation = value })}
             />
             <NumberField
-              label="Pass"
+              label={t('modules.effectEditor.pass')}
               suffix="ms"
               value={effect.speed_ms ?? 1000}
               {...fieldBounds('LedEffect', 'speed_ms')}
@@ -238,8 +238,8 @@ export function EffectEditor({
         ) : null}
         {LED_EFFECT_USES_DIRECTION.has(type) ? (
           <SelectField
-            label="Direction"
-            hint={HINTS.effect.shape}
+            label={t('modules.effectEditor.direction')}
+            hint={t('modules.hints.effect.shape')}
             value={directionOf(effect)}
             options={LAYER_DIRECTIONS}
             modified={directionOf(effect) !== 'along the run'}

@@ -14,18 +14,6 @@ export const MAXIMUM_CONFIGURATION_TEXT_SIZE =
     0
   ) * INDENTED_TEXT_ALLOWANCE
 
-export const CONFIGURATION_DOCUMENT_LABELS: Record<ConfigurationDocumentId, string> = {
-  dashboard: 'Dashboard',
-  modules: 'Modules',
-  protocol: 'Protocol'
-}
-
-export const CONFIGURATION_DOCUMENT_SUMMARIES: Record<ConfigurationDocumentId, string> = {
-  dashboard: 'Screens and the widgets on them.',
-  modules: 'Peripherals beyond the display.',
-  protocol: 'The link that carries telemetry.'
-}
-
 export function documentOf(
   configuration: ApplicationConfiguration,
   id: ConfigurationDocumentId

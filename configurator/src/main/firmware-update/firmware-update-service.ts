@@ -17,18 +17,20 @@ import {
 } from '../assets/asset-service-base'
 import { DeviceService } from '../device/device-service'
 import { buildFirmwarePackage } from './firmware-package'
+import { t } from '@shared/ui-text'
+import { PackageTooLargeError } from '../assets/asset-service-base'
 
 const kFirmware: AssetKind = {
   sessionKey: 'firmware',
-  dialogTitle: 'Select firmware image',
-  dialogButton: 'Select image',
-  filters: [{ name: 'SimCore firmware', extensions: ['bin'] }],
+  dialogTitle: t('firmware.firmwareUpdateService.selectFirmwareImage'),
+  dialogButton: t('firmware.firmwareUpdateService.selectImage'),
+  filters: [{ name: t('firmware.dialog.filter'), extensions: ['bin'] }],
   extensions: ['.bin'],
-  wrongExtension: 'Select the simcore.bin produced by a firmware build.',
-  busy: 'A firmware upload is already running.',
-  unsupported: 'The connected firmware cannot update itself over serial.',
-  storageUnavailable: 'This device has no second firmware slot to update into.',
-  rebootRequired: 'Restart the device to run the firmware already installed.'
+  wrongExtension: t('firmware.firmwareUpdateService.selectTheSimcoreBinProduced'),
+  busy: t('firmware.firmwareUpdateService.aFirmwareUploadIsAlready'),
+  unsupported: t('firmware.firmwareUpdateService.theConnectedFirmwareCannotUpdate'),
+  storageUnavailable: t('firmware.firmwareUpdateService.thisDeviceHasNoSecond'),
+  rebootRequired: t('firmware.firmwareUpdateService.restartTheDeviceToRun')
 }
 
 export class FirmwareUpdateService extends AssetServiceBase {
@@ -50,12 +52,12 @@ export class FirmwareUpdateService extends AssetServiceBase {
     try {
       size = (await stat(source.path)).size
     } catch {
-      return failure('source_unreadable', `Cannot read ${source.name}.`)
+      return failure('source_unreadable', t('firmware.firmwareUpdateService.cannotReadName', { name: source.name }))
     }
     if (size === 0 || size > MAXIMUM_FIRMWARE_IMAGE_SIZE) {
       return failure(
         'package_too_large',
-        `${source.name} is ${size} bytes, which does not fit the 2 MiB firmware slot.`
+        t('firmware.firmwareUpdateService.nameIsSizeBytesWhich', { name: source.name, size: size })
       )
     }
     this.sources.set(source.id, source)
@@ -70,12 +72,12 @@ export class FirmwareUpdateService extends AssetServiceBase {
     try {
       size = (await stat(path)).size
     } catch {
-      return failure('source_unreadable', `Cannot read ${name}.`)
+      return failure('source_unreadable', t('firmware.firmwareUpdateService.cannotReadName', { name: name }))
     }
     if (size === 0 || size > MAXIMUM_FIRMWARE_IMAGE_SIZE) {
       return failure(
         'package_too_large',
-        `${name} is ${size} bytes, which does not fit the 2 MiB firmware slot.`
+        t('firmware.firmwareUpdateService.nameIsSizeBytesWhich', { name: name, size: size })
       )
     }
     const id = `path-${Date.now().toString(36)}`
@@ -88,11 +90,11 @@ export class FirmwareUpdateService extends AssetServiceBase {
     if (blocked) return blocked
     const source = this.sources.get(request.sourceId)
     if (!source) {
-      return failure('source_missing', 'The selected firmware image is no longer available.')
+      return failure('source_missing', t('firmware.firmwareUpdateService.theSelectedFirmwareImageIs'))
     }
     const deviceSession = this.deviceService.getState().session
     if (!deviceSession) {
-      return failure('device_error', 'No SimCore device is connected.')
+      return failure('device_error', t('device.deviceOperation.noSimcoreDeviceIsConnected'))
     }
 
     const operation = new AbortController()
@@ -103,7 +105,7 @@ export class FirmwareUpdateService extends AssetServiceBase {
         stage: 'reading',
         completed: 0,
         total: 1,
-        message: `Reading ${source.name}`
+        message: t('firmware.firmwareUpdateService.readingName', { name: source.name })
       })
       const image = await readFile(source.path)
       operation.signal.throwIfAborted()
@@ -114,7 +116,7 @@ export class FirmwareUpdateService extends AssetServiceBase {
         stage: 'building',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
-        message: `Wrapped ${image.byteLength} bytes for ${deviceSession.info.boardId}`
+        message: t('firmware.firmwareUpdateService.wrappedBytelengthBytesForBoardid', { byteLength: image.byteLength, boardId: deviceSession.info.boardId })
       })
 
       stage = 'uploading'
@@ -130,13 +132,14 @@ export class FirmwareUpdateService extends AssetServiceBase {
       })
       return success(undefined)
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown firmware update error.'
+      const message =
+        error instanceof Error ? error.message : t('firmware.firmwareUpdateService.unknownError')
       if (operation.signal.aborted) {
-        this.onProgress({ stage: 'cancelled', completed: 0, total: 0, message: 'Firmware upload cancelled.' })
-        return failure('cancelled', 'Firmware upload was cancelled.')
+        this.onProgress({ stage: 'cancelled', completed: 0, total: 0, message: t('firmware.firmwareUpdateService.firmwareUploadCancelled') })
+        return failure('cancelled', t('firmware.firmwareUpdateService.firmwareUploadWasCancelled'))
       }
       this.onProgress({ stage: 'error', completed: 0, total: 0, message })
-      if (message.includes('2 MiB')) return failure('package_too_large', message)
+      if (error instanceof PackageTooLargeError) return failure('package_too_large', message)
       return failure(stage === 'reading' ? 'source_unreadable' : 'device_error', message)
     } finally {
       this.release(operation)
