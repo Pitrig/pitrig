@@ -1,4 +1,5 @@
 #include <array>
+#include <span>
 
 #include "esp_task_wdt.h"
 #include "esp_timer.h"
@@ -11,6 +12,23 @@
 #include "value_conditions.hpp"
 
 namespace simcore::rgb_leds {
+namespace {
+
+void order_by_activation(const std::span<std::uint8_t> order,
+                         const EffectState* const states) {
+  for (std::size_t slot = 1; slot < order.size(); ++slot) {
+    const std::uint8_t index = order[slot];
+    const std::uint64_t started = states[index].started_us;
+    std::size_t place = slot;
+    while (place > 0 && states[order[place - 1]].started_us > started) {
+      order[place] = order[place - 1];
+      --place;
+    }
+    order[place] = index;
+  }
+}
+
+}
 
 void RgbLeds::on_telemetry_updated(const events::Event&, void* const context) {
   static_cast<RgbLeds*>(context)->last_telemetry_us_.store(
@@ -57,16 +75,22 @@ bool RgbLeds::paint_output(const std::size_t output,
     return false;
   }
   const configuration::HardwareDeviceConfiguration& device = *devices_[output];
+  const EffectState* const states = states_ + output * kMaximumEffects;
   outputs_[output].clear();
+  std::array<std::uint8_t, kMaximumEffects> order{};
+  std::uint8_t painting = 0;
   for (std::uint8_t index = 0; index < device.effect_count; ++index) {
-    const EffectBinding& binding = bindings_[output * kMaximumEffects + index];
-    const std::optional<double> watched =
-        binding.condition.valid()
-            ? conditions::condition_value(reader_->read(binding.condition))
-            : std::nullopt;
-    if (!gate_holds(output, index, watched, now_us)) {
-      continue;
+    if (gate_holds(output, index,
+                   watched_value(bindings_[output * kMaximumEffects + index]),
+                   now_us)) {
+      order[painting++] = index;
     }
+  }
+  order_by_activation({order.data(), painting}, states);
+  for (std::uint8_t slot = 0; slot < painting; ++slot) {
+    const std::uint8_t index = order[slot];
+    const EffectBinding& binding = bindings_[output * kMaximumEffects + index];
+    const std::optional<double> watched = watched_value(binding);
     const configuration::LedEffect& effect = device.effects[index];
     EffectState& state = states_[output * kMaximumEffects + index];
     const LayerColors colors =
@@ -123,6 +147,13 @@ bool RgbLeds::paint_output(const std::size_t output,
   outputs_[output].settle();
   pushed_[output] = true;
   return true;
+}
+
+std::optional<double> RgbLeds::watched_value(
+    const EffectBinding& binding) const {
+  return binding.condition.valid()
+             ? conditions::condition_value(reader_->read(binding.condition))
+             : std::nullopt;
 }
 
 bool RgbLeds::gate_holds(const std::size_t output, const std::size_t index,

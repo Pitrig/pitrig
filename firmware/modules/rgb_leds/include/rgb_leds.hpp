@@ -53,6 +53,8 @@ class RgbLeds final {
   void run();
   void render(std::uint64_t now_us);
   [[nodiscard]] bool paint_output(std::size_t output, std::uint64_t now_us);
+  [[nodiscard]] std::optional<double> watched_value(
+      const EffectBinding& binding) const;
   [[nodiscard]] bool gate_holds(std::size_t output, std::size_t effect,
                                 std::optional<double> watched,
                                 std::uint64_t now_us);

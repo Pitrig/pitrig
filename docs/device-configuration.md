@@ -1293,12 +1293,14 @@ ESP32-S3 and the ESP32-P4 have — except the DevKitC-1, whose status lamp holds
 one for the whole boot, so it drives three. Lamp numbering is per device and
 starts at zero.
 
-Layers are painted in the order they are authored and a later one overwrites the
-lamps it covers, so the flag layer above sits over the shift lights whatever they
-were showing while its rule holds. That is deliberately the opposite of a
-widget's styling rules, where the first match wins: a widget resolves one
-appearance, while a device composes a picture out of several things being true
-at once.
+Every layer whose gate holds paints, and where two of them cover the same lamp
+the one that **lit most recently** wins it — so the flag layer above sits over the
+shift lights for as long as its rule holds, wherever it is written in the list.
+Layers that came up in the same frame, which is every ungated layer, keep the
+order they are authored in, and layers covering lamps no other layer covers
+simply show side by side. That is deliberately the opposite of a widget's styling
+rules, where the first match wins: a widget resolves one appearance, while a
+device composes a picture out of several things being true at once.
 
 A layer's `color_rules` are the exception, and they are first-match-wins for the
 same reason a widget's are: they describe one layer's appearance rather than

@@ -6,7 +6,7 @@ import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
 import { HINTS } from './hints'
 import { layerName } from './layer-name'
 import { mutateEffects, moveEffect } from './modules-document'
-import { useModulesStore } from './modules-store'
+import { playingLayer, useModulesStore } from './modules-store'
 
 function selectionAfterMove(selected: number, from: number, to: number): number {
   if (selected < 0) return selected
@@ -47,11 +47,10 @@ export function EffectList({
       defaultOpen
     >
       <p className="pb-1 text-[10px] text-muted-foreground">
-        Painted in order; a later layer overwrites the lamps it covers.
+        All painted at once; where two share a lamp, the one that lit last wins it.
       </p>
       {effects.map(({ effect, index }, position) => {
-        const playing =
-          preview?.kind === 'layer' && preview.output === output && preview.effect === index
+        const playing = preview.some(playingLayer(output, index))
         const reorder = (to: number): void => {
           if (to === index) return
           moveEffect(output, index, to)
@@ -80,9 +79,9 @@ export function EffectList({
               aria-label={
                 playing
                   ? `Stop previewing ${layerName(effect, index)}`
-                  : `Preview ${layerName(effect, index)} on its own`
+                  : `Preview ${layerName(effect, index)}`
               }
-              title="Plays this layer on its own in the preview above, until it is pressed again"
+              title="Plays this layer in the preview above, beside anything else playing, until it is pressed again"
               className={`rounded p-1 ${playing ? 'bg-sky-500/25 text-sky-300' : 'text-muted-foreground hover:bg-white/5'}`}
               onClick={() => togglePreview(output, index)}
             >

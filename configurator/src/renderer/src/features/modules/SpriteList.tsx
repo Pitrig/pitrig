@@ -12,7 +12,7 @@ import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
 import { HINTS } from './hints'
 import { chequerSprite, diagonalSprite, discSprite } from './matrix-art'
 import { drawnOf } from './modules-document'
-import { useModulesStore } from './modules-store'
+import { playingSprite, useModulesStore } from './modules-store'
 import {
   addBlankSprite,
   addSprite,
@@ -119,7 +119,7 @@ export function SpriteList({
       ) : (
         sprites.map((sprite, at) => {
           const { width, height, frames } = spriteGeometry(sprite)
-          const playing = preview?.kind === 'sprite' && preview.sprite === sprite.id
+          const playing = preview.some(playingSprite(output, sprite.id ?? ''))
           return (
             <div
               key={at}
@@ -144,7 +144,7 @@ export function SpriteList({
                 type="button"
                 aria-pressed={playing}
                 aria-label={playing ? `Stop showing ${sprite.id}` : `Show ${sprite.id} on its own`}
-                title="Plays this picture on its own in the preview above, and on the panel while mirroring is on"
+                title="Plays this picture in the preview above, and on the panel while mirroring is on"
                 className={`rounded p-1 ${playing ? 'bg-sky-500/25 text-sky-300' : 'text-muted-foreground hover:bg-white/5'}`}
                 onClick={() => toggleSpritePreview(output, sprite.id, 120)}
               >

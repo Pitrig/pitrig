@@ -18,7 +18,7 @@ import { IdField, NumberInput } from '@/features/configuration/inspector/fields'
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { HINTS } from './hints'
 import { drawnOf, mutateEffects } from './modules-document'
-import { useModulesStore } from './modules-store'
+import { playingSprite, useModulesStore } from './modules-store'
 import { SpriteCanvas } from './SpriteCanvas'
 import { SpriteFrames } from './SpriteFrames'
 import { SpritePalette } from './SpritePalette'
@@ -65,7 +65,7 @@ export function SpriteEditor({
   const { width, height } = spriteGeometry(sprite)
   const panel = drawnOf(device)
   const fitted = width === panel.width && height === panel.height
-  const mirrored = preview?.kind === 'sprite' && preview.sprite === sprite.id
+  const mirrored = preview.some(playingSprite(output, sprite.id ?? ''))
   const layers = device.effects ?? []
   const drawn = layers.some((effect) => effect.sprite === sprite.id)
 

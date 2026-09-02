@@ -429,7 +429,7 @@
     },
 
     "LedEffect": {
-      "doc": "One layer of an output's picture. Effects are painted in the order they are authored and a later one overwrites the lamps it covers, so a flag laid over shift lights is simply written after them. This is deliberately the opposite of a widget's styling rules, where the first match wins and the rest are skipped: a widget resolves one appearance for one object, while an output composes a picture out of many independent things being true at once.",
+      "doc": "One layer of an output's picture. Every layer whose gate holds paints, and where two cover the same lamp the one that lit most recently wins it, so a flag comes up over shift lights whatever order the two were authored in. This is deliberately the opposite of a widget's styling rules, where the first match wins and the rest are skipped: a widget resolves one appearance for one object, while an output composes a picture out of many independent things being true at once.",
       "fields": [
         { "name": "type", "kind": "enum", "enum": "LedEffectType" },
         { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
@@ -491,7 +491,7 @@
         { "name": "origin", "kind": "enum", "enum": "MatrixOrigin" },
         { "name": "rotation_deg", "kind": "uint16", "default": 0, "maximum": 270, "doc": "Quarter turn applied to everything drawn on this panel, so one mounted on its side still reads upright. Accepts 0, 90, 180 and 270; any other multiple is rejected rather than rounded. Ignored by a strip." },
         { "name": "effect_count", "kind": "uint8", "default": 0, "serialized": false },
-        { "name": "effects", "kind": "array", "struct": "LedEffect", "capacity": "kMaximumLedEffects", "count_field": "effect_count", "doc": "Layers painted in order; a later one overwrites the lamps it covers." },
+        { "name": "effects", "kind": "array", "struct": "LedEffect", "capacity": "kMaximumLedEffects", "count_field": "effect_count", "doc": "Layers painted together; where two cover the same lamp the one whose gate lit most recently wins it, and layers that lit in the same frame keep the order they are authored in." },
         { "name": "sprite_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "sprites", "kind": "array", "struct": "LedSpriteConfiguration", "capacity": "kMaximumLedSprites", "count_field": "sprite_count", "doc": "Pictures this matrix draws, named by id. Ignored by a strip." }
       ]

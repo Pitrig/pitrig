@@ -143,7 +143,7 @@ One colour a layer takes while its watched value matches, and how long and how s
 
 ### LedEffect
 
-One layer of an output's picture. Effects are painted in the order they are authored and a later one overwrites the lamps it covers, so a flag laid over shift lights is simply written after them. This is deliberately the opposite of a widget's styling rules, where the first match wins and the rest are skipped: a widget resolves one appearance for one object, while an output composes a picture out of many independent things being true at once.
+One layer of an output's picture. Every layer whose gate holds paints, and where two cover the same lamp the one that lit most recently wins it, so a flag comes up over shift lights whatever order the two were authored in. This is deliberately the opposite of a widget's styling rules, where the first match wins and the rest are skipped: a widget resolves one appearance for one object, while an output composes a picture out of many independent things being true at once.
 
 Also carries the properties of [`ValueRange`](#valuerange), flattened: they are plain properties of this object in JSON.
 

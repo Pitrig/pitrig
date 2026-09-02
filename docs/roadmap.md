@@ -84,8 +84,9 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [ ] Button Matrix
 - [*] RGB — addressable WS2812B and SK6812 outputs, each a data pin and an
       ordered chain of strips and matrices. Layers are painted over that chain
-      and a later one overwrites the lamps it covers, which is SimHub's model
-      and the opposite of a widget's first-match styling rules: an output
+      and where two cover the same lamp the one that lit most recently wins it —
+      SimHub's stacking model with the tie broken by time rather than by
+      authoring order, and the opposite of a widget's first-match rules: an output
       composes a picture out of several things being true at once — while a
       layer's own colour and ground answer telemetry through first-match rules,
       the way a widget's do. Matrix artwork is drawn in the configurator and

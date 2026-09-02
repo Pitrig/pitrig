@@ -2,6 +2,11 @@ import type { HardwareDeviceConfiguration, LedEffect } from '@shared/configurati
 import type { DeviceConfiguration } from '@shared/device'
 import type { PreviewTarget } from './modules-store'
 
+export interface PlayedLayer {
+  target: PreviewTarget
+  layer: LedEffect
+}
+
 export function previewLayerOf(
   device: HardwareDeviceConfiguration,
   target: PreviewTarget
@@ -20,18 +25,32 @@ export function previewLayerOf(
   return solo
 }
 
-export function soloConfiguration(
+export function playedLayersOf(
+  device: HardwareDeviceConfiguration,
+  targets: readonly PreviewTarget[]
+): PlayedLayer[] {
+  return targets.flatMap((target) => {
+    const layer = previewLayerOf(device, target)
+    return layer ? [{ target, layer }] : []
+  })
+}
+
+export function previewConfiguration(
   draft: DeviceConfiguration,
-  target: PreviewTarget
+  targets: readonly PreviewTarget[]
 ): DeviceConfiguration | undefined {
+  const output = targets[0]?.output
+  if (output === undefined) return undefined
   const devices = draft.hardware ?? []
-  const device = devices[target.output]
-  const solo = device ? previewLayerOf(device, target) : undefined
-  if (!solo) return undefined
+  const device = devices[output]
+  const played = device
+    ? playedLayersOf(device, targets.filter((target) => target.output === output))
+    : []
+  if (played.length === 0) return undefined
   return {
     ...draft,
     hardware: devices.map((entry, index) =>
-      index === target.output ? { ...entry, effects: [solo] } : entry
+      index === output ? { ...entry, effects: played.map(({ layer }) => layer) } : entry
     )
   }
 }

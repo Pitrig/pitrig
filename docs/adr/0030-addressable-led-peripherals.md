@@ -402,3 +402,39 @@ readout cycles `R`, `N` and 1 to 9 on its own beat for the same reason: the swee
 that drives a bar says nothing about what a glyph should spell. Both are preview
 data and neither reaches the board — a layer bound to telemetry previews on the
 desk only when a game is feeding it.
+
+## Amendment: an overlap is resolved by when a layer lit (no schema change)
+
+**Layers still stack; what breaks a tie is time, not the array.** "Effects
+stack; a later one wins" above meant later in the authored array. It now means
+later in *time*: every layer already records when its gate started holding, the
+render pass paints from the oldest activation to the newest, and layers that came
+up in the same frame — which is every `always` layer — keep authored order. A
+document that gates nothing therefore reads exactly as it did.
+
+Authored order is a poor proxy for what an author means once the layers are
+conditional. A yellow flag, a pit-limiter flash and shift lights are not
+competing descriptions of one lamp, but when two of them do cover the same lamp,
+the one that just came true is the news; under authored order that news could sit
+underneath a layer that had been showing for ten minutes, and the only fix was to
+reorder a list whose order is invisible until both conditions happen to hold at
+once, on track. Nothing changes for a layer covering lamps no other layer covers:
+those were always painted side by side and still are. What changes is only which
+colour a *shared* lamp takes.
+
+**It costs one sort of at most thirty-two bytes a frame.** The timestamp is
+`EffectState::started_us`, which the gate already kept as the animation timebase;
+the render pass collects the indices whose gate holds, insertion-sorts them —
+stable, so equal timestamps keep authored order — and paints in that order. No
+allocation and no new state. The watched value is read twice per frame, once to
+gate and once to colour, because the gate pass runs before the order is known; a
+telemetry read is a fixed-slot lookup, which is cheaper than carrying an optional
+double per layer across the two passes.
+
+**The preview plays several layers at once.** Pressing Play on a layer no longer
+stops the one already playing: the previewed layers accumulate in the order they
+were pressed and are painted in that order, so the preview resolves an overlap by
+"the one played last" exactly as the board resolves it by "the one that lit
+last". Pressing a playing layer again stops it, and selecting another device
+clears the set. The board preview follows the same set: what is applied over
+`@SC:APPLY` is those layers, in that order, rather than a single soloed one.

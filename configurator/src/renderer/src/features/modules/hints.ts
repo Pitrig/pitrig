@@ -33,7 +33,7 @@ export const HINTS = {
   },
   effect: {
     stack:
-      'Layers are painted in the order they are listed and a later one overwrites the lamps it covers — so a flag laid over shift lights simply comes after them. This is the opposite of a widget’s styling rules, where the first match wins: a widget resolves one appearance, while an output composes a picture out of many things being true at once.',
+      'Every layer whose gate holds paints at once. Where two of them cover the same lamp, the one that lit most recently wins it — so a flag comes up over shift lights whichever way round the two are listed — and layers that came up together keep the order they are in here. This is the opposite of a widget’s styling rules, where the first match wins: a widget resolves one appearance, while an output composes a picture out of many things being true at once.',
     type: 'What this layer paints. steps is the shift-light idiom: thresholds shared out over the lamps it covers. gauge fills in proportion to the value. gradient spreads a colour ramp across the lamps. animation moves on its own timebase. sprite and text draw on a matrix.',
     area: 'Which run of this device’s lamps the layer paints. Lamps are numbered from 1 here, while the saved document counts them from zero. A count of 0 covers the rest of the device.',
     panel:

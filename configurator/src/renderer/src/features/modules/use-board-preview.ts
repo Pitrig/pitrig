@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { documentsDiffering } from '@shared/configuration-documents'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
 import { recordRunningConfiguration } from '@/features/device/use-live-apply'
-import { soloConfiguration } from './board-preview'
+import { previewConfiguration } from './board-preview'
 import { useModulesStore } from './modules-store'
 
 const APPLY_DELAY_MS = 250
@@ -15,8 +15,8 @@ export function useBoardPreview(enabled: boolean): void {
   const reportPreviewError = useModulesStore((state) => state.reportPreviewError)
 
   useEffect(() => {
-    if (!enabled || !draft || !preview) return undefined
-    const configuration = soloConfiguration(draft, preview)
+    if (!enabled || !draft || preview.length === 0) return undefined
+    const configuration = previewConfiguration(draft, preview)
     if (!configuration || documentsDiffering(configuration, running).length === 0) {
       return undefined
     }

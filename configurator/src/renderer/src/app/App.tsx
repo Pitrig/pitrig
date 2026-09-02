@@ -40,7 +40,7 @@ export function App(): React.JSX.Element {
   useBoardSync(dirtyDocuments)
 
   const mirroring = liveApplyAllowed && !saving && syncQuestion === undefined
-  useLiveApply(mirroring && layerPreview === null, reportLiveApply)
+  useLiveApply(mirroring && layerPreview.length === 0, reportLiveApply)
   useBoardPreview(mirroring)
 
   useEffect(() => {

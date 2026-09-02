@@ -8,7 +8,7 @@ export function ModulesStatusChip(): React.JSX.Element | null {
   const error = useModulesStore((state) => state.previewError)
   const { connected, liveApplyAllowed } = useDraftState()
 
-  if (!preview) return <DocumentStatusChip document="modules" />
+  if (preview.length === 0) return <DocumentStatusChip document="modules" />
   if (error) {
     return (
       <Badge className="border-red-500/40 bg-red-500/15 text-red-300" variant="outline" title={error}>
@@ -27,7 +27,7 @@ export function ModulesStatusChip(): React.JSX.Element | null {
     <Badge
       className="border-sky-500/40 bg-sky-500/15 text-sky-300"
       variant="outline"
-      title="The board is lit by this layer alone. A layer bound to telemetry follows the game there rather than the sweep shown here."
+      title="The board is lit by what is being played and nothing else. A layer bound to telemetry follows the game there rather than the sweep shown here."
     >
       Previewing on the board
     </Badge>

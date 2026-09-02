@@ -12,6 +12,25 @@ export type PreviewTarget =
   | { kind: 'layer'; output: number; effect: number }
   | { kind: 'sprite'; output: number; sprite: string; speedMs: number }
 
+type Matcher = (entry: PreviewTarget) => boolean
+
+export function playingLayer(output: number, effect: number): Matcher {
+  return (entry) => entry.kind === 'layer' && entry.output === output && entry.effect === effect
+}
+
+export function playingSprite(output: number, sprite: string): Matcher {
+  return (entry) => entry.kind === 'sprite' && entry.output === output && entry.sprite === sprite
+}
+
+function toggled(
+  playing: readonly PreviewTarget[],
+  target: PreviewTarget,
+  matches: Matcher
+): PreviewTarget[] {
+  if (playing.some(matches)) return playing.filter((entry) => !matches(entry))
+  return [...playing.filter((entry) => entry.output === target.output), target]
+}
+
 interface ModulesState {
   output: number
   effect: number
@@ -20,7 +39,7 @@ interface ModulesState {
   ink: number
   deviceView: DeviceView
   highlight: LampHighlight | null
-  preview: PreviewTarget | null
+  preview: readonly PreviewTarget[]
   previewError?: string
   select: (output: number) => void
   selectEffect: (effect: number) => void
@@ -44,7 +63,7 @@ export const useModulesStore = create<ModulesState>((set) => ({
   ink: 1,
   deviceView: 'layers',
   highlight: null,
-  preview: null,
+  preview: [],
   select: (output) =>
     set({
       output,
@@ -52,7 +71,7 @@ export const useModulesStore = create<ModulesState>((set) => ({
       sprite: -1,
       frame: 0,
       highlight: null,
-      preview: null,
+      preview: [],
       previewError: undefined
     }),
   selectEffect: (effect) => set({ effect }),
@@ -64,31 +83,34 @@ export const useModulesStore = create<ModulesState>((set) => ({
   togglePreview: (output, effect) =>
     set((state) => ({
       previewError: undefined,
-      preview:
-        state.preview?.kind === 'layer' &&
-        state.preview.output === output &&
-        state.preview.effect === effect
-          ? null
-          : { kind: 'layer', output, effect }
+      preview: toggled(
+        state.preview,
+        { kind: 'layer', output, effect },
+        playingLayer(output, effect)
+      )
     })),
   toggleSpritePreview: (output, sprite, speedMs) =>
     set((state) => ({
       previewError: undefined,
-      preview:
-        state.preview?.kind === 'sprite' &&
-        state.preview.output === output &&
-        state.preview.sprite === sprite
-          ? null
-          : { kind: 'sprite', output, sprite, speedMs }
+      preview: toggled(
+        state.preview,
+        { kind: 'sprite', output, sprite, speedMs },
+        playingSprite(output, sprite)
+      )
     })),
   setPreviewSpeed: (speedMs) =>
-    set((state) =>
-      state.preview?.kind === 'sprite' ? { preview: { ...state.preview, speedMs } } : {}
-    ),
+    set((state) => ({
+      preview: state.preview.map((entry) =>
+        entry.kind === 'sprite' ? { ...entry, speedMs } : entry
+      )
+    })),
   clearPreview: (output) =>
     set((state) => ({
       previewError: undefined,
-      preview: output === undefined || state.preview?.output === output ? null : state.preview
+      preview:
+        output === undefined
+          ? []
+          : state.preview.filter((entry) => entry.output !== output)
     })),
   reportPreviewError: (previewError) => set({ previewError })
 }))

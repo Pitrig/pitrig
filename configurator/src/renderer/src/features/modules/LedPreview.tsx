@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { paintOutput } from '@shared/led-paint'
 import type { HardwareDeviceConfiguration, RgbColor } from '@shared/configuration-schema'
 import { PageSection } from '@/app/workspace/PageShell'
-import { previewLayerOf } from './board-preview'
+import { playedLayersOf, type PlayedLayer } from './board-preview'
 import { previewDrive, previewNote } from './preview-values'
 import { DevicePreview } from './DevicePreview'
 import { layerName } from './layer-name'
@@ -43,41 +43,52 @@ export function LedPreview({
 }): React.JSX.Element {
   const highlight = useModulesStore((state) => state.highlight)
   const preview = useModulesStore((state) => state.preview)
-  const target = preview?.output === index ? preview : null
-  const alone = target ? previewLayerOf(device, target) : undefined
-  const elapsed = useElapsed(alone !== undefined)
+  const played = playedLayersOf(
+    device,
+    preview.filter((entry) => entry.output === index)
+  )
+  const elapsed = useElapsed(played.length > 0)
   const sweep = (elapsed % SWEEP_MS) / SWEEP_MS
-  const solo = alone ? { ...device, effects: [alone] } : device
-  const named =
-    target?.kind === 'sprite'
-      ? `Picture ${target.sprite}`
-      : alone
-        ? layerName(alone, target?.kind === 'layer' ? target.effect : 0)
-        : ''
+  const layers = played.map(({ layer }) => layer)
+  const drives = layers.map((layer) => previewDrive(layer, elapsed))
 
   return (
-    <PageSection
-      title="Preview"
-      description={
-        alone
-          ? `${named} on its own, over and over.${previewNote(alone)} Press its button again to stop.`
-          : 'Dark until a layer or a picture is played. Press the preview button on one to watch it here.'
-      }
-    >
+    <PageSection title="Preview" description={describe(played)}>
       <DevicePreview
         device={device}
         frame={
-          alone
-            ? paintOutput(solo, {
-                value: sweep,
-                elapsedMs: elapsed,
-                gates: [true],
-                ...previewDrive(alone, elapsed)
-              })
+          played.length > 0
+            ? paintOutput(
+                { ...device, effects: layers },
+                {
+                  value: sweep,
+                  elapsedMs: elapsed,
+                  gates: layers.map(() => true),
+                  valueText: drives.map(({ valueText }) => valueText),
+                  watched: drives.map(({ watched }) => watched)
+                }
+              )
             : UNLIT
         }
         highlight={highlight?.output === index ? highlight : null}
       />
     </PageSection>
   )
+}
+
+function nameOf({ target, layer }: PlayedLayer): string {
+  return target.kind === 'sprite'
+    ? `Picture ${target.sprite}`
+    : layerName(layer, target.effect)
+}
+
+function describe(played: readonly PlayedLayer[]): string {
+  const first = played[0]
+  if (!first) {
+    return 'Dark until a layer or a picture is played. Press the preview button on one to watch it here.'
+  }
+  if (played.length === 1) {
+    return `${nameOf(first)} on its own, over and over.${previewNote(first.layer)} Press its button again to stop.`
+  }
+  return `${played.map(nameOf).join(', ')} together, over and over. Where they share a lamp the one played last wins, the way the board resolves it.`
 }

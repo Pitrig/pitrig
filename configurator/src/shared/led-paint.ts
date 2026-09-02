@@ -23,8 +23,8 @@ export interface PaintInput {
   value: number
   elapsedMs: number
   gates: readonly boolean[]
-  valueText?: string
-  watched?: number
+  valueText?: readonly (string | undefined)[]
+  watched?: readonly (number | undefined)[]
 }
 
 export interface LayerColors {
@@ -238,7 +238,8 @@ function paintMatrix(
   device: HardwareDeviceConfiguration,
   effect: LedEffect,
   input: PaintInput,
-  colors: LayerColors
+  colors: LayerColors,
+  valueText: string | undefined
 ): void {
   if (!isMatrix(device)) return
   const panel = panelOf(device, frame, effect)
@@ -250,7 +251,7 @@ function paintMatrix(
     return
   }
   const bound = (effect.source?.binding ?? '') !== ''
-  const shown = input.valueText ?? String(Math.round(input.value))
+  const shown = valueText ?? String(Math.round(input.value))
   const text = (effect.text ?? '') + (bound ? shown : '')
   paintText(panel, effect, text, colors.ink, input.elapsedMs)
 }
@@ -263,7 +264,7 @@ export function paintOutput(
   const frame: RgbColor[] = new Array(lamps).fill(OFF)
   for (const [index, effect] of (device.effects ?? []).entries()) {
     if (input.gates[index] === false) continue
-    const colors = colorsOf(effect, input.watched)
+    const colors = colorsOf(effect, input.watched?.[index])
     const blinkMs = colors.blinkMs ?? effect.blink_ms
     if (blinkMs) {
       const half = blinkMs / 2
@@ -273,7 +274,7 @@ export function paintOutput(
     if (area && colors.background) fillArea(frame, device, area, colors.background)
     const type = effect.type ?? 'solid'
     if (type === 'sprite' || type === 'text') {
-      paintMatrix(frame, device, effect, input, colors)
+      paintMatrix(frame, device, effect, input, colors, input.valueText?.[index])
       continue
     }
     paintEffect(frame, device, effect, input, colors)
