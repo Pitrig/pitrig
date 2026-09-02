@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 23. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 24. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
 
-Schema version: 23.
+Schema version: 24.
 
 ## Documents
 
@@ -63,6 +63,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `kLedPaletteSize` | 16 | Colours one sprite names. Sixteen is what one hexadecimal digit addresses, which is why a pixel costs half a byte. |
 | `kLedSpritePixelCapacity` | 1025 | Pixel digit storage for one sprite including the terminator (1024 usable). Sixteen frames of eight by eight, or four of sixteen by sixteen, and the same budget however it is spent. |
 | `kLedPanelMaskCapacity` | 65 | Panel mask storage including the terminator (64 usable digits). Four pixels to a digit covers the whole 16 by 16 panel a matrix may have, and an eight by eight one spends sixteen characters on saying where a layer shows. |
+| `kMaximumLedColorRules` | 4 | Colour rules one layer may carry. Four is the normal, caution, warning and limit band kMaximumWidgetConditions covers for a widget, and a rule costs every layer of every device the room to hold one, which is why it is stated separately rather than shared. |
 | `kLedTextCapacity` | 32 | Static text a text effect may carry including the terminator (31 usable bytes). |
 | `kLedTelemetryIdleMs` | 2000 | Silence after which the telemetry_idle gate starts holding. Long enough that a pause between lines is not an outage, short enough that a closed game is noticed before the lamps look stuck. |
 
@@ -78,7 +79,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `LedEffectType` | `solid`, `gradient`, `steps`, `gauge`, `animation`, `sprite`, `text` | What an effect paints over the lamps it covers. The order of these values indexes the generated painter table, so a new kind is appended rather than inserted. |
 | `LedAnimationKind` | `rainbow`, `scan`, `pulse`, `wipe`, `chase` | Motion an animation effect draws. Read only by that kind. |
 | `LedGate` | `always`, `conditions`, `telemetry_idle` | When an effect paints at all. always paints on every frame; conditions paints while a rule over condition_source holds; telemetry_idle paints only after kLedTelemetryIdleMs of silence, which is what an idle animation and a lost-link warning both want. |
-| `LedFont` | `regular_4x6`, `bold_4x6`, `regular_5x8`, `bold_5x8` | Built-in bitmap face a text effect draws with, named by the pixels one glyph occupies and its weight. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no display to install a font package for. Each face carries only the digits, N and R, which is what a gear readout spells and all a panel this small can spell legibly. |
+| `LedFont` | `regular_4x6`, `bold_4x6`, `regular_6x8`, `bold_6x8` | Built-in bitmap face a text effect draws with, named by the pixels one glyph occupies and its weight. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no display to install a font package for. Each face carries only the digits, N and R, which is what a gear readout spells and all a panel this small can spell legibly. |
 | `BoardId` | `t_display_s3`, `guition_esp32_4848s040`, `guition_jc1060p470c`, `esp32s3_devkit` | Immutable hardware identity. Must match the firmware build or the configuration is rejected. A board that declares no display carries no dashboard either: a dashboard section on one is rejected rather than quietly ignored, because an author who wrote it meant it to be drawn somewhere. |
 | `TelemetryTransportId` | `board_default`, `native_usb_cdc`, `uart` | Telemetry transport selection. board_default defers to the immutable board descriptor. |
 | `TextAlignment` | `top_left`, `top_center`, `top_right`, `left`, `center`, `right`, `bottom_left`, `bottom_center`, `bottom_right` | Which point of a box the text is anchored to, on both axes. The unprefixed names are the middle row, so left, center and right sit vertically centred. Used for a text widget's value inside its content area and for a frame caption on its outer box. |
@@ -127,6 +128,19 @@ A picture, or several frames of one, drawn on a matrix. Stored palette-indexed a
 | `palette` | array of [`LedPaletteEntry`](#ledpaletteentry), max 16 | absent |
 | `pixels` | string, max 1024 bytes | empty |
 
+### LedColorRule
+
+One colour a layer takes while its watched value matches, and how long and how steadily it takes it. The first rule that holds describes the layer and the rest are skipped, the way a widget's styling rules resolve one appearance - unlike the gate above, which selects whether the layer paints at all. Whatever a rule leaves unset stays as the layer authored it.
+
+| Property | Type | Default |
+| --- | --- | --- |
+| `op` | `ConditionOperator` | `at_or_above` |
+| `value` | number | `0` |
+| `color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `blink_ms` | integer, 0 or 100..5000 | `0` |
+| `hold_ms` | integer, 0..10000 | `0` |
+
 ### LedEffect
 
 One layer of an output's picture. Effects are painted in the order they are authored and a later one overwrites the lamps it covers, so a flag laid over shift lights is simply written after them. This is deliberately the opposite of a widget's styling rules, where the first match wins and the rest are skipped: a widget resolves one appearance for one object, while an output composes a picture out of many independent things being true at once.
@@ -149,6 +163,8 @@ Also carries the properties of [`ValueRange`](#valuerange), flattened: they are 
 | `mirrored` | boolean | `false` |
 | `inverted` | boolean | `false` |
 | `color` | string `#RRGGBB` | `#FFFFFF` |
+| `background_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `color_rules` | array of [`LedColorRule`](#ledcolorrule), max 4 | absent |
 | `stops` | array of [`ColorStop`](#colorstop), max 4 | absent |
 | `steps` | array of [`IndicatorSegment`](#indicatorsegment), max 16 | absent |
 | `animation` | `LedAnimationKind` | `rainbow` |

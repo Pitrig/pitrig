@@ -6,7 +6,7 @@ from typing import Any
 from . import SOURCE
 from .errors import fail
 
-FACES = ("regular_4x6", "bold_4x6", "regular_5x8", "bold_5x8")
+FACES = ("regular_4x6", "bold_4x6", "regular_6x8", "bold_6x8")
 
 MAXIMUM_WIDTH = 16
 

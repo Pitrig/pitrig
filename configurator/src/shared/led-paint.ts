@@ -13,6 +13,7 @@ import {
 } from './led-render'
 import { paintSprite, paintText, panelOf, spriteOf } from './led-matrix-paint'
 import type {
+  ConditionOperator,
   HardwareDeviceConfiguration,
   LedEffect,
   RgbColor
@@ -22,6 +23,65 @@ export interface PaintInput {
   value: number
   elapsedMs: number
   gates: readonly boolean[]
+  valueText?: string
+  watched?: number
+}
+
+export interface LayerColors {
+  ink: RgbColor
+  tint?: RgbColor
+  background?: RgbColor
+  blinkMs?: number
+}
+
+function holds(op: ConditionOperator | undefined, value: number, threshold: number): boolean {
+  switch (op ?? 'at_or_above') {
+    case 'above':
+      return value > threshold
+    case 'at_or_above':
+      return value >= threshold
+    case 'below':
+      return value < threshold
+    case 'at_or_below':
+      return value <= threshold
+    case 'equal':
+      return value === threshold
+    default:
+      return value !== threshold
+  }
+}
+
+export function colorsOf(effect: LedEffect, watched: number | undefined): LayerColors {
+  const colors: LayerColors = { ink: effect.color ?? '#ffffff' }
+  if (effect.background_color) colors.background = effect.background_color
+  if (watched === undefined) return colors
+  for (const rule of effect.color_rules ?? []) {
+    if (!holds(rule.op, watched, rule.value ?? 0)) continue
+    if (rule.color) {
+      colors.tint = rule.color
+      colors.ink = rule.color
+    }
+    if (rule.background_color) colors.background = rule.background_color
+    if (rule.blink_ms) colors.blinkMs = rule.blink_ms
+    break
+  }
+  return colors
+}
+
+function fillArea(
+  frame: RgbColor[],
+  device: HardwareDeviceConfiguration,
+  area: LampArea,
+  color: RgbColor
+): void {
+  const shape = deviceShape(device)
+  for (let row = 0; row < area.height; ++row) {
+    for (let column = 0; column < area.width; ++column) {
+      if (!maskHolds(area, column, row)) continue
+      const lamp = matrixLamp(shape, area.x + column, area.y + row)
+      if (lamp >= 0 && lamp < frame.length) frame[lamp] = color
+    }
+  }
 }
 
 function rawValueOf(effect: LedEffect, sweep: number): number {
@@ -103,12 +163,13 @@ function paintEffect(
   frame: RgbColor[],
   device: HardwareDeviceConfiguration,
   effect: LedEffect,
-  input: PaintInput
+  input: PaintInput,
+  colors: LayerColors
 ): void {
   const surface = surfaceOf(device, effect)
   if (!surface) return
   const lamps = surfaceSize(surface)
-  const color = effect.color ?? '#ffffff'
+  const color = colors.ink
   const value = rawValueOf(effect, input.value)
   const fraction = rangeFraction(value, effect.minimum, effect.maximum)
   const period = (effect.speed_ms ?? 1000) || 1000
@@ -176,7 +237,8 @@ function paintMatrix(
   frame: RgbColor[],
   device: HardwareDeviceConfiguration,
   effect: LedEffect,
-  input: PaintInput
+  input: PaintInput,
+  colors: LayerColors
 ): void {
   if (!isMatrix(device)) return
   const panel = panelOf(device, frame, effect)
@@ -184,12 +246,13 @@ function paintMatrix(
   if ((effect.type ?? 'solid') === 'sprite') {
     const frames = spriteOf(device, effect.sprite)?.frame_count ?? 1
     const value = (effect.source?.binding ?? '') === '' ? undefined : input.value * (frames - 1)
-    paintSprite(panel, device, effect, value, input.elapsedMs)
+    paintSprite(panel, device, effect, value, colors.tint, input.elapsedMs)
     return
   }
   const bound = (effect.source?.binding ?? '') !== ''
-  const text = (effect.text ?? '') + (bound ? String(Math.round(input.value)) : '')
-  paintText(panel, effect, text, input.elapsedMs)
+  const shown = input.valueText ?? String(Math.round(input.value))
+  const text = (effect.text ?? '') + (bound ? shown : '')
+  paintText(panel, effect, text, colors.ink, input.elapsedMs)
 }
 
 export function paintOutput(
@@ -200,16 +263,20 @@ export function paintOutput(
   const frame: RgbColor[] = new Array(lamps).fill(OFF)
   for (const [index, effect] of (device.effects ?? []).entries()) {
     if (input.gates[index] === false) continue
-    if (effect.blink_ms) {
-      const half = effect.blink_ms / 2
+    const colors = colorsOf(effect, input.watched)
+    const blinkMs = colors.blinkMs ?? effect.blink_ms
+    if (blinkMs) {
+      const half = blinkMs / 2
       if (Math.floor(input.elapsedMs / half) % 2 === 1) continue
     }
+    const area = colors.background ? areaOf(device, effect) : undefined
+    if (area && colors.background) fillArea(frame, device, area, colors.background)
     const type = effect.type ?? 'solid'
     if (type === 'sprite' || type === 'text') {
-      paintMatrix(frame, device, effect, input)
+      paintMatrix(frame, device, effect, input, colors)
       continue
     }
-    paintEffect(frame, device, effect, input)
+    paintEffect(frame, device, effect, input, colors)
   }
   return frame
 }

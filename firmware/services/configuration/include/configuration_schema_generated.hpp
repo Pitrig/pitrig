@@ -105,7 +105,16 @@ inline constexpr std::array<std::string_view, 6> kLedSpriteConfigurationKeys{{
     "pixels",
 }};
 
-inline constexpr std::array<std::string_view, 25> kLedEffectKeys{{
+inline constexpr std::array<std::string_view, 6> kLedColorRuleKeys{{
+    "op",
+    "value",
+    "color",
+    "background_color",
+    "blink_ms",
+    "hold_ms",
+}};
+
+inline constexpr std::array<std::string_view, 27> kLedEffectKeys{{
     "type",
     "id",
     "from",
@@ -122,6 +131,8 @@ inline constexpr std::array<std::string_view, 25> kLedEffectKeys{{
     "mirrored",
     "inverted",
     "color",
+    "background_color",
+    "color_rules",
     "stops",
     "steps",
     "animation",
@@ -575,6 +586,17 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
   }
   if (config.frame_count < 1 || config.frame_count > kMaximumLedSpriteFrames) {
     return "frame_count";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const LedColorRule& config) {
+  if (config.blink_ms != 0 &&
+      (config.blink_ms < kMinimumBlinkMs || config.blink_ms > kMaximumBlinkMs)) {
+    return "blink_ms";
+  }
+  if (config.hold_ms > kMaximumHoldMs) {
+    return "hold_ms";
   }
   return {};
 }

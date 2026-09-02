@@ -17,10 +17,10 @@ constexpr std::size_t kOffPanel = static_cast<std::size_t>(-1);
   switch (font) {
     case configuration::LedFont::bold_4x6:
       return led::Font::bold_4x6;
-    case configuration::LedFont::regular_5x8:
-      return led::Font::regular_5x8;
-    case configuration::LedFont::bold_5x8:
-      return led::Font::bold_5x8;
+    case configuration::LedFont::regular_6x8:
+      return led::Font::regular_6x8;
+    case configuration::LedFont::bold_6x8:
+      return led::Font::bold_6x8;
     default:
       return led::Font::regular_4x6;
   }
@@ -54,6 +54,7 @@ void paint_sprite(const Panel& panel,
                   const configuration::LedSpriteConfiguration* const sprite,
                   const configuration::LedEffect& effect,
                   const std::optional<double> value,
+                  const std::optional<led::Color> tint,
                   const std::uint64_t elapsed_us) {
   if (sprite == nullptr || sprite->width == 0 || sprite->height == 0) {
     return;
@@ -80,7 +81,10 @@ void paint_sprite(const Panel& panel,
   }
   std::array<led::Color, configuration::kLedPaletteSize> palette{};
   for (std::uint8_t index = 0; index < sprite->palette_count; ++index) {
-    palette[index] = led::Color::from_rgb(sprite->palette[index].color);
+    const std::uint32_t rgb = sprite->palette[index].color;
+    palette[index] = tint.has_value() && rgb != 0
+                         ? *tint
+                         : led::Color::from_rgb(rgb);
   }
   const int origin_x = (panel.area.width - sprite->width) / 2;
   const int origin_y = (panel.area.height - sprite->height) / 2;
@@ -97,7 +101,8 @@ void paint_sprite(const Panel& panel,
 }
 
 void paint_text(const Panel& panel, const configuration::LedEffect& effect,
-                const std::string_view text, const std::uint64_t elapsed_us) {
+                const std::string_view text, const led::Color color,
+                const std::uint64_t elapsed_us) {
   if (text.empty()) {
     return;
   }
@@ -107,7 +112,6 @@ void paint_text(const Panel& panel, const configuration::LedEffect& effect,
   const int panel_width = panel.area.width;
   const int panel_height = panel.area.height;
   const int top = (panel_height - led::font_height(font)) / 2;
-  const led::Color color = led::Color::from_rgb(effect.color);
 
   int left = (panel_width - width) / 2;
   if (width > panel_width) {

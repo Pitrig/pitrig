@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 23;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 24;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -62,6 +62,7 @@ inline constexpr std::size_t kMaximumLedSpriteFrames = 16;
 inline constexpr std::size_t kLedPaletteSize = 16;
 inline constexpr std::size_t kLedSpritePixelCapacity = 1025;
 inline constexpr std::size_t kLedPanelMaskCapacity = 65;
+inline constexpr std::size_t kMaximumLedColorRules = 4;
 inline constexpr std::size_t kLedTextCapacity = 32;
 inline constexpr std::size_t kLedTelemetryIdleMs = 2000;
 
@@ -182,8 +183,8 @@ enum class LedGate : std::uint8_t {
 enum class LedFont : std::uint8_t {
   regular_4x6,
   bold_4x6,
-  regular_5x8,
-  bold_5x8,
+  regular_6x8,
+  bold_6x8,
 };
 
 enum class BoardId : std::uint8_t {
@@ -319,6 +320,15 @@ struct LedSpriteConfiguration {
   std::array<char, kLedSpritePixelCapacity> pixels{};
 };
 
+struct LedColorRule {
+  ConditionOperator op{ConditionOperator::at_or_above};
+  float value{};
+  std::uint32_t color{kTransparentColor};
+  std::uint32_t background_color{kTransparentColor};
+  std::uint16_t blink_ms{};
+  std::uint16_t hold_ms{};
+};
+
 struct ValueModifier {
   ValueModifierType type{ValueModifierType::lap_timer};
 };
@@ -366,6 +376,9 @@ struct LedEffect {
   bool mirrored{false};
   bool inverted{false};
   std::uint32_t color{0xFFFFFF};
+  std::uint32_t background_color{kTransparentColor};
+  std::uint8_t color_rule_count{};
+  std::array<LedColorRule, kMaximumLedColorRules> color_rules{};
   std::uint8_t stop_count{};
   std::array<ColorStop, kMaximumColorStops> stops{};
   std::uint8_t step_count{};
@@ -856,8 +869,8 @@ inline constexpr std::array<std::string_view, 3> kLedGateNames{{
 inline constexpr std::array<std::string_view, 4> kLedFontNames{{
     "regular_4x6",
     "bold_4x6",
-    "regular_5x8",
-    "bold_5x8",
+    "regular_6x8",
+    "bold_6x8",
 }};
 
 [[nodiscard]] inline std::string_view led_font_name(const LedFont value) {

@@ -7,6 +7,7 @@ import {
   LED_GATE_VALUES,
   MAXIMUM_COLOR_STOPS,
   MAXIMUM_INDICATOR_SEGMENTS,
+  MAXIMUM_LED_COLOR_RULES,
   MAXIMUM_WIDGET_CONDITIONS,
   type HardwareDeviceConfiguration,
   type LedEffect
@@ -153,7 +154,8 @@ function findListError(effect: LedEffect, label: string): string | undefined {
   return (
     badList(effect.stops, MAXIMUM_COLOR_STOPS, label, 'colour stops') ??
     badList(effect.steps, MAXIMUM_INDICATOR_SEGMENTS, label, 'steps') ??
-    badList(effect.conditions, MAXIMUM_WIDGET_CONDITIONS, label, 'rules')
+    badList(effect.conditions, MAXIMUM_WIDGET_CONDITIONS, label, 'rules') ??
+    badList(effect.color_rules, MAXIMUM_LED_COLOR_RULES, label, 'colour rules')
   )
 }
 
@@ -166,6 +168,10 @@ function findEnumError(effect: LedEffect, label: string): string | undefined {
   if (error) return error
   for (const [index, rule] of (effect.conditions ?? []).entries()) {
     const ruleError = badEnum(rule.op, CONDITION_OPERATOR_VALUES, label, `conditions[${index}].op`)
+    if (ruleError) return ruleError
+  }
+  for (const [index, rule] of (effect.color_rules ?? []).entries()) {
+    const ruleError = badEnum(rule.op, CONDITION_OPERATOR_VALUES, label, `color_rules[${index}].op`)
     if (ruleError) return ruleError
   }
   return undefined
@@ -183,6 +189,11 @@ function findNumberError(effect: LedEffect, label: string): string | undefined {
   for (const [index, rule] of (effect.conditions ?? []).entries()) {
     if (!Number.isFinite(rule?.value ?? 0)) {
       return `Rule ${index + 1} of ${label} compares against something that is not a number.`
+    }
+  }
+  for (const [index, rule] of (effect.color_rules ?? []).entries()) {
+    if (!Number.isFinite(rule?.value ?? 0)) {
+      return `Colour rule ${index + 1} of ${label} compares against something that is not a number.`
     }
   }
   return undefined
@@ -237,9 +248,21 @@ export function findEffectError(
     return `${label} is a ${type} layer and needs telemetry to map.`
   }
   const gated = effect.gate === 'conditions'
+  const coloured = (effect.color_rules ?? []).length > 0
   const watched = (effect.condition_source?.binding ?? '') !== ''
-  if (gated !== watched || (gated && (effect.conditions ?? []).length === 0)) {
-    return `${label} gates on conditions, so it needs a condition source and at least one rule.`
+  if (watched !== (gated || coloured) || (gated && (effect.conditions ?? []).length === 0)) {
+    return `${label} needs a watched source for its gate and its colour rules, and none without them.`
+  }
+  for (const [index, rule] of (effect.color_rules ?? []).entries()) {
+    const ruleRange = findBoundError(
+      rule,
+      FIELD_RANGES['LedColorRule'],
+      `Colour rule ${index + 1} of ${label}`
+    )
+    if (ruleRange) return ruleRange
+    if (!rule.color && !rule.background_color && !rule.blink_ms) {
+      return `Colour rule ${index + 1} of ${label} paints nothing: give it a colour, a background or a blink.`
+    }
   }
   return findContentError(device, effect, label)
 }

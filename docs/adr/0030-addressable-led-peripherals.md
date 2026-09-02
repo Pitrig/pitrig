@@ -280,3 +280,125 @@ document could fail. A record written against 22 is therefore refused whole and
 each document falls back to its factory payload, per ADR 0024 — the cost of
 saying so loudly rather than letting a stored thirty-two-pixel panel be
 reinterpreted.
+
+## Amendment: pictures are drawn, not only delivered (no schema change)
+
+**There is a sprite editor.** This reverses "Sprites arrive with a profile, not
+from an editor" above. The reasoning there was that profiles over the existing
+layer kinds cover what a sprite editor would have been reached for, and for the
+flags that is true — but it answers only the pictures SimCore ships. A panel is
+mounted to show something its owner chose, and nothing in the configurator could
+make one. The Pictures page now draws them: pixels painted with a chosen ink,
+frames added, duplicated, reordered and removed, a palette edited in place, and
+the whole thing played back.
+
+**It costs no schema version.** Every field it writes was already in
+`LedSpriteConfiguration`, so this is authoring rather than contract, and it
+reaches every board already running schema 23 without a firmware update. The
+firmware and configurator validators are likewise unchanged; what the editor
+does is stay inside them.
+
+**The last digit is the clear ink.** Both painters already skip a digit at or
+past the palette's length, which is what lets a picture leave the layers under
+it visible. The editor makes that reachable by capping an authored palette at
+fifteen colours, so `f` always means clear rather than sometimes meaning a
+colour. A picture that already names all sixteen — none does, but a hand-written
+document may — is still editable and simply offers no clear ink.
+
+**The budget is spent in the editor rather than discovered at validation.** The
+frames a picture may hold follow its area, `floor(1024 / area)` capped at
+sixteen, so Add frame stops at four on a sixteen-pixel square and at sixteen on
+an eight. Growing a picture trims its frames to what still fits instead of
+producing a document the device would refuse. The same rule holds for the
+references a picture owns: renaming one retargets every layer that draws it,
+removing frames clamps each layer's `sprite_frame`, and removing an ink remaps
+the digits above it so surviving pixels keep their colour and the removed one
+falls to clear. An editor action that made the document unsaveable would be a
+worse failure than the missing feature was.
+
+**Drawing got its own page.** Wiring is the pin and the shape, Layers is what
+the device shows, and neither is where a picture is drawn — Pictures sits
+between them, on a matrix only.
+
+**A picture previews through the real painter.** Playing one builds a temporary
+`sprite` layer and runs it through `paintOutput`, so the panel in the
+application and the panel on the desk are drawn by the same code every other
+layer uses; the second implementation this ADR already accepts is not
+multiplied by a third. On the board it reuses the single-layer preview
+unchanged, which is what makes drawing land on the physical panel while live
+apply is on.
+
+**Still no import.** No PNG, no GIF. A picture this size is drawn faster than it
+is sourced, and importing one needs a decoder and a colour quantizer for
+artwork that is sixty-four pixels. The three generators the flags profile uses
+are offered as starting points instead, which is the part of an import that was
+actually worth having.
+
+## Amendment: a six-pixel face, and colours that answer telemetry (schema 24)
+
+**The large face is six columns wide, not five.** `regular_5x8` and `bold_5x8`
+become `regular_6x8` and `bold_6x8`, redrawn rather than padded. Five columns
+was one short of what the round digits wanted: a `0` and an `8` closed on
+themselves, and the bold weight had a single free column to thicken into, so it
+differed from the regular one mostly in its horizontals. Six columns leave the
+counters open at both weights and still fit an eight-pixel panel with a column
+either side. Renaming the enum values is a breaking change to a public property,
+so this is the schema bump; a stored record written against 23 is refused whole
+and each document falls back to its factory payload, per ADR 0024. The
+configurator migrates its own saved files, because a file it wrote is a file it
+can read.
+
+**A layer's colour may answer telemetry, and its ground with it.** `color_rules`
+is a bounded list of `op`/`value`/`color`/`background_color`/`blink_ms`/`hold_ms`
+over the layer's
+`condition_source`, and it is deliberately **first-match-wins** — the one place
+in this ADR where a layer resolves rather than composes, because these describe
+one layer's appearance the way a widget's styling rules describe one widget.
+Which of the four bands a value is in is one question with one answer; whether a
+flag and a limiter are both showing is not. `color` repaints what the layer
+draws — the ink of `text`, the colour of `solid` and `animation`, the fill of a
+`gauge` with no ramp, and every lit pixel of a `sprite`, so one icon serves every
+state rather than being drawn once per colour — black is left alone there, since
+a black pixel is the unlit lamp by convention and tinting it would turn every
+picture into its own bounding box. `background_color`, on the layer
+or on a rule, fills the lamps the layer covers before it draws, which is what
+lets a glyph sit on a ground of its own instead of on whatever the layers below
+left.
+
+**The layer still watches exactly one value.** The rules read
+`condition_source`, the same binding the `conditions` gate reads, rather than
+adding a second one. A gate and a colour are different questions about the same
+fact — is the layer showing, and what colour is it — and a layer that wanted two
+different values is two layers. The validator now requires that binding when
+either the gate or a colour rule reads it, and rejects it when neither does, so
+the rule that a binding never sits unread survives the addition. A rule that
+would paint nothing at all — no colour, no background, no blink — is rejected for
+the same reason.
+
+**A rule carries its own timing, but not its own gate.** `hold_ms` keeps a rule
+applied for a while after it stops matching and `blink_ms` flashes everything the
+layer paints while it holds, the same two fields a widget's styling rule has and
+for the same reason: what wants to flash is one *band* of a value, and a layer's
+own `blink_ms` cannot say "only over 97%". A rule's blink takes over from the
+layer's while it holds, and it runs from the moment the rule was applied rather
+than from the gate, so the flash starts lit. What a rule still does not carry is
+`hidden`: a rule that could stop the layer painting would be a second gate
+wearing the clothes of a description, and the gate is one property up.
+
+Holding makes resolution stateful — the layer remembers which rule it applied and
+until when — which is the same shape the gate's own `hold_ms` already had, so the
+per-layer state grew a struct rather than a mechanism. The document cost is
+twenty bytes a rule, four rules in each of a hundred and twenty-eight layers:
+`ApplicationConfiguration` grows 11 KB, from 389,628 bytes to 400,892, doubled by
+the active/scratch pair.
+
+**The preview walks the rules rather than guessing a value.** With no game
+attached there is no watched value, so the configurator's preview holds each
+rule's own threshold in turn for a beat and then holds nothing, which shows the
+authored colour and every rule in order whatever operator each one uses; a rule
+with a `hold_ms` keeps its colour that far into the following beat, which is what
+the hold does on the board. A gear
+readout cycles `R`, `N` and 1 to 9 on its own beat for the same reason: the sweep
+that drives a bar says nothing about what a glyph should spell. Both are preview
+data and neither reaches the board — a layer bound to telemetry previews on the
+desk only when a game is feeding it.

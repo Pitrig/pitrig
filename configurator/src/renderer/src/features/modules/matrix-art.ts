@@ -1,10 +1,9 @@
 import {
-  LED_SPRITE_PIXEL_CAPACITY,
-  MAXIMUM_LED_SPRITE_FRAMES,
   type LedPaletteEntry,
   type LedSpriteConfiguration,
   type RgbColor
 } from '@shared/configuration-schema'
+import { maxFramesFor } from '@shared/led-sprite'
 
 const SHADES = 10
 const DARK: RgbColor = '#000000'
@@ -24,12 +23,6 @@ function shades(color: RgbColor): LedPaletteEntry[] {
   return Array.from({ length: SHADES }, (_, index) => ({
     color: mix(DARK, color, index / (SHADES - 1))
   }))
-}
-
-function framesFor(width: number, height: number): number {
-  const usable = LED_SPRITE_PIXEL_CAPACITY - 1
-  const area = Math.max(1, width * height)
-  return Math.max(1, Math.min(MAXIMUM_LED_SPRITE_FRAMES, Math.floor(usable / area)))
 }
 
 function digit(level: number): string {
@@ -61,7 +54,7 @@ export function diagonalSprite(
   height: number,
   color: RgbColor
 ): LedSpriteConfiguration {
-  const frames = framesFor(width, height)
+  const frames = maxFramesFor(width, height)
   const span = Math.max(1, width + height - 1)
   return {
     id,
@@ -102,7 +95,7 @@ export function chequerSprite(
   width: number,
   height: number
 ): LedSpriteConfiguration {
-  const frames = framesFor(width, height)
+  const frames = maxFramesFor(width, height)
   const square = Math.max(1, Math.round(Math.min(width, height) / 4))
   const span = Math.max(1, width + height - 1)
   return {

@@ -208,11 +208,13 @@ export function IdField({
   label,
   value,
   hint,
+  capacity = WIDGET_ID_CAPACITY,
   onCommit
 }: {
   label: string
   value: string
   hint?: string
+  capacity?: number
   onCommit: (name: string) => boolean
 }): React.JSX.Element {
   const id = useId()
@@ -230,7 +232,7 @@ export function IdField({
       <input
         id={id}
         value={draft}
-        maxLength={WIDGET_ID_CAPACITY - 1}
+        maxLength={capacity - 1}
         className={`${CONTROL} ${rejected ? 'border-red-500' : ''}`}
         onChange={(event) => {
           setDraft(event.target.value)

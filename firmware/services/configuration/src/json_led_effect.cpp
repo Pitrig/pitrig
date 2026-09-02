@@ -31,9 +31,38 @@ constexpr std::string_view kName = "hardware.effects";
                     "conditions");
 }
 
+[[nodiscard]] bool parse_colors(const cJSON* const object, LedEffect& config,
+                                ValidationFailure& failure) {
+  return read_color(object, "background_color", config.background_color, kName,
+                    failure) &&
+         read_array(object, "color_rules", config.color_rules,
+                    config.color_rule_count, kName,
+                    ValidationError::invalid_module, failure,
+                    [&](const cJSON* const rule, LedColorRule& parsed) {
+                      return valid_object(rule, schema::kLedColorRuleKeys,
+                                          kName, failure) &&
+                             read_enum(rule, "op", parsed.op,
+                                       condition_operator_from_name, kName,
+                                       failure) &&
+                             read_float(rule, "value", parsed.value, kName,
+                                        failure) &&
+                             read_color(rule, "color", parsed.color, kName,
+                                        failure) &&
+                             read_color(rule, "background_color",
+                                        parsed.background_color, kName,
+                                        failure) &&
+                             read_integer(rule, "blink_ms", parsed.blink_ms,
+                                          kName, failure) &&
+                             read_integer(rule, "hold_ms", parsed.hold_ms,
+                                          kName, failure);
+                    },
+                    "color_rules");
+}
+
 [[nodiscard]] bool parse_painting(const cJSON* const object, LedEffect& config,
                                   ValidationFailure& failure) {
   return read_color(object, "color", config.color, kName, failure) &&
+         parse_colors(object, config, failure) &&
          read_array(object, "stops", config.stops, config.stop_count, kName,
                     ValidationError::invalid_module, failure,
                     [&](const cJSON* const stop, ColorStop& parsed) {

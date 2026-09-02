@@ -43,6 +43,7 @@ export function paintSprite(
   device: HardwareDeviceConfiguration,
   effect: LedEffect,
   value: number | undefined,
+  tint: RgbColor | undefined,
   elapsedMs: number
 ): void {
   const sprite = spriteOf(device, effect.sprite)
@@ -70,7 +71,8 @@ export function paintSprite(
       const digit = Number.parseInt(pixels[base + y * width + x] ?? '', 16)
       const entry = palette[digit]
       if (!Number.isInteger(digit) || !entry?.color) continue
-      put(panel, originX + x, originY + y, entry.color)
+      const painted = tint && Number.parseInt(entry.color.slice(1), 16) !== 0 ? tint : entry.color
+      put(panel, originX + x, originY + y, painted)
     }
   }
 }
@@ -79,11 +81,12 @@ export function paintText(
   panel: Panel,
   effect: LedEffect,
   text: string,
+  color: RgbColor,
   elapsedMs: number
 ): void {
   if (text.length === 0) return
   const font: LedFontName =
-    effect.font === 'bold_4x6' || effect.font === 'regular_5x8' || effect.font === 'bold_5x8'
+    effect.font === 'bold_4x6' || effect.font === 'regular_6x8' || effect.font === 'bold_6x8'
       ? effect.font
       : 'regular_4x6'
   const face = LED_FACES[font]
@@ -91,7 +94,6 @@ export function paintText(
   const width = textWidth(font, text.length)
   const drawn = { width: panel.area.width, height: panel.area.height }
   const top = Math.trunc((drawn.height - face.height) / 2)
-  const color = effect.color ?? '#ffffff'
 
   let left = Math.trunc((drawn.width - width) / 2)
   if (width > drawn.width) {

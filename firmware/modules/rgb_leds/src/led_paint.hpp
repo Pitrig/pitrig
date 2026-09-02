@@ -54,11 +54,34 @@ class Surface final {
   bool mirrored_;
 };
 
+struct LayerColors {
+  led::Color ink{};
+  std::optional<led::Color> tint{};
+  std::optional<led::Color> background{};
+  std::uint16_t blink_ms{};
+  std::uint64_t since_us{};
+};
+
+struct ColorRuleState {
+  std::uint64_t hold_until_us{};
+  std::uint64_t started_us{};
+  int applied{-1};
+};
+
+[[nodiscard]] LayerColors colors_of(const configuration::LedEffect& effect,
+                                    std::optional<double> watched,
+                                    ColorRuleState& state,
+                                    std::uint64_t now_us);
+
 [[nodiscard]] Surface surface_of(led::Output& output, const led::Matrix& matrix,
                                  const Area& area,
                                  const configuration::LedEffect& effect);
 
+void fill_area(led::Output& output, const led::Matrix& matrix, const Area& area,
+               led::Color color);
+
 void paint(const Surface& surface, const configuration::LedEffect& effect,
-           std::optional<double> value, std::uint64_t elapsed_us);
+           led::Color color, std::optional<double> value,
+           std::uint64_t elapsed_us);
 
 }

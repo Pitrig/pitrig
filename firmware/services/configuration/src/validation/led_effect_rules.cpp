@@ -6,13 +6,26 @@
 namespace simcore::configuration::validation {
 namespace {
 
-[[nodiscard]] bool validate_gate(const LedEffect& effect,
-                                 ValidationFailure& failure) {
+[[nodiscard]] bool validate_watched(const LedEffect& effect,
+                                    ValidationFailure& failure) {
   const bool gated = effect.gate == LedGate::conditions;
+  const bool coloured = effect.color_rule_count != 0;
   const bool watched = !text_view(effect.condition_source.binding).empty();
-  if (gated != watched || (gated && effect.condition_count == 0)) {
+  if (watched != (gated || coloured) || (gated && effect.condition_count == 0)) {
     return reject(failure, ValidationError::invalid_module,
                   "hardware.effects.condition_source");
+  }
+  for (std::uint8_t index = 0; index < effect.color_rule_count; ++index) {
+    const LedColorRule& rule = effect.color_rules[index];
+    if (const std::string_view out_of_range = schema::range_error(rule);
+        !out_of_range.empty()) {
+      return reject(failure, ValidationError::invalid_module, out_of_range);
+    }
+    if (rule.color == kTransparentColor &&
+        rule.background_color == kTransparentColor && rule.blink_ms == 0) {
+      return reject(failure, ValidationError::invalid_module,
+                    "hardware.effects.color_rules");
+    }
   }
   return true;
 }
@@ -135,7 +148,7 @@ namespace {
                  effect.type == LedEffectType::gauge)) {
     return reject(failure, ValidationError::invalid_module, "hardware.effects.source");
   }
-  return validate_gate(effect, failure) &&
+  return validate_watched(effect, failure) &&
          validate_content(device, effect, failure);
 }
 

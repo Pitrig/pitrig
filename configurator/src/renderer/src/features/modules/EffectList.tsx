@@ -50,7 +50,8 @@ export function EffectList({
         Painted in order; a later layer overwrites the lamps it covers.
       </p>
       {effects.map(({ effect, index }, position) => {
-        const playing = preview?.output === output && preview.effect === index
+        const playing =
+          preview?.kind === 'layer' && preview.output === output && preview.effect === index
         const reorder = (to: number): void => {
           if (to === index) return
           moveEffect(output, index, to)

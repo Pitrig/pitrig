@@ -1,5 +1,5 @@
 {
-  "schema_version": 23,
+  "schema_version": 24,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
 
   "documents": {
@@ -204,6 +204,10 @@
       "value": 65,
       "doc": "Panel mask storage including the terminator (64 usable digits). Four pixels to a digit covers the whole 16 by 16 panel a matrix may have, and an eight by eight one spends sixteen characters on saying where a layer shows."
     },
+    "kMaximumLedColorRules": {
+      "value": 4,
+      "doc": "Colour rules one layer may carry. Four is the normal, caution, warning and limit band kMaximumWidgetConditions covers for a widget, and a rule costs every layer of every device the room to hold one, which is why it is stated separately rather than shared."
+    },
     "kLedTextCapacity": {
       "value": 32,
       "doc": "Static text a text effect may carry including the terminator (31 usable bytes)."
@@ -288,7 +292,7 @@
       "doc": "When an effect paints at all. always paints on every frame; conditions paints while a rule over condition_source holds; telemetry_idle paints only after kLedTelemetryIdleMs of silence, which is what an idle animation and a lost-link warning both want."
     },
     "LedFont": {
-      "json_values": ["regular_4x6", "bold_4x6", "regular_5x8", "bold_5x8"],
+      "json_values": ["regular_4x6", "bold_4x6", "regular_6x8", "bold_6x8"],
       "default": "regular_4x6",
       "doc": "Built-in bitmap face a text effect draws with, named by the pixels one glyph occupies and its weight. Compiled into the firmware, so text on a matrix needs no uploaded font and works on a board with no display to install a font package for. Each face carries only the digits, N and R, which is what a gear readout spells and all a panel this small can spell legibly."
     },
@@ -412,6 +416,18 @@
       ]
     },
 
+    "LedColorRule": {
+      "doc": "One colour a layer takes while its watched value matches, and how long and how steadily it takes it. The first rule that holds describes the layer and the rest are skipped, the way a widget's styling rules resolve one appearance - unlike the gate above, which selects whether the layer paints at all. Whatever a rule leaves unset stays as the layer authored it.",
+      "fields": [
+        { "name": "op", "kind": "enum", "enum": "ConditionOperator" },
+        { "name": "value", "kind": "float", "default": 0 },
+        { "name": "color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Repaints what the layer draws: the ink of text, the colour of solid and animation, the fill of a gauge with no ramp, and every lit pixel of a picture. Omitted keeps the layer's own colour." },
+        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Fills the lamps this layer covers before it draws. Omitted keeps the layer's own background, which is usually none." },
+        { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Full blink period of everything the layer paints while this rule holds, so one band of a value flashes without a second layer over it. 0 leaves the layer's own blink_ms in charge." },
+        { "name": "hold_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "Keeps this rule applied for this long after it stops matching, so a momentary trigger still leaves a visible flash of colour. 0 applies the rule only while it matches." }
+      ]
+    },
+
     "LedEffect": {
       "doc": "One layer of an output's picture. Effects are painted in the order they are authored and a later one overwrites the lamps it covers, so a flag laid over shift lights is simply written after them. This is deliberately the opposite of a widget's styling rules, where the first match wins and the rest are skipped: a widget resolves one appearance for one object, while an output composes a picture out of many independent things being true at once.",
       "fields": [
@@ -423,7 +439,7 @@
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the effect maps. steps and gauge map it through the range below; sprite rounds it to a frame; text renders it. solid, gradient and animation need none, and a binding on one is rejected rather than left unread." },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
         { "name": "gate", "kind": "enum", "enum": "LedGate" },
-        { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the gate watches, independent of what the effect paints: shift lights on engine speed, switched off in the pit lane. Required by the conditions gate and rejected without one, so a binding never sits unread." },
+        { "name": "condition_source", "kind": "struct", "struct": "ValueSourceConfiguration", "doc": "Telemetry the gate and the colour rules watch, independent of what the effect paints: shift lights on engine speed, switched off in the pit lane. Required by the conditions gate and by any colour rule, and rejected when neither reads it, so a binding never sits unread." },
         { "name": "condition_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "conditions", "kind": "array", "struct": "ValueCondition", "capacity": "kMaximumWidgetConditions", "count_field": "condition_count", "doc": "Rules over condition_source. The effect paints while one of them holds. Unlike a widget's styling rules these select rather than describe, so which one matched does not change what is drawn." },
         { "name": "hold_ms", "kind": "uint16", "default": 0, "maximum": "kMaximumHoldMs", "doc": "Keeps the effect painting for this long after its gate stops holding, so a momentary event such as traction control still produces a visible flash." },
@@ -431,6 +447,9 @@
         { "name": "mirrored", "kind": "bool", "default": false, "doc": "Paints the same value outward from the middle of the covered lamps towards both ends at once, which is what a centred rev bar wants. Combined with inverted it reverses that: the fill starts at both ends and closes on the middle." },
         { "name": "inverted", "kind": "bool", "default": false, "doc": "Fills from the far end of the covered lamps instead of the near one. On a mirrored layer it turns the mirror around instead, so the fill closes on the middle rather than spreading from it - the two flags together are a direction rather than two independent switches." },
         { "name": "color", "kind": "color", "default": "0xFFFFFF", "doc": "The colour solid paints, the moving colour of an animation, and the ink text draws with." },
+        { "name": "background_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Fills every lamp this layer covers before it draws, so a picture or a glyph sits on a ground of its own rather than on whatever the layers below left. Omitted paints no ground, which is what a layer over shift lights wants." },
+        { "name": "color_rule_count", "kind": "uint8", "default": 0, "serialized": false },
+        { "name": "color_rules", "kind": "array", "struct": "LedColorRule", "capacity": "kMaximumLedColorRules", "count_field": "color_rule_count", "doc": "Colours the layer takes while condition_source matches, first match winning. They describe rather than select, so the gate decides whether the layer paints and these decide what colour it paints in - a gear that turns amber and then red as the revs climb is one text layer with two rules. A rule may also outlive its match and blink while it holds, which the layer's own hold_ms and blink_ms cannot do band by band." },
         { "name": "stop_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "stops", "kind": "array", "struct": "ColorStop", "capacity": "kMaximumColorStops", "count_field": "stop_count", "doc": "Colour ramp. gradient spreads it across the lamps it covers; gauge reads it at the mapped value, so the fill changes colour as the value climbs." },
         { "name": "step_count", "kind": "uint8", "default": 0, "serialized": false },

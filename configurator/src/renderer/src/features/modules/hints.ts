@@ -17,6 +17,20 @@ export const HINTS = {
     wiring:
       'How the panel is wired and how it is mounted. Rows says whether alternate rows run backwards, which most ready-made panels do. First lamp names the corner the data line enters. Turn rotates everything drawn on the panel, so one mounted on its side still reads upright.'
   },
+  sprite: {
+    pictures:
+      'Pictures this panel can draw, each a grid of palette-indexed pixels and up to sixteen frames of it. They travel inside the modules document rather than being uploaded, so they cost no partition, no upload and no restart — and a saved configuration carries its own artwork.',
+    name:
+      'What layers name this picture by. Renaming it follows through to every layer that draws it. Two pictures on one panel may not share a name.',
+    size:
+      'Columns and rows of the picture itself, which need not match the panel: a smaller picture is drawn centred on whatever the layer paints on. The bigger it is the fewer frames fit, because every picture shares the same 1024-digit budget.',
+    palette:
+      'Colours this picture is drawn from, at most fifteen of them. Pick one to paint with, or Clear to leave a pixel unpainted so the layers below stay visible — that is a digit past the end of the palette rather than a colour, which is why the last one is kept free. Entry 1 is the unlit lamp by convention rather than by rule: it paints black over whatever is under it.',
+    frames:
+      'Frames of the animation, played in order by a layer with Play frames switched on. How many fit follows the size: sixteen of eight by eight, four of sixteen by sixteen. Duplicate a frame to draw the next one from it.',
+    mirror:
+      'Plays this picture on the connected board while you draw, on its own, the way a layer previews. Needs a board and live apply switched on; the panel goes back to the whole configuration when it is switched off.'
+  },
   effect: {
     stack:
       'Layers are painted in the order they are listed and a later one overwrites the lamps it covers — so a flag laid over shift lights simply comes after them. This is the opposite of a widget’s styling rules, where the first match wins: a widget resolves one appearance, while an output composes a picture out of many things being true at once.',
@@ -25,11 +39,17 @@ export const HINTS = {
     panel:
       'Which pixels of the panel this layer paints on. Click one to turn it off or on, or drag across several; All and Invert do the whole grid at once. Every pixel is the default and costs the document nothing. The layer works over the smallest box holding what you picked, so text and a picture still centre on the shape rather than on the panel.',
     sprite:
-      'Which of the panel’s pictures this layer draws. Pictures come with a profile — the flags bring their own artwork — and are listed on the Wiring tab; a layer whose picture the panel does not carry is a composition error rather than a blank panel.',
+      'Which of the panel’s pictures this layer draws. Pictures are drawn on the Pictures tab, and a profile brings its own — the flags carry their artwork with them; a layer whose picture the panel does not carry is a composition error rather than a blank panel.',
     loop:
       'Walks the picture’s frames on this layer’s own clock, one every frame time, which is how artwork moves without telemetry driving it. Left off, the layer holds the one frame named below.',
     gate: 'When this layer paints at all. always paints on every frame; conditions paints while a rule over its own watched value holds; telemetry idle paints only after two seconds of silence, which is what an idle animation and a lost-link warning both want.',
     hold: 'Keeps the layer painting for this long after its gate stops holding, so a momentary event such as traction control still produces a visible flash.',
+    background:
+      'Fills every lamp this layer covers before it draws, so a glyph or a picture sits on a ground of its own rather than on whatever the layers below left. Off paints no ground, which is what a layer over shift lights wants.',
+    ruleTiming:
+      'Blink is the period the whole layer flashes at while this rule holds, so one band of a value can flash without a second layer over it; it takes over from the layer’s own blink. Hold keeps the rule applied for that long after it stops matching, so a momentary trigger still leaves a visible flash of colour.',
+    colors:
+      'Colours this layer takes while the watched value matches, the first matching rule winning — a gear that turns amber and then red as the revs climb. They describe rather than select: the gate says whether the layer paints at all, these say what colour it paints in. On a picture the colour repaints every lit pixel, so one drawing serves every state — the pixels it paints black stay black.',
     blink: 'Full blink period of everything this layer paints. 0 paints steady.',
     shape:
       'Which way the layer fills the lamps it covers. Along the run starts at the first lamp; backwards starts at the last. Out from the middle paints both ways at once from the centre, which is what a centred rev bar wants; in from the ends does the opposite, closing on the centre.'

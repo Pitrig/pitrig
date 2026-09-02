@@ -7,7 +7,7 @@
 
 namespace simcore::led {
 
-enum class Font : std::uint8_t { regular_4x6, bold_4x6, regular_5x8, bold_5x8 };
+enum class Font : std::uint8_t { regular_4x6, bold_4x6, regular_6x8, bold_6x8 };
 
 [[nodiscard]] constexpr const FaceData& face_of(const Font font) {
   const auto index = static_cast<std::size_t>(font);

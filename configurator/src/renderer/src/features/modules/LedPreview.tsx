@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { paintOutput } from '@shared/led-paint'
 import type { HardwareDeviceConfiguration, RgbColor } from '@shared/configuration-schema'
 import { PageSection } from '@/app/workspace/PageShell'
+import { previewLayerOf } from './board-preview'
+import { previewDrive, previewNote } from './preview-values'
 import { DevicePreview } from './DevicePreview'
 import { layerName } from './layer-name'
 import { useModulesStore } from './modules-store'
@@ -41,25 +43,39 @@ export function LedPreview({
 }): React.JSX.Element {
   const highlight = useModulesStore((state) => state.highlight)
   const preview = useModulesStore((state) => state.preview)
-  const effects = device.effects ?? []
-  const focused = preview?.output === index ? preview.effect : -1
-  const alone = effects[focused]
-  const gates = effects.map((_, at) => at === focused)
+  const target = preview?.output === index ? preview : null
+  const alone = target ? previewLayerOf(device, target) : undefined
   const elapsed = useElapsed(alone !== undefined)
   const sweep = (elapsed % SWEEP_MS) / SWEEP_MS
+  const solo = alone ? { ...device, effects: [alone] } : device
+  const named =
+    target?.kind === 'sprite'
+      ? `Picture ${target.sprite}`
+      : alone
+        ? layerName(alone, target?.kind === 'layer' ? target.effect : 0)
+        : ''
 
   return (
     <PageSection
       title="Preview"
       description={
         alone
-          ? `${layerName(alone, focused)} on its own, over and over. Press its button again to stop.`
-          : 'Dark until a layer is played. Press the preview button on one to watch it here.'
+          ? `${named} on its own, over and over.${previewNote(alone)} Press its button again to stop.`
+          : 'Dark until a layer or a picture is played. Press the preview button on one to watch it here.'
       }
     >
       <DevicePreview
         device={device}
-        frame={alone ? paintOutput(device, { value: sweep, elapsedMs: elapsed, gates }) : UNLIT}
+        frame={
+          alone
+            ? paintOutput(solo, {
+                value: sweep,
+                elapsedMs: elapsed,
+                gates: [true],
+                ...previewDrive(alone, elapsed)
+              })
+            : UNLIT
+        }
         highlight={highlight?.output === index ? highlight : null}
       />
     </PageSection>

@@ -18,6 +18,7 @@ struct EffectBinding {
 struct EffectState {
   std::uint64_t hold_until_us{};
   std::uint64_t started_us{};
+  ColorRuleState colors{};
   bool holding{};
 };
 

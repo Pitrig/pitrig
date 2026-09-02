@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 #include "application_configuration.hpp"
 #include "event_bus.hpp"
@@ -53,6 +54,7 @@ class RgbLeds final {
   void render(std::uint64_t now_us);
   [[nodiscard]] bool paint_output(std::size_t output, std::uint64_t now_us);
   [[nodiscard]] bool gate_holds(std::size_t output, std::size_t effect,
+                                std::optional<double> watched,
                                 std::uint64_t now_us);
 
   const telemetry::ITelemetryReader* reader_{};

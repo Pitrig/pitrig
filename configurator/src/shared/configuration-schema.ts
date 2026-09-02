@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 23
+export const CONFIGURATION_SCHEMA_VERSION = 24
 
 export const MAXIMUM_PAYLOAD_SIZE = 131072
 export const MAXIMUM_SCREENS = 4
@@ -49,6 +49,7 @@ export const MAXIMUM_LED_SPRITE_FRAMES = 16
 export const LED_PALETTE_SIZE = 16
 export const LED_SPRITE_PIXEL_CAPACITY = 1025
 export const LED_PANEL_MASK_CAPACITY = 65
+export const MAXIMUM_LED_COLOR_RULES = 4
 export const LED_TEXT_CAPACITY = 32
 export const LED_TELEMETRY_IDLE_MS = 2000
 
@@ -76,8 +77,8 @@ export const LED_ANIMATION_KIND_VALUES: readonly LedAnimationKind[] = ['rainbow'
 export type LedGate = 'always' | 'conditions' | 'telemetry_idle'
 export const LED_GATE_VALUES: readonly LedGate[] = ['always', 'conditions', 'telemetry_idle']
 
-export type LedFont = 'regular_4x6' | 'bold_4x6' | 'regular_5x8' | 'bold_5x8'
-export const LED_FONT_VALUES: readonly LedFont[] = ['regular_4x6', 'bold_4x6', 'regular_5x8', 'bold_5x8']
+export type LedFont = 'regular_4x6' | 'bold_4x6' | 'regular_6x8' | 'bold_6x8'
+export const LED_FONT_VALUES: readonly LedFont[] = ['regular_4x6', 'bold_4x6', 'regular_6x8', 'bold_6x8']
 
 export type BoardId = 't_display_s3' | 'guition_esp32_4848s040' | 'guition_jc1060p470c' | 'esp32s3_devkit'
 export const BOARD_ID_VALUES: readonly BoardId[] = ['t_display_s3', 'guition_esp32_4848s040', 'guition_jc1060p470c', 'esp32s3_devkit']
@@ -149,6 +150,7 @@ export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {
   image: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'sprite_frame', minimum: 0, maximum: 64 }],
   shape: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
   slot: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
+  LedColorRule: [{ key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }],
   LedSegmentConfiguration: [{ key: 'count', minimum: 1, maximum: 512 }],
   LedEffect: [{ key: 'from', minimum: 0, maximum: 512 }, { key: 'count', minimum: 1, maximum: 512, zeroMeansOff: true }, { key: 'hold_ms', minimum: 0, maximum: 10000 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }, { key: 'speed_ms', minimum: 50, maximum: 60000 }, { key: 'sprite_frame', minimum: 0, maximum: 16 }],
   LedSpriteConfiguration: [{ key: 'width', minimum: 1, maximum: 16 }, { key: 'height', minimum: 1, maximum: 16 }, { key: 'frame_count', minimum: 1, maximum: 16 }],
@@ -191,6 +193,15 @@ export interface LedSpriteConfiguration {
   frame_count?: number
   palette?: LedPaletteEntry[]
   pixels?: string
+}
+
+export interface LedColorRule {
+  op?: ConditionOperator
+  value?: number
+  color?: RgbColor
+  background_color?: RgbColor
+  blink_ms?: number
+  hold_ms?: number
 }
 
 export interface ValueModifier {
@@ -239,6 +250,8 @@ export interface LedEffect {
   mirrored?: boolean
   inverted?: boolean
   color?: RgbColor
+  background_color?: RgbColor
+  color_rules?: LedColorRule[]
   stops?: ColorStop[]
   steps?: IndicatorSegment[]
   animation?: LedAnimationKind
@@ -667,7 +680,8 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   BoardConfiguration: ['board'],
   LedPaletteEntry: ['color'],
   LedSpriteConfiguration: ['id', 'width', 'height', 'frame_count', 'palette', 'pixels'],
-  LedEffect: ['type', 'id', 'from', 'count', 'panel_mask', 'source', 'minimum', 'maximum', 'gate', 'condition_source', 'conditions', 'hold_ms', 'blink_ms', 'mirrored', 'inverted', 'color', 'stops', 'steps', 'animation', 'speed_ms', 'sprite', 'sprite_frame', 'sprite_loop', 'text', 'font'],
+  LedColorRule: ['op', 'value', 'color', 'background_color', 'blink_ms', 'hold_ms'],
+  LedEffect: ['type', 'id', 'from', 'count', 'panel_mask', 'source', 'minimum', 'maximum', 'gate', 'condition_source', 'conditions', 'hold_ms', 'blink_ms', 'mirrored', 'inverted', 'color', 'background_color', 'color_rules', 'stops', 'steps', 'animation', 'speed_ms', 'sprite', 'sprite_frame', 'sprite_loop', 'text', 'font'],
   LedSegmentConfiguration: ['count', 'direction'],
   HardwareDeviceConfiguration: ['type', 'id', 'pin', 'chip', 'brightness', 'gamma', 'current_limit_ma', 'count', 'segments', 'width', 'height', 'order', 'origin', 'rotation_deg', 'effects', 'sprites'],
   UartTelemetryConfiguration: ['port', 'tx_pin', 'rx_pin', 'baud_rate', 'silence_esp_logs'],
@@ -714,7 +728,7 @@ export const SCHEMA_VARIANT_ARRAYS: Record<string, readonly string[]> = {
 
 export const SCHEMA_CHILD_TYPES: Record<string, Record<string, string>> = {
   LedSpriteConfiguration: { palette: 'LedPaletteEntry' },
-  LedEffect: { source: 'ValueSourceConfiguration', condition_source: 'ValueSourceConfiguration', conditions: 'ValueCondition', stops: 'ColorStop', steps: 'IndicatorSegment' },
+  LedEffect: { source: 'ValueSourceConfiguration', condition_source: 'ValueSourceConfiguration', conditions: 'ValueCondition', color_rules: 'LedColorRule', stops: 'ColorStop', steps: 'IndicatorSegment' },
   HardwareDeviceConfiguration: { segments: 'LedSegmentConfiguration', effects: 'LedEffect', sprites: 'LedSpriteConfiguration' },
   TelemetryTransportConfiguration: { uart: 'UartTelemetryConfiguration' },
   WidgetValueStyle: { font: 'FontSpec' },

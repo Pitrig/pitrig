@@ -12,6 +12,8 @@ export type { LampRange, LedProfile, MatrixSize, ProfileParts } from './profile-
 const SHIFT_FIRST = 0.7
 const SHIFT_LAST = 0.97
 const SHIFT_RAMP: readonly RgbColor[] = ['#00C853', '#FFD600', '#FF2D95']
+const GEAR_CAUTION = 90
+const GEAR_LIMIT = 97
 
 function mix(left: RgbColor, right: RgbColor, amount: number): RgbColor {
   const channel = (at: number): string => {
@@ -32,7 +34,7 @@ function rampAt(position: number): RgbColor {
 }
 
 function gearFace(matrix: MatrixSize | undefined): LedFont {
-  if (matrix !== undefined && matrix.height >= 8 && matrix.width >= 5) return 'bold_5x8'
+  if (matrix !== undefined && matrix.height >= 8 && matrix.width >= 6) return 'bold_6x8'
   return 'bold_4x6'
 }
 
@@ -83,7 +85,7 @@ export const LED_PROFILES: readonly LedProfile[] = [
     label: 'Gear',
     panelOnly: true,
     description:
-      'The selected gear, drawn in the largest built-in face the panel can hold. Change the face on the layer if you want it smaller. A panel only, since a strip has nowhere to draw a glyph.',
+      'The selected gear, drawn in the largest built-in face the panel can hold, turning amber and then red as the revs climb. Change the face on the layer if you want it smaller. A panel only, since a strip has nowhere to draw a glyph.',
     build: (range, _lamps, matrix) => ({
       effects: [
         {
@@ -92,6 +94,11 @@ export const LED_PROFILES: readonly LedProfile[] = [
           font: gearFace(matrix),
           color: '#FFFFFF',
           source: { binding: 'transmission.gear' },
+          condition_source: { binding: 'engine.rpm_percent' },
+          color_rules: [
+            { op: 'at_or_above', value: GEAR_LIMIT, color: '#D50000' },
+            { op: 'at_or_above', value: GEAR_CAUTION, color: '#FFD600' }
+          ],
           ...area(range)
         }
       ]

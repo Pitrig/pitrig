@@ -22,6 +22,7 @@ import {
 } from '@/features/configuration/inspector/widget-editors'
 import { HINTS } from './hints'
 import { Subsection } from './Subsection'
+import { applyWatchedBinding, releaseWatchedBinding } from './watched-source'
 
 export function EffectGate({
   effect,
@@ -46,8 +47,8 @@ export function EffectGate({
           onChange={(gate) => update((next) => {
             next.gate = gate
             if (gate !== 'conditions') {
-              delete next.condition_source
               delete next.conditions
+              releaseWatchedBinding(next)
             }
           })}
         />
@@ -56,19 +57,7 @@ export function EffectGate({
             <TelemetryBindingField
               label="Watches"
               value={watched}
-              onChange={(binding) => update((next) => {
-                if (binding) next.condition_source = { ...next.condition_source, binding }
-                else delete next.condition_source
-                const selected = TELEMETRY_CATALOG.find(({ name }) => name === binding)
-                if (selected?.type !== 'boolean') return
-                next.conditions = (next.conditions ?? []).map((rule) => ({
-                  ...rule,
-                  op: BOOLEAN_OPERATORS.includes(rule.op ?? 'at_or_above')
-                    ? rule.op
-                    : 'equal',
-                  value: (rule.value ?? 0) >= 1 ? 1 : 0
-                }))
-              })}
+              onChange={(binding) => update((next) => applyWatchedBinding(next, binding))}
             />
             {(effect.conditions ?? []).map((rule, position) => (
               <PropertyRow key={position} label={`Rule ${position + 1}`}>

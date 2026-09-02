@@ -86,10 +86,11 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
       ordered chain of strips and matrices. Layers are painted over that chain
       and a later one overwrites the lamps it covers, which is SimHub's model
       and the opposite of a widget's first-match styling rules: an output
-      composes a picture out of several things being true at once. Matrix
-      artwork is palette-indexed inside the document rather than uploaded, so
-      the whole feature reaches boards already in the field over the air
-      (ADR 0030)
+      composes a picture out of several things being true at once — while a
+      layer's own colour and ground answer telemetry through first-match rules,
+      the way a widget's do. Matrix artwork is drawn in the configurator and
+      palette-indexed inside the document rather than uploaded, so the whole
+      feature reaches boards already in the field over the air (ADR 0030)
 
 # Phase 5 — Interaction
 

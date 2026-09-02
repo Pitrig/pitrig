@@ -1272,8 +1272,13 @@ A strip and a matrix are authored like this — two devices, two pins:
       "width": 8, "height": 8,
       "order": "serpentine", "origin": "top_left", "rotation_deg": 0,
       "effects": [
-        { "type": "text", "id": "gear", "font": "bold_5x8", "color": "#FFFFFF",
-          "source": { "binding": "transmission.gear" } }
+        { "type": "text", "id": "gear", "font": "bold_6x8", "color": "#FFFFFF",
+          "source": { "binding": "transmission.gear" },
+          "condition_source": { "binding": "engine.rpm_percent" },
+          "color_rules": [
+            { "op": "at_or_above", "value": 97, "color": "#D50000", "blink_ms": 150 },
+            { "op": "at_or_above", "value": 90, "color": "#FFD600" }
+          ] }
       ]
     }
   ]
@@ -1294,6 +1299,28 @@ were showing while its rule holds. That is deliberately the opposite of a
 widget's styling rules, where the first match wins: a widget resolves one
 appearance, while a device composes a picture out of several things being true
 at once.
+
+A layer's `color_rules` are the exception, and they are first-match-wins for the
+same reason a widget's are: they describe one layer's appearance rather than
+selecting what paints. Each names a comparison over `condition_source` — the
+value the `conditions` gate watches, and the only one a layer watches — and the
+colour the layer takes while it holds, so the gear above is white, amber from
+90% of the revs and red and flashing from 97%. A rule may set `color`,
+`background_color`, `blink_ms`, `hold_ms` or any of them together, and whatever
+it leaves unset stays as the layer authored it; one that would paint nothing at
+all is rejected. `color`
+repaints what the layer draws: the ink of `text`, the colour of `solid` and
+`animation`, the fill of a `gauge` with no ramp, and every lit pixel of a
+`sprite`, so one drawing serves every state; a pixel the picture paints black
+stays black, because black is the unlit lamp by convention. `background_color` — on the layer
+or on a rule — fills every lamp the layer covers before it draws, which is what
+puts a glyph on a ground of its own rather than on whatever the layers below
+left. `blink_ms` flashes everything the layer paints while the rule holds and
+takes over from the layer's own for that time, which is how one band of a value
+flashes without a second layer over it; `hold_ms` keeps the rule applied for that
+long after it stops matching, so a momentary trigger still leaves a visible flash
+of colour. A layer with no rule and no gate carries no `condition_source`, and
+one that names a source neither reads is rejected.
 
 The configurable `hardware` array carries one entry per peripheral, each named
 by a `type` the firmware has a driver for. A type it does not know is rejected
@@ -1318,7 +1345,10 @@ the same one. A layer carries no brightness of its own — the device's
 `brightness` is the one knob, applied to the whole frame on its way to the wire.
 Matrix artwork travels inside this document as palette-indexed pixels rather
 than as an uploaded asset, so it costs no partition, no upload and no restart; a
-strip carrying sprites is rejected, because it has nothing to draw them on.
+strip carrying sprites is rejected, because it has nothing to draw them on. It is
+drawn on the configurator's Pictures tab, where a picture's pixels, palette and
+frames are authored directly, and a digit past the end of the palette leaves the
+layers below it visible.
 
 The schema retains deterministic limits. They are generated from
 `configuration/configuration_schema.json` together with the firmware structures

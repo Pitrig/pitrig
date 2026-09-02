@@ -9,6 +9,11 @@ const LEGACY_SLOT_KEYS = [
 
 const LEGACY_SOURCE_KEYS = ['binding', 'modifiers', 'transform'] as const
 
+const LEGACY_LED_FONTS: Record<string, string> = {
+  regular_5x8: 'regular_6x8',
+  bold_5x8: 'bold_6x8'
+}
+
 const LAP_DELTA_BINDING = 'session.lap.delta'
 
 const DEFAULT_FASTER_COLOR = '#00C853'
@@ -22,7 +27,12 @@ export function migrateConfigurationDocument(document: unknown): unknown {
     for (const device of document.hardware) {
       if (!isObject(device) || !Array.isArray(device.effects)) continue
       for (const effect of device.effects) {
-        if (isObject(effect)) delete effect.brightness
+        if (!isObject(effect)) continue
+        delete effect.brightness
+        const font = effect.font
+        if (typeof font === 'string' && LEGACY_LED_FONTS[font]) {
+          effect.font = LEGACY_LED_FONTS[font]
+        }
       }
     }
   }

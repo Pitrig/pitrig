@@ -16,7 +16,7 @@ export function useBoardPreview(enabled: boolean): void {
 
   useEffect(() => {
     if (!enabled || !draft || !preview) return undefined
-    const configuration = soloConfiguration(draft, preview.output, preview.effect)
+    const configuration = soloConfiguration(draft, preview)
     if (!configuration || documentsDiffering(configuration, running).length === 0) {
       return undefined
     }

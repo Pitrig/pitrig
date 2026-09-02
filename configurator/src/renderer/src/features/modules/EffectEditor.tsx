@@ -33,6 +33,7 @@ import { HINTS } from './hints'
 import { layerName } from './layer-name'
 import { PanelAreaField } from './PanelArea'
 import { mutateEffects } from './modules-document'
+import { EffectColors } from './effect-colors'
 import { EffectGate } from './effect-gate'
 import { EffectPayload } from './effect-payload'
 
@@ -247,6 +248,7 @@ export function EffectEditor({
         ) : null}
         <EffectPayload effect={effect} type={type} update={update} />
         <EffectGate effect={effect} update={update} />
+        <EffectColors effect={effect} update={update} />
       </Group>
     </>
   )

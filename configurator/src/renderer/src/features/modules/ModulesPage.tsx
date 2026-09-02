@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Cable, Grid3x3, Layers, Lightbulb, Plus, Puzzle } from 'lucide-react'
+import { Cable, Grid3x3, Images, Layers, Lightbulb, Plus, Puzzle } from 'lucide-react'
 
 import { EmptyState, PageSection, PageShell } from '@/app/workspace/PageShell'
 import { SubTabs } from '@/app/workspace/SubTabs'
@@ -10,7 +10,10 @@ import { useDeviceStore } from '@/features/device/device-store'
 import { BoardPicker } from '@/features/configuration/preview/BoardPicker'
 import { boardName } from '@/features/configuration/board-labels'
 import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
-import type { HardwareDeviceType } from '@shared/configuration-schema'
+import type {
+  HardwareDeviceConfiguration,
+  HardwareDeviceType
+} from '@shared/configuration-schema'
 import { EffectEditor } from './EffectEditor'
 import { EffectList } from './EffectList'
 import { LedPreview } from './LedPreview'
@@ -18,6 +21,7 @@ import { NoConfiguration } from './NoConfiguration'
 import { OutputEditor } from './OutputEditor'
 import { ProfilePicker } from './ProfilePicker'
 import { SegmentEditor } from './SegmentEditor'
+import { SpriteEditor } from './SpriteEditor'
 import { SpriteList } from './SpriteList'
 import { addDevice, canAddDevice, devicesOf, ledPinsOf, removeDevice } from './modules-document'
 import { useModulesStore, type DeviceView } from './modules-store'
@@ -29,6 +33,7 @@ const TABS: ReadonlyArray<{ id: ModulesView; label: string; icon: typeof Lightbu
 
 const DEVICE_TABS: ReadonlyArray<{ id: DeviceView; label: string; icon: typeof Cable }> = [
   { id: 'wiring', label: 'Wiring', icon: Cable },
+  { id: 'pictures', label: 'Pictures', icon: Images },
   { id: 'layers', label: 'Layers', icon: Layers }
 ]
 
@@ -58,6 +63,9 @@ export function ModulesPage(): React.JSX.Element {
   const active = mine.find(({ index }) => index === selected) ?? mine[0]
   const pins = ledPinsOf(draft)
   const noun = view === 'matrix' ? 'matrix' : 'strip'
+  const matrix = active?.device.type === 'rgb_matrix'
+  const tabs = DEVICE_TABS.filter((tab) => tab.id !== 'pictures' || matrix)
+  const page = deviceView === 'pictures' && !matrix ? 'wiring' : deviceView
 
   return (
     <PageShell
@@ -149,19 +157,23 @@ export function ModulesPage(): React.JSX.Element {
               <LedPreview index={active.index} device={active.device} />
               <SubTabs
                 label="Device view"
-                tabs={DEVICE_TABS.map((tab) => ({
+                tabs={tabs.map((tab) => ({
                   ...tab,
                   badge:
                     tab.id === 'layers' ? (
                       <span className="text-[10px] text-muted-foreground">
                         {(active.device.effects ?? []).length}
                       </span>
+                    ) : tab.id === 'pictures' ? (
+                      <span className="text-[10px] text-muted-foreground">
+                        {(active.device.sprites ?? []).length}
+                      </span>
                     ) : undefined
                 }))}
-                value={deviceView}
+                value={page}
                 onChange={setDeviceView}
               />
-              {deviceView === 'wiring' ? (
+              {page === 'wiring' ? (
                 <PageSection
                   title="Wiring"
                   description="The pin, the shape and the limits of this device."
@@ -169,10 +181,10 @@ export function ModulesPage(): React.JSX.Element {
                   <OutputEditor draft={draft} index={active.index} device={active.device} />
                   {active.device.type === 'rgb_strip' ? (
                     <SegmentEditor index={active.index} device={active.device} />
-                  ) : (
-                    <SpriteList index={active.index} device={active.device} />
-                  )}
+                  ) : null}
                 </PageSection>
+              ) : page === 'pictures' ? (
+                <PicturesSection output={active.index} device={active.device} />
               ) : (
                 <PageSection
                   title="What it shows"
@@ -195,5 +207,32 @@ export function ModulesPage(): React.JSX.Element {
         </>
       )}
     </PageShell>
+  )
+}
+
+function PicturesSection({
+  output,
+  device
+}: {
+  output: number
+  device: HardwareDeviceConfiguration
+}): React.JSX.Element {
+  const selected = useModulesStore((state) => state.sprite)
+  const sprite = (device.sprites ?? [])[selected]
+
+  return (
+    <PageSection
+      title="Pictures"
+      description="Artwork this panel draws, drawn here and carried inside the modules document."
+    >
+      <SpriteList output={output} device={device} />
+      {sprite ? (
+        <SpriteEditor output={output} device={device} at={selected} />
+      ) : (
+        <p className="text-[11px] text-muted-foreground">
+          Pick a picture to draw it, or make a new one.
+        </p>
+      )}
+    </PageSection>
   )
 }

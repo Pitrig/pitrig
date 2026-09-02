@@ -59,18 +59,28 @@ bool RgbLeds::paint_output(const std::size_t output,
   const configuration::HardwareDeviceConfiguration& device = *devices_[output];
   outputs_[output].clear();
   for (std::uint8_t index = 0; index < device.effect_count; ++index) {
-    if (!gate_holds(output, index, now_us)) {
+    const EffectBinding& binding = bindings_[output * kMaximumEffects + index];
+    const std::optional<double> watched =
+        binding.condition.valid()
+            ? conditions::condition_value(reader_->read(binding.condition))
+            : std::nullopt;
+    if (!gate_holds(output, index, watched, now_us)) {
       continue;
     }
     const configuration::LedEffect& effect = device.effects[index];
-    const EffectState& state = states_[output * kMaximumEffects + index];
-    if (effect.blink_ms != 0) {
-      const std::uint64_t period = static_cast<std::uint64_t>(effect.blink_ms) * 1000;
-      if (((now_us - state.started_us) / (period / 2)) % 2 == 1) {
+    EffectState& state = states_[output * kMaximumEffects + index];
+    const LayerColors colors =
+        colors_of(effect, watched, state.colors, now_us);
+    const std::uint16_t blink_ms =
+        colors.blink_ms != 0 ? colors.blink_ms : effect.blink_ms;
+    const std::uint64_t blink_since =
+        colors.blink_ms != 0 ? colors.since_us : state.started_us;
+    if (blink_ms != 0) {
+      const std::uint64_t period = static_cast<std::uint64_t>(blink_ms) * 1000;
+      if (((now_us - blink_since) / (period / 2)) % 2 == 1) {
         continue;
       }
     }
-    const EffectBinding& binding = bindings_[output * kMaximumEffects + index];
     const telemetry::TelemetryRead read =
         binding.value.valid() ? reader_->read(binding.value)
                               : telemetry::TelemetryRead{};
@@ -81,22 +91,26 @@ bool RgbLeds::paint_output(const std::size_t output,
     if (binding.area.width == 0) {
       continue;
     }
+    if (colors.background.has_value()) {
+      fill_area(outputs_[output], geometry_[output], binding.area,
+                *colors.background);
+    }
     if (configuration::led_effect_draws_pixels(effect.type)) {
       const Panel panel =
           panel_of(outputs_[output], geometry_[output], binding.area);
       if (effect.type == configuration::LedEffectType::sprite) {
-        paint_sprite(panel, binding.sprite, effect, value,
+        paint_sprite(panel, binding.sprite, effect, value, colors.tint,
                      now_us - state.started_us);
       } else {
         std::array<char, configuration::kLedTextCapacity + 24> scratch{};
         paint_text(panel, effect, effect_text(effect, read, scratch),
-                   now_us - state.started_us);
+                   colors.ink, now_us - state.started_us);
       }
       continue;
     }
     const Surface surface =
         surface_of(outputs_[output], geometry_[output], binding.area, effect);
-    paint(surface, effect, value, now_us - state.started_us);
+    paint(surface, effect, colors.ink, value, now_us - state.started_us);
   }
   if (pushed_[output] && !outputs_[output].changed()) {
     return false;
@@ -112,6 +126,7 @@ bool RgbLeds::paint_output(const std::size_t output,
 }
 
 bool RgbLeds::gate_holds(const std::size_t output, const std::size_t index,
+                         const std::optional<double> watched,
                          const std::uint64_t now_us) {
   const configuration::LedEffect& effect = devices_[output]->effects[index];
   EffectState& state = states_[output * kMaximumEffects + index];
@@ -129,11 +144,9 @@ bool RgbLeds::gate_holds(const std::size_t output, const std::size_t index,
     }
     case configuration::LedGate::conditions: {
       matched = false;
-      const std::optional<double> value = conditions::condition_value(
-          reader_->read(bindings_[output * kMaximumEffects + index].condition));
-      if (value.has_value()) {
+      if (watched.has_value()) {
         for (std::uint8_t rule = 0; rule < effect.condition_count; ++rule) {
-          if (conditions::condition_holds(effect.conditions[rule].op, *value,
+          if (conditions::condition_holds(effect.conditions[rule].op, *watched,
                                           effect.conditions[rule].value)) {
             matched = true;
             break;
