@@ -31,7 +31,7 @@ const PRESETS: ReadonlyArray<{
 }> = [
   {
     id: 'sweep',
-    label: t('inspector.ringEditor.sweep'),
+    label: t('modules.spriteList.sweep'),
     title: t('modules.spriteList.aDiagonalBandTravellingAcross'),
     build: (id, width, height) => diagonalSprite(id, width, height, '#ffffff')
   },

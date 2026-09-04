@@ -34,8 +34,8 @@ struct State {
   float centre_x{};
   float centre_y{};
   float needle_radius{};
-  float start_angle_deg{};
-  float sweep_deg{};
+  float sector_start_deg{};
+  float sector_deg{};
   std::uint64_t rendered_revision{};
   bool rendered_available{};
   std::int32_t drawn_per_mille{-1};

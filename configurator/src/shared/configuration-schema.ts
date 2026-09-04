@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 24
+export const CONFIGURATION_SCHEMA_VERSION = 25
 
 export const MAXIMUM_PAYLOAD_SIZE = 131072
 export const MAXIMUM_SCREENS = 4
@@ -122,6 +122,9 @@ export const FILL_CORNERS_VALUES: readonly FillCorners[] = ['rounded', 'square']
 export type ArcMark = 'ring' | 'needle'
 export const ARC_MARK_VALUES: readonly ArcMark[] = ['ring', 'needle']
 
+export type RingCentering = 'circle' | 'figure'
+export const RING_CENTERING_VALUES: readonly RingCentering[] = ['circle', 'figure']
+
 export type IndicatorShape = 'strip' | 'arc'
 export const INDICATOR_SHAPE_VALUES: readonly IndicatorShape[] = ['strip', 'arc']
 
@@ -144,8 +147,8 @@ export interface FieldRange {
 export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {
   text: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
   bar: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
-  arc: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'start_angle_deg', minimum: 0, maximum: 359 }, { key: 'sweep_deg', minimum: 1, maximum: 360 }, { key: 'thickness_px', minimum: 1, maximum: 65535 }, { key: 'radius_px', minimum: 1, maximum: 2048, zeroMeansOff: true }, { key: 'center_x_px', minimum: -2048, maximum: 2048 }, { key: 'center_y_px', minimum: -2048, maximum: 2048 }],
-  indicator: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'start_angle_deg', minimum: 0, maximum: 359 }, { key: 'sweep_deg', minimum: 1, maximum: 360 }, { key: 'thickness_px', minimum: 1, maximum: 65535 }, { key: 'radius_px', minimum: 1, maximum: 2048, zeroMeansOff: true }, { key: 'center_x_px', minimum: -2048, maximum: 2048 }, { key: 'center_y_px', minimum: -2048, maximum: 2048 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }],
+  arc: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'center_angle_deg', minimum: 0, maximum: 359 }, { key: 'sector_deg', minimum: 1, maximum: 360 }, { key: 'thickness_px', minimum: 1, maximum: 65535 }, { key: 'radius_px', minimum: 1, maximum: 2048, zeroMeansOff: true }, { key: 'x_offset_px', minimum: -2048, maximum: 2048 }, { key: 'y_offset_px', minimum: -2048, maximum: 2048 }],
+  indicator: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'center_angle_deg', minimum: 0, maximum: 359 }, { key: 'sector_deg', minimum: 1, maximum: 360 }, { key: 'thickness_px', minimum: 1, maximum: 65535 }, { key: 'radius_px', minimum: 1, maximum: 2048, zeroMeansOff: true }, { key: 'x_offset_px', minimum: -2048, maximum: 2048 }, { key: 'y_offset_px', minimum: -2048, maximum: 2048 }, { key: 'blink_ms', minimum: 100, maximum: 5000, zeroMeansOff: true }],
   graph: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'point_count', minimum: 2, maximum: 128 }, { key: 'sample_interval_ms', minimum: 1, maximum: 65535 }, { key: 'line_width_px', minimum: 1, maximum: 65535 }],
   image: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }, { key: 'sprite_frame', minimum: 0, maximum: 64 }],
   shape: [{ key: 'border.width_px', minimum: 0, maximum: 240 }, { key: 'border.radius_px', minimum: 0, maximum: 480 }, { key: 'title.gap_padding_px', minimum: 0, maximum: 240 }],
@@ -458,12 +461,13 @@ export interface ArcWidgetConfiguration {
   source?: ValueSourceConfiguration
   minimum?: number
   maximum?: number
-  start_angle_deg?: number
-  sweep_deg?: number
+  center_angle_deg?: number
+  sector_deg?: number
   thickness_px?: number
   radius_px?: number
-  center_x_px?: number
-  center_y_px?: number
+  x_offset_px?: number
+  y_offset_px?: number
+  centering?: RingCentering
   track_color?: RgbColor
   fill_color?: RgbColor
   mark?: ArcMark
@@ -492,12 +496,13 @@ export interface IndicatorWidgetConfiguration {
   maximum?: number
   shape?: IndicatorShape
   orientation?: BarOrientation
-  start_angle_deg?: number
-  sweep_deg?: number
+  center_angle_deg?: number
+  sector_deg?: number
   thickness_px?: number
   radius_px?: number
-  center_x_px?: number
-  center_y_px?: number
+  x_offset_px?: number
+  y_offset_px?: number
+  centering?: RingCentering
   segment_gap_px?: number
   segment_radius_px?: number
   inverted?: boolean
@@ -704,9 +709,9 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'sources', 'value'],
   ValueRange: ['minimum', 'maximum'],
   BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'origin', 'orientation', 'inverted', 'fill_color', 'fill_grad_color'],
-  ArcWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'start_angle_deg', 'sweep_deg', 'thickness_px', 'radius_px', 'center_x_px', 'center_y_px', 'track_color', 'fill_color', 'mark', 'inverted'],
+  ArcWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'center_angle_deg', 'sector_deg', 'thickness_px', 'radius_px', 'x_offset_px', 'y_offset_px', 'centering', 'track_color', 'fill_color', 'mark', 'inverted'],
   IndicatorSegment: ['threshold', 'color'],
-  IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'shape', 'orientation', 'start_angle_deg', 'sweep_deg', 'thickness_px', 'radius_px', 'center_x_px', 'center_y_px', 'segment_gap_px', 'segment_radius_px', 'inverted', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
+  IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'shape', 'orientation', 'center_angle_deg', 'sector_deg', 'thickness_px', 'radius_px', 'x_offset_px', 'y_offset_px', 'centering', 'segment_gap_px', 'segment_radius_px', 'inverted', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
   GraphTraceConfiguration: ['source', 'minimum', 'maximum', 'line_color'],
   GraphWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'point_count', 'sample_interval_ms', 'line_color', 'line_width_px', 'traces'],
   ImageWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'image', 'sprite_frame', 'sprite_frame_source', 'recolor', 'recolor_opa'],

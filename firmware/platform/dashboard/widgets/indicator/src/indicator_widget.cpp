@@ -134,7 +134,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
     state.arc_gap_deg = slices.gap_deg;
     if (state.arc_length_deg <= 0) {
       log::error(kTag, "Indicator needs %d segments in %d degrees",
-                 static_cast<int>(count), static_cast<int>(config.sweep_deg));
+                 static_cast<int>(count), static_cast<int>(config.sector_deg));
       return false;
     }
   } else {

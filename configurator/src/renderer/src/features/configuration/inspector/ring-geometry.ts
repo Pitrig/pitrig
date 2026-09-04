@@ -22,6 +22,6 @@ export function fittedRadius(widget: RingWidget, thickness: number): number {
 
 export function ringSummary(widget: RingWidget): string {
   const radius = widget.radius_px ?? 0
-  const angles = `${widget.start_angle_deg ?? 135}° + ${widget.sweep_deg ?? 270}°`
+  const angles = `${widget.center_angle_deg ?? 270}° ± ${(widget.sector_deg ?? 270) / 2}°`
   return radius === 0 ? angles : `${angles} · r${radius}`
 }

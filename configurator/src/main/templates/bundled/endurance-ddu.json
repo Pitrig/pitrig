@@ -943,8 +943,8 @@
                 }
               ],
               "shape": "arc",
-              "start_angle_deg": 150,
-              "sweep_deg": 62,
+              "center_angle_deg": 181,
+              "sector_deg": 62,
               "thickness_px": 26,
               "segment_gap_px": 5,
               "off_color": "#161B24",
@@ -1024,8 +1024,8 @@
                 }
               ],
               "shape": "arc",
-              "start_angle_deg": 328,
-              "sweep_deg": 62,
+              "center_angle_deg": 359,
+              "sector_deg": 62,
               "thickness_px": 26,
               "segment_gap_px": 5,
               "off_color": "#161B24",

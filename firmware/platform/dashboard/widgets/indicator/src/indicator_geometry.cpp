@@ -23,8 +23,15 @@ constexpr float kDegreesPerRadian = 180.0F / std::numbers::pi_v<float>;
 Ring resolve_ring(const Config& config, const std::int32_t inner_width,
                   const std::int32_t inner_height) {
   const ring::Centre centre =
-      ring::resolve(config.thickness_px, config.radius_px, config.center_x_px,
-                    config.center_y_px, inner_width, inner_height);
+      ring::resolve({.thickness_px = config.thickness_px,
+                     .radius_px = config.radius_px,
+                     .x_offset_px = config.x_offset_px,
+                     .y_offset_px = config.y_offset_px,
+                     .center_angle_deg = config.center_angle_deg,
+                     .sector_deg = config.sector_deg,
+                     .center_on_figure = config.centering ==
+                                         configuration::RingCentering::figure},
+                    inner_width, inner_height);
   return Ring{centre.radius, static_cast<std::int32_t>(std::lround(centre.x)),
               static_cast<std::int32_t>(std::lround(centre.y))};
 }
@@ -36,13 +43,13 @@ ArcSlices resolve_arc(const Config& config, const float radius,
   }
   const float wanted_gap =
       static_cast<float>(config.segment_gap_px) * kDegreesPerRadian / radius;
-  const auto sweep = static_cast<std::int32_t>(config.sweep_deg);
+  const auto sector = static_cast<std::int32_t>(config.sector_deg);
   const std::int32_t smallest_gap = config.segment_gap_px != 0 ? 1 : 0;
   const std::int32_t gap = std::max(
       static_cast<std::int32_t>(std::lround(wanted_gap)), smallest_gap);
   const std::int32_t spent = gap * (count - 1);
   const float exact =
-      static_cast<float>(sweep - spent) / static_cast<float>(count);
+      static_cast<float>(sector - spent) / static_cast<float>(count);
   if (exact < 0.5F) {
     return {};
   }
@@ -56,7 +63,7 @@ ArcSlices resolve_arc(const Config& config, const float radius,
     if (total > 360) {
       continue;
     }
-    const std::int32_t error = std::abs(sweep - total);
+    const std::int32_t error = std::abs(sector - total);
     if (error > best_error || (error == best_error && total >= best_total)) {
       continue;
     }
@@ -67,9 +74,8 @@ ArcSlices resolve_arc(const Config& config, const float radius,
   if (best.length_deg == 0) {
     return {};
   }
-  best.start_deg =
-      normalized_degrees(static_cast<std::int32_t>(config.start_angle_deg) +
-                         (sweep - best_total) / 2);
+  best.start_deg = normalized_degrees(
+      static_cast<std::int32_t>(config.center_angle_deg) - best_total / 2);
   return best;
 }
 

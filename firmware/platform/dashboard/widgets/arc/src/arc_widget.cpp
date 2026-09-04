@@ -18,9 +18,9 @@ constexpr std::int32_t kSweepResolution = 1'000;
 
 constexpr float kFullTurnGapDeg = 0.1F;
 
-[[nodiscard]] float drawn_sweep(const Config& config) {
-  const auto sweep = static_cast<float>(config.sweep_deg);
-  return sweep >= 360.0F ? 360.0F - kFullTurnGapDeg : sweep;
+[[nodiscard]] float drawn_sector(const Config& config) {
+  const auto sector = static_cast<float>(config.sector_deg);
+  return sector >= 360.0F ? 360.0F - kFullTurnGapDeg : sector;
 }
 
 void apply_indicator_color(void* const context, const std::uint32_t rgb) {
@@ -43,8 +43,15 @@ struct Ring {
 Ring resolve_ring(const Config& config, const std::int32_t inner_width,
                   const std::int32_t inner_height) {
   const ring::Centre centre =
-      ring::resolve(config.thickness_px, config.radius_px, config.center_x_px,
-                    config.center_y_px, inner_width, inner_height);
+      ring::resolve({.thickness_px = config.thickness_px,
+                     .radius_px = config.radius_px,
+                     .x_offset_px = config.x_offset_px,
+                     .y_offset_px = config.y_offset_px,
+                     .center_angle_deg = config.center_angle_deg,
+                     .sector_deg = config.sector_deg,
+                     .center_on_figure = config.centering ==
+                                         configuration::RingCentering::figure},
+                    inner_width, inner_height);
   const float side =
       2.0F * centre.radius + static_cast<float>(config.thickness_px);
   return Ring{centre.radius,
@@ -54,8 +61,8 @@ Ring resolve_ring(const Config& config, const std::int32_t inner_width,
 }
 
 void point_needle(State& state, const float fraction) {
-  const float degrees =
-      state.start_angle_deg + state.sweep_deg * std::clamp(fraction, 0.0F, 1.0F);
+  const float degrees = state.sector_start_deg +
+                        state.sector_deg * std::clamp(fraction, 0.0F, 1.0F);
   const float radians = degrees * std::numbers::pi_v<float> / 180.0F;
   state.needle_points[0] = {static_cast<lv_value_precise_t>(state.centre_x),
                             static_cast<lv_value_precise_t>(state.centre_y)};
@@ -99,6 +106,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
       0);
 
   const Ring ring = resolve_ring(config, inner_width, inner_height);
+  const auto sector = static_cast<float>(config.sector_deg);
+  const float sector_start = ring::sector_start(config.center_angle_deg, sector);
 
   state.arc = lv_arc_create(box.container);
   lv_obj_remove_style_all(state.arc);
@@ -108,9 +117,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_SCROLLABLE);
   lv_arc_set_mode(state.arc, LV_ARC_MODE_NORMAL);
   lv_arc_set_bg_angles(
-      state.arc, static_cast<lv_value_precise_t>(config.start_angle_deg),
-      static_cast<lv_value_precise_t>(static_cast<float>(config.start_angle_deg) +
-                                      drawn_sweep(config)));
+      state.arc, static_cast<lv_value_precise_t>(sector_start),
+      static_cast<lv_value_precise_t>(sector_start + drawn_sector(config)));
   lv_arc_set_range(state.arc, 0, kSweepResolution);
   lv_arc_set_value(state.arc, 0);
   lv_obj_set_style_arc_width(state.arc, config.thickness_px, LV_PART_MAIN);
@@ -131,8 +139,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
     state.centre_x = static_cast<float>(ring.side) / 2.0F;
     state.centre_y = static_cast<float>(ring.side) / 2.0F;
     state.needle_radius = ring.radius;
-    state.start_angle_deg = static_cast<float>(config.start_angle_deg);
-    state.sweep_deg = static_cast<float>(config.sweep_deg);
+    state.sector_start_deg = sector_start;
+    state.sector_deg = sector;
     state.needle = lv_line_create(box.container);
     lv_obj_remove_style_all(state.needle);
     lv_obj_set_pos(state.needle, ring.left, ring.top);

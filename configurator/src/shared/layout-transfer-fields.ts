@@ -43,14 +43,14 @@ const TYPE_PIXEL_FIELDS: Partial<Record<WidgetType, readonly PixelField[]>> = {
   arc: [
     { path: 'thickness_px', kind: 'uint16', floorWhenPositive: true },
     { path: 'radius_px', kind: 'uint16' },
-    { path: 'center_x_px', kind: 'int16', axis: 'x' },
-    { path: 'center_y_px', kind: 'int16', axis: 'y' }
+    { path: 'x_offset_px', kind: 'int16', axis: 'x' },
+    { path: 'y_offset_px', kind: 'int16', axis: 'y' }
   ],
   indicator: [
     { path: 'thickness_px', kind: 'uint16', floorWhenPositive: true },
     { path: 'radius_px', kind: 'uint16' },
-    { path: 'center_x_px', kind: 'int16', axis: 'x' },
-    { path: 'center_y_px', kind: 'int16', axis: 'y' },
+    { path: 'x_offset_px', kind: 'int16', axis: 'x' },
+    { path: 'y_offset_px', kind: 'int16', axis: 'y' },
     { path: 'segment_gap_px', kind: 'uint16' },
     { path: 'segment_radius_px', kind: 'uint16' }
   ],

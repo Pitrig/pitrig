@@ -43,16 +43,18 @@ namespace simcore::configuration::json::variants {
          parse_value_source(object, "source", config.source, kName, failure) &&
          read_float(object, "minimum", config.range.minimum, kName, failure) &&
          read_float(object, "maximum", config.range.maximum, kName, failure) &&
-         read_integer(object, "start_angle_deg", config.start_angle_deg, kName,
-                      failure) &&
-         read_integer(object, "sweep_deg", config.sweep_deg, kName, failure) &&
+         read_integer(object, "center_angle_deg", config.center_angle_deg,
+                      kName, failure) &&
+         read_integer(object, "sector_deg", config.sector_deg, kName, failure) &&
          read_integer(object, "thickness_px", config.thickness_px, kName,
                       failure) &&
          read_integer(object, "radius_px", config.radius_px, kName, failure) &&
-         read_integer(object, "center_x_px", config.center_x_px, kName,
+         read_integer(object, "x_offset_px", config.x_offset_px, kName,
                       failure) &&
-         read_integer(object, "center_y_px", config.center_y_px, kName,
+         read_integer(object, "y_offset_px", config.y_offset_px, kName,
                       failure) &&
+         read_enum(object, "centering", config.centering,
+                   ring_centering_from_name, kName, failure) &&
          read_color(object, "track_color", config.track_color, kName,
                     failure) &&
          read_color(object, "fill_color", config.fill_color, kName, failure) &&
@@ -91,16 +93,18 @@ namespace simcore::configuration::json::variants {
                    kName, failure) &&
          read_enum(object, "orientation", config.orientation,
                    bar_orientation_from_name, kName, failure) &&
-         read_integer(object, "start_angle_deg", config.start_angle_deg, kName,
-                      failure) &&
-         read_integer(object, "sweep_deg", config.sweep_deg, kName, failure) &&
+         read_integer(object, "center_angle_deg", config.center_angle_deg,
+                      kName, failure) &&
+         read_integer(object, "sector_deg", config.sector_deg, kName, failure) &&
          read_integer(object, "thickness_px", config.thickness_px, kName,
                       failure) &&
          read_integer(object, "radius_px", config.radius_px, kName, failure) &&
-         read_integer(object, "center_x_px", config.center_x_px, kName,
+         read_integer(object, "x_offset_px", config.x_offset_px, kName,
                       failure) &&
-         read_integer(object, "center_y_px", config.center_y_px, kName,
+         read_integer(object, "y_offset_px", config.y_offset_px, kName,
                       failure) &&
+         read_enum(object, "centering", config.centering,
+                   ring_centering_from_name, kName, failure) &&
          read_integer(object, "segment_gap_px", config.segment_gap_px, kName,
                       failure) &&
          read_integer(object, "segment_radius_px", config.segment_radius_px,

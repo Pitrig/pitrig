@@ -45,8 +45,8 @@ export function IndicatorPreview({
     const { radius, centerX, centerY } = ringGeometry(strip, thickness, configuration)
     const slices = arcSlices(
       segments.length,
-      configuration.start_angle_deg ?? 135,
-      Math.min(configuration.sweep_deg ?? 270, 360),
+      configuration.center_angle_deg ?? 270,
+      Math.min(configuration.sector_deg ?? 270, 360),
       gap,
       radius
     )

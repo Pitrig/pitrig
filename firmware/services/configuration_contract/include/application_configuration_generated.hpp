@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 24;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 25;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -272,6 +272,11 @@ enum class FillCorners : std::uint8_t {
 enum class ArcMark : std::uint8_t {
   ring,
   needle,
+};
+
+enum class RingCentering : std::uint8_t {
+  circle,
+  figure,
 };
 
 enum class IndicatorShape : std::uint8_t {
@@ -559,12 +564,13 @@ struct ArcWidgetConfiguration {
   WidgetFrame frame{};
   ValueSourceConfiguration source{};
   ValueRange range{};
-  std::uint16_t start_angle_deg{135};
-  std::uint16_t sweep_deg{270};
+  std::uint16_t center_angle_deg{270};
+  std::uint16_t sector_deg{270};
   std::uint16_t thickness_px{8};
   std::uint16_t radius_px{};
-  std::int16_t center_x_px{};
-  std::int16_t center_y_px{};
+  std::int16_t x_offset_px{};
+  std::int16_t y_offset_px{};
+  RingCentering centering{RingCentering::circle};
   std::uint32_t track_color{kTransparentColor};
   std::uint32_t fill_color{0x38BDF8};
   ArcMark mark{ArcMark::ring};
@@ -577,12 +583,13 @@ struct IndicatorWidgetConfiguration {
   ValueRange range{};
   IndicatorShape shape{IndicatorShape::strip};
   BarOrientation orientation{BarOrientation::horizontal};
-  std::uint16_t start_angle_deg{135};
-  std::uint16_t sweep_deg{270};
+  std::uint16_t center_angle_deg{270};
+  std::uint16_t sector_deg{270};
   std::uint16_t thickness_px{8};
   std::uint16_t radius_px{};
-  std::int16_t center_x_px{};
-  std::int16_t center_y_px{};
+  std::int16_t x_offset_px{};
+  std::int16_t y_offset_px{};
+  RingCentering centering{RingCentering::circle};
   std::uint16_t segment_gap_px{4};
   std::uint16_t segment_radius_px{};
   bool inverted{false};
@@ -1194,6 +1201,27 @@ inline constexpr std::array<std::string_view, 2> kArcMarkNames{{
   for (std::size_t index = 0; index < kArcMarkNames.size(); ++index) {
     if (kArcMarkNames[index] == name) {
       value = static_cast<ArcMark>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 2> kRingCenteringNames{{
+    "circle",
+    "figure",
+}};
+
+[[nodiscard]] inline std::string_view ring_centering_name(const RingCentering value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kRingCenteringNames.size() ? kRingCenteringNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool ring_centering_from_name(const std::string_view name,
+                                                  RingCentering& value) {
+  for (std::size_t index = 0; index < kRingCenteringNames.size(); ++index) {
+    if (kRingCenteringNames[index] == name) {
+      value = static_cast<RingCentering>(index);
       return true;
     }
   }

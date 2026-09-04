@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { ICON_FAMILY } from '@shared/icon-glyphs'
 
 interface FontFaceState {
   loaded: Readonly<Record<string, boolean>>
@@ -18,9 +19,15 @@ export function previewFontFamily(id: string): string {
   return `simcore-asset-${id}`
 }
 
+export function glyphFontFamily(id: string): string {
+  return `simcore-glyphs-${id}`
+}
+
+const PRIVATE_USE_RANGE = 'U+E000-F8FF'
+
 const registered = new Map<string, FontFace>()
 
-async function register(cssFamily: string, key: string, bytes: Uint8Array): Promise<boolean> {
+async function register(cssFamily: string, key: string, bytes: Uint8Array, unicodeRange?: string): Promise<boolean> {
   try {
     const previous = registered.get(key)
     if (previous) {
@@ -28,7 +35,7 @@ async function register(cssFamily: string, key: string, bytes: Uint8Array): Prom
       registered.delete(key)
     }
     const source = new Uint8Array(bytes).slice().buffer
-    const face = new FontFace(cssFamily, source)
+    const face = new FontFace(cssFamily, source, unicodeRange ? { unicodeRange } : undefined)
     await face.load()
     document.fonts.add(face)
     registered.set(key, face)
@@ -53,6 +60,9 @@ export const useFontFaceStore = create<FontFaceState>((set, get) => ({
     const added: Record<string, boolean> = {}
     for (const face of faces) {
       if (await register(previewFontFamily(face.id), face.id, face.bytes)) added[face.id] = true
+      if (face.id === ICON_FAMILY) {
+        await register(glyphFontFamily(face.id), `glyphs:${face.id}`, face.bytes, PRIVATE_USE_RANGE)
+      }
     }
     if (Object.keys(added).length === 0) return
     set((state) => ({ loaded: { ...state.loaded, ...added } }))

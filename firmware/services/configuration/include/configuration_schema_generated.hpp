@@ -347,7 +347,7 @@ inline constexpr std::array<std::string_view, 24> kBarWidgetConfigurationKeys{{
     "fill_grad_color",
 }};
 
-inline constexpr std::array<std::string_view, 29> kArcWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 30> kArcWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -367,12 +367,13 @@ inline constexpr std::array<std::string_view, 29> kArcWidgetConfigurationKeys{{
     "source",
     "minimum",
     "maximum",
-    "start_angle_deg",
-    "sweep_deg",
+    "center_angle_deg",
+    "sector_deg",
     "thickness_px",
     "radius_px",
-    "center_x_px",
-    "center_y_px",
+    "x_offset_px",
+    "y_offset_px",
+    "centering",
     "track_color",
     "fill_color",
     "mark",
@@ -384,7 +385,7 @@ inline constexpr std::array<std::string_view, 2> kIndicatorSegmentKeys{{
     "color",
 }};
 
-inline constexpr std::array<std::string_view, 34> kIndicatorWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 35> kIndicatorWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -406,12 +407,13 @@ inline constexpr std::array<std::string_view, 34> kIndicatorWidgetConfigurationK
     "maximum",
     "shape",
     "orientation",
-    "start_angle_deg",
-    "sweep_deg",
+    "center_angle_deg",
+    "sector_deg",
     "thickness_px",
     "radius_px",
-    "center_x_px",
-    "center_y_px",
+    "x_offset_px",
+    "y_offset_px",
+    "centering",
     "segment_gap_px",
     "segment_radius_px",
     "inverted",
@@ -694,11 +696,11 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
 }
 
 [[nodiscard]] inline std::string_view range_error(const ArcWidgetConfiguration& config) {
-  if (config.start_angle_deg > 359) {
-    return "start_angle_deg";
+  if (config.center_angle_deg > 359) {
+    return "center_angle_deg";
   }
-  if (config.sweep_deg < 1 || config.sweep_deg > 360) {
-    return "sweep_deg";
+  if (config.sector_deg < 1 || config.sector_deg > 360) {
+    return "sector_deg";
   }
   if (config.thickness_px < 1) {
     return "thickness_px";
@@ -707,21 +709,21 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
       (config.radius_px < 1 || config.radius_px > 2048)) {
     return "radius_px";
   }
-  if (config.center_x_px < -2048 || config.center_x_px > 2048) {
-    return "center_x_px";
+  if (config.x_offset_px < -2048 || config.x_offset_px > 2048) {
+    return "x_offset_px";
   }
-  if (config.center_y_px < -2048 || config.center_y_px > 2048) {
-    return "center_y_px";
+  if (config.y_offset_px < -2048 || config.y_offset_px > 2048) {
+    return "y_offset_px";
   }
   return {};
 }
 
 [[nodiscard]] inline std::string_view range_error(const IndicatorWidgetConfiguration& config) {
-  if (config.start_angle_deg > 359) {
-    return "start_angle_deg";
+  if (config.center_angle_deg > 359) {
+    return "center_angle_deg";
   }
-  if (config.sweep_deg < 1 || config.sweep_deg > 360) {
-    return "sweep_deg";
+  if (config.sector_deg < 1 || config.sector_deg > 360) {
+    return "sector_deg";
   }
   if (config.thickness_px < 1) {
     return "thickness_px";
@@ -730,11 +732,11 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
       (config.radius_px < 1 || config.radius_px > 2048)) {
     return "radius_px";
   }
-  if (config.center_x_px < -2048 || config.center_x_px > 2048) {
-    return "center_x_px";
+  if (config.x_offset_px < -2048 || config.x_offset_px > 2048) {
+    return "x_offset_px";
   }
-  if (config.center_y_px < -2048 || config.center_y_px > 2048) {
-    return "center_y_px";
+  if (config.y_offset_px < -2048 || config.y_offset_px > 2048) {
+    return "y_offset_px";
   }
   if (config.blink_ms != 0 &&
       (config.blink_ms < kMinimumBlinkMs || config.blink_ms > kMaximumBlinkMs)) {

@@ -107,8 +107,8 @@ export function arc(
     source: { binding: options.binding },
     minimum: options.minimum,
     maximum: options.maximum,
-    start_angle_deg: 135,
-    sweep_deg: 270,
+    center_angle_deg: 270,
+    sector_deg: 270,
     thickness_px: arcThickness(placement),
     track_color: BENCH_COLORS.track,
     fill_color: options.fill

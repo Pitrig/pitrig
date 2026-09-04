@@ -2,7 +2,7 @@ import { useId } from 'react'
 import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration } from '@shared/configuration-schema'
 import { rangeFraction } from '@shared/telemetry-value'
 import { completePlacement } from '../dashboard-editor'
-import { arcPath, needlePoints, ringGeometry } from './arc-geometry'
+import { arcPath, needlePoints, ringGeometry, sectorStart } from './arc-geometry'
 import { markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR } from './preview-theme'
 import { type PreviewValues, normalizeColor } from './preview-values'
@@ -85,14 +85,14 @@ export function ArcPreview({
   })
   if (!style.visible) return null
   const thickness = configuration.thickness_px ?? 8
-  const start = configuration.start_angle_deg ?? 135
-  const sweep = Math.min(configuration.sweep_deg ?? 270, 360)
+  const sector = Math.min(configuration.sector_deg ?? 270, 360)
+  const start = sectorStart(configuration.center_angle_deg ?? 270, sector)
   const plot = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
   const { radius, centerX, centerY } = ringGeometry(plot, thickness, configuration)
   const track = normalizeColor(configuration.track_color)
   const value = values.numberFor(configuration.source)
   const fraction = rangeFraction(value, configuration.minimum, configuration.maximum)
-  const swept = value === undefined ? sweep : sweep * (configuration.inverted ? 1 - fraction : fraction)
+  const swept = value === undefined ? sector : sector * (configuration.inverted ? 1 - fraction : fraction)
   const faded = value === undefined ? (track && track !== 'transparent' ? 0.25 : 0.35) : 1
   const needle = (configuration.mark ?? 'ring') === 'needle'
   const pointer = needlePoints(centerX, centerY, radius, start + (needle ? swept : 0))
@@ -106,7 +106,7 @@ export function ArcPreview({
       <g clipPath={`url(#${clipId})`}>
         {track && track !== 'transparent' ? (
           <path
-            d={arcPath(centerX, centerY, radius, start, sweep)}
+            d={arcPath(centerX, centerY, radius, start, sector)}
             fill="none"
             stroke={track}
             strokeWidth={thickness}

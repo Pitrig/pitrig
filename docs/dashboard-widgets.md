@@ -317,12 +317,19 @@ the table cannot state.
 - `bar` fills from `origin` — the value inside the window the fill grows out
   of, which is what makes a centred delta bar. The frame background is the
   track, so a bar needs no track colour of its own.
-- `arc` sweeps `sweep_deg` from `start_angle_deg`. `mark` changes the drawing,
-  not the mapping: `ring` fills the sweep up to the value, `needle` points a
-  line from the centre at it, as thick as the ring and reaching the same
-  radius, so a needle needs no geometry of its own.
+- `arc` spreads `sector_deg` either side of `center_angle_deg`, so the sector
+  is authored by its middle and its width rather than by a start and an extent.
+  `mark` changes the drawing, not the mapping: `ring` fills the sector up to
+  the value, `needle` points a line from the centre at it, as thick as the ring
+  and reaching the same radius, so a needle needs no geometry of its own.
 - Both ring shapes — the `arc` widget and an `indicator` in `arc` shape — take
-  the circle they draw on from `radius_px` and `center_x_px` / `center_y_px`.
+  the circle they draw on from `radius_px` and `x_offset_px` / `y_offset_px`,
+  which move the circle without changing its radius. `centering` decides what
+  the box holds in the middle: `circle`, the centre of the ring's own circle,
+  or `figure`, the bounding box of the band actually drawn — thickness and the
+  sector's ends included — so a radius larger than the box keeps the band in
+  the middle of the box and drives the circle's centre out of it. A needle
+  still pivots on that centre wherever it lands.
   A zero radius keeps the rule the box always had: half the shorter inner side
   less half the thickness. A radius of its own may be larger than the box and
   the centre may sit outside it; the widget still clips to its box, so what
@@ -335,7 +342,8 @@ the table cannot state.
   fraction, so a strip never blinks unless asked. An `arc` shape spends
   `segment_gap_px` along its own ring and rounds lamp ends rather than corners;
   whole degrees are all an arc resolves, so lamps and gaps are snapped to one
-  size each and the group is centred on `sweep_deg` rather than filling it —
+  size each and the group is centred on `center_angle_deg` rather than filling
+  the sector —
   no lamp is wider than its neighbour. `inverted` lights from the far end
   without changing which lamp lights when, so a mirrored pair of rev bars is
   one authored strip placed twice.

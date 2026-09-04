@@ -1,5 +1,5 @@
 {
-  "schema_version": 24,
+  "schema_version": 25,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
 
   "documents": {
@@ -365,12 +365,17 @@
     "ArcMark": {
       "json_values": ["ring", "needle"],
       "default": "ring",
-      "doc": "What an arc draws at the angle its value maps to. ring fills the sweep up to it; needle points a line from the centre at it, over the same track. The mark changes, the mapping does not, so a needle needs no geometry of its own: it spans the radius the ring would occupy and takes its width from thickness_px."
+      "doc": "What an arc draws at the angle its value maps to. ring fills the sector up to it; needle points a line from the centre at it, over the same track. The mark changes, the mapping does not, so a needle needs no geometry of its own: it spans the radius the ring would occupy and takes its width from thickness_px."
+    },
+    "RingCentering": {
+      "json_values": ["circle", "figure"],
+      "default": "circle",
+      "doc": "What the box centres. circle puts the middle of the ring's circle in the middle of the box, which is what a gauge filling its box wants. figure centres what is actually drawn instead — the band between the sector's ends, thickness included — so a radius larger than the box keeps the band in the middle and drives the circle's centre out of the box rather than the band off it. The offsets move whichever of the two lands there."
     },
     "IndicatorShape": {
       "json_values": ["strip", "arc"],
       "default": "strip",
-      "doc": "How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sweep, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the three angle properties, and each ignores the other's."
+      "doc": "How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sector, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the ring geometry, and each ignores the other's."
     },
     "SlotTrigger": {
       "json_values": ["none", "value_changed", "conditions"],
@@ -725,16 +730,17 @@
         { "name": "frame", "kind": "struct", "struct": "WidgetFrame", "flatten": true },
         { "name": "source", "kind": "struct", "struct": "ValueSourceConfiguration" },
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
-        { "name": "start_angle_deg", "kind": "uint16", "default": 135, "maximum": 359, "doc": "Where the sweep begins, in LVGL degrees: zero is three o'clock and the angle grows clockwise." },
-        { "name": "sweep_deg", "kind": "uint16", "default": 270, "minimum": 1, "maximum": 360, "doc": "How far the arc runs from its start. An extent rather than an end angle, so the wrap past 360 degrees is never ambiguous. A sweep of zero would draw nothing and one past a full turn would wrap over itself." },
+        { "name": "center_angle_deg", "kind": "uint16", "default": 270, "maximum": 359, "doc": "Middle of the sector, in LVGL degrees: zero is three o'clock and the angle grows clockwise. Half of sector_deg is spread either side of it, so the usual car gauge sits at 270, symmetric about twelve o'clock." },
+        { "name": "sector_deg", "kind": "uint16", "default": 270, "minimum": 1, "maximum": 360, "doc": "How wide the sector is, centred on center_angle_deg. A sector of zero would draw nothing and one past a full turn would wrap over itself." },
         { "name": "thickness_px", "kind": "uint16", "default": 8, "minimum": 1, "doc": "Ring thickness. With no radius of its own, two of these also have to fit across the widget, which the display-aware validator checks separately." },
         { "name": "radius_px", "kind": "uint16", "default": 0, "minimum": 1, "maximum": 2048, "zero_means_off": true, "doc": "Radius of the ring's centre line. Zero takes it from the box, which is what an arc has always done: half the shorter inner side, less half the thickness. A radius of its own is free to be larger than the box, and the widget still clips to its box, so a ring wider than the box shows only the band that crosses it." },
-        { "name": "center_x_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Circle centre relative to the centre of the box, positive right. Pushing the centre outside the box is how a shallow band across a corner of a round display is authored." },
-        { "name": "center_y_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Circle centre relative to the centre of the box, positive down." },
-        { "name": "track_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Unfilled part of the sweep. Omitted leaves it unpainted, which suits an arc drawn over a shape." },
+        { "name": "x_offset_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Moves the circle sideways from the centre of the box, positive right, leaving the radius as it is. Pushing the centre outside the box is how a shallow band across a corner of a round display is authored." },
+        { "name": "y_offset_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Moves the circle down from the centre of the box, positive down, leaving the radius as it is." },
+        { "name": "centering", "kind": "enum", "enum": "RingCentering" },
+        { "name": "track_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Unfilled part of the sector. Omitted leaves it unpainted, which suits an arc drawn over a shape." },
         { "name": "fill_color", "kind": "color", "default": "0x38BDF8" },
         { "name": "mark", "kind": "enum", "enum": "ArcMark" },
-        { "name": "inverted", "kind": "bool", "default": false, "doc": "Sweeps from the far end of the arc instead of the near one." }
+        { "name": "inverted", "kind": "bool", "default": false, "doc": "Fills from the far end of the sector instead of the near one." }
       ]
     },
 
@@ -755,15 +761,16 @@
         { "name": "range", "kind": "struct", "struct": "ValueRange", "flatten": true },
         { "name": "shape", "kind": "enum", "enum": "IndicatorShape" },
         { "name": "orientation", "kind": "enum", "enum": "BarOrientation" },
-        { "name": "start_angle_deg", "kind": "uint16", "default": 135, "maximum": 359, "doc": "Where an arc strip begins, in LVGL degrees: zero is three o'clock and the angle grows clockwise. Ignored by a strip." },
-        { "name": "sweep_deg", "kind": "uint16", "default": 270, "minimum": 1, "maximum": 360, "doc": "How far an arc strip runs from its start, shared out between its lamps and the gaps between them. Ignored by a strip." },
+        { "name": "center_angle_deg", "kind": "uint16", "default": 270, "maximum": 359, "doc": "Middle of an arc strip's sector, in LVGL degrees: zero is three o'clock and the angle grows clockwise. Ignored by a strip." },
+        { "name": "sector_deg", "kind": "uint16", "default": 270, "minimum": 1, "maximum": 360, "doc": "How wide an arc strip's sector is, centred on center_angle_deg and shared out between its lamps and the gaps between them. Ignored by a strip." },
         { "name": "thickness_px", "kind": "uint16", "default": 8, "minimum": 1, "doc": "Ring thickness of an arc strip. With no radius of its own, two of these also have to fit across the widget, which the display-aware validator checks separately. Ignored by a strip." },
         { "name": "radius_px", "kind": "uint16", "default": 0, "minimum": 1, "maximum": 2048, "zero_means_off": true, "doc": "Radius of the lamp ring's centre line. Zero takes it from the box, half the shorter inner side less half the thickness. A radius of its own may exceed the box, which the widget still clips to. Ignored by a strip." },
-        { "name": "center_x_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Ring centre relative to the centre of the box, positive right. Ignored by a strip." },
-        { "name": "center_y_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Ring centre relative to the centre of the box, positive down. Ignored by a strip." },
+        { "name": "x_offset_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Moves the ring sideways from the centre of the box, positive right, leaving the radius as it is. Ignored by a strip." },
+        { "name": "y_offset_px", "kind": "int16", "default": 0, "minimum": -2048, "maximum": 2048, "doc": "Moves the ring down from the centre of the box, positive down, leaving the radius as it is. Ignored by a strip." },
+        { "name": "centering", "kind": "enum", "enum": "RingCentering" },
         { "name": "segment_gap_px", "kind": "uint16", "default": 4, "doc": "Clear space between lamps. An arc spends it along its own ring, so the gap stays the same width wherever the lamp sits." },
         { "name": "segment_radius_px", "kind": "uint16", "default": 0, "doc": "Corner radius of a strip lamp. An arc lamp has no corners, so any non-zero value rounds its ends instead." },
-        { "name": "inverted", "kind": "bool", "default": false, "doc": "Lights from the far end instead of the near one: right instead of left, top instead of bottom, or the end of the sweep instead of its start. Which lamp lights when is unchanged — the thresholds still climb down the list — so a mirrored pair of rev bars is one authored strip placed twice." },
+        { "name": "inverted", "kind": "bool", "default": false, "doc": "Lights from the far end instead of the near one: right instead of left, top instead of bottom, or the end of the sector instead of its start. Which lamp lights when is unchanged — the thresholds still climb down the list — so a mirrored pair of rev bars is one authored strip placed twice." },
         { "name": "off_color", "kind": "optional_color", "default": "kTransparentColor", "doc": "Colour of a segment that is not lit. Omitted leaves it unpainted." },
         { "name": "blink_threshold", "kind": "float", "default": 2, "doc": "Range fraction at or above which every lit segment blinks. The default is past the top of the range, which is how a strip says never." },
         { "name": "blink_ms", "kind": "uint16", "default": 0, "minimum": "kMinimumBlinkMs", "maximum": "kMaximumBlinkMs", "zero_means_off": true, "doc": "Blink period once the blink threshold is reached. Zero never blinks." },

@@ -11,9 +11,9 @@ export function Hint({ children }: { children: React.ReactNode }): React.JSX.Ele
   return <p className="rounded-md border p-2 text-muted-foreground">{children}</p>
 }
 
-export function TextInput({ id, value, onChange, placeholder }: { id?: string; value: string; onChange: (value: string) => void; placeholder?: string }): React.JSX.Element {
+export function TextInput({ id, value, onChange, placeholder, fontFamily }: { id?: string; value: string; onChange: (value: string) => void; placeholder?: string; fontFamily?: string }): React.JSX.Element {
   const [local, change, flush] = useLiveCommit(value, onChange)
-  return <input id={id} className={CONTROL} placeholder={placeholder} value={local} onChange={(event) => change(event.target.value)} onBlur={flush} />
+  return <input id={id} className={CONTROL} style={fontFamily ? { fontFamily } : undefined} placeholder={placeholder} value={local} onChange={(event) => change(event.target.value)} onBlur={flush} />
 }
 
 export function NumberInput({ id, value, min, max, step, title, onChange }: { id?: string; value: number; min?: number; max?: number; step?: number | 'any'; title?: string; onChange: (value: number) => void }): React.JSX.Element {
@@ -58,7 +58,7 @@ export function TextField({ label, value, onChange, placeholder, block, ...meta 
   )
 }
 
-export function NumberField({ label, value, min, max, step, suffix, onChange, ...meta }: PropertyMeta & { label: string; value: number; min?: number; max?: number; step?: number | 'any'; suffix?: string; onChange: (value: number) => void }): React.JSX.Element {
+export function NumberField({ label, value, min, max, step, suffix, caption, onChange, ...meta }: PropertyMeta & { label: string; value: number; min?: number; max?: number; step?: number | 'any'; suffix?: string; caption?: string; onChange: (value: number) => void }): React.JSX.Element {
   const id = useId()
   return (
     <PropertyRow label={label} controlId={id} {...meta}>
@@ -70,6 +70,7 @@ export function NumberField({ label, value, min, max, step, suffix, onChange, ..
       ) : (
         <NumberInput id={id} value={value} min={min} max={max} step={step} onChange={onChange} />
       )}
+      {caption ? <p className="pt-1 text-[10px] text-muted-foreground">{caption}</p> : null}
     </PropertyRow>
   )
 }

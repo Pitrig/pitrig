@@ -1,3 +1,5 @@
+import type { RingCentering } from '@shared/configuration-schema'
+
 export interface Ring {
   radius: number
   centerX: number
@@ -14,13 +16,65 @@ export function fittedRingRadius(
 export function ringGeometry(
   plot: { x: number; y: number; width: number; height: number },
   thickness: number,
-  configuration: { radius_px?: number; center_x_px?: number; center_y_px?: number }
+  configuration: {
+    radius_px?: number
+    x_offset_px?: number
+    y_offset_px?: number
+    center_angle_deg?: number
+    sector_deg?: number
+    centering?: RingCentering
+  }
 ): Ring {
   const authored = configuration.radius_px ?? 0
+  const radius = authored !== 0 ? Math.max(0, authored) : fittedRingRadius(plot, thickness)
+  const sector = Math.min(configuration.sector_deg ?? 270, 360)
+  const offset =
+    configuration.centering === 'figure'
+      ? figureOffset(sectorStart(configuration.center_angle_deg ?? 270, sector), sector, radius, thickness)
+      : { x: 0, y: 0 }
   return {
-    radius: authored !== 0 ? Math.max(0, authored) : fittedRingRadius(plot, thickness),
-    centerX: plot.x + plot.width / 2 + (configuration.center_x_px ?? 0),
-    centerY: plot.y + plot.height / 2 + (configuration.center_y_px ?? 0)
+    radius,
+    centerX: plot.x + plot.width / 2 + (configuration.x_offset_px ?? 0) - offset.x,
+    centerY: plot.y + plot.height / 2 + (configuration.y_offset_px ?? 0) - offset.y
+  }
+}
+
+export function sectorStart(centerDegrees: number, sectorDegrees: number): number {
+  const start = centerDegrees - sectorDegrees / 2
+  return start < 0 ? start + 360 : start
+}
+
+function polar(radius: number, degrees: number): { x: number; y: number } {
+  const radians = (degrees * Math.PI) / 180
+  return { x: radius * Math.cos(radians), y: radius * Math.sin(radians) }
+}
+
+function insideSector(startDegrees: number, sectorDegrees: number, degrees: number): boolean {
+  const travelled = (((degrees - startDegrees) % 360) + 360) % 360
+  return travelled <= sectorDegrees
+}
+
+export function figureOffset(
+  startDegrees: number,
+  sectorDegrees: number,
+  radius: number,
+  thickness: number
+): { x: number; y: number } {
+  const outer = radius + thickness / 2
+  const inner = Math.max(radius - thickness / 2, 0)
+  const points = [startDegrees, startDegrees + sectorDegrees].flatMap((degrees) => [
+    polar(outer, degrees),
+    polar(inner, degrees)
+  ])
+  for (let quarter = 0; quarter < 4; quarter += 1) {
+    const degrees = 90 * quarter
+    if (insideSector(startDegrees, sectorDegrees, degrees)) points.push(polar(outer, degrees))
+  }
+  const xs = points.map((point) => point.x)
+  const ys = points.map((point) => point.y)
+  return {
+    x: (Math.min(...xs) + Math.max(...xs)) / 2,
+    y: (Math.min(...ys) + Math.max(...ys)) / 2
   }
 }
 
@@ -67,8 +121,8 @@ export function needlePoints(
 
 export function arcSlices(
   count: number,
-  startDegrees: number,
-  sweepDegrees: number,
+  centerDegrees: number,
+  sectorDegrees: number,
   gapPixels: number,
   radius: number
 ): ArcSlice[] {
@@ -77,7 +131,7 @@ export function arcSlices(
   const smallestGap = gapPixels > 0 ? 1 : 0
   const gap = Math.max(Math.round(wantedGap), smallestGap)
   const spent = gap * (count - 1)
-  const exact = (sweepDegrees - spent) / count
+  const exact = (sectorDegrees - spent) / count
   if (exact < 0.5) return []
   const shortest = Math.max(Math.floor(exact), 1)
   let best: { length: number; gap: number; total: number } | undefined
@@ -85,15 +139,15 @@ export function arcSlices(
     const total = length * count + spent
     if (total > 360) continue
     if (best !== undefined) {
-      const error = Math.abs(sweepDegrees - total)
-      const bestError = Math.abs(sweepDegrees - best.total)
+      const error = Math.abs(sectorDegrees - total)
+      const bestError = Math.abs(sectorDegrees - best.total)
       if (error > bestError || (error === bestError && total >= best.total)) continue
     }
     best = { length, gap, total }
   }
   if (best === undefined) return []
   const slices = best
-  const start = startDegrees + Math.trunc((sweepDegrees - slices.total) / 2)
+  const start = centerDegrees - Math.trunc(slices.total / 2)
   return Array.from({ length: count }, (_, index) => ({
     start: start + index * (slices.length + slices.gap),
     sweep: slices.length

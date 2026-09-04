@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 24. Narrative rules and presence semantics live in [device-configuration.md](device-configuration.md); the control protocol in [control-protocol.md](control-protocol.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 25. Narrative rules and presence semantics live in [device-configuration.md](device-configuration.md); the control protocol in [control-protocol.md](control-protocol.md).
 
-Schema version: 24.
+Schema version: 25.
 
 ## Documents
 
@@ -93,8 +93,9 @@ The configuration is transferred and stored as three independent documents. Each
 | `BarOrientation` | `horizontal`, `vertical` | Axis a bar fills along. A vertical bar grows upwards unless it is inverted. |
 | `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
 | `FillCorners` | `rounded`, `square` | How what the box paints inside itself meets a rounded corner. rounded gives the background and a value fill the box radius less whatever they are inset by, which is what a filled widget has always drawn. square leaves them with square corners and clips the box to its own outline instead, so a bar keeps a straight leading edge while its ends still follow the rounding. Nothing to decide while the radius is zero. |
-| `ArcMark` | `ring`, `needle` | What an arc draws at the angle its value maps to. ring fills the sweep up to it; needle points a line from the centre at it, over the same track. The mark changes, the mapping does not, so a needle needs no geometry of its own: it spans the radius the ring would occupy and takes its width from thickness_px. |
-| `IndicatorShape` | `strip`, `arc` | How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sweep, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the three angle properties, and each ignores the other's. |
+| `ArcMark` | `ring`, `needle` | What an arc draws at the angle its value maps to. ring fills the sector up to it; needle points a line from the centre at it, over the same track. The mark changes, the mapping does not, so a needle needs no geometry of its own: it spans the radius the ring would occupy and takes its width from thickness_px. |
+| `RingCentering` | `circle`, `figure` | What the box centres. circle puts the middle of the ring's circle in the middle of the box, which is what a gauge filling its box wants. figure centres what is actually drawn instead — the band between the sector's ends, thickness included — so a radius larger than the box keeps the band in the middle and drives the circle's centre out of the box rather than the band off it. The offsets move whichever of the two lands there. |
+| `IndicatorShape` | `strip`, `arc` | How the lamps are laid out. strip runs them along the widget's orientation; arc spaces them around a sector, which is the rev ring a round dashboard is built on. A strip reads orientation, an arc reads the ring geometry, and each ignores the other's. |
 | `SlotTrigger` | `none`, `value_changed`, `conditions` | How telemetry raises a slot page over the ones the tap cycles. none is a plain page reached only by tapping. value_changed raises it whenever the watched value differs from the last one seen, which is what makes a momentary aid such as ABS visible without naming a threshold. conditions raises it while one of its comparisons holds. |
 | `WidgetParentKind` | `screen`, `shape`, `slot_page` | Which table parent_index addresses. Written by the parser, never authored: a widget names its parent by the index of the object that owns its coordinate space, and that object is a screen, a container shape, or one page of a slot. |
 | `WidgetType` | `text`, `shape`, `bar`, `arc`, `indicator`, `graph`, `image`, `slot` | Widget kind discriminator. Selects the compile-time widget descriptor used to build the widget. The order of these values indexes the generated traits table and the parser table, so a new type is appended rather than inserted. |
@@ -436,12 +437,13 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | --- | --- | --- |
 | `type` | `WidgetType`, fixed `arc` | required |
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
-| `start_angle_deg` | integer, 0..359 | `135` |
-| `sweep_deg` | integer, 1..360 | `270` |
+| `center_angle_deg` | integer, 0..359 | `270` |
+| `sector_deg` | integer, 1..360 | `270` |
 | `thickness_px` | integer, 1..65535 | `8` |
 | `radius_px` | integer, 0 or 1..2048 | `0` |
-| `center_x_px` | integer, -2048..2048 | `0` |
-| `center_y_px` | integer, -2048..2048 | `0` |
+| `x_offset_px` | integer, -2048..2048 | `0` |
+| `y_offset_px` | integer, -2048..2048 | `0` |
+| `centering` | `RingCentering` | `circle` |
 | `track_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `fill_color` | string `#RRGGBB` | `#38BDF8` |
 | `mark` | `ArcMark` | `ring` |
@@ -468,12 +470,13 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | `source` | [`ValueSourceConfiguration`](#valuesourceconfiguration) | absent |
 | `shape` | `IndicatorShape` | `strip` |
 | `orientation` | `BarOrientation` | `horizontal` |
-| `start_angle_deg` | integer, 0..359 | `135` |
-| `sweep_deg` | integer, 1..360 | `270` |
+| `center_angle_deg` | integer, 0..359 | `270` |
+| `sector_deg` | integer, 1..360 | `270` |
 | `thickness_px` | integer, 1..65535 | `8` |
 | `radius_px` | integer, 0 or 1..2048 | `0` |
-| `center_x_px` | integer, -2048..2048 | `0` |
-| `center_y_px` | integer, -2048..2048 | `0` |
+| `x_offset_px` | integer, -2048..2048 | `0` |
+| `y_offset_px` | integer, -2048..2048 | `0` |
+| `centering` | `RingCentering` | `circle` |
 | `segment_gap_px` | integer, 0..65535 | `4` |
 | `segment_radius_px` | integer, 0..65535 | `0` |
 | `inverted` | boolean | `false` |
