@@ -115,3 +115,7 @@ no counter can do.
 The scheduler is only for the P4: it needs the three panel frame buffers and the strip
 composition, and the two S3 boards compile the same file with the option undefined. It adds no
 task to the product; the scheduler task and the one-shot timer exist only under the option.
+
+`CONFIG_SIMCORE_DISPLAY_JIT` (`sdkconfig.defaults.jit`, `esp-lvgl-port-2.8.0-jit-frame-start.patch`)
+is the earlier experiment this scheduler superseded — start each frame as late as it can still
+meet the panel — and stays only for comparison.

@@ -117,7 +117,7 @@ describes itself and a bitmap does not, which is the whole of the difference.
   back and the picked source is gone with the session — so the configurator
   keeps its own copy of them for the editor's preview, under the asset cache
   decided in
-  [ADR 0010](0010-uploaded-font-assets.md#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs).
+  [the amendment below](#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs).
   The preview draws the converted image, so RGB565 banding shows there rather
   than first on the board.
 
@@ -237,3 +237,38 @@ trading all of the flash saving back — and it does not work on the ESP32-P4 at
 all, where the PPA is a DMA engine that cannot address a flash mmap window. It
 would also mean tearing the dashboard down before an upload rather than after.
 Left open.
+
+## Amendment: the configurator keeps a copy of the images it installs
+
+An uploaded image is converted before it is sent and the converted pixels exist
+nowhere else: the device holds no decoder and hands nothing back, and the picked
+source file is a path held in memory for the length of one session. Without a
+copy the canvas would fall back to a named box for the rest of the project's
+life.
+
+**Decision.** The configurator writes each image it installs to a cache under
+the app's `userData` directory, re-encoded from the *converted* pixels so the
+preview carries the resize and the colour reduction the upload applied. Faces
+are deliberately not cached: the font library of
+[ADR 0010](0010-uploaded-font-assets.md) owns them and answers whether or not a
+board was ever given them.
+
+The cache mirrors a device package rather than anything the author wrote, so:
+
+- it is replaced whole on upload and emptied on clear, exactly as the package
+  it stands for;
+- nothing depends on it. A missing, stale or unreadable entry costs the preview
+  its fidelity and falls back to the named image box — never the upload, the
+  document, or validation;
+- it stays out of the saved project. A project is a sparse configuration
+  document, and binding megabytes of asset to it is a separate decision about
+  the project format that this does not take.
+
+**Consequences.**
+
+- An image drawn on the canvas is the bitmap the board holds, but only for one
+  installed by *this* installation; someone else's project draws a named box
+  until its images are uploaded here.
+- Glyph rasterization still differs: the browser and LVGL's TinyTTF hint and
+  antialias differently, so the preview matches the board's layout, not its
+  pixels.

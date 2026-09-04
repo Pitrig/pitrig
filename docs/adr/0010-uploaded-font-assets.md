@@ -141,41 +141,10 @@ font control no longer decides for itself whether it owns the byte stream: it
 takes a claim, synchronously on the task that reads the bytes, inside its
 `BEGIN` handler, and answers `busy` when another kind holds it. Storage moved to
 the shared `asset_storage` contract at the same time; the font package format
-and everything above it are unchanged.
-
-## Amendment: the configurator keeps a copy of the images it installs
-
-An uploaded image under [ADR 0018](0018-uploaded-image-assets.md) is converted
-before it is sent and the converted pixels exist nowhere else: the device holds
-no decoder and hands nothing back, and the picked source file is a path held in
-memory for the length of one session. Without a copy the canvas would fall back
-to a named box for the rest of the project's life.
-
-**Decision.** The configurator writes each image it installs to a cache under
-the app's `userData` directory, re-encoded from the *converted* pixels so the
-preview carries the resize and the colour reduction the upload applied. Faces
-are deliberately not cached: the font library below owns them and answers
-whether or not a board was ever given them.
-
-The cache mirrors a device package rather than anything the author wrote, so:
-
-- it is replaced whole on upload and emptied on clear, exactly as the package
-  it stands for;
-- nothing depends on it. A missing, stale or unreadable entry costs the preview
-  its fidelity and falls back to the named image box — never the upload, the
-  document, or validation;
-- it stays out of the saved project. A project is a sparse configuration
-  document, and binding megabytes of asset to it is a separate decision about
-  the project format that this does not take.
-
-**Consequences.**
-
-- An image drawn on the canvas is the bitmap the board holds, but only for one
-  installed by *this* installation; someone else's project draws a named box
-  until its images are uploaded here.
-- Glyph rasterization still differs: the browser and LVGL's TinyTTF hint and
-  antialias differently, so the preview matches the board's layout, not its
-  pixels.
+and everything above it are unchanged. The configurator's copy of the images it
+installs is an image decision and lives in
+[ADR 0018](0018-uploaded-image-assets.md#amendment-the-configurator-keeps-a-copy-of-the-images-it-installs);
+faces are deliberately not cached, because the library below owns them.
 
 ## Amendment: a family is chosen from a library, not named
 

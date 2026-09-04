@@ -45,4 +45,5 @@ saves configuration changes, manages uploaded font and image assets, and can
 reset or reboot the device.
 
 See [docs/device-configuration.md](docs/device-configuration.md) for the public
-schema, validation behavior, control protocol, and recovery order.
+schema, validation behavior and recovery order, and
+[docs/control-protocol.md](docs/control-protocol.md) for the control protocol.

@@ -45,8 +45,8 @@ partition unconditionally — a live LVGL descriptor pointing into that mapping
 would dangle.
 
 **Only the images the running configuration draws are copied.** A package holds
-up to 32 and a dashboard draws at most eight, so reserving for the package would
-be paying for pictures nothing shows. The set is rebuilt whenever the
+up to 32 and a dashboard draws only the entries its widgets reference, so
+reserving for the package would be paying for pictures nothing shows. The set is rebuilt whenever the
 configuration is replaced, between tearing the dashboard down and building the
 next one — the only moment nothing is drawing from it — and the reservation only
 ever grows, so a lighter document after a heavier one costs no allocation. An
@@ -146,7 +146,7 @@ Pixel layout once inflated, which is LVGL's own:
 
 An `alpha8` image carries coverage and no colour. The device paints it in the
 widget's `recolor`, and in white when the widget authors none — see
-[device-configuration.md](device-configuration.md).
+[dashboard-widgets.md](dashboard-widgets.md).
 
 ### Sprite sheets
 
@@ -189,87 +189,35 @@ intact.
 
 ## Serial upload protocol
 
-The upload protocol shares the selected telemetry serial transport and reuses
-the font upload's frames verbatim under the `@SC:IMAGE:` command namespace. All
-three uploaded kinds — fonts, images and firmware
-([Firmware updates over serial](ota.md)) — share one binary session: the claim is
-taken on the task that reads the bytes, inside the handler for the command that
-opens the session, so a second upload cannot race the first. On the link the
-upload owns there are no more commands until it ends — a `BEGIN` sent there
-mid-upload is a bad frame and ends the running upload with `invalid_frame`. A
-`BEGIN`, `INFO` or `CLEAR` arriving on another link while an upload runs is
-answered `@SC:ERR:IMAGE:busy` (or `@SC:ERR:FONT:busy`, or `@SC:ERR:FW:busy`),
-whichever kind owns the stream.
+The upload is the `SCF1` protocol of [Font asset storage](font-assets.md) under
+the `@SC:IMAGE:` namespace: the same `BEGIN`, `READY`, `ACK` and `COMMITTED`
+exchange, the same frames, cancel answered `@SC:OK:IMAGE:CANCELLED`, errors as
+`@SC:ERR:IMAGE:<reason>`, and the same ten-second `@SC:ERR:IMAGE:timeout`.
+Fonts, images and firmware ([Firmware updates over serial](ota.md)) share one
+binary session, claimed on the task that reads the bytes inside the handler
+that opens it, so a second upload cannot race the first: on the link the upload
+owns, a `BEGIN` sent mid-upload is a bad frame that ends the running upload
+with `invalid_frame`, and a `BEGIN`, `INFO` or `CLEAR` that finds the session
+already claimed is answered `busy` under the namespace of the kind that owns it
+— `@SC:ERR:IMAGE:busy`, `@SC:ERR:FONT:busy` or `@SC:ERR:FW:busy`.
 
-The host can query persisted asset state without starting an upload:
+What is image-specific:
 
 ```text
 @SC:IMAGE:INFO
 @SC:OK:IMAGE:INFO:storage=1,package=1,format=2,images=2,size=397312,reboot_required=0,entries=logo:128x64:rgb565a8;shift_bar:320x24:rgb565
 ```
 
-`storage` reports whether the partition is available. `package` reports whether
-a valid package is stored. `format`, `images`, and `size` describe that package
-and are zero when none is valid. `reboot_required` is set after a successful
-commit until restart. `entries` is semicolon-separated, each entry being
-`<id>:<width>x<height>:<format>`, with `:<frames>` appended when the image is a
-sprite sheet; it is empty for a package without images. The
-geometry travels with the entry so the configurator can tell whether an
-installed image still suits the dashboard without re-uploading to find out.
-
-The host can erase the complete installed package outside an upload session:
-
-```text
-@SC:IMAGE:CLEAR
-@SC:OK:IMAGE:CLEARED:reboot_required=1
-```
-
-Clear is rejected while an update is active or another image change is pending a
-reboot. The active dashboard keeps drawing from its external-RAM copies until
-the required reboot; after restart, configurations referencing cleared images
-report unresolved dependencies.
-
-The host starts a session with the complete package size:
-
-```text
-@SC:IMAGE:BEGIN:size=<bytes>
-```
-
-Firmware validates the size and erases the image partition in its own dedicated
-static FreeRTOS task. When ready for binary data, it replies:
-
-```text
-@SC:OK:IMAGE:READY:max_chunk=4096
-```
-
-After this response, every host request is a binary frame. The host sends only
-one frame at a time and waits for its response before sending the next one. The
-frame layout is the `SCF1` frame defined in
-[Font asset storage](font-assets.md), unchanged.
-
-Each accepted data frame receives:
-
-```text
-@SC:OK:IMAGE:ACK:sequence=<sequence>,received=<total_bytes>
-```
-
-A frame with a bad CRC or unexpected sequence cancels the session, as do other
-structural or storage errors. Errors use `@SC:ERR:IMAGE:<reason>` and return the
-transport to normal line mode. Sending data before the previous response is a
-protocol overrun and also cancels the session.
-
-Commit is accepted only after exactly the declared package size has arrived.
-Firmware validates the candidate, writes its header last, verifies the stored
-package, and replies:
-
-```text
-@SC:OK:IMAGE:COMMITTED:reboot_required=1
-```
-
-Cancel replies with `@SC:OK:IMAGE:CANCELLED`. Ten seconds without a complete
-request cancels an active session with `@SC:ERR:IMAGE:timeout`. During a
-session, all received bytes belong to the image protocol; normal line commands
-and telemetry input resume after commit, cancel, timeout, or error.
+`storage`, `package`, `format`, `images` and `size` mean what they do for
+fonts; `entries` is semicolon-separated, each entry `<id>:<width>x<height>:<format>`
+with `:<frames>` appended for a sprite sheet, so the configurator can tell
+whether an installed image still suits the dashboard without re-uploading to
+find out. `@SC:IMAGE:CLEAR` erases the installed package outside a session and
+is rejected while an update is active or another image change is pending a
+reboot; the active dashboard keeps drawing from its external-RAM copies until
+that reboot, after which configurations referencing cleared images report
+unresolved dependencies. `@SC:IMAGE:BEGIN:size=<bytes>` erases the image
+partition in its own static task before answering `READY`.
 
 ## Conversion
 

@@ -163,18 +163,9 @@ and reading `render_us` back over `@SC:DIAG`.
 
 ## Recommended order
 
-1. **Preview with live values** — the virtual COM port the configurator sits
-   behind. It comes first because it is what makes the rest judgeable: a rule, a
-   ramp, a graph trace and a real string length cannot be checked against a
-   placeholder.
-2. **The editor's remaining reach** — saving a single screen, a template as a
-   file, and a gallery to start from. Configurator only, no schema and no
-   firmware.
-3. **Transparency** — cheap to author and cheap to draw; the work is an alpha
-   encoding that still leaves the `kTransparentColor` sentinel meaning "unset".
-4. **Images that survive a move** — an original-format asset the device scales,
-   and reflow in the transfer. The two together are what makes a dashboard
-   portable rather than merely resized.
-5. **Table and track map** — the widget types still missing. Firmware work:
-   an LVGL implementation, a descriptor and a schema entry each, and the map
-   also needs the one-shot outline message and somewhere to hold it.
+The remaining items are tracked in [roadmap.md](roadmap.md). The order worth
+doing them in: the live-value preview first, because a rule, a ramp, a graph
+trace and a real string length cannot be judged against a placeholder; then the
+editor's remaining reach; transparency; images that survive a move together
+with reflow in the transfer; and last the table and track map, which need
+firmware work and, for the map, the one-shot outline message.

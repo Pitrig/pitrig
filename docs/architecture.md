@@ -12,65 +12,19 @@ The primary goal is long-term maintainability, modularity, and extensibility. Ev
 
 # Core Principles
 
-The firmware is built around several strict principles.
+Components expose hardware capabilities, modules implement user-visible
+functionality, services provide shared infrastructure, drivers implement access
+to specific hardware, and the core coordinates them. Adding or removing an
+implementation must not touch unrelated layers, and the core never depends on
+specific hardware: displays, LEDs, touch panels and future peripherals are
+reached through components and their interfaces, and a board declares which of
+them it has and which GPIOs it leaves free for the ones it does not.
 
-## Modularity
-
-The system is composed of independent layers with explicit responsibilities.
-
-Components expose hardware capabilities.
-
-Modules implement user-visible functionality.
-
-Services provide shared infrastructure.
-
-Drivers implement access to specific hardware.
-
-Adding or removing an implementation should not require changes to unrelated layers.
-
----
-
-## Separation of Responsibilities
-
-Feature logic and hardware logic are always separated.
-
-Modules implement functionality.
-
-Components expose reusable hardware capabilities.
-
-Drivers implement hardware access.
-
-The firmware core coordinates everything.
-
----
-
-## Hardware Independence
-
-The firmware core must never depend on specific hardware.
-
-Displays, LEDs, buttons, encoders, touch panels and future peripherals are accessed through components and their interfaces. A board declares which of them it has, and which GPIOs it leaves free for the ones it does not.
-
-Replacing hardware should primarily require implementing a new driver instead of modifying application logic.
-
----
-
-## Configuration Driven
-
-The platform should be configured instead of hardcoded whenever practical.
-
-Configuration determines:
-
-- enabled modules
-- communication settings
-- supported configurable hardware devices and driver settings
-- layouts
-
-Immutable board identity determines hardware physically built into the board
-and its fixed capabilities. User configuration must match that identity but
-cannot change it. Additional supported hardware remains configuration-driven;
-its device list may be empty.
-
-The firmware should avoid device-specific code paths.
+Configuration determines the enabled modules, the communication settings, the
+configurable hardware devices and the layouts. Immutable board identity
+determines what is physically built into the board; user configuration must
+match that identity and cannot change it, and the list of additional hardware
+may be empty. The general principles behind this are in AGENTS.md.
 
 ---
 
@@ -133,6 +87,48 @@ Each implementation is registered as an ESP-IDF component when it needs independ
 
 Public headers are stored directly under an implementation's `include/` directory. Implementation files are stored under `src/`.
 
+What each directory holds:
+
+- `core/` — `application.hpp` (what the root owns), `apply_configuration.cpp`
+  (the replacement transaction of ADR 0016), `simcore.cpp` (the startup phases)
+  and `module_manager` (compile-time descriptors with function pointers and
+  explicit contexts; no allocation, no name lookup). It reaches no LVGL header:
+  the dashboard is opaque to it through `dashboard_composition::instance()`.
+- `interfaces/` — `display` and `input` in one component, `transport` in its own.
+- `components/` — `display`, `input`, `led`. They depend on interfaces, never on
+  a concrete driver and never on a service, so `led` knows nothing of the
+  configuration contract and the module translates for it.
+- `drivers/` — `t_display_s3`, `guition_esp32_4848s040`, `guition_jc1060p470c`,
+  `touch/gt911`, `transport/uart`, `transport/usb_cdc` (the whole native USB
+  device: a composite CDC serial port and an HID gamepad, ADR 0029),
+  `transport/transport_common` (the read counters every link shares and the
+  console-port log silencing) and `led/ws2812_rmt`, which drives one RMT
+  transmit channel per output — why four outputs is the ceiling on both chips.
+- `modules/` — `lap_timer`, `rgb_leds`.
+- `services/` — `asset_control` (the `SCF1` upload engine) with
+  `font_asset_control`, `image_asset_control` and `firmware_update` as thin
+  per-kind wrappers, `asset_package`, `asset_storage`, `binary_session`,
+  `boot_guard`, `configuration`, `configuration_contract`,
+  `configuration_control`, `event_bus`, `font_assets`, `font_contract`,
+  `image_assets`, `image_contract`, `logger`, `telemetry` with
+  `telemetry/protocols/simhub`, and `value_conditions` — the LVGL-free rule
+  resolver, a service so that a module may depend on it (ADR 0030).
+- `platform/` — `board_registry`, `communication`, `dashboard` (LVGL `widgets`
+  over a shared `frame`, plus `conditions`, `fonts`, `images`, `layout`,
+  `navigation`, `slots`, `value_text`, `memory` — the allocator that puts every
+  LVGL allocation in external RAM — `utilities` and the embedded boot-splash
+  `assets`), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
+  `partition_asset_storage`, `status_light` (the single board-declared lamp: it
+  needs no configuration, so it runs on the recovery surface and reports
+  booting, safe mode, telemetry silence and upload progress),
+  `telemetry_transport`, `external_memory`.
+- `utils/` — `binary`, `simcore_config` (the Kconfig surface and the `SIMCORE_*`
+  feature aliases, here because every layer reads it), `transformers/number_transform`,
+  `transformers/text_writer`, `transformers/time_transform`.
+- `debug/` — `performance`, `diagnostics_command`, `overlays`, `instrumentation`;
+  each registers empty `SRCS` and `INCLUDE_DIRS` unless `CONFIG_SIMCORE_DEBUG`,
+  so a production build compiles none of it (ADR 0028).
+
 The dependency direction is:
 
 ```text
@@ -190,9 +186,8 @@ it and takes it from `dashboard_composition::instance()`. It is statically
 allocated exactly as everything else the root owns; it simply lives in the
 component that knows its type, so the core neither links against LVGL nor
 recompiles when a widget type changes. It is also the one static the firmware
-places in external RAM: some 68 KB of widget-state pools whose per-frame
-working set is a few kilobytes, kept out of the internal RAM the draw buffers
-need. Only the render trigger's task stack and control
+places in external RAM: the widget-state pools, whose per-frame working set is
+a few kilobytes, kept out of the internal RAM the draw buffers need. Only the render trigger's task stack and control
 block, which FreeRTOS requires internal, sit beside it in internal `.bss`.
 
 The LVGL heap is there too — every object, style, font cache and label string
@@ -216,45 +211,31 @@ The firmware core must not contain feature-specific logic.
 
 ## Startup order
 
-The phases run in the order below, and the order is the decision rather than an
-accident of how the file grew ([ADR
-0025](adr/0025-startup-order-and-safe-mode.md)):
+The phases run in this order, and the order is the decision
+([ADR 0025](adr/0025-startup-order-and-safe-mode.md)):
 
 ```text
 boot guard → configuration → link + control protocol → display → assets →
 modules + dashboard → composed → complete
 ```
 
-The serial link comes up **before** the display and before anything is composed.
-Everything a board can be repaired with therefore sits ahead of everything a
-board can be broken by: a configuration that will not compose, a font package
-that will not map, a panel that stops answering, a widget that dereferences
-null. The configuration stays ahead of the link only because the `protocol`
-document chooses the port, the pins and the baud rate, and reading it is a
-handful of NVS reads and no hardware.
-
-Starting the link waits for no host; it installs a driver and creates a read
-task, and a board with nothing plugged into it passes the phase in milliseconds.
-
-A crashed task on this chip is a panic that resets the whole device — FreeRTOS
-has no memory protection between tasks, so a fault cannot be isolated where it
-happens. It is contained on the boot *after* it instead. The `boot_guard`
-service counts crashes and watchdog resets in RTC memory, which survives the
-reset the crash caused; three in a row and the next boot runs the **recovery
-surface**: the transport, the `@SC:` control protocol and firmware upload, and
-nothing else. The count is cleared by the first document a host writes or
-erases, so both an ordinary save and a factory reset are ways out.
-
-The task watchdog resets rather than prints. It watches only the tasks that feed
-it: each link's read task, and the render trigger, which takes the LVGL lock
-every round and so fails to feed when the LVGL task stops giving it back.
+The serial link comes up before the display and before anything is composed,
+so everything a board can be repaired with sits ahead of everything a board can
+be broken by; only the configuration stays ahead of it, because the `protocol`
+document chooses the port, the pins and the baud rate. Starting a link waits for
+no host. A crashed task is a panic that resets the chip, so a fault is contained
+on the boot after it: `boot_guard` counts crashes and watchdog resets in RTC
+memory, and three in a row put the next boot on the recovery surface — the
+transport, the `@SC:` control protocol and firmware upload, nothing else — until
+a host writes or erases a document. The task watchdog resets rather than prints
+and watches only the tasks that feed it: each link's read task and the render
+trigger, which takes the LVGL lock every round.
 
 The bounded Module Manager stores compile-time descriptors with function
-pointers and explicit contexts. A dedicated module composition registers the
-available module implementations and configuration controls which descriptors
-are enabled. A separate dashboard composition owns LVGL views and binds them to
-module and telemetry readers. The manager performs no allocation or name-based
-lookup.
+pointers and explicit contexts; a module composition registers the available
+implementations, configuration selects which are enabled, and a separate
+dashboard composition owns the LVGL views and binds them to module and
+telemetry readers. The manager performs no allocation or name-based lookup.
 
 ---
 
@@ -413,16 +394,12 @@ converted by the configurator to the layout and size the display draws; the
 device holds no decoder. See [Image asset storage](image-assets.md) and
 [ADR 0018](adr/0018-uploaded-image-assets.md).
 
-The desktop configurator edits dashboard widgets directly in the logical
-display coordinate space. Canvas selection, dragging, resizing, property
-inspection, and the advanced JSON editor all mutate the same sparse
-local draft; there is no second editor-only layout model to reconcile. Which
-screen is being edited, which slot is open, and which of its pages is being
-looked at, are editor state rather than document properties — the device always
-starts at the first screen and picks a slot's page for itself. The
-draft owns its target board identity and therefore resolves the immutable local
-board profile and display geometry even while no device is connected. Device
-connection state and the local authoring draft have independent lifetimes.
+The desktop configurator edits dashboard widgets in the logical display
+coordinate space: the canvas, the inspector and the advanced JSON editor all
+mutate one sparse draft, editor state such as the screen being edited is not a
+document property, and the draft owns its target board identity, so it resolves
+the board profile while no device is connected. See
+[Authoring in the configurator](device-configuration.md#authoring-in-the-configurator).
 
 ---
 
@@ -437,12 +414,13 @@ interrupts cache-safe during flash writes is a build measure rather than driver
 code: `CONFIG_LCD_DSI_ISR_CACHE_SAFE` in the P4 defaults, plus the first of the
 version-pinned `esp_lvgl_port` patches under `firmware/patches/` — a stack of
 nine, one concern each, that `firmware/cmake/` applies in order — so the port's
-flush callback honours it. Two further pinned patches fix
+flush callback honours it. Three further pinned patches fix
 LVGL 9.5.0's experimental PPA backend: it passes the draw buffer's unaligned
-`data_size` to `esp_cache_msync()`, which breaks the cache-line contract, and it
+`data_size` to `esp_cache_msync()`, which breaks the cache-line contract, it
 synchronizes the whole buffer per operation rather than the rows it touched —
 multiple megabytes twice over when LVGL renders straight into a full-screen
-frame buffer. The board's own defaults keep its High-Speed USB port in
+frame buffer — and it hands the accelerator fills too small to outrun the
+processor. The board's own defaults keep its High-Speed USB port in
 slave/IRQ mode rather than DMA: ESP32-P4 rev 1.x can hand the TinyUSB DWC2
 driver an invalid EP0 setup-packet DMA address, and enumeration fails.
 
@@ -515,91 +493,41 @@ only pre-bound handles; periodic paths perform no name lookup.
 
 # Device Configuration
 
-The desktop configurator is the primary authoring and device-management tool.
-Project JSON and the public device payload are sparse: omitted components stay
-absent instead of being expanded through board profiles.
+The desktop configurator is the authoring and device-management tool. Its
+window is a rail of six workspaces — Dashboard, Modules, Protocol, Configs,
+Firmware, Info — over one page at a time; Dashboard, Modules and Protocol each
+own one of the three configuration documents, which is why each can say on its
+own whether its settings are saved, and Modules authors the addressable LED
+outputs, a strip and a matrix each on its own pin (ADR 0030). Debug tooling is
+a second Electron application built from the same package, and the product
+bundle carries no debug code (ADR 0028).
 
-Its window is a rail of workspaces — Dashboard, Modules, Protocol, Configs,
-Firmware, Info — over one page at a time, with the serial connection
-above all of them. Dashboard carries the canvas and the three libraries it draws
-from; Configs carries everything that replaces the whole document and lists the
-three configuration documents on the board; Modules is the reserved place for
-peripherals, which have no production contract yet. Dashboard, Modules and
-Protocol each own one of the three documents, which is why each can say on its
-own whether its settings are saved. See
-[Authoring in the configurator](device-configuration.md#authoring-in-the-configurator).
+A firmware build owns one immutable `BoardDefinition`: the board identifier,
+the display driver, the default telemetry transport, one factory payload per
+document, and private validation metadata such as display bounds and the UART
+pin pair. The display and input drivers are nullable — a board without a panel
+or a digitizer is a board fact, read in one place. Firmware reports only the
+stable board identifier; the configurator maps it to a local profile with the
+logical display dimensions, and every configuration document must carry a
+matching identifier. A freshly flashed or reset board therefore runs an enabled
+display with an empty dashboard, and a board that declares no display starts no
+LVGL and keeps its link, transport and modules.
 
-Debug tooling is a second Electron application built from the same package
-(`pnpm dev:debug`), holding the serial console, the telemetry bench and the
-`@SC:DIAG` charts, plus firmware upload and raw document editing of its own so a
-debugging session needs nothing else running — one serial port admits one
-process. It composes the same services and IPC handlers as the product; the
-dependency runs one way, and the product bundle carries no debug code
-(ADR 0028).
-
-Firmware builds own one immutable `BoardDefinition`. It binds the board
-identifier, display driver, default telemetry transport, factory payload, and
-private validation metadata for constraints such as logical display bounds and
-the board's UART pin pair. The display driver and the input driver are both
-nullable: a board without a panel, or without a digitizer, is a board fact
-rather than a special case, and the core reads absence in one place instead of
-carrying board identity. This metadata is not part of the public
-configuration or device-information protocol.
-Firmware reports only the stable board identifier; the configurator maps it to
-a local supported board profile containing read-only authoring metadata such as
-logical display dimensions. Every configuration document includes a matching
-board identifier for compatibility validation. A separate optional bounded list
-controls supported configurable hardware devices and may be empty; it is what
-the `modules` document carries.
-
-The factory user configuration is three compiled documents, each containing
-that board identifier and, on a board whose link needs it, the transport
-settings it cannot come up without. Hardware
-declared as built into the board remains enabled; currently, a board-provided
-display is initialized by default and exposed to the configurator as a
-read-only capability. A board that declares none starts no LVGL and composes no
-dashboard, and keeps its configuration link, transport and modules unchanged. Additional hardware devices, modules, and widgets are
-created only when present in the validated configuration, so a freshly flashed
-or reset production device has an enabled display with an empty dashboard.
-
-The public configuration schema uses bounded sparse JSON directly for authoring
-and device transport. It is transferred and stored as three documents —
-`dashboard`, `modules` and `protocol` — each carrying the board identifier and
-its own sections, each with its own NVS record, generation, payload bound and
-answer to whether a restart is owed
+The configuration is bounded sparse JSON, used unchanged for authoring and for
+the device, transferred and stored as three documents — `dashboard`, `modules`,
+`protocol` — each with its own NVS record, generation, payload bound and answer
+to whether a restart is owed
 ([ADR 0024](adr/0024-separate-configuration-documents.md)). In memory they are
-one bounded structure, so a rule that spans sections stays one check; a
-replacement parses over the sections its document owns and the whole result is
-validated. Widget geometry uses absolute logical display coordinates; regions,
-region identifiers, and anchors are not part of the contract. Firmware parses and
-validates JSON on the configuration/startup path, then runtime code uses bounded
-typed structures.
-
-Fonts use a bounded family identifier and pixel size. Production firmware has
-no built-in dashboard font families. Configurator-imported faces are uploaded
-unchanged, one per family, into a separately versioned, checksummed flash
-package; they are not embedded in configuration JSON, configuration NVS, or the
-application image. Family resolution is exact, so a missing family is a
-dashboard composition error rather than an implicit fallback, while any pixel
-size is rasterized on the device. Dashboard code owns the runtime font registry:
-it copies each face into external memory, creates one font per family and size
-the active configuration references, and pre-warms their glyph caches during
-composition so periodic frames do not rasterize. LVGL needs one built-in
-default font to build at all, so every profile compiles the smallest one
-(UNSCII 8); nothing in the dashboard uses it, it is not in the dashboard font
-registry, and only the diagnostic overlay of a debug build draws with it.
-
-Images follow the same rule from the configuration's point of view: a widget
-references a bounded image identifier, an uploaded package supplies the pixels,
-and a missing identifier is a composition error rather than a substitution.
-Unlike a face, an image is stored in the exact layout and size it is drawn at,
-so resizing a widget is a re-conversion in the configurator rather than a
-runtime scale.
-
-Persistent NVS record headers, per-document generations, CRC validation, and
-recovery remain private to the configuration service. External tools communicate
-only through the public configuration control protocol, which names the document
-it is acting on.
+one structure, so a rule spanning sections stays one check. Firmware parses and
+validates JSON on the configuration path only; runtime code uses bounded typed
+structures. Fonts and images are uploaded packages a widget references by
+identifier, and a missing family or image is a composition error rather than a
+fallback; LVGL's one built-in font (UNSCII 8) is compiled only because LVGL
+needs one, and only the debug overlay draws with it. NVS record formats stay
+private to the configuration service; external tools use the public control
+protocol, which names the document it acts on. The rules are in
+[device-configuration.md](device-configuration.md) and
+[dashboard-widgets.md](dashboard-widgets.md).
 
 ---
 
@@ -667,32 +595,6 @@ Time-critical operations should use DMA or hardware acceleration whenever availa
 
 ---
 
-# Memory Management
-
-Memory is a limited resource.
-
-The platform should:
-
-- minimize allocations
-- avoid fragmentation
-- reuse buffers
-- prefer static allocation where practical
-
-Large temporary allocations should be avoided.
-
----
-
-# Rendering
-
-Rendering should be independent from display hardware.
-
-Rendering modules should use the display component rather than a concrete display driver.
-
-Display drivers are responsible for transferring rendered data to hardware.
-
-DMA should be preferred whenever supported.
-
----
 
 # Extending SimCore
 
@@ -724,19 +626,3 @@ The following rules should always be respected.
 - Avoid global mutable state.
 - Keep components small and focused.
 - Avoid introducing new abstractions unless they solve a demonstrated problem.
-
----
-
-# Future Evolution
-
-The architecture is intentionally designed for future expansion.
-
-Examples include:
-
-- additional configurator editors and device operations
-- plugin system
-- scripting
-- additional communication protocols
-- new hardware families
-
-Future capabilities should integrate into the existing architecture without requiring major redesign.

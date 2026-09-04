@@ -123,146 +123,89 @@ waited for scan-out, so it is unchanged.
 - The ESP32-P4's PPA is off (`LV_USE_PPA`): its blocking fills held the render
   core 168-445 us each while the software blender, fed by QIO and the larger
   cache, does the same work in a fraction of that — measured -13-25% frame
-  rate on square-fill dashboards with the accelerator on. The PPA patches
-  stay in `firmware/patches/` for a later re-evaluation.
+  rate on square-fill dashboards with the accelerator on, and a 32-readout
+  grid of square panels at 22.8 ms a frame against 16.3 without. While it
+  was on, rounded corners measured *faster* than square ones, because a
+  rounded fill cannot go to the PPA. The PPA patches stay in
+  `firmware/patches/` for a later re-evaluation.
 - The JC1060P470C's buffering is a build-time choice
-  (`SIMCORE_DISPLAY_RENDER_MODE`): partial strips by default, with direct and
-  full-screen modes selectable for a build that trades the measured frame
-  rates for tear-free rendering into the panel's PSRAM buffers. Full was
-  re-measured with every acceleration available to it — PPA on, and
-  separately two draw units — and stays 2-3x behind partial on every
-  dashboard pattern (repainting the whole 614k-pixel frame into PSRAM is
-  bandwidth-bound at ~52-88% CPU); the tear-free builds skip the navigation
-  controller's transition switching, since they are already tear-free.
-- A build that chooses full mode gets its own configuration, appended as
-  `sdkconfig.defaults.render-full`. The panel allocates a third frame buffer
-  and the port hands it to LVGL (`lv_display_set_3rd_draw_buffer`, rotated
-  natively by LVGL), so a frame renders while the previous one is queued for
-  scan-out and a third is still on screen: the flush leaves the render core —
-  the core-0 worker queues the swap, throttled by the vsync ISR's refresh
-  counter only when a frame outruns the panel — and nothing ever waits for
-  vsync, so the frame rate is the render time rather than a multiple of the
-  scan period. The fragment also selects the 512 KB L2 cache with 128-byte
-  lines, which fits only because full mode allocates no internal-RAM render
-  strips (~77 KB of internal RAM stays free with the debug overlay and the
-  second link on — mind that headroom); halving the write-allocate
-  transactions and doubling the cache moved every pattern 39-67% on their
-  own. The text widget sizes its value label to the box instead of the
-  content in full builds, because with the whole screen repainting anyway
-  the content-sized label's narrow invalidation buys nothing and its
-  per-frame re-layout costs 1-3 ms. Together the bench battery moved
-  +29-115% over plain full mode (text_16 19.7→35.1 fps, graphs_6 11.8→23.5,
-  all_widgets 14.7→24.0, text_only 19.6→42.1). `-O3` was measured 1-2%
-  behind `-O2` (bigger code, same memory wall) and stays rejected.
-- The choice's fourth option, appended as
-  `sdkconfig.defaults.render-full-strips`, is the tear-free mode that gets
-  closest to partial's frame rates. LVGL renders only the damage, into
-  60-line strips in internal RAM (no write-allocate reads, cheap
-  read-modify-write); an AXI-GDMA channel carries each full-width strip
-  into the hidden frame buffer as one linear burst and the CPU copies the
-  narrow ones, while a dedicated reconcile task — same priority as the
-  flush worker, or its copies starve behind everything on that core and
-  the pipeline wedges — copies the whole frame from the newest buffer on
-  a second AXI-GDMA channel, in 96-row pieces fired top-down at frame
-  start (64 held the sprite pattern's lock but cost the shape and
-  large-glyph patterns their per-piece overhead). Reconciling only the stale areas was built first, tracked as up
-  to eight rectangles per buffer from what each frame actually painted,
-  and REMOVED: a bookkeeping gap showed up on the panel as stale fill
-  sectors on the last-drawn arcs, and the whole-frame copy that fixed it
-  costs nothing that matters — it rides a channel the render does not
-  use, hides behind any frame that renders longer than it copies, and
-  leaves no dirt arithmetic to get wrong. A widened frame repaints every
-  pixel itself and skips the copy. Strips wait only for the reconcile
-  pieces they overlap, and every DMA wait carries a timeout that retires
-  the engine to a CPU path rather than starving the pipeline into the
-  watchdog. The DMA2D engine (`esp_async_fbcpy`) was
-  tried for both strip and reconcile copies and REMOVED: a transfer whose
-  PSRAM destination is narrower than the frame wedges without completing
-  on this chip, full-width PSRAM-to-PSRAM transfers wedge rarely but
-  reproducibly under minutes of load, and arc and canvas dashboards
-  showed stale fragments consistent with silently incomplete copies —
-  the engine is not trusted with correctness-critical work here.
-  The frame's last strip queues the swap the panel executes at the frame
-  boundary, waiting for the previous swap to latch first: rendering past
-  the panel was measured (bench fps well above 60) and then rejected by
-  eye — irregular dropped frames read as animation judder, so the
-  pipeline paces to the panel and every rendered frame is shown exactly
-  once.
-  Because repainting the whole screen is sometimes cheaper than reconciling
-  it (image blits are cheap per pixel, so sprite dashboards prefer one full
-  pass; text blending is expensive, so scattered text prefers damage +
-  reconcile — no static feature predicts which), the port measures both:
-  it runs the cheaper mode by an EMA of frame cost with the swap's pacing
-  wait subtracted (leaving it in feeds the wait back into the estimate and
-  spirals the pacing down), and widens the damage to the whole screen when
-  the full pass wins, which is always correct. Probing the loser costs a
-  slow frame, so it runs only where that frame cannot be seen: never while
-  the winner holds the panel rate, and otherwise only while the loser's own
-  average still fits the budget the pacing is quantized to — a probe that
-  overruns that budget slips a whole refresh, which is the periodic stutter
-  graph dashboards showed. A mode never yet measured is always probed, or a
-  dashboard whose better mode is unknown would never find it, and a
-  dashboard that changed clears that memory: when the winner's own cost
-  moves by half, the other mode earns its number again. The choice is
-  bistable on dashboards whose damage-drawn frames spend most of their time
-  on narrow copies (the render-side clock cannot see the worker's tail):
-  charging that tail, charging only the measured stalls, taking the larger
-  of the two pipeline halves, and running rare paced A/B trials were all
-  built and measured, and each fixed one dashboard while breaking another —
-  the cost model stays render-side, and the residual is an open item.
-- The graph widget samples on a clock of its own — a task of its own that
-  wakes four times per sample interval — and the repaint only drains the ring
-  it fills. That task runs *below* the render pipeline (priority 2 against the
-  flush worker's 5 and the render trigger's 4), because the first version put
-  the sampler on the shared `esp_timer` task at priority 22: it preempted the
-  flush worker and starved the render trigger, whose missed watchdog feed is
-  what catches a wedged display, and the board rebooted every few minutes. A
-  graph that misses a tick draws one sample late; a sampler above the pipeline
-  costs frames and fakes a display hang. It used to read its sources inside the repaint under the LVGL
-  lock, so a dashboard drawing at 32 fps silently halved a 16 ms sample
-  interval and drew half the vertices. Sampling on the telemetry event was
-  measured next and rejected: it restored the rate (58 Hz per graph) but
-  handed the plot the feed's arrival jitter, and since every sample advances
-  the same distance along the time axis, uneven arrivals stretch and squeeze
-  the curve — visible as steps that change with the feed rate. A frozen plot
-  drawn entirely from the board's own clock and its own waveform was the
-  control experiment that settled it. Each sample now lands on a schedule
-  (previous slot plus the interval, resynchronized only after a long stall),
-  so what arrives late still plots where it belongs. What was left of the
-  stepped look was the coordinate type:
-  `lv_value_precise_t` is an integer unless `LV_USE_FLOAT`, and a trace that
-  moves less than a pixel between samples is then drawn as a solid bar that
-  jumps a whole row. The ESP32-P4 build enables float precision and the
-  widget keeps a sixteenth of a pixel through the ring, at no measured cost
-  to any pattern. Unpaced renders measured at
-  120 Hz before the judder verdict: text_only 120 fps, shapes_96 113
-  (above plain partial's 107), huge_text_4 96, text_16 86, arcs_12 86,
-  sprites_24 68. Paced, everything that can render at 60 locks to the
-  panel (~56-59 fps: text_only, text_16, shapes_96, sprites_24 and kin),
-  with the render headroom kept as latency margin; below the panel rate
-  sit all_widgets 43, text_32 37, graphs_6 35 (parity with partial),
-  text_64 23, against 24-59 for the full modes above — the remaining gap to
-  partial is the tear-free tax: damage must cross to a hidden buffer by DMA
-  and stale rows must be reconciled, where partial blends once into the
-  buffer being scanned and accepts the seam.
+  (`SIMCORE_DISPLAY_RENDER_MODE`): the strip-composed tear-free mode by default
+  (see the amendment below), partial strips as the opt-out
+  (`sdkconfig.defaults.render-partial`), and direct and full-screen modes for a
+  build that trades frame rate for rendering straight into the panel's PSRAM
+  buffers. Full was re-measured with PPA on and with two draw units and stays
+  2-3x behind partial on every pattern — repainting the whole 614k-pixel frame
+  into PSRAM is bandwidth-bound — and the tear-free builds skip the navigation
+  controller's transition switching.
+- Full mode (`sdkconfig.defaults.render-full`) gets a third panel frame buffer
+  handed to LVGL (`lv_display_set_3rd_draw_buffer`), so a frame renders while
+  the previous one is queued and a third is on screen, and the core-0 worker
+  queues the swap throttled only by the vsync ISR's refresh counter. The
+  fragment selects the 512 KB L2 cache with 128-byte lines, which fits only
+  because full mode allocates no internal-RAM strips (~77 KB of internal RAM
+  stays free with the debug overlay on — mind that headroom), and the text
+  widget sizes its label to the box there, because the whole screen repaints
+  anyway. Together the bench battery moved +29-115% over plain full mode
+  (text_only 19.6→42.1 fps). `-O3` measured 1-2% behind `-O2` and stays
+  rejected.
+- The fourth option, `SIMCORE_DISPLAY_RENDER_FULL_STRIPS` — now the default —
+  is the tear-free mode closest to partial's frame rates. LVGL renders only the
+  damage into 60-line internal-RAM strips; an AXI-GDMA channel carries each
+  full-width strip into the hidden frame buffer and the CPU copies the narrow
+  ones, while a reconcile task at the flush worker's priority copies the whole
+  previous frame into that buffer on a second channel, in 96-row pieces fired
+  at frame start, and strips wait only for the pieces they overlap. Every DMA
+  wait carries a timeout that retires the engine to a CPU path rather than
+  starving the pipeline into the watchdog. Reconciling only the stale
+  rectangles was built first and removed — a bookkeeping gap showed as stale
+  fill sectors on arcs, and the whole-frame copy hides behind any frame that
+  renders longer than it copies — as was the DMA2D engine (`esp_async_fbcpy`),
+  which wedges on narrow PSRAM destinations and, rarely but reproducibly, on
+  full-width copies under load. The frame's last strip queues the swap and
+  waits for the previous one to latch: rendering past the panel measured well
+  above 60 fps and was rejected by eye, because irregular dropped frames read
+  as judder, so the pipeline paces to the panel and every rendered frame is
+  shown once. Paced, everything that can render at 60 locks to the panel
+  (text_only, text_16, shapes_96, sprites_24 at 56-59 fps); below it sit
+  all_widgets 43, text_32 37, graphs_6 35 and text_64 23 — the remaining gap
+  to partial is the tear-free tax of the DMA crossing and the reconcile.
+- Because repainting the whole screen is sometimes cheaper than reconciling it
+  — image blits are cheap per pixel, text blending is not, and no static
+  feature predicts which — the port measures both modes and runs the cheaper
+  by an EMA of frame cost, widening the damage to the whole screen when the
+  full pass wins, which is always correct. Probing the loser costs a slow
+  frame, so it runs only where that frame cannot be seen: never while the
+  winner holds the panel rate, and otherwise only while the loser's own
+  average fits the budget the pacing is quantized to. A mode never measured is
+  always probed; what a changed dashboard clears, and the settle gate that
+  keeps a composing screen out of the measurement, are in the amendment on
+  mode economics below. The choice stays bistable on dashboards whose
+  damage-drawn frames spend most of their time on narrow copies, because the
+  render-side clock cannot see the worker's tail; charging that tail,
+  charging only the measured stalls, taking the larger pipeline half and rare
+  paced A/B trials were each built, and each fixed one dashboard while
+  breaking another — the residual is an open item.
+- The graph widget samples on a task of its own, below the render pipeline
+  (priority 2 against the flush worker's 5 and the render trigger's 4): the
+  first version sampled on the shared `esp_timer` task at priority 22, starved
+  the render trigger's watchdog feed and rebooted the board every few minutes.
+  It once sampled inside the repaint, which halved a 16 ms interval on a
+  32 fps dashboard; sampling on the telemetry event restored the rate but
+  handed the plot the feed's jitter, so each sample now lands on a schedule and
+  a late arrival still plots where it belongs. `lv_value_precise_t` is an
+  integer unless `LV_USE_FLOAT`, so the ESP32-P4 build enables it and the
+  widget keeps a sixteenth of a pixel through the ring, or a slow trace steps
+  a whole row at a time.
 - Levers re-measured against this configuration and rejected, so they are not
-  tried again: merging invalidated areas into full-width rows (still −27–65%
-  even with the flush off the render core — the extra blended pixels outcost
-  the saved tree walks), a second software draw unit (−35–67%, the per-task
-  dispatch overhead dwarfs the parallelism on widget-sized tasks), LVGL
-  fast-mem in IRAM on the P4 (±0–2% — QIO plus the larger L2 already keep the
-  hot code cached; the fragment stays S3-only), replacing the value pipeline's
-  doubles with floats (±0% — they are too rare to matter, even soft-float),
-  a full-screen PSRAM draw buffer, FULL render mode, 400 MHz (panic-loop on
-  chips below rev 3), a 64-byte PPA burst, an asynchronous PPA-SRM blit draw unit for plain
-  RGB565 image copies (mechanically sound — the hardware performed the blits —
-  but the fixed ~250-400 us per transaction exceeds the software copy at every
-  widget-sized image, and back-to-back sprites serialize behind the engine;
-  only near-full-screen images would amortize it), and flattening the text
-  widget into
-  one box-sized label (the layout re-measure its content-sized label costs at
-  refresh start is real, but a box-sized label invalidates the whole box on
-  every value and the added blended pixels cost more on every display size).
+  tried again: merging invalidated areas into full-width rows (−27-65%), a
+  second software draw unit (−35-67%), LVGL fast-mem in IRAM on the P4
+  (±0-2%; the fragment stays S3-only), floats in place of the value pipeline's
+  doubles (±0%), a full-screen PSRAM draw buffer, 400 MHz (panic-loop on chips
+  below rev 3), a 64-byte PPA burst, an asynchronous PPA-SRM blit draw unit
+  for RGB565 image copies (the fixed ~250-400 µs per transaction exceeds the
+  software copy at every widget-sized image), and flattening the text widget
+  into one box-sized label (the added blended pixels cost more than the
+  re-layout they save).
 - The panel-side vsync no longer paces LVGL, so a fast producer can render
   more frames than the panel shows; the extra frames cost CPU but not
   correctness. The per-type widget caps stay a frame decision, judged with
@@ -290,3 +233,39 @@ Partial remains what a dashboard reaches for when it needs the last frames per
 second and its updates are small; its cost model in
 [runtime-performance.md](../runtime-performance.md) is unchanged, and so is
 everything the RGB boards do.
+
+## Amendment: the mode economics measure only a settled screen
+
+The choice between repainting the whole frame and reconciling the untouched
+rows was being made from contaminated samples. Both modes started at a seeded
+30 ms, a probed mode ran three or four frames before it was judged, and an
+eighth-weight average cannot move from 30 to a real 9 in that time — so
+whichever mode was probed first won, deterministically, and the loser was rarely
+probed again. Seeding each mode from its first frame instead moved the
+synthetic patterns but left the Lovely main screen choosing differently from
+boot to boot: five boots of eight at 59 fps, three at 28. A 68-widget
+composition exceeds `LV_INV_BUF_SIZE` on every frame until it settles, LVGL
+then repaints the whole screen, and a whole-screen *partial* frame pays the
+reconcile copy a widened frame skips — so every early sample is biased towards
+widened, whatever the dashboard is really worth.
+
+**Decision.** Nothing is recorded until the screen stops changing shape. A
+settle gate stays shut until eight consecutive frames have covered less than
+half the screen, or four seconds have passed for a dashboard whose ordinary
+damage really is the whole screen. While it is shut the display keeps drawing
+whichever mode is believed — both are correct — but nothing is measured and
+nothing is probed. Once open, each mode seeds from the cheapest of its first
+four frames, because frame cost has a hard floor and a one-sided tail. Two
+events that used to share one threshold are told apart: ordinary drift in the
+winner's cost, by half, only stops the loser being believed and lets it be
+probed again; a move by a factor of four means the dashboard was replaced and
+shuts the gate. The cost a frame is charged is its span minus the time slept
+in the flush wait, so the previous swap's hold cannot leak into it
+([ADR 0032](0032-burst-scheduled-frames.md)).
+
+**Consequences.** The Lovely main screen is 59 fps on every boot of six
+(render 4.6 ms, latency 21 ms); over the debugger's sixteen stress patterns
+`shapes_96` went 33 to 59 fps, `text_32_plain` 46 to 57, `text_32` 50 to 55,
+`bars_24` 47 to 51, and eleven did not move. Two pay for it — `full_screen_bar`
+49 to 42 and `indicators_12` 58.5 to 54 — because the gate delays electing the
+widened mode on the screens that want it most.

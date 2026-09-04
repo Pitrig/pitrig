@@ -38,8 +38,9 @@ What the measurements said:
   internal RAM. On the T-Display-S3 the free internal heap fell linearly to
   32 KB at twenty-four sizes and then stopped falling: allocations were failing,
   glyph caching quietly stopped, and firmware still answered `@SC:OK:APPLIED`.
-  The contract's `kMaximumFonts` is 134 — 724 KB — so the cap was never a bound
-  on anything the hardware could actually do.
+  The contract's `kMaximumFonts` was 134 at the time — 724 KB — so the cap was
+  never a bound on anything the hardware could actually do; the platform now
+  derives it from `maximum_font_requests()` in `dashboard_fonts.hpp`.
 - **What a redraw costs tracks the areas a frame draws, not the widgets it
   holds.** It does not move with a widget's box (3,677 / 3,818 / 3,823 µs for
   boxes of 840 / 3,360 / 13,600 px), because a readout invalidates its text

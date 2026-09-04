@@ -13,8 +13,9 @@ def generate_markdown(document: dict[str, Any]) -> str:
         "",
         f"This file is generated from `configuration/configuration_schema.json`. "
         f"It is the mechanical property reference for configuration schema {version}. "
-        "Narrative rules, presence semantics, and the control protocol live in "
-        "[device-configuration.md](device-configuration.md).",
+        "Narrative rules and presence semantics live in "
+        "[device-configuration.md](device-configuration.md); the control protocol in "
+        "[control-protocol.md](control-protocol.md).",
         "",
         f"Schema version: {version}.",
         "",

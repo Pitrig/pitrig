@@ -137,7 +137,7 @@ at a time.
 The configuration commands themselves name the document they act on:
 `@SC:GET:dashboard`, `@SC:SET:protocol:<JSON>` and so on, over the three
 documents a board stores. The full command table is in
-[Control commands](device-configuration.md#control-commands).
+[Control commands](control-protocol.md#control-commands).
 
 ## One link per board
 
@@ -147,6 +147,6 @@ port as a development aid; that is gone, and the P4's native USB CDC port is
 now its only link. Flashing and the ESP console still use the USB-Serial-JTAG
 port, which the application no longer touches.
 
-Only one upload may own the binary stream at a time, whichever link opens it;
-a `BEGIN`, `INFO` or `CLEAR` for either asset kind arriving on the other link
-is answered `busy`, and that link keeps parsing its own lines meanwhile.
+Only one upload may own the binary stream at a time; a `BEGIN`, `INFO` or
+`CLEAR` for either asset kind that finds it claimed — by startup, which is still
+reading the partitions, or by an upload not yet torn down — is answered `busy`.

@@ -1,6 +1,8 @@
 # ADR 0022: Over-the-Air Firmware Updates
 
-Status: Accepted
+Status: Accepted. [ADR 0025](0025-startup-order-and-safe-mode.md) narrows the
+rollback trigger: the running image is marked valid as soon as the serial link
+is up, so rollback catches only an image that cannot be talked to.
 
 ## Context
 

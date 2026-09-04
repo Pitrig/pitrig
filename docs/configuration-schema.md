@@ -1,6 +1,6 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 24. Narrative rules, presence semantics, and the control protocol live in [device-configuration.md](device-configuration.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 24. Narrative rules and presence semantics live in [device-configuration.md](device-configuration.md); the control protocol in [control-protocol.md](control-protocol.md).
 
 Schema version: 24.
 

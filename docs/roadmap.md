@@ -56,42 +56,19 @@ in [dashboard-editor-parity.md](dashboard-editor-parity.md).
 - [*] Uploaded image asset pipeline and image widgets
 - [*] Container shapes and slots (an area of a screen that switches what it
       shows), with children clipped to the container unless it says otherwise
-- [ ] Additional widget types (table, track map — the outline SimHub itself
-      generates, sent over the link once per track and held in RAM rather than
-      uploaded as an asset, with the car placed by `track.position_percent`)
+- [ ] Additional widget types — a table, and a track map drawn from the outline
+      SimHub sends once per track, with the car at `track.position_percent`
 - [ ] Colour transparency — needs an encoding that keeps the transparent
       sentinel distinguishable from an opaque white
-- [ ] Uploaded images kept in their original format (PNG or SVG) instead of
-      converted, so the device scales them and a layout transfer carries them —
-      the format and what decodes it are undecided
-- [*] Compressed image packages — pixels stored deflated and inflated once at
-      startup, so the artwork's size lands on flash instead of on the frame.
-      Real dashboard artwork stores at a fifth to a third of raw, with the draw
-      path, the external RAM and the P4 accelerator all unchanged (indexed
-      colour is excluded by decision: it trades frames and the accelerator for
-      storage this buys back for nothing — ADR 0018)
-- [*] Image memory bounded by what is drawn — external RAM holds only the images
-      the running configuration shows rather than every one the package carries,
-      and artwork with no transparent pixel is offered a format without an alpha
-      plane, which is a third off flash and external RAM at once
-- [*] Sprite sheets — many pictures in one image, a widget drawing one of them.
-      Spends one of the 32 package entries rather than one per icon, and lets a
-      single widget switch its picture from telemetry instead of stacking one
-      widget per state. Frames are uniform and stored whole, back to back, which
-      is the only layout contiguous in every colour format — so a frame is a
-      pointer step and the P4 accelerator is untouched (an arbitrary rectangle
-      atlas was rejected for that reason)
+- [ ] Uploaded images kept in their original format, so the device scales them
+      and a layout transfer carries them — format and decoder undecided
+- [*] Compressed image packages, image memory bounded by what is drawn, and
+      sprite sheets (ADR 0018)
 - [ ] Button Matrix
-- [*] RGB — addressable WS2812B and SK6812 outputs, each a data pin and an
-      ordered chain of strips and matrices. Layers are painted over that chain
-      and where two cover the same lamp the one that lit most recently wins it —
-      SimHub's stacking model with the tie broken by time rather than by
-      authoring order, and the opposite of a widget's first-match rules: an output
-      composes a picture out of several things being true at once — while a
-      layer's own colour and ground answer telemetry through first-match rules,
-      the way a widget's do. Matrix artwork is drawn in the configurator and
-      palette-indexed inside the document rather than uploaded, so the whole
-      feature reaches boards already in the field over the air (ADR 0030)
+- [*] RGB — WS2812B and SK6812 outputs, each a data pin driving one strip or one
+      matrix as separate devices, layers painted over it with the most recently
+      lit winning a shared lamp, matrix artwork drawn in the configurator and
+      stored in the document (ADR 0030)
 
 # Phase 5 — Interaction
 
@@ -123,7 +100,7 @@ foundation for them landed in Phase 1.
       board like any other layout
 - [ ] Saving a single screen on its own, and templates shared as a file rather
       than through the user data directory
-- [ ] A gallery of ready-made dashboards
+- [*] A gallery of ready-made dashboards — the bundled template library
 
 # Phase 6 — Field maintenance
 
