@@ -22,6 +22,16 @@ transport::ITransport& primary_transport(Application& application) {
   return *application.telemetry_transports[0];
 }
 
+value_smoothing::Service* start_value_smoothing(
+    Application& application,
+    const configuration::ApplicationConfiguration& configuration) {
+  value_smoothing::Service& service = application.services.value_smoothing;
+  if (!service.start(configuration.dashboard.smoothing)) {
+    log::error(kTag, "Value smoothing could not subscribe to telemetry");
+  }
+  return service.active() ? &service : nullptr;
+}
+
 namespace {
 
 bool restart_modules(Application& application) {
@@ -51,7 +61,8 @@ bool create_dashboard(Application& application) {
   return dashboard_composition::create(
       application.display, configuration, application.modules,
       dashboard_composition::instance(), application.services.telemetry_registry,
-      application.services.telemetry_state, primary_transport(application));
+      application.services.telemetry_state, primary_transport(application),
+      start_value_smoothing(application, configuration));
 }
 
 configuration::ValidationFailure apply_modules_document(
@@ -74,7 +85,10 @@ configuration::ValidationFailure apply_dashboard_document(
   }
   const bool modules_change = module_composition::lap_timer_used(previous) !=
                               module_composition::lap_timer_used(candidate);
-  if (!modules_change &&
+  const bool rebinds_all =
+      modules_change ||
+      previous.dashboard.smoothing != candidate.dashboard.smoothing;
+  if (!rebinds_all &&
       dashboard_composition::images_loaded(candidate,
                                            dashboard_composition::instance()) &&
       dashboard_composition::apply_incremental(previous, candidate,

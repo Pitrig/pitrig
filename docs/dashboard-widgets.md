@@ -28,6 +28,25 @@ answer for a dashboard that would rather arrive than travel. It is one setting
 for the dashboard rather than one per screen, because a per-screen answer would
 only hold in one direction.
 
+`dashboard.smoothing` says whether a mapped value moves between the packets
+that carry it. `off`, the default, draws each packet as it lands, so a feed
+slower than the panel steps. `interpolate` glides from the value shown to the
+packet just received so as to arrive exactly when the next one is due:
+continuous motion with no overshoot, one telemetry period behind — 16 ms at
+60 Hz, 50 ms at 20 Hz. `predict` keeps moving at the rate the last two packets
+showed and folds the error the next packet reveals into the period that
+follows: nothing behind on average, and a reversal overshoots by up to one
+packet's worth of motion. The period is measured on the device per field, so
+`fast` and `normal` fields each glide at their own pace, and a pause longer
+than 250 ms between two packets of a field is drawn as a jump, which is why a
+value that changes on events — a lap count, a best time — never glides. It
+reaches bars, arcs, needles, graph traces and text sources with a `number`
+transform, and only sources without a modifier; conditions, colour ramps,
+captions, slot triggers and indicators read the packet itself, because a
+threshold wants the moment rather than the motion. Every widget on the same
+field shares one follower, and a widget that follows redraws every frame while
+its value moves ([runtime-performance.md](runtime-performance.md#what-a-frame-costs)).
+
 A **shape** widget may hold widgets of its own, which makes it a container. The
 geometry of the widgets inside it is relative to its box, and they nest up to
 four levels deep. A container performs no layout — it is a parent and a

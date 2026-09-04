@@ -329,7 +329,7 @@ other:
 
 | Document | Top-level properties | Maximum payload |
 | --- | --- | --- |
-| `dashboard` | `board`, `dashboard.transition`, `dashboard.screens` | 131072 bytes |
+| `dashboard` | `board`, `dashboard.transition`, `dashboard.smoothing`, `dashboard.screens` | 131072 bytes |
 | `modules` | `board`, `hardware` | 32768 bytes |
 | `protocol` | `board`, `telemetry_transport` | 1024 bytes |
 

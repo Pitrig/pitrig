@@ -97,6 +97,12 @@ void load_uploaded_assets(
 bool compose(Application& application,
              const board_registry::BoardDefinition& board,
              const configuration::ApplicationConfiguration& configuration) {
+  if (!application.platform.smoothing_memory.initialize(
+          value_smoothing::Service::kStorageBytes) ||
+      !application.services.value_smoothing.attach(
+          application.platform.smoothing_memory.bytes())) {
+    log::error(kTag, "Value smoothing storage is unavailable");
+  }
   if (!module_composition::start(application.modules,
                                  application.services.event_bus,
                                  application.services.telemetry_registry,
@@ -110,7 +116,8 @@ bool compose(Application& application,
   const bool composed = dashboard_composition::create(
       application.display, configuration, application.modules,
       dashboard_composition::instance(), application.services.telemetry_registry,
-      application.services.telemetry_state, primary_transport(application));
+      application.services.telemetry_state, primary_transport(application),
+      start_value_smoothing(application, configuration));
   if (!composed) {
     log::error(kTag, "Dashboard composition is incomplete");
   }

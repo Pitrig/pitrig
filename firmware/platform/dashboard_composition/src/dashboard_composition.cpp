@@ -147,7 +147,8 @@ bool create(lv_display_t* const display,
             module_composition::Modules& modules, Dashboard& dashboard_state,
             const telemetry::ITelemetryRegistry& telemetry_registry,
             const telemetry::ITelemetryReader& telemetry,
-            const transport::ITransport& telemetry_transport) {
+            const transport::ITransport& telemetry_transport,
+            value_smoothing::Service* const smoothing) {
   if (display == nullptr) {
     log::error(kTag, "Dashboard display is unavailable");
     return false;
@@ -177,6 +178,7 @@ bool create(lv_display_t* const display,
     storage->registry = &telemetry_registry;
     storage->telemetry = &telemetry;
     storage->modifier_readers = readers;
+    storage->smoothing = smoothing;
   }
   dashboard_state.image.images = &dashboard_state.images;
   dashboard_state.shape.container_slots = dashboard_state.containers;

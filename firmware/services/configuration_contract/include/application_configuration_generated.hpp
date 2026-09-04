@@ -13,7 +13,7 @@
 
 namespace simcore::configuration {
 
-inline constexpr std::uint16_t kConfigurationSchemaVersion = 25;
+inline constexpr std::uint16_t kConfigurationSchemaVersion = 26;
 
 inline constexpr std::uint32_t kTransparentColor = 0xFFFFFFFFU;
 
@@ -248,6 +248,12 @@ enum class WidgetActionType : std::uint8_t {
 enum class ScreenTransition : std::uint8_t {
   slide,
   none,
+};
+
+enum class ValueSmoothing : std::uint8_t {
+  off,
+  interpolate,
+  predict,
 };
 
 enum class ValueModifierType : std::uint8_t {
@@ -663,6 +669,7 @@ struct ScreenConfiguration {
 
 struct DashboardConfiguration {
   ScreenTransition transition{ScreenTransition::slide};
+  ValueSmoothing smoothing{ValueSmoothing::off};
   std::uint8_t screen_count{};
   std::array<ScreenConfiguration, kMaximumScreens> screens{};
   std::uint8_t text_widget_count{};
@@ -1097,6 +1104,28 @@ inline constexpr std::array<std::string_view, 2> kScreenTransitionNames{{
   for (std::size_t index = 0; index < kScreenTransitionNames.size(); ++index) {
     if (kScreenTransitionNames[index] == name) {
       value = static_cast<ScreenTransition>(index);
+      return true;
+    }
+  }
+  return false;
+}
+
+inline constexpr std::array<std::string_view, 3> kValueSmoothingNames{{
+    "off",
+    "interpolate",
+    "predict",
+}};
+
+[[nodiscard]] inline std::string_view value_smoothing_name(const ValueSmoothing value) {
+  const auto index = static_cast<std::size_t>(value);
+  return index < kValueSmoothingNames.size() ? kValueSmoothingNames[index] : std::string_view{};
+}
+
+[[nodiscard]] inline bool value_smoothing_from_name(const std::string_view name,
+                                                  ValueSmoothing& value) {
+  for (std::size_t index = 0; index < kValueSmoothingNames.size(); ++index) {
+    if (kValueSmoothingNames[index] == name) {
+      value = static_cast<ValueSmoothing>(index);
       return true;
     }
   }

@@ -169,6 +169,11 @@ per-screen tuning:
   drawn area, so heavy decoration taxes each changing widget.
 - **Shrink fonts where the value allows it** — pixel cost is quadratic in
   size, and on the ESP32-S3 it is half of an area's price.
+- **`dashboard.smoothing` makes every followed gauge a changing readout while
+  its value moves**: a bar, arc, needle, trace or number readout that follows
+  redraws each frame between packets rather than once per packet, so the
+  sixteen-readout budget above is spent on the followed widgets whether the
+  feed is 20 Hz or 60. Indicators and conditions stay on the packet.
 - **Screens that are not shown cost nothing**, so splitting a dense dashboard
   across screens buys frame budget directly; transitions are tear-free and do
   not tax the steady state.

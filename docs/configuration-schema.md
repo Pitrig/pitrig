@@ -1,8 +1,8 @@
 # Configuration schema reference
 
-This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 25. Narrative rules and presence semantics live in [device-configuration.md](device-configuration.md); the control protocol in [control-protocol.md](control-protocol.md).
+This file is generated from `configuration/configuration_schema.json`. It is the mechanical property reference for configuration schema 26. Narrative rules and presence semantics live in [device-configuration.md](device-configuration.md); the control protocol in [control-protocol.md](control-protocol.md).
 
-Schema version: 25.
+Schema version: 26.
 
 ## Documents
 
@@ -89,6 +89,7 @@ The configuration is transferred and stored as three independent documents. Each
 | `ConditionOperator` | `above`, `at_or_above`, `below`, `at_or_below`, `equal`, `not_equal` | Comparison a styling rule applies to the numeric value of its condition source. |
 | `WidgetActionType` | `none`, `next_screen`, `previous_screen`, `goto_screen` | What a tap on a widget does. none is the default and leaves the object refusing input, which is what every widget did before actions existed. |
 | `ScreenTransition` | `slide`, `none` | How the dashboard swaps one screen for another. slide is LVGL's animated screen load, the horizontal move a swipe reads as. none replaces the screen in a single frame: the animation composites both screens for its whole duration, which on a screen filled with widgets costs more per frame than either screen alone, so a dashboard that cannot afford it says so here rather than living with the drop. |
+| `ValueSmoothing` | `off`, `interpolate`, `predict` | Whether a mapped value moves between the packets that carry it. off draws each packet as it lands, so a feed slower than the panel steps. interpolate glides from the value shown to the packet just received so as to arrive exactly when the next packet is due: continuous motion with no overshoot, one telemetry period behind - 16 ms at 60 Hz, 50 ms at 20 Hz. predict keeps moving at the rate the last two packets showed and folds the error the next packet reveals into the period that follows: nothing behind on average, but a reversal overshoots by up to one packet's worth of motion. A pause longer than 250 ms between two packets of a field is a jump rather than a movement and is drawn at once, so a value that changes on events never glides. Bars, arcs, needles, graph traces and number-transformed text follow it; conditions, ramps, captions and indicators read the packet itself. |
 | `ValueModifierType` | `lap_timer` | Stateful value processing implemented by a module behind the pipeline callback. |
 | `BarOrientation` | `horizontal`, `vertical` | Axis a bar fills along. A vertical bar grows upwards unless it is inverted. |
 | `ShapeKind` | `rectangle`, `ellipse` | Outline a shape widget takes. A line is a thin rectangle, so it needs no kind of its own. |
@@ -582,6 +583,7 @@ Owns the typed widget storage as one pool shared by every screen; a screen holds
 | Property | Type | Default |
 | --- | --- | --- |
 | `transition` | `ScreenTransition` | `slide` |
+| `smoothing` | `ValueSmoothing` | `off` |
 | `screens` | array of [`ScreenConfiguration`](#screenconfiguration), max 4 | absent |
 
 ### ApplicationConfiguration

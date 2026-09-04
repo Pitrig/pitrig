@@ -1,5 +1,5 @@
 {
-  "schema_version": 25,
+  "schema_version": 26,
   "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
 
   "documents": {
@@ -340,6 +340,12 @@
       "json_values": ["slide", "none"],
       "default": "slide",
       "doc": "How the dashboard swaps one screen for another. slide is LVGL's animated screen load, the horizontal move a swipe reads as. none replaces the screen in a single frame: the animation composites both screens for its whole duration, which on a screen filled with widgets costs more per frame than either screen alone, so a dashboard that cannot afford it says so here rather than living with the drop."
+    },
+
+    "ValueSmoothing": {
+      "json_values": ["off", "interpolate", "predict"],
+      "default": "off",
+      "doc": "Whether a mapped value moves between the packets that carry it. off draws each packet as it lands, so a feed slower than the panel steps. interpolate glides from the value shown to the packet just received so as to arrive exactly when the next packet is due: continuous motion with no overshoot, one telemetry period behind - 16 ms at 60 Hz, 50 ms at 20 Hz. predict keeps moving at the rate the last two packets showed and folds the error the next packet reveals into the period that follows: nothing behind on average, but a reversal overshoots by up to one packet's worth of motion. A pause longer than 250 ms between two packets of a field is a jump rather than a movement and is drawn at once, so a value that changes on events never glides. Bars, arcs, needles, graph traces and number-transformed text follow it; conditions, ramps, captions and indicators read the packet itself."
     },
 
     "ValueModifierType": {
@@ -918,6 +924,7 @@
       "doc": "Owns the typed widget storage as one pool shared by every screen; a screen holds only an ordered list of references into it. A screen therefore costs its reference table rather than a full set of widget arrays.",
       "fields": [
         { "name": "transition", "kind": "enum", "enum": "ScreenTransition", "doc": "How every move between screens is drawn, whether a swipe or a tap asked for it. Dashboard-wide because an animation draws the screen being left as well as the one arriving, so a per-screen answer would only hold in one direction." },
+        { "name": "smoothing", "kind": "enum", "enum": "ValueSmoothing", "doc": "How a mapped value moves between telemetry packets. Dashboard-wide because it is a property of the feed rather than of a widget: every gauge on the same field shares one follower, and the policy is what the driver judges by eye." },
         { "name": "screen_count", "kind": "uint8", "default": 0, "serialized": false },
         { "name": "screens", "kind": "array", "struct": "ScreenConfiguration", "capacity": "kMaximumScreens", "count_field": "screen_count" },
         { "name": "text_widget_count", "kind": "uint8", "default": 0, "serialized": false },

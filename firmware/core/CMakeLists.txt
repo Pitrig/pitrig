@@ -10,6 +10,6 @@ idf_component_register(
                 font_assets image_assets input logger nvs_config_storage
                 partition_asset_storage status_light
                 module_composition simcore_config telemetry
-                telemetry_transport performance)
+                telemetry_transport performance value_smoothing)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

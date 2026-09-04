@@ -71,7 +71,7 @@ idf_component_register(
              telemetry value_conditions
     PRIV_REQUIRES display esp_lvgl_port esp_rom esp_system esp_timer heap logger
                   number_transform performance simcore_config text_writer
-                  time_transform)
+                  time_transform value_smoothing)
 
 foreach(symbol lv_mem_init lv_mem_deinit lv_mem_add_pool lv_mem_remove_pool
                lv_malloc_core lv_realloc_core lv_free_core lv_mem_monitor_core

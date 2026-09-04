@@ -47,8 +47,14 @@ struct WidgetOpsCommon {
   [[nodiscard]] static bool rebind(
       Storage& widgets,
       const std::span<const typename Storage::Config> configurations) {
-    return widgets.binder.bind(configurations, *widgets.registry,
-                               *widgets.telemetry, widgets.modifier_readers);
+    if constexpr (Storage::kSmoothsSource) {
+      return widgets.binder.bind(configurations, *widgets.registry,
+                                 *widgets.telemetry, widgets.modifier_readers,
+                                 widgets.smoothing);
+    } else {
+      return widgets.binder.bind(configurations, *widgets.registry,
+                                 *widgets.telemetry, widgets.modifier_readers);
+    }
   }
 
   [[nodiscard]] static bool report_bind_failure() {

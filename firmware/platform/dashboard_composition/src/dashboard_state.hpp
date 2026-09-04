@@ -50,21 +50,28 @@ class ITelemetryRegistry;
 namespace simcore::transport {
 class ITransport;
 }
+namespace simcore::value_smoothing {
+class Service;
+}
 
 namespace simcore::dashboard_composition {
 
 struct WidgetStorage {
+  static constexpr bool kSmoothsSource = false;
+
   dashboard::Layout layout{};
   const configuration::DashboardConfiguration* dashboard{};
   const dashboard::fonts::Registry* fonts{};
   const telemetry::ITelemetryRegistry* registry{};
   const telemetry::ITelemetryReader* telemetry{};
   dashboard::frame::ModifierReaders modifier_readers{};
+  value_smoothing::Service* smoothing{};
 };
 
 struct TextWidgets : WidgetStorage {
   using Config = configuration::TextWidgetConfiguration;
   static constexpr auto kType = configuration::WidgetType::text;
+  static constexpr bool kSmoothsSource = true;
   static constexpr auto kPool =
       &configuration::DashboardConfiguration::text_widgets;
 
@@ -98,6 +105,7 @@ struct SlotWidgets : WidgetStorage {
 struct BarWidgets : WidgetStorage {
   using Config = configuration::BarWidgetConfiguration;
   static constexpr auto kType = configuration::WidgetType::bar;
+  static constexpr bool kSmoothsSource = true;
   static constexpr auto kPool =
       &configuration::DashboardConfiguration::bar_widgets;
 
@@ -109,6 +117,7 @@ struct BarWidgets : WidgetStorage {
 struct ArcWidgets : WidgetStorage {
   using Config = configuration::ArcWidgetConfiguration;
   static constexpr auto kType = configuration::WidgetType::arc;
+  static constexpr bool kSmoothsSource = true;
   static constexpr auto kPool =
       &configuration::DashboardConfiguration::arc_widgets;
 
@@ -132,6 +141,7 @@ struct IndicatorWidgets : WidgetStorage {
 struct GraphWidgets : WidgetStorage {
   using Config = configuration::GraphWidgetConfiguration;
   static constexpr auto kType = configuration::WidgetType::graph;
+  static constexpr bool kSmoothsSource = true;
   static constexpr auto kPool =
       &configuration::DashboardConfiguration::graph_widgets;
 

@@ -51,7 +51,9 @@ Generic property expressions are maintained in
 `telemetry/simhub_generic_mappings.json`. An unsupported SimHub property sends
 an empty value, which marks only that canonical field unavailable. The profile
 does not contain game-specific raw-data mappings. SimHub Free limits update
-messages to 10 Hz, regardless of higher values stored in the profile.
+messages to 10 Hz, regardless of higher values stored in the profile;
+`dashboard.smoothing` ([dashboard-widgets.md](dashboard-widgets.md#screens-and-widgets))
+is what makes a feed that slow move between its packets.
 
 Each line contains a one- or two-character field identifier, a semicolon, and
 a value. The complete generated ID table is in the

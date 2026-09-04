@@ -5,6 +5,7 @@
 #include "dashboard_layout_internal.hpp"
 #include "lvgl.h"
 #include "telemetry_state.hpp"
+#include "value_smoothing.hpp"
 #include "widget_frame_internal.hpp"
 
 namespace simcore::dashboard::frame {
@@ -115,28 +116,37 @@ bool bind_source(const std::string_view name,
                  const telemetry::ITelemetryRegistry& registry,
                  const telemetry::ITelemetryReader& telemetry,
                  const ModifierReaders& modifier_readers,
+                 value_smoothing::Service* const smoothing,
                  SourceContext& context, ValueReadCallback& read,
                  void*& read_context, bool& fast_updates) {
   const telemetry::Handle handle = registry.resolve(name);
   if (!handle.valid()) {
     return false;
   }
-  const bool modified = modifier_count == 1;
-  if (modified) {
+  if (modifier_count == 1) {
     const ModifierReader reader =
         modifier_reader(modifier_readers, modifiers.front().type);
     read = reader.read;
     read_context = reader.context;
-  } else {
-    context = {
-        .telemetry = &telemetry,
-        .handle = handle,
-    };
-    read = &read_telemetry;
-    read_context = &context;
+    fast_updates = true;
+    return read != nullptr && read_context != nullptr;
   }
-  fast_updates = modified;
-  return read != nullptr && read_context != nullptr;
+  value_smoothing::Follower* const follower =
+      smoothing != nullptr ? smoothing->follow(handle) : nullptr;
+  if (follower != nullptr) {
+    read = &value_smoothing::Service::read;
+    read_context = follower;
+    fast_updates = true;
+    return true;
+  }
+  context = {
+      .telemetry = &telemetry,
+      .handle = handle,
+  };
+  read = &read_telemetry;
+  read_context = &context;
+  fast_updates = false;
+  return true;
 }
 
 bool bind_frame(const configuration::WidgetFrame& frame,
@@ -151,15 +161,16 @@ bool bind_frame(const configuration::WidgetFrame& frame,
                        frame.condition_source.binding),
                    frame.condition_source.modifier_count,
                    frame.condition_source.modifiers, registry, telemetry,
-                   modifier_readers, condition_context, binding.condition_read,
-                   binding.condition_context, fast_updates)) {
+                   modifier_readers, nullptr, condition_context,
+                   binding.condition_read, binding.condition_context,
+                   fast_updates)) {
     return false;
   }
   return !binds_caption(frame) ||
          bind_source(
              configuration::value_binding_view(frame.title.source.binding),
              frame.title.source.modifier_count, frame.title.source.modifiers,
-             registry, telemetry, modifier_readers, caption_context,
+             registry, telemetry, modifier_readers, nullptr, caption_context,
              binding.caption_read, binding.caption_context, fast_updates);
 }
 

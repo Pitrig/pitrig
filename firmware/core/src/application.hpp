@@ -18,6 +18,7 @@
 #include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
 #include "telemetry_transport_composition.hpp"
+#include "value_smoothing.hpp"
 
 struct _lv_display_t;
 using lv_display_t = _lv_display_t;
@@ -34,6 +35,7 @@ struct PlatformAdapters {
   platform::ExternalMemoryBuffer configuration_memory;
   platform::ExternalMemoryBuffer font_memory;
   platform::ExternalMemoryBuffer image_memory;
+  platform::ExternalMemoryBuffer smoothing_memory;
 };
 
 struct ApplicationServices {
@@ -45,6 +47,7 @@ struct ApplicationServices {
   telemetry::TelemetryRegistry telemetry_registry;
   telemetry::TelemetryStateService telemetry_state{telemetry_registry};
   telemetry::TelemetryProvider telemetry_provider{telemetry_state, event_bus};
+  value_smoothing::Service value_smoothing{telemetry_state, event_bus};
 };
 
 struct Application {
@@ -68,6 +71,10 @@ struct ConfigurationBuffers {
 };
 
 [[nodiscard]] transport::ITransport& primary_transport(Application& application);
+
+[[nodiscard]] value_smoothing::Service* start_value_smoothing(
+    Application& application,
+    const configuration::ApplicationConfiguration& configuration);
 
 configuration::ValidationFailure apply_configuration(
     configuration::ConfigurationDocument document,

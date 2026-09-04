@@ -1,5 +1,5 @@
 import { screensOf } from '@shared/configuration-access'
-import { SCREEN_TRANSITION_VALUES } from '@shared/configuration-schema'
+import { SCREEN_TRANSITION_VALUES, VALUE_SMOOTHING_VALUES } from '@shared/configuration-schema'
 import { type DeviceConfiguration } from '@shared/device'
 import { documentFonts } from '@shared/document-fonts'
 import { MAXIMUM_FONT_FAMILIES } from '@shared/font-assets'
@@ -70,6 +70,18 @@ export function DashboardSection({
         onChange={(transition) => mutateDraftConfiguration((draft) => {
           if (transition === 'slide') { if (draft.dashboard) delete draft.dashboard.transition }
           else draft.dashboard = { ...draft.dashboard, transition }
+        })}
+      />
+      <SelectField
+        label={t('inspector.documentSections.smoothing')}
+        hint={t('inspector.hints.dashboard.smoothing')}
+        value={configuration.dashboard?.smoothing ?? 'off'}
+        options={VALUE_SMOOTHING_VALUES}
+        modified={authored(configuration.dashboard?.smoothing, 'off')}
+        onReset={() => mutateDraftConfiguration((draft) => { if (draft.dashboard) delete draft.dashboard.smoothing })}
+        onChange={(smoothing) => mutateDraftConfiguration((draft) => {
+          if (smoothing === 'off') { if (draft.dashboard) delete draft.dashboard.smoothing }
+          else draft.dashboard = { ...draft.dashboard, smoothing }
         })}
       />
       <FontFamilyField label={t('inspector.documentSections.newWidgets')} family={family} onChange={setDefaultFontFamily} hint={t('inspector.hints.dashboard.font')} />

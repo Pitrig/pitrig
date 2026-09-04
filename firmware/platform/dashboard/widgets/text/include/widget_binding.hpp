@@ -12,6 +12,9 @@
 namespace simcore::telemetry {
 class ITelemetryReader;
 }
+namespace simcore::value_smoothing {
+class Service;
+}
 
 namespace simcore::dashboard::text_widget {
 
@@ -34,34 +37,30 @@ class Binder final {
       std::span<const Config> configurations,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      const ModifierReaders& modifier_readers);
+      const ModifierReaders& modifier_readers,
+      value_smoothing::Service* smoothing);
 
   [[nodiscard]] std::span<const WidgetBinding> bindings() const;
 
  private:
-  struct SourceContext {
-    const telemetry::ITelemetryReader* telemetry{};
-    telemetry::Handle handle{};
-  };
-
   [[nodiscard]] bool bind_sources(
       const Config& configuration, std::size_t instance,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      const ModifierReaders& modifier_readers, WidgetBinding& binding);
+      const ModifierReaders& modifier_readers,
+      value_smoothing::Service* smoothing, WidgetBinding& binding);
 
   [[nodiscard]] bool bind_one(
       std::string_view name, std::uint8_t modifier_count,
       std::span<const configuration::ValueModifier> modifiers,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      const ModifierReaders& modifier_readers, std::size_t context_index,
+      const ModifierReaders& modifier_readers,
+      value_smoothing::Service* smoothing, std::size_t context_index,
       BoundConfig& bound);
 
-  [[nodiscard]] static telemetry::TelemetryRead read_telemetry(void* context);
-
   std::array<WidgetBinding, kMaximumInstances> bindings_{};
-  std::array<SourceContext, kMaximumInstances * kContextsPerInstance>
+  std::array<frame::SourceContext, kMaximumInstances * kContextsPerInstance>
       source_contexts_{};
   std::size_t count_{};
 };

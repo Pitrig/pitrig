@@ -45,7 +45,7 @@ bool Binder::bind(const std::span<const Config> configurations,
                             configuration.sprite_frame_source.modifier_count,
                             configuration.sprite_frame_source.modifiers,
                             registry, telemetry, modifier_readers,
-                            frame_contexts_[count_], binding.read,
+                            nullptr, frame_contexts_[count_], binding.read,
                             binding.read_context, frame_fast)) {
       count_ = 0;
       return false;

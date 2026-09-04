@@ -519,6 +519,7 @@
       },
       "dashboard": {
         "transition": "How the board swaps one screen for another, whether a swipe or a tap asked for it. slide is the sliding animation; none replaces the screen in a single frame. The slide draws both screens for every one of its frames, so a screen full of widgets is where it is felt — set this to none if swiping stutters.",
+        "smoothing": "Whether bars, arcs, needles, graph traces and number-formatted text move between telemetry packets instead of stepping with them. interpolate glides to each packet so as to arrive when the next is due: perfectly smooth, one packet period behind (16 ms at 60 Hz, 50 ms at 20 Hz). predict keeps moving at the measured rate and corrects when the packet lands: nothing behind on average, a small overshoot on reversals. A pause longer than 250 ms between packets is drawn as a jump, so values that change on events never glide. Indicators, conditions and captions always read the packet itself.",
         "font": "The family new widgets take. It is the editor’s own setting — the device resolves a font per widget, so the document carries no dashboard-wide one.",
         "budget": "What the chosen families cost on the board. Faces are uploaded whole and the partition holds 2 MiB of them."
       },
@@ -614,6 +615,7 @@
     },
     "documentSections": {
       "transition": "Transition",
+      "smoothing": "Smoothing",
       "newWidgets": "New widgets",
       "applyToEveryWidget": "Apply to every widget",
       "fontBudget": "Font budget",

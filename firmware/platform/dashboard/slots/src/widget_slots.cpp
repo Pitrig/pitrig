@@ -57,7 +57,7 @@ bool Controller::add(lv_obj_t* const container,
       if (!frame::bind_source(
               configuration::value_binding_view(source.source.binding),
               source.source.modifier_count, source.source.modifiers, registry,
-              telemetry, modifier_readers, page.source, page.read,
+              telemetry, modifier_readers, nullptr, page.source, page.read,
               page.read_context, fast_updates)) {
         page = {};
         return false;

@@ -12,6 +12,9 @@
 namespace simcore::telemetry {
 class ITelemetryReader;
 }
+namespace simcore::value_smoothing {
+class Service;
+}
 
 namespace simcore::dashboard::graph_widget {
 
@@ -31,7 +34,8 @@ class Binder final {
   [[nodiscard]] bool bind(std::span<const Config> configurations,
                           const telemetry::ITelemetryRegistry& registry,
                           const telemetry::ITelemetryReader& telemetry,
-                          const ModifierReaders& modifier_readers);
+                          const ModifierReaders& modifier_readers,
+                          value_smoothing::Service* smoothing);
 
   [[nodiscard]] std::span<const WidgetBinding> bindings() const;
 
@@ -40,7 +44,8 @@ class Binder final {
       const configuration::ValueSourceConfiguration& source,
       const telemetry::ITelemetryRegistry& registry,
       const telemetry::ITelemetryReader& telemetry,
-      const ModifierReaders& modifier_readers, std::size_t context_index,
+      const ModifierReaders& modifier_readers,
+      value_smoothing::Service* smoothing, std::size_t context_index,
       frame::BoundSource& bound);
 
   [[nodiscard]] bool bind_sources(const Config& configuration,
@@ -48,6 +53,7 @@ class Binder final {
                                   const telemetry::ITelemetryRegistry& registry,
                                   const telemetry::ITelemetryReader& telemetry,
                                   const ModifierReaders& modifier_readers,
+                                  value_smoothing::Service* smoothing,
                                   WidgetBinding& binding);
 
   std::array<WidgetBinding, kMaximumInstances> bindings_{};

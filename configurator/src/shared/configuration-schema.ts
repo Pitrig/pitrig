@@ -2,7 +2,7 @@
 
 export type RgbColor = `#${string}`
 
-export const CONFIGURATION_SCHEMA_VERSION = 25
+export const CONFIGURATION_SCHEMA_VERSION = 26
 
 export const MAXIMUM_PAYLOAD_SIZE = 131072
 export const MAXIMUM_SCREENS = 4
@@ -106,6 +106,9 @@ export const WIDGET_ACTION_TYPE_VALUES: readonly WidgetActionType[] = ['none', '
 
 export type ScreenTransition = 'slide' | 'none'
 export const SCREEN_TRANSITION_VALUES: readonly ScreenTransition[] = ['slide', 'none']
+
+export type ValueSmoothing = 'off' | 'interpolate' | 'predict'
+export const VALUE_SMOOTHING_VALUES: readonly ValueSmoothing[] = ['off', 'interpolate', 'predict']
 
 export type ValueModifierType = 'lap_timer'
 export const VALUE_MODIFIER_TYPE_VALUES: readonly ValueModifierType[] = ['lap_timer']
@@ -630,6 +633,7 @@ export interface ScreenConfiguration {
 
 export interface DashboardConfiguration {
   transition?: ScreenTransition
+  smoothing?: ValueSmoothing
   screens?: ScreenConfiguration[]
 }
 
@@ -719,7 +723,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   SlotPageConfiguration: ['in_loop', 'trigger', 'source', 'duration_ms', 'conditions', 'widgets'],
   SlotWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'clip_children', 'pages'],
   ScreenConfiguration: ['id', 'background_color', 'widgets'],
-  DashboardConfiguration: ['transition', 'screens'],
+  DashboardConfiguration: ['transition', 'smoothing', 'screens'],
   ApplicationConfiguration: ['board', 'hardware', 'telemetry_transport', 'dashboard'],
 }
 

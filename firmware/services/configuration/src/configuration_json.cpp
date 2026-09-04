@@ -94,7 +94,9 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   if (!valid_object(object, schema::kDashboardConfigurationKeys, kName,
                     failure) ||
       !read_enum(object, "transition", dashboard.transition,
-                 screen_transition_from_name, kName, failure)) {
+                 screen_transition_from_name, kName, failure) ||
+      !read_enum(object, "smoothing", dashboard.smoothing,
+                 value_smoothing_from_name, kName, failure)) {
     return false;
   }
   const cJSON* const screens = member(object, "screens");

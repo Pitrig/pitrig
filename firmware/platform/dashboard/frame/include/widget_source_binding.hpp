@@ -13,6 +13,9 @@
 namespace simcore::telemetry {
 class ITelemetryReader;
 }
+namespace simcore::value_smoothing {
+class Service;
+}
 
 namespace simcore::dashboard::frame {
 
@@ -52,7 +55,8 @@ struct SourceContext {
     std::span<const configuration::ValueModifier> modifiers,
     const telemetry::ITelemetryRegistry& registry,
     const telemetry::ITelemetryReader& telemetry,
-    const ModifierReaders& modifier_readers, SourceContext& context,
+    const ModifierReaders& modifier_readers,
+    value_smoothing::Service* smoothing, SourceContext& context,
     ValueReadCallback& read, void*& read_context, bool& fast_updates);
 
 struct BoundSource {
@@ -85,7 +89,8 @@ class ValueBinder final {
   [[nodiscard]] bool bind(const std::span<const WidgetConfig> configurations,
                           const telemetry::ITelemetryRegistry& registry,
                           const telemetry::ITelemetryReader& telemetry,
-                          const ModifierReaders& modifier_readers) {
+                          const ModifierReaders& modifier_readers,
+                          value_smoothing::Service* const smoothing = nullptr) {
     count_ = 0;
     if (configurations.size() > bindings_.size()) {
       return false;
@@ -96,8 +101,8 @@ class ValueBinder final {
               configuration::value_binding_view(configuration.source.binding),
               configuration.source.modifier_count,
               configuration.source.modifiers, registry, telemetry,
-              modifier_readers, value_contexts_[count_], binding.read,
-              binding.read_context, binding.fast_updates)) {
+              modifier_readers, smoothing, value_contexts_[count_],
+              binding.read, binding.read_context, binding.fast_updates)) {
         count_ = 0;
         return false;
       }

@@ -111,8 +111,9 @@ What each directory holds:
   `boot_guard`, `configuration`, `configuration_contract`,
   `configuration_control`, `event_bus`, `font_assets`, `font_contract`,
   `image_assets`, `image_contract`, `logger`, `telemetry` with
-  `telemetry/protocols/simhub`, and `value_conditions` — the LVGL-free rule
-  resolver, a service so that a module may depend on it (ADR 0030).
+  `telemetry/protocols/simhub`, `value_conditions` — the LVGL-free rule
+  resolver, a service so that a module may depend on it (ADR 0030) — and
+  `value_smoothing`, the per-field followers of ADR 0033.
 - `platform/` — `board_registry`, `communication`, `dashboard` (LVGL `widgets`
   over a shared `frame`, plus `conditions`, `fonts`, `images`, `layout`,
   `navigation`, `slots`, `value_text`, `memory` — the allocator that puts every
@@ -327,6 +328,9 @@ They are:
 - The configuration contract, the configuration service over it, and the
   transport-facing configuration control
 - Telemetry — registry, state and the SimHub protocol under it
+- Value smoothing — one follower per telemetry field that glides or predicts
+  between packets for the widgets bound to it, behind the same read callback a
+  modifier uses ([ADR 0033](adr/0033-value-smoothing-between-packets.md))
 - The event bus
 - Font and image asset catalogs and package validation, and the leaf font and
   image contracts beside them

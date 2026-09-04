@@ -29,6 +29,9 @@ class ITransport;
 namespace simcore::events {
 class EventBus;
 }
+namespace simcore::value_smoothing {
+class Service;
+}
 
 namespace simcore::dashboard_composition {
 
@@ -74,7 +77,8 @@ void dismiss_startup_screen(
     module_composition::Modules& modules, Dashboard& dashboard,
     const telemetry::ITelemetryRegistry& telemetry_registry,
     const telemetry::ITelemetryReader& telemetry,
-    const transport::ITransport& telemetry_transport);
+    const transport::ITransport& telemetry_transport,
+    value_smoothing::Service* smoothing);
 
 [[nodiscard]] bool fonts_available(
     const configuration::ApplicationConfiguration& configuration,
