@@ -16,8 +16,13 @@ constexpr char kTag[] = "guition_jc1060";
 constexpr std::uint32_t kHorizontalResolution = 1'024;
 constexpr std::uint32_t kVerticalResolution = 600;
 
+constexpr bool kTrueColor = SIMCORE_DISPLAY_COLOR_24BIT != 0;
+constexpr driver::ColorFormat kColorFormat =
+    kTrueColor ? driver::ColorFormat::rgb888 : driver::ColorFormat::rgb565;
+
 driver::Configuration initialize() {
-  ESP_LOGI(kTag, "Initializing 1024x600 JD9165 MIPI-DSI RGB565 display");
+  ESP_LOGI(kTag, "Initializing 1024x600 JD9165 MIPI-DSI %s display",
+           kTrueColor ? "RGB888" : "RGB565");
   esp_lcd_panel_io_handle_t io = nullptr;
   esp_lcd_panel_handle_t panel = nullptr;
   ESP_ERROR_CHECK(simcore_jc1060p470c_panel_initialize(&io, &panel));
@@ -38,10 +43,10 @@ driver::Configuration initialize() {
       .mirror_x = false,
       .mirror_y = false,
       .bus_type = driver::BusType::dsi,
-      .color_format = driver::ColorFormat::rgb565,
+      .color_format = kColorFormat,
       .double_buffer = true,
-      .buffer_in_dma_memory = !kPanelBuffers,
-      .buffer_in_psram = false,
+      .buffer_in_dma_memory = !kPanelBuffers && !kTrueColor,
+      .buffer_in_psram = !kPanelBuffers && kTrueColor,
       .bounce_buffers = false,
       .avoid_tearing = kPanelBuffers,
       .direct_mode = SIMCORE_DISPLAY_RENDER_DIRECT != 0,

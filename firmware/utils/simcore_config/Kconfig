@@ -75,6 +75,75 @@ config SIMCORE_DISPLAY_RENDER_FULL_STRIPS
 
 endchoice
 
+choice SIMCORE_DISPLAY_COLOR_DEPTH
+    prompt "Display colour depth"
+    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    default SIMCORE_DISPLAY_COLOR_16BIT
+    help
+        How many bits a pixel carries from LVGL to the JD9165 panel. 16-bit
+        RGB565 is what the board ships with: two bytes a pixel through the
+        render strips, the DMA copy, the panel frame buffers and the DSI
+        link. 24-bit RGB888 spends three bytes a pixel in every one of them,
+        so it asks half again as much of internal RAM, of external memory
+        bandwidth and of the link, and returns the gradients RGB565 banding
+        shows on a panel this size.
+
+config SIMCORE_DISPLAY_COLOR_16BIT
+    bool "16-bit RGB565"
+
+config SIMCORE_DISPLAY_COLOR_24BIT
+    bool "24-bit RGB888"
+
+endchoice
+
+config SIMCORE_DISPLAY_VSYNC_LOCK
+    bool "Schedule each frame from the telemetry burst (experiment)"
+    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    default n
+    help
+        Today a frame starts the moment telemetry arrives, and since the
+        finished frame is held until the panel latches it and LVGL waits
+        through that hold, the next burst is drawn only after the latch and
+        shown a refresh later: on a screen that draws in 4 ms, a value is
+        about 25 ms old when it appears. With this on, telemetry only writes
+        the widgets; each burst of it arms one frame start a short allowance
+        later, and the frame lands on the first latch it can make. When the
+        previous frame has not latched yet and this one could still have
+        made the next latch, the start is skipped - the feed is faster than
+        the panel and one packet a second has to go anyway - which keeps
+        the display one refresh closer to the data. A burst that comes too
+        late for the next latch is drawn for the one after, consistently,
+        and a screen whose frame fills the period starts at the latch as it
+        does today. The allowance and the slack the decisions keep adapt to
+        the measured jitter of the feed.
+
+config SIMCORE_DISPLAY_JIT
+    bool "Start each frame as late as it can still meet the panel (experiment)"
+    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    default n
+    help
+        Instead of drawing a frame as soon as something changed and then
+        holding it until the panel is ready, sleep first and start drawing
+        only when there is just enough time left to finish before the
+        panel's next latch. The frame still lands exactly once per refresh,
+        so the cadence is unchanged; what changes is that the values it
+        draws are read as late as possible. The margin it keeps in hand
+        adapts: a frame that misses its latch widens it, frames that hit
+        narrow it back.
+
+config SIMCORE_DISPLAY_UNCAPPED
+    bool "Render without waiting for the panel (experiment)"
+    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    default n
+    help
+        Drops the pacing wait that holds a finished frame until the panel is
+        ready for it. The wait is what keeps every rendered frame on screen
+        exactly once; without it the processor draws frames the panel never
+        shows, which is wasted work and uneven motion. It exists to measure
+        what the latency would be if the wait were not there, since on a
+        screen reaching the panel rate that wait is the largest single term
+        in it.
+
 choice SIMCORE_FACTORY_BOARD
     prompt "Factory board profile"
     default SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C if IDF_TARGET_ESP32P4

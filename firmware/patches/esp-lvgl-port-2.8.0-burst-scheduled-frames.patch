@@ -1,0 +1,525 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h b/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
+--- a/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
++++ b/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
+@@ -141,6 +141,10 @@ esp_err_t lvgl_port_disp_set_tear_free(lv_display_t *disp, bool tear_free);
+ 
+ esp_err_t lvgl_port_remove_disp(lv_display_t *disp);
+ 
++void lvgl_port_disp_note_feed_line(void);
++
++void lvgl_port_disp_wake_drew_nothing(void);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port.c
+@@ -153,6 +153,7 @@ void lvgl_port_unlock(void)
+     xSemaphoreGiveRecursive(lvgl_port_ctx.lvgl_mux);
+ }
+ 
++extern volatile uint32_t lvgl_port_acc_refr_starts;
+ esp_err_t lvgl_port_task_wake(lvgl_port_event_type_t event, void *param)
+ {
+     EventBits_t bits = 0;
+@@ -238,11 +239,34 @@ static void lvgl_port_task(void *arg)
+                 xSemaphoreGive(lvgl_port_ctx.timer_mux);
+             }
+ 
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++            if (events & LVGL_PORT_EVENT_DISPLAY) {
++                lv_timer_ready(lv_display_get_refr_timer(lv_display_get_default()));
++            }
++#endif
+             /* Handle LVGL */
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++            const uint32_t starts_before = lvgl_port_acc_refr_starts;
++#endif
+             task_delay_ms = lv_timer_handler();
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++            if ((events & LVGL_PORT_EVENT_DISPLAY) && lvgl_port_acc_refr_starts == starts_before) {
++                lvgl_port_disp_wake_drew_nothing();
++            }
++#endif
+             lvgl_port_unlock();
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++            if (task_delay_ms < 200) {
++                task_delay_ms = 200;
++            }
++#endif
+         } else {
+             task_delay_ms = 1; /*Keep trying*/
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++            if (events != 0) {
++                xEventGroupSetBits(lvgl_port_ctx.lvgl_events, events);
++            }
++#endif
+         }
+ 
+         if (task_delay_ms == LV_NO_TIMER_READY) {
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -80,6 +80,26 @@ typedef struct {
+     volatile uint32_t         vsync_period_us;
+     uint32_t                  jit_margin_us;
+     uint8_t                   jit_slept;
++    SemaphoreHandle_t         sched_sem;
++    esp_timer_handle_t        sched_timer;
++    TaskHandle_t              sched_task;
++    uint32_t                  sched_start_refresh;
++    uint8_t                   sched_armed;
++    uint8_t                   sched_pending;
++    uint8_t                   in_refresh;
++    volatile uint8_t          swap_pending;
++    uint8_t                   wake_source;
++    uint8_t                   frame_drawn;
++    uint32_t                  feed_period_us;
++    volatile uint32_t         feed_burst_lo32;
++    volatile uint32_t         next_pkt_lo32;
++    uint32_t                  pkt_allow_us;
++    uint16_t                  pkt_quiet_run;
++    uint8_t                   armed_empty;
++    uint8_t                   fire_kind;
++    uint8_t                   heavy;
++    uint16_t                  heavy_calm;
++    uint32_t                  feed_jitter_us;
+     uint32_t                  wait_accum_us;
+     uint16_t                  jit_hit_run;
+     lv_draw_buf_t             third_draw_buf;
+@@ -96,6 +116,7 @@ typedef struct {
+     volatile uint8_t          recon_completed;
+     uint8_t                   frame_full;
+     uint32_t                  mode_cost_ema[2];
++    uint32_t                  mode_cost_peak[2];
+     volatile uint32_t         last_swap_wait_us;
+     uint8_t                   mode_best;
+     uint8_t                   mode_measured;
+@@ -253,6 +274,12 @@ static uint32_t lvgl_port_vsync_gap(uint32_t frame_cost)
+ }
+ 
+ static void lvgl_port_disp_jit_wait(void);
++extern volatile uint32_t lvgl_port_acc_start_timer;
++extern volatile uint32_t lvgl_port_acc_start_late;
++extern volatile uint32_t lvgl_port_acc_start_fallback;
++extern volatile uint32_t lvgl_port_acc_start_other;
++extern volatile uint32_t lvgl_port_acc_start_burst;
++extern volatile uint32_t lvgl_port_acc_refr_starts;
+ 
+ static void lvgl_port_adaptive_refr_start_callback(lv_event_t *e)
+ {
+@@ -260,6 +287,23 @@ static void lvgl_port_adaptive_refr_start_callback(lv_event_t *e)
+     lv_display_t *disp = disp_ctx->disp_drv;
+     lvgl_port_disp_jit_wait();
+     disp_ctx->wait_accum_us = 0U;
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++    disp_ctx->in_refresh = 1U;
++    disp_ctx->frame_drawn = 0U;
++    disp_ctx->armed_empty = 0U;
++    lvgl_port_acc_refr_starts++;
++    switch (disp_ctx->wake_source) {
++    case 1U: lvgl_port_acc_start_timer++; break;
++    case 2U: lvgl_port_acc_start_late++; break;
++    case 3U: lvgl_port_acc_start_fallback++; break;
++    case 4U: lvgl_port_acc_start_burst++; break;
++    default: lvgl_port_acc_start_other++; break;
++    }
++    disp_ctx->wake_source = 0U;
++    disp_ctx->jit_slept = disp_ctx->sched_armed;
++    disp_ctx->sched_armed = 0U;
++    disp_ctx->sched_start_refresh = disp_ctx->refresh_count;
++#endif
+     uint8_t mode = disp_ctx->mode_best;
+     disp_ctx->probe_tick = (uint16_t)((disp_ctx->probe_tick + 1U) & 1023U);
+     if (!disp_ctx->mode_settled) {
+@@ -294,8 +338,42 @@ volatile uint32_t lvgl_port_jit_hits = 0;
+ volatile uint32_t lvgl_port_jit_misses = 0;
+ volatile uint32_t lvgl_port_jit_period_us = 0;
+ volatile uint32_t lvgl_port_jit_skipped = 0;
++volatile uint32_t lvgl_port_sched_timed = 0;
++volatile uint32_t lvgl_port_sched_fallback = 0;
++volatile uint32_t lvgl_port_sched_empty = 0;
++volatile uint32_t lvgl_port_sched_late = 0;
++volatile uint32_t lvgl_port_sched_fb_unsettled = 0;
++volatile uint32_t lvgl_port_sched_fb_cost = 0;
++volatile uint32_t lvgl_port_sched_fb_late = 0;
++volatile uint32_t lvgl_port_sched_peak_us = 0;
++volatile uint32_t lvgl_port_sched_ema_us = 0;
++volatile uint32_t lvgl_port_sched_best = 0;
++volatile uint32_t lvgl_port_sched_settled = 0;
+ volatile uint32_t lvgl_port_cost_span_us = 0;
+ volatile uint32_t lvgl_port_cost_wait_us = 0;
++volatile uint32_t lvgl_port_sched_deferred = 0;
++volatile uint32_t lvgl_port_acc_vsyncs = 0;
++volatile uint32_t lvgl_port_acc_swaps = 0;
++volatile uint32_t lvgl_port_acc_start_timer = 0;
++volatile uint32_t lvgl_port_acc_start_late = 0;
++volatile uint32_t lvgl_port_acc_start_fallback = 0;
++volatile uint32_t lvgl_port_acc_start_other = 0;
++volatile uint32_t lvgl_port_acc_empty = 0;
++volatile uint32_t lvgl_port_acc_start_burst = 0;
++volatile uint32_t lvgl_port_acc_miss_all = 0;
++volatile uint32_t lvgl_port_sched_fired = 0;
++volatile uint32_t lvgl_port_feed_jitter_us = 0;
++volatile uint32_t lvgl_port_acc_refr_starts = 0;
++volatile uint32_t lvgl_port_acc_wake_nothing = 0;
++volatile uint32_t lvgl_port_pkt_bursts = 0;
++volatile uint32_t lvgl_port_pkt_allow_us = 0;
++volatile uint32_t lvgl_port_pkt_period_us = 0;
++volatile uint32_t lvgl_port_sched_tracked = 0;
++volatile uint32_t lvgl_port_sched_untracked = 0;
++volatile uint32_t lvgl_port_sched_burst_armed = 0;
++volatile uint32_t lvgl_port_sched_blocked = 0;
++volatile uint32_t lvgl_port_pkt_lines = 0;
++static uint32_t s_pkt_last_line_lo32 = 0;
+ 
+ static void lvgl_port_disp_jit_wait(void)
+ {
+@@ -331,6 +409,199 @@ static void lvgl_port_disp_jit_wait(void)
+ #endif
+ }
+ 
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++static void lvgl_port_sched_timer_cb(void *arg)
++{
++    lvgl_port_display_ctx_t *ctx = (lvgl_port_display_ctx_t *)arg;
++    lvgl_port_sched_fired++;
++    if (ctx->swap_pending) {
++        const uint32_t period = ctx->vsync_period_us;
++        const int64_t now = esp_timer_get_time();
++        int64_t next_latch = ctx->last_vsync_us + (int64_t)period;
++        while (period != 0U && next_latch <= now) {
++            next_latch += (int64_t)period;
++        }
++        const uint32_t peak = ctx->mode_cost_peak[ctx->mode_best];
++        const uint32_t room = peak + 1000U + ctx->feed_jitter_us * 2U;
++        if (period != 0U && now + (int64_t)room < next_latch) {
++            lvgl_port_sched_deferred++;
++            return;
++        }
++        lvgl_port_sched_blocked++;
++    }
++    ctx->sched_armed = ctx->fire_kind == 1U ? 1U : 0U;
++    ctx->sched_pending = 1U;
++    ctx->wake_source = ctx->fire_kind;
++    lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
++}
++
++static void lvgl_port_sched_refr_ready_callback(lv_event_t *e)
++{
++    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_event_get_user_data(e);
++    disp_ctx->in_refresh = 0U;
++    if (!disp_ctx->frame_drawn) {
++        lvgl_port_acc_empty++;
++    }
++    if (disp_ctx->sched_pending) {
++        disp_ctx->jit_slept = 0U;
++        disp_ctx->armed_empty = 1U;
++        lvgl_port_sched_empty++;
++    }
++}
++
++static void lvgl_port_sched_task(void *arg)
++{
++    lvgl_port_display_ctx_t *ctx = (lvgl_port_display_ctx_t *)arg;
++    for (;;) {
++        if (xSemaphoreTake(ctx->sched_sem, pdMS_TO_TICKS(100)) != pdTRUE) {
++            lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
++            continue;
++        }
++        const uint32_t period = ctx->vsync_period_us;
++        lvgl_port_sched_peak_us = ctx->mode_cost_peak[ctx->mode_best];
++        lvgl_port_sched_ema_us = ctx->mode_cost_ema[ctx->mode_best];
++        lvgl_port_sched_best = ctx->mode_best;
++        lvgl_port_sched_settled = ctx->mode_settled;
++        if (period == 0U || !ctx->mode_settled) {
++            lvgl_port_sched_fallback++;
++            lvgl_port_sched_fb_unsettled++;
++            ctx->sched_armed = 0U;
++            ctx->sched_pending = 1U;
++            ctx->wake_source = 3U;
++            lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
++            continue;
++        }
++        const uint32_t cost = ctx->mode_cost_peak[ctx->mode_best] + ctx->jit_margin_us;
++        const int64_t now = esp_timer_get_time();
++        const uint32_t feed_period = ctx->feed_period_us;
++        const uint32_t burst_age = (uint32_t)now - ctx->feed_burst_lo32;
++        const bool tracked = feed_period != 0U && burst_age < feed_period * 3U;
++        lvgl_port_pkt_allow_us = ctx->pkt_allow_us;
++        lvgl_port_pkt_period_us = feed_period;
++        if (cost + ctx->pkt_allow_us + 3000U >= period) {
++            ctx->heavy = 1U;
++            ctx->heavy_calm = 0U;
++        } else if (cost + ctx->pkt_allow_us + 5000U < period) {
++            if (ctx->heavy_calm < 0xFFFFU) {
++                ctx->heavy_calm++;
++            }
++            if (ctx->heavy_calm >= 120U) {
++                ctx->heavy = 0U;
++            }
++        } else {
++            ctx->heavy_calm = 0U;
++        }
++        if (tracked && !ctx->heavy) {
++            lvgl_port_sched_tracked++;
++            if (!esp_timer_is_active(ctx->sched_timer)) {
++                const int32_t until_pkt = (int32_t)(ctx->next_pkt_lo32 - (uint32_t)now);
++                int64_t fire_at = now + until_pkt + (int64_t)ctx->pkt_allow_us + (int64_t)(period / 2U);
++                if (fire_at < now + 300) {
++                    fire_at = now + 300;
++                }
++                ctx->fire_kind = 1U;
++                lvgl_port_sched_timed++;
++                esp_timer_start_once(ctx->sched_timer, (uint64_t)(fire_at - now));
++            }
++            continue;
++        }
++        lvgl_port_sched_untracked++;
++        const int64_t fire_at = ctx->last_vsync_us + (int64_t)period - (int64_t)cost;
++        if (ctx->heavy || fire_at <= now + 200) {
++            if (ctx->heavy) {
++                lvgl_port_sched_fb_cost++;
++            } else {
++                lvgl_port_sched_fb_late++;
++            }
++            lvgl_port_sched_fallback++;
++            ctx->sched_armed = 0U;
++            ctx->sched_pending = 1U;
++            ctx->wake_source = 3U;
++            lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
++            continue;
++        }
++        lvgl_port_sched_timed++;
++        ctx->fire_kind = 1U;
++        esp_timer_stop(ctx->sched_timer);
++        esp_timer_start_once(ctx->sched_timer, (uint64_t)(fire_at - now));
++    }
++}
++#endif
++
++static void lvgl_port_disp_note_feed_burst(int64_t now);
++
++void lvgl_port_disp_note_feed_line(void)
++{
++    const int64_t now_us = esp_timer_get_time();
++    const uint32_t now = (uint32_t)now_us;
++    const uint32_t gap = now - s_pkt_last_line_lo32;
++    const bool first = s_pkt_last_line_lo32 == 0U;
++    s_pkt_last_line_lo32 = now;
++    lvgl_port_pkt_lines++;
++    if (first || gap >= 3000U) {
++        lvgl_port_disp_note_feed_burst(now_us);
++    }
++}
++
++static void lvgl_port_disp_note_feed_burst(int64_t now)
++{
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++    lvgl_port_display_ctx_t *ctx = s_strips_ctx;
++    if (ctx == NULL) {
++        return;
++    }
++    const uint32_t previous = ctx->feed_burst_lo32;
++    const uint32_t gap = (uint32_t)now - previous;
++    if (previous != 0U && gap >= 4000U && gap <= 250000U) {
++        if (ctx->feed_period_us != 0U) {
++            const uint32_t dev = gap > ctx->feed_period_us ? gap - ctx->feed_period_us
++                                                           : ctx->feed_period_us - gap;
++            ctx->feed_jitter_us = ctx->feed_jitter_us - (ctx->feed_jitter_us >> 4) + (dev >> 4);
++            lvgl_port_feed_jitter_us = ctx->feed_jitter_us;
++        }
++        ctx->feed_period_us = ctx->feed_period_us == 0U
++                              ? gap
++                              : ctx->feed_period_us - (ctx->feed_period_us >> 2) + (gap >> 2);
++    } else if (previous != 0U) {
++        ctx->feed_period_us = 0U;
++    }
++    ctx->feed_burst_lo32 = (uint32_t)now;
++    ctx->next_pkt_lo32 = (uint32_t)now + ctx->feed_period_us;
++    const uint32_t period = ctx->vsync_period_us;
++    if (period != 0U && ctx->mode_settled && !ctx->heavy && ctx->sched_timer != NULL) {
++        ctx->armed_empty = 0U;
++        ctx->fire_kind = 4U;
++        esp_timer_stop(ctx->sched_timer);
++        esp_timer_start_once(ctx->sched_timer, (uint64_t)ctx->pkt_allow_us);
++        lvgl_port_sched_burst_armed++;
++    }
++    if (ctx->pkt_quiet_run < 0xFFFFU) {
++        ctx->pkt_quiet_run++;
++    }
++    if (ctx->pkt_quiet_run >= 128U && ctx->pkt_allow_us > 300U) {
++        ctx->pkt_allow_us -= 100U;
++        ctx->pkt_quiet_run = 0U;
++    }
++    lvgl_port_pkt_bursts++;
++#else
++    (void)now;
++#endif
++}
++
++void lvgl_port_disp_wake_drew_nothing(void)
++{
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++    lvgl_port_display_ctx_t *ctx = s_strips_ctx;
++    if (ctx == NULL) {
++        return;
++    }
++    ctx->armed_empty = ctx->wake_source == 4U ? 2U : 1U;
++    ctx->wake_source = 0U;
++    ctx->jit_slept = 0U;
++    lvgl_port_acc_wake_nothing++;
++#endif
++}
++
+ static void lvgl_port_flush_wait_cb(lv_display_t *disp)
+ {
+     (void)disp;
+@@ -441,9 +712,19 @@ static void lvgl_port_flush_worker(void *arg)
+                     waits++;
+                 }
+                 ctx->last_swap_wait_us = (uint32_t)(esp_timer_get_time() - wait_start);
+-#ifdef CONFIG_SIMCORE_DISPLAY_JIT
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++                const bool latch_passed =
++                    (ctx->refresh_count - ctx->sched_start_refresh) >= 2U;
++                if (latch_passed) {
++                    lvgl_port_acc_miss_all++;
++                }
++#else
++                const bool latch_passed = false;
++#endif
++#if defined(CONFIG_SIMCORE_DISPLAY_JIT) || defined(CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK)
+                 if (ctx->jit_slept && ctx->vsync_period_us != 0U) {
+-                    if (ctx->last_swap_wait_us > (ctx->vsync_period_us * 3U) / 4U) {
++                    if (latch_passed
++                            || ctx->last_swap_wait_us > (ctx->vsync_period_us * 3U) / 4U) {
+                         lvgl_port_jit_misses++;
+                         ctx->jit_hit_run = 0U;
+                         if (ctx->jit_margin_us < 6000U) {
+@@ -467,6 +748,8 @@ static void lvgl_port_flush_worker(void *arg)
+                                           lv_disp_get_ver_res(job.drv), fb);
+                 ctx->queued_refresh_count = ctx->refresh_count;
+                 ctx->active_fb = job.target;
++                ctx->swap_pending = 0U;
++                lvgl_port_acc_swaps++;
+             }
+             lv_disp_flush_ready(job.drv);
+             __atomic_sub_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
+@@ -1020,12 +1303,35 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+                 disp_ctx->panel_fbs[2] = fb2;
+                 disp_ctx->mode_cost_ema[0] = 30000U;
+                 disp_ctx->mode_cost_ema[1] = 30000U;
++                disp_ctx->mode_cost_peak[0] = 30000U;
++                disp_ctx->mode_cost_peak[1] = 30000U;
+                 disp_ctx->probe_baseline = 30000U;
+                 disp_ctx->flags.full_strips = 1;
+                 disp_ctx->jit_margin_us = 2500U;
++                disp_ctx->pkt_allow_us = 1000U;
+                 s_strips_ctx = disp_ctx;
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++                disp_ctx->sched_sem = xSemaphoreCreateBinary();
++                const esp_timer_create_args_t sched_args = {
++                    .callback = lvgl_port_sched_timer_cb,
++                    .arg = disp_ctx,
++                    .dispatch_method = ESP_TIMER_TASK,
++                    .name = "lvglSched",
++                };
++                if (disp_ctx->sched_sem == NULL
++                        || esp_timer_create(&sched_args, &disp_ctx->sched_timer) != ESP_OK
++                        || xTaskCreatePinnedToCore(lvgl_port_sched_task, "lvglSched", 2048,
++                                                   disp_ctx, 6, &disp_ctx->sched_task, 0) != pdPASS) {
++                    ESP_LOGW(TAG, "Frame scheduler did not start; telemetry keeps waking LVGL");
++                    disp_ctx->sched_task = NULL;
++                }
++#endif
+                 lv_display_add_event_cb(disp, lvgl_port_adaptive_refr_start_callback,
+                                         LV_EVENT_REFR_START, disp_ctx);
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++                lv_display_add_event_cb(disp, lvgl_port_sched_refr_ready_callback,
++                                        LV_EVENT_REFR_READY, disp_ctx);
++#endif
+             } else {
+                 ESP_LOGW(TAG, "No DMA channel for full-strips mode; plain partial rendering stays");
+             }
+@@ -1138,10 +1444,16 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_dpi_vsync_ready_callback(esp_lcd_pane
+             }
+         }
+         disp_ctx->last_vsync_us = now;
++        lvgl_port_acc_vsyncs++;
+     }
+     if (disp_ctx->vsync_sem) {
+         xSemaphoreGiveFromISR(disp_ctx->vsync_sem, &need_yield);
+     }
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++    if (disp_ctx->sched_sem) {
++        xSemaphoreGiveFromISR(disp_ctx->sched_sem, &need_yield);
++    }
++#endif
+ 
+     return (need_yield == pdTRUE);
+ }
+@@ -1407,12 +1719,17 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+                 }
+             }
+         }
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++        disp_ctx->sched_pending = 0U;
++#endif
++        disp_ctx->frame_drawn = 1U;
+         disp_ctx->strip_rows += (uint32_t)(offsety2 - offsety1 + 1);
+         disp_ctx->strip_px += (uint32_t)(offsetx2 - offsetx1 + 1)
+                               * (uint32_t)(offsety2 - offsety1 + 1);
+         uint8_t swap = 0;
+         if (lv_disp_flush_is_last(drv)) {
+             swap = 1;
++            disp_ctx->swap_pending = 1U;
+             disp_ctx->strip_rows = 0;
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+             const uint32_t screen_px = (uint32_t)lv_disp_get_hor_res(drv)
+@@ -1450,12 +1767,20 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+                     *low = (*taken == 0U || frame_cost < *low) ? frame_cost : *low;
+                     *taken = (uint8_t)(*taken + 1U);
+                     *ema = *low;
++                    uint32_t *peak = &disp_ctx->mode_cost_peak[disp_ctx->frame_full];
++                    *peak = (*taken == 1U || frame_cost > *peak) ? frame_cost : *peak;
+                     if (*taken >= 4U) {
+                         disp_ctx->mode_seen |= measured_bit;
+                         disp_ctx->mode_measured |= measured_bit;
+                     }
+                 } else {
+                     *ema = *ema - (*ema >> 3) + (frame_cost >> 3);
++                    uint32_t *peak = &disp_ctx->mode_cost_peak[disp_ctx->frame_full];
++                    if (frame_cost > *peak) {
++                        *peak = frame_cost;
++                    } else if (*peak > *ema) {
++                        *peak -= (*peak - *ema) >> 5;
++                    }
+                 }
+                 const uint32_t other_cost =
+                     disp_ctx->mode_cost_ema[disp_ctx->mode_best ^ 1U];
+@@ -1641,5 +1966,23 @@ static void lvgl_port_display_invalidate_callback(lv_event_t *e)
+     }
+ 
+     /* Wake LVGL task, if needed */
++#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++    if (disp_ctx != NULL && disp_ctx->armed_empty && !disp_ctx->in_refresh) {
++        const bool burst_start = disp_ctx->armed_empty == 2U;
++        disp_ctx->armed_empty = 0U;
++        disp_ctx->sched_pending = 0U;
++        disp_ctx->wake_source = 2U;
++        if (burst_start) {
++            disp_ctx->pkt_quiet_run = 0U;
++            if (disp_ctx->pkt_allow_us < 3000U) {
++                disp_ctx->pkt_allow_us += 500U;
++            }
++        }
++        lvgl_port_sched_late++;
++        lv_timer_ready(lv_display_get_refr_timer(disp_ctx->disp_drv));
++        lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
++    }
++#else
+     lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, NULL);
++#endif
+ }

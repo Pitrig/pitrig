@@ -74,6 +74,22 @@ with 128-byte lines). It may append `;sdkconfig.defaults.render-partial` for the
 seam-accepting mode, or `;sdkconfig.defaults.render-full` for the whole-frame PSRAM mode, which
 pairs with the 512 KB L2 cache ADR 0027 measured it against.
 
+The P4 also chooses a colour depth: 16-bit RGB565 by default, or 24-bit RGB888 by appending
+`;sdkconfig.defaults.color-24bit`, which selects `CONFIG_SIMCORE_DISPLAY_COLOR_24BIT` and raises
+`LV_COLOR_DEPTH` with it. Three bytes a pixel move the render strips into external RAM —
+`esp_lvgl_port` refuses a DMA-capable buffer in any format but RGB565 — and cost a dense dashboard
+close to 40% of its frame rate; the figures are in
+[docs/runtime-performance.md](docs/runtime-performance.md).
+`CONFIG_SIMCORE_DISPLAY_UNCAPPED` (`sdkconfig.defaults.uncapped`) drops the pacing hold that keeps
+every rendered frame on screen exactly once. It halves the value latency and renders past the panel,
+so it is a measurement option rather than a shipping one — see
+[docs/runtime-performance.md](docs/runtime-performance.md).
+`CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK` (`sdkconfig.defaults.vsync-lock`) is the frame scheduler of
+[ADR 0032](docs/adr/0032-burst-scheduled-frames.md): telemetry only writes the widgets, each burst
+of it arms one frame start, and the value latency on a light screen falls from about 25 ms to
+10–12 ms at the panel's cadence. `CONFIG_SIMCORE_DISPLAY_JIT` (`sdkconfig.defaults.jit`) is the
+earlier, weaker experiment it superseded and is kept for comparison.
+
 Flash and monitor use the same `-B` build directory, e.g.
 `idf.py -B build-t-display -p <port> flash monitor`.
 
@@ -104,17 +120,24 @@ already collected component requirements — so the first configure of a fresh t
 configure re-reads the patched file. A working tree that has built P4 before does not show this,
 because its `managed_components` is already patched — which is also why
 `apply_esp_lvgl_port_dsi_patch.cmake` is applied for **every** target rather than only for the P4:
-the patch is what declares `full_strips`, and `components/display` sets that flag on every board.
+the `dsi-full-strips` patch is what declares `full_strips`, and `components/display` sets that flag
+on every board.
+
+The `esp_lvgl_port` patches are a **stack**: nine files under `firmware/patches/`, one concern each,
+applied in the order `apply_esp_lvgl_port_dsi_patch.cmake` lists them. They overlap, so
+`apply_patch_stack.cmake` checks the whole stack — forward, else reverse — in a temporary git index,
+and a vendored tree that matches neither end fails configure. An edit to the vendored source is
+written back into the layer it belongs to, with no comments.
 
 ### VS Code tasks
 
 [.vscode/tasks.json](.vscode/tasks.json) carries every command above, each sourcing the environment
-for its own build directory: ten `SimCore: Build …` tasks (four boards, their debug profiles and
-the two P4 render profiles), `SimCore: Build All Firmware` (runs them in sequence, esp32s3 first so
-the `IDF_TARGET` switch happens once), `SimCore: Flash` / `Monitor` / `Flash and Monitor` over a
+for its own build directory: eleven `SimCore: Build …` tasks (four boards, their debug profiles,
+the two P4 render profiles and the 24-bit colour depth), `SimCore: Build All Firmware` (runs them in
+sequence, esp32s3 first so the `IDF_TARGET` switch happens once), `SimCore: Flash` / `Monitor` / `Flash and Monitor` over a
 picked build directory, `SimCore: Check Generated Contracts` and `Regenerate Contracts`,
 and `Configurator: …` / `Debugger: …` for both Electron applications. There is deliberately no
-default build task: with ten configurations, the picker is the honest answer.
+default build task: with eleven configurations, the picker is the honest answer.
 
 **The port is chosen, not typed.** The three serial tasks run
 [tools/pick-serial-port.py](tools/pick-serial-port.py), which lists the ports that are actually

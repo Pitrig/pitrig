@@ -434,9 +434,10 @@ Board-specific display continuity measures stay out of the generic display
 interface. The Guition JC1060P470C driver blanks its backlight from an ESP-IDF
 shutdown handler before a software reset. Keeping the ESP32-P4 MIPI-DSI display
 interrupts cache-safe during flash writes is a build measure rather than driver
-code: `CONFIG_LCD_DSI_ISR_CACHE_SAFE` in the P4 defaults, plus a version-pinned
-patch to `esp_lvgl_port` under `firmware/patches/` that `firmware/cmake/`
-applies so the port's flush callback honours it. Two further pinned patches fix
+code: `CONFIG_LCD_DSI_ISR_CACHE_SAFE` in the P4 defaults, plus the first of the
+version-pinned `esp_lvgl_port` patches under `firmware/patches/` — a stack of
+nine, one concern each, that `firmware/cmake/` applies in order — so the port's
+flush callback honours it. Two further pinned patches fix
 LVGL 9.5.0's experimental PPA backend: it passes the draw buffer's unaligned
 `data_size` to `esp_cache_msync()`, which breaks the cache-line contract, and it
 synchronizes the whole buffer per operation rather than the rows it touched —

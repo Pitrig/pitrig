@@ -1,0 +1,219 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h b/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
+--- a/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
++++ b/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
+@@ -136,6 +136,8 @@ lv_display_t *lvgl_port_add_disp_rgb(const lvgl_port_display_cfg_t *disp_cfg,
+  * @return
+  *      - ESP_OK                    on success
+  */
++esp_err_t lvgl_port_disp_set_tear_free(lv_display_t *disp, bool tear_free);
++
+ esp_err_t lvgl_port_remove_disp(lv_display_t *disp);
+ 
+ #ifdef __cplusplus
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -66,6 +66,11 @@ typedef struct {
+     lv_display_t              *disp_drv;      /* LVGL display driver */
+     lv_display_rotation_t     current_rotation;
+     SemaphoreHandle_t         trans_sem;      /* Idle transfer mutex */
++    SemaphoreHandle_t         vsync_sem;
++    uint32_t                  draw_buf_size_bytes;
++    void                      *panel_fbs[2];
++    uint8_t                   active_fb;
++    uint32_t                  redirect_rows;
+     lvgl_port_rounder_cb_t    rounder_cb;     /* Rounder callback for display area */
+ #if LVGL_PORT_PPA
+     lvgl_port_ppa_handle_t    ppa_handle;
+@@ -75,6 +80,7 @@ typedef struct {
+         unsigned int swap_bytes: 1;  /* Swap bytes in RGB656 (16-bit) before send to LCD driver */
+         unsigned int full_refresh: 1;   /* Always make the whole screen redrawn */
+         unsigned int direct_mode: 1;    /* Use screen-sized buffers and draw to absolute coordinates */
++        unsigned int rgb_redirect: 1;
+         unsigned int sw_rotate: 1;    /* Use software rotation (slower) or PPA if available */
+     } flags;
+ } lvgl_port_display_ctx_t;
+@@ -228,6 +234,7 @@ lv_display_t *lvgl_port_add_disp_dsi(const lvgl_port_display_cfg_t *disp_cfg,
+             callback_ctx = disp_ctx;
+         } else {
+             cbs.on_color_trans_done = lvgl_port_flush_dpi_panel_ready_callback;
++            cbs.on_refresh_done = lvgl_port_flush_dpi_vsync_ready_callback;
+             callback_ctx = disp_ctx;
+             disp_ctx->trans_sem = xSemaphoreCreateCounting(1, 0);
+             ESP_RETURN_ON_FALSE(disp_ctx->trans_sem, NULL, TAG,
+@@ -300,6 +307,70 @@ lv_display_t *lvgl_port_add_disp_rgb(const lvgl_port_display_cfg_t *disp_cfg,
+     return disp;
+ }
+ 
++esp_err_t lvgl_port_disp_set_tear_free(lv_display_t *disp, bool tear_free)
++{
++    ESP_RETURN_ON_FALSE(disp != NULL, ESP_ERR_INVALID_ARG, TAG, "Display is NULL");
++    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp);
++    ESP_RETURN_ON_FALSE(disp_ctx != NULL, ESP_ERR_INVALID_STATE, TAG, "Display context missing");
++    ESP_RETURN_ON_FALSE(disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB
++                        || disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI,
++                        ESP_ERR_NOT_SUPPORTED, TAG, "Only RGB and DSI panels can switch");
++    ESP_RETURN_ON_FALSE(disp_ctx->vsync_sem != NULL, ESP_ERR_INVALID_STATE, TAG, "No vsync semaphore");
++    lvgl_port_async_flush_drain();
++    if ((disp_ctx->flags.direct_mode != 0 || disp_ctx->flags.full_refresh != 0
++            || disp_ctx->flags.rgb_redirect != 0) == tear_free) {
++        return ESP_OK;
++    }
++    if (tear_free) {
++        void *fb0 = NULL;
++        void *fb1 = NULL;
++#if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
++        if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB) {
++            ESP_RETURN_ON_ERROR(esp_lcd_rgb_panel_get_frame_buffer(disp_ctx->panel_handle, 2, &fb0, &fb1),
++                                TAG, "Get RGB frame buffers failed");
++        }
++#endif
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++        if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI) {
++            ESP_RETURN_ON_ERROR(esp_lcd_dpi_panel_get_frame_buffer(disp_ctx->panel_handle, 2, &fb0, &fb1),
++                                TAG, "Get DSI frame buffers failed");
++        }
++#endif
++        ESP_RETURN_ON_FALSE(fb0 != NULL && fb1 != NULL, ESP_ERR_NOT_SUPPORTED, TAG,
++                            "Panel does not expose two frame buffers");
++        disp_ctx->panel_fbs[0] = fb0;
++        disp_ctx->panel_fbs[1] = fb1;
++        const uint32_t frame_bytes = (uint32_t)lv_display_get_horizontal_resolution(disp)
++                                     * (uint32_t)lv_display_get_vertical_resolution(disp)
++                                     * lv_color_format_get_size(lv_display_get_color_format(disp));
++        void *hidden = (disp_ctx->active_fb == 0) ? fb1 : fb0;
++        void *shown = (disp_ctx->active_fb == 0) ? fb0 : fb1;
++        xSemaphoreTake(disp_ctx->vsync_sem, 0);
++        if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB) {
++            (void)hidden;
++            (void)shown;
++            (void)frame_bytes;
++            disp_ctx->redirect_rows = 0;
++            disp_ctx->flags.rgb_redirect = 1;
++        } else {
++            disp_ctx->flags.direct_mode = 1;
++            lv_display_set_buffers(disp, hidden, shown, frame_bytes, LV_DISPLAY_RENDER_MODE_DIRECT);
++        }
++    } else {
++        if (disp_ctx->flags.direct_mode) {
++            ESP_RETURN_ON_FALSE(disp_ctx->draw_buffs[0] != NULL && disp_ctx->draw_buf_size_bytes > 0,
++                                ESP_ERR_INVALID_STATE, TAG, "No partial draw buffers to restore");
++            lv_display_set_buffers(disp, disp_ctx->draw_buffs[0], disp_ctx->draw_buffs[1],
++                                   disp_ctx->draw_buf_size_bytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
++        }
++        disp_ctx->flags.direct_mode = 0;
++        disp_ctx->flags.full_refresh = 0;
++        disp_ctx->flags.rgb_redirect = 0;
++    }
++    lv_obj_invalidate(lv_display_get_screen_active(disp));
++    return ESP_OK;
++}
++
+ esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
+ {
+     assert(disp);
+@@ -325,6 +396,9 @@ esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
+         free(disp_ctx->oled_buffer);
+     }
+ 
++    if (disp_ctx->vsync_sem) {
++        vSemaphoreDelete(disp_ctx->vsync_sem);
++    }
+     if (disp_ctx->trans_sem) {
+         vSemaphoreDelete(disp_ctx->trans_sem);
+     }
+@@ -430,6 +504,11 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+     }
+ 
+     /* Use RGB internal buffers for avoid tearing effect */
++    if (priv_cfg && (priv_cfg->disp_type == LVGL_PORT_DISP_TYPE_RGB || priv_cfg->disp_type == LVGL_PORT_DISP_TYPE_DSI)) {
++        disp_ctx->vsync_sem = xSemaphoreCreateCounting(1, 0);
++        ESP_GOTO_ON_FALSE(disp_ctx->vsync_sem, ESP_ERR_NO_MEM, err, TAG, "Failed to create vsync counting Semaphore");
++    }
++
+     if (priv_cfg && priv_cfg->avoid_tearing) {
+ #if (SOC_LCDCAM_RGB_LCD_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0))
+         if (priv_cfg->disp_type ==  LVGL_PORT_DISP_TYPE_RGB) {
+@@ -443,12 +522,11 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+             buffer_size = disp_cfg->hres * disp_cfg->vres;
+             ESP_GOTO_ON_ERROR(esp_lcd_dpi_panel_get_frame_buffer(disp_cfg->panel_handle, 2, (void *)&buf1, (void *)&buf2), err, TAG,
+                               "Get RGB buffers failed");
++            disp_ctx->panel_fbs[0] = buf1;
++            disp_ctx->panel_fbs[1] = buf2;
+         }
+ #endif
+ 
+-        trans_sem = xSemaphoreCreateCounting(1, 0);
+-        ESP_GOTO_ON_FALSE(trans_sem, ESP_ERR_NO_MEM, err, TAG, "Failed to create transport counting Semaphore");
+-        disp_ctx->trans_sem = trans_sem;
+     } else {
+         /* alloc draw buffers used by LVGL */
+         /* it's recommended to choose the size of the draw buffer(s) to be at least 1/10 screen sized */
+@@ -461,6 +539,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+ 
+         disp_ctx->draw_buffs[0] = buf1;
+         disp_ctx->draw_buffs[1] = buf2;
++        disp_ctx->draw_buf_size_bytes = buffer_size * color_bytes;
+     }
+ 
+     disp = lv_display_create(disp_cfg->hres, disp_cfg->vres);
+@@ -613,8 +692,8 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_dpi_vsync_ready_callback(esp_lcd_pane
+         return false;
+     }
+ 
+-    if (disp_ctx->trans_sem) {
+-        xSemaphoreGiveFromISR(disp_ctx->trans_sem, &need_yield);
++    if (disp_ctx->vsync_sem) {
++        xSemaphoreGiveFromISR(disp_ctx->vsync_sem, &need_yield);
+     }
+ 
+     return (need_yield == pdTRUE);
+@@ -635,8 +714,8 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_rgb_vsync_ready_callback(esp_lcd_pane
+         return false;
+     }
+ 
+-    if (disp_ctx->trans_sem) {
+-        xSemaphoreGiveFromISR(disp_ctx->trans_sem, &need_yield);
++    if (disp_ctx->vsync_sem) {
++        xSemaphoreGiveFromISR(disp_ctx->vsync_sem, &need_yield);
+     }
+ 
+     return (need_yield == pdTRUE);
+@@ -829,9 +908,35 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+         if (lv_disp_flush_is_last(drv)) {
+             /* If the interface is I80 or SPI, this step cannot be used for drawing. */
+             esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, 0, 0, lv_disp_get_hor_res(drv), lv_disp_get_ver_res(drv), color_map);
++            if ((void *)color_map == disp_ctx->panel_fbs[0]) {
++                disp_ctx->active_fb = 0;
++            } else if ((void *)color_map == disp_ctx->panel_fbs[1]) {
++                disp_ctx->active_fb = 1;
++            }
+             /* Waiting for the last frame buffer to complete transmission */
+-            xSemaphoreTake(disp_ctx->trans_sem, 0);
+-            xSemaphoreTake(disp_ctx->trans_sem, portMAX_DELAY);
++            xSemaphoreTake(disp_ctx->vsync_sem, 0);
++            xSemaphoreTake(disp_ctx->vsync_sem, portMAX_DELAY);
++        }
++    } else if (disp_ctx->flags.rgb_redirect && disp_ctx->panel_fbs[0] != NULL) {
++        const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(drv));
++        const uint32_t hres = (uint32_t)lv_disp_get_hor_res(drv);
++        uint8_t *dst_fb = (uint8_t *)disp_ctx->panel_fbs[1 - disp_ctx->active_fb];
++        const uint32_t row_bytes = (uint32_t)(offsetx2 - offsetx1 + 1) * px_size;
++        const uint8_t *src_row = color_map;
++        for (int y = offsety1; y <= offsety2; y++) {
++            memcpy(dst_fb + ((uint32_t)y * hres + (uint32_t)offsetx1) * px_size, src_row, row_bytes);
++            src_row += row_bytes;
++        }
++        disp_ctx->redirect_rows += (uint32_t)(offsety2 - offsety1 + 1);
++        if (lv_disp_flush_is_last(drv)) {
++            if (disp_ctx->redirect_rows >= (uint32_t)lv_disp_get_ver_res(drv)) {
++                esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, 0, 0, lv_disp_get_hor_res(drv),
++                                          lv_disp_get_ver_res(drv), dst_fb);
++                disp_ctx->active_fb = 1 - disp_ctx->active_fb;
++                xSemaphoreTake(disp_ctx->vsync_sem, 0);
++                xSemaphoreTake(disp_ctx->vsync_sem, portMAX_DELAY);
++            }
++            disp_ctx->redirect_rows = 0;
+         }
+     } else if ((disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI
+                 || disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB)

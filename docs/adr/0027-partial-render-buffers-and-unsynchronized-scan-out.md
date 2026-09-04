@@ -2,9 +2,9 @@
 
 Status: Accepted. Changes the display buffering the drivers of the Guition
 ESP32-4848S040 and the Guition JC1060P470C hand to the LVGL port, raises the
-4848S040's pixel clock, and adds a second `esp_lvgl_port` patch beside the one
-[ADR 0026](0026-ui-memory-in-external-ram.md)-era work introduced for the DSI
-cache-safe callback.
+4848S040's pixel clock, and grows the `esp_lvgl_port` patch stack beside the
+DSI cache-safe callback patch that
+[ADR 0026](0026-ui-memory-in-external-ram.md)-era work introduced.
 
 ## Context
 
@@ -43,7 +43,7 @@ waited for scan-out, so it is unchanged.
   slide invalidates the whole screen every frame and the seams read as the
   image breaking apart — so the navigation controller switches the display to
   tear-free rendering into the panel frame buffers for the duration of a
-  transition (`lvgl_port_disp_set_tear_free`, added by the same port patch)
+  transition (`lvgl_port_disp_set_tear_free`, the `tear-free-switch` port patch)
   and back to partial strips one refresh after the new screen has settled.
   DSI uses true direct mode, handed the buffer the panel is not scanning
   first — or the first transition frame paints in plain sight. RGB cannot
@@ -67,8 +67,8 @@ waited for scan-out, so it is unchanged.
   57->96) and dropped *render* time by half on top of that, because the
   bandwidth the copy was taking went back to the blender. It is the largest
   single lever measured on this board.
-- On the JC1060P470C the flush itself leaves the render core: the same
-  `esp_lvgl_port` patch adds a small queue and a worker task pinned to core 0
+- On the JC1060P470C the flush itself leaves the render core: the
+  `flush-worker` port patch adds a small queue and a worker task pinned to core 0
   that runs `esp_lcd_panel_draw_bitmap`, waits out the transfer and completes
   the flush, so the LVGL task hands a strip over and immediately renders the
   next one into the second buffer. Draw-task profiling attributed 27–58% of
@@ -83,15 +83,17 @@ waited for scan-out, so it is unchanged.
   internal RAM, paid for by shrinking the render strips from 60 to 40 lines
   (measured free: −0–2%); with 60-line strips the second LVGL buffer no
   longer fits and startup lands in safe mode.
-- `esp_lvgl_port` is patched on the ESP32-P4
-  (`patches/esp-lvgl-port-2.8.0-dsi-cache-safe-flush.patch`, one combined file
-  because overlapping split patches defeat the apply script's already-applied
-  check). Upstream's DSI partial path defers
-  `lv_disp_flush_ready` to the `on_color_trans_done` ISR, which under
-  `CONFIG_LCD_DSI_ISR_CACHE_SAFE` must not reach flash-resident LVGL code or
-  the PSRAM-resident display object. The patch mirrors the vsync path instead:
-  the ISR only gives a semaphore held in internal RAM, and the flush callback
-  waits on it and completes the flush from task context.
+- `esp_lvgl_port` is patched by a stack of files under `firmware/patches/`,
+  one concern each, in the order `apply_esp_lvgl_port_dsi_patch.cmake` lists
+  them. The layers overlap, so the apply script checks the whole stack —
+  forward, else reverse — in a temporary git index rather than one file at a
+  time. The first, `esp-lvgl-port-2.8.0-dsi-cache-safe-flush.patch`, exists
+  because upstream's DSI partial path defers `lv_disp_flush_ready` to the
+  `on_color_trans_done` ISR, which under `CONFIG_LCD_DSI_ISR_CACHE_SAFE` must
+  not reach flash-resident LVGL code or the PSRAM-resident display object. It
+  mirrors the vsync path instead: the ISR only gives a semaphore held in
+  internal RAM, and the flush callback waits on it and completes the flush
+  from task context.
 - What a debug build draws over the dashboard became a Kconfig choice
   (`SIMCORE_DEBUG_OVERLAY`: full panel / FPS figure / nothing, default FPS).
   The full statistics panel blends a semi-transparent block over the widgets
@@ -111,7 +113,7 @@ waited for scan-out, so it is unchanged.
   core-0 worker, so `flush_us` there reads a hand-off of a few hundred
   microseconds and the frame budget is almost entirely render time. Figures in that document measured under direct mode are marked as such.
 - A flash write during a flush is safe on the P4 only because the ISR touches
-  nothing outside IRAM and internal RAM; the patch must be reviewed if
+  nothing outside IRAM and internal RAM; the patches must be reviewed if
   `esp_lvgl_port` is upgraded past 2.8.0~1 (the apply script fails the build
   rather than guessing).
 - The 4848S040 names its bounce buffers to the LVGL port (`bounce_buffers` in

@@ -54,7 +54,7 @@ void Trigger::process() {
       handler_(context_);
     }
     lvgl_port_unlock();
-    if (render) {
+    if (render && SIMCORE_DISPLAY_VSYNC_LOCK == 0) {
       (void)lvgl_port_task_wake(LVGL_PORT_EVENT_DISPLAY, nullptr);
     }
     (void)esp_task_wdt_reset();

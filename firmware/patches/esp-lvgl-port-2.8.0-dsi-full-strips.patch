@@ -1,0 +1,404 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/CMakeLists.txt b/firmware/managed_components/espressif__esp_lvgl_port/CMakeLists.txt
+--- a/firmware/managed_components/espressif__esp_lvgl_port/CMakeLists.txt
++++ b/firmware/managed_components/espressif__esp_lvgl_port/CMakeLists.txt
+@@ -10,8 +10,8 @@ set(PRIV_REQ "")
+ idf_build_get_property(target IDF_TARGET)
+ if(${target} STREQUAL "esp32p4")
+     list(APPEND ADD_SRCS "src/common/ppa/lcd_ppa.c")
+-    list(APPEND ADD_LIBS idf::esp_driver_ppa)
+-    list(APPEND PRIV_REQ esp_driver_ppa)
++    list(APPEND ADD_LIBS idf::esp_driver_ppa idf::esp_driver_dma idf::esp_mm)
++    list(APPEND PRIV_REQ esp_driver_ppa esp_driver_dma esp_mm)
+ endif()
+ 
+ # This component uses a CMake workaround, so we can compile esp_lvgl_port for both LVGL8.x and LVGL9.x
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h b/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
+--- a/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
++++ b/firmware/managed_components/espressif__esp_lvgl_port/include/esp_lvgl_port_disp.h
+@@ -70,6 +70,7 @@ typedef struct {
+ #endif
+         unsigned int full_refresh: 1;/*!< 1: Always make the whole screen redrawn */
+         unsigned int direct_mode: 1; /*!< 1: Use screen-sized buffers and draw to absolute coordinates */
++        unsigned int full_strips: 1;
+     } flags;
+ } lvgl_port_display_cfg_t;
+ 
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -31,6 +31,8 @@
+ 
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+ #include "esp_lcd_mipi_dsi.h"
++#include "esp_async_memcpy.h"
++#include "esp_cache.h"
+ #endif
+ 
+ #if (ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(4, 4, 4)) || (ESP_IDF_VERSION == ESP_IDF_VERSION_VAL(5, 0, 0))
+@@ -74,6 +76,19 @@ typedef struct {
+     volatile uint32_t         refresh_count;
+     uint32_t                  queued_refresh_count;
+     lv_draw_buf_t             third_draw_buf;
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++    async_memcpy_handle_t     mcp;
++    SemaphoreHandle_t         mcp_done;
++    async_memcpy_handle_t     mcp_recon;
++    SemaphoreHandle_t         mcp_recon_done;
++    QueueHandle_t             recon_queue;
++    SemaphoreHandle_t         recon_progress;
++#endif
++    uint16_t                  recon_rects[16][4];
++    volatile uint8_t          recon_fired;
++    volatile uint8_t          recon_completed;
++    uint32_t                  strip_rows;
++    uint8_t                   strip_target;
+     lvgl_port_rounder_cb_t    rounder_cb;     /* Rounder callback for display area */
+ #if LVGL_PORT_PPA
+     lvgl_port_ppa_handle_t    ppa_handle;
+@@ -84,6 +99,7 @@ typedef struct {
+         unsigned int full_refresh: 1;   /* Always make the whole screen redrawn */
+         unsigned int direct_mode: 1;    /* Use screen-sized buffers and draw to absolute coordinates */
+         unsigned int rgb_redirect: 1;
++        unsigned int full_strips: 1;
+         unsigned int sw_rotate: 1;    /* Use software rotation (slower) or PPA if available */
+     } flags;
+ } lvgl_port_display_ctx_t;
+@@ -97,11 +113,109 @@ typedef struct {
+     int x2;
+     int y2;
+     uint8_t full;
++    uint8_t strip;
++    uint8_t swap;
++    uint8_t target;
++    uint8_t reconcile;
++    uint8_t source;
+ } lvgl_port_flush_job_t;
+ 
+ static QueueHandle_t s_flush_queue = NULL;
+ static volatile uint32_t s_flush_pending = 0;
+ 
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++static bool lvgl_port_flush_mcp_done_callback(async_memcpy_handle_t mcp,
++                                              async_memcpy_event_t *event, void *cb_args)
++{
++    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)cb_args;
++    BaseType_t need_yield = pdFALSE;
++    (void)mcp;
++    (void)event;
++    xSemaphoreGiveFromISR(disp_ctx->mcp_done, &need_yield);
++    return need_yield == pdTRUE;
++}
++
++static bool lvgl_port_recon_mcp_done_callback(async_memcpy_handle_t mcp,
++                                              async_memcpy_event_t *event, void *cb_args)
++{
++    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)cb_args;
++    BaseType_t need_yield = pdFALSE;
++    (void)mcp;
++    (void)event;
++    xSemaphoreGiveFromISR(disp_ctx->mcp_recon_done, &need_yield);
++    return need_yield == pdTRUE;
++}
++
++typedef struct {
++    lv_display_t *drv;
++    lvgl_port_display_ctx_t *ctx;
++    uint16_t x1;
++    uint16_t y1;
++    uint16_t x2;
++    uint16_t y2;
++    uint8_t target;
++    uint8_t source;
++} lvgl_port_recon_item_t;
++
++static void lvgl_port_recon_worker(void *arg)
++{
++    lvgl_port_display_ctx_t *ctx = (lvgl_port_display_ctx_t *)arg;
++    lvgl_port_recon_item_t item;
++    for (;;) {
++        if (xQueueReceive(ctx->recon_queue, &item, portMAX_DELAY) != pdTRUE) {
++            continue;
++        }
++        const size_t hres = (size_t)lv_disp_get_hor_res(item.drv);
++        const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(item.drv));
++        const uint32_t stride = (uint32_t)hres * px_size;
++        bool copied = false;
++        if (ctx->mcp_recon != NULL && item.x1 == 0U && (size_t)item.x2 == hres) {
++            uint8_t *dst_band = (uint8_t *)ctx->panel_fbs[item.target] + (size_t)item.y1 * stride;
++            uint8_t *src_band = (uint8_t *)ctx->panel_fbs[item.source] + (size_t)item.y1 * stride;
++            if (esp_async_memcpy(ctx->mcp_recon, dst_band, src_band,
++                                 (size_t)(item.y2 - item.y1) * stride,
++                                 lvgl_port_recon_mcp_done_callback, ctx) == ESP_OK) {
++                if (xSemaphoreTake(ctx->mcp_recon_done, pdMS_TO_TICKS(500)) == pdTRUE) {
++                    copied = true;
++                } else {
++                    ctx->mcp_recon = NULL;
++                }
++            }
++        }
++        if (!copied) {
++            uint8_t *dst_fb = (uint8_t *)ctx->panel_fbs[item.target];
++            const uint8_t *src_fb = (const uint8_t *)ctx->panel_fbs[item.source];
++            const uint32_t row_offset = (uint32_t)item.x1 * px_size;
++            const uint32_t row_bytes = (uint32_t)(item.x2 - item.x1) * px_size;
++            for (uint16_t y = item.y1; y < item.y2; y++) {
++                memcpy(dst_fb + (uint32_t)y * stride + row_offset,
++                       src_fb + (uint32_t)y * stride + row_offset, row_bytes);
++            }
++            esp_cache_msync(dst_fb + (uint32_t)item.y1 * stride,
++                            (size_t)(item.y2 - item.y1) * stride,
++                            ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
++        }
++        ctx->recon_completed = (uint8_t)(ctx->recon_completed + 1U);
++        xSemaphoreGive(ctx->recon_progress);
++    }
++}
++
++static void lvgl_port_recon_wait(lvgl_port_display_ctx_t *ctx, uint16_t x1, uint16_t y1,
++                                 uint16_t x2, uint16_t y2)
++{
++    uint8_t needed = ctx->recon_completed;
++    for (uint8_t rect = ctx->recon_completed; rect < ctx->recon_fired; rect++) {
++        if (x1 < ctx->recon_rects[rect][2] && x2 > ctx->recon_rects[rect][0]
++                && y1 < ctx->recon_rects[rect][3] && y2 > ctx->recon_rects[rect][1]) {
++            needed = (uint8_t)(rect + 1U);
++        }
++    }
++    while (ctx->recon_completed < needed) {
++        xSemaphoreTake(ctx->recon_progress, portMAX_DELAY);
++    }
++}
++#endif
++
+ static void lvgl_port_flush_wait_cb(lv_display_t *disp)
+ {
+     (void)disp;
+@@ -120,6 +234,96 @@ static void lvgl_port_flush_worker(void *arg)
+         if (xQueueReceive(s_flush_queue, &job, portMAX_DELAY) != pdTRUE) {
+             continue;
+         }
++        if (job.reconcile) {
++            lvgl_port_display_ctx_t *ctx = job.ctx;
++            const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(job.drv));
++            const uint32_t stride = (uint32_t)lv_disp_get_hor_res(job.drv) * px_size;
++            const size_t band_offset = (size_t)job.y1 * stride;
++            const size_t band_bytes = (size_t)(job.y2 - job.y1) * stride;
++            uint8_t *dst_fb = (uint8_t *)ctx->panel_fbs[job.target] + band_offset;
++            uint8_t *src_fb = (uint8_t *)ctx->panel_fbs[job.source] + band_offset;
++            bool copied = false;
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++            if (ctx->mcp != NULL) {
++                const size_t chunk = 320U * 1024U;
++                size_t offset = 0;
++                copied = true;
++                while (offset < band_bytes && copied) {
++                    const size_t length = (band_bytes - offset) < chunk ? (band_bytes - offset) : chunk;
++                    if (esp_async_memcpy(ctx->mcp, dst_fb + offset, src_fb + offset, length,
++                                         lvgl_port_flush_mcp_done_callback, ctx) == ESP_OK) {
++                        xSemaphoreTake(ctx->mcp_done, portMAX_DELAY);
++                        offset += length;
++                    } else {
++                        copied = false;
++                    }
++                }
++            }
++#endif
++            if (!copied) {
++                memcpy(dst_fb, src_fb, band_bytes);
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++                esp_cache_msync(dst_fb, band_bytes,
++                                ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
++#endif
++            }
++            __atomic_sub_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
++            continue;
++        }
++        if (job.strip) {
++            lvgl_port_display_ctx_t *ctx = job.ctx;
++            uint8_t *fb = (uint8_t *)ctx->panel_fbs[job.target];
++            const uint32_t px_size = lv_color_format_get_size(lv_display_get_color_format(job.drv));
++            const uint32_t hres = (uint32_t)lv_disp_get_hor_res(job.drv);
++            const uint32_t row_bytes = (uint32_t)(job.x2 - job.x1) * px_size;
++            const uint32_t rows = (uint32_t)(job.y2 - job.y1);
++            uint8_t *dst = fb + ((uint32_t)job.y1 * hres + (uint32_t)job.x1) * px_size;
++            bool copied = false;
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++            lvgl_port_recon_wait(ctx, (uint16_t)job.x1, (uint16_t)job.y1,
++                                 (uint16_t)job.x2, (uint16_t)job.y2);
++            if (ctx->mcp != NULL && row_bytes == hres * px_size) {
++                if (esp_async_memcpy(ctx->mcp, dst, (void *)job.color_map,
++                                     (size_t)row_bytes * rows,
++                                     lvgl_port_flush_mcp_done_callback, ctx) == ESP_OK) {
++                    if (xSemaphoreTake(ctx->mcp_done, pdMS_TO_TICKS(500)) == pdTRUE) {
++                        copied = true;
++                    } else {
++                        ctx->mcp = NULL;
++                    }
++                }
++            }
++#endif
++            if (!copied) {
++                const uint8_t *src_row = job.color_map;
++                for (int y = job.y1; y < job.y2; y++) {
++                    memcpy(fb + ((uint32_t)y * hres + (uint32_t)job.x1) * px_size, src_row, row_bytes);
++                    src_row += row_bytes;
++                }
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++                esp_cache_msync(fb + (uint32_t)job.y1 * hres * px_size,
++                                (size_t)rows * hres * px_size,
++                                ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_INVALIDATE);
++#endif
++            }
++            if (job.swap) {
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++                lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
++#endif
++                uint32_t waits = 0;
++                while (ctx->refresh_count == ctx->queued_refresh_count && waits < 10U) {
++                    xSemaphoreTake(ctx->vsync_sem, pdMS_TO_TICKS(100));
++                    waits++;
++                }
++                esp_lcd_panel_draw_bitmap(ctx->panel_handle, 0, 0, lv_disp_get_hor_res(job.drv),
++                                          lv_disp_get_ver_res(job.drv), fb);
++                ctx->queued_refresh_count = ctx->refresh_count;
++                ctx->active_fb = job.target;
++            }
++            lv_disp_flush_ready(job.drv);
++            __atomic_sub_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
++            continue;
++        }
+         if (job.full) {
+             while (job.ctx->refresh_count == job.ctx->queued_refresh_count) {
+                 xSemaphoreTake(job.ctx->vsync_sem, portMAX_DELAY);
+@@ -636,6 +840,46 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+     lv_display_set_driver_data(disp, disp_ctx);
+     disp_ctx->disp_drv = disp;
+ 
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++    if (disp_cfg->flags.full_strips && priv_cfg && priv_cfg->disp_type == LVGL_PORT_DISP_TYPE_DSI) {
++        void *fb0 = NULL;
++        void *fb1 = NULL;
++        void *fb2 = NULL;
++        if (esp_lcd_dpi_panel_get_frame_buffer(disp_cfg->panel_handle, 3, &fb0, &fb1, &fb2) == ESP_OK) {
++            async_memcpy_config_t mcp_config = ASYNC_MEMCPY_DEFAULT_CONFIG();
++            mcp_config.backlog = 4;
++            mcp_config.dma_burst_size = 128;
++            disp_ctx->mcp_done = xSemaphoreCreateBinary();
++            disp_ctx->mcp_recon_done = xSemaphoreCreateBinary();
++            if (disp_ctx->mcp_recon_done == NULL
++                    || esp_async_memcpy_install_gdma_axi(&mcp_config, &disp_ctx->mcp_recon) != ESP_OK) {
++                disp_ctx->mcp_recon = NULL;
++            }
++            disp_ctx->recon_progress = xSemaphoreCreateCounting(32, 0);
++            disp_ctx->recon_queue = xQueueCreate(16, sizeof(lvgl_port_recon_item_t));
++            if (disp_ctx->recon_progress == NULL || disp_ctx->recon_queue == NULL
++                    || xTaskCreatePinnedToCore(lvgl_port_recon_worker, "lvglRecon", 3072,
++                                               disp_ctx, 5, NULL, 0) != pdPASS) {
++                if (disp_ctx->recon_queue != NULL) {
++                    vQueueDelete(disp_ctx->recon_queue);
++                    disp_ctx->recon_queue = NULL;
++                }
++            }
++            if (disp_ctx->mcp_done != NULL
++                    && esp_async_memcpy_install_gdma_axi(&mcp_config, &disp_ctx->mcp) == ESP_OK) {
++                disp_ctx->panel_fbs[0] = fb0;
++                disp_ctx->panel_fbs[1] = fb1;
++                disp_ctx->panel_fbs[2] = fb2;
++                disp_ctx->flags.full_strips = 1;
++            } else {
++                ESP_LOGW(TAG, "No DMA channel for full-strips mode; plain partial rendering stays");
++            }
++        } else {
++            ESP_LOGW(TAG, "Panel does not expose three frame buffers; full-strips disabled");
++        }
++    }
++#endif
++
+     /* Use SW rotation */
+     if (disp_cfg->flags.sw_rotate) {
+ #if LVGL_PORT_PPA
+@@ -940,7 +1184,83 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+         _lvgl_port_transform_monochrome(drv, area, &color_map);
+     }
+ 
+-    if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI && disp_ctx->flags.full_refresh
++    if (disp_ctx->flags.full_strips && disp_ctx->panel_fbs[2] != NULL
++            && lvgl_port_async_flush_start()) {
++        if (disp_ctx->strip_rows == 0) {
++            {
++                disp_ctx->strip_target = (uint8_t)((disp_ctx->strip_target + 1U) % 3U);
++                disp_ctx->recon_fired = 0;
++                disp_ctx->recon_completed = 0;
++                uint16_t piece_y1 = 0;
++                const uint16_t recon_vres = (uint16_t)lv_disp_get_ver_res(drv);
++                while (piece_y1 < recon_vres) {
++                    uint16_t piece_y2 = (uint16_t)(piece_y1 + 96U);
++                    if (piece_y2 > recon_vres) {
++                        piece_y2 = recon_vres;
++                    }
++                    bool posted = false;
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++                    if (disp_ctx->recon_queue != NULL && disp_ctx->recon_fired < 16U) {
++                        const uint8_t fired = disp_ctx->recon_fired;
++                        disp_ctx->recon_rects[fired][0] = 0;
++                        disp_ctx->recon_rects[fired][1] = piece_y1;
++                        disp_ctx->recon_rects[fired][2] = (uint16_t)lv_disp_get_hor_res(drv);
++                        disp_ctx->recon_rects[fired][3] = piece_y2;
++                        lvgl_port_recon_item_t item = {
++                            .drv = drv,
++                            .ctx = disp_ctx,
++                            .x1 = 0,
++                            .y1 = piece_y1,
++                            .x2 = (uint16_t)lv_disp_get_hor_res(drv),
++                            .y2 = piece_y2,
++                            .target = disp_ctx->strip_target,
++                            .source = disp_ctx->active_fb,
++                        };
++                        if (xQueueSend(disp_ctx->recon_queue, &item, portMAX_DELAY) == pdTRUE) {
++                            disp_ctx->recon_fired = (uint8_t)(fired + 1U);
++                            posted = true;
++                        }
++                    }
++#endif
++                    if (!posted) {
++                        lvgl_port_flush_job_t reconcile_job = {
++                            .drv = drv,
++                            .ctx = disp_ctx,
++                            .y1 = (int)piece_y1,
++                            .y2 = (int)piece_y2,
++                            .reconcile = 1,
++                            .target = disp_ctx->strip_target,
++                            .source = disp_ctx->active_fb,
++                        };
++                        __atomic_add_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
++                        xQueueSend(s_flush_queue, &reconcile_job, portMAX_DELAY);
++                    }
++                    piece_y1 = piece_y2;
++                }
++            }
++        }
++        disp_ctx->strip_rows += (uint32_t)(offsety2 - offsety1 + 1);
++        uint8_t swap = 0;
++        if (lv_disp_flush_is_last(drv)) {
++            swap = 1;
++            disp_ctx->strip_rows = 0;
++        }
++        lvgl_port_flush_job_t job = {
++            .drv = drv,
++            .ctx = disp_ctx,
++            .color_map = color_map,
++            .x1 = offsetx1,
++            .y1 = offsety1,
++            .x2 = offsetx2 + 1,
++            .y2 = offsety2 + 1,
++            .strip = 1,
++            .swap = swap,
++            .target = disp_ctx->strip_target,
++        };
++        __atomic_add_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
++        xQueueSend(s_flush_queue, &job, portMAX_DELAY);
++        return;
++    } else if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI && disp_ctx->flags.full_refresh
+             && disp_ctx->panel_fbs[2] != NULL && lv_disp_flush_is_last(drv)
+             && lvgl_port_async_flush_start()) {
+         lvgl_port_flush_job_t job = {

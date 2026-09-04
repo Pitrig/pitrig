@@ -60,6 +60,9 @@ void wake_widgets(void* const context) {
 }
 
 void on_telemetry_updated(const events::Event&, void* const context) {
+#if SIMCORE_DISPLAY_VSYNC_LOCK
+  lvgl_port_disp_note_feed_line();
+#endif
   if (display::rendering_in_progress()) {
     return;
   }

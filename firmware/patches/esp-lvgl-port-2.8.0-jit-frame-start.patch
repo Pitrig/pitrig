@@ -1,0 +1,154 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -76,7 +76,12 @@ typedef struct {
+     uint32_t                  redirect_rows;
+     volatile uint32_t         refresh_count;
+     uint32_t                  queued_refresh_count;
++    volatile int64_t          last_vsync_us;
++    volatile uint32_t         vsync_period_us;
++    uint32_t                  jit_margin_us;
++    uint8_t                   jit_slept;
+     uint32_t                  wait_accum_us;
++    uint16_t                  jit_hit_run;
+     lv_draw_buf_t             third_draw_buf;
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+     async_memcpy_handle_t     mcp;
+@@ -91,6 +96,7 @@ typedef struct {
+     volatile uint8_t          recon_completed;
+     uint8_t                   frame_full;
+     uint32_t                  mode_cost_ema[2];
++    volatile uint32_t         last_swap_wait_us;
+     uint8_t                   mode_best;
+     uint8_t                   mode_measured;
+     uint8_t                   mode_seen;
+@@ -246,10 +252,13 @@ static uint32_t lvgl_port_vsync_gap(uint32_t frame_cost)
+     return 1U;
+ }
+ 
++static void lvgl_port_disp_jit_wait(void);
++
+ static void lvgl_port_adaptive_refr_start_callback(lv_event_t *e)
+ {
+     lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_event_get_user_data(e);
+     lv_display_t *disp = disp_ctx->disp_drv;
++    lvgl_port_disp_jit_wait();
+     disp_ctx->wait_accum_us = 0U;
+     uint8_t mode = disp_ctx->mode_best;
+     disp_ctx->probe_tick = (uint16_t)((disp_ctx->probe_tick + 1U) & 1023U);
+@@ -280,9 +289,48 @@ static void lvgl_port_adaptive_refr_start_callback(lv_event_t *e)
+ }
+ 
+ static lvgl_port_display_ctx_t *s_strips_ctx = NULL;
++volatile uint32_t lvgl_port_jit_margin_us = 0;
++volatile uint32_t lvgl_port_jit_hits = 0;
++volatile uint32_t lvgl_port_jit_misses = 0;
++volatile uint32_t lvgl_port_jit_period_us = 0;
++volatile uint32_t lvgl_port_jit_skipped = 0;
+ volatile uint32_t lvgl_port_cost_span_us = 0;
+ volatile uint32_t lvgl_port_cost_wait_us = 0;
+ 
++static void lvgl_port_disp_jit_wait(void)
++{
++#ifdef CONFIG_SIMCORE_DISPLAY_JIT
++    lvgl_port_display_ctx_t *ctx = s_strips_ctx;
++    if (ctx == NULL || !ctx->mode_settled) {
++        return;
++    }
++    const uint32_t period = ctx->vsync_period_us;
++    lvgl_port_jit_period_us = period;
++    if (period == 0U) {
++        return;
++    }
++    const uint32_t cost = ctx->mode_cost_ema[ctx->mode_best] + ctx->jit_margin_us;
++    if (cost + 1000U >= period) {
++        return;
++    }
++    const int64_t now = esp_timer_get_time();
++    int64_t next = ctx->last_vsync_us + (int64_t)period;
++    while (next <= now) {
++        next += (int64_t)period;
++    }
++    const int64_t start_by = next - (int64_t)cost;
++    if (start_by <= now + 1000) {
++        lvgl_port_jit_skipped++;
++    }
++    if (start_by > now + 1000) {
++        ctx->jit_slept = 1U;
++        lvgl_port_unlock();
++        vTaskDelay(pdMS_TO_TICKS((uint32_t)((start_by - now) / 1000)));
++        lvgl_port_lock(0);
++    }
++#endif
++}
++
+ static void lvgl_port_flush_wait_cb(lv_display_t *disp)
+ {
+     (void)disp;
+@@ -381,14 +429,39 @@ static void lvgl_port_flush_worker(void *arg)
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+                 lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
+ #endif
+-#ifndef CONFIG_SIMCORE_DISPLAY_UNCAPPED
++#ifdef CONFIG_SIMCORE_DISPLAY_UNCAPPED
++                ctx->last_swap_wait_us = 0;
++#else
+                 const uint32_t vsync_gap =
+                     lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best]);
++                const int64_t wait_start = esp_timer_get_time();
+                 uint32_t waits = 0;
+                 while (ctx->refresh_count - ctx->queued_refresh_count < vsync_gap && waits < 10U) {
+                     xSemaphoreTake(ctx->vsync_sem, pdMS_TO_TICKS(100));
+                     waits++;
+                 }
++                ctx->last_swap_wait_us = (uint32_t)(esp_timer_get_time() - wait_start);
++#ifdef CONFIG_SIMCORE_DISPLAY_JIT
++                if (ctx->jit_slept && ctx->vsync_period_us != 0U) {
++                    if (ctx->last_swap_wait_us > (ctx->vsync_period_us * 3U) / 4U) {
++                        lvgl_port_jit_misses++;
++                        ctx->jit_hit_run = 0U;
++                        if (ctx->jit_margin_us < 6000U) {
++                            ctx->jit_margin_us += 1000U;
++                        }
++                    } else {
++                        lvgl_port_jit_hits++;
++                        if (ctx->jit_hit_run < 512U) {
++                            ctx->jit_hit_run++;
++                        } else if (ctx->jit_margin_us > 1000U) {
++                            ctx->jit_margin_us -= 250U;
++                            ctx->jit_hit_run = 0U;
++                        }
++                    }
++                    lvgl_port_jit_margin_us = ctx->jit_margin_us;
++                }
++                ctx->jit_slept = 0U;
++#endif
+ #endif
+                 esp_lcd_panel_draw_bitmap(ctx->panel_handle, 0, 0, lv_disp_get_hor_res(job.drv),
+                                           lv_disp_get_ver_res(job.drv), fb);
+@@ -949,6 +1022,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+                 disp_ctx->mode_cost_ema[1] = 30000U;
+                 disp_ctx->probe_baseline = 30000U;
+                 disp_ctx->flags.full_strips = 1;
++                disp_ctx->jit_margin_us = 2500U;
+                 s_strips_ctx = disp_ctx;
+                 lv_display_add_event_cb(disp, lvgl_port_adaptive_refr_start_callback,
+                                         LV_EVENT_REFR_START, disp_ctx);
+@@ -1054,6 +1128,17 @@ static LVGL_PORT_IRAM bool lvgl_port_flush_dpi_vsync_ready_callback(esp_lcd_pane
+     }
+ 
+     disp_ctx->refresh_count = disp_ctx->refresh_count + 1;
++    {
++        const int64_t now = esp_timer_get_time();
++        const int64_t previous = disp_ctx->last_vsync_us;
++        if (previous != 0) {
++            const int64_t gap = now - previous;
++            if (gap > 8000 && gap < 40000) {
++                disp_ctx->vsync_period_us = (uint32_t)gap;
++            }
++        }
++        disp_ctx->last_vsync_us = now;
++    }
+     if (disp_ctx->vsync_sem) {
+         xSemaphoreGiveFromISR(disp_ctx->vsync_sem, &need_yield);
+     }

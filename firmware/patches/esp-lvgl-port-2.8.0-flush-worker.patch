@@ -1,0 +1,107 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -79,6 +79,73 @@ typedef struct {
+     } flags;
+ } lvgl_port_display_ctx_t;
+ 
++typedef struct {
++    lv_display_t *drv;
++    lvgl_port_display_ctx_t *ctx;
++    const uint8_t *color_map;
++    int x1;
++    int y1;
++    int x2;
++    int y2;
++} lvgl_port_flush_job_t;
++
++static QueueHandle_t s_flush_queue = NULL;
++static volatile uint32_t s_flush_pending = 0;
++
++static void lvgl_port_flush_wait_cb(lv_display_t *disp)
++{
++    (void)disp;
++    uint32_t slept = 0;
++    while (__atomic_load_n(&s_flush_pending, __ATOMIC_SEQ_CST) > 0 && slept < 200U) {
++        vTaskDelay(1);
++        slept++;
++    }
++}
++
++static void lvgl_port_flush_worker(void *arg)
++{
++    lvgl_port_flush_job_t job;
++    (void)arg;
++    for (;;) {
++        if (xQueueReceive(s_flush_queue, &job, portMAX_DELAY) != pdTRUE) {
++            continue;
++        }
++        esp_lcd_panel_draw_bitmap(job.ctx->panel_handle, job.x1, job.y1, job.x2, job.y2, job.color_map);
++        if (job.ctx->trans_sem) {
++            xSemaphoreTake(job.ctx->trans_sem, portMAX_DELAY);
++        }
++        lv_disp_flush_ready(job.drv);
++        __atomic_sub_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
++    }
++}
++
++static bool lvgl_port_async_flush_start(void)
++{
++    if (s_flush_queue != NULL) {
++        return true;
++    }
++    s_flush_queue = xQueueCreate(4, sizeof(lvgl_port_flush_job_t));
++    if (s_flush_queue == NULL) {
++        return false;
++    }
++    if (xTaskCreatePinnedToCore(lvgl_port_flush_worker, "lvglFlush", 3072, NULL, 5, NULL, 0) != pdPASS) {
++        vQueueDelete(s_flush_queue);
++        s_flush_queue = NULL;
++        return false;
++    }
++    return true;
++}
++
++static void lvgl_port_async_flush_drain(void)
++{
++    if (s_flush_queue == NULL) {
++        return;
++    }
++    while (__atomic_load_n(&s_flush_pending, __ATOMIC_SEQ_CST) != 0) {
++        vTaskDelay(pdMS_TO_TICKS(1));
++    }
++}
++
+ /*******************************************************************************
+ * Function definitions
+ *******************************************************************************/
+@@ -446,6 +513,7 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+     }
+ 
+     lv_display_set_flush_cb(disp, lvgl_port_flush_callback);
++    lv_display_set_flush_wait_cb(disp, lvgl_port_flush_wait_cb);
+     lv_display_add_event_cb(disp, lvgl_port_disp_size_update_callback, LV_EVENT_RESOLUTION_CHANGED, disp_ctx);
+     lv_display_add_event_cb(disp, lvgl_port_display_invalidate_callback, LV_EVENT_INVALIDATE_AREA, disp_ctx);
+     lv_display_add_event_cb(disp, lvgl_port_display_invalidate_callback, LV_EVENT_REFR_REQUEST, disp_ctx);
+@@ -765,6 +833,21 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+             xSemaphoreTake(disp_ctx->trans_sem, 0);
+             xSemaphoreTake(disp_ctx->trans_sem, portMAX_DELAY);
+         }
++    } else if ((disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI
++                || disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_RGB)
++               && lvgl_port_async_flush_start()) {
++        lvgl_port_flush_job_t job = {
++            .drv = drv,
++            .ctx = disp_ctx,
++            .color_map = color_map,
++            .x1 = offsetx1,
++            .y1 = offsety1,
++            .x2 = offsetx2 + 1,
++            .y2 = offsety2 + 1,
++        };
++        __atomic_add_fetch(&s_flush_pending, 1, __ATOMIC_SEQ_CST);
++        xQueueSend(s_flush_queue, &job, portMAX_DELAY);
++        return;
+     } else {
+         esp_lcd_panel_draw_bitmap(disp_ctx->panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
+         if (disp_ctx->disp_type == LVGL_PORT_DISP_TYPE_DSI && disp_ctx->trans_sem) {

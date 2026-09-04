@@ -178,6 +178,28 @@
       }
     },
     {
+      "label": "SimCore: Build Guition JC1060P470C (24-bit Colour)",
+      "detail": "esp32p4 \u00b7 build-jc1060p470c-24bit \u00b7 RGB888 through the strips and the panel",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c-24bit >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-24bit && idf.py -B build-jc1060p470c-24bit -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-24bit -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.color-24bit\" build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/firmware"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
       "label": "SimCore: Build ESP32-S3 DevKitC-1",
       "detail": "esp32s3 \u00b7 build-devkit \u00b7 no display",
       "type": "shell",
@@ -235,7 +257,8 @@
         "SimCore: Build Guition JC1060P470C",
         "SimCore: Build Guition JC1060P470C Debug",
         "SimCore: Build Guition JC1060P470C (Render Full)",
-        "SimCore: Build Guition JC1060P470C (Render Partial)"
+        "SimCore: Build Guition JC1060P470C (Render Partial)",
+        "SimCore: Build Guition JC1060P470C (24-bit Colour)"
       ],
       "group": "build",
       "problemMatcher": []
@@ -495,7 +518,8 @@
         "build-jc1060p470c",
         "build-jc1060p470c-debug",
         "build-jc1060p470c-render-full",
-        "build-jc1060p470c-render-partial"
+        "build-jc1060p470c-render-partial",
+        "build-jc1060p470c-24bit"
       ],
       "default": "build-jc1060p470c"
     }

@@ -6,6 +6,48 @@
 #include "esp_heap_caps.h"
 #include "performance.hpp"
 
+extern "C" {
+extern volatile std::uint32_t lvgl_port_jit_margin_us;
+extern volatile std::uint32_t lvgl_port_jit_hits;
+extern volatile std::uint32_t lvgl_port_jit_misses;
+extern volatile std::uint32_t lvgl_port_jit_period_us;
+extern volatile std::uint32_t lvgl_port_jit_skipped;
+extern volatile std::uint32_t lvgl_port_sched_timed;
+extern volatile std::uint32_t lvgl_port_sched_fallback;
+extern volatile std::uint32_t lvgl_port_sched_empty;
+extern volatile std::uint32_t lvgl_port_sched_late;
+extern volatile std::uint32_t lvgl_port_sched_fb_unsettled;
+extern volatile std::uint32_t lvgl_port_sched_fb_cost;
+extern volatile std::uint32_t lvgl_port_sched_fb_late;
+extern volatile std::uint32_t lvgl_port_sched_peak_us;
+extern volatile std::uint32_t lvgl_port_sched_ema_us;
+extern volatile std::uint32_t lvgl_port_sched_best;
+extern volatile std::uint32_t lvgl_port_sched_settled;
+extern volatile std::uint32_t lvgl_port_cost_span_us;
+extern volatile std::uint32_t lvgl_port_cost_wait_us;
+extern volatile std::uint32_t lvgl_port_sched_deferred;
+extern volatile std::uint32_t lvgl_port_acc_vsyncs;
+extern volatile std::uint32_t lvgl_port_acc_swaps;
+extern volatile std::uint32_t lvgl_port_acc_start_timer;
+extern volatile std::uint32_t lvgl_port_acc_start_late;
+extern volatile std::uint32_t lvgl_port_acc_start_fallback;
+extern volatile std::uint32_t lvgl_port_acc_start_other;
+extern volatile std::uint32_t lvgl_port_acc_empty;
+extern volatile std::uint32_t lvgl_port_pkt_bursts;
+extern volatile std::uint32_t lvgl_port_pkt_allow_us;
+extern volatile std::uint32_t lvgl_port_pkt_period_us;
+extern volatile std::uint32_t lvgl_port_sched_tracked;
+extern volatile std::uint32_t lvgl_port_sched_untracked;
+extern volatile std::uint32_t lvgl_port_sched_burst_armed;
+extern volatile std::uint32_t lvgl_port_sched_blocked;
+extern volatile std::uint32_t lvgl_port_pkt_lines;
+extern volatile std::uint32_t lvgl_port_acc_start_burst;
+extern volatile std::uint32_t lvgl_port_acc_miss_all;
+extern volatile std::uint32_t lvgl_port_sched_fired;
+extern volatile std::uint32_t lvgl_port_feed_jitter_us;
+extern volatile std::uint32_t lvgl_port_acc_wake_nothing;
+}
+
 namespace simcore::debug::diagnostics {
 namespace {
 
@@ -77,6 +119,59 @@ int write(char* const out, const std::size_t size) {
         static_cast<unsigned>(stats.value_latency_us),
         static_cast<unsigned>(stats.value_latency_max_us),
         static_cast<unsigned>(stats.value_latency_samples));
+    written = append(out, size, field > 0 ? written + field : 0);
+  }
+
+  if (written > 0) {
+    const int field = std::snprintf(
+        out + written, size - static_cast<std::size_t>(written),
+        ",jit_margin=%u,jit_hits=%u,jit_misses=%u,jit_period=%u,jit_skipped=%u,sched_timed=%u,"
+        "sched_fallback=%u,sched_empty=%u,sched_late=%u,fb_unsettled=%u,fb_cost=%u,fb_late=%u,"
+        "sched_peak=%u,sched_ema=%u,sched_best=%u,sched_settled=%u,cost_span=%u,cost_wait=%u,"
+        "sched_deferred=%u,acc_vsyncs=%u,acc_swaps=%u,acc_start_timer=%u,acc_start_late=%u,"
+        "acc_start_fallback=%u,acc_start_other=%u,acc_empty=%u,pkt_bursts=%u,pkt_allow=%u,"
+        "pkt_period=%u,sched_tracked=%u,sched_untracked=%u,sched_burst_armed=%u,"
+        "sched_blocked=%u,pkt_lines=%u,acc_start_burst=%u,acc_miss_all=%u,sched_fired=%u,"
+        "feed_jitter=%u,wake_nothing=%u",
+        static_cast<unsigned>(lvgl_port_jit_margin_us),
+        static_cast<unsigned>(lvgl_port_jit_hits),
+        static_cast<unsigned>(lvgl_port_jit_misses),
+        static_cast<unsigned>(lvgl_port_jit_period_us),
+        static_cast<unsigned>(lvgl_port_jit_skipped),
+        static_cast<unsigned>(lvgl_port_sched_timed),
+        static_cast<unsigned>(lvgl_port_sched_fallback),
+        static_cast<unsigned>(lvgl_port_sched_empty),
+        static_cast<unsigned>(lvgl_port_sched_late),
+        static_cast<unsigned>(lvgl_port_sched_fb_unsettled),
+        static_cast<unsigned>(lvgl_port_sched_fb_cost),
+        static_cast<unsigned>(lvgl_port_sched_fb_late),
+        static_cast<unsigned>(lvgl_port_sched_peak_us),
+        static_cast<unsigned>(lvgl_port_sched_ema_us),
+        static_cast<unsigned>(lvgl_port_sched_best),
+        static_cast<unsigned>(lvgl_port_sched_settled),
+        static_cast<unsigned>(lvgl_port_cost_span_us),
+        static_cast<unsigned>(lvgl_port_cost_wait_us),
+        static_cast<unsigned>(lvgl_port_sched_deferred),
+        static_cast<unsigned>(lvgl_port_acc_vsyncs),
+        static_cast<unsigned>(lvgl_port_acc_swaps),
+        static_cast<unsigned>(lvgl_port_acc_start_timer),
+        static_cast<unsigned>(lvgl_port_acc_start_late),
+        static_cast<unsigned>(lvgl_port_acc_start_fallback),
+        static_cast<unsigned>(lvgl_port_acc_start_other),
+        static_cast<unsigned>(lvgl_port_acc_empty),
+        static_cast<unsigned>(lvgl_port_pkt_bursts),
+        static_cast<unsigned>(lvgl_port_pkt_allow_us),
+        static_cast<unsigned>(lvgl_port_pkt_period_us),
+        static_cast<unsigned>(lvgl_port_sched_tracked),
+        static_cast<unsigned>(lvgl_port_sched_untracked),
+        static_cast<unsigned>(lvgl_port_sched_burst_armed),
+        static_cast<unsigned>(lvgl_port_sched_blocked),
+        static_cast<unsigned>(lvgl_port_pkt_lines),
+        static_cast<unsigned>(lvgl_port_acc_start_burst),
+        static_cast<unsigned>(lvgl_port_acc_miss_all),
+        static_cast<unsigned>(lvgl_port_sched_fired),
+        static_cast<unsigned>(lvgl_port_feed_jitter_us),
+        static_cast<unsigned>(lvgl_port_acc_wake_nothing));
     written = append(out, size, field > 0 ? written + field : 0);
   }
 

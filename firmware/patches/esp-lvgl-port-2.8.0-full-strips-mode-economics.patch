@@ -1,0 +1,232 @@
+diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+--- a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
++++ b/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_lvgl_port_disp.c
+@@ -18,6 +18,7 @@
+ #include "esp_lcd_panel_ops.h"
+ #include "esp_lvgl_port.h"
+ #include "esp_lvgl_port_priv.h"
++#include "esp_timer.h"
+ 
+ #define LVGL_PORT_PPA   (CONFIG_LVGL_PORT_ENABLE_PPA)
+ 
+@@ -75,6 +76,7 @@ typedef struct {
+     uint32_t                  redirect_rows;
+     volatile uint32_t         refresh_count;
+     uint32_t                  queued_refresh_count;
++    uint32_t                  wait_accum_us;
+     lv_draw_buf_t             third_draw_buf;
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+     async_memcpy_handle_t     mcp;
+@@ -87,7 +89,21 @@ typedef struct {
+     uint16_t                  recon_rects[16][4];
+     volatile uint8_t          recon_fired;
+     volatile uint8_t          recon_completed;
++    uint8_t                   frame_full;
++    uint32_t                  mode_cost_ema[2];
++    uint8_t                   mode_best;
++    uint8_t                   mode_measured;
++    uint8_t                   mode_seen;
++    uint8_t                   mode_settled;
++    uint8_t                   settle_run;
++    uint16_t                  settle_frames;
++    uint8_t                   seed_taken[2];
++    uint32_t                  seed_low[2];
++    uint32_t                  probe_baseline;
++    uint16_t                  probe_tick;
++    int64_t                   frame_t0;
+     uint32_t                  strip_rows;
++    uint32_t                  strip_px;
+     uint8_t                   strip_target;
+     lvgl_port_rounder_cb_t    rounder_cb;     /* Rounder callback for display area */
+ #if LVGL_PORT_PPA
+@@ -216,14 +232,69 @@ static void lvgl_port_recon_wait(lvgl_port_display_ctx_t *ctx, uint16_t x1, uint
+ }
+ #endif
+ 
++static uint32_t lvgl_port_vsync_gap(uint32_t frame_cost)
++{
++    if (frame_cost > 52000U) {
++        return 4U;
++    }
++    if (frame_cost > 36000U) {
++        return 3U;
++    }
++    if (frame_cost > 20000U) {
++        return 2U;
++    }
++    return 1U;
++}
++
++static void lvgl_port_adaptive_refr_start_callback(lv_event_t *e)
++{
++    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_event_get_user_data(e);
++    lv_display_t *disp = disp_ctx->disp_drv;
++    disp_ctx->wait_accum_us = 0U;
++    uint8_t mode = disp_ctx->mode_best;
++    disp_ctx->probe_tick = (uint16_t)((disp_ctx->probe_tick + 1U) & 1023U);
++    if (!disp_ctx->mode_settled) {
++        disp_ctx->frame_full = mode;
++        disp_ctx->frame_t0 = esp_timer_get_time();
++        return;
++    }
++    const uint32_t best_cost = disp_ctx->mode_cost_ema[disp_ctx->mode_best];
++    const uint32_t other_cost = disp_ctx->mode_cost_ema[disp_ctx->mode_best ^ 1U];
++    const uint32_t budget = lvgl_port_vsync_gap(best_cost) * 16667U;
++    const uint8_t loser_bit = (uint8_t)(1U << (disp_ctx->mode_best ^ 1U));
++    const bool loser_unknown = (disp_ctx->mode_measured & loser_bit) == 0U;
++    const bool probe_unseen = other_cost + (other_cost >> 3) <= budget;
++    const uint16_t probe_mask = other_cost < best_cost + (best_cost >> 1) ? 127U : 1023U;
++    if (best_cost > 17500U && (loser_unknown || probe_unseen)
++            && (disp_ctx->probe_tick & probe_mask) < 4U) {
++        mode = disp_ctx->mode_best ^ 1U;
++    }
++    disp_ctx->frame_full = mode;
++    disp_ctx->frame_t0 = esp_timer_get_time();
++    if (mode != 0U) {
++        lv_obj_t *screen = lv_display_get_screen_active(disp);
++        if (screen != NULL) {
++            lv_obj_invalidate(screen);
++        }
++    }
++}
++
++static lvgl_port_display_ctx_t *s_strips_ctx = NULL;
++volatile uint32_t lvgl_port_cost_span_us = 0;
++volatile uint32_t lvgl_port_cost_wait_us = 0;
++
+ static void lvgl_port_flush_wait_cb(lv_display_t *disp)
+ {
+     (void)disp;
+     uint32_t slept = 0;
++    const int64_t wait_t0 = esp_timer_get_time();
+     while (__atomic_load_n(&s_flush_pending, __ATOMIC_SEQ_CST) > 0 && slept < 200U) {
+         vTaskDelay(1);
+         slept++;
+     }
++    if (s_strips_ctx != NULL) {
++        s_strips_ctx->wait_accum_us += (uint32_t)(esp_timer_get_time() - wait_t0);
++    }
+ }
+ 
+ static void lvgl_port_flush_worker(void *arg)
+@@ -310,8 +381,10 @@ static void lvgl_port_flush_worker(void *arg)
+ #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
+                 lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
+ #endif
++                const uint32_t vsync_gap =
++                    lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best]);
+                 uint32_t waits = 0;
+-                while (ctx->refresh_count == ctx->queued_refresh_count && waits < 10U) {
++                while (ctx->refresh_count - ctx->queued_refresh_count < vsync_gap && waits < 10U) {
+                     xSemaphoreTake(ctx->vsync_sem, pdMS_TO_TICKS(100));
+                     waits++;
+                 }
+@@ -870,7 +943,13 @@ static lv_display_t *lvgl_port_add_disp_priv(const lvgl_port_display_cfg_t *disp
+                 disp_ctx->panel_fbs[0] = fb0;
+                 disp_ctx->panel_fbs[1] = fb1;
+                 disp_ctx->panel_fbs[2] = fb2;
++                disp_ctx->mode_cost_ema[0] = 30000U;
++                disp_ctx->mode_cost_ema[1] = 30000U;
++                disp_ctx->probe_baseline = 30000U;
+                 disp_ctx->flags.full_strips = 1;
++                s_strips_ctx = disp_ctx;
++                lv_display_add_event_cb(disp, lvgl_port_adaptive_refr_start_callback,
++                                        LV_EVENT_REFR_START, disp_ctx);
+             } else {
+                 ESP_LOGW(TAG, "No DMA channel for full-strips mode; plain partial rendering stays");
+             }
+@@ -1191,6 +1270,7 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+                 disp_ctx->strip_target = (uint8_t)((disp_ctx->strip_target + 1U) % 3U);
+                 disp_ctx->recon_fired = 0;
+                 disp_ctx->recon_completed = 0;
++                if (!disp_ctx->frame_full) {
+                 uint16_t piece_y1 = 0;
+                 const uint16_t recon_vres = (uint16_t)lv_disp_get_ver_res(drv);
+                 while (piece_y1 < recon_vres) {
+@@ -1237,13 +1317,86 @@ static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, u
+                     }
+                     piece_y1 = piece_y2;
+                 }
++                }
+             }
+         }
+         disp_ctx->strip_rows += (uint32_t)(offsety2 - offsety1 + 1);
++        disp_ctx->strip_px += (uint32_t)(offsetx2 - offsetx1 + 1)
++                              * (uint32_t)(offsety2 - offsety1 + 1);
+         uint8_t swap = 0;
+         if (lv_disp_flush_is_last(drv)) {
+             swap = 1;
+             disp_ctx->strip_rows = 0;
++#if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
++            const uint32_t screen_px = (uint32_t)lv_disp_get_hor_res(drv)
++                                       * (uint32_t)lv_disp_get_ver_res(drv);
++            const bool whole_screen = disp_ctx->strip_px * 2U >= screen_px;
++            disp_ctx->strip_px = 0;
++            uint32_t frame_cost = (uint32_t)(esp_timer_get_time() - disp_ctx->frame_t0);
++            const uint32_t waited = disp_ctx->wait_accum_us;
++            lvgl_port_cost_span_us = lvgl_port_cost_span_us - (lvgl_port_cost_span_us >> 3) + (frame_cost >> 3);
++            lvgl_port_cost_wait_us = lvgl_port_cost_wait_us - (lvgl_port_cost_wait_us >> 3) + (waited >> 3);
++            frame_cost = frame_cost > waited ? frame_cost - waited : 0;
++            if (!disp_ctx->mode_settled) {
++                if (disp_ctx->settle_frames < 0xFFFFU) {
++                    disp_ctx->settle_frames++;
++                }
++                disp_ctx->settle_run = whole_screen
++                                       ? 0U
++                                       : (uint8_t)(disp_ctx->settle_run + 1U);
++                if (disp_ctx->settle_run >= 8U || disp_ctx->settle_frames >= 240U) {
++                    disp_ctx->mode_settled = 1U;
++                    disp_ctx->settle_run = 0U;
++                    disp_ctx->settle_frames = 0U;
++                    disp_ctx->seed_taken[0] = 0U;
++                    disp_ctx->seed_taken[1] = 0U;
++                    disp_ctx->mode_seen = 0U;
++                    disp_ctx->mode_measured = 0U;
++                    disp_ctx->probe_baseline = 0U;
++                }
++            } else {
++                uint32_t *ema = &disp_ctx->mode_cost_ema[disp_ctx->frame_full];
++                const uint8_t measured_bit = (uint8_t)(1U << disp_ctx->frame_full);
++                uint8_t *taken = &disp_ctx->seed_taken[disp_ctx->frame_full];
++                if (*taken < 4U) {
++                    uint32_t *low = &disp_ctx->seed_low[disp_ctx->frame_full];
++                    *low = (*taken == 0U || frame_cost < *low) ? frame_cost : *low;
++                    *taken = (uint8_t)(*taken + 1U);
++                    *ema = *low;
++                    if (*taken >= 4U) {
++                        disp_ctx->mode_seen |= measured_bit;
++                        disp_ctx->mode_measured |= measured_bit;
++                    }
++                } else {
++                    *ema = *ema - (*ema >> 3) + (frame_cost >> 3);
++                }
++                const uint32_t other_cost =
++                    disp_ctx->mode_cost_ema[disp_ctx->mode_best ^ 1U];
++                if ((disp_ctx->mode_seen & 0x3U) == 0x3U
++                        && other_cost + (other_cost >> 3)
++                               < disp_ctx->mode_cost_ema[disp_ctx->mode_best]) {
++                    disp_ctx->mode_best ^= 1U;
++                }
++                const uint32_t winner = disp_ctx->mode_cost_ema[disp_ctx->mode_best];
++                const uint32_t baseline = disp_ctx->probe_baseline;
++                if (baseline == 0U) {
++                    disp_ctx->probe_baseline = winner;
++                } else if (winner > baseline * 4U || winner * 4U < baseline) {
++                    disp_ctx->mode_settled = 0U;
++                    disp_ctx->settle_run = 0U;
++                    disp_ctx->settle_frames = 0U;
++                    disp_ctx->probe_baseline = winner;
++                } else if (winner > baseline + (baseline >> 1)
++                        || winner + (winner >> 1) < baseline) {
++                    const uint8_t keep = (uint8_t)(1U << disp_ctx->mode_best);
++                    disp_ctx->mode_measured &= keep;
++                    disp_ctx->mode_seen &= keep;
++                    disp_ctx->seed_taken[disp_ctx->mode_best ^ 1U] = 0U;
++                    disp_ctx->probe_baseline = winner;
++                }
++            }
++#endif
++            disp_ctx->frame_full = 0;
+         }
+         lvgl_port_flush_job_t job = {
+             .drv = drv,
