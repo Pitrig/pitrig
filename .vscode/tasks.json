@@ -200,6 +200,28 @@
       }
     },
     {
+      "label": "SimCore: Build Guition JC1060P470C (VSync Lock)",
+      "detail": "esp32p4 \u00b7 build-jc1060p470c-vsync-lock \u00b7 frames scheduled from the telemetry burst, ADR 0032",
+      "type": "shell",
+      "command": "/bin/zsh",
+      "args": [
+        "-lc",
+        "source \"${workspaceFolder}/tools/idf-env.sh\" build-jc1060p470c-vsync-lock >/dev/null && cmake -E rm -f sdkconfig.generated.jc1060p470c-vsync-lock && idf.py -B build-jc1060p470c-vsync-lock -DIDF_TARGET=esp32p4 -DSDKCONFIG=sdkconfig.generated.jc1060p470c-vsync-lock -DSDKCONFIG_DEFAULTS=\"sdkconfig.defaults;sdkconfig.defaults.guition-jc1060p470c;sdkconfig.defaults.vsync-lock\" build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/firmware"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      }
+    },
+    {
       "label": "SimCore: Build ESP32-S3 DevKitC-1",
       "detail": "esp32s3 \u00b7 build-devkit \u00b7 no display",
       "type": "shell",
@@ -258,7 +280,8 @@
         "SimCore: Build Guition JC1060P470C Debug",
         "SimCore: Build Guition JC1060P470C (Render Full)",
         "SimCore: Build Guition JC1060P470C (Render Partial)",
-        "SimCore: Build Guition JC1060P470C (24-bit Colour)"
+        "SimCore: Build Guition JC1060P470C (24-bit Colour)",
+        "SimCore: Build Guition JC1060P470C (VSync Lock)"
       ],
       "group": "build",
       "problemMatcher": []
@@ -519,7 +542,8 @@
         "build-jc1060p470c-debug",
         "build-jc1060p470c-render-full",
         "build-jc1060p470c-render-partial",
-        "build-jc1060p470c-24bit"
+        "build-jc1060p470c-24bit",
+        "build-jc1060p470c-vsync-lock"
       ],
       "default": "build-jc1060p470c"
     }

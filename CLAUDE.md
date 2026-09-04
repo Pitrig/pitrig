@@ -132,12 +132,13 @@ written back into the layer it belongs to, with no comments.
 ### VS Code tasks
 
 [.vscode/tasks.json](.vscode/tasks.json) carries every command above, each sourcing the environment
-for its own build directory: eleven `SimCore: Build …` tasks (four boards, their debug profiles,
-the two P4 render profiles and the 24-bit colour depth), `SimCore: Build All Firmware` (runs them in
-sequence, esp32s3 first so the `IDF_TARGET` switch happens once), `SimCore: Flash` / `Monitor` / `Flash and Monitor` over a
+for its own build directory: twelve `SimCore: Build …` tasks (four boards, their debug profiles,
+the two P4 render profiles, the 24-bit colour depth and the vsync-locked scheduler),
+`SimCore: Build All Firmware` (runs them in sequence, esp32s3 first so the `IDF_TARGET` switch
+happens once), `SimCore: Flash` / `Monitor` / `Flash and Monitor` over a
 picked build directory, `SimCore: Check Generated Contracts` and `Regenerate Contracts`,
 and `Configurator: …` / `Debugger: …` for both Electron applications. There is deliberately no
-default build task: with eleven configurations, the picker is the honest answer.
+default build task: with twelve configurations, the picker is the honest answer.
 
 **The port is chosen, not typed.** The three serial tasks run
 [tools/pick-serial-port.py](tools/pick-serial-port.py), which lists the ports that are actually
