@@ -10,7 +10,7 @@
 #include "application_configuration.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard_composition::incremental {
+namespace pitrig::dashboard_composition::incremental {
 
 [[nodiscard]] inline bool caption_masks_parent(
     const configuration::WidgetFrame* const frame) {

@@ -1,5 +1,5 @@
-appId: dev.simcore.configurator
-productName: SimCore
+appId: dev.pitrig.configurator
+productName: Pitrig
 directories:
   output: dist
 files:
@@ -23,13 +23,13 @@ win:
 linux:
   icon: resources/icon.png
   category: Development
-  maintainer: SimCore <simcoreproject@users.noreply.github.com>
-  executableName: simcore
+  maintainer: Pitrig <50419319+chooidos@users.noreply.github.com>
+  executableName: pitrig
   syncDesktopName: true
   target:
     - AppImage
     - deb
 
 deb:
-  packageName: simcore
-  artifactName: simcore_${version}_${arch}.${ext}
+  packageName: pitrig
+  artifactName: pitrig_${version}_${arch}.${ext}

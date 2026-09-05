@@ -1,6 +1,6 @@
 # Runtime Performance Diagnostics
 
-The `simcore::performance` service publishes a one-second snapshot containing
+The `pitrig::performance` service publishes a one-second snapshot containing
 FPS, CPU usage per core, the render/flush/sync split of a frame, the slowest
 frame and its processing and idle parts, internal heap information, available
 PSRAM, uptime, and the free stack of each monitored task. The debug overlay
@@ -9,9 +9,9 @@ adds transport counters read straight from the active transport.
 ## Build profile
 
 Runtime diagnostics are disabled in production. They are selected by the
-`CONFIG_SIMCORE_DEBUG` Kconfig option, which
-`firmware/utils/simcore_config/include/simcore_features.hpp` aliases to
-`SIMCORE_DEBUG`. Checked-in board profiles and IDE tasks are the single source of
+`CONFIG_PITRIG_DEBUG` Kconfig option, which
+`firmware/utils/pitrig_config/include/pitrig_features.hpp` aliases to
+`PITRIG_DEBUG`. Checked-in board profiles and IDE tasks are the single source of
 feature selection; no source header is edited.
 
 Build with the debug ESP-IDF defaults appended after the board profile, which
@@ -26,18 +26,18 @@ idf.py -B build-t-display-debug -DIDF_TARGET=esp32s3 \
 
 Use the required board defaults file in place of `sdkconfig.defaults.t-display-s3`.
 The debug defaults enable the 64-bit ESP Timer runtime counter required for CPU
-load measurement. Without `SIMCORE_DEBUG`, transport diagnostics, display
+load measurement. Without `PITRIG_DEBUG`, transport diagnostics, display
 instrumentation, and the dashboard overlay are removed from the production hot
 path, and FreeRTOS runtime statistics remain disabled.
 
 ## Reading the snapshot over the link
 
-The same snapshot is answered on the serial link by `@SC:DIAG`, alongside live
+The same snapshot is answered on the serial link by `@PR:DIAG`, alongside live
 heap figures the overlay does not draw: the total and lowest-since-boot free
 bytes of both heaps. That is what makes a memory budget measurable — a host can
 apply a document and read what it cost, in bytes, without anyone reading the
 panel. The command exists only in a build that has this service; a product build
-answers `@SC:ERR:unsupported`. The reply's field list is documented in
+answers `@PR:ERR:unsupported`. The reply's field list is documented in
 [control-protocol.md](control-protocol.md).
 
 ## Measurements
@@ -47,7 +47,7 @@ sampler folds a 50 ms slice into a twenty-slice ring twenty times a second and
 republishes the whole window each time. A second's worth of frames is what makes
 an average steady — a window as short as a poll would quantize 60 fps into ±17%
 noise — but a reader is never handed the same snapshot twice, so polling
-`@SC:DIAG` at 100 ms shows values that moved since the previous poll instead of
+`@PR:DIAG` at 100 ms shows values that moved since the previous poll instead of
 one frozen block per second. Sums (frames, render, flush, sync, latency, areas)
 span the window; the maxima (`frame_max_us`, `work_max_us`, `gap_max_us`,
 `lat_max_us`) are the largest in it, so a spike appears at once and ages out a
@@ -98,7 +98,7 @@ far more than the frame counters do, and neither figure moves within a window.
   and `cost_span` against `cost_wait` is how much of a frame's span was the
   flush wait ([ADR 0032](adr/0032-burst-scheduled-frames.md)).
 - **Heap:** current free internal 8-bit heap and its largest free block. The two
-  largest-free-block figures are refreshed only every five seconds, and `@SC:DIAG`
+  largest-free-block figures are refreshed only every five seconds, and `@PR:DIAG`
   serves them from that sample rather than measuring them itself: finding the
   largest free block walks every block of the pool with the heap spinlock held,
   which disables interrupts for the whole walk. Called per poll on the PSRAM pool
@@ -116,7 +116,7 @@ far more than the frame counters do, and neither figure moves within a window.
   own the serial link at a time.
 
 The service owns measurement and aggregation. What a debug build draws over
-the dashboard is the `SIMCORE_DEBUG_OVERLAY` Kconfig choice: the full
+the dashboard is the `PITRIG_DEBUG_OVERLAY` Kconfig choice: the full
 statistics panel, an FPS-only chip (the default — the full panel blends over
 the widgets beneath it and distorts small-display measurements), or nothing.
 
@@ -127,7 +127,7 @@ set shows up as one longer frame in **Max** and is cached afterwards.
 
 ## What a frame costs
 
-Measured on the three display boards over `@SC:DIAG`, by applying dashboards of growing
+Measured on the three display boards over `@PR:DIAG`, by applying dashboards of growing
 widget counts and feeding telemetry at a fixed rate. The shape of the answer
 matters more than any single number:
 
@@ -178,7 +178,7 @@ per-screen tuning:
   across screens buys frame budget directly; transitions are tear-free and do
   not tax the steady state.
 - **Verify, don't guess**: apply the document and read `render_us` and
-  `lat_us` back over `@SC:DIAG`, with the FPS chip on the panel.
+  `lat_us` back over `@PR:DIAG`, with the FPS chip on the panel.
 
 ### Where an area's time goes
 
@@ -203,7 +203,7 @@ background is the cheapest of all.
 
 ### What 24-bit colour costs on the ESP32-P4
 
-`SIMCORE_DISPLAY_COLOR_DEPTH` offers the JC1060P470C 16-bit RGB565, which is
+`PITRIG_DISPLAY_COLOR_DEPTH` offers the JC1060P470C 16-bit RGB565, which is
 what it ships with, and 24-bit RGB888; `sdkconfig.defaults.color-24bit` selects
 the second and raises `LV_COLOR_DEPTH` with it. The panel accepts both — at the
 50 MHz pixel clock the DSI link carries 800 Mbit/s of RGB565 or 1200 of RGB888,
@@ -258,7 +258,7 @@ cadence unchanged — a defect removed, not a trade. Only `text_64` and
 holding.
 
 Removing the hold itself is a trade, so it is a build option rather than a
-default: `CONFIG_SIMCORE_DISPLAY_UNCAPPED` (`sdkconfig.defaults.uncapped`). It
+default: `CONFIG_PITRIG_DISPLAY_UNCAPPED` (`sdkconfig.defaults.uncapped`). It
 halves what is left of the latency — the Lovely main screen 21.8 to 12.8 ms,
 its fuel screen 12.5 to 7.9, `text_only` 23.3 to 7.4 — and lifts the frame rate
 past what the panel shows, which means the processor draws frames nobody sees.
@@ -272,10 +272,10 @@ in the flush wait for the entire hold, so the burst of telemetry that arrives
 during it is drawn only after the latch and shown one refresh later, and the
 display stays a refresh behind because the feed is faster than the panel.
 [ADR 0032](adr/0032-burst-scheduled-frames.md) answers this as
-`CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK` (`sdkconfig.defaults.vsync-lock`, off by
+`CONFIG_PITRIG_DISPLAY_VSYNC_LOCK` (`sdkconfig.defaults.vsync-lock`, off by
 default): each burst arms one frame start, and the before-and-after latencies
 are in the ADR's table. The frame accounting it was found with is exported by
-the debug build over `@SC:DIAG` and listed under Measurements above.
+the debug build over `@PR:DIAG` and listed under Measurements above.
 
 ### What a screen change costs
 
@@ -299,8 +299,8 @@ invalidated areas into a grid, were both measured and rejected — see
 
 Free internal RAM is constant on every board, whatever the dashboard holds,
 because every LVGL allocation comes from external RAM ([ADR
-0026](adr/0026-ui-memory-in-external-ram.md)). `@SC:DIAG` reports both heaps;
-`internal_free` staying put across an `@SC:APPLY` is the expected result, and a
+0026](adr/0026-ui-memory-in-external-ram.md)). `@PR:DIAG` reports both heaps;
+`internal_free` staying put across an `@PR:APPLY` is the expected result, and a
 figure that moves with the document means something is allocating outside that
 allocator. External RAM is what a dashboard spends: a distinct
 `(family, size_px)` pair costs 4–12 KB of it depending on the pixel size, and an

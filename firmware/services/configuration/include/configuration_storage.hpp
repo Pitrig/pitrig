@@ -6,7 +6,7 @@
 
 #include "application_configuration.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 class IConfigurationStorage {
  public:

@@ -1,6 +1,6 @@
 #include "widget_descriptor.hpp"
 
-namespace simcore::dashboard {
+namespace pitrig::dashboard {
 
 WidgetManager::~WidgetManager() {
   destroy_all();

@@ -3,7 +3,7 @@
 #include "indicator_widget.hpp"
 #include "lvgl.h"
 
-namespace simcore::dashboard::indicator_widget::geometry {
+namespace pitrig::dashboard::indicator_widget::geometry {
 
 struct Ring {
   float radius{};

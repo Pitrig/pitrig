@@ -10,7 +10,7 @@
 #include "configuration_json.hpp"
 #include "configuration_storage.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 enum class DocumentOutcome : std::uint8_t {
   absent,

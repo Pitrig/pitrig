@@ -6,7 +6,7 @@
 #include "led_paint.hpp"
 #include "telemetry_state.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 
 struct EffectBinding {
   telemetry::Handle value{};

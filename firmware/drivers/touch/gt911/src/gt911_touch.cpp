@@ -6,7 +6,7 @@
 #include "esp_lcd_touch_gt911.h"
 #include "esp_log.h"
 
-namespace simcore::input::drivers::gt911 {
+namespace pitrig::input::drivers::gt911 {
 namespace {
 
 constexpr char kTag[] = "gt911";

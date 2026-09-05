@@ -7,7 +7,7 @@
 #include "freertos/task.h"
 #include "performance.hpp"
 
-namespace simcore::performance::internal {
+namespace pitrig::performance::internal {
 
 struct Measurements {
   std::uint32_t frames;
@@ -34,7 +34,7 @@ extern std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)>
 
 }
 
-namespace simcore::performance {
+namespace pitrig::performance {
 
 void update();
 

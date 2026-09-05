@@ -24,7 +24,7 @@ export const useTemplatesStore = create<TemplatesStore>((set, get) => ({
   loadDocument: (id) => {
     if (get().documents[id]) return
     set((state) => ({ documents: { ...state.documents, [id]: 'loading' } }))
-    void window.simcore
+    void window.pitrig
       .readTemplate({ id, kind: 'dashboard' })
       .then((result) =>
         set((state) => ({
@@ -44,7 +44,7 @@ export const useTemplatesStore = create<TemplatesStore>((set, get) => ({
   refresh: async () => {
     set({ loading: true, error: undefined })
     try {
-      const result = await window.simcore.listTemplates()
+      const result = await window.pitrig.listTemplates()
       if (result.ok) set({ library: result.value, documents: {} })
       else set({ error: result.error.message })
     } catch (error) {

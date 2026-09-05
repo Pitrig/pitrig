@@ -1,6 +1,6 @@
 #include "usb_descriptors.hpp"
 
-namespace simcore::transport::usb_descriptors {
+namespace pitrig::transport::usb_descriptors {
 namespace {
 
 constexpr std::uint16_t kUsbVendorId = TINYUSB_ESPRESSIF_VID;
@@ -106,7 +106,7 @@ const char* kStrings[] = {
     CONFIG_TINYUSB_DESC_SERIAL_STRING,
     CONFIG_TINYUSB_DESC_CDC_STRING,
 #if CFG_TUD_HID
-    "SimCore Gamepad",
+    "Pitrig Gamepad",
 #endif
 };
 const int kStringCount =

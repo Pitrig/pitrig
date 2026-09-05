@@ -7,9 +7,9 @@
 #include "led_paint.hpp"
 #include "logger.hpp"
 #include "rgb_frames.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 namespace {
 
 constexpr std::size_t kStopWaitTicks = 200;
@@ -181,7 +181,7 @@ bool RgbLeds::start(events::EventBus& event_bus,
   TaskHandle_t task = nullptr;
   if (xTaskCreatePinnedToCore(&RgbLeds::task_entry, "rgb_leds", kTaskStackBytes,
                               this, kTaskPriority, &task,
-                              SIMCORE_COMMUNICATION_CORE) != pdPASS) {
+                              PITRIG_COMMUNICATION_CORE) != pdPASS) {
     task = nullptr;
   }
   task_ = task;

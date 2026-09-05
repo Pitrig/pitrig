@@ -2,7 +2,7 @@
 
 ## Context
 
-SimCore needs to receive telemetry from SimHub over a board-appropriate
+Pitrig needs to receive telemetry from SimHub over a board-appropriate
 transport while remaining independent from both that protocol and transport.
 Future sources may use a Companion protocol and UDP. Widgets and modules need
 stable, typed access without depending on SimHub identifiers or performing

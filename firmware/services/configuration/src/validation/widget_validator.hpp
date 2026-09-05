@@ -6,7 +6,7 @@
 #include "configuration_schema_generated.hpp"
 #include "telemetry_registry.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 
 class Validator final {
  public:

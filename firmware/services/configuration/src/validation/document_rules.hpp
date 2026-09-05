@@ -8,7 +8,7 @@
 #include "configuration_schema_generated.hpp"
 #include "validation/widget_validator.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 
 [[nodiscard]] bool within_family_budget(
     const ApplicationConfiguration& configuration);

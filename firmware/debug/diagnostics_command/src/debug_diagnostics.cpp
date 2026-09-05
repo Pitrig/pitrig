@@ -48,7 +48,7 @@ extern volatile std::uint32_t lvgl_port_feed_jitter_us;
 extern volatile std::uint32_t lvgl_port_acc_wake_nothing;
 }
 
-namespace simcore::debug::diagnostics {
+namespace pitrig::debug::diagnostics {
 namespace {
 
 struct Tenths {
@@ -84,7 +84,7 @@ int write(char* const out, const std::size_t size) {
       out, size,
       std::snprintf(
           out, size,
-          "@SC:OK:DIAG:internal_total=%u,internal_free=%u,internal_min=%u,"
+          "@PR:OK:DIAG:internal_total=%u,internal_free=%u,internal_min=%u,"
           "internal_largest=%u,psram_total=%u,psram_free=%u,psram_min=%u,"
           "psram_largest=%u",
           static_cast<unsigned>(heap_caps_get_total_size(kInternal)),

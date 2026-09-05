@@ -14,7 +14,7 @@ export const useFontLibraryStore = create<FontLibraryState>((set) => ({
   entries: [],
   unreadable: 0,
   refresh: async () => {
-    const snapshot = await window.simcore
+    const snapshot = await window.pitrig
       .listFontLibrary()
       .catch(() => ({ entries: [], unreadable: 0 }))
     set({ entries: snapshot.entries, unreadable: snapshot.unreadable })
@@ -23,7 +23,7 @@ export const useFontLibraryStore = create<FontLibraryState>((set) => ({
 
 export function subscribeToFontLibrary(): () => void {
   void useFontLibraryStore.getState().refresh()
-  return window.simcore.onFontLibraryChanged((snapshot) => {
+  return window.pitrig.onFontLibraryChanged((snapshot) => {
     useFontLibraryStore.setState({
       entries: snapshot.entries,
       unreadable: snapshot.unreadable

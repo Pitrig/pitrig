@@ -49,7 +49,7 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/services/value_conditions"
      "${CMAKE_CURRENT_LIST_DIR}/services/value_smoothing"
      "${CMAKE_CURRENT_LIST_DIR}/utils/binary"
-     "${CMAKE_CURRENT_LIST_DIR}/utils/simcore_config"
+     "${CMAKE_CURRENT_LIST_DIR}/utils/pitrig_config"
      "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/number_transform"
      "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/text_writer"
      "${CMAKE_CURRENT_LIST_DIR}/utils/transformers/time_transform")
@@ -74,7 +74,7 @@ if(IDF_TARGET STREQUAL "esp32p4")
     idf_build_set_property(DEPENDENCIES_LOCK dependencies.lock.esp32p4)
 endif()
 idf_build_set_property(MINIMAL_BUILD ON)
-project(simcore)
+project(pitrig)
 if(CONFIG_LV_DRAW_SW_DRAW_UNIT_CNT GREATER 1)
     idf_build_set_property(COMPILE_DEFINITIONS "LV_USE_OS=2" APPEND)
 endif()

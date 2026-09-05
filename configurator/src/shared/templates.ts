@@ -8,8 +8,8 @@ export const TEMPLATE_READ_CHANNEL = 'templates:read' as const
 export const TEMPLATE_SAVE_CHANNEL = 'templates:save' as const
 export const TEMPLATE_DELETE_CHANNEL = 'templates:delete' as const
 
-export const TEMPLATE_FORMAT = 'simcore-dashboard-template' as const
-export const WIDGET_TEMPLATE_FORMAT = 'simcore-widget-template' as const
+export const TEMPLATE_FORMAT = 'pitrig-dashboard-template' as const
+export const WIDGET_TEMPLATE_FORMAT = 'pitrig-widget-template' as const
 export const TEMPLATE_FORMAT_VERSION = 1
 
 export const WIDGET_TEMPLATE_SUBDIRECTORY = 'widgets'

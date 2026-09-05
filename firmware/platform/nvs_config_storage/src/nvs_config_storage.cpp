@@ -8,11 +8,11 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 namespace {
 
-constexpr char kPartition[] = "simcore_cfg";
-constexpr char kNamespace[] = "simcore_cfg";
+constexpr char kPartition[] = "pitrig_cfg";
+constexpr char kNamespace[] = "pitrig_cfg";
 
 std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(
     const ConfigurationDocument document) {

@@ -22,7 +22,7 @@ import { isDiagnosticsReply, parseBenchDiagnostics } from './bench-diagnostics'
 import { TelemetryFeed } from './telemetry-feed'
 
 const NO_DISPLAY = 'This board has no display, so there is no render pattern to measure.'
-const DIAGNOSTICS_COMMAND = '@SC:DIAG'
+const DIAGNOSTICS_COMMAND = '@PR:DIAG'
 const APPLY_ATTEMPTS = 3
 const APPLY_RETRY_DELAY_MS = 1_500
 
@@ -61,7 +61,7 @@ export class BenchService {
 
   start(request: BenchStartRequest): DeviceResult<BenchStatus> {
     if (!this.services.deviceService.telemetryLinkAvailable()) {
-      return failure({ code: 'serial_error', message: 'No SimCore board is connected.' })
+      return failure({ code: 'serial_error', message: 'No Pitrig board is connected.' })
     }
     this.signals = selectSignals(request.signals)
     this.pollIntervalMs = clampPollInterval(request.pollIntervalMs)
@@ -95,7 +95,7 @@ export class BenchService {
     const { deviceService } = this.services
     const session = deviceService.getState().session
     if (!session) {
-      return failure({ code: 'serial_error', message: 'No SimCore board is connected.' })
+      return failure({ code: 'serial_error', message: 'No Pitrig board is connected.' })
     }
     if (this.patternBusy) {
       return failure({ code: 'busy', message: 'The bench is already changing the dashboard.' })
@@ -249,7 +249,7 @@ export class BenchService {
     if (!result.ok) return undefined
     const reply = result.value.lines.find(isDiagnosticsReply)
     if (reply === undefined) {
-      if (result.value.lines.some((line) => line.startsWith('@SC:ERR:'))) {
+      if (result.value.lines.some((line) => line.startsWith('@PR:ERR:'))) {
         this.diagnostics = 'unsupported'
         this.message = 'This board runs a product build; flash a debug build for diagnostics.'
         this.publish()

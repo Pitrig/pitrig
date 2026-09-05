@@ -4,7 +4,7 @@
 
 #include "validation/value_rules.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 
 [[nodiscard]] bool within_family_budget(
     const ApplicationConfiguration& configuration) {

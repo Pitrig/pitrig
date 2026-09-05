@@ -68,7 +68,7 @@ def generate_cpp_parser(document: dict[str, Any]) -> str:
         "",
         '#include "application_configuration_generated.hpp"',
         "",
-        "namespace simcore::configuration {",
+        "namespace pitrig::configuration {",
         "",
         "enum class ValidationError : std::uint8_t {",
     ]

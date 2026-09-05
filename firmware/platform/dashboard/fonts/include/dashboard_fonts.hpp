@@ -10,7 +10,7 @@
 #include "font_asset_service.hpp"
 #include "lvgl.h"
 
-namespace simcore::dashboard::fonts {
+namespace pitrig::dashboard::fonts {
 
 [[nodiscard]] constexpr std::size_t maximum_font_requests() {
   std::size_t total = configuration::kMaximumTextWidgets;

@@ -4,7 +4,7 @@
 #include "json_readers.hpp"
 #include "cJSON.h"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 
 [[nodiscard]] bool parse_led_effect(const cJSON* object, LedEffect& config,
                                     ValidationFailure& failure);

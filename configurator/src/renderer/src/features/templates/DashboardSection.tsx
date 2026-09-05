@@ -16,7 +16,7 @@ import { withWidgetIds } from '@shared/configuration-access'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
 import {
   applyBoardTransportDefaults,
-  SIMCORE_BOARD_IDS,
+  PITRIG_BOARD_IDS,
   type DeviceConfiguration
 } from '@shared/device'
 import { transferConfiguration, type LayoutTransferResult } from '@shared/layout-transfer'
@@ -76,12 +76,12 @@ export function DashboardSection({
     setReport(undefined)
     setMissing([])
     try {
-      const result = await window.simcore.readTemplate({ id: summary.id, kind: 'dashboard' })
+      const result = await window.pitrig.readTemplate({ id: summary.id, kind: 'dashboard' })
       if (!result.ok) {
         setError(result.error.message)
         return
       }
-      if (result.value.format !== 'simcore-dashboard-template') {
+      if (result.value.format !== 'pitrig-dashboard-template') {
         setError(t('templates.dashboardSection.thatEntryIsNotA'))
         return
       }
@@ -96,7 +96,7 @@ export function DashboardSection({
         withWidgetIds(keepDraftTransport(transferred.configuration, draft))
       )
       const validated = validateConfigurationDocument(adopted, {
-        supportedBoards: SIMCORE_BOARD_IDS
+        supportedBoards: PITRIG_BOARD_IDS
       })
       if (!validated.ok) {
         setError(

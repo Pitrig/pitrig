@@ -2,11 +2,11 @@
 
 #include "dashboard_fonts.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 struct ApplicationConfiguration;
 }
 
-namespace simcore::dashboard_composition::assets {
+namespace pitrig::dashboard_composition::assets {
 
 [[nodiscard]] bool acquire_fonts(
     const configuration::ApplicationConfiguration& configuration,

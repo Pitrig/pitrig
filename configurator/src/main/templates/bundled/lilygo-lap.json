@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "T-Display lap timer",
   "description": "Lap, delta, last and best readouts grouped into containers and sized for the 320 x 170 strip.",

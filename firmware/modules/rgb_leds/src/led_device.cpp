@@ -1,6 +1,6 @@
 #include "led_device.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 namespace {
 
 [[nodiscard]] led::Order order_of(const configuration::MatrixOrder order) {

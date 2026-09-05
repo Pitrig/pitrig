@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstring>
 
-namespace simcore::led {
+namespace pitrig::led {
 namespace {
 
 constexpr std::size_t kWorkingChannels = 3;

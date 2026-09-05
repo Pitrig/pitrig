@@ -1,7 +1,7 @@
-import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
+import { BOARD_PROFILES, type PitrigBoardId } from '@shared/device'
 import { t } from '@shared/ui-text'
 
-export const BOARD_NAMES: Record<SimCoreBoardId, string> = {
+export const BOARD_NAMES: Record<PitrigBoardId, string> = {
   t_display_s3: 'T-Display S3',
   guition_esp32_4848s040: 'Guition 4848S040',
   guition_jc1060p470c: 'Guition JC1060P470C',
@@ -9,21 +9,21 @@ export const BOARD_NAMES: Record<SimCoreBoardId, string> = {
 }
 
 export function boardName(board: string): string {
-  return BOARD_NAMES[board as SimCoreBoardId] ?? board
+  return BOARD_NAMES[board as PitrigBoardId] ?? board
 }
 
-export function boardLabel(board: SimCoreBoardId): string {
+export function boardLabel(board: PitrigBoardId): string {
   const size = displaySize(board)
   return size ? t('dashboard.boardLabels.boardSize', { board: BOARD_NAMES[board], size: size }) : t('dashboard.boardLabels.boardNodisplay', { board: BOARD_NAMES[board], noDisplay: t('boards.noDisplay') })
 }
 
 export function displaySize(board: string): string | undefined {
-  const display = BOARD_PROFILES[board as SimCoreBoardId]?.display
+  const display = BOARD_PROFILES[board as PitrigBoardId]?.display
   return display ? t('canvas.menuEntries.widthHeight', { width: display.width, height: display.height }) : undefined
 }
 
 export function displayPixels(board: string): number {
-  const display = BOARD_PROFILES[board as SimCoreBoardId]?.display
+  const display = BOARD_PROFILES[board as PitrigBoardId]?.display
   return display ? display.width * display.height : Number.MAX_SAFE_INTEGER
 }
 

@@ -9,11 +9,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "transport.hpp"
 #include "transport_instrumentation.hpp"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 
 struct UartConfiguration {
   uart_port_t port{UART_NUM_0};
@@ -35,7 +35,7 @@ class UartTransport final : public ITransport {
   bool start(DataHandler handler, void* context) override;
   void stop() override;
   bool write(std::span<const std::uint8_t> data) override;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   [[nodiscard]] Diagnostics diagnostics() const override;
 #endif
 
@@ -62,7 +62,7 @@ class UartTransport final : public ITransport {
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
   LogSilencer log_silencer_{};
   ReadInstrumentation instrumentation_{};
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   std::atomic<std::uint32_t> fifo_overflows_{};
   std::atomic<std::uint32_t> buffer_full_events_{};
 #endif

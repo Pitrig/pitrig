@@ -4,7 +4,7 @@
 #include <array>
 #include <cstdint>
 
-namespace simcore::led {
+namespace pitrig::led {
 
 inline constexpr char kFirstGlyph = '0';
 inline constexpr char kLastGlyph = 'R';

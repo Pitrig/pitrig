@@ -9,35 +9,35 @@
 #include "firmware_update_control.hpp"
 #include "font_asset_control.hpp"
 #include "image_asset_control.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "simhub_protocol.hpp"
 
 #include <array>
 #include <cstddef>
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 class ConfigurationService;
 }
 
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 class Service;
 }
 
-namespace simcore::image_assets {
+namespace pitrig::image_assets {
 class Service;
 }
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 class TelemetryProvider;
 class ITelemetryRegistry;
 struct TelemetryUpdate;
 }
 
-namespace simcore::transport {
+namespace pitrig::transport {
 class ITransport;
 }
 
-namespace simcore::communication {
+namespace pitrig::communication {
 
 class Composition final {
  public:

@@ -79,13 +79,13 @@ export const useBenchStore = create<BenchStore>((set) => ({
 }))
 
 export function subscribeToBench(): () => void {
-  const stopStatus = window.simcore.onBenchStatus((status) =>
+  const stopStatus = window.pitrig.onBenchStatus((status) =>
     useBenchStore.getState().applyStatus(status)
   )
-  const stopSamples = window.simcore.onBenchSample((sample) =>
+  const stopSamples = window.pitrig.onBenchSample((sample) =>
     useBenchStore.getState().appendSample(sample)
   )
-  void window.simcore.getBenchStatus().then((status) => useBenchStore.getState().applyStatus(status))
+  void window.pitrig.getBenchStatus().then((status) => useBenchStore.getState().applyStatus(status))
   return () => {
     stopStatus()
     stopSamples()

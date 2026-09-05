@@ -6,7 +6,7 @@ is up, so rollback catches only an image that cannot be talked to.
 
 ## Context
 
-Every SimCore board is updated by cable. The partition table carried a single
+Every Pitrig board is updated by cable. The partition table carried a single
 `factory` application partition, the firmware contained no `esp_ota_*` call, and
 installing a new build meant `idf.py flash` from a checkout of the source. That
 is fine for the person writing the firmware and useless for anyone else running
@@ -19,7 +19,7 @@ so this is mostly a question of partition layout and of what may be trusted.
 
 Two constraints shaped the layout. The ESP32-P4 bootloader has 1 296 bytes of
 its 24 KiB left, which decides whether rollback support fits at all; and the
-`simcore_cfg` partition needed to grow from 256 KiB to 1 MiB at the same time
+`pitrig_cfg` partition needed to grow from 256 KiB to 1 MiB at the same time
 (ADR 0009), which meant one migration rather than two.
 
 ## Decision
@@ -28,7 +28,7 @@ its 24 KiB left, which decides whether rollback support fits at all; and the
 `ota_0` and `ota_1`, 2.5 MiB each, with an `otadata` partition selecting between
 them. Nothing falls back to a compiled-in image: if both slots are unusable the
 device is recovered over USB. That is an acceptable floor precisely because the
-device is a USB peripheral — a SimCore board with no cable attached is not
+device is a USB peripheral — a Pitrig board with no cable attached is not
 running a session either. The alternative, `factory` plus one OTA slot, spends
 2 MiB to protect against a case where the user already has the cable in hand.
 
@@ -40,7 +40,7 @@ kept a layout shaped by history rather than by what is stored. ADR 0009 made the
 same trade when the configuration partition first appeared.
 
 The default `nvs` partition shrinks from 24 KiB to 16 KiB. Nothing reads it —
-the configuration lives in `simcore_cfg` and no other component opens NVS — and
+the configuration lives in `pitrig_cfg` and no other component opens NVS — and
 at 16 KiB the partitions before the first application slot end exactly at
 `0x10000`, where a 64 KiB-aligned application partition has to start. At its old
 size the alignment would have cost 56 KiB in a gap.
@@ -50,7 +50,7 @@ The table was first installed with 4.94 MiB left unallocated, which read as a
 reserve and was not one: a partition table travels only over a cable and only
 with a full erase behind it, so space that is not a partition today can never be
 given to a board that has already shipped. The revised table spends that tail
-and the 512 KiB reclaimed from `simcore_cfg` — 2.5 MiB slots, 3 MiB of fonts,
+and the 512 KiB reclaimed from `pitrig_cfg` — 2.5 MiB slots, 3 MiB of fonts,
 7 MiB of images — and turns what is left into two declared, deliberately empty
 partitions: `coredump`, which needs only `CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH`
 to come alive, and `reserve`, for the next uploaded asset kind. Both can then be
@@ -97,8 +97,8 @@ display, so it now means only that the board can be talked to — which is what 
 image actually has to prove, since everything past it is repairable over that
 link and nothing short of it is.
 
-**Firmware is the third consumer of the `SCF1` upload engine.** The `@SC:FW:`
-namespace joins `@SC:FONT:` and `@SC:IMAGE:` over the same frames, the same
+**Firmware is the third consumer of the `SCF1` upload engine.** The `@PR:FW:`
+namespace joins `@PR:FONT:` and `@PR:IMAGE:` over the same frames, the same
 stop-and-wait sequence, the same inactivity timeout and the same
 `binary_session::Claim` — so a firmware upload beginning while a font package is
 in flight is answered `busy` rather than raced. `services/firmware_update`
@@ -137,7 +137,7 @@ running and the one it would fall back to, and neither is erasable on request.
 - The application image grew by about 18 KiB, which is what `app_update` and the
   new service cost. At 0.95 MiB in a 2.5 MiB slot, every board keeps well over
   half of its slot free.
-- `simcore_cfg` at 512 KiB still holds several stored configurations, but fewer
+- `pitrig_cfg` at 512 KiB still holds several stored configurations, but fewer
   than the 1 MiB ADR 0009 sized for. Three documents come to 66 KiB, so the
   headroom is now measured in a handful of them rather than in dozens.
 - The upload frame at 4 KiB cuts an upload's round trips by four. Measured on
@@ -151,7 +151,7 @@ running and the one it would fall back to, and neither is erasable on request.
   Records of an unknown schema are already treated as unsupported and fall back
   to another slot or to the factory configuration, so the board comes up on the
   factory dashboard and names the reason in its boot log. The two slots share one
-  `simcore_cfg` (ADR 0009); giving each its own would have avoided this and was
+  `pitrig_cfg` (ADR 0009); giving each its own would have avoided this and was
   rejected because it makes the common case worse — a configuration saved before
   an update would vanish after it.
 - Updating over a network is still out of scope. WiFi is not enabled in any

@@ -1,1 +1,1 @@
-idf_component_register(INCLUDE_DIRS "include" REQUIRES simcore_config)
+idf_component_register(INCLUDE_DIRS "include" REQUIRES pitrig_config)

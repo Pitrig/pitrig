@@ -12,7 +12,7 @@
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard::indicator_widget {
+namespace pitrig::dashboard::indicator_widget {
 
 inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumIndicatorWidgets;

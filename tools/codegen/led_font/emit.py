@@ -22,7 +22,7 @@ def cpp(document: dict[str, Any]) -> str:
         "#include <array>",
         "#include <cstdint>",
         "",
-        "namespace simcore::led {",
+        "namespace pitrig::led {",
         "",
         f"inline constexpr char kFirstGlyph = '{document['first']}';",
         f"inline constexpr char kLastGlyph = '{document['last']}';",

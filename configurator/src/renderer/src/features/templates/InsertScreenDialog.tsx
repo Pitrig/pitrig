@@ -48,7 +48,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
     setBusy(true)
     setError(undefined)
     try {
-      const result = await window.simcore.readTemplate({ id: summary.id, kind: 'dashboard' })
+      const result = await window.pitrig.readTemplate({ id: summary.id, kind: 'dashboard' })
       if (!result.ok) {
         setError(result.error.message)
         return

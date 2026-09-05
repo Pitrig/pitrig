@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Screens and slots",
   "description": "Two screens joined by tap targets, with a slot that cycles tyre and fuel pages and raises an alert page on a trigger.",

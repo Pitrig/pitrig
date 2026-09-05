@@ -6,7 +6,7 @@
 #include <limits>
 #include <numbers>
 
-namespace simcore::dashboard::ring {
+namespace pitrig::dashboard::ring {
 
 struct Centre {
   float radius{};

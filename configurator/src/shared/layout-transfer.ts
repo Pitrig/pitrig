@@ -1,6 +1,6 @@
 import { childArraysOf, widgetsOf } from './configuration-access'
 import { type ApplicationConfiguration, type WidgetConfiguration, type WidgetPlacement, type WidgetType } from './configuration-schema'
-import { BOARD_PROFILES, type SimCoreBoardId } from './device'
+import { BOARD_PROFILES, type PitrigBoardId } from './device'
 import { scaleAxis, scaleWidgetFields } from './layout-transfer-fields'
 import { repairArcThickness, repairFrameInset } from './layout-transfer-repairs'
 
@@ -12,7 +12,7 @@ export interface DisplaySize {
 export type LayoutFit = 'contain' | 'stretch'
 
 export interface LayoutTransferTarget {
-  board: SimCoreBoardId
+  board: PitrigBoardId
   display?: DisplaySize
   fit?: LayoutFit
 }
@@ -58,7 +58,7 @@ const MAXIMUM_NOTES = 200
 
 function carryOutputs(
   configuration: ApplicationConfiguration,
-  board: SimCoreBoardId,
+  board: PitrigBoardId,
   note: (entry: LayoutTransferNote) => void
 ): void {
   const offered = BOARD_PROFILES[board]?.led.pins ?? []

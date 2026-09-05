@@ -16,7 +16,7 @@ export function FirmwarePage(): React.JSX.Element {
   const store = useFirmwareUpdateStore
   const [busy, setBusy] = useState(false)
 
-  useEffect(() => window.simcore.onFirmwareUploadProgress(store.getState().setProgress), [store])
+  useEffect(() => window.pitrig.onFirmwareUploadProgress(store.getState().setProgress), [store])
 
   const firmware = session?.firmware
   const uploadable =
@@ -26,7 +26,7 @@ export function FirmwarePage(): React.JSX.Element {
     setBusy(true)
     store.getState().setError(undefined)
     try {
-      const result = await window.simcore.selectFirmwareSource()
+      const result = await window.pitrig.selectFirmwareSource()
       if (!result.ok) store.getState().setError(result.error.message)
       else if (result.value) store.getState().setSource(result.value)
     } finally {
@@ -39,7 +39,7 @@ export function FirmwarePage(): React.JSX.Element {
     setBusy(true)
     store.getState().beginOperation()
     try {
-      const result = await window.simcore.uploadFirmware({ sourceId: source.id })
+      const result = await window.pitrig.uploadFirmware({ sourceId: source.id })
       if (!result.ok) store.getState().setError(result.error.message)
     } finally {
       store.getState().endOperation()
@@ -58,7 +58,7 @@ export function FirmwarePage(): React.JSX.Element {
       description={t('firmware.firmwarePage.installAFirmwareImageInto')}
       actions={
         firmware?.rebootRequired && !running ? (
-          <Button onClick={() => void window.simcore.rebootDevice()}>{t('firmware.firmwarePage.restartBoard')}</Button>
+          <Button onClick={() => void window.pitrig.rebootDevice()}>{t('firmware.firmwarePage.restartBoard')}</Button>
         ) : null
       }
     >
@@ -85,7 +85,7 @@ export function FirmwarePage(): React.JSX.Element {
 
           <PageSection
             title={t('firmware.firmwarePage.image')}
-            description={t('firmware.firmwarePage.aPackagedSimcoreFirmwareImage')}
+            description={t('firmware.firmwarePage.aPackagedPitrigFirmwareImage')}
           >
             <div className="space-y-3">
               {source ? (
@@ -131,7 +131,7 @@ export function FirmwarePage(): React.JSX.Element {
                 <Button
                   className="w-full"
                   variant="outline"
-                  onClick={() => void window.simcore.cancelFirmwareUpload()}
+                  onClick={() => void window.pitrig.cancelFirmwareUpload()}
                 >
                   {t('common.cancel')}</Button>
               ) : null}

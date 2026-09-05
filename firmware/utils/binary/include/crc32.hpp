@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <span>
 
-namespace simcore::binary {
+namespace pitrig::binary {
 
 class Crc32 final {
  public:

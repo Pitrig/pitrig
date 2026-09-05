@@ -9,52 +9,52 @@ import {
   parseImageAssetInfo
 } from './protocol-parsers'
 import { requestResponse, type TrafficCallback } from './serial-request'
-import { readConfiguration } from './simcore-protocol'
+import { readConfiguration } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
 
 const PROBE_TIMEOUT_MS = 1_000
-const INFO_REQUEST = '\n@SC:INFO\n'
-const IMAGE_INFO_REQUEST = '@SC:IMAGE:INFO\n'
-const FONT_INFO_REQUEST = '@SC:FONT:INFO\n'
-const FIRMWARE_INFO_REQUEST = '@SC:FW:INFO\n'
+const INFO_REQUEST = '\n@PR:INFO\n'
+const IMAGE_INFO_REQUEST = '@PR:IMAGE:INFO\n'
+const FONT_INFO_REQUEST = '@PR:FONT:INFO\n'
+const FIRMWARE_INFO_REQUEST = '@PR:FW:INFO\n'
 
-export async function probeSimCore(
+export async function probePitrig(
   port: SerialPort,
   onTraffic: TrafficCallback
 ): Promise<DeviceSession> {
   const infoLine = await requestResponse(
     port,
     INFO_REQUEST,
-    '@SC:OK:INFO:',
+    '@PR:OK:INFO:',
     PROBE_TIMEOUT_MS,
     onTraffic
   )
   const info = parseDeviceInfo(infoLine)
-  const configuration = await readConfiguration(port, info.boardId, onTraffic, 'not_simcore')
+  const configuration = await readConfiguration(port, info.boardId, onTraffic, 'not_pitrig')
   if (configuration.board !== info.boardId) {
     throw new DeviceServiceError(
-      'not_simcore',
+      'not_pitrig',
       t('device.deviceProbe.theDeviceConfigurationBoardDoes')
     )
   }
   const fontAssets = await probeCapability(
     port,
     FONT_INFO_REQUEST,
-    '@SC:OK:FONT:INFO:',
+    '@PR:OK:FONT:INFO:',
     parseFontAssetInfo,
     onTraffic
   )
   const imageAssets = await probeCapability(
     port,
     IMAGE_INFO_REQUEST,
-    '@SC:OK:IMAGE:INFO:',
+    '@PR:OK:IMAGE:INFO:',
     parseImageAssetInfo,
     onTraffic
   )
   const firmware = await probeCapability(
     port,
     FIRMWARE_INFO_REQUEST,
-    '@SC:OK:FW:INFO:',
+    '@PR:OK:FW:INFO:',
     parseFirmwareUpdateInfo,
     onTraffic
   )

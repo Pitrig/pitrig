@@ -23,7 +23,7 @@ import { ChangesSection } from './configs/ChangesSection'
 import { AdvancedJsonSection } from './configs/AdvancedJsonSection'
 import { LibrarySection } from './configs/LibrarySection'
 import { FeedbackNote } from './configs/FeedbackNote'
-import { BOARD_PROFILES, SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
+import { BOARD_PROFILES, PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
 import { CONFIGURATION_DOCUMENTS, CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
 import {
   documentPayloadBytes
@@ -64,7 +64,7 @@ export function ConfigsPage(): React.JSX.Element {
       ? targetBoard
       : undefined
 
-  const convert = (target: SimCoreBoardId): void => {
+  const convert = (target: PitrigBoardId): void => {
     setFeedback(undefined)
     setReport(undefined)
     const result = convertDraftToBoard(target, fit, session?.info.display)
@@ -103,11 +103,11 @@ export function ConfigsPage(): React.JSX.Element {
               disabled={working || connected}
               value={targetBoard}
               onChange={(event) =>
-                setOfflineBoard((event.target.value as SimCoreBoardId | '') || undefined)
+                setOfflineBoard((event.target.value as PitrigBoardId | '') || undefined)
               }
             >
               <option value="">{t('dashboard.configsPage.selectBoard')}</option>
-              {SIMCORE_BOARD_IDS.map((id) => (
+              {PITRIG_BOARD_IDS.map((id) => (
                 <option key={id} value={id}>
                   {boardLabel(id)}
                 </option>
@@ -122,7 +122,7 @@ export function ConfigsPage(): React.JSX.Element {
             <Button
               variant="outline"
               disabled={working || !targetBoard}
-              onClick={() => setFeedback(createConfiguration(targetBoard as SimCoreBoardId))}
+              onClick={() => setFeedback(createConfiguration(targetBoard as PitrigBoardId))}
             >
               {t('dashboard.configsPage.new')}</Button>
             <Button variant="outline" disabled={working} onClick={() => void act(openConfigurationFile)}>

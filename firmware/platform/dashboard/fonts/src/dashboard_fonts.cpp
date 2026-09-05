@@ -7,7 +7,7 @@
 #include "font_glyph_allocator.hpp"
 #include "logger.hpp"
 
-namespace simcore::dashboard::fonts {
+namespace pitrig::dashboard::fonts {
 namespace {
 
 constexpr char kTag[] = "dashboard_fonts";

@@ -8,7 +8,7 @@
 #include "lvgl.h"
 #include "performance.hpp"
 
-namespace simcore::dashboard::fps_overlay_widget {
+namespace pitrig::dashboard::fps_overlay_widget {
 namespace {
 
 constexpr std::uint32_t kBackgroundColor = 0x0B0B0B;

@@ -5,7 +5,7 @@
 #include "crc32.hpp"
 #include "scf1_frame.hpp"
 
-namespace simcore::asset_control {
+namespace pitrig::asset_control {
 
 void AssetControl::task_entry(void* const context) {
   static_cast<AssetControl*>(context)->process();
@@ -61,7 +61,7 @@ void AssetControl::handle_clear() {
 
 void AssetControl::handle_info() {
   int written =
-      std::snprintf(response_.data(), response_.size(), "@SC:OK:%.*s:INFO:",
+      std::snprintf(response_.data(), response_.size(), "@PR:OK:%.*s:INFO:",
                     static_cast<int>(traits_.tag.size()), traits_.tag.data());
   release_request();
   if (written <= 0 || static_cast<std::size_t>(written) >= response_.size()) {

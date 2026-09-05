@@ -136,7 +136,7 @@ two places.
 ## Amendment: the binary stream is shared
 
 Uploaded images arrived with ADR 0018 and use the same `SCF1` frames over an
-`@SC:IMAGE:` namespace. One serial link cannot carry two binary sessions, so the
+`@PR:IMAGE:` namespace. One serial link cannot carry two binary sessions, so the
 font control no longer decides for itself whether it owns the byte stream: it
 takes a claim, synchronously on the task that reads the bytes, inside its
 `BEGIN` handler, and answers `busy` when another kind holds it. Storage moved to

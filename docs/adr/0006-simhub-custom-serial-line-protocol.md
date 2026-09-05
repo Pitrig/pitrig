@@ -1,6 +1,6 @@
 # ADR 0006: SimHub Custom Serial Line Protocol
 
-Status: Accepted; the telemetry line format is in force unchanged. The `@SC:`
+Status: Accepted; the telemetry line format is in force unchanged. The `@PR:`
 configuration commands are amended by ADR 0024, which gives `GET`, `VALIDATE`,
 `APPLY`, `SET` and `RESET` a document name and replaces `INFO`'s single
 `source=`/`generation=` pair with one field per document. Narrowed by
@@ -10,7 +10,7 @@ USB device with an HID gamepad.
 
 ## Context
 
-SimCore receives both module inputs and telemetry over a board-selected serial
+Pitrig receives both module inputs and telemetry over a board-selected serial
 transport. Generic text widgets may show the source value exactly or apply a
 typed presentation transform. Lap times — current, best, estimated and the
 signed delta between them — therefore require numeric milliseconds.
@@ -30,7 +30,7 @@ field. An empty value invalidates that handle. Additionally decode values as
 unsigned integer, signed integer, float, or boolean according to registry
 metadata. Reject a non-empty typed line when its value is invalid.
 
-Generate both an importable complete `SimCore-telemetry.shsds` Custom Serial
+Generate both an importable complete `Pitrig-telemetry.shsds` Custom Serial
 Device profile and configurator profile data from the canonical catalog and a
 separate generic SimHub mapping manifest. The checked-in profile enables every
 catalog field. The configurator can export either that complete set or only

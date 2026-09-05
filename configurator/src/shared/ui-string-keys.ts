@@ -3,7 +3,7 @@
 export type UiStringKey =
   | 'app.app.loadingApplicationInfo'
   | 'app.app.nameVersion'
-  | 'app.app.simCore'
+  | 'app.app.pitrig'
   | 'app.panelResizer.resizeTheLayerList'
   | 'app.panelResizer.resizeThePropertyPanel'
   | 'app.workspaceRail.collapse'
@@ -238,7 +238,7 @@ export type UiStringKey =
   | 'dashboard.configurationActions.nameOpened'
   | 'dashboard.configurationActions.newBoardConfigurationCreatedLocally'
   | 'dashboard.configurationActions.resetTheSavedConfigurationTo'
-  | 'dashboard.configurationActions.restartTheConnectedSimcoreBoard'
+  | 'dashboard.configurationActions.restartTheConnectedPitrigBoard'
   | 'dashboard.configurationActions.savedLabelConfigurationErasedRestart'
   | 'dashboard.configurationActions.theBoardHasNotReported'
   | 'dashboard.configurationActions.theConvertedLayoutWouldNot'
@@ -321,12 +321,12 @@ export type UiStringKey =
   | 'device.deviceErrors.theSerialPortIsBusy'
   | 'device.deviceErrors.theSerialPortIsNo'
   | 'device.deviceOperation.anotherDeviceOperationIsAlready'
-  | 'device.deviceOperation.noSimcoreDeviceIsConnected'
+  | 'device.deviceOperation.noPitrigDeviceIsConnected'
   | 'device.deviceOperation.theBoardIsBusyWith'
   | 'device.deviceProbe.theDeviceConfigurationBoardDoes'
-  | 'device.deviceScan.multipleSimcoreDevicesWereFound'
-  | 'device.deviceScan.noCompatibleSimcoreDeviceResponded'
-  | 'device.deviceScan.noSimcoreDeviceWasFound'
+  | 'device.deviceScan.multiplePitrigDevicesWereFound'
+  | 'device.deviceScan.noCompatiblePitrigDeviceResponded'
+  | 'device.deviceScan.noPitrigDeviceWasFound'
   | 'device.deviceScan.noUsbSerialPortsWere'
   | 'device.deviceScan.theBoardRestartedButDid'
   | 'device.deviceService.aSaveIsRunningOn'
@@ -346,7 +346,7 @@ export type UiStringKey =
   | 'device.documentStatus.notOnBoard'
   | 'device.documentStatus.refused'
   | 'device.documentStatus.shownNotSaved'
-  | 'device.draftState.connectASimcoreBoardTo'
+  | 'device.draftState.connectAPitrigBoardTo'
   | 'device.draftState.theBoardIsInSafe'
   | 'device.draftState.theBoardLacksJoinSaving'
   | 'device.draftState.theDraftIsNotValid'
@@ -422,7 +422,7 @@ export type UiStringKey =
   | 'device.infoPage.available'
   | 'device.infoPage.baudRate'
   | 'device.infoPage.board'
-  | 'device.infoPage.connectASimcoreBoardTo'
+  | 'device.infoPage.connectAPitrigBoardTo'
   | 'device.infoPage.connection'
   | 'device.infoPage.display'
   | 'device.infoPage.displaySize'
@@ -495,8 +495,8 @@ export type UiStringKey =
   | 'firmware.dialog.filter'
   | 'firmware.firmwarePackage.theFirmwareImageIsBytelength'
   | 'firmware.firmwarePackage.theFirmwareImageIsEmpty'
-  | 'firmware.firmwarePackage.unsupportedSimcoreBoardBoard'
-  | 'firmware.firmwarePage.aPackagedSimcoreFirmwareImage'
+  | 'firmware.firmwarePackage.unsupportedPitrigBoardBoard'
+  | 'firmware.firmwarePage.aPackagedPitrigFirmwareImage'
   | 'firmware.firmwarePage.connectABoardWithTwo'
   | 'firmware.firmwarePage.image'
   | 'firmware.firmwarePage.installAFirmwareImageInto'
@@ -525,7 +525,7 @@ export type UiStringKey =
   | 'firmware.firmwareUpdateService.restartTheDeviceToRun'
   | 'firmware.firmwareUpdateService.selectFirmwareImage'
   | 'firmware.firmwareUpdateService.selectImage'
-  | 'firmware.firmwareUpdateService.selectTheSimcoreBinProduced'
+  | 'firmware.firmwareUpdateService.selectThePitrigBinProduced'
   | 'firmware.firmwareUpdateService.theConnectedFirmwareCannotUpdate'
   | 'firmware.firmwareUpdateService.theSelectedFirmwareImageIs'
   | 'firmware.firmwareUpdateService.thisDeviceHasNoSecond'
@@ -1254,7 +1254,7 @@ export type UiStringKey =
   | 'protocol.transportSection.whateverThisBoardWasBuilt'
   | 'protocol.transportSection.whichLinkCarriesTelemetryAnd'
   | 'save.saveToBoardService.checkingTheFontsThisDashboard'
-  | 'save.saveToBoardService.noSimcoreBoardIsConnected'
+  | 'save.saveToBoardService.noPitrigBoardIsConnected'
   | 'save.saveToBoardService.nothingToSaveTheBoard'
   | 'save.saveToBoardService.savedTheBoardIsRestarting'
   | 'save.saveToBoardService.savedTheBoardIsRunning'
@@ -1579,7 +1579,7 @@ export interface UiStringParameters {
   'device.saveToBoardStore.savedTheBoardKeepsShowing': { applyFailed: string | number }
   'device.serialRequest.theDeviceDidNotAnswer': { trim: string | number }
   'firmware.firmwarePackage.theFirmwareImageIsBytelength': { byteLength: string | number }
-  'firmware.firmwarePackage.unsupportedSimcoreBoardBoard': { board: string | number }
+  'firmware.firmwarePackage.unsupportedPitrigBoardBoard': { board: string | number }
   'firmware.firmwarePage.percent': { percent: string | number }
   'firmware.firmwarePage.sizeBytes': { size: string | number }
   'firmware.firmwareUpdateService.cannotReadName': { name: string | number }

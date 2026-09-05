@@ -2,7 +2,7 @@
 
 #include "esp_heap_caps.h"
 
-namespace simcore::platform {
+namespace pitrig::platform {
 
 ExternalMemoryBuffer::~ExternalMemoryBuffer() {
   if (data_ != nullptr) {

@@ -9,14 +9,14 @@
 #include "telemetry_registry.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 class ITelemetryReader;
 }
-namespace simcore::value_smoothing {
+namespace pitrig::value_smoothing {
 class Service;
 }
 
-namespace simcore::dashboard::graph_widget {
+namespace pitrig::dashboard::graph_widget {
 
 using ModifierReaders = frame::ModifierReaders;
 

@@ -6,7 +6,7 @@
 #include "lvgl.h"
 #include "value_conditions.hpp"
 
-namespace simcore::dashboard::bar_widget {
+namespace pitrig::dashboard::bar_widget {
 namespace {
 
 constexpr char kTag[] = "bar_widget";

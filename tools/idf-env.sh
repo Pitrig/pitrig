@@ -1,10 +1,10 @@
 if [ -z "${IDF_PATH:-}" ]; then
-  for _simcore_idf in "$HOME"/.espressif/v*/esp-idf "$HOME"/esp/esp-idf; do
-    if [ -f "$_simcore_idf/export.sh" ]; then
-      IDF_PATH="$_simcore_idf"
+  for _pitrig_idf in "$HOME"/.espressif/v*/esp-idf "$HOME"/esp/esp-idf; do
+    if [ -f "$_pitrig_idf/export.sh" ]; then
+      IDF_PATH="$_pitrig_idf"
     fi
   done
-  unset _simcore_idf
+  unset _pitrig_idf
 fi
 
 if [ ! -f "${IDF_PATH:-}/export.sh" ]; then
@@ -24,12 +24,12 @@ if [ -n "${1:-}" ] && [ ! -f "$1/CMakeCache.txt" ] && [ -f "firmware/$1/CMakeCac
 fi
 
 if [ -z "${IDF_PYTHON_ENV_PATH:-}" ] && [ -f "${1:-}/CMakeCache.txt" ]; then
-  _simcore_python=$(sed -n 's/^PYTHON:UNINITIALIZED=//p' "$1/CMakeCache.txt" | head -1)
-  if [ -x "$_simcore_python" ]; then
-    IDF_PYTHON_ENV_PATH=$(dirname "$(dirname "$_simcore_python")")
+  _pitrig_python=$(sed -n 's/^PYTHON:UNINITIALIZED=//p' "$1/CMakeCache.txt" | head -1)
+  if [ -x "$_pitrig_python" ]; then
+    IDF_PYTHON_ENV_PATH=$(dirname "$(dirname "$_pitrig_python")")
     export IDF_PYTHON_ENV_PATH
   fi
-  unset _simcore_python
+  unset _pitrig_python
 fi
 
 . "$IDF_PATH/export.sh"

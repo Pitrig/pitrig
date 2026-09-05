@@ -9,7 +9,7 @@
 #include "logger.hpp"
 #include "widget_descriptor.hpp"
 
-namespace simcore::dashboard_composition {
+namespace pitrig::dashboard_composition {
 
 template <typename Storage>
 struct WidgetOpsCommon {

@@ -3,13 +3,13 @@
 #include <cstdint>
 #include <span>
 
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 
 using DataHandler = void (*)(std::span<const std::uint8_t> data, void* context);
 
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 struct Diagnostics {
   std::uint64_t received_bytes{};
   std::uint64_t read_events{};
@@ -28,7 +28,7 @@ class ITransport {
   virtual bool start(DataHandler handler, void* context) = 0;
   virtual void stop() = 0;
   [[nodiscard]] virtual bool write(std::span<const std::uint8_t> data) = 0;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   [[nodiscard]] virtual Diagnostics diagnostics() const {
     return {};
   }

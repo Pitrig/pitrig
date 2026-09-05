@@ -12,7 +12,7 @@ Both RGB and DSI boards rendered in direct mode with `avoid_tearing`: LVGL drew
 into the panel's own frame buffers and every flush blocked until the panel
 finished scanning the frame out. That bought tear-free frames at the price of
 latency and frame rate, measured end to end (telemetry commit →
-`LV_EVENT_REFR_READY`) with the debug `lat_us` probe over `@SC:DIAG`:
+`LV_EVENT_REFR_READY`) with the debug `lat_us` probe over `@PR:DIAG`:
 
 - The 4848S040's 10 MHz pixel clock scans 480×480 with its porches at 35.2 Hz,
   so the board could not exceed 35 fps whatever the CPU did, every flush waited
@@ -95,7 +95,7 @@ waited for scan-out, so it is unchanged.
   internal RAM, and the flush callback waits on it and completes the flush
   from task context.
 - What a debug build draws over the dashboard became a Kconfig choice
-  (`SIMCORE_DEBUG_OVERLAY`: full panel / FPS figure / nothing, default FPS).
+  (`PITRIG_DEBUG_OVERLAY`: full panel / FPS figure / nothing, default FPS).
   The full statistics panel blends a semi-transparent block over the widgets
   beneath it, which distorted every small-display measurement this decision
   was almost made against — with it on screen the T-Display-S3 measured 48 fps
@@ -129,7 +129,7 @@ waited for scan-out, so it is unchanged.
   rounded fill cannot go to the PPA. The PPA patches stay in
   `firmware/patches/` for a later re-evaluation.
 - The JC1060P470C's buffering is a build-time choice
-  (`SIMCORE_DISPLAY_RENDER_MODE`): the strip-composed tear-free mode by default
+  (`PITRIG_DISPLAY_RENDER_MODE`): the strip-composed tear-free mode by default
   (see the amendment below), partial strips as the opt-out
   (`sdkconfig.defaults.render-partial`), and direct and full-screen modes for a
   build that trades frame rate for rendering straight into the panel's PSRAM
@@ -148,7 +148,7 @@ waited for scan-out, so it is unchanged.
   anyway. Together the bench battery moved +29-115% over plain full mode
   (text_only 19.6→42.1 fps). `-O3` measured 1-2% behind `-O2` and stays
   rejected.
-- The fourth option, `SIMCORE_DISPLAY_RENDER_FULL_STRIPS` — now the default —
+- The fourth option, `PITRIG_DISPLAY_RENDER_FULL_STRIPS` — now the default —
   is the tear-free mode closest to partial's frame rates. LVGL renders only the
   damage into 60-line internal-RAM strips; an AXI-GDMA channel carries each
   full-width strip into the hidden frame buffer and the CPU copies the narrow
@@ -209,11 +209,11 @@ waited for scan-out, so it is unchanged.
 - The panel-side vsync no longer paces LVGL, so a fast producer can render
   more frames than the panel shows; the extra frames cost CPU but not
   correctness. The per-type widget caps stay a frame decision, judged with
-  `@SC:DIAG` as before.
+  `@PR:DIAG` as before.
 
 ## Amendment: the strip-composed mode is the default
 
-The JC1060P470C now defaults to `SIMCORE_DISPLAY_RENDER_FULL_STRIPS`. Partial
+The JC1060P470C now defaults to `PITRIG_DISPLAY_RENDER_FULL_STRIPS`. Partial
 became the opt-out, appended as `sdkconfig.defaults.render-partial`, which also
 puts the L2 line back to 64 bytes; the 128-byte line the strip mode wants moved
 into `sdkconfig.defaults.esp32p4`, and `sdkconfig.defaults.render-full-strips`

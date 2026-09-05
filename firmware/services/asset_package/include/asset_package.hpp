@@ -6,7 +6,7 @@
 
 #include "asset_storage.hpp"
 
-namespace simcore::asset_package {
+namespace pitrig::asset_package {
 
 inline constexpr std::size_t kHeaderSize = 32;
 

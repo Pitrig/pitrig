@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Context
 
-SimCore has no input of any kind. There is no `interfaces/input` contract, no
+Pitrig has no input of any kind. There is no `interfaces/input` contract, no
 touch, button, or encoder driver, and nothing anywhere creates an `lv_indev`.
 Every widget goes further and removes `LV_OBJ_FLAG_CLICKABLE` from the object it
 builds, so even if a pointer device existed the dashboard would ignore it.

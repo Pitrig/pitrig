@@ -1,5 +1,5 @@
 import { allWidgetsOf, descendantsOf, screensOf } from '../../shared/configuration-access'
-import { SIMCORE_BOARD_IDS, type SimCoreBoardId } from '../../shared/device'
+import { PITRIG_BOARD_IDS, type PitrigBoardId } from '../../shared/device'
 import {
   parseDeviceConfigurationValue,
   parseWidgetFragment
@@ -22,7 +22,7 @@ import {
 import { t } from '@shared/ui-text'
 
 export function parseTemplateDocument(value: unknown): DashboardTemplateDocument {
-  const record = envelopeOf(value, TEMPLATE_FORMAT, 'a SimCore dashboard template')
+  const record = envelopeOf(value, TEMPLATE_FORMAT, 'a Pitrig dashboard template')
   if (typeof record.configuration !== 'object' || record.configuration === null) {
     throw new Error(t('templates.templateDocuments.theTemplateCarriesNoConfiguration'))
   }
@@ -86,9 +86,9 @@ export function dashboardSummary(
 }
 
 export function parseWidgetTemplateDocument(value: unknown): WidgetTemplateDocument {
-  const record = envelopeOf(value, WIDGET_TEMPLATE_FORMAT, 'a SimCore widget template')
+  const record = envelopeOf(value, WIDGET_TEMPLATE_FORMAT, 'a Pitrig widget template')
   const board = record.board
-  if (typeof board !== 'string' || !SIMCORE_BOARD_IDS.includes(board as SimCoreBoardId)) {
+  if (typeof board !== 'string' || !PITRIG_BOARD_IDS.includes(board as PitrigBoardId)) {
     throw new Error(t('templates.templateDocuments.theWidgetTemplateNamesNo'))
   }
   if (typeof record.widget !== 'object' || record.widget === null) {
@@ -99,8 +99,8 @@ export function parseWidgetTemplateDocument(value: unknown): WidgetTemplateDocum
     format_version: record.format_version as number,
     name: (record.name as string).trim(),
     ...(record.description ? { description: record.description as string } : {}),
-    board: board as SimCoreBoardId,
-    widget: parseWidgetFragment(record.widget, board as SimCoreBoardId)
+    board: board as PitrigBoardId,
+    widget: parseWidgetFragment(record.widget, board as PitrigBoardId)
   }
 }
 

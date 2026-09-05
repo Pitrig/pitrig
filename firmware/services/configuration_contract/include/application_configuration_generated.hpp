@@ -11,7 +11,7 @@
 #include "number_transform.hpp"
 #include "time_transform.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 inline constexpr std::uint16_t kConfigurationSchemaVersion = 26;
 

@@ -52,7 +52,7 @@ export function FontsPage(): React.JSX.Element {
   const importFace = async (): Promise<void> => {
     setBusy(true)
     setMessage(undefined)
-    const result = await window.simcore.importFontFace({}).catch(() => undefined)
+    const result = await window.pitrig.importFontFace({}).catch(() => undefined)
     setBusy(false)
     if (!result) return setMessage(t('fonts.fontsPage.theFontCouldNotBe'))
     if (!result.ok) return setMessage(result.error.message)
@@ -67,7 +67,7 @@ export function FontsPage(): React.JSX.Element {
     if (!window.confirm(t('fonts.fontsPage.removeNameFromTheLibrary', { name: name }))) return
     setBusy(true)
     setMessage(undefined)
-    const result = await window.simcore.removeFontFace({ id }).catch(() => undefined)
+    const result = await window.pitrig.removeFontFace({ id }).catch(() => undefined)
     setBusy(false)
     if (!result) return setMessage(t('fonts.fontsPage.theFaceCouldNotBe'))
     setMessage(result.ok ? t('fonts.fontsPage.nameRemovedFromTheLibrary', { name: name }) : result.error.message)
@@ -77,7 +77,7 @@ export function FontsPage(): React.JSX.Element {
     if (!window.confirm(t('fonts.fontsPage.eraseTheFontPackageInstalled'))) return
     setBusy(true)
     setMessage(undefined)
-    const result = await window.simcore.clearFontAssets().catch(() => undefined)
+    const result = await window.pitrig.clearFontAssets().catch(() => undefined)
     setBusy(false)
     if (!result) return setMessage(t('fonts.fontsPage.theBoardCouldNotBe'))
     setMessage(

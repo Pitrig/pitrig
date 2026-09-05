@@ -2,7 +2,7 @@
 
 #include "configuration_storage.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 class NvsConfigurationStorage final : public IConfigurationStorage {
  public:

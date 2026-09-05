@@ -6,17 +6,17 @@
 #include <cstring>
 
 #include "esp_log.h"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::log {
+namespace pitrig::log {
 namespace {
 
-#ifndef SIMCORE_LOG_MODE_FULL
+#ifndef PITRIG_LOG_MODE_FULL
 inline constexpr std::size_t kTerminatedFormatCapacity = 96;
 #endif
 
 void write(const esp_log_level_t level, const char* tag, const char* format, va_list args) {
-#ifdef SIMCORE_LOG_MODE_FULL
+#ifdef PITRIG_LOG_MODE_FULL
   esp_log_va(ESP_LOG_CONFIG_INIT(level | ESP_LOG_CONFIGS_DEFAULT), tag, format, args);
 #else
   const std::size_t length = std::strlen(format);

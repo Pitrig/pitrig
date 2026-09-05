@@ -9,11 +9,11 @@
 
 #include "application_configuration.hpp"
 #include "logger.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
-namespace simcore::dashboard_composition::screens {
+namespace pitrig::dashboard_composition::screens {
 namespace {
 
 constexpr std::uint32_t kDefaultBackgroundColor = 0x000000;
@@ -77,7 +77,7 @@ bool will_render_content(
     const configuration::ApplicationConfiguration& configuration) {
   const configuration::ScreenConfiguration& screen =
       active_screen(configuration);
-  return SIMCORE_DEBUG_OVERLAY ||
+  return PITRIG_DEBUG_OVERLAY ||
          screen.background_color != kDefaultBackgroundColor ||
          screen.widget_count > 0;
 }

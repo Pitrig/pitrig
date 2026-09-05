@@ -74,19 +74,19 @@ export async function scanForDevice(
     }
     throw new DeviceServiceError(
       'no_device',
-      t('device.deviceScan.noCompatibleSimcoreDeviceResponded')
+      t('device.deviceScan.noCompatiblePitrigDeviceResponded')
     )
   }
   if (matches.length > 1) {
     throw new DeviceServiceError(
       'multiple_devices',
-      t('device.deviceScan.multipleSimcoreDevicesWereFound')
+      t('device.deviceScan.multiplePitrigDevicesWereFound')
     )
   }
 
   const match = matches[0]
   if (!match) {
-    throw new DeviceServiceError('no_device', t('device.deviceScan.noSimcoreDeviceWasFound'))
+    throw new DeviceServiceError('no_device', t('device.deviceScan.noPitrigDeviceWasFound'))
   }
   return match
 }

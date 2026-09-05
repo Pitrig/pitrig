@@ -3,7 +3,7 @@
 #include "event_bus.hpp"
 #include "telemetry_state.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 
 class TelemetryProvider {
  public:

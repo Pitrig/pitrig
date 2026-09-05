@@ -13,7 +13,7 @@ constexpr std::uint8_t kGestureMinimumDistancePx = 20;
 
 }
 
-namespace simcore::input {
+namespace pitrig::input {
 
 lv_indev_t* initialize(const driver::Driver& selected_driver,
                        lv_display_t* const display) {

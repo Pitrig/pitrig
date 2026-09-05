@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Round dial 480",
   "description": "A single round dial for the 480 x 480 display: a needle rev counter with a smooth rev ring and a segmented shift arc, corner aid chips, and a data screen of times, fuel and tyres behind it.",

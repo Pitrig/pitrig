@@ -6,7 +6,7 @@
 #include "binary_codec.hpp"
 #include "crc32.hpp"
 
-namespace simcore::image_assets {
+namespace pitrig::image_assets {
 namespace {
 
 constexpr std::size_t kEntryIdOffset = 0;

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 
 inline constexpr std::size_t kFamilyIdCapacity = 32;
 inline constexpr std::size_t kMaximumFamilyIdLength = kFamilyIdCapacity - 1;

@@ -11,9 +11,9 @@ import {
   documentJson
 } from '../../shared/configuration-documents'
 import {
-  SIMCORE_BOARD_IDS,
+  PITRIG_BOARD_IDS,
   type DeviceConfiguration,
-  type SimCoreBoardId
+  type PitrigBoardId
 } from '../../shared/device'
 
 export function parseDeviceConfigurationJson(json: string): DeviceConfiguration {
@@ -28,7 +28,7 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
 
 export function parseDeviceConfigurationValue(value: unknown): DeviceConfiguration {
   const result = validateConfigurationDocument(migrateConfigurationDocument(value), {
-    supportedBoards: SIMCORE_BOARD_IDS
+    supportedBoards: PITRIG_BOARD_IDS
   })
   if (!result.ok) {
     throw new Error(result.error)
@@ -36,7 +36,7 @@ export function parseDeviceConfigurationValue(value: unknown): DeviceConfigurati
   return result.configuration
 }
 
-export function parseWidgetFragment(value: unknown, board: SimCoreBoardId): WidgetConfiguration {
+export function parseWidgetFragment(value: unknown, board: PitrigBoardId): WidgetConfiguration {
   const document = parseDeviceConfigurationValue({
     board,
     dashboard: { screens: [{ widgets: [value] }] }
@@ -48,7 +48,7 @@ export function parseWidgetFragment(value: unknown, board: SimCoreBoardId): Widg
 
 export function prepareDeviceConfigurationJson(
   json: string,
-  expectedBoard: SimCoreBoardId
+  expectedBoard: PitrigBoardId
 ): {
   configuration: DeviceConfiguration
   payloads: Record<ConfigurationDocumentId, string>

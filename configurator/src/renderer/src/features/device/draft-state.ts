@@ -4,7 +4,7 @@ import {
   validateConfigurationDocument,
   type ValidationResult
 } from '@shared/configuration-validate'
-import { SIMCORE_BOARD_IDS, type DeviceConfiguration } from '@shared/device'
+import { PITRIG_BOARD_IDS, type DeviceConfiguration } from '@shared/device'
 import {
   collectFontRequirements,
   missingFontFamilies
@@ -55,7 +55,7 @@ export function useDraftState(): DraftState {
     parsed.ok && session ? parsed.configuration.board !== session.info.boardId : false
 
   const saveBlockedReason = !connected
-    ? 'Connect a SimCore board before saving.'
+    ? 'Connect a Pitrig board before saving.'
     : boardMismatch
       ? `Local configuration targets ${parsed.ok ? parsed.configuration.board : 'another board'}, but the connected board is ${session?.info.boardId}. Convert the draft to move the layout across.`
       : !parsed.ok
@@ -118,7 +118,7 @@ function liveApplyBlocker(state: {
   boardId?: string
   missingFamilies: string[]
 }): string | undefined {
-  if (!state.connected) return t('device.draftState.connectASimcoreBoardTo')
+  if (!state.connected) return t('device.draftState.connectAPitrigBoardTo')
   if (state.safeMode) {
     return t('device.draftState.theBoardIsInSafe')
   }
@@ -183,5 +183,5 @@ function parseDraft(
     return { ok: false, error: 'Configuration is not valid JSON.' }
   }
   if (!draft) return { ok: false, error: 'No local configuration.' }
-  return validateConfigurationDocument(draft, { supportedBoards: SIMCORE_BOARD_IDS })
+  return validateConfigurationDocument(draft, { supportedBoards: PITRIG_BOARD_IDS })
 }

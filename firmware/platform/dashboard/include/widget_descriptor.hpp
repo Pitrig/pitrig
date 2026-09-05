@@ -7,7 +7,7 @@
 #include "application_configuration.hpp"
 #include "lvgl_types.hpp"
 
-namespace simcore::dashboard {
+namespace pitrig::dashboard {
 
 using WidgetCreate = bool (*)(void* context);
 using WidgetDestroy = void (*)(void* context);

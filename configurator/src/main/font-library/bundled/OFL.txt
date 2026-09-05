@@ -1,4 +1,4 @@
-The faces in this directory ship with the SimCore configurator and are used
+The faces in this directory ship with the Pitrig configurator and are used
 unchanged. All but one of them are licensed under the SIL Open Font License,
 Version 1.1, whose text follows the copyright notices below.
 

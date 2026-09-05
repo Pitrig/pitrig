@@ -6,7 +6,7 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 
-namespace simcore::display::driver {
+namespace pitrig::display::driver {
 
 enum class BusType : std::uint8_t {
   command,

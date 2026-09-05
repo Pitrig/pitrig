@@ -1,7 +1,7 @@
 #include "gt911_touch.hpp"
 #include "guition_input_driver.hpp"
 
-namespace simcore::input::drivers::guition_esp32_4848s040 {
+namespace pitrig::input::drivers::guition_esp32_4848s040 {
 namespace {
 
 constexpr gpio_num_t kSdaPin = GPIO_NUM_19;

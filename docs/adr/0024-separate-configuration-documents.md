@@ -15,7 +15,7 @@ dashboard.
 
 Until schema 13 the device held exactly one configuration document. Its four
 public sections — `board`, `hardware`, `telemetry_transport`, `dashboard` — were
-authored as one file, sent as one `@SC:SET:` line, parsed whole into one bounded
+authored as one file, sent as one `@PR:SET:` line, parsed whole into one bounded
 `ApplicationConfiguration`, and stored as one NVS blob in one of two alternating
 slots. Nothing could be read, written, validated or applied on its own.
 
@@ -33,7 +33,7 @@ The sections do not behave alike, and the single document forced them to.
   Modules, Protocol — over one document that none of them owned, so a page could
   not say whether *its* settings were saved and a dashboard edit lit a modified
   dot on the Protocol page.
-- Live apply resent the entire document on every keystroke, because `@SC:APPLY`
+- Live apply resent the entire document on every keystroke, because `@PR:APPLY`
   had no finer unit than "all of it".
 
 The two-slot NVS pair was a second question. It was introduced to make a
@@ -78,11 +78,11 @@ a `lap_timer` modifier that may appear once. A document replaces only the
 sections it owns, and the whole aggregate is validated afterwards. This is what
 lets the split cost nothing in validation coverage.
 
-**The wire names the document.** `@SC:GET:<document>`,
-`@SC:VALIDATE:<document>:<json>`, `@SC:APPLY:<document>:<json>`,
-`@SC:SET:<document>:<json>`, `@SC:RESET:<document>`, and `@SC:RESET` for all
+**The wire names the document.** `@PR:GET:<document>`,
+`@PR:VALIDATE:<document>:<json>`, `@PR:APPLY:<document>:<json>`,
+`@PR:SET:<document>:<json>`, `@PR:RESET:<document>`, and `@PR:RESET` for all
 three. Names are the contract's own lowercase spellings, as `board=t_display_s3`
-already is. `@SC:INFO` reports one field per document —
+already is. `@PR:INFO` reports one field per document —
 `<document>=<outcome>:<generation>` — instead of a single `source=` token that
 could only ever describe one of three.
 
@@ -104,7 +104,7 @@ nothing an author would recognise.
   `slot_a` / `slot_b` / `active` keys are simply never read again.
 - The compiled factory configuration becomes three documents per board, in
   `BoardDefinition::factory_configuration_json`. This is what lets
-  `@SC:GET:<document>` answer with the bytes the board is actually running when
+  `@PR:GET:<document>` answer with the bytes the board is actually running when
   nothing is stored — the firmware has no serializer to carve a section out of a
   larger payload with. It is also where the Guition ESP32-4848S040's 460800
   baud rate now lives, in its protocol document alone.
@@ -130,5 +130,5 @@ nothing an author would recognise.
   against. The `modules` document carries peripherals; the Lap Timer still
   activates from a `lap_timer` modifier inside a dashboard widget's source, and
   that binding stays inside one document.
-- The `simcore_cfg` partition is unchanged by this decision. Three records come
+- The `pitrig_cfg` partition is unchanged by this decision. Three records come
   to 66 KiB, comfortably inside the 512 KiB it holds since ADR 0022.

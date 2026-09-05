@@ -1,6 +1,6 @@
 #include "module_manager.hpp"
 
-namespace simcore::modules {
+namespace pitrig::modules {
 
 Manager::~Manager() {
   stop_all();

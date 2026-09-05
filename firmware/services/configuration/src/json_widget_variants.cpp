@@ -10,7 +10,7 @@
 #include "json_widget_variants.hpp"
 #include "json_widget_variants_internal.hpp"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 namespace {
 
 [[nodiscard]] bool parse_image_widget(const cJSON* const object,

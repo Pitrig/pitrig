@@ -11,7 +11,7 @@ import { uploadAssetPackage, type AssetNamespace } from './asset-upload'
 import { DeviceServiceError, failure, success } from './device-errors'
 import type { ConnectionManager } from './device-connection'
 import type { OperationRunner } from './device-operation'
-import { clearFontAssets, clearImageAssets } from './simcore-protocol'
+import { clearFontAssets, clearImageAssets } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
 
 export async function uploadPackage(
@@ -28,7 +28,7 @@ export async function uploadPackage(
   const session = state.session
   const traffic = connection.traffic
   if (!port?.isOpen || !state.connection || !session) {
-    throw new DeviceServiceError('serial_error', t('device.deviceOperation.noSimcoreDeviceIsConnected'))
+    throw new DeviceServiceError('serial_error', t('device.deviceOperation.noPitrigDeviceIsConnected'))
   }
   if (runner.operationActive) {
     throw new DeviceServiceError('busy', t('device.deviceOperation.anotherDeviceOperationIsAlready'))
@@ -172,7 +172,7 @@ async function clearAssets(
 ): Promise<DeviceResult<DeviceState>> {
   return runner.run(async ({ port, session, traffic }) => {
     if (!supported(session)) {
-      return failure({ code: 'not_simcore', message: unsupportedMessage })
+      return failure({ code: 'not_pitrig', message: unsupportedMessage })
     }
     await clear(port, runner.operationTraffic(traffic))
     if (connection.port !== port || connection.getState().session !== session) {

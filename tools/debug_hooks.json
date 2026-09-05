@@ -1,7 +1,7 @@
 {
  "hooks": {
   "firmware/components/display/src/display.cpp": 4,
-  "firmware/core/src/simcore.cpp": 2,
+  "firmware/core/src/pitrig.cpp": 2,
   "firmware/drivers/transport/transport_common/include/transport_instrumentation.hpp": 2,
   "firmware/drivers/transport/transport_common/src/transport_instrumentation.cpp": 3,
   "firmware/drivers/transport/uart/include/uart_transport.hpp": 2,

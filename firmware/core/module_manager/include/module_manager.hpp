@@ -3,7 +3,7 @@
 #include <array>
 #include <cstddef>
 
-namespace simcore::modules {
+namespace pitrig::modules {
 
 using StartCallback = bool (*)(void* context);
 using StopCallback = void (*)(void* context);

@@ -9,7 +9,7 @@
 #include "led_output.hpp"
 #include "telemetry_events.hpp"
 
-namespace simcore::status_light {
+namespace pitrig::status_light {
 namespace {
 
 constexpr char kTag[] = "status";

@@ -1,6 +1,6 @@
 # SimHub Custom Serial telemetry
 
-SimCore accepts newline-delimited telemetry over the board-selected serial
+Pitrig accepts newline-delimited telemetry over the board-selected serial
 transport.
 
 ## Generating or downloading a SimHub profile
@@ -21,12 +21,12 @@ not. A dashboard-only export is blocked when the draft contains an
 unknown telemetry binding or requires no telemetry.
 
 As an alternative, download the checked-in complete
-[`simhub/SimCore-telemetry.shsds`](../simhub/SimCore-telemetry.shsds). It uses
+[`simhub/Pitrig-telemetry.shsds`](../simhub/Pitrig-telemetry.shsds). It uses
 921600 baud and enables all 227 fields. Both forms enable automatic reconnect
 and disable RTS and DTR.
 
 Import the resulting file from the Custom Serial Devices plugin's **Import
-settings** action, then select the SimCore serial port.
+settings** action, then select the Pitrig serial port.
 
 Devices that already have a saved UART configuration may retain the previous
 115200 baud value. Set `telemetry_transport.uart.baud_rate` to `921600` in the
@@ -123,21 +123,21 @@ The catalog's rate column is a transmission recommendation, not a requirement
 to send every field. Send only fields used by the active dashboard or modules,
 at a rate appropriate for that field, to keep serial bandwidth bounded.
 
-SimCore provides generic SimHub property expressions but no game-specific
+Pitrig provides generic SimHub property expressions but no game-specific
 source mappings. The `game_specific` availability label warns that a canonical
 field is not exposed by every simulation.
 
-Configuration control frames begin with `@SC:` and share the same serial
+Configuration control frames begin with `@PR:` and share the same serial
 connection. The configuration router consumes those frames before telemetry,
 so they are never interpreted as telemetry values. Three namespaces under that
-prefix open a binary upload session instead of answering a line — `@SC:FONT:`
-([Font asset storage](font-assets.md)), `@SC:IMAGE:`
-([Image asset storage](image-assets.md)) and `@SC:FW:`
+prefix open a binary upload session instead of answering a line — `@PR:FONT:`
+([Font asset storage](font-assets.md)), `@PR:IMAGE:`
+([Image asset storage](image-assets.md)) and `@PR:FW:`
 ([Firmware updates over serial](ota.md)) — and only one of them may own the link
 at a time.
 
 The configuration commands themselves name the document they act on:
-`@SC:GET:dashboard`, `@SC:SET:protocol:<JSON>` and so on, over the three
+`@PR:GET:dashboard`, `@PR:SET:protocol:<JSON>` and so on, over the three
 documents a board stores. The full command table is in
 [Control commands](control-protocol.md#control-commands).
 

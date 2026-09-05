@@ -10,7 +10,7 @@ import {
   createConfiguration,
   openConfigurationFile
 } from '@/features/configuration/configuration-actions'
-import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
+import { BOARD_PROFILES, type PitrigBoardId } from '@shared/device'
 import { t } from '@shared/ui-text'
 
 export function NoConfiguration(): React.JSX.Element {
@@ -19,7 +19,7 @@ export function NoConfiguration(): React.JSX.Element {
   const setOfflineBoard = useDeviceStore((state) => state.setOfflineBoard)
   const [message, setMessage] = useState<string>()
   const board = session?.info.boardId ?? offlineBoard ?? ''
-  const pins = board ? (BOARD_PROFILES[board as SimCoreBoardId]?.led.pins ?? []) : []
+  const pins = board ? (BOARD_PROFILES[board as PitrigBoardId]?.led.pins ?? []) : []
 
   return (
     <PageSection
@@ -37,7 +37,7 @@ export function NoConfiguration(): React.JSX.Element {
             </p>
           ) : (
             <BoardChoice
-              value={board as SimCoreBoardId | ''}
+              value={board as PitrigBoardId | ''}
               onChange={(next) => {
                 setOfflineBoard(next || undefined)
                 setMessage(undefined)
@@ -52,7 +52,7 @@ export function NoConfiguration(): React.JSX.Element {
             <Button
               disabled={!board}
               title={board ? undefined : t('canvas.displayPreview.chooseABoardFirst')}
-              onClick={() => setMessage(createConfiguration(board as SimCoreBoardId).message)}
+              onClick={() => setMessage(createConfiguration(board as PitrigBoardId).message)}
             >
               {t('modules.noConfiguration.newConfiguration')}</Button>
             <Button

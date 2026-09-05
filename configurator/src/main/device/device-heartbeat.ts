@@ -5,12 +5,12 @@ import { success } from './device-errors'
 import type { OperationRunner } from './device-operation'
 import { parseDeviceInfo } from './protocol-parsers'
 import { requestResponse } from './serial-request'
-import { readConfiguration } from './simcore-protocol'
+import { readConfiguration } from './pitrig-protocol'
 
 const HEARTBEAT_INTERVAL_MS = 5_000
 const HEARTBEAT_TIMEOUT_MS = 1_500
-const INFO_REQUEST = '\n@SC:INFO\n'
-const INFO_PREFIX = '@SC:OK:INFO:'
+const INFO_REQUEST = '\n@PR:INFO\n'
+const INFO_PREFIX = '@PR:OK:INFO:'
 
 export class DeviceHeartbeat {
   private timer: ReturnType<typeof setInterval> | undefined

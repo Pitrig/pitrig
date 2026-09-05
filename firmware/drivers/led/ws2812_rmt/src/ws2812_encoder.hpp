@@ -5,7 +5,7 @@
 #include "driver/rmt_encoder.h"
 #include "esp_err.h"
 
-namespace simcore::led::drivers::ws2812_rmt {
+namespace pitrig::led::drivers::ws2812_rmt {
 
 struct ChainEncoder {
   rmt_encoder_t base{};

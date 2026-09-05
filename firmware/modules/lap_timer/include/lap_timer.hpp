@@ -6,15 +6,15 @@
 #include "event_bus.hpp"
 #include "telemetry_types.hpp"
 
-namespace simcore::events {
+namespace pitrig::events {
 class EventBus;
 }
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 class ITelemetryReader;
 }
 
-namespace simcore::lap_timer {
+namespace pitrig::lap_timer {
 
 class LapTimer {
  public:

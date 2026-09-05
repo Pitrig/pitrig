@@ -3,7 +3,7 @@
 
 Every debug implementation lives under firmware/debug/, which a production build
 registers as empty components. What stays in production code is a small set of
-one-line hooks behind SIMCORE_DEBUG. This records how many hooks each production
+one-line hooks behind PITRIG_DEBUG. This records how many hooks each production
 file carries, so a new one cannot appear unnoticed.
 """
 
@@ -20,9 +20,9 @@ ALLOWLIST = ROOT / "tools" / "debug_hooks.json"
 
 SOURCE_SUFFIXES = {".c", ".h", ".cpp", ".hpp"}
 BUILD_PREFIX = "build"
-ALIAS_HEADER = "utils/simcore_config/include/simcore_features.hpp"
+ALIAS_HEADER = "utils/pitrig_config/include/pitrig_features.hpp"
 HOOK = re.compile(
-    r"SIMCORE_DEBUG_OVERLAY\b|SIMCORE_LAYOUT_DEBUG\b|SIMCORE_DEBUG\b"
+    r"PITRIG_DEBUG_OVERLAY\b|PITRIG_LAYOUT_DEBUG\b|PITRIG_DEBUG\b"
 )
 
 

@@ -1,8 +1,8 @@
-# SimCore Architecture
+# Pitrig Architecture
 
 ## Overview
 
-SimCore is a modular firmware platform for building sim racing hardware using ESP32.
+Pitrig is a modular firmware platform for building sim racing hardware using ESP32.
 
 The architecture is designed around a small, hardware-independent firmware core, reusable components and modules, and interchangeable hardware drivers.
 
@@ -90,7 +90,7 @@ Public headers are stored directly under an implementation's `include/` director
 What each directory holds:
 
 - `core/` — `application.hpp` (what the root owns), `apply_configuration.cpp`
-  (the replacement transaction of ADR 0016), `simcore.cpp` (the startup phases)
+  (the replacement transaction of ADR 0016), `pitrig.cpp` (the startup phases)
   and `module_manager` (compile-time descriptors with function pointers and
   explicit contexts; no allocation, no name lookup). It reaches no LVGL header:
   the dashboard is opaque to it through `dashboard_composition::instance()`.
@@ -123,11 +123,11 @@ What each directory holds:
   needs no configuration, so it runs on the recovery surface and reports
   booting, safe mode, telemetry silence and upload progress),
   `telemetry_transport`, `external_memory`.
-- `utils/` — `binary`, `simcore_config` (the Kconfig surface and the `SIMCORE_*`
+- `utils/` — `binary`, `pitrig_config` (the Kconfig surface and the `PITRIG_*`
   feature aliases, here because every layer reads it), `transformers/number_transform`,
   `transformers/text_writer`, `transformers/time_transform`.
 - `debug/` — `performance`, `diagnostics_command`, `overlays`, `instrumentation`;
-  each registers empty `SRCS` and `INCLUDE_DIRS` unless `CONFIG_SIMCORE_DEBUG`,
+  each registers empty `SRCS` and `INCLUDE_DIRS` unless `CONFIG_PITRIG_DEBUG`,
   so a production build compiles none of it (ADR 0028).
 
 The dependency direction is:
@@ -157,7 +157,7 @@ Dependencies must not point from interfaces or components to a concrete hardware
 The last two edges are narrow and deliberate. The display component and the
 transport drivers depend on the performance service so they can report frame and
 transport instrumentation; that service lives in `firmware/debug/` and registers
-with no sources and no include directories unless `CONFIG_SIMCORE_DEBUG`, so the
+with no sources and no include directories unless `CONFIG_PITRIG_DEBUG`, so the
 dependency compiles away entirely (ADR 0028). The control services that answer over the serial
 link — configuration control, the shared asset upload engine, and the font and
 image asset controls over it — depend on the `transport` interface because they
@@ -176,7 +176,7 @@ directly, and everything above the driver layer goes through the logger service
 The firmware core is the static application composition root. It owns
 firmware-lifetime platform adapters and services and coordinates startup
 through explicit references. Concrete display and telemetry transport
-selection stays in platform composition. SimCore does not use a runtime
+selection stays in platform composition. Pitrig does not use a runtime
 Service Registry or service locator.
 
 What the core owns by value stops at types it can see without LVGL. The
@@ -227,7 +227,7 @@ document chooses the port, the pins and the baud rate. Starting a link waits for
 no host. A crashed task is a panic that resets the chip, so a fault is contained
 on the boot after it: `boot_guard` counts crashes and watchdog resets in RTC
 memory, and three in a row put the next boot on the recovery surface — the
-transport, the `@SC:` control protocol and firmware upload, nothing else — until
+transport, the `@PR:` control protocol and firmware upload, nothing else — until
 a host writes or erases a document. The task watchdog resets rather than prints
 and watches only the tasks that feed it: each link's read task and the render
 trigger, which takes the LVGL lock every round.
@@ -482,7 +482,7 @@ Possible transports include:
 - Future protocols
 
 Each link's router owns line assembly for both line-oriented concerns: it
-splits the byte stream once, hands `@SC:` lines to configuration control and
+splits the byte stream once, hands `@PR:` lines to configuration control and
 every other complete line — terminator stripped, bounded at
 `telemetry::kMaximumTelemetryLineLength` — to the telemetry protocol, which
 decodes it and holds no partial line of its own.
@@ -553,7 +553,7 @@ The event system reduces coupling between modules.
 
 # Scheduling
 
-SimCore runs on FreeRTOS, but it does not add a central application scheduler.
+Pitrig runs on FreeRTOS, but it does not add a central application scheduler.
 Each subsystem owns the mechanism appropriate to its work:
 
 - FreeRTOS tasks for blocking or long-running service operations;
@@ -566,8 +566,8 @@ cross-subsystem timing requirement cannot be represented by these mechanisms.
 On the dual-core targets the two halves of the firmware are pinned apart:
 communication — the transport read tasks, the configuration-control and
 asset-upload tasks, and the render trigger they wake — runs on
-`SIMCORE_COMMUNICATION_CORE`, and the LVGL task alone on `SIMCORE_RENDER_CORE`
-(both in `simcore_features.hpp`). Parsing a telemetry chunk, validating a
+`PITRIG_COMMUNICATION_CORE`, and the LVGL task alone on `PITRIG_RENDER_CORE`
+(both in `pitrig_features.hpp`). Parsing a telemetry chunk, validating a
 128 KB document, or a live apply therefore never time-slices with a frame, and
 because the render trigger has the lower priority on its core, a received chunk
 is parsed to the end before the single pass it triggers.
@@ -600,7 +600,7 @@ Time-critical operations should use DMA or hardware acceleration whenever availa
 ---
 
 
-# Extending SimCore
+# Extending Pitrig
 
 Adding a new feature should usually involve:
 

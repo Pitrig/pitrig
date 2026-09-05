@@ -5,7 +5,7 @@
 #include "lvgl.h"
 #include "widget_frame_internal.hpp"
 
-namespace simcore::dashboard::frame {
+namespace pitrig::dashboard::frame {
 namespace {
 
 [[nodiscard]] std::int32_t text_width(const lv_font_t* const font,

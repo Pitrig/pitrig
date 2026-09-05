@@ -7,7 +7,7 @@
 #include "json_readers.hpp"
 #include "cJSON.h"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 
 template <typename Source>
 [[nodiscard]] bool parse_modifiers(const cJSON* const object, Source& config,

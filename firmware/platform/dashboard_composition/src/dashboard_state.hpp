@@ -7,8 +7,8 @@
 #include "dashboard_images.hpp"
 #include "dashboard_layout.hpp"
 #include "event_bus.hpp"
-#include "simcore_features.hpp"
-#if SIMCORE_DEBUG
+#include "pitrig_features.hpp"
+#if PITRIG_DEBUG
 #include "fps_overlay_widget.hpp"
 #include "performance_overlay_widget.hpp"
 #endif
@@ -30,31 +30,31 @@
 struct _lv_display_t;
 using lv_display_t = _lv_display_t;
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 struct ApplicationConfiguration;
 struct DashboardConfiguration;
 }
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 class Service;
 }
-namespace simcore::image_assets {
+namespace pitrig::image_assets {
 class Service;
 }
-namespace simcore::module_composition {
+namespace pitrig::module_composition {
 struct Modules;
 }
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 class ITelemetryReader;
 class ITelemetryRegistry;
 }
-namespace simcore::transport {
+namespace pitrig::transport {
 class ITransport;
 }
-namespace simcore::value_smoothing {
+namespace pitrig::value_smoothing {
 class Service;
 }
 
-namespace simcore::dashboard_composition {
+namespace pitrig::dashboard_composition {
 
 struct WidgetStorage {
   static constexpr bool kSmoothsSource = false;
@@ -175,7 +175,7 @@ struct Dashboard {
   std::array<std::int32_t, configuration::kMaximumSlotWidgets> slot_overflow{};
   dashboard::slots::Controller slots;
   dashboard::navigation::Controller navigation;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   dashboard::performance_overlay_widget::View performance_overlay;
   dashboard::fps_overlay_widget::View fps_overlay;
 #endif

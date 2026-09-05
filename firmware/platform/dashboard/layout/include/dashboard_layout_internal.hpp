@@ -2,9 +2,9 @@
 
 #include "dashboard_layout.hpp"
 #include "lvgl.h"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::dashboard {
+namespace pitrig::dashboard {
 
 [[nodiscard]] bool resolve_widget_bounds(const Layout& layout,
                                          const configuration::WidgetFrame& frame,
@@ -15,7 +15,7 @@ namespace simcore::dashboard {
                                          lv_obj_t*& parent,
                                          Rect& bounds);
 
-#if SIMCORE_LAYOUT_DEBUG
+#if PITRIG_LAYOUT_DEBUG
 void apply_debug_widget_outline(lv_obj_t* object);
 #else
 inline void apply_debug_widget_outline(lv_obj_t*) {}

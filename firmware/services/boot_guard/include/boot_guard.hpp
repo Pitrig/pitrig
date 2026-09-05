@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace simcore::boot_guard {
+namespace pitrig::boot_guard {
 
 enum class Phase : std::uint8_t {
   none,

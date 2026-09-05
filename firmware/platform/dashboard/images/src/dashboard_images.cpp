@@ -7,7 +7,7 @@
 #include "logger.hpp"
 #include "miniz.h"
 
-namespace simcore::dashboard::images {
+namespace pitrig::dashboard::images {
 namespace {
 
 constexpr char kTag[] = "dashboard_images";

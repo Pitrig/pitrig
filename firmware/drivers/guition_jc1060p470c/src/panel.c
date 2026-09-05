@@ -25,13 +25,13 @@
 #define MIPI_DSI_LANE_BIT_RATE_MBPS 750
 #define MIPI_DSI_PHY_LDO_CHANNEL 3
 #define MIPI_DSI_PHY_LDO_VOLTAGE_MV 2500
-#if defined(CONFIG_SIMCORE_DISPLAY_RENDER_FULL) || \
-    defined(CONFIG_SIMCORE_DISPLAY_RENDER_FULL_STRIPS)
+#if defined(CONFIG_PITRIG_DISPLAY_RENDER_FULL) || \
+    defined(CONFIG_PITRIG_DISPLAY_RENDER_FULL_STRIPS)
 #define LCD_FRAME_BUFFER_COUNT 3
 #else
 #define LCD_FRAME_BUFFER_COUNT 2
 #endif
-#ifdef CONFIG_SIMCORE_DISPLAY_COLOR_24BIT
+#ifdef CONFIG_PITRIG_DISPLAY_COLOR_24BIT
 #define LCD_COLOR_FORMAT LCD_COLOR_FMT_RGB888
 #define LCD_BITS_PER_PIXEL 24
 #else
@@ -137,7 +137,7 @@ static esp_err_t enable_mipi_phy_power(void) {
   return esp_ldo_acquire_channel(&config, &mipi_phy_power);
 }
 
-esp_err_t simcore_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
+esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
                                                esp_lcd_panel_handle_t* panel) {
   if (io == NULL || panel == NULL) {
     return ESP_ERR_INVALID_ARG;
@@ -214,4 +214,4 @@ esp_err_t simcore_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   return result;
 }
 
-esp_err_t simcore_jc1060p470c_backlight_on(void) { return gpio_set_level(LCD_BACKLIGHT, 1); }
+esp_err_t pitrig_jc1060p470c_backlight_on(void) { return gpio_set_level(LCD_BACKLIGHT, 1); }

@@ -6,11 +6,11 @@
 #include <span>
 #include <string_view>
 
-namespace simcore::transport {
+namespace pitrig::transport {
 class ITransport;
 }
 
-namespace simcore::binary_session {
+namespace pitrig::binary_session {
 
 struct Session {
   std::string_view command_prefix;

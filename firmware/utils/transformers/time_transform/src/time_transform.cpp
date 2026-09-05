@@ -2,7 +2,7 @@
 
 #include "text_writer.hpp"
 
-namespace simcore::transformers::time_transform {
+namespace pitrig::transformers::time_transform {
 namespace {
 
 [[nodiscard]] bool write_duration(TextWriter& writer,

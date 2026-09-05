@@ -4,9 +4,9 @@
 #include <cstdint>
 
 #include "esp_timer.h"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 
 TelemetryStateService::TelemetryStateService(
     const ITelemetryRegistry& registry)
@@ -68,7 +68,7 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
     slot.value = update.value;
   }
   slot.revision = ++revision_;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   slot.last_change_us = esp_timer_get_time();
 #endif
   std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -95,7 +95,7 @@ TelemetryRead TelemetryStateService::read(const Handle handle) const {
     }
     result.value = slot.value;
     result.revision = slot.revision;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
     result.last_change_us = slot.last_change_us;
 #endif
     result.available = slot.available;

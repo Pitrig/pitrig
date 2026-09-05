@@ -190,33 +190,33 @@ intact.
 ## Serial upload protocol
 
 The upload is the `SCF1` protocol of [Font asset storage](font-assets.md) under
-the `@SC:IMAGE:` namespace: the same `BEGIN`, `READY`, `ACK` and `COMMITTED`
-exchange, the same frames, cancel answered `@SC:OK:IMAGE:CANCELLED`, errors as
-`@SC:ERR:IMAGE:<reason>`, and the same ten-second `@SC:ERR:IMAGE:timeout`.
+the `@PR:IMAGE:` namespace: the same `BEGIN`, `READY`, `ACK` and `COMMITTED`
+exchange, the same frames, cancel answered `@PR:OK:IMAGE:CANCELLED`, errors as
+`@PR:ERR:IMAGE:<reason>`, and the same ten-second `@PR:ERR:IMAGE:timeout`.
 Fonts, images and firmware ([Firmware updates over serial](ota.md)) share one
 binary session, claimed on the task that reads the bytes inside the handler
 that opens it, so a second upload cannot race the first: on the link the upload
 owns, a `BEGIN` sent mid-upload is a bad frame that ends the running upload
 with `invalid_frame`, and a `BEGIN`, `INFO` or `CLEAR` that finds the session
 already claimed is answered `busy` under the namespace of the kind that owns it
-— `@SC:ERR:IMAGE:busy`, `@SC:ERR:FONT:busy` or `@SC:ERR:FW:busy`.
+— `@PR:ERR:IMAGE:busy`, `@PR:ERR:FONT:busy` or `@PR:ERR:FW:busy`.
 
 What is image-specific:
 
 ```text
-@SC:IMAGE:INFO
-@SC:OK:IMAGE:INFO:storage=1,package=1,format=2,images=2,size=397312,reboot_required=0,entries=logo:128x64:rgb565a8;shift_bar:320x24:rgb565
+@PR:IMAGE:INFO
+@PR:OK:IMAGE:INFO:storage=1,package=1,format=2,images=2,size=397312,reboot_required=0,entries=logo:128x64:rgb565a8;shift_bar:320x24:rgb565
 ```
 
 `storage`, `package`, `format`, `images` and `size` mean what they do for
 fonts; `entries` is semicolon-separated, each entry `<id>:<width>x<height>:<format>`
 with `:<frames>` appended for a sprite sheet, so the configurator can tell
 whether an installed image still suits the dashboard without re-uploading to
-find out. `@SC:IMAGE:CLEAR` erases the installed package outside a session and
+find out. `@PR:IMAGE:CLEAR` erases the installed package outside a session and
 is rejected while an update is active or another image change is pending a
 reboot; the active dashboard keeps drawing from its external-RAM copies until
 that reboot, after which configurations referencing cleared images report
-unresolved dependencies. `@SC:IMAGE:BEGIN:size=<bytes>` erases the image
+unresolved dependencies. `@PR:IMAGE:BEGIN:size=<bytes>` erases the image
 partition in its own static task before answering `READY`.
 
 ## Conversion

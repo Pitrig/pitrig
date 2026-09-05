@@ -2,7 +2,7 @@ import {
   TELEMETRY_TRANSPORT_ID_VALUES,
   type ApplicationConfiguration
 } from '../configuration-schema'
-import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
+import { BOARD_PROFILES, type PitrigBoardId } from '../device'
 import { t } from '../ui-text'
 
 const MINIMUM_BAUD_RATE = 9_600
@@ -17,7 +17,7 @@ export function findTransportError(
   if (id !== undefined && !TELEMETRY_TRANSPORT_ID_VALUES.includes(id)) {
     return t('validation.transport.telemetryTransportIdIsId', { id: JSON.stringify(id), join: TELEMETRY_TRANSPORT_ID_VALUES.join(', ') })
   }
-  const board = configuration.board as SimCoreBoardId | undefined
+  const board = configuration.board as PitrigBoardId | undefined
   const profile = board ? BOARD_PROFILES[board] : undefined
   if (id === 'native_usb_cdc' && profile && !profile.transports.nativeUsbCdc) {
     return t('validation.transport.thisBoardHasNoNative')

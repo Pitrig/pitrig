@@ -29,7 +29,7 @@ export const useFontCatalogStore = create<FontCatalogState>((set, get) => ({
   tabular: {},
   load: async () => {
     if (get().loaded) return
-    const families = await window.simcore.listFontCatalog().catch(() => [])
+    const families = await window.pitrig.listFontCatalog().catch(() => [])
     set({ families, loaded: true })
   },
   requestPreview: (family) => {
@@ -57,7 +57,7 @@ async function drain(set: SetState): Promise<void> {
 }
 
 async function preview(family: string, set: SetState): Promise<void> {
-  const result = await window.simcore.previewFontCatalogFace({ family }).catch(() => undefined)
+  const result = await window.pitrig.previewFontCatalogFace({ family }).catch(() => undefined)
   if (!result) {
     set((state) => ({ previews: { ...state.previews, [family]: 'unavailable' } }))
     return

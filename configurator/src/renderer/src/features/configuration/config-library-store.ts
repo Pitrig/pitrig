@@ -13,7 +13,7 @@ export function useConfigurationLibrary(): {
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(() => {
-    void window.simcore
+    void window.pitrig
       .listConfigurations()
       .then((result) => {
         if (result.ok) {

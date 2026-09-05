@@ -4,7 +4,7 @@
 #include "value_text.hpp"
 #include "value_conditions.hpp"
 
-namespace simcore::dashboard::frame {
+namespace pitrig::dashboard::frame {
 namespace {
 
 void draw_caption_mask(lv_event_t* const event) {

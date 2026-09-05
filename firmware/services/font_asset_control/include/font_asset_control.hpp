@@ -7,7 +7,7 @@
 #include "binary_session.hpp"
 #include "font_asset_service.hpp"
 
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 
 class FontAssetControl final {
  public:

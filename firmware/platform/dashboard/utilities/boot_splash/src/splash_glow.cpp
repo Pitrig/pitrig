@@ -5,7 +5,7 @@
 
 #include "lvgl.h"
 
-namespace simcore::dashboard::boot_splash::glow {
+namespace pitrig::dashboard::boot_splash::glow {
 namespace {
 
 constexpr std::uint32_t kFlowMs = 1'600;

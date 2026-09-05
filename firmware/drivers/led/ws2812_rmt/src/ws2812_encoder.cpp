@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace simcore::led::drivers::ws2812_rmt {
+namespace pitrig::led::drivers::ws2812_rmt {
 namespace {
 
 constexpr std::uint16_t kZeroHighTicks = 3;

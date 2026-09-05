@@ -7,7 +7,7 @@
 #include "cJSON.h"
 #include "configuration_schema_generated.hpp"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 
 using WidgetParser = bool (*)(const cJSON*, DashboardConfiguration&,
                               std::uint8_t index, ValidationFailure&);

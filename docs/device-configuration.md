@@ -9,7 +9,7 @@ intentionally not part of the current contract.
 ## Hardware identity and user configuration
 
 Every firmware build selects one immutable hardware board identity with
-`CONFIG_SIMCORE_FACTORY_BOARD_*`. The board registry resolves that identity to
+`CONFIG_PITRIG_FACTORY_BOARD_*`. The board registry resolves that identity to
 the firmware drivers for hardware physically built into that board. Firmware
 reports the stable board identifier; the configurator maps it to its local
 supported board profile.
@@ -53,7 +53,7 @@ and `protocol` — each transferred, stored, validated and applied on its own. S
 [Public payload](#public-payload) for what each carries and
 [ADR 0024](adr/0024-separate-configuration-documents.md) for why.
 
-SimCore loads them in this order:
+Pitrig loads them in this order:
 
 1. The three board-only factory documents compiled into firmware.
 2. Whatever is stored, one document at a time on top of them.
@@ -207,7 +207,7 @@ validated against the same schema allow-list the device payload uses.
 
 Three things can differ, so the configurator tracks three: what the board has
 stored, what it is showing, and the draft in the editor. A save moves the first,
-a live `@SC:APPLY` moves the second, and both of them equalling the draft is what
+a live `@PR:APPLY` moves the second, and both of them equalling the draft is what
 being in sync means. The per-document chip says which one is behind — not on the
 board while the screen is stale, shown but not saved while the board draws a
 draft it would lose on a restart.
@@ -221,7 +221,7 @@ overwritten by a draft its author had forgotten about, and what else holds live
 apply back is named where it happens — safe mode, a draft targeting another
 board, a font the board does not hold, a draft that does not validate.
 
-The board is asked `@SC:INFO` every five seconds while it is connected and no
+The board is asked `@PR:INFO` every five seconds while it is connected and no
 operation is running, which is what notices a document written from elsewhere or
 a package installed behind the editor's back; the configuration is re-read only
 when a generation actually moved. A restart the board takes on its own stays
@@ -233,14 +233,14 @@ composed.
 `Save to board` is one sequence in the main process: work out which documents
 differ from what the board is holding, resolve the families the dashboard names
 against the font library, build the package, send it only when the board does
-not already hold those exact bytes, and `@SC:SET` each differing document —
+not already hold those exact bytes, and `@PR:SET` each differing document —
 protocol first, dashboard last, so a partial failure leaves the cheap writes
 done and the expensive one untouched. A document that matches the board is not
 written at all, which is why changing a baud rate no longer costs sixty
 kilobytes of dashboard.
 
 How it ends depends on what it did. A face the board did not have becomes
-usable only after a restart, so installing one ends in `@SC:REBOOT` and a
+usable only after a restart, so installing one ends in `@PR:REBOOT` and a
 reconnect — as does saving onto a board that already owes a restart for a font
 or image package it has accepted, and as does writing the protocol document.
 That last one is the whole reason the document is separate: the link is selected
@@ -248,7 +248,7 @@ once at startup, so a transport written without a restart would be a setting
 that is stored and not in force, and the firmware says so by answering
 `reboot_required=1` for that document alone. A changed speed also means the
 board comes back at the new one, which is the case the reconnect can fail on.
-Otherwise the save ends in `@SC:APPLY` for each document it wrote, which
+Otherwise the save ends in `@PR:APPLY` for each document it wrote, which
 rebuilds the running composition from what was just written to NVS. That is why
 an ordinary save costs no dark screen.
 
@@ -311,7 +311,7 @@ checks before it lets a configuration replace the running dashboard.
 
 ## Control protocol
 
-The `@SC:` commands, the `INFO` and `DIAG` replies, their error tokens and the
+The `@PR:` commands, the `INFO` and `DIAG` replies, their error tokens and the
 NVS record rules are in [control-protocol.md](control-protocol.md).
 
 ## Public payload

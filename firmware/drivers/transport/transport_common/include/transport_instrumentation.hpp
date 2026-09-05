@@ -8,13 +8,13 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "transport.hpp"
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 #include "debug_read_instrumentation.hpp"
 #endif
 
-namespace simcore::transport {
+namespace pitrig::transport {
 
 void register_read_task(TaskHandle_t task);
 
@@ -77,7 +77,7 @@ class ReadHandler final {
   void* context_{};
 };
 
-#if !SIMCORE_DEBUG
+#if !PITRIG_DEBUG
 class ReadInstrumentation final {
  public:
   void reset() {}

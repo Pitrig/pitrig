@@ -7,7 +7,7 @@
 
 #include "application_configuration_generated.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 template <std::size_t Capacity>
 [[nodiscard]] constexpr std::string_view text_view(

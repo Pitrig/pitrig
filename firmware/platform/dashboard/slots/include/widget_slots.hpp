@@ -9,7 +9,7 @@
 #include "lvgl_types.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard::slots {
+namespace pitrig::dashboard::slots {
 
 class Controller final {
  public:

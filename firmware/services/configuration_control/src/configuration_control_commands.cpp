@@ -8,10 +8,10 @@
 #include "configuration_control.hpp"
 #include "transport.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 namespace {
 
-constexpr std::string_view kPrefix = "@SC:";
+constexpr std::string_view kPrefix = "@PR:";
 
 [[nodiscard]] bool changes_the_device(
     const std::span<const std::uint8_t> command) {
@@ -45,7 +45,7 @@ void ConfigurationControl::handle(
   }
 
   if (changes_the_device(command) && !await_composition()) {
-    (void)send_text("@SC:ERR:busy\n");
+    (void)send_text("@PR:ERR:busy\n");
     return;
   }
 
@@ -69,7 +69,7 @@ void ConfigurationControl::handle(
       return;
     }
     if (apply_handler_ == nullptr) {
-      (void)send_text("@SC:ERR:unsupported\n");
+      (void)send_text("@PR:ERR:unsupported\n");
       return;
     }
     const ValidationFailure failure =
@@ -78,7 +78,7 @@ void ConfigurationControl::handle(
       (void)send_error(failure);
       return;
     }
-    (void)send_document_reply("@SC:OK:APPLIED", document, nullptr);
+    (void)send_document_reply("@PR:OK:APPLIED", document, nullptr);
     return;
   }
 
@@ -95,7 +95,7 @@ void ConfigurationControl::handle(
       (void)send_error(failure);
       return;
     }
-    (void)send_document_reply("@SC:OK:VALID", document, nullptr);
+    (void)send_document_reply("@PR:OK:VALID", document, nullptr);
     return;
   }
 
@@ -108,7 +108,7 @@ void ConfigurationControl::handle(
     const ConfigurationService::SaveOutcome outcome =
         service_->save(document, payload);
     if (outcome.storage_failed) {
-      (void)send_text("@SC:ERR:storage\n");
+      (void)send_text("@PR:ERR:storage\n");
       return;
     }
     if (!outcome.failure.ok()) {
@@ -117,7 +117,7 @@ void ConfigurationControl::handle(
     }
     boot_guard::clear_failures();
     (void)send_document_reply(
-        "@SC:OK:SAVED", document,
+        "@PR:OK:SAVED", document,
         configuration_document_reboot_required(document)
             ? "reboot_required=1"
             : "reboot_required=0");
@@ -128,9 +128,9 @@ void ConfigurationControl::handle(
       std::equal(command.begin(), command.end(), "RESET")) {
     if (service_->reset()) {
       boot_guard::clear_failures();
-      (void)send_text("@SC:OK:RESET:reboot_required=1\n");
+      (void)send_text("@PR:OK:RESET:reboot_required=1\n");
     } else {
-      (void)send_text("@SC:ERR:storage\n");
+      (void)send_text("@PR:ERR:storage\n");
     }
     return;
   }
@@ -143,24 +143,24 @@ void ConfigurationControl::handle(
       return;
     }
     if (!service_->erase(document)) {
-      (void)send_text("@SC:ERR:storage\n");
+      (void)send_text("@PR:ERR:storage\n");
       return;
     }
     boot_guard::clear_failures();
-    (void)send_document_reply("@SC:OK:RESET", document, "reboot_required=1");
+    (void)send_document_reply("@PR:OK:RESET", document, "reboot_required=1");
     return;
   }
 
   if (command.size() == 6 &&
       std::equal(command.begin(), command.end(), "REBOOT")) {
-    (void)send_text("@SC:OK:REBOOTING\n");
+    (void)send_text("@PR:OK:REBOOTING\n");
     if (reboot_handler_ != nullptr) {
       reboot_handler_(reboot_context_);
     }
     return;
   }
 
-  (void)send_text("@SC:ERR:unknown_command\n");
+  (void)send_text("@PR:ERR:unknown_command\n");
 }
 
 bool ConfigurationControl::take_document(
@@ -172,13 +172,13 @@ bool ConfigurationControl::take_document(
   const auto name_size =
       static_cast<std::size_t>(separator - argument.begin());
   if (expect_payload == (separator == argument.end())) {
-    (void)send_text("@SC:ERR:unknown_document\n");
+    (void)send_text("@PR:ERR:unknown_document\n");
     return false;
   }
   const std::string_view name(
       reinterpret_cast<const char*>(argument.data()), name_size);
   if (!configuration_document_from_name(name, document)) {
-    (void)send_text("@SC:ERR:unknown_document\n");
+    (void)send_text("@PR:ERR:unknown_document\n");
     return false;
   }
   payload = expect_payload ? argument.subspan(name_size + 1U)
@@ -202,7 +202,7 @@ bool ConfigurationControl::send_error(const ValidationFailure& failure) {
   const std::string_view path = text_view(failure.path);
   const int written = std::snprintf(
       reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size(),
-      "@SC:ERR:%.*s:screen=%d,widget=%d,path=%.*s\n",
+      "@PR:ERR:%.*s:screen=%d,widget=%d,path=%.*s\n",
       static_cast<int>(reason.size()), reason.data(),
       static_cast<int>(failure.screen_index),
       static_cast<int>(failure.widget_index),
@@ -230,7 +230,7 @@ bool ConfigurationControl::send_document_reply(
 bool ConfigurationControl::send_payload(
     const ConfigurationDocument document,
     const std::span<const std::uint8_t> payload) {
-  constexpr std::string_view kPayloadPrefix = "@SC:OK:CONFIG:";
+  constexpr std::string_view kPayloadPrefix = "@PR:OK:CONFIG:";
   const std::string_view name = configuration_document_name(document);
   const std::size_t prefix_size =
       kPayloadPrefix.size() + name.size() + 1U;

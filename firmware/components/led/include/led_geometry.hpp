@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace simcore::led {
+namespace pitrig::led {
 
 enum class Order : std::uint8_t { progressive, serpentine };
 

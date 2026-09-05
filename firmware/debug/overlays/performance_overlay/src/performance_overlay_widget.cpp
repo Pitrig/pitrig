@@ -8,7 +8,7 @@
 #include "performance.hpp"
 #include "transport.hpp"
 
-namespace simcore::dashboard::performance_overlay_widget {
+namespace pitrig::dashboard::performance_overlay_widget {
 namespace {
 
 constexpr std::uint32_t kBackgroundColor = 0x0B0B0B;

@@ -4,7 +4,7 @@
 
 #include "application_configuration.hpp"
 
-namespace simcore::dashboard::graph_widget::plot {
+namespace pitrig::dashboard::graph_widget::plot {
 
 std::int32_t line_reserve(const std::uint16_t line_width_px) {
   return (static_cast<std::int32_t>(line_width_px) + 1) / 2;

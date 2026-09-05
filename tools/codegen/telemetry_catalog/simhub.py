@@ -32,7 +32,7 @@ def generate_simhub(_document: dict[str, Any], fields: list[dict[str, str]]) -> 
 #include <cstdint>
 #include <string_view>
 
-namespace simcore::protocols::simhub_catalog {{
+namespace pitrig::protocols::simhub_catalog {{
 
 struct BindingDescriptor {{
   std::string_view identifier;

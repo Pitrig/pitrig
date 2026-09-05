@@ -9,7 +9,7 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
-namespace simcore::dashboard_composition::screens {
+namespace pitrig::dashboard_composition::screens {
 namespace {
 
 void report_container_overflow(lv_event_t* const event) {

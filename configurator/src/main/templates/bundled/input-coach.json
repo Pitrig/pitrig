@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Input coach",
   "description": "The driver rather than the car, after NoxNova's Ultimate Input Dashboard: rolling speed, pedal and steering traces beside live pedal bars, gear, g-force and the delta.",

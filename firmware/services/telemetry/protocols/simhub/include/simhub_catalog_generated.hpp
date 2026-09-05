@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace simcore::protocols::simhub_catalog {
+namespace pitrig::protocols::simhub_catalog {
 
 struct BindingDescriptor {
   std::string_view identifier;

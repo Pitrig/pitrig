@@ -12,11 +12,11 @@
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard::fonts {
+namespace pitrig::dashboard::fonts {
 class Registry;
 }
 
-namespace simcore::dashboard::text_widget {
+namespace pitrig::dashboard::text_widget {
 
 inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumTextWidgets;

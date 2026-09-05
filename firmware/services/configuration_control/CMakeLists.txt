@@ -6,6 +6,6 @@ idf_component_register(
     INCLUDE_DIRS "include"
     REQUIRES configuration freertos transport
     PRIV_REQUIRES boot_guard diagnostics_command esp_app_format performance
-                  simcore_config)
+                  pitrig_config)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

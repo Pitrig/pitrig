@@ -9,7 +9,7 @@
 #include "json_value_pipeline.hpp"
 #include "json_widget_variants.hpp"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 namespace {
 
 [[nodiscard]] bool parse_children(const cJSON* const children,

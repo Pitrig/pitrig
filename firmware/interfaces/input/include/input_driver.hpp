@@ -2,7 +2,7 @@
 
 #include "esp_lcd_touch.h"
 
-namespace simcore::input::driver {
+namespace pitrig::input::driver {
 
 struct Configuration {
   esp_lcd_touch_handle_t touch;

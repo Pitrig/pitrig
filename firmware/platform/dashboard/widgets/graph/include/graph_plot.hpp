@@ -5,7 +5,7 @@
 #include "graph_widget.hpp"
 #include "lvgl.h"
 
-namespace simcore::dashboard::graph_widget::plot {
+namespace pitrig::dashboard::graph_widget::plot {
 
 [[nodiscard]] std::int32_t line_reserve(std::uint16_t line_width_px);
 

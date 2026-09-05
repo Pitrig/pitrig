@@ -68,7 +68,7 @@ export type DeviceErrorCode =
   | 'invalid_request'
   | 'multiple_devices'
   | 'no_device'
-  | 'not_simcore'
+  | 'not_pitrig'
   | 'permission_denied'
   | 'port_busy'
   | 'port_missing'
@@ -86,8 +86,8 @@ export interface DeviceConnection {
   baudRate: number
 }
 
-export type SimCoreBoardId = BoardId
-export const SIMCORE_BOARD_IDS = BOARD_ID_VALUES
+export type PitrigBoardId = BoardId
+export const PITRIG_BOARD_IDS = BOARD_ID_VALUES
 export { CONFIGURATION_SCHEMA_VERSION }
 export const MAXIMUM_CONFIGURATION_PAYLOAD_SIZE = MAXIMUM_PAYLOAD_SIZE
 
@@ -109,7 +109,7 @@ export interface BoardProfile {
   led: LedDescriptor
 }
 
-export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
+export const BOARD_PROFILES: Record<PitrigBoardId, BoardProfile> = {
   t_display_s3: {
     display: { width: 320, height: 170, configurable: false },
     transports: { uart: true, nativeUsbCdc: true },
@@ -133,7 +133,7 @@ export const BOARD_PROFILES: Record<SimCoreBoardId, BoardProfile> = {
 }
 
 export function hasDisplay(board: string): boolean {
-  return BOARD_PROFILES[board as SimCoreBoardId]?.display !== undefined
+  return BOARD_PROFILES[board as PitrigBoardId]?.display !== undefined
 }
 
 export function applyBoardTransportDefaults(
@@ -190,7 +190,7 @@ export interface DeviceHealth {
 }
 
 export interface DeviceInfo {
-  boardId: SimCoreBoardId
+  boardId: PitrigBoardId
   firmwareVersion: string
   schemaVersion: typeof CONFIGURATION_SCHEMA_VERSION
   display?: DisplayDescriptor

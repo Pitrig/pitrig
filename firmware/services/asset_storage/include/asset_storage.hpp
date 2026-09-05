@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace simcore::asset_storage {
+namespace pitrig::asset_storage {
 
 class IStorage {
  public:

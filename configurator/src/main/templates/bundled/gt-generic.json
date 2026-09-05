@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "GT generic",
   "description": "Every aid and every number on one 1024 x 600 screen, after Giuseppe Curri's Generic Dashboard: the aid row, timing block, temperature arcs and fuel, with a tyre and telemetry screen behind it.",

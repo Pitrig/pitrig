@@ -12,7 +12,7 @@ import {
 } from '../configuration-actions'
 import { useDashboardEditorStore } from '../dashboard-editor'
 import { BOARD_NAMES } from '../board-labels'
-import type { SimCoreBoardId } from '@shared/device'
+import type { PitrigBoardId } from '@shared/device'
 import { MAXIMUM_CONFIGURATION_NAME, configurationIdFor } from '@shared/config-library'
 import { t } from '@shared/ui-text'
 
@@ -46,7 +46,7 @@ export function LibrarySection({
     }
     setBusy(true)
     try {
-      const result = await window.simcore.saveConfigurationToLibrary({
+      const result = await window.pitrig.saveConfigurationToLibrary({
         name: trimmed,
         json: JSON.stringify(draft)
       })
@@ -68,7 +68,7 @@ export function LibrarySection({
     if (!window.confirm(t('configs.librarySection.deleteTheSavedConfigurationId', { id: id }))) return
     setBusy(true)
     try {
-      const result = await window.simcore.deleteSavedConfiguration({ id })
+      const result = await window.pitrig.deleteSavedConfiguration({ id })
       if (!result.ok) onFeedback({ kind: 'error', message: result.error.message })
       else refresh()
     } finally {
@@ -88,7 +88,7 @@ export function LibrarySection({
   }
 
   const forget = async (path: string): Promise<void> => {
-    await window.simcore.forgetRecentConfiguration({ path })
+    await window.pitrig.forgetRecentConfiguration({ path })
     refresh()
   }
 
@@ -111,7 +111,7 @@ export function LibrarySection({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-foreground">{entry.name}</span>
                   <span className="block truncate text-[11px] text-muted-foreground">
-                    {`${BOARD_NAMES[entry.board as SimCoreBoardId] ?? entry.board} · ${entry.screenCount} screen${entry.screenCount === 1 ? '' : 's'} · ${entry.widgetCount} widget${entry.widgetCount === 1 ? '' : 's'} · ${formatWhen(entry.modifiedAt)}`}
+                    {`${BOARD_NAMES[entry.board as PitrigBoardId] ?? entry.board} · ${entry.screenCount} screen${entry.screenCount === 1 ? '' : 's'} · ${entry.widgetCount} widget${entry.widgetCount === 1 ? '' : 's'} · ${formatWhen(entry.modifiedAt)}`}
                   </span>
                 </span>
                 <Button

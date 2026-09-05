@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Flag strip",
   "description": "A race-control strip for the 320 x 170 display, after CapTaylor's iRacing Flags and Selectyoung's pit countdown: rev lights, the flag lamps, the delta and what is left of the race.",

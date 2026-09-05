@@ -4,7 +4,7 @@
 
 #include "esp_heap_caps.h"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 namespace {
 
 void* json_malloc(const std::size_t size) {

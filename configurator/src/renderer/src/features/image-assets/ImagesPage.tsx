@@ -29,7 +29,7 @@ export function ImagesPage(): React.JSX.Element {
   const installedPreviews = usePreviewAssetStore((state) => state.images)
   const refreshPreviews = usePreviewAssetStore((state) => state.refresh)
 
-  useEffect(() => window.simcore.onImageUploadProgress(store.getState().setProgress), [store])
+  useEffect(() => window.pitrig.onImageUploadProgress(store.getState().setProgress), [store])
   useEffect(() => {
     void refreshPreviews()
   }, [refreshPreviews])
@@ -67,7 +67,7 @@ export function ImagesPage(): React.JSX.Element {
     setBusy(true)
     store.getState().setError(undefined)
     try {
-      const result = await window.simcore.selectImageSource()
+      const result = await window.pitrig.selectImageSource()
       if (!result.ok) store.getState().setError(result.error.message)
       else if (result.value) store.getState().addFrame(id, result.value)
     } finally {
@@ -79,7 +79,7 @@ export function ImagesPage(): React.JSX.Element {
     setBusy(true)
     store.getState().setError(undefined)
     try {
-      const result = await window.simcore.selectImageSource()
+      const result = await window.pitrig.selectImageSource()
       if (!result.ok) store.getState().setError(result.error.message)
       else if (result.value) store.getState().addEntry(result.value)
     } finally {
@@ -91,7 +91,7 @@ export function ImagesPage(): React.JSX.Element {
     setBusy(true)
     store.getState().beginOperation()
     try {
-      const result = await window.simcore.uploadImageAssets({
+      const result = await window.pitrig.uploadImageAssets({
         assets: entries.map((entry) => ({
           sourceIds: entry.sources.map((source) => source.id),
           name: entry.name,
@@ -111,7 +111,7 @@ export function ImagesPage(): React.JSX.Element {
     if (!window.confirm(t('images.imagesPage.eraseEveryImageInstalledOn'))) return
     setBusy(true)
     setMessage(undefined)
-    const result = await window.simcore.clearImageAssets().catch(() => undefined)
+    const result = await window.pitrig.clearImageAssets().catch(() => undefined)
     setBusy(false)
     if (!result) return setMessage(t('fonts.fontsPage.theBoardCouldNotBe'))
     setMessage(
@@ -206,7 +206,7 @@ export function ImagesPage(): React.JSX.Element {
               {running ? t('images.imagesPage.uploading') : `Install ${entries.length || ''}`.trim()}
             </Button>
             {running ? (
-              <Button variant="outline" onClick={() => void window.simcore.cancelImageUpload()}>
+              <Button variant="outline" onClick={() => void window.pitrig.cancelImageUpload()}>
                 {t('common.cancel')}</Button>
             ) : null}
           </>

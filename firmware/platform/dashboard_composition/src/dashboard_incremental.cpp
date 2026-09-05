@@ -17,7 +17,7 @@
 #include "widget_frame.hpp"
 
 #include "dashboard_incremental_rules.hpp"
-namespace simcore::dashboard_composition {
+namespace pitrig::dashboard_composition {
 namespace {
 
 constexpr char kTag[] = "dashboard";

@@ -4,7 +4,7 @@
 
 #include "telemetry_types.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 
 struct FieldDescriptor {
   std::string_view name;
@@ -21,7 +21,7 @@ inline constexpr std::string_view kCurrentLapTime = "session.lap.current_time";
 
 #include "telemetry_catalog_generated.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 
 static_assert(catalog::kMaximumFieldCount == kMaximumFields);
 

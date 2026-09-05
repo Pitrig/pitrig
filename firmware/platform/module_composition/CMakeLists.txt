@@ -4,6 +4,6 @@ idf_component_register(
   REQUIRES configuration_contract event_bus interfaces lap_timer
            module_manager rgb_leds
            telemetry
-  PRIV_REQUIRES logger simcore_config)
+  PRIV_REQUIRES logger pitrig_config)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

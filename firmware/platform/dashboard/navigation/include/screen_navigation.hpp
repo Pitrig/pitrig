@@ -8,7 +8,7 @@
 #include "application_configuration.hpp"
 #include "lvgl_types.hpp"
 
-namespace simcore::dashboard::navigation {
+namespace pitrig::dashboard::navigation {
 
 class Controller final {
  public:

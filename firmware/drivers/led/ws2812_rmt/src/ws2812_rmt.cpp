@@ -9,7 +9,7 @@
 #include "soc/soc_caps.h"
 #include "ws2812_encoder.hpp"
 
-namespace simcore::led::drivers::ws2812_rmt {
+namespace pitrig::led::drivers::ws2812_rmt {
 namespace {
 
 constexpr char kTag[] = "ws2812";

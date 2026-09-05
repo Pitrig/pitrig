@@ -1,6 +1,6 @@
 {
   "schema_version": 26,
-  "description": "Single source of truth for the SimCore device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
+  "description": "Single source of truth for the Pitrig device configuration contract. Firmware structures, parser key allow-lists, configurator types and validation, and the public property documentation are generated from this file. Run python3 -m tools.codegen.configuration_schema after editing.",
 
   "documents": {
     "dashboard": {

@@ -1,6 +1,6 @@
 set(debug_sources "")
 set(debug_includes "")
-if(CONFIG_SIMCORE_DEBUG)
+if(CONFIG_PITRIG_DEBUG)
     set(debug_sources "src/debug_diagnostics.cpp")
     set(debug_includes "include")
 endif()

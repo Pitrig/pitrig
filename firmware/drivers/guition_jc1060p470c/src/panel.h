@@ -8,9 +8,9 @@
 extern "C" {
 #endif
 
-esp_err_t simcore_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
+esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
                                                esp_lcd_panel_handle_t* panel);
-esp_err_t simcore_jc1060p470c_backlight_on(void);
+esp_err_t pitrig_jc1060p470c_backlight_on(void);
 
 #ifdef __cplusplus
 }

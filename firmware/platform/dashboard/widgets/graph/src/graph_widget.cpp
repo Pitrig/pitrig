@@ -6,11 +6,11 @@
 #include "graph_binding.hpp"
 #include "graph_plot.hpp"
 #include "logger.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "lvgl.h"
 #include "value_conditions.hpp"
 
-namespace simcore::dashboard::graph_widget {
+namespace pitrig::dashboard::graph_widget {
 namespace {
 
 constexpr char kTag[] = "graph_widget";

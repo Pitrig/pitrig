@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-const STORAGE_KEY = 'simcore.editor.snap'
+const STORAGE_KEY = 'pitrig.editor.snap'
 
 export const MINIMUM_GRID_PX = 1
 export const MAXIMUM_GRID_PX = 64

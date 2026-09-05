@@ -8,15 +8,15 @@
 #include <string_view>
 
 #include "binary_session.hpp"
-#include "simcore_features.hpp"
-#if SIMCORE_DEBUG
+#include "pitrig_features.hpp"
+#if PITRIG_DEBUG
 #include "performance.hpp"
 #endif
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "transport.hpp"
 
-namespace simcore::asset_control {
+namespace pitrig::asset_control {
 
 inline constexpr std::size_t kUploadMaximumChunkSize = 4096;
 inline constexpr std::size_t kFrameHeaderSize = 14;
@@ -27,7 +27,7 @@ inline constexpr std::size_t kMaximumFrameSize =
 struct Traits {
   std::string_view tag;
   const char* task_name;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   performance::TaskMetric metric;
 #endif
 };

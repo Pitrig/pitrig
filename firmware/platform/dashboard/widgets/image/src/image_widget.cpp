@@ -10,7 +10,7 @@
 #include "lvgl.h"
 #include "value_conditions.hpp"
 
-namespace simcore::dashboard::image_widget {
+namespace pitrig::dashboard::image_widget {
 namespace {
 
 constexpr char kTag[] = "image_widget";

@@ -7,7 +7,7 @@
 #include "asset_storage.hpp"
 #include "esp_partition.h"
 
-namespace simcore::platform {
+namespace pitrig::platform {
 
 class PartitionStorage final : public asset_storage::IStorage {
  public:

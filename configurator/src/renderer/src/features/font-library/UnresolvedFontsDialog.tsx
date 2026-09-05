@@ -22,7 +22,7 @@ export function UnresolvedFontsDialog({
   const choose = async (family: string): Promise<void> => {
     setBusy(family)
     setError(undefined)
-    const result = await window.simcore.importFontFace({ id: family }).catch(() => undefined)
+    const result = await window.pitrig.importFontFace({ id: family }).catch(() => undefined)
     setBusy(undefined)
     if (!result) return setError(t('fonts.fontsPage.theFontCouldNotBe'))
     if (!result.ok) return setError(result.error.message)

@@ -10,7 +10,7 @@
 #include "lvgl_types.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard::slot_widget {
+namespace pitrig::dashboard::slot_widget {
 
 inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumSlotWidgets;

@@ -2,7 +2,7 @@
 
 #include <cstddef>
 
-namespace simcore::debug::diagnostics {
+namespace pitrig::debug::diagnostics {
 
 [[nodiscard]] int write(char* out, std::size_t size);
 

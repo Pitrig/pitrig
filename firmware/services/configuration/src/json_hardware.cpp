@@ -6,7 +6,7 @@
 #include "configuration_schema_generated.hpp"
 #include "json_value_pipeline.hpp"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 namespace {
 
 constexpr std::string_view kDeviceName = "hardware";

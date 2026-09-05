@@ -7,9 +7,9 @@
 
 #include "binary_codec.hpp"
 #include "scf1_frame.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::asset_control {
+namespace pitrig::asset_control {
 namespace {
 
 [[nodiscard]] bool matches(const std::span<const std::uint8_t> line,
@@ -22,7 +22,7 @@ std::string_view compose(std::array<char, 32>& storage,
                          const std::string_view tag,
                          const std::string_view suffix) {
   const int written =
-      std::snprintf(storage.data(), storage.size(), "@SC:%.*s:%.*s",
+      std::snprintf(storage.data(), storage.size(), "@PR:%.*s:%.*s",
                     static_cast<int>(tag.size()), tag.data(),
                     static_cast<int>(suffix.size()), suffix.data());
   if (written <= 0 || static_cast<std::size_t>(written) >= storage.size()) {
@@ -58,7 +58,7 @@ bool AssetControl::initialize(const Traits& traits,
   claim_ = &claim;
   frame_ = frame.first(kMaximumFrameSize);
   const int prefix_length =
-      std::snprintf(command_prefix_.data(), command_prefix_.size(), "@SC:%.*s:",
+      std::snprintf(command_prefix_.data(), command_prefix_.size(), "@PR:%.*s:",
                     static_cast<int>(traits_.tag.size()), traits_.tag.data());
   if (prefix_length <= 0 ||
       static_cast<std::size_t>(prefix_length) >= command_prefix_.size() ||
@@ -79,9 +79,9 @@ bool AssetControl::initialize(const Traits& traits,
   task_ = xTaskCreateStaticPinnedToCore(
       &AssetControl::task_entry, traits_.task_name, task_stack_.size(), this,
       kTaskPriority, task_stack_.data(), &task_state_,
-      SIMCORE_COMMUNICATION_CORE);
+      PITRIG_COMMUNICATION_CORE);
   if (task_ != nullptr) {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
     performance::register_task(traits_.metric, task_);
 #endif
   } else {
@@ -92,7 +92,7 @@ bool AssetControl::initialize(const Traits& traits,
 
 void AssetControl::stop() {
   if (task_ != nullptr) {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
     performance::unregister_task(traits_.metric);
 #endif
     vTaskDelete(task_);

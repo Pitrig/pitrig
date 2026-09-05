@@ -6,14 +6,14 @@ the overlays and the collector now live in `firmware/debug/`, which a production
 build registers as empty components, and the boundary this ADR draws is a build
 boundary as well as a dependency one. Also amended by
 [ADR 0027](0027-partial-render-buffers-and-unsynchronized-scan-out.md): what a
-debug build draws over the dashboard is now the `SIMCORE_DEBUG_OVERLAY` Kconfig
+debug build draws over the dashboard is now the `PITRIG_DEBUG_OVERLAY` Kconfig
 choice — the full panel this ADR describes, an FPS-only chip that LVGL can draw
 without touching the widgets beneath it, or nothing. The service/overlay
 boundary is unchanged and both views stay behind it.
 
 ## Context
 
-SimCore needs runtime diagnostics for CPU, rendering, display transfer, and memory
+Pitrig needs runtime diagnostics for CPU, rendering, display transfer, and memory
 without coupling shared infrastructure to LVGL or a particular dashboard.
 
 ## Decision
@@ -26,7 +26,7 @@ or hardware drivers.
 Render the latest immutable statistics snapshot in a platform dashboard widget
 under `platform/dashboard/widgets/performance_overlay`. The performance service,
 display instrumentation, and overlay are enabled together only when the
-compile-time `CONFIG_SIMCORE_DEBUG` Kconfig option is enabled. Production and
+compile-time `CONFIG_PITRIG_DEBUG` Kconfig option is enabled. Production and
 debug IDE tasks select this option through checked-in defaults profiles.
 
 The dashboard composition owns the overlay view instance, including its LVGL

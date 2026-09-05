@@ -4,11 +4,11 @@
 
 #include "lvgl_types.hpp"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 class ITransport;
 }
 
-namespace simcore::dashboard::performance_overlay_widget {
+namespace pitrig::dashboard::performance_overlay_widget {
 
 class View final {
  public:

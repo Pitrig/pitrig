@@ -1,6 +1,6 @@
 # Control protocol
 
-The `@SC:` line protocol a host uses to read a board, write its three
+The `@PR:` line protocol a host uses to read a board, write its three
 configuration documents and start an upload, over the serial link the
 `protocol` document selects. The documents themselves, their presence rules and
 the widget semantics are in [device-configuration.md](device-configuration.md);
@@ -11,8 +11,8 @@ and the upload frames are in [font-assets.md](font-assets.md).
 `INFO` reports immutable device metadata and configuration storage status:
 
 ```text
-@SC:INFO
-@SC:OK:INFO:board=t_display_s3,firmware=<version>,schema=24,storage=1,safe_mode=0,boot_failures=0,reset_reason=power_on,last_phase=none,dashboard=valid:3,modules=absent:0,protocol=valid:1
+@PR:INFO
+@PR:OK:INFO:board=t_display_s3,firmware=<version>,schema=24,storage=1,safe_mode=0,boot_failures=0,reset_reason=power_on,last_phase=none,dashboard=valid:3,modules=absent:0,protocol=valid:1
 ```
 
 Fields:
@@ -64,13 +64,13 @@ second. It is the same measurement the debug overlay draws, answered on the link
 instead of on the panel, so a board whose limits are being measured can be read
 exactly and from a script rather than off its own screen.
 
-It is a **debug-build** command. Firmware built without `CONFIG_SIMCORE_DEBUG`
-carries no sampler, so it answers `@SC:ERR:unsupported`; see
+It is a **debug-build** command. Firmware built without `CONFIG_PITRIG_DEBUG`
+carries no sampler, so it answers `@PR:ERR:unsupported`; see
 [runtime-performance.md](runtime-performance.md) for the build.
 
 ```text
-@SC:DIAG
-@SC:OK:DIAG:internal_total=393216,internal_free=180224,internal_min=172032,internal_largest=131072,psram_total=8388608,psram_free=7340032,psram_min=7208960,psram_largest=4194304,fps=59.9,cpu0=12.4,cpu1=31.0,render_us=3120,flush_us=1980,sync_us=410,frame_max_us=17600,work_max_us=6200,gap_max_us=9100,inval_px=6059,inval_areas=3,drawn_areas=1,lat_us=7100,lat_max_us=12900,lat_n=58,stack_lvgl=3200,stack_transport=2100,stack_control=1800,stack_upload=2400,stack_sampler=1500,uptime_ms=48213
+@PR:DIAG
+@PR:OK:DIAG:internal_total=393216,internal_free=180224,internal_min=172032,internal_largest=131072,psram_total=8388608,psram_free=7340032,psram_min=7208960,psram_largest=4194304,fps=59.9,cpu0=12.4,cpu1=31.0,render_us=3120,flush_us=1980,sync_us=410,frame_max_us=17600,work_max_us=6200,gap_max_us=9100,inval_px=6059,inval_areas=3,drawn_areas=1,lat_us=7100,lat_max_us=12900,lat_n=58,stack_lvgl=3200,stack_transport=2100,stack_control=1800,stack_upload=2400,stack_sampler=1500,uptime_ms=48213
 ```
 
 Fields:
@@ -110,8 +110,8 @@ by position.
 
 The configuration protocol remains line-oriented and shares the selected
 telemetry serial transport. Asset upload temporarily switches that same
-transport into a binary stop-and-wait mode: `@SC:FONT:` for font packages
-(see [Font asset storage](font-assets.md)) and `@SC:IMAGE:` for image packages
+transport into a binary stop-and-wait mode: `@PR:FONT:` for font packages
+(see [Font asset storage](font-assets.md)) and `@PR:IMAGE:` for image packages
 (see [Image asset storage](image-assets.md)). The two share one binary session,
 so only one upload owns the stream at a time. On the link an upload owns there
 are no more commands until it ends: every byte is a frame, so a second `BEGIN`
@@ -125,28 +125,28 @@ are never stored in configuration NVS.
 Every command that carries configuration names one of the three documents.
 `<doc>` below is `dashboard`, `modules` or `protocol`, spelled in lower case the
 way the contract spells every other value on this wire. A name that is none of
-them is answered `@SC:ERR:unknown_document`.
+them is answered `@PR:ERR:unknown_document`.
 
 | Request | Successful response | Purpose |
 | --- | --- | --- |
-| `@SC:INFO` | `@SC:OK:INFO:...` | Read device and storage metadata, and each document's stored record. |
-| `@SC:DIAG` | `@SC:OK:DIAG:...` | Read live memory and frame figures. Debug builds only; a product build answers `unsupported`. |
-| `@SC:GET:<doc>` | `@SC:OK:CONFIG:<doc>:<JSON>` | Read the exact sparse JSON payload that document would be loaded from: the stored record, or the board's own document while none is held. `@SC:APPLY` does not move it. |
-| `@SC:VALIDATE:<doc>:<JSON>` | `@SC:OK:VALID:<doc>` | Validate without saving. |
-| `@SC:APPLY:<doc>:<JSON>` | `@SC:OK:APPLIED:<doc>` | Validate and apply to the running composition without saving. |
-| `@SC:SET:<doc>:<JSON>` | `@SC:OK:SAVED:<doc>:reboot_required=<0\|1>` | Validate and save. |
-| `@SC:RESET:<doc>` | `@SC:OK:RESET:<doc>:reboot_required=1` | Remove one saved document. |
-| `@SC:RESET` | `@SC:OK:RESET:reboot_required=1` | Remove every saved document. |
-| `@SC:REBOOT` | `@SC:OK:REBOOTING` | Restart the device. |
+| `@PR:INFO` | `@PR:OK:INFO:...` | Read device and storage metadata, and each document's stored record. |
+| `@PR:DIAG` | `@PR:OK:DIAG:...` | Read live memory and frame figures. Debug builds only; a product build answers `unsupported`. |
+| `@PR:GET:<doc>` | `@PR:OK:CONFIG:<doc>:<JSON>` | Read the exact sparse JSON payload that document would be loaded from: the stored record, or the board's own document while none is held. `@PR:APPLY` does not move it. |
+| `@PR:VALIDATE:<doc>:<JSON>` | `@PR:OK:VALID:<doc>` | Validate without saving. |
+| `@PR:APPLY:<doc>:<JSON>` | `@PR:OK:APPLIED:<doc>` | Validate and apply to the running composition without saving. |
+| `@PR:SET:<doc>:<JSON>` | `@PR:OK:SAVED:<doc>:reboot_required=<0\|1>` | Validate and save. |
+| `@PR:RESET:<doc>` | `@PR:OK:RESET:<doc>:reboot_required=1` | Remove one saved document. |
+| `@PR:RESET` | `@PR:OK:RESET:reboot_required=1` | Remove every saved document. |
+| `@PR:REBOOT` | `@PR:OK:REBOOTING` | Restart the device. |
 
 `reboot_required` on a save is a property of the document, generated from the
 schema rather than decided here: `protocol` answers 1 because the link is
 selected once at startup, and `dashboard` and `modules` answer 0 because
-`@SC:APPLY` brings the running composition up to what was just written. Applying
+`@PR:APPLY` brings the running composition up to what was just written. Applying
 the protocol document is accepted and stages it, but rebuilds nothing — the
 board picks the link up on its next start.
 
-`@SC:INFO` reports `board`, `firmware`, `schema`, `storage`, the four boot-health
+`@PR:INFO` reports `board`, `firmware`, `schema`, `storage`, the four boot-health
 fields above, and then one field per document spelled
 `<doc>=<outcome>:<generation>`. The outcome is one of
 `absent`, `malformed_record`, `unsupported_schema`, `corrupt_payload`,
@@ -154,7 +154,7 @@ fields above, and then one field per document spelled
 is none. A board running one section from flash and another from its factory
 value is an ordinary state, which is why there is no single source token.
 
-Validation errors use `@SC:ERR:<reason>:screen=<n>,widget=<n>,path=<property>`.
+Validation errors use `@PR:ERR:<reason>:screen=<n>,widget=<n>,path=<property>`.
 The reason token keeps its position, so a host that only reads the reason is
 unaffected. `screen` and `widget` are `-1` when the failure is not inside a
 widget, and `path` names the property that caused it. The reason tokens are
@@ -165,11 +165,11 @@ location suffix:
 
 | Response | When |
 | --- | --- |
-| `@SC:ERR:unknown_command` | The line starts with `@SC:` but names no command above. A host probes for a capability this way. |
-| `@SC:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. Also `DIAG` on a product build, which carries no sampler to answer it with. |
-| `@SC:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. An asset or firmware `BEGIN` or `CLEAR` in that same window is answered `busy` under its own namespace rather than waiting, because startup is still reading the partitions it would erase. |
-| `@SC:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |
-| `@SC:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. |
+| `@PR:ERR:unknown_command` | The line starts with `@PR:` but names no command above. A host probes for a capability this way. |
+| `@PR:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. Also `DIAG` on a product build, which carries no sampler to answer it with. |
+| `@PR:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. An asset or firmware `BEGIN` or `CLEAR` in that same window is answered `busy` under its own namespace rather than waiting, because startup is still reading the partitions it would erase. |
+| `@PR:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |
+| `@PR:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. |
 
 After reset and reboot, each `GET` returns that document's compiled factory
 payload and the board-provided display remains enabled with an empty dashboard.
@@ -178,7 +178,7 @@ payload and the board-provided display remains enabled with an empty dashboard.
 
 Firmware wraps the exact validated JSON bytes in a private NVS record containing
 magic, record version, schema version, payload size, generation, and CRC32. One
-record per document is stored in the dedicated `simcore_cfg` partition, keyed by
+record per document is stored in the dedicated `pitrig_cfg` partition, keyed by
 the document's name, each with a generation of its own. Firmware writes a record
 and reads it back — header, checksum and parse — before believing the write.
 
@@ -194,7 +194,7 @@ normally. A record that was read but not loaded — another schema version, a
 malformed record, a failed checksum, or a document this firmware rejects — is
 named in the boot log with its reason, so a device that comes up on a factory
 section after a firmware update can be told apart from one that was never
-configured. `@SC:INFO` reports the same thing per document.
+configured. `@PR:INFO` reports the same thing per document.
 
 Startup order is the three factory documents compiled into the firmware, then
 whatever is stored, one document at a time on top of them.

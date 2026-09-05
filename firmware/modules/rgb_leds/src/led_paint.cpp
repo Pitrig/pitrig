@@ -6,7 +6,7 @@
 
 #include "value_conditions.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 namespace {
 
 using configuration::LedEffect;

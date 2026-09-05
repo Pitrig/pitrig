@@ -11,7 +11,7 @@
 #include "freertos/task.h"
 #include "performance_internal.hpp"
 
-namespace simcore::performance {
+namespace pitrig::performance {
 
 using namespace internal;
 

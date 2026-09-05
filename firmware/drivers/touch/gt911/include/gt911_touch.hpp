@@ -5,7 +5,7 @@
 #include "driver/gpio.h"
 #include "input_driver.hpp"
 
-namespace simcore::input::drivers::gt911 {
+namespace pitrig::input::drivers::gt911 {
 
 struct Pins {
   gpio_num_t sda;

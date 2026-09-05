@@ -15,7 +15,7 @@ import {
   type HardwareDeviceConfiguration,
   type LedEffect
 } from '../configuration-schema'
-import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
+import { BOARD_PROFILES, type PitrigBoardId } from '../device'
 import { isMatrix, lampsOf } from '../led-render'
 import { badColors, badEnum, badList, findEffectError } from './led-values'
 import { findBoundError } from './ranges'
@@ -104,7 +104,7 @@ export function findHardwareError(
   const devices = configuration.hardware
   if (devices === undefined) return undefined
   if (!Array.isArray(devices)) return t('validation.hardware.theHardwareSectionMustBe')
-  const profile = BOARD_PROFILES[configuration.board as SimCoreBoardId]
+  const profile = BOARD_PROFILES[configuration.board as PitrigBoardId]
   const outputs = Math.min(profile?.led.outputs ?? MAXIMUM_HARDWARE_DEVICES, MAXIMUM_HARDWARE_DEVICES)
   if (devices.length > outputs) {
     return t('validation.hardware.theConfigurationDeclaresLengthDevices', { length: devices.length, outputs: outputs })

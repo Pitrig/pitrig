@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace simcore::binary {
+namespace pitrig::binary {
 
 [[nodiscard]] inline std::uint16_t read_u16_le(
     const std::span<const std::uint8_t> input, const std::size_t offset) {

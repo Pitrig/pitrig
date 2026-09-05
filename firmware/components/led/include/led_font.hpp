@@ -5,7 +5,7 @@
 
 #include "led_font_generated.hpp"
 
-namespace simcore::led {
+namespace pitrig::led {
 
 enum class Font : std::uint8_t { regular_4x6, bold_4x6, regular_6x8, bold_6x8 };
 

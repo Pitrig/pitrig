@@ -7,9 +7,9 @@
 #include "esp_system.h"
 #include "esp_timer.h"
 #include "logger.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::boot_guard {
+namespace pitrig::boot_guard {
 namespace {
 
 constexpr char kTag[] = "boot_guard";
@@ -127,7 +127,7 @@ bool safe_mode() { return current_status.safe_mode; }
 
 void reached(const Phase phase) {
   record.phase = static_cast<std::uint8_t>(phase);
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   const std::string_view name = phase_name(phase);
   log::info(kTag, "Phase %.*s at %lu ms", static_cast<int>(name.size()),
             name.data(),

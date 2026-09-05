@@ -10,7 +10,7 @@ the schema moved from 21 to 24 to reach them.
 
 ## Context
 
-The vision names LED modules as a device class SimCore exists to support, and
+The vision names LED modules as a device class Pitrig exists to support, and
 the architecture has recorded LED strips and matrices as owed components since
 it was written. Everything around them was already built: the `modules` document
 and its `hardware` section were parsed, validated, stored, key-checked, mirrored
@@ -98,11 +98,11 @@ nothing. A rule's `hold_ms` keeps it applied after it stops matching and its
 description.
 
 **The resolver became a service.** `platform/dashboard/conditions` moved to
-`services/value_conditions` under the namespace `simcore::conditions`. A module
+`services/value_conditions` under the namespace `pitrig::conditions`. A module
 may depend on a service but not on platform code, and the resolver's real
 dependencies were only the configuration contract, telemetry and
 `number_transform`. Call sites are unchanged: unqualified `conditions::` still
-resolves from inside `simcore::dashboard`.
+resolves from inside `pitrig::dashboard`.
 
 **Artwork travels in the document, and is drawn in the configurator.** A sprite
 is palette-indexed at four bits a pixel — an eight-by-eight frame is sixty-four
@@ -242,4 +242,4 @@ until both conditions hold at once, on track. The timestamp is
 `EffectState::started_us`, which the gate already kept as the animation
 timebase, so no new state was added. The preview plays several layers at once,
 in the order they were pressed, and the board preview applies that set over
-`@SC:APPLY`.
+`@PR:APPLY`.

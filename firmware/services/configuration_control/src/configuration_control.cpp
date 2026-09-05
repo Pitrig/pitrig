@@ -3,16 +3,16 @@
 #include <algorithm>
 #include <string_view>
 
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "transport.hpp"
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 #include "performance.hpp"
 #endif
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 namespace {
 
-constexpr std::string_view kPrefix = "@SC:";
+constexpr std::string_view kPrefix = "@PR:";
 
 }
 
@@ -41,9 +41,9 @@ bool ConfigurationControl::initialize(
   task_ = xTaskCreateStaticPinnedToCore(
       &ConfigurationControl::task_entry, "configuration_control",
       task_stack_.size(), this, kTaskPriority, task_stack_.data(),
-      &task_state_, SIMCORE_COMMUNICATION_CORE);
+      &task_state_, PITRIG_COMMUNICATION_CORE);
   if (task_ != nullptr) {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
     performance::register_task(performance::TaskMetric::configuration_control,
                                task_);
 #endif
@@ -71,7 +71,7 @@ bool ConfigurationControl::await_composition() {
 
 void ConfigurationControl::stop() {
   if (task_ != nullptr) {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
     performance::unregister_task(
         performance::TaskMetric::configuration_control);
 #endif

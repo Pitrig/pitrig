@@ -9,7 +9,7 @@
 #include "asset_control.hpp"
 #include "binary_codec.hpp"
 
-namespace simcore::asset_control::scf1 {
+namespace pitrig::asset_control::scf1 {
 
 inline constexpr std::array<std::uint8_t, 4> kMagic{'S', 'C', 'F', '1'};
 inline constexpr std::size_t kTypeOffset = 4;

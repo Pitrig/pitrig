@@ -2,7 +2,7 @@
 
 #include "led_driver.hpp"
 
-namespace simcore::led::drivers::ws2812_rmt {
+namespace pitrig::led::drivers::ws2812_rmt {
 
 [[nodiscard]] const driver::Driver& get();
 

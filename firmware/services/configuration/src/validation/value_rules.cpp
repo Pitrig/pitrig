@@ -6,7 +6,7 @@
 
 #include "telemetry_registry.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 
 bool reject(ValidationFailure& failure, const ValidationError error,
             const std::string_view path) {

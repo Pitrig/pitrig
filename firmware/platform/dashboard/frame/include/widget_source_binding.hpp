@@ -10,14 +10,14 @@
 #include "telemetry_registry.hpp"
 #include "telemetry_types.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 class ITelemetryReader;
 }
-namespace simcore::value_smoothing {
+namespace pitrig::value_smoothing {
 class Service;
 }
 
-namespace simcore::dashboard::frame {
+namespace pitrig::dashboard::frame {
 
 using ValueReadCallback = telemetry::TelemetryRead (*)(void* context);
 

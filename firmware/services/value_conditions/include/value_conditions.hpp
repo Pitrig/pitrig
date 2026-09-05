@@ -7,7 +7,7 @@
 #include "application_configuration.hpp"
 #include "telemetry_types.hpp"
 
-namespace simcore::conditions {
+namespace pitrig::conditions {
 
 struct ResolvedStyle {
   std::uint32_t color{};

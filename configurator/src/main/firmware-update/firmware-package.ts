@@ -1,6 +1,6 @@
 import { crc32 } from '../device/asset-crc'
 import { BOARD_ID_VALUES } from '../../shared/configuration-schema'
-import type { SimCoreBoardId } from '../../shared/device'
+import type { PitrigBoardId } from '../../shared/device'
 import {
   FIRMWARE_FORMAT_VERSION,
   FIRMWARE_HEADER_SIZE,
@@ -12,7 +12,7 @@ import {
 import { t } from '@shared/ui-text'
 import { PackageTooLargeError } from '../assets/asset-service-base'
 
-export function buildFirmwarePackage(image: Buffer, board: SimCoreBoardId): Buffer {
+export function buildFirmwarePackage(image: Buffer, board: PitrigBoardId): Buffer {
   if (image.byteLength === 0) {
     throw new Error(t('firmware.firmwarePackage.theFirmwareImageIsEmpty'))
   }
@@ -23,7 +23,7 @@ export function buildFirmwarePackage(image: Buffer, board: SimCoreBoardId): Buff
   }
   const boardIndex = BOARD_ID_VALUES.indexOf(board)
   if (boardIndex < 0) {
-    throw new Error(t('firmware.firmwarePackage.unsupportedSimcoreBoardBoard', { board: board }))
+    throw new Error(t('firmware.firmwarePackage.unsupportedPitrigBoardBoard', { board: board }))
   }
 
   const buffer = Buffer.alloc(FIRMWARE_IMAGE_OFFSET + image.byteLength)

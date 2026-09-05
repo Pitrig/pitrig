@@ -1,5 +1,5 @@
-#include "simcore.hpp"
+#include "pitrig.hpp"
 
 extern "C" void app_main() {
-  simcore::run();
+  pitrig::run();
 }

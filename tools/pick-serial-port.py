@@ -13,7 +13,7 @@ import argparse
 import os
 import sys
 
-APPLICATION = "SimCore application link — telemetry and @SC:, not a flashing port"
+APPLICATION = "Pitrig application link — telemetry and @PR:, not a flashing port"
 KNOWN = {
     "303a:1001": "USB JTAG/serial debug unit — flashing and the ESP console",
     "303a:4001": APPLICATION,
@@ -108,9 +108,9 @@ def main() -> None:
               file=sys.stderr)
         raise SystemExit(1)
 
-    override = os.environ.get("SIMCORE_PORT", "").strip()
+    override = os.environ.get("PITRIG_PORT", "").strip()
     if override:
-        print(f"Using SIMCORE_PORT={override}.", file=sys.stderr)
+        print(f"Using PITRIG_PORT={override}.", file=sys.stderr)
         print(override)
         return
 

@@ -8,7 +8,7 @@
 #include <string_view>
 #include <system_error>
 
-namespace simcore::transformers {
+namespace pitrig::transformers {
 
 class TextWriter final {
  public:

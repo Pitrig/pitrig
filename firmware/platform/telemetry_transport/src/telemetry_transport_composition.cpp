@@ -2,11 +2,11 @@
 
 #include "application_configuration.hpp"
 #include "board_registry.hpp"
-#if !CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+#if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
 #include "driver/uart.h"
 #endif
 
-namespace simcore::transport {
+namespace pitrig::transport {
 
 std::size_t TelemetryComposition::select(
     const board_registry::BoardDefinition& board,
@@ -18,12 +18,12 @@ std::size_t TelemetryComposition::select(
   ITransport* primary = nullptr;
   switch (board_registry::telemetry_transport_id(board, configuration)) {
     case configuration::TelemetryTransportId::native_usb_cdc:
-#if !CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+#if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
       primary = &usb_cdc_;
 #endif
       break;
     case configuration::TelemetryTransportId::uart:
-#if !CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+#if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
       if (uart_.configure({
               .port = static_cast<uart_port_t>(
                   configuration.telemetry_transport.uart.port),
@@ -48,7 +48,7 @@ std::size_t TelemetryComposition::select(
 }
 
 void TelemetryComposition::silence_logs() {
-#if !CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+#if !CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
   uart_.silence_logs();
 #endif
 }

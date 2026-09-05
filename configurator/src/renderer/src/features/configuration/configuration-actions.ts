@@ -12,10 +12,10 @@ import {
 import {
   applyBoardTransportDefaults,
   BOARD_PROFILES,
-  SIMCORE_BOARD_IDS,
+  PITRIG_BOARD_IDS,
   type DeviceConfiguration,
   type DeviceResult,
-  type SimCoreBoardId
+  type PitrigBoardId
 } from '@shared/device'
 import {
   transferConfiguration,
@@ -31,7 +31,7 @@ function adoptNewDocument(configuration: DeviceConfiguration, fileName?: string)
   useDashboardEditorStore.getState().resetEditorState()
 }
 
-export function createConfiguration(board: SimCoreBoardId): ActionFeedback {
+export function createConfiguration(board: PitrigBoardId): ActionFeedback {
   const { hasLocalDraft } = useDeviceStore.getState()
   if (
     hasLocalDraft &&
@@ -49,7 +49,7 @@ export async function openConfigurationFile(): Promise<ActionFeedback | undefine
     return undefined
   }
   try {
-    const result = await window.simcore.loadConfigurationFile()
+    const result = await window.pitrig.loadConfigurationFile()
     writeEventLog('Configuration file load completed', result)
     if (!result.ok) return { kind: 'error', message: result.error.message }
     if (!result.value) return undefined
@@ -64,7 +64,7 @@ export async function saveConfigurationFile(): Promise<ActionFeedback | undefine
   const { draft } = useDeviceStore.getState()
   if (!draft) return { kind: 'error', message: t('dashboard.configurationActions.thereIsNoConfigurationTo') }
   try {
-    const result = await window.simcore.saveConfigurationFile({
+    const result = await window.pitrig.saveConfigurationFile({
       json: formatConfiguration(draft)
     })
     writeEventLog('Configuration file save completed', result)
@@ -82,7 +82,7 @@ export async function openSavedConfiguration(id: string): Promise<ActionFeedback
   if (hasLocalDraft && !window.confirm(t('dashboard.configurationActions.discardTheCurrentLocalDraft3', { id: id }))) {
     return { kind: 'error', message: t('dashboard.configurationActions.keptTheCurrentDraft') }
   }
-  const result = await window.simcore.readSavedConfiguration({ id })
+  const result = await window.pitrig.readSavedConfiguration({ id })
   if (!result.ok) return { kind: 'error', message: result.error.message }
   adoptNewDocument(result.value.configuration, `${result.value.name}.json`)
   return { kind: 'success', message: t('dashboard.configurationActions.nameOpened', { name: result.value.name }) }
@@ -93,14 +93,14 @@ export async function openRecentConfiguration(path: string): Promise<ActionFeedb
   if (hasLocalDraft && !window.confirm(t('dashboard.configurationActions.discardTheCurrentLocalDraft4'))) {
     return { kind: 'error', message: t('dashboard.configurationActions.keptTheCurrentDraft') }
   }
-  const result = await window.simcore.readRecentConfiguration({ path })
+  const result = await window.pitrig.readRecentConfiguration({ path })
   if (!result.ok) return { kind: 'error', message: result.error.message }
   adoptNewDocument(result.value.configuration, result.value.fileName)
   return { kind: 'success', message: t('dashboard.configurationActions.fileNameOpened', { fileName: result.value.fileName }) }
 }
 
 export function convertDraftToBoard(
-  target: SimCoreBoardId,
+  target: PitrigBoardId,
   fit: LayoutFit,
   display?: { width: number; height: number }
 ): { feedback?: ActionFeedback; report?: LayoutTransferResult } {
@@ -122,7 +122,7 @@ export function convertDraftToBoard(
   const transferred = transferConfiguration(draft, { board: target, display, fit })
   const validated = validateConfigurationDocument(
     applyBoardTransportDefaults(transferred.configuration),
-    { supportedBoards: SIMCORE_BOARD_IDS }
+    { supportedBoards: PITRIG_BOARD_IDS }
   )
   if (!validated.ok) {
     return {
@@ -141,7 +141,7 @@ export function convertDraftToBoard(
 }
 
 export async function readConfigurationFromBoard(): Promise<ActionFeedback> {
-  return run('read', () => window.simcore.readDeviceConfiguration(), (state) => {
+  return run('read', () => window.pitrig.readDeviceConfiguration(), (state) => {
     if (state.session) {
       useDeviceStore.getState().reloadDraft(state.session)
       useDashboardEditorStore.getState().resetEditorState()
@@ -154,7 +154,7 @@ export async function resetBoardConfiguration(): Promise<ActionFeedback | undefi
   if (!window.confirm(t('dashboard.configurationActions.resetTheSavedConfigurationTo'))) {
     return undefined
   }
-  return run('reset', () => window.simcore.resetDeviceConfiguration(), (result) => {
+  return run('reset', () => window.pitrig.resetDeviceConfiguration(), (result) => {
     useDeviceStore.getState().markConfigurationReset(result.configuration)
     return t('dashboard.configurationActions.factoryConfigurationSavedRestartThe')
   })
@@ -169,7 +169,7 @@ export async function resetBoardDocument(
   }
   return run(
     `reset ${document}`,
-    () => window.simcore.resetDeviceConfiguration({ document }),
+    () => window.pitrig.resetDeviceConfiguration({ document }),
     (result) => {
       useDeviceStore.getState().markConfigurationReset(result.configuration)
       return t('dashboard.configurationActions.savedLabelConfigurationErasedRestart', { label: label })
@@ -194,8 +194,8 @@ export function loadDocumentFromBoard(
 }
 
 export async function restartBoard(): Promise<ActionFeedback | undefined> {
-  if (!window.confirm(t('dashboard.configurationActions.restartTheConnectedSimcoreBoard'))) return undefined
-  return run('reboot', () => window.simcore.rebootDevice(), () => 'Board is restarting.')
+  if (!window.confirm(t('dashboard.configurationActions.restartTheConnectedPitrigBoard'))) return undefined
+  return run('reboot', () => window.pitrig.rebootDevice(), () => 'Board is restarting.')
 }
 
 async function run<T>(

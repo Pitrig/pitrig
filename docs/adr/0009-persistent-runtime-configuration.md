@@ -11,7 +11,7 @@ is now one bound per document. Font references are defined by ADR 0010.
 
 ## Context
 
-SimCore needs configuration that survives restart, can be managed by the
+Pitrig needs configuration that survives restart, can be managed by the
 desktop configurator, and cannot make a device permanently unbootable after an
 interrupted write. Runtime storage must remain bounded and isolated from
 unrelated NVS users.
@@ -57,14 +57,14 @@ the supported board, bounded schema shape, and compact firmware payload limit.
 Local files introduce no project-only properties into the device payload.
 
 Persist the exact validated sparse payload through `IConfigurationStorage`.
-Keep the existing two-slot `simcore_cfg` NVS strategy: every internal record
+Keep the existing two-slot `pitrig_cfg` NVS strategy: every internal record
 contains magic, record and schema versions, payload size, generation, and
 CRC32. Write and verify the inactive slot before selecting it. These record
 headers and slot mechanics remain private firmware details.
 
 Bound the compact JSON payload at `kMaximumPayloadSize`, which the generated
 configuration contract defines. Size the dedicated
-`simcore_cfg` NVS partition at 1 MiB (`0x100000`). Two full-size records, the
+`pitrig_cfg` NVS partition at 1 MiB (`0x100000`). Two full-size records, the
 copy NVS keeps while it rewrites one, and NVS's own page metadata fit in a
 quarter of that; the rest is deliberate headroom for storing several
 configurations rather than one, which is planned and would otherwise force a
@@ -94,7 +94,7 @@ control-line workspaces in one platform-owned external-RAM allocation. Allocate
 that bounded arena once during startup and pass non-owning spans into the
 platform-independent services. Keep the bounded telemetry line buffer in
 internal RAM; the communication router switches to the external control-line
-workspace only after recognizing the `@SC:` prefix.
+workspace only after recognizing the `@PR:` prefix.
 
 A record of an unsupported schema version is not migrated: startup falls back
 to the other valid slot or to the board-only factory configuration.

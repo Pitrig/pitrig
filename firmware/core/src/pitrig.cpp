@@ -1,6 +1,6 @@
-#include "simcore.hpp"
+#include "pitrig.hpp"
 
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -25,20 +25,20 @@
 #include "module_composition.hpp"
 #include "nvs_config_storage.hpp"
 #include "partition_asset_storage.hpp"
-#include "simcore_boot.hpp"
+#include "pitrig_boot.hpp"
 #include "status_light.hpp"
 #include "telemetry_provider.hpp"
 #include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
 #include "telemetry_transport_composition.hpp"
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 #include "performance.hpp"
 #endif
 
-namespace simcore {
+namespace pitrig {
 namespace {
 
-constexpr char kTag[] = "simcore";
+constexpr char kTag[] = "pitrig";
 
 void initialize_display(Application& application,
                         const board_registry::BoardDefinition& board,
@@ -196,8 +196,8 @@ void run() {
     return;
   }
 
-  log::info(kTag, "SimCore starting");
-#if SIMCORE_DEBUG
+  log::info(kTag, "Pitrig starting");
+#if PITRIG_DEBUG
   performance::begin();
 #endif
   boot_guard::reached(boot_guard::Phase::link);

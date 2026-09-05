@@ -7,7 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-namespace simcore::dashboard::render_trigger {
+namespace pitrig::dashboard::render_trigger {
 
 using WakeHandler = void (*)(void* context);
 

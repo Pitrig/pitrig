@@ -7,7 +7,7 @@
 
 #include "lvgl.h"
 
-namespace simcore::dashboard::frame {
+namespace pitrig::dashboard::frame {
 
 [[nodiscard]] bool lock_lvgl();
 void unlock_lvgl();

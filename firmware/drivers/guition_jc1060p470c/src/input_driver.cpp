@@ -1,7 +1,7 @@
 #include "gt911_touch.hpp"
 #include "guition_jc1060p470c_input_driver.hpp"
 
-namespace simcore::input::drivers::guition_jc1060p470c {
+namespace pitrig::input::drivers::guition_jc1060p470c {
 namespace {
 
 constexpr gpio_num_t kSdaPin = GPIO_NUM_7;

@@ -2,9 +2,9 @@
 
 #include <cstdio>
 
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 namespace {
 
 [[nodiscard]] const char* word_for(const UpdateError error) {
@@ -74,7 +74,7 @@ bool FontAssetControl::initialize(Service& service,
       {
           .tag = "FONT",
           .task_name = "font_asset_control",
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
           .metric = performance::TaskMetric::font_asset_control,
 #endif
       },

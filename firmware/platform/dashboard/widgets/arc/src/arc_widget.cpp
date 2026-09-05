@@ -9,7 +9,7 @@
 #include "ring_geometry.hpp"
 #include "value_conditions.hpp"
 
-namespace simcore::dashboard::arc_widget {
+namespace pitrig::dashboard::arc_widget {
 namespace {
 
 constexpr char kTag[] = "arc_widget";

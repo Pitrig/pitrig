@@ -23,7 +23,7 @@
 struct _lv_display_t;
 using lv_display_t = _lv_display_t;
 
-namespace simcore {
+namespace pitrig {
 
 struct PlatformAdapters {
   configuration::NvsConfigurationStorage configuration_storage;

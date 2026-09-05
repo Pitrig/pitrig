@@ -8,7 +8,7 @@
 #include "application_configuration.hpp"
 #include "telemetry_types.hpp"
 
-namespace simcore::dashboard::value_text {
+namespace pitrig::dashboard::value_text {
 
 using Buffer = std::array<char, telemetry::kTelemetryTextCapacity>;
 

@@ -2,7 +2,7 @@ import { freshWidgetIds, screensOf, widgetsOf } from '@shared/configuration-acce
 import { MAXIMUM_SCREENS } from '@shared/configuration-schema'
 import type { ScreenConfiguration } from '@shared/configuration-schema'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
-import { SIMCORE_BOARD_IDS, type DeviceConfiguration } from '@shared/device'
+import { PITRIG_BOARD_IDS, type DeviceConfiguration } from '@shared/device'
 import { transferConfiguration, type LayoutFit } from '@shared/layout-transfer'
 import { useDeviceStore } from '@/features/device/device-store'
 
@@ -45,7 +45,7 @@ export function insertScreenFromDocument(
   }
 
   const validated = validateConfigurationDocument(candidate, {
-    supportedBoards: SIMCORE_BOARD_IDS
+    supportedBoards: PITRIG_BOARD_IDS
   })
   if (!validated.ok) {
     return {

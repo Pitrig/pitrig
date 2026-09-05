@@ -37,7 +37,7 @@ import {
   type TemplateIdRequest,
   type TemplateSaveRequest
 } from '@shared/templates'
-import { SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
+import { PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
 import { t } from '@shared/ui-text'
 
 export function isImageUploadRequest(value: unknown): value is ImageUploadRequest {
@@ -114,7 +114,7 @@ export function isTemplateSaveRequest(value: unknown): value is TemplateSaveRequ
   }
   if (
     request.kind === 'widget' &&
-    !SIMCORE_BOARD_IDS.includes(request.board as SimCoreBoardId)
+    !PITRIG_BOARD_IDS.includes(request.board as PitrigBoardId)
   ) {
     return false
   }

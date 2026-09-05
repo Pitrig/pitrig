@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Round twin dial",
   "description": "A classic round-dial DDU for the 1024 x 600 board: a needle rev counter with a segmented rev ring and shift arc, a second dial for lap times and position, corner aid chips, and a flat data screen behind it.",

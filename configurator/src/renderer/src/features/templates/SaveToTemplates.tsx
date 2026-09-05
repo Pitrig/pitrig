@@ -66,7 +66,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
     setError(undefined)
     try {
       const trimmed = description.trim()
-      const result = await window.simcore.saveTemplate(
+      const result = await window.pitrig.saveTemplate(
         kind === 'dashboard'
           ? {
               kind: 'dashboard',

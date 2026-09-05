@@ -13,16 +13,16 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 #include "number_transform.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "text_writer.hpp"
 #include "time_transform.hpp"
 #include "value_text.hpp"
 #include "widget_binding.hpp"
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 #include "performance.hpp"
 #endif
 
-namespace simcore::dashboard::text_widget {
+namespace pitrig::dashboard::text_widget {
 namespace {
 
 constexpr char kTag[] = "text_widget";
@@ -113,7 +113,7 @@ bool Collection::build(State& state, const Layout& layout,
   state.value_height = value_height;
   state.text_width = 0;
   state.offset_y = has_title ? title_height / 4 : 0;
-#if SIMCORE_DISPLAY_RENDER_FULL || SIMCORE_DISPLAY_RENDER_FULL_STRIPS
+#if PITRIG_DISPLAY_RENDER_FULL || PITRIG_DISPLAY_RENDER_FULL_STRIPS
   state.full_width = true;
 #endif
   lv_obj_add_event_cb(state.container, &drawing::draw_value, LV_EVENT_DRAW_MAIN_END,
@@ -132,7 +132,7 @@ void Collection::render_state(State& state) {
   std::array<telemetry::TelemetryRead, kMaximumSources> values{};
   bool changed = first_render;
   bool any_available = false;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   std::int64_t oldest_commit_us = 0;
 #endif
   for (std::size_t index = 0; index < state.source_count; ++index) {
@@ -141,7 +141,7 @@ void Collection::render_state(State& state) {
     changed = changed || source.free_running ||
               values[index].revision != source.rendered_revision ||
               values[index].available != source.rendered_available;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
     if (values[index].revision != source.rendered_revision &&
         values[index].last_change_us != 0 &&
         (oldest_commit_us == 0 ||
@@ -184,7 +184,7 @@ void Collection::render_state(State& state) {
           ? 0
           : drawing::text_width_of(state.font, state.displayed_text.data());
   drawing::invalidate_value(state, first_render ? nullptr : &previous);
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   performance::value_rendered(oldest_commit_us);
 #endif
 }

@@ -1,4 +1,4 @@
-#include "simcore_boot.hpp"
+#include "pitrig_boot.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -14,10 +14,10 @@
 #include "image_asset_service.hpp"
 #include "logger.hpp"
 
-namespace simcore::boot {
+namespace pitrig::boot {
 namespace {
 
-constexpr char kTag[] = "simcore";
+constexpr char kTag[] = "pitrig";
 
 void report_document(const configuration::ConfigurationDocument document,
                      const configuration::DocumentStatus& status) {

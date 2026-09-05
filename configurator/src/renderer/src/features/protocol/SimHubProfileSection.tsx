@@ -47,7 +47,7 @@ export function SimHubProfileSection(): React.JSX.Element {
       baudRate
     })
     try {
-      const result = await window.simcore.exportSimHubProfile(request)
+      const result = await window.pitrig.exportSimHubProfile(request)
       writeEventLog('SimHub profile export completed', result)
       if (!result.ok) {
         setFeedback({ kind: 'error', message: result.error.message })

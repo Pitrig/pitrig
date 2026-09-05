@@ -1,5 +1,5 @@
-appId: dev.simcore.debugger
-productName: SimCore Debugger
+appId: dev.pitrig.debugger
+productName: Pitrig Debugger
 directories:
   output: dist-debug
 extraMetadata:

@@ -11,7 +11,7 @@ export const usePreviewAssetStore = create<PreviewAssetState>((set) => ({
   images: {},
   refresh: async () => {
     const assets =
-      (await window.simcore.readPreviewAssets().catch(() => NO_PREVIEW_ASSETS)) ??
+      (await window.pitrig.readPreviewAssets().catch(() => NO_PREVIEW_ASSETS)) ??
       NO_PREVIEW_ASSETS
     set({ images: Object.fromEntries(assets.images.map((image) => [image.name, image])) })
   }

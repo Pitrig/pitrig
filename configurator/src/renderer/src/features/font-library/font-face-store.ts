@@ -8,7 +8,7 @@ interface FontFaceState {
 }
 
 export function catalogFontFamily(id: string): string {
-  return `simcore-catalog-${id}`
+  return `pitrig-catalog-${id}`
 }
 
 export async function registerCatalogFace(id: string, bytes: Uint8Array): Promise<boolean> {
@@ -16,11 +16,11 @@ export async function registerCatalogFace(id: string, bytes: Uint8Array): Promis
 }
 
 export function previewFontFamily(id: string): string {
-  return `simcore-asset-${id}`
+  return `pitrig-asset-${id}`
 }
 
 export function glyphFontFamily(id: string): string {
-  return `simcore-glyphs-${id}`
+  return `pitrig-glyphs-${id}`
 }
 
 const PRIVATE_USE_RANGE = 'U+E000-F8FF'
@@ -56,7 +56,7 @@ export const useFontFaceStore = create<FontFaceState>((set, get) => ({
     const { loaded } = get()
     const wanted = [...new Set(ids)].filter((id) => id && !loaded[id])
     if (wanted.length === 0) return
-    const faces = await window.simcore.readFontFaces({ ids: wanted }).catch(() => [])
+    const faces = await window.pitrig.readFontFaces({ ids: wanted }).catch(() => [])
     const added: Record<string, boolean> = {}
     for (const face of faces) {
       if (await register(previewFontFamily(face.id), face.id, face.bytes)) added[face.id] = true

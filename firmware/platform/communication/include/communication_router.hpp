@@ -11,7 +11,7 @@
 #include "telemetry_types.hpp"
 #include "transport.hpp"
 
-namespace simcore::communication {
+namespace pitrig::communication {
 
 class Router final {
  public:

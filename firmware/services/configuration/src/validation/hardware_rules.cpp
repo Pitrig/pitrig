@@ -4,7 +4,7 @@
 
 #include "validation/value_rules.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 namespace {
 
 [[nodiscard]] bool duplicate_pin(const ApplicationConfiguration& configuration,

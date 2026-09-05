@@ -3,7 +3,7 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
-namespace simcore::dashboard::slot_widget {
+namespace pitrig::dashboard::slot_widget {
 namespace {
 
 constexpr char kTag[] = "slot_widget";

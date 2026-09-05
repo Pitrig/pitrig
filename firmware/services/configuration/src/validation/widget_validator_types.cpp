@@ -9,7 +9,7 @@
 #include "image_asset_types.hpp"
 #include "value_rules.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 namespace {
 
 bool ring_fits(const std::uint16_t thickness_px, const std::uint16_t radius_px,

@@ -2,7 +2,7 @@
 
 #include "esp_lvgl_port.h"
 
-namespace simcore::dashboard::frame {
+namespace pitrig::dashboard::frame {
 
 bool lock_lvgl() { return lvgl_port_lock(0); }
 

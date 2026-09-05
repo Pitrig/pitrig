@@ -50,7 +50,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  
 +static void lvgl_port_disp_jit_wait(void)
 +{
-+#ifdef CONFIG_SIMCORE_DISPLAY_JIT
++#ifdef CONFIG_PITRIG_DISPLAY_JIT
 +    lvgl_port_display_ctx_t *ctx = s_strips_ctx;
 +    if (ctx == NULL || !ctx->mode_settled) {
 +        return;
@@ -89,8 +89,8 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
                  lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
  #endif
--#ifndef CONFIG_SIMCORE_DISPLAY_UNCAPPED
-+#ifdef CONFIG_SIMCORE_DISPLAY_UNCAPPED
+-#ifndef CONFIG_PITRIG_DISPLAY_UNCAPPED
++#ifdef CONFIG_PITRIG_DISPLAY_UNCAPPED
 +                ctx->last_swap_wait_us = 0;
 +#else
                  const uint32_t vsync_gap =
@@ -102,7 +102,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
                      waits++;
                  }
 +                ctx->last_swap_wait_us = (uint32_t)(esp_timer_get_time() - wait_start);
-+#ifdef CONFIG_SIMCORE_DISPLAY_JIT
++#ifdef CONFIG_PITRIG_DISPLAY_JIT
 +                if (ctx->jit_slept && ctx->vsync_period_us != 0U) {
 +                    if (ctx->last_swap_wait_us > (ctx->vsync_period_us * 3U) / 4U) {
 +                        lvgl_port_jit_misses++;

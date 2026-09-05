@@ -8,7 +8,7 @@
 #include "number_transform.hpp"
 #include "text_writer.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 namespace {
 
 constexpr std::size_t kOffPanel = static_cast<std::size_t>(-1);

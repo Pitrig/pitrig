@@ -8,7 +8,7 @@
 #include "esp_log.h"
 #include "t_display_s3_display_driver.hpp"
 
-namespace simcore::display::drivers::t_display_s3 {
+namespace pitrig::display::drivers::t_display_s3 {
 namespace {
 
 constexpr char kTag[] = "t_display_s3";

@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Rallye stage",
   "description": "A minimal stage dashboard for the 320 x 170 display: rev lights, gear and speed, the lap timer with its delta, and a second screen of lap times, fuel and aids.",

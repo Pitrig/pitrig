@@ -39,7 +39,7 @@ export function SaveProgressBar(): React.JSX.Element | null {
           <button
             type="button"
             className="text-sky-300/70 hover:text-sky-200"
-            onClick={() => void window.simcore.cancelFontUpload()}
+            onClick={() => void window.pitrig.cancelFontUpload()}
           >
             {t('common.cancel')}</button>
         ) : null}

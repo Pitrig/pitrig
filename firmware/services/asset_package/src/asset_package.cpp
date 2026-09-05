@@ -3,7 +3,7 @@
 #include "binary_codec.hpp"
 #include "crc32.hpp"
 
-namespace simcore::asset_package {
+namespace pitrig::asset_package {
 
 const char* update_error_name(const UpdateError error) {
   switch (error) {

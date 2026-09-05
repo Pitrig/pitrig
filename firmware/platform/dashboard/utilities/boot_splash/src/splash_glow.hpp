@@ -4,7 +4,7 @@
 
 #include "lvgl.h"
 
-namespace simcore::dashboard::boot_splash::glow {
+namespace pitrig::dashboard::boot_splash::glow {
 
 struct Geometry {
   lv_obj_t* container{};

@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string_view>
 
-namespace simcore::image_assets {
+namespace pitrig::image_assets {
 
 inline constexpr std::size_t kImageIdCapacity = 32;
 inline constexpr std::size_t kMaximumImageIdLength = kImageIdCapacity - 1;

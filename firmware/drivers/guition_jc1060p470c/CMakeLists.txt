@@ -2,7 +2,7 @@ idf_component_register(SRCS "src/display_driver.cpp" "src/input_driver.cpp"
                             "src/panel.c"
                        INCLUDE_DIRS "include"
                        PRIV_INCLUDE_DIRS "src"
-                       REQUIRES interfaces simcore_config
+                       REQUIRES interfaces pitrig_config
                        PRIV_REQUIRES esp_driver_gpio esp_lcd esp_lcd_jd9165
                                      esp_system gt911)
 

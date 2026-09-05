@@ -5,7 +5,7 @@
 #include "event_bus.hpp"
 #include "led_driver.hpp"
 
-namespace simcore::status_light {
+namespace pitrig::status_light {
 
 enum class State : std::uint8_t {
   off,

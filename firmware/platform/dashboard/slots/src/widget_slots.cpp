@@ -5,7 +5,7 @@
 #include "lvgl.h"
 #include "value_conditions.hpp"
 
-namespace simcore::dashboard::slots {
+namespace pitrig::dashboard::slots {
 namespace {
 
 constexpr std::uint32_t kEvaluationPeriodMs = LV_DEF_REFR_PERIOD;

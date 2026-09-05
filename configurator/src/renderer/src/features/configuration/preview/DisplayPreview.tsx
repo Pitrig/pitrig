@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Copy, Redo2, Trash2, Undo2 } from 'lucide-react'
-import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
+import { BOARD_PROFILES, type PitrigBoardId } from '@shared/device'
 import { useWorkspaceStore } from '@/app/workspace/workspace-store'
 import {
   createConfiguration,
@@ -165,7 +165,7 @@ function EmptyCanvas(): React.JSX.Element {
         </p>
       ) : (
         <BoardChoice
-          value={board as SimCoreBoardId | ''}
+          value={board as PitrigBoardId | ''}
           onChange={(next) => {
             setOfflineBoard(next || undefined)
             setMessage(undefined)
@@ -176,7 +176,7 @@ function EmptyCanvas(): React.JSX.Element {
         <Button
           disabled={!board}
           title={board ? undefined : t('canvas.displayPreview.chooseABoardFirst')}
-          onClick={() => setMessage(createConfiguration(board as SimCoreBoardId).message)}
+          onClick={() => setMessage(createConfiguration(board as PitrigBoardId).message)}
         >
           {t('canvas.displayPreview.newDashboard')}</Button>
         <Button

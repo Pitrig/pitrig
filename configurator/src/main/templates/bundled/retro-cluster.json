@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Retro cluster",
   "description": "An analogue instrument cluster after ThePanzafahra's Audi Quattro B2 dashboard: two amber needle dials with printed scales, a red zone on the rev counter, and the digital readouts along the bottom.",

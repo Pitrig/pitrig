@@ -31,16 +31,16 @@ components → interfaces ← drivers
   thin per-kind wrappers over it.
 - `platform/dashboard/memory` puts **every** LVGL allocation in external RAM
   (ADR 0026).
-- `utils/simcore_config` is the Kconfig surface and the `SIMCORE_*` aliases. It
+- `utils/pitrig_config` is the Kconfig surface and the `PITRIG_*` aliases. It
   lives under `utils/` because every layer reads it; under `components/` it gave
   drivers and services a dependency on a component.
 - `debug/` exists only to observe the product. Each of its components registers
-  empty `SRCS` and `INCLUDE_DIRS` unless `CONFIG_SIMCORE_DEBUG`, so a production
+  empty `SRCS` and `INCLUDE_DIRS` unless `CONFIG_PITRIG_DEBUG`, so a production
   build compiles none of it and cannot compile an unguarded
   `#include "performance.hpp"` either. Requirements on these components stay
   **unconditional**: ESP-IDF resolves requirements in an early pass where
   `CONFIG_*` is not yet known, so the component turns itself off rather than its
-  callers. Production code keeps only one-line `#if SIMCORE_DEBUG` hooks, and
+  callers. Production code keeps only one-line `#if PITRIG_DEBUG` hooks, and
   `python3 tools/check_debug_isolation.py --check` fails when their number
   changes. A debug build is the product plus observation and must never change
   product behaviour (ADR 0028).
@@ -83,7 +83,7 @@ The DevKitC-1 has **no display**: `BoardDefinition::display` and
 `BoardDefinition::input` are null, a `dashboard` section on it is rejected rather than ignored, and its only
 output is the addressable lamp `BoardDefinition::status_led` names. That lamp
 moved between board revisions, so its pin is a Kconfig choice
-(`SIMCORE_STATUS_LED_GPIO38` / `_GPIO48`). Each board has exactly one link;
+(`PITRIG_STATUS_LED_GPIO38` / `_GPIO48`). Each board has exactly one link;
 `transport/usb_cdc` owns the whole native USB device — a composite CDC serial
 port and an HID gamepad, selected by `CONFIG_TINYUSB_HID_COUNT`. `led/ws2812_rmt`
 drives one RMT channel per output, which is why four outputs is the ceiling on

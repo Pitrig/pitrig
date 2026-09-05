@@ -8,7 +8,7 @@ endif()
 idf_component_register(
     SRCS "src/telemetry_transport_composition.cpp"
     INCLUDE_DIRS "include"
-    REQUIRES board_registry configuration_contract simcore_config transport
+    REQUIRES board_registry configuration_contract pitrig_config transport
              ${transport_driver_dependencies})
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

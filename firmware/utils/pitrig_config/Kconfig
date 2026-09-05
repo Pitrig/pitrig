@@ -1,6 +1,6 @@
-menu "SimCore"
+menu "Pitrig"
 
-config SIMCORE_DEBUG
+config PITRIG_DEBUG
     bool "Runtime performance diagnostics"
     default n
     select FREERTOS_GENERATE_RUN_TIME_STATS
@@ -8,10 +8,10 @@ config SIMCORE_DEBUG
         Enables performance collection, transport diagnostics, and the
         on-screen performance overlay.
 
-choice SIMCORE_DEBUG_OVERLAY
+choice PITRIG_DEBUG_OVERLAY
     prompt "Debug on-screen overlay"
-    depends on SIMCORE_DEBUG
-    default SIMCORE_DEBUG_OVERLAY_FPS
+    depends on PITRIG_DEBUG
+    default PITRIG_DEBUG_OVERLAY_FPS
     help
         What a debug build draws over the dashboard. The full panel blends a
         semi-transparent block over the widgets beneath it, which distorts
@@ -19,18 +19,18 @@ choice SIMCORE_DEBUG_OVERLAY
         LVGL can draw without touching anything under it. Nothing leaves the
         dashboard exactly as a product build renders it.
 
-config SIMCORE_DEBUG_OVERLAY_FULL
+config PITRIG_DEBUG_OVERLAY_FULL
     bool "Full statistics panel"
 
-config SIMCORE_DEBUG_OVERLAY_FPS
+config PITRIG_DEBUG_OVERLAY_FPS
     bool "FPS figure only"
 
-config SIMCORE_DEBUG_OVERLAY_NONE
+config PITRIG_DEBUG_OVERLAY_NONE
     bool "Nothing"
 
 endchoice
 
-config SIMCORE_LOG_MODE_FULL
+config PITRIG_LOG_MODE_FULL
     bool "Formatted, level-aware log forwarding"
     default n
     help
@@ -38,16 +38,16 @@ config SIMCORE_LOG_MODE_FULL
         simple one. The public logging API is identical either way; only which
         backend call the logger makes changes. See ADR 0001.
 
-config SIMCORE_LAYOUT_DEBUG
+config PITRIG_LAYOUT_DEBUG
     bool "Dashboard layout outlines"
     default n
     help
         Draws dashboard block and widget boundaries.
 
-choice SIMCORE_DISPLAY_RENDER_MODE
+choice PITRIG_DISPLAY_RENDER_MODE
     prompt "Display render mode"
-    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
-    default SIMCORE_DISPLAY_RENDER_FULL_STRIPS
+    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
+    default PITRIG_DISPLAY_RENDER_FULL_STRIPS
     help
         How LVGL renders to the JC1060P470C panel. Full strips is the
         default: LVGL draws the damage into internal RAM, DMA carries it
@@ -61,24 +61,24 @@ choice SIMCORE_DISPLAY_RENDER_MODE
         panel underruns when the processor blends into the scanning PSRAM
         buffer.
 
-config SIMCORE_DISPLAY_RENDER_PARTIAL
+config PITRIG_DISPLAY_RENDER_PARTIAL
     bool "Partial strips (fastest, glyph seams)"
 
-config SIMCORE_DISPLAY_RENDER_DIRECT
+config PITRIG_DISPLAY_RENDER_DIRECT
     bool "Direct into panel buffers (tear-free, changed areas only)"
 
-config SIMCORE_DISPLAY_RENDER_FULL
+config PITRIG_DISPLAY_RENDER_FULL
     bool "Full-screen redraw into panel buffers (tear-free)"
 
-config SIMCORE_DISPLAY_RENDER_FULL_STRIPS
+config PITRIG_DISPLAY_RENDER_FULL_STRIPS
     bool "Full-screen redraw through internal strips (tear-free)"
 
 endchoice
 
-choice SIMCORE_DISPLAY_COLOR_DEPTH
+choice PITRIG_DISPLAY_COLOR_DEPTH
     prompt "Display colour depth"
-    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
-    default SIMCORE_DISPLAY_COLOR_16BIT
+    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
+    default PITRIG_DISPLAY_COLOR_16BIT
     help
         How many bits a pixel carries from LVGL to the JD9165 panel. 16-bit
         RGB565 is what the board ships with: two bytes a pixel through the
@@ -88,17 +88,17 @@ choice SIMCORE_DISPLAY_COLOR_DEPTH
         bandwidth and of the link, and returns the gradients RGB565 banding
         shows on a panel this size.
 
-config SIMCORE_DISPLAY_COLOR_16BIT
+config PITRIG_DISPLAY_COLOR_16BIT
     bool "16-bit RGB565"
 
-config SIMCORE_DISPLAY_COLOR_24BIT
+config PITRIG_DISPLAY_COLOR_24BIT
     bool "24-bit RGB888"
 
 endchoice
 
-config SIMCORE_DISPLAY_VSYNC_LOCK
+config PITRIG_DISPLAY_VSYNC_LOCK
     bool "Schedule each frame from the telemetry burst (experiment)"
-    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
     default n
     help
         Today a frame starts the moment telemetry arrives, and since the
@@ -117,9 +117,9 @@ config SIMCORE_DISPLAY_VSYNC_LOCK
         does today. The allowance and the slack the decisions keep adapt to
         the measured jitter of the feed.
 
-config SIMCORE_DISPLAY_JIT
+config PITRIG_DISPLAY_JIT
     bool "Start each frame as late as it can still meet the panel (experiment)"
-    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
     default n
     help
         Instead of drawing a frame as soon as something changed and then
@@ -131,9 +131,9 @@ config SIMCORE_DISPLAY_JIT
         adapts: a frame that misses its latch widens it, frames that hit
         narrow it back.
 
-config SIMCORE_DISPLAY_UNCAPPED
+config PITRIG_DISPLAY_UNCAPPED
     bool "Render without waiting for the panel (experiment)"
-    depends on SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
     default n
     help
         Drops the pacing wait that holds a finished frame until the panel is
@@ -144,10 +144,10 @@ config SIMCORE_DISPLAY_UNCAPPED
         screen reaching the panel rate that wait is the largest single term
         in it.
 
-choice SIMCORE_FACTORY_BOARD
+choice PITRIG_FACTORY_BOARD
     prompt "Factory board profile"
-    default SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C if IDF_TARGET_ESP32P4
-    default SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
+    default PITRIG_FACTORY_BOARD_GUITION_JC1060P470C if IDF_TARGET_ESP32P4
+    default PITRIG_FACTORY_BOARD_T_DISPLAY_S3
     help
         Selects the immutable hardware identity and the fallback configuration
         used when neither NVS configuration slot is valid. A build links only
@@ -156,19 +156,19 @@ choice SIMCORE_FACTORY_BOARD
         resolves component requirements before loading this choice on a fresh
         configure.
 
-config SIMCORE_FACTORY_BOARD_T_DISPLAY_S3
+config PITRIG_FACTORY_BOARD_T_DISPLAY_S3
     bool "LilyGO T-Display-S3"
     depends on IDF_TARGET_ESP32S3
 
-config SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+config PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
     bool "Guition ESP32-4848S040"
     depends on IDF_TARGET_ESP32S3
 
-config SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+config PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
     bool "Guition JC1060P470C"
     depends on IDF_TARGET_ESP32P4
 
-config SIMCORE_FACTORY_BOARD_ESP32S3_DEVKIT
+config PITRIG_FACTORY_BOARD_ESP32S3_DEVKIT
     bool "Espressif ESP32-S3-DevKitC-1 (no display)"
     depends on IDF_TARGET_ESP32S3
     help
@@ -180,10 +180,10 @@ config SIMCORE_FACTORY_BOARD_ESP32S3_DEVKIT
 
 endchoice
 
-choice SIMCORE_STATUS_LED_PIN
+choice PITRIG_STATUS_LED_PIN
     prompt "On-board status LED pin"
-    depends on SIMCORE_FACTORY_BOARD_ESP32S3_DEVKIT
-    default SIMCORE_STATUS_LED_GPIO38
+    depends on PITRIG_FACTORY_BOARD_ESP32S3_DEVKIT
+    default PITRIG_STATUS_LED_GPIO38
     help
         Which pin the DevKitC-1's addressable status LED is wired to. The
         board moved it between revisions — v1.0 drives it from GPIO 48 and
@@ -192,10 +192,10 @@ choice SIMCORE_STATUS_LED_PIN
         this lamp is the only thing that can report safe mode, so getting
         it wrong costs the one diagnostic the board has.
 
-config SIMCORE_STATUS_LED_GPIO38
+config PITRIG_STATUS_LED_GPIO38
     bool "GPIO 38 (DevKitC-1 v1.1)"
 
-config SIMCORE_STATUS_LED_GPIO48
+config PITRIG_STATUS_LED_GPIO48
     bool "GPIO 48 (DevKitC-1 v1.0)"
 
 endchoice

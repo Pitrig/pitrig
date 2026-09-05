@@ -7,7 +7,7 @@
 #include "binary_codec.hpp"
 #include "crc32.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 bool ConfigurationService::initialize(
     IConfigurationStorage& storage,

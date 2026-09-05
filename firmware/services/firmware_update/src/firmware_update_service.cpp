@@ -6,7 +6,7 @@
 #include "esp_app_desc.h"
 #include "esp_err.h"
 
-namespace simcore::firmware_update {
+namespace pitrig::firmware_update {
 namespace {
 
 [[nodiscard]] std::string_view label_of(const esp_partition_t* const partition) {

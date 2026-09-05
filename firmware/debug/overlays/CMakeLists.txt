@@ -1,6 +1,6 @@
 set(debug_sources "")
 set(debug_includes "")
-if(CONFIG_SIMCORE_DEBUG)
+if(CONFIG_PITRIG_DEBUG)
     set(debug_sources "fps_overlay/src/fps_overlay_widget.cpp"
                       "performance_overlay/src/performance_overlay_widget.cpp")
     set(debug_includes "fps_overlay/include" "performance_overlay/include")

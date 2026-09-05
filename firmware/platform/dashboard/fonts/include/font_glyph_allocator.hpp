@@ -1,6 +1,6 @@
 #pragma once
 
-namespace simcore::dashboard::fonts {
+namespace pitrig::dashboard::fonts {
 
 void install_external_memory_glyph_allocator();
 

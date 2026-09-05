@@ -12,7 +12,7 @@ export type ControlCommandResult = DeviceResult<ControlCommandValue>
 
 export const MAXIMUM_CONTROL_COMMAND_LENGTH = 256
 
-const BINARY_SESSION_COMMANDS = [/^@SC:(FONT|IMAGE|FW):BEGIN\b/i]
+const BINARY_SESSION_COMMANDS = [/^@PR:(FONT|IMAGE|FW):BEGIN\b/i]
 
 function isBinarySessionCommand(command: string): boolean {
   const line = command.trim()
@@ -22,7 +22,7 @@ function isBinarySessionCommand(command: string): boolean {
 export function controlCommandRefusal(command: string): string | undefined {
   const line = command.trim()
   if (line.length === 0) return 'Type a command first.'
-  if (!line.startsWith('@SC:')) return 'A control command starts with "@SC:".'
+  if (!line.startsWith('@PR:')) return 'A control command starts with "@PR:".'
   if (line.length > MAXIMUM_CONTROL_COMMAND_LENGTH) {
     return `A command is at most ${MAXIMUM_CONTROL_COMMAND_LENGTH} characters.`
   }

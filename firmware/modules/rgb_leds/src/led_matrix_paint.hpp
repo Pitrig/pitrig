@@ -10,7 +10,7 @@
 #include "led_paint.hpp"
 #include "rgb_leds.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 
 struct Panel {
   led::Output* output{};

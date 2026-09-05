@@ -28,7 +28,16 @@ configurator/dist-debug/
 !.vscode/tasks.json
 firmware/.vscode/
 *.code-workspace
+.cache/
+.idea/
 
 # Editor and operating system files
 .DS_Store
 *.swp
+*.log
+*.tsbuildinfo
+
+# Local secrets
+.env
+.env.*
+!.env.example

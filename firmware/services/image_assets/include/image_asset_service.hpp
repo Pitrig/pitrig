@@ -9,7 +9,7 @@
 #include "asset_storage.hpp"
 #include "image_asset_types.hpp"
 
-namespace simcore::image_assets {
+namespace pitrig::image_assets {
 
 inline constexpr std::size_t kStorageSize = 7U * 1024U * 1024U;
 inline constexpr std::size_t kHeaderSize = asset_package::kHeaderSize;

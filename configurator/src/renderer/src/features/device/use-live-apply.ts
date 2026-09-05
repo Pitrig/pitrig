@@ -43,7 +43,7 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
       }
       inFlight.current = true
       report.current({ pending: true })
-      const result = await window.simcore.applyDeviceConfiguration({
+      const result = await window.pitrig.applyDeviceConfiguration({
         json: formatConfiguration(configuration),
         documents: changed
       })

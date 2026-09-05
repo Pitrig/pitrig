@@ -23,7 +23,7 @@ export function useBoardPreview(enabled: boolean): void {
     let cancelled = false
     const timer = window.setTimeout(() => {
       void (async () => {
-        const result = await window.simcore.applyDeviceConfiguration({
+        const result = await window.pitrig.applyDeviceConfiguration({
           json: formatConfiguration(configuration),
           documents: ['modules']
         })

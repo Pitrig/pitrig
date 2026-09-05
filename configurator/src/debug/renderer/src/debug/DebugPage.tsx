@@ -14,12 +14,12 @@ import {
 } from '@/lib/event-log'
 
 const SUGGESTIONS = [
-  '@SC:INFO',
-  '@SC:GET:dashboard',
-  '@SC:GET:protocol',
-  '@SC:FONT:INFO',
-  '@SC:IMAGE:INFO',
-  '@SC:FW:INFO'
+  '@PR:INFO',
+  '@PR:GET:dashboard',
+  '@PR:GET:protocol',
+  '@PR:FONT:INFO',
+  '@PR:IMAGE:INFO',
+  '@PR:FW:INFO'
 ]
 
 export function DebugPage(): React.JSX.Element {
@@ -46,7 +46,7 @@ export function DebugPage(): React.JSX.Element {
     if (line.length === 0 || refusal) return
     setSending(true)
     try {
-      const result = await window.simcore.sendControlCommand({ command: line })
+      const result = await window.pitrig.sendControlCommand({ command: line })
       writeEventLog(
         `Console ${line}`,
         result.ok
@@ -130,7 +130,7 @@ export function DebugPage(): React.JSX.Element {
               aria-label="Control command"
               className="h-8 min-w-0 flex-1 rounded-md border bg-background px-2 font-mono text-xs text-foreground outline-none focus:border-zinc-500 disabled:opacity-50"
               disabled={!connected || sending}
-              placeholder={connected ? '@SC:INFO' : 'Connect a board to send a command'}
+              placeholder={connected ? '@PR:INFO' : 'Connect a board to send a command'}
               spellCheck={false}
               value={command}
               onChange={(event) => setCommand(event.target.value)}

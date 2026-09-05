@@ -1,6 +1,6 @@
 #include "graph_binding.hpp"
 
-namespace simcore::dashboard::graph_widget {
+namespace pitrig::dashboard::graph_widget {
 
 bool Binder::bind_one(const configuration::ValueSourceConfiguration& source,
                       const telemetry::ITelemetryRegistry& registry,

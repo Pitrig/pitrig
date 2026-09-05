@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Standings",
   "description": "Where the car sits in traffic, after NeRacinGoes' Multi-Class Standings overlay: overall and class position, the gaps either side and to the leader, and a row of flag lamps.",

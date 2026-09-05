@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <string_view>
 
-namespace simcore::communication {
+namespace pitrig::communication {
 namespace {
 
 constexpr std::array<std::uint8_t, 4> kControlPrefix{'@', 'S', 'C', ':'};

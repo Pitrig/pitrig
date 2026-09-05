@@ -1,6 +1,6 @@
 #include "led_font.hpp"
 
-namespace simcore::led {
+namespace pitrig::led {
 namespace {
 
 [[nodiscard]] char upper(const char character) {

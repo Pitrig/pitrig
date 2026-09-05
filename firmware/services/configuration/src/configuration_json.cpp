@@ -13,7 +13,7 @@
 #include "json_widgets.hpp"
 #include "cJSON.h"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 using namespace json;  // NOLINT(google-build-using-namespace)
 namespace {
 

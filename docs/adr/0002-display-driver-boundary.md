@@ -9,7 +9,7 @@ ignored.
 
 ## Context
 
-SimCore needs to render with LVGL on boards using different display transports,
+Pitrig needs to render with LVGL on boards using different display transports,
 including the LilyGO T-Display-S3 i80/ST7789 display and the Guition
 ESP32-4848S040 RGB/ST7701(S) display, while keeping the firmware core and
 dashboard modules independent from board-specific hardware.

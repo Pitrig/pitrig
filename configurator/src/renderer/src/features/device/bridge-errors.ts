@@ -16,7 +16,7 @@ function looksLikeMissingBridge(message: string): boolean {
 export function operationErrorMessage(error: unknown): string {
   const message = messageOf(error)
   if (looksLikeMissingBridge(message)) {
-    return 'The configuration bridge is not loaded. Fully restart SimCore Configurator and reconnect the board.'
+    return 'The configuration bridge is not loaded. Fully restart Pitrig Configurator and reconnect the board.'
   }
   return message || 'The configuration operation failed.'
 }
@@ -27,7 +27,7 @@ export function bridgeErrorMessage(
 ): string {
   const message = messageOf(error)
   if (looksLikeMissingBridge(message)) {
-    return 'The Electron bridge is outdated. Fully restart SimCore Configurator.'
+    return 'The Electron bridge is outdated. Fully restart Pitrig Configurator.'
   }
   return message || fallback
 }

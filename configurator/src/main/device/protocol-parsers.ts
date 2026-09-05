@@ -1,14 +1,14 @@
 import {
   BOARD_PROFILES,
   CONFIGURATION_SCHEMA_VERSION,
-  SIMCORE_BOARD_IDS,
+  PITRIG_BOARD_IDS,
   type ConfigurationDocumentOutcome,
   type ConfigurationDocumentState,
   type DeviceHealth,
   type DeviceInfo,
   type DeviceResetCause,
   type DeviceStartupPhase,
-  type SimCoreBoardId
+  type PitrigBoardId
 } from '@shared/device'
 import {
   CONFIGURATION_DOCUMENT_IDS,
@@ -23,7 +23,7 @@ export function parseFields(line: string, prefix: string, fieldName: string): Ma
     const separator = entry.indexOf('=')
     if (separator <= 0) {
       throw new DeviceServiceError(
-        'not_simcore',
+        'not_pitrig',
         t('device.protocolParsers.theDeviceReturnedMalformedFieldname', { fieldName: fieldName })
       )
     }
@@ -79,7 +79,7 @@ export function parseAssetStatus(line: string, limits: AssetStatusLimits): Asset
       : formatVersion !== 0 || count !== 0 || packageSize !== 0)
   ) {
     throw new DeviceServiceError(
-      'not_simcore',
+      'not_pitrig',
       t('device.protocolParsers.theDeviceReturnedMalformedLabel', { label: limits.label })
     )
   }
@@ -96,20 +96,20 @@ export function parseAssetStatus(line: string, limits: AssetStatusLimits): Asset
 }
 
 export function parseDeviceInfo(line: string): DeviceInfo {
-  const fields = parseFields(line, '@SC:OK:INFO:', 'INFO data')
-  const board = fields.get('board') as SimCoreBoardId | undefined
-  if (board === undefined || !SIMCORE_BOARD_IDS.includes(board)) {
-    throw new DeviceServiceError('not_simcore', `Unsupported SimCore board: ${board ?? 'unknown'}.`)
+  const fields = parseFields(line, '@PR:OK:INFO:', 'INFO data')
+  const board = fields.get('board') as PitrigBoardId | undefined
+  if (board === undefined || !PITRIG_BOARD_IDS.includes(board)) {
+    throw new DeviceServiceError('not_pitrig', `Unsupported Pitrig board: ${board ?? 'unknown'}.`)
   }
   if (fields.get('schema') !== String(CONFIGURATION_SCHEMA_VERSION)) {
     throw new DeviceServiceError(
-      'not_simcore',
+      'not_pitrig',
       `Unsupported configuration schema: ${fields.get('schema') ?? 'unknown'}.`
     )
   }
   const firmwareVersion = fields.get('firmware')
   if (!firmwareVersion || !isBooleanField(fields.get('storage'))) {
-    throw new DeviceServiceError('not_simcore', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
+    throw new DeviceServiceError('not_pitrig', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
   }
   const documents = {} as Record<ConfigurationDocumentId, ConfigurationDocumentState>
   for (const document of CONFIGURATION_DOCUMENT_IDS) {
@@ -160,7 +160,7 @@ function parseDeviceHealth(fields: Map<string, string>): DeviceHealth | undefine
     !RESET_CAUSES.includes(resetCause as DeviceResetCause) ||
     !STARTUP_PHASES.includes(lastPhase as DeviceStartupPhase)
   ) {
-    throw new DeviceServiceError('not_simcore', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
+    throw new DeviceServiceError('not_pitrig', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
   }
   return {
     safeMode: safeMode === '1',
@@ -188,7 +188,7 @@ function parseDocumentState(value: string | undefined): ConfigurationDocumentSta
     !Number.isSafeInteger(generation) ||
     generation < 0
   ) {
-    throw new DeviceServiceError('not_simcore', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
+    throw new DeviceServiceError('not_pitrig', t('device.protocolParsers.theDeviceReturnedMalformedInfo'))
   }
   return { outcome: outcome as ConfigurationDocumentOutcome, generation }
 }

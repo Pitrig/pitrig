@@ -5,7 +5,7 @@
 #include "json_hardware.hpp"
 #include "json_value_pipeline.hpp"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 namespace {
 
 constexpr std::string_view kName = "hardware.effects";

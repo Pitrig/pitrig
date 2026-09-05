@@ -2,20 +2,20 @@
 
 #include "sdkconfig.h"
 #include "ws2812_rmt.hpp"
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+#if CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
 #include "guition_jc1060p470c_display_driver.hpp"
 #include "guition_jc1060p470c_input_driver.hpp"
-#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+#elif CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
 #include "guition_display_driver.hpp"
 #include "guition_input_driver.hpp"
-#elif !CONFIG_SIMCORE_FACTORY_BOARD_ESP32S3_DEVKIT
+#elif !CONFIG_PITRIG_FACTORY_BOARD_ESP32S3_DEVKIT
 #include "t_display_s3_display_driver.hpp"
 #endif
 
-namespace simcore::board_registry {
+namespace pitrig::board_registry {
 
 const BoardDefinition& factory_board() {
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+#if CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
   static const BoardDefinition board{
       .id = configuration::BoardId::guition_jc1060p470c,
       .validation = {
@@ -39,7 +39,7 @@ const BoardDefinition& factory_board() {
           R"({"board":"guition_jc1060p470c"})",
       },
   };
-#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+#elif CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
   static const BoardDefinition board{
       .id = configuration::BoardId::guition_esp32_4848s040,
       .validation = {
@@ -63,8 +63,8 @@ const BoardDefinition& factory_board() {
           R"("telemetry_transport":{"uart":{"baud_rate":460800}}})",
       },
   };
-#elif CONFIG_SIMCORE_FACTORY_BOARD_ESP32S3_DEVKIT
-#ifdef CONFIG_SIMCORE_STATUS_LED_GPIO48
+#elif CONFIG_PITRIG_FACTORY_BOARD_ESP32S3_DEVKIT
+#ifdef CONFIG_PITRIG_STATUS_LED_GPIO48
   constexpr int kStatusLedPin = 48;
 #else
   constexpr int kStatusLedPin = 38;

@@ -12,7 +12,7 @@
 #include "logger.hpp"
 #include "esp_lvgl_port.h"
 
-namespace simcore::dashboard_composition {
+namespace pitrig::dashboard_composition {
 namespace {
 
 constexpr char kTag[] = "dashboard";

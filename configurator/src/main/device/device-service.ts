@@ -31,7 +31,7 @@ import {
   clearImagePackage,
   uploadPackage
 } from './device-uploads'
-import { requestResponse, sendControlCommand } from './simcore-protocol'
+import { requestResponse, sendControlCommand } from './pitrig-protocol'
 import { t } from '@shared/ui-text'
 
 export class DeviceService {
@@ -165,8 +165,8 @@ export class DeviceService {
       return await this.runner.withLock(async () => {
         await requestResponse(
           port,
-          '@SC:REBOOT\n',
-          '@SC:OK:REBOOTING',
+          '@PR:REBOOT\n',
+          '@PR:OK:REBOOTING',
           2_000,
           (direction, data) => {
             if (direction === 'tx') traffic?.write(direction, data)

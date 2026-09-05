@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Tyre corners 480",
   "description": "The tyre page of a data dashboard in the PS Dashboard idiom, sized for the 480 x 480 display: temperature, pressure, brake temperature and a wear bar for each corner.",

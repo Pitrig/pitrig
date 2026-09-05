@@ -1,6 +1,6 @@
 # Firmware updates over serial
 
-A SimCore board carries two application partitions and runs one of them. A new
+A Pitrig board carries two application partitions and runs one of them. A new
 image is uploaded into the other over the same serial link that carries
 telemetry and configuration, and takes over at the next restart. If it cannot
 finish starting up, the bootloader returns to the slot it came from.
@@ -17,7 +17,7 @@ The decisions behind this are in
 | `phy_init` | data, phy | `0xF000` | 4 KiB |
 | `ota_0` | app | `0x10000` | 2.5 MiB |
 | `ota_1` | app | `0x290000` | 2.5 MiB |
-| `simcore_cfg` | data, nvs | `0x510000` | 512 KiB |
+| `pitrig_cfg` | data, nvs | `0x510000` | 512 KiB |
 | `font_assets` | data, `0x40` | `0x590000` | 3 MiB |
 | `image_assets` | data, `0x41` | `0x890000` | 7 MiB |
 | `coredump` | data, coredump | `0xF90000` | 64 KiB |
@@ -71,7 +71,7 @@ a host to wait for, and a board powered from a charger with no PC attached
 passes the phase in milliseconds. Requiring an actual host would mean a board on
 a desk never confirms its image and every reset rolls a working one back.
 
-`@SC:FW:INFO` reports `pending_verify=1` for the window in which this matters,
+`@PR:FW:INFO` reports `pending_verify=1` for the window in which this matters,
 which on a healthy board is the few milliseconds before the link comes up.
 
 ## Package layout
@@ -107,7 +107,7 @@ ESP32-4848S040 are both ESP32-S3, and an image swapped between them boots with
 the wrong display driver. Firmware validates the whole header before it opens
 the OTA write handle, so an image for the wrong board never reaches flash.
 
-The image itself is the `simcore.bin` a build produces. Nothing is stripped from
+The image itself is the `pitrig.bin` a build produces. Nothing is stripped from
 it and nothing is added inside it.
 
 ## Serial upload protocol
@@ -120,8 +120,8 @@ the stream first owns it and the others are answered `busy`.
 The host can query firmware state without starting an upload:
 
 ```text
-@SC:FW:INFO
-@SC:OK:FW:INFO:storage=1,running=ota_0,target=ota_1,version=1.0.0,pending_verify=0,reboot_required=0
+@PR:FW:INFO
+@PR:OK:FW:INFO:storage=1,running=ota_0,target=ota_1,version=1.0.0,pending_verify=0,reboot_required=0
 ```
 
 `storage` reports whether a second slot exists to update into. `running` and
@@ -132,15 +132,15 @@ commit id. `pending_verify` is set while
 the running image still has to be confirmed. `reboot_required` is set after a
 successful commit until restart.
 
-`@SC:FW:CLEAR` is rejected with `invalid_state`. The only images on the device
+`@PR:FW:CLEAR` is rejected with `invalid_state`. The only images on the device
 are the one running and the one it would fall back to, and neither can be
 erased on request.
 
 The host starts a session with the complete package size, including the header:
 
 ```text
-@SC:FW:BEGIN:size=<bytes>
-@SC:OK:FW:READY:max_chunk=4096
+@PR:FW:BEGIN:size=<bytes>
+@PR:OK:FW:READY:max_chunk=4096
 ```
 
 Unlike the asset kinds, nothing is erased at `BEGIN`. The write handle is opened
@@ -149,17 +149,17 @@ until then a rejected package costs nothing. Frames, acknowledgements, commit
 and cancel are identical to the font upload:
 
 ```text
-@SC:OK:FW:ACK:sequence=<n>,received=<bytes>
-@SC:OK:FW:COMMITTED:reboot_required=1
+@PR:OK:FW:ACK:sequence=<n>,received=<bytes>
+@PR:OK:FW:COMMITTED:reboot_required=1
 ```
 
 The commit verifies the payload CRC, ends the OTA write and selects the target
-partition as the boot partition. `@SC:REBOOT` then starts the new image.
+partition as the boot partition. `@PR:REBOOT` then starts the new image.
 
 ## Configurator
 
-The **Firmware** panel appears when the connected board answers `@SC:FW:INFO`.
+The **Firmware** panel appears when the connected board answers `@PR:FW:INFO`.
 It shows the running slot and version, the slot an upload lands in, takes a
-`simcore.bin`, wraps it for the connected board and installs it. Firmware built
+`pitrig.bin`, wraps it for the connected board and installs it. Firmware built
 before this partition layout answers `unknown_command`, and the panel reports
 that the board cannot update itself over serial.

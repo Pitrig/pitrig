@@ -4,7 +4,7 @@
 
 #include "tinyusb.h"
 
-namespace simcore::transport::usb_descriptors {
+namespace pitrig::transport::usb_descriptors {
 
 extern const tusb_desc_device_t kDevice;
 extern const std::uint8_t kFullSpeedConfiguration[];

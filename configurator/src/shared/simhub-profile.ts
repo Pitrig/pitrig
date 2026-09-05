@@ -6,7 +6,7 @@ import {
 } from './simhub-profile-data'
 
 export const SIMHUB_PROFILE_EXPORT_CHANNEL = 'simhub-profile:export' as const
-export const SIMHUB_PROFILE_FILE_NAME = 'SimCore-telemetry.shsds'
+export const SIMHUB_PROFILE_FILE_NAME = 'Pitrig-telemetry.shsds'
 
 export type SimHubProfileMode = 'all' | 'dashboard'
 

@@ -9,7 +9,7 @@
 #include "telemetry_events.hpp"
 #include "telemetry_state.hpp"
 
-namespace simcore::lap_timer {
+namespace pitrig::lap_timer {
 namespace {
 
 constexpr std::int64_t kMicrosecondsPerMillisecond = 1'000;

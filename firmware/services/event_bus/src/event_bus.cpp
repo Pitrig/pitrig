@@ -1,6 +1,6 @@
 #include "event_bus.hpp"
 
-namespace simcore::events {
+namespace pitrig::events {
 
 Subscription EventBus::subscribe(const EventId id, const Handler handler, void* const context) {
   if (handler == nullptr) {

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace simcore::platform {
+namespace pitrig::platform {
 
 class ExternalMemoryBuffer final {
  public:

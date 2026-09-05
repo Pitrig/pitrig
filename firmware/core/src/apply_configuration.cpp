@@ -11,10 +11,10 @@
 #include "logger.hpp"
 #include "module_composition.hpp"
 
-namespace simcore {
+namespace pitrig {
 namespace {
 
-constexpr char kTag[] = "simcore";
+constexpr char kTag[] = "pitrig";
 
 }
 

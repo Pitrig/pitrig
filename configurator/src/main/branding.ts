@@ -1,13 +1,21 @@
 import { app, nativeImage, type NativeImage } from 'electron'
-import { existsSync, readdirSync, renameSync, rmdirSync } from 'node:fs'
+import { existsSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 
 import icon from '../../resources/icon.png?asset'
 
-const APP_NAME = 'SimCore'
+const APP_NAME = 'Pitrig'
 
-const LEGACY_VENDOR_DIRECTORY = '@simcore'
-const LEGACY_APPLICATION_DIRECTORY = 'configurator'
+const LEGACY_USER_DATA = ['SimCore', join('@simcore', 'configurator')]
+
+const OWNED_USER_DATA = [
+  'configurations',
+  'templates',
+  'font-library',
+  'font-catalog-cache',
+  'preview-assets',
+  'recent-configurations.json',
+]
 
 export function applyBranding(): void {
   app.setName(APP_NAME)
@@ -25,23 +33,23 @@ export function applyDockIcon(): void {
 }
 
 function adoptLegacyUserData(): void {
-  const vendor = join(app.getPath('appData'), LEGACY_VENDOR_DIRECTORY)
-  const legacy = join(vendor, LEGACY_APPLICATION_DIRECTORY)
   const current = app.getPath('userData')
-  if (!existsSync(legacy)) return
-  try {
-    if (existsSync(current)) {
-      if (readdirSync(current).length > 0) return
-      rmdirSync(current)
-    }
-    renameSync(legacy, current)
-  } catch (error) {
-    console.error('[branding] could not move the previous user data', error)
-    return
+  for (const relative of LEGACY_USER_DATA) {
+    const legacy = join(app.getPath('appData'), relative)
+    if (existsSync(legacy)) adoptFrom(legacy, current)
   }
-  try {
-    rmdirSync(vendor)
-  } catch {
-    return
+}
+
+function adoptFrom(legacy: string, current: string): void {
+  for (const entry of OWNED_USER_DATA) {
+    const source = join(legacy, entry)
+    const destination = join(current, entry)
+    if (!existsSync(source) || existsSync(destination)) continue
+    try {
+      renameSync(source, destination)
+    } catch (error) {
+      console.error('[branding] could not move the previous user data', error)
+      return
+    }
   }
 }

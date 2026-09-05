@@ -23,7 +23,7 @@ a decision about memory. The assumption was wrong in both directions.
 
 Measurement was the first problem — the figures existed only on the debug
 overlay, on the panel, which is unreadable while the panel is full of the
-widgets under test. `@SC:DIAG` answers the same snapshot on the link, with both
+widgets under test. `@PR:DIAG` answers the same snapshot on the link, with both
 heaps read at the moment of the request, so a host can apply a document and read
 what it cost. Everything below was measured that way, on a T-Display-S3, a
 Guition ESP32-4848S040 and a Guition JC1060P470C.
@@ -37,7 +37,7 @@ What the measurements said:
 - **Fonts were not.** Every distinct `(family, size_px)` pair cost 5.4 KB of
   internal RAM. On the T-Display-S3 the free internal heap fell linearly to
   32 KB at twenty-four sizes and then stopped falling: allocations were failing,
-  glyph caching quietly stopped, and firmware still answered `@SC:OK:APPLIED`.
+  glyph caching quietly stopped, and firmware still answered `@PR:OK:APPLIED`.
   The contract's `kMaximumFonts` was 134 at the time — 724 KB — so the cap was
   never a bound on anything the hardware could actually do; the platform now
   derives it from `maximum_font_requests()` in `dashboard_fonts.hpp`.
@@ -92,7 +92,7 @@ nothing tried moved it.
 **A cap is now a decision about frame time, not about memory.** Raising one
 costs drawing time in proportion to how many of the widgets it admits actually
 change, and nothing in internal RAM. That is the question to ask of the next
-cap change, and `@SC:DIAG` is how to answer it.
+cap change, and `@PR:DIAG` is how to answer it.
 
 What this does not fix is the shape of the cost itself, which later measurement
 did explain. A frame draws areas, and one area costs a large fixed amount —

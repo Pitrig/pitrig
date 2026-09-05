@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "SimCore: Build T-Display-S3",
+      "label": "Pitrig: Build T-Display-S3",
       "detail": "esp32s3 \u00b7 build-t-display",
       "type": "shell",
       "command": "/bin/zsh",
@@ -24,7 +24,7 @@
       }
     },
     {
-      "label": "SimCore: Build T-Display-S3 Debug",
+      "label": "Pitrig: Build T-Display-S3 Debug",
       "detail": "esp32s3 \u00b7 build-t-display-debug",
       "type": "shell",
       "command": "/bin/zsh",
@@ -46,7 +46,7 @@
       }
     },
     {
-      "label": "SimCore: Build Guition ESP32-4848S040",
+      "label": "Pitrig: Build Guition ESP32-4848S040",
       "detail": "esp32s3 \u00b7 build-guition",
       "type": "shell",
       "command": "/bin/zsh",
@@ -68,7 +68,7 @@
       }
     },
     {
-      "label": "SimCore: Build Guition ESP32-4848S040 Debug",
+      "label": "Pitrig: Build Guition ESP32-4848S040 Debug",
       "detail": "esp32s3 \u00b7 build-guition-debug",
       "type": "shell",
       "command": "/bin/zsh",
@@ -90,7 +90,7 @@
       }
     },
     {
-      "label": "SimCore: Build Guition JC1060P470C",
+      "label": "Pitrig: Build Guition JC1060P470C",
       "detail": "esp32p4 \u00b7 build-jc1060p470c \u00b7 tear-free strips (default)",
       "type": "shell",
       "command": "/bin/zsh",
@@ -112,7 +112,7 @@
       }
     },
     {
-      "label": "SimCore: Build Guition JC1060P470C Debug",
+      "label": "Pitrig: Build Guition JC1060P470C Debug",
       "detail": "esp32p4 \u00b7 build-jc1060p470c-debug",
       "type": "shell",
       "command": "/bin/zsh",
@@ -134,7 +134,7 @@
       }
     },
     {
-      "label": "SimCore: Build Guition JC1060P470C (Render Full)",
+      "label": "Pitrig: Build Guition JC1060P470C (Render Full)",
       "detail": "esp32p4 \u00b7 build-jc1060p470c-render-full \u00b7 whole frame into PSRAM, 512 KB L2",
       "type": "shell",
       "command": "/bin/zsh",
@@ -156,7 +156,7 @@
       }
     },
     {
-      "label": "SimCore: Build Guition JC1060P470C (Render Partial)",
+      "label": "Pitrig: Build Guition JC1060P470C (Render Partial)",
       "detail": "esp32p4 \u00b7 build-jc1060p470c-render-partial \u00b7 fastest, accepts the seam",
       "type": "shell",
       "command": "/bin/zsh",
@@ -178,7 +178,7 @@
       }
     },
     {
-      "label": "SimCore: Build Guition JC1060P470C (24-bit Colour)",
+      "label": "Pitrig: Build Guition JC1060P470C (24-bit Colour)",
       "detail": "esp32p4 \u00b7 build-jc1060p470c-24bit \u00b7 RGB888 through the strips and the panel",
       "type": "shell",
       "command": "/bin/zsh",
@@ -200,7 +200,7 @@
       }
     },
     {
-      "label": "SimCore: Build Guition JC1060P470C (VSync Lock)",
+      "label": "Pitrig: Build Guition JC1060P470C (VSync Lock)",
       "detail": "esp32p4 \u00b7 build-jc1060p470c-vsync-lock \u00b7 frames scheduled from the telemetry burst, ADR 0032",
       "type": "shell",
       "command": "/bin/zsh",
@@ -222,7 +222,7 @@
       }
     },
     {
-      "label": "SimCore: Build ESP32-S3 DevKitC-1",
+      "label": "Pitrig: Build ESP32-S3 DevKitC-1",
       "detail": "esp32s3 \u00b7 build-devkit \u00b7 no display",
       "type": "shell",
       "command": "/bin/zsh",
@@ -244,7 +244,7 @@
       }
     },
     {
-      "label": "SimCore: Build ESP32-S3 DevKitC-1 Debug",
+      "label": "Pitrig: Build ESP32-S3 DevKitC-1 Debug",
       "detail": "esp32s3 \u00b7 build-devkit-debug \u00b7 no display",
       "type": "shell",
       "command": "/bin/zsh",
@@ -266,34 +266,34 @@
       }
     },
     {
-      "label": "SimCore: Build All Firmware",
+      "label": "Pitrig: Build All Firmware",
       "detail": "Every board profile, esp32s3 first so the target switch happens once",
       "dependsOrder": "sequence",
       "dependsOn": [
-        "SimCore: Build T-Display-S3",
-        "SimCore: Build T-Display-S3 Debug",
-        "SimCore: Build Guition ESP32-4848S040",
-        "SimCore: Build Guition ESP32-4848S040 Debug",
-        "SimCore: Build ESP32-S3 DevKitC-1",
-        "SimCore: Build ESP32-S3 DevKitC-1 Debug",
-        "SimCore: Build Guition JC1060P470C",
-        "SimCore: Build Guition JC1060P470C Debug",
-        "SimCore: Build Guition JC1060P470C (Render Full)",
-        "SimCore: Build Guition JC1060P470C (Render Partial)",
-        "SimCore: Build Guition JC1060P470C (24-bit Colour)",
-        "SimCore: Build Guition JC1060P470C (VSync Lock)"
+        "Pitrig: Build T-Display-S3",
+        "Pitrig: Build T-Display-S3 Debug",
+        "Pitrig: Build Guition ESP32-4848S040",
+        "Pitrig: Build Guition ESP32-4848S040 Debug",
+        "Pitrig: Build ESP32-S3 DevKitC-1",
+        "Pitrig: Build ESP32-S3 DevKitC-1 Debug",
+        "Pitrig: Build Guition JC1060P470C",
+        "Pitrig: Build Guition JC1060P470C Debug",
+        "Pitrig: Build Guition JC1060P470C (Render Full)",
+        "Pitrig: Build Guition JC1060P470C (Render Partial)",
+        "Pitrig: Build Guition JC1060P470C (24-bit Colour)",
+        "Pitrig: Build Guition JC1060P470C (VSync Lock)"
       ],
       "group": "build",
       "problemMatcher": []
     },
     {
-      "label": "SimCore: Flash",
+      "label": "Pitrig: Flash",
       "detail": "Picks from the serial ports actually present",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for flash) && if [ \"$PORT\" = auto ]; then ESPBAUD=460800 idf.py -B $DIRECTORY flash; else ESPBAUD=460800 idf.py -B $DIRECTORY -p \"$PORT\" flash; fi"
+        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the Pitrig build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for flash) && if [ \"$PORT\" = auto ]; then ESPBAUD=460800 idf.py -B $DIRECTORY flash; else ESPBAUD=460800 idf.py -B $DIRECTORY -p \"$PORT\" flash; fi"
       ],
       "options": {
         "cwd": "${workspaceFolder}/firmware"
@@ -306,13 +306,13 @@
       }
     },
     {
-      "label": "SimCore: Monitor",
+      "label": "Pitrig: Monitor",
       "detail": "Picks from the serial ports actually present",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for monitor) && if [ \"$PORT\" = auto ]; then idf.py -B $DIRECTORY monitor; else idf.py -B $DIRECTORY -p \"$PORT\" monitor; fi"
+        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the Pitrig build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for monitor) && if [ \"$PORT\" = auto ]; then idf.py -B $DIRECTORY monitor; else idf.py -B $DIRECTORY -p \"$PORT\" monitor; fi"
       ],
       "options": {
         "cwd": "${workspaceFolder}/firmware"
@@ -325,13 +325,13 @@
       }
     },
     {
-      "label": "SimCore: Flash and Monitor",
+      "label": "Pitrig: Flash and Monitor",
       "detail": "Picks from the serial ports actually present",
       "type": "shell",
       "command": "/bin/zsh",
       "args": [
         "-lc",
-        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the SimCore build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for flash) && if [ \"$PORT\" = auto ]; then ESPBAUD=460800 idf.py -B $DIRECTORY flash monitor; else ESPBAUD=460800 idf.py -B $DIRECTORY -p \"$PORT\" flash monitor; fi"
+        "DIRECTORY=${input:buildDirectory} && source \"${workspaceFolder}/tools/idf-env.sh\" $DIRECTORY >/dev/null && { [ -f $DIRECTORY/project_description.json ] || { echo \"Run the Pitrig build task for $DIRECTORY first.\"; exit 1; }; } && PORT=$(python3 \"${workspaceFolder}/tools/pick-serial-port.py\" --for flash) && if [ \"$PORT\" = auto ]; then ESPBAUD=460800 idf.py -B $DIRECTORY flash monitor; else ESPBAUD=460800 idf.py -B $DIRECTORY -p \"$PORT\" flash monitor; fi"
       ],
       "options": {
         "cwd": "${workspaceFolder}/firmware"
@@ -344,7 +344,7 @@
       }
     },
     {
-      "label": "SimCore: Check Generated Contracts",
+      "label": "Pitrig: Check Generated Contracts",
       "detail": "Every generator plus the debug-isolation guard, in --check mode",
       "type": "shell",
       "command": "/bin/zsh",
@@ -364,7 +364,7 @@
       }
     },
     {
-      "label": "SimCore: Regenerate Contracts",
+      "label": "Pitrig: Regenerate Contracts",
       "detail": "Rewrites the generated contracts and the debug-hook record",
       "type": "shell",
       "command": "/bin/zsh",

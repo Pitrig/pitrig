@@ -2,7 +2,7 @@
 
 #include "led_paint.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 
 void Surface::put(const std::size_t offset, const led::Color color) const {
   if (area_.width == 0) {

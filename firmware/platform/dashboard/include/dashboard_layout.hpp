@@ -7,7 +7,7 @@
 #include "font_asset_types.hpp"
 #include "lvgl_types.hpp"
 
-namespace simcore::dashboard {
+namespace pitrig::dashboard {
 
 inline constexpr std::uint32_t kTransparentColor =
     configuration::kTransparentColor;

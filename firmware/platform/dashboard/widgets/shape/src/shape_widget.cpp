@@ -3,7 +3,7 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
-namespace simcore::dashboard::shape_widget {
+namespace pitrig::dashboard::shape_widget {
 namespace {
 
 constexpr char kTag[] = "shape_widget";

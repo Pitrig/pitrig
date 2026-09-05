@@ -3,7 +3,7 @@
 #include "application.hpp"
 #include "board_registry.hpp"
 
-namespace simcore::boot {
+namespace pitrig::boot {
 
 ConfigurationBuffers reserve_configuration_memory(Application& application);
 

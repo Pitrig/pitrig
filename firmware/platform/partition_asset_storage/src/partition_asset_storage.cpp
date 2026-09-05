@@ -4,7 +4,7 @@
 
 #include "esp_err.h"
 
-namespace simcore::platform {
+namespace pitrig::platform {
 
 PartitionStorage::~PartitionStorage() { unmap(); }
 

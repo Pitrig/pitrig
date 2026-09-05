@@ -29,7 +29,7 @@ export function InfoPage(): React.JSX.Element {
         description={
           session
             ? t('device.infoPage.reportedByTheFirmwareItself')
-            : t('device.infoPage.connectASimcoreBoardTo')
+            : t('device.infoPage.connectAPitrigBoardTo')
         }
       >
         {session ? (

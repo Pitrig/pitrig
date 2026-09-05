@@ -12,7 +12,7 @@
 #include "esp_log.h"
 #include "guition_display_driver.hpp"
 
-namespace simcore::display::drivers::guition_esp32_4848s040 {
+namespace pitrig::display::drivers::guition_esp32_4848s040 {
 namespace {
 
 constexpr char kTag[] = "guition_4848s040";

@@ -4,7 +4,7 @@
 
 #include "lvgl_types.hpp"
 
-namespace simcore::dashboard::boot_splash {
+namespace pitrig::dashboard::boot_splash {
 
 [[nodiscard]] bool show(lv_display_t* display, lv_obj_t* layer);
 

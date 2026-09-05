@@ -9,7 +9,7 @@ export function useAppInfo(): AppInfo | undefined {
   const [info, setInfo] = useState<AppInfo | undefined>(cached)
   useEffect(() => {
     if (cached) return
-    pending ??= window.simcore.getAppInfo()
+    pending ??= window.pitrig.getAppInfo()
     let cancelled = false
     void pending.then((value) => {
       cached = value

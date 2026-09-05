@@ -9,7 +9,7 @@
 #include "asset_storage.hpp"
 #include "font_asset_types.hpp"
 
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 
 inline constexpr std::size_t kStorageSize = 3U * 1024U * 1024U;
 inline constexpr std::size_t kHeaderSize = asset_package::kHeaderSize;

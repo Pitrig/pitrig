@@ -7,7 +7,7 @@
 #include "binary_session.hpp"
 #include "firmware_update_service.hpp"
 
-namespace simcore::firmware_update {
+namespace pitrig::firmware_update {
 
 class FirmwareUpdateControl final {
  public:

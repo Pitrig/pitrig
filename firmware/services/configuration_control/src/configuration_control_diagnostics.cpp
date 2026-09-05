@@ -2,16 +2,16 @@
 #include <cstdint>
 
 #include "configuration_control.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 #include "debug_diagnostics.hpp"
 #endif
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 void ConfigurationControl::send_diagnostics() {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   const int written = debug::diagnostics::write(
       reinterpret_cast<char*>(io_buffer_.data()), io_buffer_.size());
   if (written > 0 &&
@@ -21,7 +21,7 @@ void ConfigurationControl::send_diagnostics() {
         io_buffer_.data(), static_cast<std::size_t>(written) + 1U));
   }
 #else
-  (void)send_text("@SC:ERR:unsupported\n");
+  (void)send_text("@PR:ERR:unsupported\n");
 #endif
 }
 

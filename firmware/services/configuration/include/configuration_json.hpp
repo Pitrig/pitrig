@@ -7,7 +7,7 @@
 #include "application_configuration.hpp"
 #include "configuration_schema_generated.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 [[nodiscard]] constexpr bool is_supported_configuration_schema(
     const std::uint16_t version) {

@@ -1,13 +1,13 @@
 #include "screen_navigation.hpp"
 
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
 #include <cstdint>
 
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
-namespace simcore::dashboard::navigation {
+namespace pitrig::dashboard::navigation {
 namespace {
 
 constexpr std::uint32_t kTransitionMs = 200;
@@ -119,7 +119,7 @@ void Controller::on_action(lv_event_t* const event) {
 }
 
 void Controller::begin_tear_free() {
-  if (display_ == nullptr || SIMCORE_DISPLAY_RENDER_TEAR_FREE != 0) {
+  if (display_ == nullptr || PITRIG_DISPLAY_RENDER_TEAR_FREE != 0) {
     return;
   }
   if (lvgl_port_disp_set_tear_free(display_, true) == ESP_OK) {
@@ -128,7 +128,7 @@ void Controller::begin_tear_free() {
 }
 
 void Controller::end_tear_free() {
-  if (display_ != nullptr && SIMCORE_DISPLAY_RENDER_TEAR_FREE == 0) {
+  if (display_ != nullptr && PITRIG_DISPLAY_RENDER_TEAR_FREE == 0) {
     (void)lvgl_port_disp_set_tear_free(display_, false);
   }
   sync_phase_ = SyncPhase::idle;

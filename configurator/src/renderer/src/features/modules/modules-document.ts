@@ -9,7 +9,7 @@ import type { ProfileParts } from './profile-types'
 import {
   BOARD_PROFILES,
   type DeviceConfiguration,
-  type SimCoreBoardId
+  type PitrigBoardId
 } from '@shared/device'
 import {
   deviceShape,
@@ -116,7 +116,7 @@ export function devicesOf(
 
 export function ledPinsOf(draft: DeviceConfiguration | undefined): readonly number[] {
   if (!draft) return []
-  return BOARD_PROFILES[draft.board as SimCoreBoardId]?.led.pins ?? []
+  return BOARD_PROFILES[draft.board as PitrigBoardId]?.led.pins ?? []
 }
 
 export function freePins(
@@ -157,7 +157,7 @@ export function mutateDevice(
 
 export function maximumOutputsOf(draft: DeviceConfiguration | undefined): number {
   const outputs = draft
-    ? BOARD_PROFILES[draft.board as SimCoreBoardId]?.led.outputs
+    ? BOARD_PROFILES[draft.board as PitrigBoardId]?.led.outputs
     : undefined
   return Math.min(outputs ?? MAXIMUM_HARDWARE_DEVICES, MAXIMUM_HARDWARE_DEVICES)
 }

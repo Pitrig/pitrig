@@ -6,7 +6,7 @@ export interface SimHubProfileEntry {
   maximumFrequency: number
 }
 
-export const SIMHUB_PROFILE_DEFAULTS = {"name":"SimCore telemetry","description":"Generic SimHub telemetry output for SimCore devices","baudRate":921600} as const
+export const SIMHUB_PROFILE_DEFAULTS = {"name":"Pitrig telemetry","description":"Generic SimHub telemetry output for Pitrig devices","baudRate":921600} as const
 
 export const SIMHUB_PROFILE_ENTRIES = [
   {"name":"vehicle.speed","expression":"if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SpeedKmh], [DataCorePlugin.GameData.SpeedKmh]), '') = '', 'S;\\n', 'S;' + format(isnull([DataCorePlugin.GameData.NewData.SpeedKmh], [DataCorePlugin.GameData.SpeedKmh]), '0') + '\\n')","maximumFrequency":60},

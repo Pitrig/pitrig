@@ -6,7 +6,7 @@
 #include "class/hid/hid_device.h"
 #endif
 
-namespace simcore::transport::usb_gamepad {
+namespace pitrig::transport::usb_gamepad {
 
 #if CFG_TUD_HID
 namespace {
@@ -46,7 +46,7 @@ extern "C" {
 
 const std::uint8_t* tud_hid_descriptor_report_cb(const std::uint8_t instance) {
   (void)instance;
-  return simcore::transport::usb_descriptors::kGamepadReport;
+  return pitrig::transport::usb_descriptors::kGamepadReport;
 }
 
 std::uint16_t tud_hid_get_report_cb(const std::uint8_t instance,

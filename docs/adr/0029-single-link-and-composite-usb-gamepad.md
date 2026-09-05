@@ -8,7 +8,7 @@ device with an HID gamepad.
 ## Context
 
 The ESP32-P4 build could attach a second serial link on the USB-Serial-JTAG
-port, carrying telemetry, `@SC:` control and asset upload alongside the native
+port, carrying telemetry, `@PR:` control and asset upload alongside the native
 USB CDC port. It was a development aid, and it cost more than it returned: two
 links meant `kMaximumLinks` sized the boot arena and the `Application` struct
 for a case only one build used, an upload had to arbitrate between links, and
@@ -27,7 +27,7 @@ other port, the one the CDC transport already drives.
 ## Decision
 
 **One link.** `Composition::kMaximumLinks` is 1, unconditionally. The
-`SIMCORE_SECOND_TELEMETRY_LINK` option, its log-silencing companion, the
+`PITRIG_SECOND_TELEMETRY_LINK` option, its log-silencing companion, the
 `usb_serial_jtag` transport driver and the `second-link` build profiles are
 removed. The P4's link is its native USB CDC port, the one its `protocol`
 document already names. Flashing and the ESP console keep the USB-Serial-JTAG
@@ -42,16 +42,16 @@ host through a CH340 bridge rather than native USB, so it gets none of this and
 its image is unchanged.
 
 The switch is `CONFIG_TINYUSB_HID_COUNT` in the board defaults, which is what
-TinyUSB already derives `CFG_TUD_HID` from; SimCore adds no option of its own.
+TinyUSB already derives `CFG_TUD_HID` from; Pitrig adds no option of its own.
 The descriptor asserts its own length at compile time, because a configuration
 descriptor whose declared length disagrees with its bytes fails enumeration on
 the host and nowhere earlier.
 
 ## Consequences
 
-- A host sees one SimCore device on one cable: a COM port for SimHub telemetry
+- A host sees one Pitrig device on one cable: a COM port for SimHub telemetry
   and a gamepad, at the same time.
-- Nothing feeds the gamepad yet. `usb_gamepad::send()` has no caller — SimCore
+- Nothing feeds the gamepad yet. `usb_gamepad::send()` has no caller — Pitrig
   has no button or encoder input, only a touch digitizer. Wiring an input source
   to it is a separate change.
 - The boot arena and `Application` no longer carry a second link's buffers.

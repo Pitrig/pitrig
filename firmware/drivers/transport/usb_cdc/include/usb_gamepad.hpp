@@ -4,7 +4,7 @@
 
 #include "tinyusb.h"
 
-namespace simcore::transport::usb_gamepad {
+namespace pitrig::transport::usb_gamepad {
 
 inline constexpr std::size_t kButtonCount = 32;
 

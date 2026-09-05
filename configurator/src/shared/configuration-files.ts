@@ -2,7 +2,7 @@ import type { DeviceConfiguration } from './device'
 
 export const CONFIGURATION_FILE_LOAD_CHANNEL = 'configuration-file:load' as const
 export const CONFIGURATION_FILE_SAVE_CHANNEL = 'configuration-file:save' as const
-export const DEFAULT_CONFIGURATION_FILE_NAME = 'simcore-configuration.json'
+export const DEFAULT_CONFIGURATION_FILE_NAME = 'pitrig-configuration.json'
 
 export interface ConfigurationFileLoadValue {
   configuration: DeviceConfiguration

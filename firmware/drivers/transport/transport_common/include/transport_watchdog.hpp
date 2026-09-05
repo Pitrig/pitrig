@@ -6,7 +6,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 
 inline constexpr std::uint32_t kWatchdogFeedIntervalMs = 1'000;
 inline constexpr TickType_t kWatchdogFeedTicks =

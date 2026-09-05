@@ -1,0 +1,8 @@
+<svg width="740" height="740" viewBox="0 0 740 740" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="740" height="740" rx="114" fill="url(#card)"/>
+<g transform="translate(154.72 488.08)"><path d="M51.839999999999996 144.0V-380.15999999999997H262.08Q378.71999999999997 -380.15999999999997 378.71999999999997 -263.52V-116.64Q378.71999999999997 0.0 262.08 0.0H151.2V144.0ZM151.2 -86.39999999999999H256.32Q279.36 -86.39999999999999 279.36 -109.44V-270.71999999999997Q279.36 -293.76 256.32 -293.76H151.2Z" fill="url(#mark)"/></g>
+<defs>
+<linearGradient id="card" x1="370" y1="0" x2="370" y2="740" gradientUnits="userSpaceOnUse"><stop stop-color="#2A243A"/><stop offset="0.649038" stop-color="#141418"/><stop offset="1" stop-color="#16141D"/></linearGradient>
+<linearGradient id="mark" x1="370" y1="107.9" x2="370" y2="632.1" gradientUnits="userSpaceOnUse"><stop stop-color="#C27BFF"/><stop offset="1" stop-color="#905EF2"/></linearGradient>
+</defs>
+</svg>

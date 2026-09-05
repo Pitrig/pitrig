@@ -73,7 +73,7 @@
       "startup": "Startup",
       "lastBoot": "Last boot",
       "recentFailures": "Recent failures",
-      "pickAPortAtThe": "Pick a port at the top of the window, or leave it on Auto and press Connect — the configurator walks the speeds a SimCore board answers on.",
+      "pickAPortAtThe": "Pick a port at the top of the window, or leave it on Auto and press Connect — the configurator walks the speeds a Pitrig board answers on.",
       "noBoardConnected": "No board connected",
       "connection": "Connection",
       "theSerialLinkThisWindow": "The serial link this window is using.",
@@ -87,7 +87,7 @@
       "version": "Version",
       "platform": "Platform",
       "reportedByTheFirmwareItself": "Reported by the firmware itself. Nothing here is editable.",
-      "connectASimcoreBoardTo": "Connect a SimCore board to read its information.",
+      "connectAPitrigBoardTo": "Connect a Pitrig board to read its information.",
       "idConfig": "{id} config",
       "displaySize": "{width} × {height}",
       "noDisplay": "None — this board drives peripherals only",
@@ -139,21 +139,21 @@
       "deviceScanWasCancelled": "Device scan was cancelled."
     },
     "deviceErrors": {
-      "theSerialPortIsBusy": "The serial port is busy. Close SimHub, a serial monitor, or the other SimCore app.",
+      "theSerialPortIsBusy": "The serial port is busy. Close SimHub, a serial monitor, or the other Pitrig app.",
       "permissionToOpenTheSerial": "Permission to open the serial port was denied.",
       "theSerialPortIsNo": "The serial port is no longer available."
     },
     "deviceOperation": {
-      "noSimcoreDeviceIsConnected": "No SimCore device is connected.",
+      "noPitrigDeviceIsConnected": "No Pitrig device is connected.",
       "anotherDeviceOperationIsAlready": "Another device operation is already running.",
       "theBoardIsBusyWith": "The board is busy with a multi-step operation. Try again when it finishes."
     },
     "deviceScan": {
       "theBoardRestartedButDid": "The board restarted but did not come back on its port. Reconnect it by hand.",
       "noUsbSerialPortsWere": "No USB serial ports were found.",
-      "noCompatibleSimcoreDeviceResponded": "No compatible SimCore device responded to the INFO probe.",
-      "multipleSimcoreDevicesWereFound": "Multiple SimCore devices were found. Select a port manually.",
-      "noSimcoreDeviceWasFound": "No SimCore device was found."
+      "noCompatiblePitrigDeviceResponded": "No compatible Pitrig device responded to the INFO probe.",
+      "multiplePitrigDevicesWereFound": "Multiple Pitrig devices were found. Select a port manually.",
+      "noPitrigDeviceWasFound": "No Pitrig device was found."
     },
     "deviceService": {
       "cancelTheActiveDeviceOperation": "Cancel the active device operation before disconnecting.",
@@ -249,7 +249,7 @@
       "saveToBoard": "Save to board"
     },
     "draftState": {
-      "connectASimcoreBoardTo": "Connect a SimCore board to mirror the draft on it.",
+      "connectAPitrigBoardTo": "Connect a Pitrig board to mirror the draft on it.",
       "theBoardIsInSafe": "The board is in safe mode. It draws nothing until it is repaired and restarted.",
       "theDraftIsNotValid": "The draft is not valid, so the board keeps what it runs. {error}",
       "theDraftTargetsBoardThe": "The draft targets {board}, the board is {boardId}.",
@@ -1143,7 +1143,7 @@
       "completed": "Saved"
     },
     "saveToBoardService": {
-      "noSimcoreBoardIsConnected": "No SimCore board is connected.",
+      "noPitrigBoardIsConnected": "No Pitrig board is connected.",
       "theConfigurationIsNotValid": "The configuration is not valid.",
       "checkingTheFontsThisDashboard": "Checking the fonts this dashboard needs",
       "savingTheAndConfiguration": "Saving the {and} configuration",
@@ -1177,7 +1177,7 @@
       "thisImageHasNotBeen": "This image has not been confirmed yet. A restart now returns the board to the previous firmware.",
       "restartTheBoardToRun": "Restart the board to run the firmware already installed.",
       "image": "Image",
-      "aPackagedSimcoreFirmwareImage": "A packaged SimCore firmware image, named for the board it was built for.",
+      "aPackagedPitrigFirmwareImage": "A packaged Pitrig firmware image, named for the board it was built for.",
       "noImageSelected": "No image selected.",
       "selectImage": "Select image…",
       "notAvailable": "Not available",
@@ -1199,7 +1199,7 @@
       "firmwareUploadWasCancelled": "Firmware upload was cancelled.",
       "selectFirmwareImage": "Select firmware image",
       "selectImage": "Select image",
-      "selectTheSimcoreBinProduced": "Select the simcore.bin produced by a firmware build.",
+      "selectThePitrigBinProduced": "Select the pitrig.bin produced by a firmware build.",
       "aFirmwareUploadIsAlready": "A firmware upload is already running.",
       "theConnectedFirmwareCannotUpdate": "The connected firmware cannot update itself over serial.",
       "thisDeviceHasNoSecond": "This device has no second firmware slot to update into.",
@@ -1209,10 +1209,10 @@
     "firmwarePackage": {
       "theFirmwareImageIsEmpty": "The firmware image is empty.",
       "theFirmwareImageIsBytelength": "The firmware image is {byteLength} bytes, which does not fit the 2 MiB firmware slot.",
-      "unsupportedSimcoreBoardBoard": "Unsupported SimCore board: {board}."
+      "unsupportedPitrigBoardBoard": "Unsupported Pitrig board: {board}."
     },
     "dialog": {
-      "filter": "SimCore firmware"
+      "filter": "Pitrig firmware"
     }
   },
   "protocol": {
@@ -1261,7 +1261,7 @@
       "aSavedChangeRestartsThe": "A saved change restarts the board, and the board comes back on the new link — at the new speed, if that is what changed. This window reconnects at the old one and will report that the board did not come back.",
       "notEverySpeedSurvivesEvery": "Not every speed survives every board. A USB-serial bridge is what limits it, not the firmware, and a rate the bridge cannot hold leaves a board that answers nothing.",
       "auto": "Auto",
-      "whichLinkCarriesTelemetryAnd": "Which link carries telemetry and @SC: control. The board default is what the firmware was built for.",
+      "whichLinkCarriesTelemetryAnd": "Which link carries telemetry and @PR: control. The board default is what the firmware was built for.",
       "bitsPerSecondOnThe": "Bits per second on the UART link. A USB-serial bridge is what limits this, not the board.",
       "uARTPins": "UART pins",
       "theFirmwareChecksTheseAgainst": "The firmware checks these against the board’s own pin pair and refuses a document that names another, so a wrong number costs a refused save rather than a dark board — the one setting here that cannot go wrong quietly.",
@@ -1275,7 +1275,7 @@
       "iKnowWhatTheseDo": "I know what these do — let me change them",
       "$note": "Wraps an emphasised control name: the Before half is drawn, then the control, then the After half.",
       "notPermanentBefore": "Nothing here is permanent: ",
-      "notPermanentAfter": " at the top of the window walks the speeds a SimCore board answers on, and a board that cannot be reached at all can still be flashed over USB."
+      "notPermanentAfter": " at the top of the window walks the speeds a Pitrig board answers on, and a board that cannot be reached at all can still be flashed over USB."
     }
   },
   "templates": {
@@ -1382,7 +1382,7 @@
   },
   "app": {
     "app": {
-      "simCore": "SimCore",
+      "pitrig": "Pitrig",
       "nameVersion": "{name} {version}",
       "loadingApplicationInfo": "Loading application info…"
     },
@@ -1456,7 +1456,7 @@
       "factoryConfigurationSavedRestartThe": "Factory configuration saved. Restart the board to activate it.",
       "eraseTheSavedLabelConfiguration": "Erase the saved {label} configuration from the board?",
       "savedLabelConfigurationErasedRestart": "Saved {label} configuration erased. Restart the board to activate the factory one.",
-      "restartTheConnectedSimcoreBoard": "Restart the connected SimCore board now?"
+      "restartTheConnectedPitrigBoard": "Restart the connected Pitrig board now?"
     },
     "boardLabels": {
       "thisBoardHasNoDisplay": "This board has no display, so the dashboard is left behind and only its peripherals carry over.",
@@ -1605,9 +1605,9 @@
       "bytesOfLimit": "{bytes} / {limit} bytes"
     },
     "dialog": {
-      "loadTitle": "Load SimCore configuration",
-      "saveTitle": "Save SimCore configuration",
-      "filter": "SimCore configuration"
+      "loadTitle": "Load Pitrig configuration",
+      "saveTitle": "Save Pitrig configuration",
+      "filter": "Pitrig configuration"
     }
   },
   "layers": {

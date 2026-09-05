@@ -3,7 +3,7 @@
 #include <atomic>
 #include <cstdint>
 
-namespace simcore::performance {
+namespace pitrig::performance {
 
 inline void record_maximum(std::atomic<std::uint32_t>& maximum,
                            const std::uint32_t candidate) {

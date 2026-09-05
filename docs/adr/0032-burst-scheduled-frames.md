@@ -29,7 +29,7 @@ in the process.
 
 ## Decision
 
-**Under `CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK`, telemetry only writes the widgets, and each burst
+**Under `CONFIG_PITRIG_DISPLAY_VSYNC_LOCK`, telemetry only writes the widgets, and each burst
 of it arms one frame start.** The burst is stamped on the link's own task, on the first value
 of a burst and before anything decides whether the display is busy, so its arrival is known
 when it happens rather than when LVGL gets round to applying it. The frame starts a short
@@ -57,7 +57,7 @@ before half the bursts and pushed their frames a refresh behind.
 
 Four defects in the path from a wake to a drawn frame had to go for any of this to hold, and
 each was found by counting: the vsyncs, the swaps that latched, the starts by what woke them,
-and the wakes that drew nothing, over `@SC:DIAG`.
+and the wakes that drew nothing, over `@PR:DIAG`.
 
 - The measured frame cost included the previous swap's hold, paid at this frame's first strip
   because LVGL ends a refresh before the swap latches. A 4 ms screen measured as 15 ms, and
@@ -116,6 +116,6 @@ The scheduler is only for the P4: it needs the three panel frame buffers and the
 composition, and the two S3 boards compile the same file with the option undefined. It adds no
 task to the product; the scheduler task and the one-shot timer exist only under the option.
 
-`CONFIG_SIMCORE_DISPLAY_JIT` (`sdkconfig.defaults.jit`, `esp-lvgl-port-2.8.0-jit-frame-start.patch`)
+`CONFIG_PITRIG_DISPLAY_JIT` (`sdkconfig.defaults.jit`, `esp-lvgl-port-2.8.0-jit-frame-start.patch`)
 is the earlier experiment this scheduler superseded — start each frame as late as it can still
 meet the panel — and stays only for comparison.

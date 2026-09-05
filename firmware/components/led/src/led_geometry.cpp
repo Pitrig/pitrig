@@ -1,6 +1,6 @@
 #include "led_geometry.hpp"
 
-namespace simcore::led {
+namespace pitrig::led {
 namespace {
 
 constexpr std::size_t kOffPanel = static_cast<std::size_t>(-1);

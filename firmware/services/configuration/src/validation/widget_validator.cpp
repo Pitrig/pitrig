@@ -7,7 +7,7 @@
 #include "image_asset_types.hpp"
 #include "value_rules.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 
 bool Validator::text_source(const TextSourceConfiguration& config) {
   const std::string_view binding = value_binding_view(config.binding);

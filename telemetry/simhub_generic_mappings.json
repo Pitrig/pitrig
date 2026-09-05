@@ -1,8 +1,8 @@
 {
   "version": 1,
   "profile": {
-    "name": "SimCore telemetry",
-    "description": "Generic SimHub telemetry output for SimCore devices",
+    "name": "Pitrig telemetry",
+    "description": "Generic SimHub telemetry output for Pitrig devices",
     "baud_rate": 921600,
     "frequencies": { "fast": 60, "normal": 20, "slow": 5, "changes": 0 }
   },

@@ -2,7 +2,7 @@
 #include "value_text.hpp"
 #include "widget_frame_internal.hpp"
 
-namespace simcore::dashboard::frame {
+namespace pitrig::dashboard::frame {
 namespace {
 
 constexpr configuration::ValueTransform kPlainText{};

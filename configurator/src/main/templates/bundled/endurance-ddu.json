@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Endurance DDU",
   "description": "An endurance layout in the DNR idiom for the 1024 x 600 board: mirrored rev rings either side of the gear, a timing column, a fuel column, tyre and brake corners, plus stint and tyre screens.",

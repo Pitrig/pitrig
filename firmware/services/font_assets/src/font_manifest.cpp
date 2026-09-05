@@ -7,7 +7,7 @@
 #include "binary_codec.hpp"
 #include "crc32.hpp"
 
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 namespace {
 
 constexpr std::size_t kEntryFamilyOffset = 0;

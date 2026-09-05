@@ -7,7 +7,7 @@
 #include "binary_codec.hpp"
 #include "crc32.hpp"
 
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 
 Service::~Service() {
   if (storage_ != nullptr) {

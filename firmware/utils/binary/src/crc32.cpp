@@ -1,6 +1,6 @@
 #include "crc32.hpp"
 
-namespace simcore::binary {
+namespace pitrig::binary {
 
 void Crc32::update(const std::span<const std::uint8_t> bytes) {
   for (const std::uint8_t value : bytes) {

@@ -9,7 +9,7 @@
 #include "text_writer.hpp"
 #include "time_transform.hpp"
 
-namespace simcore::dashboard::value_text {
+namespace pitrig::dashboard::value_text {
 namespace {
 
 [[nodiscard]] bool plain_float_text(

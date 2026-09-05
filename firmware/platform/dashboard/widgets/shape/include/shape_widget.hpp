@@ -11,7 +11,7 @@
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard::shape_widget {
+namespace pitrig::dashboard::shape_widget {
 
 inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumShapeWidgets;

@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Fuel card",
   "description": "The fuel calculator on the 320 x 170 display, after benofficial2's iRacing fuel overlay: what is in the tank and what it is worth, with the stint clocks on the second screen.",

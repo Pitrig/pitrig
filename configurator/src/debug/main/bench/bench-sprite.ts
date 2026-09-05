@@ -11,7 +11,7 @@ export const BENCH_IMAGE_NAME = 'bench_dial'
 
 export async function writeBenchSprite(edge: number, frames: number): Promise<BenchSpriteSheet> {
   const size = Math.max(16, Math.min(160, Math.round(edge)))
-  const directory = join(app.getPath('temp'), 'simcore-bench-sprite')
+  const directory = join(app.getPath('temp'), 'pitrig-bench-sprite')
   await mkdir(directory, { recursive: true })
   const paths: string[] = []
   for (let frame = 0; frame < frames; ++frame) {

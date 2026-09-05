@@ -1,6 +1,6 @@
 #include "widget_binding.hpp"
 
-namespace simcore::dashboard::text_widget {
+namespace pitrig::dashboard::text_widget {
 
 bool Binder::bind_one(
     const std::string_view name, const std::uint8_t modifier_count,

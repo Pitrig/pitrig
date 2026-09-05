@@ -1,8 +1,8 @@
-import type { SimCoreApi } from '../shared/ipc'
+import type { PitrigApi } from '../shared/ipc'
 
 declare global {
   interface Window {
-    simcore: SimCoreApi
+    pitrig: PitrigApi
   }
 }
 

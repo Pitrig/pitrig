@@ -9,11 +9,11 @@ using lv_display_t = _lv_display_t;
 struct _lv_obj_t;
 using lv_obj_t = _lv_obj_t;
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 struct ApplicationConfiguration;
 }
 
-namespace simcore::dashboard_composition::screens {
+namespace pitrig::dashboard_composition::screens {
 
 [[nodiscard]] lv_obj_t* screen_object(lv_display_t* display, std::size_t index);
 

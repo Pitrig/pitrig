@@ -6,7 +6,7 @@
 
 #include "led_driver.hpp"
 
-namespace simcore::led {
+namespace pitrig::led {
 
 inline constexpr std::uint32_t kTransmitTimeoutMs = 100;
 

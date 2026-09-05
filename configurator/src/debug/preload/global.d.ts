@@ -1,8 +1,8 @@
-import type { SimCoreDebugApi } from '../shared/debug-ipc'
+import type { PitrigDebugApi } from '../shared/debug-ipc'
 
 declare global {
   interface Window {
-    simcore: SimCoreDebugApi
+    pitrig: PitrigDebugApi
   }
 }
 

@@ -13,7 +13,7 @@
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard::arc_widget {
+namespace pitrig::dashboard::arc_widget {
 
 inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumArcWidgets;

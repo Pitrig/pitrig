@@ -8,7 +8,7 @@ Most projects are built for a single purpose, use different firmware, different 
 
 ## Goal
 
-SimCore aims to become a modular open-source platform for building DIY sim racing hardware.
+Pitrig aims to become a modular open-source platform for building DIY sim racing hardware.
 
 Instead of creating a new firmware for every device, developers can build displays, button boxes, LED modules, dashboards, and other devices using a common firmware, SDK, and hardware architecture.
 
@@ -24,13 +24,13 @@ Instead of creating a new firmware for every device, developers can build displa
 
 ## Non Goals
 
-SimCore is not a game.
+Pitrig is not a game.
 
-SimCore is not tied to a single simulator.
+Pitrig is not tied to a single simulator.
 
-SimCore is not tied to SimHub.
+Pitrig is not tied to SimHub.
 
-SimCore is not limited to ESP32 forever.
+Pitrig is not limited to ESP32 forever.
 
 ## Long-term Direction
 

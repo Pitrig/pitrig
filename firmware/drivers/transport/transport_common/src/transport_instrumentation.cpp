@@ -1,14 +1,14 @@
 #include "transport_instrumentation.hpp"
 
 #include "transport_watchdog.hpp"
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 #include "performance.hpp"
 #endif
 
-namespace simcore::transport {
+namespace pitrig::transport {
 
 void register_read_task(const TaskHandle_t task) {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   performance::register_task(performance::TaskMetric::transport, task);
 #else
   (void)task;
@@ -16,7 +16,7 @@ void register_read_task(const TaskHandle_t task) {
 }
 
 void unregister_read_task() {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   performance::unregister_task(performance::TaskMetric::transport);
 #endif
 }

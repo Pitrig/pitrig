@@ -20,7 +20,7 @@ import { isBooleanField, parseAssetStatus, parseFields } from './protocol-parser
 import { t } from '@shared/ui-text'
 
 export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
-  const fields = parseFields(line, '@SC:OK:FW:INFO:', 'firmware status')
+  const fields = parseFields(line, '@PR:OK:FW:INFO:', 'firmware status')
   const running = fields.get('running')
   const target = fields.get('target')
   const version = fields.get('version')
@@ -32,7 +32,7 @@ export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
     target === undefined ||
     version === undefined
   ) {
-    throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedFirmware'))
+    throw new DeviceServiceError('not_pitrig', t('device.assetInfoParsers.theDeviceReturnedMalformedFirmware'))
   }
   return {
     storageAvailable: fields.get('storage') === '1',
@@ -46,7 +46,7 @@ export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
 
 export function parseImageAssetInfo(line: string): ImageAssetState {
   const status = parseAssetStatus(line, {
-    prefix: '@SC:OK:IMAGE:INFO:',
+    prefix: '@PR:OK:IMAGE:INFO:',
     label: t('device.assetInfoParsers.imageStatus'),
     countField: 'images',
     maximumCount: MAXIMUM_IMAGES,
@@ -56,7 +56,7 @@ export function parseImageAssetInfo(line: string): ImageAssetState {
   })
   const images = parseInstalledImages(status.entries)
   if (status.entries !== undefined && images.length !== status.count) {
-    throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedImage'))
+    throw new DeviceServiceError('not_pitrig', t('device.assetInfoParsers.theDeviceReturnedMalformedImage'))
   }
   return {
     storageAvailable: status.storageAvailable,
@@ -97,7 +97,7 @@ function parseInstalledImages(value: string | undefined): InstalledImage[] {
 
 export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   const status = parseAssetStatus(line, {
-    prefix: '@SC:OK:FONT:INFO:',
+    prefix: '@PR:OK:FONT:INFO:',
     label: t('device.assetInfoParsers.fontStatus'),
     countField: 'families',
     maximumCount: MAXIMUM_FONT_FAMILIES,
@@ -106,7 +106,7 @@ export function parseFontAssetInfo(line: string): FontAssetDeviceInfo {
   })
   const families = parseFontFamilies(status.entries)
   if (status.entries !== undefined && families.length !== status.count) {
-    throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedFont'))
+    throw new DeviceServiceError('not_pitrig', t('device.assetInfoParsers.theDeviceReturnedMalformedFont'))
   }
   const payloadCrc = parsePayloadCrc(status.crc)
   return {
@@ -125,7 +125,7 @@ function parsePayloadCrc(value: string | undefined): number | undefined {
   if (value === undefined) return undefined
   const crc = Number(value)
   if (!Number.isSafeInteger(crc) || crc < 0 || crc > 0xffff_ffff) {
-    throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedFont'))
+    throw new DeviceServiceError('not_pitrig', t('device.assetInfoParsers.theDeviceReturnedMalformedFont'))
   }
   return crc
 }
@@ -135,7 +135,7 @@ function parseFontFamilies(value: string | undefined): string[] {
   const families: string[] = []
   for (const family of value.split(';')) {
     if (!FONT_FAMILY_PATTERN.test(family) || families.includes(family)) {
-      throw new DeviceServiceError('not_simcore', t('device.assetInfoParsers.theDeviceReturnedMalformedFont2'))
+      throw new DeviceServiceError('not_pitrig', t('device.assetInfoParsers.theDeviceReturnedMalformedFont2'))
     }
     families.push(family)
   }

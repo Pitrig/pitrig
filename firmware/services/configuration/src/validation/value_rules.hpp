@@ -11,7 +11,7 @@
 #include "font_asset_types.hpp"
 #include "telemetry_types.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 
 bool reject(ValidationFailure& failure, ValidationError error,
             std::string_view path);

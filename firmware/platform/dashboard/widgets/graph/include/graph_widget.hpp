@@ -14,7 +14,7 @@
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard::graph_widget {
+namespace pitrig::dashboard::graph_widget {
 
 inline constexpr std::size_t kMaximumInstances =
     configuration::kMaximumGraphWidgets;

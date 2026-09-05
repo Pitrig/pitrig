@@ -12,7 +12,7 @@
 #include "telemetry_provider.hpp"
 #include "transport.hpp"
 
-namespace simcore::communication {
+namespace pitrig::communication {
 namespace {
 
 constexpr char kTag[] = "communication";

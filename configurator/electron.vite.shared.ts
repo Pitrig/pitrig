@@ -17,7 +17,7 @@ export const debugAlias = {
 
 export function developmentCspPlugin(enabled: boolean): Plugin {
   return {
-    name: 'simcore-development-csp',
+    name: 'pitrig-development-csp',
     transformIndexHtml: (html) =>
       enabled
         ? html.replace(

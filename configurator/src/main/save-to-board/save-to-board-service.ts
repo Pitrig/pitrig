@@ -34,7 +34,7 @@ export class SaveToBoardService {
   async save(request: SaveToBoardRequest): Promise<SaveToBoardResult> {
     const session = this.deviceService.getState().session
     if (!session) {
-      return failure('device_error', t('save.saveToBoardService.noSimcoreBoardIsConnected'))
+      return failure('device_error', t('save.saveToBoardService.noPitrigBoardIsConnected'))
     }
 
     let configuration: DeviceConfiguration

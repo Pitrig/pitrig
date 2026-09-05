@@ -4,7 +4,7 @@
 #include "led_driver.hpp"
 #include "rgb_leds.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 
 [[nodiscard]] led::driver::Chip chip_of(configuration::LedChip chip);
 

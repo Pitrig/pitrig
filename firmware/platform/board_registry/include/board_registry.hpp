@@ -8,7 +8,7 @@
 #include "input_driver.hpp"
 #include "led_driver.hpp"
 
-namespace simcore::board_registry {
+namespace pitrig::board_registry {
 
 struct BoardDefinition {
   configuration::BoardId id{};

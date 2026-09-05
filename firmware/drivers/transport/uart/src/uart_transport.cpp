@@ -6,7 +6,7 @@
 #include "esp_log.h"
 #include "transport_watchdog.hpp"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 namespace {
 
 constexpr char kTag[] = "uart_transport";
@@ -69,7 +69,7 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   }
 
   instrumentation_.reset();
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   fifo_overflows_.store(0, std::memory_order_relaxed);
   buffer_full_events_.store(0, std::memory_order_relaxed);
 #endif
@@ -78,7 +78,7 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   task_ = xTaskCreateStaticPinnedToCore(
       &UartTransport::task_entry, "uart_rx", task_stack_.size(), this,
       kTaskPriority, task_stack_.data(), &task_state_,
-      SIMCORE_COMMUNICATION_CORE);
+      PITRIG_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     started_ = false;
     uart_driver_delete(configuration_.port);
@@ -136,11 +136,11 @@ void UartTransport::process() {
 
     if (event.type == UART_FIFO_OVF || event.type == UART_BUFFER_FULL) {
       if (event.type == UART_FIFO_OVF) {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
         fifo_overflows_.fetch_add(1, std::memory_order_relaxed);
 #endif
       } else {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
         buffer_full_events_.fetch_add(1, std::memory_order_relaxed);
 #endif
       }
@@ -169,7 +169,7 @@ void UartTransport::process() {
   }
 }
 
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 Diagnostics UartTransport::diagnostics() const {
   Diagnostics diagnostics{};
   instrumentation_.fill(diagnostics);

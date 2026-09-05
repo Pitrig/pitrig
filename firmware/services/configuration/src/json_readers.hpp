@@ -14,7 +14,7 @@
 #include "configuration_schema_generated.hpp"
 #include "cJSON.h"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 
 using KeyList = std::span<const std::string_view>;
 

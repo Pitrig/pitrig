@@ -23,7 +23,7 @@ def generate_cpp_contract(document: dict[str, Any]) -> str:
         {body["cpp_header"] for body in document.get("external_types", {}).values()}
     )
     lines.extend(f'#include "{header}"' for header in headers)
-    lines.extend(["", "namespace simcore::configuration {", ""])
+    lines.extend(["", "namespace pitrig::configuration {", ""])
 
     lines.append(
         f"inline constexpr std::uint16_t kConfigurationSchemaVersion = "

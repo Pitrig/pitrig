@@ -4,7 +4,7 @@
 #include <span>
 #include <string_view>
 
-namespace simcore::transformers::number_transform {
+namespace pitrig::transformers::number_transform {
 
 inline constexpr std::uint8_t kMaximumDecimals = 4;
 

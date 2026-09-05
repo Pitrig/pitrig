@@ -50,7 +50,7 @@ export function TemplatesPage(): React.JSX.Element {
     setError(undefined)
     setNotice(undefined)
     try {
-      const result = await window.simcore.deleteTemplate({ id: entry.id, kind: entry.kind })
+      const result = await window.pitrig.deleteTemplate({ id: entry.id, kind: entry.kind })
       if (!result.ok) {
         setError(result.error.message)
         return

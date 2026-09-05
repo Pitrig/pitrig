@@ -3,10 +3,10 @@
 #include "application_configuration.hpp"
 #include "event_bus.hpp"
 #include "logger.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "telemetry_registry.hpp"
 
-namespace simcore::module_composition {
+namespace pitrig::module_composition {
 namespace {
 
 constexpr char kTag[] = "modules";

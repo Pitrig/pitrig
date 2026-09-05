@@ -11,7 +11,7 @@ def generate_markdown(
     lines = [
         "# Telemetry catalog",
         "",
-        "This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by SimCore. It does not define SimHub property formulas or game-specific source mappings.",
+        "This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.",
         "",
         f"Catalog version: {document['version']}. Fields: {len(fields)}. Static limit: {document['maximum_fields']}.",
         "",

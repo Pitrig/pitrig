@@ -24,7 +24,7 @@ def generate_markdown(document: dict[str, Any]) -> str:
         "The configuration is transferred and stored as three independent documents. "
         "Each carries the `board` identifier — so each is validated against the board "
         "it arrives at — plus the root sections listed here, and is rejected if it "
-        "carries any other. `@SC:GET`, `@SC:SET`, `@SC:VALIDATE` and `@SC:APPLY` name "
+        "carries any other. `@PR:GET`, `@PR:SET`, `@PR:VALIDATE` and `@PR:APPLY` name "
         "one of them.",
         "",
         "| Document | Carries | Maximum payload | Restart to take effect | Purpose |",

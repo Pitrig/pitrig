@@ -1,6 +1,6 @@
 #include "json_value_pipeline.hpp"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 namespace {
 
 [[nodiscard]] bool parse_color_ramp(const cJSON* const object,

@@ -12,7 +12,7 @@
 #include "value_conditions.hpp"
 #include "widget_source_binding.hpp"
 
-namespace simcore::dashboard::frame {
+namespace pitrig::dashboard::frame {
 
 using Config = configuration::WidgetFrame;
 

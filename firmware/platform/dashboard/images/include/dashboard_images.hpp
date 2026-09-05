@@ -8,7 +8,7 @@
 #include "image_asset_service.hpp"
 #include "lvgl.h"
 
-namespace simcore::dashboard::images {
+namespace pitrig::dashboard::images {
 
 struct Sheet {
   lv_image_dsc_t descriptor{};

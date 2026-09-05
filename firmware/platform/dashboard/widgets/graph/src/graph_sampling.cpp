@@ -6,10 +6,10 @@
 #include "graph_plot.hpp"
 #include "graph_widget.hpp"
 #include "lvgl.h"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "value_conditions.hpp"
 
-namespace simcore::dashboard::graph_widget {
+namespace pitrig::dashboard::graph_widget {
 namespace {
 
 constexpr std::uint32_t kSampleTickDivisor = 4;
@@ -107,7 +107,7 @@ void Collection::start_sampling() {
     g_sampler_task = xTaskCreateStaticPinnedToCore(
         &Collection::sample_task, "graphSample", g_sampler_stack.size(), nullptr,
         kSamplerPriority, g_sampler_stack.data(), &g_sampler_state,
-        SIMCORE_COMMUNICATION_CORE);
+        PITRIG_COMMUNICATION_CORE);
   }
 }
 

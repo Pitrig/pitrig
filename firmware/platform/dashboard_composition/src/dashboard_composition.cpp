@@ -13,7 +13,7 @@
 #include "display.hpp"
 #include "logger.hpp"
 #include "module_composition.hpp"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "telemetry_events.hpp"
 #include "telemetry_registry.hpp"
 #include "dashboard_state.hpp"
@@ -23,7 +23,7 @@
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 
-namespace simcore::dashboard_composition {
+namespace pitrig::dashboard_composition {
 namespace {
 
 constexpr char kTag[] = "dashboard";
@@ -60,7 +60,7 @@ void wake_widgets(void* const context) {
 }
 
 void on_telemetry_updated(const events::Event&, void* const context) {
-#if SIMCORE_DISPLAY_VSYNC_LOCK
+#if PITRIG_DISPLAY_VSYNC_LOCK
   lvgl_port_disp_note_feed_line();
 #endif
   if (display::rendering_in_progress()) {
@@ -205,12 +205,12 @@ bool create(lv_display_t* const display,
     initialized = false;
   }
 
-#if SIMCORE_DEBUG && SIMCORE_DEBUG_OVERLAY_FULL
+#if PITRIG_DEBUG && PITRIG_DEBUG_OVERLAY_FULL
   if (!dashboard_state.performance_overlay.create(display,
                                                   telemetry_transport)) {
     log::warn(kTag, "Failed to create performance overlay");
   }
-#elif SIMCORE_DEBUG && SIMCORE_DEBUG_OVERLAY_FPS
+#elif PITRIG_DEBUG && PITRIG_DEBUG_OVERLAY_FPS
   if (!dashboard_state.fps_overlay.create(display)) {
     log::warn(kTag, "Failed to create FPS overlay");
   }
@@ -228,7 +228,7 @@ void destroy(Dashboard& dashboard) {
     screens::release(dashboard);
     lvgl_port_unlock();
   }
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   dashboard.performance_overlay.destroy();
   dashboard.fps_overlay.destroy();
 #endif

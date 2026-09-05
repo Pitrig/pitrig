@@ -14,11 +14,11 @@ import {
   type BenchStatus
 } from '../shared/bench'
 import { CONTROL_COMMAND_CHANNEL, SERIAL_TRAFFIC_CHANNEL } from '../shared/debug-channels'
-import type { SimCoreDebugApi } from '../shared/debug-ipc'
+import type { PitrigDebugApi } from '../shared/debug-ipc'
 import { FIRMWARE_REGISTER_SOURCE_CHANNEL } from '../../shared/firmware-update'
 import type { SerialTrafficLog } from '../../shared/serial-traffic'
 
-const debugApi: SimCoreDebugApi = {
+const debugApi: PitrigDebugApi = {
   ...productApi,
   sendControlCommand: (request) => ipcRenderer.invoke(CONTROL_COMMAND_CHANNEL, request),
   registerFirmwareSource: (request) =>
@@ -46,4 +46,4 @@ const debugApi: SimCoreDebugApi = {
   }
 }
 
-contextBridge.exposeInMainWorld('simcore', debugApi)
+contextBridge.exposeInMainWorld('pitrig', debugApi)

@@ -8,7 +8,7 @@
 
 #include "ring_geometry.hpp"
 
-namespace simcore::dashboard::indicator_widget::geometry {
+namespace pitrig::dashboard::indicator_widget::geometry {
 namespace {
 
 constexpr float kDegreesPerRadian = 180.0F / std::numbers::pi_v<float>;

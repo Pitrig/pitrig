@@ -47,13 +47,13 @@ Fragments appended to `SDKCONFIG_DEFAULTS` select what a build trades; the figur
 
 | Fragment | Selects | What it changes |
 | --- | --- | --- |
-| `sdkconfig.defaults.debug` | `CONFIG_SIMCORE_DEBUG` | observation only — `@SC:DIAG` and the overlay — never product behaviour (ADR 0028) |
-| `sdkconfig.defaults.render-partial` | `SIMCORE_DISPLAY_RENDER_PARTIAL`, P4 | the fastest mode, accepting the seam; `CONFIG_SIMCORE_DISPLAY_RENDER_FULL_STRIPS`, the tear-free strip mode, is the default |
-| `sdkconfig.defaults.render-full` | `SIMCORE_DISPLAY_RENDER_FULL`, P4 | the whole frame into PSRAM, with the 512 KB L2 cache |
-| `sdkconfig.defaults.color-24bit` | `CONFIG_SIMCORE_DISPLAY_COLOR_24BIT`, P4 | RGB888 end to end; the render strips move to external RAM |
-| `sdkconfig.defaults.vsync-lock` | `CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK`, P4 | frames scheduled from the telemetry burst (ADR 0032); off by default |
-| `sdkconfig.defaults.uncapped` | `CONFIG_SIMCORE_DISPLAY_UNCAPPED`, P4 | no pacing hold; a measurement option, not a shipping one |
-| `sdkconfig.defaults.jit` | `CONFIG_SIMCORE_DISPLAY_JIT`, P4 | the experiment vsync-lock superseded, kept for comparison |
+| `sdkconfig.defaults.debug` | `CONFIG_PITRIG_DEBUG` | observation only — `@PR:DIAG` and the overlay — never product behaviour (ADR 0028) |
+| `sdkconfig.defaults.render-partial` | `PITRIG_DISPLAY_RENDER_PARTIAL`, P4 | the fastest mode, accepting the seam; `CONFIG_PITRIG_DISPLAY_RENDER_FULL_STRIPS`, the tear-free strip mode, is the default |
+| `sdkconfig.defaults.render-full` | `PITRIG_DISPLAY_RENDER_FULL`, P4 | the whole frame into PSRAM, with the 512 KB L2 cache |
+| `sdkconfig.defaults.color-24bit` | `CONFIG_PITRIG_DISPLAY_COLOR_24BIT`, P4 | RGB888 end to end; the render strips move to external RAM |
+| `sdkconfig.defaults.vsync-lock` | `CONFIG_PITRIG_DISPLAY_VSYNC_LOCK`, P4 | frames scheduled from the telemetry burst (ADR 0032); off by default |
+| `sdkconfig.defaults.uncapped` | `CONFIG_PITRIG_DISPLAY_UNCAPPED`, P4 | no pacing hold; a measurement option, not a shipping one |
+| `sdkconfig.defaults.jit` | `CONFIG_PITRIG_DISPLAY_JIT`, P4 | the experiment vsync-lock superseded, kept for comparison |
 
 Flash and monitor use the same `-B` build directory: `idf.py -B build-t-display -p <port> flash monitor`.
 Switching boards switches `IDF_TARGET`; `esp32p4` uses `dependencies.lock.esp32p4`. A clean checkout
@@ -62,7 +62,7 @@ configure, after ESP-IDF has collected requirements. The DevKitC-1 has no displa
 status lamp.
 
 `configurator/package.json` versions the desktop application and names the release tag;
-`firmware/version.txt` is the board's own, read into `PROJECT_VER` and reported by `@SC:INFO` and
+`firmware/version.txt` is the board's own, read into `PROJECT_VER` and reported by `@PR:INFO` and
 the OTA status.
 
 **CI** ([.github/workflows/build.yml](.github/workflows/build.yml)) runs on a push to `release` and
@@ -72,13 +72,13 @@ configurator's typecheck and lint), `configurator` (electron-builder on macOS, W
 four OTA images. Packages are checked for debug traces (an `app.asar` grep); nothing is signed, so
 macOS needs `xattr -dr com.apple.quarantine`.
 
-**VS Code** ([.vscode/tasks.json](.vscode/tasks.json)) carries twelve `SimCore: Build …` tasks,
-`SimCore: Build All Firmware` (sequential, esp32s3 first), `SimCore: Flash` / `Monitor` /
-`Flash and Monitor` over a picked build directory, `SimCore: Check Generated Contracts` and
+**VS Code** ([.vscode/tasks.json](.vscode/tasks.json)) carries twelve `Pitrig: Build …` tasks,
+`Pitrig: Build All Firmware` (sequential, esp32s3 first), `Pitrig: Flash` / `Monitor` /
+`Flash and Monitor` over a picked build directory, `Pitrig: Check Generated Contracts` and
 `Regenerate Contracts`, and `Configurator: …` / `Debugger: …` for both Electron applications; there
 is deliberately no default build task. The port is chosen, not
 typed: `tools/pick-serial-port.py` lists the ports present, stars the flashable one, offers `auto`,
-and `SIMCORE_PORT` overrides the prompt.
+and `PITRIG_PORT` overrides the prompt.
 
 ## Configurator (Electron + React 19 + TypeScript, pnpm)
 
@@ -92,7 +92,7 @@ cd configurator && pnpm run package
 ```
 
 `dev:debug` starts the second application from the same package (serial console, telemetry bench,
-`@SC:DIAG` charts); `typecheck` covers three projects; `build:debug` and `package:debug` do the same
+`@PR:DIAG` charts); `typecheck` covers three projects; `build:debug` and `package:debug` do the same
 for the debugger into `out-debug/` and `dist-debug/`. There is no test runner. `electron` must stay
 in `allowBuilds` in `pnpm-workspace.yaml`, or `pnpm run dev` fails with `Error: Electron uninstall`.
 
@@ -102,7 +102,7 @@ in `allowBuilds` in `pnpm-workspace.yaml`, or `pnpm run dev` fails with `Error: 
 python3 tools/check_debug_isolation.py --check
 ```
 
-Records the `#if SIMCORE_DEBUG` hooks production firmware carries and fails when the set changes;
+Records the `#if PITRIG_DEBUG` hooks production firmware carries and fails when the set changes;
 run it without `--check` to accept a deliberate change (ADR 0028).
 
 Five generators own checked-in code, each run with `python3 -m` **from the repository root** and
@@ -119,7 +119,7 @@ python3 -m tools.codegen.ui_strings
 | Generator | Sources | Outputs |
 | --- | --- | --- |
 | `configuration_schema` | `configuration/configuration_schema.json` | the firmware contract and validator headers, `configurator/src/shared/configuration-schema.ts`, `docs/configuration-schema.md` |
-| `telemetry_catalog` | `telemetry/telemetry_catalog.json`, `telemetry/simhub_generic_mappings.json` | the firmware catalog headers, `configurator/src/shared/telemetry-catalog.ts` and `simhub-profile-data.ts`, `docs/telemetry-catalog.md`, `simhub/SimCore-telemetry.shsds` |
+| `telemetry_catalog` | `telemetry/telemetry_catalog.json`, `telemetry/simhub_generic_mappings.json` | the firmware catalog headers, `configurator/src/shared/telemetry-catalog.ts` and `simhub-profile-data.ts`, `docs/telemetry-catalog.md`, `simhub/Pitrig-telemetry.shsds` |
 | `led_font` | `fonts/led_bitmap_font.json` | `firmware/components/led/include/led_font_generated.hpp`, `configurator/src/shared/led-font.ts` |
 | `font_catalog` | `fonts/google_fonts_snapshot.json`, `fonts/google_fonts_selection.json` (`--refresh` re-fetches) | `configurator/src/main/font-library/google-fonts-catalog.json` |
 | `ui_strings` | `i18n/en.json` | `configurator/src/shared/ui-string-keys.ts` and `ui-strings-en.ts`, read through `t()` in `ui-text.ts` (ADR 0031) |
@@ -127,7 +127,7 @@ python3 -m tools.codegen.ui_strings
 ## Configuration is three documents
 
 `dashboard`, `modules` and `protocol` are transferred, stored, validated and applied on their own:
-`@SC:GET:<doc>` and `@SC:SET:<doc>:<json>`, one NVS record and payload bound each (128 KB / 32 KB /
+`@PR:GET:<doc>` and `@PR:SET:<doc>:<json>`, one NVS record and payload bound each (128 KB / 32 KB /
 1 KB), `reboot_required` only for `protocol`, and `APPLY` rebuilding the running composition without
 writing storage (ADR 0024). The contract lives in the `configuration_contract` service component and
 mirrors into `configurator/src/shared/`; the `documents` block of the schema must partition every

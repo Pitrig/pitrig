@@ -11,11 +11,11 @@
 #include "freertos/event_groups.h"
 #include "freertos/task.h"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 class ITransport;
 }
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 using RebootHandler = void (*)(void* context);
 

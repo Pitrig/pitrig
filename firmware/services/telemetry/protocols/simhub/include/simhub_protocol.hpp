@@ -9,7 +9,7 @@
 #include "telemetry_protocol.hpp"
 #include "telemetry_registry.hpp"
 
-namespace simcore::protocols {
+namespace pitrig::protocols {
 
 class SimHubProtocol final : public telemetry::IProtocol {
  public:

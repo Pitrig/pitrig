@@ -12,7 +12,7 @@ const MAXIMUM_CHUNK_SIZE = 4096
 const BEGIN_TIMEOUT_MS = 30_000
 const FRAME_TIMEOUT_MS = 5_000
 const RESPONSE_BUFFER_LIMIT = 8192
-const DEVICE_ERROR_PREFIX = '@SC:ERR:'
+const DEVICE_ERROR_PREFIX = '@PR:ERR:'
 
 class DeviceRejectedUploadError extends Error {}
 
@@ -44,12 +44,12 @@ export async function uploadAssetPackage(
       total: packageBytes.byteLength,
       message: t('device.assetUpload.preparingLabelStorage', { label: namespace.label })
     })
-    const begin = `@SC:${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`
+    const begin = `@PR:${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`
     beginMayBeActive = true
     await exchangeLine(
       port,
       Buffer.from(begin, 'utf8'),
-      `@SC:OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`,
+      `@PR:OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`,
       BEGIN_TIMEOUT_MS,
       callbacks,
       signal
@@ -67,7 +67,7 @@ export async function uploadAssetPackage(
       const response = await exchangeLine(
         port,
         createFrame(1, sequence, payload),
-        `@SC:OK:${namespace.command}:ACK:`,
+        `@PR:OK:${namespace.command}:ACK:`,
         sequence === 0 ? BEGIN_TIMEOUT_MS : FRAME_TIMEOUT_MS,
         callbacks,
         signal
@@ -96,7 +96,7 @@ export async function uploadAssetPackage(
     await exchangeLine(
       port,
       createFrame(2, sequence),
-      `@SC:OK:${namespace.command}:COMMITTED:reboot_required=1`,
+      `@PR:OK:${namespace.command}:COMMITTED:reboot_required=1`,
       FRAME_TIMEOUT_MS,
       callbacks,
       signal
@@ -140,7 +140,7 @@ async function cancelSession(
     await exchangeLine(
       port,
       createFrame(3, sequence),
-      `@SC:OK:${namespace.command}:CANCELLED`,
+      `@PR:OK:${namespace.command}:CANCELLED`,
       FRAME_TIMEOUT_MS,
       callbacks,
       new AbortController().signal
@@ -199,7 +199,7 @@ function parseAck(
   line: string
 ): { sequence: number; received: number } {
   const match = new RegExp(
-    `^@SC:OK:${namespace.command}:ACK:sequence=(\\d+),received=(\\d+)$`
+    `^@PR:OK:${namespace.command}:ACK:sequence=(\\d+),received=(\\d+)$`
   ).exec(line)
   if (!match) {
     throw new Error(t('device.assetUpload.theDeviceReturnedAMalformed', { label: namespace.label }))

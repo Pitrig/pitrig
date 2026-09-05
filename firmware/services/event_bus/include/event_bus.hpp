@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <mutex>
 
-namespace simcore::events {
+namespace pitrig::events {
 
 using EventId = std::uint32_t;
 

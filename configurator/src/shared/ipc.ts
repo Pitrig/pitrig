@@ -75,7 +75,7 @@ export interface AppInfo {
   platform: string
 }
 
-export interface SimCoreApi {
+export interface PitrigApi {
   getAppInfo: () => Promise<AppInfo>
   loadConfigurationFile: () => Promise<ConfigurationFileResult<ConfigurationFileLoadValue | null>>
   saveConfigurationFile: (

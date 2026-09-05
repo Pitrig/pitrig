@@ -34,11 +34,11 @@ export async function saveDraftToBoard(
 
   useSaveToBoardStore.setState({ running: true, progress: undefined, unresolvedFonts: undefined })
   device.setSaveFeedback(undefined)
-  const stopProgress = window.simcore.onSaveProgress((progress) =>
+  const stopProgress = window.pitrig.onSaveProgress((progress) =>
     useSaveToBoardStore.setState({ progress })
   )
   try {
-    const result = await window.simcore.saveToBoard({
+    const result = await window.pitrig.saveToBoard({
       json,
       ...(documents ? { documents } : {})
     })

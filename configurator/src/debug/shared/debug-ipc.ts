@@ -12,10 +12,10 @@ import type {
   FirmwareSourceSelection,
   FirmwareUpdateResult
 } from '@shared/firmware-update'
-import type { SimCoreApi } from '@shared/ipc'
+import type { PitrigApi } from '@shared/ipc'
 import type { SerialTrafficLog } from '@shared/serial-traffic'
 
-export interface SimCoreDebugApi extends SimCoreApi {
+export interface PitrigDebugApi extends PitrigApi {
   sendControlCommand: (request: ControlCommandRequest) => Promise<ControlCommandResult>
   registerFirmwareSource: (
     request: FirmwareRegisterSourceRequest

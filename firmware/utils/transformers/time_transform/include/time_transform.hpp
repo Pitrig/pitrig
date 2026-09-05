@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <span>
 
-namespace simcore::transformers::time_transform {
+namespace pitrig::transformers::time_transform {
 
 enum class Format : std::uint8_t {
   duration_ms,

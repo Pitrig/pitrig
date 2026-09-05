@@ -1,6 +1,6 @@
 find_package(Git REQUIRED)
 
-function(_simcore_patch_stack_trial repo_root index_file touched direction patches result_variable)
+function(_pitrig_patch_stack_trial repo_root index_file touched direction patches result_variable)
     file(REMOVE "${index_file}")
     set(ENV{GIT_INDEX_FILE} "${index_file}")
     execute_process(
@@ -31,10 +31,10 @@ function(_simcore_patch_stack_trial repo_root index_file touched direction patch
     set(${result_variable} ${ok} PARENT_SCOPE)
 endfunction()
 
-function(simcore_apply_patch_stack label component_dir)
+function(pitrig_apply_patch_stack label component_dir)
     set(patches ${ARGN})
     get_filename_component(repo_root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../.." ABSOLUTE)
-    set(index_file "${CMAKE_BINARY_DIR}/simcore_patch_stack_index")
+    set(index_file "${CMAKE_BINARY_DIR}/pitrig_patch_stack_index")
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${patches})
 
     set(touched "")
@@ -48,7 +48,7 @@ function(simcore_apply_patch_stack label component_dir)
     endforeach()
     list(REMOVE_DUPLICATES touched)
 
-    _simcore_patch_stack_trial("${repo_root}" "${index_file}" "${touched}" "" "${patches}" can_apply)
+    _pitrig_patch_stack_trial("${repo_root}" "${index_file}" "${touched}" "" "${patches}" can_apply)
     if(can_apply)
         foreach(patch IN LISTS patches)
             get_filename_component(patch_name "${patch}" NAME)
@@ -70,7 +70,7 @@ function(simcore_apply_patch_stack label component_dir)
 
     set(reversed ${patches})
     list(REVERSE reversed)
-    _simcore_patch_stack_trial("${repo_root}" "${index_file}" "${touched}" "--reverse" "${reversed}" is_applied)
+    _pitrig_patch_stack_trial("${repo_root}" "${index_file}" "${touched}" "--reverse" "${reversed}" is_applied)
     if(NOT is_applied)
         message(FATAL_ERROR
             "${label} sources match neither the unpatched nor the patched state of the "

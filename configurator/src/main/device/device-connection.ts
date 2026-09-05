@@ -13,7 +13,7 @@ import { DeviceServiceError, failure, success, toDeviceError } from './device-er
 import { PortRegistry, type PortRecord } from './port-registry'
 import { closePort, openPort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
-import { probeSimCore } from './device-probe'
+import { probePitrig } from './device-probe'
 import { reconnectToBoard, scanForDevice } from './device-scan'
 import { t } from '@shared/ui-text'
 
@@ -178,7 +178,7 @@ export class ConnectionManager {
     try {
       await openPort(port)
       this.ensureCurrent(token)
-      const session = await probeSimCore(port, (direction, data) => traffic.write(direction, data))
+      const session = await probePitrig(port, (direction, data) => traffic.write(direction, data))
       this.ensureCurrent(token)
       this.pendingPort = undefined
       return { port, session, traffic }

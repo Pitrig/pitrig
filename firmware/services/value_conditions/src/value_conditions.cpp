@@ -6,7 +6,7 @@
 
 #include "number_transform.hpp"
 
-namespace simcore::conditions {
+namespace pitrig::conditions {
 namespace {
 
 [[nodiscard]] std::uint32_t blend(const std::uint32_t from,

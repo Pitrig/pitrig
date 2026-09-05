@@ -9,12 +9,12 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 #include "tinyusb_cdc_acm.h"
 #include "transport.hpp"
 #include "transport_instrumentation.hpp"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 
 class UsbCdcTransport final : public ITransport {
  public:
@@ -27,7 +27,7 @@ class UsbCdcTransport final : public ITransport {
   bool start(DataHandler handler, void* context) override;
   void stop() override;
   bool write(std::span<const std::uint8_t> data) override;
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   [[nodiscard]] Diagnostics diagnostics() const override;
 #endif
 
@@ -60,7 +60,7 @@ class UsbCdcTransport final : public ITransport {
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};
   ReadInstrumentation instrumentation_{};
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   std::atomic<std::uint32_t> queue_overflows_{};
   std::atomic<std::uint32_t> queued_bytes_{};
 #endif

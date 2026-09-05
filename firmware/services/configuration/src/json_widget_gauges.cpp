@@ -8,7 +8,7 @@
 #include "json_widget_variants_internal.hpp"
 #include "json_widgets.hpp"
 
-namespace simcore::configuration::json::variants {
+namespace pitrig::configuration::json::variants {
 
 [[nodiscard]] bool parse_bar_widget(const cJSON* const object,
                                     BarWidgetConfiguration& config,

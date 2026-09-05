@@ -6,7 +6,7 @@
 #include "lvgl.h"
 #include "lvgl_private.h"
 
-namespace simcore::dashboard::fonts {
+namespace pitrig::dashboard::fonts {
 namespace {
 
 bool installed;

@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <span>
 
-namespace simcore::led::driver {
+namespace pitrig::led::driver {
 
 enum class Chip : std::uint8_t { ws2812b, sk6812_rgbw };
 

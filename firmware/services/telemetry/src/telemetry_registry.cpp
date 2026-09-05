@@ -1,6 +1,6 @@
 #include "telemetry_registry.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 
 Handle TelemetryRegistry::resolve(const std::string_view name) const {
   for (std::size_t index = 0; index < catalog::kFieldDescriptors.size();

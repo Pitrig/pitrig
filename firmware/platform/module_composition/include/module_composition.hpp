@@ -5,18 +5,18 @@
 #include "module_manager.hpp"
 #include "rgb_leds.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 struct ApplicationConfiguration;
 }
-namespace simcore::events {
+namespace pitrig::events {
 class EventBus;
 }
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 class ITelemetryReader;
 class ITelemetryRegistry;
 }
 
-namespace simcore::module_composition {
+namespace pitrig::module_composition {
 
 struct Modules {
   struct LapTimerBinding {

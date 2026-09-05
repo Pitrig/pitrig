@@ -12,12 +12,12 @@
 #include "tinyusb_cdc_acm.h"
 #include "tinyusb_default_config.h"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 namespace {
 
 constexpr char kTag[] = "usb_cdc_transport";
 static_assert(CFG_TUD_CDC == 1,
-              "The SimCore USB descriptor defines exactly one CDC function");
+              "The Pitrig USB descriptor defines exactly one CDC function");
 
 #if CONFIG_IDF_TARGET_ESP32P4
 constexpr tinyusb_port_t kUsbPort = TINYUSB_PORT_HIGH_SPEED_0;
@@ -48,7 +48,7 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
 
   handler_.bind(handler, context);
   instrumentation_.reset();
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   queue_overflows_.store(0, std::memory_order_relaxed);
   queued_bytes_.store(0, std::memory_order_relaxed);
 #endif
@@ -66,7 +66,7 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
           {
               .size = TINYUSB_DEFAULT_TASK_SIZE,
               .priority = TINYUSB_DEFAULT_TASK_PRIO,
-              .xCoreID = SIMCORE_COMMUNICATION_CORE,
+              .xCoreID = PITRIG_COMMUNICATION_CORE,
           },
       .descriptor =
           {
@@ -111,7 +111,7 @@ bool UsbCdcTransport::start(const DataHandler handler, void* const context) {
   task_ = xTaskCreateStaticPinnedToCore(
       &UsbCdcTransport::task_entry, "usb_cdc_rx", task_stack_.size(), this,
       kTaskPriority, task_stack_.data(), &task_state_,
-      SIMCORE_COMMUNICATION_CORE);
+      PITRIG_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     tinyusb_cdcacm_deinit(TINYUSB_CDC_ACM_0);
     tinyusb_driver_uninstall();
@@ -203,14 +203,14 @@ void UsbCdcTransport::receive() {
 
   chunk.size = received;
   if (xQueueSend(queue_, &chunk, 0) != pdTRUE) {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
     queue_overflows_.fetch_add(1, std::memory_order_relaxed);
 #endif
     ESP_LOGW(kTag, "RX queue full, dropping %u bytes",
              static_cast<unsigned>(received));
     return;
   }
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   queued_bytes_.fetch_add(static_cast<std::uint32_t>(received),
                           std::memory_order_relaxed);
 #endif
@@ -225,7 +225,7 @@ void UsbCdcTransport::process() {
         xQueueReceive(queue_, &chunk, kWatchdogFeedTicks) == pdTRUE;
     feed_watchdog();
     if (has_chunk && handler_.bound()) {
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
       queued_bytes_.fetch_sub(static_cast<std::uint32_t>(chunk.size),
                               std::memory_order_relaxed);
 #endif
@@ -236,7 +236,7 @@ void UsbCdcTransport::process() {
   }
 }
 
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 Diagnostics UsbCdcTransport::diagnostics() const {
   Diagnostics diagnostics{};
   instrumentation_.fill(diagnostics);

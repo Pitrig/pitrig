@@ -9,7 +9,7 @@ export const FONT_CATALOG_LIST_CHANNEL = 'font-catalog:list' as const
 export const FONT_CATALOG_PREVIEW_CHANNEL = 'font-catalog:preview' as const
 export const FONT_LIBRARY_CHANGED_CHANNEL = 'font-library:changed' as const
 
-export const FONT_LIBRARY_FORMAT = 'simcore-font-library' as const
+export const FONT_LIBRARY_FORMAT = 'pitrig-font-library' as const
 export const FONT_LIBRARY_FORMAT_VERSION = 1
 
 export type FontOrigin = 'bundled' | 'imported' | 'google'

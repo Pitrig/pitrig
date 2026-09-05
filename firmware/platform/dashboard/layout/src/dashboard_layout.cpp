@@ -2,10 +2,10 @@
 
 #include "esp_lvgl_port.h"
 
-namespace simcore::dashboard {
+namespace pitrig::dashboard {
 namespace {
 
-#if SIMCORE_LAYOUT_DEBUG
+#if PITRIG_LAYOUT_DEBUG
 constexpr std::uint32_t kWidgetOutlineColorRgb = 0xFF2D95;
 constexpr std::int32_t kDebugOutlineWidthPx = 1;
 constexpr std::int32_t kDebugOutlinePadPx = -1;
@@ -67,7 +67,7 @@ bool resolve_widget_bounds(const Layout& layout,
          top < lv_display_get_vertical_resolution(layout.display);
 }
 
-#if SIMCORE_LAYOUT_DEBUG
+#if PITRIG_LAYOUT_DEBUG
 void apply_debug_widget_outline(lv_obj_t* const object) {
   apply_outline(object, kWidgetOutlineColorRgb);
 }

@@ -2,7 +2,7 @@
 
 Status: Accepted. The resolver this ADR placed in `platform/dashboard/conditions`
 now lives in `services/value_conditions` under the namespace
-`simcore::conditions`, so a module can reuse it without linking LVGL — the
+`pitrig::conditions`, so a module can reuse it without linking LVGL — the
 second consumer this ADR anticipated turned out to be an LED output rather than
 a widget ([ADR 0030](0030-addressable-led-peripherals.md)). The API is
 unchanged.

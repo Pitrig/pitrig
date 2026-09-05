@@ -6,34 +6,34 @@
 struct _lv_display_t;
 using lv_display_t = _lv_display_t;
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 struct ApplicationConfiguration;
 struct DashboardConfiguration;
 }
-namespace simcore::font_assets {
+namespace pitrig::font_assets {
 class Service;
 }
-namespace simcore::image_assets {
+namespace pitrig::image_assets {
 class Service;
 }
-namespace simcore::module_composition {
+namespace pitrig::module_composition {
 struct Modules;
 }
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 class ITelemetryReader;
 class ITelemetryRegistry;
 }
-namespace simcore::transport {
+namespace pitrig::transport {
 class ITransport;
 }
-namespace simcore::events {
+namespace pitrig::events {
 class EventBus;
 }
-namespace simcore::value_smoothing {
+namespace pitrig::value_smoothing {
 class Service;
 }
 
-namespace simcore::dashboard_composition {
+namespace pitrig::dashboard_composition {
 
 struct Dashboard;
 

@@ -105,7 +105,7 @@ jobs:
             echo "No app.asar found under dist" >&2
             exit 1
           fi
-          for marker in out-debug registerDebugHandlers 'SimCore Debugger' electron-builder.debug; do
+          for marker in out-debug registerDebugHandlers 'Pitrig Debugger' electron-builder.debug; do
             if grep -qa "$marker" "$asar"; then
               echo "The production package contains debug code: $marker" >&2
               exit 1
@@ -170,12 +170,12 @@ jobs:
           build="firmware/build-${{ matrix.directory }}"
           out="firmware-out/${{ matrix.board }}"
           mkdir -p "$out"
-          cp "$build/simcore.bin" "$out/simcore-${{ matrix.board }}.bin"
+          cp "$build/pitrig.bin" "$out/pitrig-${{ matrix.board }}.bin"
           cp "$build/bootloader/bootloader.bin" "$out/"
           cp "$build/partition_table/partition-table.bin" "$out/"
           cp "$build/ota_data_initial.bin" "$out/"
           cp "$build/flasher_args.json" "$out/"
-          cp "$build/simcore.elf" "$out/"
+          cp "$build/pitrig.elf" "$out/"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -204,7 +204,7 @@ jobs:
             -exec cp {} release/ \;
           for board in downloads/firmware-*; do
             name=$(basename "$board")
-            cp "$board"/simcore-*.bin release/
+            cp "$board"/pitrig-*.bin release/
             tar --create --gzip --directory downloads --file "release/$name.tar.gz" "$name"
           done
           ls -l release
@@ -222,6 +222,6 @@ jobs:
             gh release create "$tag" release/* \
               --draft \
               --target "$GITHUB_SHA" \
-              --title "SimCore $tag" \
-              --notes "Configurator $version for macOS, Windows and Linux, and firmware $firmware for the four boards. Each firmware archive holds the OTA image (\`simcore-<board>.bin\`), the bootloader, the partition table and the flasher arguments."
+              --title "Pitrig $tag" \
+              --notes "Configurator $version for macOS, Windows and Linux, and firmware $firmware for the four boards. Each firmware archive holds the OTA image (\`pitrig-<board>.bin\`), the bootloader, the partition table and the flasher arguments."
           fi

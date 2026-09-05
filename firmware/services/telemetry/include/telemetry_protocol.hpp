@@ -5,7 +5,7 @@
 
 #include "telemetry_types.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 
 using UpdateHandler = void (*)(const TelemetryUpdate& update, void* context);
 

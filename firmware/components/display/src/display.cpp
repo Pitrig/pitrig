@@ -10,16 +10,16 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
-#include "simcore_features.hpp"
-#if SIMCORE_DEBUG
+#include "pitrig_features.hpp"
+#if PITRIG_DEBUG
 #include "performance.hpp"
 #endif
 
-namespace simcore::display {
+namespace pitrig::display {
 namespace {
 
 constexpr char kTag[] = "display";
-constexpr int kLvglTaskCore = SIMCORE_RENDER_CORE;
+constexpr int kLvglTaskCore = PITRIG_RENDER_CORE;
 constexpr std::uint32_t kInitialFrameTimeoutMs = 1'000;
 constexpr std::uint32_t kTaskMaxSleepMs = 16;
 constexpr std::uint32_t kTimerPeriodMs = 2;
@@ -69,7 +69,7 @@ void on_refresh_ready(lv_event_t* const event) {
   return refresh_and_wait(display, kInitialFrameTimeoutMs);
 }
 
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
 bool frame_rendered;
 
 void on_refresh_started(lv_event_t*) {
@@ -206,7 +206,7 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
     ESP_LOGE(kTag, "No memory for the refresh signal");
     return nullptr;
   }
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   performance::register_task(performance::TaskMetric::lvgl,
                              xTaskGetHandle("taskLVGL"));
 #endif
@@ -266,7 +266,7 @@ lv_display_t* initialize(const driver::Driver& selected_driver) {
                           nullptr);
   lv_display_add_event_cb(display, on_rendering_finished, LV_EVENT_REFR_READY,
                           nullptr);
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
   register_performance_events(display);
 #endif
   if (!configure_initial_black_screen(display)) {

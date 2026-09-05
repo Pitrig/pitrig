@@ -13,7 +13,7 @@ space, and it closed with the condition under which that could be revisited:
 shared visual grouping must be "an explicit widget or another future composition
 primitive, not an implicit layout container". This is that primitive.
 
-What forces it is the feature SimHub dashboards use constantly and SimCore cannot
+What forces it is the feature SimHub dashboards use constantly and Pitrig cannot
 express at all: an area of the screen whose contents change. Tyre temperatures in
 a box that becomes fuel and energy in the same box; a pit block that appears over
 the same rectangle the lap deltas were using. Without it the only way to author

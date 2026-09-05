@@ -13,7 +13,7 @@ import type {
   DeviceSession,
   DeviceState,
   DeviceStatus,
-  SimCoreBoardId
+  PitrigBoardId
 } from '@shared/device'
 
 export interface RawDraft {
@@ -38,8 +38,8 @@ interface DeviceStore {
   rawDraft?: RawDraft
   hasLocalDraft: boolean
   draftFileName?: string
-  offlineBoard?: SimCoreBoardId
-  setOfflineBoard: (board?: SimCoreBoardId) => void
+  offlineBoard?: PitrigBoardId
+  setOfflineBoard: (board?: PitrigBoardId) => void
   rebootRequired: boolean
   past: DeviceConfiguration[]
   future: DeviceConfiguration[]

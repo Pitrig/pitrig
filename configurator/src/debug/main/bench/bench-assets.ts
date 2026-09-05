@@ -33,7 +33,7 @@ export async function ensureBenchAssets(
   const { deviceService } = services
   const notes: string[] = []
   if (!deviceService.getState().session) {
-    return failure({ code: 'serial_error', message: 'No SimCore board is connected.' })
+    return failure({ code: 'serial_error', message: 'No Pitrig board is connected.' })
   }
 
   const font = await ensureFamily(services, characters, report, notes)

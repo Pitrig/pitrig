@@ -11,7 +11,7 @@
 #include "rgb_leds.hpp"
 #include "value_conditions.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 namespace {
 
 void order_by_activation(const std::span<std::uint8_t> order,

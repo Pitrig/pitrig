@@ -72,16 +72,16 @@ export function DeviceConnection({
   }, [])
 
   const refreshPorts = useCallback(async (): Promise<void> => {
-    applyPortResult(await window.simcore.listSerialPorts())
+    applyPortResult(await window.pitrig.listSerialPorts())
   }, [applyPortResult])
 
   useEffect(() => {
-    void window.simcore.getDeviceState().then((initialState) => {
+    void window.pitrig.getDeviceState().then((initialState) => {
       writeEventLog('Initial device state', initialState)
       applyDeviceState(initialState)
     })
-    void window.simcore.listSerialPorts().then(applyPortResult)
-    return window.simcore.onDeviceStateChanged((nextState) => {
+    void window.pitrig.listSerialPorts().then(applyPortResult)
+    return window.pitrig.onDeviceStateChanged((nextState) => {
       writeEventLog('Device state changed', nextState)
       applyDeviceState(nextState)
     })
@@ -100,7 +100,7 @@ export function DeviceConnection({
   const connect = async (): Promise<void> => {
     if (selectedPortId === AUTO_PORT_ID) {
       writeEventLog('Auto-connect requested')
-      const result = await window.simcore.autoConnectDevice()
+      const result = await window.pitrig.autoConnectDevice()
       writeEventLog('Auto-connect completed', result)
       return
     }
@@ -109,22 +109,22 @@ export function DeviceConnection({
       baudRate: Number(selectedBaudRate)
     }
     writeEventLog('Manual connection requested', request)
-    const result = await window.simcore.connectDevice(request)
+    const result = await window.pitrig.connectDevice(request)
     writeEventLog('Manual connection completed', result)
   }
 
   const primaryAction = async (): Promise<void> => {
     if (status === 'connected') {
       writeEventLog('Disconnect requested')
-      const result = await window.simcore.disconnectDevice()
+      const result = await window.pitrig.disconnectDevice()
       writeEventLog('Disconnect completed', result)
     } else if (status === 'error') {
       writeEventLog('Clearing failed device session before retry')
-      await window.simcore.disconnectDevice()
+      await window.pitrig.disconnectDevice()
       await connect()
     } else if (status === 'scanning' || status === 'connecting') {
       writeEventLog('Connection cancellation requested')
-      const result = await window.simcore.cancelAutoConnect()
+      const result = await window.pitrig.cancelAutoConnect()
       writeEventLog('Connection cancellation completed', result)
     } else {
       await connect()

@@ -15,7 +15,7 @@
 #include "telemetry_registry.hpp"
 #include "telemetry_state.hpp"
 
-namespace simcore::rgb_leds {
+namespace pitrig::rgb_leds {
 
 inline constexpr std::size_t kMaximumOutputs =
     configuration::kMaximumHardwareDevices;

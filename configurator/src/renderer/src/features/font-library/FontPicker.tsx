@@ -111,7 +111,7 @@ export function FontPicker({
   const addFromCatalog = async (familyName: string, variant: string): Promise<void> => {
     setAdding(familyName)
     setImportError(undefined)
-    const result = await window.simcore
+    const result = await window.pitrig
       .addFontFromCatalog({ family: familyName, variant })
       .catch(() => undefined)
     setAdding(undefined)
@@ -123,7 +123,7 @@ export function FontPicker({
   const importFace = async (): Promise<void> => {
     setImporting(true)
     setImportError(undefined)
-    const result = await window.simcore.importFontFace({}).catch(() => undefined)
+    const result = await window.pitrig.importFontFace({}).catch(() => undefined)
     setImporting(false)
     if (!result) return setImportError('The font could not be imported.')
     if (!result.ok) return setImportError(result.error.message)

@@ -56,7 +56,7 @@ a shared parser harder to read than two straight ones.
 
 **The binary stream has one owner, decided by a claim.** The frames (`SCF1`),
 the 1024-byte payloads, the stop-and-wait acknowledgement and the 10-second
-inactivity timeout are reused verbatim under an `@SC:IMAGE:` command namespace.
+inactivity timeout are reused verbatim under an `@PR:IMAGE:` command namespace.
 What could not be reused is how the router decided where bytes went: it asked
 the font control whether it was active, and with two upload kinds that races —
 the flag is set while the worker task is still erasing. `services/binary_session`

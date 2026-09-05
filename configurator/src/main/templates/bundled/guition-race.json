@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Race dashboard",
   "description": "A flat race layout for the 1024 x 600 display: a rev bar that blinks at the shift point, a status strip, three cards, a delta band and two footers.",

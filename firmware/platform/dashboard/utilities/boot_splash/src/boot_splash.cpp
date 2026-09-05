@@ -10,20 +10,20 @@
 #include "sdkconfig.h"
 #include "splash_glow.hpp"
 
-namespace simcore::dashboard::boot_splash {
+namespace pitrig::dashboard::boot_splash {
 namespace {
 
 constexpr std::uint32_t kRefreshTimeoutMs = 1'000;
 constexpr std::int32_t kMinimumBorderPx = 4;
 constexpr std::int32_t kSegmentsPerPerimeter = 96;
 
-#if CONFIG_SIMCORE_FACTORY_BOARD_GUITION_JC1060P470C
+#if CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
 constexpr std::int32_t kDisplayWidth = 1'024;
 constexpr std::int32_t kDisplayHeight = 600;
 constexpr std::int32_t kLogoSize = 240;
 extern const std::uint8_t kLogoData[]
     asm("_binary_logo_480x480_rgb565_start");
-#elif CONFIG_SIMCORE_FACTORY_BOARD_GUITION_ESP32_4848S040
+#elif CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040
 constexpr std::int32_t kDisplayWidth = 480;
 constexpr std::int32_t kDisplayHeight = 480;
 constexpr std::int32_t kLogoSize = 240;
@@ -127,7 +127,7 @@ bool show(lv_display_t* const display, lv_obj_t* const layer) {
   }
   lvgl_port_unlock();
 
-  if (!simcore::display::refresh_and_wait(display, kRefreshTimeoutMs)) {
+  if (!pitrig::display::refresh_and_wait(display, kRefreshTimeoutMs)) {
     if (lvgl_port_lock(0)) {
       release();
       lvgl_port_unlock();

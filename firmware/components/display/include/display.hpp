@@ -7,7 +7,7 @@
 struct _lv_display_t;
 using lv_display_t = _lv_display_t;
 
-namespace simcore::display {
+namespace pitrig::display {
 
 [[nodiscard]] lv_display_t* initialize(const driver::Driver& driver);
 

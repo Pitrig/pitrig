@@ -8,7 +8,7 @@
 #include "lvgl.h"
 #include "value_conditions.hpp"
 
-namespace simcore::dashboard::indicator_widget {
+namespace pitrig::dashboard::indicator_widget {
 namespace {
 
 constexpr char kTag[] = "indicator_widget";

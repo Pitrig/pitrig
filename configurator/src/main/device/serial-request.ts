@@ -8,14 +8,14 @@ import { t } from '@shared/ui-text'
 
 export type TrafficCallback = (direction: 'rx' | 'tx', data: string) => void
 
-export const CONFIGURATION_RESPONSE_PREFIX = '@SC:OK:CONFIG:'
+export const CONFIGURATION_RESPONSE_PREFIX = '@PR:OK:CONFIG:'
 const MAXIMUM_RESPONSE_BUFFER_SIZE =
   CONFIGURATION_RESPONSE_PREFIX.length +
   'dashboard:'.length +
   MAXIMUM_CONFIGURATION_PAYLOAD_SIZE +
   '\r\n'.length
 const CONTROL_COMMAND_TIMEOUT_MS = 3_000
-const DEVICE_ERROR_PREFIX = '@SC:ERR:'
+const DEVICE_ERROR_PREFIX = '@PR:ERR:'
 
 export function requestResponse(
   port: SerialPort,
@@ -23,7 +23,7 @@ export function requestResponse(
   responsePrefix: string,
   timeoutMs: number,
   onTraffic: TrafficCallback,
-  rejectionCode: DeviceErrorCode = 'not_simcore'
+  rejectionCode: DeviceErrorCode = 'not_pitrig'
 ): Promise<string> {
   return exchangeLines<string>(port, {
     timeoutMs,
@@ -73,9 +73,9 @@ export function sendControlCommand(
     onReceive: (text) => onTraffic('rx', text),
     consume: (lines) => {
       for (const line of lines) {
-        if (!line.startsWith('@SC:')) continue
+        if (!line.startsWith('@PR:')) continue
         collected.push(line)
-        if (line.startsWith('@SC:OK:') || line.startsWith(DEVICE_ERROR_PREFIX)) {
+        if (line.startsWith('@PR:OK:') || line.startsWith(DEVICE_ERROR_PREFIX)) {
           return { value: collected }
         }
       }

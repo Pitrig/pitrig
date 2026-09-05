@@ -7,7 +7,7 @@
 #include "configuration_schema_generated.hpp"
 #include "cJSON.h"
 
-namespace simcore::configuration::json {
+namespace pitrig::configuration::json {
 
 struct ReferenceTable {
   std::span<WidgetReference> entries;

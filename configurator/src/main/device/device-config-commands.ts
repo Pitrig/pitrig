@@ -26,7 +26,7 @@ import {
   resetConfiguration,
   resetConfigurationDocument,
   saveConfiguration
-} from './simcore-protocol'
+} from './pitrig-protocol'
 import { t } from '@shared/ui-text'
 
 export async function readDeviceConfiguration(
@@ -139,8 +139,8 @@ async function readInfo(
   try {
     const line = await requestResponse(
       port,
-      '\n@SC:INFO\n',
-      '@SC:OK:INFO:',
+      '\n@PR:INFO\n',
+      '@PR:OK:INFO:',
       1_000,
       onTraffic,
       'serial_error'

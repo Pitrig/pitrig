@@ -6,7 +6,7 @@ import { useEditorPanelStore } from '@/features/configuration/editor/panel-store
 import { boardLabel, boardName, displaySize } from '@/features/configuration/board-labels'
 import { convertDraftToBoard } from '@/features/configuration/configuration-actions'
 import { transferReportLines } from '@/features/configuration/transfer-report'
-import { SIMCORE_BOARD_IDS, type SimCoreBoardId } from '@shared/device'
+import { PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
 import type { LayoutTransferResult } from '@shared/layout-transfer'
 import { t } from '@shared/ui-text'
 
@@ -39,7 +39,7 @@ export function BoardPicker(): React.JSX.Element {
     )
   }
 
-  const choose = (next: SimCoreBoardId | ''): void => {
+  const choose = (next: PitrigBoardId | ''): void => {
     setError(undefined)
     setReport(undefined)
     if (!next) {
@@ -64,10 +64,10 @@ export function BoardPicker(): React.JSX.Element {
         className="h-6 max-w-52 rounded-md border bg-transparent px-1 text-xs text-foreground"
         title={t('canvas.boardPicker.whichBoardThisDashboardIs')}
         value={board}
-        onChange={(event) => choose(event.target.value as SimCoreBoardId | '')}
+        onChange={(event) => choose(event.target.value as PitrigBoardId | '')}
       >
         <option value="">{t('canvas.boardPicker.selectABoard')}</option>
-        {SIMCORE_BOARD_IDS.map((id) => (
+        {PITRIG_BOARD_IDS.map((id) => (
           <option key={id} value={id}>
             {boardLabel(id)}
           </option>
@@ -120,8 +120,8 @@ export function BoardChoice({
   value,
   onChange
 }: {
-  value: SimCoreBoardId | ''
-  onChange: (board: SimCoreBoardId | '') => void
+  value: PitrigBoardId | ''
+  onChange: (board: PitrigBoardId | '') => void
 }): React.JSX.Element {
   return (
     <label className="flex w-64 flex-col gap-1 text-left text-[11px] text-muted-foreground">
@@ -129,10 +129,10 @@ export function BoardChoice({
       <select
         className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
         value={value}
-        onChange={(event) => onChange(event.target.value as SimCoreBoardId | '')}
+        onChange={(event) => onChange(event.target.value as PitrigBoardId | '')}
       >
         <option value="">{t('canvas.boardPicker.selectABoard')}</option>
-        {SIMCORE_BOARD_IDS.map((id) => (
+        {PITRIG_BOARD_IDS.map((id) => (
           <option key={id} value={id}>
             {boardLabel(id)}
           </option>

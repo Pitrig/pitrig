@@ -59,7 +59,7 @@ import {
 } from '../shared/font-library'
 import {
   APP_GET_INFO_CHANNEL,
-  type SimCoreApi
+  type PitrigApi
 } from '../shared/ipc'
 import {
   SAVE_PROGRESS_CHANNEL,
@@ -75,7 +75,7 @@ import {
   TEMPLATE_SAVE_CHANNEL
 } from '../shared/templates'
 
-export const productApi: SimCoreApi = {
+export const productApi: PitrigApi = {
   getAppInfo: () => ipcRenderer.invoke(APP_GET_INFO_CHANNEL),
   loadConfigurationFile: () => ipcRenderer.invoke(CONFIGURATION_FILE_LOAD_CHANNEL),
   saveConfigurationFile: (request) =>

@@ -7,7 +7,7 @@
 #include "binary_session.hpp"
 #include "image_asset_service.hpp"
 
-namespace simcore::image_assets {
+namespace pitrig::image_assets {
 
 class ImageAssetControl final {
  public:

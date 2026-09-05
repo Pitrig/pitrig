@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Pit strategy",
   "description": "The stop before it happens, after itblast's Pit Stop Tactics and Trokolo's fuel-to-finish: what is in the tank, what the finish needs, what to add, tyre wear and the pit lamps.",

@@ -7,7 +7,7 @@
 
 #include "number_transform.hpp"
 
-namespace simcore::protocols {
+namespace pitrig::protocols {
 namespace {
 
 template <typename Value>

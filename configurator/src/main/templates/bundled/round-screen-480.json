@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Round screen",
   "description": "A round-screen dash after hcsif720's VoCore 3.4in layout: a segmented rev ring over a fuel ring, the gear and speed in the middle, and four corner readouts where the circle leaves the square.",

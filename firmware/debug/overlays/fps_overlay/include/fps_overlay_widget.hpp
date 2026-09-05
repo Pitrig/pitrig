@@ -2,7 +2,7 @@
 
 #include "lvgl_types.hpp"
 
-namespace simcore::dashboard::fps_overlay_widget {
+namespace pitrig::dashboard::fps_overlay_widget {
 
 class View final {
  public:

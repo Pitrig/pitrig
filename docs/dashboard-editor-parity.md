@@ -1,6 +1,6 @@
-# Dashboard editor parity (SimCore vs SimHub)
+# Dashboard editor parity (Pitrig vs SimHub)
 
-What the SimCore configurator still cannot do that the SimHub editor can, and
+What the Pitrig configurator still cannot do that the SimHub editor can, and
 what is excluded on purpose. This is a gap list rather than a plan; the items
 accepted for work live in [roadmap.md](roadmap.md), and what the editor already
 does is described in [device-configuration.md](device-configuration.md) and the
@@ -113,7 +113,7 @@ and antialiases differently from LVGL's TinyTTF, so the preview matches the
 board's layout rather than its pixels — and an *imported* face or an image
 uploaded on another machine, which fall back to a stand-in face and a named box.
 
-Missing: live values. Not by asking the board for them — `@SC:` has no command
+Missing: live values. Not by asking the board for them — `@PR:` has no command
 for reading values, and while a session is running the port belongs to SimHub.
 The direction is to put the configurator in the middle: a virtual COM port on
 the PC that SimHub sends to, with the configurator drawing the stream on the
@@ -159,7 +159,7 @@ from the contract, and are deliberately not repeated here. Neither the 128 KB
 payload nor internal RAM is what bounds them any more: widget state lives in
 external RAM ([ADR 0026](adr/0026-ui-memory-in-external-ram.md)), so raising a
 particular cap is a decision about frame time, answered by applying the document
-and reading `render_us` back over `@SC:DIAG`.
+and reading `render_us` back over `@PR:DIAG`.
 
 ## Recommended order
 

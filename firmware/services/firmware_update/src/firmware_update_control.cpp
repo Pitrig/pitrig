@@ -2,9 +2,9 @@
 
 #include <cstdio>
 
-#include "simcore_features.hpp"
+#include "pitrig_features.hpp"
 
-namespace simcore::firmware_update {
+namespace pitrig::firmware_update {
 namespace {
 
 [[nodiscard]] const char* word_for(const UpdateError error) {
@@ -61,7 +61,7 @@ bool FirmwareUpdateControl::initialize(Service& service,
       {
           .tag = "FW",
           .task_name = "firmware_update",
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
           .metric = performance::TaskMetric::firmware_update,
 #endif
       },

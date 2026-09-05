@@ -2,7 +2,7 @@
 
 #include "telemetry_events.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 
 TelemetryProvider::TelemetryProvider(TelemetryStateService& state, events::EventBus& event_bus)
     : state_(state), event_bus_(event_bus) {}

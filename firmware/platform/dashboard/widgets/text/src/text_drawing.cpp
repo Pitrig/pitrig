@@ -4,7 +4,7 @@
 
 #include "lvgl.h"
 
-namespace simcore::dashboard::text_widget::drawing {
+namespace pitrig::dashboard::text_widget::drawing {
 
 std::int32_t text_width_of(const lv_font_t* const font, const char* const text) {
   lv_point_t size{};

@@ -12,7 +12,7 @@
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
 
-namespace simcore::firmware_update {
+namespace pitrig::firmware_update {
 
 inline constexpr std::uint32_t kMagic = 0x5746'4353U;
 inline constexpr std::uint16_t kFormatVersion = 1;

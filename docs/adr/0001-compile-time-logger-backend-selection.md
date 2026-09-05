@@ -2,7 +2,7 @@
 
 ## Context
 
-SimCore exposes a stable logging API while delegating log processing to ESP-IDF. Logging mode selection must add no runtime dispatch and must not require multiple source files or backend abstractions.
+Pitrig exposes a stable logging API while delegating log processing to ESP-IDF. Logging mode selection must add no runtime dispatch and must not require multiple source files or backend abstractions.
 
 ## Decision
 

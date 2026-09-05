@@ -101,14 +101,14 @@ The upload protocol shares the selected telemetry serial transport. It also
 shares one binary session with the image upload defined in
 [Image asset storage](image-assets.md) and the firmware update defined in
 [Firmware updates over serial](ota.md), which reuse these frames under the
-`@SC:IMAGE:` and `@SC:FW:` namespaces: whichever kind claims the stream first
+`@PR:IMAGE:` and `@PR:FW:` namespaces: whichever kind claims the stream first
 owns it, and the others are answered `busy`.
 
 The host can query persisted asset state without starting an upload:
 
 ```text
-@SC:FONT:INFO
-@SC:OK:FONT:INFO:storage=1,package=1,format=3,families=2,size=311296,crc=2748106441,reboot_required=0,entries=inter;roboto-black
+@PR:FONT:INFO
+@PR:OK:FONT:INFO:storage=1,package=1,format=3,families=2,size=311296,crc=2748106441,reboot_required=0,entries=inter;roboto-black
 ```
 
 `storage` reports whether the partition is available. `package` reports
@@ -126,8 +126,8 @@ over an identical face compares equal.
 The host can erase the complete installed package outside an upload session:
 
 ```text
-@SC:FONT:CLEAR
-@SC:OK:FONT:CLEARED:reboot_required=1
+@PR:FONT:CLEAR
+@PR:OK:FONT:CLEARED:reboot_required=1
 ```
 
 Clear is rejected while an update is active or another font change is pending
@@ -138,7 +138,7 @@ report unresolved dependencies.
 The host starts a session with the complete package size:
 
 ```text
-@SC:FONT:BEGIN:size=<bytes>
+@PR:FONT:BEGIN:size=<bytes>
 ```
 
 Firmware validates the size and erases as much of the font partition as the
@@ -146,7 +146,7 @@ announced package needs, in a dedicated static FreeRTOS task. When ready for
 binary data, it replies:
 
 ```text
-@SC:OK:FONT:READY:max_chunk=4096
+@PR:OK:FONT:READY:max_chunk=4096
 ```
 
 After this response, every host request is a binary frame. The host sends only
@@ -167,11 +167,11 @@ The maximum frame size is 4114 bytes. The commit and cancel frames use the next
 expected sequence number. Each accepted data frame receives:
 
 ```text
-@SC:OK:FONT:ACK:sequence=<sequence>,received=<total_bytes>
+@PR:OK:FONT:ACK:sequence=<sequence>,received=<total_bytes>
 ```
 
 A frame with a bad CRC or unexpected sequence cancels the session, as do other
-structural or storage errors. Errors use `@SC:ERR:FONT:<reason>` and return the
+structural or storage errors. Errors use `@PR:ERR:FONT:<reason>` and return the
 transport to normal line mode. Sending data before the previous response is a
 protocol overrun and also cancels the session.
 
@@ -180,11 +180,11 @@ Firmware validates the candidate, writes its header last, verifies the stored
 package, and replies:
 
 ```text
-@SC:OK:FONT:COMMITTED:reboot_required=1
+@PR:OK:FONT:COMMITTED:reboot_required=1
 ```
 
-Cancel replies with `@SC:OK:FONT:CANCELLED`. Ten seconds without a complete
-request cancels an active session with `@SC:ERR:FONT:timeout`. During a session,
+Cancel replies with `@PR:OK:FONT:CANCELLED`. Ten seconds without a complete
+request cancels an active session with `@PR:ERR:FONT:timeout`. During a session,
 all received bytes belong to the font protocol; normal line commands and
 telemetry input resume after commit, cancel, timeout, or error.
 

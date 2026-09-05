@@ -9,7 +9,7 @@
 #include "telemetry_events.hpp"
 #include "value_conditions.hpp"
 
-namespace simcore::value_smoothing {
+namespace pitrig::value_smoothing {
 namespace {
 
 constexpr std::int64_t kMinimumPeriodUs = 4'000;

@@ -3,7 +3,7 @@
 #include "application_configuration.hpp"
 #include "cJSON.h"
 
-namespace simcore::configuration::json::variants {
+namespace pitrig::configuration::json::variants {
 
 [[nodiscard]] bool parse_bar_widget(const cJSON* object,
                                     BarWidgetConfiguration& config,

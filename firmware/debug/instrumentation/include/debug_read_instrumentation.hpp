@@ -6,7 +6,7 @@
 
 #include "transport.hpp"
 
-namespace simcore::transport {
+namespace pitrig::transport {
 
 class ReadInstrumentation final {
  public:

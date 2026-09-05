@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-const STORAGE_KEY = 'simcore.workspace'
+const STORAGE_KEY = 'pitrig.workspace'
 
 export const WORKSPACE_TABS = [
   'dashboard',

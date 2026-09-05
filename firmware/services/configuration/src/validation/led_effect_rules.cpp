@@ -3,7 +3,7 @@
 #include "validation/hardware_rules.hpp"
 #include "validation/value_rules.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 namespace {
 
 [[nodiscard]] bool validate_watched(const LedEffect& effect,

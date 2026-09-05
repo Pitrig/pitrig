@@ -6,7 +6,7 @@
 #include "application_configuration.hpp"
 #include "configuration_schema_generated.hpp"
 
-namespace simcore::configuration::validation {
+namespace pitrig::configuration::validation {
 
 [[nodiscard]] bool validate_led_effects(
     const HardwareDeviceConfiguration& device, ValidationFailure& failure);

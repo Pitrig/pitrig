@@ -34,7 +34,7 @@ export function CatalogSection({ onMessage }: { onMessage: (message: string) => 
 
   const add = async (familyName: string, variant: FontVariant): Promise<void> => {
     setAdding(familyName)
-    const result = await window.simcore
+    const result = await window.pitrig
       .addFontFromCatalog({ family: familyName, variant })
       .catch(() => undefined)
     setAdding(undefined)

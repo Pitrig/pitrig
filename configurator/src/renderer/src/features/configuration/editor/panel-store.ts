@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 import type { LayoutFit } from '@shared/layout-transfer'
 
-const STORAGE_KEY = 'simcore.editor.panels'
+const STORAGE_KEY = 'pitrig.editor.panels'
 
 const MINIMUM_INSPECTOR_WIDTH_PX = 288
 const MAXIMUM_INSPECTOR_WIDTH_PX = 560

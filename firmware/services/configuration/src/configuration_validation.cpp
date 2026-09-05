@@ -10,7 +10,7 @@
 #include "validation/value_rules.hpp"
 #include "validation/widget_validator.hpp"
 
-namespace simcore::configuration {
+namespace pitrig::configuration {
 
 using validation::reject;
 using validation::terminated;

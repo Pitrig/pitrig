@@ -8,7 +8,7 @@
 #include "value_smoothing.hpp"
 #include "widget_frame_internal.hpp"
 
-namespace simcore::dashboard::frame {
+namespace pitrig::dashboard::frame {
 namespace {
 
 bool square_fill(const Config& config) {

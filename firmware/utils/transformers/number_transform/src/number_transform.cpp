@@ -8,7 +8,7 @@
 
 #include "text_writer.hpp"
 
-namespace simcore::transformers::number_transform {
+namespace pitrig::transformers::number_transform {
 namespace {
 
 constexpr std::array<std::int64_t, kMaximumDecimals + 1> kPowersOfTen{

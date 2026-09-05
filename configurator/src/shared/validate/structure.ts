@@ -13,7 +13,7 @@ import {
   widgetsOf,
   type WidgetParent
 } from '../configuration-access'
-import { BOARD_PROFILES, type SimCoreBoardId } from '../device'
+import { BOARD_PROFILES, type PitrigBoardId } from '../device'
 import {
   countLapTimers,
   findActionError,
@@ -27,7 +27,7 @@ import { t } from '../ui-text'
 function boardDisplay(
   configuration: ApplicationConfiguration
 ): { width: number; height: number } | undefined {
-  const board = configuration.board as SimCoreBoardId | undefined
+  const board = configuration.board as PitrigBoardId | undefined
   return board ? BOARD_PROFILES[board]?.display : undefined
 }
 
@@ -38,7 +38,7 @@ export function findScreenError(configuration: ApplicationConfiguration): string
   if (screens.length > MAXIMUM_SCREENS) {
     return t('validation.structure.aDashboardCarriesAtMost', { mAXIMUM_SCREENS: MAXIMUM_SCREENS, length: screens.length })
   }
-  const board = configuration.board as SimCoreBoardId | undefined
+  const board = configuration.board as PitrigBoardId | undefined
   if (screens.length > 0 && board && BOARD_PROFILES[board] && !BOARD_PROFILES[board].display) {
     return t('validation.structure.thisBoardHasNoDisplay')
   }

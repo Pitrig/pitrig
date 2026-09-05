@@ -27,30 +27,30 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
                  xSemaphoreGive(lvgl_port_ctx.timer_mux);
              }
  
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +            if (events & LVGL_PORT_EVENT_DISPLAY) {
 +                lv_timer_ready(lv_display_get_refr_timer(lv_display_get_default()));
 +            }
 +#endif
              /* Handle LVGL */
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +            const uint32_t starts_before = lvgl_port_acc_refr_starts;
 +#endif
              task_delay_ms = lv_timer_handler();
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +            if ((events & LVGL_PORT_EVENT_DISPLAY) && lvgl_port_acc_refr_starts == starts_before) {
 +                lvgl_port_disp_wake_drew_nothing();
 +            }
 +#endif
              lvgl_port_unlock();
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +            if (task_delay_ms < 200) {
 +                task_delay_ms = 200;
 +            }
 +#endif
          } else {
              task_delay_ms = 1; /*Keep trying*/
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +            if (events != 0) {
 +                xEventGroupSetBits(lvgl_port_ctx.lvgl_events, events);
 +            }
@@ -113,7 +113,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      lv_display_t *disp = disp_ctx->disp_drv;
      lvgl_port_disp_jit_wait();
      disp_ctx->wait_accum_us = 0U;
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +    disp_ctx->in_refresh = 1U;
 +    disp_ctx->frame_drawn = 0U;
 +    disp_ctx->armed_empty = 0U;
@@ -180,7 +180,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  #endif
  }
  
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +static void lvgl_port_sched_timer_cb(void *arg)
 +{
 +    lvgl_port_display_ctx_t *ctx = (lvgl_port_display_ctx_t *)arg;
@@ -316,7 +316,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +
 +static void lvgl_port_disp_note_feed_burst(int64_t now)
 +{
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +    lvgl_port_display_ctx_t *ctx = s_strips_ctx;
 +    if (ctx == NULL) {
 +        return;
@@ -361,7 +361,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +
 +void lvgl_port_disp_wake_drew_nothing(void)
 +{
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +    lvgl_port_display_ctx_t *ctx = s_strips_ctx;
 +    if (ctx == NULL) {
 +        return;
@@ -380,8 +380,8 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
                      waits++;
                  }
                  ctx->last_swap_wait_us = (uint32_t)(esp_timer_get_time() - wait_start);
--#ifdef CONFIG_SIMCORE_DISPLAY_JIT
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
+-#ifdef CONFIG_PITRIG_DISPLAY_JIT
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +                const bool latch_passed =
 +                    (ctx->refresh_count - ctx->sched_start_refresh) >= 2U;
 +                if (latch_passed) {
@@ -390,7 +390,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +#else
 +                const bool latch_passed = false;
 +#endif
-+#if defined(CONFIG_SIMCORE_DISPLAY_JIT) || defined(CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK)
++#if defined(CONFIG_PITRIG_DISPLAY_JIT) || defined(CONFIG_PITRIG_DISPLAY_VSYNC_LOCK)
                  if (ctx->jit_slept && ctx->vsync_period_us != 0U) {
 -                    if (ctx->last_swap_wait_us > (ctx->vsync_period_us * 3U) / 4U) {
 +                    if (latch_passed
@@ -418,7 +418,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
                  disp_ctx->jit_margin_us = 2500U;
 +                disp_ctx->pkt_allow_us = 1000U;
                  s_strips_ctx = disp_ctx;
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +                disp_ctx->sched_sem = xSemaphoreCreateBinary();
 +                const esp_timer_create_args_t sched_args = {
 +                    .callback = lvgl_port_sched_timer_cb,
@@ -436,7 +436,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
 +#endif
                  lv_display_add_event_cb(disp, lvgl_port_adaptive_refr_start_callback,
                                          LV_EVENT_REFR_START, disp_ctx);
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +                lv_display_add_event_cb(disp, lvgl_port_sched_refr_ready_callback,
 +                                        LV_EVENT_REFR_READY, disp_ctx);
 +#endif
@@ -452,7 +452,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      if (disp_ctx->vsync_sem) {
          xSemaphoreGiveFromISR(disp_ctx->vsync_sem, &need_yield);
      }
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +    if (disp_ctx->sched_sem) {
 +        xSemaphoreGiveFromISR(disp_ctx->sched_sem, &need_yield);
 +    }
@@ -464,7 +464,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
                  }
              }
          }
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +        disp_ctx->sched_pending = 0U;
 +#endif
 +        disp_ctx->frame_drawn = 1U;
@@ -503,7 +503,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
      }
  
      /* Wake LVGL task, if needed */
-+#ifdef CONFIG_SIMCORE_DISPLAY_VSYNC_LOCK
++#ifdef CONFIG_PITRIG_DISPLAY_VSYNC_LOCK
 +    if (disp_ctx != NULL && disp_ctx->armed_empty && !disp_ctx->in_refresh) {
 +        const bool burst_start = disp_ctx->armed_empty == 2U;
 +        disp_ctx->armed_empty = 0U;

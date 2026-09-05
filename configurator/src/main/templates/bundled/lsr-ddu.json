@@ -1,5 +1,5 @@
 {
-  "format": "simcore-dashboard-template",
+  "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "Lovely style DDU",
   "description": "A Lovely-inspired DDU for the 1024 x 600 board: rev lights, a tyre and brake slot, a lap-time and gap slot, the centre gear column and the aids row, plus timing and fuel screens.",

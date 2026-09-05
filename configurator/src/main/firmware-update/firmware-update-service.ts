@@ -26,7 +26,7 @@ const kFirmware: AssetKind = {
   dialogButton: t('firmware.firmwareUpdateService.selectImage'),
   filters: [{ name: t('firmware.dialog.filter'), extensions: ['bin'] }],
   extensions: ['.bin'],
-  wrongExtension: t('firmware.firmwareUpdateService.selectTheSimcoreBinProduced'),
+  wrongExtension: t('firmware.firmwareUpdateService.selectThePitrigBinProduced'),
   busy: t('firmware.firmwareUpdateService.aFirmwareUploadIsAlready'),
   unsupported: t('firmware.firmwareUpdateService.theConnectedFirmwareCannotUpdate'),
   storageUnavailable: t('firmware.firmwareUpdateService.thisDeviceHasNoSecond'),
@@ -94,7 +94,7 @@ export class FirmwareUpdateService extends AssetServiceBase {
     }
     const deviceSession = this.deviceService.getState().session
     if (!deviceSession) {
-      return failure('device_error', t('device.deviceOperation.noSimcoreDeviceIsConnected'))
+      return failure('device_error', t('device.deviceOperation.noPitrigDeviceIsConnected'))
     }
 
     const operation = new AbortController()

@@ -14,7 +14,7 @@ configuration, which is what makes it safe to run there.
 
 Startup brought the serial link up last. `run()` loaded the configuration,
 initialized the display, copied fonts and images into external RAM, composed the
-modules and the dashboard, and only then started the transport and the `@SC:`
+modules and the dashboard, and only then started the transport and the `@PR:`
 control protocol. Everything a board can be repaired with sat behind everything
 a board can be broken by.
 
@@ -81,7 +81,7 @@ holds a counter in RTC memory, which survives the reset a panic causes and is
 undefined after a power-on — so pulling the cable is a recovery that needs no
 host, and a magic word tells the two apart. Only `ESP_RST_PANIC` and the three
 watchdog reasons count; a restart the host asked for does not. Three in a row
-and the next boot runs the **recovery surface**: the transport, the `@SC:`
+and the next boot runs the **recovery surface**: the transport, the `@PR:`
 control protocol and firmware upload, and nothing else. No display, no LVGL, no
 dashboard, no modules, no font or image upload, and no telemetry decode.
 
@@ -151,7 +151,7 @@ one rule instead of three. A recovery boot opens the claim as soon as the link
 is up: it loads no assets, so there is nothing for an upload to collide with,
 and firmware upload is one of the two ways out of it.
 
-**`@SC:APPLY` is unsupported in safe mode.** The replacement transaction checks
+**`@PR:APPLY` is unsupported in safe mode.** The replacement transaction checks
 a candidate against fonts and images that were never loaded, so it would refuse
 every dashboard put to it. Safe mode registers no apply handler, which the
 control service already answers `unsupported`.
@@ -163,7 +163,7 @@ needs to have produced. A recovery boot never silences at all.
 
 ## Consequences
 
-- A board answers `@SC:INFO` within milliseconds of reset rather than after
+- A board answers `@PR:INFO` within milliseconds of reset rather than after
   composition. Reaching a board mid-boot, and reaching one whose dashboard is
   broken, both stop being matters of timing.
 - `INFO` gains `safe_mode`, `boot_failures`, `reset_reason` and `last_phase`.

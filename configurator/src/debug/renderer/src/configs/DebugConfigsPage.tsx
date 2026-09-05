@@ -39,19 +39,19 @@ export function DebugConfigsPage(): React.JSX.Element {
     setNote(undefined)
     try {
       if (action === 'read') {
-        const result = await window.simcore.readDeviceConfiguration()
+        const result = await window.pitrig.readDeviceConfiguration()
         setNote(result.ok ? 'Read from the board.' : result.error.message)
         if (result.ok) setEdited(undefined)
       } else if (action === 'reset') {
-        const result = await window.simcore.resetDeviceConfiguration({ document })
+        const result = await window.pitrig.resetDeviceConfiguration({ document })
         setNote(result.ok ? `Reset ${document} to its factory payload.` : result.error.message)
         if (result.ok) setEdited(undefined)
       } else {
         const request = { json: JSON.stringify(JSON.parse(text)), documents: [document] }
         const result =
           action === 'apply'
-            ? await window.simcore.applyDeviceConfiguration(request)
-            : await window.simcore.saveDeviceConfiguration(request)
+            ? await window.pitrig.applyDeviceConfiguration(request)
+            : await window.pitrig.saveDeviceConfiguration(request)
         setNote(
           result.ok
             ? `${action === 'apply' ? 'Applied' : 'Saved'} ${document}.`

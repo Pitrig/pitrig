@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 
 import { screensOf } from '@shared/configuration-access'
-import { BOARD_PROFILES, type SimCoreBoardId } from '@shared/device'
+import { BOARD_PROFILES, type PitrigBoardId } from '@shared/device'
 
 import { ScreenGallery } from './ScreenGallery'
 import { useTemplatesStore } from './templates-store'
@@ -13,7 +13,7 @@ export function DashboardThumbnail({
   className
 }: {
   id: string
-  board: SimCoreBoardId
+  board: PitrigBoardId
   className?: string
 }): React.JSX.Element {
   const document = useTemplatesStore((state) => state.documents[id])

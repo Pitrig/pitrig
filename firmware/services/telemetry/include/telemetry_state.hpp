@@ -8,7 +8,7 @@
 #include "telemetry_registry.hpp"
 #include "telemetry_types.hpp"
 
-namespace simcore::telemetry {
+namespace pitrig::telemetry {
 
 class ITelemetryReader {
  public:
@@ -28,7 +28,7 @@ class TelemetryStateService final : public ITelemetryReader {
     std::atomic<std::uint32_t> sequence{0};
     Value value{};
     std::uint64_t revision{};
-#if SIMCORE_DEBUG
+#if PITRIG_DEBUG
     std::int64_t last_change_us{};
 #endif
     bool available{};

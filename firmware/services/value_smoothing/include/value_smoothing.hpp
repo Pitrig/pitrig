@@ -12,7 +12,7 @@
 #include "telemetry_state.hpp"
 #include "telemetry_types.hpp"
 
-namespace simcore::value_smoothing {
+namespace pitrig::value_smoothing {
 
 class Service;
 

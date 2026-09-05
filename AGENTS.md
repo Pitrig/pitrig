@@ -1,8 +1,8 @@
-# SimCore Development Guide
+# Pitrig Development Guide
 
 ## Purpose
 
-SimCore is an open-source platform for building modular sim racing devices.
+Pitrig is an open-source platform for building modular sim racing devices.
 
 The goal is to build a long-term, maintainable platform rather than individual products.
 
@@ -64,7 +64,7 @@ New hardware support should primarily require adding a new driver instead of mod
 
 ## Architecture Decision Records (ADR)
 
-SimCore uses Architecture Decision Records (ADRs) to document important architectural decisions.
+Pitrig uses Architecture Decision Records (ADRs) to document important architectural decisions.
 
 Rules:
 
@@ -217,4 +217,4 @@ Do not skip the planning step for complex work.
 
 ## Goal
 
-Every change should make SimCore easier to extend, easier to understand, and easier to maintain.
+Every change should make Pitrig easier to extend, easier to understand, and easier to maintain.

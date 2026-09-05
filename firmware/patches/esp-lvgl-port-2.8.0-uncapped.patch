@@ -5,7 +5,7 @@ diff --git a/firmware/managed_components/espressif__esp_lvgl_port/src/lvgl9/esp_
  #if (SOC_MIPI_DSI_SUPPORTED && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0))
                  lvgl_port_recon_wait(ctx, 0, 0, 0xFFFFU, 0xFFFFU);
  #endif
-+#ifndef CONFIG_SIMCORE_DISPLAY_UNCAPPED
++#ifndef CONFIG_PITRIG_DISPLAY_UNCAPPED
                  const uint32_t vsync_gap =
                      lvgl_port_vsync_gap(ctx->mode_cost_ema[ctx->mode_best]);
                  uint32_t waits = 0;

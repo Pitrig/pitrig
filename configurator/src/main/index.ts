@@ -15,8 +15,8 @@ import {
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
 
-if (isDevelopment() && process.env.SIMCORE_REMOTE_DEBUG) {
-  app.commandLine.appendSwitch('remote-debugging-port', process.env.SIMCORE_REMOTE_DEBUG)
+if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
+  app.commandLine.appendSwitch('remote-debugging-port', process.env.PITRIG_REMOTE_DEBUG)
   app.commandLine.appendSwitch('remote-allow-origins', 'http://localhost')
 }
 

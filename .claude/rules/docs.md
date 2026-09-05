@@ -17,7 +17,7 @@ new section, and a new document needs a reason. Who owns what:
   their presence rules, authoring in the configurator, fonts, the payload;
   `docs/dashboard-widgets.md` — screens, containers, slots, widget types,
   captions, conditional styling and ramps; `docs/control-protocol.md` — the
-  `@SC:` commands, the `INFO` and `DIAG` replies, error tokens and NVS records.
+  `@PR:` commands, the `INFO` and `DIAG` replies, error tokens and NVS records.
 - `docs/font-assets.md` owns the `SCF1` upload protocol; `image-assets.md` and
   `ota.md` describe only what differs per kind.
 - `docs/runtime-performance.md` — counter definitions, the cost model and the
@@ -30,7 +30,7 @@ new section, and a new document needs a reason. Who owns what:
   outputs: never edit them; change the source JSON or the generator and
   regenerate.
 
-ADRs are cited by bare number from `firmware/utils/simcore_config/Kconfig`,
+ADRs are cited by bare number from `firmware/utils/pitrig_config/Kconfig`,
 `configuration/configuration_schema.json` and `.vscode/tasks.json`, and by
 number in prose everywhere: never renumber, merge or delete an ADR file. Nothing
 validates markdown links, so when a section moves keep the anchors others link

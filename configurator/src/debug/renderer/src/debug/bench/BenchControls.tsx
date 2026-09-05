@@ -38,12 +38,12 @@ export function BenchControls(): React.JSX.Element {
 
   const changeRate = (next: number): void => {
     useBenchStore.getState().setRate(next)
-    if (running) void window.simcore.updateBench({ rateHz: next })
+    if (running) void window.pitrig.updateBench({ rateHz: next })
   }
 
   const changePoll = (next: number): void => {
     useBenchStore.getState().setPollInterval(next)
-    if (running) void window.simcore.updateBench({ pollIntervalMs: next })
+    if (running) void window.pitrig.updateBench({ pollIntervalMs: next })
   }
 
   return (
@@ -66,7 +66,7 @@ export function BenchControls(): React.JSX.Element {
       <Button
         className="w-40 flex-none"
         disabled={!connected || status.patternBusy}
-        onClick={() => void run(() => window.simcore.applyBenchPattern({ pattern }))}
+        onClick={() => void run(() => window.pitrig.applyBenchPattern({ pattern }))}
       >
         <Wand2 aria-hidden="true" className="mr-1.5 size-3.5" />
         {status.patternBusy ? (status.patternStage ?? 'Applying…') : 'Apply pattern'}
@@ -75,7 +75,7 @@ export function BenchControls(): React.JSX.Element {
         className="flex-none"
         variant="outline"
         disabled={!connected || status.patternBusy || status.pattern === undefined}
-        onClick={() => void run(() => window.simcore.restoreBenchDashboard())}
+        onClick={() => void run(() => window.pitrig.restoreBenchDashboard())}
       >
         <RotateCcw aria-hidden="true" className="mr-1.5 size-3.5" />
         Restore
@@ -104,8 +104,8 @@ export function BenchControls(): React.JSX.Element {
         onClick={() =>
           void run(() =>
             running
-              ? window.simcore.stopBench()
-              : window.simcore.startBench({ rateHz, pollIntervalMs, signals: enabled })
+              ? window.pitrig.stopBench()
+              : window.pitrig.startBench({ rateHz, pollIntervalMs, signals: enabled })
           )
         }
       >

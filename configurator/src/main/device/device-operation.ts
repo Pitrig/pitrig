@@ -57,7 +57,7 @@ export class OperationRunner {
     const session = this.connection.getState().session
     const traffic = this.connection.traffic
     if (!port?.isOpen || !session || !traffic) {
-      return failure({ code: 'serial_error', message: t('device.deviceOperation.noSimcoreDeviceIsConnected') })
+      return failure({ code: 'serial_error', message: t('device.deviceOperation.noPitrigDeviceIsConnected') })
     }
     if (this.deviceOperationActive) {
       return failure({ code: 'busy', message: t('device.deviceOperation.anotherDeviceOperationIsAlready') })

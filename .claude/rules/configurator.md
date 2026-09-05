@@ -13,25 +13,25 @@ library, the `configs/` folder and recent-files list, SimHub profile export),
 `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
 `configuration`, `device`, `firmware-update`, `font-library`, `image-assets`,
 `modules`, `protocol`, `templates`). `shared/` holds types crossing the boundary.
-**All IPC channels and the `SimCoreApi` surface are declared in
+**All IPC channels and the `PitrigApi` surface are declared in
 `src/shared/ipc.ts`** — add channels there, then the main handler in
 `main/ipc/register-ipc-handlers.ts` and the preload bridge.
 
 `src/debug/` is a second Electron application from the same package
 (`pnpm run dev:debug`, `electron.vite.debug.config.ts` → `out-debug/`): the
-serial console, the telemetry bench and the `@SC:DIAG` charts, plus its own
+serial console, the telemetry bench and the `@PR:DIAG` charts, plus its own
 firmware upload and raw document editing, because one serial port admits one
 process. It composes `createAppServices()` and calls `registerIpcHandlers()` plus
-`registerDebugHandlers()`, and extends the bridge as `SimCoreDebugApi`. The
+`registerDebugHandlers()`, and extends the bridge as `PitrigDebugApi`. The
 dependency runs **one way**: `src/debug/**` may import anything; `src/main`,
 `src/preload`, `src/renderer` and `src/shared` may not import `src/debug`, which
 an ESLint `no-restricted-imports` rule enforces (ADR 0028). `pnpm run typecheck`
 covers three projects: node, the product renderer and the debug renderer.
 
-Both applications are branded from `src/main/branding.ts`: the name `SimCore`,
+Both applications are branded from `src/main/branding.ts`: the name `Pitrig`,
 the icon `resources/icon.png` rendered from `assets/branding/` at the repository
 root, and the header `wordmark.svg`. Naming the application moves `userData`, so
-the same module moves a `@simcore/configurator` directory left by an earlier
+the same module moves a `@pitrig/configurator` directory left by an earlier
 build onto the new path and refuses when the new one already holds anything.
 
 ## Documents and the draft
@@ -55,8 +55,8 @@ during a drag), `save-to-board-store.ts` (a save that outlives the button and
 the remount a restart causes), `live-apply-store.ts`, `board-sync-store.ts`
 (the divergence question that gates live apply) and `document-status.tsx` (the
 header chip). The store keeps `activeConfiguration` (stored) apart from
-`runningConfiguration` (shown); a live `@SC:APPLY` moves the second and a save
-moves both. The main process polls `@SC:INFO` every five seconds while the link
+`runningConfiguration` (shown); a live `@PR:APPLY` moves the second and a save
+moves both. The main process polls `@PR:INFO` every five seconds while the link
 is idle, so a document written from elsewhere is noticed rather than
 overwritten.
 
@@ -65,10 +65,10 @@ overwritten.
 "Save to board" writes only the documents that differ from the board, protocol
 first and dashboard last. When the dashboard is among them it resolves that
 document's families against the font library, builds a package holding exactly
-those, and skips the upload when `@SC:FONT:INFO` reports the same `crc` and
+those, and skips the upload when `@PR:FONT:INFO` reports the same `crc` and
 `entries`. It restarts the board only when a package was actually installed,
 when the board already owed a restart, or when the `protocol` document was
-written (`reboot_required=1`); otherwise it closes with `@SC:APPLY` per written
+written (`reboot_required=1`); otherwise it closes with `@PR:APPLY` per written
 document. An unresolvable family stops the save and asks for a file, and live
 apply is suppressed while the board lacks a family, because firmware rejects
 the document whole. `family` **is** the library id — bundled, Google or

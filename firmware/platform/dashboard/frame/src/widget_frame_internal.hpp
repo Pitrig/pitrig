@@ -4,7 +4,7 @@
 
 #include "widget_frame.hpp"
 
-namespace simcore::dashboard::frame::internal {
+namespace pitrig::dashboard::frame::internal {
 
 [[nodiscard]] bool resolve_frame_box(const Layout& layout, const Config& config,
                                      const char* tag,
