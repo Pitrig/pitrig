@@ -23,7 +23,7 @@ win:
 linux:
   icon: resources/icon.png
   category: Development
-  maintainer: Pitrig <contact.pitrig@gmail.com>
+  maintainer: Illia Lukashchuk <contact.pitrig@gmail.com>
   executableName: pitrig
   syncDesktopName: true
   target:

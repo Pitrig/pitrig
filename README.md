@@ -123,4 +123,27 @@ Questions, bug reports and hardware requests: [contact.pitrig@gmail.com](mailto:
 
 ## Licence
 
-MIT. See [LICENSE](LICENSE).
+Copyright (c) 2026 Illia Lukashchuk
+
+The firmware, the configurator and the tooling are licensed under the **GNU General Public License,
+version 3 or later** — see [LICENSE](LICENSE). A device that ships a modified Pitrig firmware has to
+publish those modifications and leave the board reflashable.
+
+The interfaces a device speaks are licensed under the **Apache License 2.0** instead, so that anyone
+may implement a compatible client, tool or firmware without adopting a copyleft licence — see
+[LICENSE-APACHE](LICENSE-APACHE). That covers:
+
+| Path | What it defines |
+| --- | --- |
+| [configuration/](configuration) | The configuration schema every document is validated against |
+| [telemetry/](telemetry) | The telemetry catalogue and the SimHub property mappings |
+| [simhub/](simhub) | The generated SimHub Custom Serial profile |
+| [docs/](docs) | The control protocol, the schema reference and the architecture records |
+
+Pitrig is a name, not just code: the licences above cover the source, not the brand. What may be
+done with the name and the logo is in [TRADEMARK.md](TRADEMARK.md).
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) has what to read first, how to check a change and how to send it.
+Every commit needs a sign-off certifying the [Contributor Licence Agreement](CLA.md).

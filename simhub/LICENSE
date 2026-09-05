@@ -1,0 +1,11 @@
+The files in this directory are licensed under the Apache License, Version 2.0,
+not under the GNU General Public License that covers the rest of this
+repository. They describe the interfaces a Pitrig device speaks — the
+configuration schema, the telemetry catalogue, the control protocol and the
+SimHub profile — so that anyone may implement a compatible client, tool or
+firmware without adopting a copyleft licence.
+
+The full text is in LICENSE-APACHE at the root of this repository, and at
+http://www.apache.org/licenses/LICENSE-2.0
+
+Copyright (c) 2026 Illia Lukashchuk
