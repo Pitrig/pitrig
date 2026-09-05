@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "productName": "Pitrig",
   "description": "Pitrig dashboard configurator",
-  "author": "Pitrig",
+  "author": "Pitrig <contact.pitrig@gmail.com>",
   "desktopName": "pitrig.desktop",
   "homepage": "https://www.pitrig.com",
   "license": "MIT",

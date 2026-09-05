@@ -117,6 +117,10 @@ decisions are recorded in [docs/adr/](docs/adr).
 `pnpm run dev:debug` starts a separate debug application from the same package —
 serial console, telemetry bench, firmware upload and raw document editing.
 
+## Contact
+
+Questions, bug reports and hardware requests: [contact.pitrig@gmail.com](mailto:contact.pitrig@gmail.com).
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
