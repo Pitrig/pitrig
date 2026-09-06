@@ -23,15 +23,12 @@ Every type needs an LVGL implementation, a compile-time descriptor per
 [ADR 0015](adr/0015-widget-descriptors.md) and an entry in the schema. That is
 firmware work; the configurator follows the generated contract.
 
-Neither waits on a widget, though. Both wait on the source: `<id>;<value>`
-addresses one scalar and the read path is a flat handle-indexed array, so there
-is nothing for a table to iterate and nothing to carry an outline. A repeater
-whose instance count varies at runtime is refused — it would cost the
-per-instance lifecycle ADR 0015 deliberately does not have, for content read on
-a straight. What replaces it is a **bounded relative**: N cars ahead and N
-behind plus the leader, as ordinary flat fields the plugin fills by sorting, so
-the protocol, the pools and the read path are all untouched and a full
-twenty-car tower is the price. Roadmap Phase 7 owns both.
+Neither waits on a widget, though: `<id>;<value>` addresses one scalar, so there
+is nothing for a table to iterate and nothing to carry an outline. A runtime
+repeater is refused — it costs the per-instance lifecycle ADR 0015 deliberately
+does not have. What replaces it is a bounded relative: N cars ahead and N behind
+plus the leader, as flat fields the plugin sorts, leaving protocol, pools and
+read path untouched. A twenty-car tower is the price. Roadmap Phase 7.
 
 ### 2. Formulas and expressions over telemetry
 
@@ -44,16 +41,13 @@ SimHub solves this with NCalc and JavaScript formulas on any property. An
 interpreter in the firmware contradicts the "no allocation in the periodic path"
 rule, so the direction is the one that produced `number`: declarative bounded
 transforms. The shape is decided and owed an ADR — a fixed set of stateless
-nodes (`min`, `max`, `clamp`, `abs`, two sources combined arithmetically, and a
-threshold that selects between two values) over fields the device already holds,
-growing only by amending that ADR, and evaluated identically by the configurator
-so the canvas agrees with the board.
+nodes (`min`, `max`, `clamp`, `abs`, two sources combined, and a threshold that
+selects between two values), evaluated identically by the configurator so the
+canvas agrees with the board.
 
-Stateless is the whole of it. Stint timers, counters, rolling averages, min/max
-hold and best-lap memory are the PC's work, and `lap_timer` stays the one
-stateful modifier because it extrapolates between packets rather than deriving
-anything. The `modifiers` array should shrink to one optional field to say so:
-it is declared as four and the binder honours exactly one.
+Stateless is the whole of it: stint timers, counters, rolling averages and
+best-lap memory stay on the PC, and `lap_timer` is the one stateful modifier
+because it extrapolates rather than derives.
 
 ### 3. Conditional and animated styling
 
@@ -82,11 +76,14 @@ navigation, and switching a screen from telemetry. The last of those is the one
 that matters most: a slot page can be raised by a condition and a screen cannot,
 so a single document covering several cars is authored around slots instead.
 
-Buttons and encoders stop being owed and become planned: a board is a controller
-as well as a display, which puts GPIO, the bus service and the generalisation of
-`interfaces/input` on the critical path, and gives the 32-button HID descriptor
-ADR 0029 already spent flash on something to send. It also gives the
-T-Display-S3 a way to reach its second screen.
+Buttons, switches and encoders stop being owed and become planned, and a button
+and a slider drawn on the glass join them: a board is a controller as well as a
+display, and the sim is meant to see it as a plain USB gamepad. That puts GPIO,
+the bus service and the generalisation of `interfaces/input` on the critical
+path, and gives the 32-button HID descriptor ADR 0029 already spent flash on
+something to send. It also gives the T-Display-S3 a way to reach its second
+screen. Nothing analog is planned — no potentiometers, no pedal or handbrake
+axes — so a control is a button, a switch, an encoder, or a touch widget.
 
 ### 5. Graphical assets
 
@@ -137,7 +134,9 @@ What it costs is that conditional rules and the colour ramp cannot be seen
 reacting: no reading means no rule matches, so the canvas shows the authored
 appearance. A graph shows the frame and one baseline per trace rather than the
 traces themselves, and an indicator shows its unlit lamps. Inventing a value
-would be worse — a signal the game never sent, judged as though it had.
+silently would be worse — a signal the game never sent, judged as though it
+had. A value the author types is not that: it is theirs, they know it is, and
+it is the only way to see a rule fire without a game running.
 
 Geometry and assets are already mirrored: the canvas lays out the way LVGL
 does, measures strings with the face the board rasterizes, and draws an image
@@ -154,6 +153,12 @@ the canvas and forwarding it on to the board, so the same values reach both. It
 is ranked first among what is left, and it is load-bearing for more than the
 preview — the same port is what lets a dashboard be adjusted while a session is
 running, which one process owning one link otherwise forbids.
+
+Beside it, and much cheaper: a value the author sets by hand on any source, held
+until it is cleared and overridden by the stream when one arrives. It needs no
+port, no SimHub and no board, so it is what makes a rule, a ramp and an
+`unavailable_text` checkable offline. Unset stays the default, so the canvas
+still shows the unavailable state unless the author asked for something else.
 
 ### 8. Templates and portability
 
