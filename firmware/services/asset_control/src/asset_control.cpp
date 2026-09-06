@@ -6,11 +6,14 @@
 #include <cstring>
 
 #include "binary_codec.hpp"
+#include "configuration_control.hpp"
 #include "scf1_frame.hpp"
 #include "pitrig_features.hpp"
 
 namespace pitrig::asset_control {
 namespace {
+
+using configuration::kControlPrefix;
 
 [[nodiscard]] bool matches(const std::span<const std::uint8_t> line,
                            const std::string_view command) {
@@ -19,11 +22,11 @@ namespace {
 }
 
 std::string_view compose(std::array<char, 32>& storage,
-                         const std::string_view tag,
+                         const std::string_view prefix,
                          const std::string_view suffix) {
   const int written =
-      std::snprintf(storage.data(), storage.size(), "@PR:%.*s:%.*s",
-                    static_cast<int>(tag.size()), tag.data(),
+      std::snprintf(storage.data(), storage.size(), "%.*s%.*s",
+                    static_cast<int>(prefix.size()), prefix.data(),
                     static_cast<int>(suffix.size()), suffix.data());
   if (written <= 0 || static_cast<std::size_t>(written) >= storage.size()) {
     return {};
@@ -58,18 +61,23 @@ bool AssetControl::initialize(const Traits& traits,
   claim_ = &claim;
   frame_ = frame.first(kMaximumFrameSize);
   const int prefix_length =
-      std::snprintf(command_prefix_.data(), command_prefix_.size(), "@PR:%.*s:",
-                    static_cast<int>(traits_.tag.size()), traits_.tag.data());
+      std::snprintf(command_prefix_.data(), command_prefix_.size(), "%.*s%.*s:",
+                    static_cast<int>(kControlPrefix.size()),
+                    kControlPrefix.data(), static_cast<int>(traits_.tag.size()),
+                    traits_.tag.data());
   if (prefix_length <= 0 ||
-      static_cast<std::size_t>(prefix_length) >= command_prefix_.size() ||
-      compose(begin_command_, traits_.tag, "BEGIN:size=").empty() ||
-      compose(info_command_, traits_.tag, "INFO").empty() ||
-      compose(clear_command_, traits_.tag, "CLEAR").empty()) {
+      static_cast<std::size_t>(prefix_length) >= command_prefix_.size()) {
+    return false;
+  }
+  const std::string_view prefix{command_prefix_.data(),
+                                static_cast<std::size_t>(prefix_length)};
+  if (compose(begin_command_, prefix, "BEGIN:size=").empty() ||
+      compose(info_command_, prefix, "INFO").empty() ||
+      compose(clear_command_, prefix, "CLEAR").empty()) {
     return false;
   }
   session_ = {
-      .command_prefix = {command_prefix_.data(),
-                         static_cast<std::size_t>(prefix_length)},
+      .command_prefix = prefix,
       .consume_command = &AssetControl::consume_command_entry,
       .consume = &AssetControl::consume_entry,
       .context = this,

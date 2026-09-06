@@ -6,7 +6,7 @@
 namespace pitrig::communication {
 namespace {
 
-constexpr std::array<std::uint8_t, 4> kControlPrefix{'@', 'S', 'C', ':'};
+using configuration::kControlPrefix;
 
 [[nodiscard]] bool starts_with(const std::span<const std::uint8_t> line,
                                const std::string_view prefix) {
@@ -93,8 +93,7 @@ void Router::consume(const std::span<const std::uint8_t> data) {
     }
     line[line_size_++] = value;
     if (!control_line_active_ && line_size_ == kControlPrefix.size() &&
-        std::equal(kControlPrefix.begin(), kControlPrefix.end(),
-                   telemetry_line_.begin()) &&
+        starts_with(telemetry_line_, kControlPrefix) &&
         control_line_.size() >= kControlPrefix.size()) {
       std::copy(kControlPrefix.begin(), kControlPrefix.end(),
                 control_line_.begin());
@@ -111,8 +110,7 @@ void Router::dispatch() {
   if (line.empty()) {
     return;
   }
-  if (line.size() >= kControlPrefix.size() &&
-      std::equal(kControlPrefix.begin(), kControlPrefix.end(), line.begin())) {
+  if (starts_with(line, kControlPrefix)) {
     if (transport_ == nullptr) {
       return;
     }

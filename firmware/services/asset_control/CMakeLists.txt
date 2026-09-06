@@ -5,6 +5,6 @@ idf_component_register(
   INCLUDE_DIRS "include"
   PRIV_INCLUDE_DIRS "src"
   REQUIRES binary_session freertos performance pitrig_config transport
-  PRIV_REQUIRES binary)
+  PRIV_REQUIRES binary configuration_control)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

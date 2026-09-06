@@ -1,7 +1,6 @@
 #include "configuration_control.hpp"
 
 #include <algorithm>
-#include <string_view>
 
 #include "pitrig_features.hpp"
 #include "transport.hpp"
@@ -10,11 +9,6 @@
 #endif
 
 namespace pitrig::configuration {
-namespace {
-
-constexpr std::string_view kPrefix = "@PR:";
-
-}
 
 ConfigurationControl::~ConfigurationControl() { stop(); }
 
@@ -96,8 +90,8 @@ void ConfigurationControl::consume(
     const std::span<const std::uint8_t> line, transport::ITransport& reply) {
   if (service_ == nullptr || task_ == nullptr ||
       line.size() > io_buffer_.size() ||
-      line.size() < kPrefix.size() ||
-      !std::equal(kPrefix.begin(), kPrefix.end(), line.begin())) {
+      line.size() < kControlPrefix.size() ||
+      !std::equal(kControlPrefix.begin(), kControlPrefix.end(), line.begin())) {
     return;
   }
   RequestState expected = RequestState::idle;

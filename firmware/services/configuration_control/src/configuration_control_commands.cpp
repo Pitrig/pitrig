@@ -11,8 +11,6 @@
 namespace pitrig::configuration {
 namespace {
 
-constexpr std::string_view kPrefix = "@PR:";
-
 [[nodiscard]] bool changes_the_device(
     const std::span<const std::uint8_t> command) {
   constexpr std::array<std::string_view, 3> kWriting{"APPLY:", "SET:", "RESET"};
@@ -30,7 +28,7 @@ constexpr std::string_view kPrefix = "@PR:";
 void ConfigurationControl::handle(
     const std::span<const std::uint8_t> line) {
   const std::span<const std::uint8_t> command =
-      line.subspan(kPrefix.size());
+      line.subspan(kControlPrefix.size());
 
   if (command.size() == 4 &&
       std::equal(command.begin(), command.end(), "INFO")) {

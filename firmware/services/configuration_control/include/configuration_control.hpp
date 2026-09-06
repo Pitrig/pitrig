@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string_view>
 
 #include "configuration_service.hpp"
 #include "freertos/FreeRTOS.h"
@@ -16,6 +17,8 @@ class ITransport;
 }
 
 namespace pitrig::configuration {
+
+inline constexpr std::string_view kControlPrefix = "@PR:";
 
 using RebootHandler = void (*)(void* context);
 
