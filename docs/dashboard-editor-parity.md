@@ -23,6 +23,16 @@ Every type needs an LVGL implementation, a compile-time descriptor per
 [ADR 0015](adr/0015-widget-descriptors.md) and an entry in the schema. That is
 firmware work; the configurator follows the generated contract.
 
+Neither waits on a widget, though. Both wait on the source: `<id>;<value>`
+addresses one scalar and the read path is a flat handle-indexed array, so there
+is nothing for a table to iterate and nothing to carry an outline. A repeater
+whose instance count varies at runtime is refused — it would cost the
+per-instance lifecycle ADR 0015 deliberately does not have, for content read on
+a straight. What replaces it is a **bounded relative**: N cars ahead and N
+behind plus the leader, as ordinary flat fields the plugin fills by sorting, so
+the protocol, the pools and the read path are all untouched and a full
+twenty-car tower is the price. Roadmap Phase 7 owns both.
+
 ### 2. Formulas and expressions over telemetry
 
 Linear arithmetic and multi-field composition are covered by the `number`
@@ -33,13 +43,28 @@ conditional expressions.
 SimHub solves this with NCalc and JavaScript formulas on any property. An
 interpreter in the firmware contradicts the "no allocation in the periodic path"
 rule, so the direction is the one that produced `number`: declarative bounded
-transforms. This needs an explicit decision (an ADR) before implementation.
+transforms. The shape is decided and owed an ADR — a fixed set of stateless
+nodes (`min`, `max`, `clamp`, `abs`, two sources combined arithmetically, and a
+threshold that selects between two values) over fields the device already holds,
+growing only by amending that ADR, and evaluated identically by the configurator
+so the canvas agrees with the board.
+
+Stateless is the whole of it. Stint timers, counters, rolling averages, min/max
+hold and best-lap memory are the PC's work, and `lap_timer` stays the one
+stateful modifier because it extrapolates between packets rather than deriving
+anything. The `modifiers` array should shrink to one optional field to say so:
+it is declared as four and the binder honours exactly one.
 
 ### 3. Conditional and animated styling
 
 Threshold rules, colour ramps, gradients, hiding and blinking are all in the
-contract ([ADR 0017](adr/0017-conditional-widget-styling.md)). Missing:
-animation curves and triggers.
+contract ([ADR 0017](adr/0017-conditional-widget-styling.md)).
+
+Animation curves and triggers are excluded rather than missing. LVGL's `lv_anim`
+would cost nothing to reach, but an authored animation invalidates its widget on
+every frame for as long as it runs, and the render skip that keeps a dense
+dashboard at 60 fps is worth more than a fade. Motion comes from telemetry:
+`dashboard.smoothing`, `blink_ms`, and a sprite frame read from a source.
 
 ### 4. Multiple screens and navigation
 
@@ -53,7 +78,15 @@ A dashboard says whether a move between screens slides or lands in one frame;
 which of the two it is is the whole of the authored transition.
 
 Missing: a per-screen or per-move transition, a duration for it, vertical
-navigation, and switching a screen from telemetry.
+navigation, and switching a screen from telemetry. The last of those is the one
+that matters most: a slot page can be raised by a condition and a screen cannot,
+so a single document covering several cars is authored around slots instead.
+
+Buttons and encoders stop being owed and become planned: a board is a controller
+as well as a display, which puts GPIO, the bus service and the generalisation of
+`interfaces/input` on the critical path, and gives the 32-button HID descriptor
+ADR 0029 already spent flash on something to send. It also gives the
+T-Display-S3 a way to reach its second screen.
 
 ### 5. Graphical assets
 
@@ -113,11 +146,14 @@ and antialiases differently from LVGL's TinyTTF, so the preview matches the
 board's layout rather than its pixels — and an *imported* face or an image
 uploaded on another machine, which fall back to a stand-in face and a named box.
 
-Missing: live values. Not by asking the board for them — `@PR:` has no command
-for reading values, and while a session is running the port belongs to SimHub.
-The direction is to put the configurator in the middle: a virtual COM port on
-the PC that SimHub sends to, with the configurator drawing the stream on the
-canvas and forwarding it on to the board, so the same values reach both.
+Missing: live values, and the answer is decided. Not by asking the board for
+them — `@PR:` has no command for reading values, and while a session is running
+the port belongs to SimHub. The configurator goes in the middle: a virtual COM
+port on the PC that SimHub sends to, with the configurator drawing the stream on
+the canvas and forwarding it on to the board, so the same values reach both. It
+is ranked first among what is left, and it is load-bearing for more than the
+preview — the same port is what lets a dashboard be adjusted while a session is
+running, which one process owning one link otherwise forbids.
 
 ### 8. Templates and portability
 
@@ -146,11 +182,12 @@ prepared during conversion; a shadow is a per-frame blur in direct mode; and
 auto-fitting fights glyph pre-warming ([ADR 0010](adr/0010-uploaded-font-assets.md)),
 so a widget reports the size it needs instead.
 
-Transparency is deferred rather than excluded: colours stay opaque `#RRGGBB`
-today, and the obstacle is the encoding rather than the feature — packing
+Transparency is accepted and owed the work: colours stay opaque `#RRGGBB` today,
+and the obstacle was always the encoding rather than the feature — packing
 `#RRGGBBAA` would make `#FFFFFFFF` indistinguishable from the
-`kTransparentColor` sentinel every optional colour uses for "unset". An alpha
-that keeps those apart is what the work is.
+`kTransparentColor` sentinel every optional colour uses for "unset". The
+sentinel moves out of the value and becomes a presence flag of its own, taking
+the schema break now rather than hiding it in a value nobody authors.
 
 The bounded caps — per widget type, per source list, per modifier list, per
 string — are embedded-system limits rather than unfinished work. Their values
@@ -166,6 +203,14 @@ and reading `render_us` back over `@PR:DIAG`.
 The remaining items are tracked in [roadmap.md](roadmap.md). The order worth
 doing them in: the live-value preview first, because a rule, a ramp, a graph
 trace and a real string length cannot be judged against a placeholder; then the
-editor's remaining reach; transparency; images that survive a move together
-with reflow in the transfer; and last the table and track map, which need
-firmware work and, for the map, the one-shot outline message.
+bounded value nodes, which more remaining items wait on than any other; then the
+bundle, because a dashboard nobody can install is not a dashboard anyone shares;
+then transparency and repeated structures; then images that survive a move
+together with reflow in the transfer; and last the table and track map, which
+need firmware work and, for both, the plugin frame of Phase 7.
+
+This document covers the editor. The wider comparison — what SimHub is besides
+Dash Studio, and what it feeds a dashboard with — is not a parity list, because
+the answer is not to copy it: the source becomes a first-party plugin, opponents
+arrive as a bounded relative rather than a table, and haptics, motion and
+ShakeIt stay on the PC. Those are roadmap Phase 7 and Phase 8.
