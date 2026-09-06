@@ -21,6 +21,15 @@ import {
   CONFIGURATION_FILE_SAVE_CHANNEL
 } from '../shared/configuration-files'
 import {
+  TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL,
+  TELEMETRY_BRIDGE_START_CHANNEL,
+  TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL,
+  TELEMETRY_BRIDGE_STATUS_CHANNEL,
+  TELEMETRY_BRIDGE_STOP_CHANNEL,
+  type TelemetryBridgeStatus,
+  type TelemetrySnapshot
+} from '../shared/telemetry-bridge'
+import {
   DEVICE_AUTO_CONNECT_CHANNEL,
   DEVICE_CANCEL_AUTO_CONNECT_CHANNEL,
   DEVICE_CONNECT_CHANNEL,
@@ -153,5 +162,20 @@ export const productApi: PitrigApi = {
     const handler = (_event: IpcRendererEvent, state: DeviceState): void => listener(state)
     ipcRenderer.on(DEVICE_STATE_CHANGED_CHANNEL, handler)
     return () => ipcRenderer.removeListener(DEVICE_STATE_CHANGED_CHANNEL, handler)
+  },
+  getTelemetryBridgeStatus: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STATUS_CHANNEL),
+  startTelemetryBridge: (request) => ipcRenderer.invoke(TELEMETRY_BRIDGE_START_CHANNEL, request),
+  stopTelemetryBridge: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STOP_CHANNEL),
+  onTelemetryBridgeStatus: (listener) => {
+    const handler = (_event: IpcRendererEvent, status: TelemetryBridgeStatus): void =>
+      listener(status)
+    ipcRenderer.on(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, handler)
+  },
+  onTelemetrySnapshot: (listener) => {
+    const handler = (_event: IpcRendererEvent, snapshot: TelemetrySnapshot): void =>
+      listener(snapshot)
+    ipcRenderer.on(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, handler)
   }
 }

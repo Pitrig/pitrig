@@ -59,6 +59,11 @@ import type {
   SavedConfigurationSummary
 } from './config-library'
 import type {
+  TelemetryBridgeStartRequest,
+  TelemetryBridgeStatus,
+  TelemetrySnapshot
+} from './telemetry-bridge'
+import type {
   TemplateDocument,
   TemplateIdRequest,
   TemplateLibrary,
@@ -152,4 +157,11 @@ export interface PitrigApi {
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
+  getTelemetryBridgeStatus: () => Promise<TelemetryBridgeStatus>
+  startTelemetryBridge: (
+    request: TelemetryBridgeStartRequest
+  ) => Promise<DeviceResult<TelemetryBridgeStatus>>
+  stopTelemetryBridge: () => Promise<DeviceResult<TelemetryBridgeStatus>>
+  onTelemetryBridgeStatus: (listener: (status: TelemetryBridgeStatus) => void) => () => void
+  onTelemetrySnapshot: (listener: (snapshot: TelemetrySnapshot) => void) => () => void
 }

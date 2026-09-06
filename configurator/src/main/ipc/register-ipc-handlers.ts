@@ -7,7 +7,8 @@ import {
   invalidConfigurationRequest,
   isConfigurationResetRequest,
   isConnectRequest,
-  isJsonDocumentRequest
+  isJsonDocumentRequest,
+  isTelemetryBridgeStartRequest
 } from './request-guards'
 import {
   DEVICE_AUTO_CONNECT_CHANNEL,
@@ -29,6 +30,15 @@ import { FIRMWARE_UPLOAD_PROGRESS_CHANNEL, type FirmwareUploadProgress } from '.
 import { FONT_LIBRARY_CHANGED_CHANNEL, type FontLibrarySnapshot } from '../../shared/font-library'
 import { APP_GET_INFO_CHANNEL, type AppInfo } from '../../shared/ipc'
 import {
+  TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL,
+  TELEMETRY_BRIDGE_START_CHANNEL,
+  TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL,
+  TELEMETRY_BRIDGE_STATUS_CHANNEL,
+  TELEMETRY_BRIDGE_STOP_CHANNEL,
+  type TelemetryBridgeStatus,
+  type TelemetrySnapshot
+} from '../../shared/telemetry-bridge'
+import {
   SAVE_PROGRESS_CHANNEL,
   SAVE_TO_BOARD_CHANNEL,
   type SaveProgress,
@@ -36,34 +46,24 @@ import {
 } from '../../shared/save-to-board'
 import type { AssetUploadProgress } from '../../shared/asset-upload'
 import { IMAGE_UPLOAD_PROGRESS_CHANNEL } from '../../shared/image-assets'
-import { DeviceService } from '../device/device-service'
-import { ConfigurationFileService } from '../configuration-files/configuration-file-service'
-import { FirmwareUpdateService } from '../firmware-update/firmware-update-service'
-import { FontAssetService } from '../font-assets/font-asset-service'
-import { FontCatalogService } from '../font-library/font-catalog-service'
-import { FontLibraryService } from '../font-library/font-library-service'
-import { SaveToBoardService } from '../save-to-board/save-to-board-service'
-import { ImageAssetService } from '../image-assets/image-asset-service'
-import { TemplateService } from '../templates/template-service'
-import { ConfigLibraryService } from '../configs/config-library-service'
-import { PreviewAssetCache } from '../assets/preview-asset-cache'
-import { SimHubProfileService } from '../simhub-profile/simhub-profile-service'
+import type { AppServices } from '../app-services'
 import { t } from '@shared/ui-text'
 
-export function registerIpcHandlers(
-  deviceService: DeviceService,
-  fontAssetService: FontAssetService,
-  imageAssetService: ImageAssetService,
-  firmwareUpdateService: FirmwareUpdateService,
-  simHubProfileService: SimHubProfileService,
-  configurationFileService: ConfigurationFileService,
-  previewAssetCache: PreviewAssetCache,
-  templateService: TemplateService,
-  fontLibraryService: FontLibraryService,
-  fontCatalogService: FontCatalogService,
-  saveToBoardService: SaveToBoardService,
-  configLibraryService: ConfigLibraryService
-): void {
+export function registerIpcHandlers({
+  deviceService,
+  fontAssetService,
+  imageAssetService,
+  firmwareUpdateService,
+  simHubProfileService,
+  configurationFileService,
+  previewAssetCache,
+  templateService,
+  fontLibraryService,
+  fontCatalogService,
+  saveToBoardService,
+  configLibraryService,
+  telemetryBridgeService
+}: AppServices): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
     version: app.getVersion(),
@@ -115,6 +115,21 @@ export function registerIpcHandlers(
     }
     return saveToBoardService.save({ json: request.json, documents: request.documents })
   })
+  ipcMain.handle(TELEMETRY_BRIDGE_STATUS_CHANNEL, () => telemetryBridgeService.getStatus())
+  ipcMain.handle(TELEMETRY_BRIDGE_STOP_CHANNEL, () => telemetryBridgeService.stop())
+  ipcMain.handle(TELEMETRY_BRIDGE_START_CHANNEL, (_event, request: unknown) => {
+    if (!isTelemetryBridgeStartRequest(request)) {
+      const result: DeviceResult<TelemetryBridgeStatus> = {
+        ok: false,
+        error: {
+          code: 'invalid_request',
+          message: t('ipc.registerIpcHandlers.invalidTelemetryBridgeRequest')
+        }
+      }
+      return result
+    }
+    return telemetryBridgeService.start(request)
+  })
   ipcMain.handle(DEVICE_CONNECT_CHANNEL, (_event, request: unknown) => {
     if (!isConnectRequest(request)) {
       const result: DeviceResult<DeviceState> = {
@@ -145,4 +160,12 @@ export function broadcastSaveProgress(progress: SaveProgress): void {
 
 export function broadcastDeviceState(state: DeviceState): void {
   broadcastToWindows(DEVICE_STATE_CHANGED_CHANNEL, state)
+}
+
+export function broadcastTelemetryBridgeStatus(status: TelemetryBridgeStatus): void {
+  broadcastToWindows(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, status)
+}
+
+export function broadcastTelemetrySnapshot(snapshot: TelemetrySnapshot): void {
+  broadcastToWindows(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, snapshot)
 }

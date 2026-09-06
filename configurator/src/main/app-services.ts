@@ -13,12 +13,17 @@ import { FontLibraryService } from './font-library/font-library-service'
 import { ImageAssetService } from './image-assets/image-asset-service'
 import { SaveToBoardService } from './save-to-board/save-to-board-service'
 import { SimHubProfileService } from './simhub-profile/simhub-profile-service'
+import { TelemetryBridgeService } from './telemetry-bridge/bridge-service'
 import { TemplateService } from './templates/template-service'
 import type { AssetUploadProgress } from '../shared/asset-upload'
 import type { DeviceState } from '../shared/device'
 import type { FirmwareUploadProgress } from '../shared/firmware-update'
 import type { SaveProgress } from '../shared/save-to-board'
 import type { SerialTrafficLog } from '../shared/serial-traffic'
+import type {
+  TelemetryBridgeStatus,
+  TelemetrySnapshot
+} from '../shared/telemetry-bridge'
 
 export interface AppServiceBroadcasts {
   onDeviceState: (state: DeviceState) => void
@@ -26,6 +31,8 @@ export interface AppServiceBroadcasts {
   onImageUploadProgress: (progress: AssetUploadProgress) => void
   onSaveProgress: (progress: SaveProgress) => void
   onSerialTraffic?: (log: SerialTrafficLog) => void
+  onTelemetryBridgeStatus: (status: TelemetryBridgeStatus) => void
+  onTelemetrySnapshot: (snapshot: TelemetrySnapshot) => void
 }
 
 export interface AppServices {
@@ -41,6 +48,7 @@ export interface AppServices {
   configLibraryService: ConfigLibraryService
   configurationFileService: ConfigurationFileService
   templateService: TemplateService
+  telemetryBridgeService: TelemetryBridgeService
 }
 
 export function createAppServices(broadcasts: AppServiceBroadcasts): AppServices {
@@ -72,8 +80,14 @@ export function createAppServices(broadcasts: AppServiceBroadcasts): AppServices
   const recentConfigurations = new RecentConfigurations(
     join(app.getPath('userData'), 'recent-configurations.json')
   )
+  const telemetryBridgeService = new TelemetryBridgeService(
+    deviceService,
+    broadcasts.onTelemetryBridgeStatus,
+    broadcasts.onTelemetrySnapshot
+  )
   return {
     deviceService,
+    telemetryBridgeService,
     previewAssetCache,
     fontLibraryService,
     fontCatalogService,
@@ -95,5 +109,6 @@ export async function disposeAppServices(services: AppServices): Promise<void> {
   services.fontAssetService.cancel()
   services.imageAssetService.cancel()
   services.firmwareUpdateService.cancel()
+  await services.telemetryBridgeService.dispose()
   await services.deviceService.dispose()
 }

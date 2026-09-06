@@ -71,6 +71,13 @@ export class ConnectionManager {
     return this.portRegistry.refresh()
   }
 
+  async findPort(portId: string): Promise<PortRecord | undefined> {
+    const known = this.portRegistry.get(portId)
+    if (known) return known
+    await this.refreshPortRegistry()
+    return this.portRegistry.get(portId)
+  }
+
   async openConnection(
     portId: string,
     baudRate: number,

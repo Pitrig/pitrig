@@ -8,11 +8,13 @@ paths:
 Standard electron-vite three-way split: `main/` (Node — serial via
 `serialport`, device service, protocol, font, image and firmware upload over one
 shared `assets/` engine, the `font-library/` face store and Google Fonts catalog,
-the `save-to-board/` orchestrator, config files, the dashboard `templates/`
-library, the `configs/` folder and recent-files list, SimHub profile export),
+the `save-to-board/` orchestrator, the `telemetry-bridge/` relay, config files,
+the dashboard `templates/` library, the `configs/` folder and recent-files list,
+SimHub profile export),
 `preload/`, `renderer/src/` (React + Zustand + Tailwind 4, organized by feature:
 `configuration`, `device`, `firmware-update`, `font-library`, `image-assets`,
-`modules`, `protocol`, `templates`). `shared/` holds types crossing the boundary.
+`modules`, `protocol`, `telemetry`, `templates`). `shared/` holds types crossing
+the boundary.
 **All IPC channels and the `PitrigApi` surface are declared in
 `src/shared/ipc.ts`** — add channels there, then the main handler in
 `main/ipc/register-ipc-handlers.ts` and the preload bridge.
@@ -59,6 +61,27 @@ header chip). The store keeps `activeConfiguration` (stored) apart from
 moves both. The main process polls `@PR:INFO` every five seconds while the link
 is idle, so a document written from elsewhere is noticed rather than
 overwritten.
+
+## Live telemetry
+
+`main/telemetry-bridge/` puts the configurator in the middle of the link
+(ADR 0034): a source port it owns, forwarded to the board **before** anything is
+parsed, and decoded in passing. `bridge-source.ts` opens a port someone else
+paired; `pty-host.ts` hosts one on macOS and is the only place node-pty's
+undocumented `open()` and its private `_pty` / `_master` / `_slave` are touched,
+loaded lazily so the mode simply is not offered when it fails. The relay yields
+while `OperationRunner` holds the link and resumes at the next newline, so a
+save or a live apply never splices a telemetry line. `telemetry-tap.ts` decodes
+into three fixed arrays indexed by catalog slot and keeps the **source string**
+for every field, not only the text ones, so the preview shows what the board
+shows.
+
+In the renderer the table lives outside React in
+`features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
+per animation frame (and a slower one at 10 Hz for the 227-row catalog table),
+so nothing re-renders while the bridge is stopped. Only `PreviewCanvas` reads
+live values — `WidgetLayers` backs template thumbnails and the insert ghost and
+stays on placeholders.
 
 ## Save to board
 

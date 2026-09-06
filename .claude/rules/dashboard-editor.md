@@ -52,6 +52,9 @@ for unknown properties. Widget geometry is absolute logical pixels, relative to
 the container inside one. `pendingInsert` is the placement mode for a template
 fragment, and `freshWidgetIds` is the only thing that re-ids a subtree, because
 two widgets claiming one id break the layer list, the selection and
-`goto_screen` at once. The preview draws no telemetry values: each source draws
-its placeholder or the widget's `unavailable_text`. The user-facing behaviour
-is in `docs/device-configuration.md` under "Authoring in the configurator".
+`goto_screen` at once. The canvas draws live telemetry whenever the bridge on
+the Protocol page is running (`createLiveValues`, ADR 0034) and each source's
+placeholder or the widget's `unavailable_text` when it is not; template
+thumbnails and the insert ghost keep `createPreviewValues` and stay static. The
+user-facing behaviour is in `docs/device-configuration.md` under "Authoring in
+the configurator".

@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { PageSection, PageShell } from '@/app/workspace/PageShell'
 import { DocumentStatusChip } from '@/features/device/document-status'
 import { SaveToBoardButton } from '@/features/device/save-to-board-ui'
+import { BridgeSection } from './BridgeSection'
 import { CatalogSection } from './CatalogSection'
 import { SimHubProfileSection } from './SimHubProfileSection'
 import { TransportSection } from './TransportSection'
@@ -21,6 +22,7 @@ export function ProtocolPage(): React.JSX.Element {
       }
     >
       <TelemetrySourceSection />
+      <BridgeSection />
       <SimHubProfileSection />
       <CatalogSection />
       <TransportSection />

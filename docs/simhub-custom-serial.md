@@ -141,6 +141,35 @@ The configuration commands themselves name the document they act on:
 documents a board stores. The full command table is in
 [Control commands](control-protocol.md#control-commands).
 
+## Streaming through the configurator
+
+A board carries one serial link, so SimHub and the configurator cannot both hold
+it. The configurator's **Live telemetry** panel on the Protocol page takes the
+stream instead and forwards it to the board unchanged, which leaves the
+dashboard preview, the lamp preview and the catalog showing live values while
+the board keeps its feed. Saving and live apply keep working: the bridge stops
+writing while a `@PR:` command owns the link and resumes at the next line
+boundary (ADR 0034).
+
+The configurator has to own a serial port for this, and how it gets one depends
+on the platform.
+
+- **macOS** — it creates the port itself and shows the path. Point the telemetry
+  source at that path. Open it at 230400 baud or lower: a hosted port has no
+  wire, and macOS refuses the faster rates.
+- **Windows** — an application cannot create a serial port. Install a virtual
+  pair such as com0com once, point the Custom Serial Device at one half, and
+  choose the other half in the panel.
+- **Linux** — pair a port with the source, a pty or any adapter, and choose the
+  half the source does not hold.
+
+The panel measures what the detour costs: what the bridge adds before the write
+to the board, what the write itself takes, and the line, field and byte rates
+with dropped bytes and write errors beside them.
+
+With no board connected the bridge still runs and drives the previews alone,
+which is how a dashboard is authored away from the car.
+
 ## One link per board
 
 A board carries exactly one serial link, the one its `protocol` document

@@ -25,6 +25,8 @@ import { FirmwarePage } from '@/features/firmware-update/FirmwarePage'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
 import { ModulesPage } from '@/features/modules/ModulesPage'
 import { ProtocolPage } from '@/features/protocol/ProtocolPage'
+import { subscribeToTelemetryBridge } from '@/features/telemetry/bridge-store'
+import { startLiveTelemetry } from '@/features/telemetry/live-telemetry'
 import { t } from '@shared/ui-text'
 
 export function App(): React.JSX.Element {
@@ -38,6 +40,8 @@ export function App(): React.JSX.Element {
   const layerPreview = useModulesStore((state) => state.preview)
 
   useEffect(() => subscribeToFontLibrary(), [])
+  useEffect(() => subscribeToTelemetryBridge(), [])
+  useEffect(() => startLiveTelemetry(), [])
   useBoardSync(dirtyDocuments)
 
   const mirroring = liveApplyAllowed && !saving && syncQuestion === undefined

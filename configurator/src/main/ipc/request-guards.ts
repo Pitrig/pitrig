@@ -1,3 +1,4 @@
+import type { TelemetryBridgeStartRequest } from '../../shared/telemetry-bridge'
 import {
   IMAGE_COLOR_FORMATS,
   type ImageUploadRequest
@@ -222,6 +223,25 @@ export function isSimHubProfileExportRequest(value: unknown): value is SimHubPro
     request.fieldNames.every(
       (name) => typeof name === 'string' && name.length > 0 && name.length <= 39
     ) &&
+    typeof request.baudRate === 'number' &&
+    Number.isInteger(request.baudRate) &&
+    request.baudRate >= 9_600 &&
+    request.baudRate <= 2_000_000
+  )
+}
+
+export function isTelemetryBridgeStartRequest(
+  value: unknown
+): value is TelemetryBridgeStartRequest {
+  if (!value || typeof value !== 'object') return false
+  const request = value as Partial<TelemetryBridgeStartRequest>
+  if (request.mode !== 'hosted' && request.mode !== 'port') return false
+  if (request.mode === 'port') {
+    if (typeof request.portId !== 'string' || request.portId.length === 0) return false
+    if (request.portId.length > 64) return false
+  }
+  if (request.baudRate === undefined) return true
+  return (
     typeof request.baudRate === 'number' &&
     Number.isInteger(request.baudRate) &&
     request.baudRate >= 9_600 &&

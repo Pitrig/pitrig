@@ -19,6 +19,8 @@ import {
   broadcastFirmwareUploadProgress,
   broadcastImageUploadProgress,
   broadcastSaveProgress,
+  broadcastTelemetryBridgeStatus,
+  broadcastTelemetrySnapshot,
   registerIpcHandlers
 } from '@main/ipc/register-ipc-handlers'
 
@@ -32,6 +34,8 @@ const services: AppServices = createAppServices({
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onImageUploadProgress: broadcastImageUploadProgress,
   onSaveProgress: broadcastSaveProgress,
+  onTelemetryBridgeStatus: broadcastTelemetryBridgeStatus,
+  onTelemetrySnapshot: broadcastTelemetrySnapshot,
   onSerialTraffic: broadcastSerialTraffic
 })
 const benchService = new BenchService(
@@ -56,20 +60,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   applyDockIcon()
-  registerIpcHandlers(
-    services.deviceService,
-    services.fontAssetService,
-    services.imageAssetService,
-    services.firmwareUpdateService,
-    services.simHubProfileService,
-    services.configurationFileService,
-    services.previewAssetCache,
-    services.templateService,
-    services.fontLibraryService,
-    services.fontCatalogService,
-    services.saveToBoardService,
-    services.configLibraryService
-  )
+  registerIpcHandlers(services)
   registerDebugHandlers(services.deviceService, services.firmwareUpdateService, benchService)
   createWindow()
 

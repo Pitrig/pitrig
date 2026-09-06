@@ -4,6 +4,7 @@ import { paintOutput } from '@shared/led-paint'
 import type { HardwareDeviceConfiguration, RgbColor } from '@shared/configuration-schema'
 import { PageSection } from '@/app/workspace/PageShell'
 import { playedLayersOf, type PlayedLayer } from './board-preview'
+import { useLiveRevision } from '@/features/telemetry/live-telemetry'
 import { previewDrive, previewNote } from './preview-values'
 import { DevicePreview } from './DevicePreview'
 import { layerName } from './layer-name'
@@ -48,6 +49,7 @@ export function LedPreview({
     device,
     preview.filter((entry) => entry.output === index)
   )
+  useLiveRevision()
   const elapsed = useElapsed(played.length > 0)
   const sweep = (elapsed % SWEEP_MS) / SWEEP_MS
   const layers = played.map(({ layer }) => layer)
@@ -66,7 +68,8 @@ export function LedPreview({
                   elapsedMs: elapsed,
                   gates: layers.map(() => true),
                   valueText: drives.map(({ valueText }) => valueText),
-                  watched: drives.map(({ watched }) => watched)
+                  watched: drives.map(({ watched }) => watched),
+                  values: drives.map(({ value }) => value)
                 }
               )
             : UNLIT

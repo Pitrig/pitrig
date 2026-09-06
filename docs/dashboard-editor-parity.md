@@ -124,19 +124,23 @@ hidden widget.
 
 ### 7. Preview values
 
-The canvas shows no values, because the configurator has none: every source
-reads unavailable, so each one draws its own placeholder and a widget with an
-`unavailable_text` draws that instead. That is a state the dashboard really has
-rather than a stand-in for one, and it is the state `unavailable_text` and a
-hiding rule exist for.
+The canvas draws the live stream when there is one. The configurator goes in the
+middle of the link: it owns a port the telemetry source writes to, forwards
+every byte to the board unchanged, and decodes the same bytes on the way past
+([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). The same port is what
+lets a dashboard be adjusted while a session runs, which one process owning one
+link otherwise forbids. Asking the board was never an option — `@PR:` has no
+command for reading values.
 
-What it costs is that conditional rules and the colour ramp cannot be seen
-reacting: no reading means no rule matches, so the canvas shows the authored
-appearance. A graph shows the frame and one baseline per trace rather than the
-traces themselves, and an indicator shows its unlit lamps. Inventing a value
-silently would be worse — a signal the game never sent, judged as though it
-had. A value the author types is not that: it is theirs, they know it is, and
-it is the only way to see a rule fire without a game running.
+With the bridge stopped, every source reads unavailable, so each one draws its
+own placeholder and a widget with an `unavailable_text` draws that instead. That
+is a state the dashboard really has rather than a stand-in for one, and it is
+the state `unavailable_text` and a hiding rule exist for. What it costs is that
+conditional rules and the colour ramp cannot be seen reacting: no reading means
+no rule matches, so the canvas shows the authored appearance, a graph shows the
+frame and one baseline per trace, and an indicator shows its unlit lamps.
+Inventing a value silently would be worse — a signal the game never sent, judged
+as though it had.
 
 Geometry and assets are already mirrored: the canvas lays out the way LVGL
 does, measures strings with the face the board rasterizes, and draws an image
@@ -145,20 +149,17 @@ and antialiases differently from LVGL's TinyTTF, so the preview matches the
 board's layout rather than its pixels — and an *imported* face or an image
 uploaded on another machine, which fall back to a stand-in face and a named box.
 
-Missing: live values, and the answer is decided. Not by asking the board for
-them — `@PR:` has no command for reading values, and while a session is running
-the port belongs to SimHub. The configurator goes in the middle: a virtual COM
-port on the PC that SimHub sends to, with the configurator drawing the stream on
-the canvas and forwarding it on to the board, so the same values reach both. It
-is ranked first among what is left, and it is load-bearing for more than the
-preview — the same port is what lets a dashboard be adjusted while a session is
-running, which one process owning one link otherwise forbids.
+Two gaps remain against a running board even with the stream: `dashboard.smoothing`
+glides between packets on the device while the canvas steps, and
+`session.lap.current_time` is extrapolated on the device and only sampled here.
 
-Beside it, and much cheaper: a value the author sets by hand on any source, held
-until it is cleared and overridden by the stream when one arrives. It needs no
-port, no SimHub and no board, so it is what makes a rule, a ramp and an
-`unavailable_text` checkable offline. Unset stays the default, so the canvas
-still shows the unavailable state unless the author asked for something else.
+Missing, and much cheaper than the bridge was: a value the author sets by hand on
+any source, held until it is cleared and overridden by the stream when one
+arrives. It needs no port, no SimHub and no board, so it is what makes a rule, a
+ramp and an `unavailable_text` checkable offline. A value the author types is not
+an invented signal — it is theirs, they know it is, and it is the only way to see
+a rule fire with nothing plugged in. Unset stays the default, so the canvas still
+shows the unavailable state unless the author asked for something else.
 
 ### 8. Templates and portability
 

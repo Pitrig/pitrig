@@ -18,7 +18,8 @@ import {
   visibleSlotPage
 } from './canvas-geometry'
 import { SCREEN_BACKGROUND } from './preview-theme'
-import { createPreviewValues } from './preview-values'
+import { useLiveRevision } from '@/features/telemetry/live-telemetry'
+import { createLiveValues } from './preview-values'
 import { resolveGridSize, useSnapStore } from '../editor/snap-store'
 import { drawnBox, unionOf, type CanvasContext } from './canvas-gesture-context'
 import { useCanvasGestures } from './use-canvas-gestures'
@@ -58,7 +59,8 @@ export function Widgets({
     widgetId?: string
     at?: { x: number; y: number }
   }>()
-  const values = createPreviewValues()
+  useLiveRevision()
+  const values = createLiveValues()
   const placements = useMemo(() => absolutePlacements(configuration), [configuration])
   const screen = screensOf(configuration)[activeScreenIndex]
   const screenBackground = screen?.background_color ?? SCREEN_BACKGROUND

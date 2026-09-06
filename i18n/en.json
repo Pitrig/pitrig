@@ -1020,6 +1020,9 @@
       "dimGreenWhenAvailableBright": "Dim green when available, bright green while open.",
       "linkLost": "Link lost",
       "aSlowRainbowOnceTelemetry": "A slow rainbow once telemetry has been silent for two seconds."
+    },
+    "previewValues": {
+      "liveValues": " The values come from the live telemetry feed."
     }
   },
   "documents": {
@@ -1227,7 +1230,9 @@
       "type": "Type",
       "unit": "Unit",
       "simHubProperty": "SimHub property",
-      "lengthOfLength2FieldsA": "{length} of {length2} fields. A widget binds one of these names; the wire id is what actually travels."
+      "lengthOfLength2FieldsA": "{length} of {length2} fields. A widget binds one of these names; the wire id is what actually travels.",
+      "value": "Value",
+      "live": "Live"
     },
     "protocolPage": {
       "whereTelemetryComesFromHow": "Where telemetry comes from, how it reaches the board, and what the fields are called.",
@@ -1276,6 +1281,39 @@
       "$note": "Wraps an emphasised control name: the Before half is drawn, then the control, then the After half.",
       "notPermanentBefore": "Nothing here is permanent: ",
       "notPermanentAfter": " at the top of the window walks the speeds a Pitrig board answers on, and a board that cannot be reached at all can still be flashed over USB."
+    },
+    "bridgeSection": {
+      "title": "Live telemetry",
+      "description": "Telemetry routed through the configurator on its way to the board, so the dashboard, the lamps and the catalog below show it as it arrives.",
+      "hostedTitle": "Hosted port",
+      "hostedHint": "The configurator creates the port itself. Point the telemetry source at the path below and open it at {maximum} baud or lower — a hosted port has no wire, and macOS refuses the faster rates.",
+      "pairedTitleWindows": "Paired port",
+      "pairedHintWindows": "Windows has no way for an application to create a serial port. Install a virtual pair such as com0com, point the telemetry source at one half, and give the configurator the other.",
+      "pairedHintLinux": "Pair a port with the telemetry source — a pty, or any adapter — and give the configurator the half the source does not hold.",
+      "sourcePort": "Source port",
+      "listenPath": "Open this port",
+      "start": "Start",
+      "stop": "Stop",
+      "starting": "Starting…",
+      "running": "Running",
+      "stopped": "Stopped",
+      "relaying": "Forwarding to the board",
+      "previewOnly": "No board connected — preview only",
+      "suspended": "Held back while the board is busy",
+      "measured": "Measured",
+      "addedLatency": "Added by the bridge",
+      "drainLatency": "Through to the board",
+      "lines": "Lines",
+      "fields": "Fields",
+      "bytes": "Bytes",
+      "dropped": "Dropped",
+      "writeErrors": "Write errors",
+      "perSecond": "/s",
+      "quantiles": "p50 {p50} · p95 {p95} · p99 {p99} · max {max} ms",
+      "noSamples": "Nothing measured yet.",
+      "noPorts": "No serial ports found.",
+      "refresh": "Refresh",
+      "speed": "Speed"
     }
   },
   "templates": {
@@ -1775,7 +1813,8 @@
     },
     "registerIpcHandlers": {
       "invalidSaveRequest": "Invalid save request.",
-      "invalidSerialConnectionRequest": "Invalid serial connection request."
+      "invalidSerialConnectionRequest": "Invalid serial connection request.",
+      "invalidTelemetryBridgeRequest": "Invalid telemetry bridge request."
     },
     "registerLibraryHandlers": {
       "invalidConfigurationFileRequest": "Invalid configuration file request.",
@@ -1946,6 +1985,16 @@
     "chooseFile": {
       "fontTitle": "Select a font face",
       "fontFilter": "Fonts"
+    }
+  },
+  "telemetry": {
+    "bridgeService": {
+      "alreadyRunning": "The telemetry bridge is already running.",
+      "hostingUnsupported": "This platform cannot create a serial port. Pick the port the telemetry source writes to instead.",
+      "noPortChosen": "Choose the port the telemetry source writes to.",
+      "portMissing": "That serial port is no longer present.",
+      "portIsTheBoard": "That is the board’s own port. The bridge needs the port the telemetry source writes to.",
+      "sourceClosed": "The telemetry source closed the port."
     }
   }
 }

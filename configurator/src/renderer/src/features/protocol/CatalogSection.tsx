@@ -1,20 +1,31 @@
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { Badge } from '@/components/ui/badge'
 import { EmptyState, PageSection } from '@/app/workspace/PageShell'
+import {
+  readLiveValue,
+  telemetryIsLive,
+  useSlowRevision
+} from '@/features/telemetry/live-telemetry'
+import { rawText } from '@shared/telemetry-value'
 import { searchTelemetryReference } from './telemetry-reference'
 import { t } from '@shared/ui-text'
 
 export function CatalogSection(): React.JSX.Element {
   const [query, setQuery] = useState('')
   const entries = useMemo(() => searchTelemetryReference(query), [query])
+  useSlowRevision()
+  const live = telemetryIsLive()
 
   return (
     <PageSection
       title={t('protocol.catalogSection.telemetryCatalog')}
       description={t('protocol.catalogSection.lengthOfLength2FieldsA', { length: entries.length, length2: searchTelemetryReference('').length })}
       actions={
-        <label className="flex h-8 items-center gap-1.5 rounded-md border bg-background px-2">
+        <>
+          {live ? <Badge variant="outline">{t('protocol.catalogSection.live')}</Badge> : null}
+          <label className="flex h-8 items-center gap-1.5 rounded-md border bg-background px-2">
           <Search aria-hidden="true" className="size-3.5 text-muted-foreground" />
           <input
             aria-label={t('protocol.catalogSection.searchTelemetryFields')}
@@ -23,7 +34,8 @@ export function CatalogSection(): React.JSX.Element {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-        </label>
+          </label>
+        </>
       }
       className="px-0 pb-0"
     >
@@ -38,6 +50,7 @@ export function CatalogSection(): React.JSX.Element {
             <thead className="sticky top-0 bg-card text-[11px] text-muted-foreground">
               <tr>
                 <th className="px-4 py-1.5 font-medium">{t('protocol.catalogSection.field')}</th>
+                <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.value')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.wire')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.type')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.unit')}</th>
@@ -52,6 +65,9 @@ export function CatalogSection(): React.JSX.Element {
                     <span className="block text-[11px] text-muted-foreground">
                       {entry.description}
                     </span>
+                  </td>
+                  <td className="px-2 py-1.5 font-mono tabular-nums">
+                    {rawText(readLiveValue(entry.name)) ?? '—'}
                   </td>
                   <td className="px-2 py-1.5 font-mono text-muted-foreground">{entry.wireId}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{entry.type}</td>

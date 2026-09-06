@@ -12,6 +12,8 @@ import {
   broadcastFirmwareUploadProgress,
   broadcastImageUploadProgress,
   broadcastSaveProgress,
+  broadcastTelemetryBridgeStatus,
+  broadcastTelemetrySnapshot,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
 
@@ -24,7 +26,9 @@ const services: AppServices = createAppServices({
   onDeviceState: broadcastDeviceState,
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onImageUploadProgress: broadcastImageUploadProgress,
-  onSaveProgress: broadcastSaveProgress
+  onSaveProgress: broadcastSaveProgress,
+  onTelemetryBridgeStatus: broadcastTelemetryBridgeStatus,
+  onTelemetrySnapshot: broadcastTelemetrySnapshot
 })
 let quitAfterDeviceCleanup = false
 
@@ -37,20 +41,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   applyDockIcon()
-  registerIpcHandlers(
-    services.deviceService,
-    services.fontAssetService,
-    services.imageAssetService,
-    services.firmwareUpdateService,
-    services.simHubProfileService,
-    services.configurationFileService,
-    services.previewAssetCache,
-    services.templateService,
-    services.fontLibraryService,
-    services.fontCatalogService,
-    services.saveToBoardService,
-    services.configLibraryService
-  )
+  registerIpcHandlers(services)
   createWindow()
 
   app.on('activate', () => {

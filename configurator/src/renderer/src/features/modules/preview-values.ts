@@ -1,4 +1,7 @@
 import type { LedColorRule, LedEffect } from '@shared/configuration-schema'
+import { conditionValue, rawText } from '@shared/telemetry-value'
+import { readLiveValue, telemetryIsLive } from '@/features/telemetry/live-telemetry'
+import { t } from '@shared/ui-text'
 
 const GEAR_BINDINGS = new Set(['transmission.gear', 'transmission.gear_number'])
 const GEARS: readonly string[] = ['R', 'N', '1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -9,6 +12,7 @@ const NUDGE = 0.001
 export interface PreviewDrive {
   valueText?: string
   watched?: number
+  value?: number
 }
 
 function gearText(effect: LedEffect, elapsedMs: number): string | undefined {
@@ -44,10 +48,24 @@ function watchedValue(effect: LedEffect, elapsedMs: number): number | undefined 
 }
 
 export function previewDrive(effect: LedEffect, elapsedMs: number): PreviewDrive {
+  if (telemetryIsLive()) return liveDrive(effect)
   return { valueText: gearText(effect, elapsedMs), watched: watchedValue(effect, elapsedMs) }
 }
 
+function liveDrive(effect: LedEffect): PreviewDrive {
+  const source = readLiveValue(effect.source?.binding)
+  const watched = conditionValue(readLiveValue(effect.condition_source?.binding))
+  const shown = rawText(source)
+  const value = conditionValue(source)
+  return {
+    ...(shown === undefined ? {} : { valueText: shown }),
+    ...(watched === undefined ? {} : { watched }),
+    ...(value === undefined ? {} : { value })
+  }
+}
+
 export function previewNote(effect: LedEffect): string {
+  if (telemetryIsLive()) return t('modules.previewValues.liveValues')
   const gear = gearText(effect, 0) !== undefined
   const rules = (effect.color_rules ?? []).length > 0
   if (gear && rules) {

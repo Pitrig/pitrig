@@ -84,7 +84,7 @@ Editor gaps against SimHub are in
 - [*] Widget templates
 - [*] Inserting a screen from a saved dashboard
 - [*] Bundled dashboard library
-- [ ] Live values in the preview
+- [*] Live values in the preview
 - [ ] Setting a telemetry value by hand in the preview
 - [ ] Named styles
 - [ ] Image delivery on save

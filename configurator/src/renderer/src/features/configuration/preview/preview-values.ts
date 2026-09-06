@@ -2,6 +2,7 @@ import { type FontSpec, type TextAlignment } from '@shared/configuration-schema'
 import { type TelemetryValue, UNAVAILABLE, conditionValue } from '@shared/telemetry-value'
 import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, resolveWidgetStyle } from '@shared/widget-style'
 import { previewFontFamily } from '@/features/font-library/font-face-store'
+import { liveElapsedMs, readLiveValue } from '@/features/telemetry/live-telemetry'
 import { type GlyphMetrics, measureGlyphs } from './text-metrics'
 
 export interface PreviewValues {
@@ -11,13 +12,21 @@ export interface PreviewValues {
 }
 
 export function createPreviewValues(): PreviewValues {
-  const read = (): TelemetryValue => UNAVAILABLE
+  return valuesFrom(() => UNAVAILABLE)
+}
+
+export function createLiveValues(): PreviewValues {
+  return valuesFrom(readLiveValue)
+}
+
+function valuesFrom(read: (binding: string | undefined) => TelemetryValue): PreviewValues {
   return {
     read,
-    numberFor: () => conditionValue(read()),
+    numberFor: (source) => conditionValue(read(source?.binding)),
     styleFor: (frame, authored) => {
-      const style = resolveWidgetStyle(frame, authored, conditionValue(read()))
-      return { ...style, visible: blinkVisible(style, 0) }
+      const watched = conditionValue(read(frame.condition_source?.binding))
+      const style = resolveWidgetStyle(frame, authored, watched)
+      return { ...style, visible: blinkVisible(style, liveElapsedMs()) }
     }
   }
 }

@@ -22,6 +22,7 @@ import {
 import { ConnectionManager } from './device-connection'
 import { DeviceHeartbeat } from './device-heartbeat'
 import { OperationRunner } from './device-operation'
+import type { PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
 import {
   advanceFirmwareSession,
@@ -133,7 +134,7 @@ export class DeviceService {
     })
   }
 
-  writeTelemetry(text: string, onWritten?: (error?: Error) => void): boolean {
+  writeTelemetry(text: string | Uint8Array, onWritten?: (error?: Error) => void): boolean {
     const port = this.connection.port
     if (!port?.isOpen) {
       onWritten?.(new Error('The serial port is closed.'))
@@ -144,6 +145,16 @@ export class DeviceService {
 
   telemetryLinkAvailable(): boolean {
     return Boolean(this.connection.port?.isOpen) && !this.connection.isTransitioning()
+  }
+
+  relayAvailable(): boolean {
+    return (
+      this.telemetryLinkAvailable() && !this.runner.operationActive && !this.runner.inPipeline
+    )
+  }
+
+  async findPort(portId: string): Promise<PortRecord | undefined> {
+    return this.connection.findPort(portId)
   }
 
   async clearImages(): Promise<DeviceResult<DeviceState>> {

@@ -25,6 +25,7 @@ export interface PaintInput {
   gates: readonly boolean[]
   valueText?: readonly (string | undefined)[]
   watched?: readonly (number | undefined)[]
+  values?: readonly (number | undefined)[]
 }
 
 export interface LayerColors {
@@ -82,6 +83,15 @@ function fillArea(
       if (lamp >= 0 && lamp < frame.length) frame[lamp] = color
     }
   }
+}
+
+function sweepOf(
+  effect: LedEffect,
+  value: number | undefined,
+  fallback: number
+): number {
+  if (value === undefined) return fallback
+  return rangeFraction(value, effect.minimum, effect.maximum)
 }
 
 function rawValueOf(effect: LedEffect, sweep: number): number {
@@ -164,13 +174,14 @@ function paintEffect(
   device: HardwareDeviceConfiguration,
   effect: LedEffect,
   input: PaintInput,
-  colors: LayerColors
+  colors: LayerColors,
+  sweep: number
 ): void {
   const surface = surfaceOf(device, effect)
   if (!surface) return
   const lamps = surfaceSize(surface)
   const color = colors.ink
-  const value = rawValueOf(effect, input.value)
+  const value = rawValueOf(effect, sweep)
   const fraction = rangeFraction(value, effect.minimum, effect.maximum)
   const period = (effect.speed_ms ?? 1000) || 1000
   const phase = (input.elapsedMs % period) / period
@@ -239,19 +250,20 @@ function paintMatrix(
   effect: LedEffect,
   input: PaintInput,
   colors: LayerColors,
-  valueText: string | undefined
+  valueText: string | undefined,
+  sweep: number
 ): void {
   if (!isMatrix(device)) return
   const panel = panelOf(device, frame, effect)
   if (!panel) return
   if ((effect.type ?? 'solid') === 'sprite') {
     const frames = spriteOf(device, effect.sprite)?.frame_count ?? 1
-    const value = (effect.source?.binding ?? '') === '' ? undefined : input.value * (frames - 1)
+    const value = (effect.source?.binding ?? '') === '' ? undefined : sweep * (frames - 1)
     paintSprite(panel, device, effect, value, colors.tint, input.elapsedMs)
     return
   }
   const bound = (effect.source?.binding ?? '') !== ''
-  const shown = valueText ?? String(Math.round(input.value))
+  const shown = valueText ?? String(Math.round(sweep))
   const text = (effect.text ?? '') + (bound ? shown : '')
   paintText(panel, effect, text, colors.ink, input.elapsedMs)
 }
@@ -272,12 +284,13 @@ export function paintOutput(
     }
     const area = colors.background ? areaOf(device, effect) : undefined
     if (area && colors.background) fillArea(frame, device, area, colors.background)
+    const sweep = sweepOf(effect, input.values?.[index], input.value)
     const type = effect.type ?? 'solid'
     if (type === 'sprite' || type === 'text') {
-      paintMatrix(frame, device, effect, input, colors, input.valueText?.[index])
+      paintMatrix(frame, device, effect, input, colors, input.valueText?.[index], sweep)
       continue
     }
-    paintEffect(frame, device, effect, input, colors)
+    paintEffect(frame, device, effect, input, colors, sweep)
   }
   return frame
 }

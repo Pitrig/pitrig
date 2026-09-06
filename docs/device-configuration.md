@@ -173,11 +173,16 @@ preview and the device agree. A drawn widget carries only its box; a new image
 widget starts on the first installed image, because without one it has nothing
 to draw.
 
-The preview draws no telemetry values. The configurator never receives any —
-the control protocol carries no command for reading them and SimHub owns the
-port while a session runs — so every source reads unavailable and the canvas
-shows what the board shows in that state. Nothing about this touches the
-document.
+The canvas draws live telemetry while the **Live telemetry** bridge on the
+Protocol page is running, and each source's placeholder or the widget's
+`unavailable_text` when it is not. The bridge takes the stream on a port the
+configurator owns and forwards it to the board unchanged, which is what lets a
+session drive the canvas and the board at once — the control protocol carries no
+command for reading values, and a board admits one link
+([ADR 0034](adr/0034-configurator-telemetry-bridge.md), and
+[streaming through the configurator](simhub-custom-serial.md#streaming-through-the-configurator)
+for the per-platform setup). Template thumbnails stay on placeholders. Nothing
+about this touches the document.
 
 A click picks the outermost container a widget is in; double-click opens a
 container, `Cmd`/`Ctrl`-click reaches the deepest widget, and `Escape` steps
