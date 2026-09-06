@@ -33,7 +33,7 @@ so flash the one that matches the hardware in front of you. A first flash erases
 whatever is already on the board.
 
 **2. Design the dashboard.** Install the configurator, connect the board over the
-same cable, and start from one of the nineteen bundled dashboards or an empty
+same cable, and start from one of the four bundled dashboards or an empty
 screen. Drag widgets, bind them to telemetry, preview the result, and save to the
 board. macOS does not yet get signed packages, so run
 `xattr -dr com.apple.quarantine` on the app once after installing.

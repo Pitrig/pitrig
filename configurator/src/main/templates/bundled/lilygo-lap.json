@@ -2,7 +2,7 @@
   "format": "pitrig-dashboard-template",
   "format_version": 1,
   "name": "T-Display lap timer",
-  "description": "Lap, delta, last and best readouts grouped into containers and sized for the 320 x 170 strip.",
+  "description": "Lap, delta, last and best on a slot that a race-control flag takes over: red, black, mechanical, chequered, yellow, blue and white, each pulsing for as long as it is flown.",
   "configuration": {
     "board": "t_display_s3",
     "dashboard": {
@@ -13,241 +13,949 @@
           "background_color": "#05070A",
           "widgets": [
             {
-              "type": "shape",
-              "id": "panel_lap",
+              "type": "slot",
+              "id": "pages",
               "placement": {
-                "x": 4,
-                "y": 4,
-                "width": 312,
-                "height": 48
+                "x": 0,
+                "y": 0,
+                "width": 320,
+                "height": 170
               },
-              "clip_children": false,
-              "background_color": "#0C1016",
-              "border": {
-                "color": "#232A35",
-                "width_px": 2,
-                "radius_px": 10
-              },
-              "widgets": [
+              "pages": [
                 {
-                  "type": "text",
-                  "id": "lap_count",
-                  "placement": {
-                    "x": 6,
-                    "y": 5,
-                    "width": 84,
-                    "height": 38
-                  },
-                  "sources": [
+                  "widgets": [
                     {
-                      "binding": "session.lap.current",
-                      "transform": {
-                        "type": "number",
-                        "decimals": 0,
-                        "prefix": "L"
-                      }
-                    }
-                  ],
-                  "value": {
-                    "font": {
-                      "family": "roboto_black",
-                      "size_px": 26
-                    },
-                    "color": "#8A93A3",
-                    "alignment": "left"
-                  }
-                },
-                {
-                  "type": "text",
-                  "id": "lap_time",
-                  "placement": {
-                    "x": 94,
-                    "y": 5,
-                    "width": 212,
-                    "height": 38
-                  },
-                  "sources": [
-                    {
-                      "binding": "session.lap.current_time",
-                      "modifiers": [
+                      "type": "shape",
+                      "id": "panel_times",
+                      "placement": {
+                        "x": 4,
+                        "y": 112,
+                        "width": 312,
+                        "height": 56
+                      },
+                      "clip_children": false,
+                      "z_index": 0,
+                      "widgets": [
                         {
-                          "type": "lap_timer"
+                          "type": "text",
+                          "id": "last_time",
+                          "placement": {
+                            "x": 0,
+                            "y": 6,
+                            "width": 152,
+                            "height": 46
+                          },
+                          "sources": [
+                            {
+                              "binding": "session.lap.last_time",
+                              "transform": {
+                                "type": "time",
+                                "format": "duration_ms"
+                              }
+                            }
+                          ],
+                          "border": {
+                            "color": "#232A35",
+                            "width_px": 2,
+                            "radius_px": 10
+                          },
+                          "title": {
+                            "text": "LAST",
+                            "font": {
+                              "family": "roboto_black",
+                              "size_px": 12
+                            },
+                            "color": "#8A93A3"
+                          },
+                          "value": {
+                            "font": {
+                              "family": "roboto_black",
+                              "size_px": 26
+                            },
+                            "color": "#E8E8E8",
+                            "alignment": "center"
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "best_time",
+                          "placement": {
+                            "x": 160,
+                            "y": 6,
+                            "width": 152,
+                            "height": 46
+                          },
+                          "sources": [
+                            {
+                              "binding": "session.lap.best_time",
+                              "transform": {
+                                "type": "time",
+                                "format": "duration_ms"
+                              }
+                            }
+                          ],
+                          "border": {
+                            "color": "#232A35",
+                            "width_px": 2,
+                            "radius_px": 10
+                          },
+                          "title": {
+                            "text": "BEST",
+                            "font": {
+                              "family": "roboto_black",
+                              "size_px": 12
+                            },
+                            "color": "#22C55E"
+                          },
+                          "value": {
+                            "font": {
+                              "family": "roboto_black",
+                              "size_px": 26
+                            },
+                            "color": "#22C55E",
+                            "alignment": "center"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "shape",
+                      "id": "delta_cont",
+                      "placement": {
+                        "x": 4,
+                        "y": 72,
+                        "width": 312,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0C1016",
+                      "border": {
+                        "width_px": 2,
+                        "radius_px": 10,
+                        "color": "#232A35"
+                      },
+                      "condition_source": {
+                        "binding": "session.lap.delta"
+                      },
+                      "conditions": [
+                        {
+                          "op": "at_or_below",
+                          "value": 0,
+                          "background_color": "#22C55E"
+                        },
+                        {
+                          "op": "above",
+                          "value": 0,
+                          "background_color": "#FFE04A"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "shape",
+                      "id": "panel_lap",
+                      "placement": {
+                        "x": 4,
+                        "y": 4,
+                        "width": 312,
+                        "height": 60
+                      },
+                      "clip_children": false,
+                      "z_index": 2,
+                      "background_color": "#0C1016",
+                      "border": {
+                        "color": "#232A35",
+                        "width_px": 2,
+                        "radius_px": 10
+                      },
+                      "widgets": [
+                        {
+                          "type": "text",
+                          "id": "lap_time",
+                          "placement": {
+                            "x": 12,
+                            "y": 3,
+                            "width": 288,
+                            "height": 55
+                          },
+                          "sources": [
+                            {
+                              "binding": "session.lap.current_time",
+                              "modifiers": [
+                                {
+                                  "type": "lap_timer"
+                                }
+                              ],
+                              "transform": {
+                                "type": "time",
+                                "format": "duration_ms"
+                              }
+                            }
+                          ],
+                          "value": {
+                            "font": {
+                              "family": "roboto_black",
+                              "size_px": 60
+                            },
+                            "color": "#FFFFFF",
+                            "alignment": "center"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "delta_value",
+                      "placement": {
+                        "x": 4,
+                        "y": 72,
+                        "width": 312,
+                        "height": 34
+                      },
+                      "z_index": 3,
+                      "sources": [
+                        {
+                          "binding": "session.lap.delta",
+                          "transform": {
+                            "type": "time",
+                            "format": "signed_duration_ms"
+                          }
                         }
                       ],
-                      "transform": {
-                        "type": "time",
-                        "format": "duration_ms"
-                      }
+                      "value": {
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 28
+                        },
+                        "color": "#E8E8E8",
+                        "alignment": "center"
+                      },
+                      "condition_source": {
+                        "binding": "session.lap.delta"
+                      },
+                      "conditions": [
+                        {
+                          "op": "at_or_below",
+                          "value": 0,
+                          "color": "#05070A"
+                        },
+                        {
+                          "op": "above",
+                          "value": 0,
+                          "color": "#05070A"
+                        }
+                      ]
                     }
-                  ],
-                  "value": {
-                    "font": {
-                      "family": "roboto_black",
-                      "size_px": 30
-                    },
-                    "color": "#FFFFFF",
-                    "alignment": "right"
-                  }
-                }
-              ]
-            },
-            {
-              "type": "bar",
-              "id": "delta_bar",
-              "placement": {
-                "x": 4,
-                "y": 56,
-                "width": 312,
-                "height": 50
-              },
-              "z_index": 0,
-              "source": {
-                "binding": "session.lap.delta"
-              },
-              "minimum": -5000,
-              "maximum": 5000,
-              "origin": 0,
-              "background_color": "#14181F",
-              "fill_color": "#FFE04A",
-              "border": {
-                "color": "#232A35",
-                "width_px": 2,
-                "radius_px": 10
-              }
-            },
-            {
-              "type": "text",
-              "id": "delta_value",
-              "placement": {
-                "x": 4,
-                "y": 56,
-                "width": 312,
-                "height": 50
-              },
-              "z_index": 1,
-              "sources": [
-                {
-                  "binding": "session.lap.delta",
-                  "transform": {
-                    "type": "time",
-                    "format": "signed_duration_ms"
-                  }
-                }
-              ],
-              "value": {
-                "font": {
-                  "family": "roboto_black",
-                  "size_px": 30
-                },
-                "color": "#E8E8E8",
-                "alignment": "center"
-              },
-              "condition_source": {
-                "binding": "session.lap.delta"
-              },
-              "conditions": [
-                {
-                  "op": "below",
-                  "value": 0,
-                  "color": "#22C55E"
+                  ]
                 },
                 {
-                  "op": "above",
-                  "value": 0,
-                  "color": "#FF3B30"
-                }
-              ]
-            },
-            {
-              "type": "shape",
-              "id": "panel_times",
-              "placement": {
-                "x": 4,
-                "y": 112,
-                "width": 312,
-                "height": 56
-              },
-              "clip_children": false,
-              "widgets": [
-                {
-                  "type": "text",
-                  "id": "last_time",
-                  "placement": {
-                    "x": 0,
-                    "y": 6,
-                    "width": 152,
-                    "height": 46
-                  },
-                  "sources": [
+                  "widgets": [
                     {
-                      "binding": "session.lap.last_time",
-                      "transform": {
-                        "type": "time",
-                        "format": "duration_ms"
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_red_dim",
+                      "z_index": 0,
+                      "background_color": "#3A0806",
+                      "title": {
+                        "text": "RED FLAG",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#FF7A72",
+                        "alignment": "center"
                       }
+                    },
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_red",
+                      "z_index": 1,
+                      "background_color": "#E10600",
+                      "title": {
+                        "text": "RED FLAG",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#FFFFFF",
+                        "alignment": "center"
+                      },
+                      "condition_source": {
+                        "binding": "session.flag.red"
+                      },
+                      "conditions": [
+                        {
+                          "op": "equal",
+                          "value": 1,
+                          "blink_ms": 250
+                        }
+                      ]
                     }
                   ],
-                  "border": {
-                    "color": "#232A35",
-                    "width_px": 2,
-                    "radius_px": 10
+                  "in_loop": false,
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "session.flag.red"
                   },
-                  "title": {
-                    "text": "LAST",
-                    "font": {
-                      "family": "roboto_black",
-                      "size_px": 12
-                    },
-                    "color": "#8A93A3"
-                  },
-                  "value": {
-                    "font": {
-                      "family": "roboto_black",
-                      "size_px": 26
-                    },
-                    "color": "#E8E8E8",
-                    "alignment": "center"
-                  }
+                  "conditions": [
+                    {
+                      "op": "equal",
+                      "value": 1
+                    }
+                  ],
+                  "duration_ms": 800
                 },
                 {
-                  "type": "text",
-                  "id": "best_time",
-                  "placement": {
-                    "x": 160,
-                    "y": 6,
-                    "width": 152,
-                    "height": 46
-                  },
-                  "sources": [
+                  "widgets": [
                     {
-                      "binding": "session.lap.best_time",
-                      "transform": {
-                        "type": "time",
-                        "format": "duration_ms"
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_blk_dim",
+                      "z_index": 0,
+                      "background_color": "#0A0A0A",
+                      "title": {
+                        "text": "BLACK FLAG",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#565E6B",
+                        "alignment": "center"
+                      }
+                    },
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_blk",
+                      "z_index": 1,
+                      "background_color": "#0A0A0A",
+                      "title": {
+                        "text": "BLACK FLAG",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#FFFFFF",
+                        "alignment": "center"
+                      },
+                      "condition_source": {
+                        "binding": "session.flag.black"
+                      },
+                      "conditions": [
+                        {
+                          "op": "equal",
+                          "value": 1,
+                          "blink_ms": 300
+                        }
+                      ],
+                      "border": {
+                        "color": "#FFFFFF",
+                        "width_px": 4,
+                        "radius_px": 0
                       }
                     }
                   ],
-                  "border": {
-                    "color": "#232A35",
-                    "width_px": 2,
-                    "radius_px": 10
+                  "in_loop": false,
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "session.flag.black"
                   },
-                  "title": {
-                    "text": "BEST",
-                    "font": {
-                      "family": "roboto_black",
-                      "size_px": 12
+                  "conditions": [
+                    {
+                      "op": "equal",
+                      "value": 1
+                    }
+                  ],
+                  "duration_ms": 800
+                },
+                {
+                  "widgets": [
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_mtb",
+                      "z_index": 0,
+                      "background_color": "#0A0A0A",
+                      "title": {
+                        "text": "MECHANICAL",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 28
+                        },
+                        "color": "#FFFFFF",
+                        "alignment": "center",
+                        "offset_y_px": 56
+                      }
                     },
-                    "color": "#22C55E"
+                    {
+                      "type": "shape",
+                      "id": "flg_mtb_disc",
+                      "kind": "ellipse",
+                      "placement": {
+                        "x": 110,
+                        "y": 14,
+                        "width": 100,
+                        "height": 100
+                      },
+                      "z_index": 1,
+                      "background_color": "#FF6A00",
+                      "condition_source": {
+                        "binding": "session.flag.black_orange"
+                      },
+                      "conditions": [
+                        {
+                          "op": "equal",
+                          "value": 1,
+                          "blink_ms": 450
+                        }
+                      ]
+                    }
+                  ],
+                  "in_loop": false,
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "session.flag.black_orange"
                   },
-                  "value": {
-                    "font": {
-                      "family": "roboto_black",
-                      "size_px": 26
+                  "conditions": [
+                    {
+                      "op": "equal",
+                      "value": 1
+                    }
+                  ],
+                  "duration_ms": 800
+                },
+                {
+                  "widgets": [
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "chk_plate",
+                      "z_index": 0,
+                      "background_color": "#FFFFFF"
                     },
-                    "color": "#22C55E",
-                    "alignment": "center"
-                  }
+                    {
+                      "type": "shape",
+                      "id": "chk_00",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_02",
+                      "placement": {
+                        "x": 80,
+                        "y": 0,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_04",
+                      "placement": {
+                        "x": 160,
+                        "y": 0,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_06",
+                      "placement": {
+                        "x": 240,
+                        "y": 0,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_11",
+                      "placement": {
+                        "x": 40,
+                        "y": 34,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_13",
+                      "placement": {
+                        "x": 120,
+                        "y": 34,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_15",
+                      "placement": {
+                        "x": 200,
+                        "y": 34,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_17",
+                      "placement": {
+                        "x": 280,
+                        "y": 34,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_20",
+                      "placement": {
+                        "x": 0,
+                        "y": 68,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_22",
+                      "placement": {
+                        "x": 80,
+                        "y": 68,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_24",
+                      "placement": {
+                        "x": 160,
+                        "y": 68,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_26",
+                      "placement": {
+                        "x": 240,
+                        "y": 68,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_31",
+                      "placement": {
+                        "x": 40,
+                        "y": 102,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_33",
+                      "placement": {
+                        "x": 120,
+                        "y": 102,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_35",
+                      "placement": {
+                        "x": 200,
+                        "y": 102,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_37",
+                      "placement": {
+                        "x": 280,
+                        "y": 102,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_40",
+                      "placement": {
+                        "x": 0,
+                        "y": 136,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_42",
+                      "placement": {
+                        "x": 80,
+                        "y": 136,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_44",
+                      "placement": {
+                        "x": 160,
+                        "y": 136,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_46",
+                      "placement": {
+                        "x": 240,
+                        "y": 136,
+                        "width": 40,
+                        "height": 34
+                      },
+                      "z_index": 1,
+                      "background_color": "#0A0A0A"
+                    },
+                    {
+                      "type": "shape",
+                      "id": "chk_bar",
+                      "placement": {
+                        "x": 44,
+                        "y": 56,
+                        "width": 232,
+                        "height": 58
+                      },
+                      "z_index": 2,
+                      "background_color": "#05070A",
+                      "border": {
+                        "color": "#FFFFFF",
+                        "width_px": 3,
+                        "radius_px": 10
+                      },
+                      "title": {
+                        "text": "FINISH",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#FFFFFF",
+                        "alignment": "center"
+                      },
+                      "condition_source": {
+                        "binding": "session.flag.checkered"
+                      },
+                      "conditions": [
+                        {
+                          "op": "equal",
+                          "value": 1,
+                          "blink_ms": 450
+                        }
+                      ]
+                    }
+                  ],
+                  "in_loop": false,
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "session.flag.checkered"
+                  },
+                  "conditions": [
+                    {
+                      "op": "equal",
+                      "value": 1
+                    }
+                  ],
+                  "duration_ms": 5000
+                },
+                {
+                  "widgets": [
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_ylw_dim",
+                      "z_index": 0,
+                      "background_color": "#3D3300",
+                      "title": {
+                        "text": "YELLOW",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#FFD400",
+                        "alignment": "center"
+                      }
+                    },
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_ylw",
+                      "z_index": 1,
+                      "background_color": "#FFD400",
+                      "title": {
+                        "text": "YELLOW",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#05070A",
+                        "alignment": "center"
+                      },
+                      "condition_source": {
+                        "binding": "session.flag.yellow"
+                      },
+                      "conditions": [
+                        {
+                          "op": "equal",
+                          "value": 1,
+                          "blink_ms": 400
+                        }
+                      ]
+                    }
+                  ],
+                  "in_loop": false,
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "session.flag.yellow"
+                  },
+                  "conditions": [
+                    {
+                      "op": "equal",
+                      "value": 1
+                    }
+                  ],
+                  "duration_ms": 800
+                },
+                {
+                  "widgets": [
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_blu_dim",
+                      "z_index": 0,
+                      "background_color": "#071A3D",
+                      "title": {
+                        "text": "BLUE",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#5B93FF",
+                        "alignment": "center"
+                      }
+                    },
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_blu",
+                      "z_index": 1,
+                      "background_color": "#1668FF",
+                      "title": {
+                        "text": "BLUE",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#FFFFFF",
+                        "alignment": "center"
+                      },
+                      "condition_source": {
+                        "binding": "session.flag.blue"
+                      },
+                      "conditions": [
+                        {
+                          "op": "equal",
+                          "value": 1,
+                          "blink_ms": 450
+                        }
+                      ]
+                    }
+                  ],
+                  "in_loop": false,
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "session.flag.blue"
+                  },
+                  "conditions": [
+                    {
+                      "op": "equal",
+                      "value": 1
+                    }
+                  ],
+                  "duration_ms": 800
+                },
+                {
+                  "widgets": [
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_wht_dim",
+                      "z_index": 0,
+                      "background_color": "#2B2B2B",
+                      "title": {
+                        "text": "WHITE FLAG",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#E8E8E8",
+                        "alignment": "center"
+                      }
+                    },
+                    {
+                      "type": "shape",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 320,
+                        "height": 170
+                      },
+                      "id": "flg_wht",
+                      "z_index": 1,
+                      "background_color": "#F2F2F2",
+                      "title": {
+                        "text": "WHITE FLAG",
+                        "font": {
+                          "family": "roboto_black",
+                          "size_px": 40
+                        },
+                        "color": "#0A0A0A",
+                        "alignment": "center"
+                      },
+                      "condition_source": {
+                        "binding": "session.flag.white"
+                      },
+                      "conditions": [
+                        {
+                          "op": "equal",
+                          "value": 1,
+                          "blink_ms": 500
+                        }
+                      ]
+                    }
+                  ],
+                  "in_loop": false,
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "session.flag.white"
+                  },
+                  "conditions": [
+                    {
+                      "op": "equal",
+                      "value": 1
+                    }
+                  ],
+                  "duration_ms": 800
                 }
               ]
             }
