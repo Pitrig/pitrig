@@ -813,6 +813,7 @@ export type UiStringKey =
   | 'inspector.hints.image.strength'
   | 'inspector.hints.ring.centering'
   | 'inspector.hints.ring.centreAngle'
+  | 'inspector.hints.ring.length'
   | 'inspector.hints.ring.offset'
   | 'inspector.hints.ring.radius'
   | 'inspector.hints.ring.sector'
@@ -873,8 +874,9 @@ export type UiStringKey =
   | 'inspector.ringEditor.centreAngle'
   | 'inspector.ringEditor.centreOn'
   | 'inspector.ringEditor.followingTheBoxFittedPx'
+  | 'inspector.ringEditor.followingTheBoxFittedPxLength'
+  | 'inspector.ringEditor.length'
   | 'inspector.ringEditor.sector'
-  | 'inspector.ringEditor.theBoxOnItsOwn'
   | 'inspector.ringEditor.thickness'
   | 'inspector.ringEditor.xOffset'
   | 'inspector.ringEditor.yOffset'
@@ -1473,6 +1475,8 @@ export type UiStringKey =
   | 'validation.widgetGeometry.labelHasNoSizeThe'
   | 'validation.widgetGeometry.labelIsThicknessPixelsThick'
   | 'validation.widgetGeometry.labelIsThicknessPixelsThick2'
+  | 'validation.widgetGeometry.labelIsThicknessPixelsThick3'
+  | 'validation.widgetGeometry.labelIsThicknessPixelsThick4'
   | 'validation.widgetGeometry.labelPadsFurtherThanThe'
   | 'validation.widgetGeometry.labelPadsFurtherThanThe2'
   | 'validation.widgetGeometry.labelSpendsClaimedPixelsOn'
@@ -1696,7 +1700,7 @@ export interface UiStringParameters {
   'inspector.propertyRow.clearLabel': { label: string | number }
   'inspector.propertyRow.labelIsSetInThis': { label: string | number }
   'inspector.ringEditor.followingTheBoxFittedPx': { fitted: string | number }
-  'inspector.ringEditor.theBoxOnItsOwn': { fitted: string | number }
+  'inspector.ringEditor.followingTheBoxFittedPxLength': { fitted: string | number }
   'inspector.sectionEditors.countWidgetS': { count: number }
   'inspector.sectionEditors.maximumUnit': { unit: string | number }
   'inspector.sectionEditors.minimumUnit': { unit: string | number }
@@ -1831,6 +1835,8 @@ export interface UiStringParameters {
   'validation.widgetGeometry.labelHasNoSizeThe': { label: string | number }
   'validation.widgetGeometry.labelIsThicknessPixelsThick': { height: string | number, label: string | number, thickness: string | number, width: string | number }
   'validation.widgetGeometry.labelIsThicknessPixelsThick2': { label: string | number, radius: string | number, thickness: string | number }
+  'validation.widgetGeometry.labelIsThicknessPixelsThick3': { height: string | number, label: string | number, thickness: string | number, width: string | number }
+  'validation.widgetGeometry.labelIsThicknessPixelsThick4': { label: string | number, radius: string | number, thickness: string | number }
   'validation.widgetGeometry.labelPadsFurtherThanThe': { label: string | number }
   'validation.widgetGeometry.labelPadsFurtherThanThe2': { label: string | number }
   'validation.widgetGeometry.labelSpendsClaimedPixelsOn': { claimed: string | number, height: string | number, label: string | number, width: string | number }

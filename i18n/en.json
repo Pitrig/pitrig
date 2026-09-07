@@ -475,6 +475,7 @@
         "sector": "How wide the sector is. Half of it falls either side of the centre angle.",
         "thickness": "How thick the band is. It grows either side of the radius, so the radius stays where it is.",
         "radius": "Radius of the band’s centre line. Zero takes it from the box, which is what an arc has always done. A radius of its own may be larger than the box: the widget still clips to its box, so only the band crossing it is drawn.",
+        "length": "How far the needle reaches from the pivot it turns on. Zero takes it from the box, the same reach the ring would have. A length of its own may pass the edge of the box, which still clips what is drawn.",
         "centering": "What the box centres. circle puts the middle of the ring’s circle in the middle of the box. figure centres what is drawn — the band between the sector’s ends, thickness included — so raising the radius keeps the band in the middle of the box and pushes the circle’s centre out of it instead.",
         "offset": "Moves the circle away from the centre of the box and never changes its radius. Pushing it outside the box, with a radius to match, is how a shallow band across the top of a round display is authored."
       },
@@ -682,11 +683,12 @@
       "centreAngle": "Centre angle",
       "sector": "Sector",
       "thickness": "Thickness",
+      "length": "Length",
       "centreOn": "Centre on",
       "xOffset": "X offset",
       "yOffset": "Y offset",
       "followingTheBoxFittedPx": "Following the box — {fitted} px. Typing one pins a radius of its own.",
-      "theBoxOnItsOwn": "The box on its own would give {fitted} px. Zero follows it again."
+      "followingTheBoxFittedPxLength": "Following the box — {fitted} px. Typing one pins a length of its own."
     },
     "sectionEditors": {
       "data": "Data",
@@ -1924,7 +1926,9 @@
       "labelHasNoSizeThe": "{label} has no size; the device needs a width and a height above zero.",
       "labelSpendsClaimedPixelsOn": "{label} spends {claimed} pixels on its border and inset, which its {width}×{height} box has no room for.",
       "labelIsThicknessPixelsThick": "{label} is {thickness} pixels thick, which does not fit twice across its {width}×{height} box. Give it a radius of its own, or make the box bigger.",
-      "labelIsThicknessPixelsThick2": "{label} is {thickness} pixels thick, which is more than its {radius}-pixel radius can carry."
+      "labelIsThicknessPixelsThick2": "{label} is {thickness} pixels thick, which is more than its {radius}-pixel radius can carry.",
+      "labelIsThicknessPixelsThick3": "{label} is {thickness} pixels thick, which does not fit twice across its {width}×{height} box. Give it a length of its own, or make the box bigger.",
+      "labelIsThicknessPixelsThick4": "{label} is {thickness} pixels thick, which is more than its {radius}-pixel length can carry."
     },
     "widgetRules": {
       "labelIsASlotWith": "{label} is a slot with an appearance; a slot draws nothing, so put a shape behind it.",

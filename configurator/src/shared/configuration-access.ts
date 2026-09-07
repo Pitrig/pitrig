@@ -111,6 +111,10 @@ export function isTextWidget(
   return widget.type === 'text'
 }
 
+export function isNeedleArc(widget: WidgetConfiguration): boolean {
+  return widget.type === 'arc' && (widget.mark ?? 'ring') === 'needle'
+}
+
 export function dashboardBindings(
   configuration: ApplicationConfiguration | undefined
 ): string[] {

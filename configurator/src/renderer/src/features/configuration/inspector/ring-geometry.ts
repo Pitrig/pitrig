@@ -2,6 +2,7 @@ import type {
   ArcWidgetConfiguration,
   IndicatorWidgetConfiguration
 } from '@shared/configuration-schema'
+import { isNeedleArc } from '@shared/configuration-access'
 import { fittedRingRadius } from '../preview/arc-geometry'
 import { contentArea } from '../preview/preview-geometry-paint'
 
@@ -23,5 +24,5 @@ export function fittedRadius(widget: RingWidget, thickness: number): number {
 export function ringSummary(widget: RingWidget): string {
   const radius = widget.radius_px ?? 0
   const angles = `${widget.center_angle_deg ?? 270}° ± ${(widget.sector_deg ?? 270) / 2}°`
-  return radius === 0 ? angles : `${angles} · r${radius}`
+  return radius === 0 ? angles : `${angles} · ${isNeedleArc(widget) ? 'L' : 'r'}${radius}`
 }

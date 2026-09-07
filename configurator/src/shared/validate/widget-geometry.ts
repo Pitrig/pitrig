@@ -1,3 +1,4 @@
+import { isNeedleArc } from '../configuration-access'
 import { type WidgetConfiguration } from '../configuration-schema'
 import { t } from '../ui-text'
 
@@ -33,11 +34,16 @@ export function findWidgetGeometryError(
   if (ringed) {
     const thickness = widget.thickness_px ?? 8
     const radius = widget.radius_px ?? 0
+    const needle = isNeedleArc(widget)
     if (radius === 0 && 2 * thickness > Math.min(width, height)) {
-      return t('validation.widgetGeometry.labelIsThicknessPixelsThick', { label: label, thickness: thickness, width: width, height: height })
+      return needle
+        ? t('validation.widgetGeometry.labelIsThicknessPixelsThick3', { label: label, thickness: thickness, width: width, height: height })
+        : t('validation.widgetGeometry.labelIsThicknessPixelsThick', { label: label, thickness: thickness, width: width, height: height })
     }
     if (radius !== 0 && thickness > 2 * radius) {
-      return t('validation.widgetGeometry.labelIsThicknessPixelsThick2', { label: label, thickness: thickness, radius: radius })
+      return needle
+        ? t('validation.widgetGeometry.labelIsThicknessPixelsThick4', { label: label, thickness: thickness, radius: radius })
+        : t('validation.widgetGeometry.labelIsThicknessPixelsThick2', { label: label, thickness: thickness, radius: radius })
     }
   }
   return undefined
