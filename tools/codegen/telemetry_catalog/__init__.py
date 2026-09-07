@@ -13,4 +13,5 @@ OUTPUTS = {
     ROOT / "configurator/src/shared/simhub-profile-data.ts": "simhub_typescript",
     ROOT / "docs/telemetry-catalog.md": "markdown",
     ROOT / "simhub/Pitrig-telemetry.shsds": "shsds",
+    ROOT / "simhub/plugin/Pitrig.SimHub/TelemetryCatalog.g.cs": "csharp",
 }

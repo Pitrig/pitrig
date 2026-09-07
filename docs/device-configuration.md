@@ -175,13 +175,12 @@ to draw.
 
 The canvas draws live telemetry while the **Live telemetry** bridge on the
 Protocol page is running, and each source's placeholder or the widget's
-`unavailable_text` when it is not. The bridge takes the stream on a port the
-configurator owns and forwards it to the board unchanged, which is what lets a
-session drive the canvas and the board at once — the control protocol carries no
-command for reading values, and a board admits one link
-([ADR 0034](adr/0034-configurator-telemetry-bridge.md), and
-[streaming through the configurator](simhub-custom-serial.md#streaming-through-the-configurator)
-for the per-platform setup). Template thumbnails stay on placeholders. Nothing
+`unavailable_text` when it is not. The bridge takes the stream from the
+[SimHub plugin](simhub-plugin.md) and forwards it to the board unchanged, which
+is what lets a session drive the canvas and the board at once — the control
+protocol carries no command for reading values, and a board admits one link
+([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). Template thumbnails
+stay on placeholders. Nothing
 about this touches the document.
 
 A click picks the outermost container a widget is in; double-click opens a

@@ -11,6 +11,7 @@ from .validate import (
     report_key_mismatch,
     validate_field,
     validate_identifier,
+    validate_link,
     validate_simhub_mapping,
 )
 
@@ -86,6 +87,7 @@ def load_simhub_mappings(
         report_key_mismatch("SimHub frequencies", VALID_RATES, set(frequencies))
     if not isinstance(profile["baud_rate"], int) or not 9_600 <= profile["baud_rate"] <= 2_000_000:
         fail("SimHub profile baud_rate must be an integer from 9600 to 2000000")
+    validate_link(profile["link"])
 
     expanded = {name: dict(mapping) for name, mapping in mappings["fields"].items()}
     suffixes = mappings["wheel_suffixes"]

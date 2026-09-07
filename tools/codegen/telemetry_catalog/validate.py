@@ -36,6 +36,21 @@ def validate_simhub_mapping(field: dict[str, str], mapping: dict[str, Any]) -> N
         fail(f"numeric SimHub mapping requires a format: {field['name']}")
     if "scale" in mapping and not isinstance(mapping["scale"], (int, float)):
         fail(f"SimHub mapping scale must be numeric: {field['name']}")
+    if ("computed" in mapping) != ("expression" in mapping):
+        fail(f"SimHub expression mapping requires a computed name: {field['name']}")
+
+
+def validate_link(link: dict[str, Any]) -> None:
+    if len(link["magic"]) != 2 or not link["magic"].isascii():
+        fail("telemetry link magic must contain two ASCII characters")
+    if not 1 <= link["version"] <= 255:
+        fail("telemetry link version must be a byte")
+    if not 1_024 <= link["port"] <= 65_535:
+        fail("telemetry link port must be an unprivileged port number")
+    if not 64 <= link["maximum_payload"] <= 8_192:
+        fail("telemetry link payload must be between 64 and 8192 bytes")
+    if not 100 <= link["keyframe_interval_ms"] <= 10_000:
+        fail("telemetry link keyframe interval must be between 100 and 10000 ms")
 
 
 def validate_field(field: dict[str, str]) -> None:

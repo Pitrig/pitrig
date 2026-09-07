@@ -85,7 +85,8 @@ Reference material lives here:
 [device configuration](docs/device-configuration.md),
 [dashboard widgets](docs/dashboard-widgets.md),
 [control protocol](docs/control-protocol.md),
-[SimHub telemetry](docs/simhub-custom-serial.md) and the
+[SimHub telemetry](docs/simhub-custom-serial.md), the
+[SimHub plugin](docs/simhub-plugin.md) and the
 [telemetry catalogue](docs/telemetry-catalog.md).
 
 ## Build from source

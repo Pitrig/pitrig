@@ -1,3 +1,4 @@
+import { SIMHUB_LINK } from './simhub-profile-data'
 import { TELEMETRY_CATALOG, type TelemetryValueType } from './telemetry-catalog'
 import type { TelemetryValue } from './telemetry-value'
 
@@ -7,16 +8,20 @@ export const TELEMETRY_BRIDGE_STATUS_CHANNEL = 'telemetry-bridge:status' as cons
 export const TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL = 'telemetry-bridge:status-changed' as const
 export const TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL = 'telemetry-bridge:snapshot' as const
 
-export type TelemetryBridgeMode = 'hosted' | 'port'
-
-export const HOSTED_MAXIMUM_BAUD_RATE = 230_400
-
 export const SNAPSHOT_INTERVAL_MS = 16
 
+export const LINK_MAGIC = SIMHUB_LINK.magic
+export const LINK_VERSION = SIMHUB_LINK.version
+export const LINK_DEFAULT_PORT = SIMHUB_LINK.port
+export const LINK_MAXIMUM_PAYLOAD = SIMHUB_LINK.maximumPayload
+export const LINK_HEADER_BYTES = 7
+export const LINK_LOOPBACK_ADDRESS = '127.0.0.1'
+export const LINK_ANY_ADDRESS = '0.0.0.0'
+export const SOURCE_IDLE_MS = 1_000
+
 export interface TelemetryBridgeStartRequest {
-  mode: TelemetryBridgeMode
-  portId?: string
-  baudRate?: number
+  port: number
+  acceptFromNetwork: boolean
 }
 
 export interface LatencyQuantiles {
@@ -31,6 +36,8 @@ export interface TelemetryBridgeMetrics {
   linesPerSecond: number
   bytesPerSecond: number
   fieldsPerSecond: number
+  packetsPerSecond: number
+  lostPackets: number
   unknownLines: number
   droppedBytes: number
   writeErrors: number
@@ -40,13 +47,13 @@ export interface TelemetryBridgeMetrics {
 
 export interface TelemetryBridgeStatus {
   running: boolean
-  hostingSupported: boolean
+  receiving: boolean
   relaying: boolean
   suspended: boolean
   metrics: TelemetryBridgeMetrics
-  mode?: TelemetryBridgeMode
-  listenPath?: string
-  baudRate?: number
+  port?: number
+  acceptFromNetwork?: boolean
+  sourceAddress?: string
   error?: string
 }
 
@@ -85,6 +92,8 @@ export function emptyBridgeMetrics(): TelemetryBridgeMetrics {
     linesPerSecond: 0,
     bytesPerSecond: 0,
     fieldsPerSecond: 0,
+    packetsPerSecond: 0,
+    lostPackets: 0,
     unknownLines: 0,
     droppedBytes: 0,
     writeErrors: 0,
@@ -93,10 +102,10 @@ export function emptyBridgeMetrics(): TelemetryBridgeMetrics {
   }
 }
 
-export function idleBridgeStatus(hostingSupported: boolean): TelemetryBridgeStatus {
+export function idleBridgeStatus(): TelemetryBridgeStatus {
   return {
     running: false,
-    hostingSupported,
+    receiving: false,
     relaying: false,
     suspended: false,
     metrics: emptyBridgeMetrics()

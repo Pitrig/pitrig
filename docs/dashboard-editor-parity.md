@@ -125,11 +125,12 @@ hidden widget.
 ### 7. Preview values
 
 The canvas draws the live stream when there is one. The configurator goes in the
-middle of the link: it owns a port the telemetry source writes to, forwards
-every byte to the board unchanged, and decodes the same bytes on the way past
-([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). The same port is what
-lets a dashboard be adjusted while a session runs, which one process owning one
-link otherwise forbids. Asking the board was never an option — `@PR:` has no
+middle of the link: the [SimHub plugin](simhub-plugin.md) sends it the telemetry
+over a local socket, it forwards every byte to the board unchanged, and it
+decodes the same bytes on the way past
+([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). Taking the stream is
+what lets a dashboard be adjusted while a session runs, which one process owning
+one link otherwise forbids. Asking the board was never an option — `@PR:` has no
 command for reading values.
 
 With the bridge stopped, every source reads unavailable, so each one draws its

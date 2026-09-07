@@ -8,6 +8,8 @@ export interface SimHubProfileEntry {
 
 export const SIMHUB_PROFILE_DEFAULTS = {"name":"Pitrig telemetry","description":"Generic SimHub telemetry output for Pitrig devices","baudRate":921600} as const
 
+export const SIMHUB_LINK = {"magic":"PT","version":1,"port":45455,"maximumPayload":1200,"keyframeIntervalMs":1000} as const
+
 export const SIMHUB_PROFILE_ENTRIES = [
   {"name":"vehicle.speed","expression":"if('' + isnull(isnull([DataCorePlugin.GameData.NewData.SpeedKmh], [DataCorePlugin.GameData.SpeedKmh]), '') = '', 'S;\\n', 'S;' + format(isnull([DataCorePlugin.GameData.NewData.SpeedKmh], [DataCorePlugin.GameData.SpeedKmh]), '0') + '\\n')","maximumFrequency":60},
   {"name":"vehicle.throttle","expression":"if('' + isnull(isnull([DataCorePlugin.GameData.NewData.Throttle], [DataCorePlugin.GameData.Throttle]), '') = '', '00;\\n', '00;' + format(isnull([DataCorePlugin.GameData.NewData.Throttle], [DataCorePlugin.GameData.Throttle]), '0.###') + '\\n')","maximumFrequency":60},

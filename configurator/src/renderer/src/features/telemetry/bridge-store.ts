@@ -12,7 +12,7 @@ interface BridgeState {
 }
 
 export const useBridgeStore = create<BridgeState>(() => ({
-  status: idleBridgeStatus(false),
+  status: idleBridgeStatus(),
   busy: false
 }))
 

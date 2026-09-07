@@ -5,6 +5,9 @@ configuration schema, the telemetry catalogue, the control protocol and the
 SimHub profile — so that anyone may implement a compatible client, tool or
 firmware without adopting a copyleft licence.
 
+The SimHub plugin under `plugin/` is one such client and carries the same
+licence.
+
 The full text is in LICENSE-APACHE at the root of this repository, and at
 http://www.apache.org/licenses/LICENSE-2.0
 

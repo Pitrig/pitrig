@@ -1,56 +1,30 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PageSection, ReadOnlyField } from '@/app/workspace/PageShell'
-import { SelectField } from '@/features/configuration/inspector/fields'
+import { CheckboxField, NumberField } from '@/features/configuration/inspector/fields'
 import {
   startTelemetryBridge,
   stopTelemetryBridge,
   useBridgeStore
 } from '@/features/telemetry/bridge-store'
 import {
-  SUPPORTED_BAUD_RATES,
-  type DeviceResult,
-  type SerialPortSummary
-} from '@shared/device'
-import {
-  HOSTED_MAXIMUM_BAUD_RATE,
+  LINK_DEFAULT_PORT,
   type LatencyQuantiles,
   type TelemetryBridgeStatus
 } from '@shared/telemetry-bridge'
 import { t } from '@shared/ui-text'
 
-const DEFAULT_SOURCE_BAUD_RATE = 115_200
-
 export function BridgeSection(): React.JSX.Element {
   const status = useBridgeStore((state) => state.status)
   const busy = useBridgeStore((state) => state.busy)
-  const [ports, setPorts] = useState<readonly SerialPortSummary[]>([])
-  const [portPath, setPortPath] = useState('')
-  const [baudRate, setBaudRate] = useState(String(DEFAULT_SOURCE_BAUD_RATE))
+  const [port, setPort] = useState<number>(LINK_DEFAULT_PORT)
+  const [acceptFromNetwork, setAcceptFromNetwork] = useState(false)
   const [error, setError] = useState<string>()
 
-  const applyPorts = useCallback((result: DeviceResult<SerialPortSummary[]>): void => {
-    if (!result.ok) return
-    setPorts(result.value)
-    setPortPath((current) => current || (result.value[0]?.path ?? ''))
-  }, [])
-
-  useEffect(() => {
-    if (status.hostingSupported) return
-    void window.pitrig.listSerialPorts().then(applyPorts)
-  }, [applyPorts, status.hostingSupported])
-
   const start = async (): Promise<void> => {
-    setError(undefined)
-    const portId = ports.find((port) => port.path === portPath)?.id ?? ''
-    const failure = await startTelemetryBridge(
-      status.hostingSupported
-        ? { mode: 'hosted' }
-        : { mode: 'port', portId, baudRate: Number(baudRate) }
-    )
-    setError(failure)
+    setError(await startTelemetryBridge({ port, acceptFromNetwork }))
   }
 
   return (
@@ -63,10 +37,7 @@ export function BridgeSection(): React.JSX.Element {
             {t('protocol.bridgeSection.stop')}
           </Button>
         ) : (
-          <Button
-            disabled={busy || (!status.hostingSupported && !portPath)}
-            onClick={() => void start()}
-          >
+          <Button disabled={busy} onClick={() => void start()}>
             {busy ? t('protocol.bridgeSection.starting') : t('protocol.bridgeSection.start')}
           </Button>
         )
@@ -74,19 +45,13 @@ export function BridgeSection(): React.JSX.Element {
     >
       <div className="space-y-3">
         <StateChips status={status} />
-        {status.hostingSupported ? (
-          <HostedSource status={status} />
-        ) : (
-          <PairedSource
-            baudRate={baudRate}
-            ports={ports}
-            portPath={portPath}
-            running={status.running}
-            onBaudRate={setBaudRate}
-            onPortPath={setPortPath}
-            onRefresh={() => void window.pitrig.listSerialPorts().then(applyPorts)}
-          />
-        )}
+        <PluginSource
+          acceptFromNetwork={acceptFromNetwork}
+          port={port}
+          status={status}
+          onAcceptFromNetwork={setAcceptFromNetwork}
+          onPort={setPort}
+        />
         {status.running ? <Measured status={status} /> : null}
         {error ?? status.error ? (
           <p className="rounded-md border border-red-500/40 bg-red-500/10 px-2.5 py-2 text-red-200">
@@ -106,6 +71,13 @@ function StateChips({ status }: { status: TelemetryBridgeStatus }): React.JSX.El
       </Badge>
       {status.running ? (
         <Badge variant="outline">
+          {status.receiving
+            ? t('protocol.bridgeSection.receiving')
+            : t('protocol.bridgeSection.waiting')}
+        </Badge>
+      ) : null}
+      {status.running ? (
+        <Badge variant="outline">
           {status.suspended
             ? t('protocol.bridgeSection.suspended')
             : status.relaying
@@ -117,74 +89,49 @@ function StateChips({ status }: { status: TelemetryBridgeStatus }): React.JSX.El
   )
 }
 
-function HostedSource({ status }: { status: TelemetryBridgeStatus }): React.JSX.Element {
+function PluginSource({
+  acceptFromNetwork,
+  port,
+  status,
+  onAcceptFromNetwork,
+  onPort
+}: {
+  acceptFromNetwork: boolean
+  port: number
+  status: TelemetryBridgeStatus
+  onAcceptFromNetwork: (value: boolean) => void
+  onPort: (value: number) => void
+}): React.JSX.Element {
   return (
     <div className="space-y-2 rounded-md border bg-muted/20 p-3">
-      <div className="font-medium text-foreground">{t('protocol.bridgeSection.hostedTitle')}</div>
+      <div className="font-medium text-foreground">{t('protocol.bridgeSection.pluginTitle')}</div>
       <p className="text-[11px] leading-4 text-muted-foreground">
-        {t('protocol.bridgeSection.hostedHint', { maximum: HOSTED_MAXIMUM_BAUD_RATE })}
+        {t('protocol.bridgeSection.pluginHint')}
       </p>
-      {status.listenPath ? (
+      <fieldset className="space-y-1 disabled:opacity-50" disabled={status.running}>
+        <NumberField
+          label={t('protocol.bridgeSection.listenPort')}
+          max={65_535}
+          min={1_024}
+          step={1}
+          value={port}
+          onChange={onPort}
+        />
+        <CheckboxField
+          checked={acceptFromNetwork}
+          label={t('protocol.bridgeSection.acceptFromNetwork')}
+          onChange={onAcceptFromNetwork}
+        />
+      </fieldset>
+      <p className="text-[11px] leading-4 text-muted-foreground">
+        {t('protocol.bridgeSection.acceptFromNetworkHint')}
+      </p>
+      {status.sourceAddress ? (
         <ReadOnlyField
-          label={t('protocol.bridgeSection.listenPath')}
-          value={status.listenPath}
+          label={t('protocol.bridgeSection.source')}
+          value={status.sourceAddress}
         />
       ) : null}
-    </div>
-  )
-}
-
-function PairedSource({
-  ports,
-  portPath,
-  baudRate,
-  running,
-  onPortPath,
-  onBaudRate,
-  onRefresh
-}: {
-  ports: readonly SerialPortSummary[]
-  portPath: string
-  baudRate: string
-  running: boolean
-  onPortPath: (value: string) => void
-  onBaudRate: (value: string) => void
-  onRefresh: () => void
-}): React.JSX.Element {
-  const windows = navigator.userAgent.includes('Windows')
-  return (
-    <div className="space-y-2 rounded-md border bg-muted/20 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <span className="font-medium text-foreground">
-          {t('protocol.bridgeSection.pairedTitleWindows')}
-        </span>
-        <Button disabled={running} variant="outline" onClick={onRefresh}>
-          {t('protocol.bridgeSection.refresh')}
-        </Button>
-      </div>
-      <p className="text-[11px] leading-4 text-muted-foreground">
-        {windows
-          ? t('protocol.bridgeSection.pairedHintWindows')
-          : t('protocol.bridgeSection.pairedHintLinux')}
-      </p>
-      {ports.length === 0 ? (
-        <p className="text-muted-foreground">{t('protocol.bridgeSection.noPorts')}</p>
-      ) : (
-        <fieldset className="space-y-1 disabled:opacity-50" disabled={running}>
-          <SelectField
-            label={t('protocol.bridgeSection.sourcePort')}
-            value={portPath}
-            options={ports.map((port) => port.path)}
-            onChange={onPortPath}
-          />
-          <SelectField
-            label={t('protocol.bridgeSection.speed')}
-            value={baudRate}
-            options={SUPPORTED_BAUD_RATES.map(String)}
-            onChange={onBaudRate}
-          />
-        </fieldset>
-      )}
     </div>
   )
 }
@@ -208,6 +155,14 @@ function Measured({ status }: { status: TelemetryBridgeStatus }): React.JSX.Elem
         <ReadOnlyField
           label={t('protocol.bridgeSection.bytes')}
           value={perSecond(metrics.bytesPerSecond)}
+        />
+        <ReadOnlyField
+          label={t('protocol.bridgeSection.packets')}
+          value={perSecond(metrics.packetsPerSecond)}
+        />
+        <ReadOnlyField
+          label={t('protocol.bridgeSection.lostPackets')}
+          value={String(metrics.lostPackets)}
         />
         <ReadOnlyField
           label={t('protocol.bridgeSection.dropped')}

@@ -93,6 +93,8 @@ export class BridgeMetrics {
   private readonly lines = new RateWindow()
   private readonly bytes = new RateWindow()
   private readonly fields = new RateWindow()
+  private readonly packets = new RateWindow()
+  private lostPackets = 0
   private unknownLines = 0
   private droppedBytes = 0
   private writeErrors = 0
@@ -104,13 +106,18 @@ export class BridgeMetrics {
     this.lines.reset(now)
     this.bytes.reset(now)
     this.fields.reset(now)
+    this.packets.reset(now)
+    this.lostPackets = 0
     this.unknownLines = 0
     this.droppedBytes = 0
     this.writeErrors = 0
   }
 
-  recordChunk(now: number, byteCount: number): void {
+  recordPacket(now: number, byteCount: number, lost: number, discarded: number): void {
     this.bytes.add(now, byteCount)
+    this.packets.add(now, 1)
+    this.lostPackets += lost
+    this.droppedBytes += discarded
   }
 
   recordDecoded(now: number, lineCount: number, fieldCount: number, unknown: number): void {
@@ -141,6 +148,8 @@ export class BridgeMetrics {
       linesPerSecond: this.lines.perSecond(now),
       bytesPerSecond: this.bytes.perSecond(now),
       fieldsPerSecond: this.fields.perSecond(now),
+      packetsPerSecond: this.packets.perSecond(now),
+      lostPackets: this.lostPackets,
       unknownLines: this.unknownLines,
       droppedBytes: this.droppedBytes,
       writeErrors: this.writeErrors,

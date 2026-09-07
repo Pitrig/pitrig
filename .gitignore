@@ -23,6 +23,10 @@ configurator/out-debug/
 configurator/dist/
 configurator/dist-debug/
 
+# .NET generated files
+simhub/plugin/**/bin/
+simhub/plugin/**/obj/
+
 # Local editor settings
 .vscode/*
 !.vscode/tasks.json

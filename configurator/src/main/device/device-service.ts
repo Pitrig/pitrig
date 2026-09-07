@@ -22,7 +22,6 @@ import {
 import { ConnectionManager } from './device-connection'
 import { DeviceHeartbeat } from './device-heartbeat'
 import { OperationRunner } from './device-operation'
-import type { PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
 import {
   advanceFirmwareSession,
@@ -151,10 +150,6 @@ export class DeviceService {
     return (
       this.telemetryLinkAvailable() && !this.runner.operationActive && !this.runner.inPipeline
     )
-  }
-
-  async findPort(portId: string): Promise<PortRecord | undefined> {
-    return this.connection.findPort(portId)
   }
 
   async clearImages(): Promise<DeviceResult<DeviceState>> {

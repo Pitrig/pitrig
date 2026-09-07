@@ -1203,36 +1203,36 @@ export type UiStringKey =
   | 'modules.spritePalette.ink'
   | 'modules.spritePalette.inks'
   | 'modules.spritePalette.thisPictureNamesAllSixteen'
+  | 'protocol.bridgeSection.acceptFromNetwork'
+  | 'protocol.bridgeSection.acceptFromNetworkHint'
   | 'protocol.bridgeSection.addedLatency'
   | 'protocol.bridgeSection.bytes'
   | 'protocol.bridgeSection.description'
   | 'protocol.bridgeSection.drainLatency'
   | 'protocol.bridgeSection.dropped'
   | 'protocol.bridgeSection.fields'
-  | 'protocol.bridgeSection.hostedHint'
-  | 'protocol.bridgeSection.hostedTitle'
   | 'protocol.bridgeSection.lines'
-  | 'protocol.bridgeSection.listenPath'
+  | 'protocol.bridgeSection.listenPort'
+  | 'protocol.bridgeSection.lostPackets'
   | 'protocol.bridgeSection.measured'
-  | 'protocol.bridgeSection.noPorts'
   | 'protocol.bridgeSection.noSamples'
-  | 'protocol.bridgeSection.pairedHintLinux'
-  | 'protocol.bridgeSection.pairedHintWindows'
-  | 'protocol.bridgeSection.pairedTitleWindows'
+  | 'protocol.bridgeSection.packets'
   | 'protocol.bridgeSection.perSecond'
+  | 'protocol.bridgeSection.pluginHint'
+  | 'protocol.bridgeSection.pluginTitle'
   | 'protocol.bridgeSection.previewOnly'
   | 'protocol.bridgeSection.quantiles'
-  | 'protocol.bridgeSection.refresh'
+  | 'protocol.bridgeSection.receiving'
   | 'protocol.bridgeSection.relaying'
   | 'protocol.bridgeSection.running'
-  | 'protocol.bridgeSection.sourcePort'
-  | 'protocol.bridgeSection.speed'
+  | 'protocol.bridgeSection.source'
   | 'protocol.bridgeSection.start'
   | 'protocol.bridgeSection.starting'
   | 'protocol.bridgeSection.stop'
   | 'protocol.bridgeSection.stopped'
   | 'protocol.bridgeSection.suspended'
   | 'protocol.bridgeSection.title'
+  | 'protocol.bridgeSection.waiting'
   | 'protocol.bridgeSection.writeErrors'
   | 'protocol.catalogSection.field'
   | 'protocol.catalogSection.fuelRpmLap'
@@ -1314,10 +1314,7 @@ export type UiStringKey =
   | 'shortcuts.dragToRestackOrOntoTheMiddleOfAContainerToMoveItInside'
   | 'shortcuts.shiftCmdCtrlG'
   | 'telemetry.bridgeService.alreadyRunning'
-  | 'telemetry.bridgeService.hostingUnsupported'
-  | 'telemetry.bridgeService.noPortChosen'
-  | 'telemetry.bridgeService.portIsTheBoard'
-  | 'telemetry.bridgeService.portMissing'
+  | 'telemetry.bridgeService.portInUse'
   | 'telemetry.bridgeService.sourceClosed'
   | 'templates.dashboardListControls.allSizesLength'
   | 'templates.dashboardListControls.orderDashboards'
@@ -1743,12 +1740,12 @@ export interface UiStringParameters {
   'modules.spriteList.widthHeightFramesFrameS': { frames: string | number, height: string | number, sprite: string | number, width: string | number }
   'modules.spritePalette.aPictureNamesUsablePalette': { uSABLE_PALETTE: string | number }
   'modules.spritePalette.colorEntry1IsThe': { color: string | number }
-  'protocol.bridgeSection.hostedHint': { maximum: string | number }
   'protocol.bridgeSection.quantiles': { max: string | number, p50: string | number, p95: string | number, p99: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
   'protocol.simHubProfileSection.baudRateBaud': { baudRate: string | number }
   'protocol.simHubProfileSection.lengthFields': { length: string | number }
   'save.saveToBoardService.savingTheAndConfiguration': { and: string | number }
+  'telemetry.bridgeService.portInUse': { port: string | number }
   'templates.dashboardListControls.allSizesLength': { length: string | number }
   'templates.dashboardSection.nameWouldNotBeAccepted': { error: string | number, name: string | number }
   'templates.dashboardSection.replaceEverythingYouHaveOpen2': { name: string | number }

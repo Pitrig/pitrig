@@ -104,7 +104,7 @@ Editor gaps against SimHub are in
 
 # Phase 7 — Telemetry
 
-- [ ] SimHub plugin
+- [*] SimHub plugin
 - [ ] Telemetry slots in external RAM
 - [ ] User-defined slots
 - [ ] Relative — cars ahead and behind

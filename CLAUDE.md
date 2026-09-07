@@ -119,7 +119,7 @@ python3 -m tools.codegen.ui_strings
 | Generator | Sources | Outputs |
 | --- | --- | --- |
 | `configuration_schema` | `configuration/configuration_schema.json` | the firmware contract and validator headers, `configurator/src/shared/configuration-schema.ts`, `docs/configuration-schema.md` |
-| `telemetry_catalog` | `telemetry/telemetry_catalog.json`, `telemetry/simhub_generic_mappings.json` | the firmware catalog headers, `configurator/src/shared/telemetry-catalog.ts` and `simhub-profile-data.ts`, `docs/telemetry-catalog.md`, `simhub/Pitrig-telemetry.shsds` |
+| `telemetry_catalog` | `telemetry/telemetry_catalog.json`, `telemetry/simhub_generic_mappings.json` | the firmware catalog headers, `configurator/src/shared/telemetry-catalog.ts` and `simhub-profile-data.ts`, `docs/telemetry-catalog.md`, `simhub/Pitrig-telemetry.shsds`, `simhub/plugin/Pitrig.SimHub/TelemetryCatalog.g.cs` |
 | `led_font` | `fonts/led_bitmap_font.json` | `firmware/components/led/include/led_font_generated.hpp`, `configurator/src/shared/led-font.ts` |
 | `font_catalog` | `fonts/google_fonts_snapshot.json`, `fonts/google_fonts_selection.json` (`--refresh` re-fetches) | `configurator/src/main/font-library/google-fonts-catalog.json` |
 | `ui_strings` | `i18n/en.json` | `configurator/src/shared/ui-string-keys.ts` and `ui-strings-en.ts`, read through `t()` in `ui-text.ts` (ADR 0031) |

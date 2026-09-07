@@ -65,16 +65,18 @@ overwritten.
 ## Live telemetry
 
 `main/telemetry-bridge/` puts the configurator in the middle of the link
-(ADR 0034): a source port it owns, forwarded to the board **before** anything is
-parsed, and decoded in passing. `bridge-source.ts` opens a port someone else
-paired; `pty-host.ts` hosts one on macOS and is the only place node-pty's
-undocumented `open()` and its private `_pty` / `_master` / `_slave` are touched,
-loaded lazily so the mode simply is not offered when it fails. The relay yields
-while `OperationRunner` holds the link and resumes at the next newline, so a
-save or a live apply never splices a telemetry line. `telemetry-tap.ts` decodes
-into three fixed arrays indexed by catalog slot and keeps the **source string**
-for every field, not only the text ones, so the preview shows what the board
-shows.
+(ADR 0034): the SimHub plugin's stream, forwarded to the board **before**
+anything is parsed, and decoded in passing. `plugin-listener.ts` binds the UDP
+port — `127.0.0.1` unless the panel asks for the network — and validates the
+seven-byte header, counting loss from the sequence and resyncing on a restarted
+sender rather than reading it as reordering; a datagram carries whole lines, so
+what it hands on can be written to the board as it stands. The relay yields
+while `OperationRunner` holds the link and drops what arrives meanwhile, and
+the plugin's once-a-second repeat is what repairs the gap. `telemetry-tap.ts`
+decodes into three fixed arrays indexed by catalog slot and keeps the **source
+string** for every field, not only the text ones, so the preview shows what the
+board shows. The wire constants come from the generated `SIMHUB_LINK`, so the
+plugin in `simhub/plugin/` and this side cannot disagree.
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once

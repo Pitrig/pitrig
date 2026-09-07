@@ -2,32 +2,32 @@ import { performance } from 'node:perf_hooks'
 
 import {
   SNAPSHOT_INTERVAL_MS,
+  SOURCE_IDLE_MS,
   idleBridgeStatus,
   type TelemetryBridgeStartRequest,
   type TelemetryBridgeStatus,
   type TelemetrySnapshot
 } from '@shared/telemetry-bridge'
-import type { DeviceResult } from '@shared/device'
+import type { DeviceError, DeviceResult } from '@shared/device'
 import { t } from '@shared/ui-text'
 import { failure, success, toDeviceError } from '../device/device-errors'
 import type { DeviceService } from '../device/device-service'
 import { BridgeMetrics } from './bridge-metrics'
-import { openPortSource, type BridgeSource } from './bridge-source'
-import { hostingSupported, openHostedSource } from './pty-host'
+import { openPluginListener, type LinkPacket, type PluginListener } from './plugin-listener'
 import { TelemetryTap } from './telemetry-tap'
 
-const NEWLINE = 10
 const STATUS_INTERVAL_MS = 500
 const MAXIMUM_PENDING_WRITES = 3
 
 export class TelemetryBridgeService {
   private readonly tap = new TelemetryTap()
   private readonly metrics = new BridgeMetrics()
-  private source: BridgeSource | undefined
+  private listener: PluginListener | undefined
   private snapshotTimer: NodeJS.Timeout | undefined
   private statusTimer: NodeJS.Timeout | undefined
-  private mode: TelemetryBridgeStartRequest['mode'] | undefined
-  private resyncing = false
+  private acceptFromNetwork = false
+  private sourceAddress: string | undefined
+  private lastPacketAt = Number.NEGATIVE_INFINITY
   private pendingWrites = 0
   private error: string | undefined
 
@@ -38,131 +38,98 @@ export class TelemetryBridgeService {
   ) {}
 
   getStatus(): TelemetryBridgeStatus {
-    const status = idleBridgeStatus(hostingSupported())
-    if (!this.source) {
+    const status = idleBridgeStatus()
+    if (!this.listener) {
       return this.error === undefined ? status : { ...status, error: this.error }
     }
     return {
       ...status,
       running: true,
-      mode: this.mode,
-      listenPath: this.source.path,
+      receiving: performance.now() - this.lastPacketAt < SOURCE_IDLE_MS,
+      port: this.listener.port,
+      acceptFromNetwork: this.acceptFromNetwork,
       relaying: this.deviceService.relayAvailable(),
       suspended:
         this.deviceService.telemetryLinkAvailable() && !this.deviceService.relayAvailable(),
       metrics: this.metrics.snapshot(),
-      ...(this.source.baudRate === undefined ? {} : { baudRate: this.source.baudRate }),
+      ...(this.sourceAddress === undefined ? {} : { sourceAddress: this.sourceAddress }),
       ...(this.error === undefined ? {} : { error: this.error })
     }
   }
 
   async start(request: TelemetryBridgeStartRequest): Promise<DeviceResult<TelemetryBridgeStatus>> {
-    if (this.source) {
+    if (this.listener) {
       return failure({ code: 'busy', message: t('telemetry.bridgeService.alreadyRunning') })
     }
     try {
-      const source = await this.openSource(request)
-      if (!source.ok) return failure(source.error)
-      this.source = source.value
-      this.mode = request.mode
+      this.listener = await openPluginListener(request.port, request.acceptFromNetwork)
+      this.acceptFromNetwork = request.acceptFromNetwork
+      this.sourceAddress = undefined
+      this.lastPacketAt = Number.NEGATIVE_INFINITY
       this.error = undefined
-      this.resyncing = false
       this.pendingWrites = 0
       this.tap.reset()
       this.metrics.reset()
-      this.source.onData(this.receive)
-      this.source.onClose(this.closed)
+      this.listener.onPacket(this.receive)
+      this.listener.onClose(this.closed)
       this.snapshotTimer = setInterval(this.publishSnapshot, SNAPSHOT_INTERVAL_MS)
       this.statusTimer = setInterval(this.publishStatus, STATUS_INTERVAL_MS)
       return success(this.publishStatus())
     } catch (error) {
       await this.stop()
-      return failure(toDeviceError(error))
+      return failure(listenFailure(error, request.port))
     }
   }
 
   async stop(): Promise<DeviceResult<TelemetryBridgeStatus>> {
-    const source = this.source
-    this.source = undefined
-    this.mode = undefined
+    const listener = this.listener
+    this.listener = undefined
+    this.sourceAddress = undefined
     if (this.snapshotTimer) clearInterval(this.snapshotTimer)
     if (this.statusTimer) clearInterval(this.statusTimer)
     this.snapshotTimer = undefined
     this.statusTimer = undefined
-    await source?.close()
+    await listener?.close()
     this.tap.reset()
     this.publishSnapshot()
     return success(this.publishStatus())
   }
 
   async dispose(): Promise<void> {
-    if (this.source) await this.stop()
+    if (this.listener) await this.stop()
   }
 
-  private async openSource(
-    request: TelemetryBridgeStartRequest
-  ): Promise<DeviceResult<BridgeSource>> {
-    if (request.mode === 'hosted') {
-      if (!hostingSupported()) {
-        return failure({ code: 'invalid_request', message: t('telemetry.bridgeService.hostingUnsupported') })
-      }
-      return success(await openHostedSource())
-    }
-    if (!request.portId) {
-      return failure({ code: 'invalid_request', message: t('telemetry.bridgeService.noPortChosen') })
-    }
-    const record = await this.deviceService.findPort(request.portId)
-    if (!record) {
-      return failure({ code: 'port_missing', message: t('telemetry.bridgeService.portMissing') })
-    }
-    if (record.path === this.deviceService.getState().connection?.path) {
-      return failure({ code: 'invalid_request', message: t('telemetry.bridgeService.portIsTheBoard') })
-    }
-    return success(await openPortSource(record, request.baudRate ?? 115_200))
+  private readonly receive = (packet: LinkPacket): void => {
+    this.sourceAddress = packet.address
+    this.lastPacketAt = packet.at
+    this.metrics.recordPacket(packet.at, packet.payload.length, packet.lost, packet.discarded)
+    this.relay(packet)
+    const counts = this.tap.consume(packet.payload.toString('utf8'))
+    this.metrics.recordDecoded(packet.at, counts.lines, counts.fields, counts.unknown)
   }
 
-  private readonly receive = (chunk: Buffer): void => {
-    const at = performance.now()
-    this.metrics.recordChunk(at, chunk.length)
-    this.relay(chunk, at)
-    const counts = this.tap.consume(chunk.toString('utf8'))
-    this.metrics.recordDecoded(at, counts.lines, counts.fields, counts.unknown)
-  }
-
-  private relay(chunk: Buffer, at: number): void {
+  private relay(packet: LinkPacket): void {
     if (!this.deviceService.relayAvailable()) {
-      this.resyncing = true
-      if (this.deviceService.telemetryLinkAvailable()) this.metrics.recordDropped(chunk.length)
+      if (this.deviceService.telemetryLinkAvailable()) {
+        this.metrics.recordDropped(packet.payload.length)
+      }
       return
     }
     if (this.pendingWrites >= MAXIMUM_PENDING_WRITES) {
-      this.resyncing = true
-      this.metrics.recordDropped(chunk.length)
+      this.metrics.recordDropped(packet.payload.length)
       return
     }
-    let payload = chunk
-    if (this.resyncing) {
-      const boundary = chunk.indexOf(NEWLINE)
-      if (boundary < 0) {
-        this.metrics.recordDropped(chunk.length)
-        return
-      }
-      this.metrics.recordDropped(boundary + 1)
-      this.resyncing = false
-      payload = chunk.subarray(boundary + 1)
-      if (payload.length === 0) return
-    }
     this.pendingWrites += 1
-    this.metrics.recordHandoff(performance.now() - at)
-    this.deviceService.writeTelemetry(payload, (error) => {
+    this.metrics.recordHandoff(performance.now() - packet.at)
+    this.deviceService.writeTelemetry(packet.payload, (error) => {
       this.pendingWrites = Math.max(0, this.pendingWrites - 1)
       if (error) this.metrics.recordWriteError()
-      else this.metrics.recordDrain(performance.now() - at)
+      else this.metrics.recordDrain(performance.now() - packet.at)
     })
   }
 
   private readonly closed = (error?: Error): void => {
-    if (!this.source) return
+    if (!this.listener) return
     this.error = error ? toDeviceError(error).message : t('telemetry.bridgeService.sourceClosed')
     void this.stop()
   }
@@ -176,5 +143,14 @@ export class TelemetryBridgeService {
     const status = this.getStatus()
     this.onStatus(status)
     return status
+  }
+}
+
+function listenFailure(error: unknown, port: number): DeviceError {
+  const failed = toDeviceError(error)
+  if ((error as NodeJS.ErrnoException | undefined)?.code !== 'EADDRINUSE') return failed
+  return {
+    code: 'busy',
+    message: t('telemetry.bridgeService.portInUse', { port: String(port) })
   }
 }

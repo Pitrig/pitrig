@@ -1284,19 +1284,20 @@
     },
     "bridgeSection": {
       "title": "Live telemetry",
-      "description": "Telemetry routed through the configurator on its way to the board, so the dashboard, the lamps and the catalog below show it as it arrives.",
-      "hostedTitle": "Hosted port",
-      "hostedHint": "The configurator creates the port itself. Point the telemetry source at the path below and open it at {maximum} baud or lower — a hosted port has no wire, and macOS refuses the faster rates.",
-      "pairedTitleWindows": "Paired port",
-      "pairedHintWindows": "Windows has no way for an application to create a serial port. Install a virtual pair such as com0com, point the telemetry source at one half, and give the configurator the other.",
-      "pairedHintLinux": "Pair a port with the telemetry source — a pty, or any adapter — and give the configurator the half the source does not hold.",
-      "sourcePort": "Source port",
-      "listenPath": "Open this port",
+      "description": "Telemetry from the SimHub plugin, forwarded to the board and decoded on the way, so the dashboard, the lamps and the catalog below show it as it arrives.",
+      "pluginTitle": "SimHub plugin",
+      "pluginHint": "Install the Pitrig plugin in SimHub and give it this port. It sends telemetry straight here over a local socket, and the configurator forwards it to the board unchanged.",
+      "listenPort": "Listen on port",
+      "acceptFromNetwork": "Accept from the network",
+      "acceptFromNetworkHint": "Off, only a plugin on this machine is heard. On, any machine on the local network can send telemetry to this port.",
+      "source": "Sending",
       "start": "Start",
       "stop": "Stop",
       "starting": "Starting…",
       "running": "Running",
       "stopped": "Stopped",
+      "waiting": "Waiting for the plugin",
+      "receiving": "Receiving",
       "relaying": "Forwarding to the board",
       "previewOnly": "No board connected — preview only",
       "suspended": "Held back while the board is busy",
@@ -1306,14 +1307,13 @@
       "lines": "Lines",
       "fields": "Fields",
       "bytes": "Bytes",
+      "packets": "Packets",
+      "lostPackets": "Lost packets",
       "dropped": "Dropped",
       "writeErrors": "Write errors",
       "perSecond": "/s",
       "quantiles": "p50 {p50} · p95 {p95} · p99 {p99} · max {max} ms",
-      "noSamples": "Nothing measured yet.",
-      "noPorts": "No serial ports found.",
-      "refresh": "Refresh",
-      "speed": "Speed"
+      "noSamples": "Nothing measured yet."
     }
   },
   "templates": {
@@ -1989,12 +1989,9 @@
   },
   "telemetry": {
     "bridgeService": {
-      "alreadyRunning": "The telemetry bridge is already running.",
-      "hostingUnsupported": "This platform cannot create a serial port. Pick the port the telemetry source writes to instead.",
-      "noPortChosen": "Choose the port the telemetry source writes to.",
-      "portMissing": "That serial port is no longer present.",
-      "portIsTheBoard": "That is the board’s own port. The bridge needs the port the telemetry source writes to.",
-      "sourceClosed": "The telemetry source closed the port."
+      "alreadyRunning": "The telemetry link is already running.",
+      "portInUse": "Port {port} is already taken. Choose another one here and in the plugin.",
+      "sourceClosed": "The telemetry link closed."
     }
   }
 }

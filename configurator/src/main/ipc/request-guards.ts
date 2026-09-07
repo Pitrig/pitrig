@@ -235,16 +235,11 @@ export function isTelemetryBridgeStartRequest(
 ): value is TelemetryBridgeStartRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<TelemetryBridgeStartRequest>
-  if (request.mode !== 'hosted' && request.mode !== 'port') return false
-  if (request.mode === 'port') {
-    if (typeof request.portId !== 'string' || request.portId.length === 0) return false
-    if (request.portId.length > 64) return false
-  }
-  if (request.baudRate === undefined) return true
+  if (typeof request.acceptFromNetwork !== 'boolean') return false
   return (
-    typeof request.baudRate === 'number' &&
-    Number.isInteger(request.baudRate) &&
-    request.baudRate >= 9_600 &&
-    request.baudRate <= 2_000_000
+    typeof request.port === 'number' &&
+    Number.isInteger(request.port) &&
+    request.port >= 1_024 &&
+    request.port <= 65_535
   )
 }

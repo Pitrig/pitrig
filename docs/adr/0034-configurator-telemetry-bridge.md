@@ -14,31 +14,44 @@ car are mutually exclusive. The preview drew no telemetry at all: every source
 showed a placeholder, which makes a colour rule, a gauge range or a condition
 impossible to judge without saving to the board and looking at it.
 
-An application cannot create a serial port on Windows. There is no user-mode
-API; a virtual pair needs a kernel driver. macOS and Linux can allocate a pty,
-which is a serial port to anything that opens it.
+Taking the stream over a serial port first was tried and rejected. An
+application cannot create one on Windows — there is no user-mode API, and a
+virtual pair needs a kernel driver — so the configurator had to host a pty on
+macOS and ask for a com0com half elsewhere: a per-platform install step, a
+230400 baud ceiling on the hosted port, and a dependency touching undocumented
+`node-pty` internals, all to move bytes between two processes on one machine.
 
 ## Decision
 
-The configurator sits in the middle of the link. Telemetry arrives on a port
-the configurator owns, is forwarded to the board unchanged, and is decoded in
-passing to drive the previews.
+The configurator sits in the middle of the link. Telemetry arrives from the
+**Pitrig SimHub plugin** over a local socket, is forwarded to the board
+unchanged, and is decoded in passing to drive the previews. The plugin replaces
+the Custom Serial profile, which stays supported for a board fed directly
+([SimHub telemetry](../simhub-custom-serial.md)).
 
-**Forward first, parse after.** A chunk from the source is written to the board
-before it is looked at, so the bridge adds one event-loop hop and no copy. The
-byte stream reaching the board is the one the source sent, so framing is
-preserved by construction rather than by reassembly.
+**A datagram per tick.** The plugin sends UDP to a port the configurator binds:
+a seven-byte header — magic, version, sequence — and a payload of whole
+`id;value` lines, at most 1200 bytes. No connection to establish, no Nagle, and
+no head-of-line blocking, so a busy moment in the configurator costs the oldest
+packet rather than a growing backlog of stale values. The sequence measures
+loss; a restart of the sender resyncs rather than being read as reordering.
 
-**Yield the link, resume on a boundary.** While a `@PR:` operation or an asset
-upload owns the port the bridge stops writing and drops what arrives — a stale
-backlog is worse than a gap. On resume it skips to the first newline, so the
-board never sees a spliced line. Live apply and a save therefore work while
-telemetry streams.
+**Forward first, parse after.** The payload is written to the board before it
+is looked at, so the bridge adds one event-loop hop and no copy. A datagram
+carries whole lines by construction, so the board never sees a spliced one and
+no reassembly is needed on either side.
 
-**Two ways to get a port, chosen by platform.** On macOS the configurator hosts
-a pty and shows its path. Elsewhere it opens a port someone else paired —
-com0com on Windows, any pty or adapter on Linux. Hosting is offered only where
-it works, rather than presented and then failing.
+**Yield the link, resume on the next datagram.** While a `@PR:` operation or an
+asset upload owns the port the bridge stops writing and drops what arrives — a
+stale backlog is worse than a gap. Live apply and a save therefore work while
+telemetry streams, and the plugin's periodic keyframe repairs whatever the
+board missed within a second.
+
+**Send what changed, repeat everything once a second.** The plugin evaluates
+each field at its catalog rate, sends a value only when it differs from the one
+it last sent, and re-sends every known value once a second. A lost datagram
+therefore costs at most one second of a rarely-changing field, and a plugin is
+not bound by the 10 Hz cap SimHub Free puts on Custom Serial.
 
 **One snapshot per frame.** The tap decodes into three fixed arrays indexed by
 catalog slot, the same shape the firmware's registry uses, and publishes at most
@@ -52,21 +65,32 @@ shows what the board shows rather than a reconstructed float.
 second toggle to disagree with it. Template thumbnails and the insert ghost keep
 their placeholders — they are specimens, not the dashboard.
 
+**Loopback unless asked.** The configurator binds `127.0.0.1`, so only a plugin
+on the same machine is heard. Accepting from the local network is one explicit
+choice on the Protocol page, which is what a configurator on a second machine
+needs.
+
 **Measured, not asserted.** The bridge keeps two latency histograms — what it
-adds before the write, and what the write itself costs — plus line, field and
-byte rates, dropped bytes and write errors, and the Protocol page shows them.
+adds before the write, and what the write itself costs — plus line, field, byte
+and packet rates, lost packets, dropped bytes and write errors, and the Protocol
+page shows them.
 
 ## Consequences
 
 - The dashboard preview, the lamp preview and the telemetry catalog show live
-  values, and a board can be watched at the same time.
-- `node-pty` is a dependency for one call on one platform. Its `open()` is
-  undocumented and its `onData` unusable, so the private fields it needs are
-  confined to `pty-host.ts`; the module is loaded lazily and only on macOS.
-- A hosted pty on macOS accepts at most 230400 baud. macOS routes faster rates
-  through an ioctl a pty rejects, so a 921600 profile cannot open one.
-- Windows still needs a virtual pair installed once. The configurator neither
-  ships nor installs a driver.
+  values, and a board can be watched at the same time, with nothing to install
+  besides the plugin.
+- The field mapping has one source: `telemetry/simhub_generic_mappings.json`
+  generates the NCalc expressions of the Custom Serial profile and the plugin's
+  own field table, so the two paths cannot drift.
+- The plugin is a .NET Framework assembly built against the SimHub install, so
+  it is not part of the repository's CI; only its generated field table is
+  checked.
+- UDP can drop a datagram. Changes-only fields are the exposed case, and the
+  one-second keyframe is what bounds it.
+- Accepting from the network needs the operating system's permission for
+  inbound local traffic — on macOS the app has to be allowed under Local
+  Network before a plugin on another machine reaches it.
 - Two parity gaps remain against the board: `dashboard.smoothing`
   ([ADR 0033](0033-value-smoothing-between-packets.md)) glides between packets
   and the preview steps, and `session.lap.current_time` is extrapolated on the

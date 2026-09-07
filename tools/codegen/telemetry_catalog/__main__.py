@@ -8,6 +8,7 @@ from ..common import write_or_check
 from . import OUTPUTS
 from .catalog import load_catalog, load_simhub_mappings
 from .cpp import generate_cpp
+from .csharp import generate_csharp
 from .errors import LABEL, fail
 from .markdown import generate_markdown
 from .simhub import generate_shsds, generate_simhub, generate_simhub_typescript
@@ -28,6 +29,8 @@ def expected_outputs(
     for path, kind in OUTPUTS.items():
         if kind == "shsds":
             outputs[path] = generate_shsds(simhub_profile, fields, simhub_mappings)
+        elif kind == "csharp":
+            outputs[path] = generate_csharp(simhub_profile, fields, simhub_mappings)
         elif kind == "simhub_typescript":
             outputs[path] = generate_simhub_typescript(
                 simhub_profile, fields, simhub_mappings

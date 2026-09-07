@@ -36,7 +36,11 @@ banner.
   `firmware/services/telemetry/protocols/simhub/include/simhub_catalog_generated.hpp`,
   `configurator/src/shared/telemetry-catalog.ts`,
   `configurator/src/shared/simhub-profile-data.ts`, `docs/telemetry-catalog.md`,
-  `simhub/Pitrig-telemetry.shsds`. Regenerate all consumers together.
+  `simhub/Pitrig-telemetry.shsds`,
+  `simhub/plugin/Pitrig.SimHub/TelemetryCatalog.g.cs`. Regenerate all consumers
+  together. The mappings' `profile.link` block is the wire contract shared by
+  the plugin and the configurator, and a mapping written as an `expression`
+  needs a `computed` name for its native twin in the plugin.
 - `led_font` — `fonts/led_bitmap_font.json` (four faces as rows of `#` and
   space) → `firmware/components/led/include/led_font_generated.hpp` and
   `configurator/src/shared/led-font.ts`; both sides need the same glyphs.
