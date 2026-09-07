@@ -15,7 +15,7 @@
               "type": "shape",
               "id": "r_bez1",
               "placement": {
-                "x": 24,
+                "x": 8,
                 "y": 42,
                 "width": 452,
                 "height": 452
@@ -39,14 +39,29 @@
                   "source": {
                     "binding": "engine.rpm_percent"
                   },
-                  "minimum": 0,
+                  "minimum": 70,
                   "maximum": 100,
                   "center_angle_deg": 339,
                   "sector_deg": 112,
                   "thickness_px": 16,
                   "fill_color": "#7F1D1D",
                   "track_color": "#141008",
-                  "z_index": 0
+                  "z_index": 0,
+                  "condition_source": {
+                    "binding": "engine.rpm_percent"
+                  },
+                  "color_ramp": {
+                    "stops": [
+                      {
+                        "at": 85,
+                        "color": "#501A1A"
+                      },
+                      {
+                        "at": 96,
+                        "color": "#7F1D1D"
+                      }
+                    ]
+                  }
                 },
                 {
                   "type": "arc",
@@ -64,10 +79,11 @@
                   "maximum": 9000,
                   "center_angle_deg": 270,
                   "sector_deg": 250,
-                  "thickness_px": 10,
+                  "thickness_px": 5,
                   "fill_color": "#FFB300",
                   "mark": "needle",
-                  "z_index": 1
+                  "z_index": 1,
+                  "radius_px": 135
                 },
                 {
                   "type": "shape",
@@ -326,7 +342,7 @@
               "type": "shape",
               "id": "r_bez2",
               "placement": {
-                "x": 548,
+                "x": 564,
                 "y": 42,
                 "width": 452,
                 "height": 452
@@ -354,10 +370,12 @@
                   "maximum": 300,
                   "center_angle_deg": 270,
                   "sector_deg": 250,
-                  "thickness_px": 10,
+                  "thickness_px": 5,
                   "fill_color": "#FFB300",
                   "mark": "needle",
-                  "z_index": 0
+                  "z_index": 0,
+                  "radius_px": 135,
+                  "centering": "circle"
                 },
                 {
                   "type": "shape",
@@ -556,8 +574,8 @@
               "type": "text",
               "id": "r_gear",
               "placement": {
-                "x": 482,
-                "y": 130,
+                "x": 462,
+                "y": 42,
                 "width": 100,
                 "height": 122
               },
@@ -569,7 +587,7 @@
               "value": {
                 "font": {
                   "family": "roboto-condensed_bold",
-                  "size_px": 88
+                  "size_px": 110
                 },
                 "color": "#FFB300",
                 "alignment": "center"
@@ -579,8 +597,8 @@
               "type": "text",
               "id": "r_delta",
               "placement": {
-                "x": 478,
-                "y": 268,
+                "x": 458,
+                "y": 456,
                 "width": 108,
                 "height": 56
               },
@@ -607,7 +625,7 @@
               "id": "r_odo",
               "placement": {
                 "x": 392,
-                "y": 512,
+                "y": 532,
                 "width": 240,
                 "height": 60
               },
