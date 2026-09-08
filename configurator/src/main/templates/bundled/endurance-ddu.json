@@ -61,7 +61,7 @@
             },
             {
               "type": "text",
-              "id": "d_tccut",
+              "id": "d_air",
               "placement": {
                 "x": 196,
                 "y": 6,
@@ -70,10 +70,11 @@
               },
               "sources": [
                 {
-                  "binding": "vehicle.aids.stability_control",
+                  "binding": "environment.air_temperature",
                   "transform": {
                     "type": "number",
-                    "decimals": 0
+                    "decimals": 0,
+                    "suffix": "\u00b0"
                   }
                 }
               ],
@@ -92,12 +93,12 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "TC CUT",
+                "text": "AIR",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
                 },
-                "color": "#22C55E",
+                "color": "#38BDF8",
                 "alignment": "top_left",
                 "offset_x_px": 14,
                 "offset_y_px": 0
@@ -325,7 +326,7 @@
             },
             {
               "type": "text",
-              "id": "d_cls",
+              "id": "d_field",
               "placement": {
                 "x": 890,
                 "y": 6,
@@ -334,14 +335,14 @@
               },
               "sources": [
                 {
-                  "binding": "session.class_position",
+                  "binding": "session.position",
                   "transform": {
                     "type": "number",
                     "decimals": 0
                   }
                 },
                 {
-                  "binding": "session.class_participants",
+                  "binding": "session.participants",
                   "transform": {
                     "type": "number",
                     "decimals": 0,
@@ -364,7 +365,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "CLASS",
+                "text": "FIELD",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -691,7 +692,7 @@
             },
             {
               "type": "text",
-              "id": "d_refuel",
+              "id": "d_stintlaps",
               "placement": {
                 "x": 906,
                 "y": 158,
@@ -700,10 +701,10 @@
               },
               "sources": [
                 {
-                  "binding": "vehicle.fuel.to_add",
+                  "binding": "session.lap.completed",
                   "transform": {
                     "type": "number",
-                    "decimals": 1
+                    "decimals": 0
                   }
                 }
               ],
@@ -722,11 +723,10 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "\ue546 REFUEL",
+                "text": "LAPS DONE",
                 "font": {
                   "family": "roboto-condensed_bold",
-                  "size_px": 14,
-                  "fallback": "material-icons"
+                  "size_px": 14
                 },
                 "color": "#5C6675",
                 "alignment": "top_left",
@@ -824,7 +824,7 @@
             },
             {
               "type": "text",
-              "id": "d_energy",
+              "id": "d_tracktemp",
               "placement": {
                 "x": 788,
                 "y": 350,
@@ -833,11 +833,11 @@
               },
               "sources": [
                 {
-                  "binding": "vehicle.energy.percent",
+                  "binding": "track.temperature",
                   "transform": {
                     "type": "number",
                     "decimals": 0,
-                    "suffix": "%"
+                    "suffix": "\u00b0"
                   }
                 }
               ],
@@ -856,10 +856,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "ENERGY",
-                "source": {
-                  "binding": "vehicle.energy.deployment_mode"
-                },
+                "text": "TRACK TEMP",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -1138,7 +1135,7 @@
             },
             {
               "type": "bar",
-              "id": "d_fuelbar",
+              "id": "d_lapbar",
               "placement": {
                 "x": 340,
                 "y": 410,
@@ -1146,56 +1143,56 @@
                 "height": 16
               },
               "source": {
-                "binding": "vehicle.fuel.percent"
+                "binding": "track.position_percent"
               },
               "minimum": 0,
               "maximum": 100,
-              "fill_color": "#22C55E",
+              "fill_color": "#38BDF8",
               "background_color": "#161B24",
               "border": {
                 "radius_px": 8
               },
               "condition_source": {
-                "binding": "vehicle.fuel.percent"
+                "binding": "track.position_percent"
               },
               "color_ramp": {
                 "target": "content",
                 "stops": [
                   {
-                    "at": 5,
-                    "color": "#EF4444"
+                    "at": 0,
+                    "color": "#38BDF8"
                   },
                   {
-                    "at": 18,
-                    "color": "#F59E0B"
-                  },
-                  {
-                    "at": 40,
+                    "at": 66,
                     "color": "#22C55E"
+                  },
+                  {
+                    "at": 92,
+                    "color": "#F59E0B"
                   }
                 ]
               }
             },
             {
               "type": "shape",
-              "id": "d_wet_on",
+              "id": "d_pit_on",
               "placement": {
                 "x": 606,
                 "y": 404,
                 "width": 96,
                 "height": 28
               },
-              "background_color": "#38BDF8",
+              "background_color": "#EF4444",
               "border": {
-                "color": "#38BDF8",
+                "color": "#EF4444",
                 "width_px": 2,
                 "radius_px": 6
               },
               "title": {
-                "text": "\uf1ad",
+                "text": "PIT",
                 "font": {
-                  "family": "material-icons",
-                  "size_px": 22
+                  "family": "roboto-condensed_bold",
+                  "size_px": 16
                 },
                 "color": "#04070C",
                 "alignment": "center"
@@ -1203,7 +1200,7 @@
             },
             {
               "type": "shape",
-              "id": "d_wet",
+              "id": "d_pit_off",
               "placement": {
                 "x": 606,
                 "y": 404,
@@ -1217,21 +1214,21 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "\ue430",
+                "text": "PIT",
                 "font": {
-                  "family": "material-icons",
-                  "size_px": 22
+                  "family": "roboto-condensed_bold",
+                  "size_px": 16
                 },
-                "color": "#8A94A3",
+                "color": "#5C6675",
                 "alignment": "center"
               },
               "condition_source": {
-                "binding": "track.wetness"
+                "binding": "vehicle.in_pit_lane"
               },
               "conditions": [
                 {
                   "op": "above",
-                  "value": 4,
+                  "value": 0,
                   "hidden": true
                 }
               ]
@@ -1817,7 +1814,7 @@
             },
             {
               "type": "text",
-              "id": "d_ahead",
+              "id": "d_sector",
               "placement": {
                 "x": 740,
                 "y": 448,
@@ -1826,11 +1823,10 @@
               },
               "sources": [
                 {
-                  "binding": "session.gap_ahead",
+                  "binding": "session.sector.current",
                   "transform": {
                     "type": "number",
-                    "decimals": 2,
-                    "suffix": "s"
+                    "decimals": 0
                   }
                 }
               ],
@@ -1849,7 +1845,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "AHEAD",
+                "text": "SECTOR",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -1862,7 +1858,7 @@
             },
             {
               "type": "text",
-              "id": "d_behind",
+              "id": "d_glat",
               "placement": {
                 "x": 882,
                 "y": 448,
@@ -1871,11 +1867,11 @@
               },
               "sources": [
                 {
-                  "binding": "session.gap_behind",
+                  "binding": "motion.g_force_lateral",
                   "transform": {
                     "type": "number",
-                    "decimals": 2,
-                    "suffix": "s"
+                    "decimals": 1,
+                    "suffix": "g"
                   }
                 }
               ],
@@ -1894,7 +1890,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "BEHIND",
+                "text": "G LAT",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -2054,7 +2050,7 @@
             },
             {
               "type": "bar",
-              "id": "s_fuelbar",
+              "id": "s_lapbar",
               "placement": {
                 "x": 348,
                 "y": 8,
@@ -2062,33 +2058,33 @@
                 "height": 150
               },
               "source": {
-                "binding": "vehicle.fuel.percent"
+                "binding": "track.position_percent"
               },
               "minimum": 0,
               "maximum": 100,
-              "fill_color": "#22C55E",
+              "fill_color": "#38BDF8",
               "orientation": "vertical",
               "background_color": "#161B24",
               "border": {
                 "radius_px": 8
               },
               "condition_source": {
-                "binding": "vehicle.fuel.percent"
+                "binding": "track.position_percent"
               },
               "color_ramp": {
                 "target": "content",
                 "stops": [
                   {
-                    "at": 5,
-                    "color": "#EF4444"
+                    "at": 0,
+                    "color": "#38BDF8"
                   },
                   {
-                    "at": 18,
-                    "color": "#F59E0B"
-                  },
-                  {
-                    "at": 40,
+                    "at": 66,
                     "color": "#22C55E"
+                  },
+                  {
+                    "at": 92,
+                    "color": "#F59E0B"
                   }
                 ]
               }
@@ -2183,7 +2179,7 @@
             },
             {
               "type": "text",
-              "id": "s_add",
+              "id": "s_togo",
               "placement": {
                 "x": 8,
                 "y": 168,
@@ -2192,10 +2188,10 @@
               },
               "sources": [
                 {
-                  "binding": "vehicle.fuel.to_add",
+                  "binding": "session.laps_remaining",
                   "transform": {
                     "type": "number",
-                    "decimals": 1
+                    "decimals": 0
                   }
                 }
               ],
@@ -2214,7 +2210,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "REFUEL",
+                "text": "LAPS TO GO",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -2227,7 +2223,7 @@
             },
             {
               "type": "text",
-              "id": "s_need",
+              "id": "s_raceleft",
               "placement": {
                 "x": 262,
                 "y": 168,
@@ -2236,19 +2232,19 @@
               },
               "sources": [
                 {
-                  "binding": "vehicle.fuel.required_to_finish",
+                  "binding": "session.time_remaining",
                   "transform": {
-                    "type": "number",
-                    "decimals": 1
+                    "type": "time",
+                    "format": "clock_ms"
                   }
                 }
               ],
               "value": {
                 "font": {
                   "family": "roboto-mono",
-                  "size_px": 52
+                  "size_px": 48
                 },
-                "color": "#EF4444",
+                "color": "#FFFFFF",
                 "alignment": "center"
               },
               "background_color": "#0A0E15",
@@ -2258,7 +2254,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "TO FINISH",
+                "text": "RACE LEFT",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -2533,7 +2529,7 @@
             },
             {
               "type": "text",
-              "id": "s_turbo",
+              "id": "s_torque",
               "placement": {
                 "x": 770,
                 "y": 308,
@@ -2542,7 +2538,7 @@
               },
               "sources": [
                 {
-                  "binding": "engine.turbo_pressure",
+                  "binding": "engine.torque",
                   "transform": {
                     "type": "number",
                     "decimals": 0
@@ -2564,7 +2560,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "TURBO",
+                "text": "TORQUE",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -2746,20 +2742,20 @@
             },
             {
               "type": "text",
-              "id": "w_ifl",
+              "id": "w_wfl",
               "placement": {
                 "x": 8,
                 "y": 158,
-                "width": 144,
+                "width": 300,
                 "height": 132
               },
               "sources": [
                 {
-                  "binding": "tyre.front_left.temperature_inner",
+                  "binding": "tyre.front_left.wear",
                   "transform": {
                     "type": "number",
                     "decimals": 0,
-                    "suffix": "\u00b0"
+                    "suffix": "%"
                   }
                 }
               ],
@@ -2778,52 +2774,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "INNER",
-                "font": {
-                  "family": "roboto-condensed_bold",
-                  "size_px": 14
-                },
-                "color": "#5C6675",
-                "alignment": "top_left",
-                "offset_x_px": 14,
-                "offset_y_px": 0
-              }
-            },
-            {
-              "type": "text",
-              "id": "w_ofl",
-              "placement": {
-                "x": 164,
-                "y": 158,
-                "width": 144,
-                "height": 132
-              },
-              "sources": [
-                {
-                  "binding": "tyre.front_left.temperature_outer",
-                  "transform": {
-                    "type": "number",
-                    "decimals": 0,
-                    "suffix": "\u00b0"
-                  }
-                }
-              ],
-              "value": {
-                "font": {
-                  "family": "roboto-mono",
-                  "size_px": 40
-                },
-                "color": "#8A94A3",
-                "alignment": "center"
-              },
-              "background_color": "#0A0E15",
-              "border": {
-                "color": "#232A35",
-                "width_px": 2,
-                "radius_px": 6
-              },
-              "title": {
-                "text": "OUTER",
+                "text": "WEAR",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -2968,7 +2919,7 @@
               "type": "text",
               "id": "w_pfr",
               "placement": {
-                "x": 316,
+                "x": 830,
                 "y": 8,
                 "width": 178,
                 "height": 140
@@ -3010,20 +2961,20 @@
             },
             {
               "type": "text",
-              "id": "w_ifr",
+              "id": "w_wfr",
               "placement": {
                 "x": 522,
                 "y": 158,
-                "width": 144,
+                "width": 300,
                 "height": 132
               },
               "sources": [
                 {
-                  "binding": "tyre.front_right.temperature_inner",
+                  "binding": "tyre.front_right.wear",
                   "transform": {
                     "type": "number",
                     "decimals": 0,
-                    "suffix": "\u00b0"
+                    "suffix": "%"
                   }
                 }
               ],
@@ -3042,52 +2993,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "INNER",
-                "font": {
-                  "family": "roboto-condensed_bold",
-                  "size_px": 14
-                },
-                "color": "#5C6675",
-                "alignment": "top_left",
-                "offset_x_px": 14,
-                "offset_y_px": 0
-              }
-            },
-            {
-              "type": "text",
-              "id": "w_ofr",
-              "placement": {
-                "x": 678,
-                "y": 158,
-                "width": 144,
-                "height": 132
-              },
-              "sources": [
-                {
-                  "binding": "tyre.front_right.temperature_outer",
-                  "transform": {
-                    "type": "number",
-                    "decimals": 0,
-                    "suffix": "\u00b0"
-                  }
-                }
-              ],
-              "value": {
-                "font": {
-                  "family": "roboto-mono",
-                  "size_px": 40
-                },
-                "color": "#8A94A3",
-                "alignment": "center"
-              },
-              "background_color": "#0A0E15",
-              "border": {
-                "color": "#232A35",
-                "width_px": 2,
-                "radius_px": 6
-              },
-              "title": {
-                "text": "OUTER",
+                "text": "WEAR",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -3102,7 +3008,7 @@
               "type": "text",
               "id": "w_bfr",
               "placement": {
-                "x": 316,
+                "x": 830,
                 "y": 158,
                 "width": 178,
                 "height": 132
@@ -3274,20 +3180,20 @@
             },
             {
               "type": "text",
-              "id": "w_irl",
+              "id": "w_wrl",
               "placement": {
                 "x": 8,
                 "y": 452,
-                "width": 144,
+                "width": 300,
                 "height": 132
               },
               "sources": [
                 {
-                  "binding": "tyre.rear_left.temperature_inner",
+                  "binding": "tyre.rear_left.wear",
                   "transform": {
                     "type": "number",
                     "decimals": 0,
-                    "suffix": "\u00b0"
+                    "suffix": "%"
                   }
                 }
               ],
@@ -3306,52 +3212,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "INNER",
-                "font": {
-                  "family": "roboto-condensed_bold",
-                  "size_px": 14
-                },
-                "color": "#5C6675",
-                "alignment": "top_left",
-                "offset_x_px": 14,
-                "offset_y_px": 0
-              }
-            },
-            {
-              "type": "text",
-              "id": "w_orl",
-              "placement": {
-                "x": 164,
-                "y": 452,
-                "width": 144,
-                "height": 132
-              },
-              "sources": [
-                {
-                  "binding": "tyre.rear_left.temperature_outer",
-                  "transform": {
-                    "type": "number",
-                    "decimals": 0,
-                    "suffix": "\u00b0"
-                  }
-                }
-              ],
-              "value": {
-                "font": {
-                  "family": "roboto-mono",
-                  "size_px": 40
-                },
-                "color": "#8A94A3",
-                "alignment": "center"
-              },
-              "background_color": "#0A0E15",
-              "border": {
-                "color": "#232A35",
-                "width_px": 2,
-                "radius_px": 6
-              },
-              "title": {
-                "text": "OUTER",
+                "text": "WEAR",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -3496,7 +3357,7 @@
               "type": "text",
               "id": "w_prr",
               "placement": {
-                "x": 316,
+                "x": 830,
                 "y": 302,
                 "width": 178,
                 "height": 140
@@ -3538,20 +3399,20 @@
             },
             {
               "type": "text",
-              "id": "w_irr",
+              "id": "w_wrr",
               "placement": {
                 "x": 522,
                 "y": 452,
-                "width": 144,
+                "width": 300,
                 "height": 132
               },
               "sources": [
                 {
-                  "binding": "tyre.rear_right.temperature_inner",
+                  "binding": "tyre.rear_right.wear",
                   "transform": {
                     "type": "number",
                     "decimals": 0,
-                    "suffix": "\u00b0"
+                    "suffix": "%"
                   }
                 }
               ],
@@ -3570,52 +3431,7 @@
                 "radius_px": 6
               },
               "title": {
-                "text": "INNER",
-                "font": {
-                  "family": "roboto-condensed_bold",
-                  "size_px": 14
-                },
-                "color": "#5C6675",
-                "alignment": "top_left",
-                "offset_x_px": 14,
-                "offset_y_px": 0
-              }
-            },
-            {
-              "type": "text",
-              "id": "w_orr",
-              "placement": {
-                "x": 678,
-                "y": 452,
-                "width": 144,
-                "height": 132
-              },
-              "sources": [
-                {
-                  "binding": "tyre.rear_right.temperature_outer",
-                  "transform": {
-                    "type": "number",
-                    "decimals": 0,
-                    "suffix": "\u00b0"
-                  }
-                }
-              ],
-              "value": {
-                "font": {
-                  "family": "roboto-mono",
-                  "size_px": 40
-                },
-                "color": "#8A94A3",
-                "alignment": "center"
-              },
-              "background_color": "#0A0E15",
-              "border": {
-                "color": "#232A35",
-                "width_px": 2,
-                "radius_px": 6
-              },
-              "title": {
-                "text": "OUTER",
+                "text": "WEAR",
                 "font": {
                   "family": "roboto-condensed_bold",
                   "size_px": 14
@@ -3630,7 +3446,7 @@
               "type": "text",
               "id": "w_brr",
               "placement": {
-                "x": 316,
+                "x": 830,
                 "y": 452,
                 "width": 178,
                 "height": 132
