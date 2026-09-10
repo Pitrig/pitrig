@@ -7,32 +7,35 @@ export interface GradientArcSegment {
   color: string
 }
 
+export interface GradientArc {
+  centerX: number
+  centerY: number
+  radius: number
+  sectorStart: number
+  sectorDegrees: number
+  fillStart: number
+  sweptDegrees: number
+  inverted: boolean
+  from: RgbColor
+  via: RgbColor | undefined
+  to: RgbColor
+}
+
 const SEGMENT_DEGREES = 2
 const OVERLAP_DEGREES = 0.75
 
-export function gradientArcSegments(
-  centerX: number,
-  centerY: number,
-  radius: number,
-  startDegrees: number,
-  sweptDegrees: number,
-  sectorDegrees: number,
-  from: RgbColor,
-  via: RgbColor | undefined,
-  to: RgbColor,
-  inverted: boolean
-): GradientArcSegment[] {
-  if (sweptDegrees <= 0 || sectorDegrees <= 0) return []
-  const count = Math.max(1, Math.ceil(sweptDegrees / SEGMENT_DEGREES))
-  const step = sweptDegrees / count
+export function gradientArcSegments(arc: GradientArc): GradientArcSegment[] {
+  if (arc.sweptDegrees <= 0 || arc.sectorDegrees <= 0) return []
+  const count = Math.max(1, Math.ceil(arc.sweptDegrees / SEGMENT_DEGREES))
+  const step = arc.sweptDegrees / count
+  const entered = arc.fillStart - arc.sectorStart
   return Array.from({ length: count }, (_, index) => {
-    const begin = startDegrees + index * step
-    const end = index === count - 1 ? startDegrees + sweptDegrees : begin + step + OVERLAP_DEGREES
-    const middle = ((index + 0.5) * step) / sectorDegrees
-    const fraction = inverted ? 1 - middle : middle
+    const begin = arc.fillStart + index * step
+    const end = index === count - 1 ? arc.fillStart + arc.sweptDegrees : begin + step + OVERLAP_DEGREES
+    const along = (entered + (index + 0.5) * step) / arc.sectorDegrees
     return {
-      d: arcPath(centerX, centerY, radius, begin, end - begin),
-      color: fillRampColor(from, via, to, fraction)
+      d: arcPath(arc.centerX, arc.centerY, arc.radius, begin, end - begin),
+      color: fillRampColor(arc.from, arc.via, arc.to, arc.inverted ? 1 - along : along)
     }
   })
 }

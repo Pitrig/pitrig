@@ -97,8 +97,10 @@ Ring resolve_ring(const Config& config, const std::int32_t inner_width,
 }
 
 void point_needle(State& state, const float fraction) {
-  const float degrees = state.sector_start_deg +
-                        state.sector_deg * std::clamp(fraction, 0.0F, 1.0F);
+  const float swept = std::clamp(fraction, 0.0F, 1.0F);
+  const float degrees =
+      state.sector_start_deg +
+      state.sector_deg * (state.inverted ? 1.0F - swept : swept);
   const float radians = degrees * std::numbers::pi_v<float> / 180.0F;
   state.needle_points[0] = {static_cast<lv_value_precise_t>(state.centre_x),
                             static_cast<lv_value_precise_t>(state.centre_y)};
@@ -152,7 +154,8 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_set_size(state.arc, ring.side, ring.side);
   lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_CLICKABLE);
   lv_obj_remove_flag(state.arc, LV_OBJ_FLAG_SCROLLABLE);
-  lv_arc_set_mode(state.arc, LV_ARC_MODE_NORMAL);
+  lv_arc_set_mode(state.arc, config.inverted ? LV_ARC_MODE_REVERSE
+                                             : LV_ARC_MODE_NORMAL);
   lv_arc_set_bg_angles(
       state.arc, static_cast<lv_value_precise_t>(sector_start),
       static_cast<lv_value_precise_t>(sector_start + drawn_sector(config)));
@@ -195,7 +198,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
                                 LV_PART_MAIN);
     lv_obj_set_style_line_opa(state.needle, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_line_rounded(state.needle, true, LV_PART_MAIN);
-    point_needle(state, state.inverted ? 1.0F : 0.0F);
+    point_needle(state, 0.0F);
   }
 
   if (state.needle != nullptr) {
@@ -243,9 +246,7 @@ void Collection::render_state(State& state) {
       numeric.has_value() ? conditions::range_fraction(*numeric, state.range)
                           : 0.0F;
   const auto per_mille = static_cast<std::int32_t>(
-      static_cast<float>(kSweepResolution) *
-          (state.inverted ? 1.0F - fraction : fraction) +
-      0.5F);
+      static_cast<float>(kSweepResolution) * fraction + 0.5F);
   if (!first_render && per_mille == state.drawn_per_mille) {
     return;
   }

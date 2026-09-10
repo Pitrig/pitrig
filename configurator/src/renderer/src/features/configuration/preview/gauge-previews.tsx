@@ -98,11 +98,13 @@ export function ArcPreview({
   const { radius, centerX, centerY } = ringGeometry(plot, thickness, configuration)
   const track = normalizeColor(configuration.track_color)
   const value = values.numberFor(configuration.source)
-  const fraction = rangeFraction(value, configuration.minimum, configuration.maximum)
-  const swept = value === undefined ? sector : sector * (configuration.inverted ? 1 - fraction : fraction)
+  const inverted = configuration.inverted ?? false
+  const fraction = value === undefined ? 1 : rangeFraction(value, configuration.minimum, configuration.maximum)
+  const swept = sector * fraction
+  const fillStart = inverted ? start + sector - swept : start
   const faded = value === undefined ? (track && track !== 'transparent' ? 0.25 : 0.35) : 1
   const needle = (configuration.mark ?? 'ring') === 'needle'
-  const pointer = needlePoints(centerX, centerY, radius, start + (needle ? swept : 0))
+  const pointer = needlePoints(centerX, centerY, radius, inverted ? fillStart : start + swept)
   const authoredFill = configuration.fill_color ?? '#38BDF8'
   const fillColor = style.color ?? authoredFill
   const rampEnd = paintedColor(configuration.fill_grad_color)
@@ -133,13 +135,13 @@ export function ArcPreview({
           />
         ) : swept > 0 && gradient ? (
           <g fill="none" strokeWidth={thickness} opacity={faded}>
-            {gradientArcSegments(centerX, centerY, radius, start, swept, sector, authoredFill, paintedColor(configuration.fill_grad_mid_color) as RgbColor | undefined, rampEnd as RgbColor, configuration.inverted ?? false).map((segment, index) => (
+            {gradientArcSegments({ centerX, centerY, radius, sectorStart: start, sectorDegrees: sector, fillStart, sweptDegrees: swept, inverted, from: authoredFill, via: paintedColor(configuration.fill_grad_mid_color) as RgbColor | undefined, to: rampEnd as RgbColor }).map((segment, index) => (
               <path key={index} d={segment.d} stroke={segment.color} />
             ))}
           </g>
         ) : swept > 0 ? (
           <path
-            d={arcPath(centerX, centerY, radius, start, swept)}
+            d={arcPath(centerX, centerY, radius, fillStart, swept)}
             fill="none"
             stroke={fillColor}
             strokeWidth={thickness}
