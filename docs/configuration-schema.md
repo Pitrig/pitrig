@@ -447,6 +447,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | `centering` | `RingCentering` | `circle` |
 | `track_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `fill_color` | string `#RRGGBB` | `#38BDF8` |
+| `fill_grad_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `mark` | `ArcMark` | `ring` |
 | `inverted` | boolean | `false` |
 

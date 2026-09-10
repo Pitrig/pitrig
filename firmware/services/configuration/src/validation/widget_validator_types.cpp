@@ -20,6 +20,15 @@ bool ring_fits(const std::uint16_t thickness_px, const std::uint16_t radius_px,
   return 2 * thickness_px <= std::min(placement.width, placement.height);
 }
 
+bool gradient_ring_fits(const ArcWidgetConfiguration& config,
+                        const DisplayValidationProfile& display) {
+  if (config.fill_grad_color == kTransparentColor || config.radius_px == 0) {
+    return true;
+  }
+  return 2 * config.radius_px + config.thickness_px <=
+         std::max(display.width, display.height);
+}
+
 }
 
 bool Validator::slot_page(const SlotPageConfiguration& config) {
@@ -134,6 +143,10 @@ bool Validator::arc_widget(const ArcWidgetConfiguration& config) {
   }
   if (!valid_color(config.fill_color) || !valid_optional_color(config.track_color)) {
     return reject(failure_, ValidationError::invalid_widget, "fill_color");
+  }
+  if (!valid_optional_color(config.fill_grad_color) ||
+      !gradient_ring_fits(config, profile_.display)) {
+    return reject(failure_, ValidationError::invalid_widget, "fill_grad_color");
   }
   if (config.mark < ArcMark::ring || config.mark > ArcMark::needle) {
     return reject(failure_, ValidationError::invalid_widget, "mark");

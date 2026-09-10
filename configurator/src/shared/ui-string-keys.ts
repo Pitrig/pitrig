@@ -772,10 +772,12 @@ export type UiStringKey =
   | 'inspector.group.set'
   | 'inspector.hints.action.screen'
   | 'inspector.hints.action.tap'
+  | 'inspector.hints.arc.gradient'
   | 'inspector.hints.arc.inverted'
   | 'inspector.hints.arc.mark'
   | 'inspector.hints.arc.track'
   | 'inspector.hints.bar.fill'
+  | 'inspector.hints.bar.gradient'
   | 'inspector.hints.bar.inverted'
   | 'inspector.hints.bar.origin'
   | 'inspector.hints.box.axis'
@@ -1479,6 +1481,7 @@ export type UiStringKey =
   | 'validation.widgetGeometry.labelIsThicknessPixelsThick4'
   | 'validation.widgetGeometry.labelPadsFurtherThanThe'
   | 'validation.widgetGeometry.labelPadsFurtherThanThe2'
+  | 'validation.widgetGeometry.labelPaintsItsGradientFrom'
   | 'validation.widgetGeometry.labelSpendsClaimedPixelsOn'
   | 'validation.widgetRules.labelHasLengthPagesThe'
   | 'validation.widgetRules.labelHasNoPageIn'
@@ -1839,6 +1842,7 @@ export interface UiStringParameters {
   'validation.widgetGeometry.labelIsThicknessPixelsThick4': { label: string | number, radius: string | number, thickness: string | number }
   'validation.widgetGeometry.labelPadsFurtherThanThe': { label: string | number }
   'validation.widgetGeometry.labelPadsFurtherThanThe2': { label: string | number }
+  'validation.widgetGeometry.labelPaintsItsGradientFrom': { label: string | number, side: string | number }
   'validation.widgetGeometry.labelSpendsClaimedPixelsOn': { claimed: string | number, height: string | number, label: string | number, width: string | number }
   'validation.widgetRules.labelHasLengthPagesThe': { label: string | number, length: string | number, mAXIMUM_SLOT_PAGES: string | number }
   'validation.widgetRules.labelHasNoPageIn': { label: string | number }

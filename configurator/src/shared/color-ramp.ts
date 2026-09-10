@@ -19,12 +19,12 @@ export function rampColor(
     const lower = anchors[index - 1]!
     const width = upper.at - lower.at
     if (!(width > 0)) return lower.color
-    return blend(lower.color, upper.color, (value - lower.at) / width)
+    return blendColor(lower.color, upper.color, (value - lower.at) / width)
   }
   return last.color
 }
 
-function blend(
+export function blendColor(
   from: RgbColor | undefined,
   to: RgbColor | undefined,
   ratio: number

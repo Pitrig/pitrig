@@ -1,14 +1,15 @@
 import { useId } from 'react'
-import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration } from '@shared/configuration-schema'
+import { type ArcWidgetConfiguration, type BarWidgetConfiguration, type GraphWidgetConfiguration, type RgbColor } from '@shared/configuration-schema'
 import { rangeFraction } from '@shared/telemetry-value'
 import { completePlacement } from '../dashboard-editor'
 import { arcPath, needlePoints, ringGeometry, sectorStart } from './arc-geometry'
 import { markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR } from './preview-theme'
 import { type PreviewValues, normalizeColor } from './preview-values'
-import { GradientDefinition, WidgetFrameShape } from './frame-shape'
+import { TrackGradientDefinition, WidgetFrameShape } from './frame-shape'
 import { contentArea, gradientPaint, squareFill } from './preview-geometry-paint'
 import { deviceFloat } from '@shared/contract-number'
+import { gradientArcSegments } from './arc-gradient'
 
 export function BarPreview({
   configuration,
@@ -42,16 +43,21 @@ export function BarPreview({
   const leading = fromAxisStart ? offset : span - offset - length
   const fillColor = style.color ?? '#38BDF8'
   const fillPaint = gradientPaint(fillGradientId, fillColor, configuration.fill_grad_color)
+  const minimumEnd = fromAxisStart ? { x: inner.x, y: inner.y } : { x: inner.x + inner.width, y: inner.y + inner.height }
+  const maximumEnd = fromAxisStart ? { x: inner.x + inner.width, y: inner.y + inner.height } : { x: inner.x, y: inner.y }
 
   return (
     <g>
       <WidgetFrameShape placement={placement} configuration={configuration} style={style} />
       {fillPaint.definition ? (
-        <GradientDefinition
+        <TrackGradientDefinition
           id={fillGradientId}
           from={fillColor}
           to={configuration.fill_grad_color as string}
-          direction={horizontal ? 'horizontal' : 'vertical'}
+          x1={horizontal ? minimumEnd.x : inner.x}
+          y1={horizontal ? inner.y : minimumEnd.y}
+          x2={horizontal ? maximumEnd.x : inner.x}
+          y2={horizontal ? inner.y : maximumEnd.y}
         />
       ) : null}
       {length > 0 ? (
@@ -96,6 +102,10 @@ export function ArcPreview({
   const faded = value === undefined ? (track && track !== 'transparent' ? 0.25 : 0.35) : 1
   const needle = (configuration.mark ?? 'ring') === 'needle'
   const pointer = needlePoints(centerX, centerY, radius, start + (needle ? swept : 0))
+  const authoredFill = configuration.fill_color ?? '#38BDF8'
+  const fillColor = style.color ?? authoredFill
+  const ramp = normalizeColor(configuration.fill_grad_color)
+  const gradient = !needle && ramp !== undefined && ramp !== 'transparent' && fillColor === authoredFill
 
   return (
     <g>
@@ -115,16 +125,22 @@ export function ArcPreview({
         {needle ? (
           <line
             {...pointer}
-            stroke={style.color ?? '#38BDF8'}
+            stroke={fillColor}
             strokeWidth={thickness}
             strokeLinecap="round"
             strokeOpacity={faded}
           />
+        ) : swept > 0 && gradient ? (
+          <g fill="none" strokeWidth={thickness} opacity={faded}>
+            {gradientArcSegments(centerX, centerY, radius, start, swept, sector, authoredFill, ramp as RgbColor, configuration.inverted ?? false).map((segment, index) => (
+              <path key={index} d={segment.d} stroke={segment.color} />
+            ))}
+          </g>
         ) : swept > 0 ? (
           <path
             d={arcPath(centerX, centerY, radius, start, swept)}
             fill="none"
-            stroke={style.color ?? '#38BDF8'}
+            stroke={fillColor}
             strokeWidth={thickness}
             strokeOpacity={faded}
           />

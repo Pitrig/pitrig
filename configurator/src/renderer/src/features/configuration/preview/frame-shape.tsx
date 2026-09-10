@@ -27,6 +27,31 @@ export function GradientDefinition({
   )
 }
 
+export function TrackGradientDefinition({
+  id,
+  from,
+  to,
+  x1,
+  y1,
+  x2,
+  y2
+}: {
+  id: string
+  from: string
+  to: string
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}): React.JSX.Element {
+  return (
+    <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={x1} y1={y1} x2={x2} y2={y2}>
+      <stop offset="0%" stopColor={from} />
+      <stop offset="100%" stopColor={to} />
+    </linearGradient>
+  )
+}
+
 export function WidgetFrameShape({
   placement,
   configuration,

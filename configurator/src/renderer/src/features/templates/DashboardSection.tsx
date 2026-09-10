@@ -54,7 +54,16 @@ export function DashboardSection({
   const setBoard = useEditorPanelStore((state) => state.setTemplateBoard)
   const openPicker = useInsertScreenStore((state) => state.openPicker)
   const [report, setReport] = useState<LayoutTransferResult>()
-  const [missing, setMissing] = useState<readonly string[]>([])
+  const [applied, setApplied] = useState<DeviceConfiguration>()
+
+  const fontAssets = session?.fontAssets
+  const missing = useMemo(
+    () =>
+      applied && fontAssets
+        ? missingFontFamilies(collectFontRequirements(applied), fontAssets.families)
+        : [],
+    [applied, fontAssets]
+  )
 
   const targetBoard = session?.info.boardId ?? draft?.board
   const listed = useMemo(
@@ -74,7 +83,7 @@ export function DashboardSection({
     setBusy(true)
     setError(undefined)
     setReport(undefined)
-    setMissing([])
+    setApplied(undefined)
     try {
       const result = await window.pitrig.readTemplate({ id: summary.id, kind: 'dashboard' })
       if (!result.ok) {
@@ -106,12 +115,7 @@ export function DashboardSection({
       }
       replaceLocalDraft(validated.configuration)
       resetEditorState()
-      setMissing(
-        missingFontFamilies(
-          collectFontRequirements(validated.configuration),
-          session?.fontAssets?.families ?? []
-        )
-      )
+      setApplied(validated.configuration)
       onNotice(`"${summary.name}" is now the local draft.`)
     } catch (bridgeError) {
       setError(bridgeError instanceof Error ? bridgeError.message : t('templates.dashboardSection.failedToApplyTheTemplate'))

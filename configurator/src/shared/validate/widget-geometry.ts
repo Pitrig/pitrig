@@ -45,6 +45,10 @@ export function findWidgetGeometryError(
         ? t('validation.widgetGeometry.labelIsThicknessPixelsThick4', { label: label, thickness: thickness, radius: radius })
         : t('validation.widgetGeometry.labelIsThicknessPixelsThick2', { label: label, thickness: thickness, radius: radius })
     }
+    const side = 2 * radius + thickness
+    if (widget.type === 'arc' && widget.fill_grad_color !== undefined && radius !== 0 && display && side > Math.max(display.width, display.height)) {
+      return t('validation.widgetGeometry.labelPaintsItsGradientFrom', { label: label, side: side })
+    }
   }
   return undefined
 }

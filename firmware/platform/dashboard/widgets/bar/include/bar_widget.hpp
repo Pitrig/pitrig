@@ -34,6 +34,9 @@ struct State {
   std::int32_t inner_height{};
   std::int32_t origin_x{};
   std::int32_t origin_y{};
+  std::uint32_t fill_rgb{};
+  std::uint32_t grad_rgb{};
+  bool gradient{};
   std::uint64_t rendered_revision{};
   bool rendered_available{};
   std::int32_t drawn_length{-1};

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <numbers>
 
+#include "arc_gradient.hpp"
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
 #include "ring_geometry.hpp"
@@ -24,8 +25,41 @@ constexpr float kFullTurnGapDeg = 0.1F;
 }
 
 void apply_indicator_color(void* const context, const std::uint32_t rgb) {
-  lv_obj_set_style_arc_color(static_cast<lv_obj_t*>(context), lv_color_hex(rgb),
-                             LV_PART_INDICATOR);
+  auto& state = *static_cast<State*>(context);
+  lv_obj_set_style_arc_color(state.arc, lv_color_hex(rgb), LV_PART_INDICATOR);
+  if (state.gradient != nullptr) {
+    lv_obj_set_style_arc_image_src(
+        state.arc, rgb == state.fill_rgb ? state.gradient : nullptr,
+        LV_PART_INDICATOR);
+  }
+}
+
+void release_gradient(lv_event_t* const event) {
+  auto* const buffer =
+      static_cast<lv_draw_buf_t*>(lv_event_get_user_data(event));
+  if (buffer != nullptr) {
+    lv_draw_buf_destroy(buffer);
+  }
+}
+
+[[nodiscard]] bool attach_gradient(State& state, const Config& config,
+                                   const std::int32_t side,
+                                   const float sector_start,
+                                   const float sector) {
+  state.gradient = gradient::prepare({.side = side,
+                                      .thickness_px = config.thickness_px,
+                                      .start_deg = sector_start,
+                                      .sector_deg = sector,
+                                      .inverted = config.inverted,
+                                      .from_rgb = config.fill_color,
+                                      .to_rgb = config.fill_grad_color});
+  if (state.gradient == nullptr) {
+    return false;
+  }
+  lv_obj_add_event_cb(state.arc, &release_gradient, LV_EVENT_DELETE,
+                      state.gradient);
+  lv_obj_set_style_arc_image_src(state.arc, state.gradient, LV_PART_INDICATOR);
+  return true;
 }
 
 void apply_needle_color(void* const context, const std::uint32_t rgb) {
@@ -94,6 +128,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.range = config.range;
   state.inverted = config.inverted;
   state.free_running = binding.fast_updates;
+  state.fill_rgb = config.fill_color;
 
   const std::int32_t border = config.frame.border.width_px;
   const std::int32_t inner_width = std::max<std::int32_t>(
@@ -133,6 +168,12 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_set_style_arc_opa(state.arc, has_track ? LV_OPA_COVER : LV_OPA_TRANSP,
                            LV_PART_MAIN);
   state.drawn_per_mille = -1;
+  const bool ring_mark = config.mark == configuration::ArcMark::ring;
+  if (ring_mark &&
+      config.fill_grad_color != configuration::kTransparentColor &&
+      !attach_gradient(state, config, ring.side, sector_start, sector)) {
+    return false;
+  }
 
   if (config.mark == configuration::ArcMark::needle) {
     lv_obj_set_style_arc_opa(state.arc, LV_OPA_TRANSP, LV_PART_INDICATOR);
@@ -155,10 +196,13 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
     point_needle(state, state.inverted ? 1.0F : 0.0F);
   }
 
-  state.painter.configure(config.frame, box, config.fill_color,
-                          state.needle != nullptr ? &apply_needle_color
-                                                  : &apply_indicator_color,
-                          state.needle != nullptr ? state.needle : state.arc);
+  if (state.needle != nullptr) {
+    state.painter.configure(config.frame, box, config.fill_color,
+                            &apply_needle_color, state.needle);
+  } else {
+    state.painter.configure(config.frame, box, config.fill_color,
+                            &apply_indicator_color, &state);
+  }
   state.painter.bind(binding.condition_read, binding.condition_context);
   state.painter.bind_caption(binding.caption_read, binding.caption_context);
   return true;

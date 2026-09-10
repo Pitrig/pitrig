@@ -591,7 +591,15 @@ unavailable value the authored colour stands.
 
 Gradients are static rather than value-driven. `background_grad_color` with
 `background_grad_dir` gives the frame background a linear gradient along the
-`horizontal` or `vertical` axis, and `fill_grad_color` does the same for a bar
-fill. A gradient needs a background to run over, so it is drawn only where a
-background colour is authored, and a rule or a ramp that repaints the background
-replaces the near colour while the authored gradient stays.
+`horizontal` or `vertical` axis. `fill_grad_color` on a bar or an arc lays a
+gradient over the whole track, `fill_color` at the minimum end and
+`fill_grad_color` at the maximum, and the fill uncovers it as it grows rather
+than stretching it between its own ends, so a half-full bar shows the first
+half of the ramp and `inverted` carries the ramp with the minimum. A background
+gradient needs a background to run over, so it is drawn only where a background
+colour is authored, and a rule or a ramp that repaints the background or a bar's
+fill replaces the near colour while the authored gradient stays. An arc's
+gradient is a bitmap the size of its ring, prepared in external RAM when the
+dashboard is applied: a rule or a ramp that recolours the fill paints it flat
+until the authored colour returns, a needle ignores it, and a ring with a radius
+of its own must not be wider than the display.

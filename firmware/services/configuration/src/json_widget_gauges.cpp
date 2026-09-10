@@ -58,6 +58,8 @@ namespace pitrig::configuration::json::variants {
          read_color(object, "track_color", config.track_color, kName,
                     failure) &&
          read_color(object, "fill_color", config.fill_color, kName, failure) &&
+         read_color(object, "fill_grad_color", config.fill_grad_color, kName,
+                    failure) &&
          read_enum(object, "mark", config.mark, arc_mark_from_name, kName,
                    failure) &&
          read_boolean(object, "inverted", config.inverted, kName, failure);

@@ -31,6 +31,9 @@ struct Resolution {
 [[nodiscard]] float range_fraction(double value,
                                    const configuration::ValueRange& range);
 
+[[nodiscard]] std::uint32_t blend_color(std::uint32_t from, std::uint32_t to,
+                                        double ratio);
+
 [[nodiscard]] std::optional<std::uint32_t> ramp_color(
     std::span<const configuration::ColorStop> stops,
     std::optional<double> value);

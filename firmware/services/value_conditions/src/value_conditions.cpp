@@ -7,20 +7,18 @@
 #include "number_transform.hpp"
 
 namespace pitrig::conditions {
-namespace {
 
-[[nodiscard]] std::uint32_t blend(const std::uint32_t from,
-                                  const std::uint32_t to, const double ratio) {
+std::uint32_t blend_color(const std::uint32_t from, const std::uint32_t to,
+                          const double ratio) {
   std::uint32_t blended{};
   for (int shift = 16; shift >= 0; shift -= 8) {
     const auto start = static_cast<double>((from >> shift) & 0xFFU);
     const auto end = static_cast<double>((to >> shift) & 0xFFU);
-    const auto channel = static_cast<std::uint32_t>(start + (end - start) * ratio + 0.5);
+    const auto channel =
+        static_cast<std::uint32_t>(start + (end - start) * ratio + 0.5);
     blended |= (channel & 0xFFU) << shift;
   }
   return blended;
-}
-
 }
 
 bool condition_holds(const configuration::ConditionOperator op,
@@ -134,7 +132,7 @@ std::optional<std::uint32_t> ramp_color(
     if (!(width > 0.0)) {
       return lower.color;
     }
-    return blend(lower.color, upper.color, (*value - lower.at) / width);
+    return blend_color(lower.color, upper.color, (*value - lower.at) / width);
   }
   return stops.back().color;
 }

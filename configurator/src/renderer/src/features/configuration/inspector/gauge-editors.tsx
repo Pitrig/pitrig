@@ -25,6 +25,9 @@ export function ArcEditor({ selection, widget }: { selection: WidgetSelection; w
         <RingFields widget={widget} owner="arc" update={update} />
         <SelectField label={t('inspector.gaugeEditors.mark')} hint={t('inspector.hints.arc.mark')} value={widget.mark ?? 'ring'} options={ARC_MARK_VALUES} modified={authored(widget.mark, 'ring')} onReset={() => update((next) => { delete next.mark })} onChange={(value) => update((next) => { next.mark = value })} />
         <ColorField label={t('inspector.gaugeEditors.fill')} value={widget.fill_color ?? '#38BDF8'} modified={authored(widget.fill_color, '#38BDF8')} onReset={() => update((next) => { delete next.fill_color })} onChange={(value) => update((next) => { next.fill_color = value })} />
+        {(widget.mark ?? 'ring') === 'ring' ? (
+          <OptionalColorField label={t('inspector.gaugeEditors.gradientTo')} hint={t('inspector.hints.arc.gradient')} value={widget.fill_grad_color} onChange={(value) => update((next) => { if (value === undefined) delete next.fill_grad_color; else next.fill_grad_color = value })} />
+        ) : null}
         <OptionalColorField label={t('inspector.gaugeEditors.track')} hint={t('inspector.hints.arc.track')} value={widget.track_color} onChange={(value) => update((next) => { if (value === undefined) delete next.track_color; else next.track_color = value })} />
         <Advanced id="Arc" active={authored(widget.inverted, false)}>
           <CheckboxField label={t('modules.panelArea.invert')} hint={t('inspector.hints.arc.inverted')} checked={widget.inverted ?? false} modified={authored(widget.inverted, false)} onReset={() => update((next) => { delete next.inverted })} onChange={(checked) => update((next) => { if (checked) next.inverted = true; else delete next.inverted })} />
@@ -132,6 +135,7 @@ export function BarEditor({ selection, widget }: { selection: WidgetSelection; w
         <ColorField label={t('inspector.gaugeEditors.fill')} hint={t('inspector.hints.bar.fill')} value={widget.fill_color ?? '#38BDF8'} modified={authored(widget.fill_color, '#38BDF8')} onReset={() => update((next) => { delete next.fill_color })} onChange={(value) => update((next) => { next.fill_color = value })} />
         <OptionalColorField
           label={t('inspector.gaugeEditors.gradientTo')}
+          hint={t('inspector.hints.bar.gradient')}
           value={widget.fill_grad_color}
           onChange={(value) =>
             update((next) => {

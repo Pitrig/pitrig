@@ -347,7 +347,7 @@ inline constexpr std::array<std::string_view, 24> kBarWidgetConfigurationKeys{{
     "fill_grad_color",
 }};
 
-inline constexpr std::array<std::string_view, 30> kArcWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 31> kArcWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -376,6 +376,7 @@ inline constexpr std::array<std::string_view, 30> kArcWidgetConfigurationKeys{{
     "centering",
     "track_color",
     "fill_color",
+    "fill_grad_color",
     "mark",
     "inverted",
 }};

@@ -473,6 +473,7 @@ export interface ArcWidgetConfiguration {
   centering?: RingCentering
   track_color?: RgbColor
   fill_color?: RgbColor
+  fill_grad_color?: RgbColor
   mark?: ArcMark
   inverted?: boolean
 }
@@ -713,7 +714,7 @@ export const SCHEMA_OBJECT_KEYS: Record<string, readonly string[]> = {
   TextWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'sources', 'value'],
   ValueRange: ['minimum', 'maximum'],
   BarWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'origin', 'orientation', 'inverted', 'fill_color', 'fill_grad_color'],
-  ArcWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'center_angle_deg', 'sector_deg', 'thickness_px', 'radius_px', 'x_offset_px', 'y_offset_px', 'centering', 'track_color', 'fill_color', 'mark', 'inverted'],
+  ArcWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'center_angle_deg', 'sector_deg', 'thickness_px', 'radius_px', 'x_offset_px', 'y_offset_px', 'centering', 'track_color', 'fill_color', 'fill_grad_color', 'mark', 'inverted'],
   IndicatorSegment: ['threshold', 'color'],
   IndicatorWidgetConfiguration: ['type', 'id', 'placement', 'z_index', 'padding', 'border', 'title', 'background_color', 'background_grad_color', 'background_grad_dir', 'background_inset_px', 'fill_corners', 'action', 'condition_source', 'color_ramp', 'conditions', 'source', 'minimum', 'maximum', 'shape', 'orientation', 'center_angle_deg', 'sector_deg', 'thickness_px', 'radius_px', 'x_offset_px', 'y_offset_px', 'centering', 'segment_gap_px', 'segment_radius_px', 'inverted', 'off_color', 'blink_threshold', 'blink_ms', 'segments'],
   GraphTraceConfiguration: ['source', 'minimum', 'maximum', 'line_color'],

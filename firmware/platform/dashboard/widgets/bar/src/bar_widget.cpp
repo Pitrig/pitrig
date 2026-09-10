@@ -11,9 +11,38 @@ namespace {
 
 constexpr char kTag[] = "bar_widget";
 
+[[nodiscard]] bool horizontal(const State& state) {
+  return state.orientation == configuration::BarOrientation::horizontal;
+}
+
+void paint_fill(State& state) {
+  if (!state.gradient) {
+    lv_obj_set_style_bg_color(state.fill, lv_color_hex(state.fill_rgb),
+                              LV_PART_MAIN);
+    return;
+  }
+  const std::int32_t span =
+      horizontal(state) ? state.inner_width : state.inner_height;
+  const std::int32_t last = std::max<std::int32_t>(span - 1, 1);
+  const auto color_at = [&](const std::int32_t pixel) {
+    return conditions::blend_color(
+        state.fill_rgb, state.grad_rgb,
+        static_cast<double>(std::clamp<std::int32_t>(pixel, 0, last)) / last);
+  };
+  const std::uint32_t near = color_at(state.drawn_offset);
+  const std::uint32_t far =
+      color_at(state.drawn_offset + state.drawn_length - 1);
+  const bool from_axis_start = horizontal(state) != state.inverted;
+  lv_obj_set_style_bg_color(
+      state.fill, lv_color_hex(from_axis_start ? near : far), LV_PART_MAIN);
+  lv_obj_set_style_bg_grad_color(
+      state.fill, lv_color_hex(from_axis_start ? far : near), LV_PART_MAIN);
+}
+
 void apply_fill_color(void* const context, const std::uint32_t rgb) {
-  lv_obj_set_style_bg_color(static_cast<lv_obj_t*>(context), lv_color_hex(rgb),
-                            LV_PART_MAIN);
+  auto& state = *static_cast<State*>(context);
+  state.fill_rgb = rgb;
+  paint_fill(state);
 }
 
 }
@@ -52,20 +81,15 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.origin_x = 0;
   state.origin_y = 0;
 
+  state.fill_rgb = config.fill_color;
+  state.grad_rgb = config.fill_grad_color;
+  state.gradient = config.fill_grad_color != configuration::kTransparentColor;
   state.fill = lv_obj_create(box.container);
   lv_obj_remove_style_all(state.fill);
-  lv_obj_set_style_bg_color(state.fill, lv_color_hex(config.fill_color),
-                            LV_PART_MAIN);
   lv_obj_set_style_bg_opa(state.fill, LV_OPA_COVER, LV_PART_MAIN);
-  if (config.fill_grad_color != configuration::kTransparentColor) {
-    lv_obj_set_style_bg_grad_color(state.fill,
-                                   lv_color_hex(config.fill_grad_color),
-                                   LV_PART_MAIN);
+  if (state.gradient) {
     lv_obj_set_style_bg_grad_dir(
-        state.fill,
-        config.orientation == configuration::BarOrientation::horizontal
-            ? LV_GRAD_DIR_HOR
-            : LV_GRAD_DIR_VER,
+        state.fill, horizontal(state) ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_VER,
         LV_PART_MAIN);
   }
   lv_obj_set_style_radius(state.fill, frame::fill_radius(config.frame, border),
@@ -75,9 +99,10 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   lv_obj_set_pos(state.fill, state.origin_x, state.origin_y);
   lv_obj_set_size(state.fill, 0, 0);
   state.drawn_length = -1;
+  paint_fill(state);
 
   state.painter.configure(config.frame, box, config.fill_color,
-                          &apply_fill_color, state.fill);
+                          &apply_fill_color, &state);
   state.painter.bind(binding.condition_read, binding.condition_context);
   state.painter.bind_caption(binding.caption_read, binding.caption_context);
   return true;
@@ -114,9 +139,8 @@ void Collection::render_state(State& state) {
   const std::optional<double> numeric = conditions::condition_value(value);
   const float fraction =
       numeric.has_value() ? conditions::range_fraction(*numeric, state.range) : 0.0F;
-  const bool horizontal =
-      state.orientation == configuration::BarOrientation::horizontal;
-  const std::int32_t span = horizontal ? state.inner_width : state.inner_height;
+  const bool along_x = horizontal(state);
+  const std::int32_t span = along_x ? state.inner_width : state.inner_height;
   const float nearest = std::min(state.origin_fraction, fraction);
   const float farthest = std::max(state.origin_fraction, fraction);
   const auto offset =
@@ -130,11 +154,14 @@ void Collection::render_state(State& state) {
   }
   state.drawn_length = length;
   state.drawn_offset = offset;
+  if (state.gradient) {
+    paint_fill(state);
+  }
 
-  const bool from_axis_start = horizontal != state.inverted;
+  const bool from_axis_start = along_x != state.inverted;
   const std::int32_t leading =
       from_axis_start ? offset : span - offset - length;
-  if (horizontal) {
+  if (along_x) {
     lv_obj_set_pos(state.fill, state.origin_x + leading, state.origin_y);
     lv_obj_set_size(state.fill, length, state.inner_height);
   } else {

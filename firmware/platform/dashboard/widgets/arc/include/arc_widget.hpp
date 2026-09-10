@@ -30,6 +30,8 @@ struct State {
   lv_obj_t* container{};
   lv_obj_t* arc{};
   lv_obj_t* needle{};
+  lv_draw_buf_t* gradient{};
+  std::uint32_t fill_rgb{};
   std::array<lv_point_precise_t, 2> needle_points{};
   float centre_x{};
   float centre_y{};

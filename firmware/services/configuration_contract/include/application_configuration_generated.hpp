@@ -579,6 +579,7 @@ struct ArcWidgetConfiguration {
   RingCentering centering{RingCentering::circle};
   std::uint32_t track_color{kTransparentColor};
   std::uint32_t fill_color{0x38BDF8};
+  std::uint32_t fill_grad_color{kTransparentColor};
   ArcMark mark{ArcMark::ring};
   bool inverted{false};
 };
