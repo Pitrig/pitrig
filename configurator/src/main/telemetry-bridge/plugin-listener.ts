@@ -1,4 +1,5 @@
 import { createSocket, type Socket } from 'node:dgram'
+import { lookup } from 'node:dns/promises'
 import { performance } from 'node:perf_hooks'
 
 import {
@@ -7,7 +8,8 @@ import {
   LINK_LOOPBACK_ADDRESS,
   LINK_MAGIC,
   LINK_MAXIMUM_PAYLOAD,
-  LINK_VERSION
+  LINK_VERSION,
+  SUBSCRIBE_INTERVAL_MS
 } from '@shared/telemetry-bridge'
 
 const NEWLINE = 10
@@ -24,27 +26,37 @@ export interface LinkPacket {
   at: number
 }
 
+export interface PluginListenerRequest {
+  port: number
+  simhubHost: string
+  simhubPort: number
+}
+
 export interface PluginListener {
   address: string
   port: number
+  simhubAddress: string
   onPacket: (listener: (packet: LinkPacket) => void) => void
   onClose: (listener: (error?: Error) => void) => void
   close: () => Promise<void>
 }
 
-export async function openPluginListener(
-  port: number,
-  acceptFromNetwork: boolean
-): Promise<PluginListener> {
-  const address = acceptFromNetwork ? LINK_ANY_ADDRESS : LINK_LOOPBACK_ADDRESS
+export async function openPluginListener(request: PluginListenerRequest): Promise<PluginListener> {
+  const simhubAddress = await resolve(request.simhubHost)
+  const address = isLoopback(simhubAddress) ? LINK_LOOPBACK_ADDRESS : LINK_ANY_ADDRESS
   const socket = createSocket({ type: 'udp4', recvBufferSize: RECEIVE_BUFFER_BYTES })
-  await bind(socket, port, address)
+  await bind(socket, request.port, address)
+  const subscribe = subscribeTo(socket, simhubAddress, request.simhubPort)
+  const keepalive = setInterval(subscribe, SUBSCRIBE_INTERVAL_MS)
+  subscribe()
   let expected: number | undefined
   return {
     address,
-    port,
+    port: request.port,
+    simhubAddress,
     onPacket: (listener) => {
       socket.on('message', (datagram, remote) => {
+        if (remote.address !== simhubAddress) return
         const at = performance.now()
         const body = bodyOf(datagram)
         if (!body) return
@@ -62,8 +74,29 @@ export async function openPluginListener(
     },
     close: () =>
       new Promise((resolve) => {
+        clearInterval(keepalive)
         socket.close(() => resolve())
       })
+  }
+}
+
+async function resolve(host: string): Promise<string> {
+  const trimmed = host.trim()
+  if (trimmed.length === 0) return LINK_LOOPBACK_ADDRESS
+  const resolved = await lookup(trimmed, { family: 4 })
+  return resolved.address
+}
+
+function isLoopback(address: string): boolean {
+  return address.startsWith('127.')
+}
+
+function subscribeTo(socket: Socket, address: string, port: number): () => void {
+  const datagram = Buffer.alloc(LINK_HEADER_BYTES)
+  datagram.write(LINK_MAGIC, 0, 'latin1')
+  datagram[2] = LINK_VERSION
+  return () => {
+    socket.send(datagram, port, address, () => undefined)
   }
 }
 

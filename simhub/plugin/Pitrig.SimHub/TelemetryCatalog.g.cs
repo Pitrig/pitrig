@@ -85,6 +85,8 @@ namespace Pitrig.SimHub
 
         public const int LinkDefaultPort = 45455;
 
+        public const int LinkSourcePort = 45456;
+
         public const int LinkMaximumPayload = 1200;
 
         public const int LinkKeyframeIntervalMs = 1000;

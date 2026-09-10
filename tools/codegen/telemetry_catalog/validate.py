@@ -47,6 +47,10 @@ def validate_link(link: dict[str, Any]) -> None:
         fail("telemetry link version must be a byte")
     if not 1_024 <= link["port"] <= 65_535:
         fail("telemetry link port must be an unprivileged port number")
+    if not 1_024 <= link["source_port"] <= 65_535:
+        fail("telemetry link source port must be an unprivileged port number")
+    if link["source_port"] == link["port"]:
+        fail("telemetry link source port must differ from the listening port")
     if not 64 <= link["maximum_payload"] <= 8_192:
         fail("telemetry link payload must be between 64 and 8192 bytes")
     if not 100 <= link["keyframe_interval_ms"] <= 10_000:

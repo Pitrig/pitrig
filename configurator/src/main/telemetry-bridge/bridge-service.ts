@@ -25,7 +25,6 @@ export class TelemetryBridgeService {
   private listener: PluginListener | undefined
   private snapshotTimer: NodeJS.Timeout | undefined
   private statusTimer: NodeJS.Timeout | undefined
-  private acceptFromNetwork = false
   private sourceAddress: string | undefined
   private lastPacketAt = Number.NEGATIVE_INFINITY
   private pendingWrites = 0
@@ -47,7 +46,7 @@ export class TelemetryBridgeService {
       running: true,
       receiving: performance.now() - this.lastPacketAt < SOURCE_IDLE_MS,
       port: this.listener.port,
-      acceptFromNetwork: this.acceptFromNetwork,
+      simhubAddress: this.listener.simhubAddress,
       relaying: this.deviceService.relayAvailable(),
       suspended:
         this.deviceService.telemetryLinkAvailable() && !this.deviceService.relayAvailable(),
@@ -62,8 +61,11 @@ export class TelemetryBridgeService {
       return failure({ code: 'busy', message: t('telemetry.bridgeService.alreadyRunning') })
     }
     try {
-      this.listener = await openPluginListener(request.port, request.acceptFromNetwork)
-      this.acceptFromNetwork = request.acceptFromNetwork
+      this.listener = await openPluginListener({
+        port: request.port,
+        simhubHost: request.simhubHost,
+        simhubPort: request.simhubPort
+      })
       this.sourceAddress = undefined
       this.lastPacketAt = Number.NEGATIVE_INFINITY
       this.error = undefined

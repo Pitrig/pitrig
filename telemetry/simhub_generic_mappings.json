@@ -5,7 +5,14 @@
     "description": "Generic SimHub telemetry output for Pitrig devices",
     "baud_rate": 921600,
     "frequencies": { "fast": 60, "normal": 20, "slow": 5, "changes": 0 },
-    "link": { "magic": "PT", "version": 1, "port": 45455, "maximum_payload": 1200, "keyframe_interval_ms": 1000 }
+    "link": {
+      "magic": "PT",
+      "version": 1,
+      "port": 45455,
+      "source_port": 45456,
+      "maximum_payload": 1200,
+      "keyframe_interval_ms": 1000
+    }
   },
   "fields": {
     "vehicle.speed": { "property": "DataCorePlugin.GameData.NewData.SpeedKmh", "format": "0" },

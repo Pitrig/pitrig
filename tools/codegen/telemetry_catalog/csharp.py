@@ -139,6 +139,8 @@ namespace Pitrig.SimHub
 
         public const int LinkDefaultPort = {link["port"]};
 
+        public const int LinkSourcePort = {link["source_port"]};
+
         public const int LinkMaximumPayload = {link["maximum_payload"]};
 
         public const int LinkKeyframeIntervalMs = {link["keyframe_interval_ms"]};

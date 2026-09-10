@@ -9,14 +9,16 @@ Serial profile, which stays supported for a board fed straight from SimHub
 ## Installing
 
 Copy `Pitrig.SimHub.dll` next to `SimHub.exe` and restart SimHub. The plugin
-appears in the left menu as **Pitrig**; the panel takes the configurator's host
-and port and switches sending on and off.
+appears in the left menu as **Pitrig**; the panel shows the addresses of the
+machine it runs on, takes the port it listens on and switches sending on and
+off.
 
-On the configurator's Protocol page, **Live telemetry** binds the same port and
-starts the bridge. The defaults pair without editing anything: `127.0.0.1` and
-port 45455. A configurator on another machine needs its address in the plugin
-and **Accept from the network** on the panel; on macOS the application also has
-to be allowed under Privacy & Security → Local Network.
+On the configurator's Protocol page, **Live telemetry** takes the SimHub
+machine's address and starts the bridge. The defaults pair without editing
+anything: `127.0.0.1`, plugin port 45456, listen port 45455. SimHub on another
+machine needs one of the addresses the plugin panel shows typed into **SimHub
+machine**; on macOS the configurator also has to be allowed under Privacy &
+Security → Local Network.
 
 ## Building
 
@@ -45,8 +47,14 @@ one side is a visible change to the other.
 
 ## The wire
 
-The plugin sends UDP datagrams. Each carries a seven-byte header and a payload
-of whole lines in the format the board already parses,
+The configurator asks first. It binds its listen port and sends a bare
+seven-byte header to the plugin once a second; the plugin streams to whatever
+address that request came from and forgets it after three seconds of silence.
+Nothing but the machine the configurator names is heard, and a fresh subscriber
+gets a keyframe immediately rather than waiting for the next one.
+
+Telemetry travels as UDP datagrams. Each carries the same seven-byte header and
+a payload of whole lines in the format the board already parses,
 `<id>;<value>\n` ([SimHub telemetry](simhub-custom-serial.md)):
 
 | Offset | Size | Field |

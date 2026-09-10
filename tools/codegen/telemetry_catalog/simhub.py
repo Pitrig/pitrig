@@ -151,6 +151,7 @@ def generate_simhub_typescript(
         "magic": profile["link"]["magic"],
         "version": profile["link"]["version"],
         "port": profile["link"]["port"],
+        "sourcePort": profile["link"]["source_port"],
         "maximumPayload": profile["link"]["maximum_payload"],
         "keyframeIntervalMs": profile["link"]["keyframe_interval_ms"],
     }

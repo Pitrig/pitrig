@@ -11,8 +11,8 @@ namespace Pitrig.SimHub
         private static readonly Thickness RowMargin = new Thickness(0, 4, 0, 0);
 
         private readonly PitrigPlugin plugin;
-        private readonly TextBox host = new TextBox();
         private readonly TextBox port = new TextBox();
+        private readonly TextBlock addresses = new TextBlock { TextWrapping = TextWrapping.Wrap };
         private readonly CheckBox enabled = new CheckBox { Content = "Send telemetry" };
         private readonly TextBlock state = new TextBlock { TextWrapping = TextWrapping.Wrap };
         private readonly DispatcherTimer refresh = new DispatcherTimer
@@ -23,12 +23,15 @@ namespace Pitrig.SimHub
         public SettingsControl(PitrigPlugin plugin)
         {
             this.plugin = plugin;
-            host.Text = plugin.Settings.Host;
             port.Text = plugin.Settings.Port.ToString(CultureInfo.InvariantCulture);
             enabled.IsChecked = plugin.Settings.Enabled;
             Content = Layout();
             refresh.Tick += (sender, arguments) => ShowState();
-            Loaded += (sender, arguments) => refresh.Start();
+            Loaded += (sender, arguments) =>
+            {
+                addresses.Text = plugin.LocalAddresses;
+                refresh.Start();
+            };
             Unloaded += (sender, arguments) => refresh.Stop();
             ShowState();
         }
@@ -40,11 +43,14 @@ namespace Pitrig.SimHub
             var panel = new StackPanel { Margin = new Thickness(12) };
             panel.Children.Add(new TextBlock
             {
-                Text = "The Pitrig configurator listens for this stream and forwards it to the board.",
+                Text = "The Pitrig configurator asks for this stream and forwards it to the board. " +
+                       "Enter this machine's address on its Protocol page.",
                 TextWrapping = TextWrapping.Wrap
             });
-            panel.Children.Add(Row("Configurator host", host));
-            panel.Children.Add(Row("Port", port));
+            addresses.Margin = RowMargin;
+            panel.Children.Add(new TextBlock { Text = "This machine", Margin = RowMargin });
+            panel.Children.Add(addresses);
+            panel.Children.Add(Row("Listen port", port));
             enabled.Margin = RowMargin;
             panel.Children.Add(enabled);
             panel.Children.Add(apply);
@@ -73,10 +79,10 @@ namespace Pitrig.SimHub
             }
             plugin.Apply(new PluginSettings
             {
-                Host = host.Text.Trim(),
                 Port = number,
                 Enabled = enabled.IsChecked == true
             });
+            addresses.Text = plugin.LocalAddresses;
             ShowState();
         }
 
@@ -90,6 +96,11 @@ namespace Pitrig.SimHub
             if (!plugin.Settings.Enabled)
             {
                 state.Text = "Sending is switched off.";
+                return;
+            }
+            if (plugin.Target.Length == 0)
+            {
+                state.Text = "Waiting for a configurator to ask for the stream.";
                 return;
             }
             state.Text = string.Format(

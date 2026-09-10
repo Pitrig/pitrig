@@ -65,10 +65,16 @@ shows what the board shows rather than a reconstructed float.
 second toggle to disagree with it. Template thumbnails and the insert ghost keep
 their placeholders — they are specimens, not the dashboard.
 
-**Loopback unless asked.** The configurator binds `127.0.0.1`, so only a plugin
-on the same machine is heard. Accepting from the local network is one explicit
-choice on the Protocol page, which is what a configurator on a second machine
-needs.
+**The configurator dials, the plugin answers.** The configurator names the
+machine SimHub runs on and sends a bare header to the plugin once a second; the
+plugin streams to whatever address that request came from and forgets it after
+three seconds of silence. The address is knowledge the authoring side already
+has and the sim rig does not, so a rig on a second machine is configured where
+someone is already sitting, and the plugin needs nothing typed into it. Naming
+a non-loopback machine is itself the explicit choice to listen beyond
+`127.0.0.1`, and datagrams from any other address are dropped, so the opened
+socket is narrower than an accepted-from-anywhere one. A new subscriber is sent
+a keyframe at once rather than waiting up to a second for the next.
 
 **Measured, not asserted.** The bridge keeps two latency histograms — what it
 adds before the write, and what the write itself costs — plus line, field, byte
@@ -88,9 +94,11 @@ page shows them.
   checked.
 - UDP can drop a datagram. Changes-only fields are the exposed case, and the
   one-second keyframe is what bounds it.
-- Accepting from the network needs the operating system's permission for
-  inbound local traffic — on macOS the app has to be allowed under Local
-  Network before a plugin on another machine reaches it.
+- Reaching a plugin across the network needs the operating system's permission
+  for local traffic — on macOS the app has to be allowed under Local Network
+  before the configurator can ask a plugin on another machine.
+- The plugin binds a port of its own, distinct from the configurator's, so both
+  can run on one machine; the two sides have to be updated together.
 - Two parity gaps remain against the board: `dashboard.smoothing`
   ([ADR 0033](0033-value-smoothing-between-packets.md)) glides between packets
   and the preview steps, and `session.lap.current_time` is extrapolated on the

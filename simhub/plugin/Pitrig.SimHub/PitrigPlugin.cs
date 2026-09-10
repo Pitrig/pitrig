@@ -12,7 +12,7 @@ namespace Pitrig.SimHub
     [PluginAuthor("Pitrig")]
     public class PitrigPlugin : IPlugin, IDataPlugin, IWPFSettingsV2
     {
-        private const string SettingsName = "Settings";
+        private const string SettingsName = "Link";
         private const double ChangesIntervalMs = 100;
 
         private static readonly Lazy<ImageSource> Icon = new Lazy<ImageSource>(CreateIcon);
@@ -30,6 +30,8 @@ namespace Pitrig.SimHub
         public string Error { get; private set; }
 
         public string Target => link.Target;
+
+        public string LocalAddresses => TelemetryLink.LocalAddresses();
 
         public long PacketsSent => link.PacketsSent;
 
@@ -69,7 +71,7 @@ namespace Pitrig.SimHub
             if (!settings.Enabled) return;
             try
             {
-                link.Connect(settings.Host, settings.Port);
+                link.Open(settings.Port);
             }
             catch (Exception exception)
             {
@@ -80,6 +82,8 @@ namespace Pitrig.SimHub
         public void DataUpdate(PluginManager pluginManager, ref GameData data)
         {
             if (!Settings.Enabled) return;
+            if (link.TakeNewSubscriber()) nextKeyframe = 0;
+            if (!link.Ready) return;
             var now = clock.Elapsed.TotalMilliseconds;
             var keyframe = now >= nextKeyframe;
             if (keyframe) nextKeyframe = now + TelemetryCatalog.LinkKeyframeIntervalMs;

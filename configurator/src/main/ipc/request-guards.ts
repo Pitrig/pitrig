@@ -235,11 +235,10 @@ export function isTelemetryBridgeStartRequest(
 ): value is TelemetryBridgeStartRequest {
   if (!value || typeof value !== 'object') return false
   const request = value as Partial<TelemetryBridgeStartRequest>
-  if (typeof request.acceptFromNetwork !== 'boolean') return false
-  return (
-    typeof request.port === 'number' &&
-    Number.isInteger(request.port) &&
-    request.port >= 1_024 &&
-    request.port <= 65_535
-  )
+  if (typeof request.simhubHost !== 'string' || request.simhubHost.length > 255) return false
+  return isLinkPort(request.port) && isLinkPort(request.simhubPort)
+}
+
+function isLinkPort(value: unknown): boolean {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1_024 && value <= 65_535
 }

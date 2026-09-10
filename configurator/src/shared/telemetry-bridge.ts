@@ -13,15 +13,19 @@ export const SNAPSHOT_INTERVAL_MS = 16
 export const LINK_MAGIC = SIMHUB_LINK.magic
 export const LINK_VERSION = SIMHUB_LINK.version
 export const LINK_DEFAULT_PORT = SIMHUB_LINK.port
+export const LINK_SOURCE_PORT = SIMHUB_LINK.sourcePort
 export const LINK_MAXIMUM_PAYLOAD = SIMHUB_LINK.maximumPayload
 export const LINK_HEADER_BYTES = 7
 export const LINK_LOOPBACK_ADDRESS = '127.0.0.1'
 export const LINK_ANY_ADDRESS = '0.0.0.0'
+export const LINK_DEFAULT_SIMHUB_HOST = '127.0.0.1'
 export const SOURCE_IDLE_MS = 1_000
+export const SUBSCRIBE_INTERVAL_MS = 1_000
 
 export interface TelemetryBridgeStartRequest {
   port: number
-  acceptFromNetwork: boolean
+  simhubPort: number
+  simhubHost: string
 }
 
 export interface LatencyQuantiles {
@@ -52,7 +56,7 @@ export interface TelemetryBridgeStatus {
   suspended: boolean
   metrics: TelemetryBridgeMetrics
   port?: number
-  acceptFromNetwork?: boolean
+  simhubAddress?: string
   sourceAddress?: string
   error?: string
 }

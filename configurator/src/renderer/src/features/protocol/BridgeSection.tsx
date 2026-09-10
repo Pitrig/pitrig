@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PageSection, ReadOnlyField } from '@/app/workspace/PageShell'
-import { CheckboxField, NumberField } from '@/features/configuration/inspector/fields'
+import { NumberField, TextField } from '@/features/configuration/inspector/fields'
 import {
   startTelemetryBridge,
   stopTelemetryBridge,
@@ -11,6 +11,8 @@ import {
 } from '@/features/telemetry/bridge-store'
 import {
   LINK_DEFAULT_PORT,
+  LINK_DEFAULT_SIMHUB_HOST,
+  LINK_SOURCE_PORT,
   type LatencyQuantiles,
   type TelemetryBridgeStatus
 } from '@shared/telemetry-bridge'
@@ -20,11 +22,12 @@ export function BridgeSection(): React.JSX.Element {
   const status = useBridgeStore((state) => state.status)
   const busy = useBridgeStore((state) => state.busy)
   const [port, setPort] = useState<number>(LINK_DEFAULT_PORT)
-  const [acceptFromNetwork, setAcceptFromNetwork] = useState(false)
+  const [simhubHost, setSimhubHost] = useState(LINK_DEFAULT_SIMHUB_HOST)
+  const [simhubPort, setSimhubPort] = useState<number>(LINK_SOURCE_PORT)
   const [error, setError] = useState<string>()
 
   const start = async (): Promise<void> => {
-    setError(await startTelemetryBridge({ port, acceptFromNetwork }))
+    setError(await startTelemetryBridge({ port, simhubHost, simhubPort }))
   }
 
   return (
@@ -46,11 +49,13 @@ export function BridgeSection(): React.JSX.Element {
       <div className="space-y-3">
         <StateChips status={status} />
         <PluginSource
-          acceptFromNetwork={acceptFromNetwork}
           port={port}
+          simhubHost={simhubHost}
+          simhubPort={simhubPort}
           status={status}
-          onAcceptFromNetwork={setAcceptFromNetwork}
           onPort={setPort}
+          onSimhubHost={setSimhubHost}
+          onSimhubPort={setSimhubPort}
         />
         {status.running ? <Measured status={status} /> : null}
         {error ?? status.error ? (
@@ -90,17 +95,21 @@ function StateChips({ status }: { status: TelemetryBridgeStatus }): React.JSX.El
 }
 
 function PluginSource({
-  acceptFromNetwork,
   port,
+  simhubHost,
+  simhubPort,
   status,
-  onAcceptFromNetwork,
-  onPort
+  onPort,
+  onSimhubHost,
+  onSimhubPort
 }: {
-  acceptFromNetwork: boolean
   port: number
+  simhubHost: string
+  simhubPort: number
   status: TelemetryBridgeStatus
-  onAcceptFromNetwork: (value: boolean) => void
   onPort: (value: number) => void
+  onSimhubHost: (value: string) => void
+  onSimhubPort: (value: number) => void
 }): React.JSX.Element {
   return (
     <div className="space-y-2 rounded-md border bg-muted/20 p-3">
@@ -109,6 +118,19 @@ function PluginSource({
         {t('protocol.bridgeSection.pluginHint')}
       </p>
       <fieldset className="space-y-1 disabled:opacity-50" disabled={status.running}>
+        <TextField
+          label={t('protocol.bridgeSection.simhubHost')}
+          value={simhubHost}
+          onChange={onSimhubHost}
+        />
+        <NumberField
+          label={t('protocol.bridgeSection.simhubPort')}
+          max={65_535}
+          min={1_024}
+          step={1}
+          value={simhubPort}
+          onChange={onSimhubPort}
+        />
         <NumberField
           label={t('protocol.bridgeSection.listenPort')}
           max={65_535}
@@ -117,20 +139,18 @@ function PluginSource({
           value={port}
           onChange={onPort}
         />
-        <CheckboxField
-          checked={acceptFromNetwork}
-          label={t('protocol.bridgeSection.acceptFromNetwork')}
-          onChange={onAcceptFromNetwork}
-        />
       </fieldset>
       <p className="text-[11px] leading-4 text-muted-foreground">
-        {t('protocol.bridgeSection.acceptFromNetworkHint')}
+        {t('protocol.bridgeSection.simhubHostHint')}
       </p>
-      {status.sourceAddress ? (
+      {status.simhubAddress ? (
         <ReadOnlyField
-          label={t('protocol.bridgeSection.source')}
-          value={status.sourceAddress}
+          label={t('protocol.bridgeSection.simhubAddress')}
+          value={status.simhubAddress}
         />
+      ) : null}
+      {status.sourceAddress ? (
+        <ReadOnlyField label={t('protocol.bridgeSection.source')} value={status.sourceAddress} />
       ) : null}
     </div>
   )
