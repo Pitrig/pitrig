@@ -751,6 +751,9 @@ export type UiStringKey =
   | 'inspector.gaugeEditors.bar'
   | 'inspector.gaugeEditors.fill'
   | 'inspector.gaugeEditors.fromOrigin'
+  | 'inspector.gaugeEditors.gradient'
+  | 'inspector.gaugeEditors.gradientEnd'
+  | 'inspector.gaugeEditors.gradientMiddle'
   | 'inspector.gaugeEditors.gradientTo'
   | 'inspector.gaugeEditors.howManySamplesEachTrace'
   | 'inspector.gaugeEditors.intervalMs'
@@ -802,6 +805,7 @@ export type UiStringKey =
   | 'inspector.hints.data.binding'
   | 'inspector.hints.data.modifier'
   | 'inspector.hints.data.range'
+  | 'inspector.hints.fill.gradientMiddle'
   | 'inspector.hints.geometry.position'
   | 'inspector.hints.geometry.size'
   | 'inspector.hints.geometry.z'
@@ -1505,6 +1509,7 @@ export type UiStringKey =
   | 'validation.widgetValues.labelHasNoSegmentsSo'
   | 'validation.widgetValues.labelHasNoSourceSo'
   | 'validation.widgetValues.labelNamesTheImageImage'
+  | 'validation.widgetValues.labelSetsAMiddleGradient'
   | 'validation.widgetValues.theCaptionOfLabelReads'
   | 'validation.widgetValues.theCaptionSource'
   | 'validation.widgetValues.theSource'
@@ -1866,6 +1871,7 @@ export interface UiStringParameters {
   'validation.widgetValues.labelHasNoSegmentsSo': { label: string | number }
   'validation.widgetValues.labelHasNoSourceSo': { label: string | number }
   'validation.widgetValues.labelNamesTheImageImage': { image: string | number, label: string | number }
+  'validation.widgetValues.labelSetsAMiddleGradient': { label: string | number }
   'validation.widgetValues.theCaptionOfLabelReads': { label: string | number }
   'validation.widgetValues.whatOfLabelHasNo': { label: string | number, what: string | number }
   'validation.widgetValues.whatOfLabelReadsName': { label: string | number, name: string | number, what: string | number }

@@ -320,7 +320,7 @@ inline constexpr std::array<std::string_view, 2> kValueRangeKeys{{
     "maximum",
 }};
 
-inline constexpr std::array<std::string_view, 24> kBarWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 25> kBarWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -345,9 +345,10 @@ inline constexpr std::array<std::string_view, 24> kBarWidgetConfigurationKeys{{
     "inverted",
     "fill_color",
     "fill_grad_color",
+    "fill_grad_mid_color",
 }};
 
-inline constexpr std::array<std::string_view, 31> kArcWidgetConfigurationKeys{{
+inline constexpr std::array<std::string_view, 32> kArcWidgetConfigurationKeys{{
     "type",
     "id",
     "placement",
@@ -377,6 +378,7 @@ inline constexpr std::array<std::string_view, 31> kArcWidgetConfigurationKeys{{
     "track_color",
     "fill_color",
     "fill_grad_color",
+    "fill_grad_mid_color",
     "mark",
     "inverted",
 }};

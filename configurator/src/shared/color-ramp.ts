@@ -24,6 +24,20 @@ export function rampColor(
   return last.color
 }
 
+export function fillRampColor(
+  from: RgbColor,
+  via: RgbColor | undefined,
+  to: RgbColor,
+  fraction: number
+): RgbColor {
+  const clamped = Math.min(Math.max(fraction, 0), 1)
+  if (via === undefined) return blendColor(from, to, clamped) ?? from
+  const mixed = clamped <= 0.5
+    ? blendColor(from, via, clamped * 2)
+    : blendColor(via, to, (clamped - 0.5) * 2)
+  return mixed ?? from
+}
+
 export function blendColor(
   from: RgbColor | undefined,
   to: RgbColor | undefined,

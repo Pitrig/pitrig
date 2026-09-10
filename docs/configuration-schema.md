@@ -427,6 +427,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | `inverted` | boolean | `false` |
 | `fill_color` | string `#RRGGBB` | `#38BDF8` |
 | `fill_grad_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `fill_grad_mid_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 
 ### ArcWidgetConfiguration
 
@@ -448,6 +449,7 @@ Also carries the properties of [`WidgetFrame`](#widgetframe) and [`ValueRange`](
 | `track_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `fill_color` | string `#RRGGBB` | `#38BDF8` |
 | `fill_grad_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
+| `fill_grad_mid_color` | string `#RRGGBB` | `kTransparentColor` (no background) |
 | `mark` | `ArcMark` | `ring` |
 | `inverted` | boolean | `false` |
 

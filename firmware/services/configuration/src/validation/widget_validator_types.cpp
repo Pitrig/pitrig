@@ -20,6 +20,12 @@ bool ring_fits(const std::uint16_t thickness_px, const std::uint16_t radius_px,
   return 2 * thickness_px <= std::min(placement.width, placement.height);
 }
 
+bool valid_gradient_middle(const std::uint32_t mid_color,
+                           const std::uint32_t grad_color) {
+  return valid_optional_color(mid_color) &&
+         (mid_color == kTransparentColor || grad_color != kTransparentColor);
+}
+
 bool gradient_ring_fits(const ArcWidgetConfiguration& config,
                         const DisplayValidationProfile& display) {
   if (config.fill_grad_color == kTransparentColor || config.radius_px == 0) {
@@ -125,6 +131,11 @@ bool Validator::bar_widget(const BarWidgetConfiguration& config) {
   if (!valid_optional_color(config.fill_grad_color)) {
     return reject(failure_, ValidationError::invalid_widget, "fill_grad_color");
   }
+  if (!valid_gradient_middle(config.fill_grad_mid_color,
+                             config.fill_grad_color)) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "fill_grad_mid_color");
+  }
   if (config.origin_present && !std::isfinite(config.origin)) {
     return reject(failure_, ValidationError::invalid_widget, "origin");
   }
@@ -147,6 +158,11 @@ bool Validator::arc_widget(const ArcWidgetConfiguration& config) {
   if (!valid_optional_color(config.fill_grad_color) ||
       !gradient_ring_fits(config, profile_.display)) {
     return reject(failure_, ValidationError::invalid_widget, "fill_grad_color");
+  }
+  if (!valid_gradient_middle(config.fill_grad_mid_color,
+                             config.fill_grad_color)) {
+    return reject(failure_, ValidationError::invalid_widget,
+                  "fill_grad_mid_color");
   }
   if (config.mark < ArcMark::ring || config.mark > ArcMark::needle) {
     return reject(failure_, ValidationError::invalid_widget, "mark");

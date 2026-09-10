@@ -8,7 +8,6 @@
 #include <numbers>
 
 #include "logger.hpp"
-#include "value_conditions.hpp"
 
 namespace pitrig::dashboard::arc_widget::gradient {
 namespace {
@@ -38,8 +37,8 @@ void write_pixel(std::uint8_t* const pixel, const lv_color_t colour) {
   for (std::size_t step = 0; step < kRampSteps; ++step) {
     const double ratio =
         static_cast<double>(step) / static_cast<double>(kRampSteps - 1);
-    table[step] =
-        lv_color_hex(conditions::blend_color(ramp.from_rgb, ramp.to_rgb, ratio));
+    table[step] = lv_color_hex(
+        fill::color_at(ramp.colours, static_cast<float>(ratio)));
   }
   return table;
 }

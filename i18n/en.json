@@ -482,14 +482,17 @@
       "arc": {
         "track": "The unfilled part of the arc. Unset leaves it undrawn.",
         "mark": "What the value draws at its angle. A ring fills the sector up to it; a needle points a line from the centre at it, as thick as the ring would be, with the track left as the scale behind it.",
-        "gradient": "The far end of a gradient laid around the whole sector, from the minimum end to the maximum, which the ring uncovers as it fills. The board prepares it as a bitmap the size of the ring when the dashboard is applied, so a rule or ramp that recolours the fill paints it flat instead, and a ring with a radius of its own has to fit the display.",
+        "gradient": "Lays up to three colours around the whole sector — the fill colour at the minimum end, an optional middle, and the end colour — which the ring uncovers as it fills. The board prepares it as a bitmap the size of the ring when the dashboard is applied, so a rule or ramp that recolours the fill paints it flat instead, and a ring with a radius of its own has to fit the display.",
         "inverted": "Fills from the far end of the sector instead of the near one."
       },
       "bar": {
         "origin": "The fill runs between this value and the current one instead of from the minimum, so a signed window with a zero origin reads as a centred meter.",
         "fill": "The colour of the filled part. The box background underneath is the track the fill runs over.",
-        "gradient": "The far end of a gradient laid along the whole track, from the minimum end to the maximum. The fill uncovers it as it grows rather than stretching it, so a half-full bar shows the first half of the ramp.",
+        "gradient": "Lays up to three colours along the whole track — the fill colour at the minimum end, an optional middle, and the end colour. The fill uncovers it as it grows rather than stretching it, so a half-full bar shows the first half of the ramp.",
         "inverted": "Fills from the far end of the bar instead of from the near one."
+      },
+      "fill": {
+        "gradientMiddle": "A third colour halfway along the track. Unset runs the gradient straight from the fill colour to the end."
       },
       "strip": {
         "segments": "Each lamp lights at its own fraction of the range, so one strip suits any engine. Thresholds must not decrease down the list.",
@@ -659,6 +662,9 @@
       "bar": "Bar",
       "orientation": "Orientation",
       "gradientTo": "Gradient to",
+      "gradient": "Gradient",
+      "gradientMiddle": "Middle",
+      "gradientEnd": "End",
       "aGraphDrawsAtMost": "A graph draws at most {mAXIMUM_GRAPH_SOURCES} sources on one plot.",
       "showsTheLastTofixedS": "Shows the last {toFixed} s.",
       "toFixedS": "{toFixed} s"
@@ -1950,6 +1956,7 @@
       "ownerNamesAScreenFor": "{owner} names a screen for {type}, which navigates relatively; drop the screen."
     },
     "widgetValues": {
+      "labelSetsAMiddleGradient": "{label} sets a middle gradient colour without an end colour; turn the gradient on first.",
       "whatOfLabelRunsMinimum": "{what} of {label} runs {minimum} to {maximum}; the device needs a maximum above the minimum.",
       "labelHasNoSourceSo": "{label} has no source, so it would render nothing.",
       "labelComposesLengthSourcesThe": "{label} composes {length} sources; the device composes {mAXIMUM_TEXT_SOURCES}.",

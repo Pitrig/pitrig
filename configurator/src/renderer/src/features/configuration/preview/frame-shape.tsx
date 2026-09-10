@@ -30,6 +30,7 @@ export function GradientDefinition({
 export function TrackGradientDefinition({
   id,
   from,
+  via,
   to,
   x1,
   y1,
@@ -38,6 +39,7 @@ export function TrackGradientDefinition({
 }: {
   id: string
   from: string
+  via: string | undefined
   to: string
   x1: number
   y1: number
@@ -47,6 +49,7 @@ export function TrackGradientDefinition({
   return (
     <linearGradient id={id} gradientUnits="userSpaceOnUse" x1={x1} y1={y1} x2={x2} y2={y2}>
       <stop offset="0%" stopColor={from} />
+      {via !== undefined ? <stop offset="50%" stopColor={via} /> : null}
       <stop offset="100%" stopColor={to} />
     </linearGradient>
   )

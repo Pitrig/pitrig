@@ -1,4 +1,4 @@
-import { blendColor } from '@shared/color-ramp'
+import { fillRampColor } from '@shared/color-ramp'
 import type { RgbColor } from '@shared/configuration-schema'
 import { arcPath } from './arc-geometry'
 
@@ -18,6 +18,7 @@ export function gradientArcSegments(
   sweptDegrees: number,
   sectorDegrees: number,
   from: RgbColor,
+  via: RgbColor | undefined,
   to: RgbColor,
   inverted: boolean
 ): GradientArcSegment[] {
@@ -31,7 +32,7 @@ export function gradientArcSegments(
     const fraction = inverted ? 1 - middle : middle
     return {
       d: arcPath(centerX, centerY, radius, begin, end - begin),
-      color: blendColor(from, to, fraction) ?? from
+      color: fillRampColor(from, via, to, fraction)
     }
   })
 }

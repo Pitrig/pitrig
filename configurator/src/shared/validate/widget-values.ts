@@ -217,12 +217,21 @@ function findSegmentError(widget: WidgetConfiguration, label: string): string | 
   return undefined
 }
 
+function findFillGradientError(widget: WidgetConfiguration, label: string): string | undefined {
+  if (widget.type !== 'bar' && widget.type !== 'arc') return undefined
+  if (widget.fill_grad_mid_color !== undefined && widget.fill_grad_color === undefined) {
+    return t('validation.widgetValues.labelSetsAMiddleGradient', { label: label })
+  }
+  return undefined
+}
+
 export function findWidgetValueError(
   widget: WidgetConfiguration,
   label: string
 ): string | undefined {
   return (
     findColorError(widget, label) ??
+    findFillGradientError(widget, label) ??
     findEnumError(widget, label) ??
     findSourceError(widget, label) ??
     findCaptionError(widget, label) ??

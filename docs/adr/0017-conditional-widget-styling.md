@@ -112,13 +112,15 @@ than fractions of a range: a ramp is authored in the units it is read in, and a
 widget with a ramp needs no range of its own.
 
 Linear background gradients come in with them: a far colour and an axis on the
-frame's background, and a far colour on a bar's and an arc's fill. These are
-spatial, not value-driven. A fill gradient spans the whole track and is
-uncovered by the fill rather than stretched between the fill's own ends: a bar
-keeps LVGL's two-colour gradient on its fill object and moves the two end
-colours with the fill, which is the same picture as clipping a track-wide ramp;
-an arc gets a conical bitmap the size of its ring, prepared when the dashboard
-is applied, because LVGL draws an arc in one colour or from an image.
+frame's background, and a far colour plus an optional middle colour on a bar's
+and an arc's fill. These are spatial, not value-driven. A fill gradient spans
+the whole track and is uncovered by the fill rather than stretched between the
+fill's own ends: a bar keeps LVGL's gradient on its fill object and rebuilds
+its stops from the fill's position on the track — the two end colours and the
+middle stop where the fill crosses it, which is why LVGL is built with three
+gradient stops — the same picture as clipping a track-wide ramp; an arc gets a
+conical bitmap the size of its ring, prepared when the dashboard is applied,
+because LVGL draws an arc in one colour or from an image.
 Repainting that bitmap on every rule transition would stall the render task, so
 a rule or a ramp on an arc's fill paints it flat instead, and the validator
 refuses a gradient on a ring wider than the display. On the ESP32-P4 a gradient

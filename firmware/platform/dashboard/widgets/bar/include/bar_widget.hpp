@@ -8,6 +8,8 @@
 #include "application_configuration.hpp"
 #include "dashboard_fonts.hpp"
 #include "dashboard_layout.hpp"
+#include "fill_ramp.hpp"
+#include "lvgl.h"
 #include "lvgl_types.hpp"
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
@@ -34,8 +36,8 @@ struct State {
   std::int32_t inner_height{};
   std::int32_t origin_x{};
   std::int32_t origin_y{};
-  std::uint32_t fill_rgb{};
-  std::uint32_t grad_rgb{};
+  fill::Ramp ramp{};
+  lv_grad_dsc_t grad{};
   bool gradient{};
   std::uint64_t rendered_revision{};
   bool rendered_available{};

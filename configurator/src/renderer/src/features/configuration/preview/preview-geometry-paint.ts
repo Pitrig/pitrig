@@ -44,6 +44,11 @@ export function backgroundRect(
   }
 }
 
+export function paintedColor(color: string | undefined): string | undefined {
+  const normalized = normalizeColor(color)
+  return normalized === undefined || normalized === 'transparent' ? undefined : normalized
+}
+
 export function gradientPaint(
   id: string,
   color: string,

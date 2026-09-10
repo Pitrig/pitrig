@@ -11,37 +11,52 @@ namespace {
 
 constexpr char kTag[] = "bar_widget";
 
+static_assert(LV_GRADIENT_MAX_STOPS >= 3);
+
 [[nodiscard]] bool horizontal(const State& state) {
   return state.orientation == configuration::BarOrientation::horizontal;
 }
 
+void add_stop(lv_grad_dsc_t& grad, const std::uint32_t rgb,
+              const float fraction) {
+  grad.stops[grad.stops_count++] = {
+      .color = lv_color_hex(rgb),
+      .opa = LV_OPA_COVER,
+      .frac = static_cast<std::uint8_t>(fraction * 255.0F + 0.5F)};
+}
+
 void paint_fill(State& state) {
   if (!state.gradient) {
-    lv_obj_set_style_bg_color(state.fill, lv_color_hex(state.fill_rgb),
+    lv_obj_set_style_bg_color(state.fill, lv_color_hex(state.ramp.from),
                               LV_PART_MAIN);
     return;
   }
   const std::int32_t span =
       horizontal(state) ? state.inner_width : state.inner_height;
-  const std::int32_t last = std::max<std::int32_t>(span - 1, 1);
-  const auto color_at = [&](const std::int32_t pixel) {
-    return conditions::blend_color(
-        state.fill_rgb, state.grad_rgb,
-        static_cast<double>(std::clamp<std::int32_t>(pixel, 0, last)) / last);
-  };
-  const std::uint32_t near = color_at(state.drawn_offset);
-  const std::uint32_t far =
-      color_at(state.drawn_offset + state.drawn_length - 1);
+  const auto last = static_cast<float>(std::max<std::int32_t>(span - 1, 1));
+  const auto near_px = static_cast<float>(
+      std::clamp<std::int32_t>(state.drawn_offset, 0, span - 1));
+  const float far_px = std::clamp(
+      static_cast<float>(state.drawn_offset + state.drawn_length - 1), near_px,
+      last);
+  const std::uint32_t near = fill::color_at(state.ramp, near_px / last);
+  const std::uint32_t far = fill::color_at(state.ramp, far_px / last);
   const bool from_axis_start = horizontal(state) != state.inverted;
-  lv_obj_set_style_bg_color(
-      state.fill, lv_color_hex(from_axis_start ? near : far), LV_PART_MAIN);
-  lv_obj_set_style_bg_grad_color(
-      state.fill, lv_color_hex(from_axis_start ? far : near), LV_PART_MAIN);
+  lv_grad_dsc_t& grad = state.grad;
+  grad.stops_count = 0;
+  add_stop(grad, from_axis_start ? near : far, 0.0F);
+  const float mid_px = last / 2.0F;
+  if (state.ramp.has_via && near_px < mid_px && mid_px < far_px) {
+    const float along = (mid_px - near_px) / (far_px - near_px);
+    add_stop(grad, state.ramp.via, from_axis_start ? along : 1.0F - along);
+  }
+  add_stop(grad, from_axis_start ? far : near, 1.0F);
+  lv_obj_invalidate(state.fill);
 }
 
 void apply_fill_color(void* const context, const std::uint32_t rgb) {
   auto& state = *static_cast<State*>(context);
-  state.fill_rgb = rgb;
+  state.ramp.from = rgb;
   paint_fill(state);
 }
 
@@ -81,16 +96,17 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.origin_x = 0;
   state.origin_y = 0;
 
-  state.fill_rgb = config.fill_color;
-  state.grad_rgb = config.fill_grad_color;
+  state.ramp = fill::ramp(config.fill_color, config.fill_grad_mid_color,
+                          config.fill_grad_color);
   state.gradient = config.fill_grad_color != configuration::kTransparentColor;
   state.fill = lv_obj_create(box.container);
   lv_obj_remove_style_all(state.fill);
   lv_obj_set_style_bg_opa(state.fill, LV_OPA_COVER, LV_PART_MAIN);
   if (state.gradient) {
-    lv_obj_set_style_bg_grad_dir(
-        state.fill, horizontal(state) ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_VER,
-        LV_PART_MAIN);
+    state.grad = {};
+    state.grad.dir = horizontal(state) ? LV_GRAD_DIR_HOR : LV_GRAD_DIR_VER;
+    state.grad.extend = LV_GRAD_EXTEND_PAD;
+    lv_obj_set_style_bg_grad(state.fill, &state.grad, LV_PART_MAIN);
   }
   lv_obj_set_style_radius(state.fill, frame::fill_radius(config.frame, border),
                           LV_PART_MAIN);

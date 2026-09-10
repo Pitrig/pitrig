@@ -7,7 +7,7 @@ import { markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR } from './preview-theme'
 import { type PreviewValues, normalizeColor } from './preview-values'
 import { TrackGradientDefinition, WidgetFrameShape } from './frame-shape'
-import { contentArea, gradientPaint, squareFill } from './preview-geometry-paint'
+import { contentArea, gradientPaint, paintedColor, squareFill } from './preview-geometry-paint'
 import { deviceFloat } from '@shared/contract-number'
 import { gradientArcSegments } from './arc-gradient'
 
@@ -53,6 +53,7 @@ export function BarPreview({
         <TrackGradientDefinition
           id={fillGradientId}
           from={fillColor}
+          via={paintedColor(configuration.fill_grad_mid_color)}
           to={configuration.fill_grad_color as string}
           x1={horizontal ? minimumEnd.x : inner.x}
           y1={horizontal ? inner.y : minimumEnd.y}
@@ -104,8 +105,8 @@ export function ArcPreview({
   const pointer = needlePoints(centerX, centerY, radius, start + (needle ? swept : 0))
   const authoredFill = configuration.fill_color ?? '#38BDF8'
   const fillColor = style.color ?? authoredFill
-  const ramp = normalizeColor(configuration.fill_grad_color)
-  const gradient = !needle && ramp !== undefined && ramp !== 'transparent' && fillColor === authoredFill
+  const rampEnd = paintedColor(configuration.fill_grad_color)
+  const gradient = !needle && rampEnd !== undefined && fillColor === authoredFill
 
   return (
     <g>
@@ -132,7 +133,7 @@ export function ArcPreview({
           />
         ) : swept > 0 && gradient ? (
           <g fill="none" strokeWidth={thickness} opacity={faded}>
-            {gradientArcSegments(centerX, centerY, radius, start, swept, sector, authoredFill, ramp as RgbColor, configuration.inverted ?? false).map((segment, index) => (
+            {gradientArcSegments(centerX, centerY, radius, start, swept, sector, authoredFill, paintedColor(configuration.fill_grad_mid_color) as RgbColor | undefined, rampEnd as RgbColor, configuration.inverted ?? false).map((segment, index) => (
               <path key={index} d={segment.d} stroke={segment.color} />
             ))}
           </g>

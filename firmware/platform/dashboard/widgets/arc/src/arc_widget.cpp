@@ -51,8 +51,10 @@ void release_gradient(lv_event_t* const event) {
                                       .start_deg = sector_start,
                                       .sector_deg = sector,
                                       .inverted = config.inverted,
-                                      .from_rgb = config.fill_color,
-                                      .to_rgb = config.fill_grad_color});
+                                      .colours = fill::ramp(
+                                          config.fill_color,
+                                          config.fill_grad_mid_color,
+                                          config.fill_grad_color)});
   if (state.gradient == nullptr) {
     return false;
   }
