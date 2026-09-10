@@ -581,7 +581,10 @@
       "anIconIsAGlyph": "An icon is a glyph of the Material Icons family — set that family on the text it lands in.",
       "insertAnIcon": "Insert an icon",
       "insertAnIconGlyph": "Insert an icon glyph",
-      "insertTheNameIcon": "Insert the {name} icon"
+      "insertTheNameIcon": "Insert the {name} icon",
+      "searchAllIcons": "Search all icons",
+      "nothingMatches": "No icon matches “{query}”.",
+      "firstShownOfTotal": "The first {shown} of {total} — type more to narrow it down."
     },
     "slotPagesEditor": {
       "pages": "Pages",

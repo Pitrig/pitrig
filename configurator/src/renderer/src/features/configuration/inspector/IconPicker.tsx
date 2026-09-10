@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Smile } from 'lucide-react'
 import { ICON_FAMILY, ICON_GLYPHS, ICON_GROUPS, textFits } from '@shared/icon-glyphs'
 import { glyphFontFamily, previewFontFamily, useFontFaceStore } from '@/features/font-library/font-face-store'
+import { searchIcons, useIconCatalogStore } from '@/features/font-library/icon-catalog-store'
+import type { IconName } from '@/features/font-library/icon-ligatures'
 import { TextInput } from './fields'
 import { PropertyRow, type PropertyMeta } from './PropertyRow'
 import { usePopoverAnchor } from './popover-anchor'
@@ -10,9 +12,30 @@ import { t } from '@shared/ui-text'
 
 const GRID_WIDTH_PX = 240
 const GRID_HEIGHT_PX = 288
+const SEARCH_RESULT_LIMIT = 120
 const GLYPH_TEXT_FAMILY = `${glyphFontFamily(ICON_FAMILY)}, var(--font-sans)`
 
-function IconGrid({ loaded, onPick }: { loaded: boolean; onPick: (glyph: string) => void }): React.JSX.Element {
+interface IconChoice {
+  loaded: boolean
+  onPick: (glyph: string) => void
+}
+
+function IconButton({ icon, loaded, onPick }: IconChoice & { icon: IconName }): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      title={icon.name}
+      aria-label={t('inspector.iconPicker.insertTheNameIcon', { name: icon.name })}
+      className="flex size-6 items-center justify-center rounded border text-[9px] text-foreground hover:bg-accent"
+      style={loaded ? { fontFamily: previewFontFamily(ICON_FAMILY), fontSize: 15 } : undefined}
+      onClick={() => onPick(icon.glyph)}
+    >
+      {loaded ? icon.glyph : icon.name.slice(0, 2)}
+    </button>
+  )
+}
+
+function IconGroups(choice: IconChoice): React.JSX.Element {
   return (
     <>
       {ICON_GROUPS.map((group) => (
@@ -20,23 +43,64 @@ function IconGrid({ loaded, onPick }: { loaded: boolean; onPick: (glyph: string)
           <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">{group}</p>
           <div className="grid grid-cols-8 gap-1">
             {ICON_GLYPHS.filter((icon) => icon.group === group).map((icon) => (
-              <button
-                key={icon.name}
-                type="button"
-                title={icon.name}
-                aria-label={t('inspector.iconPicker.insertTheNameIcon', { name: icon.name })}
-                className="flex size-6 items-center justify-center rounded border text-[9px] text-foreground hover:bg-accent"
-                style={loaded ? { fontFamily: previewFontFamily(ICON_FAMILY), fontSize: 15 } : undefined}
-                onClick={() => onPick(icon.glyph)}
-              >
-                {loaded ? icon.glyph : icon.name.slice(0, 2)}
-              </button>
+              <IconButton key={icon.name} icon={icon} {...choice} />
             ))}
           </div>
         </div>
       ))}
-      <p className="pt-1 text-[10px] text-muted-foreground">
-        {t('inspector.iconPicker.anIconIsAGlyph')}</p>
+    </>
+  )
+}
+
+function IconSearchResults({ query, ...choice }: IconChoice & { query: string }): React.JSX.Element {
+  const icons = useIconCatalogStore((state) => state.icons)
+  const matches = useMemo(() => searchIcons(icons, query), [icons, query])
+  if (matches.length === 0) {
+    return (
+      <p className="text-[10px] text-muted-foreground">
+        {t('inspector.iconPicker.nothingMatches', { query: query.trim() })}
+      </p>
+    )
+  }
+  return (
+    <>
+      <div className="grid grid-cols-8 gap-1">
+        {matches.slice(0, SEARCH_RESULT_LIMIT).map((icon) => (
+          <IconButton key={icon.glyph} icon={icon} {...choice} />
+        ))}
+      </div>
+      {matches.length > SEARCH_RESULT_LIMIT ? (
+        <p className="pt-1 text-[10px] text-muted-foreground">
+          {t('inspector.iconPicker.firstShownOfTotal', { shown: SEARCH_RESULT_LIMIT, total: matches.length })}
+        </p>
+      ) : null}
+    </>
+  )
+}
+
+function IconPanel(choice: IconChoice): React.JSX.Element {
+  const [query, setQuery] = useState('')
+  const search = useRef<HTMLInputElement>(null)
+  const load = useIconCatalogStore((state) => state.load)
+  useEffect(() => {
+    search.current?.focus()
+    void load()
+  }, [load])
+  return (
+    <>
+      <input
+        ref={search}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder={t('inspector.iconPicker.searchAllIcons')}
+        aria-label={t('inspector.iconPicker.searchAllIcons')}
+        className="mb-2 h-6 w-full flex-none rounded border bg-background px-1.5 text-xs text-foreground"
+      />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {query.trim() ? <IconSearchResults query={query} {...choice} /> : <IconGroups {...choice} />}
+        <p className="pt-1 text-[10px] text-muted-foreground">
+          {t('inspector.iconPicker.anIconIsAGlyph')}</p>
+      </div>
     </>
   )
 }
@@ -82,7 +146,7 @@ export function IconTextInput({
               ref={popover}
               role="dialog"
               aria-label={t('inspector.iconPicker.insertAnIcon')}
-              className="fixed z-50 overflow-y-auto rounded-md border bg-popover p-2 shadow-md"
+              className="fixed z-50 flex flex-col rounded-md border bg-popover p-2 shadow-md"
               style={{
                 left: anchor.left,
                 top: anchor.top,
@@ -91,7 +155,7 @@ export function IconTextInput({
                 maxHeight: Math.min(anchor.maxHeight, GRID_HEIGHT_PX)
               }}
             >
-              <IconGrid
+              <IconPanel
                 loaded={loaded === true}
                 onPick={(glyph) => {
                   setOpen(false)

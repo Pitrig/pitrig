@@ -854,9 +854,12 @@ export type UiStringKey =
   | 'inspector.hints.title.text'
   | 'inspector.hints.widget.id'
   | 'inspector.iconPicker.anIconIsAGlyph'
+  | 'inspector.iconPicker.firstShownOfTotal'
   | 'inspector.iconPicker.insertAnIcon'
   | 'inspector.iconPicker.insertAnIconGlyph'
   | 'inspector.iconPicker.insertTheNameIcon'
+  | 'inspector.iconPicker.nothingMatches'
+  | 'inspector.iconPicker.searchAllIcons'
   | 'inspector.indicatorEditor.aStripHoldsAtMost'
   | 'inspector.indicatorEditor.addLamp'
   | 'inspector.indicatorEditor.arcWidget'
@@ -1702,7 +1705,9 @@ export interface UiStringParameters {
   'inspector.gaugeEditors.aGraphDrawsAtMost': { mAXIMUM_GRAPH_SOURCES: string | number }
   'inspector.gaugeEditors.showsTheLastTofixedS': { toFixed: string | number }
   'inspector.gaugeEditors.toFixedS': { toFixed: string | number }
+  'inspector.iconPicker.firstShownOfTotal': { shown: string | number, total: string | number }
   'inspector.iconPicker.insertTheNameIcon': { name: string | number }
+  'inspector.iconPicker.nothingMatches': { query: string | number }
   'inspector.indicatorEditor.aStripHoldsAtMost': { mAXIMUM_INDICATOR_SEGMENTS: string | number }
   'inspector.indicatorEditor.arcWidget': { widget: string | number }
   'inspector.indicatorEditor.lengthLampS': { length: string | number }
