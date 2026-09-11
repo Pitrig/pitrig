@@ -2,7 +2,7 @@
 
 This file is generated from `telemetry/telemetry_catalog.json`. It documents the bounded, protocol-neutral fields accepted by Pitrig. It does not define SimHub property formulas or game-specific source mappings.
 
-Catalog version: 1. Fields: 227. Static limit: 256.
+Catalog version: 1. Fields: 228. Static limit: 256.
 
 ## Speed and controls
 
@@ -59,6 +59,7 @@ Catalog version: 1. Fields: 227. Static limit: 256.
 | `session.lap.delta` | `D` | `int32` | `millisecond` | `normal` | `computed` | Current signed lap-time delta. |
 | `session.lap.delta_best` | `0t` | `int32` | `millisecond` | `normal` | `computed` | Signed delta to the personal best lap. |
 | `session.lap.delta_session_best` | `0u` | `int32` | `millisecond` | `normal` | `computed` | Signed delta to the session best lap. |
+| `session.lap.last_delta_best` | `LD` | `int32` | `millisecond` | `changes` | `computed` | Signed delta of the last lap to the personal best lap. |
 | `session.lap.invalid` | `0v` | `boolean` | `boolean` | `normal` | `optional` | Whether the current lap is invalid. |
 | `session.lap.valid` | `0w` | `boolean` | `boolean` | `normal` | `optional` | Whether the current lap is valid. |
 | `session.sector.current` | `0x` | `uint32` | `count` | `normal` | `common` | Current sector number. |
@@ -89,8 +90,8 @@ Catalog version: 1. Fields: 227. Static limit: 256.
 | `session.finished` | `1i` | `boolean` | `boolean` | `changes` | `optional` | Whether the player has finished. |
 | `session.checkered` | `1j` | `boolean` | `boolean` | `changes` | `common` | Whether the checkered flag has been shown. |
 | `session.starting_grid_position` | `1k` | `uint32` | `count` | `changes` | `optional` | Starting grid position. |
-| `session.gap_ahead` | `1l` | `text` | `source` | `normal` | `computed` | Gap to the vehicle ahead. |
-| `session.gap_behind` | `1m` | `text` | `source` | `normal` | `computed` | Gap to the vehicle behind. |
+| `session.gap_ahead` | `1l` | `text` | `source` | `normal` | `computed` | Gap in seconds to the nearest vehicle ahead on track. |
+| `session.gap_behind` | `1m` | `text` | `source` | `normal` | `computed` | Gap in seconds to the nearest vehicle behind on track. |
 | `session.gap_leader` | `1n` | `text` | `source` | `normal` | `computed` | Gap to the session leader. |
 ## Fuel and energy
 

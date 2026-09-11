@@ -15,8 +15,14 @@ namespace Pitrig.SimHub
                     return Ratio(pluginManager, "Fuel", "FuelCapacity");
                 case FieldComputation.EstimatedLapTime:
                     return EstimatedLapTime(pluginManager);
+                case FieldComputation.LastLapDeltaBest:
+                    return LastLapDeltaBest(pluginManager);
                 case FieldComputation.LapValid:
                     return LapValid(pluginManager);
+                case FieldComputation.GapAhead:
+                    return Magnitude(pluginManager, "PersistantTrackerPlugin.DriverAhead_00_Gap");
+                case FieldComputation.GapBehind:
+                    return Magnitude(pluginManager, "PersistantTrackerPlugin.DriverBehind_00_Gap");
                 case FieldComputation.GForceLongitudinal:
                     return GForce(pluginManager, "AccelerationSurge");
                 case FieldComputation.GForceLateral:
@@ -45,11 +51,27 @@ namespace Pitrig.SimHub
             return (lap.TotalSeconds + (delta ?? 0)) * 1000;
         }
 
+        private static object LastLapDeltaBest(PluginManager pluginManager)
+        {
+            var last = GameData(pluginManager, "LastLapTime");
+            var best = GameData(pluginManager, "BestLapTime");
+            if (!(last is TimeSpan lastLap) || !(best is TimeSpan bestLap)) return null;
+            if (lastLap <= TimeSpan.Zero || bestLap <= TimeSpan.Zero) return null;
+            return (lastLap - bestLap).TotalMilliseconds;
+        }
+
         private static object LapValid(PluginManager pluginManager)
         {
             var invalid = GameData(pluginManager, "CurrentLapInvalid");
             if (invalid == null) return null;
             return !Convert.ToBoolean(invalid);
+        }
+
+        private static object Magnitude(PluginManager pluginManager, string property)
+        {
+            var value = Number(pluginManager.GetPropertyValue(property));
+            if (value == null) return null;
+            return Math.Abs(value.Value);
         }
 
         private static object GForce(PluginManager pluginManager, string name)

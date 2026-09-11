@@ -1,7 +1,7 @@
 {
   "version": 1,
   "maximum_fields": 256,
-  "expected_field_count": 227,
+  "expected_field_count": 228,
   "wheels": ["front_left", "front_right", "rear_left", "rear_right"],
   "fields": [
     {"name":"vehicle.speed","wire_id":"S","type":"text","unit":"source","category":"speed_control","rate":"fast","availability":"common","description":"Vehicle speed formatted by the telemetry source."},
@@ -46,6 +46,7 @@
     {"name":"session.lap.delta","wire_id":"D","type":"int32","unit":"millisecond","category":"laps_sectors","rate":"normal","availability":"computed","description":"Current signed lap-time delta."},
     {"name":"session.lap.delta_best","type":"int32","unit":"millisecond","category":"laps_sectors","rate":"normal","availability":"computed","description":"Signed delta to the personal best lap."},
     {"name":"session.lap.delta_session_best","type":"int32","unit":"millisecond","category":"laps_sectors","rate":"normal","availability":"computed","description":"Signed delta to the session best lap."},
+    {"name":"session.lap.last_delta_best","wire_id":"LD","type":"int32","unit":"millisecond","category":"laps_sectors","rate":"changes","availability":"computed","description":"Signed delta of the last lap to the personal best lap."},
     {"name":"session.lap.invalid","type":"boolean","unit":"boolean","category":"laps_sectors","rate":"normal","availability":"optional","description":"Whether the current lap is invalid."},
     {"name":"session.lap.valid","type":"boolean","unit":"boolean","category":"laps_sectors","rate":"normal","availability":"optional","description":"Whether the current lap is valid."},
     {"name":"session.sector.current","type":"uint32","unit":"count","category":"laps_sectors","rate":"normal","availability":"common","description":"Current sector number."},
@@ -73,8 +74,8 @@
     {"name":"session.finished","type":"boolean","unit":"boolean","category":"session_position","rate":"changes","availability":"optional","description":"Whether the player has finished."},
     {"name":"session.checkered","type":"boolean","unit":"boolean","category":"session_position","rate":"changes","availability":"common","description":"Whether the checkered flag has been shown."},
     {"name":"session.starting_grid_position","type":"uint32","unit":"count","category":"session_position","rate":"changes","availability":"optional","description":"Starting grid position."},
-    {"name":"session.gap_ahead","type":"text","unit":"source","category":"session_position","rate":"normal","availability":"computed","description":"Gap to the vehicle ahead."},
-    {"name":"session.gap_behind","type":"text","unit":"source","category":"session_position","rate":"normal","availability":"computed","description":"Gap to the vehicle behind."},
+    {"name":"session.gap_ahead","type":"text","unit":"source","category":"session_position","rate":"normal","availability":"computed","description":"Gap in seconds to the nearest vehicle ahead on track."},
+    {"name":"session.gap_behind","type":"text","unit":"source","category":"session_position","rate":"normal","availability":"computed","description":"Gap in seconds to the nearest vehicle behind on track."},
     {"name":"session.gap_leader","type":"text","unit":"source","category":"session_position","rate":"normal","availability":"computed","description":"Gap to the session leader."},
 
     {"name":"vehicle.fuel.level","wire_id":"F","type":"text","unit":"source","category":"fuel_energy","rate":"slow","availability":"common","description":"Fuel level formatted by the telemetry source."},

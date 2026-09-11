@@ -26,7 +26,10 @@ namespace Pitrig.SimHub
         GForceLateral,
         GForceLongitudinal,
         GForceVertical,
+        GapAhead,
+        GapBehind,
         LapValid,
+        LastLapDeltaBest,
         RpmPercent
     }
 
@@ -138,6 +141,7 @@ namespace Pitrig.SimHub
             new TelemetryField("D", "session.lap.delta", "PersistantTrackerPlugin.SessionBestLiveDeltaSeconds", null, FieldComputation.None, FieldConversion.Number, "0", 1000.0, null, FieldRate.Normal),
             new TelemetryField("0t", "session.lap.delta_best", "PersistantTrackerPlugin.SessionBestLiveDeltaSeconds", null, FieldComputation.None, FieldConversion.Number, "0", 1000.0, null, FieldRate.Normal),
             new TelemetryField("0u", "session.lap.delta_session_best", "PersistantTrackerPlugin.SessionBestLiveDeltaSeconds", null, FieldComputation.None, FieldConversion.Number, "0", 1000.0, null, FieldRate.Normal),
+            new TelemetryField("LD", "session.lap.last_delta_best", null, null, FieldComputation.LastLapDeltaBest, FieldConversion.Number, "0", 1.0, null, FieldRate.Changes),
             new TelemetryField("0v", "session.lap.invalid", "DataCorePlugin.GameData.NewData.CurrentLapInvalid", "DataCorePlugin.GameData.CurrentLapInvalid", FieldComputation.None, FieldConversion.Boolean, null, 1.0, null, FieldRate.Normal),
             new TelemetryField("0w", "session.lap.valid", null, null, FieldComputation.LapValid, FieldConversion.Boolean, null, 1.0, null, FieldRate.Normal),
             new TelemetryField("0x", "session.sector.current", "DataCorePlugin.GameData.NewData.CurrentSectorIndex", "DataCorePlugin.GameData.CurrentSectorIndex", FieldComputation.None, FieldConversion.Number, "0", 1.0, null, FieldRate.Normal),
@@ -164,8 +168,8 @@ namespace Pitrig.SimHub
             new TelemetryField("1i", "session.finished", "DataCorePlugin.GameData.NewData.IsPlayerFinished", "DataCorePlugin.GameData.IsPlayerFinished", FieldComputation.None, FieldConversion.Boolean, null, 1.0, null, FieldRate.Changes),
             new TelemetryField("1j", "session.checkered", "DataCorePlugin.GameData.NewData.IsCheckered", "DataCorePlugin.GameData.IsCheckered", FieldComputation.None, FieldConversion.Boolean, null, 1.0, null, FieldRate.Changes),
             new TelemetryField("1k", "session.starting_grid_position", "DataCorePlugin.GameData.NewData.StartingPosition", "DataCorePlugin.GameData.StartingPosition", FieldComputation.None, FieldConversion.Number, "0", 1.0, null, FieldRate.Changes),
-            new TelemetryField("1l", "session.gap_ahead", "DataCorePlugin.GameData.NewData.GapAhead", "DataCorePlugin.GameData.GapAhead", FieldComputation.None, FieldConversion.Text, null, 1.0, null, FieldRate.Normal),
-            new TelemetryField("1m", "session.gap_behind", "DataCorePlugin.GameData.NewData.GapBehind", "DataCorePlugin.GameData.GapBehind", FieldComputation.None, FieldConversion.Text, null, 1.0, null, FieldRate.Normal),
+            new TelemetryField("1l", "session.gap_ahead", null, null, FieldComputation.GapAhead, FieldConversion.Number, "0.000", 1.0, null, FieldRate.Normal),
+            new TelemetryField("1m", "session.gap_behind", null, null, FieldComputation.GapBehind, FieldConversion.Number, "0.000", 1.0, null, FieldRate.Normal),
             new TelemetryField("1n", "session.gap_leader", "DataCorePlugin.GameData.NewData.GapToLeader", "DataCorePlugin.GameData.GapToLeader", FieldComputation.None, FieldConversion.Text, null, 1.0, null, FieldRate.Normal),
             new TelemetryField("F", "vehicle.fuel.level", "DataCorePlugin.GameData.NewData.Fuel", "DataCorePlugin.GameData.Fuel", FieldComputation.None, FieldConversion.Number, "0.0", 1.0, null, FieldRate.Slow),
             new TelemetryField("1o", "vehicle.fuel.percent", null, null, FieldComputation.FuelPercent, FieldConversion.Number, "0.###", 1.0, null, FieldRate.Slow),

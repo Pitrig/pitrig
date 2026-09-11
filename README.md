@@ -61,7 +61,7 @@ this.
 
 - **Widgets** — text, arcs, bars, indicator strips, graphs, images and shaped
   containers, composed freely on the screen.
-- **227 telemetry fields** from SimHub: RPM, speed, gear, deltas, fuel, tyres,
+- **228 telemetry fields** from SimHub: RPM, speed, gear, deltas, fuel, tyres,
   flags, session state and the rest of the catalogue.
 - **Conditional styling** — colour ramps, gradients, visibility and blink driven
   by the values themselves, so a readout goes red on its own.

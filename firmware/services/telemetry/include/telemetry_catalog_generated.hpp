@@ -3,7 +3,7 @@
 
 namespace pitrig::telemetry::catalog {
 
-inline constexpr std::size_t kFieldCount = 227;
+inline constexpr std::size_t kFieldCount = 228;
 inline constexpr std::size_t kMaximumFieldCount = 256;
 
 inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
@@ -46,6 +46,7 @@ inline constexpr std::array<FieldDescriptor, kFieldCount> kFieldDescriptors{{
     {"session.lap.delta", ValueType::int32},
     {"session.lap.delta_best", ValueType::int32},
     {"session.lap.delta_session_best", ValueType::int32},
+    {"session.lap.last_delta_best", ValueType::int32},
     {"session.lap.invalid", ValueType::boolean},
     {"session.lap.valid", ValueType::boolean},
     {"session.sector.current", ValueType::uint32},

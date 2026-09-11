@@ -80,7 +80,7 @@ plugin in `simhub/plugin/` and this side cannot disagree.
 
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
-per animation frame (and a slower one at 10 Hz for the 227-row catalog table),
+per animation frame (and a slower one at 10 Hz for the 228-row catalog table),
 so nothing re-renders while the bridge is stopped. Only `PreviewCanvas` reads
 live values — `WidgetLayers` backs template thumbnails and the insert ghost and
 stays on placeholders.

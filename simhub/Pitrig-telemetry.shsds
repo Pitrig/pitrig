@@ -301,6 +301,13 @@
     },
     {
       "Message": {
+        "Expression": "if('' + isnull(if(timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime]) <= 0 or timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) <= 0, '', (timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime]) - timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime])) * 1000), '') = '', 'LD;\\n', 'LD;' + format(if(timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime]) <= 0 or timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) <= 0, '', (timespantoseconds([DataCorePlugin.GameData.NewData.LastLapTime]) - timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime])) * 1000), '0') + '\\n')"
+      },
+      "IsEnabled": true,
+      "MaximumFrequency": 0
+    },
+    {
+      "Message": {
         "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.CurrentLapInvalid], [DataCorePlugin.GameData.CurrentLapInvalid]), '') = '', '0v;\\n', '0v;' + if(isnull([DataCorePlugin.GameData.NewData.CurrentLapInvalid], [DataCorePlugin.GameData.CurrentLapInvalid]), '1', '0') + '\\n')"
       },
       "IsEnabled": true,
@@ -483,14 +490,14 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.GapAhead], [DataCorePlugin.GameData.GapAhead]), '') = '', '1l;\\n', '1l;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.GapAhead], [DataCorePlugin.GameData.GapAhead]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "if('' + isnull(if('' + isnull([PersistantTrackerPlugin.DriverAhead_00_Gap], '') = '', '', if([PersistantTrackerPlugin.DriverAhead_00_Gap] < 0, 0 - [PersistantTrackerPlugin.DriverAhead_00_Gap], [PersistantTrackerPlugin.DriverAhead_00_Gap])), '') = '', '1l;\\n', '1l;' + format(if('' + isnull([PersistantTrackerPlugin.DriverAhead_00_Gap], '') = '', '', if([PersistantTrackerPlugin.DriverAhead_00_Gap] < 0, 0 - [PersistantTrackerPlugin.DriverAhead_00_Gap], [PersistantTrackerPlugin.DriverAhead_00_Gap])), '0.000') + '\\n')"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.GapBehind], [DataCorePlugin.GameData.GapBehind]), '') = '', '1m;\\n', '1m;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.GapBehind], [DataCorePlugin.GameData.GapBehind]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "if('' + isnull(if('' + isnull([PersistantTrackerPlugin.DriverBehind_00_Gap], '') = '', '', if([PersistantTrackerPlugin.DriverBehind_00_Gap] < 0, 0 - [PersistantTrackerPlugin.DriverBehind_00_Gap], [PersistantTrackerPlugin.DriverBehind_00_Gap])), '') = '', '1m;\\n', '1m;' + format(if('' + isnull([PersistantTrackerPlugin.DriverBehind_00_Gap], '') = '', '', if([PersistantTrackerPlugin.DriverBehind_00_Gap] < 0, 0 - [PersistantTrackerPlugin.DriverBehind_00_Gap], [PersistantTrackerPlugin.DriverBehind_00_Gap])), '0.000') + '\\n')"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20

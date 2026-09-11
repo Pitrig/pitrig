@@ -11,7 +11,7 @@ The desktop configurator's **SimHub profile** panel provides two export modes:
   text widget composes, the source a gauge maps, and the field a styling rule
   watches even when the widget never shows it. Duplicate bindings are emitted
   once.
-- **All telemetry** includes the complete 227-field catalog.
+- **All telemetry** includes the complete 228-field catalog.
 
 The export uses the current configuration draft. Its explicit
 `telemetry_transport.uart.baud_rate` is used when present; otherwise the baud
@@ -22,7 +22,7 @@ unknown telemetry binding or requires no telemetry.
 
 As an alternative, download the checked-in complete
 [`simhub/Pitrig-telemetry.shsds`](../simhub/Pitrig-telemetry.shsds). It uses
-921600 baud and enables all 227 fields. Both forms enable automatic reconnect
+921600 baud and enables all 228 fields. Both forms enable automatic reconnect
 and disable RTS and DTR.
 
 Import the resulting file from the Custom Serial Devices plugin's **Import
@@ -126,6 +126,10 @@ at a rate appropriate for that field, to keep serial bandwidth bounded.
 Pitrig provides generic SimHub property expressions but no game-specific
 source mappings. The `game_specific` availability label warns that a canonical
 field is not exposed by every simulation.
+
+`session.gap_ahead` and `session.gap_behind` are SimHub's own on-track gaps in
+unsigned seconds, so they stay empty until SimHub sees the other cars; Assetto
+Corsa shares them only through the CrewChief app enabled in the game.
 
 Configuration control frames begin with `@PR:` and share the same serial
 connection. The configuration router consumes those frames before telemetry,

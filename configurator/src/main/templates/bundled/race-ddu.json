@@ -1,8 +1,8 @@
 {
   "format": "pitrig-dashboard-template",
   "format_version": 1,
-  "name": "Endurance DDU",
-  "description": "An endurance layout for the 1024 x 600 board: mirrored rev arcs either side of the gear, four tyre corners, a car damage diagram, two three-page columns, and a stint screen with a pit-lane page.",
+  "name": "Race DDU",
+  "description": "A race layout for the 1024 x 600 board: mirrored rev arcs beside the gear, TC and ABS boxes that flash while the aid works, lap times coloured against your best, fuel that takes over at two laps left, and pop-ups for setting changes.",
   "configuration": {
     "board": "guition_jc1060p470c",
     "dashboard": {
@@ -10,7 +10,7 @@
       "smoothing": "interpolate",
       "screens": [
         {
-          "id": "endurance",
+          "id": "race",
           "background_color": "#000000",
           "widgets": [
             {
@@ -312,7 +312,20 @@
                 "left": 10,
                 "right": 10,
                 "bottom": 2
-              }
+              },
+              "condition_source": {
+                "binding": "vehicle.aids.traction_control_active"
+              },
+              "conditions": [
+                {
+                  "op": "equal",
+                  "value": 1,
+                  "color": "#219CD7",
+                  "background_color": "#0F4661",
+                  "blink_ms": 260,
+                  "hold_ms": 600
+                }
+              ]
             },
             {
               "type": "text",
@@ -400,7 +413,20 @@
                 "left": 10,
                 "right": 10,
                 "bottom": 2
-              }
+              },
+              "condition_source": {
+                "binding": "vehicle.aids.abs_active"
+              },
+              "conditions": [
+                {
+                  "op": "equal",
+                  "value": 1,
+                  "color": "#E0B11F",
+                  "background_color": "#64531A",
+                  "blink_ms": 260,
+                  "hold_ms": 600
+                }
+              ]
             },
             {
               "type": "text",
@@ -1389,1500 +1415,365 @@
                   ]
                 },
                 {
+                  "in_loop": false,
+                  "trigger": "value_changed",
+                  "source": {
+                    "binding": "vehicle.aids.traction_control_level"
+                  },
+                  "duration_ms": 2000,
                   "widgets": [
                     {
-                      "type": "shape",
-                      "id": "d_brk",
+                      "type": "text",
+                      "id": "d_pop_tc",
                       "placement": {
                         "x": 0,
                         "y": 0,
                         "width": 300,
                         "height": 380
                       },
-                      "title": {
-                        "text": "BRAKES",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 14
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_bfl",
-                      "placement": {
-                        "x": 10,
-                        "y": 24,
-                        "width": 135,
-                        "height": 78
-                      },
                       "sources": [
                         {
-                          "binding": "brake.front_left.wear",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
+                          "binding": "vehicle.aids.traction_control_level"
                         }
                       ],
                       "value": {
                         "font": {
                           "family": "roboto_bold",
-                          "size_px": 34
+                          "size_px": 130
                         },
                         "color": "#D4E3FF",
                         "alignment": "center"
                       },
-                      "background_color": "#141821",
+                      "background_color": "#0E1015",
                       "title": {
-                        "text": "FL PAD %",
+                        "text": "TRACTION CTRL",
                         "font": {
                           "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 26,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_bfl_p",
-                      "placement": {
-                        "x": 10,
-                        "y": 110,
-                        "width": 135,
-                        "height": 66
-                      },
-                      "sources": [
-                        {
-                          "binding": "brake.front_left.pressure",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 28
+                          "size_px": 30
                         },
                         "color": "#D4E3FF",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "FL PRESS",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
+                        "alignment": "top_center",
+                        "offset_x_px": 0,
+                        "offset_y_px": 28,
                         "border_gap": false
                       },
                       "padding": {
-                        "top": 22,
+                        "top": 70,
                         "left": 10,
                         "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_bfr",
-                      "placement": {
-                        "x": 155,
-                        "y": 24,
-                        "width": 135,
-                        "height": 78
-                      },
-                      "sources": [
-                        {
-                          "binding": "brake.front_right.wear",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 34
-                        },
-                        "color": "#D4E3FF",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "FR PAD %",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 26,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_bfr_p",
-                      "placement": {
-                        "x": 155,
-                        "y": 110,
-                        "width": 135,
-                        "height": 66
-                      },
-                      "sources": [
-                        {
-                          "binding": "brake.front_right.pressure",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 28
-                        },
-                        "color": "#D4E3FF",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "FR PRESS",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 22,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_brl",
-                      "placement": {
-                        "x": 10,
-                        "y": 192,
-                        "width": 135,
-                        "height": 78
-                      },
-                      "sources": [
-                        {
-                          "binding": "brake.rear_left.wear",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 34
-                        },
-                        "color": "#D4E3FF",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "RL PAD %",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 26,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_brl_p",
-                      "placement": {
-                        "x": 10,
-                        "y": 278,
-                        "width": 135,
-                        "height": 66
-                      },
-                      "sources": [
-                        {
-                          "binding": "brake.rear_left.pressure",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 28
-                        },
-                        "color": "#D4E3FF",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "RL PRESS",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 22,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_brr",
-                      "placement": {
-                        "x": 155,
-                        "y": 192,
-                        "width": 135,
-                        "height": 78
-                      },
-                      "sources": [
-                        {
-                          "binding": "brake.rear_right.wear",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 34
-                        },
-                        "color": "#D4E3FF",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "RR PAD %",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 26,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_brr_p",
-                      "placement": {
-                        "x": 155,
-                        "y": 278,
-                        "width": 135,
-                        "height": 66
-                      },
-                      "sources": [
-                        {
-                          "binding": "brake.rear_right.pressure",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 28
-                        },
-                        "color": "#D4E3FF",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "RR PRESS",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 22,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
+                        "bottom": 10
                       }
                     }
                   ]
                 },
                 {
+                  "in_loop": false,
+                  "trigger": "value_changed",
+                  "source": {
+                    "binding": "vehicle.aids.abs_level"
+                  },
+                  "duration_ms": 2000,
                   "widgets": [
                     {
-                      "type": "shape",
-                      "id": "d_inp",
+                      "type": "text",
+                      "id": "d_pop_abs",
                       "placement": {
                         "x": 0,
                         "y": 0,
                         "width": 300,
                         "height": 380
                       },
-                      "title": {
-                        "text": "INPUTS",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 14
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      }
-                    },
-                    {
-                      "type": "bar",
-                      "id": "d_thrb",
-                      "placement": {
-                        "x": 10,
-                        "y": 36,
-                        "width": 280,
-                        "height": 60
-                      },
-                      "source": {
-                        "binding": "vehicle.throttle"
-                      },
-                      "minimum": 0,
-                      "maximum": 100,
-                      "fill_color": "#33D045",
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "THROTTLE",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#77849A",
-                        "alignment": "top_left",
-                        "offset_x_px": 10,
-                        "offset_y_px": 0
-                      }
-                    },
-                    {
-                      "type": "bar",
-                      "id": "d_brkb",
-                      "placement": {
-                        "x": 10,
-                        "y": 122,
-                        "width": 280,
-                        "height": 60
-                      },
-                      "source": {
-                        "binding": "vehicle.brake"
-                      },
-                      "minimum": 0,
-                      "maximum": 100,
-                      "fill_color": "#FF0D58",
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "BRAKE",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#77849A",
-                        "alignment": "top_left",
-                        "offset_x_px": 10,
-                        "offset_y_px": 0
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_clu",
-                      "placement": {
-                        "x": 10,
-                        "y": 200,
-                        "width": 135,
-                        "height": 86
-                      },
                       "sources": [
                         {
-                          "binding": "vehicle.clutch",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
+                          "binding": "vehicle.aids.abs_level"
                         }
                       ],
                       "value": {
                         "font": {
                           "family": "roboto_bold",
-                          "size_px": 32
+                          "size_px": 130
                         },
-                        "color": "#219CD7",
+                        "color": "#D4E3FF",
                         "alignment": "center"
                       },
-                      "background_color": "#141821",
+                      "background_color": "#0E1015",
                       "title": {
-                        "text": "CLUTCH",
+                        "text": "ABS",
                         "font": {
                           "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 26,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_hb",
-                      "placement": {
-                        "x": 155,
-                        "y": 200,
-                        "width": 135,
-                        "height": 86
-                      },
-                      "sources": [
-                        {
-                          "binding": "vehicle.handbrake",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 32
+                          "size_px": 30
                         },
                         "color": "#E0B11F",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "HANDBRAKE",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
+                        "alignment": "top_center",
+                        "offset_x_px": 0,
+                        "offset_y_px": 28,
                         "border_gap": false
                       },
                       "padding": {
-                        "top": 26,
+                        "top": 70,
                         "left": 10,
                         "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "bar",
-                      "id": "d_str",
-                      "placement": {
-                        "x": 10,
-                        "y": 304,
-                        "width": 280,
-                        "height": 30
-                      },
-                      "source": {
-                        "binding": "vehicle.steering"
-                      },
-                      "minimum": -1,
-                      "maximum": 1,
-                      "fill_color": "#219CD7",
-                      "background_color": "#141821",
-                      "origin": 0
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_strv",
-                      "placement": {
-                        "x": 10,
-                        "y": 340,
-                        "width": 280,
-                        "height": 32
-                      },
-                      "sources": [
-                        {
-                          "binding": "vehicle.steering_angle",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0,
-                            "suffix": "°"
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 22
-                        },
-                        "color": "#5F6470",
-                        "alignment": "center"
-                      },
-                      "padding": {
-                        "top": 2,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
+                        "bottom": 10
                       }
                     }
                   ]
                 },
                 {
+                  "in_loop": false,
+                  "trigger": "value_changed",
+                  "source": {
+                    "binding": "vehicle.brake_bias"
+                  },
+                  "duration_ms": 2000,
                   "widgets": [
                     {
-                      "type": "shape",
-                      "id": "d_dmgp",
+                      "type": "text",
+                      "id": "d_pop_bias",
                       "placement": {
                         "x": 0,
                         "y": 0,
                         "width": 300,
                         "height": 380
                       },
-                      "title": {
-                        "text": "DAMAGE",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 14
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "widgets": [
-                        {
-                          "type": "shape",
-                          "id": "d_cnose",
-                          "placement": {
-                            "x": 108,
-                            "y": 50,
-                            "width": 84,
-                            "height": 44
-                          },
-                          "background_color": "#1E242E",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 22
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cbody",
-                          "placement": {
-                            "x": 94,
-                            "y": 74,
-                            "width": 112,
-                            "height": 200
-                          },
-                          "background_color": "#1E242E",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 30
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_crearq",
-                          "placement": {
-                            "x": 90,
-                            "y": 178,
-                            "width": 120,
-                            "height": 86
-                          },
-                          "background_color": "#1E242E",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 28
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cwind",
-                          "placement": {
-                            "x": 112,
-                            "y": 118,
-                            "width": 76,
-                            "height": 24
-                          },
-                          "background_color": "#0D1219",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 8
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_croof",
-                          "placement": {
-                            "x": 118,
-                            "y": 140,
-                            "width": 64,
-                            "height": 34
-                          },
-                          "background_color": "#283140",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 6
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_crear",
-                          "placement": {
-                            "x": 112,
-                            "y": 172,
-                            "width": 76,
-                            "height": 22
-                          },
-                          "background_color": "#0D1219",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 8
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_clampl",
-                          "placement": {
-                            "x": 114,
-                            "y": 62,
-                            "width": 26,
-                            "height": 11
-                          },
-                          "background_color": "#6B788D",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 4
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_clampr",
-                          "placement": {
-                            "x": 160,
-                            "y": 62,
-                            "width": 26,
-                            "height": 11
-                          },
-                          "background_color": "#6B788D",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 4
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cventl",
-                          "placement": {
-                            "x": 128,
-                            "y": 88,
-                            "width": 10,
-                            "height": 22
-                          },
-                          "background_color": "#0E131A",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 4
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cventr",
-                          "placement": {
-                            "x": 162,
-                            "y": 88,
-                            "width": 10,
-                            "height": 22
-                          },
-                          "background_color": "#0E131A",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 4
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cmirl",
-                          "placement": {
-                            "x": 84,
-                            "y": 132,
-                            "width": 14,
-                            "height": 8
-                          },
-                          "background_color": "#1E242E",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 3
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cmirr",
-                          "placement": {
-                            "x": 202,
-                            "y": 132,
-                            "width": 14,
-                            "height": 8
-                          },
-                          "background_color": "#1E242E",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 3
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cintl",
-                          "placement": {
-                            "x": 98,
-                            "y": 198,
-                            "width": 9,
-                            "height": 24
-                          },
-                          "background_color": "#0E131A",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 3
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cintr",
-                          "placement": {
-                            "x": 193,
-                            "y": 198,
-                            "width": 9,
-                            "height": 24
-                          },
-                          "background_color": "#0E131A",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 3
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cdifl",
-                          "placement": {
-                            "x": 120,
-                            "y": 262,
-                            "width": 3,
-                            "height": 16
-                          },
-                          "background_color": "#0E131A",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 1
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cdifr",
-                          "placement": {
-                            "x": 177,
-                            "y": 262,
-                            "width": 3,
-                            "height": 16
-                          },
-                          "background_color": "#0E131A",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 1
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cexhl",
-                          "placement": {
-                            "x": 138,
-                            "y": 264,
-                            "width": 9,
-                            "height": 9
-                          },
-                          "background_color": "#0E131A",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 3
-                          }
-                        },
-                        {
-                          "type": "shape",
-                          "id": "d_cexhr",
-                          "placement": {
-                            "x": 153,
-                            "y": 264,
-                            "width": 9,
-                            "height": 9
-                          },
-                          "background_color": "#0E131A",
-                          "border": {
-                            "width_px": 0,
-                            "radius_px": 3
-                          }
-                        }
-                      ]
-                    },
-                    {
-                      "type": "shape",
-                      "id": "d_zwingf",
-                      "placement": {
-                        "x": 62,
-                        "y": 30,
-                        "width": 176,
-                        "height": 20
-                      },
-                      "background_color": "#1F6B33",
-                      "border": {
-                        "width_px": 0,
-                        "radius_px": 6
-                      },
-                      "condition_source": {
-                        "binding": "vehicle.damage.aero"
-                      },
-                      "color_ramp": {
-                        "target": "background",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
-                      },
-                      "conditions": [
-                        {
-                          "op": "at_or_above",
-                          "value": 70,
-                          "blink_ms": 260
-                        }
-                      ]
-                    },
-                    {
-                      "type": "shape",
-                      "id": "d_zfl",
-                      "placement": {
-                        "x": 62,
-                        "y": 78,
-                        "width": 30,
-                        "height": 56
-                      },
-                      "background_color": "#1F6B33",
-                      "border": {
-                        "width_px": 0,
-                        "radius_px": 6
-                      },
-                      "condition_source": {
-                        "binding": "suspension.front_left.damage"
-                      },
-                      "color_ramp": {
-                        "target": "background",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
-                      },
-                      "conditions": [
-                        {
-                          "op": "at_or_above",
-                          "value": 70,
-                          "blink_ms": 260
-                        }
-                      ]
-                    },
-                    {
-                      "type": "shape",
-                      "id": "d_zfr",
-                      "placement": {
-                        "x": 208,
-                        "y": 78,
-                        "width": 30,
-                        "height": 56
-                      },
-                      "background_color": "#1F6B33",
-                      "border": {
-                        "width_px": 0,
-                        "radius_px": 6
-                      },
-                      "condition_source": {
-                        "binding": "suspension.front_right.damage"
-                      },
-                      "color_ramp": {
-                        "target": "background",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
-                      },
-                      "conditions": [
-                        {
-                          "op": "at_or_above",
-                          "value": 70,
-                          "blink_ms": 260
-                        }
-                      ]
-                    },
-                    {
-                      "type": "shape",
-                      "id": "d_zeng",
-                      "placement": {
-                        "x": 108,
-                        "y": 194,
-                        "width": 84,
-                        "height": 30
-                      },
-                      "background_color": "#1F6B33",
-                      "border": {
-                        "width_px": 0,
-                        "radius_px": 6
-                      },
-                      "condition_source": {
-                        "binding": "engine.damage"
-                      },
-                      "color_ramp": {
-                        "target": "background",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
-                      },
-                      "conditions": [
-                        {
-                          "op": "at_or_above",
-                          "value": 70,
-                          "blink_ms": 260
-                        }
-                      ]
-                    },
-                    {
-                      "type": "shape",
-                      "id": "d_zrl",
-                      "placement": {
-                        "x": 54,
-                        "y": 197,
-                        "width": 36,
-                        "height": 68
-                      },
-                      "background_color": "#1F6B33",
-                      "border": {
-                        "width_px": 0,
-                        "radius_px": 7
-                      },
-                      "condition_source": {
-                        "binding": "suspension.rear_left.damage"
-                      },
-                      "color_ramp": {
-                        "target": "background",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
-                      },
-                      "conditions": [
-                        {
-                          "op": "at_or_above",
-                          "value": 70,
-                          "blink_ms": 260
-                        }
-                      ]
-                    },
-                    {
-                      "type": "shape",
-                      "id": "d_zrr",
-                      "placement": {
-                        "x": 210,
-                        "y": 197,
-                        "width": 36,
-                        "height": 68
-                      },
-                      "background_color": "#1F6B33",
-                      "border": {
-                        "width_px": 0,
-                        "radius_px": 7
-                      },
-                      "condition_source": {
-                        "binding": "suspension.rear_right.damage"
-                      },
-                      "color_ramp": {
-                        "target": "background",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
-                      },
-                      "conditions": [
-                        {
-                          "op": "at_or_above",
-                          "value": 70,
-                          "blink_ms": 260
-                        }
-                      ]
-                    },
-                    {
-                      "type": "shape",
-                      "id": "d_zgbx",
-                      "placement": {
-                        "x": 122,
-                        "y": 230,
-                        "width": 56,
-                        "height": 24
-                      },
-                      "background_color": "#1F6B33",
-                      "border": {
-                        "width_px": 0,
-                        "radius_px": 5
-                      },
-                      "condition_source": {
-                        "binding": "transmission.damage"
-                      },
-                      "color_ramp": {
-                        "target": "background",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
-                      },
-                      "conditions": [
-                        {
-                          "op": "at_or_above",
-                          "value": 70,
-                          "blink_ms": 260
-                        }
-                      ]
-                    },
-                    {
-                      "type": "shape",
-                      "id": "d_zwingr",
-                      "placement": {
-                        "x": 66,
-                        "y": 290,
-                        "width": 168,
-                        "height": 20
-                      },
-                      "background_color": "#1F6B33",
-                      "border": {
-                        "width_px": 0,
-                        "radius_px": 6
-                      },
-                      "condition_source": {
-                        "binding": "vehicle.damage.aero"
-                      },
-                      "color_ramp": {
-                        "target": "background",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
-                      },
-                      "conditions": [
-                        {
-                          "op": "at_or_above",
-                          "value": 70,
-                          "blink_ms": 260
-                        }
-                      ]
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_daero",
-                      "placement": {
-                        "x": 10,
-                        "y": 316,
-                        "width": 90,
-                        "height": 60
-                      },
                       "sources": [
                         {
-                          "binding": "vehicle.damage.aero",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0,
-                            "suffix": "%"
-                          }
+                          "binding": "vehicle.brake_bias"
                         }
                       ],
                       "value": {
                         "font": {
                           "family": "roboto_bold",
-                          "size_px": 26
+                          "size_px": 130
                         },
                         "color": "#D4E3FF",
                         "alignment": "center"
                       },
-                      "background_color": "#141821",
+                      "background_color": "#0E1015",
                       "title": {
-                        "text": "AERO",
+                        "text": "BRAKE BIAS",
                         "font": {
                           "family": "roboto-condensed_bold",
-                          "size_px": 13
+                          "size_px": 30
                         },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 10,
-                        "offset_y_px": 8,
+                        "color": "#E60F43",
+                        "alignment": "top_center",
+                        "offset_x_px": 0,
+                        "offset_y_px": 28,
                         "border_gap": false
                       },
                       "padding": {
-                        "top": 22,
-                        "left": 6,
-                        "right": 6,
-                        "bottom": 2
-                      },
-                      "condition_source": {
-                        "binding": "vehicle.damage.aero"
-                      },
-                      "color_ramp": {
-                        "target": "content",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
+                        "top": 70,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 10
                       }
-                    },
+                    }
+                  ]
+                },
+                {
+                  "in_loop": false,
+                  "trigger": "value_changed",
+                  "source": {
+                    "binding": "engine.map"
+                  },
+                  "duration_ms": 2000,
+                  "widgets": [
                     {
                       "type": "text",
-                      "id": "d_dgbx",
+                      "id": "d_pop_map",
                       "placement": {
-                        "x": 105,
-                        "y": 316,
-                        "width": 90,
-                        "height": 60
+                        "x": 0,
+                        "y": 0,
+                        "width": 300,
+                        "height": 380
                       },
                       "sources": [
                         {
-                          "binding": "transmission.damage",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0,
-                            "suffix": "%"
-                          }
+                          "binding": "engine.map"
                         }
                       ],
                       "value": {
                         "font": {
                           "family": "roboto_bold",
-                          "size_px": 26
+                          "size_px": 130
                         },
                         "color": "#D4E3FF",
                         "alignment": "center"
                       },
-                      "background_color": "#141821",
+                      "background_color": "#0E1015",
                       "title": {
-                        "text": "GBOX",
+                        "text": "ENGINE MAP",
                         "font": {
                           "family": "roboto-condensed_bold",
-                          "size_px": 13
+                          "size_px": 30
                         },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 10,
-                        "offset_y_px": 8,
+                        "color": "#44D569",
+                        "alignment": "top_center",
+                        "offset_x_px": 0,
+                        "offset_y_px": 28,
                         "border_gap": false
                       },
                       "padding": {
-                        "top": 22,
-                        "left": 6,
-                        "right": 6,
-                        "bottom": 2
-                      },
-                      "condition_source": {
-                        "binding": "transmission.damage"
-                      },
-                      "color_ramp": {
-                        "target": "content",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
+                        "top": 70,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 10
                       }
-                    },
+                    }
+                  ]
+                },
+                {
+                  "in_loop": false,
+                  "trigger": "value_changed",
+                  "source": {
+                    "binding": "vehicle.aids.stability_control"
+                  },
+                  "duration_ms": 2000,
+                  "widgets": [
                     {
                       "type": "text",
-                      "id": "d_deng",
+                      "id": "d_pop_esc",
                       "placement": {
-                        "x": 200,
-                        "y": 316,
-                        "width": 90,
-                        "height": 60
+                        "x": 0,
+                        "y": 0,
+                        "width": 300,
+                        "height": 380
                       },
                       "sources": [
                         {
-                          "binding": "engine.damage",
-                          "transform": {
-                            "type": "number",
-                            "decimals": 0,
-                            "suffix": "%"
-                          }
+                          "binding": "vehicle.aids.stability_control"
                         }
                       ],
                       "value": {
                         "font": {
                           "family": "roboto_bold",
-                          "size_px": 26
+                          "size_px": 52
                         },
                         "color": "#D4E3FF",
                         "alignment": "center"
                       },
-                      "background_color": "#141821",
+                      "background_color": "#0E1015",
                       "title": {
-                        "text": "ENGINE",
+                        "text": "STABILITY",
                         "font": {
                           "family": "roboto-condensed_bold",
-                          "size_px": 13
+                          "size_px": 30
                         },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 10,
-                        "offset_y_px": 8,
+                        "color": "#219CD7",
+                        "alignment": "top_center",
+                        "offset_x_px": 0,
+                        "offset_y_px": 28,
                         "border_gap": false
                       },
                       "padding": {
-                        "top": 22,
-                        "left": 6,
-                        "right": 6,
-                        "bottom": 2
+                        "top": 70,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 10
+                      }
+                    }
+                  ]
+                },
+                {
+                  "in_loop": false,
+                  "trigger": "value_changed",
+                  "source": {
+                    "binding": "vehicle.energy.deployment_mode"
+                  },
+                  "duration_ms": 2000,
+                  "widgets": [
+                    {
+                      "type": "text",
+                      "id": "d_pop_dep",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 300,
+                        "height": 380
                       },
-                      "condition_source": {
-                        "binding": "engine.damage"
+                      "sources": [
+                        {
+                          "binding": "vehicle.energy.deployment_mode"
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_bold",
+                          "size_px": 52
+                        },
+                        "color": "#D4E3FF",
+                        "alignment": "center"
                       },
-                      "color_ramp": {
-                        "target": "content",
-                        "stops": [
-                          {
-                            "at": 0,
-                            "color": "#1F6B33"
-                          },
-                          {
-                            "at": 15,
-                            "color": "#E0B11F"
-                          },
-                          {
-                            "at": 40,
-                            "color": "#EF7A1E"
-                          },
-                          {
-                            "at": 70,
-                            "color": "#FF0D58"
-                          }
-                        ]
+                      "background_color": "#0E1015",
+                      "title": {
+                        "text": "DEPLOYMENT",
+                        "font": {
+                          "family": "roboto-condensed_bold",
+                          "size_px": 30
+                        },
+                        "color": "#219CD7",
+                        "alignment": "top_center",
+                        "offset_x_px": 0,
+                        "offset_y_px": 28,
+                        "border_gap": false
+                      },
+                      "padding": {
+                        "top": 70,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 10
+                      }
+                    }
+                  ]
+                },
+                {
+                  "in_loop": false,
+                  "trigger": "value_changed",
+                  "source": {
+                    "binding": "vehicle.energy.recovery_mode"
+                  },
+                  "duration_ms": 2000,
+                  "widgets": [
+                    {
+                      "type": "text",
+                      "id": "d_pop_rec",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 300,
+                        "height": 380
+                      },
+                      "sources": [
+                        {
+                          "binding": "vehicle.energy.recovery_mode"
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_bold",
+                          "size_px": 52
+                        },
+                        "color": "#D4E3FF",
+                        "alignment": "center"
+                      },
+                      "background_color": "#0E1015",
+                      "title": {
+                        "text": "RECOVERY",
+                        "font": {
+                          "family": "roboto-condensed_bold",
+                          "size_px": 30
+                        },
+                        "color": "#219CD7",
+                        "alignment": "top_center",
+                        "offset_x_px": 0,
+                        "offset_y_px": 28,
+                        "border_gap": false
+                      },
+                      "padding": {
+                        "top": 70,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 10
                       }
                     }
                   ]
@@ -2920,7 +1811,7 @@
               "conditions": [
                 {
                   "op": "at_or_above",
-                  "value": 99,
+                  "value": 97,
                   "blink_ms": 110
                 }
               ]
@@ -3071,7 +1962,7 @@
               "conditions": [
                 {
                   "op": "at_or_above",
-                  "value": 99,
+                  "value": 97,
                   "blink_ms": 110
                 }
               ],
@@ -3087,6 +1978,316 @@
                 "height": 380
               },
               "pages": [
+                {
+                  "widgets": [
+                    {
+                      "type": "shape",
+                      "id": "d_tim",
+                      "placement": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 300,
+                        "height": 380
+                      },
+                      "title": {
+                        "text": "TIMING",
+                        "font": {
+                          "family": "roboto-condensed_bold",
+                          "size_px": 14
+                        },
+                        "color": "#5F6470",
+                        "alignment": "top_left",
+                        "offset_x_px": 12,
+                        "offset_y_px": 10,
+                        "border_gap": false
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "d_last",
+                      "placement": {
+                        "x": 10,
+                        "y": 20,
+                        "width": 280,
+                        "height": 70
+                      },
+                      "sources": [
+                        {
+                          "binding": "session.lap.last_time",
+                          "transform": {
+                            "type": "time",
+                            "format": "duration_ms",
+                            "prefix": "",
+                            "suffix": ""
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_bold",
+                          "size_px": 30
+                        },
+                        "color": "#D4E3FF",
+                        "alignment": "center"
+                      },
+                      "background_color": "#141821",
+                      "title": {
+                        "text": "LAST LAP",
+                        "font": {
+                          "family": "roboto-condensed_bold",
+                          "size_px": 13
+                        },
+                        "color": "#5F6470",
+                        "alignment": "top_left",
+                        "offset_x_px": 12,
+                        "offset_y_px": 10,
+                        "border_gap": false
+                      },
+                      "padding": {
+                        "top": 24,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 2
+                      },
+                      "condition_source": {
+                        "binding": "session.lap.last_delta_best"
+                      },
+                      "conditions": [
+                        {
+                          "op": "at_or_below",
+                          "value": 0,
+                          "color": "#2FE85A",
+                          "background_color": "#05300F"
+                        },
+                        {
+                          "op": "above",
+                          "value": 0,
+                          "color": "#E0B11F",
+                          "background_color": "#64531A"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "d_best",
+                      "placement": {
+                        "x": 10,
+                        "y": 98,
+                        "width": 280,
+                        "height": 70
+                      },
+                      "sources": [
+                        {
+                          "binding": "session.lap.best_time",
+                          "transform": {
+                            "type": "time",
+                            "format": "duration_ms",
+                            "prefix": "",
+                            "suffix": ""
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_bold",
+                          "size_px": 30
+                        },
+                        "color": "#44D569",
+                        "alignment": "center"
+                      },
+                      "background_color": "#141821",
+                      "title": {
+                        "text": "BEST LAP",
+                        "font": {
+                          "family": "roboto-condensed_bold",
+                          "size_px": 13
+                        },
+                        "color": "#5F6470",
+                        "alignment": "top_left",
+                        "offset_x_px": 12,
+                        "offset_y_px": 10,
+                        "border_gap": false
+                      },
+                      "padding": {
+                        "top": 24,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "d_pred",
+                      "placement": {
+                        "x": 10,
+                        "y": 176,
+                        "width": 280,
+                        "height": 70
+                      },
+                      "sources": [
+                        {
+                          "binding": "session.lap.estimated_time",
+                          "transform": {
+                            "type": "time",
+                            "format": "duration_ms",
+                            "prefix": "",
+                            "suffix": ""
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_bold",
+                          "size_px": 30
+                        },
+                        "color": "#219CD7",
+                        "alignment": "center"
+                      },
+                      "background_color": "#141821",
+                      "title": {
+                        "text": "PREDICTED",
+                        "font": {
+                          "family": "roboto-condensed_bold",
+                          "size_px": 13
+                        },
+                        "color": "#5F6470",
+                        "alignment": "top_left",
+                        "offset_x_px": 12,
+                        "offset_y_px": 10,
+                        "border_gap": false
+                      },
+                      "padding": {
+                        "top": 24,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 2
+                      },
+                      "condition_source": {
+                        "binding": "session.lap.delta_best"
+                      },
+                      "conditions": [
+                        {
+                          "op": "below",
+                          "value": 0,
+                          "color": "#2FE85A",
+                          "background_color": "#05300F"
+                        },
+                        {
+                          "op": "above",
+                          "value": 0,
+                          "color": "#FF3B6B",
+                          "background_color": "#3A0512"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "d_sect",
+                      "placement": {
+                        "x": 10,
+                        "y": 254,
+                        "width": 280,
+                        "height": 70
+                      },
+                      "sources": [
+                        {
+                          "binding": "session.sector.delta",
+                          "transform": {
+                            "type": "time",
+                            "format": "signed_duration_ms",
+                            "prefix": "",
+                            "suffix": ""
+                          }
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_bold",
+                          "size_px": 30
+                        },
+                        "color": "#E0B11F",
+                        "alignment": "center"
+                      },
+                      "background_color": "#141821",
+                      "title": {
+                        "text": "SECTOR Δ",
+                        "font": {
+                          "family": "roboto-condensed_bold",
+                          "size_px": 13
+                        },
+                        "color": "#5F6470",
+                        "alignment": "top_left",
+                        "offset_x_px": 12,
+                        "offset_y_px": 10,
+                        "border_gap": false
+                      },
+                      "padding": {
+                        "top": 24,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 2
+                      },
+                      "condition_source": {
+                        "binding": "session.sector.delta"
+                      },
+                      "conditions": [
+                        {
+                          "op": "below",
+                          "value": 0,
+                          "color": "#2FE85A",
+                          "background_color": "#05300F"
+                        },
+                        {
+                          "op": "above",
+                          "value": 0,
+                          "color": "#FF3B6B",
+                          "background_color": "#3A0512"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "d_snum",
+                      "placement": {
+                        "x": 10,
+                        "y": 332,
+                        "width": 280,
+                        "height": 34
+                      },
+                      "sources": [
+                        {
+                          "binding": "session.sector.current"
+                        }
+                      ],
+                      "value": {
+                        "font": {
+                          "family": "roboto_bold",
+                          "size_px": 22
+                        },
+                        "color": "#5F6470",
+                        "alignment": "center"
+                      },
+                      "title": {
+                        "text": "IN SECTOR",
+                        "font": {
+                          "family": "roboto-condensed_bold",
+                          "size_px": 13
+                        },
+                        "color": "#5F6470",
+                        "alignment": "top_left",
+                        "offset_x_px": 12,
+                        "offset_y_px": 6,
+                        "border_gap": false
+                      },
+                      "padding": {
+                        "top": 2,
+                        "left": 10,
+                        "right": 10,
+                        "bottom": 2
+                      }
+                    }
+                  ]
+                },
                 {
                   "widgets": [
                     {
@@ -3157,7 +2358,29 @@
                         "left": 10,
                         "right": 10,
                         "bottom": 2
-                      }
+                      },
+                      "condition_source": {
+                        "binding": "vehicle.fuel.laps_remaining"
+                      },
+                      "conditions": [
+                        {
+                          "op": "at_or_below",
+                          "value": 0,
+                          "color": "#D4E3FF"
+                        },
+                        {
+                          "op": "at_or_below",
+                          "value": 2,
+                          "color": "#FF0D58",
+                          "background_color": "#3A0512",
+                          "blink_ms": 800
+                        },
+                        {
+                          "op": "at_or_below",
+                          "value": 3,
+                          "color": "#E0B11F"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -3199,7 +2422,29 @@
                         "left": 10,
                         "right": 10,
                         "bottom": 2
-                      }
+                      },
+                      "condition_source": {
+                        "binding": "vehicle.fuel.laps_remaining"
+                      },
+                      "conditions": [
+                        {
+                          "op": "at_or_below",
+                          "value": 0,
+                          "color": "#D4E3FF"
+                        },
+                        {
+                          "op": "at_or_below",
+                          "value": 2,
+                          "color": "#FF0D58",
+                          "background_color": "#3A0512",
+                          "blink_ms": 800
+                        },
+                        {
+                          "op": "at_or_below",
+                          "value": 3,
+                          "color": "#E0B11F"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -3241,7 +2486,29 @@
                         "left": 10,
                         "right": 10,
                         "bottom": 2
-                      }
+                      },
+                      "condition_source": {
+                        "binding": "vehicle.fuel.laps_remaining"
+                      },
+                      "conditions": [
+                        {
+                          "op": "at_or_below",
+                          "value": 0,
+                          "color": "#D4E3FF"
+                        },
+                        {
+                          "op": "at_or_below",
+                          "value": 2,
+                          "color": "#FF0D58",
+                          "background_color": "#3A0512",
+                          "blink_ms": 800
+                        },
+                        {
+                          "op": "at_or_below",
+                          "value": 3,
+                          "color": "#E0B11F"
+                        }
+                      ]
                     },
                     {
                       "type": "text",
@@ -3392,9 +2659,41 @@
                       "minimum": 0,
                       "maximum": 100,
                       "fill_color": "#E0B11F",
-                      "background_color": "#141821"
+                      "background_color": "#141821",
+                      "condition_source": {
+                        "binding": "vehicle.fuel.laps_remaining"
+                      },
+                      "conditions": [
+                        {
+                          "op": "at_or_below",
+                          "value": 0,
+                          "color": "#E0B11F"
+                        },
+                        {
+                          "op": "at_or_below",
+                          "value": 2,
+                          "color": "#FF0D58",
+                          "blink_ms": 800
+                        },
+                        {
+                          "op": "at_or_below",
+                          "value": 3,
+                          "color": "#FF0D58"
+                        }
+                      ]
                     }
-                  ]
+                  ],
+                  "trigger": "conditions",
+                  "source": {
+                    "binding": "vehicle.fuel.laps_remaining"
+                  },
+                  "conditions": [
+                    {
+                      "op": "at_or_below",
+                      "value": 2
+                    }
+                  ],
+                  "duration_ms": 0
                 },
                 {
                   "widgets": [
@@ -3614,265 +2913,6 @@
                       }
                     }
                   ]
-                },
-                {
-                  "widgets": [
-                    {
-                      "type": "shape",
-                      "id": "d_tim",
-                      "placement": {
-                        "x": 0,
-                        "y": 0,
-                        "width": 300,
-                        "height": 380
-                      },
-                      "title": {
-                        "text": "TIMING",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 14
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_last",
-                      "placement": {
-                        "x": 10,
-                        "y": 20,
-                        "width": 280,
-                        "height": 70
-                      },
-                      "sources": [
-                        {
-                          "binding": "session.lap.last_time",
-                          "transform": {
-                            "type": "time",
-                            "format": "duration_ms",
-                            "prefix": "",
-                            "suffix": ""
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 30
-                        },
-                        "color": "#D4E3FF",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "LAST LAP",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 24,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_best",
-                      "placement": {
-                        "x": 10,
-                        "y": 98,
-                        "width": 280,
-                        "height": 70
-                      },
-                      "sources": [
-                        {
-                          "binding": "session.lap.best_time",
-                          "transform": {
-                            "type": "time",
-                            "format": "duration_ms",
-                            "prefix": "",
-                            "suffix": ""
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 30
-                        },
-                        "color": "#44D569",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "BEST LAP",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 24,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_pred",
-                      "placement": {
-                        "x": 10,
-                        "y": 176,
-                        "width": 280,
-                        "height": 70
-                      },
-                      "sources": [
-                        {
-                          "binding": "session.lap.estimated_time",
-                          "transform": {
-                            "type": "time",
-                            "format": "duration_ms",
-                            "prefix": "",
-                            "suffix": ""
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 30
-                        },
-                        "color": "#219CD7",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "PREDICTED",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 24,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_sect",
-                      "placement": {
-                        "x": 10,
-                        "y": 254,
-                        "width": 280,
-                        "height": 70
-                      },
-                      "sources": [
-                        {
-                          "binding": "session.sector.delta",
-                          "transform": {
-                            "type": "time",
-                            "format": "signed_duration_ms",
-                            "prefix": "",
-                            "suffix": ""
-                          }
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 30
-                        },
-                        "color": "#E0B11F",
-                        "alignment": "center"
-                      },
-                      "background_color": "#141821",
-                      "title": {
-                        "text": "SECTOR Δ",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 10,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 24,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    },
-                    {
-                      "type": "text",
-                      "id": "d_snum",
-                      "placement": {
-                        "x": 10,
-                        "y": 332,
-                        "width": 280,
-                        "height": 34
-                      },
-                      "sources": [
-                        {
-                          "binding": "session.sector.current"
-                        }
-                      ],
-                      "value": {
-                        "font": {
-                          "family": "roboto_bold",
-                          "size_px": 22
-                        },
-                        "color": "#5F6470",
-                        "alignment": "center"
-                      },
-                      "title": {
-                        "text": "IN SECTOR",
-                        "font": {
-                          "family": "roboto-condensed_bold",
-                          "size_px": 13
-                        },
-                        "color": "#5F6470",
-                        "alignment": "top_left",
-                        "offset_x_px": 12,
-                        "offset_y_px": 6,
-                        "border_gap": false
-                      },
-                      "padding": {
-                        "top": 2,
-                        "left": 10,
-                        "right": 10,
-                        "bottom": 2
-                      }
-                    }
-                  ]
                 }
               ],
               "clip_children": false
@@ -4040,7 +3080,7 @@
                   "family": "roboto-condensed_bold",
                   "size_px": 13
                 },
-                "color": "#2FE85A",
+                "color": "#5F6470",
                 "alignment": "top_center",
                 "offset_x_px": 0,
                 "offset_y_px": 12,
@@ -4205,17 +3245,7 @@
               "fill_color": "#C30F43",
               "mark": "ring",
               "centering": "figure",
-              "radius_px": 385,
-              "condition_source": {
-                "binding": "engine.rpm_percent"
-              },
-              "conditions": [
-                {
-                  "op": "at_or_above",
-                  "value": 99,
-                  "blink_ms": 110
-                }
-              ]
+              "radius_px": 385
             },
             {
               "type": "arc",
@@ -4239,16 +3269,6 @@
               "mark": "ring",
               "centering": "figure",
               "radius_px": 385,
-              "condition_source": {
-                "binding": "engine.rpm_percent"
-              },
-              "conditions": [
-                {
-                  "op": "at_or_above",
-                  "value": 99,
-                  "blink_ms": 110
-                }
-              ],
               "inverted": true
             }
           ]
