@@ -21,10 +21,10 @@ import {
   broadcastFirmwareUploadProgress,
   broadcastImageUploadProgress,
   broadcastSaveProgress,
-  broadcastTelemetryBridgeStatus,
-  broadcastTelemetrySnapshot,
   registerIpcHandlers
 } from '@main/ipc/register-ipc-handlers'
+import { registerTelemetryBridge } from '@main/telemetry-bridge/register-telemetry-bridge'
+import { TELEMETRY_BRIDGE_INCLUDED } from '@shared/telemetry-bridge'
 
 if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.PITRIG_REMOTE_DEBUG)
@@ -36,10 +36,11 @@ const services: AppServices = createAppServices({
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onImageUploadProgress: broadcastImageUploadProgress,
   onSaveProgress: broadcastSaveProgress,
-  onTelemetryBridgeStatus: broadcastTelemetryBridgeStatus,
-  onTelemetrySnapshot: broadcastTelemetrySnapshot,
   onSerialTraffic: broadcastSerialTraffic
 })
+const telemetryBridge = TELEMETRY_BRIDGE_INCLUDED
+  ? registerTelemetryBridge(services.deviceService)
+  : undefined
 const benchService = new BenchService(
   {
     deviceService: services.deviceService,
@@ -79,7 +80,7 @@ app.on('before-quit', (event) => {
   }
   event.preventDefault()
   benchService.dispose()
-  void disposeAppServices(services).finally(() => {
+  void disposeAppServices(services, telemetryBridge).finally(() => {
     quitAfterDeviceCleanup = true
     app.quit()
   })

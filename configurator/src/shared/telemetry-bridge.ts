@@ -8,6 +8,8 @@ export const TELEMETRY_BRIDGE_STATUS_CHANNEL = 'telemetry-bridge:status' as cons
 export const TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL = 'telemetry-bridge:status-changed' as const
 export const TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL = 'telemetry-bridge:snapshot' as const
 
+export const TELEMETRY_BRIDGE_INCLUDED = import.meta.env.DEV
+
 export const SNAPSHOT_INTERVAL_MS = 16
 
 export const LINK_MAGIC = SIMHUB_LINK.magic

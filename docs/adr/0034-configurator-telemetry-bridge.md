@@ -81,11 +81,20 @@ adds before the write, and what the write itself costs — plus line, field, byt
 and packet rates, lost packets, dropped bytes and write errors, and the Protocol
 page shows them.
 
+**Development builds only, until the plugin ships.** The plugin is not
+distributed yet, so the product must not offer a path that needs it.
+`TELEMETRY_BRIDGE_INCLUDED` in `shared/telemetry-bridge.ts`, which is
+`import.meta.env.DEV`, gates the bridge's service and IPC in the main process,
+the optional `telemetryBridge` preload API, and the renderer's panel,
+subscriptions and catalog value column; a production build drops all of it,
+and CI fails a package that still carries it. Until then the packaged
+configurator's telemetry path is the Custom Serial profile.
+
 ## Consequences
 
-- The dashboard preview, the lamp preview and the telemetry catalog show live
-  values, and a board can be watched at the same time, with nothing to install
-  besides the plugin.
+- In a development build the dashboard preview, the lamp preview and the
+  telemetry catalog show live values, and a board can be watched at the same
+  time, with nothing to install besides the plugin.
 - The field mapping has one source: `telemetry/simhub_generic_mappings.json`
   generates the NCalc expressions of the Custom Serial profile and the plugin's
   own field table, so the two paths cannot drift.

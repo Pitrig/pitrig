@@ -7,6 +7,7 @@ import { BridgeSection } from './BridgeSection'
 import { CatalogSection } from './CatalogSection'
 import { SimHubProfileSection } from './SimHubProfileSection'
 import { TransportSection } from './TransportSection'
+import { TELEMETRY_BRIDGE_INCLUDED } from '@shared/telemetry-bridge'
 import { t } from '@shared/ui-text'
 
 export function ProtocolPage(): React.JSX.Element {
@@ -22,7 +23,7 @@ export function ProtocolPage(): React.JSX.Element {
       }
     >
       <TelemetrySourceSection />
-      <BridgeSection />
+      {TELEMETRY_BRIDGE_INCLUDED ? <BridgeSection /> : null}
       <SimHubProfileSection />
       <CatalogSection />
       <TransportSection />

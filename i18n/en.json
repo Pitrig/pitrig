@@ -1828,8 +1828,7 @@
     },
     "registerIpcHandlers": {
       "invalidSaveRequest": "Invalid save request.",
-      "invalidSerialConnectionRequest": "Invalid serial connection request.",
-      "invalidTelemetryBridgeRequest": "Invalid telemetry bridge request."
+      "invalidSerialConnectionRequest": "Invalid serial connection request."
     },
     "registerLibraryHandlers": {
       "invalidConfigurationFileRequest": "Invalid configuration file request.",
@@ -2011,6 +2010,9 @@
       "alreadyRunning": "The telemetry link is already running.",
       "portInUse": "Port {port} is already taken. Choose another one here and in the plugin.",
       "sourceClosed": "The telemetry link closed."
+    },
+    "registerTelemetryBridge": {
+      "invalidRequest": "Invalid telemetry bridge request."
     }
   }
 }

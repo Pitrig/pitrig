@@ -8,6 +8,7 @@ import {
   telemetryIsLive,
   useSlowRevision
 } from '@/features/telemetry/live-telemetry'
+import { TELEMETRY_BRIDGE_INCLUDED } from '@shared/telemetry-bridge'
 import { rawText } from '@shared/telemetry-value'
 import { searchTelemetryReference } from './telemetry-reference'
 import { t } from '@shared/ui-text'
@@ -50,7 +51,9 @@ export function CatalogSection(): React.JSX.Element {
             <thead className="sticky top-0 bg-card text-[11px] text-muted-foreground">
               <tr>
                 <th className="px-4 py-1.5 font-medium">{t('protocol.catalogSection.field')}</th>
-                <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.value')}</th>
+                {TELEMETRY_BRIDGE_INCLUDED ? (
+                  <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.value')}</th>
+                ) : null}
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.wire')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.type')}</th>
                 <th className="px-2 py-1.5 font-medium">{t('protocol.catalogSection.unit')}</th>
@@ -66,9 +69,11 @@ export function CatalogSection(): React.JSX.Element {
                       {entry.description}
                     </span>
                   </td>
-                  <td className="px-2 py-1.5 font-mono tabular-nums">
-                    {rawText(readLiveValue(entry.name)) ?? '—'}
-                  </td>
+                  {TELEMETRY_BRIDGE_INCLUDED ? (
+                    <td className="px-2 py-1.5 font-mono tabular-nums">
+                      {rawText(readLiveValue(entry.name)) ?? '—'}
+                    </td>
+                  ) : null}
                   <td className="px-2 py-1.5 font-mono text-muted-foreground">{entry.wireId}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{entry.type}</td>
                   <td className="px-2 py-1.5 text-muted-foreground">{entry.unit}</td>

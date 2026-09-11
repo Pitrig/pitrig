@@ -27,6 +27,7 @@ import { ModulesPage } from '@/features/modules/ModulesPage'
 import { ProtocolPage } from '@/features/protocol/ProtocolPage'
 import { subscribeToTelemetryBridge } from '@/features/telemetry/bridge-store'
 import { startLiveTelemetry } from '@/features/telemetry/live-telemetry'
+import { TELEMETRY_BRIDGE_INCLUDED } from '@shared/telemetry-bridge'
 import { t } from '@shared/ui-text'
 
 export function App(): React.JSX.Element {
@@ -40,8 +41,8 @@ export function App(): React.JSX.Element {
   const layerPreview = useModulesStore((state) => state.preview)
 
   useEffect(() => subscribeToFontLibrary(), [])
-  useEffect(() => subscribeToTelemetryBridge(), [])
-  useEffect(() => startLiveTelemetry(), [])
+  useEffect(() => (TELEMETRY_BRIDGE_INCLUDED ? subscribeToTelemetryBridge() : undefined), [])
+  useEffect(() => (TELEMETRY_BRIDGE_INCLUDED ? startLiveTelemetry() : undefined), [])
   useBoardSync(dirtyDocuments)
 
   const mirroring = liveApplyAllowed && !saving && syncQuestion === undefined

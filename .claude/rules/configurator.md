@@ -78,6 +78,15 @@ string** for every field, not only the text ones, so the preview shows what the
 board shows. The wire constants come from the generated `SIMHUB_LINK`, so the
 plugin in `simhub/plugin/` and this side cannot disagree.
 
+The bridge is compiled into development builds only (ADR 0034):
+`TELEMETRY_BRIDGE_INCLUDED` in `shared/telemetry-bridge.ts` is
+`import.meta.env.DEV` and gates `registerTelemetryBridge` in both entry points
+(the service, its IPC handlers and broadcasts, kept out of `AppServices`), the
+optional `telemetryBridge` preload API, and the renderer's panel, subscriptions
+and catalog value column. Put the constant itself in the condition so the
+bundler can drop the branch; CI fails a package whose `app.asar` still carries
+`telemetry-bridge:` or `TelemetryBridgeService`.
+
 In the renderer the table lives outside React in
 `features/telemetry/live-telemetry.ts`; a snapshot bumps a revision at most once
 per animation frame (and a slower one at 10 Hz for the 228-row catalog table),

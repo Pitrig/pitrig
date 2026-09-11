@@ -6,6 +6,11 @@ configurator, which forwards it to the board and draws it in the preview
 Serial profile, which stays supported for a board fed straight from SimHub
 ([SimHub telemetry](simhub-custom-serial.md)).
 
+For now both halves are development-only: the plugin is not distributed, and
+only a development build of the configurator (`pnpm run dev`) carries the
+bridge and its **Live telemetry** panel. The packaged configurator feeds a
+board through the Custom Serial profile.
+
 ## Installing
 
 Copy `Pitrig.SimHub.dll` next to `SimHub.exe` and restart SimHub. The plugin

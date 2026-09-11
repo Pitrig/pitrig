@@ -157,11 +157,13 @@ export interface PitrigApi {
   onSaveProgress: (listener: (progress: SaveProgress) => void) => () => void
   onFontLibraryChanged: (listener: (snapshot: FontLibrarySnapshot) => void) => () => void
   onDeviceStateChanged: (listener: (state: DeviceState) => void) => () => void
-  getTelemetryBridgeStatus: () => Promise<TelemetryBridgeStatus>
-  startTelemetryBridge: (
-    request: TelemetryBridgeStartRequest
-  ) => Promise<DeviceResult<TelemetryBridgeStatus>>
-  stopTelemetryBridge: () => Promise<DeviceResult<TelemetryBridgeStatus>>
-  onTelemetryBridgeStatus: (listener: (status: TelemetryBridgeStatus) => void) => () => void
-  onTelemetrySnapshot: (listener: (snapshot: TelemetrySnapshot) => void) => () => void
+  telemetryBridge?: TelemetryBridgeApi
+}
+
+export interface TelemetryBridgeApi {
+  getStatus: () => Promise<TelemetryBridgeStatus>
+  start: (request: TelemetryBridgeStartRequest) => Promise<DeviceResult<TelemetryBridgeStatus>>
+  stop: () => Promise<DeviceResult<TelemetryBridgeStatus>>
+  onStatus: (listener: (status: TelemetryBridgeStatus) => void) => () => void
+  onSnapshot: (listener: (snapshot: TelemetrySnapshot) => void) => () => void
 }

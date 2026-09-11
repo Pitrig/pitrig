@@ -124,8 +124,9 @@ hidden widget.
 
 ### 7. Preview values
 
-The canvas draws the live stream when there is one. The configurator goes in the
-middle of the link: the [SimHub plugin](simhub-plugin.md) sends it the telemetry
+The canvas draws the live stream when there is one, which for now only a
+development build can have. The configurator goes in the middle of the link:
+the [SimHub plugin](simhub-plugin.md) sends it the telemetry
 over a local socket, it forwards every byte to the board unchanged, and it
 decodes the same bytes on the way past
 ([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). Taking the stream is

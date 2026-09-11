@@ -14,10 +14,10 @@ import {
   broadcastFirmwareUploadProgress,
   broadcastImageUploadProgress,
   broadcastSaveProgress,
-  broadcastTelemetryBridgeStatus,
-  broadcastTelemetrySnapshot,
   registerIpcHandlers
 } from './ipc/register-ipc-handlers'
+import { registerTelemetryBridge } from './telemetry-bridge/register-telemetry-bridge'
+import { TELEMETRY_BRIDGE_INCLUDED } from '../shared/telemetry-bridge'
 
 if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.PITRIG_REMOTE_DEBUG)
@@ -28,10 +28,11 @@ const services: AppServices = createAppServices({
   onDeviceState: broadcastDeviceState,
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onImageUploadProgress: broadcastImageUploadProgress,
-  onSaveProgress: broadcastSaveProgress,
-  onTelemetryBridgeStatus: broadcastTelemetryBridgeStatus,
-  onTelemetrySnapshot: broadcastTelemetrySnapshot
+  onSaveProgress: broadcastSaveProgress
 })
+const telemetryBridge = TELEMETRY_BRIDGE_INCLUDED
+  ? registerTelemetryBridge(services.deviceService)
+  : undefined
 let quitAfterDeviceCleanup = false
 
 function createWindow(): void {
@@ -58,7 +59,7 @@ app.on('before-quit', (event) => {
     return
   }
   event.preventDefault()
-  void disposeAppServices(services).finally(() => {
+  void disposeAppServices(services, telemetryBridge).finally(() => {
     quitAfterDeviceCleanup = true
     app.quit()
   })

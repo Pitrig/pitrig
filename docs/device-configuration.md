@@ -173,8 +173,9 @@ preview and the device agree. A drawn widget carries only its box; a new image
 widget starts on the first installed image, because without one it has nothing
 to draw.
 
-The canvas draws live telemetry while the **Live telemetry** bridge on the
-Protocol page is running, with the widget's `unavailable_text` for a value the
+In a development build the canvas draws live telemetry while the **Live
+telemetry** bridge on the Protocol page is running — the packaged configurator
+carries no bridge yet — with the widget's `unavailable_text` for a value the
 stream does not carry, and each source's zero placeholder when it is not, as
 the board does before its first telemetry line. The bridge takes the stream
 from the [SimHub plugin](simhub-plugin.md) and forwards it to the board

@@ -21,6 +21,7 @@ import {
   CONFIGURATION_FILE_SAVE_CHANNEL
 } from '../shared/configuration-files'
 import {
+  TELEMETRY_BRIDGE_INCLUDED,
   TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL,
   TELEMETRY_BRIDGE_START_CHANNEL,
   TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL,
@@ -68,7 +69,8 @@ import {
 } from '../shared/font-library'
 import {
   APP_GET_INFO_CHANNEL,
-  type PitrigApi
+  type PitrigApi,
+  type TelemetryBridgeApi
 } from '../shared/ipc'
 import {
   SAVE_PROGRESS_CHANNEL,
@@ -83,6 +85,24 @@ import {
   TEMPLATE_READ_CHANNEL,
   TEMPLATE_SAVE_CHANNEL
 } from '../shared/templates'
+
+const telemetryBridgeApi: TelemetryBridgeApi = {
+  getStatus: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STATUS_CHANNEL),
+  start: (request) => ipcRenderer.invoke(TELEMETRY_BRIDGE_START_CHANNEL, request),
+  stop: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STOP_CHANNEL),
+  onStatus: (listener) => {
+    const handler = (_event: IpcRendererEvent, status: TelemetryBridgeStatus): void =>
+      listener(status)
+    ipcRenderer.on(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, handler)
+  },
+  onSnapshot: (listener) => {
+    const handler = (_event: IpcRendererEvent, snapshot: TelemetrySnapshot): void =>
+      listener(snapshot)
+    ipcRenderer.on(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, handler)
+    return () => ipcRenderer.removeListener(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, handler)
+  }
+}
 
 export const productApi: PitrigApi = {
   getAppInfo: () => ipcRenderer.invoke(APP_GET_INFO_CHANNEL),
@@ -163,19 +183,5 @@ export const productApi: PitrigApi = {
     ipcRenderer.on(DEVICE_STATE_CHANGED_CHANNEL, handler)
     return () => ipcRenderer.removeListener(DEVICE_STATE_CHANGED_CHANNEL, handler)
   },
-  getTelemetryBridgeStatus: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STATUS_CHANNEL),
-  startTelemetryBridge: (request) => ipcRenderer.invoke(TELEMETRY_BRIDGE_START_CHANNEL, request),
-  stopTelemetryBridge: () => ipcRenderer.invoke(TELEMETRY_BRIDGE_STOP_CHANNEL),
-  onTelemetryBridgeStatus: (listener) => {
-    const handler = (_event: IpcRendererEvent, status: TelemetryBridgeStatus): void =>
-      listener(status)
-    ipcRenderer.on(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, handler)
-    return () => ipcRenderer.removeListener(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, handler)
-  },
-  onTelemetrySnapshot: (listener) => {
-    const handler = (_event: IpcRendererEvent, snapshot: TelemetrySnapshot): void =>
-      listener(snapshot)
-    ipcRenderer.on(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, handler)
-    return () => ipcRenderer.removeListener(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, handler)
-  }
+  ...(TELEMETRY_BRIDGE_INCLUDED ? { telemetryBridge: telemetryBridgeApi } : {})
 }

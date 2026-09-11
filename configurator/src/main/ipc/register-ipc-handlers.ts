@@ -7,8 +7,7 @@ import {
   invalidConfigurationRequest,
   isConfigurationResetRequest,
   isConnectRequest,
-  isJsonDocumentRequest,
-  isTelemetryBridgeStartRequest
+  isJsonDocumentRequest
 } from './request-guards'
 import {
   DEVICE_AUTO_CONNECT_CHANNEL,
@@ -29,15 +28,6 @@ import {
 import { FIRMWARE_UPLOAD_PROGRESS_CHANNEL, type FirmwareUploadProgress } from '../../shared/firmware-update'
 import { FONT_LIBRARY_CHANGED_CHANNEL, type FontLibrarySnapshot } from '../../shared/font-library'
 import { APP_GET_INFO_CHANNEL, type AppInfo } from '../../shared/ipc'
-import {
-  TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL,
-  TELEMETRY_BRIDGE_START_CHANNEL,
-  TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL,
-  TELEMETRY_BRIDGE_STATUS_CHANNEL,
-  TELEMETRY_BRIDGE_STOP_CHANNEL,
-  type TelemetryBridgeStatus,
-  type TelemetrySnapshot
-} from '../../shared/telemetry-bridge'
 import {
   SAVE_PROGRESS_CHANNEL,
   SAVE_TO_BOARD_CHANNEL,
@@ -61,8 +51,7 @@ export function registerIpcHandlers({
   fontLibraryService,
   fontCatalogService,
   saveToBoardService,
-  configLibraryService,
-  telemetryBridgeService
+  configLibraryService
 }: AppServices): void {
   ipcMain.handle(APP_GET_INFO_CHANNEL, (): AppInfo => ({
     name: app.getName(),
@@ -115,21 +104,6 @@ export function registerIpcHandlers({
     }
     return saveToBoardService.save({ json: request.json, documents: request.documents })
   })
-  ipcMain.handle(TELEMETRY_BRIDGE_STATUS_CHANNEL, () => telemetryBridgeService.getStatus())
-  ipcMain.handle(TELEMETRY_BRIDGE_STOP_CHANNEL, () => telemetryBridgeService.stop())
-  ipcMain.handle(TELEMETRY_BRIDGE_START_CHANNEL, (_event, request: unknown) => {
-    if (!isTelemetryBridgeStartRequest(request)) {
-      const result: DeviceResult<TelemetryBridgeStatus> = {
-        ok: false,
-        error: {
-          code: 'invalid_request',
-          message: t('ipc.registerIpcHandlers.invalidTelemetryBridgeRequest')
-        }
-      }
-      return result
-    }
-    return telemetryBridgeService.start(request)
-  })
   ipcMain.handle(DEVICE_CONNECT_CHANNEL, (_event, request: unknown) => {
     if (!isConnectRequest(request)) {
       const result: DeviceResult<DeviceState> = {
@@ -160,12 +134,4 @@ export function broadcastSaveProgress(progress: SaveProgress): void {
 
 export function broadcastDeviceState(state: DeviceState): void {
   broadcastToWindows(DEVICE_STATE_CHANGED_CHANNEL, state)
-}
-
-export function broadcastTelemetryBridgeStatus(status: TelemetryBridgeStatus): void {
-  broadcastToWindows(TELEMETRY_BRIDGE_STATUS_CHANGED_CHANNEL, status)
-}
-
-export function broadcastTelemetrySnapshot(snapshot: TelemetrySnapshot): void {
-  broadcastToWindows(TELEMETRY_BRIDGE_SNAPSHOT_CHANNEL, snapshot)
 }

@@ -7,6 +7,7 @@ import {
   type TelemetrySnapshot
 } from '@shared/telemetry-bridge'
 import { UNAVAILABLE, type TelemetryValue } from '@shared/telemetry-value'
+import { telemetryBridge } from './bridge-store'
 
 const SLOW_INTERVAL_MS = 100
 
@@ -46,8 +47,9 @@ function clear(): void {
 }
 
 export function startLiveTelemetry(): () => void {
-  const stopSnapshots = window.pitrig.onTelemetrySnapshot(receive)
-  const stopStatus = window.pitrig.onTelemetryBridgeStatus((status) => {
+  const bridge = telemetryBridge()
+  const stopSnapshots = bridge.onSnapshot(receive)
+  const stopStatus = bridge.onStatus((status) => {
     if (!status.running) clear()
   })
   const slowTimer = window.setInterval(() => {

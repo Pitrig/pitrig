@@ -96,7 +96,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: pnpm run package
 
-      - name: The package carries no debugger
+      - name: The package carries no debugger and no telemetry bridge
         shell: bash
         working-directory: configurator
         run: |
@@ -111,7 +111,13 @@ jobs:
               exit 1
             fi
           done
-          echo "$asar carries no debug code"
+          for marker in telemetry-bridge: TelemetryBridgeService; do
+            if grep -qa "$marker" "$asar"; then
+              echo "The production package contains the telemetry bridge: $marker" >&2
+              exit 1
+            fi
+          done
+          echo "$asar carries no debug code and no telemetry bridge"
 
       - uses: actions/upload-artifact@v7
         with:
