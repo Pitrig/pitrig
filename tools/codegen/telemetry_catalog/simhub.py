@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .constants import UNAVAILABLE_OPERATORS
+
 
 def identifier_key(identifier: str) -> int:
     first = ord(identifier[0])
@@ -72,26 +74,30 @@ def generate_simhub_expression(
             source = f"isnull({source}, [{normalized_name}])"
     conversion = mapping.get("conversion", "number")
     fallback = mapping.get("fallback")
+    number = source
     if conversion == "timespan_ms":
-        converted = f"format(timespantoseconds({source}) * 1000, '0')"
+        number = f"timespantoseconds({source}) * 1000"
+        converted = f"format({number}, '0')"
     elif conversion == "boolean":
         converted = f"if({source}, '1', '0')"
     elif conversion == "text":
         converted = f"replace(replace('' + {source}, '\\r', ' '), '\\n', ' ')"
     else:
-        scaled = source
         if "scale" in mapping:
-            scaled = f"({source}) * {mapping['scale']}"
-        converted = f"format({scaled}, '{mapping['format']}')"
+            number = f"({source}) * {mapping['scale']}"
+        converted = f"format({number}, '{mapping['format']}')"
 
     unavailable = f"'' + isnull({source}, '') = ''"
     if fallback is not None:
         converted = f"if({unavailable}, '{fallback}', {converted})"
         return f"'{identifier};' + {converted} + '\\n'"
-    return (
-        f"if({unavailable}, '{identifier};\\n', "
-        f"'{identifier};' + {converted} + '\\n')"
-    )
+    empty = f"'{identifier};\\n'"
+    line = f"'{identifier};' + {converted} + '\\n'"
+    rule = mapping.get("unavailable_when")
+    if rule is not None:
+        operator = UNAVAILABLE_OPERATORS[rule["op"]]
+        line = f"if(({number}) {operator} {rule['value']}, {empty}, {line})"
+    return f"if({unavailable}, {empty}, {line})"
 
 
 def generate_shsds(

@@ -29,6 +29,7 @@ struct WidgetBinding {
   std::size_t count{};
   BoundConfig condition{};
   BoundConfig caption{};
+  const telemetry::ITelemetryReader* telemetry{};
 };
 
 class Binder final {

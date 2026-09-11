@@ -557,7 +557,7 @@
         { "name": "font", "kind": "external", "external": "FontSpec" },
         { "name": "color", "kind": "color", "default": "0xE8E8E8" },
         { "name": "alignment", "kind": "enum", "enum": "TextAlignment", "doc": "Which point of the widget's content area the value label is anchored to." },
-        { "name": "unavailable_text", "kind": "text", "capacity": "kUnavailableTextCapacity", "doc": "Shown while the bound value is unavailable. Empty renders a zero through the widget's own transform, so a plain value reads 0 and a time value keeps its format." }
+        { "name": "unavailable_text", "kind": "text", "capacity": "kUnavailableTextCapacity", "doc": "Shown while the bound value is unavailable once telemetry has started. Before the first telemetry line, and when empty, a zero renders through the widget's own transform, so a plain value reads 0 and a time value keeps its format." }
       ]
     },
 

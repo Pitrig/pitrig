@@ -433,7 +433,7 @@
         "scale": "Applied before the offset: the drawn number is value × scale + offset, rounded to the decimals set beside it.",
         "affix": "Literal text drawn immediately before and after this source. With several sources this is the only separator between them.",
         "alignment": "Where the text sits inside the widget box, after the padding is taken off.",
-        "fallback": "Drawn while the field has no value yet — before the first telemetry frame arrives, or when the game does not report it. Empty draws nothing."
+        "fallback": "Drawn once telemetry is flowing for a field the game does not report. Before the first telemetry frame, and when this is empty, the value's zero is drawn instead."
       },
       "title": {
         "fallback": "A second installed family to try for glyphs the first does not have — an icon family beside a text one, which is how a value carries an icon and its number in one widget. It is built at the same size, so it costs one more font.",

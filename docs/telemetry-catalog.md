@@ -30,7 +30,7 @@ Catalog version: 1. Fields: 228. Static limit: 256.
 | `engine.water_temperature` | `0c` | `float32` | `celsius` | `slow` | `optional` | Engine coolant temperature. |
 | `engine.oil_temperature` | `0d` | `float32` | `celsius` | `slow` | `optional` | Engine oil temperature. |
 | `engine.oil_pressure` | `0e` | `float32` | `kilopascal` | `slow` | `optional` | Engine oil pressure. |
-| `engine.turbo_pressure` | `0f` | `float32` | `kilopascal` | `fast` | `optional` | Turbocharger boost pressure. |
+| `engine.turbo_pressure` | `0f` | `float32` | `kilopascal` | `fast` | `computed` | Turbocharger boost pressure. |
 | `engine.turbo_level` | `0g` | `float32` | `percent` | `fast` | `optional` | Normalized turbocharger boost level. |
 | `engine.torque` | `0h` | `float32` | `newton_meter` | `fast` | `game_specific` | Current engine torque. |
 | `engine.power` | `0i` | `float32` | `kilowatt` | `fast` | `game_specific` | Current engine power. |
@@ -70,7 +70,7 @@ Catalog version: 1. Fields: 228. Static limit: 256.
 | `session.sector.1_best` | `12` | `uint32` | `millisecond` | `changes` | `computed` | Best sector one time. |
 | `session.sector.2_best` | `13` | `uint32` | `millisecond` | `changes` | `computed` | Best sector two time. |
 | `session.sector.3_best` | `14` | `uint32` | `millisecond` | `changes` | `computed` | Best sector three time. |
-| `session.sector.delta` | `15` | `int32` | `millisecond` | `normal` | `computed` | Current signed sector delta. |
+| `session.sector.delta` | `15` | `int32` | `millisecond` | `normal` | `computed` | Signed time gained or lost so far in the current sector against the best lap. |
 | `track.position_percent` | `16` | `float32` | `percent` | `fast` | `common` | Vehicle position around the lap. |
 ## Session and position
 
@@ -80,18 +80,18 @@ Catalog version: 1. Fields: 228. Static limit: 256.
 | `session.name` | `18` | `text` | `source` | `changes` | `optional` | Session name. |
 | `session.phase` | `19` | `text` | `source` | `changes` | `optional` | Current session phase. |
 | `session.position` | `1a` | `uint32` | `count` | `normal` | `common` | Overall race position. |
-| `session.class_position` | `1b` | `uint32` | `count` | `normal` | `optional` | Position within the vehicle class. |
+| `session.class_position` | `1b` | `uint32` | `count` | `normal` | `computed` | Position within the vehicle class, known in a single-class session. |
 | `session.participants` | `1c` | `uint32` | `count` | `changes` | `common` | Participant count. |
 | `session.class_participants` | `1d` | `uint32` | `count` | `changes` | `optional` | Participant count within the vehicle class. |
 | `session.time_elapsed` | `1e` | `uint32` | `millisecond` | `normal` | `common` | Elapsed session time. |
 | `session.time_remaining` | `1f` | `uint32` | `millisecond` | `normal` | `common` | Remaining session time. |
-| `session.laps_remaining` | `1g` | `uint32` | `count` | `normal` | `optional` | Remaining session laps. |
+| `session.laps_remaining` | `1g` | `uint32` | `count` | `normal` | `computed` | Remaining session laps including the current one, estimated from the best lap in a timed session. |
 | `session.is_timed` | `1h` | `boolean` | `boolean` | `changes` | `computed` | Whether the session is time limited. |
 | `session.finished` | `1i` | `boolean` | `boolean` | `changes` | `optional` | Whether the player has finished. |
 | `session.checkered` | `1j` | `boolean` | `boolean` | `changes` | `common` | Whether the checkered flag has been shown. |
 | `session.starting_grid_position` | `1k` | `uint32` | `count` | `changes` | `optional` | Starting grid position. |
-| `session.gap_ahead` | `1l` | `text` | `source` | `normal` | `computed` | Gap in seconds to the nearest vehicle ahead on track. |
-| `session.gap_behind` | `1m` | `text` | `source` | `normal` | `computed` | Gap in seconds to the nearest vehicle behind on track. |
+| `session.gap_ahead` | `1l` | `text` | `source` | `normal` | `computed` | Gap in seconds to the car one race position ahead. |
+| `session.gap_behind` | `1m` | `text` | `source` | `normal` | `computed` | Gap in seconds to the car one race position behind. |
 | `session.gap_leader` | `1n` | `text` | `source` | `normal` | `computed` | Gap to the session leader. |
 ## Fuel and energy
 
@@ -103,9 +103,9 @@ Catalog version: 1. Fields: 228. Static limit: 256.
 | `vehicle.fuel.average_consumption` | `FC` | `text` | `source` | `slow` | `computed` | Average fuel consumption formatted by the telemetry source. |
 | `vehicle.fuel.current_consumption` | `1q` | `float32` | `liter` | `slow` | `computed` | Fuel used on the current lap. |
 | `vehicle.fuel.laps_remaining` | `FL` | `text` | `source` | `slow` | `computed` | Estimated fuel laps remaining formatted by the telemetry source. |
-| `vehicle.fuel.time_remaining` | `1r` | `uint32` | `millisecond` | `slow` | `computed` | Estimated driving time remaining on fuel. |
-| `vehicle.fuel.required_to_finish` | `1s` | `float32` | `liter` | `slow` | `computed` | Estimated fuel required to finish. |
-| `vehicle.fuel.to_add` | `1t` | `float32` | `liter` | `slow` | `computed` | Recommended refueling amount. |
+| `vehicle.fuel.time_remaining` | `1r` | `uint32` | `millisecond` | `slow` | `computed` | Estimated driving time remaining on fuel at the best-lap pace. |
+| `vehicle.fuel.required_to_finish` | `1s` | `float32` | `liter` | `slow` | `computed` | Estimated fuel required to finish the session. |
+| `vehicle.fuel.to_add` | `1t` | `float32` | `liter` | `slow` | `computed` | Fuel to add to finish the session. |
 | `vehicle.fuel.last_lap_consumption` | `1u` | `float32` | `liter` | `changes` | `computed` | Fuel used on the previous lap. |
 | `vehicle.energy.level` | `1v` | `float32` | `source` | `normal` | `optional` | Remaining electrical energy. |
 | `vehicle.energy.percent` | `1w` | `float32` | `percent` | `normal` | `optional` | Electrical energy percentage. |
@@ -186,7 +186,7 @@ Catalog version: 1. Fields: 228. Static limit: 256.
 | `motion.pitch` | `3h` | `float32` | `degree` | `fast` | `optional` | Vehicle pitch angle. |
 | `motion.roll` | `3i` | `float32` | `degree` | `fast` | `optional` | Vehicle roll angle. |
 | `motion.yaw` | `3j` | `float32` | `degree` | `fast` | `optional` | Vehicle yaw angle. |
-| `motion.slip_angle` | `3k` | `float32` | `degree` | `fast` | `game_specific` | Vehicle slip angle. |
+| `motion.slip_angle` | `3k` | `float32` | `degree` | `fast` | `computed` | Vehicle slip angle from the local velocity. |
 | `motion.ffb_force` | `3l` | `float32` | `normalized` | `fast` | `game_specific` | Current force-feedback signal. |
 ## Tyres
 

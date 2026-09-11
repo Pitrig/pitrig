@@ -14,6 +14,7 @@
 #include "lvgl.h"
 #include "number_transform.hpp"
 #include "pitrig_features.hpp"
+#include "telemetry_state.hpp"
 #include "text_writer.hpp"
 #include "time_transform.hpp"
 #include "value_text.hpp"
@@ -105,6 +106,7 @@ bool Collection::build(State& state, const Layout& layout,
     };
   }
   state.unavailable_text = unavailable;
+  state.telemetry = binding.telemetry;
   state.container = box.container;
 
   state.font = value_font;
@@ -129,8 +131,11 @@ bool Collection::build(State& state, const Layout& layout,
 
 void Collection::render_state(State& state) {
   const bool first_render = !state.initialized;
+  const bool started =
+      state.telemetry != nullptr && state.telemetry->started();
   std::array<telemetry::TelemetryRead, kMaximumSources> values{};
-  bool changed = first_render;
+  bool changed = first_render || started != state.rendered_started;
+  state.rendered_started = started;
   bool any_available = false;
 #if PITRIG_DEBUG
   std::int64_t oldest_commit_us = 0;
@@ -169,7 +174,7 @@ void Collection::render_state(State& state) {
     }
   }
   state.initialized = true;
-  if (!any_available) {
+  if (!any_available && started) {
     next = state.unavailable_text;
   }
   if (!first_render && state.displayed_text == next) {

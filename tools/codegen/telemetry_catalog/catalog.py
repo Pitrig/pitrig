@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 from . import SIMHUB_MAPPINGS_SOURCE, SOURCE
-from .constants import VALID_RATES, WHEEL_LABELS
+from .constants import UNSIGNED_UNAVAILABLE, VALID_RATES, WHEEL_LABELS
 from .errors import fail
 from .validate import (
     automatic_identifier,
@@ -111,5 +111,8 @@ def load_simhub_mappings(
     if set(expanded) != field_names:
         report_key_mismatch("expanded SimHub mappings", field_names, set(expanded))
     for field in fields:
-        validate_simhub_mapping(field, expanded[field["name"]])
+        mapping = expanded[field["name"]]
+        validate_simhub_mapping(field, mapping)
+        if field["type"] == "uint32":
+            mapping.setdefault("unavailable_when", dict(UNSIGNED_UNAVAILABLE))
     return profile, expanded

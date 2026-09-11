@@ -2,26 +2,31 @@ import { type FontSpec, type TextAlignment } from '@shared/configuration-schema'
 import { type TelemetryValue, UNAVAILABLE, conditionValue } from '@shared/telemetry-value'
 import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, resolveWidgetStyle } from '@shared/widget-style'
 import { previewFontFamily } from '@/features/font-library/font-face-store'
-import { liveElapsedMs, readLiveValue } from '@/features/telemetry/live-telemetry'
+import { liveElapsedMs, readLiveValue, telemetryIsLive } from '@/features/telemetry/live-telemetry'
 import { type GlyphMetrics, measureGlyphs } from './text-metrics'
 
 export interface PreviewValues {
   read: (binding: string | undefined) => TelemetryValue
+  started: () => boolean
   numberFor: (source: { binding?: string } | undefined) => number | undefined
   styleFor: (frame: StyledFrame, authored: AuthoredStyle) => ResolvedStyle & { visible: boolean }
 }
 
 export function createPreviewValues(): PreviewValues {
-  return valuesFrom(() => UNAVAILABLE)
+  return valuesFrom(() => UNAVAILABLE, () => false)
 }
 
 export function createLiveValues(): PreviewValues {
-  return valuesFrom(readLiveValue)
+  return valuesFrom(readLiveValue, telemetryIsLive)
 }
 
-function valuesFrom(read: (binding: string | undefined) => TelemetryValue): PreviewValues {
+function valuesFrom(
+  read: (binding: string | undefined) => TelemetryValue,
+  started: () => boolean
+): PreviewValues {
   return {
     read,
+    started,
     numberFor: (source) => conditionValue(read(source?.binding)),
     styleFor: (frame, authored) => {
       const watched = conditionValue(read(frame.condition_source?.binding))

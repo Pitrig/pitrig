@@ -209,10 +209,12 @@ Only the properties shown above are present in the project and public payload.
 The text widget supplies its documented defaults for omitted padding, fonts,
 colors, alignment, background, caption placement, and unavailable text.
 
-Until a value arrives, a widget renders its placeholder. An explicit
-`unavailable_text` is that placeholder; omitting it renders a zero through each
-source's own transform, so a plain value reads `0` and a time value keeps its
-format with every field zeroed, such as `00:00.000`.
+Until a value arrives, a widget renders a zero through each source's own
+transform, so a plain value reads `0` and a time value keeps its format with
+every field zeroed, such as `00:00.000`. Once the first telemetry line has
+reached the board, a widget still without a value shows its `unavailable_text`
+instead when it has one: before the feed starts nothing is missing yet, after
+it a value the game does not send is.
 
 A text widget renders its `sources` in order and joins them into one string, up
 to three of them. Each source is a telemetry field with its own modifiers and

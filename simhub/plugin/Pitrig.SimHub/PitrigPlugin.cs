@@ -88,12 +88,13 @@ namespace Pitrig.SimHub
             var keyframe = now >= nextKeyframe;
             if (keyframe) nextKeyframe = now + TelemetryCatalog.LinkKeyframeIntervalMs;
             var fields = TelemetryCatalog.Fields;
+            var status = data?.NewData;
             for (var index = 0; index < fields.Length; index += 1)
             {
                 if (!keyframe && now < due[index]) continue;
                 var field = fields[index];
                 due[index] = now + IntervalOf(field.Rate);
-                var text = reader.Read(pluginManager, field);
+                var text = reader.Read(pluginManager, status, field);
                 if (reader.Commit(index, text, keyframe)) link.Add(field.WireId, text ?? string.Empty);
             }
             link.Flush();

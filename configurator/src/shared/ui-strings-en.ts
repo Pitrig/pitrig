@@ -850,7 +850,7 @@ export const EN_UI_STRINGS: Readonly<Record<string, string>> = {
   'inspector.hints.strip.shape': 'A strip runs the lamps along its orientation. An arc spaces them around a sector, which is the rev ring a round dashboard is built on.',
   'inspector.hints.text.affix': 'Literal text drawn immediately before and after this source. With several sources this is the only separator between them.',
   'inspector.hints.text.alignment': 'Where the text sits inside the widget box, after the padding is taken off.',
-  'inspector.hints.text.fallback': 'Drawn while the field has no value yet — before the first telemetry frame arrives, or when the game does not report it. Empty draws nothing.',
+  'inspector.hints.text.fallback': 'Drawn once telemetry is flowing for a field the game does not report. Before the first telemetry frame, and when this is empty, the value\'s zero is drawn instead.',
   'inspector.hints.text.preset': 'A ready scale, offset and suffix for the usual unit conversions of this field — kph to mph, celsius to fahrenheit.',
   'inspector.hints.text.scale': 'Applied before the offset: the drawn number is value × scale + offset, rounded to the decimals set beside it.',
   'inspector.hints.text.sources': 'Sources are rendered in order, each through its own transform, into one string. The prefix and suffix are what separate one from the next, so "P 3/24" is a position source followed by a participants source prefixed with "/".',

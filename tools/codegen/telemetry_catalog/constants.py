@@ -18,6 +18,15 @@ VALID_AVAILABILITY = {
 VALID_SIMHUB_CONVERSIONS = {"number", "text", "boolean", "timespan_ms"}
 
 
+UNAVAILABLE_OPERATORS = {
+    "below": "<",
+    "at_or_below": "<=",
+}
+
+
+UNSIGNED_UNAVAILABLE = {"op": "below", "value": 0}
+
+
 WIRE_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 

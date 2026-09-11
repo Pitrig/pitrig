@@ -174,9 +174,11 @@ widget starts on the first installed image, because without one it has nothing
 to draw.
 
 The canvas draws live telemetry while the **Live telemetry** bridge on the
-Protocol page is running, and each source's placeholder or the widget's
-`unavailable_text` when it is not. The bridge takes the stream from the
-[SimHub plugin](simhub-plugin.md) and forwards it to the board unchanged, which
+Protocol page is running, with the widget's `unavailable_text` for a value the
+stream does not carry, and each source's zero placeholder when it is not, as
+the board does before its first telemetry line. The bridge takes the stream
+from the [SimHub plugin](simhub-plugin.md) and forwards it to the board
+unchanged, which
 is what lets a session drive the canvas and the board at once — the control
 protocol carries no command for reading values, and a board admits one link
 ([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). Template thumbnails

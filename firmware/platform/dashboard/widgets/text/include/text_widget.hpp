@@ -16,6 +16,10 @@ namespace pitrig::dashboard::fonts {
 class Registry;
 }
 
+namespace pitrig::telemetry {
+class ITelemetryReader;
+}
+
 namespace pitrig::dashboard::text_widget {
 
 inline constexpr std::size_t kMaximumInstances =
@@ -43,6 +47,7 @@ struct State {
   std::array<Source, kMaximumSources> sources{};
   std::size_t source_count{};
   frame::Painter painter{};
+  const telemetry::ITelemetryReader* telemetry{};
   lv_obj_t* container{};
   const lv_font_t* font{};
   std::array<char, telemetry::kTelemetryTextCapacity> unavailable_text{};
@@ -54,6 +59,7 @@ struct State {
   std::int32_t offset_y{};
   bool full_width{};
   bool initialized{};
+  bool rendered_started{};
 };
 
 class Collection final

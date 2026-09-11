@@ -79,7 +79,7 @@ bool Binder::bind(
 
   for (const Config& configuration : configurations) {
     WidgetBinding& binding = bindings_[count_];
-    binding = {};
+    binding = {.telemetry = &telemetry};
     if (!bind_sources(configuration, count_, registry, telemetry,
                       modifier_readers, smoothing, binding)) {
       count_ = 0;

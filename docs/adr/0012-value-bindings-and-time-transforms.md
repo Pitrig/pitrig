@@ -30,7 +30,9 @@ apply to an affix.
 
 A source that has no value contributes the zero its own transform renders, so a
 live source keeps updating next to a silent one. The widget-level
-`unavailable_text` is shown only while no source has a value at all.
+`unavailable_text` is shown only while no source has a value at all, and only
+once telemetry has started: before the first line the widget shows the zeros,
+so a board still waiting for its feed does not read as a list of missing values.
 
 After binding, a bounded ordered `modifiers` list may apply stateful typed-value
 processing. Modifiers preserve the value type. The initial `lap_timer` modifier

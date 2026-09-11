@@ -18,6 +18,7 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
       update.handle.index >= slots_.size()) {
     return {.handle = update.handle, .revision = revision_};
   }
+  started_.store(true, std::memory_order_release);
 
   Slot& slot = slots_[update.handle.index];
   bool changed = slot.available != update.available;
@@ -104,6 +105,10 @@ TelemetryRead TelemetryStateService::read(const Handle handle) const {
       return result;
     }
   }
+}
+
+bool TelemetryStateService::started() const {
+  return started_.load(std::memory_order_acquire);
 }
 
 }

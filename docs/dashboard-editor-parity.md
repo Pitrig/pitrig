@@ -134,9 +134,10 @@ one link otherwise forbids. Asking the board was never an option — `@PR:` has 
 command for reading values.
 
 With the bridge stopped, every source reads unavailable, so each one draws its
-own placeholder and a widget with an `unavailable_text` draws that instead. That
-is a state the dashboard really has rather than a stand-in for one, and it is
-the state `unavailable_text` and a hiding rule exist for. What it costs is that
+own placeholder, exactly as the board does before its first telemetry line; an
+`unavailable_text` appears once a running stream leaves the widget without a
+value. That is a state the dashboard really has rather than a stand-in for one,
+and it is the state a hiding rule exists for. What it costs is that
 conditional rules and the colour ramp cannot be seen reacting: no reading means
 no rule matches, so the canvas shows the authored appearance, a graph shows the
 frame and one baseline per trace, and an indicator shows its unlit lamps.

@@ -5,6 +5,7 @@ from typing import Any
 from .constants import (
     CANONICAL_NAME_CAPACITY,
     CATEGORY_LABELS,
+    UNAVAILABLE_OPERATORS,
     VALID_AVAILABILITY,
     VALID_RATES,
     VALID_SIMHUB_CONVERSIONS,
@@ -38,6 +39,25 @@ def validate_simhub_mapping(field: dict[str, str], mapping: dict[str, Any]) -> N
         fail(f"SimHub mapping scale must be numeric: {field['name']}")
     if ("computed" in mapping) != ("expression" in mapping):
         fail(f"SimHub expression mapping requires a computed name: {field['name']}")
+    if "unavailable_when" in mapping:
+        validate_unavailable_rule(field, mapping, conversion)
+
+
+def validate_unavailable_rule(
+    field: dict[str, str], mapping: dict[str, Any], conversion: str
+) -> None:
+    name = field["name"]
+    rule = mapping["unavailable_when"]
+    if conversion not in ("number", "timespan_ms"):
+        fail(f"unavailable_when needs a number or timespan_ms conversion: {name}")
+    if "fallback" in mapping:
+        fail(f"unavailable_when cannot be combined with a fallback: {name}")
+    if not isinstance(rule, dict) or set(rule) != {"op", "value"}:
+        fail(f"unavailable_when must hold exactly op and value: {name}")
+    if rule["op"] not in UNAVAILABLE_OPERATORS:
+        fail(f"invalid unavailable_when op for {name}: {rule['op']}")
+    if isinstance(rule["value"], bool) or not isinstance(rule["value"], (int, float)):
+        fail(f"unavailable_when value must be numeric: {name}")
 
 
 def validate_link(link: dict[str, Any]) -> None:

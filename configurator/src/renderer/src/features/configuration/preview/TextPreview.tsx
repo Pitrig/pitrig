@@ -73,7 +73,7 @@ function composedText(configuration: TextWidgetConfiguration, values: PreviewVal
     if (body !== undefined) anyAvailable = true
     return withAffixes(transform, body ?? placeholderBody(transform))
   })
-  if (!anyAvailable && configuration.value?.unavailable_text) {
+  if (!anyAvailable && values.started() && configuration.value?.unavailable_text) {
     return configuration.value.unavailable_text
   }
   return composeWidgetText(parts)
