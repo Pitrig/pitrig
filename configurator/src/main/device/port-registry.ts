@@ -40,14 +40,13 @@ export class PortRegistry {
       .map((port): PortRecord => {
         const identity = serialIdentity(port.path)
         const id = existingIds.get(identity) ?? randomUUID()
-        const displayName = port.manufacturer
-          ? `${port.manufacturer} — ${port.path}`
-          : port.path
+        const manufacturer = deviceManufacturer(port)
+        const displayName = manufacturer ? `${manufacturer} — ${port.path}` : port.path
         const summary: SerialPortSummary = {
           id,
           path: port.path,
           displayName,
-          ...(port.manufacturer ? { manufacturer: port.manufacturer } : {}),
+          ...(manufacturer ? { manufacturer } : {}),
           ...(port.vendorId ? { vendorId: port.vendorId } : {}),
           ...(port.productId ? { productId: port.productId } : {}),
           ...(port.serialNumber ? { serialNumber: port.serialNumber } : {})
@@ -80,4 +79,19 @@ function prefersCalloutPath(candidate: string, current: string): boolean {
 function isLikelyUsbSerial(path: string, vendorId?: string): boolean {
   const name = path.toLowerCase()
   return Boolean(vendorId) || /usb|ttyacm|ttyusb|wch|slab/.test(name) || /^com\d+$/i.test(path)
+}
+
+const WINDOWS_USB_MANUFACTURERS: Readonly<Record<string, string>> = {
+  '303a:4001': 'Pitrig',
+  '303a:1001': 'Espressif'
+}
+
+function deviceManufacturer(port: {
+  manufacturer?: string
+  vendorId?: string
+  productId?: string
+}): string | undefined {
+  if (process.platform !== 'win32') return port.manufacturer
+  const usbIdentity = `${port.vendorId ?? ''}:${port.productId ?? ''}`.toLowerCase()
+  return WINDOWS_USB_MANUFACTURERS[usbIdentity] ?? port.manufacturer
 }

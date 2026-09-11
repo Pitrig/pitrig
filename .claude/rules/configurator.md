@@ -137,7 +137,19 @@ downloads the binary, so without the entry `pnpm run dev` fails with
 `Error: Electron uninstall` while packaging still works. An unanswered entry
 (pnpm writes `set this to true or false`) makes every `pnpm run` fail until it
 is decided. Nothing is code-signed (`identity: null`). Test the serial protocol
-under Electron rather than plain node.
+under Electron rather than plain node. Both applications show no menu
+(`src/main/app-menu.ts`): `null` on Windows and Linux; on macOS the edit, window
+and quit roles stay as hidden items, because a macOS text field cuts, copies,
+pastes and undoes only through menu key equivalents. Electron 44 builds a
+submenu only while it holds a visible item (an all-hidden one becomes `(empty)`
+without the shortcuts), so the menu is built around one item hidden right
+after; AppKit's AutoFill, Dictation and Emoji items are turned off by defaults
+registered before `ready`, and a menu with a submenu set before `ready` crashes
+Electron 44. On Windows `serialport` reports the driver's manufacturer
+(`Microsoft` for `usbser.sys`), not the board's USB string, so
+`port-registry.ts` names the two identities a board shows by VID:PID — `303a:4001`,
+the application link fixed in `usb_descriptors.cpp`, and `303a:1001`, the
+USB-Serial/JTAG unit — as `tools/pick-serial-port.py` does.
 
 `pnpm run build` runs typecheck then `electron-vite build`; `pnpm run package`
 wraps the product in `electron-builder.yml` (`dist/`); `pnpm run build:debug`

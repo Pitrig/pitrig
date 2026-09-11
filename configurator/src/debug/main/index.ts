@@ -2,6 +2,7 @@ import { app, BrowserWindow, crashReporter } from 'electron'
 import { join } from 'node:path'
 
 applyBranding()
+applyApplicationMenu()
 crashReporter.start({ uploadToServer: false })
 
 import { BenchService } from './bench/bench-service'
@@ -11,6 +12,7 @@ import {
   broadcastSerialTraffic,
   registerDebugHandlers
 } from './ipc/register-debug-handlers'
+import { applyApplicationMenu } from '@main/app-menu'
 import { createAppServices, disposeAppServices, type AppServices } from '@main/app-services'
 import { createAppWindow, isDevelopment } from '@main/app-window'
 import { applyBranding, applyDockIcon } from '@main/branding'

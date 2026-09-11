@@ -2,8 +2,10 @@ import { app, BrowserWindow, crashReporter } from 'electron'
 import { join } from 'node:path'
 
 applyBranding()
+applyApplicationMenu()
 crashReporter.start({ uploadToServer: false })
 
+import { applyApplicationMenu } from './app-menu'
 import { createAppServices, disposeAppServices, type AppServices } from './app-services'
 import { createAppWindow, isDevelopment } from './app-window'
 import { applyBranding, applyDockIcon } from './branding'
