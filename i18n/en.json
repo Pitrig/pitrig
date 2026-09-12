@@ -1373,7 +1373,10 @@
           "one": "{fileName} saved with {count} telemetry field.",
           "other": "{fileName} saved with {count} telemetry fields."
         }
-      }
+      },
+      "theConfigurationDraftIsNot": "The configuration draft is not valid JSON.",
+      "unknownBindingsBindings": "Unknown bindings: {bindings}",
+      "thisConfigurationDoesNotRequire": "This configuration does not require any telemetry fields."
     },
     "transportSection": {
       "transport": "Transport",

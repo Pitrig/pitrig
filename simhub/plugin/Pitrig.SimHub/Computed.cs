@@ -29,7 +29,7 @@ namespace Pitrig.SimHub
                 case FieldComputation.LastLapDeltaBest:
                     return LastLapDeltaBest(pluginManager);
                 case FieldComputation.LiveDelta:
-                    return LiveDeltaSeconds(pluginManager) * 1000;
+                    return Number(pluginManager.GetPropertyValue(LiveDelta)) * 1000;
                 case FieldComputation.SectorDelta:
                     return sectors.Delta(Number(GameData(pluginManager, "CurrentSectorIndex")),
                         LiveDeltaSeconds(pluginManager));

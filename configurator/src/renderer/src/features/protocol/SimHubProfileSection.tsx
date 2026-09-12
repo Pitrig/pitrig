@@ -7,7 +7,7 @@ import { writeEventLog } from '@/lib/event-log'
 import { useDeviceStore } from '@/features/device/device-store'
 import {
   allTelemetryFieldNames,
-  collectDashboardTelemetry,
+  collectRequiredTelemetry,
   effectiveSimHubBaudRate,
   type SimHubProfileMode
 } from '@shared/simhub-profile'
@@ -25,15 +25,17 @@ export function SimHubProfileSection(): React.JSX.Element {
     if (!draft) return undefined
     return mode === 'all'
       ? { fieldNames: allTelemetryFieldNames(), unknownBindings: [] }
-      : collectDashboardTelemetry(draft)
+      : collectRequiredTelemetry(draft)
   }, [mode, draft])
   const baudRate = draft ? effectiveSimHubBaudRate(draft) : undefined
   const blockedReason = !draft
-    ? 'The configuration draft is not valid JSON.'
+    ? t('protocol.simHubProfileSection.theConfigurationDraftIsNot')
     : selection && selection.unknownBindings.length > 0
-      ? `Unknown dashboard bindings: ${selection.unknownBindings.join(', ')}`
+      ? t('protocol.simHubProfileSection.unknownBindingsBindings', {
+          bindings: selection.unknownBindings.join(', ')
+        })
       : !selection || selection.fieldNames.length === 0
-        ? 'The dashboard does not require any telemetry fields.'
+        ? t('protocol.simHubProfileSection.thisConfigurationDoesNotRequire')
         : undefined
 
   const exportProfile = async (): Promise<void> => {

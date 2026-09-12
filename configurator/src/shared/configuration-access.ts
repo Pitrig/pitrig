@@ -119,16 +119,24 @@ export function isNeedleArc(widget: WidgetConfiguration): boolean {
   return widget.type === 'arc' && (widget.mark ?? 'ring') === 'needle'
 }
 
-export function dashboardBindings(
+export function telemetryBindings(
   configuration: ApplicationConfiguration | undefined
 ): string[] {
   const bindings = new Set<string>()
+  const record = (source: ValueSourceConfiguration | undefined): void => {
+    if (!source) return
+    if (source.binding) bindings.add(source.binding)
+    if (arrayOf(source.modifiers).some((modifier) => modifier?.type === 'lap_timer')) {
+      bindings.add('session.lap.current_time')
+    }
+  }
   for (const widget of allWidgetsOf(configuration)) {
-    for (const source of widgetSources(widget)) {
-      if (source.binding) bindings.add(source.binding)
-      if (arrayOf(source.modifiers).some((modifier) => modifier?.type === 'lap_timer')) {
-        bindings.add('session.lap.current_time')
-      }
+    for (const source of widgetSources(widget)) record(source)
+  }
+  for (const device of arrayOf(configuration?.hardware)) {
+    for (const effect of arrayOf(device?.effects)) {
+      record(effect?.source)
+      record(effect?.condition_source)
     }
   }
   return [...bindings]
@@ -138,6 +146,9 @@ export function widgetSources(widget: WidgetConfiguration): ValueSourceConfigura
   return [
     ...(isTextWidget(widget) ? arrayOf(widget.sources) : []),
     ...('source' in widget && widget.source ? [widget.source] : []),
+    ...('sprite_frame_source' in widget && widget.sprite_frame_source
+      ? [widget.sprite_frame_source]
+      : []),
     ...('traces' in widget
       ? arrayOf(widget.traces).flatMap((trace) => (trace?.source ? [trace.source] : []))
       : []),

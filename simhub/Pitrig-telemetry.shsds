@@ -280,21 +280,21 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) <= 0 or '' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '' or isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], 0) < -0.2 * timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '') = '', 'D;\\n', 'D;' + format(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) <= 0 or '' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '' or isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], 0) < -0.2 * timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '0') + '\\n')"
+        "Expression": "if('' + isnull(if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '') = '', 'D;\\n', 'D;' + format(if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '0') + '\\n')"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) <= 0 or '' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '' or isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], 0) < -0.2 * timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '') = '', '0t;\\n', '0t;' + format(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) <= 0 or '' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '' or isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], 0) < -0.2 * timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '0') + '\\n')"
+        "Expression": "if('' + isnull(if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '') = '', '0t;\\n', '0t;' + format(if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '0') + '\\n')"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) <= 0 or '' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '' or isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], 0) < -0.2 * timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '') = '', '0u;\\n', '0u;' + format(if(timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]) <= 0 or '' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '' or isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], 0) < -0.2 * timespantoseconds([DataCorePlugin.GameData.NewData.BestLapTime]), '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '0') + '\\n')"
+        "Expression": "if('' + isnull(if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '') = '', '0u;\\n', '0u;' + format(if('' + isnull([PersistantTrackerPlugin.SessionBestLiveDeltaSeconds], '') = '', '', [PersistantTrackerPlugin.SessionBestLiveDeltaSeconds] * 1000), '0') + '\\n')"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20

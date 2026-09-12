@@ -53,13 +53,15 @@ one side is a visible change to the other.
 A mapping's `unavailable_when` names the values a game uses to mean nothing — an
 `EngineMap` of −1, a water temperature of 0 — and both sides send them empty, so
 the board draws the widget's `unavailable_text`. A `uint32` field refuses a
-negative value the same way, because the board cannot parse one, and so does a
-live delta more than a fifth of the best lap below zero, which only a replay or
-a switched car produces. The sector delta keeps the live delta at the last
-sector boundary and the gaps read the opponent list, neither of which an
-expression can hold, so the Custom Serial profile sends the last completed
-sector against the best lap and PersistantTracker's gap to the neighbouring
-driver instead.
+negative value the same way, because the board cannot parse one. The live delta
+itself is sent as the game reports it, and is empty only when the game reports
+nothing; the fifth-of-a-lap bound survives where a delta feeds a computed time —
+the estimated lap time and the sector delta — because a replay or a switched car
+would otherwise produce a nonsensical clock. The sector delta keeps the live
+delta at the last sector boundary and the gaps read the opponent list, neither
+of which an expression can hold, so the Custom Serial profile sends the last
+completed sector against the best lap and PersistantTracker's gap to the
+neighbouring driver instead.
 
 ## The wire
 

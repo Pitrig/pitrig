@@ -1385,6 +1385,9 @@ export type UiStringKey =
   | 'protocol.simHubProfileSection.onlyTheBindingsAndModule'
   | 'protocol.simHubProfileSection.simHubProfile'
   | 'protocol.simHubProfileSection.theCompleteCanonicalTelemetryCatalog'
+  | 'protocol.simHubProfileSection.theConfigurationDraftIsNot'
+  | 'protocol.simHubProfileSection.thisConfigurationDoesNotRequire'
+  | 'protocol.simHubProfileSection.unknownBindingsBindings'
   | 'protocol.transportSection.aSavedChangeRestartsThe'
   | 'protocol.transportSection.auto'
   | 'protocol.transportSection.bitsPerSecondOnThe'
@@ -1966,6 +1969,7 @@ export interface UiStringParameters {
   'protocol.simHubProfileSection.baudRateBaud': { baudRate: string | number }
   'protocol.simHubProfileSection.fileNameSavedWithFields': { count: number, fileName: string | number }
   'protocol.simHubProfileSection.lengthFields': { length: string | number }
+  'protocol.simHubProfileSection.unknownBindingsBindings': { bindings: string | number }
   'save.saveToBoardService.savingTheAndConfiguration': { and: string | number }
   'telemetry.bridgeService.portInUse': { port: string | number }
   'templates.dashboardListControls.allSizesLength': { length: string | number }

@@ -1,4 +1,4 @@
-import { dashboardBindings } from './configuration-access'
+import { telemetryBindings } from './configuration-access'
 import type { DeviceConfiguration } from './device'
 import {
   SIMHUB_PROFILE_DEFAULTS,
@@ -30,7 +30,7 @@ export type SimHubProfileResult<T> =
   | { ok: true; value: T }
   | { ok: false; error: SimHubProfileError }
 
-export interface DashboardTelemetrySelection {
+export interface RequiredTelemetrySelection {
   fieldNames: string[]
   unknownBindings: string[]
 }
@@ -43,12 +43,12 @@ export function allTelemetryFieldNames(): string[] {
   return SIMHUB_PROFILE_ENTRIES.map(({ name }) => name)
 }
 
-export function collectDashboardTelemetry(
+export function collectRequiredTelemetry(
   configuration: DeviceConfiguration
-): DashboardTelemetrySelection {
+): RequiredTelemetrySelection {
   const requested = new Set<string>()
   const unknownBindings = new Set<string>()
-  for (const binding of dashboardBindings(configuration)) {
+  for (const binding of telemetryBindings(configuration)) {
     if (PROFILE_FIELD_NAMES.has(binding)) requested.add(binding)
     else unknownBindings.add(binding)
   }
