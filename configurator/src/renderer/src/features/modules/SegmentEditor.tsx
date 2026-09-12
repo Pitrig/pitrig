@@ -13,9 +13,11 @@ import { Hint, NumberInput, SelectInput } from '@/features/configuration/inspect
 import { AddButton, RemoveButton } from '@/features/configuration/inspector/widget-editors'
 import { t } from '@shared/ui-text'
 import { carryGeometry, drawnOf, mutateDevice } from './modules-document'
+import { wholeValue } from './field-values'
 
 const CELL = 22
 const LAMP = 16
+const SEGMENT_FIELDS = 'LedSegmentConfiguration'
 
 function ArrangementMap({
   device
@@ -47,7 +49,7 @@ function ArrangementMap({
         {layout.positions.map((at, lamp) => (
           <span
             key={lamp}
-            title={`lamp ${lamp + 1}`}
+            title={t('modules.devicePreview.lampNumber', { number: lamp + 1 })}
             className={`absolute flex items-center justify-center rounded-full text-[8px] leading-none ring-1 ring-inset ring-white/15 ${
               runOf(lamp) % 2 === 0 ? 'bg-white/15' : 'bg-sky-400/25'
             } ${numbered.has(lamp) ? 'font-semibold text-white' : 'text-transparent'}`}
@@ -104,7 +106,7 @@ export function SegmentEditor({
       ) : (
         <>
           {runs.map((run, position) => (
-            <PropertyRow key={position} label={`Run ${position + 1}`}>
+            <PropertyRow key={position} label={t('modules.segmentEditor.runNumber', { number: position + 1 })}>
               <div className="flex items-center gap-1">
                 <NumberInput
                   title={t('modules.segmentEditor.lampsInThisRun')}
@@ -112,7 +114,10 @@ export function SegmentEditor({
                   min={1}
                   onChange={(count) =>
                     apply((list) => {
-                      list[position] = { ...list[position], count: Math.max(1, count) }
+                      list[position] = {
+                        ...list[position],
+                        count: wholeValue(SEGMENT_FIELDS, 'count', count)
+                      }
                     })
                   }
                 />
@@ -126,7 +131,7 @@ export function SegmentEditor({
                   }
                 />
                 <RemoveButton
-                  label={`Remove run ${position + 1}`}
+                  label={t('modules.segmentEditor.removeRunNumber', { number: position + 1 })}
                   onClick={() =>
                     apply((list) => {
                       list.splice(position, 1)

@@ -5,7 +5,7 @@ import {
   type HardwareDeviceConfiguration,
   type LedSpriteConfiguration
 } from '@shared/configuration-schema'
-import { spriteDigits, spriteGeometry } from '@shared/led-sprite'
+import { paletteOf, spriteDigits, spriteGeometry } from '@shared/led-sprite'
 import { Group } from '@/features/configuration/inspector/Group'
 import { Hint } from '@/features/configuration/inspector/fields'
 import { RemoveButton } from '@/features/configuration/inspector/widget-editors'
@@ -18,6 +18,7 @@ import {
   addSprite,
   canAddSprite,
   duplicateSprite,
+  NEW_SPRITE_PALETTE,
   removeSprite,
   spriteNameFor,
   spritesOf
@@ -66,8 +67,8 @@ export function SpriteList({
   const panel = drawnOf(device)
   const room = canAddSprite(device)
 
-  const create = (built: number): void => {
-    if (built >= 0) selectSprite(built)
+  const create = (built: number, inks: number): void => {
+    if (built >= 0) selectSprite(built, inks)
   }
 
   return (
@@ -85,7 +86,12 @@ export function SpriteList({
           disabled={!room}
           title={room ? t('modules.spriteList.drawsANewPictureAt') : t('modules.spriteList.aPanelCarriesMaximumLed', { mAXIMUM_LED_SPRITES: MAXIMUM_LED_SPRITES })}
           className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-white/5 disabled:opacity-30"
-          onClick={() => create(addBlankSprite(output, device, panel.width, panel.height))}
+          onClick={() =>
+            create(
+              addBlankSprite(output, device, panel.width, panel.height),
+              NEW_SPRITE_PALETTE.length
+            )
+          }
         >
           <Plus className="size-3.5" /> {t('modules.spriteList.newPicture')}
         </button>
@@ -97,15 +103,14 @@ export function SpriteList({
             disabled={!room}
             title={preset.title}
             className="rounded border px-1.5 py-1 text-[10px] hover:bg-white/5 disabled:opacity-30"
-            onClick={() =>
-              create(
-                addSprite(
-                  output,
-                  device,
-                  preset.build(spriteNameFor(device, preset.id), panel.width, panel.height)
-                )
+            onClick={() => {
+              const art = preset.build(
+                spriteNameFor(device, preset.id),
+                panel.width,
+                panel.height
               )
-            }
+              create(addSprite(output, device, art), paletteOf(art).length)
+            }}
           >
             {preset.label}
           </button>
@@ -128,7 +133,7 @@ export function SpriteList({
               <button
                 type="button"
                 className="min-w-0 flex-1 truncate text-left"
-                onClick={() => selectSprite(at)}
+                onClick={() => selectSprite(at, paletteOf(sprite).length)}
               >
                 {sprite.id}
                 <span className="ml-2 text-[10px] text-muted-foreground">
@@ -153,7 +158,9 @@ export function SpriteList({
                 aria-label={t('modules.spriteList.duplicateId', { id: sprite.id })}
                 disabled={!room}
                 className="rounded p-1 text-muted-foreground hover:bg-white/5 disabled:opacity-30"
-                onClick={() => create(duplicateSprite(output, device, at))}
+                onClick={() =>
+                  create(duplicateSprite(output, device, at), paletteOf(sprite).length)
+                }
               >
                 <Copy className="size-3.5" />
               </button>

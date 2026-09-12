@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+import { TRANSPARENT_INK, USABLE_PALETTE } from '@shared/led-sprite'
+
 export type DeviceView = 'wiring' | 'pictures' | 'layers'
 
 export interface LampHighlight {
@@ -20,6 +22,12 @@ export function playingLayer(output: number, effect: number): Matcher {
 
 export function playingSprite(output: number, sprite: string): Matcher {
   return (entry) => entry.kind === 'sprite' && entry.output === output && entry.sprite === sprite
+}
+
+function inkWithin(ink: number, inks: number | undefined): number {
+  if (inks === undefined || inks <= 0) return ink
+  if (ink === TRANSPARENT_INK) return inks <= USABLE_PALETTE ? ink : inks - 1
+  return Math.max(0, Math.min(ink, inks - 1))
 }
 
 function toggled(
@@ -43,7 +51,7 @@ interface ModulesState {
   previewError?: string
   select: (output: number) => void
   selectEffect: (effect: number) => void
-  selectSprite: (sprite: number) => void
+  selectSprite: (sprite: number, inks?: number) => void
   selectFrame: (frame: number) => void
   selectInk: (ink: number) => void
   setDeviceView: (view: DeviceView) => void
@@ -75,7 +83,8 @@ export const useModulesStore = create<ModulesState>((set) => ({
       previewError: undefined
     }),
   selectEffect: (effect) => set({ effect }),
-  selectSprite: (sprite) => set({ sprite, frame: 0 }),
+  selectSprite: (sprite, inks) =>
+    set((state) => ({ sprite, frame: 0, ink: inkWithin(state.ink, inks) })),
   selectFrame: (frame) => set({ frame }),
   selectInk: (ink) => set({ ink }),
   setDeviceView: (deviceView) => set({ deviceView, highlight: null }),

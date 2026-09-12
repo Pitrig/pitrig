@@ -32,7 +32,9 @@ export function WidgetInspector(): React.JSX.Element {
             <WidgetIdentity key={widget.id ?? ''} widget={widget} />
           ) : (
             <span className="font-semibold">
-              {selection?.type === 'screen' ? `Screen ${activeScreenIndex + 1}` : t('documents.label.dashboard')}
+              {selection?.type === 'screen'
+                ? t('common.screenNumber', { number: activeScreenIndex + 1 })
+                : t('documents.label.dashboard')}
             </span>
           )}
         </header>
@@ -68,7 +70,6 @@ export function WidgetInspector(): React.JSX.Element {
               <ActionEditor
                 configuration={configuration}
                 action={widget.action}
-                disabledReason={undefined}
                 onChange={(action) =>
                   mutateSelectedWidget(selection, (target) => {
                     if (action) target.action = action

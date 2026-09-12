@@ -16,6 +16,15 @@ const MAXIMUM_RESPONSE_BUFFER_SIZE =
   '\r\n'.length
 const CONTROL_COMMAND_TIMEOUT_MS = 3_000
 const DEVICE_ERROR_PREFIX = '@PR:ERR:'
+const REQUEST_LABEL_PARTS = 3
+
+function requestLabel(request: string): string {
+  const line = request.trim()
+  const parts = line.split(':')
+  return parts.length > REQUEST_LABEL_PARTS
+    ? parts.slice(0, REQUEST_LABEL_PARTS).join(':')
+    : line
+}
 
 export function requestResponse(
   port: SerialPort,
@@ -42,17 +51,32 @@ export function requestResponse(
     onTimeout: () => ({
       error: new DeviceServiceError(
         rejectionCode,
-        t('device.serialRequest.theDeviceDidNotAnswer', { trim: request.trim() })
+        t('device.serialRequest.theDeviceDidNotAnswer', { trim: requestLabel(request) })
       )
     }),
     onClose: () =>
       new DeviceServiceError('serial_error', t('device.serialRequest.serialPortClosedDuringRequest')),
     send: (fail, isSettled) => {
-      port.flush(() => {
-        if (!port.isOpen || isSettled()) return
-        port.write(request, (error) => {
-          if (error) fail(error)
-          else onTraffic('tx', request)
+      if (!port.isOpen) {
+        fail(new DeviceServiceError('serial_error', t('device.serialRequest.theSerialPortIsClosed')))
+        return
+      }
+      port.drain((drainError) => {
+        if (drainError) {
+          fail(drainError)
+          return
+        }
+        if (isSettled()) return
+        port.flush((flushError) => {
+          if (flushError) {
+            fail(flushError)
+            return
+          }
+          if (!port.isOpen || isSettled()) return
+          port.write(request, (error) => {
+            if (error) fail(error)
+            else onTraffic('tx', request)
+          })
         })
       })
     }

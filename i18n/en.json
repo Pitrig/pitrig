@@ -41,7 +41,7 @@
         "complete": "after it had finished starting"
       },
       "lastBoot": "{cause} {phase}",
-      "noFailures": "None since the last power-on",
+      "noFailures": "None since the last power-on or configuration write",
       "crashCount": {
         "$note": "Number of consecutive failed starts reported by the board.",
         "$plural": {
@@ -59,7 +59,9 @@
       "onBoardid": " on {boardId}",
       "takeTheBoardSConfiguration": "Take the board’s configuration",
       "explanation": "{reason} Nothing has been written or applied yet{board}. Pick which one both sides should follow.",
-      "documentDiffers": "{label} differs"
+      "documentDiffers": "{label} differs",
+      "mirrorTheDraftOnThe": "Mirror the draft on the board without writing it",
+      "writeTheDraftToThe": "Write the draft to the board and keep it there"
     },
     "infoPage": {
       "info": "Info",
@@ -86,7 +88,7 @@
       "name": "Name",
       "version": "Version",
       "platform": "Platform",
-      "reportedByTheFirmwareItself": "Reported by the firmware itself. Nothing here is editable.",
+      "reportedByTheFirmwareItself": "Read from the board; the display size comes from this application’s board profile. Nothing here is editable.",
       "connectAPitrigBoardTo": "Connect a Pitrig board to read its information.",
       "idConfig": "{id} config",
       "displaySize": "{width} × {height}",
@@ -119,7 +121,8 @@
       "theDeviceReturnedMalformedFirmware": "The device returned malformed firmware status.",
       "theDeviceReturnedMalformedImage": "The device returned malformed image status.",
       "theDeviceReturnedMalformedFont": "The device returned malformed font status.",
-      "theDeviceReturnedMalformedFont2": "The device returned malformed font entries."
+      "theDeviceReturnedMalformedFont2": "The device returned malformed font entries.",
+      "firmwareStatus": "firmware status"
     },
     "assetUpload": {
       "preparingLabelStorage": "Preparing {label} storage",
@@ -151,7 +154,7 @@
     "deviceScan": {
       "theBoardRestartedButDid": "The board restarted but did not come back on its port. Reconnect it by hand.",
       "noUsbSerialPortsWere": "No USB serial ports were found.",
-      "noCompatiblePitrigDeviceResponded": "No compatible Pitrig device responded to the INFO probe.",
+      "noCompatiblePitrigDeviceResponded": "No compatible Pitrig board answered.",
       "multiplePitrigDevicesWereFound": "Multiple Pitrig devices were found. Select a port manually.",
       "noPitrigDeviceWasFound": "No Pitrig device was found."
     },
@@ -164,15 +167,17 @@
       "firmware": "firmware"
     },
     "deviceConfigCommands": {
-      "theConnectedDeviceChangedDuring": "The connected device changed during read."
+      "theConnectedDeviceChangedDuring": "The connected board changed while its configuration was being read."
     },
     "deviceProbe": {
-      "theDeviceConfigurationBoardDoes": "The device configuration board does not match the connected hardware."
+      "theDeviceConfigurationBoardDoes": "The configuration on the board names a different board than the connected hardware."
     },
     "protocolParsers": {
       "theDeviceReturnedMalformedFieldname": "The device returned malformed {fieldName}.",
       "theDeviceReturnedMalformedLabel": "The device returned malformed {label}.",
-      "theDeviceReturnedMalformedInfo": "The device returned malformed INFO data."
+      "theDeviceReturnedMalformedInfo": "The device returned malformed INFO data.",
+      "infoData": "INFO data",
+      "unsupportedConfigurationSchemaSchema": "Unsupported configuration schema: {schema}."
     },
     "serialRequest": {
       "theDeviceDidNotAnswer": "The device did not answer {trim}.",
@@ -225,7 +230,7 @@
         "unknown_command": "The device did not recognise the upload command."
       },
       "dependency": {
-        "font": "The dashboard uses a font family that is not installed on the device. Upload a font package containing it, or choose a family the device already has. Remember that widget captions carry their own font.",
+        "font": "The dashboard uses a font family the board does not have. Save to board installs it, or choose a family the board already has. Remember that widget captions carry their own font.",
         "image": "The dashboard uses an image that is not installed on the device. Upload it, or choose one the device already has."
       },
       "uploadKind": {
@@ -246,14 +251,17 @@
     },
     "saveToBoardUi": {
       "saving": "Saving…",
-      "saveToBoard": "Save to board"
+      "saveToBoard": "Save to board",
+      "writeTheDashboardToThe": "Write the dashboard to the board (fonts install with it)"
     },
     "draftState": {
       "connectAPitrigBoardTo": "Connect a Pitrig board to mirror the draft on it.",
       "theBoardIsInSafe": "The board is in safe mode. It draws nothing until it is repaired and restarted.",
       "theDraftIsNotValid": "The draft is not valid, so the board keeps what it runs. {error}",
       "theDraftTargetsBoardThe": "The draft targets {board}, the board is {boardId}.",
-      "theBoardLacksJoinSaving": "The board lacks {join}. Saving installs the fonts."
+      "theBoardLacksJoinSaving": "The board lacks {join}. Saving installs the fonts.",
+      "noLocalConfiguration": "No local configuration.",
+      "configurationIsNotValidJson": "Configuration is not valid JSON."
     },
     "documentStatus": {
       "refused": "{label} config refused",
@@ -265,7 +273,7 @@
       "savedButTheBoardDid": "Saved, but the board did not come back on its port. Reconnect it by hand.",
       "savedTheBoardKeepsShowing": "Saved. The board keeps showing the previous dashboard until it restarts: {applyFailed}",
       "fontsInstalledAndConfigurationSaved": "Fonts installed and configuration saved. The board restarted and is running the new dashboard.",
-      "savedTheBoardIsRunning": "Saved. The board is running the new dashboard — no restart needed."
+      "savedTheBoardIsRunning": "Saved. The board is running the new configuration — no restart needed."
     },
     "documentState": {
       "absent": "Factory defaults",
@@ -275,6 +283,29 @@
       "rejected": "Stored record was refused; ignored",
       "valid": "Stored",
       "withGeneration": "{label} · generation {generation}"
+    },
+    "configurationJson": {
+      "configurationJsonIsMalformed": "Configuration JSON is malformed.",
+      "theFragmentHoldsNoWidget": "The fragment holds no widget.",
+      "configurationBoardMustRemainBoard": "Configuration board must remain {board}."
+    },
+    "deviceUploads": {
+      "theConnectedFirmwareDoesNot": "The connected firmware does not support image management.",
+      "theConnectedDeviceChangedDuring": "The connected device changed during image cleanup.",
+      "theConnectedFirmwareDoesNot2": "The connected firmware does not support font asset management.",
+      "theConnectedDeviceChangedDuring2": "The connected device changed during font cleanup."
+    },
+    "lineExchange": {
+      "theRequestWasCancelled": "The request was cancelled."
+    },
+    "pitrigProtocol": {
+      "theDeviceConfigurationBoardDoes": "The device configuration board does not match the connected hardware."
+    },
+    "bridgeErrors": {
+      "theConfigurationBridgeIsNot": "The configuration bridge is not loaded. Fully restart Pitrig Configurator and reconnect the board.",
+      "theElectronBridgeIsOutdated": "The Electron bridge is outdated. Fully restart Pitrig Configurator.",
+      "theConfigurationOperationFailed": "The configuration operation failed.",
+      "theConfigurationFileOperationFailed": "The configuration file operation failed."
     }
   },
   "fonts": {
@@ -294,7 +325,9 @@
       "orbitronInter": "Orbitron, Inter…",
       "readingTheCatalog": "Reading the catalog…",
       "tryAShorterWord": "Try a shorter word.",
-      "noFamilyMatches": "No family matches"
+      "noFamilyMatches": "No family matches",
+      "theFontCouldNotBe": "The font could not be downloaded.",
+      "addedNameToTheLibrary": "Added {name} to the library."
     },
     "fontPicker": {
       "chooseAFont": "Choose a font",
@@ -307,7 +340,11 @@
       "importing": "Importing…",
       "downloadedWhenYouPickA": "Downloaded when you pick a weight.",
       "mostUsedFirstSearchTo": "Most used first — search to reach the rest of the {length}.",
-      "nothingMatches": "Nothing matches “{query}”. Import a file to add your own."
+      "nothingMatches": "Nothing matches “{query}”. Import a file to add your own.",
+      "theBoardHoldsMaximumFont": "The board holds {maximum} font families at a time.",
+      "addingThisFaceWouldPush": "Adding this face would push the font package past 2 MiB.",
+      "aWeightIsItsOwn": "A weight is its own font here, because the board holds one face per family.",
+      "downloading": "Downloading…"
     },
     "fontsPage": {
       "fonts": "Fonts",
@@ -317,7 +354,7 @@
       "usedByThisDashboard": "Used by this dashboard",
       "fontsInstallThemselvesWhenYou": "Fonts install themselves when you save to the board.",
       "everyTextWidgetCarriesA": "Every text widget carries a family and a size. Pick one in the inspector and it appears here.",
-      "noFontsNamed": "No fonts named",
+      "noFontsNamed": "No fonts in use",
       "notInLibrary": "Not in library",
       "onBoard": "On board",
       "installsOnSave": "Installs on save",
@@ -325,7 +362,7 @@
       "importATtfOrOtf": "Import a TTF or OTF file, or add one from Google Fonts below.",
       "theLibraryIsEmpty": "The library is empty",
       "bundled": "Bundled",
-      "familiesOfMaximumFontFamilies": "{families} of {mAXIMUM_FONT_FAMILIES} families · {bytes} of 2 MiB. A size never needs an upload — the board rasterizes every size from the installed face.",
+      "familiesOfMaximumFontFamilies": "{families} of {mAXIMUM_FONT_FAMILIES} families · {bytes} of 3 MiB. A size never needs an upload — the board rasterises every size from the installed face.",
       "removeName": "Remove {name}",
       "unresolvedFamilies": {
         "$plural": {
@@ -374,7 +411,8 @@
       "theConnectedFirmwareDoesNot": "The connected firmware does not support font asset upload.",
       "fontAssetStorageIsUnavailable": "Font asset storage is unavailable on this device.",
       "restartTheDeviceBeforeUploading": "Restart the device before uploading another font package.",
-      "packageBuildFailed": "The font package could not be built."
+      "packageBuildFailed": "The font package could not be built.",
+      "theConnectedDeviceChangedWhile": "The connected device changed while the package was built."
     },
     "fontLibraryService": {
       "idIsNotAValid": "\"{id}\" is not a valid font family identifier.",
@@ -398,7 +436,7 @@
       "previewUnavailable": " · preview unavailable"
     },
     "fontPackage": {
-      "theFontPackageExceedsThe": "The font package exceeds the 2 MiB device limit.",
+      "theFontPackageExceedsThe": "The font package exceeds the 3 MiB device limit.",
       "aFontPackageSupportsAt": "A font package supports at most {mAXIMUM_FONT_FAMILIES} families.",
       "theFontPackageManifestExceeds": "The font package manifest exceeds its reserved area.",
       "invalidFontFamilyFamily": "Invalid font family: {family}",
@@ -407,9 +445,11 @@
     },
     "fontLibraryFiles": {
       "notAnObject": "not an object",
-      "notAFontLibrary": "not a font library"
+      "notAFontLibrary": "not a font library",
+      "thatFileIsTooSmall": "That file is too small to be a font face.",
+      "thatFaceIsLargerThan": "That face is larger than the whole 2 MiB font partition."
     },
-    "footprint": "{families} of {maximum} families · {kilobytes} of 2 MiB",
+    "footprint": "{families} of {maximum} families · {kilobytes} of 3 MiB",
     "dialog": {
       "filter": "OpenType fonts"
     }
@@ -422,18 +462,18 @@
         "z": "Drawing order among siblings: a higher value is drawn later, so it covers a lower one. Widgets with the same value keep the order of the layer list."
       },
       "data": {
-        "binding": "The telemetry field this widget reads. Names come from the catalog, so the device binds them once at startup and never looks one up while drawing.",
+        "binding": "The telemetry field this widget reads. Names come from the catalog, so the device binds them when the dashboard is built and never looks one up while drawing.",
         "modifier": "A stateful reading of the field, computed on the device. The lap timer turns the current lap time into one that keeps running between the updates SimHub sends.",
         "range": "The window the value is read against: the widget shows where the value sits between the two, clamped at both ends. The unit is the one the bound field reports."
       },
       "text": {
         "sources": "Sources are rendered in order, each through its own transform, into one string. The prefix and suffix are what separate one from the next, so \"P 3/24\" is a position source followed by a participants source prefixed with \"/\".",
-        "transform": "How the raw value becomes text. A number is scaled, offset and rounded; a duration is formatted as a lap time. Only the transforms the bound field supports are offered.",
+        "transform": "How the raw value becomes text. A number is scaled, offset and rounded; a time is formatted as a lap time, a clock or a signed delta. Only the transforms the bound field supports are offered.",
         "preset": "A ready scale, offset and suffix for the usual unit conversions of this field — kph to mph, celsius to fahrenheit.",
         "scale": "Applied before the offset: the drawn number is value × scale + offset, rounded to the decimals set beside it.",
         "affix": "Literal text drawn immediately before and after this source. With several sources this is the only separator between them.",
         "alignment": "Where the text sits inside the widget box, after the padding is taken off.",
-        "fallback": "Drawn once telemetry is flowing for a field the game does not report. Before the first telemetry frame, and when this is empty, the value's zero is drawn instead."
+        "fallback": "Drawn once telemetry is flowing for a field the game does not report. Before the first telemetry frame, and when this is empty, the value’s zero is drawn instead."
       },
       "title": {
         "fallback": "A second installed family to try for glyphs the first does not have — an icon family beside a text one, which is how a value carries an icon and its number in one widget. It is built at the same size, so it costs one more font.",
@@ -448,9 +488,9 @@
       "box": {
         "fillCorners": "How the background and a value fill meet the rounded corners. Rounded gives them the same curve; square leaves them straight and cuts them on the box outline instead, so a bar keeps a flat leading edge while its ends still follow the rounding.",
         "background": "The fill behind the widget. Unset draws nothing, which is what leaves the screen background showing through.",
-        "gradient": "The far end of the background fill. On the ESP32-P4 a gradient falls back to the software renderer, which costs frame time.",
+        "gradient": "The far end of the background fill. Unset paints the background flat.",
         "axis": "The direction the background gradient runs in.",
-        "padding": "Keeps the contents this far inside the box on each side. It does not move the box itself.",
+        "padding": "Keeps the contents this far inside the box on each side. It does not move the box itself, and a container’s children are not moved by it.",
         "border": "The outline drawn on the box edge. A zero width draws none.",
         "radius": "Rounds the box corners, border and background alike.",
         "inset": "Shrinks the background fill inside the border by this much, so a thick border and its fill do not overlap on the curve."
@@ -492,7 +532,7 @@
         "inverted": "Fills from the far end of the bar instead of from the near one."
       },
       "fill": {
-        "gradientMiddle": "A third colour halfway along the track. Unset runs the gradient straight from the fill colour to the end."
+        "gradientMiddle": "A third colour halfway along the gradient. Unset runs the gradient straight from the fill colour to the end."
       },
       "strip": {
         "segments": "Each lamp lights at its own fraction of the range, so one strip suits any engine. Thresholds must not decrease down the list.",
@@ -504,7 +544,7 @@
       },
       "graph": {
         "points": "How many samples each trace keeps and how often one is taken — together they are the window the plot shows. One clock for the whole widget, so several traces line up along it. The trace is the most expensive widget to draw, so keep the point count only as high as it needs to be.",
-        "traces": "Further sources drawn over the same plot, up to three in all counting the widget’s own. Each carries its own range, which is what lets speed and throttle share one field without either flattening against an edge.",
+        "traces": "Further sources drawn over the same plot, up to three in all counting the widget’s own. Each carries its own range, which is what lets speed and throttle share one plot without either flattening against an edge.",
         "width": "Thickness of every trace. Half of it is kept clear inside the plot on each side — plus whatever a rounded frame needs for the corners to clear the curve — so a value at the top or the bottom of its range is drawn whole rather than cut by the frame."
       },
       "image": {
@@ -527,7 +567,7 @@
         "transition": "How the board swaps one screen for another, whether a swipe or a tap asked for it. slide is the sliding animation; none replaces the screen in a single frame. The slide draws both screens for every one of its frames, so a screen full of widgets is where it is felt — set this to none if swiping stutters.",
         "smoothing": "Whether bars, arcs, needles, graph traces and number-formatted text move between telemetry packets instead of stepping with them. interpolate glides to each packet so as to arrive when the next is due: perfectly smooth, one packet period behind (16 ms at 60 Hz, 50 ms at 20 Hz). predict keeps moving at the measured rate and corrects when the packet lands: nothing behind on average, a small overshoot on reversals. A pause longer than 250 ms between packets is drawn as a jump, so values that change on events never glide. Indicators, conditions and captions always read the packet itself.",
         "font": "The family new widgets take. It is the editor’s own setting — the device resolves a font per widget, so the document carries no dashboard-wide one.",
-        "budget": "What the chosen families cost on the board. Faces are uploaded whole and the partition holds 2 MiB of them."
+        "budget": "What the chosen families cost on the board. Faces are uploaded whole and the partition holds 3 MiB of them."
       },
       "screen": {
         "name": "What a \"go to screen\" action points at. Renaming repoints every action that names this screen.",
@@ -542,12 +582,13 @@
       "onTap": "On tap",
       "screen": "Screen",
       "followThisAction": "Follow this action",
-      "thisDashboardAlreadyUsesAll": "This dashboard already uses all {mAXIMUM_ACTIONS} tap targets."
+      "thisDashboardAlreadyUsesAll": "This dashboard already uses all {mAXIMUM_ACTIONS} tap targets.",
+      "goToScreen": "Go to {screen}"
     },
     "colorPicker": {
       "pickAColourFromThe": "Pick a colour from the screen",
       "onThisDashboard": "On this dashboard",
-      "colorsAlreadyOnTheDashboard": "Colors already on the dashboard",
+      "colorsAlreadyOnTheDashboard": "Colours already on the dashboard",
       "labelPicker": "{label} picker"
     },
     "conditionsEditor": {
@@ -567,18 +608,22 @@
       "lengthRuleS": "{length} rule(s)",
       "thresholdInUnit": "Threshold in {unit}",
       "blinkHold": "{blink} {hold}",
-      "atInUnit": "At, in {unit}",
+      "atInUnit": "Value in {unit}",
       "at": "At",
       "addStop": "Add stop",
       "addAColourRamp": "Add a colour ramp",
-      "ruleNumber": "Rule {number}"
+      "ruleNumber": "Rule {number}",
+      "removeRuleNumber": "Remove rule {number}",
+      "removeStopNumber": "Remove stop {number}",
+      "stopNumber": "Stop {number}",
+      "stopNumberColour": "Stop {number} colour"
     },
     "group": {
       "advanced": "Advanced",
       "set": "set"
     },
     "iconPicker": {
-      "anIconIsAGlyph": "An icon is a glyph of the Material Icons family — set that family on the text it lands in.",
+      "anIconIsAGlyph": "An icon is a glyph of the Material Icons family — make it the font of the text it lands in, or the fallback beside a text family.",
       "insertAnIcon": "Insert an icon",
       "insertAnIconGlyph": "Insert an icon glyph",
       "insertTheNameIcon": "Insert the {name} icon",
@@ -596,7 +641,8 @@
       "closeThisSlot": "Close this slot",
       "editPagesOnTheCanvas": "Edit pages on the canvas",
       "lengthPageS": "{length} page(s)",
-      "addActivationRule": "Add activation rule"
+      "addActivationRule": "Add activation rule",
+      "deletePageNumber": "Delete page {number}"
     },
     "sourceEditor": {
       "removeThisSource": "Remove this source",
@@ -609,7 +655,8 @@
       "affixes": "Affixes",
       "prefix": "Prefix",
       "suffix": "Suffix",
-      "sourceNumber": "Source {number}"
+      "sourceNumber": "Source {number}",
+      "removeSourceNumber": "Remove source {number}"
     },
     "telemetryBindingField": {
       "unknownTelemetryBinding": "Unknown telemetry binding",
@@ -640,7 +687,7 @@
       "sizeInPixels": "Size in pixels",
       "fallbackFamily": "+ Fallback family",
       "removeTheFallbackFamily": "Remove the fallback family",
-      "drawMissingGlyphsAsNothing": "Draw missing glyphs as nothing again",
+      "drawMissingGlyphsAsNothing": "Remove the fallback — missing glyphs draw as empty boxes again",
       "unresolvedFamily": "Unresolved: {family}",
       "chooseFont": "Choose font…"
     },
@@ -670,7 +717,9 @@
       "gradientEnd": "End",
       "aGraphDrawsAtMost": "A graph draws at most {mAXIMUM_GRAPH_SOURCES} sources on one plot.",
       "showsTheLastTofixedS": "Shows the last {toFixed} s.",
-      "toFixedS": "{toFixed} s"
+      "toFixedS": "{toFixed} s",
+      "removeTraceNumber": "Remove trace {number}",
+      "lengthOfMaximum": "{length} of {maximum}"
     },
     "indicatorEditor": {
       "strip": "Strip",
@@ -688,7 +737,11 @@
       "arcWidget": "arc {widget}",
       "nonZeroRoundsTheLamp": "Non-zero rounds the lamp ends",
       "lampCornerRadiusInPixels": "Lamp corner radius in pixels",
-      "lengthLampS": "{length} lamp(s)"
+      "lengthLampS": "{length} lamp(s)",
+      "lampNumber": "Lamp {number}",
+      "lampNumberLightsAtThis": "Lamp {number} lights at this fraction of the range",
+      "lampNumberColour": "Lamp {number} colour",
+      "removeLampNumber": "Remove lamp {number}"
     },
     "ringEditor": {
       "centreAngle": "Centre angle",
@@ -716,7 +769,7 @@
     "stylingEditors": {
       "title": "Title",
       "textFrom": "Text from",
-      "color": "Color",
+      "color": "Colour",
       "anchor": "Anchor",
       "xOffset": "X offset",
       "yOffset": "Y offset",
@@ -727,7 +780,7 @@
       "borderWidth": "Border width",
       "cornerRadius": "Corner radius",
       "fillCorners": "Fill corners",
-      "borderColor": "Border color",
+      "borderColor": "Border colour",
       "paddingX": "Padding X",
       "paddingLeft": "Padding left",
       "paddingRight": "Padding right",
@@ -746,7 +799,7 @@
       "bitmap": "Bitmap",
       "uploadImagesToTheBoard": "Upload images to the board to choose one here.",
       "frameFrom": "Frame from",
-      "recolor": "Recolor",
+      "recolor": "Recolour",
       "strength": "Strength",
       "kind": "Kind",
       "theSlotDrawsNothingItself": "The slot draws nothing itself — put a shape behind it for a background. Every page is this box, and its widgets are placed relative to it.",
@@ -755,20 +808,23 @@
       "fallback": "Fallback",
       "imageIsNotInstalledOn": "\"{image}\" is not installed on the connected board, so the device will refuse this configuration.",
       "imageHasASingleFrame": "\"{image}\" has a single frame, so the device will refuse a frame or a frame source on it.",
-      "thisShapeHoldsNoWidgets": "This shape holds no widgets. Select some and wrap them to make it a container; an empty one with an action is an invisible tap zone.",
+      "thisShapeHoldsNoWidgets": "This shape holds no widgets. Drag widgets onto it to make it a container; an empty one with an action is an invisible tap zone.",
       "holdsHeldWidgetSPlaced": "Holds {held} widget(s), placed relative to this box.",
-      "lengthSources": "{length} sources"
+      "lengthSources": "{length} sources",
+      "unassigned": "Unassigned",
+      "unbound": "Unbound"
     },
     "infoHint": {
       "aboutLabel": "About {label}",
       "aboutThisProperty": "About this property"
     },
     "propertyRow": {
-      "labelIsSetInThis": "{label} is set in this document — click to clear it",
+      "labelIsSetInThis": "{label} differs from the device default — click to reset it",
       "clearLabel": "Clear {label}"
     },
     "valueColorList": {
-      "positionColour": "{position} colour"
+      "positionColour": "{position} colour",
+      "removeNounPosition": "Remove {noun} {position}"
     }
   },
   "modules": {
@@ -789,10 +845,10 @@
       "sprite": {
         "pictures": "Pictures this panel can draw, each a grid of palette-indexed pixels and up to sixteen frames of it. They travel inside the modules document rather than being uploaded, so they cost no partition, no upload and no restart — and a saved configuration carries its own artwork.",
         "name": "What layers name this picture by. Renaming it follows through to every layer that draws it. Two pictures on one panel may not share a name.",
-        "size": "Columns and rows of the picture itself, which need not match the panel: a smaller picture is drawn centred on whatever the layer paints on. The bigger it is the fewer frames fit, because every picture shares the same 1024-digit budget.",
+        "size": "Columns and rows of the picture itself, which need not match the panel: a smaller picture is drawn centred on whatever the layer paints on. The bigger it is the fewer frames fit, because each picture has a 1024-digit budget of its own.",
         "palette": "Colours this picture is drawn from, at most fifteen of them. Pick one to paint with, or Clear to leave a pixel unpainted so the layers below stay visible — that is a digit past the end of the palette rather than a colour, which is why the last one is kept free. Entry 1 is the unlit lamp by convention rather than by rule: it paints black over whatever is under it.",
         "frames": "Frames of the animation, played in order by a layer with Play frames switched on. How many fit follows the size: sixteen of eight by eight, four of sixteen by sixteen. Duplicate a frame to draw the next one from it.",
-        "mirror": "Plays this picture on the connected board while you draw, on its own, the way a layer previews. Needs a board and live apply switched on; the panel goes back to the whole configuration when it is switched off."
+        "mirror": "Plays this picture on the connected board while you draw, on its own, the way a layer previews. Needs a connected board that is following the draft; the panel goes back to the whole configuration when this is switched off."
       },
       "effect": {
         "stack": "Every layer whose gate holds paints at once. Where two of them cover the same lamp, the one that lit most recently wins it — so a flag comes up over shift lights whichever way round the two are listed — and layers that came up together keep the order they are in here. This is the opposite of a widget’s styling rules, where the first match wins: a widget resolves one appearance, while an output composes a picture out of many things being true at once.",
@@ -800,7 +856,7 @@
         "area": "Which run of this device’s lamps the layer paints. Lamps are numbered from 1 here, while the saved document counts them from zero. A count of 0 covers the rest of the device.",
         "panel": "Which pixels of the panel this layer paints on. Click one to turn it off or on, or drag across several; All and Invert do the whole grid at once. Every pixel is the default and costs the document nothing. The layer works over the smallest box holding what you picked, so text and a picture still centre on the shape rather than on the panel.",
         "sprite": "Which of the panel’s pictures this layer draws. Pictures are drawn on the Pictures tab, and a profile brings its own — the flags carry their artwork with them; a layer whose picture the panel does not carry is a composition error rather than a blank panel.",
-        "loop": "Walks the picture’s frames on this layer’s own clock, one every frame time, which is how artwork moves without telemetry driving it. Left off, the layer holds the one frame named below.",
+        "loop": "Walks the picture’s frames on this layer’s own clock, one every Frame holds interval, which is how artwork moves without telemetry driving it. Left off, the layer holds the one frame named below.",
         "gate": "When this layer paints at all. always paints on every frame; conditions paints while a rule over its own watched value holds; telemetry idle paints only after two seconds of silence, which is what an idle animation and a lost-link warning both want.",
         "hold": "Keeps the layer painting for this long after its gate stops holding, so a momentary event such as traction control still produces a visible flash.",
         "background": "Fills every lamp this layer covers before it draws, so a glyph or a picture sits on a ground of its own rather than on whatever the layers below left. Off paints no ground, which is what a layer over shift lights wants.",
@@ -824,7 +880,7 @@
       "frame": "Frame",
       "whichFrameToHoldStill": "Which frame to hold still. With telemetry bound the value picks it instead.",
       "text": "Text",
-      "drawnAsAuthoredWithA": "Drawn as authored. With a source bound this becomes the prefix and the source supplies the rest.",
+      "drawnAsAuthoredWithA": "Drawn in the built-in face, which carries only the digits, N and R — other characters stay dark. With a source bound this becomes the prefix and the source supplies the rest.",
       "face": "Face",
       "scrollStep": "Scroll step",
       "howLongOneColumnOf": "How long one column of a scrolling string stays put. Text that fits the panel is centred and does not scroll.",
@@ -838,10 +894,17 @@
       "playsThisLayerInThe": "Plays this layer in the preview above, beside anything else playing, until it is pressed again",
       "lengthLayerS": "{length} layer(s)",
       "stopPreviewingIndex": "Stop previewing {index}",
-      "previewIndex": "Preview {index}"
+      "previewIndex": "Preview {index}",
+      "moveLayerNumberDownThe": "Move layer {number} down the stack",
+      "moveLayerNumberUpThe": "Move layer {number} up the stack",
+      "removeLayerNumber": "Remove layer {number}"
     },
     "ledPreview": {
-      "preview": "Preview"
+      "preview": "Preview",
+      "darkUntilALayerOr": "Dark until a layer or a picture is played. Press the preview button on one to watch it here.",
+      "nameOnItsOwnOver": "{name} on its own, over and over.{note} Press its button again to stop.",
+      "namesTogetherOverAndOver": "{names} together, over and over. Where they share a lamp the one played last wins, the way the board resolves it.",
+      "pictureSprite": "Picture {sprite}"
     },
     "modulesPage": {
       "peripheralsBeyondTheDisplayEach": "Peripherals beyond the display, each on its own data pin.",
@@ -858,14 +921,15 @@
       "lEDs": "LEDs",
       "matrix": "Matrix",
       "addNoun": "Add {noun}",
-      "boardPublishesNoFreePins": "{board} publishes no free pins for LEDs yet, so a device on it\n                  would be refused by the firmware.",
+      "boardPublishesNoFreePins": "{board} publishes no free pins for LEDs yet, so a device on it would be refused by the firmware.",
       "nothingIsWiredYetAdd": "Nothing is wired yet. Add a {noun} to describe its pin and what it shows.",
       "matrices": "Matrices",
       "strips": "Strips",
-      "eachNounOwnsOneData": "Each {noun} owns one data pin and one transmit channel; a board drives four devices in all.",
+      "eachNounOwnsOneData": "Each {noun} owns one data pin and one transmit channel; a board drives one device per LED pin it publishes.",
       "noMatrices": "No matrices",
       "noStrips": "No strips",
-      "pinNumber": "pin {pin}"
+      "pinNumber": "pin {pin}",
+      "removeDeviceNumber": "Remove device {number}"
     },
     "noConfiguration": {
       "peripheralsLiveInTheSame": "Peripherals live in the same draft the dashboard uses, so this needs no board plugged in.",
@@ -891,7 +955,8 @@
       "currentCap": "Current cap",
       "lampsSummedOverTheRuns": "{lamps}, summed over the runs in the arrangement below.",
       "theCapHoldsItTo": " The cap holds it to {current_limit_ma} mA.",
-      "currentEstimate": "{lamps} lamps could draw about {peak} mA at full white and this brightness."
+      "currentEstimate": "{lamps} lamps could draw about {peak} mA at full white and this brightness.",
+      "pinPinLampsLamps": "pin {pin} · {lamps} lamps"
     },
     "panelArea": {
       "showsOn": "Shows on",
@@ -913,7 +978,8 @@
       "lastLampOfTheProfile": "Last lamp of the profile",
       "theCoveredLampsGlowIn": "The covered lamps glow in the preview above.",
       "addToThisDevice": "Add to this device",
-      "whatShouldTheNewLayer": "What should the new layer do?"
+      "whatShouldTheNewLayer": "What should the new layer do?",
+      "runNumberRange": "Run {number} · {from}–{to}"
     },
     "segmentEditor": {
       "arrangement": "Arrangement",
@@ -922,7 +988,9 @@
       "addRun": "Add run",
       "anArrangementHoldsAtMost": "An arrangement holds at most {mAXIMUM_LED_SEGMENTS} runs.",
       "straightLine": "straight line",
-      "lengthRunS": "{length} run(s)"
+      "lengthRunS": "{length} run(s)",
+      "removeRunNumber": "Remove run {number}",
+      "runNumber": "Run {number}"
     },
     "spriteEditor": {
       "fitPanel": "Fit panel",
@@ -953,7 +1021,8 @@
       "framesOfCeilingThisSize": "{frames} of {ceiling} this size allows",
       "stopPlayingTheFrames": "Stop playing the frames",
       "playTheFrames": "Play the frames",
-      "aWidthByHeightPicture": "A {width} by {height} picture holds {ceiling} frames"
+      "aWidthByHeightPicture": "A {width} by {height} picture holds {ceiling} frames",
+      "frameNumber": "Frame {number}"
     },
     "spriteList": {
       "sweep": "Sweep",
@@ -966,7 +1035,7 @@
       "widthHeightFramesFrameS": "{width}×{height} · {frames} frame(s) · {sprite} digits",
       "lengthOfMaximumLedSprites": "{length} of {mAXIMUM_LED_SPRITES}",
       "drawsANewPictureAt": "Draws a new picture at the size of this panel",
-      "aPanelCarriesMaximumLed": "A panel carries {mAXIMUM_LED_SPRITES} pictures",
+      "aPanelCarriesMaximumLed": "A panel carries at most {mAXIMUM_LED_SPRITES} pictures",
       "stopShowingId": "Stop showing {id}",
       "showIdOnItsOwn": "Show {id} on its own",
       "duplicateId": "Duplicate {id}",
@@ -984,7 +1053,10 @@
       "addsAnotherColourToThis": "Adds another colour to this picture",
       "thisPictureNamesAllSixteen": "This picture names all sixteen colours, so no digit is left over to mean clear",
       "clearsAPixelLeavingThe": "Clears a pixel, leaving the layers below it visible",
-      "ink": "Ink"
+      "ink": "Ink",
+      "inkNumber": "Ink {number}",
+      "removeInkNumber": "Remove ink {number}",
+      "inkNumberColour": "Ink {number}, {color}"
     },
     "effectColors": {
       "colourWhen": "Colour when",
@@ -995,7 +1067,8 @@
       "holdInMillisecondsAfterThis": "Hold in milliseconds after this rule stops matching",
       "blinkMs": "Blink (ms)",
       "holdMs": "Hold (ms)",
-      "addColourRule": "Add colour rule"
+      "addColourRule": "Add colour rule",
+      "removeColourRuleNumber": "Remove colour rule {number}"
     },
     "effectGate": {
       "whenItPaints": "When it paints",
@@ -1006,21 +1079,28 @@
     },
     "effectPayload": {
       "thresholds": "Thresholds",
-      "colourRamp": "Colour ramp"
+      "colourRamp": "Colour ramp",
+      "lightsAtThisFractionOf": "Lights at this fraction of the range",
+      "aLayerHoldsAtMost": "A layer holds at most {maximum} steps.",
+      "positionAlongTheLamps0": "Position along the lamps, 0 to 1",
+      "valueThisColourSitsAt": "Value this colour sits at",
+      "aRampHoldsAtMost": "A ramp holds at most {maximum} stops.",
+      "step": "step",
+      "stop": "stop"
     },
     "previewStatus": {
       "boardRefusedThePreview": "Board refused the preview",
       "previewingHereOnly": "Previewing here only",
       "previewingOnTheBoard": "Previewing on the board",
-      "theBoardIsLitBy": "The board is lit by what is being played and nothing else. A layer bound to telemetry follows the game there rather than the sweep shown here."
+      "theBoardIsLitBy": "This output shows what is being played and nothing else. A layer bound to telemetry follows the game there rather than the sweep shown here."
     },
     "flags": {
       "raceFlags": "Race flags",
-      "allEightFlagsAtOnce": "All eight flags at once. On a panel the black and white sweeps a diagonal band, the black and orange blinks its orange disc, and the chequered ripples as a real chequerboard; on a strip they fall back to a blinking blob and a running lamp. The more urgent a flag, the later it paints, so red covers the rest."
+      "allEightFlagsAtOnce": "All eight flags at once. On a panel the black and white sweeps a diagonal band, the black and orange blinks its orange disc, and the chequered ripples as a real chequerboard; on a strip they fall back to a blinking blob and a running lamp. Where two flags share a lamp the one raised last wins; flags raised together follow the list, which ends with red."
     },
     "profiles": {
       "shiftLights": "Shift lights",
-      "oneStepPerLampFrom": "One step per lamp from 70% to 97% of the revs, green through yellow to pink, then the whole run flashes red.",
+      "oneStepPerLampFrom": "Up to sixteen steps across the lamps from 70% to 97% of the revs, green through yellow to pink, then the whole run flashes red.",
       "gear": "Gear",
       "theSelectedGearDrawnIn": "The selected gear, drawn in the largest built-in face the panel can hold, turning amber and then red as the revs climb. Change the face on the layer if you want it smaller. A panel only, since a strip has nowhere to draw a glyph.",
       "aBS": "ABS",
@@ -1035,7 +1115,17 @@
       "aSlowRainbowOnceTelemetry": "A slow rainbow once telemetry has been silent for two seconds."
     },
     "previewValues": {
-      "liveValues": " The values come from the live telemetry feed."
+      "liveValues": " The values come from the live telemetry feed.",
+      "theGearStepsFromReverse": " The gear steps from reverse up to ninth, and every colour rule is held in turn.",
+      "theGearStepsFromReverse2": " The gear steps from reverse up to ninth.",
+      "everyColourRuleIsHeld": " Every colour rule is held in turn, and then none of them."
+    },
+    "spriteCanvas": {
+      "pixelXY": "Pixel {x}, {y}",
+      "xYClear": "{x}, {y} — clear"
+    },
+    "devicePreview": {
+      "lampNumber": "lamp {number}"
     }
   },
   "documents": {
@@ -1081,7 +1171,7 @@
       "twoImagesShareAName": "Two images share a name.",
       "widthHeightFormat": "{width}×{height} · {format}",
       "frameCountFrames": " · {frameCount} frames",
-      "addAPngOrJpeg": "Add a PNG or JPEG below, give it the name a widget will refer to, and install.",
+      "addAPngOrJpeg": "Add a PNG, JPEG or BMP with Add image…, give it the name a widget will refer to, and install.",
       "connectABoardWhoseFirmware": "Connect a board whose firmware carries an image partition.",
       "uploading": "Uploading…",
       "convertedHereAndStoredOn": "Converted here and stored on the board as one package. Installing replaces every image and needs a restart.",
@@ -1105,11 +1195,14 @@
       "proportionsFreeEachSideIs": "Proportions free: each side is set on its own"
     },
     "imagePageParts": {
-      "noCopy": "no copy",
+      "noCopy": "No preview",
       "framesFramesAllConvertedTo": "{frames} frames, all converted to {width}×{height}. ",
       "sourceIsWidthHeightConverted": "Source is {width}×{height}, converted to {width2}×{height2} — {bytes} instead of {sourceBytes}.",
-      "sourceIsWidthHeightUploaded": "Source is {width}×{height}, uploaded unchanged — {bytes}. The board draws it at this size, so it is also the widget's size.",
-      "unavailable": "Unavailable"
+      "sourceIsWidthHeightUploaded": "Source is {width}×{height}, kept at that size — {bytes}. The board draws it at this size, so it is also the widget’s size.",
+      "unavailable": "Unavailable",
+      "usedOfLimit": "{used} of {limit} · {rest}",
+      "bytesOver": "{bytes} over",
+      "bytesFree": "{bytes} free"
     },
     "imageAssetService": {
       "readingImageSources": "Reading image sources",
@@ -1180,7 +1273,10 @@
     "none": "None",
     "listAndMore": "{shown} and {rest} more",
     "add": "Add",
-    "select": "Select"
+    "select": "Select",
+    "screenNumber": "Screen {number}",
+    "pageNumber": "Page {number}",
+    "traceNumber": "Trace {number}"
   },
   "firmware": {
     "firmwarePage": {
@@ -1210,7 +1306,7 @@
       "wrappedBytelengthBytesForBoardid": "Wrapped {byteLength} bytes for {boardId}",
       "firmwareUploadCancelled": "Firmware upload cancelled.",
       "cannotReadName": "Cannot read {name}.",
-      "nameIsSizeBytesWhich": "{name} is {size} bytes, which does not fit the 2 MiB firmware slot.",
+      "nameIsSizeBytesWhich": "{name} is {size} bytes, which does not fit the 2.5 MiB firmware slot.",
       "theSelectedFirmwareImageIs": "The selected firmware image is no longer available.",
       "firmwareUploadWasCancelled": "Firmware upload was cancelled.",
       "selectFirmwareImage": "Select firmware image",
@@ -1220,11 +1316,14 @@
       "theConnectedFirmwareCannotUpdate": "The connected firmware cannot update itself over serial.",
       "thisDeviceHasNoSecond": "This device has no second firmware slot to update into.",
       "restartTheDeviceToRun": "Restart the device to run the firmware already installed.",
-      "unknownError": "Unknown firmware update error."
+      "unknownError": "Unknown firmware update error.",
+      "theConnectedDeviceChangedWhile": "The connected device changed while the image was prepared.",
+      "firmwareInstalledIntoTargetRestart": "Firmware installed into {target}. Restart the device to run it.",
+      "theInactiveSlot": "the inactive slot"
     },
     "firmwarePackage": {
       "theFirmwareImageIsEmpty": "The firmware image is empty.",
-      "theFirmwareImageIsBytelength": "The firmware image is {byteLength} bytes, which does not fit the 2 MiB firmware slot.",
+      "theFirmwareImageIsBytelength": "The firmware image is {byteLength} bytes, which does not fit the 2.5 MiB firmware slot.",
       "unsupportedPitrigBoardBoard": "Unsupported Pitrig board: {board}."
     },
     "dialog": {
@@ -1253,7 +1352,7 @@
       "whatProducesTheValuesThe": "What produces the values the dashboard draws.",
       "simHub": "SimHub",
       "inUse": "In use",
-      "aCustomSerialDeviceProfile": "A Custom Serial Device profile on the PC writes one line per field over the same link this configurator uses. It is the only source today; a second one would be chosen here."
+      "aCustomSerialDeviceProfile": "A Custom Serial Device profile on the PC writes one line per field over the same link this configurator uses. It is the source the packaged configurator uses; a second one would be chosen here."
     },
     "simHubProfileSection": {
       "simHubProfile": "SimHub profile",
@@ -1267,26 +1366,33 @@
       "lengthFields": "{length} fields",
       "noValidDraft": "No valid draft",
       "baudRateBaud": "{baudRate} baud",
-      "baudUnavailable": "Baud unavailable"
+      "baudUnavailable": "Baud unavailable",
+      "failedToExportTheSimhub": "Failed to export the SimHub profile.",
+      "fileNameSavedWithFields": {
+        "$plural": {
+          "one": "{fileName} saved with {count} telemetry field.",
+          "other": "{fileName} saved with {count} telemetry fields."
+        }
+      }
     },
     "transportSection": {
       "transport": "Transport",
       "theLinkTheBoardTalks": "The link the board talks over.",
-      "createOrOpenAConfiguration": "Create or open a configuration on the Configs page first — the transport travels with the dashboard rather than being set on the board.",
+      "createOrOpenAConfiguration": "Create or open a configuration on the Configs page first — the transport is the draft’s protocol document rather than a setting kept on the board.",
       "noConfigurationOpen": "No configuration open",
       "theLinkTheBoardTalks2": "The link the board talks over. Its own stored configuration, saved and restarted on its own — and changing it can cut the board off.",
       "changingThisCanCutThe": "Changing this can cut the board off",
       "aSavedChangeRestartsThe": "A saved change restarts the board, and the board comes back on the new link — at the new speed, if that is what changed. This window reconnects at the old one and will report that the board did not come back.",
       "notEverySpeedSurvivesEvery": "Not every speed survives every board. A USB-serial bridge is what limits it, not the firmware, and a rate the bridge cannot hold leaves a board that answers nothing.",
       "auto": "Auto",
-      "whichLinkCarriesTelemetryAnd": "Which link carries telemetry and @PR: control. The board default is what the firmware was built for.",
+      "whichLinkCarriesTelemetryAnd": "Which link carries telemetry and the configurator’s commands. The board default is what the firmware was built for.",
       "bitsPerSecondOnThe": "Bits per second on the UART link. A USB-serial bridge is what limits this, not the board.",
       "uARTPins": "UART pins",
       "theFirmwareChecksTheseAgainst": "The firmware checks these against the board’s own pin pair and refuses a document that names another, so a wrong number costs a refused save rather than a dark board — the one setting here that cannot go wrong quietly.",
       "tXPin": "TX pin",
       "rXPin": "RX pin",
       "silenceEspLogs": "Silence ESP logs",
-      "keepsTheFirmwareSOwn": "Keeps the firmware's own log off the telemetry link, where it would be read as malformed lines.",
+      "keepsTheFirmwareSOwn": "Keeps the firmware’s own log off the telemetry link, where it would be read as malformed lines.",
       "theBoardSUartPins": "the board’s UART pins, reached through a USB-serial bridge.",
       "theChipSOwnUsb": "the chip’s own USB port, no bridge in between.",
       "whateverThisBoardWasBuilt": "whatever this board was built to use.",
@@ -1329,6 +1435,15 @@
       "perSecond": "/s",
       "quantiles": "p50 {p50} · p95 {p95} · p99 {p99} · max {max} ms",
       "noSamples": "Nothing measured yet."
+    },
+    "simHubProfile": {
+      "simHubProfileBaudRateMust": "SimHub profile baud rate must be an integer from 9600 to 2000000.",
+      "unknownSimHubTelemetryFields": "Unknown SimHub telemetry fields: {fields}"
+    },
+    "dialog": {
+      "saveTitle": "Save SimHub Custom Serial Device profile",
+      "buttonLabel": "Save profile",
+      "filter": "SimHub Custom Serial Device"
     }
   },
   "templates": {
@@ -1359,7 +1474,9 @@
       "replaceEverythingYouHaveOpen2": "Replace everything you have open with \"{name}\"? Every screen and every widget in the current draft is discarded.",
       "thatEntryIsNotA": "That entry is not a dashboard.",
       "nameWouldNotBeAccepted": "\"{name}\" would not be accepted on this board, so the draft was left alone. {error}",
-      "failedToApplyTheTemplate": "Failed to apply the template."
+      "failedToApplyTheTemplate": "Failed to apply the template.",
+      "nameIsNowTheLocal": "\"{name}\" is now the local draft.",
+      "wholeLayoutsScaledToSize": "Whole layouts, scaled to {size} on the way in. Add takes screens from one; Use replaces what you have open."
     },
     "dashboardThumbnail": {
       "noPreview": "No preview",
@@ -1387,12 +1504,20 @@
       "greenBelow6000RedAbove": "Green below 6000, red above",
       "fuelAndTyresForLong": "Fuel and tyres for long runs",
       "replaceTheSavedKindId": "Replace the saved {kind} \"{id}\"?",
-      "theTemplateWasNotSaved": "The template was not saved."
+      "theTemplateWasNotSaved": "The template was not saved.",
+      "theSelectedWidgetGoesTo": "The selected widget goes to the widget library, at {width} × {height}.",
+      "theSelectedWidgetAndEverything": "The selected widget and everything inside it goes to the widget library, at {width} × {height}."
     },
     "templatesPage": {
       "readingTheLibrary": "Reading the library…",
       "deleteTheSavedKindName": "Delete the saved {kind} \"{name}\"?",
-      "nameDeleted": "\"{name}\" deleted."
+      "nameDeleted": "\"{name}\" deleted.",
+      "unreadableFiles": {
+        "$plural": {
+          "one": "{count} file in the template folder could not be read.",
+          "other": "{count} files in the template folder could not be read."
+        }
+      }
     },
     "widgetSection": {
       "widgets": "Widgets",
@@ -1414,7 +1539,9 @@
       "theLibraryHoldsAtMost": "The library holds at most {mAXIMUM_USER_TEMPLATES} saved {kind}s.",
       "failedToWriteTheTemplate": "Failed to write the template.",
       "aStarterTemplateCannotBe": "A starter template cannot be deleted.",
-      "failedToDeleteTheTemplate": "Failed to delete the template."
+      "failedToDeleteTheTemplate": "Failed to delete the template.",
+      "aTemplateFileMustNot": "A template file must not exceed {maximum} bytes.",
+      "idIsNotAValid": "\"{id}\" is not a valid template identifier."
     },
     "screenGallery": {
       "previousScreen": "Previous screen",
@@ -1430,14 +1557,23 @@
       "aTemplateDescriptionIsAt": "A template description is at most {mAXIMUM_TEMPLATE_DESCRIPTION} characters.",
       "theWidgetTemplateNamesNo": "The widget template names no known board.",
       "theTemplateCarriesNoWidget": "The template carries no widget.",
-      "thatTemplateIsNotA": "That template is not a widget."
+      "thatTemplateIsNotA": "That template is not a widget.",
+      "aPitrigDashboardTemplate": "a Pitrig dashboard template",
+      "aPitrigWidgetTemplate": "a Pitrig widget template"
+    },
+    "insertScreen": {
+      "thereIsNoDashboardTo": "There is no dashboard to add a screen to.",
+      "aDashboardHoldsAtMost": "A dashboard holds at most {maximum} screens.",
+      "thatDashboardHasNoSuch": "That dashboard has no such screen.",
+      "thatScreenWouldNotBe": "That screen would not be accepted here, so nothing changed. {error}"
     }
   },
   "app": {
     "app": {
       "pitrig": "Pitrig",
       "nameVersion": "{name} {version}",
-      "loadingApplicationInfo": "Loading application info…"
+      "loadingApplicationInfo": "Loading application info…",
+      "applicationReady": "Application ready"
     },
     "panelResizer": {
       "resizeThePropertyPanel": "Resize the property panel",
@@ -1450,12 +1586,15 @@
       "expandTheWorkspaceRail": "Expand the workspace rail",
       "expand": "Expand",
       "labelHint": "{label} — {hint}"
+    },
+    "main": {
+      "rendererRootElementWasNot": "Renderer root element was not found"
     }
   },
   "dashboard": {
     "configsPage": {
       "configs": "Configs",
-      "theDashboardDocumentFilesSaved": "The dashboard document: files, saved copies, and what the board is holding.",
+      "theDashboardDocumentFilesSaved": "The three configuration documents: files, saved copies, and what the board is holding.",
       "restartRequired": "Restart required",
       "modified": "Modified",
       "document": "Document",
@@ -1469,7 +1608,9 @@
       "fitToTheNewDisplay": "Fit to the new display",
       "keepProportionsCentre": "Keep proportions, centre",
       "stretchToFillTheDisplay": "Stretch to fill the display",
-      "convertDraftToConverttarget": "Convert draft to {convertTarget}…"
+      "convertDraftToConverttarget": "Convert draft to {convertTarget}…",
+      "unsavedLocalDraft": "Unsaved local draft",
+      "noLocalConfiguration": "No local configuration"
     },
     "dashboardWorkspace": {
       "dashboardPages": "Dashboard pages",
@@ -1506,10 +1647,11 @@
       "discardTheCurrentLocalDraft4": "Discard the current local draft and open this file?",
       "activeConfigurationReadFromThe": "Active configuration read from the board.",
       "resetTheSavedConfigurationTo": "Reset the saved configuration to the board-only factory configuration?",
-      "factoryConfigurationSavedRestartThe": "Factory configuration saved. Restart the board to activate it.",
+      "factoryConfigurationSavedRestartThe": "Saved configuration erased. Restart the board to run the factory one.",
       "eraseTheSavedLabelConfiguration": "Erase the saved {label} configuration from the board?",
       "savedLabelConfigurationErasedRestart": "Saved {label} configuration erased. Restart the board to activate the factory one.",
-      "restartTheConnectedPitrigBoard": "Restart the connected Pitrig board now?"
+      "restartTheConnectedPitrigBoard": "Restart the connected Pitrig board now?",
+      "convertTheDraftFromFrom": "Convert the draft from {from} to {to}? {outcome}"
     },
     "boardLabels": {
       "thisBoardHasNoDisplay": "This board has no display, so the dashboard is left behind and only its peripherals carry over.",
@@ -1579,16 +1721,16 @@
       "eachDocumentExactlyAsThe": "Each document exactly as the board receives it.",
       "configurationDocuments": "Configuration documents",
       "thisIsNotValidJson": "This is not valid JSON. The board keeps the last valid version until it is.",
-      "createOpenOrConnectA": "Create, open, or connect a configuration to begin editing.",
+      "createOpenOrConnectA": "Create or open a configuration, or connect a board, to begin editing.",
       "activeConfigurationJson": "{active} configuration JSON"
     },
     "boardDocumentsSection": {
       "configsOnTheBoard": "Configs on the board",
       "threeDocumentsStoredAndWritten": "Three documents, stored and written independently.",
-      "savingWritesOnlyTheDocuments": "Saving writes only the documents that differ. The board restarts when a font had to be installed, or when the protocol config changed — the link is chosen once at startup, so that one cannot take effect any other way.",
+      "savingWritesOnlyTheDocuments": "Saving writes only the documents that differ. The board restarts when a font or image package had to be installed, when the protocol config changed — the link is chosen once at startup, so that one cannot take effect any other way — or when it already owed a restart.",
       "takeThisDocumentBackFrom": "Take this document back from the board, leaving the rest of the draft alone",
       "writeOnlyThisDocumentTo": "Write only this document to the board",
-      "eraseThisDocumentFromThe": "Erase this document from the board's storage",
+      "eraseThisDocumentFromThe": "Erase this document from the board’s storage",
       "loadAllFromBoard": "Load all from board",
       "resetToFactoryConfiguration": "Reset to factory configuration",
       "refused": "Refused",
@@ -1614,7 +1756,7 @@
     },
     "librarySection": {
       "savedConfigurations": "Saved configurations",
-      "keptInTheApplicationS": "Kept in the application's own folder, so the list is always accurate.",
+      "keptInTheApplicationS": "Kept in the application’s own folder, so the list is always accurate.",
       "readingTheFolder": "Reading the folder…",
       "saveTheCurrentDashboardBelow": "Save the current dashboard below to keep a copy that does not depend on where a file happens to live.",
       "nothingSavedYet": "Nothing saved yet",
@@ -1630,7 +1772,25 @@
       "deleteName": "Delete {name}",
       "forgetFilename": "Forget {fileName}",
       "replaceTheSavedConfigurationId": "Replace the saved configuration \"{id}\"?",
-      "deleteTheSavedConfigurationId": "Delete the saved configuration \"{id}\"?"
+      "deleteTheSavedConfigurationId": "Delete the saved configuration \"{id}\"?",
+      "screenCount": {
+        "$plural": {
+          "one": "{count} screen",
+          "other": "{count} screens"
+        }
+      },
+      "widgetCount": {
+        "$plural": {
+          "one": "{count} widget",
+          "other": "{count} widgets"
+        }
+      },
+      "unreadableFiles": {
+        "$plural": {
+          "one": "{count} file in the folder could not be read.",
+          "other": "{count} files in the folder could not be read."
+        }
+      }
     },
     "configurationFileService": {
       "loadConfiguration": "Load configuration",
@@ -1652,7 +1812,9 @@
       "thatFileIsNotIn": "That file is not in the recent list any more.",
       "thatFileIsNotA": "That file is not a configuration document.",
       "thatFileIsNoLonger": "That file is no longer where it was.",
-      "theFileIsUnreadable": "The file is unreadable."
+      "theFileIsUnreadable": "The file is unreadable.",
+      "aConfigurationFileMustNot": "A configuration file must not exceed {maximum} bytes.",
+      "idIsNotAValid": "\"{id}\" is not a valid configuration identifier."
     },
     "configsPage": {
       "bytesOfLimit": "{bytes} / {limit} bytes"
@@ -1670,10 +1832,13 @@
       "unlock": "Unlock",
       "lockSoTheCanvasCannot": "Lock so the canvas cannot move it",
       "showInTheEditor": "Show in the editor",
-      "hideInTheEditorOnly": "Hide in the editor only"
+      "hideInTheEditorOnly": "Hide in the editor only",
+      "fold": "Fold",
+      "unfold": "Unfold"
     },
     "slotPages": {
-      "drawThisPageOnThe": "Draw this page on the canvas"
+      "drawThisPageOnThe": "Draw this page on the canvas",
+      "pageNumberNotInLoop": "Page {number}*"
     }
   },
   "canvas": {
@@ -1682,7 +1847,7 @@
       "whichBoardThisDashboardIs": "Which board this dashboard is authored for",
       "selectABoard": "Select a board…",
       "fit": "Fit",
-      "everyWidgetIsPlacedIn": "Every widget is placed in that display&rsquo;s own pixels.",
+      "everyWidgetIsPlacedIn": "Every widget is placed in that display’s own pixels.",
       "stretch": "Stretch",
       "lengthNotes": "{length} notes",
       "theCanvasDrawsAtValue": "The canvas draws at {value} logical pixels.",
@@ -1701,10 +1866,10 @@
       "repeatAGapTheRow": "Repeat a gap the row already has, so tiles stay evenly spaced",
       "howCloseABoxHas": "How close a box has to be before it snaps",
       "snapReach": "Snap reach",
-      "resizingAWidgetScalesWhat": "Resizing a widget scales what is inside it — a container's children, and every font size, radius and thickness with them (Shift+Cmd/Ctrl+C)",
+      "resizingAWidgetScalesWhat": "Resizing a widget scales what is inside it — a container’s children, and every font size, radius and thickness with them (Shift+Cmd/Ctrl+C)",
       "lengthSelected": "{length} selected · ",
       "xXYYW": "X {x}  Y {y}  W {width}  H {height}",
-      "gridSizePxChosenForThis": "{gridSize} px, chosen for this board's display",
+      "gridSizePxChosenForThis": "{gridSize} px, chosen for this board’s display",
       "gridSizePx": "{gridSize} px",
       "grid": "Grid",
       "gaps": "Gaps",
@@ -1752,9 +1917,11 @@
     "slotTabs": {
       "addAPageToThis": "Add a page to this slot",
       "inside": "Inside",
-      "leaveEveryContainerEscape": "Leave every container (Escape)",
+      "leaveEveryContainerEscape": "Leave every container",
       "activeScreenIndex": "← {activeScreenIndex}",
-      "workInsideId": "Work inside {id}"
+      "workInsideId": "Work inside {id}",
+      "pageNumberShownBy": "Page {number}, shown by {binding}",
+      "telemetry": "telemetry"
     },
     "toolPalette": {
       "widgetTools": "Widget tools",
@@ -1803,6 +1970,9 @@
     "canvasOverlays": {
       "selectedWidgetsBounds": "Selected widgets bounds",
       "selectedWidgetBounds": "Selected widget bounds"
+    },
+    "imagePreview": {
+      "noImage": "no image"
     }
   },
   "shortcuts": {
@@ -1814,8 +1984,9 @@
     "cmdCtrlG": "Cmd/Ctrl+G",
     "shiftCmdCtrlG": "Shift+Cmd/Ctrl+G",
     "cmdCtrl": "Cmd/Ctrl+[",
+    "cmdCtrlForward": "Cmd/Ctrl+]",
     "doubleClick": "Double-click",
-    "del": "Del",
+    "del": "Delete",
     "cmdCtrlA": "Cmd/Ctrl+A"
   },
   "ipc": {
@@ -1882,7 +2053,7 @@
       "labelIsATypeLayer": "{label} is a {type} layer, which needs a matrix rather than a strip.",
       "labelIsATypeLayer2": "{label} is a {type} layer and reads no telemetry, so its source would sit unread.",
       "labelIsATypeLayer3": "{label} is a {type} layer and needs telemetry to map.",
-      "labelNeedsAWatchedSource": "{label} needs a watched source for its gate and its colour rules, and none without them.",
+      "labelNeedsAWatchedSource": "{label} needs a watched source for its gate and its colour rules, and must not have one otherwise.",
       "labelSetsKeyToValue": "{label} sets \"{key}\" to {value}; the device knows {join}.",
       "labelCarriesStrayAmongIts": "{label} carries {stray} among its {what}, which is not one.",
       "labelSetsKeyToSomething": "{label} sets \"{key}\" to something that is not a number.",
@@ -1892,19 +2063,28 @@
       "labelIsATextLayer": "{label} is a text layer with neither text nor a source to render.",
       "labelSelectsNoPixelsAt": "{label} selects no pixels at all.",
       "colourStops": "colour stops",
-      "colourRules": "colour rules"
+      "colourRules": "colour rules",
+      "labelSetsKeyToValueWhole": "{label} sets \"{key}\" to {value}; the device reads it as a whole number.",
+      "labelHasStepNumberBelow": "{label} has step {number} below the one before it; thresholds climb.",
+      "colourRuleOfLabelCompares": "Colour rule {number} of {label} compares against something that is not a number.",
+      "labelCoversLampsFromTo": "{label} covers lamps {from} to {to} of a device that has {lamps}.",
+      "colourRuleOfLabel": "Colour rule {number} of {label}",
+      "ownerPaintsNothingGiveIt": "{owner} paints nothing: give it a colour, a background or a blink."
     },
     "ranges": {
       "ownerSetsKeyToSomething": "{owner} sets \"{key}\" to something that is not a number.",
       "ownerSetsKeyToValue": "{owner} sets \"{key}\" to {value}; the device accepts {range}.",
       "minimumToMaximum": "{minimum} to {maximum}",
-      "text0OrWindow": "0 or {window}"
+      "text0OrWindow": "0 or {window}",
+      "ruleOfLabel": "Rule {number} of {label}",
+      "pageOfLabel": "Page {number} of {label}"
     },
     "schemaKeys": {
       "unknownPropertyHereIsNot": "Unknown property \"{here}\" is not part of the configuration schema.",
       "pathMustBeAnArray": "\"{path}\" must be an array of widgets.",
       "hereMustBeAnObject": "\"{here}\" must be an object.",
-      "hereTypeMustBeOne": "\"{here}.type\" must be one of {join}."
+      "hereTypeMustBeOne": "\"{here}.type\" must be one of {join}.",
+      "hereIsBytesBytesThe": "\"{here}\" is {bytes} bytes; the device stores at most {capacity}."
     },
     "structure": {
       "dashboardScreensMustBeAn": "\"dashboard.screens\" must be an array of screens.",
@@ -1915,7 +2095,9 @@
       "thisDashboardUsesCountType": "This dashboard uses {count} {type} widgets; the device stores {cap}.",
       "thisDashboardHasActionsTap": "This dashboard has {actions} tap targets; the device binds at most {mAXIMUM_ACTIONS}.",
       "thisDashboardHasLaptimersSources": "This dashboard has {lapTimers} sources using the lap timer; the device runs one.",
-      "aContainer": "A container"
+      "aContainer": "A container",
+      "containersAreNestedDepthDeep": "Containers are nested {depth} deep; the device nests {maximum}.",
+      "widgetIdSitsEntirelyOff": "Widget \"{id}\" sits entirely off the display."
     },
     "transforms": {
       "whatOfLabelIsA": "{what} of {label} is a time transform with no format; the device needs \"duration_ms\", \"clock_ms\" or \"signed_duration_ms\".",
@@ -1957,7 +2139,11 @@
       "whereAppearsOnAComparison": "{where} appears on a comparison but has no rule to compare.",
       "ownerNavigatesToAScreen": "{owner} navigates to a screen but names none.",
       "ownerNavigatesToScreenScreen": "{owner} navigates to screen \"{screen}\", which this dashboard does not have.",
-      "ownerNamesAScreenFor": "{owner} names a screen for {type}, which navigates relatively; drop the screen."
+      "ownerNamesAScreenFor": "{owner} names a screen for {type}, which navigates relatively; drop the screen.",
+      "sourceOfLabelHasAModifiers": "Source {number} of {label} has a \"modifiers\" that is not an array.",
+      "sourceOfLabelHasLengthModifiers": "Source {number} of {label} has {length} modifiers; the device holds {maximum}.",
+      "sourceOfLabelUsesTheLap": "Source {number} of {label} uses the lap timer {lapTimers} times; once is all it means.",
+      "sourceOfLabelUsesTheLap2": "Source {number} of {label} uses the lap timer on \"{binding}\"; it stands in for \"{lapTimer}\"."
     },
     "widgetValues": {
       "labelSetsAMiddleGradient": "{label} sets a middle gradient colour without an end colour; turn the gradient on first.",
@@ -1977,13 +2163,24 @@
       "theValueWindow": "The value window",
       "theSpriteFrameSource": "The sprite frame source",
       "theCaptionSource": "The caption source",
-      "theWatchedSource": "The watched source"
+      "theWatchedSource": "The watched source",
+      "labelHasAColourRampWhose": "{label} has a colour ramp whose stop {number} does not climb past the one before it.",
+      "ruleOfLabelComparesAgainst": "Rule {number} of {label} compares against something that is not a number.",
+      "theTransformOnSourceNumber": "The transform on source {number}",
+      "labelDrawsLengthSourcesThe": "{label} draws {length} sources; the device draws {maximum}.",
+      "theWindowOfTraceNumber": "The window of trace {number}",
+      "labelHasSegmentNumberBelow": "{label} has segment {number} below the one before it; thresholds climb."
+    },
+    "configuration": {
+      "theConfigurationCouldNotBe": "The configuration could not be read{detail}.",
+      "configurationMustBeAJson": "Configuration must be a JSON object.",
+      "configurationMustTargetASupported": "Configuration must target a supported board."
     }
   },
   "misc": {
     "workspaceRail": {
       "drawTheDashboardAndThe": "Draw the dashboard, and the fonts, images and templates it is made of",
-      "buttonsEncodersAndLeds": "Buttons, encoders and LEDs",
+      "buttonsEncodersAndLeds": "LED strips and matrices",
       "telemetryLinkAndSimhub": "Telemetry link and SimHub",
       "filesSavedConfigurationsAndJson": "Files, saved configurations and JSON",
       "installAFirmwareImageOver": "Install a firmware image over serial",
@@ -2013,6 +2210,9 @@
     },
     "registerTelemetryBridge": {
       "invalidRequest": "Invalid telemetry bridge request."
+    },
+    "bridgeStore": {
+      "thisBuildDoesNotInclude": "This build does not include the telemetry bridge."
     }
   }
 }

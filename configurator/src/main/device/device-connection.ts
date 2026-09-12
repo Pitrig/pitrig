@@ -1,3 +1,5 @@
+import { StringDecoder } from 'node:string_decoder'
+
 import { SerialPort } from 'serialport'
 
 import type { SerialTrafficLog } from '../../shared/serial-traffic'
@@ -13,8 +15,9 @@ import { DeviceServiceError, failure, success, toDeviceError } from './device-er
 import { PortRegistry, type PortRecord } from './port-registry'
 import { closePort, openPort } from './serial-port-lifecycle'
 import { SerialTrafficReporter } from './serial-traffic-reporter'
-import { probePitrig } from './device-probe'
+import { identifyPitrig, probePitrig } from './device-probe'
 import { reconnectToBoard, scanForDevice } from './device-scan'
+import type { TrafficCallback } from './serial-request'
 import { t } from '@shared/ui-text'
 
 export interface OpenedDevice {
@@ -76,6 +79,19 @@ export class ConnectionManager {
     baudRate: number,
     quiet = false
   ): Promise<DeviceResult<DeviceState>> {
+    return this.openWithToken(portId, baudRate, quiet, this.startOperation())
+  }
+
+  startOperation(): number {
+    return ++this.operationToken
+  }
+
+  async openWithToken(
+    portId: string,
+    baudRate: number,
+    quiet: boolean,
+    token: number
+  ): Promise<DeviceResult<DeviceState>> {
     if (this.activePort?.isOpen) {
       return failure({ code: 'busy', message: t('device.deviceConnection.aDeviceIsAlreadyConnected') })
     }
@@ -90,7 +106,6 @@ export class ConnectionManager {
       return failure(error)
     }
 
-    const token = ++this.operationToken
     this.setState({ status: 'connecting' })
     try {
       const opened = await this.openAndProbe(record, baudRate, token)
@@ -165,6 +180,25 @@ export class ConnectionManager {
   }
 
   async openAndProbe(record: PortRecord, baudRate: number, token: number): Promise<OpenedDevice> {
+    const opened = await this.openPortFor(record, baudRate, token, probePitrig)
+    return { port: opened.port, session: opened.value, traffic: opened.traffic }
+  }
+
+  async openAndIdentify(
+    record: PortRecord,
+    baudRate: number,
+    token: number
+  ): Promise<{ port: SerialPort; traffic: SerialTrafficReporter }> {
+    const opened = await this.openPortFor(record, baudRate, token, identifyPitrig)
+    return { port: opened.port, traffic: opened.traffic }
+  }
+
+  private async openPortFor<T>(
+    record: PortRecord,
+    baudRate: number,
+    token: number,
+    probe: (port: SerialPort, onTraffic: TrafficCallback) => Promise<T>
+  ): Promise<{ port: SerialPort; traffic: SerialTrafficReporter; value: T }> {
     this.ensureCurrent(token)
     const port = new SerialPort({
       path: record.path,
@@ -178,10 +212,10 @@ export class ConnectionManager {
     try {
       await openPort(port)
       this.ensureCurrent(token)
-      const session = await probePitrig(port, (direction, data) => traffic.write(direction, data))
+      const value = await probe(port, (direction, data) => traffic.write(direction, data))
       this.ensureCurrent(token)
       this.pendingPort = undefined
-      return { port, session, traffic }
+      return { port, traffic, value }
     } catch (error) {
       if (this.pendingPort === port) {
         this.pendingPort = undefined
@@ -196,8 +230,10 @@ export class ConnectionManager {
     const { port, session, traffic } = opened
     this.activePort = port
     this.activeTraffic = traffic
+    const decoder = new StringDecoder('utf8')
     const onData = (chunk: Buffer): void => {
-      traffic.write('rx', chunk.toString('utf8'))
+      const text = decoder.write(chunk)
+      if (text.length > 0) traffic.write('rx', text)
     }
     const onClose = (): void => {
       if (this.activePort !== port) {

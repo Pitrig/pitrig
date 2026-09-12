@@ -12,7 +12,7 @@ import {
   imagePackageSize
 } from '@shared/image-assets'
 import { usePreviewAssetStore } from '@/features/configuration/preview/preview-assets'
-import { useImageAssetsStore } from './image-assets-store'
+import { useImageAssetsStore, useImageUploadStore } from './image-assets-store'
 import { StagedImageCard } from './StagedImageCard'
 import { StorageBar, Thumbnail } from './image-page-parts'
 import { t } from '@shared/ui-text'
@@ -20,16 +20,15 @@ import { t } from '@shared/ui-text'
 export function ImagesPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
   const entries = useImageAssetsStore((state) => state.entries)
-  const progress = useImageAssetsStore((state) => state.progress)
-  const error = useImageAssetsStore((state) => state.error)
-  const running = useImageAssetsStore((state) => state.operationStartedAt !== undefined)
+  const progress = useImageUploadStore((state) => state.progress)
+  const error = useImageUploadStore((state) => state.error)
+  const running = useImageUploadStore((state) => state.running)
   const store = useImageAssetsStore
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string>()
   const installedPreviews = usePreviewAssetStore((state) => state.images)
   const refreshPreviews = usePreviewAssetStore((state) => state.refresh)
 
-  useEffect(() => window.pitrig.onImageUploadProgress(store.getState().setProgress), [store])
   useEffect(() => {
     void refreshPreviews()
   }, [refreshPreviews])
@@ -45,7 +44,7 @@ export function ImagesPage(): React.JSX.Element {
       entry.sources.map(() => ({ width: entry.width, height: entry.height, format: entry.format }))
     )
   )
-  const oversized = entries.some(
+  const oversized = entries.filter(
     (entry) =>
       entry.width < 1 ||
       entry.height < 1 ||
@@ -57,18 +56,18 @@ export function ImagesPage(): React.JSX.Element {
     entries.length <= MAXIMUM_IMAGES &&
     invalid.length === 0 &&
     !duplicated &&
-    !oversized &&
-    staged <= MAXIMUM_IMAGE_PACKAGE_SIZE &&
+    oversized.length === 0 &&
     Boolean(images?.storageAvailable) &&
     !images?.rebootRequired &&
+    !running &&
     !busy
 
   const addFrame = async (id: string): Promise<void> => {
     setBusy(true)
-    store.getState().setError(undefined)
+    useImageUploadStore.getState().setError(undefined)
     try {
       const result = await window.pitrig.selectImageSource()
-      if (!result.ok) store.getState().setError(result.error.message)
+      if (!result.ok) useImageUploadStore.getState().setError(result.error.message)
       else if (result.value) store.getState().addFrame(id, result.value)
     } finally {
       setBusy(false)
@@ -77,10 +76,10 @@ export function ImagesPage(): React.JSX.Element {
 
   const addSource = async (): Promise<void> => {
     setBusy(true)
-    store.getState().setError(undefined)
+    useImageUploadStore.getState().setError(undefined)
     try {
       const result = await window.pitrig.selectImageSource()
-      if (!result.ok) store.getState().setError(result.error.message)
+      if (!result.ok) useImageUploadStore.getState().setError(result.error.message)
       else if (result.value) store.getState().addEntry(result.value)
     } finally {
       setBusy(false)
@@ -88,8 +87,7 @@ export function ImagesPage(): React.JSX.Element {
   }
 
   const upload = async (): Promise<void> => {
-    setBusy(true)
-    store.getState().beginOperation()
+    if (!useImageUploadStore.getState().begin()) return
     try {
       const result = await window.pitrig.uploadImageAssets({
         assets: entries.map((entry) => ({
@@ -100,10 +98,9 @@ export function ImagesPage(): React.JSX.Element {
           height: entry.height
         }))
       })
-      if (!result.ok) store.getState().setError(result.error.message)
+      if (!result.ok) useImageUploadStore.getState().setError(result.error.message)
     } finally {
-      store.getState().endOperation()
-      setBusy(false)
+      useImageUploadStore.getState().end()
     }
   }
 
@@ -159,6 +156,7 @@ export function ImagesPage(): React.JSX.Element {
           className="mb-3"
           label={t('images.imagesPage.installed')}
           used={images?.packageSize ?? 0}
+          limit={MAXIMUM_IMAGE_PACKAGE_SIZE}
           available={Boolean(images)}
         />
         {installed.length > 0 ? (
@@ -217,6 +215,7 @@ export function ImagesPage(): React.JSX.Element {
             className="mb-3"
             label={t('images.imagesPage.thisSelection')}
             used={staged}
+            limit={MAXIMUM_IMAGE_PACKAGE_SIZE}
             available
             over={staged > MAXIMUM_IMAGE_PACKAGE_SIZE}
           />
@@ -242,6 +241,16 @@ export function ImagesPage(): React.JSX.Element {
             {t('images.imagesPage.aNameUsesLowerCase')}</p>
         ) : null}
         {duplicated ? <p className="mt-2 text-amber-400">{t('images.imagesPage.twoImagesShareAName')}</p> : null}
+        {oversized.map((entry) => (
+          <p key={entry.id} className="mt-2 text-amber-400">
+            {t('images.imagePackage.nameIsWidthHeightThe', {
+              name: entry.name,
+              width: entry.width,
+              height: entry.height,
+              mAXIMUM_IMAGE_DIMENSION: MAXIMUM_IMAGE_DIMENSION
+            })}
+          </p>
+        ))}
         {progress ? (
           <p className="mt-3 text-muted-foreground">
             {`${progress.message}${progress.total > 0 ? ` (${Math.round((progress.completed / progress.total) * 100)}%)` : ''}`}

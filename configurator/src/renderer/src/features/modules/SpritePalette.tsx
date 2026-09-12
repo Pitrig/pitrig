@@ -42,23 +42,25 @@ export function SpritePalette({
               <button
                 type="button"
                 aria-pressed={chosen}
-                aria-label={`Ink ${index + 1}, ${color}`}
+                aria-label={t('modules.spritePalette.inkNumberColour', { number: index + 1, color })}
                 title={index === 0 ? t('modules.spritePalette.colorEntry1IsThe', { color: color }) : color}
                 className="size-4 rounded-sm ring-1 ring-inset ring-white/20"
                 style={{ background: color }}
                 onClick={() => onPick(index)}
               />
               <ColorSwatchInput
-                label={`Ink ${index + 1}`}
+                label={t('modules.spritePalette.inkNumber', { number: index + 1 })}
                 value={color}
                 onChange={(next) => setInkColor(output, at, index, next)}
               />
               {palette.length > 1 ? (
                 <RemoveButton
-                  label={`Remove ink ${index + 1}`}
+                  label={t('modules.spritePalette.removeInkNumber', { number: index + 1 })}
                   onClick={() => {
                     removeInk(output, at, index)
-                    if (ink >= palette.length - 1) onPick(Math.max(0, palette.length - 2))
+                    if (ink === TRANSPARENT_INK) return
+                    if (ink > index) onPick(ink - 1)
+                    else if (ink === index) onPick(Math.min(index, palette.length - 2))
                   }}
                 />
               ) : null}

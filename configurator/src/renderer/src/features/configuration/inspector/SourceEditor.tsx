@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { type TextSourceConfiguration, VALUE_AFFIX_CAPACITY, type ValueTransform } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG, type TelemetryCatalogEntry } from '@shared/telemetry-catalog'
 import { MAXIMUM_TRANSFORM_DECIMALS, unitPresetsFor } from '@shared/value-transform'
+import { DEFAULT_TEXT_BINDING } from '@shared/validate/values'
 import { authored } from './authored'
 import { t } from '@shared/ui-text'
 import { PropertyRow } from './PropertyRow'
@@ -16,7 +17,8 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
   onChange: (mutation: (next: TextSourceConfiguration) => void) => void
   onRemove: () => void
 }): React.JSX.Element {
-  const binding = TELEMETRY_CATALOG.find(({ name }) => name === source.binding)
+  const effective = source.binding ?? DEFAULT_TEXT_BINDING
+  const binding = TELEMETRY_CATALOG.find(({ name }) => name === effective)
   const transforms = transformOptions(binding)
   const presets = unitPresetsFor(binding)
   const affix = (key: 'prefix' | 'suffix') => (value: string): void => onChange((next) => {
@@ -30,12 +32,12 @@ export function SourceEditor({ source, index, removable, onChange, onRemove }: {
       <div className="flex items-center justify-between">
         <span className="font-medium">{t('inspector.sourceEditor.sourceNumber', { number: index + 1 })}</span>
         {removable ? (
-          <button type="button" aria-label={`Remove source ${index + 1}`} title={t('inspector.sourceEditor.removeThisSource')} className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={onRemove}>
+          <button type="button" aria-label={t('inspector.sourceEditor.removeSourceNumber', { number: index + 1 })} title={t('inspector.sourceEditor.removeThisSource')} className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={onRemove}>
             <Trash2 aria-hidden className="size-3" />
           </button>
         ) : null}
       </div>
-      <TelemetryBindingField value={source.binding ?? ''} onReset={() => onChange((next) => { delete next.binding })} onChange={(value) => onChange((next) => {
+      <TelemetryBindingField value={effective} onReset={() => onChange((next) => { delete next.binding })} onChange={(value) => onChange((next) => {
         next.binding = value
         const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
         if (selected && next.transform && !transformOptions(selected).includes(transformSelection(next.transform))) {

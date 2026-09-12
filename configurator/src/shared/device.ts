@@ -132,10 +132,6 @@ export const BOARD_PROFILES: Record<PitrigBoardId, BoardProfile> = {
   }
 }
 
-export function hasDisplay(board: string): boolean {
-  return BOARD_PROFILES[board as PitrigBoardId]?.display !== undefined
-}
-
 export function applyBoardTransportDefaults(
   configuration: ApplicationConfiguration
 ): ApplicationConfiguration {
@@ -218,6 +214,7 @@ export interface DeviceSession {
   fontAssets?: FontAssetDeviceInfo
   imageAssets?: ImageAssetState
   firmware?: FirmwareUpdateState
+  restartOwed?: boolean
 }
 
 export interface DeviceScanProgress {

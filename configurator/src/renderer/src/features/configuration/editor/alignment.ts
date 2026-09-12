@@ -1,6 +1,7 @@
 import { type DeviceConfiguration } from '@shared/device'
 import type { WidgetConfiguration, WidgetPlacement } from '@shared/configuration-schema'
 import { absolutePlacement, ancestorsOf, findWidget, mutateDraftConfiguration, parentOffset, writePlacement } from './document'
+import { useDashboardEditorStore } from './store'
 
 export type AlignmentEdge = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom'
 export type DistributionAxis = 'horizontal' | 'vertical'
@@ -9,7 +10,7 @@ export function alignWidgets(ids: readonly string[], edge: AlignmentEdge): void 
   if (ids.length < 2) return
   mutateDraftConfiguration((configuration) => {
     const placed = selectedPlacements(configuration, ids)
-    if (placed.length < 2) return
+    if (placed.length < 2) return false
     const left = Math.min(...placed.map(({ placement }) => placement.x))
     const right = Math.max(...placed.map(({ placement }) => placement.x + placement.width))
     const top = Math.min(...placed.map(({ placement }) => placement.y))
@@ -25,6 +26,7 @@ export function alignWidgets(ids: readonly string[], edge: AlignmentEdge): void 
       else next.y = Math.round((top + bottom - placement.height) / 2)
       return { ...entry, next }
     }))
+    return true
   })
 }
 
@@ -32,7 +34,7 @@ export function distributeWidgets(ids: readonly string[], axis: DistributionAxis
   if (ids.length < 3) return
   mutateDraftConfiguration((configuration) => {
     const placed = selectedPlacements(configuration, ids)
-    if (placed.length < 3) return
+    if (placed.length < 3) return false
     const horizontal = axis === 'horizontal'
     const ordered = [...placed].sort((left, right) =>
       horizontal ? left.placement.x - right.placement.x : left.placement.y - right.placement.y
@@ -60,8 +62,9 @@ export function distributeWidgets(ids: readonly string[], axis: DistributionAxis
       cursor += size + gap
       return { ...entry, next }
     })
-    if (leavesSpan) return
+    if (leavesSpan) return false
     applyPlacements(configuration, targets)
+    return true
   })
 }
 
@@ -76,8 +79,10 @@ function selectedPlacements(
   configuration: DeviceConfiguration,
   ids: readonly string[]
 ): Placed[] {
+  const { locked } = useDashboardEditorStore.getState()
   const placed: Placed[] = []
   for (const id of ids) {
+    if (locked[id]) continue
     const location = findWidget(configuration, id)
     const placement = absolutePlacement(configuration, id)
     if (location && placement) {

@@ -27,7 +27,7 @@ export function useBoardPreview(enabled: boolean): void {
           json: formatConfiguration(configuration),
           documents: ['modules']
         })
-        recordRunningConfiguration(result.ok ? configuration : undefined)
+        recordRunningConfiguration(result.ok && running ? configuration : undefined, ['modules'])
         if (cancelled) return
         reportPreviewError(result.ok ? undefined : result.error.message)
       })()

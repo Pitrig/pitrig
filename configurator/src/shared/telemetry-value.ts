@@ -25,7 +25,7 @@ export function conditionValue(value: TelemetryValue | undefined): number | unde
   if (!value?.available) return undefined
   switch (value.type) {
     case 'boolean':
-      return value.text === 'true' ? 1 : 0
+      return Number.isFinite(value.number) ? (value.number as number) : undefined
     case 'text':
       return value.text === undefined ? undefined : parseSourceNumber(value.text)
     case 'float32':
@@ -37,8 +37,6 @@ export function conditionValue(value: TelemetryValue | undefined): number | unde
 
 export function rawText(value: TelemetryValue): string | undefined {
   if (!value.available) return undefined
-  if (value.type === 'boolean') return value.text === 'true' ? 'true' : 'false'
-  if (value.type === 'text') return value.text
   if (value.text !== undefined) return value.text
   return value.number === undefined ? undefined : String(value.number)
 }

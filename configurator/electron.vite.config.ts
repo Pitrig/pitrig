@@ -11,6 +11,11 @@ export default defineConfig(({ command }) => ({
     build: {
       lib: {
         entry: resolve('src/main/index.ts')
+      },
+      rollupOptions: {
+        treeshake: {
+          moduleSideEffects: 'no-external'
+        }
       }
     }
   },

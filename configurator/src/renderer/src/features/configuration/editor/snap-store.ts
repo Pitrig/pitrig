@@ -33,6 +33,12 @@ const DEFAULTS: SnapSettings = {
 const clamp = (value: number, low: number, high: number): number =>
   Math.min(high, Math.max(low, Math.round(value)))
 
+const numberOr = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : fallback
+
+const booleanOr = (value: unknown, fallback: boolean): boolean =>
+  typeof value === 'boolean' ? value : fallback
+
 function defaultGridSize(display: { width: number; height: number }): number {
   return Math.min(display.width, display.height) <= 480 ? 4 : 8
 }
@@ -51,19 +57,19 @@ function restore(): SnapSettings {
     if (!raw) return DEFAULTS
     const stored = JSON.parse(raw) as Partial<SnapSettings>
     return {
-      snapToGrid: stored.snapToGrid ?? DEFAULTS.snapToGrid,
+      snapToGrid: booleanOr(stored.snapToGrid, DEFAULTS.snapToGrid),
       gridSize:
-        stored.gridSize === undefined
-          ? undefined
-          : clamp(stored.gridSize, MINIMUM_GRID_PX, MAXIMUM_GRID_PX),
-      snapToWidgets: stored.snapToWidgets ?? DEFAULTS.snapToWidgets,
-      snapToSpacing: stored.snapToSpacing ?? DEFAULTS.snapToSpacing,
+        typeof stored.gridSize === 'number' && Number.isFinite(stored.gridSize)
+          ? clamp(stored.gridSize, MINIMUM_GRID_PX, MAXIMUM_GRID_PX)
+          : undefined,
+      snapToWidgets: booleanOr(stored.snapToWidgets, DEFAULTS.snapToWidgets),
+      snapToSpacing: booleanOr(stored.snapToSpacing, DEFAULTS.snapToSpacing),
       tolerancePx: clamp(
-        stored.tolerancePx ?? DEFAULTS.tolerancePx,
+        numberOr(stored.tolerancePx, DEFAULTS.tolerancePx),
         MINIMUM_TOLERANCE_PX,
         MAXIMUM_TOLERANCE_PX
       ),
-      scaleContents: stored.scaleContents ?? DEFAULTS.scaleContents
+      scaleContents: booleanOr(stored.scaleContents, DEFAULTS.scaleContents)
     }
   } catch {
     return DEFAULTS

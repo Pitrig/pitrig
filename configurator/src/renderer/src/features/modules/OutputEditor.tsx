@@ -22,10 +22,12 @@ import {
 } from '@/features/configuration/inspector/fields'
 import { t } from '@shared/ui-text'
 import { carryGeometry, drawnOf, freePins, mutateDevice } from './modules-document'
+import { wholeValue } from './field-values'
 import type { DeviceConfiguration } from '@shared/device'
 
 const MILLIAMPS_PER_LAMP = 60
 const ROTATIONS = ['0', '90', '180', '270'] as const
+const DEVICE_FIELDS = 'HardwareDeviceConfiguration'
 
 function mutateGeometry(
   index: number,
@@ -41,12 +43,12 @@ function mutateGeometry(
 
 function sizeGeometry(
   index: number,
-  minimum: number,
+  key: string,
   value: number,
   change: (device: HardwareDeviceConfiguration, value: number) => void
 ): void {
-  if (!Number.isFinite(value) || value < minimum) return
-  mutateGeometry(index, (next) => change(next, value))
+  if (!Number.isFinite(value)) return
+  mutateGeometry(index, (next) => change(next, wholeValue(DEVICE_FIELDS, key, value)))
 }
 
 function rotateGeometry(index: number, degrees: number): void {
@@ -80,7 +82,7 @@ export function OutputEditor({
       id={matrix ? 'LedMatrixDevice' : 'LedStripDevice'}
       title={t('modules.outputEditor.device')}
       icon={Cable}
-      summary={`pin ${device.pin ?? '—'} · ${lamps} lamps`}
+      summary={t('modules.outputEditor.pinPinLampsLamps', { pin: device.pin ?? '—', lamps })}
       defaultOpen
     >
       <TextField
@@ -114,13 +116,13 @@ export function OutputEditor({
                 title={t('modules.outputEditor.columns')}
                 value={device.width ?? 8}
                 {...fieldBounds('HardwareDeviceConfiguration', 'width')}
-                onChange={(width) => sizeGeometry(index, 1, width, (next, value) => { next.width = value })}
+                onChange={(width) => sizeGeometry(index, 'width', width, (next, value) => { next.width = value })}
               />
               <NumberInput
                 title={t('modules.outputEditor.rows')}
                 value={device.height ?? 8}
                 {...fieldBounds('HardwareDeviceConfiguration', 'height')}
-                onChange={(height) => sizeGeometry(index, 1, height, (next, value) => { next.height = value })}
+                onChange={(height) => sizeGeometry(index, 'height', height, (next, value) => { next.height = value })}
               />
             </div>
             <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground">
@@ -168,7 +170,7 @@ export function OutputEditor({
           value={device.count ?? 1}
           {...fieldBounds('HardwareDeviceConfiguration', 'count')}
           modified={authored(device.count, 1)}
-          onChange={(count) => sizeGeometry(index, 1, count, (next, value) => { next.count = value })}
+          onChange={(count) => sizeGeometry(index, 'count', count, (next, value) => { next.count = value })}
         />
       )}
       <SelectField
@@ -185,7 +187,11 @@ export function OutputEditor({
         value={device.brightness ?? 128}
         {...fieldBounds('HardwareDeviceConfiguration', 'brightness')}
         modified={authored(device.brightness, 128)}
-        onChange={(brightness) => mutateDevice(index, (next) => { next.brightness = brightness })}
+        onChange={(brightness) =>
+          mutateDevice(index, (next) => {
+            next.brightness = wholeValue(DEVICE_FIELDS, 'brightness', brightness)
+          })
+        }
       />
       <Advanced
         id={matrix ? 'LedMatrixDevice' : 'LedStripDevice'}
@@ -205,7 +211,11 @@ export function OutputEditor({
           value={device.current_limit_ma ?? 0}
           {...fieldBounds('HardwareDeviceConfiguration', 'current_limit_ma')}
           modified={authored(device.current_limit_ma, 0)}
-          onChange={(value) => mutateDevice(index, (next) => { next.current_limit_ma = value })}
+          onChange={(value) =>
+            mutateDevice(index, (next) => {
+              next.current_limit_ma = wholeValue(DEVICE_FIELDS, 'current_limit_ma', value)
+            })
+          }
         />
       </Advanced>
       <p className="text-[10px] text-muted-foreground">

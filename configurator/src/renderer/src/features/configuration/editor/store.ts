@@ -57,6 +57,7 @@ interface DashboardEditorStore {
   toggleCollapsed: (id: string) => void
   expand: (ids: readonly string[]) => void
   renameId: (from: string, to: string) => void
+  clampToDocument: (ids: readonly string[], screens: number) => void
   resetEditorState: () => void
 }
 
@@ -151,6 +152,32 @@ export const useDashboardEditorStore = create<DashboardEditorStore>((set) => ({
         collapsed: move(current.collapsed),
         slotPage: move(current.slotPage),
         drillIn: current.drillIn === from ? to : current.drillIn
+      }
+    }),
+  clampToDocument: (ids, screens) =>
+    set((current) => {
+      const present = new Set(ids)
+      const keep = <T,>(record: Record<string, T>): Record<string, T> =>
+        Object.fromEntries(Object.entries(record).filter(([id]) => present.has(id)))
+      const selectedIds = current.selectedIds.filter((id) => present.has(id))
+      const primary = selectedIds[selectedIds.length - 1]
+      return {
+        activeScreenIndex: Math.min(current.activeScreenIndex, Math.max(screens - 1, 0)),
+        selectedIds,
+        selection:
+          current.selection?.type === 'screen'
+            ? current.selection
+            : primary === undefined
+              ? undefined
+              : { type: 'widget', id: primary },
+        locked: keep(current.locked),
+        hidden: keep(current.hidden),
+        collapsed: keep(current.collapsed),
+        slotPage: keep(current.slotPage),
+        drillIn:
+          current.drillIn !== undefined && present.has(current.drillIn)
+            ? current.drillIn
+            : undefined
       }
     }),
   resetEditorState: () =>

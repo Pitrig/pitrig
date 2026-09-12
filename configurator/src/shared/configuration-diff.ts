@@ -115,7 +115,7 @@ function label(path: string[]): string {
 
 function describe(value: unknown): string {
   if (value === null) return 'none'
-  if (typeof value === 'string') return value.length > 0 ? value : '""'
+  if (typeof value === 'string') return value.length > 0 ? truncate(value) : '""'
   if (typeof value === 'number' || typeof value === 'boolean') return String(value)
   if (Array.isArray(value)) {
     return value.length === 1 ? '1 entry' : `${value.length} entries`

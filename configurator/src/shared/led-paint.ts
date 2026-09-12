@@ -1,5 +1,6 @@
 import { rampColor } from './color-ramp'
 import { rangeFraction } from './telemetry-value'
+import { colorsOf, newRuleState, type LayerColors, type LedRuleState } from './led-colors'
 import {
   OFF,
   areaOf,
@@ -11,13 +12,11 @@ import {
   type LampArea,
   type MatrixShape
 } from './led-render'
-import { paintSprite, paintText, panelOf, spriteOf } from './led-matrix-paint'
-import type {
-  ConditionOperator,
-  HardwareDeviceConfiguration,
-  LedEffect,
-  RgbColor
-} from './configuration-schema'
+import { paintSprite, paintText, panelOf } from './led-matrix-paint'
+import type { HardwareDeviceConfiguration, LedEffect, RgbColor } from './configuration-schema'
+
+const DEFAULT_BRIGHTNESS = 128
+const FULL_BRIGHTNESS = 255
 
 export interface PaintInput {
   value: number
@@ -26,47 +25,7 @@ export interface PaintInput {
   valueText?: readonly (string | undefined)[]
   watched?: readonly (number | undefined)[]
   values?: readonly (number | undefined)[]
-}
-
-export interface LayerColors {
-  ink: RgbColor
-  tint?: RgbColor
-  background?: RgbColor
-  blinkMs?: number
-}
-
-function holds(op: ConditionOperator | undefined, value: number, threshold: number): boolean {
-  switch (op ?? 'at_or_above') {
-    case 'above':
-      return value > threshold
-    case 'at_or_above':
-      return value >= threshold
-    case 'below':
-      return value < threshold
-    case 'at_or_below':
-      return value <= threshold
-    case 'equal':
-      return value === threshold
-    default:
-      return value !== threshold
-  }
-}
-
-export function colorsOf(effect: LedEffect, watched: number | undefined): LayerColors {
-  const colors: LayerColors = { ink: effect.color ?? '#ffffff' }
-  if (effect.background_color) colors.background = effect.background_color
-  if (watched === undefined) return colors
-  for (const rule of effect.color_rules ?? []) {
-    if (!holds(rule.op, watched, rule.value ?? 0)) continue
-    if (rule.color) {
-      colors.tint = rule.color
-      colors.ink = rule.color
-    }
-    if (rule.background_color) colors.background = rule.background_color
-    if (rule.blink_ms) colors.blinkMs = rule.blink_ms
-    break
-  }
-  return colors
+  states?: readonly LedRuleState[]
 }
 
 function fillArea(
@@ -85,19 +44,23 @@ function fillArea(
   }
 }
 
-function sweepOf(
-  effect: LedEffect,
-  value: number | undefined,
-  fallback: number
-): number {
-  if (value === undefined) return fallback
-  return rangeFraction(value, effect.minimum, effect.maximum)
-}
-
 function rawValueOf(effect: LedEffect, sweep: number): number {
   const minimum = effect.minimum ?? 0
   const maximum = effect.maximum ?? 1
   return minimum + sweep * (maximum - minimum)
+}
+
+function valueOf(
+  effect: LedEffect,
+  live: number | undefined,
+  sweep: number
+): number | undefined {
+  if ((effect.source?.binding ?? '') === '') return undefined
+  return live ?? rawValueOf(effect, sweep)
+}
+
+function wholeText(value: number): string {
+  return String(Math.trunc(value < 0 ? value - 0.5 : value + 0.5))
 }
 
 interface Surface {
@@ -144,12 +107,20 @@ function place(frame: RgbColor[], surface: Surface, index: number, color: RgbCol
   put(surface.inverted ? surface.count - 1 - index : surface.count - half + index)
 }
 
+function shade(color: RgbColor, map: (channel: number) => number): RgbColor {
+  const hex = (value: number): string =>
+    Math.max(0, Math.min(255, value)).toString(16).padStart(2, '0')
+  const channel = (at: number): number => Number.parseInt(color.slice(at, at + 2), 16)
+  return `#${hex(map(channel(1)))}${hex(map(channel(3)))}${hex(map(channel(5)))}` as RgbColor
+}
+
 function dim(color: RgbColor, level: number): RgbColor {
   const clamped = Math.max(0, Math.min(1, level))
-  const channel = (at: number): number =>
-    Math.trunc(Number.parseInt(color.slice(at, at + 2), 16) * clamped)
-  const hex = (value: number): string => value.toString(16).padStart(2, '0')
-  return `#${hex(channel(1))}${hex(channel(3))}${hex(channel(5))}` as RgbColor
+  return shade(color, (channel) => Math.trunc(channel * clamped))
+}
+
+function scaled(color: RgbColor, brightness: number): RgbColor {
+  return shade(color, (channel) => Math.trunc((channel * brightness + 127) / 255))
 }
 
 function wheel(turn: number): RgbColor {
@@ -175,14 +146,13 @@ function paintEffect(
   effect: LedEffect,
   input: PaintInput,
   colors: LayerColors,
-  sweep: number
+  value: number | undefined
 ): void {
   const surface = surfaceOf(device, effect)
   if (!surface) return
   const lamps = surfaceSize(surface)
   const color = colors.ink
-  const value = rawValueOf(effect, sweep)
-  const fraction = rangeFraction(value, effect.minimum, effect.maximum)
+  const fraction = value === undefined ? 0 : rangeFraction(value, effect.minimum, effect.maximum)
   const period = (effect.speed_ms ?? 1000) || 1000
   const phase = (input.elapsedMs % period) / period
 
@@ -207,7 +177,7 @@ function paintEffect(
       break
     }
     case 'gauge': {
-      const filled = rampColor(effect.stops, value) ?? color
+      const filled = rampColor(effect.stops, value ?? 0) ?? color
       const lit = Math.round(fraction * lamps)
       for (let index = 0; index < lit && index < lamps; ++index) {
         place(frame, surface, index, filled)
@@ -251,21 +221,22 @@ function paintMatrix(
   input: PaintInput,
   colors: LayerColors,
   valueText: string | undefined,
-  sweep: number
+  value: number | undefined
 ): void {
   if (!isMatrix(device)) return
   const panel = panelOf(device, frame, effect)
   if (!panel) return
   if ((effect.type ?? 'solid') === 'sprite') {
-    const frames = spriteOf(device, effect.sprite)?.frame_count ?? 1
-    const value = (effect.source?.binding ?? '') === '' ? undefined : sweep * (frames - 1)
     paintSprite(panel, device, effect, value, colors.tint, input.elapsedMs)
     return
   }
-  const bound = (effect.source?.binding ?? '') !== ''
-  const shown = valueText ?? String(Math.round(sweep))
-  const text = (effect.text ?? '') + (bound ? shown : '')
-  paintText(panel, effect, text, colors.ink, input.elapsedMs)
+  const shown = valueText ?? (value === undefined ? '' : wholeText(value))
+  paintText(panel, effect, (effect.text ?? '') + shown, colors.ink, input.elapsedMs)
+}
+
+function lit(frame: RgbColor[], brightness: number): RgbColor[] {
+  if (brightness >= FULL_BRIGHTNESS) return frame
+  return frame.map((color) => (color === OFF ? color : scaled(color, brightness)))
 }
 
 export function paintOutput(
@@ -276,21 +247,23 @@ export function paintOutput(
   const frame: RgbColor[] = new Array(lamps).fill(OFF)
   for (const [index, effect] of (device.effects ?? []).entries()) {
     if (input.gates[index] === false) continue
-    const colors = colorsOf(effect, input.watched?.[index])
+    const state = input.states?.[index] ?? newRuleState()
+    const colors = colorsOf(effect, input.watched?.[index], state, input.elapsedMs)
     const blinkMs = colors.blinkMs ?? effect.blink_ms
     if (blinkMs) {
+      const since = colors.blinkMs ? (colors.sinceMs ?? 0) : 0
       const half = blinkMs / 2
-      if (Math.floor(input.elapsedMs / half) % 2 === 1) continue
+      if (Math.floor((input.elapsedMs - since) / half) % 2 === 1) continue
     }
     const area = colors.background ? areaOf(device, effect) : undefined
     if (area && colors.background) fillArea(frame, device, area, colors.background)
-    const sweep = sweepOf(effect, input.values?.[index], input.value)
+    const value = valueOf(effect, input.values?.[index], input.value)
     const type = effect.type ?? 'solid'
     if (type === 'sprite' || type === 'text') {
-      paintMatrix(frame, device, effect, input, colors, input.valueText?.[index], sweep)
+      paintMatrix(frame, device, effect, input, colors, input.valueText?.[index], value)
       continue
     }
-    paintEffect(frame, device, effect, input, colors, sweep)
+    paintEffect(frame, device, effect, input, colors, value)
   }
-  return frame
+  return lit(frame, device.brightness ?? DEFAULT_BRIGHTNESS)
 }

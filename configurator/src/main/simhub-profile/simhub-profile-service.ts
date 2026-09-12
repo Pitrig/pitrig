@@ -9,6 +9,7 @@ import {
   type SimHubProfileExportValue,
   type SimHubProfileResult
 } from '../../shared/simhub-profile'
+import { t } from '@shared/ui-text'
 
 export class SimHubProfileService {
   async export(
@@ -26,10 +27,10 @@ export class SimHubProfileService {
     }
 
     const options: SaveDialogOptions = {
-      title: 'Save SimHub Custom Serial Device profile',
-      buttonLabel: 'Save profile',
+      title: t('protocol.dialog.saveTitle'),
+      buttonLabel: t('protocol.dialog.buttonLabel'),
       defaultPath: SIMHUB_PROFILE_FILE_NAME,
-      filters: [{ name: 'SimHub Custom Serial Device', extensions: ['shsds'] }]
+      filters: [{ name: t('protocol.dialog.filter'), extensions: ['shsds'] }]
     }
     const result = owner
       ? await dialog.showSaveDialog(owner, options)

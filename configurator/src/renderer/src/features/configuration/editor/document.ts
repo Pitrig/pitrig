@@ -146,13 +146,14 @@ export function selectedWidget(
 }
 
 export function mutateDraftConfiguration(
-  mutation: (configuration: DeviceConfiguration) => void
-): void {
+  mutation: (configuration: DeviceConfiguration) => boolean | void
+): boolean {
   const store = useDeviceStore.getState()
-  if (!store.draft) return
+  if (!store.draft) return false
   const next = structuredClone(store.draft)
-  mutation(next)
+  if (mutation(next) === false) return false
   store.setDraft(next)
+  return true
 }
 
 export function mutateSelectedWidget(
@@ -162,7 +163,9 @@ export function mutateSelectedWidget(
   if (selection.type !== 'widget') return
   mutateDraftConfiguration((configuration) => {
     const location = findWidget(configuration, selection.id)
-    if (location) mutation(location.widget, configuration)
+    if (!location) return false
+    mutation(location.widget, configuration)
+    return true
   })
 }
 

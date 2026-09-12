@@ -4,29 +4,25 @@ import { rangeFraction } from '@shared/telemetry-value'
 import { completePlacement } from '../dashboard-editor'
 import { arcPath, needlePoints, ringGeometry, sectorStart } from './arc-geometry'
 import { markupId } from './canvas-geometry'
-import { DEFAULT_BORDER_COLOR } from './preview-theme'
-import { type PreviewValues, normalizeColor } from './preview-values'
+import { DEFAULT_FILL_COLOR } from './preview-theme'
+import { type PreviewStyle, type PreviewValues, normalizeColor } from './preview-values'
 import { TrackGradientDefinition, WidgetFrameShape } from './frame-shape'
-import { contentArea, gradientPaint, paintedColor, squareFill } from './preview-geometry-paint'
+import { contentArea, cornerRadii, gradientPaint, paintedColor, squareFill } from './preview-geometry-paint'
 import { deviceFloat } from '@shared/contract-number'
 import { gradientArcSegments } from './arc-gradient'
 
 export function BarPreview({
   configuration,
-  values
+  values,
+  style
 }: {
   configuration: BarWidgetConfiguration
   values: PreviewValues
+  style: PreviewStyle
 }): React.JSX.Element | null {
   const fillGradientId = markupId(useId())
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
-  const style = values.styleFor(configuration, {
-    color: configuration.fill_color ?? '#38BDF8',
-    backgroundColor: configuration.background_color,
-    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
-  })
-  if (!style.visible) return null
   const borderWidth = configuration.border?.width_px ?? 0
   const radius = configuration.border?.radius_px ?? 0
 
@@ -41,8 +37,15 @@ export function BarPreview({
   const length = Math.round(span * Math.max(originFraction, fraction)) - offset
   const fromAxisStart = horizontal !== (configuration.inverted ?? false)
   const leading = fromAxisStart ? offset : span - offset - length
-  const fillColor = style.color ?? '#38BDF8'
+  const fillColor = style.color ?? DEFAULT_FILL_COLOR
   const fillPaint = gradientPaint(fillGradientId, fillColor, configuration.fill_grad_color)
+  const fillRect = {
+    x: horizontal ? inner.x + leading : inner.x,
+    y: horizontal ? inner.y : inner.y + leading,
+    width: horizontal ? length : inner.width,
+    height: horizontal ? inner.height : length
+  }
+  const fillCorner = squareFill(configuration) ? 0 : Math.max(0, radius - borderWidth)
   const minimumEnd = fromAxisStart ? { x: inner.x, y: inner.y } : { x: inner.x + inner.width, y: inner.y + inner.height }
   const maximumEnd = fromAxisStart ? { x: inner.x + inner.width, y: inner.y + inner.height } : { x: inner.x, y: inner.y }
 
@@ -63,11 +66,8 @@ export function BarPreview({
       ) : null}
       {length > 0 ? (
         <rect
-          x={horizontal ? inner.x + leading : inner.x}
-          y={horizontal ? inner.y : inner.y + leading}
-          width={horizontal ? length : inner.width}
-          height={horizontal ? inner.height : length}
-          rx={squareFill(configuration) ? 0 : Math.max(0, radius - borderWidth)}
+          {...fillRect}
+          {...cornerRadii(fillCorner, fillRect.width, fillRect.height)}
           fill={fillPaint.paint}
         />
       ) : null}
@@ -77,20 +77,16 @@ export function BarPreview({
 
 export function ArcPreview({
   configuration,
-  values
+  values,
+  style
 }: {
   configuration: ArcWidgetConfiguration
   values: PreviewValues
+  style: PreviewStyle
 }): React.JSX.Element | null {
   const clipId = markupId(useId())
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
-  const style = values.styleFor(configuration, {
-    color: configuration.fill_color ?? '#38BDF8',
-    backgroundColor: configuration.background_color,
-    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
-  })
-  if (!style.visible) return null
   const thickness = configuration.thickness_px ?? 8
   const sector = Math.min(configuration.sector_deg ?? 270, 360)
   const start = sectorStart(configuration.center_angle_deg ?? 270, sector)
@@ -99,13 +95,12 @@ export function ArcPreview({
   const track = normalizeColor(configuration.track_color)
   const value = values.numberFor(configuration.source)
   const inverted = configuration.inverted ?? false
-  const fraction = value === undefined ? 1 : rangeFraction(value, configuration.minimum, configuration.maximum)
+  const fraction = rangeFraction(value, configuration.minimum, configuration.maximum)
   const swept = sector * fraction
   const fillStart = inverted ? start + sector - swept : start
-  const faded = value === undefined ? (track && track !== 'transparent' ? 0.25 : 0.35) : 1
   const needle = (configuration.mark ?? 'ring') === 'needle'
   const pointer = needlePoints(centerX, centerY, radius, inverted ? fillStart : start + swept)
-  const authoredFill = configuration.fill_color ?? '#38BDF8'
+  const authoredFill = configuration.fill_color ?? DEFAULT_FILL_COLOR
   const fillColor = style.color ?? authoredFill
   const rampEnd = paintedColor(configuration.fill_grad_color)
   const gradient = !needle && rampEnd !== undefined && fillColor === authoredFill
@@ -131,10 +126,9 @@ export function ArcPreview({
             stroke={fillColor}
             strokeWidth={thickness}
             strokeLinecap="round"
-            strokeOpacity={faded}
           />
         ) : swept > 0 && gradient ? (
-          <g fill="none" strokeWidth={thickness} opacity={faded}>
+          <g fill="none" strokeWidth={thickness}>
             {gradientArcSegments({ centerX, centerY, radius, sectorStart: start, sectorDegrees: sector, fillStart, sweptDegrees: swept, inverted, from: authoredFill, via: paintedColor(configuration.fill_grad_mid_color) as RgbColor | undefined, to: rampEnd as RgbColor }).map((segment, index) => (
               <path key={index} d={segment.d} stroke={segment.color} />
             ))}
@@ -145,7 +139,6 @@ export function ArcPreview({
             fill="none"
             stroke={fillColor}
             strokeWidth={thickness}
-            strokeOpacity={faded}
           />
         ) : null}
       </g>
@@ -155,19 +148,13 @@ export function ArcPreview({
 
 export function GraphPreview({
   configuration,
-  values
+  style
 }: {
   configuration: GraphWidgetConfiguration
-  values: PreviewValues
+  style: PreviewStyle
 }): React.JSX.Element | null {
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
-  const style = values.styleFor(configuration, {
-    color: configuration.line_color ?? '#38BDF8',
-    backgroundColor: configuration.background_color,
-    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
-  })
-  if (!style.visible) return null
   const width = configuration.line_width_px ?? 2
   const border = configuration.border?.width_px ?? 0
   const innerRadius = Math.max(0, (configuration.border?.radius_px ?? 0) - border)
@@ -179,10 +166,11 @@ export function GraphPreview({
     width: Math.max(0, content.width - 2 * reserve),
     height: Math.max(0, content.height - 2 * reserve)
   }
-  const ruled = style.color !== undefined && style.color !== (configuration.line_color ?? '#38BDF8')
+  const ruled =
+    style.color !== undefined && style.color !== (configuration.line_color ?? DEFAULT_FILL_COLOR)
   const traces = [
-    configuration.line_color ?? '#38BDF8',
-    ...(configuration.traces ?? []).map((trace) => trace?.line_color ?? '#38BDF8')
+    configuration.line_color ?? DEFAULT_FILL_COLOR,
+    ...(configuration.traces ?? []).map((trace) => trace?.line_color ?? DEFAULT_FILL_COLOR)
   ]
 
   return (

@@ -42,6 +42,11 @@ export function ColorPicker({
   const [hue, setHue] = useState(hsv.h)
   const activeHue = hsv.s === 0 || hsv.v === 0 ? hue : hsv.h
   const emit = (next: Channels): void => onChange(toHex(next))
+  const closing = useRef(onClose)
+
+  useEffect(() => {
+    closing.current = onClose
+  })
 
   useEffect(() => {
     if (!open) return undefined
@@ -58,7 +63,7 @@ export function ColorPicker({
     }
     const close = (): void => {
       setOpen(false)
-      onClose()
+      closing.current()
     }
     const away = (event: PointerEvent): void => {
       const target = event.target as Node | null
@@ -81,7 +86,7 @@ export function ColorPicker({
       window.removeEventListener('pointerdown', away, true)
       window.removeEventListener('keydown', key, true)
     }
-  }, [open, onClose])
+  }, [open])
 
   return (
     <>

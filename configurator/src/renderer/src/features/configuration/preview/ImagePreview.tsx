@@ -5,15 +5,18 @@ import { usePreviewAssetStore } from './preview-assets'
 import { markupId } from './canvas-geometry'
 import { contentArea } from './preview-geometry-paint'
 import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
-import { type PreviewValues, lvglCenterOffset, normalizeColor } from './preview-values'
+import { type PreviewStyle, type PreviewValues, lvglCenterOffset, normalizeColor } from './preview-values'
 import { WidgetFrameShape } from './frame-shape'
+import { t } from '@shared/ui-text'
 
 export function ImagePreview({
   configuration,
-  values
+  values,
+  style
 }: {
   configuration: ImageWidgetConfiguration
   values: PreviewValues
+  style: PreviewStyle
 }): React.JSX.Element | null {
   const recolorId = markupId(useId())
   const bitmap = usePreviewAssetStore((state) =>
@@ -21,12 +24,6 @@ export function ImagePreview({
   )
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
-  const style = values.styleFor(configuration, {
-    color: configuration.recolor,
-    backgroundColor: configuration.background_color,
-    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
-  })
-  if (!style.visible) return null
   const tint = normalizeColor(style.color)
   if (!bitmap) {
     return (
@@ -53,7 +50,7 @@ export function ImagePreview({
           textAnchor="middle"
           dominantBaseline="middle"
         >
-          {configuration.image || 'no image'}
+          {configuration.image || t('canvas.imagePreview.noImage')}
         </text>
       </g>
     )
@@ -62,9 +59,10 @@ export function ImagePreview({
   const x = content.x + lvglCenterOffset(content.width, bitmap.width)
   const y = content.y + lvglCenterOffset(content.height, bitmap.height)
   const frames = bitmap.frameCount
+  const bound = values.numberFor(configuration.sprite_frame_source)
   const frame =
-    frames > 1 && !configuration.sprite_frame_source
-      ? Math.min(frames - 1, Math.max(0, configuration.sprite_frame ?? 0))
+    frames > 1
+      ? Math.min(frames - 1, Math.max(0, Math.round(bound ?? configuration.sprite_frame ?? 0)))
       : 0
   const strip = { height: bitmap.height * frames, offset: -frame * bitmap.height }
   const recolored = tint !== undefined && tint !== 'transparent'

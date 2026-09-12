@@ -8,7 +8,7 @@ under `.claude/rules/` load when a matching file is read, and can be read direct
 | Rule | Loads for | Holds |
 | --- | --- | --- |
 | `.claude/rules/firmware.md` | `firmware/**` | layering constraints, `EXTRA_COMPONENT_DIRS`, startup consequences, boards, the vendored patch stack |
-| `.claude/rules/configurator.md` | `configurator/**` | the three-way split, the IPC rule, draft and stores, save to board, workspaces, templates, pnpm traps |
+| `.claude/rules/configurator.md` | `configurator/**` | the three-way split, where a new IPC channel goes, the debug application and branding, draft and stores, live telemetry, save to board, workspaces, templates, pnpm traps |
 | `.claude/rules/dashboard-editor.md` | `configurator/src/renderer/src/features/configuration/**` | the editor's five directories and what stays out of the document |
 | `.claude/rules/codegen.md` | generator sources and outputs | the five generators, their inputs and outputs |
 | `.claude/rules/docs.md` | `docs/**`, root markdown | which document owns what, the anchors and ADR numbers to keep |

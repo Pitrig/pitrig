@@ -72,9 +72,14 @@ export function benchStressScreen(
     case 'text_32_plain':
       return textGrid(context, 32, 8, true)
     case 'text_32_shapes':
-      return [...decoration(context, 96), ...textGrid(context, 32, 8)]
+      return context.family === undefined
+        ? decoration(context, 96)
+        : [...decoration(context, 96), ...textGrid(context, 32, 8)]
     case 'shapes_96':
-      return [...decoration(context, 96), ...textGrid(context, 1, 1)]
+      return [
+        ...decoration(context, context.family === undefined ? 95 : 96),
+        ...textGrid(context, 1, 1)
+      ]
     case 'huge_text_4':
       return hugeText(context)
     case 'bars_24':

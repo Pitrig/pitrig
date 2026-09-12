@@ -1,13 +1,11 @@
 import { Activity, Terminal } from 'lucide-react'
-import { useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { SubTabs, type SubTab } from '@/app/workspace/SubTabs'
 import { DebugPage } from './DebugPage'
 import { BenchPage } from './bench/BenchPage'
 import { useBenchStore } from './bench/bench-store'
-
-type DebugView = 'console' | 'bench'
+import { useDebugViewStore, type DebugView } from './debug-view-store'
 
 const VIEWS: ReadonlyArray<SubTab<DebugView>> = [
   { id: 'console', label: 'Console', icon: Terminal },
@@ -15,8 +13,9 @@ const VIEWS: ReadonlyArray<SubTab<DebugView>> = [
 ]
 
 export function DebugWorkspace(): React.JSX.Element {
-  const [view, setView] = useState<DebugView>('console')
-  const feed = useBenchStore((state) => state.status.feed)
+  const view = useDebugViewStore((state) => state.view)
+  const setView = useDebugViewStore((state) => state.setView)
+  const feed = useBenchStore((state) => state.samples.at(-1)?.feed ?? state.status.feed)
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">

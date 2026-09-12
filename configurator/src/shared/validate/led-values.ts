@@ -22,70 +22,41 @@ import {
   shapeOf
 } from '../led-render'
 import { findBoundError } from './ranges'
+import { badColors, badEnum, badList } from './values'
 import { t } from '../ui-text'
-
-const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
-
-export function badEnum(
-  value: unknown,
-  values: readonly string[],
-  label: string,
-  key: string
-): string | undefined {
-  if (value === undefined) return undefined
-  return values.includes(value as string)
-    ? undefined
-    : t('validation.ledValues.labelSetsKeyToValue', { label: label, key: key, value: JSON.stringify(value), join: values.join(', ') })
-}
-
-export function badList(
-  value: unknown,
-  capacity: number,
-  label: string,
-  what: string
-): string | undefined {
-  if (value === undefined) return undefined
-  if (!Array.isArray(value)) return t('validation.ledValues.labelMustCarryItsWhat', { label: label, what: what })
-  if (value.length > capacity) {
-    return t('validation.ledValues.labelCarriesLengthWhatThe', { label: label, length: value.length, what: what, capacity: capacity })
-  }
-  const stray = value.findIndex(
-    (entry) => typeof entry !== 'object' || entry === null || Array.isArray(entry)
-  )
-  return stray < 0
-    ? undefined
-    : t('validation.ledValues.labelCarriesStrayAmongIts', { label: label, stray: JSON.stringify(value[stray]), what: what })
-}
-
-export function badColors(value: unknown, label: string): string | undefined {
-  let error: string | undefined
-  const walk = (entry: unknown, path: string): void => {
-    if (error || entry === null || typeof entry !== 'object') return
-    if (Array.isArray(entry)) {
-      entry.forEach((item, index) => walk(item, `${path}[${index}]`))
-      return
-    }
-    for (const [key, item] of Object.entries(entry)) {
-      if (error) return
-      if (key === 'color' || key.endsWith('_color')) {
-        if (typeof item !== 'string' || !COLOR_PATTERN.test(item)) {
-          error = `${label} sets "${path ? `${path}.` : ''}${key}" to ${JSON.stringify(item)}; a colour is "#RRGGBB".`
-          return
-        }
-        continue
-      }
-      walk(item, path ? `${path}.${key}` : key)
-    }
-  }
-  walk(value, '')
-  return error
-}
 
 function badNumber(value: unknown, label: string, key: string): string | undefined {
   if (value === undefined) return undefined
   return Number.isFinite(value)
     ? undefined
     : t('validation.ledValues.labelSetsKeyToSomething', { label: label, key: key })
+}
+
+const LED_EFFECT_WHOLE_KEYS: readonly string[] = [
+  'from',
+  'count',
+  'hold_ms',
+  'blink_ms',
+  'speed_ms',
+  'sprite_frame'
+]
+
+const LED_RULE_WHOLE_KEYS: readonly string[] = ['blink_ms', 'hold_ms']
+
+function findWholeError(
+  source: object,
+  keys: readonly string[],
+  label: string
+): string | undefined {
+  const fields = source as Record<string, unknown>
+  for (const key of keys) {
+    const value = fields[key]
+    if (value === undefined) continue
+    if (typeof value !== 'number' || !Number.isInteger(value)) {
+      return t('validation.ledValues.labelSetsKeyToValueWhole', { label, key, value: JSON.stringify(value) })
+    }
+  }
+  return undefined
 }
 
 function findContentError(
@@ -179,22 +150,34 @@ function findEnumError(effect: LedEffect, label: string): string | undefined {
 }
 
 function findNumberError(effect: LedEffect, label: string): string | undefined {
+  let climbed = Number.NEGATIVE_INFINITY
   for (const [index, stop] of (effect.stops ?? []).entries()) {
     const error = badNumber(stop?.at, label, `stops[${index}].at`)
     if (error) return error
+    const at = stop?.at ?? 0
+    if (at <= climbed) {
+      return t('validation.widgetValues.labelHasAColourRampWhose', { label, number: index + 1 })
+    }
+    climbed = at
   }
+  let reached = Number.NEGATIVE_INFINITY
   for (const [index, step] of (effect.steps ?? []).entries()) {
     const error = badNumber(step?.threshold, label, `steps[${index}].threshold`)
     if (error) return error
+    const threshold = step?.threshold ?? 0
+    if (threshold < reached) {
+      return t('validation.ledValues.labelHasStepNumberBelow', { label, number: index + 1 })
+    }
+    reached = threshold
   }
   for (const [index, rule] of (effect.conditions ?? []).entries()) {
     if (!Number.isFinite(rule?.value ?? 0)) {
-      return `Rule ${index + 1} of ${label} compares against something that is not a number.`
+      return t('validation.widgetValues.ruleOfLabelComparesAgainst', { number: index + 1, label })
     }
   }
   for (const [index, rule] of (effect.color_rules ?? []).entries()) {
     if (!Number.isFinite(rule?.value ?? 0)) {
-      return `Colour rule ${index + 1} of ${label} compares against something that is not a number.`
+      return t('validation.ledValues.colourRuleOfLabelCompares', { number: index + 1, label })
     }
   }
   return undefined
@@ -225,13 +208,15 @@ export function findEffectError(
   if (enumError) return enumError
   const numberError = findNumberError(effect, label)
   if (numberError) return numberError
+  const wholeError = findWholeError(effect, LED_EFFECT_WHOLE_KEYS, label)
+  if (wholeError) return wholeError
   const rangeError = findBoundError(effect, FIELD_RANGES['LedEffect'], label)
   if (rangeError) return rangeError
   const lamps = lampsOf(device)
   const from = effect.from ?? 0
   const count = effect.count ?? 0
   if (from >= lamps || (count !== 0 && from + count > lamps)) {
-    return `${label} covers lamps ${from} to ${from + count} of a device that has ${lamps}.`
+    return t('validation.ledValues.labelCoversLampsFromTo', { label, from, to: from + count, lamps })
   }
   const panelError = findPanelAreaError(device, effect, label)
   if (panelError) return panelError
@@ -255,14 +240,13 @@ export function findEffectError(
     return t('validation.ledValues.labelNeedsAWatchedSource', { label: label })
   }
   for (const [index, rule] of (effect.color_rules ?? []).entries()) {
-    const ruleRange = findBoundError(
-      rule,
-      FIELD_RANGES['LedColorRule'],
-      `Colour rule ${index + 1} of ${label}`
-    )
+    const owner = t('validation.ledValues.colourRuleOfLabel', { number: index + 1, label })
+    const ruleRange = findBoundError(rule, FIELD_RANGES['LedColorRule'], owner)
     if (ruleRange) return ruleRange
+    const ruleWhole = findWholeError(rule, LED_RULE_WHOLE_KEYS, owner)
+    if (ruleWhole) return ruleWhole
     if (!rule.color && !rule.background_color && !rule.blink_ms) {
-      return `Colour rule ${index + 1} of ${label} paints nothing: give it a colour, a background or a blink.`
+      return t('validation.ledValues.ownerPaintsNothingGiveIt', { owner })
     }
   }
   return findContentError(device, effect, label)

@@ -20,7 +20,7 @@ import { isBooleanField, parseAssetStatus, parseFields } from './protocol-parser
 import { t } from '@shared/ui-text'
 
 export function parseFirmwareUpdateInfo(line: string): FirmwareUpdateState {
-  const fields = parseFields(line, '@PR:OK:FW:INFO:', 'firmware status')
+  const fields = parseFields(line, '@PR:OK:FW:INFO:', t('device.assetInfoParsers.firmwareStatus'))
   const running = fields.get('running')
   const target = fields.get('target')
   const version = fields.get('version')

@@ -8,6 +8,14 @@ import { useDeviceStore } from './device-store'
 import { useDraftState } from './draft-state'
 import { saveDraftToBoard, useSaveToBoardStore } from './save-to-board-store'
 
+interface Attempt {
+  key?: string
+  busy?: 'board' | 'save'
+  error?: string
+}
+
+const NO_ATTEMPT: Attempt = {}
+
 const REASON_TEXT: Record<'connected' | 'board_changed', string> = {
   connected: 'The board holds a different configuration than the draft in front of you.',
   board_changed: 'What the board holds changed while you were editing.'
@@ -20,28 +28,28 @@ export function BoardSyncDialog(): React.JSX.Element | null {
   const boardId = useDeviceStore((state) => state.session?.info.boardId)
   const saving = useSaveToBoardStore((state) => state.running)
   const { liveApplyBlockedReason, saveBlockedReason } = useDraftState()
-  const [busy, setBusy] = useState<'board' | 'save'>()
-  const [error, setError] = useState<string>()
+  const [attempt, setAttempt] = useState<Attempt>(NO_ATTEMPT)
+  const questionKey = question?.key
+  const { busy, error } = attempt.key === questionKey ? attempt : NO_ATTEMPT
 
   if (!question?.open) return null
 
   const loadFromBoard = async (): Promise<void> => {
-    setBusy('board')
-    setError(undefined)
+    setAttempt({ key: questionKey, busy: 'board' })
     const feedback = await readConfigurationFromBoard()
-    setBusy(undefined)
     if (feedback.kind === 'error') {
-      setError(feedback.message)
+      setAttempt({ key: questionKey, error: feedback.message })
       return
     }
+    setAttempt({ key: questionKey })
     resolve()
   }
 
   const saveToBoard = async (): Promise<void> => {
     resolve()
-    setBusy('save')
+    setAttempt({ key: questionKey, busy: 'save' })
     await saveDraftToBoard()
-    setBusy(undefined)
+    setAttempt({ key: questionKey })
   }
 
   return (
@@ -86,14 +94,14 @@ export function BoardSyncDialog(): React.JSX.Element | null {
           </Button>
           <Button
             disabled={busy !== undefined || saving || liveApplyBlockedReason !== undefined}
-            title={liveApplyBlockedReason ?? 'Mirror the draft on the board without writing it'}
+            title={liveApplyBlockedReason ?? t('device.boardSyncDialog.mirrorTheDraftOnThe')}
             variant="outline"
             onClick={resolve}
           >
             {t('device.boardSyncDialog.showTheDraftOnThe')}</Button>
           <Button
             disabled={busy !== undefined || saving || saveBlockedReason !== undefined}
-            title={saveBlockedReason ?? 'Write the draft to the board and keep it there'}
+            title={saveBlockedReason ?? t('device.boardSyncDialog.writeTheDraftToThe')}
             onClick={() => void saveToBoard()}
           >
             {t('device.boardSyncDialog.saveTheDraftToThe')}</Button>

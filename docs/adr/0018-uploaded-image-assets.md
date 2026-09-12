@@ -55,7 +55,7 @@ rather than a second class. The package parsers stay separate: 48-byte versus
 a shared parser harder to read than two straight ones.
 
 **The binary stream has one owner, decided by a claim.** The frames (`SCF1`),
-the 1024-byte payloads, the stop-and-wait acknowledgement and the 10-second
+the 4 KiB payloads, the stop-and-wait acknowledgement and the 10-second
 inactivity timeout are reused verbatim under an `@PR:IMAGE:` command namespace.
 What could not be reused is how the router decided where bytes went: it asked
 the font control whether it was active, and with two upload kinds that races —

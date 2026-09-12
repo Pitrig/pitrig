@@ -6,6 +6,8 @@ import icon from '../../resources/icon.png?asset'
 
 const APP_NAME = 'Pitrig'
 
+export const DEBUG_APP_NAME = 'Pitrig Debugger'
+
 const LEGACY_USER_DATA = ['SimCore', join('@simcore', 'configurator')]
 
 const OWNED_USER_DATA = [
@@ -17,10 +19,10 @@ const OWNED_USER_DATA = [
   'recent-configurations.json',
 ]
 
-export function applyBranding(): void {
-  app.setName(APP_NAME)
-  process.title = APP_NAME
-  adoptLegacyUserData()
+export function applyBranding(name: string = APP_NAME): void {
+  app.setName(name)
+  process.title = name
+  if (name === APP_NAME) adoptLegacyUserData()
 }
 
 export function appIcon(): NativeImage {

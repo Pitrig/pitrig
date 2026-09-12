@@ -126,7 +126,9 @@ export function LayerList({
             <button
               type="button"
               aria-expanded={holds ? open : undefined}
-              title={holds ? (open ? 'Fold' : 'Unfold') : undefined}
+              title={
+                holds ? (open ? t('layers.layerList.fold') : t('layers.layerList.unfold')) : undefined
+              }
               disabled={!holds}
               className="w-3 flex-none text-muted-foreground hover:text-foreground disabled:opacity-0"
               onClick={() => toggleCollapsed(id)}

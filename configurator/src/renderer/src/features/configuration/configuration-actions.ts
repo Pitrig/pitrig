@@ -3,6 +3,7 @@ import { t } from '@shared/ui-text'
 import { bridgeErrorMessage, operationErrorMessage } from '@/features/device/bridge-errors'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
+import { allWidgetsOf, screensOf } from '@shared/configuration-access'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
 import type { ConfigurationDocumentId } from '@shared/configuration-schema'
 import {
@@ -70,7 +71,7 @@ export async function saveConfigurationFile(): Promise<ActionFeedback | undefine
     writeEventLog('Configuration file save completed', result)
     if (!result.ok) return { kind: 'error', message: result.error.message }
     if (!result.value.saved) return undefined
-    adoptNewDocument(draft, result.value.fileName)
+    useDeviceStore.getState().setDraftFileName(result.value.fileName)
     return { kind: 'success', message: `${result.value.fileName ?? 'Configuration'} saved.` }
   } catch (error) {
     return { kind: 'error', message: bridgeErrorMessage(error) }
@@ -106,25 +107,28 @@ export function convertDraftToBoard(
 ): { feedback?: ActionFeedback; report?: LayoutTransferResult } {
   const { draft, setDraft } = useDeviceStore.getState()
   if (!draft) return { feedback: { kind: 'error', message: t('dashboard.configurationActions.thereIsNoDraftTo') } }
-  const from = BOARD_PROFILES[draft.board]?.display
-  const to = display ?? BOARD_PROFILES[target].display ?? { width: 0, height: 0 }
-  if (!from) return { feedback: { kind: 'error', message: t('dashboard.configurationActions.theDraftNamesAnUnknown') } }
-  const destination =
-    to.width === 0 || to.height === 0 ? 'a board with no display' : `${to.width} × ${to.height}`
+  const profile = BOARD_PROFILES[draft.board]
+  if (!profile) {
+    return { feedback: { kind: 'error', message: t('dashboard.configurationActions.theDraftNamesAnUnknown') } }
+  }
+  const from = profile.display ?? NO_DISPLAY
+  const to = display ?? BOARD_PROFILES[target].display ?? NO_DISPLAY
   if (
     !window.confirm(
-      `Convert the draft from ${from.width} × ${from.height} to ${destination}? ${fitOutcome(from, to, fit)}`
+      t('dashboard.configurationActions.convertTheDraftFromFrom', {
+        from: sizeLabel(from),
+        to: sizeLabel(to),
+        outcome: fitOutcome(from, to, fit)
+      })
     )
   ) {
     return {}
   }
 
   const transferred = transferConfiguration(draft, { board: target, display, fit })
-  const validated = validateConfigurationDocument(
-    applyBoardTransportDefaults(transferred.configuration),
-    { supportedBoards: PITRIG_BOARD_IDS }
-  )
-  if (!validated.ok) {
+  const converted = applyBoardTransportDefaults(transferred.configuration)
+  const validated = validateConfigurationDocument(converted, { supportedBoards: PITRIG_BOARD_IDS })
+  if (!validated.ok && !transferred.blocking) {
     return {
       report: transferred,
       feedback: {
@@ -133,11 +137,19 @@ export function convertDraftToBoard(
       }
     }
   }
-  setDraft(validated.configuration)
+  setDraft(validated.ok ? validated.configuration : converted)
   return {
     report: transferred,
     feedback: { kind: 'success', message: t('dashboard.configurationActions.convertedToTarget', { target: boardLabel(target) }) }
   }
+}
+
+const NO_DISPLAY = { width: 0, height: 0 }
+
+function sizeLabel(size: { width: number; height: number }): string {
+  return size.width === 0 || size.height === 0
+    ? 'a board with no display'
+    : `${size.width} × ${size.height}`
 }
 
 export async function readConfigurationFromBoard(): Promise<ActionFeedback> {
@@ -186,7 +198,17 @@ export function loadDocumentFromBoard(
   if (!board || !draft) {
     return { kind: 'error', message: t('dashboard.configurationActions.theBoardHasNotReported') }
   }
-  store.setDraft(mergeDocument(draft, document, documentOf(board, document)))
+  const merged = {
+    ...mergeDocument(draft, document, documentOf(board, document)),
+    board: draft.board
+  }
+  store.setDraft(merged)
+  useDashboardEditorStore.getState().clampToDocument(
+    allWidgetsOf(merged)
+      .map((widget) => widget.id)
+      .filter((id): id is string => id !== undefined),
+    screensOf(merged).length
+  )
   return {
     kind: 'success',
     message: t('dashboard.configurationActions.loadedTheDocumentConfigurationFrom', { document: t(`documents.labelLower.${document}`) })

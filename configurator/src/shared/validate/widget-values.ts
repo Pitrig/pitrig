@@ -1,102 +1,21 @@
 import {
-  BAR_ORIENTATION_VALUES,
-  COLOR_RAMP_TARGET_VALUES,
-  CONDITION_OPERATOR_VALUES,
-  GRADIENT_DIRECTION_VALUES,
   MAXIMUM_COLOR_STOPS,
   MAXIMUM_GRAPH_SOURCES,
   MAXIMUM_GRAPH_TRACES,
   MAXIMUM_INDICATOR_SEGMENTS,
   MAXIMUM_TEXT_SOURCES,
   MAXIMUM_WIDGET_CONDITIONS,
-  SHAPE_KIND_VALUES,
-  TEXT_ALIGNMENT_VALUES,
   type WidgetConfiguration
 } from '../configuration-schema'
-import { isTextWidget } from '../configuration-access'
+import { arrayOf, isTextWidget } from '../configuration-access'
+import { deviceFloat } from '../contract-number'
 import { IMAGE_ID_PATTERN } from '../image-assets'
-import { TELEMETRY_CATALOG } from '../telemetry-catalog'
 import { transformError } from './transforms'
+import { DEFAULT_TEXT_BINDING, badBinding, badColors, badReal, realFits } from './values'
+import { findEnumError } from './widget-enums'
 import { t } from '../ui-text'
 
-const COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/
-
-const BINDINGS: ReadonlySet<string> = new Set<string>(TELEMETRY_CATALOG.map(({ name }) => name))
-
-function findColorError(widget: WidgetConfiguration, label: string): string | undefined {
-  let error: string | undefined
-  const walk = (value: unknown, path: string): void => {
-    if (error || value === null || typeof value !== 'object') return
-    if (Array.isArray(value)) {
-      value.forEach((entry, index) => walk(entry, `${path}[${index}]`))
-      return
-    }
-    for (const [key, entry] of Object.entries(value)) {
-      if (error) return
-      if (key === 'widgets' || key === 'pages') continue
-      if (key === 'color' || key.endsWith('_color')) {
-        if (typeof entry !== 'string' || !COLOR_PATTERN.test(entry)) {
-          error = `${label} sets "${path ? `${path}.` : ''}${key}" to ${JSON.stringify(entry)}; a colour is "#RRGGBB".`
-          return
-        }
-        continue
-      }
-      walk(entry, path ? `${path}.${key}` : key)
-    }
-  }
-  walk(widget, '')
-  return error
-}
-
-function badEnum(
-  value: unknown,
-  values: readonly string[],
-  label: string,
-  key: string
-): string | undefined {
-  if (value === undefined) return undefined
-  return values.includes(value as string)
-    ? undefined
-    : t('validation.ledValues.labelSetsKeyToValue', { label: label, key: key, value: JSON.stringify(value), join: values.join(', ') })
-}
-
-function findEnumError(widget: WidgetConfiguration, label: string): string | undefined {
-  const frame = widget as unknown as {
-    background_grad_dir?: string
-    title?: { alignment?: string }
-    conditions?: { op?: string }[]
-    color_ramp?: { target?: string }
-  }
-  const checks: (string | undefined)[] = [
-    badEnum(frame.background_grad_dir, GRADIENT_DIRECTION_VALUES, label, 'background_grad_dir'),
-    badEnum(frame.title?.alignment, TEXT_ALIGNMENT_VALUES, label, 'title.alignment'),
-    badEnum(frame.color_ramp?.target, COLOR_RAMP_TARGET_VALUES, label, 'color_ramp.target'),
-    isTextWidget(widget)
-      ? badEnum(widget.value?.alignment, TEXT_ALIGNMENT_VALUES, label, 'value.alignment')
-      : undefined,
-    widget.type === 'shape' ? badEnum(widget.kind, SHAPE_KIND_VALUES, label, 'kind') : undefined,
-    widget.type === 'bar' || widget.type === 'indicator'
-      ? badEnum(widget.orientation, BAR_ORIENTATION_VALUES, label, 'orientation')
-      : undefined
-  ]
-  for (const [index, rule] of (frame.conditions ?? []).entries()) {
-    checks.push(badEnum(rule?.op, CONDITION_OPERATOR_VALUES, label, `conditions[${index}].op`))
-  }
-  return checks.find((entry) => entry !== undefined)
-}
-
-function bindingError(
-  binding: string | undefined,
-  fallback: string,
-  label: string,
-  what: string
-): string | undefined {
-  const name = binding ?? fallback
-  if (BINDINGS.has(name)) return undefined
-  return name === ''
-    ? t('validation.widgetValues.whatOfLabelHasNo', { what: what, label: label })
-    : t('validation.widgetValues.whatOfLabelReadsName', { what: what, label: label, name: name })
-}
+const CHILD_KEYS: readonly string[] = ['widgets', 'pages']
 
 function rangeError(
   widget: { minimum?: number; maximum?: number },
@@ -105,56 +24,62 @@ function rangeError(
 ): string | undefined {
   const minimum = widget.minimum ?? 0
   const maximum = widget.maximum ?? 1
-  if (Number.isFinite(minimum) && Number.isFinite(maximum) && maximum > minimum) return undefined
+  if (
+    realFits(widget.minimum) &&
+    realFits(widget.maximum) &&
+    deviceFloat(maximum) > deviceFloat(minimum)
+  ) {
+    return undefined
+  }
   return t('validation.widgetValues.whatOfLabelRunsMinimum', { what: what, label: label, minimum: minimum, maximum: maximum })
 }
 
 function findSourceError(widget: WidgetConfiguration, label: string): string | undefined {
   if (isTextWidget(widget)) {
-    const sources = widget.sources ?? []
+    const sources = arrayOf(widget.sources)
     if (sources.length === 0) return t('validation.widgetValues.labelHasNoSourceSo', { label: label })
     if (sources.length > MAXIMUM_TEXT_SOURCES) {
       return t('validation.widgetValues.labelComposesLengthSourcesThe', { label: label, length: sources.length, mAXIMUM_TEXT_SOURCES: MAXIMUM_TEXT_SOURCES })
     }
     for (const [index, source] of sources.entries()) {
-      const what = `Source ${index + 1}`
-      const error = bindingError(source?.binding, 'vehicle.speed', label, what)
+      const what = t('inspector.sourceEditor.sourceNumber', { number: index + 1 })
+      const error = badBinding(source?.binding, DEFAULT_TEXT_BINDING, label, what)
       if (error) return error
       const mismatch = transformError(
         source?.transform,
-        source?.binding ?? 'vehicle.speed',
+        source?.binding ?? DEFAULT_TEXT_BINDING,
         label,
-        `The transform on source ${index + 1}`
+        t('validation.widgetValues.theTransformOnSourceNumber', { number: index + 1 })
       )
       if (mismatch) return mismatch
     }
     return undefined
   }
   if (widget.type === 'bar' || widget.type === 'arc' || widget.type === 'indicator' || widget.type === 'graph') {
-    const error = bindingError(widget.source?.binding, '', label, t('validation.widgetValues.theSource'))
+    const error = badBinding(widget.source?.binding, '', label, t('validation.widgetValues.theSource'))
     if (error) return error
     const window = rangeError(widget, label, t('validation.widgetValues.theValueWindow'))
     if (window) return window
   }
   if (widget.type === 'graph') {
-    const traces = widget.traces ?? []
+    const traces = arrayOf(widget.traces)
     if (traces.length > MAXIMUM_GRAPH_TRACES) {
-      return `${label} draws ${traces.length + 1} sources; the device draws ${MAXIMUM_GRAPH_SOURCES}.`
+      return t('validation.widgetValues.labelDrawsLengthSourcesThe', { label, length: traces.length + 1, maximum: MAXIMUM_GRAPH_SOURCES })
     }
     for (const [index, trace] of traces.entries()) {
-      const error = bindingError(trace?.source?.binding, '', label, `Trace ${index + 1}`)
+      const error = badBinding(trace?.source?.binding, '', label, t('common.traceNumber', { number: index + 1 }))
       if (error) return error
-      const window = rangeError(trace ?? {}, label, `The window of trace ${index + 1}`)
+      const window = rangeError(trace ?? {}, label, t('validation.widgetValues.theWindowOfTraceNumber', { number: index + 1 }))
       if (window) return window
     }
   }
   if (widget.type === 'image') {
     const image = widget.image ?? ''
-    if (image !== '' && !IMAGE_ID_PATTERN.test(image)) {
+    if (!IMAGE_ID_PATTERN.test(image)) {
       return t('validation.widgetValues.labelNamesTheImageImage', { label: label, image: image })
     }
     if (widget.sprite_frame_source) {
-      const error = bindingError(widget.sprite_frame_source.binding, '', label, t('validation.widgetValues.theSpriteFrameSource'))
+      const error = badBinding(widget.sprite_frame_source.binding, '', label, t('validation.widgetValues.theSpriteFrameSource'))
       if (error) return error
     }
   }
@@ -167,12 +92,12 @@ function findCaptionError(widget: WidgetConfiguration, label: string): string | 
   if (!widget.title?.text) {
     return t('validation.widgetValues.theCaptionOfLabelReads', { label: label })
   }
-  return bindingError(binding, '', label, t('validation.widgetValues.theCaptionSource'))
+  return badBinding(binding, '', label, t('validation.widgetValues.theCaptionSource'))
 }
 
 function findConditionError(widget: WidgetConfiguration, label: string): string | undefined {
-  const rules = widget.conditions ?? []
-  const stops = widget.color_ramp?.stops ?? []
+  const rules = arrayOf(widget.conditions)
+  const stops = arrayOf(widget.color_ramp?.stops)
   if (rules.length > MAXIMUM_WIDGET_CONDITIONS) {
     return t('validation.widgetValues.labelHasLengthStylingRules', { label: label, length: rules.length, mAXIMUM_WIDGET_CONDITIONS: MAXIMUM_WIDGET_CONDITIONS })
   }
@@ -184,36 +109,40 @@ function findConditionError(widget: WidgetConfiguration, label: string): string 
   }
   let previous = Number.NEGATIVE_INFINITY
   for (const [index, stop] of stops.entries()) {
-    const at = stop?.at ?? 0
-    if (!Number.isFinite(at) || at <= previous) {
-      return `${label} has a colour ramp whose stop ${index + 1} does not climb past the one before it.`
+    if (!realFits(stop?.at) || deviceFloat(stop?.at ?? 0) <= previous) {
+      return t('validation.widgetValues.labelHasAColourRampWhose', { label, number: index + 1 })
     }
-    previous = at
+    previous = deviceFloat(stop?.at ?? 0)
   }
   for (const [index, rule] of rules.entries()) {
-    if (!Number.isFinite(rule?.value ?? 0)) {
-      return `Rule ${index + 1} of ${label} compares against something that is not a number.`
+    if (!realFits(rule?.value)) {
+      return t('validation.widgetValues.ruleOfLabelComparesAgainst', { number: index + 1, label })
     }
   }
   if (rules.length === 0 && stops.length === 0) return undefined
-  return bindingError(widget.condition_source?.binding, '', label, t('validation.widgetValues.theWatchedSource'))
+  return badBinding(widget.condition_source?.binding, '', label, t('validation.widgetValues.theWatchedSource'))
 }
 
 function findSegmentError(widget: WidgetConfiguration, label: string): string | undefined {
   if (widget.type !== 'indicator') return undefined
-  const segments = widget.segments ?? []
+  const segments = arrayOf(widget.segments)
   if (segments.length === 0) return t('validation.widgetValues.labelHasNoSegmentsSo', { label: label })
   if (segments.length > MAXIMUM_INDICATOR_SEGMENTS) {
     return t('validation.widgetValues.labelHasLengthSegmentsThe', { label: label, length: segments.length, mAXIMUM_INDICATOR_SEGMENTS: MAXIMUM_INDICATOR_SEGMENTS })
   }
   let previous = Number.NEGATIVE_INFINITY
   for (const [index, segment] of segments.entries()) {
-    const threshold = segment?.threshold ?? 0
-    if (!Number.isFinite(threshold) || threshold < previous) {
-      return `${label} has segment ${index + 1} below the one before it; thresholds climb.`
+    if (!realFits(segment?.threshold) || deviceFloat(segment?.threshold ?? 0) < previous) {
+      return t('validation.widgetValues.labelHasSegmentNumberBelow', { label, number: index + 1 })
     }
-    previous = threshold
+    previous = deviceFloat(segment?.threshold ?? 0)
   }
+  return undefined
+}
+
+function findRealError(widget: WidgetConfiguration, label: string): string | undefined {
+  if (widget.type === 'bar') return badReal(widget.origin, label, 'origin')
+  if (widget.type === 'indicator') return badReal(widget.blink_threshold, label, 'blink_threshold')
   return undefined
 }
 
@@ -230,9 +159,10 @@ export function findWidgetValueError(
   label: string
 ): string | undefined {
   return (
-    findColorError(widget, label) ??
+    badColors(widget, label, CHILD_KEYS) ??
     findFillGradientError(widget, label) ??
     findEnumError(widget, label) ??
+    findRealError(widget, label) ??
     findSourceError(widget, label) ??
     findCaptionError(widget, label) ??
     findConditionError(widget, label) ??

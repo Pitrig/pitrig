@@ -1,3 +1,5 @@
+import { textBytes } from './value-format'
+
 export const ICON_FAMILY = 'material-icons'
 
 export interface IconGlyph {
@@ -67,12 +69,6 @@ export const ICON_GLYPHS: readonly IconGlyph[] = [
   { name: 'ruler', glyph: '\ue41c', group: 'Marks' },
   { name: 'map', glyph: '\ue55b', group: 'Marks' }
 ]
-
-const encoder = new TextEncoder()
-
-export function textBytes(text: string): number {
-  return encoder.encode(text).byteLength
-}
 
 export function textFits(text: string, capacity: number): boolean {
   return textBytes(text) <= capacity - 1

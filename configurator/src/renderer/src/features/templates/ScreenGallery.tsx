@@ -55,7 +55,7 @@ export function ScreenGallery({
               <button
                 key={dot}
                 type="button"
-                aria-label={`Screen ${dot + 1}`}
+                aria-label={t('common.screenNumber', { number: dot + 1 })}
                 className={`size-1.5 rounded-full transition-colors ${
                   dot === shown ? 'bg-sky-400' : 'bg-white/30 hover:bg-white/60'
                 }`}
@@ -116,7 +116,7 @@ function GalleryStep({
     <button
       type="button"
       aria-label={side === 'left' ? t('templates.screenGallery.previousScreen') : t('templates.screenGallery.nextScreen')}
-      className={`absolute top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-0.5 text-white/70 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 ${
+      className={`absolute top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-0.5 text-white/70 opacity-0 transition-opacity hover:text-white group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         side === 'left' ? 'left-1' : 'right-1'
       }`}
       onClick={onClick}

@@ -1,3 +1,4 @@
 export const SCREEN_BACKGROUND = '#000000'
 export const DEFAULT_TEXT_COLOR = '#E8E8E8'
 export const DEFAULT_BORDER_COLOR = '#AEAEAE'
+export const DEFAULT_FILL_COLOR = '#38BDF8'

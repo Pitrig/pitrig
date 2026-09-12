@@ -110,11 +110,13 @@ Presence rules:
   complete SimHub profile and the configurator profile generator's fallback.
 - The Guition ESP32-4848S040 is the exception, and it is expressed in documents
   rather than in the default: its telemetry runs over the board's CH340 bridge,
-  which does not hold `921600`, so the configurator writes
-  `telemetry_transport.uart.baud_rate` of `460800` into every document it
-  creates, converts or applies a template onto for that board, and the board's
-  factory payload names the same rate. A sparse document is never expanded
-  through a board profile, so the property has to be present to have an effect.
+  which does not hold `921600`, so the configurator fills
+  `telemetry_transport.uart.baud_rate` with `460800` when it creates, converts
+  or applies a template onto a document for that board and the document names no
+  rate of its own. An explicit `921600` survives the conversion and has to be
+  changed by hand. The board's factory payload names the same rate, and a sparse
+  document is never expanded through a board profile, so the property has to be
+  present to have an effect.
 - Unknown properties are rejected.
 - Loading a preset inserts only the properties explicitly present in that
   preset.
@@ -138,22 +140,25 @@ and a digit, over one page at a time. Dashboard has pages of its own (Canvas,
 Templates, Fonts, Images); `Save to board` sits above them and applies to the
 document rather than to the page. Each destructive device action lives beside
 what it affects: erasing the font package on Fonts, the images on Images,
-resetting the configuration and restarting the board on Configs.
+resetting the configuration on Configs. Restarting the board is not destructive
+and sits wherever a restart is the next step — the dashboard toolbar, Configs
+and Firmware.
 
 The **Transport** section is last on the Protocol page and folded closed. It is
 the only setting that decides whether the configurator can reach the board at
 all — a speed a USB-serial bridge cannot hold leaves a board that answers
 nothing — so its controls arrive disabled behind a warning, and a tick unlocks
-them for one visit. The pin pair is the exception: firmware checks it against
-the board's own and refuses a document that names another, so a wrong number
-costs a refused save rather than a dark board.
+them for one visit, the UART pins with them. A wrong pin costs less than a wrong
+speed: firmware checks the pair against the board's own and refuses a document
+that names another, so it ends in a refused save rather than a dark board.
 
 The template library holds dashboards — a whole document, whose `Add` appends
 its screens to the open dashboard and whose `Use` replaces it — and widgets,
-one widget with its subtree and `Add` alone; both scale to the board in hand on
-the way in, and `Save to templates` takes the selected widget or, with none,
-the whole dashboard. Placing a widget is a mode: the fragment follows the
-pointer until a click lands it, scaled only when it would not otherwise fit.
+one widget with its subtree and `Add` alone. A dashboard is scaled to the board
+in hand on the way in; a widget arrives at the size it was saved at, and
+`Save to templates` takes the selected widget or, with none, the whole
+dashboard. Placing a widget is a mode: the fragment follows the pointer until a
+click lands it, shrunk only when it would not otherwise fit.
 Choosing a different board while a draft is open is a layout transfer,
 confirmed in the numbers the new display produces, with the same
 `Fit`/`Stretch` preference the Configs page uses
@@ -169,9 +174,11 @@ draft. Dragging and resizing write absolute logical `x`, `y`, `width` and
 exposes the screen's `background_color`. Every widget may define `z_index`
 from `-32768` through `32767`: larger values render above smaller, missing
 values default to zero, and equal values use stable configuration order so the
-preview and the device agree. A drawn widget carries only its box; a new image
-widget starts on the first installed image, because without one it has nothing
-to draw.
+preview and the device agree. A drawn widget arrives with more than its box: a
+text widget carries the draft's commonest font and an empty source, a bar, an
+arc, an indicator and a graph each carry a starting binding and their colours,
+an indicator six segments and a slot two pages, and a new image widget starts on
+the first installed image, because without one it has nothing to draw.
 
 In a development build the canvas draws live telemetry while the **Live
 telemetry** bridge on the Protocol page is running — the packaged configurator
@@ -229,11 +236,12 @@ apply back is named where it happens — safe mode, a draft targeting another
 board, a font the board does not hold, a draft that does not validate.
 
 The board is asked `@PR:INFO` every five seconds while it is connected and no
-operation is running, which is what notices a document written from elsewhere or
-a package installed behind the editor's back; the configuration is re-read only
-when a generation actually moved. A restart the board takes on its own stays
-invisible to it, because the reply carries what is stored rather than what is
-composed.
+operation is running, which is what notices a document written from elsewhere;
+the configuration is re-read only when a generation actually moved. `INFO`
+carries no font or image fields and the poll re-reads neither package, so one
+installed behind the editor's back goes unnoticed. A restart the board takes on
+its own stays invisible to it too, because the reply carries what is stored
+rather than what is composed.
 
 ### Saving to the board
 
@@ -249,7 +257,9 @@ kilobytes of dashboard.
 How it ends depends on what it did. A face the board did not have becomes
 usable only after a restart, so installing one ends in `@PR:REBOOT` and a
 reconnect — as does saving onto a board that already owes a restart for a font
-or image package it has accepted, and as does writing the protocol document.
+or image package it has accepted, as does writing the protocol document, and as
+does writing anything at all onto a board in safe mode, which is how it leaves
+safe mode.
 That last one is the whole reason the document is separate: the link is selected
 once at startup, so a transport written without a restart would be a setting
 that is stored and not in force, and the firmware says so by answering
@@ -264,8 +274,10 @@ The Configs page lists the three documents with what each is doing on the board
 load, save or erase any one of them on its own. Below that it states the
 difference between the draft and the configuration the board holds, per document
 and property by property, before any of this happens.
-Widgets and screens are matched by `id`, so moving one reads as a move rather
-than as a deletion and an unrelated arrival.
+Widgets and screens are matched by `id` within the array they sit in, so a
+reordered widget reads as a move; one dragged into a container reads as a
+removal from the screen and an addition inside the container, because those are
+two different arrays.
 
 ## Fonts
 
@@ -310,11 +322,14 @@ A family identifier is not free text: it is the id of an entry in the
 configurator's font library, which is what lets a document name a face without
 carrying one. Saving to a board resolves every family the document names against
 that library, builds a package holding exactly those, and installs it only when
-the device does not already report the same `crc` and `entries` — then saves the
-configuration and restarts. A family the library cannot resolve stops the save
-before anything is written and asks for a file. Images are checked against the
-installed image package but are still uploaded by hand, and firmware repeats both
-checks before it lets a configuration replace the running dashboard.
+the device does not already report the same `crc` and `entries`; what the save
+does next is under [Saving to the board](#saving-to-the-board). A family the
+library cannot resolve stops the save before anything is written and asks for a
+file. Images are not checked that way — they are uploaded by hand, and the
+editor reads the installed list only to offer a widget an image and to draw one
+— so a document naming an image the board does not hold is caught by firmware,
+which checks fonts and images alike before it lets a configuration replace the
+running dashboard.
 
 ## Control protocol
 

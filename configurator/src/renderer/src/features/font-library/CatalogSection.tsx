@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import type { FontVariant } from '@shared/font-library'
 
+import { Button } from '@/components/ui/button'
 import { EmptyState, PageSection } from '@/app/workspace/PageShell'
 import { catalogPreviewFamily, useFontCatalogStore } from './font-catalog-store'
 import { FontCatalogRow } from './FontCatalogRow'
@@ -15,6 +16,7 @@ export function CatalogSection({ onMessage }: { onMessage: (message: string) => 
   const previews = useFontCatalogStore((state) => state.previews)
   const previewIds = useFontCatalogStore((state) => state.previewIds)
   const tabular = useFontCatalogStore((state) => state.tabular)
+  const failed = useFontCatalogStore((state) => state.failed)
   const loadCatalog = useFontCatalogStore((state) => state.load)
   const requestPreview = useFontCatalogStore((state) => state.requestPreview)
   const [query, setQuery] = useState('')
@@ -38,8 +40,12 @@ export function CatalogSection({ onMessage }: { onMessage: (message: string) => 
       .addFontFromCatalog({ family: familyName, variant })
       .catch(() => undefined)
     setAdding(undefined)
-    if (!result) return onMessage('The font could not be downloaded.')
-    onMessage(result.ok ? `Added ${result.value.name} to the library.` : result.error.message)
+    if (!result) return onMessage(t('fonts.catalogSection.theFontCouldNotBe'))
+    onMessage(
+      result.ok
+        ? t('fonts.catalogSection.addedNameToTheLibrary', { name: result.value.name })
+        : result.error.message
+    )
   }
 
   return (
@@ -59,7 +65,14 @@ export function CatalogSection({ onMessage }: { onMessage: (message: string) => 
         </label>
       }
     >
-      {catalog.length === 0 ? (
+      {failed ? (
+        <div className="flex items-center gap-2">
+          <p className="text-amber-400">{t('images.imagePageParts.unavailable')}</p>
+          <Button variant="outline" onClick={() => void loadCatalog()}>
+            {t('device.connection.refresh')}
+          </Button>
+        </div>
+      ) : catalog.length === 0 ? (
         <p className="text-muted-foreground">{t('fonts.catalogSection.readingTheCatalog')}</p>
       ) : results.length === 0 ? (
         <EmptyState title={t('fonts.catalogSection.noFamilyMatches')}>{t('fonts.catalogSection.tryAShorterWord')}</EmptyState>
@@ -73,7 +86,9 @@ export function CatalogSection({ onMessage }: { onMessage: (message: string) => 
               tabularDigits={tabular[family.name]}
               unavailable={previews[family.name] === 'unavailable'}
               expanded={expanded === family.name}
-              disabledReason={adding === family.name ? 'Downloading…' : undefined}
+              disabledReason={
+                adding === family.name ? t('fonts.fontPicker.downloading') : undefined
+              }
               onVisible={() => requestPreview(family.name)}
               onToggle={() => setExpanded(expanded === family.name ? undefined : family.name)}
               onChoose={(variant) => void add(family.name, variant)}

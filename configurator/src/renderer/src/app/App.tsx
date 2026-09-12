@@ -22,7 +22,9 @@ import { useBoardPreview } from '@/features/modules/use-board-preview'
 import { useModulesStore } from '@/features/modules/modules-store'
 import { useDeviceStore } from '@/features/device/device-store'
 import { FirmwarePage } from '@/features/firmware-update/FirmwarePage'
+import { useFirmwareUploadStore } from '@/features/firmware-update/firmware-update-store'
 import { subscribeToFontLibrary } from '@/features/font-library/font-library-store'
+import { useImageUploadStore } from '@/features/image-assets/image-assets-store'
 import { ModulesPage } from '@/features/modules/ModulesPage'
 import { ProtocolPage } from '@/features/protocol/ProtocolPage'
 import { subscribeToTelemetryBridge } from '@/features/telemetry/bridge-store'
@@ -41,6 +43,14 @@ export function App(): React.JSX.Element {
   const layerPreview = useModulesStore((state) => state.preview)
 
   useEffect(() => subscribeToFontLibrary(), [])
+  useEffect(
+    () => window.pitrig.onFirmwareUploadProgress(useFirmwareUploadStore.getState().setProgress),
+    []
+  )
+  useEffect(
+    () => window.pitrig.onImageUploadProgress(useImageUploadStore.getState().setProgress),
+    []
+  )
   useEffect(() => (TELEMETRY_BRIDGE_INCLUDED ? subscribeToTelemetryBridge() : undefined), [])
   useEffect(() => (TELEMETRY_BRIDGE_INCLUDED ? startLiveTelemetry() : undefined), [])
   useBoardSync(dirtyDocuments)
@@ -54,7 +64,9 @@ export function App(): React.JSX.Element {
       if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return
       if (isTextEntry(event.target)) return
       event.preventDefault()
-      void saveConfigurationFile()
+      void saveConfigurationFile().then((feedback) => {
+        useDeviceStore.getState().setSaveFeedback(feedback)
+      })
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
@@ -78,7 +90,7 @@ export function App(): React.JSX.Element {
       <BoardSyncDialog />
 
       <footer className="flex min-w-0 items-center justify-between gap-4 border-t px-5 text-xs text-muted-foreground">
-        <span className="min-w-0 truncate">{deviceStatusText ?? 'Application ready'}</span>
+        <span className="min-w-0 truncate">{deviceStatusText ?? t('app.app.applicationReady')}</span>
         <span className="flex-none">
           {appInfo ? t('app.app.nameVersion', { name: appInfo.name, version: appInfo.version }) : t('app.app.loadingApplicationInfo')}
         </span>

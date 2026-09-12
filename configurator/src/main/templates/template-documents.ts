@@ -21,8 +21,17 @@ import {
 } from '../../shared/templates'
 import { t } from '@shared/ui-text'
 
+const LEGACY_FORMATS: Readonly<Record<string, string>> = {
+  [TEMPLATE_FORMAT]: 'simcore-dashboard-template',
+  [WIDGET_TEMPLATE_FORMAT]: 'simcore-widget-template'
+}
+
 export function parseTemplateDocument(value: unknown): DashboardTemplateDocument {
-  const record = envelopeOf(value, TEMPLATE_FORMAT, 'a Pitrig dashboard template')
+  const record = envelopeOf(
+    value,
+    TEMPLATE_FORMAT,
+    t('templates.templateDocuments.aPitrigDashboardTemplate')
+  )
   if (typeof record.configuration !== 'object' || record.configuration === null) {
     throw new Error(t('templates.templateDocuments.theTemplateCarriesNoConfiguration'))
   }
@@ -44,7 +53,7 @@ function envelopeOf(
     throw new Error(t('templates.templateDocuments.aTemplateFileHoldsA'))
   }
   const record = value as Record<string, unknown>
-  if (record.format !== format) {
+  if (record.format !== format && record.format !== LEGACY_FORMATS[format]) {
     throw new Error(t('templates.templateDocuments.thisFileIsNotDescribed', { described: described }))
   }
   const version = record.format_version
@@ -86,7 +95,11 @@ export function dashboardSummary(
 }
 
 export function parseWidgetTemplateDocument(value: unknown): WidgetTemplateDocument {
-  const record = envelopeOf(value, WIDGET_TEMPLATE_FORMAT, 'a Pitrig widget template')
+  const record = envelopeOf(
+    value,
+    WIDGET_TEMPLATE_FORMAT,
+    t('templates.templateDocuments.aPitrigWidgetTemplate')
+  )
   const board = record.board
   if (typeof board !== 'string' || !PITRIG_BOARD_IDS.includes(board as PitrigBoardId)) {
     throw new Error(t('templates.templateDocuments.theWidgetTemplateNamesNo'))

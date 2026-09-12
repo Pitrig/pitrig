@@ -24,15 +24,24 @@ export function validateConfigurationDocument(
   value: unknown,
   options: ValidateOptions
 ): ValidationResult {
+  try {
+    return validate(value, options)
+  } catch (error) {
+    const detail = error instanceof Error && error.message ? ` (${error.message})` : ''
+    return { ok: false, error: t('validation.configuration.theConfigurationCouldNotBe', { detail }) }
+  }
+}
+
+function validate(value: unknown, options: ValidateOptions): ValidationResult {
   if (!isObject(value)) {
-    return { ok: false, error: 'Configuration must be a JSON object.' }
+    return { ok: false, error: t('validation.configuration.configurationMustBeAJson') }
   }
   const configuration = value as unknown as ApplicationConfiguration
   if (
     typeof configuration.board !== 'string' ||
     !options.supportedBoards.includes(configuration.board)
   ) {
-    return { ok: false, error: 'Configuration must target a supported board.' }
+    return { ok: false, error: t('validation.configuration.configurationMustTargetASupported') }
   }
   const unknown = findUnknownProperty(value, 'ApplicationConfiguration', '')
   if (unknown) return { ok: false, error: unknown }

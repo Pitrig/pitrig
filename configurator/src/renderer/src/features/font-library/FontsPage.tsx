@@ -25,6 +25,8 @@ export function FontsPage(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
   const entries = useFontLibraryStore((state) => state.entries)
   const unreadable = useFontLibraryStore((state) => state.unreadable)
+  const libraryFailed = useFontLibraryStore((state) => state.failed)
+  const refreshLibrary = useFontLibraryStore((state) => state.refresh)
   const loaded = useFontFaceStore((state) => state.loaded)
   const ensureFaces = useFontFaceStore((state) => state.ensureFaces)
   const [busy, setBusy] = useState(false)
@@ -175,7 +177,14 @@ export function FontsPage(): React.JSX.Element {
         title={t('fonts.fontPicker.library')}
         description={t('fonts.fontsPage.facesThisApplicationCanInstall')}
       >
-        {entries.length === 0 ? (
+        {libraryFailed && entries.length === 0 ? (
+          <div className="flex items-center gap-2">
+            <p className="text-amber-400">{t('fonts.fontLibraryService.theLibraryCouldNotBe')}</p>
+            <Button variant="outline" onClick={() => void refreshLibrary()}>
+              {t('device.connection.refresh')}
+            </Button>
+          </div>
+        ) : entries.length === 0 ? (
           <EmptyState title={t('fonts.fontsPage.theLibraryIsEmpty')}>
             {t('fonts.fontsPage.importATtfOrOtf')}</EmptyState>
         ) : (

@@ -15,7 +15,10 @@ mac:
   category: public.app-category.developer-tools
   identity: null
   target:
-    - dmg
+    - target: dmg
+      arch:
+        - arm64
+        - x64
 win:
   icon: resources/icon.png
   target:

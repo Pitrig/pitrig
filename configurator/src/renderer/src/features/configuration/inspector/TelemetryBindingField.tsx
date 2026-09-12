@@ -12,6 +12,7 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
+  const [draft, setDraft] = useState<{ from: string; text: string }>()
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const [anchor, setAnchor] = useState<{
@@ -22,8 +23,9 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
     maxHeight: number
   }>()
 
-  const selected = TELEMETRY_CATALOG.find(({ name }) => name === value)
-  const needle = value.trim().toLowerCase()
+  const text = draft?.from === value ? draft.text : value
+  const selected = TELEMETRY_CATALOG.find(({ name }) => name === text)
+  const needle = text.trim().toLowerCase()
   const matches =
     needle === '' || selected
       ? TELEMETRY_CATALOG
@@ -64,8 +66,15 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
   }, [active, open])
 
   const commit = (name: string): void => {
-    onChange(name)
+    setDraft(undefined)
     setOpen(false)
+    if (name !== value) onChange(name)
+  }
+
+  const settle = (): void => {
+    setDraft(undefined)
+    setOpen(false)
+    if (text !== value && (text === '' || selected)) onChange(text)
   }
 
   return (
@@ -80,19 +89,21 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
         aria-controls="telemetry-binding-list"
         className="h-7 w-full rounded-md border bg-background px-2 text-foreground"
         placeholder={t('protocol.catalogSection.searchTelemetryFields')}
-        value={value}
+        value={text}
         onFocus={() => {
           setActive(0)
           setOpen(true)
         }}
-        onBlur={() => setOpen(false)}
+        onBlur={settle}
         onChange={(event) => {
-          onChange(event.target.value)
+          setDraft({ from: value, text: event.target.value })
           setActive(0)
           setOpen(true)
         }}
         onKeyDown={(event) => {
           if (event.key === 'Escape') {
+            event.preventDefault()
+            setDraft(undefined)
             setOpen(false)
             return
           }
@@ -156,7 +167,7 @@ export function TelemetryBindingField({ value, onChange, onReset, label = 'Bindi
         <span className="block text-[11px] leading-4">
           {t('inspector.telemetryBindingField.fieldSummary', { category: selected.categoryLabel, type: selected.type, unit: selected.unit, rate: selected.rate, wireId: selected.wireId })}
         </span>
-      ) : value ? (
+      ) : text ? (
         <span className="block text-[11px] leading-4 text-amber-400">{t('inspector.telemetryBindingField.unknownTelemetryBinding')}</span>
       ) : null}
       </div>

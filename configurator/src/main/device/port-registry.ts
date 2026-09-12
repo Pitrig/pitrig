@@ -7,6 +7,8 @@ import type { SerialPortSummary } from '../../shared/device'
 export interface PortRecord {
   path: string
   likelyUsb: boolean
+  bluetooth: boolean
+  scanPriority: number
   summary: SerialPortSummary
 }
 
@@ -51,19 +53,18 @@ export class PortRegistry {
           ...(port.productId ? { productId: port.productId } : {}),
           ...(port.serialNumber ? { serialNumber: port.serialNumber } : {})
         }
+        const usb = usbIdentity(port)
         const record: PortRecord = {
           path: port.path,
-          likelyUsb: isLikelyUsbSerial(port.path, port.vendorId),
+          likelyUsb: isLikelyUsbSerial(port, usb),
+          bluetooth: isBluetoothPort(port),
+          scanPriority: scanPriorityOf(usb),
           summary
         }
         this.records.set(id, record)
         return record
       })
   }
-}
-
-export function isBluetoothPort(path: string): boolean {
-  return path.toLowerCase().includes('bluetooth')
 }
 
 export function serialIdentity(path: string): string {
@@ -76,14 +77,38 @@ function prefersCalloutPath(candidate: string, current: string): boolean {
   return candidate.startsWith('/dev/cu.') && current.startsWith('/dev/tty.')
 }
 
-function isLikelyUsbSerial(path: string, vendorId?: string): boolean {
-  const name = path.toLowerCase()
-  return Boolean(vendorId) || /usb|ttyacm|ttyusb|wch|slab/.test(name) || /^com\d+$/i.test(path)
+const PITRIG_USB_IDENTITY = '303a:4001'
+const USB_SERIAL_JTAG_IDENTITY = '303a:1001'
+const USB_BRIDGE_IDENTITIES: readonly string[] = ['1a86:7523', '1a86:55d4', '10c4:ea60']
+
+function usbIdentity(port: { vendorId?: string; productId?: string }): string {
+  return `${port.vendorId ?? ''}:${port.productId ?? ''}`.toLowerCase()
+}
+
+function scanPriorityOf(usb: string): number {
+  if (usb === PITRIG_USB_IDENTITY) return 0
+  return USB_BRIDGE_IDENTITIES.includes(usb) ? 1 : 2
+}
+
+function isBluetoothPort(port: { path: string; pnpId?: string }): boolean {
+  return (
+    port.path.toLowerCase().includes('bluetooth') ||
+    (port.pnpId ?? '').toUpperCase().startsWith('BTHENUM')
+  )
+}
+
+function isLikelyUsbSerial(port: { path: string; vendorId?: string }, usb: string): boolean {
+  if (usb === USB_SERIAL_JTAG_IDENTITY) return false
+  if (process.platform === 'win32') return Boolean(port.vendorId)
+  const name = port.path.toLowerCase()
+  return (
+    Boolean(port.vendorId) || /usb|ttyacm|ttyusb|wch|slab/.test(name) || /^com\d+$/i.test(port.path)
+  )
 }
 
 const WINDOWS_USB_MANUFACTURERS: Readonly<Record<string, string>> = {
-  '303a:4001': 'Pitrig',
-  '303a:1001': 'Espressif'
+  [PITRIG_USB_IDENTITY]: 'Pitrig',
+  [USB_SERIAL_JTAG_IDENTITY]: 'Espressif'
 }
 
 function deviceManufacturer(port: {
@@ -92,6 +117,5 @@ function deviceManufacturer(port: {
   productId?: string
 }): string | undefined {
   if (process.platform !== 'win32') return port.manufacturer
-  const usbIdentity = `${port.vendorId ?? ''}:${port.productId ?? ''}`.toLowerCase()
-  return WINDOWS_USB_MANUFACTURERS[usbIdentity] ?? port.manufacturer
+  return WINDOWS_USB_MANUFACTURERS[usbIdentity(port)] ?? port.manufacturer
 }

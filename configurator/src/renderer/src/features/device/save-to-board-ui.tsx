@@ -18,7 +18,7 @@ export function SaveToBoardButton({
     <Button
       className={className}
       disabled={disabled || running || saveBlockedReason !== undefined}
-      title={saveBlockedReason ?? 'Write the dashboard to the board (fonts install with it)'}
+      title={saveBlockedReason ?? t('device.saveToBoardUi.writeTheDashboardToThe')}
       onClick={() => void saveDraftToBoard()}
     >
       {running ? t('device.saveToBoardUi.saving') : t('device.saveToBoardUi.saveToBoard')}

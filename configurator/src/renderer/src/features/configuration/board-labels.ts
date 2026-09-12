@@ -35,6 +35,9 @@ export function fitOutcome(
   if (to.width === 0 || to.height === 0) {
     return t('dashboard.boardLabels.thisBoardHasNoDisplay')
   }
+  if (from.width === 0 || from.height === 0) {
+    return t('dashboard.transfer.noDisplay')
+  }
   if (from.width === to.width && from.height === to.height) {
     return t('dashboard.boardLabels.theDisplayIsTheSame')
   }

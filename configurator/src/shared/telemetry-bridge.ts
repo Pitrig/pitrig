@@ -21,7 +21,8 @@ export const LINK_HEADER_BYTES = 7
 export const LINK_LOOPBACK_ADDRESS = '127.0.0.1'
 export const LINK_ANY_ADDRESS = '0.0.0.0'
 export const LINK_DEFAULT_SIMHUB_HOST = '127.0.0.1'
-export const SOURCE_IDLE_MS = 1_000
+export const LINK_KEYFRAME_INTERVAL_MS = SIMHUB_LINK.keyframeIntervalMs
+export const SOURCE_IDLE_MS = Math.round(LINK_KEYFRAME_INTERVAL_MS * 1.5)
 export const SUBSCRIBE_INTERVAL_MS = 1_000
 
 export interface TelemetryBridgeStartRequest {
@@ -44,7 +45,6 @@ export interface TelemetryBridgeMetrics {
   fieldsPerSecond: number
   packetsPerSecond: number
   lostPackets: number
-  unknownLines: number
   droppedBytes: number
   writeErrors: number
   handoff: LatencyQuantiles
@@ -64,7 +64,7 @@ export interface TelemetryBridgeStatus {
 }
 
 export interface TelemetrySnapshot {
-  revision: number
+  live: boolean
   available: Uint8Array
   numbers: Float64Array
   texts: (string | null)[]
@@ -100,7 +100,6 @@ export function emptyBridgeMetrics(): TelemetryBridgeMetrics {
     fieldsPerSecond: 0,
     packetsPerSecond: 0,
     lostPackets: 0,
-    unknownLines: 0,
     droppedBytes: 0,
     writeErrors: 0,
     handoff: emptyQuantiles(),
@@ -120,7 +119,7 @@ export function idleBridgeStatus(): TelemetryBridgeStatus {
 
 export function emptySnapshot(): TelemetrySnapshot {
   return {
-    revision: 0,
+    live: false,
     available: new Uint8Array(TELEMETRY_SLOT_COUNT),
     numbers: new Float64Array(TELEMETRY_SLOT_COUNT),
     texts: new Array<string | null>(TELEMETRY_SLOT_COUNT).fill(null)
@@ -131,7 +130,7 @@ export function valueOfSlot(snapshot: TelemetrySnapshot, slot: number): Telemetr
   const type = slotType(slot)
   if (!snapshot.available[slot]) return { available: false, type }
   const text = snapshot.texts[slot]
-  if (type === 'boolean' || type === 'text') {
+  if (type === 'text') {
     return { available: true, type, text: text ?? '' }
   }
   return {

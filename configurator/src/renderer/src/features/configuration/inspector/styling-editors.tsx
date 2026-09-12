@@ -8,7 +8,7 @@ import { Advanced, Group } from './Group'
 import { t } from '@shared/ui-text'
 import { GROUP_ICONS } from './icons'
 import { PropertyRow } from './PropertyRow'
-import { CheckboxField, ColorField, FontEditor, Hint, NumberField, NumberInput, OptionalColorField, SelectField } from './fields'
+import { CheckboxField, ColorField, FontEditor, NumberField, NumberInput, OptionalColorField, SelectField } from './fields'
 import { fieldBounds } from '@shared/validate/ranges'
 import { alignmentAnchor } from '../preview/preview-values'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -17,10 +17,15 @@ export function TitleEditor({ widget, update }: {
   widget: FramedWidgetConfiguration
   update: (mutation: (next: FramedWidgetConfiguration) => void) => void
 }): React.JSX.Element {
+  const title = widget.title
   const borderWidth = widget.border?.width_px ?? 0
   const borderGap = widget.title?.border_gap ?? true
   const anchor = alignmentAnchor(widget.title?.alignment ?? 'top_center')
   const inCorner = anchor.column !== 'center' && anchor.row !== 'middle'
+  const cutHint =
+    (widget.border?.radius_px ?? 0) > 0 && inCorner
+      ? `${t('inspector.hints.title.gap')} ${t('inspector.stylingEditors.theCutIsAStraight')}`
+      : t('inspector.hints.title.gap')
   const binding = widget.title?.source?.binding ?? ''
   const placed =
     authored(widget.title?.offset_x_px, 0) ||
@@ -38,7 +43,7 @@ export function TitleEditor({ widget, update }: {
     >
       <IconTextField label={t('modules.effectEditor.text')} capacity={WIDGET_TITLE_CAPACITY} value={widget.title?.text ?? ''} modified={authored(widget.title?.text, '')} onReset={() => update((next) => { delete next.title })} onChange={(value) => update((next) => {
         if (!value) {
-          delete next.title
+          if (next.title) delete next.title.text
           return
         }
         const font = next.title?.font?.family
@@ -52,16 +57,16 @@ export function TitleEditor({ widget, update }: {
             }
         next.title = { ...next.title, text: value, font }
       })} />
-      {widget.title?.text ? (
+      {title && (title.text || title.source?.binding) ? (
         <>
           <TelemetryBindingField label={t('inspector.stylingEditors.textFrom')} hint={t('inspector.hints.title.source')} value={binding} onReset={() => update((next) => { if (next.title) delete next.title.source })} onChange={(value) => update((next) => {
             if (!next.title) return
             if (!value) delete next.title.source
             else next.title.source = { ...next.title.source, binding: value }
           })} />
-          <FontEditor font={widget.title.font} defaultSizePx={DEFAULT_CAPTION_FONT_SIZE_PX} hint={t('inspector.hints.title.font')} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} />
-          <ColorField label={t('inspector.stylingEditors.color')} value={widget.title.color ?? '#E8E8E8'} modified={authored(widget.title.color, '#E8E8E8')} onReset={() => update((next) => { if (next.title) delete next.title.color })} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} />
-          <SelectField label={t('inspector.stylingEditors.anchor')} hint={t('inspector.hints.title.alignment')} value={widget.title.alignment ?? 'top_center'} options={TEXT_ALIGNMENT_VALUES} modified={authored(widget.title.alignment, 'top_center')} onReset={() => update((next) => { if (next.title) delete next.title.alignment })} onChange={(value) => update((next) => {
+          <FontEditor font={title.font} defaultSizePx={DEFAULT_CAPTION_FONT_SIZE_PX} hint={t('inspector.hints.title.font')} onChange={(font) => update((next) => { next.title = { ...next.title, font } })} />
+          <ColorField label={t('inspector.stylingEditors.color')} value={title.color ?? '#E8E8E8'} modified={authored(title.color, '#E8E8E8')} onReset={() => update((next) => { if (next.title) delete next.title.color })} onChange={(value) => update((next) => { next.title = { ...next.title, color: value } })} />
+          <SelectField label={t('inspector.stylingEditors.anchor')} hint={t('inspector.hints.title.alignment')} value={title.alignment ?? 'top_center'} options={TEXT_ALIGNMENT_VALUES} modified={authored(title.alignment, 'top_center')} onReset={() => update((next) => { if (next.title) delete next.title.alignment })} onChange={(value) => update((next) => {
             const title: WidgetTitleStyle = { ...next.title, alignment: value }
             if (title.alignment === 'top_center') delete title.alignment
             next.title = title
@@ -70,7 +75,7 @@ export function TitleEditor({ widget, update }: {
             <PropertyRow
               label={t('inspector.sourceEditor.offset')}
               hint={t('inspector.hints.title.offset')}
-              modified={authored(widget.title.offset_x_px, 0) || authored(widget.title.offset_y_px, 0)}
+              modified={authored(title.offset_x_px, 0) || authored(title.offset_y_px, 0)}
               onReset={() => update((next) => {
                 if (!next.title) return
                 delete next.title.offset_x_px
@@ -78,32 +83,27 @@ export function TitleEditor({ widget, update }: {
               })}
             >
               <div className="grid grid-cols-2 gap-1">
-                <NumberInput title={t('inspector.stylingEditors.xOffset')} value={widget.title.offset_x_px ?? 0} onChange={(value) => update((next) => {
+                <NumberInput title={t('inspector.stylingEditors.xOffset')} value={title.offset_x_px ?? 0} onChange={(value) => update((next) => {
                   const title: WidgetTitleStyle = { ...next.title, offset_x_px: value }
                   if (value === 0) delete title.offset_x_px
                   next.title = title
                 })} />
-                <NumberInput title={t('inspector.stylingEditors.yOffset')} value={widget.title.offset_y_px ?? 0} onChange={(value) => update((next) => { next.title = { ...next.title, offset_y_px: value } })} />
+                <NumberInput title={t('inspector.stylingEditors.yOffset')} value={title.offset_y_px ?? 0} onChange={(value) => update((next) => { next.title = { ...next.title, offset_y_px: value } })} />
               </div>
               <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>X</span><span>Y</span></div>
             </PropertyRow>
-            <CheckboxField label={t('inspector.stylingEditors.cutBorder')} hint={t('inspector.hints.title.cut')} checked={borderGap} modified={authored(widget.title.border_gap, true)} onReset={() => update((next) => { if (next.title) delete next.title.border_gap })} onChange={(checked) => update((next) => {
+            <CheckboxField label={t('inspector.stylingEditors.cutBorder')} hint={t('inspector.hints.title.cut')} checked={borderGap} modified={authored(title.border_gap, true)} onReset={() => update((next) => { if (next.title) delete next.title.border_gap })} onChange={(checked) => update((next) => {
               const title: WidgetTitleStyle = { ...next.title, border_gap: checked }
               if (checked) delete title.border_gap
               next.title = title
             })} />
             {borderWidth > 0 && borderGap ? (
-              <>
-                <NumberField label={t('inspector.stylingEditors.cutPadding')} hint={t('inspector.hints.title.gap')} suffix="px" value={widget.title.gap_padding_px ?? 4} {...fieldBounds(widget.type, 'title.gap_padding_px')} modified={authored(widget.title.gap_padding_px, 4)} onReset={() => update((next) => { if (next.title) delete next.title.gap_padding_px })} onChange={(value) => update((next) => {
-                  const padding = Math.max(0, Math.round(value))
-                  const title: WidgetTitleStyle = { ...next.title, gap_padding_px: padding }
-                  if (padding === 4) delete title.gap_padding_px
-                  next.title = title
-                })} />
-                {(widget.border?.radius_px ?? 0) > 0 && inCorner ? (
-                  <Hint>{t('inspector.stylingEditors.theCutIsAStraight')}</Hint>
-                ) : null}
-              </>
+              <NumberField label={t('inspector.stylingEditors.cutPadding')} hint={cutHint} suffix="px" value={title.gap_padding_px ?? 4} {...fieldBounds(widget.type, 'title.gap_padding_px')} modified={authored(title.gap_padding_px, 4)} onReset={() => update((next) => { if (next.title) delete next.title.gap_padding_px })} onChange={(value) => update((next) => {
+                const padding = Math.max(0, Math.round(value))
+                const style: WidgetTitleStyle = { ...next.title, gap_padding_px: padding }
+                if (padding === 4) delete style.gap_padding_px
+                next.title = style
+              })} />
             ) : null}
           </Advanced>
         </>
@@ -129,7 +129,15 @@ export function BoxEditor({ widget, update }: {
     .join(' · ')
   return (
     <Group id="Box" title={t('inspector.stylingEditors.box')} icon={GROUP_ICONS.box} summary={summary}>
-      <OptionalColorField label={t('modules.effectColors.background')} hint={t('inspector.hints.box.background')} value={widget.background_color} onChange={(value) => update((next) => { if (value) next.background_color = value; else delete next.background_color })} />
+      <OptionalColorField label={t('modules.effectColors.background')} hint={t('inspector.hints.box.background')} value={widget.background_color} onChange={(value) => update((next) => {
+        if (value) {
+          next.background_color = value
+          return
+        }
+        delete next.background_color
+        delete next.background_grad_color
+        delete next.background_grad_dir
+      })} />
       <PropertyRow
         label={t('inspector.conditionsEditor.border')}
         hint={t('inspector.stylingEditors.borderRadius', { border: t('inspector.hints.box.border'), radius: t('inspector.hints.box.radius') })}

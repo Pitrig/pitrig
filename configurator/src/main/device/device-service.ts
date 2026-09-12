@@ -1,6 +1,7 @@
 import { type SerialTrafficLog } from '../../shared/serial-traffic'
 import { controlCommandRefusal, type ControlCommandValue } from '../../shared/control-command'
 import type {
+  DeviceConnection,
   DeviceConfigurationResetResult,
   DeviceConfigurationApplyResult,
   DeviceConfigurationSaveResult,
@@ -136,7 +137,7 @@ export class DeviceService {
   writeTelemetry(text: string | Uint8Array, onWritten?: (error?: Error) => void): boolean {
     const port = this.connection.port
     if (!port?.isOpen) {
-      onWritten?.(new Error('The serial port is closed.'))
+      onWritten?.(new Error(t('device.serialRequest.theSerialPortIsClosed')))
       return false
     }
     return port.write(text, (error) => onWritten?.(error ?? undefined))
@@ -247,6 +248,10 @@ export class DeviceService {
 
   async runPipeline<T>(work: () => Promise<T>): Promise<T> {
     return this.runner.runPipeline(work)
+  }
+
+  async reconnect(connection: DeviceConnection): Promise<DeviceResult<DeviceState>> {
+    return this.connection.reconnect(connection)
   }
 
   async rebootAndReconnect(): Promise<DeviceResult<DeviceState>> {

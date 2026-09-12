@@ -1,3 +1,5 @@
+import { memo } from 'react'
+
 import type { DeviceConfiguration } from '@shared/device'
 import { isContainer } from '@shared/configuration-access'
 import {
@@ -18,7 +20,7 @@ import type { PreviewValues } from './preview-values'
 import { HitArea } from './CanvasOverlays'
 import { WidgetBody } from './WidgetBody'
 
-export function CanvasWidgetLayer({
+export const CanvasWidgetLayer = memo(function CanvasWidgetLayer({
   layer,
   layerIndex,
   configuration,
@@ -117,4 +119,4 @@ export function CanvasWidgetLayer({
       )}
     </g>
   )
-}
+})

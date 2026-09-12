@@ -9,8 +9,8 @@ import {
   type CanvasContext,
   type Feedback,
   type Modifiers,
-  MINIMUM_DRAWN_PX,
-  drawnBox
+  drawnBox,
+  minimumDrawnSize
 } from './canvas-gesture-context'
 import { dropTargetFor, excludedFrom, preferences, snapField } from './gesture-fields'
 
@@ -102,6 +102,7 @@ export function commitResize(
 }
 
 export function drawLevel(context: CanvasContext, pending: Draw): string | undefined {
+  if (pending.tool === 'slot') return undefined
   const box = drawnBox(pending.start, pending.current)
   if (box.width < 1 || box.height < 1) return context.drillIn
   return containerAt(context.layers, context.placements, box, new Set(), context.locked, context.hidden)
@@ -109,12 +110,16 @@ export function drawLevel(context: CanvasContext, pending: Draw): string | undef
 
 export function finishDraw(context: CanvasContext, pending: Draw): void {
   const box = drawnBox(pending.start, pending.current)
+  const minimum = minimumDrawnSize(pending.tool)
   const drawn =
-    box.width >= MINIMUM_DRAWN_PX && box.height >= MINIMUM_DRAWN_PX
+    box.width >= minimum.width && box.height >= minimum.height
       ? box
       : defaultToolBox(pending.tool, pending.start, context.display)
   const into =
-    containerAt(context.layers, context.placements, drawn, new Set(), context.locked, context.hidden) ?? 'screen'
+    pending.tool === 'slot'
+      ? 'screen'
+      : (containerAt(context.layers, context.placements, drawn, new Set(), context.locked, context.hidden) ??
+        'screen')
   const added = createWidget(pending.tool, context.display, { placement: drawn, into })
   if (added) context.select(added)
   context.setActiveTool('select')
@@ -123,17 +128,20 @@ export function finishDraw(context: CanvasContext, pending: Draw): void {
 export function settleDropAfterMove(
   context: CanvasContext,
   interaction: Interaction,
-  event: { metaKey: boolean; ctrlKey: boolean }
+  event: { metaKey: boolean; ctrlKey: boolean; button: number },
+  moved: boolean
 ): void {
+  if (!moved || event.button === 2) return
   if (interaction.mode !== 'move' || interaction.target.type !== 'widget') return
+  if (interaction.followers.length > 0) return
   if (event.metaKey || event.ctrlKey) return
-  const moved = interaction.target.id
+  const movedId = interaction.target.id
   const draft = useDeviceStore.getState().draft
-  const box = absolutePlacement(draft, moved)
+  const box = absolutePlacement(draft, movedId)
   const landing = dropTargetFor(
     context,
     box,
-    excludedFrom(moved, interaction.followers),
+    excludedFrom(movedId, interaction.followers),
     interaction.followers.length
   )
   const parent = parentContainerId(draft, interaction.target)
@@ -142,6 +150,6 @@ export function settleDropAfterMove(
     landing === undefined && box !== undefined && parentBox !== undefined &&
     intersects(box, parentBox)
   if (!overhangs && landing !== parent) {
-    moveWidgetInto(moved, landing)
+    moveWidgetInto(movedId, landing)
   }
 }

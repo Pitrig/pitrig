@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { AssetUploadProgress } from '@shared/asset-upload'
+import { createUploadOperationStore } from '@/lib/upload-operation-store'
 import type { ImageColorFormat, ImageSourceSelection } from '@shared/image-assets'
 
 export interface ImageEntry {
@@ -15,19 +15,12 @@ export interface ImageEntry {
 
 interface ImageAssetsStore {
   entries: ImageEntry[]
-  progress?: AssetUploadProgress
-  error?: string
-  operationStartedAt?: number
   addEntry: (source: ImageSourceSelection) => void
   updateEntry: (id: string, patch: Partial<Omit<ImageEntry, 'id' | 'sources'>>) => void
   resizeEntry: (id: string, side: 'width' | 'height', value: number) => void
   removeEntry: (id: string) => void
   addFrame: (id: string, source: ImageSourceSelection) => void
   removeFrame: (id: string, sourceId: string) => void
-  setProgress: (progress?: AssetUploadProgress) => void
-  setError: (error?: string) => void
-  beginOperation: () => void
-  endOperation: () => void
 }
 
 function suggestedName(fileName: string): string {
@@ -38,6 +31,8 @@ function suggestedName(fileName: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, 31)
 }
+
+export const useImageUploadStore = createUploadOperationStore()
 
 export const useImageAssetsStore = create<ImageAssetsStore>((set) => ({
   entries: [],
@@ -95,9 +90,5 @@ export const useImageAssetsStore = create<ImageAssetsStore>((set) => ({
         const sources = entry.sources.filter((source) => source.id !== sourceId)
         return sources.length === 0 ? [] : [{ ...entry, sources }]
       })
-    })),
-  setProgress: (progress) => set({ progress }),
-  setError: (error) => set({ error }),
-  beginOperation: () => set({ operationStartedAt: Date.now(), error: undefined }),
-  endOperation: () => set({ operationStartedAt: undefined })
+    }))
 }))

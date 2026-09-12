@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Maximize2, Minus, Plus, Scan } from 'lucide-react'
 
 import type { DisplayDescriptor } from '@shared/device'
@@ -20,9 +21,16 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
   const box =
     selection?.type === 'widget' ? absolutePlacement(configuration, selection.id) : undefined
 
+  const [zoomDraft, setZoomDraft] = useState<string>()
+
   const zoomTo = (zoom: number): void => {
     const next = clamp(zoom, MINIMUM_ZOOM, MAXIMUM_ZOOM)
     setView({ zoom: next, ...clampPan(view, display, next) })
+  }
+  const commitZoom = (): void => {
+    const percent = zoomDraft === undefined ? Number.NaN : Number(zoomDraft)
+    if (Number.isFinite(percent) && percent > 0) zoomTo(percent / 100)
+    setZoomDraft(undefined)
   }
 
   return (
@@ -37,9 +45,14 @@ export function CanvasStatusBar({ display }: { display: DisplayDescriptor }): Re
           min={Math.round(MINIMUM_ZOOM * 100)}
           max={Math.round(MAXIMUM_ZOOM * 100)}
           step={5}
-          value={Math.round(view.zoom * 100)}
+          value={zoomDraft ?? Math.round(view.zoom * 100)}
           className="h-6 w-14 rounded-md border bg-transparent px-1 text-right"
-          onChange={(event) => zoomTo((Number(event.target.value) || 100) / 100)}
+          onChange={(event) => setZoomDraft(event.target.value)}
+          onBlur={commitZoom}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') commitZoom()
+            if (event.key === 'Escape') setZoomDraft(undefined)
+          }}
         />
         <span>%</span>
         <IconButton title={t('canvas.canvasStatusBar.zoomIn')} onClick={() => zoomTo(view.zoom * 1.25)}>

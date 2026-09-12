@@ -6,7 +6,7 @@ import {
   type DeviceState
 } from '../../shared/device'
 import { DeviceServiceError, failure, toDeviceError } from './device-errors'
-import { isBluetoothPort, serialIdentity, type PortRecord } from './port-registry'
+import { serialIdentity, type PortRecord } from './port-registry'
 import { closePort } from './serial-port-lifecycle'
 import type { ConnectionManager } from './device-connection'
 import { t } from '@shared/ui-text'
@@ -22,7 +22,9 @@ export async function scanForDevice(
 ): Promise<Match> {
   const records = await connection.refreshPortRegistry()
   connection.ensureCurrent(token)
-  const candidates = records.filter(({ likelyUsb, path }) => likelyUsb && !isBluetoothPort(path))
+  const candidates = records
+    .filter(({ likelyUsb, bluetooth }) => likelyUsb && !bluetooth)
+    .sort((left, right) => left.scanPriority - right.scanPriority)
   if (candidates.length === 0) {
     throw new DeviceServiceError('no_device', t('device.deviceScan.noUsbSerialPortsWere'))
   }
@@ -47,7 +49,7 @@ export async function scanForDevice(
       })
 
       try {
-        const opened = await connection.openAndProbe(record, baudRate, token)
+        const opened = await connection.openAndIdentify(record, baudRate, token)
         await closePort(opened.port)
         opened.traffic.flush()
         matches.push({ record, baudRate })
@@ -105,8 +107,22 @@ export async function reconnectToBoard(
   manager: ConnectionManager,
   connection: DeviceConnection
 ): Promise<DeviceResult<DeviceState>> {
+  const token = manager.startOperation()
   manager.setState({ status: 'connecting' })
+  try {
+    return await attemptReconnect(manager, connection, token)
+  } catch (error) {
+    return failure(toDeviceError(error))
+  }
+}
+
+async function attemptReconnect(
+  manager: ConnectionManager,
+  connection: DeviceConnection,
+  token: number
+): Promise<DeviceResult<DeviceState>> {
   await delay(RECONNECT_SETTLE_MS)
+  manager.ensureCurrent(token)
 
   const wanted = serialIdentity(connection.path)
   const deadline = Date.now() + RECONNECT_TIMEOUT_MS
@@ -120,14 +136,23 @@ export async function reconnectToBoard(
     } catch {
       record = undefined
     }
+    manager.ensureCurrent(token)
     if (!record) {
       await delay(RECONNECT_POLL_MS)
+      manager.ensureCurrent(token)
       continue
     }
     attempts += 1
-    const connected = await manager.openConnection(record.summary.id, connection.baudRate, true)
+    const connected = await manager.openWithToken(
+      record.summary.id,
+      connection.baudRate,
+      true,
+      token
+    )
     if (connected.ok) return connected
+    manager.ensureCurrent(token)
     await delay(RECONNECT_RETRY_MS)
+    manager.ensureCurrent(token)
   }
   const error: DeviceError = {
     code: 'port_missing',

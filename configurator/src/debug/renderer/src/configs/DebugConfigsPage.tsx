@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { PageShell } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
 import { writeEventLog } from '@/lib/event-log'
+import { useDebugConfigsStore } from './debug-configs-store'
 import { documentJson } from '@shared/configuration-documents'
 import {
   CONFIGURATION_DOCUMENT_IDS,
@@ -16,8 +17,11 @@ type Action = 'read' | 'apply' | 'save' | 'reset'
 export function DebugConfigsPage(): React.JSX.Element {
   const connected = useDeviceStore((state) => state.status === 'connected')
   const active = useDeviceStore((state) => state.activeConfiguration)
-  const [document, setDocument] = useState<ConfigurationDocumentId>('dashboard')
-  const [edited, setEdited] = useState<string>()
+  const document = useDebugConfigsStore((state) => state.document)
+  const edited = useDebugConfigsStore((state) => state.edited)
+  const selectDocument = useDebugConfigsStore((state) => state.selectDocument)
+  const setEdited = useDebugConfigsStore((state) => state.setEdited)
+  const clearEdited = useDebugConfigsStore((state) => state.clearEdited)
   const [busy, setBusy] = useState<Action>()
   const [note, setNote] = useState<string>()
 
@@ -28,9 +32,8 @@ export function DebugConfigsPage(): React.JSX.Element {
   const text = edited ?? onBoard
   const dirty = edited !== undefined && edited !== onBoard
 
-  function selectDocument(id: ConfigurationDocumentId): void {
-    setDocument(id)
-    setEdited(undefined)
+  function select(id: ConfigurationDocumentId): void {
+    selectDocument(id)
     setNote(undefined)
   }
 
@@ -41,23 +44,29 @@ export function DebugConfigsPage(): React.JSX.Element {
       if (action === 'read') {
         const result = await window.pitrig.readDeviceConfiguration()
         setNote(result.ok ? 'Read from the board.' : result.error.message)
-        if (result.ok) setEdited(undefined)
+        if (result.ok) clearEdited()
       } else if (action === 'reset') {
         const result = await window.pitrig.resetDeviceConfiguration({ document })
-        setNote(result.ok ? `Reset ${document} to its factory payload.` : result.error.message)
-        if (result.ok) setEdited(undefined)
+        if (!result.ok) setNote(result.error.message)
+        else {
+          clearEdited()
+          const reread = await window.pitrig.readDeviceConfiguration()
+          setNote(
+            reread.ok
+              ? `Reset ${document} to its factory payload.`
+              : `Reset ${document}, but reading it back failed: ${reread.error.message}`
+          )
+        }
       } else {
         const request = { json: JSON.stringify(JSON.parse(text)), documents: [document] }
-        const result =
-          action === 'apply'
-            ? await window.pitrig.applyDeviceConfiguration(request)
-            : await window.pitrig.saveDeviceConfiguration(request)
-        setNote(
-          result.ok
-            ? `${action === 'apply' ? 'Applied' : 'Saved'} ${document}.`
-            : result.error.message
-        )
-        if (result.ok && action === 'save') setEdited(undefined)
+        if (action === 'apply') {
+          const result = await window.pitrig.applyDeviceConfiguration(request)
+          setNote(result.ok ? appliedNote(document, result.value.documents) : result.error.message)
+        } else {
+          const result = await window.pitrig.saveDeviceConfiguration(request)
+          setNote(result.ok ? `Saved ${document}.` : result.error.message)
+          if (result.ok) clearEdited()
+        }
       }
       writeEventLog(`Debugger configs: ${action} ${document}`)
     } catch (error) {
@@ -80,7 +89,7 @@ export function DebugConfigsPage(): React.JSX.Element {
             <Button
               key={id}
               variant={id === document ? 'default' : 'outline'}
-              onClick={() => selectDocument(id)}
+              onClick={() => select(id)}
             >
               {t(`documents.label.${id}`)}
             </Button>
@@ -113,4 +122,13 @@ export function DebugConfigsPage(): React.JSX.Element {
       </div>
     </PageShell>
   )
+}
+
+function appliedNote(
+  document: ConfigurationDocumentId,
+  applied: readonly ConfigurationDocumentId[]
+): string {
+  return applied.includes(document)
+    ? `Applied ${document}.`
+    : `Nothing was sent — ${document} reaches the board only through Save and a restart.`
 }

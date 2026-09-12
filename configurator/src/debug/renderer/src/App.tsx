@@ -10,7 +10,6 @@ import { SubTabs, type SubTab } from '@/app/workspace/SubTabs'
 import { DeviceConnection } from '@/features/device/DeviceConnection'
 import { SafeModeBanner } from '@/features/device/SafeModeBanner'
 import { useAppInfo } from '@/features/device/app-info'
-import { useDeviceStore } from '@/features/device/device-store'
 import { FirmwarePage } from '@/features/firmware-update/FirmwarePage'
 
 type DebugTab = 'debug' | 'firmware' | 'configs'
@@ -25,7 +24,6 @@ export function App(): React.JSX.Element {
   const [deviceStatusText, setDeviceStatusText] = useState<string>()
   const [tab, setTab] = useState<DebugTab>('debug')
   const appInfo = useAppInfo()
-  const connectionRevision = useDeviceStore((state) => state.connectionRevision)
 
   useEffect(() => subscribeToBench(), [])
   useSerialTraffic()
@@ -44,7 +42,7 @@ export function App(): React.JSX.Element {
 
       <main className="flex min-h-0 min-w-0 flex-col overflow-hidden">
         <SubTabs label="Debugger pages" tabs={TABS} value={tab} onChange={setTab} />
-        <DebugPage key={`${tab}-${connectionRevision}`} tab={tab} />
+        <DebugPage key={tab} tab={tab} />
       </main>
 
       <footer className="flex min-w-0 items-center justify-between gap-4 border-t px-5 text-xs text-muted-foreground">

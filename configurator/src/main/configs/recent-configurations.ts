@@ -1,10 +1,11 @@
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, stat } from 'node:fs/promises'
 import { basename, dirname } from 'node:path'
 
 import {
   MAXIMUM_RECENT_CONFIGURATIONS,
   type RecentConfigurationEntry
 } from '../../shared/config-library'
+import { writeFileAtomic } from '../write-file-atomic'
 
 interface StoredEntry {
   path: string
@@ -52,7 +53,7 @@ export class RecentConfigurations {
   private async write(entries: StoredEntry[]): Promise<void> {
     try {
       await mkdir(dirname(this.storePath), { recursive: true })
-      await writeFile(this.storePath, `${JSON.stringify(entries, null, 2)}\n`, 'utf8')
+      await writeFileAtomic(this.storePath, `${JSON.stringify(entries, null, 2)}\n`)
     } catch {
     }
   }

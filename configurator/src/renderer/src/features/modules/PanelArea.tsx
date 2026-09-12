@@ -108,7 +108,7 @@ export function PanelAreaField({
                   key={pixel}
                   type="button"
                   aria-pressed={lit}
-                  aria-label={`Pixel ${x + 1}, ${y + 1}`}
+                  aria-label={t('modules.spriteCanvas.pixelXY', { x: x + 1, y: y + 1 })}
                   disabled={kept}
                   title={kept ? t('modules.panelArea.aLayerKeepsAtLeast') : undefined}
                   className={`rounded-sm ${lit ? 'bg-sky-400/80 hover:bg-sky-300' : 'bg-white/10 hover:bg-white/25'}`}

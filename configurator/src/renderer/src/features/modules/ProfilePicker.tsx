@@ -5,20 +5,23 @@ import { MAXIMUM_LED_EFFECTS, type HardwareDeviceConfiguration } from '@shared/c
 import { drawnSize, isMatrix, lampsOf, segmentBoundsOf, shapeOf } from '@shared/led-render'
 import { Hint, NumberInput } from '@/features/configuration/inspector/fields'
 import { AddButton } from '@/features/configuration/inspector/widget-editors'
-import { addProfile, mutateEffects } from './modules-document'
+import { addProfile, mutateEffects, profileFits } from './modules-document'
 import { useModulesStore } from './modules-store'
 import { LED_PROFILES, type LampRange, type LedProfile } from './profiles'
 import { t } from '@shared/ui-text'
 
 const CUSTOM_LAYER = { type: 'solid', color: '#38BDF8' } as const
 
-export function ProfilePicker({
-  output,
-  device
-}: {
+interface PickerProps {
   output: number
   device: HardwareDeviceConfiguration
-}): React.JSX.Element {
+}
+
+export function ProfilePicker(props: PickerProps): React.JSX.Element {
+  return <Picker key={props.output} {...props} />
+}
+
+function Picker({ output, device }: PickerProps): React.JSX.Element {
   const [open, setOpen] = useState(false)
   const [chosen, setChosen] = useState<LedProfile | null>(null)
   const [from, setFrom] = useState(0)
@@ -92,8 +95,9 @@ export function ProfilePicker({
       {chosen === null ? (
         <div className="grid grid-cols-2 gap-1">
           {LED_PROFILES.filter((profile) => panel !== undefined || !profile.panelOnly).map((profile) => {
-            const layers = profile.build({ from: 0, count: 0 }, lamps, panel).effects.length
-            const fits = used + layers <= MAXIMUM_LED_EFFECTS
+            const parts = profile.build({ from: 0, count: 0 }, lamps, panel)
+            const fits =
+              used + parts.effects.length <= MAXIMUM_LED_EFFECTS && profileFits(device, parts)
             return (
               <button
                 key={profile.id}
@@ -167,7 +171,11 @@ export function ProfilePicker({
                     highlight(run.start, run.end)
                   }}
                 >
-                  {`Run ${index + 1} · ${run.start + 1}–${run.end + 1}`}
+                  {t('modules.profilePicker.runNumberRange', {
+                    number: index + 1,
+                    from: run.start + 1,
+                    to: run.end + 1
+                  })}
                 </button>
               ))}
             </div>

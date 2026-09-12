@@ -7,19 +7,11 @@ import type {
   BenchUpdateRequest
 } from './bench'
 import type { ControlCommandRequest, ControlCommandResult } from '@shared/control-command'
-import type {
-  FirmwareRegisterSourceRequest,
-  FirmwareSourceSelection,
-  FirmwareUpdateResult
-} from '@shared/firmware-update'
 import type { PitrigApi } from '@shared/ipc'
 import type { SerialTrafficLog } from '@shared/serial-traffic'
 
 export interface PitrigDebugApi extends PitrigApi {
   sendControlCommand: (request: ControlCommandRequest) => Promise<ControlCommandResult>
-  registerFirmwareSource: (
-    request: FirmwareRegisterSourceRequest
-  ) => Promise<FirmwareUpdateResult<FirmwareSourceSelection>>
   getBenchStatus: () => Promise<BenchStatus>
   startBench: (request: BenchStartRequest) => Promise<BenchResult<BenchStatus>>
   updateBench: (request: BenchUpdateRequest) => Promise<BenchResult<BenchStatus>>

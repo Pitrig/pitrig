@@ -8,6 +8,7 @@ import {
   OFF,
   type MatrixShape
 } from '@shared/led-render'
+import { t } from '@shared/ui-text'
 import type { HardwareDeviceConfiguration, RgbColor } from '@shared/configuration-schema'
 
 const LAMP = 14
@@ -111,7 +112,7 @@ export function DevicePreview({
             <Lamp
               key={`${x}-${y}`}
               color={at(lamp)}
-              title={`lamp ${lamp + 1}`}
+              title={t('modules.devicePreview.lampNumber', { number: lamp + 1 })}
               marked={marked(lamp)}
             />
           ))
@@ -127,7 +128,7 @@ export function DevicePreview({
             <span key={place.lamp} className="absolute" style={place.style}>
               <Lamp
                 color={at(place.lamp)}
-                title={`lamp ${place.lamp + 1}`}
+                title={t('modules.devicePreview.lampNumber', { number: place.lamp + 1 })}
                 marked={marked(place.lamp)}
               />
             </span>
@@ -142,7 +143,7 @@ export function DevicePreview({
       style={{ gap: GAP, maxWidth: `min(100%, ${CELL * 32}px)` }}
     >
       {Array.from({ length: count ?? 1 }, (_, lamp) => (
-        <Lamp key={lamp} color={at(lamp)} title={`lamp ${lamp + 1}`} marked={marked(lamp)} />
+        <Lamp key={lamp} color={at(lamp)} title={t('modules.devicePreview.lampNumber', { number: lamp + 1 })} marked={marked(lamp)} />
       ))}
     </div>
   )

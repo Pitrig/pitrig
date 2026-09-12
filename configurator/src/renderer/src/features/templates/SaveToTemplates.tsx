@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { ModalDialog } from '@/components/ui/modal-dialog'
 import {
   absolutePlacement,
   selectedWidget,
@@ -96,19 +97,12 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
-      role="presentation"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) onClose()
-      }}
+    <ModalDialog
+      label={t('templates.dashboardSection.saveToTemplates')}
+      className="w-[34rem] space-y-3 p-4"
+      dismissible={!busy}
+      onClose={onClose}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('templates.dashboardSection.saveToTemplates')}
-        className="w-[34rem] space-y-3 rounded-lg border bg-background p-4 text-xs shadow-lg"
-      >
         <h2 className="text-sm font-semibold text-foreground">{t('templates.dashboardSection.saveToTemplates')}</h2>
 
         <div className="flex gap-3">
@@ -123,7 +117,6 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
             <label className="block space-y-1 text-muted-foreground">
               <span>{t('device.infoPage.name')}</span>
               <input
-                autoFocus
                 className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
                 disabled={busy}
                 maxLength={MAXIMUM_TEMPLATE_NAME}
@@ -152,7 +145,15 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
             </label>
             <p className="text-muted-foreground">
               {kind === 'widget'
-                ? `The selected widget${widget && countsAsGroup(widget) ? ' and everything inside it' : ''} goes to the widget library, at ${box?.width} × ${box?.height}.`
+                ? widget && countsAsGroup(widget)
+                  ? t('templates.saveToTemplates.theSelectedWidgetAndEverything', {
+                      width: box?.width ?? 0,
+                      height: box?.height ?? 0
+                    })
+                  : t('templates.saveToTemplates.theSelectedWidgetGoesTo', {
+                      width: box?.width ?? 0,
+                      height: box?.height ?? 0
+                    })
                 : t('templates.saveToTemplates.theWholeDashboardGoesTo', { draft: screenSummary(draft) })}
             </p>
           </div>
@@ -170,8 +171,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
             {busy ? t('device.saveToBoardUi.saving') : t('common.save')}
           </Button>
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   )
 }
 

@@ -20,7 +20,7 @@ export function SaturationSquare({
         height: SQUARE_HEIGHT_PX,
         backgroundImage: `linear-gradient(to top, #000, rgba(0,0,0,0)), linear-gradient(to right, #fff, hsl(${hue} 100% 50%))`
       }}
-      onPointerDown={track((x, y) => onChange(x, 1 - y))}
+      {...track((x, y) => onChange(x, 1 - y))}
     >
       <span
         aria-hidden
@@ -45,7 +45,7 @@ export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: numb
         backgroundImage:
           'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)'
       }}
-      onPointerDown={track((x) => onChange(x * 359))}
+      {...track((x) => onChange(x * 359))}
       onKeyDown={(event) => {
         if (event.key === 'ArrowLeft') onChange(Math.max(0, hue - 2))
         else if (event.key === 'ArrowRight') onChange(Math.min(359, hue + 2))
@@ -60,24 +60,37 @@ export function HueSlider({ hue, onChange }: { hue: number; onChange: (hue: numb
   )
 }
 
-function track(
-  report: (x: number, y: number) => void
-): (event: React.PointerEvent<HTMLElement>) => void {
-  return (event) => {
-    event.preventDefault()
-    const rect = event.currentTarget.getBoundingClientRect()
-    const at = (clientX: number, clientY: number): void =>
-      report(
-        clamp((clientX - rect.left) / rect.width, 0, 1),
-        clamp((clientY - rect.top) / rect.height, 0, 1)
-      )
-    at(event.clientX, event.clientY)
-    const move = (moved: PointerEvent): void => at(moved.clientX, moved.clientY)
-    const release = (): void => {
-      window.removeEventListener('pointermove', move)
-      window.removeEventListener('pointerup', release)
+interface TrackHandlers {
+  onPointerDown: (event: React.PointerEvent<HTMLElement>) => void
+  onPointerMove: (event: React.PointerEvent<HTMLElement>) => void
+  onPointerUp: (event: React.PointerEvent<HTMLElement>) => void
+  onPointerCancel: (event: React.PointerEvent<HTMLElement>) => void
+}
+
+function track(report: (x: number, y: number) => void): TrackHandlers {
+  const at = (element: HTMLElement, clientX: number, clientY: number): void => {
+    const rect = element.getBoundingClientRect()
+    report(
+      clamp((clientX - rect.left) / rect.width, 0, 1),
+      clamp((clientY - rect.top) / rect.height, 0, 1)
+    )
+  }
+  const release = (event: React.PointerEvent<HTMLElement>): void => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
     }
-    window.addEventListener('pointermove', move)
-    window.addEventListener('pointerup', release)
+  }
+  return {
+    onPointerDown: (event) => {
+      event.preventDefault()
+      event.currentTarget.setPointerCapture(event.pointerId)
+      at(event.currentTarget, event.clientX, event.clientY)
+    },
+    onPointerMove: (event) => {
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) return
+      at(event.currentTarget, event.clientX, event.clientY)
+    },
+    onPointerUp: release,
+    onPointerCancel: release
   }
 }

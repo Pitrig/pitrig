@@ -15,6 +15,8 @@ import { t } from '@shared/ui-text'
 
 export const FACE_EXTENSION = '.ttf'
 
+const LEGACY_FONT_LIBRARY_FORMAT = 'simcore-font-library'
+
 const SFNT_SIGNATURES = [0x00010000, 0x4f54544f, 0x74727565, 0x74746366] as const
 
 export interface StoredEntry {
@@ -42,11 +44,17 @@ export async function readFaceFile(path: string): Promise<Uint8Array | undefined
   }
 }
 
-export function faceProblem(bytes: Uint8Array): string | undefined {
-  if (bytes.byteLength < MINIMUM_FACE_SIZE) return 'That file is too small to be a font face.'
-  if (bytes.byteLength > MAXIMUM_FACE_SIZE) {
-    return 'That face is larger than the whole 2 MiB font partition.'
+export function faceSizeProblem(byteLength: number): string | undefined {
+  if (byteLength < MINIMUM_FACE_SIZE) return t('fonts.fontLibraryFiles.thatFileIsTooSmall')
+  if (byteLength > MAXIMUM_FACE_SIZE) {
+    return t('fonts.fontLibraryFiles.thatFaceIsLargerThan')
   }
+  return undefined
+}
+
+export function faceProblem(bytes: Uint8Array): string | undefined {
+  const size = faceSizeProblem(bytes.byteLength)
+  if (size) return size
   const signature = new DataView(bytes.buffer, bytes.byteOffset, 4).getUint32(0, false)
   return SFNT_SIGNATURES.some((candidate) => candidate === signature)
     ? undefined
@@ -79,7 +87,9 @@ const WEIGHT_NAMES: Readonly<Record<string, string>> = {
 export function parseIndex(value: unknown): StoredIndex {
   if (typeof value !== 'object' || value === null) throw new Error(t('fonts.fontLibraryFiles.notAnObject'))
   const record = value as Record<string, unknown>
-  if (record.format !== FONT_LIBRARY_FORMAT) throw new Error(t('fonts.fontLibraryFiles.notAFontLibrary'))
+  if (record.format !== FONT_LIBRARY_FORMAT && record.format !== LEGACY_FONT_LIBRARY_FORMAT) {
+    throw new Error(t('fonts.fontLibraryFiles.notAFontLibrary'))
+  }
   const entries = Array.isArray(record.entries) ? record.entries : []
   return {
     format: FONT_LIBRARY_FORMAT,

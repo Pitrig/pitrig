@@ -60,8 +60,8 @@ export function SlotPagesEditor({
         {pages.length > 1 ? (
           <button
             type="button"
-            aria-label={`Delete page ${current + 1}`}
-            title={`Delete page ${current + 1}`}
+            aria-label={t('inspector.slotPagesEditor.deletePageNumber', { number: current + 1 })}
+            title={t('inspector.slotPagesEditor.deletePageNumber', { number: current + 1 })}
             className="flex size-7 items-center justify-center rounded-md border text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={() => deleteSlotPage(slotId, current)}
           >
@@ -97,7 +97,7 @@ export function SlotPagesEditor({
             hint={t('inspector.hints.slot.trigger')}
             value={trigger}
             options={SLOT_TRIGGER_VALUES}
-            modified={page.trigger !== undefined}
+            modified={authored(page.trigger, 'none')}
             onReset={() =>
               change((next) => {
                 delete next.trigger
@@ -159,7 +159,7 @@ export function SlotPagesEditor({
                   {(page.conditions ?? []).map((rule, index) => (
                     <PropertyRow
                       key={index}
-                      label={`Rule ${index + 1}`}
+                      label={t('inspector.conditionsEditor.ruleNumber', { number: index + 1 })}
                       modified={authored(rule.op, 'at_or_above') || authored(rule.value, 0)}
                       onReset={() =>
                         change((next) => {
@@ -198,7 +198,7 @@ export function SlotPagesEditor({
                         />
                         <button
                           type="button"
-                          aria-label={`Remove rule ${index + 1}`}
+                          aria-label={t('inspector.conditionsEditor.removeRuleNumber', { number: index + 1 })}
                           title={t('inspector.conditionsEditor.removeThisRule')}
                           className="flex-none rounded-md border p-1.5 text-muted-foreground hover:text-foreground disabled:opacity-40"
                           disabled={(page.conditions ?? []).length <= 1}

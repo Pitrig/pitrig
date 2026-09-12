@@ -4,7 +4,7 @@ import { ICON_FAMILY } from '@shared/icon-glyphs'
 interface FontFaceState {
   loaded: Readonly<Record<string, boolean>>
   ensureFaces: (ids: readonly string[]) => Promise<void>
-  invalidate: () => Promise<void>
+  invalidate: (ids: readonly string[]) => void
 }
 
 export function catalogFontFamily(id: string): string {
@@ -45,9 +45,13 @@ async function register(cssFamily: string, key: string, bytes: Uint8Array, unico
   }
 }
 
-function withdrawAll(): void {
-  for (const face of registered.values()) document.fonts.delete(face)
-  registered.clear()
+function withdraw(id: string): void {
+  for (const key of [id, `glyphs:${id}`]) {
+    const face = registered.get(key)
+    if (!face) continue
+    document.fonts.delete(face)
+    registered.delete(key)
+  }
 }
 
 export const useFontFaceStore = create<FontFaceState>((set, get) => ({
@@ -67,8 +71,14 @@ export const useFontFaceStore = create<FontFaceState>((set, get) => ({
     if (Object.keys(added).length === 0) return
     set((state) => ({ loaded: { ...state.loaded, ...added } }))
   },
-  invalidate: async () => {
-    withdrawAll()
-    set({ loaded: {} })
+  invalidate: (ids) => {
+    const dropped = [...new Set(ids)].filter((id) => id)
+    if (dropped.length === 0) return
+    for (const id of dropped) withdraw(id)
+    set((state) => {
+      const loaded = { ...state.loaded }
+      for (const id of dropped) delete loaded[id]
+      return { loaded }
+    })
   }
 }))

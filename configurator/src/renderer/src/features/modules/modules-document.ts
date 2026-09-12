@@ -1,9 +1,11 @@
 import {
+  CONFIGURATION_DOCUMENTS,
   MAXIMUM_HARDWARE_DEVICES,
   MAXIMUM_LED_SPRITES,
   type HardwareDeviceConfiguration,
   type HardwareDeviceType,
-  type LedEffect
+  type LedEffect,
+  type LedSpriteConfiguration
 } from '@shared/configuration-schema'
 import type { ProfileParts } from './profile-types'
 import {
@@ -11,6 +13,7 @@ import {
   type DeviceConfiguration,
   type PitrigBoardId
 } from '@shared/device'
+import { documentPayloadBytes } from '@shared/configuration-documents'
 import {
   deviceShape,
   drawnSize,
@@ -19,7 +22,10 @@ import {
   readMask,
   writeMask
 } from '@shared/led-render'
+import { useDeviceStore } from '@/features/device/device-store'
 import { mutateDraftConfiguration } from '@/features/configuration/dashboard-editor'
+
+const MODULES_PAYLOAD_LIMIT = CONFIGURATION_DOCUMENTS.modules.maxPayload
 
 export interface DrawnSize {
   width: number
@@ -148,11 +154,23 @@ export function mutateDevice(
 ): void {
   mutateDevices((devices) => {
     const device = devices[index]
-    if (!device) return
-    const next = structuredClone(device)
-    mutation(next)
-    devices[index] = next
+    if (device) mutation(device)
   })
+}
+
+export function growDevice(
+  index: number,
+  mutation: (device: HardwareDeviceConfiguration) => void
+): boolean {
+  const store = useDeviceStore.getState()
+  if (!store.draft) return false
+  const next = structuredClone(store.draft)
+  const device = (next.hardware ?? [])[index]
+  if (!device) return false
+  mutation(device)
+  if (documentPayloadBytes(next, 'modules') > MODULES_PAYLOAD_LIMIT) return false
+  store.setDraft(next)
+  return true
 }
 
 export function maximumOutputsOf(draft: DeviceConfiguration | undefined): number {
@@ -160,10 +178,6 @@ export function maximumOutputsOf(draft: DeviceConfiguration | undefined): number
     ? BOARD_PROFILES[draft.board as PitrigBoardId]?.led.outputs
     : undefined
   return Math.min(outputs ?? MAXIMUM_HARDWARE_DEVICES, MAXIMUM_HARDWARE_DEVICES)
-}
-
-export function canAddDevice(draft: DeviceConfiguration | undefined): boolean {
-  return devicesOf(draft).length < maximumOutputsOf(draft) && freePins(draft, -1).length > 0
 }
 
 export function addDevice(
@@ -200,15 +214,27 @@ export function mutateEffects(
   })
 }
 
+function missingSprites(
+  device: HardwareDeviceConfiguration,
+  parts: ProfileParts
+): readonly LedSpriteConfiguration[] {
+  const held = device.sprites ?? []
+  return (parts.sprites ?? []).filter((sprite) => !held.some((entry) => entry.id === sprite.id))
+}
+
+export function profileFits(
+  device: HardwareDeviceConfiguration,
+  parts: ProfileParts
+): boolean {
+  return (device.sprites ?? []).length + missingSprites(device, parts).length <= MAXIMUM_LED_SPRITES
+}
+
 export function addProfile(device: number, parts: ProfileParts): void {
-  mutateDevice(device, (entry) => {
+  growDevice(device, (entry) => {
+    if (!profileFits(entry, parts)) return
+    const missing = missingSprites(entry, parts)
     entry.effects = [...(entry.effects ?? []), ...parts.effects]
-    const added = parts.sprites ?? []
-    if (added.length === 0) return
-    const kept = (entry.sprites ?? []).filter(
-      (sprite) => !added.some((entry) => entry.id === sprite.id)
-    )
-    entry.sprites = [...kept, ...added].slice(0, MAXIMUM_LED_SPRITES)
+    if (missing.length > 0) entry.sprites = [...(entry.sprites ?? []), ...missing]
   })
 }
 

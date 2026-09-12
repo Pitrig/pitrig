@@ -22,7 +22,12 @@ import {
 } from '@/features/configuration/inspector/widget-editors'
 import { t } from '@shared/ui-text'
 import { Subsection } from './Subsection'
-import { applyWatchedBinding, releaseWatchedBinding } from './watched-source'
+import { wholeValue } from './field-values'
+import {
+  applyWatchedBinding,
+  DEFAULT_WATCHED_BINDING,
+  releaseWatchedBinding
+} from './watched-source'
 
 export function EffectGate({
   effect,
@@ -49,6 +54,13 @@ export function EffectGate({
             if (gate !== 'conditions') {
               delete next.conditions
               releaseWatchedBinding(next)
+              return
+            }
+            if (!next.condition_source?.binding) {
+              applyWatchedBinding(next, DEFAULT_WATCHED_BINDING)
+            }
+            if ((next.conditions ?? []).length === 0) {
+              next.conditions = [{ op: 'at_or_above', value: 1 }]
             }
           })}
         />
@@ -60,7 +72,7 @@ export function EffectGate({
               onChange={(binding) => update((next) => applyWatchedBinding(next, binding))}
             />
             {(effect.conditions ?? []).map((rule, position) => (
-              <PropertyRow key={position} label={`Rule ${position + 1}`}>
+              <PropertyRow key={position} label={t('inspector.conditionsEditor.ruleNumber', { number: position + 1 })}>
                 <div className="flex items-center gap-1">
                   <SelectInput
                     value={rule.op ?? 'at_or_above'}
@@ -94,7 +106,7 @@ export function EffectGate({
                     />
                   )}
                   <RemoveButton
-                    label={`Remove rule ${position + 1}`}
+                    label={t('inspector.conditionsEditor.removeRuleNumber', { number: position + 1 })}
                     onClick={() => update((next) => {
                       next.conditions = (next.conditions ?? []).filter((_, at) => at !== position)
                     })}
@@ -119,7 +131,9 @@ export function EffectGate({
           value={effect.hold_ms ?? 0}
           {...fieldBounds('LedEffect', 'hold_ms')}
           modified={authored(effect.hold_ms, 0)}
-          onChange={(hold_ms) => update((next) => { next.hold_ms = hold_ms })}
+          onChange={(hold_ms) =>
+            update((next) => { next.hold_ms = wholeValue('LedEffect', 'hold_ms', hold_ms) })
+          }
         />
         <NumberField
           label={t('modules.effectGate.blink')}
@@ -128,7 +142,9 @@ export function EffectGate({
           value={effect.blink_ms ?? 0}
           {...fieldBounds('LedEffect', 'blink_ms')}
           modified={authored(effect.blink_ms, 0)}
-          onChange={(blink_ms) => update((next) => { next.blink_ms = blink_ms })}
+          onChange={(blink_ms) =>
+            update((next) => { next.blink_ms = wholeValue('LedEffect', 'blink_ms', blink_ms) })
+          }
         />
       </Subsection>
   )

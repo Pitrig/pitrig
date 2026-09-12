@@ -4,7 +4,7 @@ import { type ResolvedStyle } from '@shared/widget-style'
 import { type Placement, markupId } from './canvas-geometry'
 import { DEFAULT_BORDER_COLOR } from './preview-theme'
 import type { FramedWidgetConfiguration } from '@shared/configuration-access'
-import { backgroundRect, gradientPaint, squareFill } from './preview-geometry-paint'
+import { backgroundRect, cornerRadii, gradientPaint, squareFill } from './preview-geometry-paint'
 import { normalizeColor } from './preview-values'
 
 export function GradientDefinition({
@@ -88,14 +88,20 @@ export function WidgetFrameShape({
           direction={configuration.background_grad_dir}
         />
       ) : null}
-      {background !== 'transparent' ? <rect {...box} fill={fill.paint} /> : null}
+      {background !== 'transparent' ? (
+        <rect {...box} {...cornerRadii(box.rx, box.width, box.height)} fill={fill.paint} />
+      ) : null}
       {borderWidth > 0 ? (
         <rect
           x={placement.x + borderWidth / 2}
           y={placement.y + borderWidth / 2}
           width={placement.width - borderWidth}
           height={placement.height - borderWidth}
-          rx={Math.max(0, corner - borderWidth / 2)}
+          {...cornerRadii(
+            Math.max(0, corner - borderWidth / 2),
+            placement.width - borderWidth,
+            placement.height - borderWidth
+          )}
           fill="none"
           stroke={style.borderColor ?? DEFAULT_BORDER_COLOR}
           strokeWidth={borderWidth}

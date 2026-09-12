@@ -10,6 +10,7 @@ import {
   useDashboardEditorStore
 } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
+import { withEditGroup } from '@/features/device/edit-group'
 import { screenName } from './screen-name'
 import { TOOLBAR_GHOST, TOOLBAR_ITEM, TOOLBAR_ITEM_ACTIVE, ToolbarDivider, ToolbarGroup } from './toolbar-parts'
 import { t } from '@shared/ui-text'
@@ -32,6 +33,15 @@ export function ScreenTabs(): React.JSX.Element {
   const destinationOf = (from: number, index: number, before: boolean): number => {
     const at = before ? index : index + 1
     return at > from ? at - 1 : at
+  }
+  const removeScreen = (index: number): void => {
+    withEditGroup(() => {
+      if (index > 0) {
+        deleteScreen(index)
+        return
+      }
+      if (moveScreen(0, 1)) deleteScreen(1)
+    })
   }
 
   return (
@@ -112,7 +122,7 @@ export function ScreenTabs(): React.JSX.Element {
         </div>
         )
       })}
-      {count < MAXIMUM_SCREENS || activeScreenIndex > 0 ? <ToolbarDivider /> : null}
+      {count < MAXIMUM_SCREENS || reorderable ? <ToolbarDivider /> : null}
       {count < MAXIMUM_SCREENS ? (
         <button
           type="button"
@@ -126,12 +136,12 @@ export function ScreenTabs(): React.JSX.Element {
           +
         </button>
       ) : null}
-      {activeScreenIndex > 0 ? (
+      {reorderable ? (
         <button
           type="button"
           title={t('canvas.screenTabs.deleteActivescreenindexAndEverythingOn', { activeScreenIndex: screenName(screens, activeScreenIndex) })}
           className={TOOLBAR_GHOST}
-          onClick={() => deleteScreen(activeScreenIndex)}
+          onClick={() => removeScreen(activeScreenIndex)}
         >
           −
         </button>

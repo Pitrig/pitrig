@@ -2,6 +2,8 @@ import type { LedEffect } from '@shared/configuration-schema'
 import { TELEMETRY_CATALOG } from '@shared/telemetry-catalog'
 import { BOOLEAN_OPERATORS } from '@shared/widget-conditions'
 
+export const DEFAULT_WATCHED_BINDING = 'engine.rpm_percent'
+
 export function applyWatchedBinding(effect: LedEffect, binding: string): void {
   if (binding) effect.condition_source = { ...effect.condition_source, binding }
   else delete effect.condition_source

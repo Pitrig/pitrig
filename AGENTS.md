@@ -121,8 +121,9 @@ Keep source files at roughly 300 lines or fewer. When a change pushes a file
 past that, split it along a natural seam as part of that change — do not leave
 the split for a later refactor. Generated files (`*_generated.*`,
 `configuration-schema.ts`, `telemetry-catalog.ts`, `simhub-profile-data.ts`,
-`google-fonts-catalog.json`, `ui-string-keys.ts`, `ui-strings-<locale>.ts`) are
-exempt: they are generator outputs and are never edited by hand.
+`led-font.ts`, `google-fonts-catalog.json`, `ui-string-keys.ts`,
+`ui-strings-<locale>.ts`) are exempt: they are generator outputs and are never
+edited by hand.
 
 No comments in code.
 

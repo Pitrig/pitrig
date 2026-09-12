@@ -45,8 +45,17 @@ export const useTemplatesStore = create<TemplatesStore>((set, get) => ({
     set({ loading: true, error: undefined })
     try {
       const result = await window.pitrig.listTemplates()
-      if (result.ok) set({ library: result.value, documents: {} })
-      else set({ error: result.error.message })
+      if (result.ok) {
+        const listed = new Set(result.value.dashboards.map((entry) => entry.id))
+        set((state) => ({
+          library: result.value,
+          documents: Object.fromEntries(
+            Object.entries(state.documents).filter(
+              ([id, document]) => listed.has(id) && typeof document === 'object'
+            )
+          )
+        }))
+      } else set({ error: result.error.message })
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to read the template library.'

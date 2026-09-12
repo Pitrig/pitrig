@@ -47,6 +47,10 @@ export const WIDGET_POOL_CAPACITIES: Record<WidgetConfiguration['type'], number>
   slot: MAXIMUM_SLOT_WIDGETS
 }
 
+export function arrayOf<T>(value: readonly T[] | undefined): readonly T[] {
+  return Array.isArray(value) ? value : []
+}
+
 export function screensOf(
   configuration: ApplicationConfiguration | undefined
 ): ScreenConfiguration[] {
@@ -122,7 +126,7 @@ export function dashboardBindings(
   for (const widget of allWidgetsOf(configuration)) {
     for (const source of widgetSources(widget)) {
       if (source.binding) bindings.add(source.binding)
-      if (source.modifiers?.some((modifier) => modifier?.type === 'lap_timer')) {
+      if (arrayOf(source.modifiers).some((modifier) => modifier?.type === 'lap_timer')) {
         bindings.add('session.lap.current_time')
       }
     }
@@ -132,10 +136,10 @@ export function dashboardBindings(
 
 export function widgetSources(widget: WidgetConfiguration): ValueSourceConfiguration[] {
   return [
-    ...(isTextWidget(widget) ? widget.sources ?? [] : []),
+    ...(isTextWidget(widget) ? arrayOf(widget.sources) : []),
     ...('source' in widget && widget.source ? [widget.source] : []),
-    ...('traces' in widget && Array.isArray(widget.traces)
-      ? widget.traces.flatMap((trace) => (trace?.source ? [trace.source] : []))
+    ...('traces' in widget
+      ? arrayOf(widget.traces).flatMap((trace) => (trace?.source ? [trace.source] : []))
       : []),
     ...(widget.condition_source ? [widget.condition_source] : []),
     ...(widget.title?.source ? [widget.title.source] : []),
@@ -145,8 +149,13 @@ export function widgetSources(widget: WidgetConfiguration): ValueSourceConfigura
   ]
 }
 
+const WIDGET_ID_SUFFIXES = 36 ** 3
+
+let nextWidgetIdSuffix = 0
+
 export function createWidgetId(): string {
-  return `w${Date.now().toString(36)}${Math.floor(Math.random() * 0x1000).toString(36)}`
+  nextWidgetIdSuffix = (nextWidgetIdSuffix + 1) % WIDGET_ID_SUFFIXES
+  return `w${Date.now().toString(36)}${nextWidgetIdSuffix.toString(36).padStart(3, '0')}`
 }
 
 export function freshWidgetIds(
@@ -166,7 +175,8 @@ export function withWidgetIds(
   if (screens.length === 0) return configuration
   const used = new Set<string>()
   const unique = (candidate: string | undefined): string => {
-    const value = candidate && !used.has(candidate) ? candidate : createWidgetId()
+    let value = candidate && !used.has(candidate) ? candidate : createWidgetId()
+    while (used.has(value)) value = createWidgetId()
     used.add(value)
     return value
   }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 
 import type { FontCatalogFamily, FontVariant } from '@shared/font-library'
 import { t } from '@shared/ui-text'
@@ -32,30 +32,38 @@ export function FontCatalogRow({
 }): React.JSX.Element {
   const row = useRef<HTMLDivElement>(null)
   const dwell = useRef<number | undefined>(undefined)
+  const visible = useRef(onVisible)
+  const variantsId = useId()
+
+  useEffect(() => {
+    visible.current = onVisible
+  })
 
   useEffect(() => {
     const element = row.current
     if (!element) return
     const observer = new IntersectionObserver((entries) => {
-      const visible = entries.some((entry) => entry.isIntersecting)
-      if (!visible) {
+      const shown = entries.some((entry) => entry.isIntersecting)
+      if (!shown) {
         window.clearTimeout(dwell.current)
         dwell.current = undefined
         return
       }
-      dwell.current = window.setTimeout(onVisible, DWELL_MS)
+      dwell.current = window.setTimeout(() => visible.current(), DWELL_MS)
     })
     observer.observe(element)
     return () => {
       window.clearTimeout(dwell.current)
       observer.disconnect()
     }
-  }, [onVisible])
+  }, [])
 
   return (
     <div ref={row} className="rounded-md border">
       <button
         type="button"
+        aria-expanded={expanded}
+        aria-controls={expanded ? variantsId : undefined}
         onClick={onToggle}
         className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted"
       >
@@ -77,7 +85,7 @@ export function FontCatalogRow({
         </Badge>
       </button>
       {expanded ? (
-        <div className="flex flex-wrap gap-1 border-t p-2">
+        <div id={variantsId} className="flex flex-wrap gap-1 border-t p-2">
           {family.variants.map((variant) => (
             <button
               key={variant}

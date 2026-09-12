@@ -1,4 +1,8 @@
+import { StringDecoder } from 'node:string_decoder'
+
 import type { SerialPort } from 'serialport'
+
+import { t } from '@shared/ui-text'
 
 export interface LineOutcome<T> {
   value?: T
@@ -22,6 +26,7 @@ export function exchangeLines<T>(
   options: LineExchangeOptions<T>
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
+    const decoder = new StringDecoder('utf8')
     let buffer = ''
     let settled = false
 
@@ -42,7 +47,8 @@ export function exchangeLines<T>(
     }
     const fail = (error: Error): void => settle({ error })
     const onData = (chunk: Buffer): void => {
-      const text = chunk.toString('utf8')
+      const text = decoder.write(chunk)
+      if (text.length === 0) return
       options.onReceive?.(text)
       buffer = (buffer + text).slice(-options.bufferLimit)
       const lines = buffer.replaceAll('\r', '').split('\n')
@@ -52,7 +58,8 @@ export function exchangeLines<T>(
     }
     const onError = (error: Error): void => fail(error)
     const onClose = (): void => fail(options.onClose())
-    const onAbort = (): void => fail(options.onAbort?.() ?? new Error('The request was cancelled.'))
+    const onAbort = (): void =>
+      fail(options.onAbort?.() ?? new Error(t('device.lineExchange.theRequestWasCancelled')))
 
     port.on('data', onData)
     port.once('error', onError)

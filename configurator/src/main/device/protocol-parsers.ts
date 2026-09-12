@@ -96,15 +96,20 @@ export function parseAssetStatus(line: string, limits: AssetStatusLimits): Asset
 }
 
 export function parseDeviceInfo(line: string): DeviceInfo {
-  const fields = parseFields(line, '@PR:OK:INFO:', 'INFO data')
+  const fields = parseFields(line, '@PR:OK:INFO:', t('device.protocolParsers.infoData'))
   const board = fields.get('board') as PitrigBoardId | undefined
   if (board === undefined || !PITRIG_BOARD_IDS.includes(board)) {
-    throw new DeviceServiceError('not_pitrig', `Unsupported Pitrig board: ${board ?? 'unknown'}.`)
+    throw new DeviceServiceError(
+      'not_pitrig',
+      t('firmware.firmwarePackage.unsupportedPitrigBoardBoard', { board: board ?? 'unknown' })
+    )
   }
   if (fields.get('schema') !== String(CONFIGURATION_SCHEMA_VERSION)) {
     throw new DeviceServiceError(
       'not_pitrig',
-      `Unsupported configuration schema: ${fields.get('schema') ?? 'unknown'}.`
+      t('device.protocolParsers.unsupportedConfigurationSchemaSchema', {
+        schema: fields.get('schema') ?? 'unknown'
+      })
     )
   }
   const firmwareVersion = fields.get('firmware')

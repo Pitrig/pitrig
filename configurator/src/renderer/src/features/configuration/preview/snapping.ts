@@ -54,8 +54,6 @@ export interface SnapResolution {
   highlighted: string[]
 }
 
-const NOTHING: Omit<SnapResolution, 'placement'> = { guides: [], gaps: [], highlighted: [] }
-
 export function guideFor(axis: 'x' | 'y', position: number, moving: Placement, edge: SnapEdge): SnapGuide {
   const across = axis === 'x' ? 'y' : 'x'
   const own = axisOf(moving, across)
@@ -175,10 +173,6 @@ export function resolveMove(
     gaps: [...horizontal.gaps, ...vertical.gaps],
     highlighted: [...new Set([...horizontal.highlighted, ...vertical.highlighted])]
   }
-}
-
-export function plain(placement: Placement): SnapResolution {
-  return { placement, ...NOTHING }
 }
 
 export function snapPoint(

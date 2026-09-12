@@ -92,7 +92,10 @@ export function ConfigsPage(): React.JSX.Element {
       <PageSection
         title={t('dashboard.configsPage.document')}
         description={
-          draftFileName ?? (hasLocalDraft ? 'Unsaved local draft' : 'No local configuration')
+          draftFileName ??
+          (hasLocalDraft
+            ? t('dashboard.configsPage.unsavedLocalDraft')
+            : t('dashboard.configsPage.noLocalConfiguration'))
         }
       >
         <div className="space-y-3">

@@ -14,7 +14,10 @@ new section, and a new document needs a reason. Who owns what:
 - `docs/architecture.md` — layers, dependency direction, what each directory
   holds, startup order, the event system and core pinning.
 - `docs/device-configuration.md` — board identity, the three documents and
-  their presence rules, authoring in the configurator, fonts, the payload;
+  their presence rules, authoring in the configurator, fonts, the payload. When
+  a save restarts the board is stated once, under "Saving to the board"; the
+  fonts section, `.claude/rules/configurator.md` and ADR 0024 point at it rather
+  than repeating it, which is how the four conditions drifted apart before;
   `docs/dashboard-widgets.md` — screens, containers, slots, widget types,
   captions, conditional styling and ramps; `docs/control-protocol.md` — the
   `@PR:` commands, the `INFO` and `DIAG` replies, error tokens and NVS records.

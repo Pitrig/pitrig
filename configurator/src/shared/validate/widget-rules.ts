@@ -1,21 +1,27 @@
 import {
   MAXIMUM_SLOT_PAGES,
   MAXIMUM_VALUE_MODIFIERS,
+  MAXIMUM_WIDGET_CONDITIONS,
+  type SlotPageConfiguration,
   type SlotWidgetConfiguration,
   type WidgetAction,
   type WidgetConfiguration
 } from '../configuration-schema'
-import { isTextWidget, pagesOf, widgetSources } from '../configuration-access'
+import { arrayOf, pagesOf, widgetSources } from '../configuration-access'
 import { MAXIMUM_HOLD_MS } from '../widget-conditions'
+import { badBinding, badList } from './values'
 import { t } from '../ui-text'
 
 const LAP_TIMER_BINDING = 'session.lap.current_time'
 
-export function countLapTimers(widget: WidgetConfiguration): number {
-  if (!isTextWidget(widget)) return 0
-  return (widget.sources ?? []).filter((source) =>
-    source?.modifiers?.some((modifier) => modifier?.type === 'lap_timer')
+function lapTimersOf(modifiers: unknown): number {
+  return arrayOf(modifiers as { type?: string }[] | undefined).filter(
+    (modifier) => modifier?.type === 'lap_timer'
   ).length
+}
+
+export function countLapTimers(widget: WidgetConfiguration): number {
+  return widgetSources(widget).filter((source) => lapTimersOf(source?.modifiers) > 0).length
 }
 
 export function findModifierError(
@@ -26,22 +32,17 @@ export function findModifierError(
     const modifiers = source?.modifiers
     if (modifiers === undefined) continue
     if (!Array.isArray(modifiers)) {
-      return `Source ${index + 1} of ${label} has a "modifiers" that is not an array.`
+      return t('validation.widgetRules.sourceOfLabelHasAModifiers', { number: index + 1, label })
     }
     if (modifiers.length > MAXIMUM_VALUE_MODIFIERS) {
-      return `Source ${index + 1} of ${label} has ${modifiers.length} modifiers; the device holds ${MAXIMUM_VALUE_MODIFIERS}.`
+      return t('validation.widgetRules.sourceOfLabelHasLengthModifiers', { number: index + 1, label, length: modifiers.length, maximum: MAXIMUM_VALUE_MODIFIERS })
     }
-  }
-  if (!isTextWidget(widget)) return undefined
-  for (const [index, source] of (widget.sources ?? []).entries()) {
-    const lapTimers = (source?.modifiers ?? []).filter(
-      (modifier) => modifier?.type === 'lap_timer'
-    ).length
+    const lapTimers = lapTimersOf(modifiers)
     if (lapTimers > 1) {
-      return `Source ${index + 1} of ${label} uses the lap timer ${lapTimers} times; once is all it means.`
+      return t('validation.widgetRules.sourceOfLabelUsesTheLap', { number: index + 1, label, lapTimers })
     }
     if (lapTimers === 1 && source?.binding !== LAP_TIMER_BINDING) {
-      return `Source ${index + 1} of ${label} uses the lap timer on "${source?.binding ?? ''}"; it stands in for "${LAP_TIMER_BINDING}".`
+      return t('validation.widgetRules.sourceOfLabelUsesTheLap2', { number: index + 1, label, binding: source?.binding ?? '', lapTimer: LAP_TIMER_BINDING })
     }
   }
   return undefined
@@ -60,7 +61,7 @@ export function findSlotError(widget: SlotWidgetConfiguration, label: string): s
   if (painted) {
     return t('validation.widgetRules.labelIsASlotWith', { label: label })
   }
-  if (widget.action && widget.action.type !== 'none') {
+  if (widget.action && (widget.action.type ?? 'none') !== 'none') {
     return t('validation.widgetRules.labelIsASlotAnd', { label: label })
   }
   const pages = pagesOf(widget)
@@ -74,31 +75,39 @@ export function findSlotError(widget: SlotWidgetConfiguration, label: string): s
     return t('validation.widgetRules.labelHasNoPageIn', { label: label })
   }
   for (const [index, page] of pages.entries()) {
-    const where = `Page ${index + 1} of ${label}`
-    const duration = page.duration_ms ?? 0
-    const rules = page.conditions?.length ?? 0
-    if (duration > MAXIMUM_HOLD_MS) {
-      return t('validation.widgetRules.whereStaysUpForDuration', { where: where, duration: duration, mAXIMUM_HOLD_MS: MAXIMUM_HOLD_MS })
-    }
-    const trigger = page.trigger ?? 'none'
-    if (trigger === 'none') {
-      if (page.source?.binding || rules > 0 || duration > 0) {
-        return t('validation.widgetRules.whereHasNoTriggerSo', { where: where })
-      }
-      continue
-    }
-    if (!page.source?.binding) {
-      return t('validation.widgetRules.whereHasATriggerBut', { where: where })
-    }
-    if (trigger === 'value_changed' && duration === 0) {
-      return t('validation.widgetRules.whereAppearsOnAChange', { where: where })
-    }
-    if (trigger === 'value_changed' && rules > 0) {
-      return t('validation.widgetRules.whereAppearsOnAChange2', { where: where })
-    }
-    if (trigger === 'conditions' && rules === 0) {
-      return t('validation.widgetRules.whereAppearsOnAComparison', { where: where })
-    }
+    const error = findSlotPageError(page, t('validation.ranges.pageOfLabel', { number: index + 1, label }))
+    if (error) return error
+  }
+  return undefined
+}
+
+function findSlotPageError(page: SlotPageConfiguration, where: string): string | undefined {
+  const listError = badList(page.conditions, MAXIMUM_WIDGET_CONDITIONS, where, 'rules')
+  if (listError) return listError
+  const duration = page.duration_ms ?? 0
+  const rules = arrayOf(page.conditions).length
+  if (duration > MAXIMUM_HOLD_MS) {
+    return t('validation.widgetRules.whereStaysUpForDuration', { where: where, duration: duration, mAXIMUM_HOLD_MS: MAXIMUM_HOLD_MS })
+  }
+  const trigger = page.trigger ?? 'none'
+  if (trigger === 'none') {
+    return page.source?.binding || rules > 0 || duration > 0
+      ? t('validation.widgetRules.whereHasNoTriggerSo', { where: where })
+      : undefined
+  }
+  if (!page.source?.binding) {
+    return t('validation.widgetRules.whereHasATriggerBut', { where: where })
+  }
+  const unknown = badBinding(page.source.binding, '', where, t('validation.widgetValues.theSource'))
+  if (unknown) return unknown
+  if (trigger === 'value_changed' && duration === 0) {
+    return t('validation.widgetRules.whereAppearsOnAChange', { where: where })
+  }
+  if (trigger === 'value_changed' && rules > 0) {
+    return t('validation.widgetRules.whereAppearsOnAChange2', { where: where })
+  }
+  if (trigger === 'conditions' && rules === 0) {
+    return t('validation.widgetRules.whereAppearsOnAComparison', { where: where })
   }
   return undefined
 }
@@ -108,8 +117,9 @@ export function findActionError(
   screenIds: readonly (string | undefined)[],
   owner: string
 ): string | undefined {
-  if (!action || action.type === 'none') return undefined
-  if (action.type === 'goto_screen') {
+  if (!action) return undefined
+  const type = action.type ?? 'none'
+  if (type === 'goto_screen') {
     if (!action.screen) return t('validation.widgetRules.ownerNavigatesToAScreen', { owner: owner })
     if (!screenIds.includes(action.screen)) {
       return t('validation.widgetRules.ownerNavigatesToScreenScreen', { owner: owner, screen: action.screen })
@@ -117,7 +127,7 @@ export function findActionError(
     return undefined
   }
   if (action.screen) {
-    return t('validation.widgetRules.ownerNamesAScreenFor', { owner: owner, type: action.type ?? '' })
+    return t('validation.widgetRules.ownerNamesAScreenFor', { owner: owner, type: type })
   }
   return undefined
 }

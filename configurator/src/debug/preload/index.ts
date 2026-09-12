@@ -4,6 +4,8 @@ import { productApi } from '../../preload/api'
 import {
   BENCH_APPLY_PATTERN_CHANNEL,
   BENCH_GET_STATUS_CHANNEL,
+  BENCH_HOLD_CHANNEL,
+  BENCH_RELEASE_CHANNEL,
   BENCH_RESTORE_CHANNEL,
   BENCH_SAMPLE_CHANNEL,
   BENCH_START_CHANNEL,
@@ -15,14 +17,34 @@ import {
 } from '../shared/bench'
 import { CONTROL_COMMAND_CHANNEL, SERIAL_TRAFFIC_CHANNEL } from '../shared/debug-channels'
 import type { PitrigDebugApi } from '../shared/debug-ipc'
-import { FIRMWARE_REGISTER_SOURCE_CHANNEL } from '../../shared/firmware-update'
+import type { ControlCommandRequest } from '../../shared/control-command'
 import type { SerialTrafficLog } from '../../shared/serial-traffic'
+
+function holdingBench<Args extends unknown[], Value>(
+  call: (...args: Args) => Promise<Value>
+): (...args: Args) => Promise<Value> {
+  return async (...args: Args) => {
+    await ipcRenderer.invoke(BENCH_HOLD_CHANNEL)
+    try {
+      return await call(...args)
+    } finally {
+      void ipcRenderer.invoke(BENCH_RELEASE_CHANNEL)
+    }
+  }
+}
 
 const debugApi: PitrigDebugApi = {
   ...productApi,
-  sendControlCommand: (request) => ipcRenderer.invoke(CONTROL_COMMAND_CHANNEL, request),
-  registerFirmwareSource: (request) =>
-    ipcRenderer.invoke(FIRMWARE_REGISTER_SOURCE_CHANNEL, request),
+  readDeviceConfiguration: holdingBench(productApi.readDeviceConfiguration),
+  applyDeviceConfiguration: holdingBench(productApi.applyDeviceConfiguration),
+  saveDeviceConfiguration: holdingBench(productApi.saveDeviceConfiguration),
+  resetDeviceConfiguration: holdingBench(productApi.resetDeviceConfiguration),
+  rebootDevice: holdingBench(productApi.rebootDevice),
+  uploadFirmware: holdingBench(productApi.uploadFirmware),
+  cancelFirmwareUpload: holdingBench(productApi.cancelFirmwareUpload),
+  sendControlCommand: holdingBench((request: ControlCommandRequest) =>
+    ipcRenderer.invoke(CONTROL_COMMAND_CHANNEL, request)
+  ),
   getBenchStatus: () => ipcRenderer.invoke(BENCH_GET_STATUS_CHANNEL),
   startBench: (request) => ipcRenderer.invoke(BENCH_START_CHANNEL, request),
   updateBench: (request) => ipcRenderer.invoke(BENCH_UPDATE_CHANNEL, request),

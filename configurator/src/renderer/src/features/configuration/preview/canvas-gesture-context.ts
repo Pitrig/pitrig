@@ -54,6 +54,22 @@ export function snapMode(event: {
 
 export const MINIMUM_DRAWN_PX = 4
 
+const MINIMUM_DRAWN_SIZE: Partial<
+  Record<Exclude<CanvasTool, 'select'>, { width: number; height: number }>
+> = {
+  arc: { width: 24, height: 24 },
+  indicator: { width: 26, height: 6 },
+  graph: { width: 16, height: 16 },
+  slot: { width: 16, height: 16 }
+}
+
+export function minimumDrawnSize(tool: Exclude<CanvasTool, 'select'>): {
+  width: number
+  height: number
+} {
+  return MINIMUM_DRAWN_SIZE[tool] ?? { width: MINIMUM_DRAWN_PX, height: MINIMUM_DRAWN_PX }
+}
+
 export function drawnBox(
   start: { x: number; y: number },
   current: { x: number; y: number }

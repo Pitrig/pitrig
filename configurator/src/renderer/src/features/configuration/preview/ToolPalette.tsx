@@ -1,7 +1,9 @@
+import { useMemo } from 'react'
 import { MousePointer2, MousePointerClick, type LucideIcon } from 'lucide-react'
 
+import { WIDGET_POOL_CAPACITIES, allWidgetsOf } from '@shared/configuration-access'
 import type { WidgetConfiguration } from '@shared/configuration-schema'
-import { atWidgetCapacity, useDashboardEditorStore } from '../dashboard-editor'
+import { useDashboardEditorStore } from '../dashboard-editor'
 import type { CanvasTool } from '../editor/store'
 import { WIDGET_ICONS } from '../inspector/icons'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -24,6 +26,13 @@ export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Elemen
   const activeTool = useDashboardEditorStore((state) => state.activeTool)
   const setActiveTool = useDashboardEditorStore((state) => state.setActiveTool)
   const configuration = useDeviceStore((state) => state.draft)
+  const pooled = useMemo(() => {
+    const counts = new Map<WidgetConfiguration['type'], number>()
+    for (const widget of allWidgetsOf(configuration)) {
+      counts.set(widget.type, (counts.get(widget.type) ?? 0) + 1)
+    }
+    return counts
+  }, [configuration])
   return (
     <div
       role="toolbar"
@@ -35,7 +44,7 @@ export function ToolPalette({ enabled }: { enabled: boolean }): React.JSX.Elemen
       {TOOLS.map(({ tool, label, icon: Icon, hint }) => {
         const kind: WidgetConfiguration['type'] | undefined =
           tool === 'select' ? undefined : tool === 'tap_zone' ? 'shape' : tool
-        const full = kind !== undefined && atWidgetCapacity(configuration, kind)
+        const full = kind !== undefined && (pooled.get(kind) ?? 0) >= WIDGET_POOL_CAPACITIES[kind]
         const active = activeTool === tool
         return (
           <button

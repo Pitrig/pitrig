@@ -1,38 +1,111 @@
-import { type FontSpec, type TextAlignment } from '@shared/configuration-schema'
+import { type FontSpec, type TextAlignment, type WidgetConfiguration } from '@shared/configuration-schema'
 import { type TelemetryValue, UNAVAILABLE, conditionValue } from '@shared/telemetry-value'
-import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, resolveWidgetStyle } from '@shared/widget-style'
+import { type AuthoredStyle, type ResolvedStyle, type StyledFrame, blinkVisible, matchedCondition, resolveWidgetStyle } from '@shared/widget-style'
 import { previewFontFamily } from '@/features/font-library/font-face-store'
 import { liveElapsedMs, readLiveValue, telemetryIsLive } from '@/features/telemetry/live-telemetry'
+import { DEFAULT_BORDER_COLOR, DEFAULT_FILL_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
 import { type GlyphMetrics, measureGlyphs } from './text-metrics'
 
+export const DEFAULT_CAPTION_FONT_SIZE_PX = 12
+
+export type PreviewStyle = ResolvedStyle & { visible: boolean }
+
 export interface PreviewValues {
+  revision: number
   read: (binding: string | undefined) => TelemetryValue
   started: () => boolean
+  elapsedMs: () => number
   numberFor: (source: { binding?: string } | undefined) => number | undefined
-  styleFor: (frame: StyledFrame, authored: AuthoredStyle) => ResolvedStyle & { visible: boolean }
+  styleFor: (frame: StyledFrame, authored: AuthoredStyle) => PreviewStyle
 }
 
 export function createPreviewValues(): PreviewValues {
-  return valuesFrom(() => UNAVAILABLE, () => false)
+  return valuesFrom(0, () => UNAVAILABLE, () => false, () => 0)
 }
 
-export function createLiveValues(): PreviewValues {
-  return valuesFrom(readLiveValue, telemetryIsLive)
+export function createLiveValues(revision: number): PreviewValues {
+  return valuesFrom(revision, readLiveValue, telemetryIsLive, liveElapsedMs)
+}
+
+interface RuleState {
+  held?: ResolvedStyle
+  holdUntilMs: number
+  blinkMs: number
+  blinkStartedMs: number
+}
+
+const MAXIMUM_TRACKED_WIDGETS = 512
+
+const ruleStates = new Map<string, RuleState>()
+
+function heldStyle(
+  frame: StyledFrame,
+  authored: AuthoredStyle,
+  value: number | undefined,
+  nowMs: number
+): { style: ResolvedStyle; blinkStartedMs: number } {
+  const resolved = resolveWidgetStyle(frame, authored, value)
+  const id = frame.id
+  if (id === undefined) return { style: resolved, blinkStartedMs: 0 }
+  const previous = ruleStates.get(id)
+  const rule = matchedCondition(frame, value)
+  const held =
+    rule === undefined && previous?.held !== undefined && nowMs < previous.holdUntilMs
+      ? previous.held
+      : undefined
+  const style = held ?? resolved
+  const blinkStartedMs =
+    previous !== undefined && previous.blinkMs === style.blinkMs ? previous.blinkStartedMs : nowMs
+  if (previous === undefined && ruleStates.size >= MAXIMUM_TRACKED_WIDGETS) ruleStates.clear()
+  ruleStates.set(id, {
+    held: rule === undefined ? held : resolved,
+    holdUntilMs: rule === undefined ? (previous?.holdUntilMs ?? 0) : nowMs + (rule.hold_ms ?? 0),
+    blinkMs: style.blinkMs,
+    blinkStartedMs
+  })
+  return { style, blinkStartedMs }
 }
 
 function valuesFrom(
+  revision: number,
   read: (binding: string | undefined) => TelemetryValue,
-  started: () => boolean
+  started: () => boolean,
+  elapsedMs: () => number
 ): PreviewValues {
   return {
+    revision,
     read,
     started,
+    elapsedMs,
     numberFor: (source) => conditionValue(read(source?.binding)),
     styleFor: (frame, authored) => {
       const watched = conditionValue(read(frame.condition_source?.binding))
-      const style = resolveWidgetStyle(frame, authored, watched)
-      return { ...style, visible: blinkVisible(style, liveElapsedMs()) }
+      const nowMs = elapsedMs()
+      const { style, blinkStartedMs } = heldStyle(frame, authored, watched, nowMs)
+      return { ...style, visible: blinkVisible(style, nowMs - blinkStartedMs) }
     }
+  }
+}
+
+export function authoredStyleOf(configuration: WidgetConfiguration): AuthoredStyle {
+  const backgroundColor = configuration.background_color
+  const borderColor = configuration.border?.color ?? DEFAULT_BORDER_COLOR
+  switch (configuration.type) {
+    case 'text':
+      return {
+        color: configuration.value?.color ?? DEFAULT_TEXT_COLOR,
+        backgroundColor,
+        borderColor
+      }
+    case 'bar':
+    case 'arc':
+      return { color: configuration.fill_color ?? DEFAULT_FILL_COLOR, backgroundColor, borderColor }
+    case 'graph':
+      return { color: configuration.line_color ?? DEFAULT_FILL_COLOR, backgroundColor, borderColor }
+    case 'image':
+      return { color: configuration.recolor, backgroundColor, borderColor }
+    default:
+      return { backgroundColor, borderColor }
   }
 }
 

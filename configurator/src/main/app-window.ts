@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import { appIcon } from './branding'
 
@@ -16,6 +17,10 @@ export function isDevelopment(): boolean {
 
 export function createAppWindow(options: AppWindowOptions): BrowserWindow {
   const development = isDevelopment()
+  const home =
+    development && process.env.ELECTRON_RENDERER_URL
+      ? process.env.ELECTRON_RENDERER_URL
+      : pathToFileURL(join(__dirname, options.renderer)).toString()
   const window = new BrowserWindow({
     icon: appIcon(),
     width: options.width ?? 1280,
@@ -34,15 +39,37 @@ export function createAppWindow(options: AppWindowOptions): BrowserWindow {
   })
 
   window.once('ready-to-show', () => window.show())
+  denyForeignContent(window, home)
 
   window.webContents.on('render-process-gone', (_event, details) => {
-    console.error('[probe] render-process-gone', JSON.stringify(details))
+    console.error('render-process-gone', JSON.stringify(details))
+    if (details.reason === 'clean-exit' || window.isDestroyed()) return
+    void window.loadURL(home)
   })
 
-  if (development && process.env.ELECTRON_RENDERER_URL) {
-    void window.loadURL(process.env.ELECTRON_RENDERER_URL)
-  } else {
-    void window.loadFile(join(__dirname, options.renderer))
-  }
+  void window.loadURL(home)
   return window
+}
+
+function denyForeignContent(window: BrowserWindow, home: string): void {
+  window.webContents.on('will-navigate', (event, url) => {
+    if (!isHome(url, home)) event.preventDefault()
+  })
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) =>
+    callback(false)
+  )
+}
+
+function isHome(url: string, home: string): boolean {
+  try {
+    const target = new URL(url)
+    const allowed = new URL(home)
+    return (
+      target.origin === allowed.origin &&
+      (target.protocol !== 'file:' || target.pathname === allowed.pathname)
+    )
+  } catch {
+    return false
+  }
 }

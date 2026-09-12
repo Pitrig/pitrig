@@ -6,26 +6,22 @@ import { completePlacement } from '../dashboard-editor'
 import { arcPath, arcSlices, ringGeometry } from './arc-geometry'
 import { WidgetFrameShape } from './frame-shape'
 import { markupId } from './canvas-geometry'
-import { contentArea } from './preview-geometry-paint'
-import { DEFAULT_BORDER_COLOR } from './preview-theme'
-import { type PreviewValues, normalizeColor } from './preview-values'
+import { contentArea, cornerRadii } from './preview-geometry-paint'
+import { type PreviewStyle, type PreviewValues, normalizeColor } from './preview-values'
 
 export function IndicatorPreview({
   configuration,
-  values
+  values,
+  style
 }: {
   configuration: IndicatorWidgetConfiguration
   values: PreviewValues
+  style: PreviewStyle
 }): React.JSX.Element | null {
   const clipId = markupId(useId())
   const placement = completePlacement(configuration.placement)
   const segments = configuration.segments ?? []
   if (!placement || segments.length === 0) return null
-  const style = values.styleFor(configuration, {
-    backgroundColor: configuration.background_color,
-    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
-  })
-  if (!style.visible) return null
   const strip = contentArea(placement, configuration.border?.width_px ?? 0, configuration.padding)
   const gap = configuration.segment_gap_px ?? 4
   const off = normalizeColor(configuration.off_color)
@@ -33,9 +29,16 @@ export function IndicatorPreview({
   const value = values.numberFor(configuration.source)
   const fraction = rangeFraction(value, configuration.minimum, configuration.maximum)
   const inverted = configuration.inverted ?? false
+  const blinkMs = configuration.blink_ms ?? 0
+  const blinking =
+    value !== undefined && blinkMs > 0 && fraction >= deviceFloat(configuration.blink_threshold ?? 2)
+  const blinkVisible = !blinking || Math.floor(values.elapsedMs() / blinkMs) % 2 === 0
   const slotOf = (index: number): number => (inverted ? segments.length - 1 - index : index)
   const lampColor = (index: number): string | undefined => {
-    const lit = value !== undefined && fraction >= deviceFloat(segments[index]?.threshold ?? 0)
+    const lit =
+      value !== undefined &&
+      blinkVisible &&
+      fraction >= deviceFloat(segments[index]?.threshold ?? 0)
     if (lit) return segments[index]?.color ?? '#00C853'
     return unlitPainted ? (off as string) : undefined
   }
@@ -89,14 +92,17 @@ export function IndicatorPreview({
         const color = lampColor(index)
         if (!color) return null
         const offset = slotOf(index) * (length + gap)
+        const lamp = {
+          x: horizontal ? strip.x + offset : strip.x,
+          y: horizontal ? strip.y : strip.y + strip.height - offset - length,
+          width: horizontal ? length : strip.width,
+          height: horizontal ? strip.height : length
+        }
         return (
           <rect
             key={index}
-            x={horizontal ? strip.x + offset : strip.x}
-            y={horizontal ? strip.y : strip.y + strip.height - offset - length}
-            width={horizontal ? length : strip.width}
-            height={horizontal ? strip.height : length}
-            rx={configuration.segment_radius_px ?? 0}
+            {...lamp}
+            {...cornerRadii(configuration.segment_radius_px ?? 0, lamp.width, lamp.height)}
             fill={color}
           />
         )

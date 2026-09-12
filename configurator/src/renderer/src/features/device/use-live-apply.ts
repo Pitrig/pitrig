@@ -1,22 +1,35 @@
 import { useEffect, useRef } from 'react'
 
-import { configurationsEqual } from '@shared/configuration-access'
 import { documentsDiffering } from '@shared/configuration-documents'
-import type { DeviceConfiguration } from '@shared/device'
+import {
+  CONFIGURATION_DOCUMENTS,
+  CONFIGURATION_DOCUMENT_IDS,
+  type ConfigurationDocumentId
+} from '@shared/configuration-schema'
+import type { DeviceConfiguration, DeviceErrorCode } from '@shared/device'
 import { formatConfiguration, useDeviceStore } from './device-store'
 
 const APPLY_DELAY_MS = 250
 const BUSY_RETRY_DELAY_MS = 750
 const BUSY_RETRIES = 5
 
+const LIVE_DOCUMENTS = CONFIGURATION_DOCUMENT_IDS.filter(
+  (id) => !CONFIGURATION_DOCUMENTS[id].rebootRequired
+)
+const LIVE_SECTIONS = LIVE_DOCUMENTS.flatMap((id) => CONFIGURATION_DOCUMENTS[id].sections)
+const RUNNING_HELD: DeviceErrorCode[] = ['busy', 'configuration_rejected']
+
 export interface LiveApplyState {
   pending: boolean
   error?: string
 }
 
-export function recordRunningConfiguration(configuration: DeviceConfiguration | undefined): void {
+export function recordRunningConfiguration(
+  configuration: DeviceConfiguration | undefined,
+  documents?: readonly ConfigurationDocumentId[]
+): void {
   const store = useDeviceStore.getState()
-  if (configuration) store.markLiveApplied(configuration)
+  if (configuration) store.markLiveApplied(configuration, documents)
   else store.markRunningUnknown()
 }
 
@@ -31,16 +44,14 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
   })
 
   useEffect(() => {
-    if (!enabled || !draft || configurationsEqual(draft, running)) return
+    if (!enabled || !draft || liveSectionsEqual(draft, running)) return
     let cancelled = false
     let attempts = 0
 
     const send = async (configuration: DeviceConfiguration): Promise<void> => {
-      const changed = documentsDiffering(configuration, running)
-      if (changed.length === 0) {
-        recordRunningConfiguration(configuration)
-        return
-      }
+      queued.current = undefined
+      const changed = liveDocumentsDiffering(configuration)
+      if (changed.length === 0) return
       inFlight.current = true
       report.current({ pending: true })
       const result = await window.pitrig.applyDeviceConfiguration({
@@ -48,7 +59,8 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
         documents: changed
       })
       inFlight.current = false
-      recordRunningConfiguration(result.ok ? configuration : undefined)
+      if (result.ok) recordRunningConfiguration(configuration, result.value.documents)
+      else if (!RUNNING_HELD.includes(result.error.code)) recordRunningConfiguration(undefined)
       report.current({
         pending: false,
         error: result.ok || cancelled ? undefined : result.error.message
@@ -61,7 +73,6 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
         return
       }
       const next = queued.current
-      queued.current = undefined
       if (next) void send(next)
     }
 
@@ -77,4 +88,24 @@ export function useLiveApply(enabled: boolean, onState: (state: LiveApplyState) 
       window.clearTimeout(timer)
     }
   }, [draft, enabled, running])
+}
+
+function liveDocumentsDiffering(
+  configuration: DeviceConfiguration
+): ConfigurationDocumentId[] {
+  const changed = documentsDiffering(
+    configuration,
+    useDeviceStore.getState().runningConfiguration
+  )
+  return LIVE_DOCUMENTS.filter((id) => changed.includes(id))
+}
+
+function liveSectionsEqual(
+  draft: DeviceConfiguration,
+  running: DeviceConfiguration | undefined
+): boolean {
+  if (!running || draft.board !== running.board) return false
+  const left = draft as unknown as Record<string, unknown>
+  const right = running as unknown as Record<string, unknown>
+  return LIVE_SECTIONS.every((section) => left[section] === right[section])
 }

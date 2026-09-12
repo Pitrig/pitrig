@@ -1,4 +1,4 @@
-import { MAXIMUM_IMAGE_PACKAGE_SIZE, imageAssetBytes } from '@shared/image-assets'
+import { imageAssetBytes } from '@shared/image-assets'
 import { kilobytes } from '@/features/font-library/font-library-store'
 import type { ImageEntry } from './image-assets-store'
 import { t } from '@shared/ui-text'
@@ -51,27 +51,33 @@ export function Thumbnail({ dataUrl, alt }: { dataUrl?: string; alt: string }): 
 export function StorageBar({
   label,
   used,
+  limit,
   available,
   over,
   className
 }: {
   label: string
   used: number
+  limit: number
   available: boolean
   over?: boolean
   className?: string
 }): React.JSX.Element {
-  const percent = Math.min(100, Math.round((used / MAXIMUM_IMAGE_PACKAGE_SIZE) * 100))
-  const free = Math.max(0, MAXIMUM_IMAGE_PACKAGE_SIZE - used)
+  const percent = Math.min(100, Math.round((used / limit) * 100))
+  const free = Math.max(0, limit - used)
   return (
     <div className={`space-y-1 ${className ?? ''}`}>
       <div className="flex items-center justify-between gap-2 text-[11px]">
         <span className="text-muted-foreground">{label}</span>
         <span className={over ? 'text-red-400' : 'text-muted-foreground'}>
           {available
-            ? `${kilobytes(used)} of ${kilobytes(MAXIMUM_IMAGE_PACKAGE_SIZE)} · ${
-                over ? `${kilobytes(used - MAXIMUM_IMAGE_PACKAGE_SIZE)} over` : `${kilobytes(free)} free`
-              }`
+            ? t('images.imagePageParts.usedOfLimit', {
+                used: kilobytes(used),
+                limit: kilobytes(limit),
+                rest: over
+                  ? t('images.imagePageParts.bytesOver', { bytes: kilobytes(used - limit) })
+                  : t('images.imagePageParts.bytesFree', { bytes: kilobytes(free) })
+              })
             : t('images.imagePageParts.unavailable')}
         </span>
       </div>

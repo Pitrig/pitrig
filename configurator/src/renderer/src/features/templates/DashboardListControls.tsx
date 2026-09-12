@@ -4,7 +4,7 @@ import {
   type TemplateSort
 } from '@/features/configuration/editor/panel-store'
 import type { DashboardTemplateSummary } from '@shared/templates'
-import { EVERY_BOARD, boardsPresent } from './dashboard-listing'
+import { EVERY_BOARD, boardsPresent, effectiveBoard } from './dashboard-listing'
 import { t } from '@shared/ui-text'
 
 const CONTROL = 'h-6 rounded-md border bg-transparent px-1 text-xs text-foreground'
@@ -27,7 +27,7 @@ export function DashboardListControls({
           aria-label={t('templates.dashboardListControls.showDashboardsFor')}
           className={CONTROL}
           title={t('templates.dashboardListControls.showOnlyTheDashboardsDrawn')}
-          value={boards.includes(board) ? board : EVERY_BOARD}
+          value={effectiveBoard(entries, board)}
           onChange={(event) => setBoard(event.target.value)}
         >
           <option value={EVERY_BOARD}>{t('templates.dashboardListControls.allSizesLength', { length: entries.length })}</option>

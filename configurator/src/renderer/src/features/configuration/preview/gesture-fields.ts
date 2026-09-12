@@ -1,5 +1,6 @@
 import { descendantsOf } from '@shared/configuration-access'
-import { ancestorsOf, findWidget } from '../dashboard-editor'
+import { findWidget } from '../dashboard-editor'
+import { outermostOf } from './selection-tree'
 import type { ScaleSubject } from '../editor/geometry-commands'
 import { contentArea } from './preview-geometry-paint'
 import { containerAt, type Follower, type Placement } from './canvas-geometry'
@@ -47,6 +48,28 @@ export function snapField(
   }
 }
 
+export function unlockedVisible(context: CanvasContext, id: string): boolean {
+  return !context.locked[id] && !context.hidden[id]
+}
+
+export function moveFollowers(
+  context: CanvasContext,
+  ids: readonly string[],
+  primaryId: string
+): Follower[] {
+  const order = new Map<string, number>()
+  context.layers.forEach((layer, index) => {
+    const id = layer.configuration.id
+    if (id !== undefined && !order.has(id)) order.set(id, index)
+  })
+  const depth = (id: string): number => order.get(id) ?? Number.MAX_SAFE_INTEGER
+  return ids
+    .filter((id) => id !== primaryId && unlockedVisible(context, id))
+    .map((id) => ({ id, placement: context.placements.get(id) }))
+    .filter((entry): entry is Follower => entry.placement !== undefined)
+    .sort((first, second) => depth(first.id) - depth(second.id))
+}
+
 export function excludedFrom(movedId: string, followers: readonly Follower[]): Set<string> {
   const widget = findWidget(useDeviceStore.getState().draft, movedId)?.widget
   const excluded = new Set(
@@ -81,16 +104,11 @@ export function resizeSubjects(
   ids: readonly string[]
 ): ScaleSubject[] {
   const draft = useDeviceStore.getState().draft
-  const chosen = new Set(ids)
-  return ids
+  return outermostOf(draft, ids.filter((id) => unlockedVisible(context, id)))
     .map((id) => {
       const location = findWidget(draft, id)
       const box = context.placements.get(id)
       if (!location || !box) return undefined
-      const inherited = ancestorsOf(draft, location).some(
-        (ancestor) => ancestor.id !== undefined && chosen.has(ancestor.id)
-      )
-      if (inherited) return undefined
       return {
         id,
         original: JSON.parse(JSON.stringify(location.widget)) as ScaleSubject['original'],

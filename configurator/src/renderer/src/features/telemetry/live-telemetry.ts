@@ -32,7 +32,7 @@ function onFrame(): void {
 
 function receive(snapshot: TelemetrySnapshot): void {
   table = snapshot
-  live = true
+  live = snapshot.live
   if (framePending) return
   framePending = true
   requestAnimationFrame(onFrame)
@@ -52,7 +52,10 @@ export function startLiveTelemetry(): () => void {
   const stopStatus = bridge.onStatus((status) => {
     if (!status.running) clear()
   })
+  let slowFrame = frameRevision
   const slowTimer = window.setInterval(() => {
+    if (slowFrame === frameRevision) return
+    slowFrame = frameRevision
     slowRevision += 1
     notify(slowListeners)
   }, SLOW_INTERVAL_MS)
@@ -85,11 +88,6 @@ export function useSlowRevision(): number {
 
 export function telemetryIsLive(): boolean {
   return live
-}
-
-export function liveSlotValue(slot: number): TelemetryValue {
-  if (!live) return UNAVAILABLE
-  return valueOfSlot(table, slot)
 }
 
 export function readLiveValue(binding: string | undefined): TelemetryValue {

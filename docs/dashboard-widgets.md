@@ -393,10 +393,10 @@ the table cannot state.
 
 An `image` widget draws an uploaded asset by identifier. The device holds no
 decoder: the configurator converts the source PNG, JPEG or BMP into the pixel
-layout the display draws and into the size the widget uses, so resizing the
-widget re-converts the artwork rather than scaling it on the board. Images are
-neither scaled nor rotated at runtime, which is also what keeps the ESP32-P4 on
-its accelerated draw path.
+layout the display draws, at the size chosen on the Images page. Resizing the
+widget leaves the bitmap as it was — artwork changes size only by being
+converted and uploaded again — and images are neither scaled nor rotated at
+runtime, which is also what keeps the ESP32-P4 on its accelerated draw path.
 
 Image identifiers follow the font-family rule: 1 to 31 lowercase ASCII letters,
 digits, `_`, or `-`. Resolution is exact — a configuration naming an image the

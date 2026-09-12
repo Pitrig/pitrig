@@ -43,8 +43,11 @@ export function SlotTabs(): React.JSX.Element | null {
                 type="button"
                 title={
                   page.trigger && page.trigger !== 'none'
-                    ? `Page ${index + 1}, shown by ${page.source?.binding || 'telemetry'}`
-                    : `Page ${index + 1}`
+                    ? t('canvas.slotTabs.pageNumberShownBy', {
+                        number: index + 1,
+                        binding: page.source?.binding || t('canvas.slotTabs.telemetry')
+                      })
+                    : t('common.pageNumber', { number: index + 1 })
                 }
                 aria-pressed={index === current}
                 className={`${TOOLBAR_ITEM} px-2 ${index === current ? TOOLBAR_ITEM_ACTIVE : ''}`}

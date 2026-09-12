@@ -18,11 +18,12 @@ function slotOf(
 export function addSlotPage(slotId: string): void {
   mutateDraftConfiguration((configuration) => {
     const slot = slotOf(configuration, slotId)
-    if (!slot) return
+    if (!slot) return false
     const pages = (slot.pages ??= [])
-    if (pages.length >= MAXIMUM_SLOT_PAGES) return
+    if (pages.length >= MAXIMUM_SLOT_PAGES) return false
     pages.push({})
     useDashboardEditorStore.getState().setSlotPage(slotId, pages.length - 1)
+    return true
   })
 }
 
@@ -30,9 +31,12 @@ export function deleteSlotPage(slotId: string, page: number): void {
   mutateDraftConfiguration((configuration) => {
     const slot = slotOf(configuration, slotId)
     const pages = slot?.pages
-    if (!pages || pages.length <= 1 || page < 0 || page >= pages.length) return
+    if (!pages || pages.length <= 1 || page < 0 || page >= pages.length) return false
     pages.splice(page, 1)
+    const remaining = pages[0]
+    if (remaining && !pages.some((entry) => entry.in_loop !== false)) delete remaining.in_loop
     useDashboardEditorStore.getState().setSlotPage(slotId, Math.min(page, pages.length - 1))
+    return true
   })
 }
 
@@ -43,6 +47,8 @@ export function mutateSlotPage(
 ): void {
   mutateDraftConfiguration((configuration) => {
     const target = slotOf(configuration, slotId)?.pages?.[page]
-    if (target) mutation(target)
+    if (!target) return false
+    mutation(target)
+    return true
   })
 }

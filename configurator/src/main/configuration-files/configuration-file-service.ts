@@ -1,5 +1,5 @@
 import { dialog, type BrowserWindow, type OpenDialogOptions, type SaveDialogOptions } from 'electron'
-import { readFile, stat, writeFile } from 'node:fs/promises'
+import { readFile, stat } from 'node:fs/promises'
 import { basename } from 'node:path'
 
 import {
@@ -9,8 +9,10 @@ import {
   type ConfigurationFileSaveValue
 } from '../../shared/configuration-files'
 import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from '../../shared/configuration-documents'
+import type { DeviceConfiguration } from '../../shared/device'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import type { RecentConfigurations } from '../configs/recent-configurations'
+import { writeFileAtomic } from '../write-file-atomic'
 import { t } from '@shared/ui-text'
 
 export class ConfigurationFileService {
@@ -30,6 +32,7 @@ export class ConfigurationFileService {
     const path = result.filePaths[0]
     if (!path) return { ok: true, value: null }
 
+    let json: string
     try {
       const metadata = await stat(path)
       if (!metadata.isFile() || metadata.size > MAXIMUM_CONFIGURATION_TEXT_SIZE) {
@@ -38,16 +41,25 @@ export class ConfigurationFileService {
           t('configs.configurationFileService.configurationFileMustNotExceed', { mAXIMUM_CONFIGURATION_TEXT_SIZE: MAXIMUM_CONFIGURATION_TEXT_SIZE })
         )
       }
-      const json = await readFile(path, 'utf8')
-      const configuration = parseDeviceConfigurationJson(json)
-      await this.recent.record(path)
-      return { ok: true, value: { configuration, fileName: basename(path) } }
+      json = await readFile(path, 'utf8')
     } catch (error) {
       return failure(
-        isConfigurationError(error) ? 'invalid_configuration' : 'read_failed',
+        'read_failed',
         error instanceof Error ? error.message : t('configs.configurationFileService.failedToLoadTheConfiguration')
       )
     }
+
+    let configuration: DeviceConfiguration
+    try {
+      configuration = parseDeviceConfigurationJson(json)
+    } catch (error) {
+      return failure(
+        'invalid_configuration',
+        error instanceof Error ? error.message : t('configs.configurationFileService.invalidConfigurationJson')
+      )
+    }
+    await this.recent.record(path)
+    return { ok: true, value: { configuration, fileName: basename(path) } }
   }
 
   async save(
@@ -78,7 +90,7 @@ export class ConfigurationFileService {
       return { ok: true, value: { saved: false } }
     }
     try {
-      await writeFile(result.filePath, content, 'utf8')
+      await writeFileAtomic(result.filePath, content)
       await this.recent.record(result.filePath)
       return {
         ok: true,
@@ -91,10 +103,6 @@ export class ConfigurationFileService {
       )
     }
   }
-}
-
-function isConfigurationError(error: unknown): boolean {
-  return error instanceof Error && error.message.startsWith('Configuration')
 }
 
 function failure(

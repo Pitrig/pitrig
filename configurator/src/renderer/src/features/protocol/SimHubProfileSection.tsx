@@ -54,13 +54,20 @@ export function SimHubProfileSection(): React.JSX.Element {
       } else if (result.value.saved) {
         setFeedback({
           kind: 'success',
-          message: `${result.value.fileName ?? 'SimHub profile'} saved with ${selection.fieldNames.length} telemetry fields.`
+          message: t('protocol.simHubProfileSection.fileNameSavedWithFields', {
+            fileName:
+              result.value.fileName ?? t('protocol.simHubProfileSection.simHubProfile'),
+            count: selection.fieldNames.length
+          })
         })
       }
     } catch (error) {
       setFeedback({
         kind: 'error',
-        message: bridgeErrorMessage(error, 'Failed to export the SimHub profile.')
+        message: bridgeErrorMessage(
+          error,
+          t('protocol.simHubProfileSection.failedToExportTheSimhub')
+        )
       })
     } finally {
       setExporting(false)

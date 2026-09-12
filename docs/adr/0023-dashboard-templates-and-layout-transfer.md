@@ -36,17 +36,21 @@ Four facts constrain what can be done about either.
 ## Decision
 
 **A template is an envelope, not a decorated document.** It holds `format`,
-`format_version`, `name`, an optional `description`, and the configuration as a
-payload. The metadata sits outside because the document cannot carry it; the
-version sits outside because the document deliberately has none, and the
-envelope is the configurator's own artifact rather than the device contract. The
-payload keeps `board` as the single source of truth — the envelope does not
-repeat it, because a second copy is a copy the two can disagree about.
+`format_version`, `name`, an optional `description`, and the payload. The
+metadata sits outside because the document cannot carry it; the version sits
+outside because the document deliberately has none, and the envelope is the
+configurator's own artifact rather than the device contract. There are two
+formats. `pitrig-dashboard-template` carries a whole configuration, whose
+`board` stays the single source of truth — that envelope does not repeat it,
+because a second copy is a copy the two can disagree about.
+`pitrig-widget-template` carries one widget with its subtree, and its envelope
+does name `board`, because a widget fragment has nowhere of its own to say what
+display it was drawn for.
 
 **The library is bundled starters plus saved templates.** The starters are
 inlined into the application, because there is no packaging step to copy files
-through; the saved ones are one file each in a folder under the user data
-directory. A starter's identifier carries a prefix that the identifier pattern
+through; the saved ones are one file each under the user data directory,
+dashboards in the template folder and widgets in its `widgets` subdirectory. A starter's identifier carries a prefix that the identifier pattern
 rejects, so a file can never produce one and one can never name a file — which
 makes "a starter is read-only" a property of the scheme rather than a check
 somebody has to remember. Both kinds go through the same parse a loaded file and
@@ -106,8 +110,8 @@ clamp, an arc ring thinned to keep fitting its widget, and any widget that would
 land entirely off the destination display. It is structured data; the wording
 belongs to the panel that shows it.
 
-**One engine serves both entry points** — converting the draft in place, and
-applying a template authored for another board.
+**One engine serves every entry point** — converting the draft in place,
+applying a template authored for another board, and taking a screen from one.
 
 ## Consequences
 
@@ -119,10 +123,13 @@ applying a template authored for another board.
   the size the report names, the widget's box is right and its bitmap is not.
   This is a consequence of ADR 0018 rather than an omission, so it is surfaced
   instead of worked around.
-- A template is a whole dashboard, never a single screen. A one-screen fragment
-  could carry a `goto_screen` action naming a screen the destination does not
-  have; a whole-document apply moves screens and actions together, so their ids
-  stay consistent by construction.
+- A template is saved as a whole dashboard or as one widget, never as a single
+  screen, but `Add` takes screens out of a dashboard template and appends them
+  to the open document, each under the first free `screenN` id and with fresh
+  ids for every widget it brings. The ids stay consistent there too: a
+  `goto_screen` action among those widgets is rewritten to the new id when the
+  screen it names came along, and dropped when it did not, so a fragment cannot
+  carry an action naming a screen the destination does not have.
 - The envelope is a second persisted format the configurator has to keep
   reading. `format_version` is what makes that survivable, and the configuration
   inside continues through the existing migration.

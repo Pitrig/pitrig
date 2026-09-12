@@ -11,6 +11,7 @@ type PreviewState = 'loading' | 'ready' | 'unavailable'
 interface FontCatalogState {
   families: FontCatalogFamily[]
   loaded: boolean
+  failed: boolean
   previews: Readonly<Record<string, PreviewState>>
   previewIds: Readonly<Record<string, string>>
   tabular: Readonly<Record<string, boolean>>
@@ -24,12 +25,18 @@ const queue: string[] = []
 export const useFontCatalogStore = create<FontCatalogState>((set, get) => ({
   families: [],
   loaded: false,
+  failed: false,
   previews: {},
   previewIds: {},
   tabular: {},
   load: async () => {
     if (get().loaded) return
-    const families = await window.pitrig.listFontCatalog().catch(() => [])
+    set({ failed: false })
+    const families = await window.pitrig.listFontCatalog().catch(() => undefined)
+    if (!families) {
+      set({ failed: true })
+      return
+    }
     set({ families, loaded: true })
   },
   requestPreview: (family) => {

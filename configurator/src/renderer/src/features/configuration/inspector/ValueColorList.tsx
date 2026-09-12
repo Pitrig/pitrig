@@ -51,7 +51,7 @@ export function ValueColorList({
               }
             />
             <RemoveButton
-              label={`Remove ${noun} ${position + 1}`}
+              label={t('inspector.valueColorList.removeNounPosition', { noun, position: position + 1 })}
               onClick={() => onChange(entries.filter((_, here) => here !== position))}
             />
           </div>

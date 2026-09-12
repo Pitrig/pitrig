@@ -2,17 +2,19 @@ import { type TextWidgetConfiguration } from '@shared/configuration-schema'
 import { composeWidgetText, placeholderBody, transformedBody, withAffixes } from '@shared/value-format'
 import { useFontFaceStore } from '@/features/font-library/font-face-store'
 import { completePlacement } from '../dashboard-editor'
-import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
+import { DEFAULT_TEXT_COLOR } from './preview-theme'
 import { contentArea } from './preview-geometry-paint'
-import { type PreviewValues, alignmentAnchor, centerOffset, fontMetrics, resolvedFont } from './preview-values'
+import { DEFAULT_CAPTION_FONT_SIZE_PX, type PreviewStyle, type PreviewValues, alignmentAnchor, centerOffset, fontMetrics, resolvedFont } from './preview-values'
 import { WidgetFrameShape } from './frame-shape'
 
 export function TextWidgetPreview({
   configuration,
-  values
+  values,
+  style
 }: {
   configuration: TextWidgetConfiguration
   values: PreviewValues
+  style: PreviewStyle
 }): React.JSX.Element | null {
   const loadedFamilies = useFontFaceStore((state) => state.loaded)
   const placement = completePlacement(configuration.placement)
@@ -20,15 +22,13 @@ export function TextWidgetPreview({
 
   const borderWidth = configuration.border?.width_px ?? 0
   const title = configuration.title?.text ?? ''
-  const titleFont = resolvedFont(configuration.title?.font, 10, loadedFamilies)
+  const titleFont = resolvedFont(
+    configuration.title?.font,
+    DEFAULT_CAPTION_FONT_SIZE_PX,
+    loadedFamilies
+  )
   const valueFont = resolvedFont(configuration.value?.font, 48, loadedFamilies)
   const content = contentArea(placement, borderWidth, configuration.padding)
-  const style = values.styleFor(configuration, {
-    color: configuration.value?.color ?? DEFAULT_TEXT_COLOR,
-    backgroundColor: configuration.background_color,
-    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
-  })
-  if (!style.visible) return null
   const previewValue = composedText(configuration, values)
 
   const metrics = fontMetrics(previewValue, valueFont)
@@ -69,8 +69,9 @@ function composedText(configuration: TextWidgetConfiguration, values: PreviewVal
   const sources = configuration.sources ?? []
   let anyAvailable = false
   const parts = sources.map(({ binding, transform }) => {
-    const body = transformedBody(transform, values.read(binding))
-    if (body !== undefined) anyAvailable = true
+    const value = values.read(binding)
+    if (value.available) anyAvailable = true
+    const body = transformedBody(transform, value)
     return withAffixes(transform, body ?? placeholderBody(transform))
   })
   if (!anyAvailable && values.started() && configuration.value?.unavailable_text) {

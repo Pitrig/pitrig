@@ -15,13 +15,17 @@ import type {
 } from '../../shared/save-to-board'
 import type {
   DeviceConfiguration,
+  DeviceConfigurationApplyResult,
   DeviceConfigurationSaveResult,
+  DeviceResult,
   DeviceSession
 } from '../../shared/device'
 import { DeviceService } from '../device/device-service'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import { FontAssetService } from '../font-assets/font-asset-service'
 import { FontLibraryService } from '../font-library/font-library-service'
+
+type RestartOutcome = { ok: true } | { ok: false; rebooted: boolean; error: SaveToBoardResult }
 
 export class SaveToBoardService {
   constructor(
@@ -42,6 +46,16 @@ export class SaveToBoardService {
       configuration = parseDeviceConfigurationJson(request.json)
     } catch (error) {
       return failure('invalid_configuration', messageOf(error, t('save.saveToBoardService.theConfigurationIsNotValid')))
+    }
+
+    if (configuration.board !== session.info.boardId) {
+      return failure(
+        'invalid_configuration',
+        t('device.draftState.theDraftTargetsBoardThe', {
+          board: configuration.board,
+          boardId: session.info.boardId
+        })
+      )
     }
 
     const requested = request.documents
@@ -89,7 +103,11 @@ export class SaveToBoardService {
             const restarted = await this.restart()
             if (!restarted.ok) return restarted.error
           }
-          const uploaded = await this.fontAssets.upload({ families }, this.forwardUploadProgress)
+          const uploaded = await this.fontAssets.upload(
+            { families },
+            this.forwardUploadProgress,
+            built.value
+          )
           if (!uploaded.ok) return failure('font_upload_failed', uploaded.error.message)
           fontsUploaded = true
         }
@@ -104,14 +122,17 @@ export class SaveToBoardService {
       }
       const saved = written?.configuration ?? session.configuration
 
+      const current = this.deviceService.getState().session
       const leavingSafeMode = safeMode && written !== undefined
       const restartNeeded =
         leavingSafeMode ||
         fontsUploaded ||
-        assetsAwaitingRestart(this.deviceService.getState().session) ||
+        assetsAwaitingRestart(current) ||
+        (current?.restartOwed ?? false) ||
         (written?.rebootRequired ?? false)
       if (restartNeeded) {
-        const reconnected = await this.restart()
+        const restarted = await this.restart()
+        if (!restarted.ok && !restarted.rebooted) return restarted.error
         this.report(
           'completed',
           1,
@@ -124,16 +145,17 @@ export class SaveToBoardService {
           ok: true,
           value: {
             configuration: saved,
+            documents: written?.documents ?? [],
             fontsUploaded,
             restarted: true,
-            ...(reconnected.ok ? {} : { reconnectFailed: true })
+            ...(restarted.ok ? {} : { reconnectFailed: true })
           }
         }
       }
 
       const applied =
         written && written.documents.length > 0
-          ? await this.deviceService.applyConfigurationNow(request.json, written.documents)
+          ? await this.applyAfterSave(request.json, written.documents)
           : undefined
       this.report(
         'completed',
@@ -147,6 +169,7 @@ export class SaveToBoardService {
         ok: true,
         value: {
           configuration: saved,
+          documents: written?.documents ?? [],
           fontsUploaded,
           restarted: false,
           ...(applied && !applied.ok ? { applyFailed: applied.error.message } : {})
@@ -156,15 +179,40 @@ export class SaveToBoardService {
   }
 
   private readonly forwardUploadProgress = (progress: AssetUploadProgress): void => {
+    if (
+      progress.stage !== 'erasing' &&
+      progress.stage !== 'uploading' &&
+      progress.stage !== 'committing'
+    ) {
+      return
+    }
     this.report('uploading', progress.completed, progress.total, progress.message)
   }
 
-  private async restart(): Promise<{ ok: true } | { ok: false; error: SaveToBoardResult }> {
+  private async applyAfterSave(
+    json: string,
+    documents: ConfigurationDocumentId[]
+  ): Promise<DeviceResult<DeviceConfigurationApplyResult>> {
+    this.report('applying', 0, 1, t('save.stage.applying'))
+    return this.deviceService.applyConfigurationNow(json, documents)
+  }
+
+  private async restart(): Promise<RestartOutcome> {
     this.report('rebooting', 0, 1, t('save.stage.rebooting'))
-    const result = await this.deviceService.rebootAndReconnect()
-    if (result.ok) return { ok: true }
-    this.report('reconnecting', 0, 1, result.error.message)
-    return { ok: false, error: failure('device_error', result.error.message) }
+    const connection = this.deviceService.getState().connection
+    const rebooted = await this.deviceService.reboot()
+    if (!rebooted.ok) {
+      return { ok: false, rebooted: false, error: failure('device_error', rebooted.error.message) }
+    }
+    if (!connection) {
+      const message = t('device.deviceScan.theBoardRestartedButDid')
+      this.report('reconnecting', 0, 1, message)
+      return { ok: false, rebooted: true, error: failure('device_error', message) }
+    }
+    const reconnected = await this.deviceService.reconnect(connection)
+    if (reconnected.ok) return { ok: true }
+    this.report('reconnecting', 0, 1, reconnected.error.message)
+    return { ok: false, rebooted: true, error: failure('device_error', reconnected.error.message) }
   }
 
   private report(

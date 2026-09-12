@@ -35,6 +35,17 @@ interface EditorPanelStore extends PersistedPanels {
 const clamp = (value: number, low: number, high: number): number =>
   Math.min(high, Math.max(low, Math.round(value)))
 
+const numberOr = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : fallback
+
+function booleanRecord(value: unknown): Record<string, boolean> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+  const entries = Object.entries(value as Record<string, unknown>).filter(
+    ([, open]) => typeof open === 'boolean'
+  )
+  return Object.fromEntries(entries) as Record<string, boolean>
+}
+
 const DEFAULTS: PersistedPanels = {
   inspectorWidth: DEFAULT_INSPECTOR_WIDTH_PX,
   layersHeight: DEFAULT_LAYERS_HEIGHT_PX,
@@ -51,12 +62,12 @@ function restore(): PersistedPanels {
     const stored = JSON.parse(raw) as Partial<PersistedPanels>
     return {
       inspectorWidth: clamp(
-        stored.inspectorWidth ?? DEFAULTS.inspectorWidth,
+        numberOr(stored.inspectorWidth, DEFAULTS.inspectorWidth),
         MINIMUM_INSPECTOR_WIDTH_PX,
         MAXIMUM_INSPECTOR_WIDTH_PX
       ),
       layersHeight: clamp(
-        stored.layersHeight ?? DEFAULTS.layersHeight,
+        numberOr(stored.layersHeight, DEFAULTS.layersHeight),
         MINIMUM_LAYERS_HEIGHT_PX,
         MAXIMUM_LAYERS_HEIGHT_PX
       ),
@@ -64,7 +75,7 @@ function restore(): PersistedPanels {
       templateSort: stored.templateSort === 'name' ? 'name' : DEFAULTS.templateSort,
       templateBoard:
         typeof stored.templateBoard === 'string' ? stored.templateBoard : DEFAULTS.templateBoard,
-      groups: stored.groups ?? {}
+      groups: booleanRecord(stored.groups)
     }
   } catch {
     return DEFAULTS

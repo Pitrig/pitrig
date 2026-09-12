@@ -1,19 +1,25 @@
-import { useEffect, useState, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import type { DisplayDescriptor } from '@shared/device'
 import { clamp } from '../editor/placement'
 import { isTextEntry } from '../editor/keyboard'
 import { MAXIMUM_ZOOM, MINIMUM_ZOOM, useDashboardEditorStore } from '../dashboard-editor'
 import { clampPan, logicalPoint, viewportScale } from './canvas-geometry'
 
+const ZOOM_WHEEL_RATE = 0.0022
+
 export function useCanvasView(
   svgRef: RefObject<SVGSVGElement | null>,
   display: DisplayDescriptor
 ): { spaceHeld: boolean } {
   const [spaceHeld, setSpaceHeld] = useState(false)
+  const hovering = useRef(false)
 
   useEffect(() => {
     const down = (event: KeyboardEvent): void => {
       if (event.code !== 'Space' || isTextEntry(event.target)) return
+      const element = svgRef.current
+      const focused = element !== null && element.contains(document.activeElement)
+      if (!focused && !hovering.current) return
       event.preventDefault()
       setSpaceHeld(true)
     }
@@ -29,7 +35,7 @@ export function useCanvasView(
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', clear)
     }
-  }, [])
+  }, [svgRef])
 
   useEffect(() => {
     const element = svgRef.current
@@ -41,7 +47,7 @@ export function useCanvasView(
       if (event.ctrlKey || event.metaKey) {
         const point = logicalPoint(element, event.clientX, event.clientY)
         const zoom = clamp(
-          current.zoom * (event.deltaY < 0 ? 1.25 : 0.8),
+          current.zoom * Math.exp(-event.deltaY * ZOOM_WHEEL_RATE),
           MINIMUM_ZOOM,
           MAXIMUM_ZOOM
         )
@@ -74,8 +80,20 @@ export function useCanvasView(
         )
       )
     }
+    const enter = (): void => {
+      hovering.current = true
+    }
+    const leave = (): void => {
+      hovering.current = false
+    }
     element.addEventListener('wheel', onWheel, { passive: false })
-    return () => element.removeEventListener('wheel', onWheel)
+    element.addEventListener('pointerenter', enter)
+    element.addEventListener('pointerleave', leave)
+    return () => {
+      element.removeEventListener('wheel', onWheel)
+      element.removeEventListener('pointerenter', enter)
+      element.removeEventListener('pointerleave', leave)
+    }
   }, [display, svgRef])
 
   return { spaceHeld }

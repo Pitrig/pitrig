@@ -64,27 +64,6 @@ export class FirmwareUpdateService extends AssetServiceBase {
     return success({ id: source.id, name: source.name, size })
   }
 
-  async registerSourcePath(
-    path: string
-  ): Promise<FirmwareUpdateResult<FirmwareSourceSelection>> {
-    const name = path.split('/').pop() ?? path
-    let size: number
-    try {
-      size = (await stat(path)).size
-    } catch {
-      return failure('source_unreadable', t('firmware.firmwareUpdateService.cannotReadName', { name: name }))
-    }
-    if (size === 0 || size > MAXIMUM_FIRMWARE_IMAGE_SIZE) {
-      return failure(
-        'package_too_large',
-        t('firmware.firmwareUpdateService.nameIsSizeBytesWhich', { name: name, size: size })
-      )
-    }
-    const id = `path-${Date.now().toString(36)}`
-    this.sources.set(id, { id, name, path })
-    return success({ id, name, size })
-  }
-
   async upload(request: FirmwareUploadRequest): Promise<FirmwareUpdateResult<void>> {
     const blocked = this.preflight()
     if (blocked) return blocked
@@ -121,14 +100,17 @@ export class FirmwareUpdateService extends AssetServiceBase {
 
       stage = 'uploading'
       if (this.deviceService.getState().session !== deviceSession) {
-        throw new Error('The connected device changed while the image was prepared.')
+        throw new Error(t('firmware.firmwareUpdateService.theConnectedDeviceChangedWhile'))
       }
       await this.deviceService.uploadFirmware(packageBytes, this.onProgress, operation.signal)
       this.onProgress({
         stage: 'completed',
         completed: packageBytes.byteLength,
         total: packageBytes.byteLength,
-        message: `Firmware installed into ${deviceSession.firmware?.target ?? 'the inactive slot'}. Restart the device to run it.`
+        message: t('firmware.firmwareUpdateService.firmwareInstalledIntoTargetRestart', {
+          target:
+            deviceSession.firmware?.target ?? t('firmware.firmwareUpdateService.theInactiveSlot')
+        })
       })
       return success(undefined)
     } catch (error) {

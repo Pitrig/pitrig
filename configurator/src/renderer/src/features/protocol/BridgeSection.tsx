@@ -5,29 +5,29 @@ import { Button } from '@/components/ui/button'
 import { PageSection, ReadOnlyField } from '@/app/workspace/PageShell'
 import { NumberField, TextField } from '@/features/configuration/inspector/fields'
 import {
+  setBridgeRequest,
   startTelemetryBridge,
   stopTelemetryBridge,
   useBridgeStore
 } from '@/features/telemetry/bridge-store'
-import {
-  LINK_DEFAULT_PORT,
-  LINK_DEFAULT_SIMHUB_HOST,
-  LINK_SOURCE_PORT,
-  type LatencyQuantiles,
-  type TelemetryBridgeStatus
-} from '@shared/telemetry-bridge'
+import type { LatencyQuantiles, TelemetryBridgeStatus } from '@shared/telemetry-bridge'
 import { t } from '@shared/ui-text'
 
 export function BridgeSection(): React.JSX.Element {
   const status = useBridgeStore((state) => state.status)
   const busy = useBridgeStore((state) => state.busy)
-  const [port, setPort] = useState<number>(LINK_DEFAULT_PORT)
-  const [simhubHost, setSimhubHost] = useState(LINK_DEFAULT_SIMHUB_HOST)
-  const [simhubPort, setSimhubPort] = useState<number>(LINK_SOURCE_PORT)
+  const request = useBridgeStore((state) => state.request)
   const [error, setError] = useState<string>()
+  const shown = status.running
+    ? {
+        port: status.port ?? request.port,
+        simhubHost: status.simhubAddress ?? request.simhubHost,
+        simhubPort: request.simhubPort
+      }
+    : request
 
   const start = async (): Promise<void> => {
-    setError(await startTelemetryBridge({ port, simhubHost, simhubPort }))
+    setError(await startTelemetryBridge(request))
   }
 
   return (
@@ -49,13 +49,13 @@ export function BridgeSection(): React.JSX.Element {
       <div className="space-y-3">
         <StateChips status={status} />
         <PluginSource
-          port={port}
-          simhubHost={simhubHost}
-          simhubPort={simhubPort}
+          port={shown.port}
+          simhubHost={shown.simhubHost}
+          simhubPort={shown.simhubPort}
           status={status}
-          onPort={setPort}
-          onSimhubHost={setSimhubHost}
-          onSimhubPort={setSimhubPort}
+          onPort={(value) => setBridgeRequest({ port: value })}
+          onSimhubHost={(value) => setBridgeRequest({ simhubHost: value })}
+          onSimhubPort={(value) => setBridgeRequest({ simhubPort: value })}
         />
         {status.running ? <Measured status={status} /> : null}
         {error ?? status.error ? (

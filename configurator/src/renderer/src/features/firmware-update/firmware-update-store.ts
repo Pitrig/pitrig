@@ -1,23 +1,15 @@
 import { create } from 'zustand'
 
-import type { FirmwareSourceSelection, FirmwareUploadProgress } from '@shared/firmware-update'
+import { createUploadOperationStore } from '@/lib/upload-operation-store'
+import type { FirmwareSourceSelection } from '@shared/firmware-update'
 
-interface FirmwareUpdateStore {
+interface FirmwareSourceStore {
   source?: FirmwareSourceSelection
-  progress?: FirmwareUploadProgress
-  error?: string
-  operationStartedAt?: number
   setSource: (source?: FirmwareSourceSelection) => void
-  setProgress: (progress?: FirmwareUploadProgress) => void
-  setError: (error?: string) => void
-  beginOperation: () => void
-  endOperation: () => void
 }
 
-export const useFirmwareUpdateStore = create<FirmwareUpdateStore>((set) => ({
-  setSource: (source) => set({ source, progress: undefined, error: undefined }),
-  setProgress: (progress) => set({ progress }),
-  setError: (error) => set({ error }),
-  beginOperation: () => set({ operationStartedAt: Date.now(), error: undefined }),
-  endOperation: () => set({ operationStartedAt: undefined })
+export const useFirmwareUploadStore = createUploadOperationStore()
+
+export const useFirmwareUpdateStore = create<FirmwareSourceStore>((set) => ({
+  setSource: (source) => set({ source })
 }))

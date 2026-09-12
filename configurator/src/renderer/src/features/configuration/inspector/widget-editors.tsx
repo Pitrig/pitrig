@@ -38,10 +38,12 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
   const frames = known?.frameCount ?? 1
   const sheet = frames > 1
   const frameBinding = widget.sprite_frame_source?.binding ?? ''
+  const names = installed.map(({ name }) => name)
+  const choices = widget.image && !names.includes(widget.image) ? [widget.image, ...names] : names
   return (
     <>
-      <Group id="Image" title={t('firmware.firmwarePage.image')} icon={GROUP_ICONS.image} summary={widget.image || 'Unassigned'}>
-        <SelectField label={t('inspector.widgetEditors.bitmap')} hint={t('inspector.hints.image.image')} block value={widget.image ?? ''} options={['', ...installed.map(({ name }) => name)]} modified={authored(widget.image, '')} onReset={() => update((next) => { delete next.image })} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
+      <Group id="Image" title={t('firmware.firmwarePage.image')} icon={GROUP_ICONS.image} summary={widget.image || t('inspector.widgetEditors.unassigned')}>
+        <SelectField label={t('inspector.widgetEditors.bitmap')} hint={t('inspector.hints.image.image')} block value={widget.image ?? ''} options={choices} modified={authored(widget.image, '')} onReset={() => update((next) => { delete next.image })} onChange={(value) => update((next) => { if (value) next.image = value; else delete next.image })} />
         {installed.length === 0 ? <Hint>{t('inspector.widgetEditors.uploadImagesToTheBoard')}</Hint> : null}
         {widget.image && !known && installed.length > 0 ? <Hint>{t('inspector.widgetEditors.imageIsNotInstalledOn', { image: widget.image ?? '' })}</Hint> : null}
         {known ? <p className="text-muted-foreground">{`${known.width} × ${known.height} · ${known.format}${sheet ? ` · ${frames} frames` : ''}`}</p> : null}
@@ -57,7 +59,15 @@ export function ImageEditor({ selection, widget }: { selection: WidgetSelection;
             )}
           </>
         ) : null}
-        {!sheet && (widget.sprite_frame || widget.sprite_frame_source) ? <Hint>{t('inspector.widgetEditors.imageHasASingleFrame', { image: widget.image ?? '' })}</Hint> : null}
+        {!sheet && (widget.sprite_frame !== undefined || widget.sprite_frame_source !== undefined) ? (
+          <div className="flex items-start gap-1">
+            <Hint>{t('inspector.widgetEditors.imageHasASingleFrame', { image: widget.image ?? '' })}</Hint>
+            <RemoveButton label={t('inspector.propertyRow.clearLabel', { label: t('modules.effectEditor.frame') })} onClick={() => update((next) => {
+              delete next.sprite_frame
+              delete next.sprite_frame_source
+            })} />
+          </div>
+        ) : null}
         <OptionalColorField label={t('inspector.widgetEditors.recolor')} hint={t('inspector.hints.image.recolor')} value={widget.recolor} onChange={(value) => update((next) => { if (value) next.recolor = value; else { delete next.recolor; delete next.recolor_opa } })} />
         {widget.recolor ? <NumberField label={t('inspector.widgetEditors.strength')} hint={t('inspector.hints.image.strength')} value={widget.recolor_opa ?? 255} min={0} max={255} modified={authored(widget.recolor_opa, 255)} onReset={() => update((next) => { delete next.recolor_opa })} onChange={(value) => update((next) => { next.recolor_opa = Math.min(255, Math.max(0, Math.round(value))) })} /> : null}
       </Group>
@@ -73,6 +83,7 @@ export function ShapeEditor({ selection, widget }: { selection: WidgetSelection;
   const held = widgetsOf(widget).length
   return (
     <>
+      {/* eslint-disable-next-line no-restricted-syntax */}
       <Group id="Shape" title={t('inspector.indicatorEditor.shape')} icon={GROUP_ICONS.shape} summary={widget.kind ?? 'rectangle'}>
         <SelectField label={t('inspector.widgetEditors.kind')} hint={t('inspector.hints.shape.kind')} value={widget.kind ?? 'rectangle'} options={SHAPE_KIND_VALUES} modified={authored(widget.kind, 'rectangle')} onReset={() => update((next) => { delete next.kind })} onChange={(value) => update((next) => { next.kind = value })} />
       </Group>
@@ -119,7 +130,7 @@ export function TextEditor({ selection, widget }: { selection: WidgetSelection; 
         title={t('inspector.sectionEditors.data')}
         icon={GROUP_ICONS.data}
         hint={t('inspector.hints.text.sources')}
-        summary={sources.length > 1 ? t('inspector.widgetEditors.lengthSources', { length: sources.length }) : sources[0]?.binding || 'Unbound'}
+        summary={sources.length > 1 ? t('inspector.widgetEditors.lengthSources', { length: sources.length }) : sources[0]?.binding || t('inspector.widgetEditors.unbound')}
       >
         {sources.map((source, index) => (
           <SourceEditor

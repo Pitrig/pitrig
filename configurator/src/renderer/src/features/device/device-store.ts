@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { configurationsEqual, withWidgetIds } from '@shared/configuration-access'
 import { CONFIGURATION_DOCUMENT_IDS } from '@shared/configuration-schema'
 import type { ConfigurationDocumentId } from '@shared/configuration-schema'
-import { mergeDocument } from '@shared/configuration-documents'
+import { documentOf, mergeDocument } from '@shared/configuration-documents'
 import type {
   DeviceConfiguration,
   DeviceConnection,
@@ -53,9 +53,17 @@ interface DeviceStore {
   reloadDraft: (session: DeviceSession) => void
   saveFeedback?: { kind: 'success' | 'error'; message: string }
   setSaveFeedback: (feedback?: { kind: 'success' | 'error'; message: string }) => void
-  markConfigurationSaved: (configuration: DeviceConfiguration, applied: boolean) => void
+  markConfigurationSaved: (
+    configuration: DeviceConfiguration,
+    applied: boolean,
+    documents: readonly ConfigurationDocumentId[]
+  ) => void
   markConfigurationReset: (configuration: DeviceConfiguration) => void
-  markLiveApplied: (configuration: DeviceConfiguration) => void
+  setDraftFileName: (fileName?: string) => void
+  markLiveApplied: (
+    configuration: DeviceConfiguration,
+    documents?: readonly ConfigurationDocumentId[]
+  ) => void
   markRunningUnknown: () => void
   beginEdit: () => void
   endEdit: () => void
@@ -177,28 +185,35 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
     })),
   setOfflineBoard: (offlineBoard) => set({ offlineBoard }),
   setSaveFeedback: (saveFeedback) => set({ saveFeedback }),
-  markConfigurationSaved: (configuration, applied) =>
-    set((current) => ({
-      draft: adopt(configuration),
-      rawDraft: undefined,
-      hasLocalDraft: true,
-      draftFileName: undefined,
-      activeConfiguration: configuration,
-      runningConfiguration: applied ? configuration : current.runningConfiguration,
-      rebootRequired: false,
-      ...clearedHistory()
-    })),
-  markConfigurationReset: (configuration) =>
-    set({
-      draft: adopt(configuration),
-      rawDraft: undefined,
-      hasLocalDraft: true,
-      draftFileName: undefined,
-      activeConfiguration: configuration,
-      rebootRequired: true,
-      ...clearedHistory()
+  markConfigurationSaved: (configuration, applied, documents) =>
+    set((current) => {
+      const held = (base: DeviceConfiguration | undefined): DeviceConfiguration =>
+        documents.reduce(
+          (merged, id) => mergeDocument(merged, id, documentOf(configuration, id)),
+          base ?? configuration
+        )
+      return {
+        activeConfiguration: held(current.activeConfiguration),
+        runningConfiguration: applied
+          ? held(current.runningConfiguration)
+          : current.runningConfiguration,
+        rebootRequired: false
+      }
     }),
-  markLiveApplied: (configuration) => set({ runningConfiguration: configuration }),
+  markConfigurationReset: (configuration) =>
+    set({ activeConfiguration: configuration, rebootRequired: true }),
+  setDraftFileName: (draftFileName) => set({ draftFileName }),
+  markLiveApplied: (configuration, documents) =>
+    set((current) => {
+      const base = current.runningConfiguration
+      if (!documents || !base) return { runningConfiguration: configuration }
+      return {
+        runningConfiguration: documents.reduce(
+          (merged, id) => mergeDocument(merged, id, documentOf(configuration, id)),
+          base
+        )
+      }
+    }),
   markRunningUnknown: () => set({ runningConfiguration: undefined }),
   beginEdit: () =>
     set((current) => ({ editDepth: current.editDepth + 1, editRecorded: false })),
@@ -211,6 +226,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
         draft: previous,
         rawDraft: undefined,
         hasLocalDraft: true,
+        editSource: 'structured',
         past: current.past.slice(0, -1),
         future: [current.draft, ...current.future]
       }
@@ -223,6 +239,7 @@ export const useDeviceStore = create<DeviceStore>((set) => ({
         draft: next,
         rawDraft: undefined,
         hasLocalDraft: true,
+        editSource: 'structured',
         past: [...current.past, current.draft],
         future: rest
       }

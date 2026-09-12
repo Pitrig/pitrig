@@ -84,31 +84,31 @@ export async function saveDeviceConfiguration(
     const selected = CONFIGURATION_DOCUMENT_IDS.filter((document) =>
       requested.includes(document)
     ).reverse()
-    for (const document of selected) {
-      await saveConfiguration(
-        port,
-        document,
-        prepared.value.payloads[document],
-        runner.operationTraffic(traffic)
-      )
-    }
-    if (connection.port === port && connection.getState().session === session) {
-      let held = session.configuration
+    const onTraffic = runner.operationTraffic(traffic)
+    const written: ConfigurationDocumentId[] = []
+    try {
       for (const document of selected) {
+        await saveConfiguration(port, document, prepared.value.payloads[document], onTraffic)
+        written.push(document)
+      }
+    } finally {
+      let held = session.configuration
+      for (const document of written) {
         held = mergeDocument(held, document, documentOf(prepared.value.configuration, document))
       }
-      const info = await readInfo(port, session, runner.operationTraffic(traffic))
-      connection.setState({
-        ...connection.getState(),
-        session: { ...session, configuration: held, info }
-      })
+      await commitSession(
+        connection,
+        port,
+        session,
+        held,
+        onTraffic,
+        written.length < selected.length && owesRestart(written)
+      )
     }
     return success({
       configuration: prepared.value.configuration,
       documents: selected,
-      rebootRequired: selected.some(
-        (document) => CONFIGURATION_DOCUMENTS[document].rebootRequired
-      )
+      rebootRequired: owesRestart(selected)
     })
   })
 }
@@ -119,16 +119,43 @@ export async function resetDeviceConfiguration(
   document?: ConfigurationDocumentId
 ): Promise<DeviceResult<DeviceConfigurationResetResult>> {
   return runner.run(async ({ port, session, traffic }) => {
-    const traffic_ = runner.operationTraffic(traffic)
+    const onTraffic = runner.operationTraffic(traffic)
     const erased = document ? [document] : [...CONFIGURATION_DOCUMENT_IDS]
-    if (document) await resetConfigurationDocument(port, document, traffic_)
-    else await resetConfiguration(port, traffic_)
+    if (document) await resetConfigurationDocument(port, document, onTraffic)
+    else await resetConfiguration(port, onTraffic)
     let configuration: DeviceConfiguration = session.configuration
     for (const id of erased) {
       configuration = mergeDocument(configuration, id, { board: session.info.boardId })
     }
+    await commitSession(connection, port, session, configuration, onTraffic, true)
     return success({ configuration, documents: erased, rebootRequired: true })
   })
+}
+
+async function commitSession(
+  connection: ConnectionManager,
+  port: OpenedDevice['port'],
+  session: DeviceSession,
+  configuration: DeviceConfiguration,
+  onTraffic: (direction: 'rx' | 'tx', data: string) => void,
+  restartOwed: boolean
+): Promise<void> {
+  if (connection.port !== port || connection.getState().session !== session) return
+  const info = await readInfo(port, session, onTraffic)
+  if (connection.port !== port || connection.getState().session !== session) return
+  connection.setState({
+    ...connection.getState(),
+    session: {
+      ...session,
+      configuration,
+      info,
+      ...(restartOwed ? { restartOwed: true } : {})
+    }
+  })
+}
+
+function owesRestart(documents: readonly ConfigurationDocumentId[]): boolean {
+  return documents.some((document) => CONFIGURATION_DOCUMENTS[document].rebootRequired)
 }
 
 async function readInfo(

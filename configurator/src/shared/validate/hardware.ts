@@ -17,8 +17,9 @@ import {
 } from '../configuration-schema'
 import { BOARD_PROFILES, type PitrigBoardId } from '../device'
 import { isMatrix, lampsOf } from '../led-render'
-import { badColors, badEnum, badList, findEffectError } from './led-values'
+import { findEffectError } from './led-values'
 import { findBoundError } from './ranges'
+import { badColors, badEnum, badList } from './values'
 import { t } from '../ui-text'
 
 function findListError(device: HardwareDeviceConfiguration, label: string): string | undefined {

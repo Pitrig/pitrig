@@ -54,7 +54,8 @@ export async function saveDraftToBoard(
       .getState()
       .markConfigurationSaved(
         result.value.configuration as DeviceConfiguration,
-        result.value.applyFailed === undefined
+        result.value.applyFailed === undefined,
+        result.value.documents
       )
     useDeviceStore.getState().setSaveFeedback({
       kind: result.value.reconnectFailed ? 'error' : 'success',
@@ -84,6 +85,9 @@ function describeSave(value: {
   }
   if (value.fontsUploaded) {
     return t('device.saveToBoardStore.fontsInstalledAndConfigurationSaved')
+  }
+  if (value.restarted) {
+    return t('save.saveToBoardService.savedTheBoardIsRestarting')
   }
   return t('device.saveToBoardStore.savedTheBoardIsRunning')
 }

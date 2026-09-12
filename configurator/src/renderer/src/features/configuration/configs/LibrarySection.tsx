@@ -111,7 +111,7 @@ export function LibrarySection({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-foreground">{entry.name}</span>
                   <span className="block truncate text-[11px] text-muted-foreground">
-                    {`${BOARD_NAMES[entry.board as PitrigBoardId] ?? entry.board} · ${entry.screenCount} screen${entry.screenCount === 1 ? '' : 's'} · ${entry.widgetCount} widget${entry.widgetCount === 1 ? '' : 's'} · ${formatWhen(entry.modifiedAt)}`}
+                    {`${BOARD_NAMES[entry.board as PitrigBoardId] ?? entry.board} · ${t('configs.librarySection.screenCount', { count: entry.screenCount })} · ${t('configs.librarySection.widgetCount', { count: entry.widgetCount })} · ${formatWhen(entry.modifiedAt)}`}
                   </span>
                 </span>
                 <Button
@@ -143,7 +143,7 @@ export function LibrarySection({
         )}
         {library && library.unreadable > 0 ? (
           <p className="mt-2 text-[11px] text-amber-400">
-            {`${library.unreadable} file${library.unreadable === 1 ? '' : 's'} in the folder could not be read.`}
+            {t('configs.librarySection.unreadableFiles', { count: library.unreadable })}
           </p>
         ) : null}
 

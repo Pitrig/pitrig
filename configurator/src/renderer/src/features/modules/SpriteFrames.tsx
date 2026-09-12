@@ -140,7 +140,7 @@ export function SpriteFrames({
             key={index}
             type="button"
             aria-pressed={index === frame}
-            aria-label={`Frame ${index + 1}`}
+            aria-label={t('modules.spriteFrames.frameNumber', { number: index + 1 })}
             className={`rounded border p-0.5 ${
               index === frame ? 'border-sky-500/70 bg-sky-500/10' : 'border-white/10'
             }`}

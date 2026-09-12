@@ -3,6 +3,7 @@ import { BOARD_PROFILES, type DeviceConfiguration } from '@shared/device'
 import { clamp, clampToDisplay } from './placement'
 import {
   absolutePlacement,
+  ancestorsOf,
   findWidget,
   mutateSelectedWidget,
   parentOffset
@@ -92,6 +93,20 @@ export function nudge(
   })
 }
 
+
+export function movableSelection(
+  configuration: DeviceConfiguration,
+  ids: readonly string[]
+): string[] {
+  const selected = new Set(ids)
+  return ids.filter((id) => {
+    const location = findWidget(configuration, id)
+    if (!location) return false
+    return !ancestorsOf(configuration, location).some(
+      (ancestor) => ancestor.id !== undefined && selected.has(ancestor.id)
+    )
+  })
+}
 
 export function displayOf(
   configuration: DeviceConfiguration

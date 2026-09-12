@@ -1,11 +1,9 @@
 import type { BrowserWindow } from 'electron'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { FONT_FAMILY_PATTERN } from '../../shared/font-assets'
 import {
-  FONT_LIBRARY_FORMAT,
-  FONT_LIBRARY_FORMAT_VERSION,
   fontFamilyId,
   normalizeVariant,
   type FontFaceBytes,
@@ -25,15 +23,21 @@ import {
 import {
   FACE_EXTENSION,
   faceProblem,
+  faceSizeProblem,
   displayName,
   failure,
   messageOf,
   optionalTabular,
-  parseIndex,
   readFaceFile,
   type StoredEntry,
   type StoredIndex
 } from './font-library-files'
+import {
+  emptyIndex,
+  loadStoredIndex,
+  sortEntries,
+  writeStoredIndex
+} from './font-library-index'
 import { hasTabularDigits, missingCharacters } from './font-metrics'
 import { t } from '@shared/ui-text'
 
@@ -44,17 +48,13 @@ const MAXIMUM_USER_FACES = 256
 export class FontLibraryService {
   private readonly facesDirectory: string
   private readonly indexPath: string
-  private index: StoredIndex = {
-    format: FONT_LIBRARY_FORMAT,
-    format_version: FONT_LIBRARY_FORMAT_VERSION,
-    entries: []
-  }
+  private index: StoredIndex = emptyIndex()
   private unreadable = 0
-  private loaded = false
+  private loading: Promise<void> | undefined
   private readonly bundled = new BundledFaceFacts((id) => this.readFace(id))
 
   constructor(
-    private readonly directory: string,
+    directory: string,
     private readonly legacyFontCacheDirectory?: string
   ) {
     this.facesDirectory = join(directory, FACES_DIRECTORY)
@@ -147,6 +147,8 @@ export class FontLibraryService {
 
     let bytes: Uint8Array
     try {
+      const oversize = faceSizeProblem((await stat(outcome.file.path)).size)
+      if (oversize) return failure('not_a_font', oversize)
       bytes = new Uint8Array(await readFile(outcome.file.path))
     } catch (error) {
       return failure('read_failed', messageOf(error, t('fonts.fontLibraryService.theFontFileCouldNot')))
@@ -236,7 +238,7 @@ export class FontLibraryService {
       await mkdir(this.facesDirectory, { recursive: true })
       await writeFile(join(this.facesDirectory, stored.file), bytes)
       this.index.entries.push(stored)
-      this.index.entries.sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
+      sortEntries(this.index)
       await this.writeIndex()
     } catch (error) {
       return failure('write_failed', messageOf(error, t('fonts.fontLibraryService.theFontCouldNotBe')))
@@ -256,29 +258,25 @@ export class FontLibraryService {
   }
 
   private async writeIndex(): Promise<void> {
-    await mkdir(this.directory, { recursive: true })
-    await writeFile(this.indexPath, `${JSON.stringify(this.index, undefined, 2)}\n`, 'utf8')
+    await writeStoredIndex(this.indexPath, this.index, this.facesDirectory)
   }
 
   private async load(): Promise<void> {
-    if (this.loaded) return
-    this.loaded = true
-    try {
-      this.index = parseIndex(JSON.parse(await readFile(this.indexPath, 'utf8')))
-    } catch {
-      this.index = {
-        format: FONT_LIBRARY_FORMAT,
-        format_version: FONT_LIBRARY_FORMAT_VERSION,
-        entries: []
-      }
-    }
+    this.loading ??= this.loadOnce()
+    await this.loading
+  }
+
+  private async loadOnce(): Promise<void> {
+    const loaded = await loadStoredIndex(this.indexPath, this.facesDirectory)
+    this.index = loaded.index
     this.unreadable += await dropMissingFaces(this.index, this.facesDirectory)
     await adoptLegacyCache(
       this.legacyFontCacheDirectory,
       (id) => this.has(id),
       (entry, bytes) => this.store(entry, bytes)
     )
-    if (await backfillTabularDigits(this.index, this.facesDirectory)) {
+    const backfilled = await backfillTabularDigits(this.index, this.facesDirectory)
+    if (loaded.changed || backfilled) {
       await this.writeIndex().catch(() => undefined)
     }
   }

@@ -21,6 +21,7 @@ export function RingFields({ widget, owner, update }: { widget: RingWidget; owne
   const fittedCaption = needle
     ? t('inspector.ringEditor.followingTheBoxFittedPxLength', { fitted: fitted })
     : t('inspector.ringEditor.followingTheBoxFittedPx', { fitted: fitted })
+  const radiusHint = needle ? t('inspector.hints.ring.length') : t('inspector.hints.ring.radius')
   return (
     <>
       <SliderField label={t('inspector.ringEditor.centreAngle')} hint={t('inspector.hints.ring.centreAngle')} suffix="degrees" value={widget.center_angle_deg ?? 270} min={angleBounds.min ?? 0} max={angleBounds.max ?? 359} modified={authored(widget.center_angle_deg, 270)} onReset={() => update((next) => { delete next.center_angle_deg })} onChange={(value) => update((next) => { next.center_angle_deg = value })} />
@@ -28,12 +29,11 @@ export function RingFields({ widget, owner, update }: { widget: RingWidget; owne
       <SliderField label={t('inspector.ringEditor.thickness')} hint={t('inspector.hints.ring.thickness')} suffix="px" value={thickness} min={1} max={thicknessBounds.max ?? 2048} softMax={64} modified={authored(widget.thickness_px, 8)} onReset={() => update((next) => { delete next.thickness_px })} onChange={(value) => update((next) => { next.thickness_px = value })} />
       <NumberField
         label={needle ? t('inspector.ringEditor.length') : t('inspector.indicatorEditor.radius')}
-        hint={needle ? t('inspector.hints.ring.length') : t('inspector.hints.ring.radius')}
+        hint={radius === 0 ? `${radiusHint} ${fittedCaption}` : radiusHint}
         suffix="px"
         value={radius !== 0 ? radius : fitted}
         min={0}
         max={radiusBounds.max ?? 2048}
-        caption={radius === 0 ? fittedCaption : undefined}
         modified={radius !== 0}
         onReset={() => update((next) => { delete next.radius_px })}
         onChange={(value) => update((next) => { if (value === 0) delete next.radius_px; else next.radius_px = value })}

@@ -10,6 +10,18 @@ import {
 import { Subsection } from './Subsection'
 import { t } from '@shared/ui-text'
 
+function nextStopValue(
+  entries: readonly ValueColorEntry[],
+  minimum: number,
+  maximum: number
+): number {
+  const last = entries[entries.length - 1]?.value
+  if (last === undefined) return minimum
+  if (maximum > last) return last + (maximum - last) / 2
+  const span = maximum - minimum
+  return last + (span > 0 ? span / 2 : 1)
+}
+
 export function EffectPayload({
   effect,
   type,
@@ -24,14 +36,14 @@ export function EffectPayload({
     return (
       <Subsection title={t('modules.effectPayload.thresholds')}>
         <ValueColorList
-          noun="step"
-          valueTitle="Lights at this fraction of the range"
+          noun={t('modules.effectPayload.step')}
+          valueTitle={t('modules.effectPayload.lightsAtThisFractionOf')}
           entries={steps.map((step) => ({
             value: step.threshold ?? 0,
             color: step.color ?? '#00C853'
           }))}
           capacity={MAXIMUM_INDICATOR_SEGMENTS}
-          capacityNote={`A layer holds at most ${MAXIMUM_INDICATOR_SEGMENTS} steps.`}
+          capacityNote={t('modules.effectPayload.aLayerHoldsAtMost', { maximum: MAXIMUM_INDICATOR_SEGMENTS })}
           defaultColor="#00C853"
           seedValue={(entries) => entries.length / (entries.length + 1)}
           onChange={(entries: readonly ValueColorEntry[]) =>
@@ -53,19 +65,23 @@ export function EffectPayload({
   return (
     <Subsection title={t('modules.effectPayload.colourRamp')}>
       <ValueColorList
-        noun="stop"
+        noun={t('modules.effectPayload.stop')}
         valueTitle={
-          type === 'gradient' ? 'Position along the lamps, 0 to 1' : 'Value this colour sits at'
+          type === 'gradient'
+            ? t('modules.effectPayload.positionAlongTheLamps0')
+            : t('modules.effectPayload.valueThisColourSitsAt')
         }
         entries={stops.map((stop) => ({
           value: stop.at ?? 0,
           color: stop.color ?? '#38BDF8'
         }))}
         capacity={MAXIMUM_COLOR_STOPS}
-        capacityNote={`A ramp holds at most ${MAXIMUM_COLOR_STOPS} stops.`}
+        capacityNote={t('modules.effectPayload.aRampHoldsAtMost', { maximum: MAXIMUM_COLOR_STOPS })}
         defaultColor="#D50000"
         seedValue={(entries) =>
-          entries.length === 0 ? 0 : Math.min((entries[entries.length - 1]?.value ?? 0) + 1, 1)
+          type === 'gauge'
+            ? nextStopValue(entries, effect.minimum ?? 0, effect.maximum ?? 1)
+            : nextStopValue(entries, 0, 1)
         }
         onChange={(entries: readonly ValueColorEntry[]) =>
           update((next) => {

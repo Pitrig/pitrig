@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { paintOutput } from '@shared/led-paint'
+import { newRuleState, type LedRuleState } from '@shared/led-colors'
 import type { HardwareDeviceConfiguration, RgbColor } from '@shared/configuration-schema'
 import { PageSection } from '@/app/workspace/PageShell'
 import { playedLayersOf, type PlayedLayer } from './board-preview'
@@ -8,17 +9,16 @@ import { useLiveRevision } from '@/features/telemetry/live-telemetry'
 import { previewDrive, previewNote } from './preview-values'
 import { DevicePreview } from './DevicePreview'
 import { layerName } from './layer-name'
-import { useModulesStore } from './modules-store'
+import { useModulesStore, type LampHighlight } from './modules-store'
 import { t } from '@shared/ui-text'
 
 const SWEEP_MS = 4000
 const TICK_MS = 33
 const UNLIT: readonly RgbColor[] = []
 
-function useElapsed(active: boolean): number {
+function useElapsed(): number {
   const [elapsed, setElapsed] = useState(0)
   useEffect(() => {
-    if (!active) return undefined
     const started = performance.now()
     let frame = 0
     let shown = -TICK_MS
@@ -32,8 +32,8 @@ function useElapsed(active: boolean): number {
     }
     frame = requestAnimationFrame(step)
     return () => cancelAnimationFrame(frame)
-  }, [active])
-  return active ? elapsed : 0
+  }, [])
+  return elapsed
 }
 
 export function LedPreview({
@@ -49,50 +49,75 @@ export function LedPreview({
     device,
     preview.filter((entry) => entry.output === index)
   )
+  const marked = highlight?.output === index ? highlight : null
+
+  return (
+    <PageSection title={t('modules.ledPreview.preview')} description={describe(played)}>
+      {played.length > 0 ? (
+        <PlayedPreview
+          key={played.length}
+          device={device}
+          played={played}
+          highlight={marked}
+        />
+      ) : (
+        <DevicePreview device={device} frame={UNLIT} highlight={marked} />
+      )}
+    </PageSection>
+  )
+}
+
+function PlayedPreview({
+  device,
+  played,
+  highlight
+}: {
+  device: HardwareDeviceConfiguration
+  played: readonly PlayedLayer[]
+  highlight: LampHighlight | null
+}): React.JSX.Element {
   useLiveRevision()
-  const elapsed = useElapsed(played.length > 0)
-  const sweep = (elapsed % SWEEP_MS) / SWEEP_MS
+  const elapsed = useElapsed()
+  const [states] = useState<LedRuleState[]>(() => played.map(() => newRuleState()))
   const layers = played.map(({ layer }) => layer)
   const drives = layers.map((layer) => previewDrive(layer, elapsed))
 
   return (
-    <PageSection title={t('modules.ledPreview.preview')} description={describe(played)}>
-      <DevicePreview
-        device={device}
-        frame={
-          played.length > 0
-            ? paintOutput(
-                { ...device, effects: layers },
-                {
-                  value: sweep,
-                  elapsedMs: elapsed,
-                  gates: layers.map(() => true),
-                  valueText: drives.map(({ valueText }) => valueText),
-                  watched: drives.map(({ watched }) => watched),
-                  values: drives.map(({ value }) => value)
-                }
-              )
-            : UNLIT
+    <DevicePreview
+      device={device}
+      frame={paintOutput(
+        { ...device, effects: layers },
+        {
+          value: (elapsed % SWEEP_MS) / SWEEP_MS,
+          elapsedMs: elapsed,
+          gates: layers.map(() => true),
+          valueText: drives.map(({ valueText }) => valueText),
+          watched: drives.map(({ watched }) => watched),
+          values: drives.map(({ value }) => value),
+          states
         }
-        highlight={highlight?.output === index ? highlight : null}
-      />
-    </PageSection>
+      )}
+      highlight={highlight}
+    />
   )
 }
 
 function nameOf({ target, layer }: PlayedLayer): string {
   return target.kind === 'sprite'
-    ? `Picture ${target.sprite}`
+    ? t('modules.ledPreview.pictureSprite', { sprite: target.sprite ?? '' })
     : layerName(layer, target.effect)
 }
 
 function describe(played: readonly PlayedLayer[]): string {
   const first = played[0]
   if (!first) {
-    return 'Dark until a layer or a picture is played. Press the preview button on one to watch it here.'
+    return t('modules.ledPreview.darkUntilALayerOr')
   }
   if (played.length === 1) {
-    return `${nameOf(first)} on its own, over and over.${previewNote(first.layer)} Press its button again to stop.`
+    return t('modules.ledPreview.nameOnItsOwnOver', {
+      name: nameOf(first),
+      note: previewNote(first.layer)
+    })
   }
-  return `${played.map(nameOf).join(', ')} together, over and over. Where they share a lamp the one played last wins, the way the board resolves it.`
+  return t('modules.ledPreview.namesTogetherOverAndOver', { names: played.map(nameOf).join(', ') })
 }

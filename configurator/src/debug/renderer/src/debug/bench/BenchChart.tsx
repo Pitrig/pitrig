@@ -12,7 +12,6 @@ interface BenchChartProps {
   title: string
   series: ChartSeries[]
   times?: number[]
-  unit?: string
   minimum?: number
   maximum?: number
   reference?: number
@@ -28,7 +27,6 @@ export function BenchChart({
   title,
   series,
   times,
-  unit,
   minimum,
   maximum,
   reference,
@@ -70,7 +68,6 @@ export function BenchChart({
               <span key={entry.label} style={{ color: entry.color }}>
                 {series.length > 1 ? <span className="mr-1 opacity-70">{entry.label}</span> : null}
                 {latest === undefined ? '—' : format(latest)}
-                {unit && latest !== undefined ? unit : ''}
               </span>
             )
           })}
@@ -112,34 +109,36 @@ export function BenchChart({
             />
           ))}
           {active === undefined ? null : (
-            <>
-              <line
-                x1={crosshair(active.index, longest)}
-                x2={crosshair(active.index, longest)}
-                y1="0"
-                y2="100"
-                stroke="currentColor"
-                strokeWidth="1"
-                className="text-muted-foreground/50"
-                vectorEffect="non-scaling-stroke"
-              />
-              {windows.map((points, index) => {
-                const value = valueAt(points, longest, active.index)
-                if (value === undefined) return null
-                return (
-                  <circle
-                    key={series[index]?.label ?? index}
-                    cx={crosshair(active.index, longest)}
-                    cy={project(value, low, span)}
-                    r="2.5"
-                    fill={series[index]?.color}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                )
-              })}
-            </>
+            <line
+              x1={crosshair(active.index, longest)}
+              x2={crosshair(active.index, longest)}
+              y1="0"
+              y2="100"
+              stroke="currentColor"
+              strokeWidth="1"
+              className="text-muted-foreground/50"
+              vectorEffect="non-scaling-stroke"
+            />
           )}
         </svg>
+        {active === undefined
+          ? null
+          : windows.map((points, index) => {
+              const value = valueAt(points, longest, active.index)
+              if (value === undefined) return null
+              return (
+                <span
+                  key={series[index]?.label ?? index}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+                  style={{
+                    left: `${crosshair(active.index, longest)}%`,
+                    top: `${project(value, low, span)}%`,
+                    backgroundColor: series[index]?.color
+                  }}
+                />
+              )
+            })}
         {active === undefined ? null : (
           <div
             className="pointer-events-none absolute top-1 z-10 min-w-24 -translate-x-1/2 rounded-md border bg-popover/95 px-2 py-1 text-[10px] shadow-lg backdrop-blur-sm"
@@ -163,7 +162,7 @@ export function BenchChart({
                     {entry.label}
                   </span>
                   <span className="font-mono text-foreground">
-                    {value === undefined ? '—' : `${format(value)}${unit ?? ''}`}
+                    {value === undefined ? '—' : format(value)}
                   </span>
                 </div>
               )

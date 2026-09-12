@@ -76,8 +76,8 @@ function GraphTraceEditor({ trace, index, onChange, onRemove }: {
   return (
     <div className="space-y-2 rounded-md border p-2">
       <div className="flex items-center justify-between">
-        <span className="font-medium">{`Trace ${index + 2}`}</span>
-        <button type="button" aria-label={`Remove trace ${index + 2}`} title={t('inspector.gaugeEditors.removeThisTrace')} className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={onRemove}>
+        <span className="font-medium">{t('common.traceNumber', { number: index + 2 })}</span>
+        <button type="button" aria-label={t('inspector.gaugeEditors.removeTraceNumber', { number: index + 2 })} title={t('inspector.gaugeEditors.removeThisTrace')} className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={onRemove}>
           <Trash2 aria-hidden className="size-3" />
         </button>
       </div>
@@ -97,7 +97,7 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
       <SourceRangeSection widget={widget} update={update}>
         <ColorField label={t('inspector.gaugeEditors.line')} value={widget.line_color ?? '#38BDF8'} modified={authored(widget.line_color, '#38BDF8')} onReset={() => update((next) => { delete next.line_color })} onChange={(value) => update((next) => { next.line_color = value })} />
       </SourceRangeSection>
-      <Group id="Traces" title={t('inspector.gaugeEditors.moreTraces')} icon={GROUP_ICONS.graph} hint={t('inspector.hints.graph.traces')} summary={`${traces.length + 1} of ${MAXIMUM_GRAPH_SOURCES}`} defaultOpen={traces.length > 0}>
+      <Group id="Traces" title={t('inspector.gaugeEditors.moreTraces')} icon={GROUP_ICONS.graph} hint={t('inspector.hints.graph.traces')} summary={t('inspector.gaugeEditors.lengthOfMaximum', { length: traces.length + 1, maximum: MAXIMUM_GRAPH_SOURCES })} defaultOpen={traces.length > 0}>
         {traces.map((trace, index) => (
           <GraphTraceEditor
             key={index}
@@ -122,7 +122,7 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
       <Group id="Plot" title={t('inspector.gaugeEditors.plot')} icon={GROUP_ICONS.graph} summary={t('inspector.gaugeEditors.toFixedS', { toFixed: ((points * interval) / 1000).toFixed(1) })}>
         <PropertyRow
           label={t('inspector.gaugeEditors.window')}
-          hint={t('inspector.hints.graph.points')}
+          hint={`${t('inspector.hints.graph.points')} ${t('inspector.gaugeEditors.showsTheLastTofixedS', { toFixed: ((points * interval) / 1000).toFixed(1) })}`}
           modified={authored(widget.point_count, 64) || authored(widget.sample_interval_ms, 100)}
           onReset={() => update((next) => {
             delete next.point_count
@@ -135,7 +135,6 @@ export function GraphEditor({ selection, widget }: { selection: WidgetSelection;
           </div>
           <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground"><span>{t('inspector.gaugeEditors.points')}</span><span>{t('inspector.gaugeEditors.intervalMs')}</span></div>
         </PropertyRow>
-        <p className="text-muted-foreground">{t('inspector.gaugeEditors.showsTheLastTofixedS', { toFixed: ((points * interval) / 1000).toFixed(1) })}</p>
         <NumberField label={t('inspector.gaugeEditors.lineWidth')} hint={t('inspector.hints.graph.width')} suffix="px" value={widget.line_width_px ?? 2} {...fieldBounds('graph', 'line_width_px')} modified={authored(widget.line_width_px, 2)} onReset={() => update((next) => { delete next.line_width_px })} onChange={(value) => update((next) => { next.line_width_px = value })} />
       </Group>
       <TitleEditor widget={widget} update={update} />
@@ -155,6 +154,7 @@ export function BarEditor({ selection, widget }: { selection: WidgetSelection; w
           <NumberField label={t('inspector.gaugeEditors.origin')} value={widget.origin} step="any" modified={authored(widget.origin, 0)} onReset={() => update((next) => { next.origin = 0 })} onChange={(value) => update((next) => { next.origin = value })} />
         ) : null}
       </SourceRangeSection>
+      {/* eslint-disable-next-line no-restricted-syntax */}
       <Group id="Bar" title={t('inspector.gaugeEditors.bar')} icon={GROUP_ICONS.bar} summary={widget.orientation ?? 'horizontal'}>
         <SelectField label={t('inspector.gaugeEditors.orientation')} value={widget.orientation ?? 'horizontal'} options={BAR_ORIENTATION_VALUES} modified={authored(widget.orientation, 'horizontal')} onReset={() => update((next) => { delete next.orientation })} onChange={(value) => update((next) => { next.orientation = value })} />
         <ColorField label={t('inspector.gaugeEditors.fill')} hint={t('inspector.hints.bar.fill')} value={widget.fill_color ?? '#38BDF8'} modified={authored(widget.fill_color, '#38BDF8')} onReset={() => update((next) => { delete next.fill_color })} onChange={(value) => update((next) => { next.fill_color = value })} />

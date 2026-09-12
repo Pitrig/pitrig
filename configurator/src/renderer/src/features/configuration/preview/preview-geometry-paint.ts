@@ -28,6 +28,15 @@ export function contentArea(
   }
 }
 
+export function cornerRadii(
+  radius: number,
+  width: number,
+  height: number
+): { rx: number; ry: number } {
+  const clamped = Math.max(0, Math.min(radius, width / 2, height / 2))
+  return { rx: clamped, ry: clamped }
+}
+
 export function backgroundRect(
   placement: Placement,
   border: number,

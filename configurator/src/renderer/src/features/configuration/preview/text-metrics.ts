@@ -13,7 +13,26 @@ function measurementContext(): CanvasRenderingContext2D | null {
   return context
 }
 
+const MAXIMUM_CACHED_METRICS = 4096
+
+const measured = new Map<string, GlyphMetrics>()
+
 export function measureGlyphs(
+  text: string,
+  family: string,
+  sizePx: number,
+  weight: number
+): GlyphMetrics {
+  const key = `${weight}|${sizePx}|${family}|${text}`
+  const cached = measured.get(key)
+  if (cached) return cached
+  const metrics = measureUncached(text, family, sizePx, weight)
+  if (measured.size >= MAXIMUM_CACHED_METRICS) measured.clear()
+  measured.set(key, metrics)
+  return metrics
+}
+
+function measureUncached(
   text: string,
   family: string,
   sizePx: number,
@@ -22,13 +41,13 @@ export function measureGlyphs(
   const target = measurementContext()
   if (!target) return estimatedMetrics(text, sizePx)
   target.font = `${weight} ${sizePx}px ${family}`
-  const measured = target.measureText(text)
-  const ascent = measured.fontBoundingBoxAscent
-  const descent = measured.fontBoundingBoxDescent
+  const metrics = target.measureText(text)
+  const ascent = metrics.fontBoundingBoxAscent
+  const descent = metrics.fontBoundingBoxDescent
   if (!Number.isFinite(ascent) || !Number.isFinite(descent)) {
     return estimatedMetrics(text, sizePx)
   }
-  return { width: measured.width, ascent, lineHeight: ascent + descent }
+  return { width: metrics.width, ascent, lineHeight: ascent + descent }
 }
 
 function estimatedMetrics(text: string, sizePx: number): GlyphMetrics {

@@ -15,15 +15,13 @@ const SIGNED_INTEGER = /^[+-]?\d+$/
 export interface DecodeCounts {
   lines: number
   fields: number
-  unknown: number
 }
 
 export class TelemetryTap {
   private readonly available = new Uint8Array(TELEMETRY_SLOT_COUNT)
   private readonly numbers = new Float64Array(TELEMETRY_SLOT_COUNT)
   private readonly texts = new Array<string | null>(TELEMETRY_SLOT_COUNT).fill(null)
-  private pending = ''
-  private revision = 0
+  private decoded = false
   private changed = false
 
   get dirty(): boolean {
@@ -34,37 +32,29 @@ export class TelemetryTap {
     this.available.fill(0)
     this.numbers.fill(0)
     this.texts.fill(null)
-    this.pending = ''
-    this.revision += 1
+    this.decoded = false
     this.changed = true
   }
 
   consume(chunk: string): DecodeCounts {
-    const counts: DecodeCounts = { lines: 0, fields: 0, unknown: 0 }
+    const counts: DecodeCounts = { lines: 0, fields: 0 }
     let start = 0
-    const text = this.pending.length === 0 ? chunk : this.pending + chunk
-    this.pending = ''
     for (;;) {
-      const end = text.indexOf('\n', start)
+      const end = chunk.indexOf('\n', start)
       if (end < 0) break
-      const stop = end > start && text.charCodeAt(end - 1) === 13 ? end - 1 : end
+      const stop = end > start && chunk.charCodeAt(end - 1) === 13 ? end - 1 : end
       counts.lines += 1
-      if (this.decode(text, start, stop)) counts.fields += 1
-      else counts.unknown += 1
+      if (this.decode(chunk, start, stop)) counts.fields += 1
       start = end + 1
     }
-    const rest = text.length - start
-    if (rest > 0) {
-      this.pending = rest > MAXIMUM_LINE_LENGTH ? '' : text.slice(start)
-    }
-    if (counts.fields > 0) this.revision += 1
+    if (counts.fields > 0) this.decoded = true
     return counts
   }
 
   snapshot(): TelemetrySnapshot {
     this.changed = false
     return {
-      revision: this.revision,
+      live: this.decoded,
       available: this.available,
       numbers: this.numbers,
       texts: this.texts
@@ -100,7 +90,7 @@ export class TelemetryTap {
     if (type === 'text') return this.commit(slot, value, 0)
     const numeric = decodeNumber(type, value)
     if (numeric === undefined) return false
-    return this.commit(slot, type === 'boolean' ? booleanText(numeric) : value, numeric)
+    return this.commit(slot, value, numeric)
   }
 
   private commit(slot: number, text: string, numeric: number): boolean {
@@ -111,10 +101,6 @@ export class TelemetryTap {
     this.changed = true
     return true
   }
-}
-
-function booleanText(numeric: number): string {
-  return numeric === 1 ? 'true' : 'false'
 }
 
 function decodeNumber(type: string, value: string): number | undefined {

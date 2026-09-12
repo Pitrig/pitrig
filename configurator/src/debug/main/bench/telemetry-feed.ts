@@ -8,7 +8,10 @@ import {
   type BenchSignal
 } from '@debug-shared/bench-signals'
 
-export type TelemetryWriter = (text: string, onWritten?: (error?: Error) => void) => boolean
+export interface TelemetryLink {
+  ready: () => boolean
+  write: (text: string, onWritten?: (error?: Error) => void) => boolean
+}
 
 const BUCKET_MS = 100
 const BUCKETS = 10
@@ -20,7 +23,7 @@ export class TelemetryFeed {
   private timer: NodeJS.Timeout | undefined
   private nextTickAt = 0
   private periodMs = 0
-  private writer: TelemetryWriter | undefined
+  private link: TelemetryLink | undefined
   private signals: BenchSignal[] = []
   private rateHz = 0
   private startedAt = 0
@@ -38,9 +41,9 @@ export class TelemetryFeed {
     return this.timer !== undefined
   }
 
-  start(writer: TelemetryWriter, rateHz: number, signalIds?: readonly string[]): void {
+  start(link: TelemetryLink, rateHz: number, signalIds?: readonly string[]): void {
     this.stop()
-    this.writer = writer
+    this.link = link
     this.rateHz = rateHz
     this.signals = selectSignals(signalIds)
     this.startedAt = performance.now()
@@ -64,7 +67,7 @@ export class TelemetryFeed {
   stop(): void {
     if (this.timer !== undefined) clearTimeout(this.timer)
     this.timer = undefined
-    this.writer = undefined
+    this.link = undefined
     this.pending = 0
   }
 
@@ -95,7 +98,7 @@ export class TelemetryFeed {
   }
 
   private readonly tick = (): void => {
-    if (this.writer === undefined) {
+    if (this.link === undefined) {
       this.timer = undefined
       return
     }
@@ -118,8 +121,8 @@ export class TelemetryFeed {
 
   private emit(now: number): void {
     this.rotate(now)
-    const writer = this.writer
-    if (writer === undefined) return
+    const link = this.link
+    if (link === undefined || !link.ready()) return
     if (this.pending >= MAXIMUM_PENDING_WRITES) {
       this.droppedTicks += 1
       return
@@ -136,7 +139,7 @@ export class TelemetryFeed {
     if (batch.length === 0) return
 
     this.pending += 1
-    writer(batch, (error) => {
+    link.write(batch, (error) => {
       this.pending = Math.max(0, this.pending - 1)
       if (error) this.writeErrors += 1
     })

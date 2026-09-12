@@ -27,25 +27,31 @@ export function ContextMenu({
     })
   }, [x, y])
 
+  const closeRef = useRef(onClose)
   useEffect(() => {
+    closeRef.current = onClose
+  })
+
+  useEffect(() => {
+    const close = (): void => closeRef.current()
     const away = (event: PointerEvent): void => {
-      if (!ref.current?.contains(event.target as Node)) onClose()
+      if (!ref.current?.contains(event.target as Node)) close()
     }
     const key = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
         event.stopPropagation()
-        onClose()
+        close()
       }
     }
     window.addEventListener('pointerdown', away, true)
     window.addEventListener('keydown', key, true)
-    window.addEventListener('blur', onClose)
+    window.addEventListener('blur', close)
     return () => {
       window.removeEventListener('pointerdown', away, true)
       window.removeEventListener('keydown', key, true)
-      window.removeEventListener('blur', onClose)
+      window.removeEventListener('blur', close)
     }
-  }, [onClose])
+  }, [])
 
   return (
     <div

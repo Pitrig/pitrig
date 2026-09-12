@@ -41,6 +41,7 @@ export class TelemetryBridgeService {
     if (!this.listener) {
       return this.error === undefined ? status : { ...status, error: this.error }
     }
+    const error = this.error ?? this.listener.subscribeError
     return {
       ...status,
       running: true,
@@ -52,7 +53,7 @@ export class TelemetryBridgeService {
         this.deviceService.telemetryLinkAvailable() && !this.deviceService.relayAvailable(),
       metrics: this.metrics.snapshot(),
       ...(this.sourceAddress === undefined ? {} : { sourceAddress: this.sourceAddress }),
-      ...(this.error === undefined ? {} : { error: this.error })
+      ...(error === undefined ? {} : { error })
     }
   }
 
@@ -102,12 +103,16 @@ export class TelemetryBridgeService {
   }
 
   private readonly receive = (packet: LinkPacket): void => {
+    if (packet.rejected) {
+      this.metrics.recordDropped(packet.payload.length)
+      return
+    }
     this.sourceAddress = packet.address
     this.lastPacketAt = packet.at
     this.metrics.recordPacket(packet.at, packet.payload.length, packet.lost, packet.discarded)
     this.relay(packet)
     const counts = this.tap.consume(packet.payload.toString('utf8'))
-    this.metrics.recordDecoded(packet.at, counts.lines, counts.fields, counts.unknown)
+    this.metrics.recordDecoded(packet.at, counts.lines, counts.fields)
   }
 
   private relay(packet: LinkPacket): void {

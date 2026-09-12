@@ -224,9 +224,10 @@ partition in its own static task before answering `READY`.
 The configurator converts each selected PNG, JPEG or BMP to the chosen colour
 format at the chosen width and height, deflates the result, and that is what the
 device stores; what it draws is those bytes inflated back. A widget resized in
-the editor does not resize the artwork; the image is converted again instead.
-This is what keeps the ESP32-P4 accelerator engaged, which refuses any
-transform, and what makes runtime rotation unnecessary to support.
+the editor does not resize the artwork, and nothing re-converts it on its own:
+the picture changes size only when it is converted and uploaded again from the
+Images page. This is what keeps the ESP32-P4 accelerator engaged, which refuses
+any transform, and what makes runtime rotation unnecessary to support.
 
 Deflate is skipped for an image that does not get smaller — artwork that is
 already noise can compress to more than it started as, and there is no reason to

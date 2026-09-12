@@ -1,12 +1,13 @@
-import { isContainer, screenWidgetsOf } from '@shared/configuration-access'
+import { isContainer, screenWidgetsOf, widgetsOf } from '@shared/configuration-access'
 import type { WidgetConfiguration } from '@shared/configuration-schema'
 import type { DisplayDescriptor } from '@shared/device'
-import { activeScreen, copyWidget, deleteWidget, duplicateWidget, findWidget, pasteWidget, parentContainerId, restackOrder, restackWidget, unwrapShape, useDashboardEditorStore, wrapInShape } from '../dashboard-editor'
+import { activeScreen, copyWidget, deleteWidget, duplicateWidget, findWidget, insertionRefusal, pasteWidget, parentContainerId, restackOrder, restackWidget, unwrapShape, useDashboardEditorStore, wrapInShape } from '../dashboard-editor'
 import type { CanvasTool } from '../editor/store'
 import { useSnapStore } from '../editor/snap-store'
 import { useTemplatesStore } from '@/features/templates/templates-store'
 import { useInsertScreenStore } from '@/features/templates/insert-screen-store'
 import { createWidget, defaultToolBox } from './widget-creation'
+import { outermostOf } from './selection-tree'
 import { useDeviceStore } from '@/features/device/device-store'
 import { withEditGroup } from '@/features/device/edit-group'
 import { t } from '@shared/ui-text'
@@ -47,7 +48,16 @@ export function widgetMenuEntries(
   const ids = editor.selectedIds.includes(widgetId) ? editor.selectedIds : [widgetId]
   const widget = findWidget(configuration, widgetId)?.widget
   const container = widget !== undefined && isContainer(widget)
-  const unwrappable = widget?.type === 'shape' ? widgetId : parentContainerId(configuration, { type: 'widget', id: widgetId })
+  const unwrapCandidate =
+    widget?.type === 'shape'
+      ? widgetId
+      : parentContainerId(configuration, { type: 'widget', id: widgetId })
+  const unwrapTarget =
+    unwrapCandidate === undefined ? undefined : findWidget(configuration, unwrapCandidate)?.widget
+  const unwrappable =
+    unwrapTarget?.type === 'shape' && widgetsOf(unwrapTarget).length > 0
+      ? unwrapCandidate
+      : undefined
   const many = ids.length > 1
   const restack = (move: Parameters<typeof restackWidget>[1]): void => {
     withEditGroup(() => {
@@ -61,7 +71,7 @@ export function widgetMenuEntries(
       hint: t('shortcuts.cmdCtrlD'),
       run: () => {
         withEditGroup(() => {
-          const added = ids
+          const added = outermostOf(configuration, ids)
             .map((id) => duplicateWidget({ type: 'widget', id }, display))
             .filter((entry): entry is { type: 'widget'; id: string } => entry?.type === 'widget')
           if (added.length > 0) editor.selectMany(added.map((entry) => entry.id))
@@ -102,7 +112,7 @@ export function widgetMenuEntries(
       }
     },
     { kind: 'separator' },
-    { kind: 'item', label: t('canvas.menuEntries.bringToFront'), hint: t('shortcuts.cmdCtrl'), run: () => restack('front') },
+    { kind: 'item', label: t('canvas.menuEntries.bringToFront'), hint: t('shortcuts.cmdCtrlForward'), run: () => restack('front') },
     { kind: 'item', label: t('canvas.menuEntries.bringForward'), run: () => restack('forward') },
     { kind: 'item', label: t('canvas.menuEntries.sendBackward'), run: () => restack('backward') },
     { kind: 'item', label: t('canvas.menuEntries.sendToBack'), hint: t('shortcuts.cmdCtrl'), run: () => restack('back') },
@@ -112,7 +122,10 @@ export function widgetMenuEntries(
       label: t('canvas.menuEntries.locked'),
       checked: Boolean(editor.locked[widgetId]),
       run: () => {
-        for (const id of ids) editor.toggleLocked(id)
+        const next = !editor.locked[widgetId]
+        for (const id of ids) {
+          if (Boolean(editor.locked[id]) !== next) editor.toggleLocked(id)
+        }
       }
     },
     {
@@ -120,7 +133,10 @@ export function widgetMenuEntries(
       label: t('canvas.menuEntries.hiddenWhileEditing'),
       checked: Boolean(editor.hidden[widgetId]),
       run: () => {
-        for (const id of ids) editor.toggleHidden(id)
+        const next = !editor.hidden[widgetId]
+        for (const id of ids) {
+          if (Boolean(editor.hidden[id]) !== next) editor.toggleHidden(id)
+        }
       }
     },
     ...(container
@@ -152,6 +168,7 @@ export function screenMenuEntries(
 ): MenuEntry[] {
   const editor = useDashboardEditorStore.getState()
   const snap = useSnapStore.getState()
+  const configuration = useDeviceStore.getState().draft
   const widgets = useTemplatesStore.getState().library?.widgets ?? []
   const point = at ?? { x: display.width / 2, y: display.height / 2 }
   return [
@@ -174,12 +191,20 @@ export function screenMenuEntries(
       label: t('canvas.menuEntries.insertWidget'),
       items:
         widgets.length > 0
-          ? widgets.map((entry) => ({
-              kind: 'item' as const,
-              label: entry.name,
-              hint: t('canvas.menuEntries.widthHeight', { width: entry.width, height: entry.height }),
-              run: () => editor.beginInsert({ widget: entry.widget, label: entry.name })
-            }))
+          ? widgets.map((entry) => {
+              const refused = configuration
+                ? insertionRefusal(configuration, entry.widget)
+                : undefined
+              return {
+                kind: 'item' as const,
+                label: entry.name,
+                hint:
+                  refused ??
+                  t('canvas.menuEntries.widthHeight', { width: entry.width, height: entry.height }),
+                disabled: refused !== undefined,
+                run: () => editor.beginInsert({ widget: entry.widget, label: entry.name })
+              }
+            })
           : [{ kind: 'item' as const, label: t('canvas.menuEntries.theWidgetLibraryIsEmpty'), disabled: true, run: () => {} }]
     },
     {
@@ -201,9 +226,10 @@ export function screenMenuEntries(
       hint: t('shortcuts.cmdCtrlA'),
       run: () =>
         editor.selectMany(
-          screenWidgetsOf(activeScreen(useDeviceStore.getState().draft))
+          screenWidgetsOf(activeScreen(configuration))
             .map((widget: WidgetConfiguration) => widget.id)
             .filter((id): id is string => Boolean(id))
+            .filter((id) => !editor.hidden[id] && !editor.locked[id])
         )
     },
     { kind: 'separator' },

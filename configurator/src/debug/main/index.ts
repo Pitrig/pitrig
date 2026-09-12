@@ -1,7 +1,7 @@
 import { app, BrowserWindow, crashReporter } from 'electron'
 import { join } from 'node:path'
 
-applyBranding()
+applyBranding(DEBUG_APP_NAME)
 applyApplicationMenu()
 crashReporter.start({ uploadToServer: false })
 
@@ -9,13 +9,13 @@ import { BenchService } from './bench/bench-service'
 import {
   broadcastBenchSample,
   broadcastBenchStatus,
-  broadcastSerialTraffic,
   registerDebugHandlers
 } from './ipc/register-debug-handlers'
+import { SerialTrafficBatcher } from './ipc/serial-traffic-batcher'
 import { applyApplicationMenu } from '@main/app-menu'
 import { createAppServices, disposeAppServices, type AppServices } from '@main/app-services'
 import { createAppWindow, isDevelopment } from '@main/app-window'
-import { applyBranding, applyDockIcon } from '@main/branding'
+import { applyBranding, applyDockIcon, DEBUG_APP_NAME } from '@main/branding'
 import {
   broadcastDeviceState,
   broadcastFirmwareUploadProgress,
@@ -23,24 +23,20 @@ import {
   broadcastSaveProgress,
   registerIpcHandlers
 } from '@main/ipc/register-ipc-handlers'
-import { registerTelemetryBridge } from '@main/telemetry-bridge/register-telemetry-bridge'
-import { TELEMETRY_BRIDGE_INCLUDED } from '@shared/telemetry-bridge'
 
 if (isDevelopment() && process.env.PITRIG_REMOTE_DEBUG) {
   app.commandLine.appendSwitch('remote-debugging-port', process.env.PITRIG_REMOTE_DEBUG)
   app.commandLine.appendSwitch('remote-allow-origins', 'http://localhost')
 }
 
+const serialTraffic = new SerialTrafficBatcher()
 const services: AppServices = createAppServices({
   onDeviceState: broadcastDeviceState,
   onFirmwareUploadProgress: broadcastFirmwareUploadProgress,
   onImageUploadProgress: broadcastImageUploadProgress,
   onSaveProgress: broadcastSaveProgress,
-  onSerialTraffic: broadcastSerialTraffic
+  onSerialTraffic: serialTraffic.push
 })
-const telemetryBridge = TELEMETRY_BRIDGE_INCLUDED
-  ? registerTelemetryBridge(services.deviceService)
-  : undefined
 const benchService = new BenchService(
   {
     deviceService: services.deviceService,
@@ -64,7 +60,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   applyDockIcon()
   registerIpcHandlers(services)
-  registerDebugHandlers(services.deviceService, services.firmwareUpdateService, benchService)
+  registerDebugHandlers(services.deviceService, benchService)
   createWindow()
 
   app.on('activate', () => {
@@ -80,13 +76,15 @@ app.on('before-quit', (event) => {
   }
   event.preventDefault()
   benchService.dispose()
-  void disposeAppServices(services, telemetryBridge).finally(() => {
+  serialTraffic.dispose()
+  void disposeAppServices(services).finally(() => {
     quitAfterDeviceCleanup = true
     app.quit()
   })
 })
 
 app.on('window-all-closed', () => {
+  benchService.stop()
   if (process.platform !== 'darwin') {
     app.quit()
   }

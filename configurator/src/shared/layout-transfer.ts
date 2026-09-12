@@ -52,9 +52,14 @@ export interface LayoutTransferResult {
   from: DisplaySize
   to: DisplaySize
   notes: LayoutTransferNote[]
+  blocking: boolean
 }
 
 const MAXIMUM_NOTES = 200
+
+function blockedBy(notes: readonly LayoutTransferNote[]): boolean {
+  return notes.some((note) => note.kind === 'led_pin_cleared')
+}
 
 function carryOutputs(
   configuration: ApplicationConfiguration,
@@ -112,7 +117,8 @@ export function transferConfiguration(
       offset: { x: 0, y: 0 },
       from: from ?? none,
       to: none,
-      notes
+      notes,
+      blocking: blockedBy(notes)
     }
   }
   if (from === undefined) {
@@ -123,12 +129,22 @@ export function transferConfiguration(
       offset: { x: 0, y: 0 },
       from: to,
       to,
-      notes
+      notes,
+      blocking: blockedBy(notes)
     }
   }
   if (from.width === to.width && from.height === to.height) {
     const unchanged = { x: 1, y: 1, min: 1 }
-    return { configuration: next, fit, scale: unchanged, offset: { x: 0, y: 0 }, from, to, notes }
+    return {
+      configuration: next,
+      fit,
+      scale: unchanged,
+      offset: { x: 0, y: 0 },
+      from,
+      to,
+      notes,
+      blocking: blockedBy(notes)
+    }
   }
 
   const ratio = { x: to.width / from.width, y: to.height / from.height }
@@ -186,7 +202,7 @@ export function transferConfiguration(
     if (!screen) continue
     visit(widgetsOf(screen), screenIndex, { x: 0, y: 0 }, 0)
   }
-  return { configuration: next, fit, scale, offset, from, to, notes }
+  return { configuration: next, fit, scale, offset, from, to, notes, blocking: blockedBy(notes) }
 }
 
 export function scaleWidgetPixels(widget: WidgetConfiguration, scale: Scale): void {

@@ -1,18 +1,19 @@
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import catalogPath from './google-fonts-catalog.json?commonjs-external&asset'
 
 import { FONT_FAMILY_PATTERN } from '../../shared/font-assets'
 import {
-  MAXIMUM_FACE_SIZE,
   fontFamilyId,
   normalizeVariant,
   type FontCatalogFamily,
   type FontCatalogPreview,
   type FontVariant
 } from '../../shared/font-library'
+import { faceProblem } from './font-library-files'
 import { hasTabularDigits } from './font-metrics'
+import { writeFileAtomic } from '../write-file-atomic'
 
 const ASSET_HOST = 'https://fonts.gstatic.com/'
 const DOWNLOAD_TIMEOUT_MS = 15_000
@@ -93,7 +94,7 @@ export class FontCatalogService {
       const response = await fetch(url, { signal: abort.signal })
       if (!response.ok) return undefined
       const bytes = new Uint8Array(await response.arrayBuffer())
-      if (bytes.byteLength > MAXIMUM_FACE_SIZE || !isFontFace(bytes)) return undefined
+      if (faceProblem(bytes)) return undefined
       await this.writeCached(id, bytes)
       return bytes
     } catch {
@@ -105,18 +106,23 @@ export class FontCatalogService {
 
   private async readCached(id: string): Promise<Uint8Array | undefined> {
     if (!FONT_FAMILY_PATTERN.test(id)) return undefined
+    const path = join(this.cacheDirectory, `${id}.ttf`)
+    let bytes: Uint8Array
     try {
-      return new Uint8Array(await readFile(join(this.cacheDirectory, `${id}.ttf`)))
+      bytes = new Uint8Array(await readFile(path))
     } catch {
       return undefined
     }
+    if (!faceProblem(bytes)) return bytes
+    await rm(path, { force: true }).catch(() => undefined)
+    return undefined
   }
 
   private async writeCached(id: string, bytes: Uint8Array): Promise<void> {
     if (!FONT_FAMILY_PATTERN.test(id)) return
     try {
       await mkdir(this.cacheDirectory, { recursive: true })
-      await writeFile(join(this.cacheDirectory, `${id}.ttf`), bytes)
+      await writeFileAtomic(join(this.cacheDirectory, `${id}.ttf`), bytes)
       await this.prune()
     } catch {
     }
@@ -184,12 +190,4 @@ function readCatalog(value: unknown): CatalogFamily[] {
     })
   }
   return catalog
-}
-
-const SFNT_SIGNATURES = [0x00010000, 0x4f54544f, 0x74727565, 0x74746366] as const
-
-function isFontFace(bytes: Uint8Array): boolean {
-  if (bytes.byteLength < 128) return false
-  const signature = new DataView(bytes.buffer, bytes.byteOffset, 4).getUint32(0, false)
-  return SFNT_SIGNATURES.some((candidate) => candidate === signature)
 }

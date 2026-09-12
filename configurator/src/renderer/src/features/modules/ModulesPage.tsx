@@ -23,7 +23,15 @@ import { ProfilePicker } from './ProfilePicker'
 import { SegmentEditor } from './SegmentEditor'
 import { SpriteEditor } from './SpriteEditor'
 import { SpriteList } from './SpriteList'
-import { addDevice, canAddDevice, devicesOf, ledPinsOf, removeDevice } from './modules-document'
+import {
+  addDevice,
+  devicesOf,
+  freePins,
+  ledPinsOf,
+  maximumOutputsOf,
+  removeDevice
+} from './modules-document'
+import type { DeviceConfiguration } from '@shared/device'
 import { useModulesStore, type DeviceView } from './modules-store'
 import { t } from '@shared/ui-text'
 
@@ -41,6 +49,24 @@ const DEVICE_TABS: ReadonlyArray<{ id: DeviceView; label: string; icon: typeof C
 const TYPE: Record<ModulesView, HardwareDeviceType> = {
   leds: 'rgb_strip',
   matrix: 'rgb_matrix'
+}
+
+function addBlocked(
+  draft: DeviceConfiguration,
+  devices: readonly HardwareDeviceConfiguration[],
+  noun: string
+): string | undefined {
+  const outputs = maximumOutputsOf(draft)
+  if (devices.length >= outputs) {
+    return t('validation.hardware.theConfigurationDeclaresLengthDevices', {
+      length: devices.length,
+      outputs
+    })
+  }
+  if (freePins(draft, -1).length > 0) return undefined
+  return ledPinsOf(draft).length === 0
+    ? t('modules.modulesPage.boardPublishesNoFreePins', { board: boardName(draft.board) })
+    : t('modules.modulesPage.eachNounOwnsOneData', { noun })
 }
 
 export function ModulesPage(): React.JSX.Element {
@@ -62,8 +88,8 @@ export function ModulesPage(): React.JSX.Element {
     .map((device, index) => ({ device, index }))
     .filter(({ device }) => device.type === type)
   const active = mine.find(({ index }) => index === selected) ?? mine[0]
-  const pins = ledPinsOf(draft)
   const noun = view === 'matrix' ? 'matrix' : 'strip'
+  const blocked = draft ? addBlocked(draft, all, noun) : undefined
   const matrix = active?.device.type === 'rgb_matrix'
   const tabs = DEVICE_TABS.filter((tab) => tab.id !== 'pictures' || matrix)
   const page = deviceView === 'pictures' && !matrix ? 'wiring' : deviceView
@@ -104,21 +130,19 @@ export function ModulesPage(): React.JSX.Element {
             title={view === 'matrix' ? t('modules.modulesPage.matrices') : t('modules.modulesPage.strips')}
             description={t('modules.modulesPage.eachNounOwnsOneData', { noun: noun })}
             actions={
-              canAddDevice(draft) ? (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-white/5"
-                  onClick={() => select(addDevice(draft, type))}
-                >
-                  <Plus className="size-3.5" /> {t('modules.modulesPage.addNoun', { noun: noun })}
-                </button>
-              ) : null
+              <button
+                type="button"
+                disabled={blocked !== undefined}
+                title={blocked ?? t('modules.modulesPage.eachNounOwnsOneData', { noun: noun })}
+                className="flex items-center gap-1 rounded border px-2 py-1 text-xs hover:bg-white/5 disabled:opacity-40"
+                onClick={() => select(addDevice(draft, type))}
+              >
+                <Plus className="size-3.5" /> {t('modules.modulesPage.addNoun', { noun: noun })}
+              </button>
             }
           >
-            {pins.length === 0 ? (
-              <p className="pb-2 text-[11px] text-amber-400/80">
-                {t('modules.modulesPage.boardPublishesNoFreePins', { board: boardName(draft.board) })}
-              </p>
+            {blocked ? (
+              <p className="pb-2 text-[11px] text-amber-400/80">{blocked}</p>
             ) : null}
             {mine.length === 0 ? (
               <EmptyState
@@ -129,17 +153,17 @@ export function ModulesPage(): React.JSX.Element {
               </EmptyState>
             ) : (
               <div className="flex flex-wrap gap-1">
-                {mine.map(({ device, index }) => (
+                {mine.map(({ device, index }, position) => (
                   <div
                     key={index}
                     className={`flex items-center gap-1 rounded border px-2 py-1 text-xs ${index === active?.index ? 'border-sky-500/50 bg-sky-500/10' : 'hover:bg-white/5'}`}
                   >
                     <button type="button" onClick={() => select(index)}>
-                      {device.id || `${view === 'matrix' ? 'Matrix' : 'Strip'} ${index + 1}`}
+                      {device.id || `${view === 'matrix' ? 'Matrix' : 'Strip'} ${position + 1}`}
                       <span className="ml-1 text-muted-foreground">{t('modules.modulesPage.pinNumber', { pin: device.pin ?? '—' })}</span>
                     </button>
                     <RemoveButton
-                      label={`Remove device ${index + 1}`}
+                      label={t('modules.modulesPage.removeDeviceNumber', { number: position + 1 })}
                       onClick={() => {
                         removeDevice(index)
                         clearPreview()

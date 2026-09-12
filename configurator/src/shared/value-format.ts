@@ -79,7 +79,7 @@ const TEXT_CAPACITY = 64
 
 const encoder = new TextEncoder()
 
-function textBytes(text: string): number {
+export function textBytes(text: string): number {
   return encoder.encode(text).byteLength
 }
 

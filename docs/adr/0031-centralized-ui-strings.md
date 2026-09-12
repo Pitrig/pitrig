@@ -52,9 +52,8 @@ go straight to `dialog.showOpenDialog` and the renderer can never draw them, so
 a code-on-the-wire scheme would add a second mechanism rather than replace one.
 `DeviceError` keeps carrying a resolved `message`.
 
-**No locale setter.** `HINTS`, the menu descriptors and the LED profiles call
-`t()` at module scope, so a setter called later would leave them frozen and lie
-about it. The seam for a second locale is the catalog map plus how the locale is
+**No locale setter.** The menu descriptors and the LED profiles call `t()` at
+module scope, so a setter called later would leave them frozen and lie about it. The seam for a second locale is the catalog map plus how the locale is
 resolved at startup; changing language will restart the window.
 
 **Out of scope, deliberately.** The debug application keeps its own inline text.

@@ -4,6 +4,7 @@ import {
   SIMHUB_PROFILE_DEFAULTS,
   SIMHUB_PROFILE_ENTRIES
 } from './simhub-profile-data'
+import { t } from './ui-text'
 
 export const SIMHUB_PROFILE_EXPORT_CHANNEL = 'simhub-profile:export' as const
 export const SIMHUB_PROFILE_FILE_NAME = 'Pitrig-telemetry.shsds'
@@ -70,14 +71,14 @@ export function effectiveSimHubBaudRate(configuration: DeviceConfiguration): num
 
 export function generateSimHubProfile(fieldNames: readonly string[], baudRate: number): string {
   if (!Number.isInteger(baudRate) || baudRate < 9_600 || baudRate > 2_000_000) {
-    throw new Error('SimHub profile baud rate must be an integer from 9600 to 2000000.')
+    throw new Error(t('protocol.simHubProfile.simHubProfileBaudRateMust'))
   }
 
   const selected = new Set(fieldNames)
   const entries = SIMHUB_PROFILE_ENTRIES.filter(({ name }) => selected.has(name))
   if (entries.length !== selected.size) {
     const unknown = [...selected].filter((name) => !PROFILE_FIELD_NAMES.has(name))
-    throw new Error(`Unknown SimHub telemetry fields: ${unknown.join(', ')}`)
+    throw new Error(t('protocol.simHubProfile.unknownSimHubTelemetryFields', { fields: unknown.join(', ') }))
   }
 
   const document = {

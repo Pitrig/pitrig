@@ -3,7 +3,9 @@ import { ipcMain } from 'electron'
 import {
   BENCH_APPLY_PATTERN_CHANNEL,
   BENCH_GET_STATUS_CHANNEL,
+  BENCH_HOLD_CHANNEL,
   BENCH_PATTERN_IDS,
+  BENCH_RELEASE_CHANNEL,
   BENCH_RESTORE_CHANNEL,
   BENCH_START_CHANNEL,
   BENCH_STOP_CHANNEL,
@@ -31,6 +33,8 @@ export function registerBenchHandlers(bench: BenchService): void {
     isPatternRequest(request) ? bench.applyPattern(request.pattern) : invalidBenchRequest()
   )
   ipcMain.handle(BENCH_RESTORE_CHANNEL, () => bench.restore())
+  ipcMain.handle(BENCH_HOLD_CHANNEL, () => bench.hold())
+  ipcMain.handle(BENCH_RELEASE_CHANNEL, () => bench.release())
 }
 
 function invalidBenchRequest(): DeviceResult<never> {

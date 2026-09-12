@@ -10,6 +10,13 @@ export function boardsPresent(entries: readonly DashboardTemplateSummary[]): rea
   )
 }
 
+export function effectiveBoard(
+  entries: readonly DashboardTemplateSummary[],
+  board: string
+): string {
+  return boardsPresent(entries).includes(board) ? board : EVERY_BOARD
+}
+
 export function listedDashboards(
   entries: readonly DashboardTemplateSummary[],
   board: string,

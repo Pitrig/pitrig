@@ -17,7 +17,7 @@ export function ScreenEditor({ configuration }: { configuration: DeviceConfigura
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
   const screen = screensOf(configuration)[activeScreenIndex]
   return (
-    <Group id="Screen" title={`Screen ${activeScreenIndex + 1}`} icon={GROUP_ICONS.screen}>
+    <Group id="Screen" title={t('common.screenNumber', { number: activeScreenIndex + 1 })} icon={GROUP_ICONS.screen}>
       <IdField
         key={screen?.id ?? activeScreenIndex}
         label={t('device.infoPage.name')}

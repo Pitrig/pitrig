@@ -9,11 +9,10 @@ import {
   collectFontRequirements,
   missingFontFamilies
 } from '@/features/font-library/font-requirements'
-import { draftText, parseConfiguration, useDeviceStore } from './device-store'
+import { parseConfiguration, useDeviceStore } from './device-store'
 import { t } from '@shared/ui-text'
 
 export interface DraftState {
-  draftJson: string
   parsed: ValidationResult
   dirty: boolean
   dirtyDocuments: ConfigurationDocumentId[]
@@ -37,7 +36,6 @@ export function useDraftState(): DraftState {
   const activeConfiguration = useDeviceStore((state) => state.activeConfiguration)
   const runningConfiguration = useDeviceStore((state) => state.runningConfiguration)
 
-  const draftJson = draftText({ draft })
   const { parsed, missingFamilies } = inspect(
     draft,
     rawDraft?.text,
@@ -76,7 +74,6 @@ export function useDraftState(): DraftState {
   })
 
   return {
-    draftJson,
     parsed,
     dirty,
     dirtyDocuments,
@@ -178,10 +175,10 @@ function parseDraft(
   rawDraft: string | undefined,
   hasLocalDraft: boolean
 ): ValidationResult {
-  if (!hasLocalDraft) return { ok: false, error: 'No local configuration.' }
+  if (!hasLocalDraft) return { ok: false, error: t('device.draftState.noLocalConfiguration') }
   if (rawDraft !== undefined && parseConfiguration(rawDraft) === undefined) {
-    return { ok: false, error: 'Configuration is not valid JSON.' }
+    return { ok: false, error: t('device.draftState.configurationIsNotValidJson') }
   }
-  if (!draft) return { ok: false, error: 'No local configuration.' }
+  if (!draft) return { ok: false, error: t('device.draftState.noLocalConfiguration') }
   return validateConfigurationDocument(draft, { supportedBoards: PITRIG_BOARD_IDS })
 }

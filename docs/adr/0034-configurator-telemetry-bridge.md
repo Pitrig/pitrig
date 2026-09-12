@@ -57,7 +57,9 @@ not bound by the 10 Hz cap SimHub Free puts on Custom Serial.
 catalog slot, the same shape the firmware's registry uses, and publishes at most
 one snapshot per animation frame, only when a value actually changed. The
 renderer keeps the table outside React and bumps a revision counter, so a live
-feed costs one re-render per frame in the canvas and none anywhere else. The
+feed costs one re-render per frame in each preview that reads it — the canvas
+and the lamp preview — while the catalog table follows a slower revision of its
+own. The
 source string is retained for every field, not only text ones, so the preview
 shows what the board shows rather than a reconstructed float.
 
@@ -86,9 +88,13 @@ distributed yet, so the product must not offer a path that needs it.
 `TELEMETRY_BRIDGE_INCLUDED` in `shared/telemetry-bridge.ts`, which is
 `import.meta.env.DEV`, gates the bridge's service and IPC in the main process,
 the optional `telemetryBridge` preload API, and the renderer's panel,
-subscriptions and catalog value column; a production build drops all of it,
-and CI fails a package that still carries it. Until then the packaged
-configurator's telemetry path is the Custom Serial profile.
+subscriptions and catalog value column; a production build drops the code behind
+it, and CI greps the packaged `app.asar` for `telemetry-bridge:` and
+`TelemetryBridgeService`, failing on either. What is asserted is that no path
+reaches the bridge, not that no trace of it survives: the generated string table
+carries the panel's `bridgeSection.*` entries into both bundles whatever the
+flag says, and a dropped module can leave a bare import behind it. Until then
+the packaged configurator's telemetry path is the Custom Serial profile.
 
 ## Consequences
 

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { ModalDialog } from '@/components/ui/modal-dialog'
 import { useFontLibraryStore } from './font-library-store'
 import { t } from '@shared/ui-text'
 
@@ -30,13 +31,11 @@ export function UnresolvedFontsDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" role="presentation">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('fonts.unresolvedFontsDialog.fontsThisDashboardNeeds')}
-        className="w-[28rem] space-y-3 rounded-lg border bg-background p-4 text-xs shadow-lg"
-      >
+    <ModalDialog
+      label={t('fonts.unresolvedFontsDialog.fontsThisDashboardNeeds')}
+      className="w-[28rem] space-y-3 p-4"
+      onClose={onClose}
+    >
         <div className="space-y-1">
           <h2 className="text-sm font-semibold text-foreground">{t('fonts.unresolvedFontsDialog.fontsThisDashboardNeeds')}</h2>
           <p className="text-muted-foreground">
@@ -77,7 +76,6 @@ export function UnresolvedFontsDialog({
           <Button disabled={outstanding.length > 0} onClick={onRetry}>
             {t('fonts.unresolvedFontsDialog.saveAgain')}</Button>
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   )
 }

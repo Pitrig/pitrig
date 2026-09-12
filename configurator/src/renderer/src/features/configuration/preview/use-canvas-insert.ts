@@ -1,25 +1,38 @@
-import { useEffect, useState, type RefObject } from 'react'
-import type { DisplayDescriptor } from '@shared/device'
-import type { WidgetSelection } from '../dashboard-editor'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  type WidgetSelection,
+  findWidget,
+  moveWidgetInto,
+  mutateDraftConfiguration,
+  parentContainerId,
+  parentOffset,
+  writePlacement
+} from '../dashboard-editor'
 import type { PendingInsert } from '../editor/store'
 import { fitWidgetToDisplay, placeTemplateWidget } from '../editor/insert-template'
-import { logicalPoint } from './canvas-geometry'
+import { clamp } from '../editor/placement'
+import { type Placement, containerAt, logicalPoint } from './canvas-geometry'
+import type { CanvasContext } from './canvas-gesture-context'
+import { useDeviceStore } from '@/features/device/device-store'
+import { withEditGroup } from '@/features/device/edit-group'
 
 export function useCanvasInsert(
-  svgRef: RefObject<SVGSVGElement | null>,
-  display: DisplayDescriptor,
+  context: CanvasContext,
   pendingInsert: PendingInsert | undefined,
-  cancelInsert: () => void,
-  select: (selection: WidgetSelection) => void
+  cancelInsert: () => void
 ): {
   insertAt: { x: number; y: number } | undefined
   fittedInsert: ReturnType<typeof fitWidgetToDisplay> | undefined
   placePendingInsert: (event: React.PointerEvent<SVGSVGElement>) => boolean
   updateGhost: (event: React.PointerEvent<SVGSVGElement>) => void
 } {
+  const { svgRef, display } = context
   const [ghost, setGhost] = useState<{ insert: PendingInsert; x: number; y: number }>()
   const insertAt = ghost && ghost.insert === pendingInsert ? ghost : undefined
-  const fittedInsert = pendingInsert ? fitWidgetToDisplay(pendingInsert.widget, display) : undefined
+  const fittedInsert = useMemo(
+    () => (pendingInsert ? fitWidgetToDisplay(pendingInsert.widget, display) : undefined),
+    [pendingInsert, display]
+  )
 
   useEffect(() => {
     if (!pendingInsert) return
@@ -40,12 +53,29 @@ export function useCanvasInsert(
   }, [pendingInsert, cancelInsert, svgRef])
 
   const placePendingInsert = (event: React.PointerEvent<SVGSVGElement>): boolean => {
-    if (!pendingInsert || event.button !== 0) return false
+    if (!pendingInsert || !fittedInsert || event.button !== 0) return false
     const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
     if (!point) return false
-    const added = placeTemplateWidget(pendingInsert, display, point)
+    const box = centeredOn(point, fittedInsert, display)
+    const into = containerAt(
+      context.layers,
+      context.placements,
+      box,
+      new Set(),
+      context.locked,
+      context.hidden
+    )
+    let added: WidgetSelection | undefined
+    withEditGroup(() => {
+      added = placeTemplateWidget(pendingInsert, display, point)
+      if (added?.type !== 'widget') return
+      if (parentContainerId(useDeviceStore.getState().draft, added) !== into) {
+        moveWidgetInto(added.id, into)
+      }
+      settlePlacement(added.id, box)
+    })
     cancelInsert()
-    if (added) select(added)
+    if (added) context.select(added)
     return true
   }
 
@@ -56,4 +86,28 @@ export function useCanvasInsert(
   }
 
   return { insertAt, fittedInsert, placePendingInsert, updateGhost }
+}
+
+function centeredOn(
+  point: { x: number; y: number },
+  fitted: { width: number; height: number },
+  display: { width: number; height: number }
+): Placement {
+  return {
+    x: clamp(Math.round(point.x - fitted.width / 2), 0, Math.max(0, display.width - fitted.width)),
+    y: clamp(
+      Math.round(point.y - fitted.height / 2),
+      0,
+      Math.max(0, display.height - fitted.height)
+    ),
+    width: fitted.width,
+    height: fitted.height
+  }
+}
+
+function settlePlacement(id: string, box: Placement): void {
+  mutateDraftConfiguration((configuration) => {
+    const widget = findWidget(configuration, id)?.widget
+    if (widget) writePlacement(widget, box, parentOffset(configuration, id))
+  })
 }

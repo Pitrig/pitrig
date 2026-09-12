@@ -1,4 +1,5 @@
 import { Link2, Trash2, Unlink2 } from 'lucide-react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -9,6 +10,37 @@ import {
 import { t } from '@shared/ui-text'
 import { useImageAssetsStore, type ImageEntry } from './image-assets-store'
 import { SizeReadout, Thumbnail } from './image-page-parts'
+
+function DimensionField({
+  label,
+  value,
+  onCommit
+}: {
+  label: string
+  value: number
+  onCommit: (value: number) => void
+}): React.JSX.Element {
+  const [typed, setTyped] = useState<string>()
+
+  return (
+    <label className="grid gap-1">
+      <span className="text-muted-foreground">{label}</span>
+      <input
+        type="number"
+        min={1}
+        max={MAXIMUM_IMAGE_DIMENSION}
+        value={typed ?? String(value)}
+        className="h-7 w-full rounded-md border bg-transparent px-1"
+        onChange={(event) => {
+          const next = event.target.value
+          setTyped(next)
+          if (/^\d+$/.test(next.trim()) && Number(next) >= 1) onCommit(Number(next))
+        }}
+        onBlur={() => setTyped(undefined)}
+      />
+    </label>
+  )
+}
 
 export function StagedImageCard({
   entry,
@@ -95,19 +127,11 @@ export function StagedImageCard({
       </select>
     </label>
     <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
-      <label className="grid gap-1">
-        <span className="text-muted-foreground">{t('images.stagedImageCard.width')}</span>
-        <input
-          type="number"
-          min={1}
-          max={MAXIMUM_IMAGE_DIMENSION}
-          value={entry.width}
-          className="h-7 w-full rounded-md border bg-transparent px-1"
-          onChange={(event) =>
-            store.getState().resizeEntry(entry.id, 'width', Number(event.target.value))
-          }
-        />
-      </label>
+      <DimensionField
+        label={t('images.stagedImageCard.width')}
+        value={entry.width}
+        onCommit={(next) => store.getState().resizeEntry(entry.id, 'width', next)}
+      />
       <button
         type="button"
         aria-pressed={entry.lockAspect}
@@ -128,19 +152,11 @@ export function StagedImageCard({
           <Unlink2 aria-hidden="true" className="size-3.5" />
         )}
       </button>
-      <label className="grid gap-1">
-        <span className="text-muted-foreground">{t('images.stagedImageCard.height')}</span>
-        <input
-          type="number"
-          min={1}
-          max={MAXIMUM_IMAGE_DIMENSION}
-          value={entry.height}
-          className="h-7 w-full rounded-md border bg-transparent px-1"
-          onChange={(event) =>
-            store.getState().resizeEntry(entry.id, 'height', Number(event.target.value))
-          }
-        />
-      </label>
+      <DimensionField
+        label={t('images.stagedImageCard.height')}
+        value={entry.height}
+        onCommit={(next) => store.getState().resizeEntry(entry.id, 'height', next)}
+      />
     </div>
     <SizeReadout entry={entry} />
   </div>

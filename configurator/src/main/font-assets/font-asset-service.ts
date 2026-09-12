@@ -62,7 +62,8 @@ export class FontAssetService extends AssetServiceBase {
 
   async upload(
     request: FontUploadRequest,
-    report: (progress: FontUploadProgress) => void
+    report: (progress: FontUploadProgress) => void,
+    prebuilt?: BuiltFontPackage
   ): Promise<FontAssetResult<void>> {
     const blocked = this.preflight()
     if (blocked) return blocked
@@ -78,7 +79,7 @@ export class FontAssetService extends AssetServiceBase {
         message: t('fonts.fontAssetService.buildingOneFontPackageFrom', { length: request.families.length })
       })
       operation.signal.throwIfAborted()
-      const built = await this.buildPackage(request.families)
+      const built = prebuilt ? success(prebuilt) : await this.buildPackage(request.families)
       if (!built.ok) {
         report({ stage: 'error', completed: 0, total: 0, message: built.error.message })
         return built
@@ -92,7 +93,7 @@ export class FontAssetService extends AssetServiceBase {
       })
 
       if (this.deviceService.getState().session !== deviceSession) {
-        throw new Error('The connected device changed while the package was built.')
+        throw new Error(t('fonts.fontAssetService.theConnectedDeviceChangedWhile'))
       }
       await this.deviceService.uploadFonts(
         packageBytes,

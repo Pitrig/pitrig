@@ -14,7 +14,6 @@ import {
 import { PropertyRow } from '@/features/configuration/inspector/PropertyRow'
 import { TelemetryBindingField } from '@/features/configuration/inspector/TelemetryBindingField'
 import {
-  ColorSwatchInput,
   NumberInput,
   OptionalColorField,
   SelectInput
@@ -25,9 +24,12 @@ import {
 } from '@/features/configuration/inspector/widget-editors'
 import { t } from '@shared/ui-text'
 import { Subsection } from './Subsection'
-import { applyWatchedBinding, releaseWatchedBinding } from './watched-source'
+import {
+  applyWatchedBinding,
+  DEFAULT_WATCHED_BINDING,
+  releaseWatchedBinding
+} from './watched-source'
 
-const DEFAULT_WATCH = 'engine.rpm_percent'
 const DEFAULT_THRESHOLD = 90
 const DEFAULT_RULE_COLOR = '#D50000'
 
@@ -75,7 +77,7 @@ export function EffectColors({
       ) : null}
       {rules.map((rule, position) => (
         <div key={position} className="space-y-1 rounded-md border p-2">
-          <PropertyRow label={`Rule ${position + 1}`} hint={position === 0 ? t('modules.hints.effect.colors') : undefined}>
+          <PropertyRow label={t('inspector.conditionsEditor.ruleNumber', { number: position + 1 })} hint={position === 0 ? t('modules.hints.effect.colors') : undefined}>
             <div className="flex items-center gap-1">
               <SelectInput
                 value={rule.op ?? 'at_or_above'}
@@ -102,13 +104,8 @@ export function EffectColors({
                   onChange={(value) => changeRule(position, (next) => { next.value = value })}
                 />
               )}
-              <ColorSwatchInput
-                label={`Rule ${position + 1} colour`}
-                value={rule.color ?? DEFAULT_RULE_COLOR}
-                onChange={(color) => changeRule(position, (next) => { next.color = color })}
-              />
               <RemoveButton
-                label={`Remove colour rule ${position + 1}`}
+                label={t('modules.effectColors.removeColourRuleNumber', { number: position + 1 })}
                 onClick={() =>
                   update((next) => {
                     const list = (next.color_rules ?? []).filter((_, at) => at !== position)
@@ -120,6 +117,16 @@ export function EffectColors({
               />
             </div>
           </PropertyRow>
+          <OptionalColorField
+            label={t('modules.effectEditor.colour')}
+            value={rule.color}
+            onChange={(color) =>
+              changeRule(position, (next) => {
+                if (color) next.color = color
+                else delete next.color
+              })
+            }
+          />
           <OptionalColorField
             label={t('modules.effectColors.background')}
             value={rule.background_color}
@@ -171,7 +178,9 @@ export function EffectColors({
           label={t('modules.effectColors.addColourRule')}
           onClick={() =>
             update((next) => {
-              if (!next.condition_source?.binding) applyWatchedBinding(next, DEFAULT_WATCH)
+              if (!next.condition_source?.binding) {
+                applyWatchedBinding(next, DEFAULT_WATCHED_BINDING)
+              }
               next.color_rules = [
                 ...(next.color_rules ?? []),
                 { op: 'at_or_above', value: DEFAULT_THRESHOLD, color: DEFAULT_RULE_COLOR }

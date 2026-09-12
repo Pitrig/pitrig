@@ -1,26 +1,32 @@
 import { type ShapeWidgetConfiguration } from '@shared/configuration-schema'
+import { transformedBody } from '@shared/value-format'
 import { useFontFaceStore } from '@/features/font-library/font-face-store'
 import { completePlacement } from '../dashboard-editor'
 import { WidgetFrameShape } from './frame-shape'
-import { DEFAULT_BORDER_COLOR, DEFAULT_TEXT_COLOR } from './preview-theme'
+import { DEFAULT_TEXT_COLOR } from './preview-theme'
 import type { FramedWidgetConfiguration } from '@shared/configuration-access'
-import { type PreviewValues, captionGeometry, fontMetrics, normalizeColor, resolvedFont } from './preview-values'
+import { DEFAULT_CAPTION_FONT_SIZE_PX, type PreviewStyle, type PreviewValues, captionGeometry, fontMetrics, normalizeColor, resolvedFont } from './preview-values'
 
 export function CaptionPreview({
   configuration,
+  values,
+  style,
   behind
 }: {
   configuration: FramedWidgetConfiguration
+  values: PreviewValues
+  style: PreviewStyle
   behind: string
 }): React.JSX.Element | null {
   const loadedFamilies = useFontFaceStore((state) => state.loaded)
   const placement = completePlacement(configuration.placement)
-  const title = configuration.title?.text
-  if (!placement || !title) return null
-  const font = resolvedFont(configuration.title?.font, 12, loadedFamilies)
+  const authored = configuration.title?.text
+  if (!placement || !authored) return null
+  const title = captionText(configuration, authored, values)
+  const font = resolvedFont(configuration.title?.font, DEFAULT_CAPTION_FONT_SIZE_PX, loadedFamilies)
   const metrics = fontMetrics(title, font)
   const borderWidth = configuration.border?.width_px ?? 0
-  const background = normalizeColor(configuration.background_color)
+  const background = normalizeColor(style.backgroundColor)
   const inset = configuration.background_inset_px ?? 0
   const paintsContainer = background !== undefined && background !== 'transparent' && inset === 0
   const maskFill = paintsContainer ? background : behind
@@ -61,20 +67,26 @@ export function CaptionPreview({
   )
 }
 
+function captionText(
+  configuration: FramedWidgetConfiguration,
+  authored: string,
+  values: PreviewValues
+): string {
+  const binding = configuration.title?.source?.binding
+  if (binding === undefined) return authored
+  const body = transformedBody(undefined, values.read(binding))
+  return body === undefined || body.length === 0 ? authored : body
+}
+
 export function ShapePreview({
   configuration,
-  values
+  style
 }: {
   configuration: ShapeWidgetConfiguration
-  values: PreviewValues
+  style: PreviewStyle
 }): React.JSX.Element | null {
   const placement = completePlacement(configuration.placement)
   if (!placement) return null
-  const style = values.styleFor(configuration, {
-    backgroundColor: configuration.background_color,
-    borderColor: configuration.border?.color ?? DEFAULT_BORDER_COLOR
-  })
-  if (!style.visible) return null
   const radius =
     configuration.kind === 'ellipse'
       ? Math.min(placement.width, placement.height) / 2

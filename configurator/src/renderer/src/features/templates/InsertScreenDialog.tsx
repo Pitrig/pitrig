@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { ModalDialog } from '@/components/ui/modal-dialog'
 import { screensOf, screenWidgetsOf } from '@shared/configuration-access'
 import { MAXIMUM_SCREENS } from '@shared/configuration-schema'
 import { BOARD_PROFILES, type DeviceConfiguration } from '@shared/device'
@@ -9,7 +10,7 @@ import { useDashboardEditorStore } from '@/features/configuration/dashboard-edit
 import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
 import { displaySize } from '@/features/configuration/board-labels'
 import { useDeviceStore } from '@/features/device/device-store'
-import { insertScreenFromDocument } from './insert-screen'
+import { insertScreensFromDocument } from './insert-screen'
 import { useInsertScreenStore } from './insert-screen-store'
 import { ScreenView } from './ScreenGallery'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
@@ -20,7 +21,6 @@ export function InsertScreenDialog(): React.JSX.Element | null {
   const preselected = useInsertScreenStore((state) => state.template)
   const close = useInsertScreenStore((state) => state.close)
   const dashboards = useTemplatesStore((state) => state.library ?? NO_TEMPLATES).dashboards
-  const session = useDeviceStore((state) => state.session)
   const draft = useDeviceStore((state) => state.draft)
   const fit = useEditorPanelStore((state) => state.transferFit)
   const setActiveScreen = useDashboardEditorStore((state) => state.setActiveScreen)
@@ -28,6 +28,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
   const [document, setDocument] = useState<DeviceConfiguration>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
+  const request = useRef(0)
 
   useEffect(() => {
     if (!open || !preselected) return
@@ -38,6 +39,8 @@ export function InsertScreenDialog(): React.JSX.Element | null {
   if (!open) return null
 
   const dismiss = (): void => {
+    request.current += 1
+    setBusy(false)
     setChosen(undefined)
     setDocument(undefined)
     setError(undefined)
@@ -45,10 +48,12 @@ export function InsertScreenDialog(): React.JSX.Element | null {
   }
 
   async function choose(summary: DashboardTemplateSummary): Promise<void> {
+    const ticket = (request.current += 1)
     setBusy(true)
     setError(undefined)
     try {
       const result = await window.pitrig.readTemplate({ id: summary.id, kind: 'dashboard' })
+      if (ticket !== request.current) return
       if (!result.ok) {
         setError(result.error.message)
         return
@@ -60,7 +65,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
       setChosen(summary)
       setDocument(result.value.configuration)
     } finally {
-      setBusy(false)
+      if (ticket === request.current) setBusy(false)
     }
   }
 
@@ -75,18 +80,12 @@ export function InsertScreenDialog(): React.JSX.Element | null {
       )
       return
     }
-    for (const index of indices) {
-      const result = insertScreenFromDocument(document, index, {
-        board: draft.board,
-        display: session?.info.display,
-        fit
-      })
-      if (!result.ok) {
-        setError(result.error)
-        return
-      }
-      setActiveScreen(result.index)
+    const result = insertScreensFromDocument(document, indices, { board: draft.board, fit })
+    if (!result.ok) {
+      setError(result.error)
+      return
     }
+    setActiveScreen(result.index)
     dismiss()
   }
 
@@ -94,19 +93,11 @@ export function InsertScreenDialog(): React.JSX.Element | null {
   const display = chosen ? BOARD_PROFILES[chosen.board]?.display : undefined
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
-      role="presentation"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) dismiss()
-      }}
+    <ModalDialog
+      label={t('templates.insertScreenDialog.addAScreen')}
+      className="flex max-h-[34rem] w-[30rem] flex-col gap-3 p-4"
+      onClose={dismiss}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={t('templates.insertScreenDialog.addAScreen')}
-        className="flex max-h-[34rem] w-[30rem] flex-col gap-3 rounded-lg border bg-background p-4 text-xs shadow-lg"
-      >
         <div className="space-y-1">
           <h2 className="text-sm font-semibold text-foreground">
             {chosen ? t('templates.insertScreenDialog.screensInName', { name: chosen.name }) : t('templates.insertScreenDialog.addAScreen')}
@@ -131,7 +122,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
                 >
                   <span className="min-w-0 truncate">{summary.name}</span>
                   <span className="flex-none text-[11px] text-muted-foreground">
-                    {`${summary.screenCount} screen${summary.screenCount === 1 ? '' : 's'} · ${displaySize(summary.board) ?? summary.board}`}
+                    {`${t('configs.librarySection.screenCount', { count: summary.screenCount })} · ${displaySize(summary.board) ?? summary.board}`}
                   </span>
                 </button>
               ))}
@@ -165,6 +156,7 @@ export function InsertScreenDialog(): React.JSX.Element | null {
                         <ScreenView screen={screen} display={display} />
                       </span>
                       <span className="min-w-0 flex-1">
+                        {/* eslint-disable-next-line no-restricted-syntax */}
                         <span className="block truncate">{screen.id ?? `screen${index + 1}`}</span>
                         <span className="block text-[11px] text-muted-foreground">
                           {t('templates.insertScreenDialog.lengthWidgets', { length: screenWidgetsOf(screen).length })}
@@ -190,7 +182,6 @@ export function InsertScreenDialog(): React.JSX.Element | null {
           <Button variant="outline" onClick={dismiss}>
             {t('common.cancel')}</Button>
         </div>
-      </div>
-    </div>
+    </ModalDialog>
   )
 }

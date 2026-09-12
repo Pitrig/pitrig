@@ -12,7 +12,9 @@ import {
   collectFontRequirements,
   missingFontFamilies
 } from '@/features/font-library/font-requirements'
+import { useFontLibraryStore } from '@/features/font-library/font-library-store'
 import { withWidgetIds } from '@shared/configuration-access'
+import { mergeDocument } from '@shared/configuration-documents'
 import { validateConfigurationDocument } from '@shared/configuration-validate'
 import {
   applyBoardTransportDefaults,
@@ -24,7 +26,7 @@ import { displaySize } from '@/features/configuration/board-labels'
 import type { DashboardTemplateSummary } from '@shared/templates'
 import { DashboardThumbnail } from './DashboardThumbnail'
 import { DashboardListControls } from './DashboardListControls'
-import { EVERY_BOARD, listedDashboards } from './dashboard-listing'
+import { effectiveBoard, listedDashboards } from './dashboard-listing'
 import { TemplateCard } from './TemplateCard'
 import { useInsertScreenStore } from './insert-screen-store'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
@@ -51,23 +53,25 @@ export function DashboardSection({
   const fit = useEditorPanelStore((state) => state.transferFit)
   const sort = useEditorPanelStore((state) => state.templateSort)
   const board = useEditorPanelStore((state) => state.templateBoard)
-  const setBoard = useEditorPanelStore((state) => state.setTemplateBoard)
   const openPicker = useInsertScreenStore((state) => state.openPicker)
   const [report, setReport] = useState<LayoutTransferResult>()
   const [applied, setApplied] = useState<DeviceConfiguration>()
 
-  const fontAssets = session?.fontAssets
+  const libraryEntries = useFontLibraryStore((state) => state.entries)
   const missing = useMemo(
     () =>
-      applied && fontAssets
-        ? missingFontFamilies(collectFontRequirements(applied), fontAssets.families)
+      applied
+        ? missingFontFamilies(
+            collectFontRequirements(applied),
+            libraryEntries.map((entry) => entry.id)
+          )
         : [],
-    [applied, fontAssets]
+    [applied, libraryEntries]
   )
 
   const targetBoard = session?.info.boardId ?? draft?.board
   const listed = useMemo(
-    () => listedDashboards(templates, board, sort),
+    () => listedDashboards(templates, effectiveBoard(templates, board), sort),
     [templates, board, sort]
   )
 
@@ -100,9 +104,12 @@ export function DashboardSection({
         display: session?.info.display,
         fit
       })
-      setReport(transferred)
       const adopted = applyBoardTransportDefaults(
-        withWidgetIds(keepDraftTransport(transferred.configuration, draft))
+        withWidgetIds(
+          draft
+            ? mergeDocument(draft, 'dashboard', transferred.configuration)
+            : transferred.configuration
+        )
       )
       const validated = validateConfigurationDocument(adopted, {
         supportedBoards: PITRIG_BOARD_IDS
@@ -115,8 +122,9 @@ export function DashboardSection({
       }
       replaceLocalDraft(validated.configuration)
       resetEditorState()
+      setReport(transferred)
       setApplied(validated.configuration)
-      onNotice(`"${summary.name}" is now the local draft.`)
+      onNotice(t('templates.dashboardSection.nameIsNowTheLocal', { name: summary.name }))
     } catch (bridgeError) {
       setError(bridgeError instanceof Error ? bridgeError.message : t('templates.dashboardSection.failedToApplyTheTemplate'))
     } finally {
@@ -129,7 +137,9 @@ export function DashboardSection({
       title={t('templates.dashboardSection.dashboards')}
       description={
         targetBoard
-          ? `Whole layouts, scaled to ${displaySize(targetBoard) ?? targetBoard} on the way in. Add takes screens from one; Use replaces what you have open.`
+          ? t('templates.dashboardSection.wholeLayoutsScaledToSize', {
+              size: displaySize(targetBoard) ?? targetBoard
+            })
           : t('templates.dashboardSection.wholeLayoutsAddTakesScreens')
       }
       actions={<DashboardListControls entries={templates} />}
@@ -143,16 +153,6 @@ export function DashboardSection({
           <b>{t('templates.dashboardSection.saveToTemplates')}</b>
           {t('templates.dashboardSection.emptyAfter')}
         </EmptyState>
-      ) : listed.length === 0 ? (
-        <p className="rounded-md border p-3 text-xs text-muted-foreground">
-          {`No dashboard here is drawn for ${displaySize(board) ?? board}. `}
-          <button
-            className="underline underline-offset-2 hover:text-foreground"
-            type="button"
-            onClick={() => setBoard(EVERY_BOARD)}
-          >
-            {t('templates.dashboardSection.showEverySize')}</button>
-        </p>
       ) : (
         <ul className="grid gap-2 sm:grid-cols-2">
           {listed.map((summary) => (
@@ -160,7 +160,7 @@ export function DashboardSection({
               key={summary.id}
               name={summary.name}
               description={summary.description}
-              meta={`${summary.screenCount} screen${summary.screenCount === 1 ? '' : 's'} · ${summary.widgetCount} widget${summary.widgetCount === 1 ? '' : 's'}`}
+              meta={`${t('configs.librarySection.screenCount', { count: summary.screenCount })} · ${t('configs.librarySection.widgetCount', { count: summary.widgetCount })}`}
               preview={<DashboardThumbnail id={summary.id} board={summary.board} />}
               badges={
                 <>
@@ -219,7 +219,7 @@ export function DashboardSection({
 
       {missing.length > 0 ? (
         <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-amber-300">
-          {`Needs font famil${missing.length === 1 ? 'y' : 'ies'} not installed on the board: ${missing.join(', ')}. Choose a source on the Fonts page; saving to the board uploads them.`}
+          {t('fonts.fontsPage.unresolvedFamilies', { count: missing.length })}
         </p>
       ) : null}
       {report ? (
@@ -242,13 +242,4 @@ export function DashboardSection({
       ) : null}
     </PageSection>
   )
-}
-
-function keepDraftTransport(
-  configuration: DeviceConfiguration,
-  draft: DeviceConfiguration | undefined
-): DeviceConfiguration {
-  return draft?.telemetry_transport
-    ? { ...configuration, telemetry_transport: draft.telemetry_transport }
-    : configuration
 }

@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 import { allWidgetsOf, screensOf } from '../../shared/configuration-access'
@@ -19,9 +19,11 @@ import { MAXIMUM_CONFIGURATION_TEXT_SIZE } from '../../shared/configuration-docu
 import type { DeviceConfiguration } from '../../shared/device'
 import { parseDeviceConfigurationJson } from '../device/configuration-json'
 import type { RecentConfigurations } from './recent-configurations'
+import { writeFileAtomic } from '../write-file-atomic'
 import { t } from '@shared/ui-text'
 
 const FILE_EXTENSION = '.json'
+const NAME_EXTENSION = '.name'
 
 export class ConfigLibraryService {
   constructor(
@@ -61,7 +63,8 @@ export class ConfigLibraryService {
 
   async read(id: string): Promise<ConfigLibraryResult<SavedConfigurationDocument>> {
     try {
-      return { ok: true, value: { name: id, configuration: await this.readSaved(id) } }
+      const configuration = await this.readSaved(id)
+      return { ok: true, value: { name: (await this.savedName(id)) ?? id, configuration } }
     } catch (error) {
       if (isMissing(error)) return failure('not_found', t('configs.configLibraryService.noSavedConfigurationNamedId', { id: id }))
       return failure(
@@ -105,7 +108,8 @@ export class ConfigLibraryService {
           t('configs.configLibraryService.theLibraryHoldsAtMost', { mAXIMUM_SAVED_CONFIGURATIONS: MAXIMUM_SAVED_CONFIGURATIONS })
         )
       }
-      await writeFile(this.pathFor(id), content, 'utf8')
+      await writeFileAtomic(this.pathFor(id), content)
+      await writeFileAtomic(this.namePathFor(id), name)
       return { ok: true, value: await this.summaryOf(id) }
     } catch (error) {
       return failure('write_failed', messageOf(error, t('configs.configLibraryService.failedToWriteTheConfiguration')))
@@ -115,6 +119,7 @@ export class ConfigLibraryService {
   async remove(id: string): Promise<ConfigLibraryResult<void>> {
     try {
       await rm(this.pathFor(id))
+      await rm(this.namePathFor(id), { force: true })
       return { ok: true, value: undefined }
     } catch (error) {
       if (isMissing(error)) return failure('not_found', t('configs.configLibraryService.noSavedConfigurationNamedId', { id: id }))
@@ -130,13 +135,9 @@ export class ConfigLibraryService {
       if (!metadata.isFile() || metadata.size > MAXIMUM_CONFIGURATION_TEXT_SIZE) {
         return failure('invalid_configuration', t('configs.configLibraryService.thatFileIsNotA'))
       }
-      return {
-        ok: true,
-        value: {
-          configuration: parseDeviceConfigurationJson(await readFile(path, 'utf8')),
-          fileName: basename(path)
-        }
-      }
+      const configuration = parseDeviceConfigurationJson(await readFile(path, 'utf8'))
+      await this.recent.record(path)
+      return { ok: true, value: { configuration, fileName: basename(path) } }
     } catch (error) {
       if (isMissing(error)) return failure('not_found', t('configs.configLibraryService.thatFileIsNoLonger'))
       return failure('invalid_configuration', messageOf(error, t('configs.configLibraryService.theFileIsUnreadable')))
@@ -154,7 +155,7 @@ export class ConfigLibraryService {
     const metadata = await stat(path)
     return {
       id,
-      name: id,
+      name: (await this.savedName(id)) ?? id,
       board: configuration.board,
       screenCount: screensOf(configuration).length,
       widgetCount: allWidgetsOf(configuration).length,
@@ -179,17 +180,32 @@ export class ConfigLibraryService {
     const metadata = await stat(path)
     if (!metadata.isFile() || metadata.size > MAXIMUM_CONFIGURATION_TEXT_SIZE) {
       throw new Error(
-        `A configuration file must not exceed ${MAXIMUM_CONFIGURATION_TEXT_SIZE} bytes.`
+        t('configs.configLibraryService.aConfigurationFileMustNot', {
+          maximum: MAXIMUM_CONFIGURATION_TEXT_SIZE
+        })
       )
     }
     return parseDeviceConfigurationJson(await readFile(path, 'utf8'))
+  }
+
+  private async savedName(id: string): Promise<string | undefined> {
+    try {
+      const name = (await readFile(this.namePathFor(id), 'utf8')).trim()
+      return name.length > 0 && name.length <= MAXIMUM_CONFIGURATION_NAME ? name : undefined
+    } catch {
+      return undefined
+    }
+  }
+
+  private namePathFor(id: string): string {
+    return `${this.pathFor(id)}${NAME_EXTENSION}`
   }
 
   private pathFor(id: string): string {
     const fileName = `${id}${FILE_EXTENSION}`
     const path = join(this.directory, fileName)
     if (!CONFIGURATION_ID_PATTERN.test(id) || basename(path) !== fileName) {
-      throw new Error(`"${id}" is not a valid configuration identifier.`)
+      throw new Error(t('configs.configLibraryService.idIsNotAValid', { id }))
     }
     return path
   }

@@ -1,5 +1,6 @@
 import { nativeImage } from 'electron'
-import { deflateRawSync } from 'node:zlib'
+import { promisify } from 'node:util'
+import { deflateRaw } from 'node:zlib'
 
 import { crc32 } from '../device/asset-crc'
 import {
@@ -31,8 +32,10 @@ const FORMAT_CODES: Record<ImageColorFormat, number> = {
   alpha8: 4
 }
 
-function storedBytes(raw: Buffer): { bytes: Buffer; compression: number } {
-  const deflated = deflateRawSync(raw, { level: 9 })
+const deflateRawAsync = promisify(deflateRaw)
+
+async function storedBytes(raw: Buffer): Promise<{ bytes: Buffer; compression: number }> {
+  const deflated = await deflateRawAsync(raw, { level: 9 })
   return deflated.byteLength < raw.byteLength
     ? { bytes: deflated, compression: COMPRESSION_DEFLATE }
     : { bytes: raw, compression: COMPRESSION_NONE }
@@ -118,14 +121,14 @@ function convertFrame(source: ImageSource, path: string): Buffer {
   return bytes
 }
 
-export function buildImagePackage(images: readonly ConvertedImage[]): Buffer {
+export async function buildImagePackage(images: readonly ConvertedImage[]): Promise<Buffer> {
   validateImages(images)
   const manifest = Buffer.alloc(images.length * MANIFEST_ENTRY_SIZE)
   const chunks: { offset: number; bytes: Buffer }[] = []
   let offset = ASSET_DATA_OFFSET
-  images.forEach((image, index) => {
+  for (const [index, image] of images.entries()) {
     const entry = manifest.subarray(index * MANIFEST_ENTRY_SIZE, (index + 1) * MANIFEST_ENTRY_SIZE)
-    const { bytes, compression } = storedBytes(image.bytes)
+    const { bytes, compression } = await storedBytes(image.bytes)
     entry.write(image.name, 0, 'ascii')
     entry.writeUInt16LE(image.width, 32)
     entry.writeUInt16LE(image.height, 34)
@@ -141,7 +144,7 @@ export function buildImagePackage(images: readonly ConvertedImage[]): Buffer {
     entry.writeUInt32LE(0, 60)
     chunks.push({ offset, bytes })
     offset = align(offset + bytes.byteLength)
-  })
+  }
 
   const packageSize = Math.max(offset, ASSET_DATA_OFFSET)
   if (packageSize > MAXIMUM_IMAGE_PACKAGE_SIZE) {

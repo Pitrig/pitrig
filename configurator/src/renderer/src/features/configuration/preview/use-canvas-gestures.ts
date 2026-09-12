@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { type WidgetSelection, parentContainerId } from '../dashboard-editor'
 import {
   type Draw,
@@ -17,8 +17,9 @@ import { useDashboardEditorStore } from '../dashboard-editor'
 import { snapPoint } from './snapping'
 import { type CanvasContext, type Feedback, NO_FEEDBACK, drawnBox } from './canvas-gesture-context'
 import { commitMove, commitResize, drawLevel, finishDraw, settleDropAfterMove } from './gesture-commits'
-import { preferences, resizeSubjects, snapField } from './gesture-fields'
-import { useDeviceStore } from '@/features/device/device-store'
+import { moveFollowers, preferences, resizeSubjects, snapField } from './gesture-fields'
+import { useFrameCommits } from './gesture-frame'
+import { useGestureEdit } from './use-gesture-edit'
 
 interface GestureHandlers {
   interaction: Interaction | undefined
@@ -34,6 +35,7 @@ interface GestureHandlers {
   ) => void
   movePointer: (event: React.PointerEvent<SVGSVGElement>) => void
   finishPointer: (event: React.PointerEvent<SVGSVGElement>) => void
+  cancelPointer: (event: React.PointerEvent<SVGSVGElement>) => void
   beginBackground: (event: React.PointerEvent<SVGSVGElement>) => void
 }
 
@@ -50,6 +52,29 @@ export function useCanvasGestures(
   const [pan, setPan] = useState<Pan>()
   const [feedback, setFeedback] = useState<Feedback>(NO_FEEDBACK)
   const { svgRef, display, layers, placements, selectedIds } = context
+  const moved = useRef(false)
+  const commits = useFrameCommits()
+  const active = interaction ?? draw ?? marquee ?? pan
+
+  const releaseCapture = (pointerId: number): void => {
+    const element = svgRef.current
+    if (element?.hasPointerCapture(pointerId)) element.releasePointerCapture(pointerId)
+  }
+
+  const abort = (): boolean => {
+    if (!active) return false
+    releaseCapture(active.pointerId)
+    commits.drop()
+    setInteraction(undefined)
+    setDraw(undefined)
+    setMarquee(undefined)
+    setPan(undefined)
+    setDropContainer(undefined)
+    setFeedback(NO_FEEDBACK)
+    return true
+  }
+
+  const { startEdit, finishEdit } = useGestureEdit(abort)
 
   const beginInteraction = (
     event: React.PointerEvent<SVGElement>,
@@ -70,7 +95,8 @@ export function useCanvasGestures(
     const point = logicalPoint(svgRef.current, event.clientX, event.clientY)
     if (!point) return
     svgRef.current?.setPointerCapture(event.pointerId)
-    useDeviceStore.getState().beginEdit()
+    startEdit()
+    moved.current = false
     const primaryId = target.type === 'widget' ? target.id : ''
     setInteraction({
       pointerId: event.pointerId,
@@ -79,40 +105,13 @@ export function useCanvasGestures(
       start: point,
       placement,
       level: parentContainerId(context.configuration, target),
-      followers:
-        mode === 'move'
-          ? group
-              .filter((id) => id !== primaryId)
-              .map((id) => ({ id, placement: placements.get(id) }))
-              .filter((entry): entry is { id: string; placement: Placement } =>
-                entry.placement !== undefined
-              )
-          : [],
+      followers: mode === 'move' ? moveFollowers(context, group, primaryId) : [],
       subjects:
         mode === 'move'
           ? []
           : resizeSubjects(context, group.length > 1 ? group : [primaryId])
     })
   }
-
-  const pendingFrame = useRef<number | undefined>(undefined)
-  const pendingCommit = useRef<(() => void) | undefined>(undefined)
-  const flushPendingCommit = (): void => {
-    if (pendingFrame.current !== undefined) {
-      cancelAnimationFrame(pendingFrame.current)
-      pendingFrame.current = undefined
-    }
-    const commit = pendingCommit.current
-    pendingCommit.current = undefined
-    commit?.()
-  }
-  useEffect(
-    () => () => {
-      if (pendingFrame.current !== undefined) cancelAnimationFrame(pendingFrame.current)
-      pendingCommit.current = undefined
-    },
-    []
-  )
 
   const movePointer = (event: React.PointerEvent<SVGSVGElement>): void => {
     updateGhost(event)
@@ -165,17 +164,11 @@ export function useCanvasGestures(
       shiftKey: event.shiftKey,
       altKey: event.altKey
     }
-    if (pendingFrame.current !== undefined) cancelAnimationFrame(pendingFrame.current)
-    pendingCommit.current = () => {
+    if (Math.round(dx) !== 0 || Math.round(dy) !== 0) moved.current = true
+    commits.schedule(() => {
       if (interaction.mode === 'move')
         commitMove(context, interaction, dx, dy, modifiers, setFeedback, setDropContainer)
       else commitResize(context, interaction, dx, dy, modifiers, setFeedback)
-    }
-    pendingFrame.current = requestAnimationFrame(() => {
-      pendingFrame.current = undefined
-      const commit = pendingCommit.current
-      pendingCommit.current = undefined
-      commit?.()
     })
   }
 
@@ -212,13 +205,19 @@ export function useCanvasGestures(
       return
     }
     if (interaction?.pointerId !== event.pointerId) return
-    svgRef.current?.releasePointerCapture(event.pointerId)
-    flushPendingCommit()
-    settleDropAfterMove(context, interaction, event)
-    useDeviceStore.getState().endEdit()
+    releaseCapture(event.pointerId)
+    commits.flush()
+    settleDropAfterMove(context, interaction, event, moved.current)
+    finishEdit()
     setInteraction(undefined)
     setDropContainer(undefined)
     setFeedback(NO_FEEDBACK)
+  }
+
+  const cancelPointer = (event: React.PointerEvent<SVGSVGElement>): void => {
+    if (active?.pointerId !== event.pointerId) return
+    abort()
+    finishEdit()
   }
 
   const beginBackground = (event: React.PointerEvent<SVGSVGElement>): void => {
@@ -270,6 +269,7 @@ export function useCanvasGestures(
     beginInteraction,
     movePointer,
     finishPointer,
+    cancelPointer,
     beginBackground
   }
 }

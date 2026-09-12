@@ -67,6 +67,7 @@ export function EffectList({
               onClick={() => selectEffect(index)}
             >
               <span className="text-muted-foreground">{position + 1}.</span>{' '}
+              {/* eslint-disable-next-line no-restricted-syntax */}
               {effect.id || (effect.type ?? 'solid')}
               {effect.gate && effect.gate !== 'always' ? (
                 <span className="ml-1 text-[10px] text-amber-400/70">{effect.gate}</span>
@@ -88,7 +89,7 @@ export function EffectList({
             </button>
             <button
               type="button"
-              aria-label={`Move layer ${position + 1} down the stack`}
+              aria-label={t('modules.effectList.moveLayerNumberDownThe', { number: position + 1 })}
               disabled={position === 0}
               className="rounded p-1 text-muted-foreground hover:bg-white/5 disabled:opacity-30"
               onClick={() => reorder(effects[position - 1]?.index ?? index)}
@@ -97,7 +98,7 @@ export function EffectList({
             </button>
             <button
               type="button"
-              aria-label={`Move layer ${position + 1} up the stack`}
+              aria-label={t('modules.effectList.moveLayerNumberUpThe', { number: position + 1 })}
               disabled={position === effects.length - 1}
               className="rounded p-1 text-muted-foreground hover:bg-white/5 disabled:opacity-30"
               onClick={() => reorder(effects[position + 1]?.index ?? index)}
@@ -105,7 +106,7 @@ export function EffectList({
               <ArrowDown className="size-3.5" />
             </button>
             <RemoveButton
-              label={`Remove layer ${index + 1}`}
+              label={t('modules.effectList.removeLayerNumber', { number: index + 1 })}
               onClick={() => {
                 mutateEffects(output, (list) => {
                   list.splice(index, 1)

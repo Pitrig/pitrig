@@ -46,13 +46,12 @@ unknown board is incompatible until the configurator adds an explicit board
 profile. Boards without a built-in display require a separately documented
 profile before they are supported.
 
-`INFO` and `GET` describe the configuration the device loaded at boot. `SET`
-and `RESET` update persistent state but do not change either until reboot,
-which keeps them consistent with the configuration currently used by modules
-and widgets. `APPLY` does not change them either: it replaces what the
-composition renders, not what was loaded, so `GET` keeps returning each
-document's boot payload and the per-document outcomes keep naming the boot
-records.
+`INFO` and `GET` describe what the device has stored, not what it is running. A
+successful `SET` or `RESET` moves both at once — the document's outcome and
+generation in `INFO`, and the payload `GET` answers with — while the composition
+keeps rendering what it was given until a reboot or an `APPLY`. `APPLY` is the
+other way round: it replaces what the composition renders and leaves the stored
+record and its generation untouched.
 
 ## Runtime diagnostics
 

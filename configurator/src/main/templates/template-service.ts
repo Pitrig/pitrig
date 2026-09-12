@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, stat } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 import {
@@ -30,6 +30,7 @@ import {
   widgetSummary
 } from './template-documents'
 import { BUNDLED_TEMPLATE_SOURCES } from './bundled-templates'
+import { writeFileAtomic } from '../write-file-atomic'
 import { t } from '@shared/ui-text'
 
 const FILE_EXTENSION = '.json'
@@ -61,9 +62,8 @@ export class TemplateService {
         continue
       }
       try {
-        const document = await this.readSaved(id, 'dashboard')
-        if (document.format !== TEMPLATE_FORMAT) throw new Error('Not a dashboard template.')
-        dashboards.push(dashboardSummary(id, 'user', document))
+        const value = await this.readSavedValue(id, 'dashboard')
+        dashboards.push(dashboardSummary(id, 'user', parseTemplateDocument(value)))
       } catch {
         unreadable += 1
       }
@@ -155,10 +155,9 @@ export class TemplateService {
           t('templates.templateService.theLibraryHoldsAtMost', { mAXIMUM_USER_TEMPLATES: MAXIMUM_USER_TEMPLATES, kind: request.kind })
         )
       }
-      await writeFile(
+      await writeFileAtomic(
         this.pathFor(id, request.kind),
-        `${JSON.stringify(document, null, 2)}\n`,
-        'utf8'
+        `${JSON.stringify(document, null, 2)}\n`
       )
     } catch (error) {
       return failure('write_failed', messageOf(error, t('templates.templateService.failedToWriteTheTemplate')))
@@ -197,13 +196,19 @@ export class TemplateService {
     }
   }
 
-  private async readSaved(id: string, kind: TemplateKind): Promise<TemplateDocument> {
+  private async readSavedValue(id: string, kind: TemplateKind): Promise<unknown> {
     const path = this.pathFor(id, kind)
     const metadata = await stat(path)
     if (!metadata.isFile() || metadata.size > MAXIMUM_TEMPLATE_FILE_SIZE) {
-      throw new Error(`A template file must not exceed ${MAXIMUM_TEMPLATE_FILE_SIZE} bytes.`)
+      throw new Error(
+        t('templates.templateService.aTemplateFileMustNot', { maximum: MAXIMUM_TEMPLATE_FILE_SIZE })
+      )
     }
-    const value: unknown = JSON.parse(await readFile(path, 'utf8'))
+    return JSON.parse(await readFile(path, 'utf8'))
+  }
+
+  private async readSaved(id: string, kind: TemplateKind): Promise<TemplateDocument> {
+    const value = await this.readSavedValue(id, kind)
     return kind === 'dashboard'
       ? parseTemplateDocument(value)
       : parseWidgetTemplateDocument(value)
@@ -213,7 +218,7 @@ export class TemplateService {
     const fileName = `${id}${FILE_EXTENSION}`
     const path = join(kind === 'dashboard' ? this.directory : this.widgetDirectory, fileName)
     if (!TEMPLATE_ID_PATTERN.test(id) || basename(path) !== fileName) {
-      throw new Error(`"${id}" is not a valid template identifier.`)
+      throw new Error(t('templates.templateService.idIsNotAValid', { id }))
     }
     return path
   }

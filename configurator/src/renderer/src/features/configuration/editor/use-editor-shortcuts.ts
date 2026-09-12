@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 
 import { useDeviceStore } from '@/features/device/device-store'
-import { arrowStep, displayOf, nudge, resize } from './keyboard-geometry'
+import { arrowStep, displayOf, movableSelection, nudge, resize } from './keyboard-geometry'
 import { withEditGroup } from '@/features/device/edit-group'
-import { screenWidgetsOf } from '@shared/configuration-access'
+import { screenWidgetsOf, screensOf } from '@shared/configuration-access'
 import {
   absolutePlacement,
   activeScreen,
@@ -38,7 +38,8 @@ export function useEditorShortcuts(enabled: boolean): void {
     }
 
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (isTextEntry(event.target)) return
+      if (isTextEntry(event.target) || event.defaultPrevented) return
+      if (document.querySelector('[aria-modal="true"]')) return
       const store = useDeviceStore.getState()
       const editor = useDashboardEditorStore.getState()
       const configuration = store.draft
@@ -80,6 +81,7 @@ export function useEditorShortcuts(enabled: boolean): void {
           screenWidgetsOf(activeScreen(configuration))
             .map((widget) => widget.id)
             .filter((id): id is string => Boolean(id))
+            .filter((id) => !editor.hidden[id])
         )
         return
       }
@@ -119,7 +121,8 @@ export function useEditorShortcuts(enabled: boolean): void {
       }
       if (accelerator && /^[1-9]$/.test(event.key)) {
         event.preventDefault()
-        editor.setActiveScreen(Number(event.key) - 1)
+        const screens = screensOf(configuration).length
+        if (screens > 0) editor.setActiveScreen(Math.min(Number(event.key) - 1, screens - 1))
         return
       }
       if (accelerator && event.shiftKey && event.key.toLowerCase() === 'c') {
@@ -177,12 +180,14 @@ export function useEditorShortcuts(enabled: boolean): void {
       const step = arrowStep(event.key)
       if (!step || !display) return
       event.preventDefault()
+      const movable = movableSelection(configuration, selected).filter((id) => !editor.locked[id])
+      if (movable.length === 0) return
       if (!nudging) {
         nudging = true
         store.beginEdit()
       }
       const resizing = accelerator && event.altKey
-      for (const id of selected) {
+      for (const id of movable) {
         const target: WidgetSelection = { type: 'widget', id }
         if (resizing) resize(target, configuration, display, step, event.shiftKey)
         else nudge(target, configuration, display, step, event.shiftKey)

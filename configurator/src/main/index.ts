@@ -5,6 +5,10 @@ applyBranding()
 applyApplicationMenu()
 crashReporter.start({ uploadToServer: false })
 
+if (!app.requestSingleInstanceLock()) {
+  app.exit(0)
+}
+
 import { applyApplicationMenu } from './app-menu'
 import { createAppServices, disposeAppServices, type AppServices } from './app-services'
 import { createAppWindow, isDevelopment } from './app-window'
@@ -33,6 +37,7 @@ const services: AppServices = createAppServices({
 const telemetryBridge = TELEMETRY_BRIDGE_INCLUDED
   ? registerTelemetryBridge(services.deviceService)
   : undefined
+const CLEANUP_TIMEOUT_MS = 4000
 let quitAfterDeviceCleanup = false
 
 function createWindow(): void {
@@ -41,6 +46,13 @@ function createWindow(): void {
     renderer: '../renderer/index.html'
   })
 }
+
+app.on('second-instance', () => {
+  const [window] = BrowserWindow.getAllWindows()
+  if (!window) return
+  if (window.isMinimized()) window.restore()
+  window.focus()
+})
 
 app.whenReady().then(() => {
   applyDockIcon()
@@ -59,7 +71,10 @@ app.on('before-quit', (event) => {
     return
   }
   event.preventDefault()
-  void disposeAppServices(services, telemetryBridge).finally(() => {
+  void Promise.race([
+    disposeAppServices(services, telemetryBridge),
+    new Promise((resolve) => setTimeout(resolve, CLEANUP_TIMEOUT_MS))
+  ]).finally(() => {
     quitAfterDeviceCleanup = true
     app.quit()
   })

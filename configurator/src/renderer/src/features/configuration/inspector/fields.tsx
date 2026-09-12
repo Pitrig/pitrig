@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { type RgbColor, WIDGET_ID_CAPACITY } from '@shared/configuration-schema'
 import { ColorPicker } from './ColorPicker'
+import { parseHex } from './color-math'
 import { PropertyRow, type PropertyMeta } from './PropertyRow'
 import { useDeviceStore } from '@/features/device/device-store'
 import { t } from '@shared/ui-text'
@@ -18,7 +19,8 @@ export function TextInput({ id, value, onChange, placeholder, fontFamily }: { id
 
 export function NumberInput({ id, value, min, max, step, title, onChange }: { id?: string; value: number; min?: number; max?: number; step?: number | 'any'; title?: string; onChange: (value: number) => void }): React.JSX.Element {
   const [local, change, flush] = useLiveCommit(value, onChange)
-  return <input id={id} type="number" title={title} className={CONTROL} value={local} min={min} max={max} step={step} onChange={(event) => { const next = Number(event.target.value); if (Number.isFinite(next)) change(next) }} onBlur={flush} />
+  const [typed, setTyped] = useState<string>()
+  return <input id={id} type="number" title={title} className={CONTROL} value={typed ?? local} min={min} max={max} step={step} onChange={(event) => { const raw = event.target.value; setTyped(raw); const next = Number(raw); if (raw !== '' && Number.isFinite(next)) change(step === 'any' ? next : Math.round(next)) }} onBlur={() => { setTyped(undefined); flush() }} />
 }
 
 function SliderInput({ id, value, min, max, step, title, onChange }: { id?: string; value: number; min: number; max: number; step?: number; title?: string; onChange: (value: number) => void }): React.JSX.Element {
@@ -26,7 +28,7 @@ function SliderInput({ id, value, min, max, step, title, onChange }: { id?: stri
   return <input id={id} type="range" title={title} className="h-7 min-w-0 flex-1 accent-sky-400" value={Math.min(Math.max(local, min), max)} min={min} max={max} step={step ?? 1} onChange={(event) => change(Number(event.target.value))} onPointerUp={flush} onKeyUp={flush} onBlur={flush} />
 }
 
-export function SliderField({ label, value, min, max, softMin, softMax, step, suffix, caption, onChange, ...meta }: PropertyMeta & { label: string; value: number; min: number; max: number; softMin?: number; softMax?: number; step?: number; suffix?: string; caption?: string; onChange: (value: number) => void }): React.JSX.Element {
+export function SliderField({ label, value, min, max, softMin, softMax, step, suffix, onChange, ...meta }: PropertyMeta & { label: string; value: number; min: number; max: number; softMin?: number; softMax?: number; step?: number; suffix?: string; onChange: (value: number) => void }): React.JSX.Element {
   return (
     <PropertyRow label={label} {...meta}>
       <div className="flex items-center gap-1.5">
@@ -35,16 +37,15 @@ export function SliderField({ label, value, min, max, softMin, softMax, step, su
           <NumberInput title={suffix ? t('inspector.fields.labelInSuffix', { label: label, suffix: suffix }) : label} value={value} min={min} max={max} step={step} onChange={onChange} />
         </div>
       </div>
-      {caption ? <p className="pt-1 text-[10px] text-muted-foreground">{caption}</p> : null}
     </PropertyRow>
   )
 }
 
-export function SelectInput<T extends string>({ id, value, options, onChange }: { id?: string; value: string; options: readonly T[]; onChange: (value: T) => void }): React.JSX.Element {
+export function SelectInput<T extends string>({ id, value, options, disabledOptions, onChange }: { id?: string; value: string; options: readonly T[]; disabledOptions?: readonly string[]; onChange: (value: T) => void }): React.JSX.Element {
   return (
     <select id={id} className={CONTROL} value={value} onChange={(event) => onChange(event.target.value as T)}>
       {value === '' ? <option value="">{t('inspector.fields.notSet')}</option> : null}
-      {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      {options.map((option) => <option key={option} value={option} disabled={disabledOptions?.includes(option)}>{option}</option>)}
     </select>
   )
 }
@@ -58,7 +59,7 @@ export function TextField({ label, value, onChange, placeholder, block, ...meta 
   )
 }
 
-export function NumberField({ label, value, min, max, step, suffix, caption, onChange, ...meta }: PropertyMeta & { label: string; value: number; min?: number; max?: number; step?: number | 'any'; suffix?: string; caption?: string; onChange: (value: number) => void }): React.JSX.Element {
+export function NumberField({ label, value, min, max, step, suffix, onChange, ...meta }: PropertyMeta & { label: string; value: number; min?: number; max?: number; step?: number | 'any'; suffix?: string; onChange: (value: number) => void }): React.JSX.Element {
   const id = useId()
   return (
     <PropertyRow label={label} controlId={id} {...meta}>
@@ -70,16 +71,15 @@ export function NumberField({ label, value, min, max, step, suffix, caption, onC
       ) : (
         <NumberInput id={id} value={value} min={min} max={max} step={step} onChange={onChange} />
       )}
-      {caption ? <p className="pt-1 text-[10px] text-muted-foreground">{caption}</p> : null}
     </PropertyRow>
   )
 }
 
-export function SelectField<T extends string>({ label, value, options, onChange, block, ...meta }: PropertyMeta & { label: string; value: string; options: readonly T[]; onChange: (value: T) => void; block?: boolean }): React.JSX.Element {
+export function SelectField<T extends string>({ label, value, options, disabledOptions, onChange, block, ...meta }: PropertyMeta & { label: string; value: string; options: readonly T[]; disabledOptions?: readonly string[]; onChange: (value: T) => void; block?: boolean }): React.JSX.Element {
   const id = useId()
   return (
     <PropertyRow label={label} controlId={id} block={block} {...meta}>
-      <SelectInput id={id} value={value} options={options} onChange={onChange} />
+      <SelectInput id={id} value={value} options={options} disabledOptions={disabledOptions} onChange={onChange} />
     </PropertyRow>
   )
 }
@@ -95,10 +95,11 @@ export function CheckboxField({ label, checked, onChange, ...meta }: PropertyMet
 
 function ColorControl({ id, label, value, onChange }: { id?: string; label: string; value: string; onChange: (value: RgbColor) => void }): React.JSX.Element {
   const [local, change, flush] = useLiveCommit(value, (next) => onChange(next as RgbColor))
+  const [typed, setTyped] = useState<string>()
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1">
-      <ColorPicker value={local} label={label} onChange={change} onClose={flush} />
-      <input id={id} className={CONTROL} value={local} onChange={(event) => change(event.target.value)} onBlur={flush} />
+      <ColorPicker value={local} label={label} onChange={(next) => { setTyped(undefined); change(next) }} onClose={flush} />
+      <input id={id} className={CONTROL} value={typed ?? local} onChange={(event) => { const raw = event.target.value; setTyped(raw); if (parseHex(raw)) change(raw) }} onBlur={() => { setTyped(undefined); flush() }} />
     </div>
   )
 }
@@ -139,6 +140,7 @@ const SETTLE_MS = 200
 
 function useLiveCommit<T>(value: T, commit: (value: T) => void): [T, (next: T) => void, () => void] {
   const [local, setLocal] = useState(value)
+  const [settled, setSettled] = useState(0)
   const editing = useRef(false)
   const grouped = useRef(false)
   const latest = useRef(commit)
@@ -150,7 +152,7 @@ function useLiveCommit<T>(value: T, commit: (value: T) => void): [T, (next: T) =
 
   useEffect(() => {
     if (!editing.current) setLocal(value)
-  }, [value])
+  }, [value, settled])
 
   const cancelFrame = (): void => {
     if (frame.current === undefined) return
@@ -162,6 +164,10 @@ function useLiveCommit<T>(value: T, commit: (value: T) => void): [T, (next: T) =
     grouped.current = false
     useDeviceStore.getState().endEdit()
   }
+  const endEditing = (): void => {
+    editing.current = false
+    setSettled((count) => count + 1)
+  }
 
   useEffect(() => {
     if (!editing.current) return
@@ -170,7 +176,7 @@ function useLiveCommit<T>(value: T, commit: (value: T) => void): [T, (next: T) =
       latest.current(local)
     })
     const settle = window.setTimeout(() => {
-      editing.current = false
+      endEditing()
       endGroup()
     }, SETTLE_MS)
     return () => {
@@ -198,7 +204,7 @@ function useLiveCommit<T>(value: T, commit: (value: T) => void): [T, (next: T) =
   const flush = (): void => {
     cancelFrame()
     if (editing.current) {
-      editing.current = false
+      endEditing()
       latest.current(local)
     }
     endGroup()

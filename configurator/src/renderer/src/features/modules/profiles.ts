@@ -4,6 +4,7 @@ import {
   type LedFont,
   type RgbColor
 } from '@shared/configuration-schema'
+import { blendColor } from '@shared/color-ramp'
 import { FLAGS_PROFILE } from './flags'
 import { area, whenTrue, type LedProfile, type MatrixSize } from './profile-types'
 import { t } from '@shared/ui-text'
@@ -16,22 +17,12 @@ const SHIFT_RAMP: readonly RgbColor[] = ['#00C853', '#FFD600', '#FF2D95']
 const GEAR_CAUTION = 90
 const GEAR_LIMIT = 97
 
-function mix(left: RgbColor, right: RgbColor, amount: number): RgbColor {
-  const channel = (at: number): string => {
-    const from = Number.parseInt(left.slice(at, at + 2), 16)
-    const to = Number.parseInt(right.slice(at, at + 2), 16)
-    return Math.round(from + (to - from) * amount)
-      .toString(16)
-      .padStart(2, '0')
-  }
-  return `#${channel(1)}${channel(3)}${channel(5)}` as RgbColor
-}
-
 function rampAt(position: number): RgbColor {
   const span = SHIFT_RAMP.length - 1
   const scaled = Math.min(Math.max(position, 0), 1) * span
   const index = Math.min(Math.floor(scaled), span - 1)
-  return mix(SHIFT_RAMP[index] as RgbColor, SHIFT_RAMP[index + 1] as RgbColor, scaled - index)
+  const start = SHIFT_RAMP[index] as RgbColor
+  return blendColor(start, SHIFT_RAMP[index + 1], scaled - index) ?? start
 }
 
 function gearFace(matrix: MatrixSize | undefined): LedFont {

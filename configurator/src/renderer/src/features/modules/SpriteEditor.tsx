@@ -5,11 +5,13 @@ import {
   IMAGE_ID_CAPACITY,
   MAXIMUM_LED_EFFECTS,
   MAXIMUM_MATRIX_SIDE,
+  WIDGET_ID_CAPACITY,
   type HardwareDeviceConfiguration
 } from '@shared/configuration-schema'
 import {
   SPRITE_DIGIT_BUDGET,
   TRANSPARENT_INK,
+  clampSide,
   spriteDigits,
   spriteGeometry
 } from '@shared/led-sprite'
@@ -22,7 +24,13 @@ import { playingSprite, useModulesStore } from './modules-store'
 import { SpriteCanvas } from './SpriteCanvas'
 import { SpriteFrames } from './SpriteFrames'
 import { SpritePalette } from './SpritePalette'
-import { fillFrame, renameSprite, resizeSprite, spritesOf } from './sprite-document'
+import {
+  fillFrame,
+  renameSprite,
+  resizeSprite,
+  spritesOf,
+  trimToBytes
+} from './sprite-document'
 
 const SPEEDS: readonly number[] = [60, 90, 120, 180, 250, 400, 700, 1000]
 const DEFAULT_SPEED = 120
@@ -74,7 +82,7 @@ export function SpriteEditor({
     mutateEffects(output, (effects) => {
       effects.push({
         type: 'sprite',
-        id: sprite.id,
+        id: trimToBytes(sprite.id, WIDGET_ID_CAPACITY - 1),
         sprite: sprite.id,
         ...(frames > 1 ? { sprite_loop: true, speed_ms: speed } : {})
       })
@@ -86,7 +94,7 @@ export function SpriteEditor({
   return (
     <Group
       id="LedSpriteEditor"
-      title={sprite.id || 'Picture'}
+      title={sprite.id || t('modules.effectEditor.picture')}
       icon={Brush}
       summary={t('modules.spriteEditor.widthHeightFramesFrameS', { width: width, height: height, frames: frames })}
       defaultOpen
@@ -105,14 +113,14 @@ export function SpriteEditor({
             value={width}
             min={1}
             max={MAXIMUM_MATRIX_SIDE}
-            onChange={(value) => resizeSprite(output, at, Math.max(1, value), height)}
+            onChange={(value) => resizeSprite(output, at, clampSide(value), height)}
           />
           <NumberInput
             title={t('modules.outputEditor.rows')}
             value={height}
             min={1}
             max={MAXIMUM_MATRIX_SIDE}
-            onChange={(value) => resizeSprite(output, at, width, Math.max(1, value))}
+            onChange={(value) => resizeSprite(output, at, width, clampSide(value))}
           />
           <button
             type="button"

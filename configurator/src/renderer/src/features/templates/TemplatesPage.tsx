@@ -77,7 +77,7 @@ export function TemplatesPage(): React.JSX.Element {
       ) : null}
       {library && library.unreadable > 0 ? (
         <p className="text-[11px] text-amber-400">
-          {`${library.unreadable} file${library.unreadable === 1 ? '' : 's'} in the template folder could not be read.`}
+          {t('templates.templatesPage.unreadableFiles', { count: library.unreadable })}
         </p>
       ) : null}
       {error ? (

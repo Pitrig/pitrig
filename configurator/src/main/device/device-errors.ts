@@ -37,6 +37,9 @@ export function toDeviceError(error: unknown): DeviceError {
         t('device.deviceErrors.theSerialPortIsBusy')
     }
   }
+  if (normalized.includes('access denied') && process.platform === 'win32') {
+    return { code: 'port_busy', message: t('device.deviceErrors.theSerialPortIsBusy') }
+  }
   if (normalized.includes('permission denied') || normalized.includes('access denied')) {
     return {
       code: 'permission_denied',

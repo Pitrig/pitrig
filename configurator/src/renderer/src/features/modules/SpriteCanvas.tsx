@@ -9,6 +9,7 @@ import {
   TRANSPARENT_INK
 } from '@shared/led-sprite'
 import { beginStroke, endStroke, paintPixel } from './sprite-document'
+import { t } from '@shared/ui-text'
 
 const CELL = 22
 const GAP = 2
@@ -97,10 +98,10 @@ export function SpriteCanvas({
               <button
                 key={pixel}
                 type="button"
-                aria-label={`Pixel ${x + 1}, ${y + 1}`}
+                aria-label={t('modules.spriteCanvas.pixelXY', { x: x + 1, y: y + 1 })}
                 title={
                   value === TRANSPARENT_INK || color === undefined
-                    ? `${x + 1}, ${y + 1} — clear`
+                    ? t('modules.spriteCanvas.xYClear', { x: x + 1, y: y + 1 })
                     : `${x + 1}, ${y + 1} — ${color}`
                 }
                 className="relative rounded-sm ring-1 ring-inset ring-white/10 hover:ring-sky-400"

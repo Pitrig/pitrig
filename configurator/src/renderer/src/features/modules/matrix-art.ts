@@ -3,25 +3,15 @@ import {
   type LedSpriteConfiguration,
   type RgbColor
 } from '@shared/configuration-schema'
+import { blendColor } from '@shared/color-ramp'
 import { maxFramesFor } from '@shared/led-sprite'
 
 const SHADES = 10
 const DARK: RgbColor = '#000000'
 
-function mix(left: RgbColor, right: RgbColor, amount: number): RgbColor {
-  const channel = (at: number): string => {
-    const from = Number.parseInt(left.slice(at, at + 2), 16)
-    const to = Number.parseInt(right.slice(at, at + 2), 16)
-    return Math.round(from + (to - from) * amount)
-      .toString(16)
-      .padStart(2, '0')
-  }
-  return `#${channel(1)}${channel(3)}${channel(5)}` as RgbColor
-}
-
 function shades(color: RgbColor): LedPaletteEntry[] {
   return Array.from({ length: SHADES }, (_, index) => ({
-    color: mix(DARK, color, index / (SHADES - 1))
+    color: blendColor(DARK, color, index / (SHADES - 1)) ?? DARK
   }))
 }
 

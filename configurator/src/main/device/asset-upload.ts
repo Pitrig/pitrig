@@ -13,8 +13,18 @@ const BEGIN_TIMEOUT_MS = 30_000
 const FRAME_TIMEOUT_MS = 5_000
 const RESPONSE_BUFFER_LIMIT = 8192
 const DEVICE_ERROR_PREFIX = '@PR:ERR:'
+const BEGIN_BUSY_WINDOW_MS = 15_000
+const BEGIN_RETRY_INITIAL_MS = 500
+const BEGIN_RETRY_MAXIMUM_MS = 2_000
 
-class DeviceRejectedUploadError extends Error {}
+class DeviceRejectedUploadError extends Error {
+  constructor(
+    message: string,
+    readonly token: string
+  ) {
+    super(message)
+  }
+}
 
 export interface AssetNamespace {
   command: string
@@ -23,7 +33,19 @@ export interface AssetNamespace {
 
 interface UploadCallbacks {
   onProgress: (progress: AssetUploadProgress) => void
-  onTransmit: (data: string, encoding: 'utf8' | 'hex') => void
+  onTransmit?: (data: string, encoding: 'utf8' | 'hex') => void
+}
+
+function isBusyRefusal(namespace: AssetNamespace, error: unknown): boolean {
+  if (!(error instanceof DeviceRejectedUploadError)) return false
+  const token = error.token.trim()
+  return token === 'busy' || token === `${namespace.command}:busy`
+}
+
+async function pause(milliseconds: number, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted()
+  await new Promise<void>((resolve) => setTimeout(resolve, milliseconds))
+  signal.throwIfAborted()
 }
 
 export async function uploadAssetPackage(
@@ -44,16 +66,25 @@ export async function uploadAssetPackage(
       total: packageBytes.byteLength,
       message: t('device.assetUpload.preparingLabelStorage', { label: namespace.label })
     })
-    const begin = `@PR:${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`
-    beginMayBeActive = true
-    await exchangeLine(
-      port,
-      Buffer.from(begin, 'utf8'),
-      `@PR:OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`,
-      BEGIN_TIMEOUT_MS,
-      callbacks,
-      signal
+    const begin = Buffer.from(
+      `@PR:${namespace.command}:BEGIN:size=${packageBytes.byteLength}\n`,
+      'utf8'
     )
+    const ready = `@PR:OK:${namespace.command}:READY:max_chunk=${MAXIMUM_CHUNK_SIZE}`
+    const busyDeadline = Date.now() + BEGIN_BUSY_WINDOW_MS
+    let retryMs = BEGIN_RETRY_INITIAL_MS
+    for (;;) {
+      beginMayBeActive = true
+      try {
+        await exchangeLine(port, begin, ready, BEGIN_TIMEOUT_MS, callbacks, signal)
+        break
+      } catch (error) {
+        beginMayBeActive = false
+        if (!isBusyRefusal(namespace, error) || Date.now() >= busyDeadline) throw error
+        await pause(retryMs, signal)
+        retryMs = Math.min(retryMs * 2, BEGIN_RETRY_MAXIMUM_MS)
+      }
+    }
     beginMayBeActive = false
     sessionStarted = true
 
@@ -125,7 +156,7 @@ function createFrame(
   frame.writeUInt32LE(sequence, 6)
   frame.writeUInt16LE(payload.byteLength, 10)
   frame.writeUInt16LE(0, 12)
-  Buffer.from(payload).copy(frame, FRAME_HEADER_SIZE)
+  frame.set(payload, FRAME_HEADER_SIZE)
   frame.writeUInt32LE(crc32(frame.subarray(0, -4)), frame.byteLength - 4)
   return frame
 }
@@ -166,11 +197,8 @@ function exchangeLine(
       if (response) return { value: response }
       const deviceError = lines.find((line) => line.startsWith(DEVICE_ERROR_PREFIX))
       if (!deviceError) return undefined
-      return {
-        error: new DeviceRejectedUploadError(
-          describeDeviceError(deviceError.slice(DEVICE_ERROR_PREFIX.length))
-        )
-      }
+      const token = deviceError.slice(DEVICE_ERROR_PREFIX.length)
+      return { error: new DeviceRejectedUploadError(describeDeviceError(token), token) }
     },
     onTimeout: () => ({ error: new Error(t('device.assetUpload.theDeviceDidNotAnswer', { responsePrefix: responsePrefix })) }),
     onClose: () => new Error(t('device.assetUpload.theSerialPortClosedDuring')),
@@ -181,11 +209,13 @@ function exchangeLine(
           fail(error)
           return
         }
-        const utf8 = request[0] === 0x40
-        callbacks.onTransmit(
-          utf8 ? request.toString('utf8') : request.toString('hex'),
-          utf8 ? 'utf8' : 'hex'
-        )
+        if (callbacks.onTransmit) {
+          const utf8 = request[0] === 0x40
+          callbacks.onTransmit(
+            utf8 ? request.toString('utf8') : request.toString('hex'),
+            utf8 ? 'utf8' : 'hex'
+          )
+        }
         port.drain((drainError) => {
           if (drainError) fail(drainError)
         })

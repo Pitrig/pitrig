@@ -29,7 +29,7 @@ export function findUnknownProperty(
     if (capacity !== undefined && typeof child === 'string') {
       const bytes = new TextEncoder().encode(child).byteLength
       if (bytes >= capacity) {
-        return `"${here}" is ${bytes} bytes; the device stores at most ${capacity - 1}.`
+        return t('validation.schemaKeys.hereIsBytesBytesThe', { here, bytes, capacity: capacity - 1 })
       }
     }
     if (SCHEMA_VARIANT_ARRAYS[structName]?.includes(key)) {

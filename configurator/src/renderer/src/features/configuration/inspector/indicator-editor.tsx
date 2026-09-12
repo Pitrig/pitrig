@@ -21,6 +21,7 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
   return (
     <>
       <SourceRangeSection widget={widget} update={update} />
+      {/* eslint-disable-next-line no-restricted-syntax */}
       <Group id="Strip" title={t('inspector.indicatorEditor.strip')} icon={GROUP_ICONS.strip} summary={arcShape ? t('inspector.indicatorEditor.arcWidget', { widget: ringSummary(widget) }) : (widget.orientation ?? 'horizontal')}>
         <SelectField label={t('inspector.indicatorEditor.shape')} hint={t('inspector.hints.strip.shape')} value={widget.shape ?? 'strip'} options={INDICATOR_SHAPE_VALUES} modified={authored(widget.shape, 'strip')} onReset={() => update((next) => { delete next.shape })} onChange={(value) => update((next) => { next.shape = value })} />
         {arcShape ? (
@@ -67,7 +68,7 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
         {segments.map((segment, index) => (
           <PropertyRow
             key={index}
-            label={`Lamp ${index + 1}`}
+            label={t('inspector.indicatorEditor.lampNumber', { number: index + 1 })}
             modified={authored(segment.threshold, 0) || authored(segment.color, '#00C853')}
             onReset={() => update((next) => {
               const list = [...(next.segments ?? [])]
@@ -79,17 +80,17 @@ export function IndicatorEditor({ selection, widget }: { selection: WidgetSelect
             })}
           >
             <div className="flex items-center gap-1">
-              <NumberInput title={`Lamp ${index + 1} lights at this fraction of the range`} value={segment.threshold ?? 0} step="any" min={0} max={1} onChange={(value) => update((next) => {
+              <NumberInput title={t('inspector.indicatorEditor.lampNumberLightsAtThis', { number: index + 1 })} value={segment.threshold ?? 0} step="any" min={0} max={1} onChange={(value) => update((next) => {
                 const list = [...(next.segments ?? [])]
                 list[index] = { ...list[index], threshold: value }
                 next.segments = list
               })} />
-              <ColorSwatchInput label={`Lamp ${index + 1} color`} value={segment.color ?? '#00C853'} onChange={(color) => update((next) => {
+              <ColorSwatchInput label={t('inspector.indicatorEditor.lampNumberColour', { number: index + 1 })} value={segment.color ?? '#00C853'} onChange={(color) => update((next) => {
                 const list = [...(next.segments ?? [])]
                 list[index] = { ...list[index], color }
                 next.segments = list
               })} />
-              <RemoveButton label={`Remove lamp ${index + 1}`} onClick={() => update((next) => {
+              <RemoveButton label={t('inspector.indicatorEditor.removeLampNumber', { number: index + 1 })} onClick={() => update((next) => {
                 next.segments = (next.segments ?? []).filter((_, position) => position !== index)
               })} />
             </div>

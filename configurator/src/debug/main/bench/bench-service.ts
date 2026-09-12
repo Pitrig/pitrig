@@ -1,10 +1,8 @@
-import { performance } from 'node:perf_hooks'
-
 import {
+  DEFAULT_FEED_RATE_HZ,
   DEFAULT_POLL_INTERVAL_MS,
   clampFeedRate,
   clampPollInterval,
-  type BenchDiagnosticsSupport,
   type BenchPatternId,
   type BenchSample,
   type BenchStartRequest,
@@ -15,24 +13,25 @@ import { BENCH_SIGNAL_IDS } from '@debug-shared/bench-signals'
 import { buildBenchDashboard } from '@debug-shared/bench-pattern'
 import { benchTextCharacters } from '@debug-shared/bench-text'
 import { DEFAULT_FONT_FAMILY } from '@shared/font-assets'
-import type { DeviceResult } from '@shared/device'
+import type { DeviceError, DeviceErrorCode, DeviceResult } from '@shared/device'
 import { failure, success } from '@main/device/device-errors'
 import { ensureBenchAssets, type BenchAssetServices } from './bench-assets'
-import { isDiagnosticsReply, parseBenchDiagnostics } from './bench-diagnostics'
-import { TelemetryFeed } from './telemetry-feed'
+import { BenchPoller } from './bench-poll'
+import { TelemetryFeed, type TelemetryLink } from './telemetry-feed'
 
 const NO_DISPLAY = 'This board has no display, so there is no render pattern to measure.'
-const DIAGNOSTICS_COMMAND = '@PR:DIAG'
+const LINK_LOST = 'The serial link went away, so the feed stopped.'
 const APPLY_ATTEMPTS = 3
 const APPLY_RETRY_DELAY_MS = 1_500
+const RETRYABLE_APPLY_CODES: readonly DeviceErrorCode[] = ['busy', 'configuration_rejected']
 
 export class BenchService {
   private readonly feed = new TelemetryFeed()
-  private poll: NodeJS.Timeout | undefined
-  private polling = false
+  private readonly poller: BenchPoller
   private pollIntervalMs = DEFAULT_POLL_INTERVAL_MS
+  private rateHz = DEFAULT_FEED_RATE_HZ
+  private feedGeneration = 0
   private signals: string[] = [...BENCH_SIGNAL_IDS]
-  private diagnostics: BenchDiagnosticsSupport = 'unknown'
   private pattern: BenchPatternId | undefined
   private patternStage: string | undefined
   private patternBusy = false
@@ -42,16 +41,29 @@ export class BenchService {
   constructor(
     private readonly services: BenchAssetServices,
     private readonly onStatus: (status: BenchStatus) => void,
-    private readonly onSample: (sample: BenchSample) => void
-  ) {}
+    onSample: (sample: BenchSample) => void
+  ) {
+    this.poller = new BenchPoller({
+      deviceService: services.deviceService,
+      feed: this.feed,
+      patternBusy: () => this.patternBusy,
+      onSample,
+      onNotice: (message) => {
+        this.message = message
+        this.publish()
+      },
+      onSupportChanged: () => this.publish(),
+      onLinkLost: () => this.linkLost()
+    })
+  }
 
   getStatus(): BenchStatus {
     return {
-      active: this.poll !== undefined,
+      active: this.poller.active,
       feed: this.feed.stats(),
       pollIntervalMs: this.pollIntervalMs,
       signals: [...this.signals],
-      diagnostics: this.diagnostics,
+      diagnostics: this.poller.diagnostics,
       patternBusy: this.patternBusy,
       ...(this.pattern ? { pattern: this.pattern } : {}),
       ...(this.patternStage ? { patternStage: this.patternStage } : {}),
@@ -65,10 +77,12 @@ export class BenchService {
     }
     this.signals = selectSignals(request.signals)
     this.pollIntervalMs = clampPollInterval(request.pollIntervalMs)
-    this.diagnostics = 'unknown'
+    this.rateHz = clampFeedRate(request.rateHz)
+    this.poller.forgetSupport()
     this.message = undefined
-    this.feed.start(this.writer, clampFeedRate(request.rateHz), this.signals)
-    this.startPolling()
+    this.feedGeneration += 1
+    this.feed.start(this.link, this.rateHz, this.signals)
+    this.poller.start(this.pollIntervalMs)
     return success(this.publish())
   }
 
@@ -76,19 +90,25 @@ export class BenchService {
     if (request.signals !== undefined) this.signals = selectSignals(request.signals)
     if (request.pollIntervalMs !== undefined) {
       this.pollIntervalMs = clampPollInterval(request.pollIntervalMs)
-      if (this.poll !== undefined) this.startPolling()
+      if (this.poller.active) this.poller.start(this.pollIntervalMs)
     }
-    this.feed.update(
-      request.rateHz === undefined ? undefined : clampFeedRate(request.rateHz),
-      this.signals
-    )
+    if (request.rateHz !== undefined) this.rateHz = clampFeedRate(request.rateHz)
+    this.feed.update(this.rateHz, this.signals)
     return success(this.publish())
   }
 
   stop(): DeviceResult<BenchStatus> {
-    this.feed.stop()
-    this.stopPolling()
+    this.stopFeed()
+    this.poller.stop()
     return success(this.publish())
+  }
+
+  async hold(): Promise<void> {
+    await this.poller.hold()
+  }
+
+  release(): void {
+    this.poller.release()
   }
 
   async applyPattern(pattern: BenchPatternId): Promise<DeviceResult<BenchStatus>> {
@@ -103,6 +123,7 @@ export class BenchService {
 
     this.patternBusy = true
     this.message = undefined
+    if (this.pattern === undefined) this.restorePoint = JSON.stringify(session.configuration)
     const resume = this.pauseFeed()
     this.publish()
     let outcome: DeviceResult<void>
@@ -132,9 +153,6 @@ export class BenchService {
         const current = deviceService.getState().session
         if (!current) {
           return failure({ code: 'serial_error', message: 'The board went away during setup.' })
-        }
-        if (this.restorePoint === undefined) {
-          this.restorePoint = JSON.stringify(current.configuration)
         }
 
         this.patternStage = 'Applying pattern…'
@@ -190,80 +208,35 @@ export class BenchService {
   }
 
   dispose(): void {
-    this.feed.stop()
-    this.stopPolling()
+    this.stopFeed()
+    this.poller.stop()
   }
 
-  private readonly writer = (text: string, onWritten?: (error?: Error) => void): boolean =>
-    this.services.deviceService.writeTelemetry(text, onWritten)
+  private readonly link: TelemetryLink = {
+    ready: () => this.services.deviceService.relayAvailable(),
+    write: (text, onWritten) => this.services.deviceService.writeTelemetry(text, onWritten)
+  }
+
+  private linkLost(): void {
+    if (!this.feed.running) return
+    this.stopFeed()
+    this.poller.stop()
+    this.message = LINK_LOST
+    this.publish()
+  }
+
+  private stopFeed(): void {
+    this.feedGeneration += 1
+    this.feed.stop()
+  }
 
   private pauseFeed(): () => void {
-    const stats = this.feed.stats()
-    if (!stats.running) return () => undefined
+    if (!this.feed.running) return () => undefined
+    const generation = this.feedGeneration
     this.feed.stop()
-    return () => this.feed.start(this.writer, stats.rateHz, this.signals)
-  }
-
-  private startPolling(): void {
-    this.stopPolling()
-    this.poll = setInterval(() => void this.sample(), this.pollIntervalMs)
-  }
-
-  private stopPolling(): void {
-    if (this.poll !== undefined) clearInterval(this.poll)
-    this.poll = undefined
-  }
-
-  private async sample(): Promise<void> {
-    if (this.polling) return
-    const { deviceService } = this.services
-    if (!deviceService.telemetryLinkAvailable() && !this.patternBusy) {
-      if (this.feed.running) {
-        this.feed.stop()
-        this.stopPolling()
-        this.message = 'The serial link went away, so the feed stopped.'
-        this.publish()
-      }
-      return
-    }
-
-    this.polling = true
-    const startedAt = performance.now()
-    try {
-      const diagnostics = this.patternBusy ? undefined : await this.readDiagnostics()
-      this.onSample({
-        at: Date.now(),
-        roundTripMs: performance.now() - startedAt,
-        feed: this.feed.stats(),
-        values: this.feed.latestValues(),
-        ...(diagnostics ? { diagnostics } : {})
-      })
-    } finally {
-      this.polling = false
-    }
-  }
-
-  private async readDiagnostics(): Promise<BenchSample['diagnostics']> {
-    if (this.diagnostics === 'unsupported') return undefined
-    const result = await this.services.deviceService.sendControlCommand(DIAGNOSTICS_COMMAND)
-    if (!result.ok) return undefined
-    const reply = result.value.lines.find(isDiagnosticsReply)
-    if (reply === undefined) {
-      if (result.value.lines.some((line) => line.startsWith('@PR:ERR:'))) {
-        this.diagnostics = 'unsupported'
-        this.message = 'This board runs a product build; flash a debug build for diagnostics.'
-        this.publish()
-      }
-      return undefined
-    }
-    if (this.diagnostics !== 'supported') {
-      this.diagnostics = 'supported'
-      this.publish()
-    }
-    try {
-      return parseBenchDiagnostics(reply)
-    } catch {
-      return undefined
+    return () => {
+      if (this.feedGeneration !== generation) return
+      this.feed.start(this.link, this.rateHz, this.signals)
     }
   }
 
@@ -280,12 +253,15 @@ async function applyWithRetry(
 ): Promise<DeviceResult<unknown>> {
   let last = await deviceService.applyConfigurationNow(json, ['dashboard'])
   for (let attempt = 1; !last.ok && attempt < APPLY_ATTEMPTS; ++attempt) {
-    if (last.error.code !== 'configuration_rejected' && last.error.code !== 'busy') break
-    if (!/did not answer|busy/i.test(last.error.message)) break
+    if (!retryableApply(last.error)) break
     await new Promise((resolve) => setTimeout(resolve, APPLY_RETRY_DELAY_MS))
     last = await deviceService.applyConfigurationNow(json, ['dashboard'])
   }
   return last
+}
+
+function retryableApply(error: DeviceError): boolean {
+  return RETRYABLE_APPLY_CODES.includes(error.code)
 }
 
 function selectSignals(signals: readonly string[] | undefined): string[] {

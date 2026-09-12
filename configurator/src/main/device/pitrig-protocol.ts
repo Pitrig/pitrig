@@ -12,6 +12,7 @@ import {
 } from '@shared/configuration-schema'
 import { mergeDocuments } from '@shared/configuration-documents'
 import { parseDeviceConfigurationJson } from './configuration-json'
+import { t } from '@shared/ui-text'
 import { DeviceServiceError } from './device-errors'
 import {
   CONFIGURATION_RESPONSE_PREFIX,
@@ -22,13 +23,17 @@ import {
 export { requestResponse, sendControlCommand } from './serial-request'
 
 const CONFIGURATION_TIMEOUT_MS = 2_000
-const RESET_TIMEOUT_MS = 5_000
+const STARTUP_HOLD_TIMEOUT_MS = 12_000
 const ASSET_CLEAR_TIMEOUT_MS = 30_000
 
 function configurationTimeout(port: SerialPort, payloadBytes: number): number {
   const baud = Math.max(port.baudRate, 9_600)
   const transferMs = Math.ceil((payloadBytes * 10 * 1_000) / baud)
   return CONFIGURATION_TIMEOUT_MS + 2 * transferMs
+}
+
+function writeTimeout(port: SerialPort, payloadBytes: number): number {
+  return Math.max(STARTUP_HOLD_TIMEOUT_MS, configurationTimeout(port, payloadBytes))
 }
 
 async function readConfigurationDocument(
@@ -50,7 +55,7 @@ async function readConfigurationDocument(
   try {
     const configuration = parseDeviceConfigurationJson(line.slice(prefix.length))
     if (configuration.board !== expectedBoard) {
-      throw new Error('The device configuration board does not match the connected hardware.')
+      throw new Error(t('device.pitrigProtocol.theDeviceConfigurationBoardDoes'))
     }
     return configuration
   } catch (error) {
@@ -88,7 +93,7 @@ export async function applyConfiguration(
     port,
     `@PR:APPLY:${document}:${payload}\n`,
     `@PR:OK:APPLIED:${document}`,
-    configurationTimeout(port, Buffer.byteLength(payload, 'utf8')),
+    writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
     onTraffic,
     'configuration_rejected'
   )
@@ -104,7 +109,7 @@ export async function saveConfiguration(
     port,
     `@PR:SET:${document}:${payload}\n`,
     `@PR:OK:SAVED:${document}:`,
-    configurationTimeout(port, Buffer.byteLength(payload, 'utf8')),
+    writeTimeout(port, Buffer.byteLength(payload, 'utf8')),
     onTraffic,
     'configuration_rejected'
   )
@@ -118,7 +123,7 @@ export async function resetConfiguration(
     port,
     '@PR:RESET\n',
     '@PR:OK:RESET:reboot_required=1',
-    RESET_TIMEOUT_MS,
+    writeTimeout(port, 0),
     onTraffic,
     'configuration_rejected'
   )
@@ -133,7 +138,7 @@ export async function resetConfigurationDocument(
     port,
     `@PR:RESET:${document}\n`,
     `@PR:OK:RESET:${document}:`,
-    RESET_TIMEOUT_MS,
+    writeTimeout(port, 0),
     onTraffic,
     'configuration_rejected'
   )

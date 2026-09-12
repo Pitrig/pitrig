@@ -17,7 +17,7 @@ interface RangedWidget {
 
 export function SourceRangeSection<T extends RangedWidget>({ widget, update, children }: { widget: T; update: (mutation: (next: T) => void) => void; children?: React.ReactNode }): React.JSX.Element {
   return (
-    <Group id="Data" title={t('inspector.sectionEditors.data')} icon={GROUP_ICONS.data} summary={widget.source?.binding || 'Unbound'}>
+    <Group id="Data" title={t('inspector.sectionEditors.data')} icon={GROUP_ICONS.data} summary={widget.source?.binding || t('inspector.widgetEditors.unbound')}>
       <SourceRangeFields widget={widget} update={update} />
       {children}
     </Group>
@@ -77,8 +77,7 @@ export function ContainerEditor<T extends ClippingWidget>({
 }): React.JSX.Element {
   const clips = widget.clip_children !== false
   return (
-    <Group id="Container" title={t('inspector.sectionEditors.container')} icon={GROUP_ICONS.container} summary={count === 0 ? t('inspector.sectionEditors.empty') : t('inspector.sectionEditors.countWidgetS', { count: count })} defaultOpen={count > 0}>
-      <p className="text-muted-foreground">{summary}</p>
+    <Group id="Container" title={t('inspector.sectionEditors.container')} icon={GROUP_ICONS.container} hint={summary} summary={count === 0 ? t('inspector.sectionEditors.empty') : t('inspector.sectionEditors.countWidgetS', { count: count })} defaultOpen={count > 0}>
       <CheckboxField
         label={t('inspector.sectionEditors.clipContents')}
         hint={t('inspector.hints.container.clip')}

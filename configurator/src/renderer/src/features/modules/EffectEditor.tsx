@@ -30,7 +30,9 @@ import {
   LED_EFFECT_USES_DIRECTION
 } from './direction'
 import { t } from '@shared/ui-text'
+import { applyEffectType } from './effect-type'
 import { layerName } from './layer-name'
+import { wholeValue } from './field-values'
 import { PanelAreaField } from './PanelArea'
 import { mutateEffects } from './modules-document'
 import { EffectColors } from './effect-colors'
@@ -60,9 +62,8 @@ export function EffectEditor({
   )
   const update = (mutation: (next: LedEffect) => void): void =>
     mutateEffects(output, (effects) => {
-      const next = structuredClone(effects[index] as LedEffect)
-      mutation(next)
-      effects[index] = next
+      const next = effects[index]
+      if (next) mutation(next)
     })
 
   return (
@@ -80,14 +81,7 @@ export function EffectEditor({
           value={type}
           options={offered}
           modified={authored(effect.type, 'solid')}
-          onChange={(value) => update((next) => {
-            next.type = value
-            if (!LED_EFFECT_READS_VALUE.has(value)) {
-              delete next.source
-              delete next.minimum
-              delete next.maximum
-            }
-          })}
+          onChange={(value) => update((next) => applyEffectType(next, value, pictures))}
         />
         <TextField
           label={t('device.infoPage.name')}
@@ -103,13 +97,17 @@ export function EffectEditor({
               title={t('modules.effectEditor.firstLampOfThisDevice')}
               value={(effect.from ?? 0) + 1}
               min={1}
-              onChange={(from) => update((next) => { next.from = Math.max(0, from - 1) })}
+              onChange={(from) =>
+                update((next) => { next.from = wholeValue('LedEffect', 'from', from - 1) })
+              }
             />
             <NumberInput
               title={t('modules.effectEditor.lampsCovered0CoversThe')}
               value={effect.count ?? 0}
               min={0}
-              onChange={(count) => update((next) => { next.count = count })}
+              onChange={(count) =>
+                update((next) => { next.count = wholeValue('LedEffect', 'count', count) })
+              }
             />
           </div>
           <div className="grid grid-cols-2 gap-1 pt-0.5 text-[10px] text-muted-foreground">
@@ -179,7 +177,7 @@ export function EffectEditor({
                 suffix="ms"
                 value={effect.speed_ms ?? 1000}
                 {...fieldBounds('LedEffect', 'speed_ms')}
-                onChange={(value) => update((next) => { next.speed_ms = value })}
+                onChange={(value) => update((next) => { next.speed_ms = wholeValue('LedEffect', 'speed_ms', value) })}
               />
             ) : (
               <NumberField
@@ -187,7 +185,11 @@ export function EffectEditor({
                 hint={t('modules.effectEditor.whichFrameToHoldStill')}
                 value={effect.sprite_frame ?? 0}
                 {...fieldBounds('LedEffect', 'sprite_frame')}
-                onChange={(value) => update((next) => { next.sprite_frame = value })}
+                onChange={(value) =>
+                  update((next) => {
+                    next.sprite_frame = wholeValue('LedEffect', 'sprite_frame', value)
+                  })
+                }
               />
             )}
           </>
@@ -215,7 +217,7 @@ export function EffectEditor({
               hint={t('modules.effectEditor.howLongOneColumnOf')}
               value={effect.speed_ms ?? 1000}
               {...fieldBounds('LedEffect', 'speed_ms')}
-              onChange={(value) => update((next) => { next.speed_ms = value })}
+              onChange={(value) => update((next) => { next.speed_ms = wholeValue('LedEffect', 'speed_ms', value) })}
             />
           </>
         ) : null}
@@ -232,7 +234,9 @@ export function EffectEditor({
               suffix="ms"
               value={effect.speed_ms ?? 1000}
               {...fieldBounds('LedEffect', 'speed_ms')}
-              onChange={(speed_ms) => update((next) => { next.speed_ms = speed_ms })}
+              onChange={(speed_ms) =>
+                update((next) => { next.speed_ms = wholeValue('LedEffect', 'speed_ms', speed_ms) })
+              }
             />
           </>
         ) : null}

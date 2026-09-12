@@ -62,7 +62,9 @@ export function SlotPages({
                 }`}
                 onClick={() => setSlotPage(slotId, index)}
               >
-                {page.in_loop === false ? `Page ${index + 1}*` : `Page ${index + 1}`}
+                {page.in_loop === false
+                  ? t('layers.slotPages.pageNumberNotInLoop', { number: index + 1 })
+                  : t('common.pageNumber', { number: index + 1 })}
               </button>
             </div>
             <div className="ml-3 border-l border-sky-500/30 pl-1">

@@ -6,6 +6,8 @@ export const BENCH_STOP_CHANNEL = 'bench:stop' as const
 export const BENCH_UPDATE_CHANNEL = 'bench:update' as const
 export const BENCH_APPLY_PATTERN_CHANNEL = 'bench:apply-pattern' as const
 export const BENCH_RESTORE_CHANNEL = 'bench:restore' as const
+export const BENCH_HOLD_CHANNEL = 'bench:hold' as const
+export const BENCH_RELEASE_CHANNEL = 'bench:release' as const
 export const BENCH_STATUS_CHANGED_CHANNEL = 'bench:status-changed' as const
 export const BENCH_SAMPLE_CHANNEL = 'bench:sample' as const
 

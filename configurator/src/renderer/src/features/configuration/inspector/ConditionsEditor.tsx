@@ -21,6 +21,7 @@ export function ConditionsEditor({ widget, update }: {
   const boolean = field?.type === 'boolean'
   const operators = boolean ? BOOLEAN_OPERATORS : CONDITION_OPERATOR_VALUES
   const rules = widget.conditions ?? []
+  const styled = Boolean(watched) || rules.length > 0 || (widget.color_ramp?.stops?.length ?? 0) > 0
   const changeRule = (index: number, mutation: (rule: WidgetCondition) => void): void => update((next) => {
     const list = next.conditions ?? []
     if (list[index]) mutation(list[index])
@@ -40,7 +41,6 @@ export function ConditionsEditor({ widget, update }: {
       })} onChange={(value) => update((next) => {
         if (!value) {
           delete next.condition_source
-          delete next.conditions
           return
         }
         next.condition_source = { ...next.condition_source, binding: value }
@@ -79,14 +79,14 @@ export function ConditionsEditor({ widget, update }: {
           }
         />
       ) : null}
-      {watched ? (
+      {styled ? (
         <>
           <ColorRampEditor widget={widget} update={update} unit={field?.unit && field.unit !== 'source' ? field.unit : undefined} />
           {rules.map((rule, index) => (
             <div key={index} className="space-y-2 rounded-md border p-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{t('inspector.conditionsEditor.ruleNumber', { number: index + 1 })}</span>
-                <button type="button" aria-label={`Remove rule ${index + 1}`} title={t('inspector.conditionsEditor.removeThisRule')} className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={() => update((next) => {
+                <button type="button" aria-label={t('inspector.conditionsEditor.removeRuleNumber', { number: index + 1 })} title={t('inspector.conditionsEditor.removeThisRule')} className="rounded-md border p-1 text-muted-foreground hover:text-foreground" onClick={() => update((next) => {
                   next.conditions = (next.conditions ?? []).filter((_, position) => position !== index)
                   if (next.conditions.length === 0) delete next.conditions
                 })}>
@@ -142,7 +142,7 @@ export function ConditionsEditor({ widget, update }: {
           ))}
           {rules.length < MAXIMUM_WIDGET_CONDITIONS ? (
             <button type="button" className="flex h-7 w-full items-center justify-center gap-1 rounded-md border text-foreground hover:bg-muted" onClick={() => update((next) => {
-              next.conditions = [...(next.conditions ?? []), { op: 'at_or_above', value: 0 }]
+              next.conditions = [...(next.conditions ?? []), boolean ? { op: 'equal', value: 1 } : { op: 'at_or_above', value: 0 }]
             })}>
               <Plus aria-hidden className="size-3" />
               {t('modules.effectGate.addRule')}</button>
@@ -187,7 +187,7 @@ function ColorRampEditor({ widget, update, unit }: {
           {stops.map((stop, index) => (
             <PropertyRow
               key={index}
-              label={`Stop ${index + 1}`}
+              label={t('inspector.conditionsEditor.stopNumber', { number: index + 1 })}
               modified={authored(stop.at, 0) || authored(stop.color, '#E8E8E8')}
               onReset={() => changeStops((list) => {
                 const reset = { ...list[index] }
@@ -202,11 +202,11 @@ function ColorRampEditor({ widget, update, unit }: {
                   list[index] = { ...list[index], at: value }
                   return list
                 })} />
-                <ColorSwatchInput label={`Stop ${index + 1} color`} value={stop.color ?? '#E8E8E8'} onChange={(color) => changeStops((list) => {
+                <ColorSwatchInput label={t('inspector.conditionsEditor.stopNumberColour', { number: index + 1 })} value={stop.color ?? '#E8E8E8'} onChange={(color) => changeStops((list) => {
                   list[index] = { ...list[index], color }
                   return list
                 })} />
-                <button type="button" aria-label={`Remove stop ${index + 1}`} title={t('inspector.conditionsEditor.removeThisStop')} className="flex-none rounded-md border p-1.5 text-muted-foreground hover:text-foreground" onClick={() => changeStops((list) => list.filter((_, position) => position !== index))}>
+                <button type="button" aria-label={t('inspector.conditionsEditor.removeStopNumber', { number: index + 1 })} title={t('inspector.conditionsEditor.removeThisStop')} className="flex-none rounded-md border p-1.5 text-muted-foreground hover:text-foreground" onClick={() => changeStops((list) => list.filter((_, position) => position !== index))}>
                   <Trash2 aria-hidden className="size-3" />
                 </button>
               </div>

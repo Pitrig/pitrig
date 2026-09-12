@@ -24,7 +24,6 @@ export function LayersPanel(): React.JSX.Element {
   const activeScreenIndex = useDashboardEditorStore((state) => state.activeScreenIndex)
   const selectedIds = useDashboardEditorStore((state) => state.selectedIds)
   const selection = useDashboardEditorStore((state) => state.selection)
-  const expand = useDashboardEditorStore((state) => state.expand)
   const [dragged, setDragged] = useState<Dragged>()
   const [renaming, setRenaming] = useState<string>()
   const [dropTarget, setDropTarget] = useState<DropTarget>()
@@ -37,10 +36,11 @@ export function LayersPanel(): React.JSX.Element {
   const primary = selection?.type === 'widget' ? selection.id : undefined
   useEffect(() => {
     if (!primary) return
-    const location = findWidget(draft, primary)
+    const configuration = useDeviceStore.getState().draft
+    const location = findWidget(configuration, primary)
     if (location) {
-      expand(
-        ancestorsOf(draft, location)
+      useDashboardEditorStore.getState().expand(
+        ancestorsOf(configuration, location)
           .map((ancestor) => ancestor.id)
           .filter((id): id is string => id !== undefined)
       )
@@ -51,7 +51,7 @@ export function LayersPanel(): React.JSX.Element {
         ?.scrollIntoView({ block: 'nearest' })
     })
     return () => cancelAnimationFrame(frame)
-  }, [primary, draft, expand])
+  }, [primary])
 
   const openMenu = (event: React.MouseEvent, id: string): void => {
     event.preventDefault()

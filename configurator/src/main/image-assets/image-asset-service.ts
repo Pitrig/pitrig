@@ -133,7 +133,10 @@ export class ImageAssetService extends AssetServiceBase {
         for (const sourceId of asset.sourceIds) {
           const source = this.sources.get(sourceId)
           if (!source) {
-            return failure('source_missing', t('images.imageAssetService.selectTheImageFileAgain'))
+            return this.failWithProgress(
+              'source_missing',
+              t('images.imageAssetService.selectTheImageFileAgain')
+            )
           }
           paths.push(source.path)
         }
@@ -154,10 +157,13 @@ export class ImageAssetService extends AssetServiceBase {
         total: 0,
         message: t('images.imageAssetService.buildingTheImagePackage')
       })
-      const packageBytes = buildImagePackage(converted)
+      const packageBytes = await buildImagePackage(converted)
 
       if (this.deviceService.getState().session !== session) {
-        return failure('device_error', t('images.imageAssetService.theConnectedDeviceChangedDuring'))
+        return this.failWithProgress(
+          'device_error',
+          t('images.imageAssetService.theConnectedDeviceChangedDuring')
+        )
       }
       await this.deviceService.uploadImages(
         packageBytes,
@@ -198,6 +204,11 @@ export class ImageAssetService extends AssetServiceBase {
   cancel(): AssetResult<void> {
     this.activeOperation?.abort()
     return success(undefined)
+  }
+
+  private failWithProgress<T>(code: AssetError['code'], message: string): AssetResult<T> {
+    this.onProgress({ stage: 'error', completed: 0, total: 0, message })
+    return failure(code, message)
   }
 
   private validateRequest(request: ImageUploadRequest): AssetError | undefined {

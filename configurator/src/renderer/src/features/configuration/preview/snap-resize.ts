@@ -53,11 +53,15 @@ function resolveEdge(
     const against = side === 'near' ? before : after
     if (against) {
       const other = axisOf(against.box, axis)
-      for (const gap of knownGaps(moving, field, axis).sort()) {
+      let best: { value: number; distance: number } | undefined
+      for (const gap of knownGaps(moving, field, axis)) {
         const value = side === 'near' ? other.start + other.size + gap : other.start - gap
-        if (Math.abs(value - raw) <= preferences.tolerance) {
-          return { value: Math.round(value), highlighted: against.id, matchedGap: true }
-        }
+        const distance = Math.abs(value - raw)
+        if (distance > preferences.tolerance) continue
+        if (!best || distance < best.distance) best = { value, distance }
+      }
+      if (best) {
+        return { value: Math.round(best.value), highlighted: against.id, matchedGap: true }
       }
     }
   }
@@ -114,6 +118,8 @@ export function resolveResize(
 
   let width = Math.max(MINIMUM_SIZE_PX, right - left)
   let height = Math.max(MINIMUM_SIZE_PX, bottom - top)
+  if (mode.includes('w')) left = right - width
+  if (mode.includes('n')) top = bottom - height
   if (options.proportional && original.width > 0 && original.height > 0) {
     const ratio = original.width / original.height
     if (Math.abs(width - original.width) >= Math.abs(height - original.height)) {
@@ -130,11 +136,13 @@ export function resolveResize(
   }
   const x = clamp(Math.round(left), 0, Math.max(0, display.width - MINIMUM_SIZE_PX))
   const y = clamp(Math.round(top), 0, Math.max(0, display.height - MINIMUM_SIZE_PX))
+  const anchoredWidth = mode.includes('w') ? Math.round(right) - x : Math.round(width)
+  const anchoredHeight = mode.includes('n') ? Math.round(bottom) - y : Math.round(height)
   const placement = {
     x,
     y,
-    width: clamp(Math.round(width), MINIMUM_SIZE_PX, Math.max(MINIMUM_SIZE_PX, display.width - x)),
-    height: clamp(Math.round(height), MINIMUM_SIZE_PX, Math.max(MINIMUM_SIZE_PX, display.height - y))
+    width: clamp(anchoredWidth, MINIMUM_SIZE_PX, Math.max(MINIMUM_SIZE_PX, display.width - x)),
+    height: clamp(anchoredHeight, MINIMUM_SIZE_PX, Math.max(MINIMUM_SIZE_PX, display.height - y))
   }
   return {
     placement,

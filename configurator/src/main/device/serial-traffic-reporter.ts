@@ -10,6 +10,10 @@ export class SerialTrafficReporter {
     private readonly baudRate: number
   ) {}
 
+  get enabled(): boolean {
+    return this.emit !== undefined
+  }
+
   write(
     direction: SerialTrafficLog['direction'],
     data: string,

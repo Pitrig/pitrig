@@ -167,10 +167,10 @@ function runMove(id: string, destination: MoveDestination): boolean {
   const reveal: { slot: string; page: number }[] = []
   mutateDraftConfiguration((configuration) => {
     const plan = planMove(configuration, id, destination)
-    if (!plan) return
+    if (!plan) return false
     applyMove(plan)
     const landed = findWidget(configuration, id)
-    if (!landed) return
+    if (!landed) return true
     let cursor = 0
     for (const ancestor of ancestorsOf(configuration, landed)) {
       cursor += 1

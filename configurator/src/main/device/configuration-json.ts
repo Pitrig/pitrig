@@ -21,7 +21,7 @@ export function parseDeviceConfigurationJson(json: string): DeviceConfiguration 
   try {
     value = JSON.parse(json)
   } catch {
-    throw new Error('Configuration JSON is malformed.')
+    throw new Error(t('device.configurationJson.configurationJsonIsMalformed'))
   }
   return parseDeviceConfigurationValue(value)
 }
@@ -42,7 +42,7 @@ export function parseWidgetFragment(value: unknown, board: PitrigBoardId): Widge
     dashboard: { screens: [{ widgets: [value] }] }
   })
   const widget = document.dashboard?.screens?.[0]?.widgets?.[0]
-  if (!widget) throw new Error('The fragment holds no widget.')
+  if (!widget) throw new Error(t('device.configurationJson.theFragmentHoldsNoWidget'))
   return widget
 }
 
@@ -55,7 +55,7 @@ export function prepareDeviceConfigurationJson(
 } {
   const configuration = parseDeviceConfigurationJson(json)
   if (configuration.board !== expectedBoard) {
-    throw new Error(`Configuration board must remain ${expectedBoard}.`)
+    throw new Error(t('device.configurationJson.configurationBoardMustRemainBoard', { board: expectedBoard }))
   }
   const payloads = {} as Record<ConfigurationDocumentId, string>
   for (const document of CONFIGURATION_DOCUMENT_IDS) {

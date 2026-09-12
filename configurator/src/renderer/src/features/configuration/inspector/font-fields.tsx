@@ -3,6 +3,7 @@ import type { FontSpec } from '@shared/configuration-schema'
 import { MAXIMUM_FONT_SIZE_PX } from '@shared/font-assets'
 import { authored } from './authored'
 import { t } from '@shared/ui-text'
+import { InfoHint } from './InfoHint'
 import { PropertyRow } from './PropertyRow'
 import { draftFontFamily, useDashboardEditorStore } from '../dashboard-editor'
 import { useDeviceStore } from '@/features/device/device-store'
@@ -76,8 +77,8 @@ export function FontEditor({ font, defaultSizePx, onChange, hint }: { font?: Fon
       onReset={() => onChange({ family, size_px: defaultSizePx })}
     >
       <div className="grid grid-cols-[minmax(0,1fr)_3.5rem] gap-1">
-        <FontFamilyPicker family={font?.family} onChange={(family) => onChange({ ...font, family })} />
-        <NumberInput title={t('inspector.fontFields.sizeInPixels')} value={font?.size_px ?? defaultSizePx} min={1} max={MAXIMUM_FONT_SIZE_PX} onChange={(size_px) => onChange({ ...font, size_px })} />
+        <FontFamilyPicker family={font?.family} onChange={(chosen) => onChange({ ...font, family: chosen, size_px: font?.size_px ?? defaultSizePx })} />
+        <NumberInput title={t('inspector.fontFields.sizeInPixels')} value={font?.size_px ?? defaultSizePx} min={1} max={MAXIMUM_FONT_SIZE_PX} onChange={(size_px) => onChange({ ...font, family: font?.family ?? family, size_px })} />
       </div>
       <FallbackRow font={font} onChange={onChange} />
     </PropertyRow>
@@ -88,13 +89,15 @@ function FallbackRow({ font, onChange }: { font?: FontSpec; onChange: (font: Fon
   const [adding, setAdding] = useState(false)
   if (!font?.fallback && !adding) {
     return (
-      <button
-        type="button"
-        title={t('inspector.hints.title.fallback')}
-        className="mt-1 text-[10px] text-muted-foreground hover:text-foreground"
-        onClick={() => setAdding(true)}
-      >
-        {t('inspector.fontFields.fallbackFamily')}</button>
+      <span className="mt-1 flex items-center gap-1">
+        <button
+          type="button"
+          className="text-[10px] text-muted-foreground hover:text-foreground"
+          onClick={() => setAdding(true)}
+        >
+          {t('inspector.fontFields.fallbackFamily')}</button>
+        <InfoHint text={t('inspector.hints.title.fallback')} label={t('inspector.fontFields.fallbackFamily')} />
+      </span>
     )
   }
   return (

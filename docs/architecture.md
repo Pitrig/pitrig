@@ -314,7 +314,7 @@ own telemetry processing, extrapolation, or correction logic.
 
 Platform code may depend on modules and components. Modules must not depend on platform code or UI frameworks.
 
-Neither side simulates telemetry. The configurator receives none — the control protocol carries no command for reading values and SimHub owns the port while a session runs — so its preview draws every source as unavailable and shows the placeholders the device itself draws. The firmware carries no development-only telemetry source either, and any that is ever added must stay isolated under `platform/` so production communication can replace it without changing module APIs.
+Neither side simulates telemetry. A packaged configurator receives none — the control protocol carries no command for reading values and SimHub owns the port while a session runs — so its preview draws every source as unavailable and shows the placeholders the device itself draws. A development build sits in the middle of the link instead, taking the stream from the SimHub plugin and forwarding it to the board unchanged ([ADR 0034](adr/0034-configurator-telemetry-bridge.md)). The firmware carries no development-only telemetry source either, and any that is ever added must stay isolated under `platform/` so production communication can replace it without changing module APIs.
 
 ---
 

@@ -4,7 +4,11 @@ import {
   MAXIMUM_SCREENS,
   MAXIMUM_WIDGETS_PER_CONTAINER,
   MAXIMUM_WIDGETS_PER_SCREEN,
+  SCREEN_TRANSITION_VALUES,
+  VALUE_SMOOTHING_VALUES,
   type ApplicationConfiguration,
+  type DashboardConfiguration,
+  type ScreenConfiguration,
   type WidgetConfiguration
 } from '../configuration-schema'
 import {
@@ -20,6 +24,7 @@ import {
   findModifierError,
   findSlotError
 } from './widget-rules'
+import { badColors, badEnum } from './values'
 import { findWidgetGeometryError } from './widget-geometry'
 import { findWidgetValueError } from './widget-values'
 import { t } from '../ui-text'
@@ -31,13 +36,36 @@ function boardDisplay(
   return board ? BOARD_PROFILES[board]?.display : undefined
 }
 
+function findDashboardError(dashboard: DashboardConfiguration | undefined): string | undefined {
+  const label = t('documents.label.dashboard')
+  return (
+    badEnum(dashboard?.transition, SCREEN_TRANSITION_VALUES, label, 'transition') ??
+    badEnum(dashboard?.smoothing, VALUE_SMOOTHING_VALUES, label, 'smoothing')
+  )
+}
+
+function findScreenShapeError(screens: readonly ScreenConfiguration[]): string | undefined {
+  for (const [index, screen] of screens.entries()) {
+    if (typeof screen !== 'object' || screen === null || Array.isArray(screen)) {
+      return t('validation.schemaKeys.hereMustBeAnObject', { here: `dashboard.screens[${index}]` })
+    }
+    const colorError = badColors(screen, t('common.screenNumber', { number: index + 1 }), ['widgets'])
+    if (colorError) return colorError
+  }
+  return undefined
+}
+
 export function findScreenError(configuration: ApplicationConfiguration): string | undefined {
+  const dashboardError = findDashboardError(configuration.dashboard)
+  if (dashboardError) return dashboardError
   const screens = configuration.dashboard?.screens
   if (screens === undefined) return undefined
   if (!Array.isArray(screens)) return t('validation.structure.dashboardScreensMustBeAn')
   if (screens.length > MAXIMUM_SCREENS) {
     return t('validation.structure.aDashboardCarriesAtMost', { mAXIMUM_SCREENS: MAXIMUM_SCREENS, length: screens.length })
   }
+  const shapeError = findScreenShapeError(screens)
+  if (shapeError) return shapeError
   const board = configuration.board as PitrigBoardId | undefined
   if (screens.length > 0 && board && BOARD_PROFILES[board] && !BOARD_PROFILES[board].display) {
     return t('validation.structure.thisBoardHasNoDisplay')
@@ -58,11 +86,14 @@ export function findScreenError(configuration: ApplicationConfiguration): string
     const widgets = widgetsOf(parent)
     const cap = depth === 0 ? MAXIMUM_WIDGETS_PER_SCREEN : MAXIMUM_WIDGETS_PER_CONTAINER
     if (widgets.length > cap) {
-      const where = depth === 0 ? `Screen ${screenIndex + 1}` : t('validation.structure.aContainer')
+      const where =
+        depth === 0
+          ? t('common.screenNumber', { number: screenIndex + 1 })
+          : t('validation.structure.aContainer')
       return t('validation.structure.whereHoldsLengthWidgetsThe', { where: where, length: widgets.length, cap: cap })
     }
     if (widgets.length > 0 && depth >= MAXIMUM_NESTING_DEPTH) {
-      return `Containers are nested ${depth + 1} deep; the device nests ${MAXIMUM_NESTING_DEPTH}.`
+      return t('validation.structure.containersAreNestedDepthDeep', { depth: depth + 1, maximum: MAXIMUM_NESTING_DEPTH })
     }
     for (const widget of widgets) {
       const label = `widget "${widget.id ?? ''}"`
@@ -88,7 +119,7 @@ export function findScreenError(configuration: ApplicationConfiguration): string
           left >= display.width ||
           top >= display.height
         ) {
-          return `Widget "${widget.id ?? ''}" sits entirely off the display.`
+          return t('validation.structure.widgetIdSitsEntirelyOff', { id: widget.id ?? '' })
         }
       }
 

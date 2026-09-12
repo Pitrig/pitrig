@@ -1,5 +1,5 @@
 import { Eraser, Copy, Send } from 'lucide-react'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { memo, useEffect, useRef, useState, useSyncExternalStore } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { PageShell } from '@/app/workspace/PageShell'
@@ -104,19 +104,7 @@ export function DebugPage(): React.JSX.Element {
             </div>
           ) : null}
           {entries.length > 0 ? (
-            entries.map((entry) => (
-              <div key={entry.id} className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-0.5">
-                <time className="text-zinc-500">{formatTimestamp(entry.timestamp)}</time>
-                <div className="min-w-0 text-zinc-300">
-                  <span className="text-sky-400">{entry.message}</span>
-                  {entry.data === undefined ? null : (
-                    <pre className="mt-0.5 overflow-x-auto whitespace-pre-wrap break-words text-zinc-400">
-                      {formatData(entry.data)}
-                    </pre>
-                  )}
-                </div>
-              </div>
-            ))
+            entries.map((entry) => <LogRow key={entry.id} entry={entry} />)
           ) : (
             <span className="text-zinc-600">
               Nothing yet. Connecting to a board is usually the first thing here.
@@ -176,19 +164,37 @@ export function DebugPage(): React.JSX.Element {
   )
 }
 
+const LogRow = memo(function LogRow({ entry }: { entry: EventLogEntry }): React.JSX.Element {
+  return (
+    <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] gap-2 py-0.5">
+      <time className="text-zinc-500">{formatTimestamp(entry.timestamp)}</time>
+      <div className="min-w-0 text-zinc-300">
+        <span className="text-sky-400">{entry.message}</span>
+        {entry.data === undefined ? null : (
+          <pre className="mt-0.5 overflow-x-auto whitespace-pre-wrap break-words text-zinc-400">
+            {formatData(entry.data)}
+          </pre>
+        )}
+      </div>
+    </div>
+  )
+})
+
 function formatEntry(entry: EventLogEntry): string {
   const data = entry.data === undefined ? '' : `\n${formatData(entry.data)}`
   return `${formatTimestamp(entry.timestamp)}  ${entry.message}${data}`
 }
 
+const TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
+  hour12: false,
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  fractionalSecondDigits: 3
+})
+
 function formatTimestamp(timestamp: Date): string {
-  return timestamp.toLocaleTimeString(undefined, {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    fractionalSecondDigits: 3
-  })
+  return TIME_FORMAT.format(timestamp)
 }
 
 function formatData(data: unknown): string {

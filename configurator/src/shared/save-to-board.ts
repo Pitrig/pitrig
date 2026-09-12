@@ -27,6 +27,7 @@ export interface SaveToBoardRequest {
 
 export interface SaveToBoardValue {
   configuration: unknown
+  documents: ConfigurationDocumentId[]
   fontsUploaded: boolean
   restarted: boolean
   reconnectFailed?: boolean

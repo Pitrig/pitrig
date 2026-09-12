@@ -8,12 +8,14 @@ import { useDeviceStore } from '@/features/device/device-store'
 export function renameWidget(id: string, name: string): boolean {
   const trimmed = usableId(name, id)
   if (!trimmed) return false
-  mutateDraftConfiguration((next) => {
+  const renamed = mutateDraftConfiguration((next) => {
     const widget = findWidget(next, id)?.widget
-    if (widget) widget.id = trimmed
+    if (!widget) return false
+    widget.id = trimmed
+    return true
   })
-  useDashboardEditorStore.getState().renameId(id, trimmed)
-  return true
+  if (renamed) useDashboardEditorStore.getState().renameId(id, trimmed)
+  return renamed
 }
 
 export function renameScreen(index: number, name: string): boolean {
@@ -21,7 +23,7 @@ export function renameScreen(index: number, name: string): boolean {
   const configuration = useDeviceStore.getState().draft
   const screens = screensOf(configuration)
   const current = screens[index]?.id
-  if (!configuration || trimmed.length === 0 || trimmed === current) return false
+  if (!configuration || !screens[index] || trimmed.length === 0 || trimmed === current) return false
   if (new TextEncoder().encode(trimmed).byteLength >= WIDGET_ID_CAPACITY) return false
   if (screens.some((screen) => screen.id === trimmed)) return false
   mutateDraftConfiguration((next) => {

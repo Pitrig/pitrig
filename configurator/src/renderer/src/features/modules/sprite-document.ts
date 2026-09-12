@@ -6,6 +6,7 @@ import {
   type RgbColor
 } from '@shared/configuration-schema'
 import {
+  TRANSPARENT_INK,
   USABLE_PALETTE,
   digitOf,
   emptySprite,
@@ -22,7 +23,7 @@ import {
   withPixel
 } from '@shared/led-sprite'
 import { useDeviceStore } from '@/features/device/device-store'
-import { mutateDevice } from './modules-document'
+import { growDevice, mutateDevice } from './modules-document'
 
 export const NEW_SPRITE_PALETTE: readonly RgbColor[] = [
   '#000000',
@@ -33,8 +34,17 @@ export const NEW_SPRITE_PALETTE: readonly RgbColor[] = [
   '#2979ff'
 ]
 
+const SPRITE_ID_BYTES = IMAGE_ID_CAPACITY - 1
+const SPRITE_SUFFIX_BYTES = 3
+
 function fits(id: string): boolean {
-  return new TextEncoder().encode(id).byteLength < IMAGE_ID_CAPACITY
+  return new TextEncoder().encode(id).byteLength <= SPRITE_ID_BYTES
+}
+
+export function trimToBytes(value: string, bytes: number): string {
+  let trimmed = value
+  while (new TextEncoder().encode(trimmed).byteLength > bytes) trimmed = trimmed.slice(0, -1)
+  return trimmed
 }
 
 export function spritesOf(
@@ -46,13 +56,24 @@ export function spritesOf(
 export function spriteNameFor(device: HardwareDeviceConfiguration, wanted: string): string {
   const id = uniqueSpriteId(
     spritesOf(device).map((sprite) => sprite.id),
-    wanted
+    trimToBytes(wanted, SPRITE_ID_BYTES - SPRITE_SUFFIX_BYTES)
   )
-  return fits(id) ? id : id.slice(0, 24)
+  return fits(id) ? id : trimToBytes(id, SPRITE_ID_BYTES)
 }
 
 export function canAddSprite(device: HardwareDeviceConfiguration): boolean {
   return spritesOf(device).length < MAXIMUM_LED_SPRITES
+}
+
+function editSprite(
+  device: HardwareDeviceConfiguration,
+  at: number,
+  mutation: (sprite: LedSpriteConfiguration) => void
+): void {
+  const sprite = (device.sprites ?? [])[at]
+  if (!sprite) return
+  mutation(sprite)
+  clampFrameReferences(device, sprite.id)
 }
 
 function mutateSprite(
@@ -60,16 +81,15 @@ function mutateSprite(
   at: number,
   mutation: (sprite: LedSpriteConfiguration) => void
 ): void {
-  mutateDevice(output, (device) => {
-    const sprites = [...(device.sprites ?? [])]
-    const sprite = sprites[at]
-    if (!sprite) return
-    const next = structuredClone(sprite)
-    mutation(next)
-    sprites[at] = next
-    device.sprites = sprites
-    clampFrameReferences(device, next.id)
-  })
+  mutateDevice(output, (device) => editSprite(device, at, mutation))
+}
+
+function growSprite(
+  output: number,
+  at: number,
+  mutation: (sprite: LedSpriteConfiguration) => void
+): void {
+  growDevice(output, (device) => editSprite(device, at, mutation))
 }
 
 function clampFrameReferences(device: HardwareDeviceConfiguration, id: string): void {
@@ -88,10 +108,10 @@ export function addSprite(
 ): number {
   const at = spritesOf(device).length
   if (at >= MAXIMUM_LED_SPRITES) return -1
-  mutateDevice(output, (entry) => {
+  const added = growDevice(output, (entry) => {
     entry.sprites = [...(entry.sprites ?? []), sprite]
   })
-  return at
+  return added ? at : -1
 }
 
 export function addBlankSprite(
@@ -158,7 +178,7 @@ export function resizeSprite(
   width: number,
   height: number
 ): void {
-  mutateSprite(output, at, (sprite) => {
+  growSprite(output, at, (sprite) => {
     const frames = Math.min(spriteGeometry(sprite).frames, maxFramesFor(width, height))
     sprite.pixels = resizePixels(sprite, width, height, frames)
     sprite.width = width
@@ -187,7 +207,7 @@ export function fillFrame(output: number, at: number, frame: number, ink: number
 }
 
 export function addFrame(output: number, at: number, after: number, copy: boolean): void {
-  mutateSprite(output, at, (sprite) => {
+  growSprite(output, at, (sprite) => {
     const { width, height, frames } = spriteGeometry(sprite)
     if (frames >= maxFramesFor(width, height)) return
     sprite.pixels = insertFrame(sprite, after, copy)
@@ -225,7 +245,7 @@ export function setInkColor(
 }
 
 export function addInk(output: number, at: number, color: RgbColor): void {
-  mutateSprite(output, at, (sprite) => {
+  growSprite(output, at, (sprite) => {
     const palette = [...(sprite.palette ?? [])]
     if (palette.length >= USABLE_PALETTE) return
     sprite.palette = [...palette, { color }]
@@ -240,8 +260,8 @@ export function removeInk(output: number, at: number, ink: number): void {
     sprite.palette = palette
     sprite.pixels = remapPixels(
       pixelsOf(sprite),
-      Array.from({ length: 16 }, (_, entry) => {
-        if (entry === ink) return palette.length
+      Array.from({ length: TRANSPARENT_INK + 1 }, (_, entry) => {
+        if (entry === ink || entry === TRANSPARENT_INK) return TRANSPARENT_INK
         return entry > ink ? entry - 1 : entry
       })
     )
