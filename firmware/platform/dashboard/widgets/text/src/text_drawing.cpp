@@ -34,10 +34,8 @@ namespace {
 
 }
 
-[[nodiscard]] lv_area_t value_area(const State& state,
-                                   const lv_area_t& content) {
-  const std::int32_t width = state.full_width ? lv_area_get_width(&content)
-                                              : state.text_width;
+[[nodiscard]] lv_area_t value_area(const State& state, const lv_area_t& content) {
+  const std::int32_t width = state.full_width ? lv_area_get_width(&content) : state.text_width;
   const std::int32_t height = state.value_height;
   const std::int32_t free_x = lv_area_get_width(&content) - width;
   const std::int32_t free_y = lv_area_get_height(&content) - height;
@@ -72,8 +70,7 @@ namespace {
       break;
   }
   y += state.offset_y;
-  return {content.x1 + x, content.y1 + y, content.x1 + x + width - 1,
-          content.y1 + y + height - 1};
+  return {content.x1 + x, content.y1 + y, content.x1 + x + width - 1, content.y1 + y + height - 1};
 }
 
 void invalidate_value(const State& state, const lv_area_t* const previous) {
@@ -104,8 +101,7 @@ void draw_value(lv_event_t* const event) {
   dsc.text = state->displayed_text.data();
   dsc.font = state->font;
   dsc.color = lv_color_hex(state->color);
-  dsc.align = state->full_width ? lv_text_alignment(state->alignment)
-                                : LV_TEXT_ALIGN_LEFT;
+  dsc.align = state->full_width ? lv_text_alignment(state->alignment) : LV_TEXT_ALIGN_LEFT;
   const lv_area_t area = value_area(*state, content);
   lv_draw_label(layer, &dsc, &area);
 }

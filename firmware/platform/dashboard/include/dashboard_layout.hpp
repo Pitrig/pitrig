@@ -9,8 +9,7 @@
 
 namespace pitrig::dashboard {
 
-inline constexpr std::uint32_t kTransparentColor =
-    configuration::kTransparentColor;
+inline constexpr std::uint32_t kTransparentColor = configuration::kTransparentColor;
 
 using font_assets::FontSpec;
 
@@ -36,12 +35,9 @@ struct Layout {
   [[nodiscard]] lv_obj_t* parent(const configuration::WidgetFrame& frame) const {
     switch (frame.parent_kind) {
       case configuration::WidgetParentKind::shape:
-        return frame.parent_index < containers.size()
-                   ? containers[frame.parent_index]
-                   : nullptr;
+        return frame.parent_index < containers.size() ? containers[frame.parent_index] : nullptr;
       case configuration::WidgetParentKind::slot_page:
-        return frame.parent_index < pages.size() ? pages[frame.parent_index]
-                                                 : nullptr;
+        return frame.parent_index < pages.size() ? pages[frame.parent_index] : nullptr;
       case configuration::WidgetParentKind::screen:
         break;
     }

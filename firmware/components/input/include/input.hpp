@@ -9,7 +9,6 @@ using lv_indev_t = _lv_indev_t;
 
 namespace pitrig::input {
 
-[[nodiscard]] lv_indev_t* initialize(const driver::Driver& driver,
-                                     lv_display_t* display);
+[[nodiscard]] lv_indev_t* initialize(const driver::Driver& driver, lv_display_t* display);
 
 }

@@ -16,7 +16,6 @@ struct BoardDefinition {
   const display::driver::Driver* display{};
   const input::driver::Driver* input{};
   const led::driver::Driver* led{};
-  const led::driver::Configuration* status_led{};
   configuration::TelemetryTransportId default_telemetry_transport{};
   std::array<std::string_view, configuration::kConfigurationDocumentCount>
       factory_configuration_json{};
@@ -25,7 +24,6 @@ struct BoardDefinition {
 [[nodiscard]] const BoardDefinition& factory_board();
 
 [[nodiscard]] configuration::TelemetryTransportId telemetry_transport_id(
-    const BoardDefinition& board,
-    const configuration::ApplicationConfiguration& configuration);
+    const BoardDefinition& board, const configuration::ApplicationConfiguration& configuration);
 
 }

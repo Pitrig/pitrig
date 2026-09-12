@@ -28,22 +28,17 @@ class ConfigurationControl {
 
   ~ConfigurationControl();
 
-  using ApplyHandler = ValidationFailure (*)(
-      ConfigurationDocument document, std::span<const std::uint8_t> payload,
-      void* context);
+  using ApplyHandler = ValidationFailure (*)(ConfigurationDocument document,
+                                             std::span<const std::uint8_t> payload, void* context);
 
-  [[nodiscard]] bool initialize(ConfigurationService& service,
-                                RebootHandler reboot_handler,
-                                void* reboot_context,
-                                ApplyHandler apply_handler,
-                                void* apply_context,
-                                std::span<std::uint8_t> io_buffer);
+  [[nodiscard]] bool initialize(ConfigurationService& service, RebootHandler reboot_handler,
+                                void* reboot_context, ApplyHandler apply_handler,
+                                void* apply_context, std::span<std::uint8_t> io_buffer);
   void stop();
 
   void mark_composed();
 
-  void consume(std::span<const std::uint8_t> line,
-               transport::ITransport& reply);
+  void consume(std::span<const std::uint8_t> line, transport::ITransport& reply);
 
  private:
   enum class RequestState : std::uint8_t {
@@ -52,28 +47,27 @@ class ConfigurationControl {
     ready,
   };
 
-  static constexpr std::size_t kTaskStackSize = 6144;
+  static constexpr std::size_t kTaskStackSize = 8192;
   static constexpr UBaseType_t kTaskPriority = 4;
   static constexpr EventBits_t kComposedBit = 1U << 0U;
   static constexpr std::uint32_t kCompositionWaitMs = 10'000;
 
   static void task_entry(void* context);
+  static bool write_text(transport::ITransport& link, const char* text);
   void process();
   void handle(std::span<const std::uint8_t> line);
+  void answer_while_busy(std::span<const std::uint8_t> line, transport::ITransport& reply);
   void send_info();
   void send_diagnostics();
   [[nodiscard]] bool await_composition();
-  [[nodiscard]] bool take_document(std::span<const std::uint8_t> argument,
-                                   bool expect_payload,
+  [[nodiscard]] bool take_document(std::span<const std::uint8_t> argument, bool expect_payload,
                                    ConfigurationDocument& document,
                                    std::span<const std::uint8_t>& payload);
   bool write_reply(std::span<const std::uint8_t> data);
   bool send_text(const char* text);
   bool send_error(const ValidationFailure& failure);
-  bool send_payload(ConfigurationDocument document,
-                    std::span<const std::uint8_t> payload);
-  bool send_document_reply(const char* prefix, ConfigurationDocument document,
-                           const char* trailer);
+  bool send_payload(ConfigurationDocument document, std::span<const std::uint8_t> payload);
+  bool send_document_reply(const char* prefix, ConfigurationDocument document, const char* trailer);
   [[nodiscard]] transport::ITransport* reply() const { return reply_; }
 
   ConfigurationService* service_{};

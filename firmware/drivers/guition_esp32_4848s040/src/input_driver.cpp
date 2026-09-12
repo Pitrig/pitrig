@@ -11,10 +11,7 @@ constexpr std::uint16_t kHorizontalResolution = 480;
 constexpr std::uint16_t kVerticalResolution = 480;
 
 constexpr gt911::Panel kPanel = {
-    .pins = {.sda = kSdaPin,
-             .scl = kSclPin,
-             .reset = GPIO_NUM_NC,
-             .interrupt = GPIO_NUM_NC},
+    .pins = {.sda = kSdaPin, .scl = kSclPin, .reset = GPIO_NUM_NC, .interrupt = GPIO_NUM_NC},
     .clock_hz = kClockHz,
     .horizontal_resolution = kHorizontalResolution,
     .vertical_resolution = kVerticalResolution,

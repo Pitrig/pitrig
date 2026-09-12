@@ -8,8 +8,7 @@ namespace pitrig::configuration::json {
 namespace {
 
 void* json_malloc(const std::size_t size) {
-  void* const external =
-      heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  void* const external = heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
   return external != nullptr ? external : std::malloc(size);
 }
 
@@ -27,33 +26,35 @@ void install_json_allocator() {
   installed = true;
 }
 
-bool reject(ValidationFailure& failure, const ValidationError error,
-            const std::string_view object, const std::string_view key) {
-  if (!failure.ok()) {
-    return false;
-  }
-  failure.error = error;
-  std::size_t length = 0;
-  const auto append = [&failure, &length](const std::string_view text) {
-    for (const char character : text) {
-      if (length + 1 >= failure.path.size()) {
-        return;
-      }
-      failure.path[length++] = character;
+[[nodiscard]] bool contains_null_escape(const std::span<const std::uint8_t> input) {
+  constexpr std::string_view kZeros = "0000";
+  bool inside = false;
+  for (std::size_t index = 0; index < input.size(); ++index) {
+    const char character = static_cast<char>(input[index]);
+    if (!inside) {
+      inside = character == '"';
+      continue;
     }
-  };
-  append(object);
-  if (!key.empty()) {
-    append(".");
-    append(key);
+    if (character == '"') {
+      inside = false;
+      continue;
+    }
+    if (character != '\\' || index + 1 >= input.size()) {
+      continue;
+    }
+    ++index;
+    if (input[index] != 'u' || index + kZeros.size() >= input.size()) {
+      continue;
+    }
+    if (std::equal(kZeros.begin(), kZeros.end(), input.begin() + index + 1)) {
+      return true;
+    }
   }
   return false;
 }
 
-[[nodiscard]] bool valid_object(const cJSON* const object,
-                                const KeyList allowed,
-                                const std::string_view name,
-                                ValidationFailure& failure) {
+[[nodiscard]] bool valid_object(const cJSON* const object, const KeyList allowed,
+                                const std::string_view name, ValidationFailure& failure) {
   if (!cJSON_IsObject(object)) {
     return reject(failure, ValidationError::malformed, name);
   }
@@ -65,8 +66,7 @@ bool reject(ValidationFailure& failure, const ValidationError error,
     if (std::find(allowed.begin(), allowed.end(), key) == allowed.end()) {
       return reject(failure, ValidationError::unknown_property, name, key);
     }
-    for (const cJSON* previous = object->child; previous != item;
-         previous = previous->next) {
+    for (const cJSON* previous = object->child; previous != item; previous = previous->next) {
       if (previous->string != nullptr && key == previous->string) {
         return reject(failure, ValidationError::duplicate_property, name, key);
       }
@@ -77,10 +77,8 @@ bool reject(ValidationFailure& failure, const ValidationError error,
 
 constexpr double kMaximumRealMagnitude = 1.0e9;
 
-[[nodiscard]] bool read_float(const cJSON* const object,
-                              const char* const key, float& output,
-                              const std::string_view name,
-                              ValidationFailure& failure) {
+[[nodiscard]] bool read_float(const cJSON* const object, const char* const key, float& output,
+                              const std::string_view name, ValidationFailure& failure) {
   const cJSON* const value = member(object, key);
   if (value == nullptr) {
     return true;
@@ -93,10 +91,8 @@ constexpr double kMaximumRealMagnitude = 1.0e9;
   return true;
 }
 
-[[nodiscard]] bool read_boolean(const cJSON* const object,
-                                const char* const key, bool& output,
-                                const std::string_view name,
-                                ValidationFailure& failure) {
+[[nodiscard]] bool read_boolean(const cJSON* const object, const char* const key, bool& output,
+                                const std::string_view name, ValidationFailure& failure) {
   const cJSON* const value = member(object, key);
   if (value == nullptr) {
     return true;
@@ -108,10 +104,8 @@ constexpr double kMaximumRealMagnitude = 1.0e9;
   return true;
 }
 
-[[nodiscard]] bool read_color(const cJSON* const object,
-                              const char* const key,
-                              std::uint32_t& output,
-                              const std::string_view name,
+[[nodiscard]] bool read_color(const cJSON* const object, const char* const key,
+                              std::uint32_t& output, const std::string_view name,
                               ValidationFailure& failure) {
   const cJSON* const value = member(object, key);
   if (value == nullptr) {
@@ -123,25 +117,17 @@ constexpr double kMaximumRealMagnitude = 1.0e9;
   }
   std::uint32_t color{};
   for (std::size_t index = 1; index < 7; ++index) {
-    const char digit = value->valuestring[index];
-    std::uint8_t nibble{};
-    if (digit >= '0' && digit <= '9') {
-      nibble = static_cast<std::uint8_t>(digit - '0');
-    } else if (digit >= 'a' && digit <= 'f') {
-      nibble = static_cast<std::uint8_t>(digit - 'a' + 10);
-    } else if (digit >= 'A' && digit <= 'F') {
-      nibble = static_cast<std::uint8_t>(digit - 'A' + 10);
-    } else {
+    const int nibble = led_palette_digit(value->valuestring[index]);
+    if (nibble < 0) {
       return reject(failure, ValidationError::malformed, name, key);
     }
-    color = (color << 4U) | nibble;
+    color = (color << 4U) | static_cast<std::uint32_t>(nibble);
   }
   output = color;
   return true;
 }
 
-[[nodiscard]] bool parse_placement(const cJSON* const object,
-                                   WidgetPlacement& placement,
+[[nodiscard]] bool parse_placement(const cJSON* const object, WidgetPlacement& placement,
                                    ValidationFailure& failure) {
   constexpr std::string_view kName = "placement";
   return valid_object(object, schema::kWidgetPlacementKeys, kName, failure) &&
@@ -151,8 +137,7 @@ constexpr double kMaximumRealMagnitude = 1.0e9;
          read_integer(object, "height", placement.height, kName, failure);
 }
 
-[[nodiscard]] bool parse_font(const cJSON* const object,
-                              font_assets::FontSpec& font,
+[[nodiscard]] bool parse_font(const cJSON* const object, font_assets::FontSpec& font,
                               ValidationFailure& failure) {
   constexpr std::string_view kName = "font";
   if (!valid_object(object, schema::kFontSpecKeys, kName, failure) ||
@@ -172,18 +157,37 @@ constexpr double kMaximumRealMagnitude = 1.0e9;
              : reject(failure, ValidationError::malformed, kName, "family");
 }
 
-[[nodiscard]] bool parse_optional_placement(const cJSON* const object,
-                                            WidgetPlacement& placement,
+[[nodiscard]] bool parse_optional_placement(const cJSON* const object, WidgetPlacement& placement,
                                             ValidationFailure& failure) {
   const cJSON* const value = member(object, "placement");
   return value == nullptr || parse_placement(value, placement, failure);
 }
 
-[[nodiscard]] bool parse_optional_font(const cJSON* const object,
-                                       font_assets::FontSpec& font,
+[[nodiscard]] bool parse_optional_font(const cJSON* const object, font_assets::FontSpec& font,
                                        ValidationFailure& failure) {
   const cJSON* const value = member(object, "font");
   return value == nullptr || parse_font(value, font, failure);
+}
+
+[[nodiscard]] bool read_value_condition(const cJSON* const rule, ValueCondition& parsed,
+                                        const std::string_view name, ValidationFailure& failure) {
+  return valid_object(rule, schema::kValueConditionKeys, name, failure) &&
+         read_enum(rule, "op", parsed.op, condition_operator_from_name, name, failure) &&
+         read_float(rule, "value", parsed.value, name, failure);
+}
+
+[[nodiscard]] bool read_indicator_segment(const cJSON* const segment, IndicatorSegment& parsed,
+                                          const std::string_view name, ValidationFailure& failure) {
+  return valid_object(segment, schema::kIndicatorSegmentKeys, name, failure) &&
+         read_float(segment, "threshold", parsed.threshold, name, failure) &&
+         read_color(segment, "color", parsed.color, name, failure);
+}
+
+[[nodiscard]] bool read_color_stop(const cJSON* const stop, ColorStop& parsed,
+                                   const std::string_view name, ValidationFailure& failure) {
+  return valid_object(stop, schema::kColorStopKeys, name, failure) &&
+         read_float(stop, "at", parsed.at, name, failure) &&
+         read_color(stop, "color", parsed.color, name, failure);
 }
 
 }

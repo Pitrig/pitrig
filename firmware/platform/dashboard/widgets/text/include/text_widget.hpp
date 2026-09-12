@@ -22,10 +22,8 @@ class ITelemetryReader;
 
 namespace pitrig::dashboard::text_widget {
 
-inline constexpr std::size_t kMaximumInstances =
-    configuration::kMaximumTextWidgets;
-inline constexpr std::size_t kMaximumSources =
-    configuration::kMaximumTextSources;
+inline constexpr std::size_t kMaximumInstances = configuration::kMaximumTextWidgets;
+inline constexpr std::size_t kMaximumSources = configuration::kMaximumTextSources;
 
 struct WidgetBinding;
 
@@ -62,25 +60,19 @@ struct State {
   bool rendered_started{};
 };
 
-class Collection final
-    : public frame::Collection<Collection, State, kMaximumInstances> {
+class Collection final : public frame::Collection<Collection, State, kMaximumInstances> {
  public:
-  [[nodiscard]] bool create(
-      const Layout& layout, std::span<const Config> configurations,
-      std::span<const WidgetBinding> bindings, const fonts::Registry& fonts);
-  [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
-                              const Config& configuration,
-                              const WidgetBinding& binding,
-                              const fonts::Registry& fonts);
+  [[nodiscard]] bool create(const Layout& layout, std::span<const Config> configurations,
+                            std::span<const WidgetBinding> bindings, const fonts::Registry& fonts);
+  [[nodiscard]] bool recreate(std::size_t index, const Layout& layout, const Config& configuration,
+                              const WidgetBinding& binding, const fonts::Registry& fonts);
 
  private:
   friend frame::Collection<Collection, State, kMaximumInstances>;
 
   void render_state(State& state);
-  [[nodiscard]] bool build(State& state, const Layout& layout,
-                           const Config& configuration,
-                           const WidgetBinding& binding,
-                           const fonts::Registry& fonts);
+  [[nodiscard]] bool build(State& state, const Layout& layout, const Config& configuration,
+                           const WidgetBinding& binding, const fonts::Registry& fonts);
 };
 
 }

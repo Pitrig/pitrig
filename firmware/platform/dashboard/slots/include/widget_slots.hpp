@@ -18,14 +18,15 @@ class Controller final {
   Controller(const Controller&) = delete;
   Controller& operator=(const Controller&) = delete;
 
-  [[nodiscard]] bool add(lv_obj_t* container,
-                         std::span<lv_obj_t* const> pages,
+  [[nodiscard]] bool add(lv_obj_t* container, std::span<lv_obj_t* const> pages,
                          const configuration::SlotWidgetConfiguration& config,
                          const telemetry::ITelemetryRegistry& registry,
                          const telemetry::ITelemetryReader& telemetry,
                          const frame::ModifierReaders& modifier_readers);
 
   [[nodiscard]] bool start();
+
+  void wake();
 
   void clear();
 
@@ -35,9 +36,7 @@ class Controller final {
     bool in_loop{};
     configuration::SlotTrigger trigger{};
     std::uint8_t condition_count{};
-    std::array<configuration::ValueCondition,
-               configuration::kMaximumWidgetConditions>
-        conditions{};
+    std::array<configuration::ValueCondition, configuration::kMaximumWidgetConditions> conditions{};
     frame::SourceContext source{};
     frame::ValueReadCallback read{};
     void* read_context{};
@@ -60,16 +59,14 @@ class Controller final {
 
   static constexpr std::uint8_t kNoPage = 0xFF;
 
-  void refresh();
+  void refresh(bool shown_only);
   void advance(std::size_t index);
   [[nodiscard]] bool raised(Page& page);
   [[nodiscard]] std::uint8_t selection(const Slot& slot);
 
   std::array<Slot, configuration::kMaximumSlotWidgets> slots_{};
   std::size_t count_{};
-  std::array<Page, configuration::kMaximumSlotWidgets *
-                       configuration::kMaximumSlotPages>
-      pages_{};
+  std::array<Page, configuration::kMaximumSlotWidgets * configuration::kMaximumSlotPages> pages_{};
   std::size_t page_count_{};
   lv_timer_t* timer_{};
 };

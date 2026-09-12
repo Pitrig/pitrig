@@ -134,27 +134,32 @@ board whose descriptor names no panel. A `dashboard` section on such a board is
 rejected rather than quietly ignored, because an author who wrote one meant it
 to be drawn somewhere.
 
-**Status is a board fact, not a configuration.** `BoardDefinition::status_led`
-is an optional single-lamp descriptor needing no document, so it works on the
-recovery surface where ADR 0025 composes no modules — exactly when a board with
-no screen has nothing else to say with. It reports booting, safe mode,
-telemetry silence and upload progress. The user's own outputs stay
-configuration, and the recovery surface still composes none of them.
+**There is no status light.** The board-declared single lamp this ADR once
+carried — `BoardDefinition::status_led`, the `PITRIG_STATUS_LED_*` Kconfig
+choice and the `platform/status_light` component — is removed. It reported boot,
+safe mode, telemetry silence and upload progress on a board with no screen, and
+it cost an RMT transmit channel for the whole boot, which is a quarter of what a
+board can drive. Every lamp a board lights is now a configured output, and the
+recovery surface composes none of them: a board with no screen says nothing
+until a host attaches.
 
 **One task, sixty frames a second.** The module owns a FreeRTOS task that
-repaints every output on a fixed tick and feeds the watchdog, because the
-event-bus handler runs on the transport read task and blocking it would stall
-telemetry for every widget as well. The handler does one atomic store — the
-timestamp the `telemetry_idle` gate reads — and nothing else. A dropped frame is
-dropped, not caught up: `xTaskDelayUntil` returns at once for every deadline
+repaints every output on a fixed tick and feeds the watchdog, so none of its
+work runs on a transport read task, where blocking would stall telemetry for
+every widget as well. It subscribes to no event at all: the `telemetry_idle`
+gate reads the arrival timestamp the telemetry state service keeps (ADR 0005).
+A dropped frame is dropped, not caught up: `xTaskDelayUntil` returns at once for every deadline
 already past, so a task starved for a tenth of a second clocked out six chains
 back to back and lamps lit at random; the loop re-seeds its cadence when it
 finds itself late, and the RMT channel takes a raised interrupt priority.
 
-**A `modules` apply restarts modules only.** Applying that document no longer
-falls through to the full recompose, which destroys and rebuilds the dashboard;
-live apply fires on a 250 ms debounce while a slider is dragged, so the screen
-would have strobed. This is sound because `modules` owns only `hardware`.
+**A `modules` apply restarts the LED outputs only.** Applying that document no
+longer falls through to the full recompose, which destroys and rebuilds the
+dashboard; live apply fires on a 250 ms debounce while a slider is dragged, so
+the screen would have strobed. It restarts `rgb_leds` and nothing else, which is
+sound because `modules` owns only `hardware`. A `dashboard` apply restarts the
+lap timer on the same principle, and only when the document starts or stops
+using it.
 
 ## Consequences
 
@@ -163,8 +168,8 @@ would have strobed. This is sound because `modules` owns only `hardware`.
   it wrote is a file it can read. Schema 21 also renamed `SlotCondition` to
   `ValueCondition`, which changes no JSON key.
 - Four devices is the ceiling, because each takes a pin and an RMT transmit
-  channel and that is how many both chips have. On the DevKitC-1 the status
-  lamp holds one of them for the whole boot, so its board profile admits three.
+  channel and that is how many both chips have. Every board admits four,
+  the DevKitC-1 included.
 - `ApplicationConfiguration` grows about 95 KB for the peripherals, doubled by
   the active/scratch pair, and lives in external RAM: 400,892 bytes at
   schema 24 (389,628 before `color_rules`; 414,204 before the sixteen-pixel

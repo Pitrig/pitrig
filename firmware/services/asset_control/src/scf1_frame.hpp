@@ -24,22 +24,17 @@ enum class FrameType : std::uint8_t {
   cancel = 3,
 };
 
-[[nodiscard]] inline bool valid_header(
-    const std::span<const std::uint8_t> header) {
-  if (header.size() != 14 ||
-      !std::equal(kMagic.begin(), kMagic.end(), header.begin()) ||
-      header[kReservedByteOffset] != 0 ||
-      binary::read_u16_le(header, kReservedWordOffset) != 0) {
+[[nodiscard]] inline bool valid_header(const std::span<const std::uint8_t> header) {
+  if (header.size() != 14 || !std::equal(kMagic.begin(), kMagic.end(), header.begin()) ||
+      header[kReservedByteOffset] != 0 || binary::read_u16_le(header, kReservedWordOffset) != 0) {
     return false;
   }
   const auto type = static_cast<FrameType>(header[kTypeOffset]);
-  const std::size_t payload_size =
-      binary::read_u16_le(header, kPayloadLengthOffset);
+  const std::size_t payload_size = binary::read_u16_le(header, kPayloadLengthOffset);
   if (type == FrameType::data) {
     return payload_size > 0 && payload_size <= kUploadMaximumChunkSize;
   }
-  return (type == FrameType::commit || type == FrameType::cancel) &&
-         payload_size == 0;
+  return (type == FrameType::commit || type == FrameType::cancel) && payload_size == 0;
 }
 
 }

@@ -7,10 +7,10 @@
 #include "application_configuration.hpp"
 #include "dashboard_composition.hpp"
 #include "dashboard_state.hpp"
+#include "esp_lvgl_port.h"
 #include "font_asset_service.hpp"
 #include "image_asset_service.hpp"
 #include "logger.hpp"
-#include "esp_lvgl_port.h"
 
 namespace pitrig::dashboard_composition {
 namespace {
@@ -21,8 +21,7 @@ using ReferencedImages =
     std::array<const image_assets::ImageAsset*, configuration::kMaximumImageWidgets>;
 
 [[nodiscard]] const image_assets::ImageAsset* find_installed(
-    const image_assets::Service& image_assets,
-    const image_assets::ImageId& id) {
+    const image_assets::Service& image_assets, const image_assets::ImageId& id) {
   for (const image_assets::ImageAsset& asset : image_assets.images()) {
     if (asset.id == id) {
       return &asset;
@@ -55,19 +54,18 @@ using ReferencedImages =
 }
 
 template <typename Visitor>
-void for_each_caption(
-    const configuration::DashboardConfiguration& dashboard, Visitor&& visit) {
-  configuration::for_each_widget_frame(
-      dashboard, [&visit](const configuration::WidgetFrame& frame) {
-        if (frame.title.text.front() != '\0') {
-          visit(frame.title);
-        }
-      });
+void for_each_caption(const configuration::DashboardConfiguration& dashboard, Visitor&& visit) {
+  configuration::for_each_widget_frame(dashboard,
+                                       [&visit](const configuration::WidgetFrame& frame) {
+                                         if (frame.title.text.front() != '\0') {
+                                           visit(frame.title);
+                                         }
+                                       });
 }
 
 template <typename Visitor>
-void visit_font(const font_assets::FontSpec& font,
-                const std::span<const char> text, Visitor&& visit) {
+void visit_font(const font_assets::FontSpec& font, const std::span<const char> text,
+                Visitor&& visit) {
   visit(font, text);
   if (font_assets::has_fallback(font)) {
     visit(font_assets::fallback_spec(font), text);
@@ -75,20 +73,15 @@ void visit_font(const font_assets::FontSpec& font,
 }
 
 template <typename Visitor>
-void for_each_configured_font(
-    const configuration::ApplicationConfiguration& configuration,
-    Visitor&& visit) {
-  const configuration::DashboardConfiguration& dashboard =
-      configuration.dashboard;
+void for_each_configured_font(const configuration::ApplicationConfiguration& configuration,
+                              Visitor&& visit) {
+  const configuration::DashboardConfiguration& dashboard = configuration.dashboard;
   for (std::size_t index = 0; index < dashboard.text_widget_count; ++index) {
-    const configuration::TextWidgetConfiguration& widget =
-        dashboard.text_widgets[index];
+    const configuration::TextWidgetConfiguration& widget = dashboard.text_widgets[index];
     visit_font(widget.value.font, widget.value.unavailable_text, visit);
     for (std::size_t source = 0; source < widget.source_count; ++source) {
-      visit_font(widget.value.font, widget.sources[source].transform.prefix,
-                 visit);
-      visit_font(widget.value.font, widget.sources[source].transform.suffix,
-                 visit);
+      visit_font(widget.value.font, widget.sources[source].transform.prefix, visit);
+      visit_font(widget.value.font, widget.sources[source].transform.suffix, visit);
     }
   }
   for_each_caption(dashboard, [&visit](const configuration::WidgetTitleStyle& title) {
@@ -96,9 +89,8 @@ void for_each_configured_font(
   });
 }
 
-[[nodiscard]] bool families_installed(
-    const configuration::DashboardConfiguration& dashboard,
-    const dashboard::fonts::Registry& fonts) {
+[[nodiscard]] bool families_installed(const configuration::DashboardConfiguration& dashboard,
+                                      const dashboard::fonts::Registry& fonts) {
   const auto installed = [&fonts](const font_assets::FontSpec& font) {
     return fonts.has_family(font.family) &&
            (!font_assets::has_fallback(font) || fonts.has_family(font.fallback));
@@ -120,41 +112,37 @@ void for_each_configured_font(
 
 namespace assets {
 
-bool acquire_fonts(
-    const configuration::ApplicationConfiguration& configuration,
-    dashboard::fonts::Registry& fonts) {
+bool acquire_fonts(const configuration::ApplicationConfiguration& configuration,
+                   dashboard::fonts::Registry& fonts) {
   if (!lvgl_port_lock(0)) {
     log::error(kTag, "Failed to lock LVGL for font creation");
     return false;
   }
   bool complete = true;
-  for_each_configured_font(
-      configuration, [&fonts, &complete](const font_assets::FontSpec& spec,
-                                         const std::span<const char> text) {
-        if (!fonts.acquire(spec)) {
-          complete = false;
-          return;
-        }
-        fonts.warm(spec, text);
-      });
+  for_each_configured_font(configuration, [&fonts, &complete](const font_assets::FontSpec& spec,
+                                                              const std::span<const char> text) {
+    if (!fonts.acquire(spec)) {
+      complete = false;
+      return;
+    }
+    fonts.warm(spec, text);
+  });
   lvgl_port_unlock();
   return complete;
 }
 
-void release_unused_fonts(
-    const configuration::ApplicationConfiguration& configuration,
-    dashboard::fonts::Registry& fonts) {
+void release_unused_fonts(const configuration::ApplicationConfiguration& configuration,
+                          dashboard::fonts::Registry& fonts) {
   if (!lvgl_port_lock(0)) {
     log::warn(kTag, "Failed to lock LVGL for font release");
     return;
   }
   fonts.retain_if([&configuration](const font_assets::FontSpec& spec) {
     bool used = false;
-    for_each_configured_font(
-        configuration, [&spec, &used](const font_assets::FontSpec& candidate,
-                                      const std::span<const char>) {
-          used = used || candidate == spec;
-        });
+    for_each_configured_font(configuration, [&spec, &used](const font_assets::FontSpec& candidate,
+                                                           const std::span<const char>) {
+      used = used || candidate == spec;
+    });
     return used;
   });
   lvgl_port_unlock();
@@ -162,18 +150,16 @@ void release_unused_fonts(
 
 }
 
-bool fonts_available(
-    const configuration::ApplicationConfiguration& configuration,
-    const Dashboard& state) {
+bool fonts_available(const configuration::ApplicationConfiguration& configuration,
+                     const Dashboard& state) {
   return families_installed(configuration.dashboard, state.fonts);
 }
 
-std::size_t image_bytes_required(
-    const configuration::ApplicationConfiguration& configuration,
-    const image_assets::Service& image_assets) {
+std::size_t image_bytes_required(const configuration::ApplicationConfiguration& configuration,
+                                 const image_assets::Service& image_assets) {
+  const image_assets::Service::Guard guard{image_assets};
   ReferencedImages referenced{};
-  const std::size_t count =
-      collect_referenced(configuration, image_assets, referenced);
+  const std::size_t count = collect_referenced(configuration, image_assets, referenced);
   std::size_t total{};
   for (std::size_t index = 0; index < count; ++index) {
     total += (referenced[index]->decoded_bytes() + image_assets::kImageAlignment - 1) &
@@ -182,13 +168,14 @@ std::size_t image_bytes_required(
   return total;
 }
 
-bool load_images(Dashboard& dashboard,
-                 const configuration::ApplicationConfiguration& configuration,
-                 const image_assets::Service& image_assets,
-                 const std::span<std::uint8_t> storage) {
+bool load_images(Dashboard& dashboard, const configuration::ApplicationConfiguration& configuration,
+                 const image_assets::Service& image_assets, const std::span<std::uint8_t> storage) {
+  const image_assets::Service::Guard guard{image_assets};
+  if (!image_assets.package_readable()) {
+    return true;
+  }
   ReferencedImages referenced{};
-  const std::size_t count =
-      collect_referenced(configuration, image_assets, referenced);
+  const std::size_t count = collect_referenced(configuration, image_assets, referenced);
   std::array<image_assets::ImageAsset, configuration::kMaximumImageWidgets> assets{};
   for (std::size_t index = 0; index < count; ++index) {
     assets[index] = *referenced[index];
@@ -196,16 +183,13 @@ bool load_images(Dashboard& dashboard,
   return dashboard.images.load({assets.data(), count}, storage);
 }
 
-bool images_available(
-    const configuration::ApplicationConfiguration& configuration,
-    const image_assets::Service& image_assets, const Dashboard& state) {
-  const configuration::DashboardConfiguration& dashboard =
-      configuration.dashboard;
+bool images_available(const configuration::ApplicationConfiguration& configuration,
+                      const image_assets::Service& image_assets, const Dashboard& state) {
+  const image_assets::Service::Guard guard{image_assets};
+  const configuration::DashboardConfiguration& dashboard = configuration.dashboard;
   for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
-    const configuration::ImageWidgetConfiguration& widget =
-        dashboard.image_widgets[index];
-    const image_assets::ImageAsset* const asset =
-        find_installed(image_assets, widget.image);
+    const configuration::ImageWidgetConfiguration& widget = dashboard.image_widgets[index];
+    const image_assets::ImageAsset* const asset = find_installed(image_assets, widget.image);
     const std::size_t frames =
         asset != nullptr ? asset->frame_count : state.images.frame_count(widget.image);
     if (frames == 0 || widget.sprite_frame >= frames) {
@@ -220,8 +204,7 @@ bool images_available(
 
 bool images_loaded(const configuration::ApplicationConfiguration& configuration,
                    const Dashboard& state) {
-  const configuration::DashboardConfiguration& dashboard =
-      configuration.dashboard;
+  const configuration::DashboardConfiguration& dashboard = configuration.dashboard;
   for (std::size_t index = 0; index < dashboard.image_widget_count; ++index) {
     if (!state.images.has_image(dashboard.image_widgets[index].image)) {
       return false;
@@ -232,6 +215,7 @@ bool images_loaded(const configuration::ApplicationConfiguration& configuration,
 
 bool load_fonts(Dashboard& dashboard, const font_assets::Service& font_assets,
                 const std::span<std::uint8_t> storage) {
+  const font_assets::Service::Guard guard{font_assets};
   if (!lvgl_port_lock(0)) {
     log::error(kTag, "Failed to lock LVGL for font loading");
     return false;
@@ -240,6 +224,5 @@ bool load_fonts(Dashboard& dashboard, const font_assets::Service& font_assets,
   lvgl_port_unlock();
   return loaded;
 }
-
 
 }

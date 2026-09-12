@@ -95,7 +95,7 @@ Editor gaps against SimHub are in
 # Phase 6 — Field maintenance
 
 - [*] OTA updates
-- [*] Display-less board and status lamp
+- [*] Display-less board
 - [ ] Telemetry staleness
 - [ ] Crash diagnostics
 - [ ] Safe mode shown on screen

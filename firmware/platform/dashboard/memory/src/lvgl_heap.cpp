@@ -34,8 +34,7 @@ void* lv_malloc_core(const std::size_t size) {
 
 void* lv_realloc_core(void* const pointer, const std::size_t size) {
   void* const external = heap_caps_realloc(pointer, size, kExternal);
-  return external != nullptr ? external
-                             : heap_caps_realloc(pointer, size, kAnywhere);
+  return external != nullptr ? external : heap_caps_realloc(pointer, size, kAnywhere);
 }
 
 void lv_free_core(void* const pointer) { heap_caps_free(pointer); }

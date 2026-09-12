@@ -13,10 +13,7 @@ constexpr std::uint16_t kHorizontalResolution = 1'024;
 constexpr std::uint16_t kVerticalResolution = 600;
 
 constexpr gt911::Panel kPanel = {
-    .pins = {.sda = kSdaPin,
-             .scl = kSclPin,
-             .reset = kResetPin,
-             .interrupt = kInterruptPin},
+    .pins = {.sda = kSdaPin, .scl = kSclPin, .reset = kResetPin, .interrupt = kInterruptPin},
     .clock_hz = kClockHz,
     .horizontal_resolution = kHorizontalResolution,
     .vertical_resolution = kVerticalResolution,

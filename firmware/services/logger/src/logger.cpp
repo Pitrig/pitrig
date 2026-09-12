@@ -11,18 +11,22 @@
 namespace pitrig::log {
 namespace {
 
-#ifndef PITRIG_LOG_MODE_FULL
+#if !PITRIG_LOG_MODE_FULL
 inline constexpr std::size_t kTerminatedFormatCapacity = 96;
 #endif
 
 void write(const esp_log_level_t level, const char* tag, const char* format, va_list args) {
-#ifdef PITRIG_LOG_MODE_FULL
+#if PITRIG_LOG_MODE_FULL
   esp_log_va(ESP_LOG_CONFIG_INIT(level | ESP_LOG_CONFIGS_DEFAULT), tag, format, args);
 #else
   const std::size_t length = std::strlen(format);
-  if (length + 2U > kTerminatedFormatCapacity ||
-      (length > 0U && format[length - 1U] == '\n')) {
+  if (length > 0U && format[length - 1U] == '\n') {
     esp_log_writev(level, tag, format, args);
+    return;
+  }
+  if (length + 2U > kTerminatedFormatCapacity) {
+    esp_log_writev(level, tag, format, args);
+    esp_log_write(level, tag, "\n");
     return;
   }
   std::array<char, kTerminatedFormatCapacity> terminated{};

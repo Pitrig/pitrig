@@ -29,9 +29,7 @@ class ITransport {
   virtual void stop() = 0;
   [[nodiscard]] virtual bool write(std::span<const std::uint8_t> data) = 0;
 #if PITRIG_DEBUG
-  [[nodiscard]] virtual Diagnostics diagnostics() const {
-    return {};
-  }
+  [[nodiscard]] virtual Diagnostics diagnostics() const { return {}; }
 #endif
 };
 

@@ -8,25 +8,7 @@
 
 namespace pitrig::configuration::validation {
 
-bool reject(ValidationFailure& failure, const ValidationError error,
-            const std::string_view path) {
-  if (!failure.ok()) {
-    return false;
-  }
-  failure.error = error;
-  std::size_t length = 0;
-  for (const char character : path) {
-    if (length + 1 >= failure.path.size()) {
-      break;
-    }
-    failure.path[length++] = character;
-  }
-  return false;
-}
-
-[[nodiscard]] bool valid_color(const std::uint32_t color) {
-  return color <= 0x00FF'FFFFU;
-}
+[[nodiscard]] bool valid_color(const std::uint32_t color) { return color <= 0x00FF'FFFFU; }
 
 [[nodiscard]] bool valid_optional_color(const std::uint32_t color) {
   return color == kTransparentColor || valid_color(color);
@@ -46,10 +28,8 @@ bool reject(ValidationFailure& failure, const ValidationError error,
               type == telemetry::ValueType::int32);
     case ValueTransformType::number:
       return type != telemetry::ValueType::boolean &&
-             transform.number.decimals <=
-                 transformers::number_transform::kMaximumDecimals &&
-             std::isfinite(transform.number.scale) &&
-             std::isfinite(transform.number.offset);
+             transform.number.decimals <= transformers::number_transform::kMaximumDecimals &&
+             std::isfinite(transform.number.scale) && std::isfinite(transform.number.offset);
   }
   return false;
 }
@@ -57,22 +37,19 @@ bool reject(ValidationFailure& failure, const ValidationError error,
 [[nodiscard]] bool valid_font(const font_assets::FontSpec& font) {
   return font_assets::valid_family_id(font.family) && font.size_px != 0 &&
          font.size_px <= font_assets::kMaximumFontSizePx &&
-         (!font_assets::has_fallback(font) ||
-          font_assets::valid_family_id(font.fallback));
+         (!font_assets::has_fallback(font) || font_assets::valid_family_id(font.fallback));
 }
 
-[[nodiscard]] bool on_display(const std::int32_t origin_x,
-                              const std::int32_t origin_y,
-                              const WidgetPlacement& placement,
-                              const std::int32_t display_width,
+[[nodiscard]] bool on_display(const std::int64_t origin_x, const std::int64_t origin_y,
+                              const WidgetPlacement& placement, const std::int32_t display_width,
                               const std::int32_t display_height) {
   if (placement.width < 0 || placement.height < 0) {
     return false;
   }
-  const std::int32_t left = origin_x + placement.x;
-  const std::int32_t top = origin_y + placement.y;
-  return left + placement.width > 0 && top + placement.height > 0 &&
-         left < display_width && top < display_height;
+  const std::int64_t left = origin_x + placement.x;
+  const std::int64_t top = origin_y + placement.y;
+  return left + placement.width > 0 && top + placement.height > 0 && left < display_width &&
+         top < display_height;
 }
 
 [[nodiscard]] bool valid_action(const WidgetAction& action,

@@ -27,7 +27,7 @@ measured on both boards: latency halved on the 4848S040 (29 → 15 ms) and
 dropped to 6–12 ms on the JC1060P470C at a full 60 fps, and the render itself
 got faster because blending into an internal-RAM strip beats blending into the
 PSRAM frame buffer. Raising the 4848S040's pixel clock to 16 MHz (56.4 Hz scan,
-with 480×10 px bounce buffers to keep the PSRAM-fed panel stable) lifted its
+with 480×20 px bounce buffers to keep the PSRAM-fed panel stable) lifted its
 frame-rate ceiling from 35 to 60+ fps. The T-Display-S3's i80 panel never
 waited for scan-out, so it is unchanged.
 
@@ -35,7 +35,7 @@ waited for scan-out, so it is unchanged.
 
 - Both boards hand the port partial buffers (two strips in internal DMA RAM),
   `avoid_tearing = false`, `direct_mode = false`. The 4848S040 runs its pixel
-  clock at 16 MHz with 480×10 px bounce buffers.
+  clock at 16 MHz with 480×20 px bounce buffers.
 - Tearing is accepted for widget updates: a strip lands in the frame buffer
   mid-scan, and for numeric readouts the artifact is a one-frame horizontal
   seam inside a glyph, judged worth 14–17 ms of latency on every value the
@@ -80,9 +80,12 @@ waited for scan-out, so it is unchanged.
   cache at 256 KB instead of 128 (`sdkconfig.defaults.esp32p4`), together
   +38–47% before the flush move — the render core was starving on code and
   frame-buffer fetch, not on arithmetic. The 256 KB cache costs 128 KB of
-  internal RAM, paid for by shrinking the render strips from 60 to 40 lines
-  (measured free: −0–2%); with 60-line strips the second LVGL buffer no
-  longer fits and startup lands in safe mode.
+  internal RAM. In the partial mode that was measured under, it was paid for by
+  shrinking the render strips from 60 to 40 lines (measured free: −0–2%),
+  because with 60-line strips the second LVGL buffer no longer fits and startup
+  lands in safe mode. That trade is the partial mode's alone: the default
+  full-strips build keeps 60-line strips, and the driver picks 60 or 40 from
+  `PITRIG_DISPLAY_RENDER_FULL_STRIPS`.
 - `esp_lvgl_port` is patched by a stack of files under `firmware/patches/`,
   one concern each, in the order `apply_esp_lvgl_port_dsi_patch.cmake` lists
   them. The layers overlap, so the apply script checks the whole stack —

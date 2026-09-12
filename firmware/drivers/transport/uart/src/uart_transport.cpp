@@ -21,9 +21,7 @@ bool UartTransport::configure(const UartConfiguration configuration) {
   return true;
 }
 
-UartTransport::~UartTransport() {
-  stop();
-}
+UartTransport::~UartTransport() { stop(); }
 
 bool UartTransport::start(const DataHandler handler, void* const context) {
   if (started_ || handler == nullptr) {
@@ -52,14 +50,11 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
   constexpr int kInterruptFlags = 0;
 #endif
   if (uart_param_config(configuration_.port, &uart_configuration) != ESP_OK ||
-      uart_set_pin(configuration_.port, configuration_.tx_pin,
-                   configuration_.rx_pin, UART_PIN_NO_CHANGE,
-                   UART_PIN_NO_CHANGE) != ESP_OK ||
-      uart_driver_install(configuration_.port, kDriverRxBufferSize, 0,
-                          kEventQueueDepth, &event_queue_,
-                          kInterruptFlags) != ESP_OK ||
-      uart_set_rx_full_threshold(configuration_.port,
-                                 kRxFullThresholdBytes) != ESP_OK ||
+      uart_set_pin(configuration_.port, configuration_.tx_pin, configuration_.rx_pin,
+                   UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) != ESP_OK ||
+      uart_driver_install(configuration_.port, kDriverRxBufferSize, 0, kEventQueueDepth,
+                          &event_queue_, kInterruptFlags) != ESP_OK ||
+      uart_set_rx_full_threshold(configuration_.port, kRxFullThresholdBytes) != ESP_OK ||
       uart_set_rx_timeout(configuration_.port, kRxTimeoutSymbols) != ESP_OK) {
     if (uart_is_driver_installed(configuration_.port)) {
       uart_driver_delete(configuration_.port);
@@ -75,10 +70,9 @@ bool UartTransport::start(const DataHandler handler, void* const context) {
 #endif
   handler_.bind(handler, context);
   started_ = true;
-  task_ = xTaskCreateStaticPinnedToCore(
-      &UartTransport::task_entry, "uart_rx", task_stack_.size(), this,
-      kTaskPriority, task_stack_.data(), &task_state_,
-      PITRIG_COMMUNICATION_CORE);
+  task_ = xTaskCreateStaticPinnedToCore(&UartTransport::task_entry, "uart_rx", task_stack_.size(),
+                                        this, kTaskPriority, task_stack_.data(), &task_state_,
+                                        PITRIG_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     started_ = false;
     uart_driver_delete(configuration_.port);
@@ -127,8 +121,7 @@ void UartTransport::process() {
   uart_event_t event{};
   watch_current_task();
   while (true) {
-    const bool has_event =
-        xQueueReceive(event_queue_, &event, kWatchdogFeedTicks) == pdTRUE;
+    const bool has_event = xQueueReceive(event_queue_, &event, kWatchdogFeedTicks) == pdTRUE;
     feed_watchdog();
     if (!has_event) {
       continue;
@@ -154,16 +147,14 @@ void UartTransport::process() {
     }
 
     while (true) {
-      const int received =
-          uart_read_bytes(configuration_.port, data.data(), data.size(), 0);
+      const int received = uart_read_bytes(configuration_.port, data.data(), data.size(), 0);
       if (received <= 0) {
         break;
       }
 
       instrumentation_.record_read(static_cast<std::size_t>(received));
       handler_.dispatch(
-          std::span<const std::uint8_t>(data.data(),
-                                        static_cast<std::size_t>(received)),
+          std::span<const std::uint8_t>(data.data(), static_cast<std::size_t>(received)),
           instrumentation_);
     }
   }
@@ -175,12 +166,10 @@ Diagnostics UartTransport::diagnostics() const {
   instrumentation_.fill(diagnostics);
   std::size_t buffered_bytes = 0;
   if (started_) {
-    ESP_ERROR_CHECK_WITHOUT_ABORT(
-        uart_get_buffered_data_len(configuration_.port, &buffered_bytes));
+    ESP_ERROR_CHECK_WITHOUT_ABORT(uart_get_buffered_data_len(configuration_.port, &buffered_bytes));
   }
   diagnostics.fifo_overflows = fifo_overflows_.load(std::memory_order_relaxed);
-  diagnostics.buffer_full_events =
-      buffer_full_events_.load(std::memory_order_relaxed);
+  diagnostics.buffer_full_events = buffer_full_events_.load(std::memory_order_relaxed);
   diagnostics.buffered_bytes = static_cast<std::uint32_t>(buffered_bytes);
   return diagnostics;
 }

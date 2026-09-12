@@ -3,8 +3,7 @@
 namespace pitrig::telemetry {
 
 Handle TelemetryRegistry::resolve(const std::string_view name) const {
-  for (std::size_t index = 0; index < catalog::kFieldDescriptors.size();
-       ++index) {
+  for (std::size_t index = 0; index < catalog::kFieldDescriptors.size(); ++index) {
     if (catalog::kFieldDescriptors[index].name == name) {
       return {
           .index = static_cast<std::uint16_t>(index),

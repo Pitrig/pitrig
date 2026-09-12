@@ -29,40 +29,70 @@ constexpr std::array<gpio_num_t, 8> kDataPins = {
     GPIO_NUM_45, GPIO_NUM_46, GPIO_NUM_47, GPIO_NUM_48,
 };
 
-void enable_display_power() {
+struct Hardware {
+  esp_lcd_i80_bus_handle_t bus;
+  esp_lcd_panel_io_handle_t io;
+  esp_lcd_panel_handle_t panel;
+};
+
+Hardware hardware;
+
+void release() {
+  if (hardware.panel != nullptr) {
+    (void)esp_lcd_panel_del(hardware.panel);
+    hardware.panel = nullptr;
+  }
+  if (hardware.io != nullptr) {
+    (void)esp_lcd_panel_io_del(hardware.io);
+    hardware.io = nullptr;
+  }
+  if (hardware.bus != nullptr) {
+    (void)esp_lcd_del_i80_bus(hardware.bus);
+    hardware.bus = nullptr;
+  }
+  (void)gpio_set_level(kBacklightPin, 0);
+}
+
+[[nodiscard]] bool enable_display_power() {
   const gpio_config_t output_config = {
-      .pin_bit_mask =
-          (1ULL << kPowerPin) | (1ULL << kBacklightPin) | (1ULL << kReadPin),
+      .pin_bit_mask = (1ULL << kPowerPin) | (1ULL << kBacklightPin) | (1ULL << kReadPin),
       .mode = GPIO_MODE_OUTPUT,
       .pull_up_en = GPIO_PULLUP_DISABLE,
       .pull_down_en = GPIO_PULLDOWN_DISABLE,
       .intr_type = GPIO_INTR_DISABLE,
   };
 
-  ESP_ERROR_CHECK(gpio_config(&output_config));
-  ESP_ERROR_CHECK(gpio_set_level(kPowerPin, 1));
-  ESP_ERROR_CHECK(gpio_set_level(kBacklightPin, 0));
-  ESP_ERROR_CHECK(gpio_set_level(kReadPin, 1));
+  return gpio_config(&output_config) == ESP_OK && gpio_set_level(kPowerPin, 1) == ESP_OK &&
+         gpio_set_level(kBacklightPin, 0) == ESP_OK && gpio_set_level(kReadPin, 1) == ESP_OK;
 }
 
 driver::Configuration initialize_panel() {
-  esp_lcd_i80_bus_handle_t bus = nullptr;
   const esp_lcd_i80_bus_config_t bus_config = {
       .dc_gpio_num = kDataCommandPin,
       .wr_gpio_num = kWriteClockPin,
       .clk_src = LCD_CLK_SRC_DEFAULT,
-      .data_gpio_nums = {
-          kDataPins[0], kDataPins[1], kDataPins[2], kDataPins[3],
-          kDataPins[4], kDataPins[5], kDataPins[6], kDataPins[7],
-      },
+      .data_gpio_nums =
+          {
+              kDataPins[0],
+              kDataPins[1],
+              kDataPins[2],
+              kDataPins[3],
+              kDataPins[4],
+              kDataPins[5],
+              kDataPins[6],
+              kDataPins[7],
+          },
       .bus_width = 8,
       .max_transfer_bytes = kHorizontalResolution * kBufferLines * sizeof(uint16_t),
       .dma_burst_size = 64,
       .flags = {},
   };
-  ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &bus));
+  if (esp_lcd_new_i80_bus(&bus_config, &hardware.bus) != ESP_OK) {
+    ESP_LOGE(kTag, "i80 bus is unavailable");
+    release();
+    return {};
+  }
 
-  esp_lcd_panel_io_handle_t io = nullptr;
   const esp_lcd_panel_io_i80_config_t io_config = {
       .cs_gpio_num = kChipSelectPin,
       .pclk_hz = kPixelClockHz,
@@ -71,23 +101,28 @@ driver::Configuration initialize_panel() {
       .user_ctx = nullptr,
       .lcd_cmd_bits = 8,
       .lcd_param_bits = 8,
-      .dc_levels = {
-          .dc_idle_level = 0,
-          .dc_cmd_level = 0,
-          .dc_dummy_level = 0,
-          .dc_data_level = 1,
-      },
-      .flags = {
-          .cs_active_high = 0,
-          .reverse_color_bits = 0,
-          .swap_color_bytes = 0,
-          .pclk_active_neg = 0,
-          .pclk_idle_low = 0,
-      },
+      .dc_levels =
+          {
+              .dc_idle_level = 0,
+              .dc_cmd_level = 0,
+              .dc_dummy_level = 0,
+              .dc_data_level = 1,
+          },
+      .flags =
+          {
+              .cs_active_high = 0,
+              .reverse_color_bits = 0,
+              .swap_color_bytes = 0,
+              .pclk_active_neg = 0,
+              .pclk_idle_low = 0,
+          },
   };
-  ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(bus, &io_config, &io));
+  if (esp_lcd_new_panel_io_i80(hardware.bus, &io_config, &hardware.io) != ESP_OK) {
+    ESP_LOGE(kTag, "i80 panel IO is unavailable");
+    release();
+    return {};
+  }
 
-  esp_lcd_panel_handle_t panel = nullptr;
   const esp_lcd_panel_dev_config_t panel_config = {
       .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
       .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
@@ -96,16 +131,24 @@ driver::Configuration initialize_panel() {
       .vendor_config = nullptr,
       .flags = {},
   };
-  ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io, &panel_config, &panel));
-  ESP_ERROR_CHECK(esp_lcd_panel_reset(panel));
-  ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
-  ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel, true));
-  ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel, 0, 35));
-  ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel, true));
+  if (esp_lcd_new_panel_st7789(hardware.io, &panel_config, &hardware.panel) != ESP_OK) {
+    ESP_LOGE(kTag, "ST7789 panel is unavailable");
+    release();
+    return {};
+  }
+  if (esp_lcd_panel_reset(hardware.panel) != ESP_OK ||
+      esp_lcd_panel_init(hardware.panel) != ESP_OK ||
+      esp_lcd_panel_invert_color(hardware.panel, true) != ESP_OK ||
+      esp_lcd_panel_set_gap(hardware.panel, 0, 35) != ESP_OK ||
+      esp_lcd_panel_disp_on_off(hardware.panel, true) != ESP_OK) {
+    ESP_LOGE(kTag, "ST7789 panel did not come up");
+    release();
+    return {};
+  }
 
   return {
-      .io = io,
-      .panel = panel,
+      .io = hardware.io,
+      .panel = hardware.panel,
       .horizontal_resolution = kHorizontalResolution,
       .vertical_resolution = kVerticalResolution,
       .buffer_size = kHorizontalResolution * kBufferLines,
@@ -131,25 +174,29 @@ namespace {
 
 driver::Configuration initialize() {
   ESP_LOGI(kTag, "Initializing ST7789 display driver");
-  enable_display_power();
+  if (!enable_display_power()) {
+    ESP_LOGE(kTag, "Display power pins are unavailable");
+    return {};
+  }
   return initialize_panel();
 }
 
 void on_display_ready() {
-  ESP_ERROR_CHECK(gpio_set_level(kBacklightPin, 1));
+  if (gpio_set_level(kBacklightPin, 1) != ESP_OK) {
+    ESP_LOGW(kTag, "Backlight did not turn on");
+  }
   ESP_LOGI(kTag, "Display driver ready");
 }
 
 const driver::Driver kDriver{
     .name = "t_display_s3",
     .initialize = initialize,
+    .release = release,
     .on_display_ready = on_display_ready,
 };
 
 }
 
-const driver::Driver& get() {
-  return kDriver;
-}
+const driver::Driver& get() { return kDriver; }
 
 }

@@ -40,9 +40,14 @@ struct Configuration {
   bool full_strips;
 };
 
+[[nodiscard]] constexpr bool succeeded(const Configuration& configuration) {
+  return configuration.panel != nullptr;
+}
+
 struct Driver {
   const char* name;
   Configuration (*initialize)();
+  void (*release)();
   void (*on_display_ready)();
 };
 

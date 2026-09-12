@@ -8,22 +8,21 @@ namespace {
 
 using configuration::kControlPrefix;
 
+constexpr std::string_view kOverlongReply = "@PR:ERR:unknown_command\n";
+
 [[nodiscard]] bool starts_with(const std::span<const std::uint8_t> line,
                                const std::string_view prefix) {
-  return line.size() >= prefix.size() &&
-         std::equal(prefix.begin(), prefix.end(), line.begin());
+  return line.size() >= prefix.size() && std::equal(prefix.begin(), prefix.end(), line.begin());
 }
 
 }
 
-void Router::initialize(
-    configuration::ConfigurationControl& control,
-    binary_session::Claim& claim,
-    const std::span<const binary_session::Session* const> sessions,
-    const transport::DataHandler telemetry_line_handler,
-    void* const telemetry_context,
-    const std::span<std::uint8_t> control_line_buffer,
-    transport::ITransport& transport) {
+void Router::initialize(configuration::ConfigurationControl& control, binary_session::Claim& claim,
+                        const std::span<const binary_session::Session* const> sessions,
+                        const transport::DataHandler telemetry_line_handler,
+                        void* const telemetry_context,
+                        const std::span<std::uint8_t> control_line_buffer,
+                        transport::ITransport& transport) {
   control_ = &control;
   transport_ = &transport;
   claim_ = &claim;
@@ -33,11 +32,12 @@ void Router::initialize(
   }
   telemetry_line_handler_ = telemetry_line_handler;
   telemetry_context_ = telemetry_context;
-  control_line_ = control_line_buffer.first(
-      std::min(control_line_buffer.size(), kControlLineBufferSize));
+  control_line_ =
+      control_line_buffer.first(std::min(control_line_buffer.size(), kControlLineBufferSize));
   line_size_ = 0;
   control_line_active_ = false;
   discarding_ = false;
+  discarding_control_ = false;
 }
 
 void Router::reset() {
@@ -52,13 +52,13 @@ void Router::reset() {
   line_size_ = 0;
   control_line_active_ = false;
   discarding_ = false;
+  discarding_control_ = false;
 }
 
 void Router::consume(const std::span<const std::uint8_t> data) {
   for (std::size_t index = 0; index < data.size(); ++index) {
     if (claim_ != nullptr) {
-      if (const binary_session::Session* const owner =
-              claim_->owner_on(transport_);
+      if (const binary_session::Session* const owner = claim_->owner_on(transport_);
           owner != nullptr) {
         owner->consume(owner->context, data.subspan(index));
         return;
@@ -67,7 +67,11 @@ void Router::consume(const std::span<const std::uint8_t> data) {
     const std::uint8_t value = data[index];
     if (discarding_) {
       if (value == '\n') {
+        if (discarding_control_) {
+          refuse_overlong_control_line();
+        }
         discarding_ = false;
+        discarding_control_ = false;
         line_size_ = 0;
         control_line_active_ = false;
       }
@@ -82,11 +86,11 @@ void Router::consume(const std::span<const std::uint8_t> data) {
       control_line_active_ = false;
       continue;
     }
-    std::span<std::uint8_t> line = control_line_active_
-                                       ? control_line_
-                                       : std::span<std::uint8_t>(telemetry_line_);
+    std::span<std::uint8_t> line =
+        control_line_active_ ? control_line_ : std::span<std::uint8_t>(telemetry_line_);
     if (line_size_ == line.size()) {
       discarding_ = true;
+      discarding_control_ = control_line_active_;
       line_size_ = 0;
       control_line_active_ = false;
       continue;
@@ -95,18 +99,24 @@ void Router::consume(const std::span<const std::uint8_t> data) {
     if (!control_line_active_ && line_size_ == kControlPrefix.size() &&
         starts_with(telemetry_line_, kControlPrefix) &&
         control_line_.size() >= kControlPrefix.size()) {
-      std::copy(kControlPrefix.begin(), kControlPrefix.end(),
-                control_line_.begin());
+      std::copy(kControlPrefix.begin(), kControlPrefix.end(), control_line_.begin());
       control_line_active_ = true;
     }
   }
 }
 
+void Router::refuse_overlong_control_line() {
+  if (transport_ == nullptr) {
+    return;
+  }
+  (void)transport_->write(std::span<const std::uint8_t>(
+      reinterpret_cast<const std::uint8_t*>(kOverlongReply.data()), kOverlongReply.size()));
+}
+
 void Router::dispatch() {
   const std::span<const std::uint8_t> line =
-      control_line_active_
-          ? std::span<const std::uint8_t>(control_line_.data(), line_size_)
-          : std::span<const std::uint8_t>(telemetry_line_.data(), line_size_);
+      control_line_active_ ? std::span<const std::uint8_t>(control_line_.data(), line_size_)
+                           : std::span<const std::uint8_t>(telemetry_line_.data(), line_size_);
   if (line.empty()) {
     return;
   }

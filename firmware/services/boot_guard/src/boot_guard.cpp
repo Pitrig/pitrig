@@ -6,6 +6,7 @@
 #include "esp_attr.h"
 #include "esp_system.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
 #include "logger.hpp"
 #include "pitrig_features.hpp"
 
@@ -29,16 +30,41 @@ struct Record {
 
 RTC_NOINIT_ATTR Record record;
 
-Status current_status;
+portMUX_TYPE record_guard = portMUX_INITIALIZER_UNLOCKED;
+
+struct BootOutcome {
+  bool safe_mode{};
+  ResetCause cause{};
+  Phase phase{};
+};
+
+BootOutcome outcome;
 esp_timer_handle_t stability_timer;
 
+[[nodiscard]] std::uint8_t failure_count() {
+  portENTER_CRITICAL(&record_guard);
+  const std::uint8_t failures = record.failures;
+  portEXIT_CRITICAL(&record_guard);
+  return failures;
+}
+
 constexpr std::array<std::string_view, 7> kPhaseNames{{
-    "none", "configuration", "link", "display", "assets", "composition",
+    "none",
+    "configuration",
+    "link",
+    "display",
+    "assets",
+    "composition",
     "complete",
 }};
 
 constexpr std::array<std::string_view, 6> kResetCauseNames{{
-    "power_on", "software", "panic", "task_watchdog", "brownout", "other",
+    "power_on",
+    "software",
+    "panic",
+    "task_watchdog",
+    "brownout",
+    "other",
 }};
 
 [[nodiscard]] ResetCause classify(const esp_reset_reason_t reason) {
@@ -75,8 +101,7 @@ std::string_view phase_name(const Phase phase) {
 
 std::string_view reset_cause_name(const ResetCause cause) {
   const auto index = static_cast<std::size_t>(cause);
-  return index < kResetCauseNames.size() ? kResetCauseNames[index]
-                                         : std::string_view{};
+  return index < kResetCauseNames.size() ? kResetCauseNames[index] : std::string_view{};
 }
 
 void begin() {
@@ -89,54 +114,56 @@ void begin() {
         .reserved = 0,
     };
   }
-  const auto previous_phase =
-      record.phase <= static_cast<std::uint8_t>(Phase::complete)
-          ? static_cast<Phase>(record.phase)
-          : Phase::none;
+  const auto previous_phase = record.phase <= static_cast<std::uint8_t>(Phase::complete)
+                                  ? static_cast<Phase>(record.phase)
+                                  : Phase::none;
   if (counts_as_failure(cause) && record.failures < UINT8_MAX) {
     ++record.failures;
   }
-  current_status = {
-      .safe_mode = record.failures >= kFailureThreshold,
-      .consecutive_failures = record.failures,
+  const std::uint8_t failures = record.failures;
+  outcome = {
+      .safe_mode = failures >= kFailureThreshold,
       .cause = cause,
       .phase = previous_phase,
   };
 
   const std::string_view cause_name = reset_cause_name(cause);
   const std::string_view failed_in = phase_name(previous_phase);
-  if (current_status.safe_mode) {
+  if (outcome.safe_mode) {
     log::warn(kTag,
               "Safe mode: %u faults in a row, last was %.*s during %.*s. The "
               "link and the control protocol are up; nothing else is.",
-              static_cast<unsigned>(current_status.consecutive_failures),
-              static_cast<int>(cause_name.size()), cause_name.data(),
-              static_cast<int>(failed_in.size()), failed_in.data());
-  } else if (current_status.consecutive_failures > 0) {
+              static_cast<unsigned>(failures), static_cast<int>(cause_name.size()),
+              cause_name.data(), static_cast<int>(failed_in.size()), failed_in.data());
+  } else if (failures > 0) {
     log::warn(kTag, "Recovering from %.*s during %.*s (%u of %u)",
               static_cast<int>(cause_name.size()), cause_name.data(),
-              static_cast<int>(failed_in.size()), failed_in.data(),
-              static_cast<unsigned>(current_status.consecutive_failures),
+              static_cast<int>(failed_in.size()), failed_in.data(), static_cast<unsigned>(failures),
               static_cast<unsigned>(kFailureThreshold));
   }
 }
 
-const Status& status() { return current_status; }
+Status status() {
+  return {
+      .safe_mode = outcome.safe_mode,
+      .consecutive_failures = failure_count(),
+      .cause = outcome.cause,
+      .phase = outcome.phase,
+  };
+}
 
-bool safe_mode() { return current_status.safe_mode; }
+bool safe_mode() { return outcome.safe_mode; }
 
 void reached(const Phase phase) {
   record.phase = static_cast<std::uint8_t>(phase);
 #if PITRIG_DEBUG
-  const std::string_view name = phase_name(phase);
-  log::info(kTag, "Phase %.*s at %lu ms", static_cast<int>(name.size()),
-            name.data(),
-            static_cast<unsigned long>(esp_timer_get_time() / 1'000));
+  log::info(kTag, "Phase %.*s at %lu ms", static_cast<int>(phase_name(phase).size()),
+            phase_name(phase).data(), static_cast<unsigned long>(esp_timer_get_time() / 1'000));
 #endif
 }
 
 void arm_stability_window() {
-  if (stability_timer != nullptr || record.failures == 0) {
+  if (stability_timer != nullptr || failure_count() == 0) {
     return;
   }
   const esp_timer_create_args_t arguments{
@@ -154,8 +181,9 @@ void arm_stability_window() {
 }
 
 void clear_failures() {
+  portENTER_CRITICAL(&record_guard);
   record.failures = 0;
-  current_status.consecutive_failures = 0;
+  portEXIT_CRITICAL(&record_guard);
 }
 
 }

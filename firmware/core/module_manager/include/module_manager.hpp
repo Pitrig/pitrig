@@ -27,6 +27,7 @@ class Manager final {
 
   [[nodiscard]] bool add(const Descriptor& descriptor);
   [[nodiscard]] bool start_all();
+  [[nodiscard]] bool restart_at(std::size_t index, bool enabled);
   void stop_all();
   void clear();
 

@@ -6,32 +6,28 @@
 namespace pitrig::configuration::validation {
 namespace {
 
-[[nodiscard]] bool validate_watched(const LedEffect& effect,
-                                    ValidationFailure& failure) {
+[[nodiscard]] bool validate_watched(const LedEffect& effect, ValidationFailure& failure) {
   const bool gated = effect.gate == LedGate::conditions;
   const bool coloured = effect.color_rule_count != 0;
   const bool watched = !text_view(effect.condition_source.binding).empty();
   if (watched != (gated || coloured) || (gated && effect.condition_count == 0)) {
-    return reject(failure, ValidationError::invalid_module,
-                  "hardware.effects.condition_source");
+    return reject(failure, ValidationError::invalid_module, "hardware.effects.condition_source");
   }
   for (std::uint8_t index = 0; index < effect.color_rule_count; ++index) {
     const LedColorRule& rule = effect.color_rules[index];
-    if (const std::string_view out_of_range = schema::range_error(rule);
-        !out_of_range.empty()) {
+    if (const std::string_view out_of_range = schema::range_error(rule); !out_of_range.empty()) {
       return reject(failure, ValidationError::invalid_module, out_of_range);
     }
-    if (rule.color == kTransparentColor &&
-        rule.background_color == kTransparentColor && rule.blink_ms == 0) {
-      return reject(failure, ValidationError::invalid_module,
-                    "hardware.effects.color_rules");
+    if (rule.color == kTransparentColor && rule.background_color == kTransparentColor &&
+        rule.blink_ms == 0) {
+      return reject(failure, ValidationError::invalid_module, "hardware.effects.color_rules");
     }
   }
   return true;
 }
 
-[[nodiscard]] const LedSpriteConfiguration* named_sprite(
-    const HardwareDeviceConfiguration& device, const std::string_view id) {
+[[nodiscard]] const LedSpriteConfiguration* named_sprite(const HardwareDeviceConfiguration& device,
+                                                         const std::string_view id) {
   for (std::uint8_t index = 0; index < device.sprite_count; ++index) {
     if (text_view(device.sprites[index].id) == id) {
       return &device.sprites[index];
@@ -41,61 +37,49 @@ namespace {
 }
 
 [[nodiscard]] bool validate_panel_area(const HardwareDeviceConfiguration& device,
-                                       const LedEffect& effect,
-                                       ValidationFailure& failure) {
+                                       const LedEffect& effect, ValidationFailure& failure) {
   const std::string_view mask = text_view(effect.panel_mask);
   if (mask.empty()) {
     return true;
   }
   if (device.type != HardwareDeviceType::rgb_matrix) {
-    return reject(failure, ValidationError::invalid_module,
-                  "hardware.effects.panel_mask");
+    return reject(failure, ValidationError::invalid_module, "hardware.effects.panel_mask");
   }
-  const std::size_t pixels =
-      static_cast<std::size_t>(device.width) * device.height;
+  const std::size_t pixels = static_cast<std::size_t>(device.width) * device.height;
   if (mask.size() != (pixels + 3) / 4) {
-    return reject(failure, ValidationError::invalid_module,
-                  "hardware.effects.panel_mask");
+    return reject(failure, ValidationError::invalid_module, "hardware.effects.panel_mask");
   }
   bool lit = false;
   for (const char digit : mask) {
     const int value = led_palette_digit(digit);
     if (value < 0) {
-      return reject(failure, ValidationError::invalid_module,
-                    "hardware.effects.panel_mask");
+      return reject(failure, ValidationError::invalid_module, "hardware.effects.panel_mask");
     }
     lit = lit || value != 0;
   }
   return lit ? true
-             : reject(failure, ValidationError::invalid_module,
-                      "hardware.effects.panel_mask");
+             : reject(failure, ValidationError::invalid_module, "hardware.effects.panel_mask");
 }
 
 [[nodiscard]] bool validate_content(const HardwareDeviceConfiguration& device,
-                                    const LedEffect& effect,
-                                    ValidationFailure& failure) {
+                                    const LedEffect& effect, ValidationFailure& failure) {
   switch (effect.type) {
     case LedEffectType::gradient:
       return effect.stop_count >= 2
                  ? true
-                 : reject(failure, ValidationError::invalid_module,
-                          "hardware.effects.stops");
+                 : reject(failure, ValidationError::invalid_module, "hardware.effects.stops");
     case LedEffectType::steps:
       return effect.step_count >= 1
                  ? true
-                 : reject(failure, ValidationError::invalid_module,
-                          "hardware.effects.steps");
+                 : reject(failure, ValidationError::invalid_module, "hardware.effects.steps");
     case LedEffectType::gauge:
       return effect.stop_count != 1
                  ? true
-                 : reject(failure, ValidationError::invalid_module,
-                          "hardware.effects.stops");
+                 : reject(failure, ValidationError::invalid_module, "hardware.effects.stops");
     case LedEffectType::sprite: {
-      const LedSpriteConfiguration* const sprite =
-          named_sprite(device, text_view(effect.sprite));
+      const LedSpriteConfiguration* const sprite = named_sprite(device, text_view(effect.sprite));
       if (sprite == nullptr) {
-        return reject(failure, ValidationError::invalid_led_sprite,
-                      "hardware.effects.sprite");
+        return reject(failure, ValidationError::invalid_led_sprite, "hardware.effects.sprite");
       }
       return effect.sprite_frame < sprite->frame_count
                  ? true
@@ -103,59 +87,46 @@ namespace {
                           "hardware.effects.sprite_frame");
     }
     case LedEffectType::text:
-      return !text_view(effect.text).empty() ||
-                     !text_view(effect.source.binding).empty()
+      return !text_view(effect.text).empty() || !text_view(effect.source.binding).empty()
                  ? true
-                 : reject(failure, ValidationError::invalid_module,
-                          "hardware.effects.text");
+                 : reject(failure, ValidationError::invalid_module, "hardware.effects.text");
     default:
       return true;
   }
 }
 
 [[nodiscard]] bool validate_effect(const HardwareDeviceConfiguration& device,
-                                   const LedEffect& effect,
-                                   ValidationFailure& failure) {
-  if (const std::string_view out_of_range = schema::range_error(effect);
-      !out_of_range.empty()) {
+                                   const LedEffect& effect, ValidationFailure& failure) {
+  if (const std::string_view out_of_range = schema::range_error(effect); !out_of_range.empty()) {
     return reject(failure, ValidationError::invalid_module, out_of_range);
   }
   const std::size_t lamps = led_device_lamps(device);
   if (effect.from >= lamps ||
-      (effect.count != 0 &&
-       static_cast<std::size_t>(effect.from) + effect.count > lamps)) {
-    return reject(failure, ValidationError::invalid_module,
-                  "hardware.effects.from");
+      (effect.count != 0 && static_cast<std::size_t>(effect.from) + effect.count > lamps)) {
+    return reject(failure, ValidationError::invalid_module, "hardware.effects.from");
   }
-  if (led_effect_draws_pixels(effect.type) &&
-      device.type != HardwareDeviceType::rgb_matrix) {
-    return reject(failure, ValidationError::invalid_module,
-                  "hardware.effects.type");
+  if (led_effect_draws_pixels(effect.type) && device.type != HardwareDeviceType::rgb_matrix) {
+    return reject(failure, ValidationError::invalid_module, "hardware.effects.type");
   }
   if (!validate_panel_area(device, effect, failure)) {
     return false;
   }
-  if (effect.source.modifier_count != 0 ||
-      effect.condition_source.modifier_count != 0) {
-    return reject(failure, ValidationError::invalid_module,
-                  "hardware.effects.source");
+  if (effect.source.modifier_count != 0 || effect.condition_source.modifier_count != 0) {
+    return reject(failure, ValidationError::invalid_module, "hardware.effects.source");
   }
   const bool bound = !text_view(effect.source.binding).empty();
   if (bound && !led_effect_reads_value(effect.type)) {
     return reject(failure, ValidationError::invalid_module, "hardware.effects.source");
   }
-  if (!bound && (effect.type == LedEffectType::steps ||
-                 effect.type == LedEffectType::gauge)) {
+  if (!bound && (effect.type == LedEffectType::steps || effect.type == LedEffectType::gauge)) {
     return reject(failure, ValidationError::invalid_module, "hardware.effects.source");
   }
-  return validate_watched(effect, failure) &&
-         validate_content(device, effect, failure);
+  return validate_watched(effect, failure) && validate_content(device, effect, failure);
 }
 
 }
 
-bool validate_led_effects(const HardwareDeviceConfiguration& device,
-                          ValidationFailure& failure) {
+bool validate_led_effects(const HardwareDeviceConfiguration& device, ValidationFailure& failure) {
   for (std::uint8_t index = 0; index < device.effect_count; ++index) {
     if (!validate_effect(device, device.effects[index], failure)) {
       return false;

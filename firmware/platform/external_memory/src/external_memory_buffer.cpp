@@ -29,8 +29,7 @@ bool ExternalMemoryBuffer::initialize(const std::size_t size) {
   if (data_ != nullptr || size == 0) {
     return false;
   }
-  data_ = static_cast<std::uint8_t*>(
-      heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+  data_ = static_cast<std::uint8_t*>(heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
   if (data_ == nullptr) {
     return false;
   }

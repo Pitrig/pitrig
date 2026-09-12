@@ -46,7 +46,12 @@ revision. An unavailable update invalidates only that slot.
 
 The state service is the only owner of mutable canonical values. Storage is a
 fixed array indexed by handle. Each slot retains availability, typed value,
-bounded source text, revision, and last-change timestamp. Consumers read only
+bounded source text and revision. Beside the slots the service keeps one
+arrival timestamp, stamped on every update it accepts whether or not the value
+changed; that is what the lap timer's staleness timeout and the LED
+`telemetry_idle` gate read, and it is why neither of them subscribes to an
+event. A per-slot last-change timestamp exists only under `PITRIG_DEBUG`, for
+the value-latency counter. Consumers read only
 the handles they own instead of copying a complete global snapshot. A slot is a
 seqlock: reads — every widget, every render pass — take no lock and never wait
 for a writer; writers, the transport tasks, serialise among themselves and

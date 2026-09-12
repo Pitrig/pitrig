@@ -46,12 +46,14 @@ unknown board is incompatible until the configurator adds an explicit board
 profile. Boards without a built-in display require a separately documented
 profile before they are supported.
 
+
 `INFO` and `GET` describe what the device has stored, not what it is running. A
 successful `SET` or `RESET` moves both at once — the document's outcome and
 generation in `INFO`, and the payload `GET` answers with — while the composition
 keeps rendering what it was given until a reboot or an `APPLY`. `APPLY` is the
 other way round: it replaces what the composition renders and leaves the stored
 record and its generation untouched.
+
 
 ## Runtime diagnostics
 
@@ -110,16 +112,18 @@ by position.
 The configuration protocol remains line-oriented and shares the selected
 telemetry serial transport. Asset upload temporarily switches that same
 transport into a binary stop-and-wait mode: `@PR:FONT:` for font packages
-(see [Font asset storage](font-assets.md)) and `@PR:IMAGE:` for image packages
-(see [Image asset storage](image-assets.md)). The two share one binary session,
+(see [Font asset storage](font-assets.md)), `@PR:IMAGE:` for image packages
+(see [Image asset storage](image-assets.md)) and `@PR:FW:` for firmware images
+(see [Firmware updates](ota.md)). All three share one binary session,
 so only one upload owns the stream at a time. On the link an upload owns there
 are no more commands until it ends: every byte is a frame, so a second `BEGIN`
 sent mid-upload is not a command but a bad frame, and it ends the running
-upload with `invalid_frame`. A `BEGIN`, `INFO` or `CLEAR` for either kind that
-finds the binary session claimed — startup still reading the partitions, or an
-upload not yet torn down — is answered `busy`. Neither is a configuration
-command, and their bytes
-are never stored in configuration NVS.
+upload with `invalid_frame`. A `BEGIN`, `INFO` or `CLEAR` for any of the three
+that finds the binary session closed — startup still reading the partitions — or
+already claimed is answered `busy`, under the namespace of the kind that owns
+the stream rather than the one that asked, so a host can see which upload is in
+the way. None of them is a configuration command, and their bytes are never
+stored in configuration NVS.
 
 Every command that carries configuration names one of the three documents.
 `<doc>` below is `dashboard`, `modules` or `protocol`, spelled in lower case the
@@ -150,25 +154,34 @@ fields above, and then one field per document spelled
 `<doc>=<outcome>:<generation>`. The outcome is one of
 `absent`, `malformed_record`, `unsupported_schema`, `corrupt_payload`,
 `rejected` or `valid`; the generation is the stored record's, or `0` when there
-is none. A board running one section from flash and another from its factory
-value is an ordinary state, which is why there is no single source token.
+is none. `absent` means the record is not there; a storage read that fails
+reports `malformed_record`, so a broken NVS partition is never reported as an
+unconfigured board. A board running one section from flash and another from its
+factory value is an ordinary state, which is why there is no single source token.
 
 Validation errors use `@PR:ERR:<reason>:screen=<n>,widget=<n>,path=<property>`.
 The reason token keeps its position, so a host that only reads the reason is
 unaffected. `screen` and `widget` are `-1` when the failure is not inside a
-widget, and `path` names the property that caused it. The reason tokens are
-listed in [configuration-schema.md](configuration-schema.md).
+widget, and `path` names the property that caused it. `widget` is the position
+in the list of the **innermost container that holds it** — a screen's own
+`widgets`, a shape's `widgets`, or a slot page's `widgets` — not an index into
+the document's widget pools. The whole-dashboard rules report no position at
+all: more than one `lap_timer` modifier answers `invalid_widget` with
+`path=modifiers`, too many tap targets answers `invalid_widget` with
+`path=action`, and a font budget over every widget answers `invalid_widget` with
+`path=font`, each with `screen=-1,widget=-1`. The reason tokens are listed in
+[configuration-schema.md](configuration-schema.md).
 
 Five errors are about the request rather than the document and carry no
 location suffix:
 
 | Response | When |
 | --- | --- |
-| `@PR:ERR:unknown_command` | The line starts with `@PR:` but names no command above. A host probes for a capability this way. |
+| `@PR:ERR:unknown_command` | The line starts with `@PR:` but names no command above. A host probes for a capability this way. A `@PR:` line longer than the control-line bound is answered the same way rather than being discarded in silence. |
 | `@PR:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. Also `DIAG` on a product build, which carries no sampler to answer it with. |
-| `@PR:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. An asset or firmware `BEGIN` or `CLEAR` in that same window is answered `busy` under its own namespace rather than waiting, because startup is still reading the partitions it would erase. |
+| `@PR:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. Also any `@PR:` command that arrives while another is still being handled — one command is in flight at a time, and only `REBOOT` is answered rather than refused in that window. An asset or firmware `BEGIN`, `INFO` or `CLEAR` in the startup window is answered `busy` under the owning kind's namespace rather than waiting, because startup is still reading the partitions it would erase. |
 | `@PR:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |
-| `@PR:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. |
+| `@PR:ERR:storage` | `SET` or `RESET` validated but the write to configuration storage failed. A payload is always parsed and validated first, so `storage` never hides a rejection. |
 
 After reset and reboot, each `GET` returns that document's compiled factory
 payload and the board-provided display remains enabled with an empty dashboard.

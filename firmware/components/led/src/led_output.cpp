@@ -15,8 +15,7 @@ constexpr std::uint32_t kMicroampsPerChannel = 20'000 / 255;
   std::array<std::uint8_t, 256> table{};
   for (std::size_t index = 0; index < table.size(); ++index) {
     const double normalized = static_cast<double>(index) / 255.0;
-    table[index] = static_cast<std::uint8_t>(
-        std::lround(std::pow(normalized, 2.2) * 255.0));
+    table[index] = static_cast<std::uint8_t>(std::lround(std::pow(normalized, 2.2) * 255.0));
   }
   return table;
 }
@@ -26,17 +25,14 @@ const std::array<std::uint8_t, 256>& gamma_table() {
   return table;
 }
 
-[[nodiscard]] std::uint8_t white_of(const std::uint8_t red,
-                                    const std::uint8_t green,
+[[nodiscard]] std::uint8_t white_of(const std::uint8_t red, const std::uint8_t green,
                                     const std::uint8_t blue) {
   return std::min({red, green, blue});
 }
 
 }
 
-std::size_t working_bytes(const std::size_t lamps) {
-  return lamps * kWorkingChannels;
-}
+std::size_t working_bytes(const std::size_t lamps) { return lamps * kWorkingChannels; }
 
 std::size_t wire_bytes(const std::size_t lamps, const driver::Chip chip) {
   return lamps * driver::bytes_per_lamp(chip);
@@ -44,17 +40,13 @@ std::size_t wire_bytes(const std::size_t lamps, const driver::Chip chip) {
 
 Output::~Output() { close(); }
 
-bool Output::open(const driver::Driver& driver,
-                  const driver::Configuration& configuration,
-                  const std::span<std::uint8_t> working,
-                  const std::span<std::uint8_t> wire,
+bool Output::open(const driver::Driver& driver, const driver::Configuration& configuration,
+                  const std::span<std::uint8_t> working, const std::span<std::uint8_t> wire,
                   const std::span<std::uint8_t> shadow) {
   close();
-  if (configuration.lamps == 0 ||
-      working.size() < working_bytes(configuration.lamps) ||
+  if (configuration.lamps == 0 || working.size() < working_bytes(configuration.lamps) ||
       wire.size() < wire_bytes(configuration.lamps, configuration.chip) ||
-      (!shadow.empty() &&
-       shadow.size() < working_bytes(configuration.lamps))) {
+      (!shadow.empty() && shadow.size() < working_bytes(configuration.lamps))) {
     return false;
   }
   const driver::Handle handle = driver.open(configuration);
@@ -66,8 +58,7 @@ bool Output::open(const driver::Driver& driver,
   chip_ = configuration.chip;
   lamps_ = configuration.lamps;
   working_ = working.first(working_bytes(lamps_));
-  shadow_ = shadow.empty() ? std::span<std::uint8_t>{}
-                           : shadow.first(working_bytes(lamps_));
+  shadow_ = shadow.empty() ? std::span<std::uint8_t>{} : shadow.first(working_bytes(lamps_));
   wire_ = wire.first(wire_bytes(lamps_, chip_));
   clear();
   return true;
@@ -117,8 +108,7 @@ Color Output::get(const std::size_t lamp) const {
 }
 
 bool Output::changed() const {
-  return shadow_.empty() ||
-         std::memcmp(working_.data(), shadow_.data(), working_.size()) != 0;
+  return shadow_.empty() || std::memcmp(working_.data(), shadow_.data(), working_.size()) != 0;
 }
 
 void Output::settle() {
@@ -127,12 +117,11 @@ void Output::settle() {
   }
 }
 
-std::uint8_t Output::scale(const std::uint8_t channel,
-                           const std::uint8_t brightness,
+std::uint8_t Output::scale(const std::uint8_t channel, const std::uint8_t brightness,
                            const bool gamma) const {
   const std::uint8_t corrected = gamma ? gamma_table()[channel] : channel;
-  return static_cast<std::uint8_t>(
-      (static_cast<std::uint32_t>(corrected) * brightness + 127) / 255);
+  return static_cast<std::uint8_t>((static_cast<std::uint32_t>(corrected) * brightness + 127) /
+                                   255);
 }
 
 bool Output::flush(const Trim& trim) {
@@ -143,16 +132,14 @@ bool Output::flush(const Trim& trim) {
   if (trim.current_limit_ma != 0) {
     std::uint32_t corrected_sum = 0;
     for (std::size_t index = 0; index < working_.size(); ++index) {
-      corrected_sum +=
-          trim.gamma ? gamma_table()[working_[index]] : working_[index];
+      corrected_sum += trim.gamma ? gamma_table()[working_[index]] : working_[index];
     }
-    const std::uint64_t microamps = static_cast<std::uint64_t>(corrected_sum) *
-                                    brightness / 255 * kMicroampsPerChannel;
-    const std::uint64_t budget =
-        static_cast<std::uint64_t>(trim.current_limit_ma) * 1'000;
+    const std::uint64_t microamps =
+        static_cast<std::uint64_t>(corrected_sum) * brightness / 255 * kMicroampsPerChannel;
+    const std::uint64_t budget = static_cast<std::uint64_t>(trim.current_limit_ma) * 1'000;
     if (microamps > budget && microamps != 0) {
-      brightness = static_cast<std::uint8_t>(
-          static_cast<std::uint64_t>(brightness) * budget / microamps);
+      brightness =
+          static_cast<std::uint8_t>(static_cast<std::uint64_t>(brightness) * budget / microamps);
     }
   }
 
@@ -160,10 +147,8 @@ bool Output::flush(const Trim& trim) {
   for (std::size_t lamp = 0; lamp < lamps_; ++lamp) {
     const std::size_t source = lamp * kWorkingChannels;
     const std::uint8_t red = scale(working_[source], brightness, trim.gamma);
-    const std::uint8_t green =
-        scale(working_[source + 1], brightness, trim.gamma);
-    const std::uint8_t blue =
-        scale(working_[source + 2], brightness, trim.gamma);
+    const std::uint8_t green = scale(working_[source + 1], brightness, trim.gamma);
+    const std::uint8_t blue = scale(working_[source + 2], brightness, trim.gamma);
     const std::size_t target = lamp * stride;
     wire_[target] = green;
     wire_[target + 1] = red;

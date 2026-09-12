@@ -9,7 +9,8 @@ extern "C" {
 #endif
 
 esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
-                                               esp_lcd_panel_handle_t* panel);
+                                              esp_lcd_panel_handle_t* panel);
+void pitrig_jc1060p470c_panel_release(esp_lcd_panel_io_handle_t* io, esp_lcd_panel_handle_t* panel);
 esp_err_t pitrig_jc1060p470c_backlight_on(void);
 
 #ifdef __cplusplus

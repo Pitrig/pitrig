@@ -15,8 +15,7 @@ struct ChainEncoder {
   int state{};
 };
 
-[[nodiscard]] esp_err_t encoder_open(ChainEncoder& encoder,
-                                     std::uint32_t resolution_hz);
+[[nodiscard]] esp_err_t encoder_open(ChainEncoder& encoder, std::uint32_t resolution_hz);
 
 void encoder_close(ChainEncoder& encoder);
 

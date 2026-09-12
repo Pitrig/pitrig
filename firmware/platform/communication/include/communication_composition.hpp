@@ -1,19 +1,18 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 
-#include "configuration_control.hpp"
-#include "communication_router.hpp"
 #include "binary_session.hpp"
+#include "communication_router.hpp"
+#include "configuration_control.hpp"
 #include "firmware_update_control.hpp"
 #include "font_asset_control.hpp"
 #include "image_asset_control.hpp"
 #include "pitrig_features.hpp"
 #include "simhub_protocol.hpp"
-
-#include <array>
-#include <cstddef>
 
 namespace pitrig::configuration {
 class ConfigurationService;
@@ -41,8 +40,6 @@ namespace pitrig::communication {
 
 class Composition final {
  public:
-  static constexpr std::size_t kMaximumLinks = 1;
-
   explicit Composition(const telemetry::ITelemetryRegistry& registry);
   ~Composition();
 
@@ -51,32 +48,21 @@ class Composition final {
 
   enum class Surface : std::uint8_t { full, recovery };
 
-  [[nodiscard]] bool start(
-      configuration::ConfigurationService& configuration,
-      firmware_update::Service& firmware_update,
-      font_assets::Service& font_assets,
-      image_assets::Service& image_assets,
-      telemetry::TelemetryProvider& telemetry,
-      std::span<transport::ITransport* const> transports,
-      configuration::ConfigurationControl::ApplyHandler apply_handler,
-      void* apply_context,
-      std::span<std::uint8_t> control_io_buffer,
-      std::span<std::uint8_t> control_line_buffers,
-      Surface surface);
+  [[nodiscard]] bool start(configuration::ConfigurationService& configuration,
+                           firmware_update::Service& firmware_update,
+                           font_assets::Service& font_assets, image_assets::Service& image_assets,
+                           telemetry::TelemetryProvider& telemetry,
+                           transport::ITransport& transport,
+                           configuration::ConfigurationControl::ApplyHandler apply_handler,
+                           void* apply_context, std::span<std::uint8_t> control_io_buffer,
+                           std::span<std::uint8_t> control_line_buffer, Surface surface);
   void stop();
 
   void mark_composed();
 
-  [[nodiscard]] bool upload_progress(std::uint8_t& percent) const {
-    return firmware_update_control_.progress(percent) ||
-           font_asset_control_.progress(percent) ||
-           image_asset_control_.progress(percent);
-  }
-
  private:
   struct Link {
-    explicit Link(const telemetry::ITelemetryRegistry& registry)
-        : protocol(registry) {}
+    explicit Link(const telemetry::ITelemetryRegistry& registry) : protocol(registry) {}
 
     Composition* owner{};
     transport::ITransport* transport{};
@@ -84,12 +70,9 @@ class Composition final {
     protocols::SimHubProtocol protocol;
   };
 
-  static void submit_update(const telemetry::TelemetryUpdate& update,
-                            void* context);
-  static void receive_telemetry_line(
-      std::span<const std::uint8_t> line, void* context);
-  static void receive_transport_data(
-      std::span<const std::uint8_t> data, void* context);
+  static void submit_update(const telemetry::TelemetryUpdate& update, void* context);
+  static void receive_telemetry_line(std::span<const std::uint8_t> line, void* context);
+  static void receive_transport_data(std::span<const std::uint8_t> data, void* context);
   static void reboot(void* context);
 
   configuration::ConfigurationControl configuration_control_;
@@ -98,8 +81,7 @@ class Composition final {
   image_assets::ImageAssetControl image_asset_control_;
   binary_session::Claim binary_claim_;
   std::array<std::uint8_t, asset_control::kMaximumFrameSize> upload_frame_{};
-  std::array<Link, kMaximumLinks> links_;
-  std::size_t link_count_{};
+  Link link_;
   telemetry::TelemetryProvider* telemetry_{};
   bool started_{};
 };

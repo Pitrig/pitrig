@@ -12,12 +12,10 @@ namespace pitrig::dashboard::value_text {
 
 using Buffer = std::array<char, telemetry::kTelemetryTextCapacity>;
 
-[[nodiscard]] bool transform_value(
-    const configuration::ValueTransform& transform,
-    const telemetry::TelemetryRead& value, Buffer& output);
+[[nodiscard]] bool transform_value(const configuration::ValueTransform& transform,
+                                   const telemetry::TelemetryRead& value, Buffer& output);
 
-void placeholder_value(const configuration::ValueTransform& transform,
-                       Buffer& output);
+void placeholder_value(const configuration::ValueTransform& transform, Buffer& output);
 
 template <std::size_t DestinationSize, std::size_t SourceSize>
 void copy_text(std::array<char, DestinationSize>& destination,

@@ -14,8 +14,7 @@ inline constexpr std::size_t kMaximumFamilies = 8;
 inline constexpr std::size_t kFaceAlignment = 4;
 using FamilyId = std::array<char, kFamilyIdCapacity>;
 
-[[nodiscard]] constexpr std::string_view family_id_view(
-    const FamilyId& family) {
+[[nodiscard]] constexpr std::string_view family_id_view(const FamilyId& family) {
   std::size_t size{};
   while (size < family.size() && family[size] != '\0') {
     ++size;
@@ -29,8 +28,8 @@ using FamilyId = std::array<char, kFamilyIdCapacity>;
   }
   for (const char character : family) {
     const bool allowed = (character >= 'a' && character <= 'z') ||
-                         (character >= '0' && character <= '9') ||
-                         character == '_' || character == '-';
+                         (character >= '0' && character <= '9') || character == '_' ||
+                         character == '-';
     if (!allowed) {
       return false;
     }
@@ -56,10 +55,8 @@ struct FontSpec {
   return FontSpec{.family = spec.fallback, .size_px = spec.size_px};
 }
 
-[[nodiscard]] constexpr bool operator==(const FontSpec& lhs,
-                                        const FontSpec& rhs) {
-  return lhs.family == rhs.family && lhs.size_px == rhs.size_px &&
-         lhs.fallback == rhs.fallback;
+[[nodiscard]] constexpr bool operator==(const FontSpec& lhs, const FontSpec& rhs) {
+  return lhs.family == rhs.family && lhs.size_px == rhs.size_px && lhs.fallback == rhs.fallback;
 }
 
 }

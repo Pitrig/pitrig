@@ -33,8 +33,9 @@ removed. The P4's link is its native USB CDC port, the one its `protocol`
 document already names. Flashing and the ESP console keep the USB-Serial-JTAG
 port; the application does not touch it.
 
-**A composite USB device.** On a board with native USB — T-Display-S3 and
-JC1060P470C — the `usb_cdc` driver's descriptor gains a third interface: an HID
+**A composite USB device.** On a board with native USB — T-Display-S3,
+JC1060P470C and the ESP32-S3-DevKitC-1 — the `usb_cdc` driver's descriptor gains
+a third interface: an HID
 gamepad with the standard TinyUSB report layout, 32 buttons, six 8-bit axes and
 a hat, on its own interrupt endpoint. `usb_gamepad.hpp` is the whole API:
 `available()`, `ready()`, `send(Report)`. The Guition ESP32-4848S040 reaches its
@@ -46,6 +47,12 @@ TinyUSB already derives `CFG_TUD_HID` from; Pitrig adds no option of its own.
 The descriptor asserts its own length at compile time, because a configuration
 descriptor whose declared length disagrees with its bytes fails enumeration on
 the host and nowhere earlier.
+
+**The serial-number string is the board's own.** `start()` reads the eFuse base
+MAC and writes it into the descriptor as twelve hex digits before TinyUSB is
+installed, replacing the build-time constant every Pitrig board used to share.
+Two boards on one PC are now two devices to the host rather than one seen
+twice.
 
 ## Consequences
 

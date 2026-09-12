@@ -7,8 +7,8 @@
 
 #include "binary_codec.hpp"
 #include "configuration_control.hpp"
-#include "scf1_frame.hpp"
 #include "pitrig_features.hpp"
+#include "scf1_frame.hpp"
 
 namespace pitrig::asset_control {
 namespace {
@@ -17,17 +17,14 @@ using configuration::kControlPrefix;
 
 [[nodiscard]] bool matches(const std::span<const std::uint8_t> line,
                            const std::string_view command) {
-  return line.size() == command.size() &&
-         std::equal(command.begin(), command.end(), line.begin());
+  return line.size() == command.size() && std::equal(command.begin(), command.end(), line.begin());
 }
 
-std::string_view compose(std::array<char, 32>& storage,
-                         const std::string_view prefix,
+std::string_view compose(std::array<char, 32>& storage, const std::string_view prefix,
                          const std::string_view suffix) {
   const int written =
-      std::snprintf(storage.data(), storage.size(), "%.*s%.*s",
-                    static_cast<int>(prefix.size()), prefix.data(),
-                    static_cast<int>(suffix.size()), suffix.data());
+      std::snprintf(storage.data(), storage.size(), "%.*s%.*s", static_cast<int>(prefix.size()),
+                    prefix.data(), static_cast<int>(suffix.size()), suffix.data());
   if (written <= 0 || static_cast<std::size_t>(written) >= storage.size()) {
     return {};
   }
@@ -38,21 +35,18 @@ std::string_view compose(std::array<char, 32>& storage,
 
 AssetControl::~AssetControl() { stop(); }
 
-void AssetControl::consume_command_entry(
-    void* const context, const std::span<const std::uint8_t> line,
-    transport::ITransport& reply) {
+void AssetControl::consume_command_entry(void* const context,
+                                         const std::span<const std::uint8_t> line,
+                                         transport::ITransport& reply) {
   static_cast<AssetControl*>(context)->consume_command(line, reply);
 }
 
-void AssetControl::consume_entry(void* const context,
-                                 const std::span<const std::uint8_t> bytes) {
+void AssetControl::consume_entry(void* const context, const std::span<const std::uint8_t> bytes) {
   static_cast<AssetControl*>(context)->consume(bytes);
 }
 
-bool AssetControl::initialize(const Traits& traits,
-                              const Operations& operations,
-                              binary_session::Claim& claim,
-                              const std::span<std::uint8_t> frame) {
+bool AssetControl::initialize(const Traits& traits, const Operations& operations,
+                              binary_session::Claim& claim, const std::span<std::uint8_t> frame) {
   if (task_ != nullptr || frame.size() < kMaximumFrameSize) {
     return false;
   }
@@ -61,16 +55,13 @@ bool AssetControl::initialize(const Traits& traits,
   claim_ = &claim;
   frame_ = frame.first(kMaximumFrameSize);
   const int prefix_length =
-      std::snprintf(command_prefix_.data(), command_prefix_.size(), "%.*s%.*s:",
-                    static_cast<int>(kControlPrefix.size()),
-                    kControlPrefix.data(), static_cast<int>(traits_.tag.size()),
-                    traits_.tag.data());
-  if (prefix_length <= 0 ||
-      static_cast<std::size_t>(prefix_length) >= command_prefix_.size()) {
+      std::snprintf(command_prefix_.data(), command_prefix_.size(),
+                    "%.*s%.*s:", static_cast<int>(kControlPrefix.size()), kControlPrefix.data(),
+                    static_cast<int>(traits_.tag.size()), traits_.tag.data());
+  if (prefix_length <= 0 || static_cast<std::size_t>(prefix_length) >= command_prefix_.size()) {
     return false;
   }
-  const std::string_view prefix{command_prefix_.data(),
-                                static_cast<std::size_t>(prefix_length)};
+  const std::string_view prefix{command_prefix_.data(), static_cast<std::size_t>(prefix_length)};
   if (compose(begin_command_, prefix, "BEGIN:size=").empty() ||
       compose(info_command_, prefix, "INFO").empty() ||
       compose(clear_command_, prefix, "CLEAR").empty()) {
@@ -78,16 +69,16 @@ bool AssetControl::initialize(const Traits& traits,
   }
   session_ = {
       .command_prefix = prefix,
+      .tag = traits_.tag,
       .consume_command = &AssetControl::consume_command_entry,
       .consume = &AssetControl::consume_entry,
       .context = this,
   };
   reset_session();
   request_state_.store(RequestState::idle, std::memory_order_relaxed);
-  task_ = xTaskCreateStaticPinnedToCore(
-      &AssetControl::task_entry, traits_.task_name, task_stack_.size(), this,
-      kTaskPriority, task_stack_.data(), &task_state_,
-      PITRIG_COMMUNICATION_CORE);
+  task_ = xTaskCreateStaticPinnedToCore(&AssetControl::task_entry, traits_.task_name,
+                                        task_stack_.size(), this, kTaskPriority, task_stack_.data(),
+                                        &task_state_, PITRIG_COMMUNICATION_CORE);
   if (task_ != nullptr) {
 #if PITRIG_DEBUG
     performance::register_task(traits_.metric, task_);
@@ -120,8 +111,10 @@ void AssetControl::stop() {
   frame_ = {};
 }
 
-bool AssetControl::ready() const {
-  return operations_.service != nullptr && task_ != nullptr;
+bool AssetControl::ready() const { return operations_.service != nullptr && task_ != nullptr; }
+
+bool AssetControl::claim_taken() const {
+  return claim_ != nullptr && (!claim_->ready() || claim_->claimed());
 }
 
 void AssetControl::consume_command(const std::span<const std::uint8_t> line,
@@ -130,35 +123,35 @@ void AssetControl::consume_command(const std::span<const std::uint8_t> line,
     return;
   }
   if (active()) {
-    send_busy(reply);
+    send_busy(reply, traits_.tag);
     return;
   }
 
   RequestState expected = RequestState::idle;
   if (!request_state_.compare_exchange_strong(
-          expected, RequestState::writing, std::memory_order_acquire,
-          std::memory_order_relaxed)) {
+          expected, RequestState::writing, std::memory_order_acquire, std::memory_order_relaxed)) {
+    send_busy(reply, traits_.tag);
     return;
   }
 
   requested_reply_ = &reply;
-  const std::string_view begin_prefix{
-      begin_command_.data(), std::strlen(begin_command_.data())};
+  busy_tag_ = traits_.tag;
+  const std::string_view begin_prefix{begin_command_.data(), std::strlen(begin_command_.data())};
   requested_package_size_ = 0;
+  const bool taken = claim_taken();
+  if (taken && claim_ != nullptr && !claim_->owner_tag().empty()) {
+    busy_tag_ = claim_->owner_tag();
+  }
   if (matches(line, {info_command_.data(), std::strlen(info_command_.data())})) {
-    request_type_ = RequestType::info;
-  } else if (matches(line, {clear_command_.data(),
-                            std::strlen(clear_command_.data())})) {
-    request_type_ = claim_ != nullptr && !claim_->ready() ? RequestType::busy
-                                                         : RequestType::clear;
+    request_type_ = taken ? RequestType::busy : RequestType::info;
+  } else if (matches(line, {clear_command_.data(), std::strlen(clear_command_.data())})) {
+    request_type_ = taken ? RequestType::busy : RequestType::clear;
   } else if (line.size() >= begin_prefix.size() &&
-             std::equal(begin_prefix.begin(), begin_prefix.end(),
-                        line.begin())) {
+             std::equal(begin_prefix.begin(), begin_prefix.end(), line.begin())) {
     const auto value = line.subspan(begin_prefix.size());
     const auto* const begin = reinterpret_cast<const char*>(value.data());
     const auto* const end = begin + value.size();
-    const auto result =
-        std::from_chars(begin, end, requested_package_size_, 10);
+    const auto result = std::from_chars(begin, end, requested_package_size_, 10);
     if (result.ec != std::errc{} || result.ptr != end) {
       requested_package_size_ = 0;
     }
@@ -196,16 +189,14 @@ void AssetControl::consume(const std::span<const std::uint8_t> bytes) {
     }
     frame_[frame_size_++] = bytes[index];
     if (frame_size_ == kFrameHeaderSize) {
-      const auto header =
-          std::span<const std::uint8_t>(frame_.data(), kFrameHeaderSize);
+      const auto header = std::span<const std::uint8_t>(frame_.data(), kFrameHeaderSize);
       if (!scf1::valid_header(header)) {
         queue_request(RequestType::invalid_frame);
         return;
       }
-      expected_frame_size_ =
-          kFrameHeaderSize +
-          binary::read_u16_le(header, scf1::kPayloadLengthOffset) +
-          kFrameCrcSize;
+      expected_frame_size_ = kFrameHeaderSize +
+                             binary::read_u16_le(header, scf1::kPayloadLengthOffset) +
+                             kFrameCrcSize;
     }
     if (expected_frame_size_ != 0 && frame_size_ == expected_frame_size_) {
       if (index + 1 < bytes.size()) {
@@ -215,21 +206,6 @@ void AssetControl::consume(const std::span<const std::uint8_t> bytes) {
       return;
     }
   }
-}
-
-
-bool report_progress(const AssetControl& control, std::uint8_t& percent) {
-  if (!control.active()) {
-    return false;
-  }
-  const AssetControl::Progress progress = control.progress();
-  percent = progress.total == 0
-                ? 0
-                : static_cast<std::uint8_t>(
-                      std::min<std::size_t>(progress.received * 100 /
-                                                progress.total,
-                                            100));
-  return true;
 }
 
 }

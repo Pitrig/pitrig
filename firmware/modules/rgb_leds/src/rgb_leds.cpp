@@ -6,8 +6,8 @@
 #include "led_device.hpp"
 #include "led_paint.hpp"
 #include "logger.hpp"
-#include "rgb_frames.hpp"
 #include "pitrig_features.hpp"
+#include "rgb_frames.hpp"
 
 namespace pitrig::rgb_leds {
 namespace {
@@ -16,8 +16,7 @@ constexpr std::size_t kStopWaitTicks = 200;
 constexpr std::uint32_t kStopPollMs = 5;
 
 [[nodiscard]] void* allocate(const std::size_t bytes) {
-  void* memory =
-      heap_caps_calloc(bytes, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  void* memory = heap_caps_calloc(bytes, 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
   if (memory == nullptr) {
     memory = heap_caps_calloc(bytes, 1, MALLOC_CAP_8BIT);
   }
@@ -25,8 +24,7 @@ constexpr std::uint32_t kStopPollMs = 5;
 }
 
 [[nodiscard]] const configuration::LedSpriteConfiguration* sprite_of(
-    const configuration::HardwareDeviceConfiguration& device,
-    const std::string_view id) {
+    const configuration::HardwareDeviceConfiguration& device, const std::string_view id) {
   for (std::uint8_t index = 0; index < device.sprite_count; ++index) {
     if (configuration::text_view(device.sprites[index].id) == id) {
       return &device.sprites[index];
@@ -39,12 +37,10 @@ constexpr std::uint32_t kStopPollMs = 5;
 
 RgbLeds::~RgbLeds() { stop(); }
 
-bool RgbLeds::reserve_frames(
-    const configuration::ApplicationConfiguration& configuration) {
+bool RgbLeds::reserve_frames(const configuration::ApplicationConfiguration& configuration) {
   release_frames();
   for (std::size_t index = 0; index < configuration.device_count; ++index) {
-    const configuration::HardwareDeviceConfiguration& device =
-        configuration.hardware[index];
+    const configuration::HardwareDeviceConfiguration& device = configuration.hardware[index];
 
     const std::size_t lamps = lamps_of(device);
     working_bytes_ += led::working_bytes(lamps);
@@ -55,20 +51,17 @@ bool RgbLeds::reserve_frames(
     return false;
   }
   const std::size_t layers = kMaximumOutputs * kMaximumEffects;
-  bindings_ =
-      static_cast<EffectBinding*>(allocate(layers * sizeof(EffectBinding)));
+  bindings_ = static_cast<EffectBinding*>(allocate(layers * sizeof(EffectBinding)));
   states_ = static_cast<EffectState*>(allocate(layers * sizeof(EffectState)));
   device_store_ = static_cast<configuration::HardwareDeviceConfiguration*>(
-      allocate(configuration.device_count *
-               sizeof(configuration::HardwareDeviceConfiguration)));
+      allocate(configuration.device_count * sizeof(configuration::HardwareDeviceConfiguration)));
   working_ = static_cast<std::uint8_t*>(allocate(working_bytes_));
   shadow_ = static_cast<std::uint8_t*>(allocate(working_bytes_));
   wire_ = static_cast<std::uint8_t*>(
       heap_caps_calloc(wire_bytes_, 1, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA));
-  if (working_ == nullptr || shadow_ == nullptr || wire_ == nullptr ||
-      bindings_ == nullptr || states_ == nullptr || device_store_ == nullptr) {
-    log::error(kLedTag, "No memory for %u lamp frames",
-               static_cast<unsigned>(wire_bytes_));
+  if (working_ == nullptr || shadow_ == nullptr || wire_ == nullptr || bindings_ == nullptr ||
+      states_ == nullptr || device_store_ == nullptr) {
+    log::error(kLedTag, "No memory for %u lamp frames", static_cast<unsigned>(wire_bytes_));
     release_frames();
     return false;
   }
@@ -92,10 +85,8 @@ void RgbLeds::release_frames() {
   wire_bytes_ = 0;
 }
 
-bool RgbLeds::start(events::EventBus& event_bus,
-                    const telemetry::ITelemetryRegistry& registry,
-                    const telemetry::ITelemetryReader& reader,
-                    const led::driver::Driver& driver,
+bool RgbLeds::start(events::EventBus&, const telemetry::ITelemetryRegistry& registry,
+                    const telemetry::ITelemetryReader& reader, const led::driver::Driver& driver,
                     const configuration::ApplicationConfiguration& configuration) {
   if (running_.load()) {
     return true;
@@ -117,21 +108,18 @@ bool RgbLeds::start(events::EventBus& event_bus,
 
   for (std::size_t index = 0; index < configuration.device_count; ++index) {
     device_store_[index] = configuration.hardware[index];
-    const configuration::HardwareDeviceConfiguration& device =
-        device_store_[index];
+    const configuration::HardwareDeviceConfiguration& device = device_store_[index];
 
     const led::Matrix geometry = geometry_of(device);
     const std::size_t lamps = lamps_of(device);
     const led::driver::Chip chip = chip_of(device.chip);
     const std::size_t working_size = led::working_bytes(lamps);
     const std::size_t wire_size = led::wire_bytes(lamps, chip);
-    const led::driver::Configuration config{
-        .pin = device.pin, .chip = chip, .lamps = lamps};
+    const led::driver::Configuration config{.pin = device.pin, .chip = chip, .lamps = lamps};
     const std::size_t slot = output_count_;
     if (lamps == 0 || working_used + working_size > working_bytes_ ||
         wire_used + wire_size > wire_bytes_ ||
-        !outputs_[slot].open(driver, config,
-                             {working_ + working_used, working_size},
+        !outputs_[slot].open(driver, config, {working_ + working_used, working_size},
                              {wire_ + wire_used, wire_size},
                              {shadow_ + working_used, working_size})) {
       log::error(kLedTag, "Output on pin %d did not come up", device.pin);
@@ -152,13 +140,10 @@ bool RgbLeds::start(events::EventBus& event_bus,
       const configuration::LedEffect& layer = device.effects[effect];
       states_[slot * kMaximumEffects + effect] = {};
       bindings_[slot * kMaximumEffects + effect] = {
-          .value =
-              registry.resolve(configuration::text_view(layer.source.binding)),
-          .condition = registry.resolve(
-              configuration::text_view(layer.condition_source.binding)),
+          .value = registry.resolve(configuration::text_view(layer.source.binding)),
+          .condition = registry.resolve(configuration::text_view(layer.condition_source.binding)),
           .sprite = layer.type == configuration::LedEffectType::sprite
-                        ? sprite_of(device,
-                                    configuration::text_view(layer.sprite))
+                        ? sprite_of(device, configuration::text_view(layer.sprite))
                         : nullptr,
           .area = area_of(geometry, layer),
       };
@@ -172,16 +157,11 @@ bool RgbLeds::start(events::EventBus& event_bus,
   }
 
   reader_ = &reader;
-  event_bus_ = &event_bus;
-  last_telemetry_us_.store(0);
-  telemetry_subscription_ = event_bus.subscribe(
-      telemetry::kTelemetryUpdatedEvent, &RgbLeds::on_telemetry_updated, this);
   running_.store(true);
   finished_.store(false);
   TaskHandle_t task = nullptr;
-  if (xTaskCreatePinnedToCore(&RgbLeds::task_entry, "rgb_leds", kTaskStackBytes,
-                              this, kTaskPriority, &task,
-                              PITRIG_COMMUNICATION_CORE) != pdPASS) {
+  if (xTaskCreatePinnedToCore(&RgbLeds::task_entry, "rgb_leds", kTaskStackBytes, this,
+                              kTaskPriority, &task, PITRIG_COMMUNICATION_CORE) != pdPASS) {
     task = nullptr;
   }
   task_ = task;
@@ -199,8 +179,7 @@ bool RgbLeds::start(events::EventBus& event_bus,
 void RgbLeds::stop() {
   running_.store(false);
   if (task_ != nullptr) {
-    for (std::size_t wait = 0; wait < kStopWaitTicks && !finished_.load();
-         ++wait) {
+    for (std::size_t wait = 0; wait < kStopWaitTicks && !finished_.load(); ++wait) {
       vTaskDelay(pdMS_TO_TICKS(kStopPollMs));
     }
     if (!finished_.load()) {
@@ -213,17 +192,12 @@ void RgbLeds::stop() {
 }
 
 void RgbLeds::teardown() {
-  if (event_bus_ != nullptr && telemetry_subscription_.valid) {
-    event_bus_->unsubscribe(telemetry_subscription_);
-  }
-  telemetry_subscription_ = {};
   for (std::size_t index = 0; index < output_count_; ++index) {
     outputs_[index].close();
   }
   output_count_ = 0;
   release_frames();
   reader_ = nullptr;
-  event_bus_ = nullptr;
 }
 
 }

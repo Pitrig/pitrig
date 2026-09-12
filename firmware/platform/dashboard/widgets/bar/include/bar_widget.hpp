@@ -1,9 +1,7 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 
 #include "application_configuration.hpp"
 #include "dashboard_fonts.hpp"
@@ -11,13 +9,13 @@
 #include "fill_ramp.hpp"
 #include "lvgl.h"
 #include "lvgl_types.hpp"
+#include "value_widget_collection.hpp"
 #include "widget_collection.hpp"
 #include "widget_frame.hpp"
 
 namespace pitrig::dashboard::bar_widget {
 
-inline constexpr std::size_t kMaximumInstances =
-    configuration::kMaximumBarWidgets;
+inline constexpr std::size_t kMaximumInstances = configuration::kMaximumBarWidgets;
 
 using Config = configuration::BarWidgetConfiguration;
 
@@ -47,25 +45,14 @@ struct State {
 };
 
 class Collection final
-    : public frame::Collection<Collection, State, kMaximumInstances> {
- public:
-  [[nodiscard]] bool create(const Layout& layout,
-                            std::span<const Config> configurations,
-                            std::span<const frame::ValueBinding> bindings,
-                            const fonts::Registry& fonts);
-  [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
-                              const Config& configuration,
-                              const frame::ValueBinding& binding,
-                              const fonts::Registry& fonts);
-
+    : public ValueWidgetCollection<Collection, State, kMaximumInstances, Config> {
  private:
   friend frame::Collection<Collection, State, kMaximumInstances>;
+  friend ValueWidgetCollection<Collection, State, kMaximumInstances, Config>;
 
   void render_state(State& state);
-  [[nodiscard]] bool build(State& state, const Layout& layout,
-                           const Config& configuration,
-                           const frame::ValueBinding& binding,
-                           const fonts::Registry& fonts);
+  [[nodiscard]] bool build(State& state, const Layout& layout, const Config& configuration,
+                           const frame::ValueBinding& binding, const fonts::Registry& fonts);
 };
 
 }

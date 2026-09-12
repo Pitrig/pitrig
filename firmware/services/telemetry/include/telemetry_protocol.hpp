@@ -13,8 +13,7 @@ class IProtocol {
  public:
   virtual ~IProtocol() = default;
 
-  virtual void consume_line(std::span<const std::uint8_t> line,
-                            UpdateHandler handler,
+  virtual void consume_line(std::span<const std::uint8_t> line, UpdateHandler handler,
                             void* context) = 0;
 };
 

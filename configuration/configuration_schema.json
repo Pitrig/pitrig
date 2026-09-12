@@ -513,7 +513,13 @@
         { "name": "port", "kind": "int", "default": 0 },
         { "name": "tx_pin", "kind": "int", "default": 43 },
         { "name": "rx_pin", "kind": "int", "default": 44 },
-        { "name": "baud_rate", "kind": "uint32", "default": 921600 },
+        {
+          "name": "baud_rate",
+          "kind": "uint32",
+          "default": 921600,
+          "minimum": 9600,
+          "maximum": 2000000
+        },
         { "name": "silence_esp_logs", "kind": "bool", "default": true }
       ]
     },

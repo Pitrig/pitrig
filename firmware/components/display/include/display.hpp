@@ -11,8 +11,7 @@ namespace pitrig::display {
 
 [[nodiscard]] lv_display_t* initialize(const driver::Driver& driver);
 
-[[nodiscard]] bool refresh_and_wait(lv_display_t* display,
-                                    std::uint32_t timeout_ms);
+[[nodiscard]] bool refresh_and_wait(lv_display_t* display, std::uint32_t timeout_ms);
 
 [[nodiscard]] bool rendering_in_progress();
 

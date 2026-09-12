@@ -1,5 +1,4 @@
 #include "dashboard_screens.hpp"
-#include "dashboard_state.hpp"
 
 #include <algorithm>
 #include <array>
@@ -8,9 +7,9 @@
 #include <string_view>
 
 #include "application_configuration.hpp"
-#include "logger.hpp"
-#include "pitrig_features.hpp"
+#include "dashboard_state.hpp"
 #include "esp_lvgl_port.h"
+#include "logger.hpp"
 #include "lvgl.h"
 
 namespace pitrig::dashboard_composition::screens {
@@ -24,15 +23,12 @@ void make_container(lv_obj_t* const object) {
   lv_obj_set_style_border_width(object, 0, LV_PART_MAIN);
 }
 
-std::size_t create_screens(
-    lv_display_t* const display,
-    const configuration::ApplicationConfiguration& configuration,
-    const std::span<lv_obj_t*> screens) {
-  const std::size_t count =
-      std::max<std::size_t>(configuration.dashboard.screen_count, 1);
+std::size_t create_screens(lv_display_t* const display,
+                           const configuration::ApplicationConfiguration& configuration,
+                           const std::span<lv_obj_t*> screens) {
+  const std::size_t count = std::max<std::size_t>(configuration.dashboard.screen_count, 1);
   std::size_t created{};
-  for (std::size_t index = 0; index < count && index < screens.size();
-       ++index) {
+  for (std::size_t index = 0; index < count && index < screens.size(); ++index) {
     lv_obj_t* const screen = screen_object(display, index);
     if (screen == nullptr) {
       break;
@@ -43,17 +39,8 @@ std::size_t create_screens(
   return created;
 }
 
-const configuration::ScreenConfiguration& active_screen(
-    const configuration::ApplicationConfiguration& configuration) {
-  static const configuration::ScreenConfiguration kEmptyScreen{};
-  return configuration.dashboard.screen_count > 0
-             ? configuration.dashboard.screens[0]
-             : kEmptyScreen;
-}
-
-std::uint32_t screen_background(
-    const configuration::ApplicationConfiguration& configuration,
-    const std::size_t index) {
+std::uint32_t screen_background(const configuration::ApplicationConfiguration& configuration,
+                                const std::size_t index) {
   return index < configuration.dashboard.screen_count
              ? configuration.dashboard.screens[index].background_color
              : kDefaultBackgroundColor;
@@ -73,13 +60,15 @@ lv_obj_t* screen_object(lv_display_t* const display, const std::size_t index) {
   return screen;
 }
 
-bool will_render_content(
-    const configuration::ApplicationConfiguration& configuration) {
-  const configuration::ScreenConfiguration& screen =
-      active_screen(configuration);
-  return PITRIG_DEBUG_OVERLAY ||
-         screen.background_color != kDefaultBackgroundColor ||
-         screen.widget_count > 0;
+bool will_render_content(const configuration::ApplicationConfiguration& configuration) {
+  const configuration::DashboardConfiguration& document = configuration.dashboard;
+  for (std::size_t index = 0; index < document.screen_count; ++index) {
+    const configuration::ScreenConfiguration& screen = document.screens[index];
+    if (screen.background_color != kDefaultBackgroundColor || screen.widget_count > 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 std::size_t create(lv_display_t* const display,
@@ -95,13 +84,11 @@ std::size_t create(lv_display_t* const display,
     log::error("dashboard", "Failed to lock LVGL for dashboard screens");
     return 0;
   }
-  const std::size_t count =
-      create_screens(display, configuration, dashboard.screens);
+  const std::size_t count = create_screens(display, configuration, dashboard.screens);
   for (std::size_t index = 0; index < count; ++index) {
     lv_obj_t* const screen = dashboard.screens[index];
-    lv_obj_set_style_bg_color(
-        screen, lv_color_hex(screen_background(configuration, index)),
-        LV_PART_MAIN);
+    lv_obj_set_style_bg_color(screen, lv_color_hex(screen_background(configuration, index)),
+                              LV_PART_MAIN);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
   }
   lvgl_port_unlock();
@@ -110,14 +97,11 @@ std::size_t create(lv_display_t* const display,
 
 namespace {
 
-std::uint8_t resolve_action_target(
-    const configuration::ApplicationConfiguration& configuration,
-    const configuration::WidgetAction& action) {
+std::uint8_t resolve_action_target(const configuration::ApplicationConfiguration& configuration,
+                                   const configuration::WidgetAction& action) {
   const std::string_view target = configuration::text_view(action.screen);
-  for (std::size_t index = 0; index < configuration.dashboard.screen_count;
-       ++index) {
-    if (configuration::text_view(configuration.dashboard.screens[index].id) ==
-        target) {
+  for (std::size_t index = 0; index < configuration.dashboard.screen_count; ++index) {
+    if (configuration::text_view(configuration.dashboard.screens[index].id) == target) {
       return static_cast<std::uint8_t>(index);
     }
   }
@@ -126,58 +110,50 @@ std::uint8_t resolve_action_target(
 
 }
 
-
 bool bind_actions(const configuration::ApplicationConfiguration& configuration,
                   Dashboard& dashboard) {
   if (!lvgl_port_lock(0)) {
     return false;
   }
   bool bound = true;
-  const auto bind = [&](lv_obj_t* const object,
-                        const configuration::WidgetAction& action) {
+  const auto bind = [&](lv_obj_t* const object, const configuration::WidgetAction& action) {
     if (action.type == configuration::WidgetActionType::none) {
       return;
     }
-    if (!dashboard.navigation.add_action(
-            object, action.type,
-            resolve_action_target(configuration, action))) {
+    if (!dashboard.navigation.add_action(object, action.type,
+                                         resolve_action_target(configuration, action))) {
       bound = false;
     }
   };
-  const auto bind_references =
-      [&](const std::span<const configuration::WidgetReference> references,
-          const std::size_t count) {
-        for (std::size_t index = 0; index < count; ++index) {
-          const configuration::WidgetReference& reference = references[index];
-          const configuration::WidgetFrame* const frame =
-              configuration::widget_traits(reference.type)
-                  .frame(configuration.dashboard, reference.index);
-          if (frame != nullptr) {
-            bind(dashboard.widgets.root_object(reference.type, reference.index),
-                 frame->action);
-          }
-        }
-      };
+  const auto bind_references = [&](const std::span<const configuration::WidgetReference> references,
+                                   const std::size_t count) {
+    for (std::size_t index = 0; index < count; ++index) {
+      const configuration::WidgetReference& reference = references[index];
+      const configuration::WidgetFrame* const frame =
+          configuration::widget_traits(reference.type)
+              .frame(configuration.dashboard, reference.index);
+      if (frame != nullptr) {
+        bind(dashboard.widgets.root_object(reference.type, reference.index), frame->action);
+      }
+    }
+  };
 
-  for (std::size_t screen_index = 0;
-       screen_index < configuration.dashboard.screen_count; ++screen_index) {
+  for (std::size_t screen_index = 0; screen_index < configuration.dashboard.screen_count;
+       ++screen_index) {
     const configuration::ScreenConfiguration& screen =
         configuration.dashboard.screens[screen_index];
     bind_references(screen.widgets, screen.widget_count);
   }
-  for (std::size_t index = 0;
-       index < configuration.dashboard.shape_widget_count; ++index) {
+  for (std::size_t index = 0; index < configuration.dashboard.shape_widget_count; ++index) {
     const configuration::ShapeWidgetConfiguration& shape =
         configuration.dashboard.shape_widgets[index];
     bind_references(shape.widgets, shape.widget_count);
   }
-  for (std::size_t index = 0;
-       index < configuration.dashboard.slot_widget_count; ++index) {
+  for (std::size_t index = 0; index < configuration.dashboard.slot_widget_count; ++index) {
     const configuration::SlotWidgetConfiguration& widget =
         configuration.dashboard.slot_widgets[index];
     for (std::size_t page = 0; page < widget.page_count; ++page) {
-      bind_references(widget.pages[page].widgets,
-                      widget.pages[page].widget_count);
+      bind_references(widget.pages[page].widgets, widget.pages[page].widget_count);
     }
   }
   lvgl_port_unlock();
@@ -187,18 +163,15 @@ bool bind_actions(const configuration::ApplicationConfiguration& configuration,
 std::size_t extend(lv_display_t* const display,
                    const configuration::ApplicationConfiguration& configuration,
                    Dashboard& dashboard, const std::size_t from) {
-  const std::size_t count =
-      std::max<std::size_t>(configuration.dashboard.screen_count, 1);
-  for (std::size_t index = from;
-       index < count && index < dashboard.screens.size(); ++index) {
+  const std::size_t count = std::max<std::size_t>(configuration.dashboard.screen_count, 1);
+  for (std::size_t index = from; index < count && index < dashboard.screens.size(); ++index) {
     lv_obj_t* const screen = screen_object(display, index);
     if (screen == nullptr) {
       return index;
     }
     dashboard.screens[index] = screen;
-    lv_obj_set_style_bg_color(
-        screen, lv_color_hex(screen_background(configuration, index)),
-        LV_PART_MAIN);
+    lv_obj_set_style_bg_color(screen, lv_color_hex(screen_background(configuration, index)),
+                              LV_PART_MAIN);
     lv_obj_set_style_bg_opa(screen, LV_OPA_COVER, LV_PART_MAIN);
   }
   return count;
@@ -208,23 +181,19 @@ bool attach_slots(const configuration::ApplicationConfiguration& configuration,
                   Dashboard& dashboard) {
   dashboard.slots.clear();
   bool attached = true;
-  for (std::size_t index = 0; index < configuration.dashboard.slot_widget_count;
-       ++index) {
+  for (std::size_t index = 0; index < configuration.dashboard.slot_widget_count; ++index) {
     const configuration::SlotWidgetConfiguration& config =
         configuration.dashboard.slot_widgets[index];
     lv_obj_t* const container = dashboard.slot.collection.root_object(index);
-    const std::span<lv_obj_t* const> pages =
-        std::span{dashboard.pages}.subspan(
-            index * configuration::kMaximumSlotPages,
-            configuration::kMaximumSlotPages);
+    const std::span<lv_obj_t* const> pages = std::span{dashboard.pages}.subspan(
+        index * configuration::kMaximumSlotPages, configuration::kMaximumSlotPages);
     if (container == nullptr || dashboard.slot.registry == nullptr ||
         dashboard.slot.telemetry == nullptr) {
       attached = false;
       continue;
     }
     if (!dashboard.slots.add(container, pages, config, *dashboard.slot.registry,
-                             *dashboard.slot.telemetry,
-                             dashboard.slot.modifier_readers)) {
+                             *dashboard.slot.telemetry, dashboard.slot.modifier_readers)) {
       log::error("dashboard", "Failed to bind slot page source");
       attached = false;
     }

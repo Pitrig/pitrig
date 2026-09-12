@@ -24,8 +24,7 @@ class Trigger final {
   Trigger(const Trigger&) = delete;
   Trigger& operator=(const Trigger&) = delete;
 
-  [[nodiscard]] bool start(WakeHandler handler, void* context,
-                           TaskStorage& task_storage);
+  [[nodiscard]] bool start(WakeHandler handler, void* context, TaskStorage& task_storage);
   [[nodiscard]] bool started() const { return task_ != nullptr; }
   void request();
 

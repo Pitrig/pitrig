@@ -37,8 +37,7 @@ class Service final {
   static constexpr std::size_t kStorageBytes =
       sizeof(Follower) * telemetry::catalog::kFieldCount + alignof(Follower);
 
-  Service(const telemetry::ITelemetryReader& telemetry,
-          events::EventBus& event_bus);
+  Service(const telemetry::ITelemetryReader& telemetry, events::EventBus& event_bus);
   ~Service();
 
   Service(const Service&) = delete;
@@ -67,13 +66,12 @@ class Service final {
   static void on_telemetry_updated(const events::Event& event, void* context);
   static Motion snapshot(const Follower& follower);
   [[nodiscard]] float shown(const Motion& motion, std::int64_t now_us) const;
-  void sample(Follower& follower, std::optional<double> numeric,
-              std::uint64_t revision, std::int64_t now_us) const;
+  void sample(Follower& follower, std::optional<double> numeric, std::uint64_t revision,
+              std::int64_t now_us) const;
 
   const telemetry::ITelemetryReader& telemetry_;
   events::EventBus& event_bus_;
-  std::atomic<configuration::ValueSmoothing> policy_{
-      configuration::ValueSmoothing::off};
+  std::atomic<configuration::ValueSmoothing> policy_{configuration::ValueSmoothing::off};
   events::Subscription subscription_{};
   std::span<Follower> followers_{};
 };

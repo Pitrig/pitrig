@@ -38,8 +38,7 @@ struct Channel {
 std::array<Channel, kMaximumChannels> channels{};
 
 [[nodiscard]] Channel* find(const driver::Handle handle) {
-  if (!handle.valid() || handle.index >= channels.size() ||
-      !channels[handle.index].open) {
+  if (!handle.valid() || handle.index >= channels.size() || !channels[handle.index].open) {
     return nullptr;
   }
   return &channels[handle.index];
@@ -90,41 +89,36 @@ driver::Handle open(const driver::Configuration& configuration) {
     slot.channel = nullptr;
   }
   if (taken == nullptr) {
-    ESP_LOGE(kTag, "Pin %d could not take a transmit channel",
-             configuration.pin);
+    ESP_LOGE(kTag, "Pin %d could not take a transmit channel", configuration.pin);
     return {};
   }
-  if (encoder_open(slot.encoder, kResolutionHz) != ESP_OK ||
-      rmt_enable(slot.channel) != ESP_OK) {
+  if (encoder_open(slot.encoder, kResolutionHz) != ESP_OK || rmt_enable(slot.channel) != ESP_OK) {
     ESP_LOGE(kTag, "Pin %d could not start transmitting", configuration.pin);
     release(slot);
     return {};
   }
   slot.open = true;
   ESP_LOGI(kTag, "Pin %d clocks %u lamps from %u symbols%s", configuration.pin,
-           static_cast<unsigned>(configuration.lamps),
-           static_cast<unsigned>(taken->symbols),
+           static_cast<unsigned>(configuration.lamps), static_cast<unsigned>(taken->symbols),
            taken->with_dma ? " over dma" : "");
   return {.index = static_cast<std::uint8_t>(index)};
 }
 
-bool transmit(const driver::Handle handle,
-              const std::span<const std::uint8_t> bytes) {
+bool transmit(const driver::Handle handle, const std::span<const std::uint8_t> bytes) {
   Channel* const slot = find(handle);
   if (slot == nullptr || bytes.empty()) {
     return false;
   }
-  const rmt_transmit_config_t config{
-      .loop_count = 0, .flags = {.eot_level = 0, .queue_nonblocking = 1}};
-  return rmt_transmit(slot->channel, &slot->encoder.base, bytes.data(),
-                      bytes.size(), &config) == ESP_OK;
+  const rmt_transmit_config_t config{.loop_count = 0,
+                                     .flags = {.eot_level = 0, .queue_nonblocking = 1}};
+  return rmt_transmit(slot->channel, &slot->encoder.base, bytes.data(), bytes.size(), &config) ==
+         ESP_OK;
 }
 
 bool wait(const driver::Handle handle, const std::uint32_t timeout_ms) {
   Channel* const slot = find(handle);
   return slot != nullptr &&
-         rmt_tx_wait_all_done(slot->channel,
-                              static_cast<int>(timeout_ms)) == ESP_OK;
+         rmt_tx_wait_all_done(slot->channel, static_cast<int>(timeout_ms)) == ESP_OK;
 }
 
 void close(const driver::Handle handle) {

@@ -658,6 +658,20 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
   return {};
 }
 
+[[nodiscard]] inline std::string_view range_error(const UartTelemetryConfiguration& config) {
+  if (config.baud_rate < 9600 || config.baud_rate > 2000000) {
+    return "baud_rate";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const TelemetryTransportConfiguration& config) {
+  if (config.uart.baud_rate < 9600 || config.uart.baud_rate > 2000000) {
+    return "uart.baud_rate";
+  }
+  return {};
+}
+
 [[nodiscard]] inline std::string_view range_error(const WidgetBorder& config) {
   if (config.width_px > 240) {
     return "width_px";
@@ -772,6 +786,13 @@ inline constexpr std::array<std::string_view, 2> kProtocolDocumentKeys{{
 [[nodiscard]] inline std::string_view range_error(const SlotPageConfiguration& config) {
   if (config.duration_ms > kMaximumHoldMs) {
     return "duration_ms";
+  }
+  return {};
+}
+
+[[nodiscard]] inline std::string_view range_error(const ApplicationConfiguration& config) {
+  if (config.telemetry_transport.uart.baud_rate < 9600 || config.telemetry_transport.uart.baud_rate > 2000000) {
+    return "telemetry_transport.uart.baud_rate";
   }
   return {};
 }

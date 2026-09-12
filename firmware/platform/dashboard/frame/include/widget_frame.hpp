@@ -53,26 +53,22 @@ struct Box {
 
 [[nodiscard]] std::int32_t fill_radius(const Config& config, std::int32_t inset);
 
-[[nodiscard]] bool build(const Layout& layout, const Config& config,
-                         const char* tag, std::int32_t content_width,
-                         std::int32_t content_height,
-                         bool fill_available_width, const fonts::Registry& fonts,
-                         lv_obj_t*& parent, Rect& bounds, Box& box);
+[[nodiscard]] bool build(const Layout& layout, const Config& config, const char* tag,
+                         std::int32_t content_width, std::int32_t content_height,
+                         bool fill_available_width, const fonts::Registry& fonts, lv_obj_t*& parent,
+                         Rect& bounds, Box& box);
 
-[[nodiscard]] bool update(const Layout& layout, const Config& config,
-                          const char* tag, std::int32_t content_width,
-                          std::int32_t content_height,
-                          bool fill_available_width,
-                          const fonts::Registry& fonts, Box& box,
+[[nodiscard]] bool update(const Layout& layout, const Config& config, const char* tag,
+                          std::int32_t content_width, std::int32_t content_height,
+                          bool fill_available_width, const fonts::Registry& fonts, Box& box,
                           Rect* bounds = nullptr);
 
 using ApplyContentColor = void (*)(void* context, std::uint32_t rgb);
 
 class Painter {
  public:
-  void configure(const Config& config, const Box& box,
-                 std::uint32_t content_color, ApplyContentColor apply_color,
-                 void* color_context);
+  void configure(const Config& config, const Box& box, std::uint32_t content_color,
+                 ApplyContentColor apply_color, void* color_context);
   void bind(ValueReadCallback read, void* context);
   void bind_caption(ValueReadCallback read, void* context);
   void render();
@@ -81,20 +77,16 @@ class Painter {
   [[nodiscard]] lv_obj_t* caption_object() const { return box_.caption; }
 
  private:
-  [[nodiscard]] conditions::ResolvedStyle ramped(
-      std::optional<double> value) const;
+  [[nodiscard]] conditions::ResolvedStyle ramped(std::optional<double> value) const;
   void apply_style(const conditions::ResolvedStyle& style);
   void apply_blink();
   void apply_visibility();
   void render_caption();
   void place_caption();
 
-  std::array<configuration::WidgetCondition,
-             configuration::kMaximumWidgetConditions>
-      conditions_{};
+  std::array<configuration::WidgetCondition, configuration::kMaximumWidgetConditions> conditions_{};
   std::size_t condition_count_{};
-  std::array<configuration::ColorStop, configuration::kMaximumColorStops>
-      ramp_stops_{};
+  std::array<configuration::ColorStop, configuration::kMaximumColorStops> ramp_stops_{};
   std::size_t ramp_stop_count_{};
   configuration::ColorRampTarget ramp_target_{};
   ValueReadCallback read_{};

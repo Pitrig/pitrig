@@ -216,8 +216,9 @@ find out. `@PR:IMAGE:CLEAR` erases the installed package outside a session and
 is rejected while an update is active or another image change is pending a
 reboot; the active dashboard keeps drawing from its external-RAM copies until
 that reboot, after which configurations referencing cleared images report
-unresolved dependencies. `@PR:IMAGE:BEGIN:size=<bytes>` erases the image
-partition in its own static task before answering `READY`.
+unresolved dependencies. `@PR:IMAGE:BEGIN:size=<bytes>` erases the arriving
+package's length, rounded up to the erase block, in its own static task before
+answering `READY`; only `CLEAR` erases the whole partition.
 
 ## Conversion
 

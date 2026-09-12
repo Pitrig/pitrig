@@ -172,6 +172,10 @@ Avoid unrelated refactoring.
 
 Keep commits focused.
 
+Never commit, branch, merge or push unless asked for it in that message. Finish
+the work and leave it uncommitted; when a git operation needs a clean tree, ask
+rather than decide.
+
 If architectural changes are required, stop and ask first.
 
 ---

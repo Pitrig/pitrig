@@ -25,8 +25,7 @@
 #define MIPI_DSI_LANE_BIT_RATE_MBPS 750
 #define MIPI_DSI_PHY_LDO_CHANNEL 3
 #define MIPI_DSI_PHY_LDO_VOLTAGE_MV 2500
-#if defined(CONFIG_PITRIG_DISPLAY_RENDER_FULL) || \
-    defined(CONFIG_PITRIG_DISPLAY_RENDER_FULL_STRIPS)
+#if defined(CONFIG_PITRIG_DISPLAY_RENDER_FULL) || defined(CONFIG_PITRIG_DISPLAY_RENDER_FULL_STRIPS)
 #define LCD_FRAME_BUFFER_COUNT 3
 #else
 #define LCD_FRAME_BUFFER_COUNT 2
@@ -42,12 +41,9 @@
 static esp_ldo_channel_handle_t mipi_phy_power;
 static esp_lcd_dsi_bus_handle_t mipi_dsi_bus;
 
-static void disable_backlight_on_shutdown(void) {
-  (void)gpio_set_level(LCD_BACKLIGHT, 0);
-}
+static void disable_backlight_on_shutdown(void) { (void)gpio_set_level(LCD_BACKLIGHT, 0); }
 
-static esp_err_t fixed_orientation_swap_xy(esp_lcd_panel_t* panel,
-                                            bool swap_axes) {
+static esp_err_t fixed_orientation_swap_xy(esp_lcd_panel_t* panel, bool swap_axes) {
   (void)panel;
   return swap_axes ? ESP_ERR_NOT_SUPPORTED : ESP_OK;
 }
@@ -137,11 +133,34 @@ static esp_err_t enable_mipi_phy_power(void) {
   return esp_ldo_acquire_channel(&config, &mipi_phy_power);
 }
 
+void pitrig_jc1060p470c_panel_release(esp_lcd_panel_io_handle_t* io,
+                                      esp_lcd_panel_handle_t* panel) {
+  if (panel != NULL && *panel != NULL) {
+    (void)esp_lcd_panel_del(*panel);
+    *panel = NULL;
+  }
+  if (io != NULL && *io != NULL) {
+    (void)esp_lcd_panel_io_del(*io);
+    *io = NULL;
+  }
+  if (mipi_dsi_bus != NULL) {
+    (void)esp_lcd_del_dsi_bus(mipi_dsi_bus);
+    mipi_dsi_bus = NULL;
+  }
+  if (mipi_phy_power != NULL) {
+    (void)esp_ldo_release_channel(mipi_phy_power);
+    mipi_phy_power = NULL;
+  }
+  (void)gpio_set_level(LCD_BACKLIGHT, 0);
+}
+
 esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
-                                               esp_lcd_panel_handle_t* panel) {
+                                              esp_lcd_panel_handle_t* panel) {
   if (io == NULL || panel == NULL) {
     return ESP_ERR_INVALID_ARG;
   }
+  *io = NULL;
+  *panel = NULL;
 
   esp_err_t result = initialize_backlight();
   if (result != ESP_OK) {
@@ -164,6 +183,8 @@ esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   };
   result = esp_lcd_new_dsi_bus(&bus_config, &mipi_dsi_bus);
   if (result != ESP_OK) {
+    mipi_dsi_bus = NULL;
+    pitrig_jc1060p470c_panel_release(io, panel);
     return result;
   }
 
@@ -174,6 +195,8 @@ esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   };
   result = esp_lcd_new_panel_io_dbi(mipi_dsi_bus, &io_config, io);
   if (result != ESP_OK) {
+    *io = NULL;
+    pitrig_jc1060p470c_panel_release(io, panel);
     return result;
   }
 
@@ -198,6 +221,8 @@ esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   };
   result = esp_lcd_new_panel_jd9165(*io, &panel_config, panel);
   if (result != ESP_OK) {
+    *panel = NULL;
+    pitrig_jc1060p470c_panel_release(io, panel);
     return result;
   }
   (*panel)->swap_xy = fixed_orientation_swap_xy;
@@ -210,6 +235,9 @@ esp_err_t pitrig_jc1060p470c_panel_initialize(esp_lcd_panel_io_handle_t* io,
   }
   if (result == ESP_OK) {
     result = esp_lcd_dpi_panel_enable_dma2d(*panel);
+  }
+  if (result != ESP_OK) {
+    pitrig_jc1060p470c_panel_release(io, panel);
   }
   return result;
 }

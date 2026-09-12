@@ -4,8 +4,8 @@
 #include <span>
 
 #include "application_configuration.hpp"
-#include "configuration_schema_generated.hpp"
 #include "cJSON.h"
+#include "configuration_schema_generated.hpp"
 
 namespace pitrig::configuration::json {
 
@@ -19,10 +19,8 @@ struct ParentRef {
   std::uint8_t index{};
 };
 
-[[nodiscard]] bool parse_widget(const cJSON* object,
-                                DashboardConfiguration& dashboard,
-                                const ReferenceTable& owner,
-                                std::uint8_t screen_index,
+[[nodiscard]] bool parse_widget(const cJSON* object, DashboardConfiguration& dashboard,
+                                const ReferenceTable& owner, std::uint8_t screen_index,
                                 const ParentRef& parent, std::uint8_t depth,
                                 ValidationFailure& failure);
 

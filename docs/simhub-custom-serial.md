@@ -98,10 +98,13 @@ FL;LAPS 14.7
 
 Typed catalog fields accept unsigned base-10 integers, signed base-10 integers,
 decimal floats, or booleans (`0`, `1`, `false`, or `true`) according to their
-declared type. Their original strings are still retained, while `duration_ms`
-and `signed_duration_ms` time transforms use typed millisecond values. The Lap
-Timer module consumes `L` and exposes its smoothly extrapolated `current_time`
-output separately from the raw telemetry slot.
+declared type. A float may carry a sign, a `.` and an `e`/`E` exponent, must
+have at least one digit in its mantissa and one in any exponent, must be
+consumed entirely and must be finite; `0x` forms, `inf` and `nan` are rejected,
+as is anything longer than 31 characters. Their original strings are still
+retained, while `duration_ms` and `signed_duration_ms` time transforms use typed
+millisecond values. The Lap Timer module consumes `L` and exposes its smoothly
+extrapolated `current_time` output separately from the raw telemetry slot.
 
 The identifier-to-field mapping remains private to the SimHub protocol. During
 startup, every identifier is resolved to a protocol-neutral telemetry handle,

@@ -10,8 +10,7 @@ PartitionStorage::~PartitionStorage() { unmap(); }
 
 bool PartitionStorage::initialize() {
   unmap();
-  partition_ = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
-                                        ESP_PARTITION_SUBTYPE_ANY, label_);
+  partition_ = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, label_);
   return partition_ != nullptr && partition_->size == expected_size_;
 }
 
@@ -21,8 +20,7 @@ bool PartitionStorage::map(std::span<const std::uint8_t>& bytes) {
   }
   if (mapping_.address == nullptr) {
     const void* address{};
-    if (esp_partition_mmap(partition_, 0, partition_->size,
-                           ESP_PARTITION_MMAP_DATA, &address,
+    if (esp_partition_mmap(partition_, 0, partition_->size, ESP_PARTITION_MMAP_DATA, &address,
                            &mapping_.handle) != ESP_OK) {
       return false;
     }
@@ -52,8 +50,7 @@ bool PartitionStorage::erase(const std::size_t bytes) {
     return false;
   }
   const std::size_t granularity = partition_->erase_size;
-  const std::size_t aligned =
-      (bytes + granularity - 1U) / granularity * granularity;
+  const std::size_t aligned = (bytes + granularity - 1U) / granularity * granularity;
   const std::size_t length = std::min<std::size_t>(aligned, partition_->size);
   if (length == 0) {
     return true;
@@ -62,15 +59,13 @@ bool PartitionStorage::erase(const std::size_t bytes) {
   return esp_partition_erase_range(partition_, 0, length) == ESP_OK;
 }
 
-bool PartitionStorage::write(const std::size_t offset,
-                             const std::span<const std::uint8_t> bytes) {
+bool PartitionStorage::write(const std::size_t offset, const std::span<const std::uint8_t> bytes) {
   if (partition_ == nullptr || bytes.empty() || offset > partition_->size ||
       bytes.size() > partition_->size - offset) {
     return false;
   }
   unmap();
-  return esp_partition_write(partition_, offset, bytes.data(), bytes.size()) ==
-         ESP_OK;
+  return esp_partition_write(partition_, offset, bytes.data(), bytes.size()) == ESP_OK;
 }
 
 }

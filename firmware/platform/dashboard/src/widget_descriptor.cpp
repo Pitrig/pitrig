@@ -2,14 +2,11 @@
 
 namespace pitrig::dashboard {
 
-WidgetManager::~WidgetManager() {
-  destroy_all();
-}
+WidgetManager::~WidgetManager() { destroy_all(); }
 
 bool WidgetManager::add(const WidgetDescriptor& descriptor) {
-  if (count_ == entries_.size() || descriptor.create == nullptr ||
-      descriptor.destroy == nullptr || descriptor.root_object == nullptr ||
-      descriptor.caption_object == nullptr ||
+  if (count_ == entries_.size() || descriptor.create == nullptr || descriptor.destroy == nullptr ||
+      descriptor.root_object == nullptr || descriptor.caption_object == nullptr ||
       descriptor.update_instance == nullptr || descriptor.sync_count == nullptr ||
       descriptor.context == nullptr) {
     return false;
@@ -53,8 +50,7 @@ lv_obj_t* WidgetManager::root_object(const configuration::WidgetType type,
   for (std::size_t entry = 0; entry < count_; ++entry) {
     const Entry& candidate = entries_[entry];
     if (candidate.created && candidate.descriptor.type == type) {
-      return candidate.descriptor.root_object(candidate.descriptor.context,
-                                              index);
+      return candidate.descriptor.root_object(candidate.descriptor.context, index);
     }
   }
   return nullptr;
@@ -65,8 +61,7 @@ lv_obj_t* WidgetManager::caption_object(const configuration::WidgetType type,
   for (std::size_t entry = 0; entry < count_; ++entry) {
     const Entry& candidate = entries_[entry];
     if (candidate.created && candidate.descriptor.type == type) {
-      return candidate.descriptor.caption_object(candidate.descriptor.context,
-                                                 index);
+      return candidate.descriptor.caption_object(candidate.descriptor.context, index);
     }
   }
   return nullptr;
@@ -77,21 +72,17 @@ bool WidgetManager::update_instance(const configuration::WidgetType type,
   for (std::size_t entry = 0; entry < count_; ++entry) {
     const Entry& candidate = entries_[entry];
     if (candidate.created && candidate.descriptor.type == type) {
-      return candidate.descriptor.update_instance(candidate.descriptor.context,
-                                                  index);
+      return candidate.descriptor.update_instance(candidate.descriptor.context, index);
     }
   }
   return false;
 }
 
-configuration::WidgetType WidgetManager::type_at(
-    const std::size_t index) const {
-  return index < count_ ? entries_[index].descriptor.type
-                        : configuration::WidgetType{};
+configuration::WidgetType WidgetManager::type_at(const std::size_t index) const {
+  return index < count_ ? entries_[index].descriptor.type : configuration::WidgetType{};
 }
 
-bool WidgetManager::sync_count(const configuration::WidgetType type,
-                               const std::uint8_t count) {
+bool WidgetManager::sync_count(const configuration::WidgetType type, const std::uint8_t count) {
   for (std::size_t entry = 0; entry < count_; ++entry) {
     Entry& candidate = entries_[entry];
     if (candidate.descriptor.type != type) {

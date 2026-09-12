@@ -1,11 +1,10 @@
 #include "screen_navigation.hpp"
 
-#include "pitrig_features.hpp"
-
 #include <cstdint>
 
 #include "esp_lvgl_port.h"
 #include "lvgl.h"
+#include "pitrig_features.hpp"
 
 namespace pitrig::dashboard::navigation {
 namespace {
@@ -17,6 +16,16 @@ bool gesture_in_progress() {
   return indev != nullptr && lv_indev_get_gesture_dir(indev) != LV_DIR_NONE;
 }
 
+[[nodiscard]] std::size_t shown_index(const std::span<lv_obj_t* const> screens) {
+  const lv_obj_t* const shown = lv_screen_active();
+  for (std::size_t index = 0; index < screens.size(); ++index) {
+    if (screens[index] == shown) {
+      return index;
+    }
+  }
+  return 0;
+}
+
 }
 
 Controller::~Controller() { detach(); }
@@ -24,7 +33,7 @@ Controller::~Controller() { detach(); }
 void Controller::attach(const std::span<lv_obj_t* const> screens) {
   detach();
   screens_ = screens;
-  active_ = 0;
+  active_ = shown_index(screens_);
   if (screens_.size() < 2) {
     return;
   }
@@ -60,8 +69,12 @@ void Controller::detach() {
   active_ = 0;
 }
 
-void Controller::set_transition(
-    const configuration::ScreenTransition transition) {
+void Controller::set_screen_shown(const ScreenShown callback, void* const context) {
+  screen_shown_ = callback;
+  screen_shown_context_ = context;
+}
+
+void Controller::set_transition(const configuration::ScreenTransition transition) {
   transition_ = transition;
 }
 
@@ -69,8 +82,7 @@ void Controller::clear_actions() {
   for (std::size_t index = 0; index < action_count_; ++index) {
     Binding& binding = actions_[index];
     if (binding.object != nullptr) {
-      (void)lv_obj_remove_event_cb_with_user_data(binding.object, on_action,
-                                                  &binding);
+      (void)lv_obj_remove_event_cb_with_user_data(binding.object, on_action, &binding);
       lv_obj_remove_flag(binding.object, LV_OBJ_FLAG_CLICKABLE);
     }
   }
@@ -78,8 +90,7 @@ void Controller::clear_actions() {
   action_count_ = 0;
 }
 
-bool Controller::add_action(lv_obj_t* const object,
-                            const configuration::WidgetActionType type,
+bool Controller::add_action(lv_obj_t* const object, const configuration::WidgetActionType type,
                             const std::uint8_t target) {
   if (object == nullptr || type == configuration::WidgetActionType::none) {
     return true;
@@ -135,10 +146,8 @@ void Controller::end_tear_free() {
 }
 
 void Controller::on_screen_loaded(lv_event_t* const event) {
-  auto* const controller =
-      static_cast<Controller*>(lv_event_get_user_data(event));
-  if (controller == nullptr ||
-      controller->sync_phase_ != SyncPhase::transitioning) {
+  auto* const controller = static_cast<Controller*>(lv_event_get_user_data(event));
+  if (controller == nullptr || controller->sync_phase_ != SyncPhase::transitioning) {
     return;
   }
   controller->sync_phase_ = SyncPhase::settling;
@@ -149,10 +158,8 @@ void Controller::on_screen_loaded(lv_event_t* const event) {
 }
 
 void Controller::on_refresh_ready(lv_event_t* const event) {
-  auto* const controller =
-      static_cast<Controller*>(lv_event_get_user_data(event));
-  if (controller != nullptr &&
-      controller->sync_phase_ == SyncPhase::settling) {
+  auto* const controller = static_cast<Controller*>(lv_event_get_user_data(event));
+  if (controller != nullptr && controller->sync_phase_ == SyncPhase::settling) {
     controller->end_tear_free();
   }
 }
@@ -161,12 +168,14 @@ void Controller::load(lv_obj_t* const screen, const bool forward) {
   begin_tear_free();
   if (transition_ == configuration::ScreenTransition::none) {
     lv_screen_load(screen);
-    return;
+  } else {
+    lv_screen_load_anim(screen,
+                        forward ? LV_SCREEN_LOAD_ANIM_MOVE_LEFT : LV_SCREEN_LOAD_ANIM_MOVE_RIGHT,
+                        kTransitionMs, 0, false);
   }
-  lv_screen_load_anim(screen,
-                      forward ? LV_SCREEN_LOAD_ANIM_MOVE_LEFT
-                              : LV_SCREEN_LOAD_ANIM_MOVE_RIGHT,
-                      kTransitionMs, 0, false);
+  if (screen_shown_ != nullptr) {
+    screen_shown_(screen_shown_context_);
+  }
 }
 
 void Controller::show(const std::size_t index) {
@@ -182,8 +191,7 @@ void Controller::show(const std::size_t index) {
 }
 
 void Controller::on_gesture(lv_event_t* const event) {
-  auto* const controller =
-      static_cast<Controller*>(lv_event_get_user_data(event));
+  auto* const controller = static_cast<Controller*>(lv_event_get_user_data(event));
   lv_indev_t* const indev = lv_indev_active();
   if (controller == nullptr || indev == nullptr) {
     return;
@@ -201,8 +209,7 @@ void Controller::step(const int delta) {
   if (count < 2) {
     return;
   }
-  const std::size_t next =
-      delta > 0 ? (active_ + 1) % count : (active_ + count - 1) % count;
+  const std::size_t next = delta > 0 ? (active_ + 1) % count : (active_ + count - 1) % count;
   lv_obj_t* const screen = screens_[next];
   if (screen == nullptr) {
     return;

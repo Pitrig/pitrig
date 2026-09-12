@@ -1,16 +1,15 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 
 namespace pitrig::performance {
 
-inline void record_maximum(std::atomic<std::uint32_t>& maximum,
-                           const std::uint32_t candidate) {
+inline void record_maximum(std::atomic<std::uint32_t>& maximum, const std::uint32_t candidate) {
   std::uint32_t current = maximum.load(std::memory_order_relaxed);
   while (candidate > current &&
-         !maximum.compare_exchange_weak(current, candidate,
-                                        std::memory_order_relaxed)) {
+         !maximum.compare_exchange_weak(current, candidate, std::memory_order_relaxed)) {
   }
 }
 
@@ -61,7 +60,8 @@ void begin();
 void register_task(TaskMetric metric, void* task_handle);
 void unregister_task(TaskMetric metric);
 
-void value_rendered(std::int64_t committed_at_us);
+void value_source_read(std::size_t index, bool revised, std::int64_t committed_at_us);
+void value_rendered();
 
 void frame_started();
 void area_invalidated(std::uint32_t pixels);

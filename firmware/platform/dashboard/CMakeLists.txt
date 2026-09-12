@@ -36,7 +36,6 @@ set(component_include_dirs
     "frame/include"
     "fonts/include"
     "images/include"
-    "layout/include"
     "navigation/include"
     "slots/include"
     "value_text/include"
@@ -51,12 +50,9 @@ set(component_include_dirs
     "widgets/slot/include"
     "widgets/text/include")
 
-if(CONFIG_PITRIG_FACTORY_BOARD_GUITION_ESP32_4848S040 OR
-   CONFIG_PITRIG_FACTORY_BOARD_GUITION_JC1060P470C)
-    set(boot_splash_asset "assets/boot_splash/logo_480x480.rgb565")
-else()
-    set(boot_splash_asset "assets/boot_splash/logo_320x170.rgb565")
-endif()
+set(boot_splash_assets
+    "assets/boot_splash/logo_480x480.rgb565"
+    "assets/boot_splash/logo_320x170.rgb565")
 
 set(lvgl_ldfragments "")
 if(CONFIG_IDF_TARGET_ESP32S3)
@@ -66,10 +62,11 @@ endif()
 idf_component_register(
     SRCS ${component_sources}
     INCLUDE_DIRS ${component_include_dirs}
-    EMBED_FILES ${boot_splash_asset}
+    PRIV_INCLUDE_DIRS "layout/include"
+    EMBED_FILES ${boot_splash_assets}
     LDFRAGMENTS ${lvgl_ldfragments}
-    REQUIRES configuration_contract font_assets image_assets lvgl__lvgl
-             telemetry value_conditions
+    REQUIRES configuration_contract font_assets font_contract image_assets
+             image_contract lvgl__lvgl telemetry value_conditions
     PRIV_REQUIRES display esp_lvgl_port esp_rom esp_system esp_timer heap logger
                   number_transform performance pitrig_config text_writer
                   time_transform value_smoothing)

@@ -37,6 +37,9 @@ class UsbCdcTransport final : public ITransport {
   static constexpr std::size_t kTaskStackSize = 4096;
   static constexpr UBaseType_t kTaskPriority = 5;
   static constexpr TickType_t kWriteTimeout = pdMS_TO_TICKS(1'000);
+  static constexpr TickType_t kWriteStallTimeout = pdMS_TO_TICKS(100);
+  static constexpr TickType_t kWriteFlushTimeout = pdMS_TO_TICKS(50);
+  static constexpr TickType_t kReceiveLockTimeout = pdMS_TO_TICKS(50);
 
   struct Chunk {
     std::array<std::uint8_t, kChunkSize> data{};
@@ -46,7 +49,7 @@ class UsbCdcTransport final : public ITransport {
   static void receive_callback(int interface, cdcacm_event_t* event);
   static void task_entry(void* context);
 
-  void receive();
+  void receive(TickType_t lock_timeout);
   void process();
   void release_rtos_objects();
 
@@ -56,6 +59,8 @@ class UsbCdcTransport final : public ITransport {
   std::array<std::uint8_t, kQueueDepth * sizeof(Chunk)> queue_storage_{};
   SemaphoreHandle_t write_mutex_{};
   StaticSemaphore_t write_mutex_state_{};
+  SemaphoreHandle_t receive_mutex_{};
+  StaticSemaphore_t receive_mutex_state_{};
   TaskHandle_t task_{};
   StaticTask_t task_state_{};
   std::array<StackType_t, kTaskStackSize / sizeof(StackType_t)> task_stack_{};

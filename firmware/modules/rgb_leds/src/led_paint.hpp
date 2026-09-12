@@ -23,13 +23,14 @@ struct Area {
   [[nodiscard]] bool holds(std::uint16_t column, std::uint16_t row) const;
 };
 
-[[nodiscard]] Area area_of(const led::Matrix& matrix,
-                           const configuration::LedEffect& effect);
+[[nodiscard]] Area area_of(const led::Matrix& matrix, const configuration::LedEffect& effect);
+
+[[nodiscard]] std::uint64_t effect_period_us(const configuration::LedEffect& effect);
 
 class Surface final {
  public:
-  Surface(led::Output& output, const led::Matrix& matrix, const Area& area,
-          bool inverted, bool mirrored)
+  Surface(led::Output& output, const led::Matrix& matrix, const Area& area, bool inverted,
+          bool mirrored)
       : output_(&output),
         matrix_(&matrix),
         area_(area),
@@ -37,9 +38,7 @@ class Surface final {
         inverted_(inverted),
         mirrored_(mirrored) {}
 
-  [[nodiscard]] std::size_t size() const {
-    return mirrored_ ? (count_ + 1U) / 2U : count_;
-  }
+  [[nodiscard]] std::size_t size() const { return mirrored_ ? (count_ + 1U) / 2U : count_; }
 
   void set(std::size_t index, led::Color color) const;
 
@@ -69,19 +68,15 @@ struct ColorRuleState {
 };
 
 [[nodiscard]] LayerColors colors_of(const configuration::LedEffect& effect,
-                                    std::optional<double> watched,
-                                    ColorRuleState& state,
+                                    std::optional<double> watched, ColorRuleState& state,
                                     std::uint64_t now_us);
 
-[[nodiscard]] Surface surface_of(led::Output& output, const led::Matrix& matrix,
-                                 const Area& area,
+[[nodiscard]] Surface surface_of(led::Output& output, const led::Matrix& matrix, const Area& area,
                                  const configuration::LedEffect& effect);
 
-void fill_area(led::Output& output, const led::Matrix& matrix, const Area& area,
-               led::Color color);
+void fill_area(led::Output& output, const led::Matrix& matrix, const Area& area, led::Color color);
 
-void paint(const Surface& surface, const configuration::LedEffect& effect,
-           led::Color color, std::optional<double> value,
-           std::uint64_t elapsed_us);
+void paint(const Surface& surface, const configuration::LedEffect& effect, led::Color color,
+           std::optional<double> value, std::uint64_t elapsed_us);
 
 }

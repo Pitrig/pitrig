@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 #include <span>
+#include <string_view>
 
 #include "asset_control.hpp"
 #include "transport.hpp"
@@ -15,42 +16,35 @@ bool AssetControl::send_text(const char* const text) {
 }
 
 bool AssetControl::send_ok(const char* const rest) {
-  const int written =
-      std::snprintf(response_.data(), response_.size(), "@PR:OK:%.*s:%s\n",
-                    static_cast<int>(traits_.tag.size()), traits_.tag.data(),
-                    rest);
+  const int written = std::snprintf(response_.data(), response_.size(), "@PR:OK:%.*s:%s\n",
+                                    static_cast<int>(traits_.tag.size()), traits_.tag.data(), rest);
   return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
          send_text(response_.data());
 }
 
 bool AssetControl::send_error(const char* const word) {
-  const int written =
-      std::snprintf(response_.data(), response_.size(), "@PR:ERR:%.*s:%s\n",
-                    static_cast<int>(traits_.tag.size()), traits_.tag.data(),
-                    word);
+  const int written = std::snprintf(response_.data(), response_.size(), "@PR:ERR:%.*s:%s\n",
+                                    static_cast<int>(traits_.tag.size()), traits_.tag.data(), word);
   return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
          send_text(response_.data());
 }
 
-void AssetControl::send_busy(transport::ITransport& reply) const {
+void AssetControl::send_busy(transport::ITransport& reply, const std::string_view tag) const {
+  const std::string_view word = tag.empty() ? traits_.tag : tag;
   std::array<char, kCommandCapacity> text{};
-  const int written =
-      std::snprintf(text.data(), text.size(), "@PR:ERR:%.*s:busy\n",
-                    static_cast<int>(traits_.tag.size()), traits_.tag.data());
+  const int written = std::snprintf(text.data(), text.size(), "@PR:ERR:%.*s:busy\n",
+                                    static_cast<int>(word.size()), word.data());
   if (written > 0 && static_cast<std::size_t>(written) < text.size()) {
     (void)reply.write(std::span<const std::uint8_t>(
-        reinterpret_cast<const std::uint8_t*>(text.data()),
-        static_cast<std::size_t>(written)));
+        reinterpret_cast<const std::uint8_t*>(text.data()), static_cast<std::size_t>(written)));
   }
 }
 
 bool AssetControl::send_ack(const std::uint32_t sequence) {
   const int written = std::snprintf(
-      response_.data(), response_.size(),
-      "@PR:OK:%.*s:ACK:sequence=%lu,received=%lu\n",
+      response_.data(), response_.size(), "@PR:OK:%.*s:ACK:sequence=%lu,received=%lu\n",
       static_cast<int>(traits_.tag.size()), traits_.tag.data(),
-      static_cast<unsigned long>(sequence),
-      static_cast<unsigned long>(received_size_));
+      static_cast<unsigned long>(sequence), static_cast<unsigned long>(received_size_));
   return written > 0 && static_cast<std::size_t>(written) < response_.size() &&
          send_text(response_.data());
 }

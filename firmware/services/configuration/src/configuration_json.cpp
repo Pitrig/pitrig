@@ -6,12 +6,12 @@
 #include <span>
 #include <string_view>
 
+#include "cJSON.h"
 #include "configuration_schema_generated.hpp"
 #include "json_hardware.hpp"
 #include "json_readers.hpp"
 #include "json_value_pipeline.hpp"
 #include "json_widgets.hpp"
-#include "cJSON.h"
 
 namespace pitrig::configuration {
 using namespace json;  // NOLINT(google-build-using-namespace)
@@ -23,44 +23,36 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   return std::find(keys.begin(), keys.end(), section) != keys.end();
 }
 
-[[nodiscard]] bool parse_uart(const cJSON* const object,
-                              UartTelemetryConfiguration& uart,
+[[nodiscard]] bool parse_uart(const cJSON* const object, UartTelemetryConfiguration& uart,
                               ValidationFailure& failure) {
   constexpr std::string_view kName = "telemetry_transport.uart";
-  return valid_object(object, schema::kUartTelemetryConfigurationKeys, kName,
-                      failure) &&
+  return valid_object(object, schema::kUartTelemetryConfigurationKeys, kName, failure) &&
          read_integer(object, "port", uart.port, kName, failure) &&
          read_integer(object, "tx_pin", uart.tx_pin, kName, failure) &&
          read_integer(object, "rx_pin", uart.rx_pin, kName, failure) &&
          read_integer(object, "baud_rate", uart.baud_rate, kName, failure) &&
-         read_boolean(object, "silence_esp_logs", uart.silence_esp_logs, kName,
-                      failure);
+         read_boolean(object, "silence_esp_logs", uart.silence_esp_logs, kName, failure);
 }
 
 [[nodiscard]] bool parse_transport(const cJSON* const object,
                                    TelemetryTransportConfiguration& transport,
                                    ValidationFailure& failure) {
   constexpr std::string_view kName = "telemetry_transport";
-  if (!valid_object(object, schema::kTelemetryTransportConfigurationKeys, kName,
-                    failure) ||
-      !read_enum(object, "id", transport.id, telemetry_transport_id_from_name,
-                 kName, failure)) {
+  if (!valid_object(object, schema::kTelemetryTransportConfigurationKeys, kName, failure) ||
+      !read_enum(object, "id", transport.id, telemetry_transport_id_from_name, kName, failure)) {
     return false;
   }
   const cJSON* const uart = member(object, "uart");
   return uart == nullptr || parse_uart(uart, transport.uart, failure);
 }
 
-[[nodiscard]] bool parse_screen(const cJSON* const object,
-                                DashboardConfiguration& dashboard,
-                                const std::uint8_t screen_index,
-                                ValidationFailure& failure) {
+[[nodiscard]] bool parse_screen(const cJSON* const object, DashboardConfiguration& dashboard,
+                                const std::uint8_t screen_index, ValidationFailure& failure) {
   ScreenConfiguration& screen = dashboard.screens[screen_index];
   constexpr std::string_view kName = "screen";
   if (!valid_object(object, schema::kScreenConfigurationKeys, kName, failure) ||
       !read_text(object, "id", screen.id, kName, failure) ||
-      !read_color(object, "background_color", screen.background_color, kName,
-                  failure)) {
+      !read_color(object, "background_color", screen.background_color, kName, failure)) {
     return false;
   }
 
@@ -69,15 +61,14 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
     return true;
   }
   if (!cJSON_IsArray(widgets) ||
-      cJSON_GetArraySize(widgets) >
-          static_cast<int>(screen.widgets.size())) {
+      cJSON_GetArraySize(widgets) > static_cast<int>(screen.widgets.size())) {
     return reject(failure, ValidationError::invalid_screen, kName, "widgets");
   }
   const int count = cJSON_GetArraySize(widgets);
   for (int index = 0; index < count; ++index) {
     if (!parse_widget(cJSON_GetArrayItem(widgets, index), dashboard,
-                      ReferenceTable{screen.widgets, &screen.widget_count},
-                      screen_index, ParentRef{}, 0, failure)) {
+                      ReferenceTable{screen.widgets, &screen.widget_count}, screen_index,
+                      ParentRef{}, 0, failure)) {
       if (failure.widget_index < 0) {
         failure.widget_index = static_cast<std::int16_t>(index);
       }
@@ -87,16 +78,14 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   return true;
 }
 
-[[nodiscard]] bool parse_dashboard(const cJSON* const object,
-                                   DashboardConfiguration& dashboard,
+[[nodiscard]] bool parse_dashboard(const cJSON* const object, DashboardConfiguration& dashboard,
                                    ValidationFailure& failure) {
   constexpr std::string_view kName = "dashboard";
-  if (!valid_object(object, schema::kDashboardConfigurationKeys, kName,
-                    failure) ||
-      !read_enum(object, "transition", dashboard.transition,
-                 screen_transition_from_name, kName, failure) ||
-      !read_enum(object, "smoothing", dashboard.smoothing,
-                 value_smoothing_from_name, kName, failure)) {
+  if (!valid_object(object, schema::kDashboardConfigurationKeys, kName, failure) ||
+      !read_enum(object, "transition", dashboard.transition, screen_transition_from_name, kName,
+                 failure) ||
+      !read_enum(object, "smoothing", dashboard.smoothing, value_smoothing_from_name, kName,
+                 failure)) {
     return false;
   }
   const cJSON* const screens = member(object, "screens");
@@ -104,8 +93,7 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
     return true;
   }
   if (!cJSON_IsArray(screens) ||
-      cJSON_GetArraySize(screens) >
-          static_cast<int>(dashboard.screens.size())) {
+      cJSON_GetArraySize(screens) > static_cast<int>(dashboard.screens.size())) {
     return reject(failure, ValidationError::invalid_screen, kName, "screens");
   }
   const int count = cJSON_GetArraySize(screens);
@@ -120,10 +108,9 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   return true;
 }
 
-[[nodiscard]] ValidationFailure parse_root(
-    const cJSON* const root, const KeyList keys,
-    const ValidationContext& profile,
-    ApplicationConfiguration& configuration) {
+[[nodiscard]] ValidationFailure parse_root(const cJSON* const root, const KeyList keys,
+                                           const ValidationContext& profile,
+                                           ApplicationConfiguration& configuration) {
   ValidationFailure failure{};
   constexpr std::string_view kName = "configuration";
   if (!valid_object(root, keys, kName, failure)) {
@@ -132,8 +119,7 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 
   const cJSON* const board = member(root, "board");
   if (!cJSON_IsString(board) || board->valuestring == nullptr ||
-      !board_id_from_name(std::string_view{board->valuestring},
-                          configuration.board.id)) {
+      !board_id_from_name(std::string_view{board->valuestring}, configuration.board.id)) {
     (void)reject(failure, ValidationError::invalid_board, kName, "board");
     return failure;
   }
@@ -142,8 +128,7 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
     configuration.hardware = {};
     configuration.device_count = 0;
     const cJSON* const hardware = member(root, "hardware");
-    if (hardware != nullptr &&
-        !parse_hardware(hardware, configuration, failure)) {
+    if (hardware != nullptr && !parse_hardware(hardware, configuration, failure)) {
       return failure;
     }
   }
@@ -154,8 +139,7 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
     const cJSON* const transport = member(root, "telemetry_transport");
     if (transport != nullptr) {
       configuration.telemetry_transport_present = true;
-      if (!parse_transport(transport, configuration.telemetry_transport,
-                           failure)) {
+      if (!parse_transport(transport, configuration.telemetry_transport, failure)) {
         return failure;
       }
     }
@@ -164,33 +148,29 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   if (owns(keys, "dashboard")) {
     configuration.dashboard = {};
     const cJSON* const dashboard = member(root, "dashboard");
-    if (dashboard != nullptr &&
-        !parse_dashboard(dashboard, configuration.dashboard, failure)) {
+    if (dashboard != nullptr && !parse_dashboard(dashboard, configuration.dashboard, failure)) {
       return failure;
     }
   }
   return validate_configuration(configuration, profile);
 }
 
-[[nodiscard]] ValidationFailure parse_payload(
-    const std::span<const std::uint8_t> input, const std::size_t limit,
-    const KeyList keys, const ValidationContext& profile,
-    ApplicationConfiguration& configuration) {
+[[nodiscard]] ValidationFailure parse_payload(const std::span<const std::uint8_t> input,
+                                              const std::size_t limit, const KeyList keys,
+                                              const ValidationContext& profile,
+                                              ApplicationConfiguration& configuration) {
   ValidationFailure failure{};
-  if (input.empty() || input.size() > limit) {
+  if (input.empty() || input.size() > limit || contains_null_escape(input)) {
     (void)reject(failure, ValidationError::malformed, "configuration");
     return failure;
   }
   json::install_json_allocator();
   const char* parse_end{};
-  Json root(cJSON_ParseWithLengthOpts(
-                reinterpret_cast<const char*>(input.data()), input.size(),
-                &parse_end, false),
+  Json root(cJSON_ParseWithLengthOpts(reinterpret_cast<const char*>(input.data()), input.size(),
+                                      &parse_end, false),
             &cJSON_Delete);
-  const char* const input_end =
-      reinterpret_cast<const char*>(input.data()) + input.size();
-  while (root && parse_end < input_end &&
-         (*parse_end == ' ' || *parse_end == '\t')) {
+  const char* const input_end = reinterpret_cast<const char*>(input.data()) + input.size();
+  while (root && parse_end < input_end && (*parse_end == ' ' || *parse_end == '\t')) {
     ++parse_end;
   }
   if (!root || parse_end != input_end) {
@@ -202,15 +182,12 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
 
 }
 
-ValidationFailure parse_configuration_json(
-    const ConfigurationDocument document,
-    const std::span<const std::uint8_t> input,
-    const ValidationContext& profile,
-    ApplicationConfiguration& configuration) {
-  return parse_payload(input,
-                       configuration_document_payload_size(document),
-                       schema::document_keys(document), profile,
-                       configuration);
+ValidationFailure parse_configuration_json(const ConfigurationDocument document,
+                                           const std::span<const std::uint8_t> input,
+                                           const ValidationContext& profile,
+                                           ApplicationConfiguration& configuration) {
+  return parse_payload(input, configuration_document_payload_size(document),
+                       schema::document_keys(document), profile, configuration);
 }
 
 }

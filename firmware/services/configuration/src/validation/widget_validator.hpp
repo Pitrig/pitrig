@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
 
 #include "application_configuration.hpp"
 #include "configuration_schema_generated.hpp"
@@ -13,7 +14,7 @@ class Validator final {
   Validator(const ValidationContext& profile, ValidationFailure& failure)
       : profile_(profile), failure_(failure) {}
 
-  void set_parent_origin(const std::int32_t x, const std::int32_t y) {
+  void set_parent_origin(const std::int64_t x, const std::int64_t y) {
     origin_x_ = x;
     origin_y_ = y;
   }
@@ -30,7 +31,8 @@ class Validator final {
  private:
   [[nodiscard]] bool slot_page(const SlotPageConfiguration& config);
   [[nodiscard]] bool frame(const WidgetFrame& config);
-  [[nodiscard]] bool value_source(const ValueSourceConfiguration& config);
+  [[nodiscard]] bool value_source(const ValueSourceConfiguration& config, std::string_view path,
+                                  ValidationError error = ValidationError::invalid_widget);
   [[nodiscard]] bool value_range(const ValueRange& range);
   [[nodiscard]] bool text_source(const TextSourceConfiguration& config);
   [[nodiscard]] bool conditions(const WidgetFrame& config);
@@ -38,8 +40,8 @@ class Validator final {
   const telemetry::TelemetryRegistry registry_{};
   const ValidationContext& profile_;
   ValidationFailure& failure_;
-  std::int32_t origin_x_{};
-  std::int32_t origin_y_{};
+  std::int64_t origin_x_{};
+  std::int64_t origin_y_{};
 };
 
 }

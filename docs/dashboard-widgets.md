@@ -211,7 +211,11 @@ colors, alignment, background, caption placement, and unavailable text.
 
 Until a value arrives, a widget renders a zero through each source's own
 transform, so a plain value reads `0` and a time value keeps its format with
-every field zeroed, such as `00:00.000`. Once the first telemetry line has
+every field zeroed, such as `00:00.000`. A gauge does the same with the number
+rather than with the text: a bar, arc, indicator or graph trace with no value
+draws value 0 clamped into its `range`, so one whose range starts above zero
+rests at its low end and a centred bar rests at its origin rather than at the
+range minimum. Once the first telemetry line has
 reached the board, a widget still without a value shows its `unavailable_text`
 instead when it has one: before the feed starts nothing is missing yet, after
 it a value the game does not send is.
@@ -360,7 +364,13 @@ the table cannot state.
   side; a ring with its own radius only has to be no thicker than twice it.
 - `indicator` lights up to 16 `segments`, each with its own `threshold` on the
   mapped fraction; `blink_threshold` defaults to `2`, outside the clamped
-  fraction, so a strip never blinks unless asked. An `arc` shape spends
+  fraction, so a strip never blinks unless asked. Once the fraction reaches
+  `blink_threshold`, every lit lamp blinks with a period of **twice** its
+  `blink_ms` — the lamps toggle every `blink_ms` — and the phase comes from the
+  device clock rather than from the moment the threshold was crossed, so two
+  strips with the same `blink_ms` blink together. This is not the same
+  `blink_ms` a styling rule carries, which is a full period; the two properties
+  share a name and mean different things. An `arc` shape spends
   `segment_gap_px` along its own ring and rounds lamp ends rather than corners;
   whole degrees are all an arc resolves, so lamps and gaps are snapped to one
   size each and the group is centred on `center_angle_deg` rather than filling
@@ -528,11 +538,14 @@ rule cannot clear a background it did not paint. A widget that needs to switch
 its background on and off should be authored without one and let a rule paint
 it.
 
-`blink_ms` is a full period between 100 and 5000 milliseconds, or 0 for steady.
-The whole widget flashes — background, frame, caption and value together — so a
+`blink_ms` is a full period between 100 and 5000 milliseconds, or 0 for steady:
+the widget is visible for the first half of it and hidden for the second. The
+whole widget flashes — background, frame, caption and value together — so a
 warning reads as one pulsing box rather than as parts changing at different
-moments. The phase starts when the rule begins, so a widget is always visible on
-the frame that first applies it.
+moments. The phase restarts whenever the applied `blink_ms` changes, so a widget
+is always visible on the frame that first applies a rule. An `indicator`
+widget's own `blink_ms` is a *half* period measured on the device clock; the
+name is shared, the meaning is not.
 
 A rule applies while it matches, so a widget flashes for exactly as long as
 traction control is engaged. `hold_ms` keeps it applied for that long after it

@@ -6,7 +6,7 @@
 #include <limits>
 #include <numbers>
 
-#include "ring_geometry.hpp"
+#include "widget_ring.hpp"
 
 namespace pitrig::dashboard::indicator_widget::geometry {
 namespace {
@@ -22,39 +22,26 @@ constexpr float kDegreesPerRadian = 180.0F / std::numbers::pi_v<float>;
 
 Ring resolve_ring(const Config& config, const std::int32_t inner_width,
                   const std::int32_t inner_height) {
-  const ring::Centre centre =
-      ring::resolve({.thickness_px = config.thickness_px,
-                     .radius_px = config.radius_px,
-                     .x_offset_px = config.x_offset_px,
-                     .y_offset_px = config.y_offset_px,
-                     .center_angle_deg = config.center_angle_deg,
-                     .sector_deg = config.sector_deg,
-                     .center_on_figure = config.centering ==
-                                         configuration::RingCentering::figure},
-                    inner_width, inner_height);
+  const ring::Centre centre = ring::resolve_config(config, inner_width, inner_height);
   return Ring{centre.radius, static_cast<std::int32_t>(std::lround(centre.x)),
               static_cast<std::int32_t>(std::lround(centre.y))};
 }
 
-ArcSlices resolve_arc(const Config& config, const float radius,
-                      const std::int32_t count) {
+ArcSlices resolve_arc(const Config& config, const float radius, const std::int32_t count) {
   if (radius <= 0.0F || count <= 0) {
     return {};
   }
-  const float wanted_gap =
-      static_cast<float>(config.segment_gap_px) * kDegreesPerRadian / radius;
+  const float wanted_gap = static_cast<float>(config.segment_gap_px) * kDegreesPerRadian / radius;
   const auto sector = static_cast<std::int32_t>(config.sector_deg);
   const std::int32_t smallest_gap = config.segment_gap_px != 0 ? 1 : 0;
-  const std::int32_t gap = std::max(
-      static_cast<std::int32_t>(std::lround(wanted_gap)), smallest_gap);
+  const std::int32_t gap =
+      std::max(static_cast<std::int32_t>(std::lround(wanted_gap)), smallest_gap);
   const std::int32_t spent = gap * (count - 1);
-  const float exact =
-      static_cast<float>(sector - spent) / static_cast<float>(count);
+  const float exact = static_cast<float>(sector - spent) / static_cast<float>(count);
   if (exact < 0.5F) {
     return {};
   }
-  const auto shortest =
-      std::max<std::int32_t>(static_cast<std::int32_t>(std::floor(exact)), 1);
+  const auto shortest = std::max<std::int32_t>(static_cast<std::int32_t>(std::floor(exact)), 1);
   ArcSlices best{};
   std::int32_t best_total{};
   std::int32_t best_error = std::numeric_limits<std::int32_t>::max();
@@ -74,8 +61,8 @@ ArcSlices resolve_arc(const Config& config, const float radius,
   if (best.length_deg == 0) {
     return {};
   }
-  best.start_deg = normalized_degrees(
-      static_cast<std::int32_t>(config.center_angle_deg) - best_total / 2);
+  best.start_deg =
+      normalized_degrees(static_cast<std::int32_t>(config.center_angle_deg) - best_total / 2);
   return best;
 }
 
@@ -89,14 +76,13 @@ std::int32_t lamp_start_deg(const State& state, const std::size_t index) {
 }
 
 std::uint16_t outer_radius(const State& state) {
-  return static_cast<std::uint16_t>(std::lround(
-      state.ring_radius + static_cast<float>(state.thickness) / 2.0F));
+  return static_cast<std::uint16_t>(
+      std::lround(state.ring_radius + static_cast<float>(state.thickness) / 2.0F));
 }
 
-lv_area_t lamp_area(const State& state, const std::size_t index,
-                    const lv_area_t& content) {
-  const auto offset = static_cast<std::int32_t>(slot_of(state, index)) *
-                      (state.lamp_length + state.lamp_gap);
+lv_area_t lamp_area(const State& state, const std::size_t index, const lv_area_t& content) {
+  const auto offset =
+      static_cast<std::int32_t>(slot_of(state, index)) * (state.lamp_length + state.lamp_gap);
   if (state.horizontal) {
     const std::int32_t left = content.x1 + offset;
     return {left, content.y1, left + state.lamp_length - 1, content.y2};
@@ -105,15 +91,13 @@ lv_area_t lamp_area(const State& state, const std::size_t index,
   return {content.x1, bottom - state.lamp_length + 1, content.x2, bottom};
 }
 
-lv_area_t lamp_arc_area(const State& state, const std::size_t index,
-                        const lv_area_t& content) {
+lv_area_t lamp_arc_area(const State& state, const std::size_t index, const lv_area_t& content) {
   lv_area_t area{};
   const std::int32_t start = lamp_start_deg(state, index);
-  lv_draw_arc_get_area(
-      content.x1 + state.ring_center_x, content.y1 + state.ring_center_y,
-      outer_radius(state), static_cast<lv_value_precise_t>(start),
-      static_cast<lv_value_precise_t>(start + state.arc_length_deg),
-      state.thickness, state.rounded, &area);
+  lv_draw_arc_get_area(content.x1 + state.ring_center_x, content.y1 + state.ring_center_y,
+                       outer_radius(state), static_cast<lv_value_precise_t>(start),
+                       static_cast<lv_value_precise_t>(start + state.arc_length_deg),
+                       state.thickness, state.rounded, &area);
   return area;
 }
 

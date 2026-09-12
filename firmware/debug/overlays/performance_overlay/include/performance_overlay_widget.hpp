@@ -17,8 +17,7 @@ class View final {
   View(const View&) = delete;
   View& operator=(const View&) = delete;
 
-  [[nodiscard]] bool create(lv_display_t* display,
-                            const transport::ITransport& transport);
+  [[nodiscard]] bool create(lv_display_t* display, const transport::ITransport& transport);
   void destroy();
 
  private:

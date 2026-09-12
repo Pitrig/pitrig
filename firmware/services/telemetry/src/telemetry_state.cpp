@@ -5,20 +5,20 @@
 
 #include "esp_timer.h"
 #include "pitrig_features.hpp"
+#include "telemetry_seqlock.hpp"
 
 namespace pitrig::telemetry {
 
-TelemetryStateService::TelemetryStateService(
-    const ITelemetryRegistry& registry)
+TelemetryStateService::TelemetryStateService(const ITelemetryRegistry& registry)
     : registry_(registry) {}
 
 CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
   const std::lock_guard lock(mutex_);
-  if (registry_.describe(update.handle) == nullptr ||
-      update.handle.index >= slots_.size()) {
+  if (registry_.describe(update.handle) == nullptr || update.handle.index >= slots_.size()) {
     return {.handle = update.handle, .revision = revision_};
   }
   started_.store(true, std::memory_order_release);
+  last_arrival_us_.store(esp_timer_get_time(), std::memory_order_relaxed);
 
   Slot& slot = slots_[update.handle.index];
   bool changed = slot.available != update.available;
@@ -28,27 +28,19 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
         changed = changed || slot.value.source_text != update.value.source_text;
         break;
       case ValueType::uint32:
-        changed = changed ||
-                  slot.value.typed.uint32_value !=
-                      update.value.typed.uint32_value ||
+        changed = changed || slot.value.typed.uint32_value != update.value.typed.uint32_value ||
                   slot.value.source_text != update.value.source_text;
         break;
       case ValueType::int32:
-        changed = changed ||
-                  slot.value.typed.int32_value !=
-                      update.value.typed.int32_value ||
+        changed = changed || slot.value.typed.int32_value != update.value.typed.int32_value ||
                   slot.value.source_text != update.value.source_text;
         break;
       case ValueType::float32:
-        changed = changed ||
-                  slot.value.typed.float32_value !=
-                      update.value.typed.float32_value ||
+        changed = changed || slot.value.typed.float32_value != update.value.typed.float32_value ||
                   slot.value.source_text != update.value.source_text;
         break;
       case ValueType::boolean:
-        changed = changed ||
-                  slot.value.typed.boolean_value !=
-                      update.value.typed.boolean_value ||
+        changed = changed || slot.value.typed.boolean_value != update.value.typed.boolean_value ||
                   slot.value.source_text != update.value.source_text;
         break;
     }
@@ -60,8 +52,7 @@ CommitResult TelemetryStateService::apply(const TelemetryUpdate& update) {
     };
   }
 
-  const std::uint32_t sequence =
-      slot.sequence.load(std::memory_order_relaxed);
+  const std::uint32_t sequence = slot.sequence.load(std::memory_order_relaxed);
   slot.sequence.store(sequence + 1, std::memory_order_relaxed);
   std::atomic_thread_fence(std::memory_order_seq_cst);
   slot.available = update.available;
@@ -87,28 +78,22 @@ TelemetryRead TelemetryStateService::read(const Handle handle) const {
   }
 
   const Slot& slot = slots_[handle.index];
-  TelemetryRead result{.handle = handle};
-  for (;;) {
-    const std::uint32_t before =
-        slot.sequence.load(std::memory_order_acquire);
-    if ((before & 1U) != 0U) {
-      continue;
-    }
+  return seqlock_read(slot.sequence, [&slot, handle] {
+    TelemetryRead result{.handle = handle};
     result.value = slot.value;
     result.revision = slot.revision;
 #if PITRIG_DEBUG
     result.last_change_us = slot.last_change_us;
 #endif
     result.available = slot.available;
-    std::atomic_thread_fence(std::memory_order_acquire);
-    if (slot.sequence.load(std::memory_order_relaxed) == before) {
-      return result;
-    }
-  }
+    return result;
+  });
 }
 
-bool TelemetryStateService::started() const {
-  return started_.load(std::memory_order_acquire);
+bool TelemetryStateService::started() const { return started_.load(std::memory_order_acquire); }
+
+std::int64_t TelemetryStateService::last_arrival_us() const {
+  return last_arrival_us_.load(std::memory_order_relaxed);
 }
 
 }

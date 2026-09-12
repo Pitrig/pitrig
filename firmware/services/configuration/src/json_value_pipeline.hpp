@@ -4,30 +4,28 @@
 #include <string_view>
 
 #include "application_configuration.hpp"
-#include "json_readers.hpp"
 #include "cJSON.h"
+#include "json_readers.hpp"
 
 namespace pitrig::configuration::json {
 
 template <typename Source>
 [[nodiscard]] bool parse_modifiers(const cJSON* const object, Source& config,
-                                   ValidationFailure& failure) {
-  constexpr std::string_view kName = "widget.text.source.modifiers";
+                                   const std::string_view name, ValidationFailure& failure) {
   const cJSON* const modifiers = member(object, "modifiers");
   if (modifiers == nullptr) {
     return true;
   }
   if (!cJSON_IsArray(modifiers) ||
-      cJSON_GetArraySize(modifiers) >
-          static_cast<int>(config.modifiers.size())) {
-    return reject(failure, ValidationError::malformed, kName);
+      cJSON_GetArraySize(modifiers) > static_cast<int>(config.modifiers.size())) {
+    return reject(failure, ValidationError::malformed, name, "modifiers");
   }
   const int count = cJSON_GetArraySize(modifiers);
   for (int index = 0; index < count; ++index) {
     const cJSON* const modifier = cJSON_GetArrayItem(modifiers, index);
-    if (!valid_object(modifier, schema::kValueModifierKeys, kName, failure) ||
-        !read_enum(modifier, "type", config.modifiers[index].type,
-                   value_modifier_type_from_name, kName, failure)) {
+    if (!valid_object(modifier, schema::kValueModifierKeys, name, failure) ||
+        !read_enum(modifier, "type", config.modifiers[index].type, value_modifier_type_from_name,
+                   name, failure)) {
       return false;
     }
   }
@@ -35,25 +33,20 @@ template <typename Source>
   return true;
 }
 
-[[nodiscard]] bool parse_transform(const cJSON* object,
-                                   ValueTransform& transform,
+[[nodiscard]] bool parse_transform(const cJSON* object, ValueTransform& transform,
                                    ValidationFailure& failure);
 
-[[nodiscard]] bool parse_sources(const cJSON* object,
-                                 TextWidgetConfiguration& config,
+[[nodiscard]] bool parse_sources(const cJSON* object, TextWidgetConfiguration& config,
                                  ValidationFailure& failure);
 
-[[nodiscard]] bool parse_action(const cJSON* object, WidgetAction& action,
-                                std::string_view name,
+[[nodiscard]] bool parse_action(const cJSON* object, WidgetAction& action, std::string_view name,
                                 ValidationFailure& failure);
 
-[[nodiscard]] bool parse_frame(const cJSON* object, WidgetFrame& frame,
-                               std::string_view name,
+[[nodiscard]] bool parse_frame(const cJSON* object, WidgetFrame& frame, std::string_view name,
                                ValidationFailure& failure);
 
 [[nodiscard]] bool parse_value_source(const cJSON* object, const char* key,
-                                      ValueSourceConfiguration& config,
-                                      std::string_view name,
+                                      ValueSourceConfiguration& config, std::string_view name,
                                       ValidationFailure& failure);
 
 }

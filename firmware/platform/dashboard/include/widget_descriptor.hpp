@@ -45,16 +45,12 @@ class WidgetManager final {
   void destroy_all();
   void clear();
 
-  [[nodiscard]] lv_obj_t* root_object(configuration::WidgetType type,
-                                      std::uint8_t index) const;
-  [[nodiscard]] lv_obj_t* caption_object(configuration::WidgetType type,
-                                         std::uint8_t index) const;
-  [[nodiscard]] bool update_instance(configuration::WidgetType type,
-                                     std::uint8_t index) const;
+  [[nodiscard]] lv_obj_t* root_object(configuration::WidgetType type, std::uint8_t index) const;
+  [[nodiscard]] lv_obj_t* caption_object(configuration::WidgetType type, std::uint8_t index) const;
+  [[nodiscard]] bool update_instance(configuration::WidgetType type, std::uint8_t index) const;
   [[nodiscard]] std::size_t type_count() const { return count_; }
   [[nodiscard]] configuration::WidgetType type_at(std::size_t index) const;
-  [[nodiscard]] bool sync_count(configuration::WidgetType type,
-                                std::uint8_t count);
+  [[nodiscard]] bool sync_count(configuration::WidgetType type, std::uint8_t count);
   void wake_all() const;
 
  private:

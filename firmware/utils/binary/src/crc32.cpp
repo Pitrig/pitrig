@@ -1,16 +1,14 @@
 #include "crc32.hpp"
 
+#include "esp_rom_crc.h"
+
 namespace pitrig::binary {
 
 void Crc32::update(const std::span<const std::uint8_t> bytes) {
-  for (const std::uint8_t value : bytes) {
-    state_ ^= value;
-    for (std::uint8_t bit = 0; bit < 8; ++bit) {
-      const std::uint32_t mask =
-          0U - static_cast<std::uint32_t>(state_ & 1U);
-      state_ = (state_ >> 1U) ^ (0xEDB8'8320U & mask);
-    }
+  if (bytes.empty()) {
+    return;
   }
+  state_ = ~esp_rom_crc32_le(~state_, bytes.data(), static_cast<std::uint32_t>(bytes.size()));
 }
 
 std::uint32_t crc32(const std::span<const std::uint8_t> bytes) {

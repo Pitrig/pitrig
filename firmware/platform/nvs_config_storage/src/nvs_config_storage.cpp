@@ -14,12 +14,10 @@ namespace {
 constexpr char kPartition[] = "pitrig_cfg";
 constexpr char kNamespace[] = "pitrig_cfg";
 
-std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(
-    const ConfigurationDocument document) {
+std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(const ConfigurationDocument document) {
   const std::string_view name = configuration_document_name(document);
   std::array<char, NVS_KEY_NAME_MAX_SIZE> key{};
-  const std::size_t length =
-      std::min(name.size(), key.size() - 1U);
+  const std::size_t length = std::min(name.size(), key.size() - 1U);
   std::copy_n(name.begin(), length, key.begin());
   return key;
 }
@@ -28,8 +26,7 @@ std::array<char, NVS_KEY_NAME_MAX_SIZE> key_for(
 
 bool NvsConfigurationStorage::initialize() {
   esp_err_t result = nvs_flash_init_partition(kPartition);
-  if (result == ESP_ERR_NVS_NO_FREE_PAGES ||
-      result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+  if (result == ESP_ERR_NVS_NO_FREE_PAGES || result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
     if (nvs_flash_erase_partition(kPartition) != ESP_OK) {
       return false;
     }
@@ -39,17 +36,20 @@ bool NvsConfigurationStorage::initialize() {
   return initialized_;
 }
 
-bool NvsConfigurationStorage::read(
-    const ConfigurationDocument document,
-    const std::span<std::uint8_t> destination, std::size_t& size) {
+StorageRead NvsConfigurationStorage::read(const ConfigurationDocument document,
+                                          const std::span<std::uint8_t> destination,
+                                          std::size_t& size) {
   size = 0;
   if (!initialized_) {
-    return false;
+    return StorageRead::failed;
   }
   nvs_handle_t handle{};
-  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READONLY, &handle) !=
-      ESP_OK) {
-    return false;
+  const esp_err_t opened = nvs_open_from_partition(kPartition, kNamespace, NVS_READONLY, &handle);
+  if (opened == ESP_ERR_NVS_NOT_FOUND) {
+    return StorageRead::absent;
+  }
+  if (opened != ESP_OK) {
+    return StorageRead::failed;
   }
   const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
   std::size_t required{};
@@ -62,26 +62,24 @@ bool NvsConfigurationStorage::read(
     result = nvs_get_blob(handle, key.data(), destination.data(), &size);
   }
   nvs_close(handle);
-  if (result != ESP_OK) {
-    size = 0;
+  if (result == ESP_OK) {
+    return StorageRead::loaded;
   }
-  return result == ESP_OK;
+  size = 0;
+  return result == ESP_ERR_NVS_NOT_FOUND ? StorageRead::absent : StorageRead::failed;
 }
 
-bool NvsConfigurationStorage::write(
-    const ConfigurationDocument document,
-    const std::span<const std::uint8_t> data) {
+bool NvsConfigurationStorage::write(const ConfigurationDocument document,
+                                    const std::span<const std::uint8_t> data) {
   if (!initialized_ || data.empty()) {
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) !=
-      ESP_OK) {
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) != ESP_OK) {
     return false;
   }
   const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
-  const esp_err_t result =
-      nvs_set_blob(handle, key.data(), data.data(), data.size());
+  const esp_err_t result = nvs_set_blob(handle, key.data(), data.data(), data.size());
   const esp_err_t commit = result == ESP_OK ? nvs_commit(handle) : result;
   nvs_close(handle);
   return result == ESP_OK && commit == ESP_OK;
@@ -92,8 +90,7 @@ bool NvsConfigurationStorage::erase(const ConfigurationDocument document) {
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) !=
-      ESP_OK) {
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) != ESP_OK) {
     return false;
   }
   const std::array<char, NVS_KEY_NAME_MAX_SIZE> key = key_for(document);
@@ -111,8 +108,7 @@ bool NvsConfigurationStorage::reset() {
     return false;
   }
   nvs_handle_t handle{};
-  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) !=
-      ESP_OK) {
+  if (nvs_open_from_partition(kPartition, kNamespace, NVS_READWRITE, &handle) != ESP_OK) {
     return false;
   }
   const esp_err_t result = nvs_erase_all(handle);

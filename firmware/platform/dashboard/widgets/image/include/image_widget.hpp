@@ -15,8 +15,7 @@
 
 namespace pitrig::dashboard::image_widget {
 
-inline constexpr std::size_t kMaximumInstances =
-    configuration::kMaximumImageWidgets;
+inline constexpr std::size_t kMaximumInstances = configuration::kMaximumImageWidgets;
 
 using Config = configuration::ImageWidgetConfiguration;
 
@@ -57,27 +56,20 @@ class Binder final {
   std::size_t count_{};
 };
 
-class Collection final
-    : public frame::Collection<Collection, State, kMaximumInstances> {
+class Collection final : public frame::Collection<Collection, State, kMaximumInstances> {
  public:
-  [[nodiscard]] bool create(const Layout& layout,
-                            std::span<const Config> configurations,
+  [[nodiscard]] bool create(const Layout& layout, std::span<const Config> configurations,
                             std::span<const frame::ValueBinding> bindings,
-                            const fonts::Registry& fonts,
-                            const images::Registry& images);
-  [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
-                              const Config& configuration,
-                              const frame::ValueBinding& binding,
-                              const fonts::Registry& fonts,
+                            const fonts::Registry& fonts, const images::Registry& images);
+  [[nodiscard]] bool recreate(std::size_t index, const Layout& layout, const Config& configuration,
+                              const frame::ValueBinding& binding, const fonts::Registry& fonts,
                               const images::Registry& images);
 
  private:
   friend frame::Collection<Collection, State, kMaximumInstances>;
 
-  [[nodiscard]] bool build(State& state, const Layout& layout,
-                           const Config& configuration,
-                           const frame::ValueBinding& binding,
-                           const fonts::Registry& fonts,
+  [[nodiscard]] bool build(State& state, const Layout& layout, const Config& configuration,
+                           const frame::ValueBinding& binding, const fonts::Registry& fonts,
                            const images::Registry& images);
   void render_state(State& state);
 };

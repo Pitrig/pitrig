@@ -1,13 +1,11 @@
 diff --git a/firmware/managed_components/lvgl__lvgl/src/draw/lv_draw_buf.c b/firmware/managed_components/lvgl__lvgl/src/draw/lv_draw_buf.c
 --- a/firmware/managed_components/lvgl__lvgl/src/draw/lv_draw_buf.c
 +++ b/firmware/managed_components/lvgl__lvgl/src/draw/lv_draw_buf.c
-@@ -674,6 +674,12 @@ static uint32_t _calculate_draw_buf_size(uint32_t w, uint32_t h, lv_color_format
+@@ -674,6 +674,10 @@ static uint32_t _calculate_draw_buf_size(uint32_t w, uint32_t h, lv_color_format
          size += LV_COLOR_INDEXED_PALETTE_SIZE(cf) * 4;
      }
  
 +#if LV_USE_PPA
-+    /* PPA output buffers and cache synchronization require both the address
-+     * and size to be aligned to the ESP32-P4 cache-line size. */
 +    size = LV_ROUND_UP(size, LV_DRAW_BUF_ALIGN);
 +#endif
 +

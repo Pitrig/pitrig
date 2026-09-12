@@ -28,13 +28,10 @@ struct Handle {
   std::uint16_t index{kInvalidIndex};
   ValueType type{ValueType::text};
 
-  [[nodiscard]] constexpr bool valid() const {
-    return index != kInvalidIndex;
-  }
+  [[nodiscard]] constexpr bool valid() const { return index != kInvalidIndex; }
 };
 
-[[nodiscard]] constexpr bool operator==(const Handle left,
-                                        const Handle right) {
+[[nodiscard]] constexpr bool operator==(const Handle left, const Handle right) {
   return left.index == right.index && left.type == right.type;
 }
 
@@ -50,8 +47,8 @@ struct Value {
   TypedValue typed{};
 };
 
-[[nodiscard]] inline bool copy_text_value(
-    TextValue& destination, const std::span<const char> text) {
+[[nodiscard]] inline bool copy_text_value(TextValue& destination,
+                                          const std::span<const char> text) {
   if (text.size() >= destination.size()) {
     return false;
   }
@@ -83,9 +80,7 @@ struct CommitResult {
   std::uint64_t revision{};
   bool state_changed{};
 
-  [[nodiscard]] bool changed() const {
-    return state_changed;
-  }
+  [[nodiscard]] bool changed() const { return state_changed; }
 };
 
 }

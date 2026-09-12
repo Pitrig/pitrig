@@ -22,8 +22,9 @@ display size.
 ## Decision
 
 Keep board initialization in dedicated drivers. Each driver exposes only its
-stable name, initialization callback, and display-ready callback. What the
-initialization callback returns is deliberately an ESP-IDF shape — the
+stable name, an initialization callback, a `release()` callback and a
+display-ready callback. What the initialization callback returns is deliberately
+an ESP-IDF shape — the
 `esp_lcd` panel and panel-IO handles plus the geometry and buffering facts the
 LVGL port needs — because the display component registers exactly that with
 `esp_lvgl_port`; the interface says so, and UI, modules and configuration must
@@ -33,6 +34,15 @@ the drivers its target can carry — `firmware/CMakeLists.txt` selects them per
 internal to the concrete driver. The board registry keeps separate private
 logical display bounds only for configuration validation; they are not added
 to the driver descriptor, device configuration, or control protocol.
+
+**Failure is a return value on both sides of the boundary, never an abort.** A
+driver that cannot bring its panel up releases whatever it created and returns a
+`Configuration` with a null panel handle, which is the only thing
+`driver::succeeded()` reads. The display component then returns `nullptr`, and on
+any failure of its own — an unsupported colour format, an LVGL port that will not
+start or will not take the panel, a first frame that never arrives — it unwinds
+what it built and calls the driver's `release()` before doing so. The core treats
+that exactly as a board with no panel (ADR 0025).
 
 The display driver is held as a **pointer**, so a board that has no panel is
 expressible without a special case — the same trade ADR 0019 makes for the

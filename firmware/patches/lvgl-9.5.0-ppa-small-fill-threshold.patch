@@ -1,25 +1,19 @@
 diff --git a/firmware/managed_components/lvgl__lvgl/src/draw/espressif/ppa/lv_draw_ppa.c b/firmware/managed_components/lvgl__lvgl/src/draw/espressif/ppa/lv_draw_ppa.c
 --- a/firmware/managed_components/lvgl__lvgl/src/draw/espressif/ppa/lv_draw_ppa.c
 +++ b/firmware/managed_components/lvgl__lvgl/src/draw/espressif/ppa/lv_draw_ppa.c
-@@ -85,6 +85,9 @@
+@@ -85,6 +85,8 @@
  /**********************
  *   STATIC FUNCTIONS
  **********************/
-+/* Pixels below which a fill stays on the processor; see the note in evaluate. */
 +#define PITRIG_PPA_FILL_MIN_PX 1500
 +
  static int32_t ppa_evaluate(lv_draw_unit_t * u, lv_draw_task_t * t)
  {
      LV_UNUSED(u);
-@@ -97,6 +100,16 @@
+@@ -97,6 +99,11 @@
                  const lv_draw_fill_dsc_t * dsc = (lv_draw_fill_dsc_t *)t->draw_dsc;
                  if((dsc->radius != 0 || dsc->grad.dir != LV_GRAD_DIR_NONE)) return 0;
                  if(dsc->opa <= (lv_opa_t)LV_OPA_MAX) return 0;
-+                /* Pitrig: a PPA fill is submitted to the driver and waited on,
-+                 * and that costs the same whatever it fills. Under this many
-+                 * pixels the processor has finished before the accelerator has
-+                 * started -- measured at 402 us against 317 for a small
-+                 * readout, and the other way round for a large one. */
 +                {
 +                    lv_area_t pitrig_filled;
 +                    if(!lv_area_intersect(&pitrig_filled, &t->area, &t->clip_area)) return 0;

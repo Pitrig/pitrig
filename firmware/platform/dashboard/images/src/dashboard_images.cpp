@@ -13,28 +13,23 @@ namespace {
 constexpr char kTag[] = "dashboard_images";
 
 struct DecompressorDelete {
-  void operator()(tinfl_decompressor* const decompressor) const {
-    heap_caps_free(decompressor);
-  }
+  void operator()(tinfl_decompressor* const decompressor) const { heap_caps_free(decompressor); }
 };
 using DecompressorPtr = std::unique_ptr<tinfl_decompressor, DecompressorDelete>;
 
 [[nodiscard]] bool inflate(tinfl_decompressor& decompressor,
                            const std::span<const std::uint8_t> source,
-                           std::uint8_t* const destination,
-                           const std::size_t expected) {
+                           std::uint8_t* const destination, const std::size_t expected) {
   tinfl_init(&decompressor);
   std::size_t consumed = source.size();
   std::size_t produced = expected;
   const tinfl_status status =
-      tinfl_decompress(&decompressor, source.data(), &consumed, destination,
-                       destination, &produced,
+      tinfl_decompress(&decompressor, source.data(), &consumed, destination, destination, &produced,
                        TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
   return status == TINFL_STATUS_DONE && produced == expected;
 }
 
-[[nodiscard]] lv_color_format_t lvgl_format(
-    const image_assets::ColorFormat format) {
+[[nodiscard]] lv_color_format_t lvgl_format(const image_assets::ColorFormat format) {
   switch (format) {
     case image_assets::ColorFormat::rgb565:
       return LV_COLOR_FORMAT_RGB565;
@@ -63,8 +58,7 @@ bool Registry::load(const std::span<const image_assets::ImageAsset> assets,
     }
     const std::size_t decoded = asset.decoded_bytes();
     const std::size_t aligned =
-        (decoded + image_assets::kImageAlignment - 1) &
-        ~(image_assets::kImageAlignment - 1);
+        (decoded + image_assets::kImageAlignment - 1) & ~(image_assets::kImageAlignment - 1);
     if (offset + aligned > storage.size()) {
       log::error(kTag, "Images do not fit in the supplied storage");
       return false;
@@ -106,9 +100,7 @@ bool Registry::load(const std::span<const image_assets::ImageAsset> assets,
   return true;
 }
 
-bool Registry::has_image(const image_assets::ImageId& id) const {
-  return resolve(id) != nullptr;
-}
+bool Registry::has_image(const image_assets::ImageId& id) const { return resolve(id) != nullptr; }
 
 std::size_t Registry::frame_count(const image_assets::ImageId& id) const {
   const Sheet* const sheet = resolve(id);

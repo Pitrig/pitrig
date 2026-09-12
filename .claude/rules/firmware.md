@@ -45,6 +45,10 @@ components → interfaces ← drivers
   changes. A debug build is the product plus observation and must never change
   product behaviour (ADR 0028).
 
+Drivers may depend on drivers where the hardware says so: the Guition board
+display drivers require `touch/gt911`, and `transport/uart` and
+`transport/usb_cdc` require `transport/transport_common`.
+
 Every layer directory is a separate ESP-IDF component. All of them except
 `components/` are registered in `EXTRA_COMPONENT_DIRS` in
 `firmware/CMakeLists.txt` — **adding a new service, module or driver means adding
@@ -56,36 +60,45 @@ the core should rarely change.
 
 ## Touching startup
 
-The phases are `boot guard → configuration → link + control protocol → display
-→ assets → modules + dashboard → composed → complete`, and the order is the
-decision (ADR 0025; `docs/architecture.md` has the why). Consequences to
-respect:
+The phases are `boot_guard::Phase`: `none → configuration → link → display →
+assets → composition → complete`, and the order is the decision (ADR 0025;
+`docs/architecture.md` has the why). Consequences to respect:
 
 - `mark_running_image_valid()` fires as soon as the link is up, so rollback
   catches only an image that cannot be talked to.
-- `display::initialize()` returns `nullptr` instead of aborting.
+- Nothing in startup aborts except one case: a link that will not start even
+  with the board's factory `protocol` document, which aborts so boot_guard
+  counts it. Safe mode never retries and never aborts; a configuration-memory
+  reservation that fails logs and stops; `display::initialize()` returns
+  `nullptr`, having unwound LVGL and the driver.
 - A `SET`/`APPLY`/`RESET` arriving before composition waits on an event bit and
-  is answered `busy` after ten seconds; reads and `REBOOT` never wait.
+  is answered `busy` after ten seconds; reads and `REBOOT` never wait. One
+  `@PR:` command is handled at a time: a second arriving mid-flight is answered
+  `busy` on the reader task, except `REBOOT`, which is served there. A `@PR:`
+  line past the io bound is answered `unknown_command`, not dropped.
 - `binary_session::Claim` stays closed until composition, so an upload cannot
-  erase a partition startup is still copying out of — `BEGIN`/`CLEAR` answer
-  `busy` and do not wait.
+  erase a partition startup is still copying out of — `BEGIN`/`INFO`/`CLEAR`
+  answer `busy`, under the owning kind's namespace, and do not wait.
 - Log silencing happens at the end of startup, not when the link starts.
 - The task watchdog (`CONFIG_ESP_TASK_WDT_PANIC`, 10 s, idle checks off)
   watches only tasks that feed it: each link's read task and the render
   trigger, whose LVGL-lock probe is what catches a wedged LVGL task.
 - The boot-failure count is cleared ten seconds after startup ends, not when it
   ends, or a fault just after composition would reset it every time and never
-  reach the threshold.
+  reach the threshold. `SET`, `RESET` and a committed firmware image clear it
+  too.
+- Applying `modules` restarts `rgb_leds` alone, and applying `dashboard`
+  restarts the lap timer only when the document starts or stops using it.
 
 ## Boards
 
-The DevKitC-1 has **no display**: `BoardDefinition::display` and
-`BoardDefinition::input` are null, a `dashboard` section on it is rejected rather than ignored, and its only
-output is the addressable lamp `BoardDefinition::status_led` names. That lamp
-moved between board revisions, so its pin is a Kconfig choice
-(`PITRIG_STATUS_LED_GPIO38` / `_GPIO48`). Each board has exactly one link;
+The DevKitC-1 has **no display** and no lamp of its own:
+`BoardDefinition::display` and `BoardDefinition::input` are null, a `dashboard`
+document naming any screen is rejected rather than ignored, and it drives four
+configurable LED outputs like every other board. Each board has exactly one link;
 `transport/usb_cdc` owns the whole native USB device — a composite CDC serial
-port and an HID gamepad, selected by `CONFIG_TINYUSB_HID_COUNT`. `led/ws2812_rmt`
+port and an HID gamepad, selected by `CONFIG_TINYUSB_HID_COUNT` (set on the
+T-Display-S3, the JC1060P470C and the DevKitC-1). `led/ws2812_rmt`
 drives one RMT channel per output, which is why four outputs is the ceiling on
 both chips.
 
@@ -93,7 +106,10 @@ both chips.
 
 The `esp_lvgl_port` patches are a **stack**: nine files under
 `firmware/patches/`, one concern each, applied in the order
-`cmake/apply_esp_lvgl_port_dsi_patch.cmake` lists them. `cmake/apply_patch_stack.cmake`
+`cmake/apply_esp_lvgl_port_dsi_patch.cmake` lists them. Three further patches
+there, `lvgl-9.5.0-ppa-*`, patch LVGL itself and are applied by
+`cmake/apply_lvgl_ppa_patch.cmake` for `esp32p4` only, which also refuses any
+LVGL but 9.5.0. `cmake/apply_patch_stack.cmake`
 checks the whole stack — forward, else reverse — in a temporary git index, and
 a vendored tree matching neither end fails configure. `managed_components/` is
 gitignored, so an edit to the vendored source is written back into the layer it

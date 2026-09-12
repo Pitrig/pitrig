@@ -1,210 +1,42 @@
 #include "image_asset_service.hpp"
 
-#include <algorithm>
-#include <array>
-
-#include "binary_codec.hpp"
-#include "crc32.hpp"
-
 namespace pitrig::image_assets {
 
-Service::~Service() {
-  if (storage_ != nullptr) {
-    storage_->unmap();
+Service::Service()
+    : slot_(
+          {
+              .kind = this,
+              .validate = &Service::validate_entry,
+              .publish = &Service::publish_entry,
+              .discard = &Service::discard_entry,
+              .forget = &Service::forget_entry,
+          },
+          kAssetDataOffset, kStorageSize) {}
+
+bool Service::validate_entry(void* const kind, const std::span<const std::uint8_t> storage_bytes,
+                             const std::span<const std::uint8_t> header_override) {
+  auto& service = *static_cast<Service*>(kind);
+  return service.validate_package(storage_bytes, header_override, service.package_);
+}
+
+void Service::publish_entry(void* const kind, Status& status) {
+  auto& service = *static_cast<Service*>(kind);
+  status.format_version = service.package_.format_version;
+  status.entry_count = service.package_.image_count;
+  status.package_size = service.package_.package_size;
+  service.image_catalog_ = {};
+  for (std::size_t index = 0; index < service.package_.image_count; ++index) {
+    const ImageAsset& asset = service.package_.images[index];
+    service.image_catalog_[index] = {.id = asset.id,
+                                     .format = asset.format,
+                                     .width = asset.width,
+                                     .height = asset.height,
+                                     .frame_count = asset.frame_count};
   }
 }
 
-bool Service::initialize(IStorage& storage) {
-  if (storage_ != nullptr) {
-    storage_->unmap();
-  }
-  storage_ = &storage;
-  status_ = {};
-  package_mapping_ = {};
-  package_ = {};
-  image_catalog_ = {};
-  reset_update();
-  status_.storage_available = storage.initialize();
-  if (!status_.storage_available) {
-    return false;
-  }
+void Service::discard_entry(void* const kind) { static_cast<Service*>(kind)->package_ = {}; }
 
-  if (!storage.map(package_mapping_)) {
-    return false;
-  }
-  if (!validate_package(package_mapping_, {}, package_)) {
-    storage.unmap();
-    package_mapping_ = {};
-    package_ = {};
-    return true;
-  }
-
-  status_.package_available = true;
-  status_.format_version = package_.format_version;
-  status_.entry_count = package_.image_count;
-  status_.package_size = package_.package_size;
-  for (std::size_t index = 0; index < package_.image_count; ++index) {
-    const ImageAsset& asset = package_.images[index];
-    image_catalog_[index] = {.id = asset.id,
-                             .format = asset.format,
-                             .width = asset.width,
-                             .height = asset.height,
-                             .frame_count = asset.frame_count};
-  }
-  return true;
-}
-
-UpdateError Service::begin_update(const std::size_t package_size) {
-  if (storage_ == nullptr || !status_.storage_available) {
-    return UpdateError::unavailable;
-  }
-  if (update_in_progress_) {
-    return UpdateError::busy;
-  }
-  if (status_.reboot_required) {
-    return UpdateError::reboot_required;
-  }
-  if (package_size < kAssetDataOffset || package_size > kStorageSize) {
-    return UpdateError::invalid_size;
-  }
-  storage_->unmap();
-  package_mapping_ = {};
-  package_ = {};
-  clear_package_status();
-  if (!storage_->erase(package_size)) {
-    return UpdateError::storage_failure;
-  }
-  update_in_progress_ = true;
-  update_size_ = package_size;
-  update_received_ = 0;
-  update_header_.fill(0xFFU);
-  return UpdateError::none;
-}
-
-UpdateError Service::write_update(const std::span<const std::uint8_t> bytes) {
-  if (!update_in_progress_) {
-    return UpdateError::invalid_state;
-  }
-  if (bytes.empty() || bytes.size() > update_size_ - update_received_) {
-    return UpdateError::invalid_size;
-  }
-
-  std::size_t source_offset{};
-  if (update_received_ < update_header_.size()) {
-    const std::size_t header_bytes =
-        std::min(bytes.size(), update_header_.size() - update_received_);
-    std::copy_n(bytes.begin(), header_bytes,
-                update_header_.begin() + update_received_);
-    source_offset = header_bytes;
-    update_received_ += header_bytes;
-  }
-  if (source_offset < bytes.size()) {
-    const auto body = bytes.subspan(source_offset);
-    if (!storage_->write(update_received_, body)) {
-      reset_update();
-      return UpdateError::storage_failure;
-    }
-    update_received_ += body.size();
-  }
-  return UpdateError::none;
-}
-
-UpdateError Service::commit_update() {
-  if (!update_in_progress_ || update_received_ != update_size_) {
-    return UpdateError::invalid_state;
-  }
-
-  package_ = {};
-  std::span<const std::uint8_t> candidate_mapping;
-  if (!storage_->map(candidate_mapping)) {
-    return UpdateError::storage_failure;
-  }
-  const bool valid =
-      validate_package(candidate_mapping, update_header_, package_);
-  storage_->unmap();
-  if (!valid || binary::read_u32_le(update_header_,
-                          asset_package::kHeaderPayloadSizeOffset) !=
-                    update_size_) {
-    package_ = {};
-    reset_update();
-    return UpdateError::invalid_package;
-  }
-  if (!storage_->write(0, update_header_)) {
-    package_ = {};
-    reset_update();
-    return UpdateError::storage_failure;
-  }
-
-  candidate_mapping = {};
-  if (!storage_->map(candidate_mapping) ||
-      !validate_package(candidate_mapping, {}, package_)) {
-    storage_->unmap();
-    package_ = {};
-    reset_update();
-    return UpdateError::storage_failure;
-  }
-  storage_->unmap();
-  status_.package_available = true;
-  status_.format_version = package_.format_version;
-  status_.entry_count = package_.image_count;
-  status_.package_size = package_.package_size;
-  image_catalog_ = {};
-  for (std::size_t index = 0; index < package_.image_count; ++index) {
-    const ImageAsset& asset = package_.images[index];
-    image_catalog_[index] = {.id = asset.id,
-                             .format = asset.format,
-                             .width = asset.width,
-                             .height = asset.height,
-                             .frame_count = asset.frame_count};
-  }
-  package_ = {};
-  reset_update();
-  status_.reboot_required = true;
-  return UpdateError::none;
-}
-
-UpdateError Service::clear() {
-  if (storage_ == nullptr || !status_.storage_available) {
-    return UpdateError::unavailable;
-  }
-  if (update_in_progress_) {
-    return UpdateError::busy;
-  }
-  if (status_.reboot_required) {
-    return UpdateError::reboot_required;
-  }
-  storage_->unmap();
-  package_mapping_ = {};
-  package_ = {};
-  clear_package_status();
-  if (!storage_->erase()) {
-    return UpdateError::storage_failure;
-  }
-  status_.reboot_required = true;
-  return UpdateError::none;
-}
-
-void Service::cancel_update() {
-  if (storage_ != nullptr && update_in_progress_) {
-    storage_->unmap();
-  }
-  reset_update();
-}
-
-void Service::clear_package_status() {
-  status_.package_available = false;
-  status_.reboot_required = false;
-  status_.format_version = 0;
-  status_.entry_count = 0;
-  status_.package_size = 0;
-  image_catalog_ = {};
-}
-
-void Service::reset_update() {
-  update_in_progress_ = false;
-  update_size_ = 0;
-  update_received_ = 0;
-  update_header_.fill(0xFFU);
-}
+void Service::forget_entry(void* const kind) { static_cast<Service*>(kind)->image_catalog_ = {}; }
 
 }

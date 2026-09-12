@@ -22,12 +22,9 @@ View::~View() { destroy(); }
 void View::render() {
   const performance::PerformanceStats stats = performance::get_stats();
   const transport::Diagnostics transport_stats =
-      transport_ != nullptr ? transport_->diagnostics()
-                            : transport::Diagnostics{};
-  const std::uint64_t bytes_per_second =
-      transport_stats.received_bytes - previous_received_bytes_;
-  const std::uint64_t reads_per_second =
-      transport_stats.read_events - previous_read_events_;
+      transport_ != nullptr ? transport_->diagnostics() : transport::Diagnostics{};
+  const std::uint64_t bytes_per_second = transport_stats.received_bytes - previous_received_bytes_;
+  const std::uint64_t reads_per_second = transport_stats.read_events - previous_read_events_;
   previous_received_bytes_ = transport_stats.received_bytes;
   previous_read_events_ = transport_stats.read_events;
 
@@ -68,10 +65,8 @@ void View::render() {
                 static_cast<unsigned long>(transport_stats.maximum_handler_time_us),
                 static_cast<unsigned long>(stats.task_stacks.lvgl_free_bytes),
                 static_cast<unsigned long>(stats.task_stacks.transport_free_bytes),
-                static_cast<unsigned long>(
-                    stats.task_stacks.configuration_free_bytes),
-                static_cast<unsigned long>(
-                    stats.task_stacks.asset_upload_free_bytes),
+                static_cast<unsigned long>(stats.task_stacks.configuration_free_bytes),
+                static_cast<unsigned long>(stats.task_stacks.asset_upload_free_bytes),
                 static_cast<unsigned long>(stats.task_stacks.sampler_free_bytes));
   lv_label_set_text(label_, text);
 }
@@ -83,8 +78,7 @@ void View::update(lv_timer_t* const timer) {
   }
 }
 
-bool View::create(lv_display_t* const display,
-                  const transport::ITransport& transport) {
+bool View::create(lv_display_t* const display, const transport::ITransport& transport) {
   if (display == nullptr || label_ != nullptr || !lvgl_port_lock(0)) {
     return false;
   }

@@ -6,8 +6,8 @@ idf_component_register(
        "src/screens_overflow.cpp"
        "src/screens_z_order.cpp"
   INCLUDE_DIRS "include"
-  REQUIRES configuration_contract dashboard event_bus font_assets image_assets
-           module_composition telemetry
-  PRIV_REQUIRES display esp_lvgl_port logger lvgl__lvgl overlays pitrig_config)
+  PRIV_REQUIRES configuration_contract dashboard display esp_lvgl_port event_bus
+                font_assets image_assets logger lvgl__lvgl module_composition
+                overlays pitrig_config telemetry)
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=c++20)

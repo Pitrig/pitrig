@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
 #include <span>
 
@@ -27,10 +26,8 @@ namespace pitrig {
 
 struct PlatformAdapters {
   configuration::NvsConfigurationStorage configuration_storage;
-  platform::PartitionStorage font_asset_storage{"font_assets",
-                                                font_assets::kStorageSize};
-  platform::PartitionStorage image_asset_storage{"image_assets",
-                                                 image_assets::kStorageSize};
+  platform::PartitionStorage font_asset_storage{"font_assets", font_assets::kStorageSize};
+  platform::PartitionStorage image_asset_storage{"image_assets", image_assets::kStorageSize};
   transport::TelemetryComposition telemetry_transport;
   platform::ExternalMemoryBuffer configuration_memory;
   platform::ExternalMemoryBuffer font_memory;
@@ -56,10 +53,7 @@ struct Application {
   module_composition::Modules modules;
   communication::Composition communication{services.telemetry_registry};
   lv_display_t* display{};
-  std::array<transport::ITransport*,
-             communication::Composition::kMaximumLinks>
-      telemetry_transports{};
-  std::size_t telemetry_link_count{};
+  transport::ITransport* telemetry_transport{};
 };
 
 struct ConfigurationBuffers {
@@ -73,11 +67,10 @@ struct ConfigurationBuffers {
 [[nodiscard]] transport::ITransport& primary_transport(Application& application);
 
 [[nodiscard]] value_smoothing::Service* start_value_smoothing(
-    Application& application,
-    const configuration::ApplicationConfiguration& configuration);
+    Application& application, const configuration::ApplicationConfiguration& configuration);
 
-configuration::ValidationFailure apply_configuration(
-    configuration::ConfigurationDocument document,
-    std::span<const std::uint8_t> payload, void* context);
+configuration::ValidationFailure apply_configuration(configuration::ConfigurationDocument document,
+                                                     std::span<const std::uint8_t> payload,
+                                                     void* context);
 
 }

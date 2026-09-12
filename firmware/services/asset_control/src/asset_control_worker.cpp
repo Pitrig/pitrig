@@ -21,8 +21,7 @@ void AssetControl::process() {
       }
       continue;
     }
-    if (request_state_.load(std::memory_order_acquire) !=
-        RequestState::ready) {
+    if (request_state_.load(std::memory_order_acquire) != RequestState::ready) {
       if (active() && overrun_.exchange(false, std::memory_order_acq_rel)) {
         finish_with_error("protocol_overrun");
       }
@@ -42,7 +41,9 @@ void AssetControl::process() {
       (void)send_error("unknown_command");
     } else if (request_type_ == RequestType::busy) {
       release_request();
-      (void)send_error("busy");
+      if (reply_ != nullptr) {
+        send_busy(*reply_, busy_tag_);
+      }
     } else {
       finish_with_error("invalid_frame");
     }
@@ -61,29 +62,28 @@ void AssetControl::handle_clear() {
 
 void AssetControl::handle_info() {
   int written =
-      std::snprintf(response_.data(), response_.size(), "@PR:OK:%.*s:INFO:",
-                    static_cast<int>(traits_.tag.size()), traits_.tag.data());
+      std::snprintf(response_.data(), response_.size(),
+                    "@PR:OK:%.*s:INFO:", static_cast<int>(traits_.tag.size()), traits_.tag.data());
   release_request();
-  if (written <= 0 || static_cast<std::size_t>(written) >= response_.size()) {
-    return;
+  if (written > 0 && static_cast<std::size_t>(written) < response_.size()) {
+    auto offset = static_cast<std::size_t>(written);
+    written = operations_.write_info_body(operations_.service, response_.data() + offset,
+                                          response_.size() - offset);
+    if (written >= 0) {
+      offset += static_cast<std::size_t>(written);
+      if (offset + 1 < response_.size()) {
+        response_[offset++] = '\n';
+        response_[offset] = '\0';
+        (void)send_text(response_.data());
+        return;
+      }
+    }
   }
-  auto offset = static_cast<std::size_t>(written);
-  written = operations_.write_info_body(
-      operations_.service, response_.data() + offset, response_.size() - offset);
-  if (written < 0) {
-    return;
-  }
-  offset += static_cast<std::size_t>(written);
-  if (offset + 1 < response_.size()) {
-    response_[offset++] = '\n';
-    response_[offset] = '\0';
-    (void)send_text(response_.data());
-  }
+  (void)send_error("response_size");
 }
 
 void AssetControl::handle_begin() {
-  const char* const error =
-      operations_.begin_update(operations_.service, requested_package_size_);
+  const char* const error = operations_.begin_update(operations_.service, requested_package_size_);
   if (error != nullptr) {
     finish_with_error(error, false);
     return;
@@ -104,11 +104,9 @@ void AssetControl::handle_begin() {
 }
 
 void AssetControl::handle_frame() {
-  const auto frame =
-      std::span<const std::uint8_t>(frame_.data(), request_frame_size_);
+  const auto frame = std::span<const std::uint8_t>(frame_.data(), request_frame_size_);
   const std::size_t content_size = frame.size() - kFrameCrcSize;
-  const std::uint32_t sequence =
-      binary::read_u32_le(frame, scf1::kSequenceOffset);
+  const std::uint32_t sequence = binary::read_u32_le(frame, scf1::kSequenceOffset);
   const std::uint32_t supplied_crc = binary::read_u32_le(frame, content_size);
   if (supplied_crc != binary::crc32(frame.first(content_size))) {
     finish_with_error("frame_crc");
@@ -143,8 +141,7 @@ void AssetControl::handle_frame() {
     return;
   }
 
-  const std::size_t payload_size =
-      binary::read_u16_le(frame, scf1::kPayloadLengthOffset);
+  const std::size_t payload_size = binary::read_u16_le(frame, scf1::kPayloadLengthOffset);
   if (payload_size > package_size_ - received_size_) {
     finish_with_error("invalid_size");
     return;
@@ -171,8 +168,7 @@ void AssetControl::handle_frame() {
 void AssetControl::queue_request(const RequestType type) {
   RequestState expected = RequestState::idle;
   if (!request_state_.compare_exchange_strong(
-          expected, RequestState::writing, std::memory_order_acquire,
-          std::memory_order_relaxed)) {
+          expected, RequestState::writing, std::memory_order_acquire, std::memory_order_relaxed)) {
     overrun_.store(true, std::memory_order_release);
     xTaskNotifyGive(task_);
     return;
@@ -189,8 +185,7 @@ void AssetControl::release_request() {
   request_state_.store(RequestState::idle, std::memory_order_release);
 }
 
-void AssetControl::finish_with_error(const char* const error,
-                                     const bool cancel_update) {
+void AssetControl::finish_with_error(const char* const error, const bool cancel_update) {
   if (cancel_update && operations_.service != nullptr) {
     operations_.cancel_update(operations_.service);
   }
@@ -199,16 +194,15 @@ void AssetControl::finish_with_error(const char* const error,
   (void)send_error(error);
 }
 
-
 void AssetControl::reset_session() {
   package_size_ = 0;
   received_size_ = 0;
   expected_sequence_ = 0;
   overrun_.store(false, std::memory_order_relaxed);
-  session_active_.store(false, std::memory_order_release);
   if (claim_ != nullptr) {
     claim_->release(&session_);
   }
+  session_active_.store(false, std::memory_order_release);
 }
 
 }

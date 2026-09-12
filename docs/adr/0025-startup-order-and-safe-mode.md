@@ -4,11 +4,11 @@ Status: Accepted. Reorders the startup phases of
 [ADR 0011](0011-static-composition-and-module-lifecycle.md), narrows the
 rollback trigger of [ADR 0022](0022-over-the-air-firmware-updates.md), and adds
 two fields to the `INFO` reply of
-[ADR 0006](0006-simhub-custom-serial-line-protocol.md). Amended by
-[ADR 0030](0030-addressable-led-peripherals.md): a board may declare a
-single-lamp status light, which starts with the link and therefore reports safe
-mode on the recovery surface, where no module composes. It needs no
-configuration, which is what makes it safe to run there.
+[ADR 0006](0006-simhub-custom-serial-line-protocol.md). The amendment that let a
+board declare a single-lamp status light is withdrawn: the status light is
+removed (see [ADR 0030](0030-addressable-led-peripherals.md)), so the recovery
+surface again reports through the link alone and a board with no screen is
+invisible without a host.
 
 ## Context
 
@@ -43,16 +43,24 @@ Two smaller faults followed from the same shape:
 
 ```
 boot guard → configuration → link + control protocol → display → assets →
-modules + dashboard → composed → complete
+composition → complete
 ```
+
+Every step after the boot guard is a `boot_guard::Phase` value —
+`configuration`, `link`, `display`, `assets`, `composition`, `complete` — which
+is what `INFO` reports as `last_phase`.
 
 The boot splash is raised in the display phase and taken down at the end of
 `complete`, so it covers the slow part — inflating fonts and images, composing
 the dashboard — rather than a second of nothing before it. It is an opaque
 black full-screen cover holding the logo inside a rounded frame in the logo's
 own violets, lit by a highlight that travels around it with the frame's dark
-side riding opposite. The logo itself is never restyled while it is up — an
-image the size of the logo repaints as a step rather than as a shimmer, which
+side riding opposite. Both logo sizes are embedded on every board and the
+largest that fits the panel with its glow is chosen from the display resolution
+at runtime, so the splash is a property of the screen rather than of the build;
+a panel too small for either shows none. The logo itself is never restyled
+while it is up — an image the size of the logo repaints as a step rather than a
+shimmer, which
 read on the panel as a blink. The cover is also what
 keeps the dashboard from being drawn at all while it is up: LVGL skips whatever
 an opaque object covers. It is created on the display's **top layer** rather
@@ -64,7 +72,9 @@ finished screen is the first thing drawn after it, with nothing dissolving over
 a half-drawn dashboard. It is held for at least two seconds so a fast board does not flash
 it, and a configuration that draws nothing — or one whose composition failed —
 keeps it instead of showing an empty screen; the first applied document that
-does draw something takes it down without waiting.
+does draw something takes it down without waiting. "Draws something" is **any**
+screen with a widget or a background of its own, not only the first, and it is
+the same test in a debug build as in a product one.
 
 The configuration stays ahead of the link because the `protocol` document
 chooses the port, the pins and the baud rate. It is a handful of NVS reads and
@@ -76,6 +86,15 @@ Bringing the link up waits for no host. `transport->start()` installs a driver
 and creates a read task; neither UART nor USB CDC has anything to wait for, and
 a board with no PC attached passes through the phase in milliseconds.
 
+**A link that will not start is retried once with the board's own `protocol`
+document**, because a stored transport the board cannot bring up is exactly the
+fault an early link exists to be repaired through. If the factory document does
+not bring one up either, the board aborts: a reset is what makes `boot_guard`
+count the attempt, and three of them put the next boot on the recovery surface.
+Safe mode is already that surface, so it neither retries nor aborts — it logs
+and stops. Failing to reserve the configuration memory stops the same way,
+without a reset, because retrying an allocation that did not fit cannot succeed.
+
 **A boot that keeps crashing falls back to the link.** A `boot_guard` service
 holds a counter in RTC memory, which survives the reset a panic causes and is
 undefined after a power-on — so pulling the cable is a recovery that needs no
@@ -85,8 +104,9 @@ and the next boot runs the **recovery surface**: the transport, the `@PR:`
 control protocol and firmware upload, and nothing else. No display, no LVGL, no
 dashboard, no modules, no font or image upload, and no telemetry decode.
 
-The counter is cleared by the first document a host writes or erases, and by
-nothing else: a board is out of safe mode when what broke it has been changed.
+The counter is cleared by the first document a host writes or erases, and by a
+firmware image that commits: a board is out of safe mode when what broke it has
+been changed.
 Because clearing it is what a `SET` does, the ordinary "save to board" is also
 the way out, and the restart that save already performs starts a normal boot.
 `RESET` clears it too — a board put back to its factory values must not come up
@@ -116,8 +136,12 @@ confirm an image, and every reset would roll back a working one.
 
 **Display initialization is no longer fatal.** `display::initialize()` returns
 `nullptr` where it used to abort, and the core logs it and carries on without a
-dashboard. The first frame is still required: a panel that does not present one
-is reported absent rather than composed onto.
+dashboard. Nothing on that path aborts, at either level: a board driver that
+cannot bring its panel up releases whatever it created and returns a
+`Configuration` with a null panel handle, and the display component unwinds LVGL
+and calls the driver's `release()` before returning `nullptr` (ADR 0002). The
+first frame is still required: a panel that does not present one is reported
+absent rather than composed onto.
 
 **The task watchdog resets.** `CONFIG_ESP_TASK_WDT_PANIC` is on and the timeout
 is ten seconds. Only tasks that actually feed it are watched:
@@ -130,8 +154,10 @@ is ten seconds. Only tasks that actually feed it are watched:
   fed from inside itself and that loop belongs to a vendor component; taking its
   lock is the next best thing, and a wedged LVGL task fails it.
 
-The idle-task checks are deliberately off. Erasing the 4 MiB image partition
-starves idle for seconds at a time, and that is work rather than a fault.
+The idle-task checks are deliberately off. Erasing the image partition starves
+idle for seconds at a time, and that is work rather than a fault. The partition
+is 7 MiB, though a `BEGIN` erases only the arriving package's length rounded up
+to the erase block, so the wait is proportional to the upload.
 
 **A write waits for something to write to.** Because the link now answers before
 the dashboard exists, `SET`, `APPLY` and `RESET` block on an event bit that
@@ -179,6 +205,9 @@ needs to have produced. A recovery boot never silences at all.
   legitimate holds that lock for anything close to it — the longest is a
   dashboard rebuild during a live apply — but it is a bound where there was
   none.
+- Applying a document restarts only what its change reaches: `modules` restarts
+  `rgb_leds`, and `dashboard` restarts the lap timer only when the document
+  starts or stops using it.
 - Safe mode is invisible without a host. The display is never initialized, so a
   board in it looks the same as a dead one until a cable is attached. That was
   the deliberate choice: LVGL and the panel driver are the likeliest thing to

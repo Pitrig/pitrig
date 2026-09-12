@@ -15,12 +15,10 @@ void Painter::bind_caption(const ValueReadCallback read, void* const context) {
 }
 
 void Painter::place_caption() {
-  const std::int32_t width =
-      internal::caption_width(caption_layout_.font, caption_text_.data());
+  const std::int32_t width = internal::caption_width(caption_layout_.font, caption_text_.data());
   const Rect position = internal::caption_position(caption_layout_, width);
   const bool masked = caption_mask_.present;
-  caption_mask_ =
-      internal::caption_mask_for(caption_layout_, width, caption_mask_.rgb);
+  caption_mask_ = internal::caption_mask_for(caption_layout_, width, caption_mask_.rgb);
   lv_label_set_text_static(box_.caption, caption_text_.data());
   lv_obj_set_pos(box_.caption, position.x, position.y);
   if (masked || caption_mask_.present) {
@@ -41,8 +39,7 @@ void Painter::render_caption() {
   caption_available_ = value.available;
   caption_rendered_ = true;
   value_text::Buffer next{};
-  if (!value_text::transform_value(kPlainText, value, next) ||
-      next.front() == '\0') {
+  if (!value_text::transform_value(kPlainText, value, next) || next.front() == '\0') {
     value_text::copy_text(next, caption_fallback_);
   }
   if (next == caption_text_) {

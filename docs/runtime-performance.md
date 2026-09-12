@@ -173,10 +173,16 @@ per-screen tuning:
   its value moves**: a bar, arc, needle, trace or number readout that follows
   redraws each frame between packets rather than once per packet, so the
   sixteen-readout budget above is spent on the followed widgets whether the
-  feed is 20 Hz or 60. Indicators and conditions stay on the packet.
+  feed is 20 Hz or 60. Indicators and conditions stay on the packet. A needle is
+  the cheapest of them to follow: it invalidates only the box around its pivot
+  and its two positions, not the square it is drawn in.
 - **Screens that are not shown cost nothing**, so splitting a dense dashboard
   across screens buys frame budget directly; transitions are tear-free and do
-  not tax the steady state.
+  not tax the steady state. Widget timers and the slot controller skip instances
+  whose screen is neither active nor animating out, and showing a screen wakes
+  them once so it catches up on the next refresh. Graph widgets are the one
+  exception — their sampler keeps running and the render is what drains its
+  ring, so skipping one would lose history.
 - **Verify, don't guess**: apply the document and read `render_us` and
   `lat_us` back over `@PR:DIAG`, with the FPS chip on the panel.
 

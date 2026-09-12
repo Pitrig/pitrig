@@ -62,8 +62,7 @@ class ReadHandler final {
   [[nodiscard]] bool bound() const { return handler_ != nullptr; }
 
   template <typename Instrumentation>
-  void dispatch(const std::span<const std::uint8_t> data,
-                Instrumentation& instrumentation) const {
+  void dispatch(const std::span<const std::uint8_t> data, Instrumentation& instrumentation) const {
     if (handler_ == nullptr) {
       return;
     }

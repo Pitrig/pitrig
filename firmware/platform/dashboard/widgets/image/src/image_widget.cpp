@@ -4,7 +4,6 @@
 #include <cmath>
 #include <optional>
 
-#include "esp_lvgl_port.h"
 #include "image_asset_types.hpp"
 #include "logger.hpp"
 #include "lvgl.h"
@@ -21,9 +20,8 @@ void apply_recolor(void* const context, const std::uint32_t rgb) {
   const State& state = *static_cast<const State*>(context);
   const bool authored = rgb == state.authored_color;
   lv_obj_set_style_image_recolor(state.image, lv_color_hex(rgb), LV_PART_MAIN);
-  lv_obj_set_style_image_recolor_opa(
-      state.image, authored ? state.authored_opa : state.rule_opa,
-      LV_PART_MAIN);
+  lv_obj_set_style_image_recolor_opa(state.image, authored ? state.authored_opa : state.rule_opa,
+                                     LV_PART_MAIN);
 }
 
 }
@@ -40,19 +38,16 @@ bool Binder::bind(const std::span<const Config> configurations,
     frame::ValueBinding binding{};
     bool frame_fast{};
     if (configuration.sprite_frame_source_present &&
-        !frame::bind_source(configuration::value_binding_view(
-                                configuration.sprite_frame_source.binding),
-                            configuration.sprite_frame_source.modifier_count,
-                            configuration.sprite_frame_source.modifiers,
-                            registry, telemetry, modifier_readers,
-                            nullptr, frame_contexts_[count_], binding.read,
-                            binding.read_context, frame_fast)) {
+        !frame::bind_source(
+            configuration::value_binding_view(configuration.sprite_frame_source.binding),
+            configuration.sprite_frame_source.modifier_count,
+            configuration.sprite_frame_source.modifiers, registry, telemetry, modifier_readers,
+            nullptr, frame_contexts_[count_], binding.read, binding.read_context, frame_fast)) {
       count_ = 0;
       return false;
     }
-    if (!frame::bind_frame(configuration.frame, registry, telemetry,
-                           modifier_readers, condition_contexts_[count_],
-                           caption_contexts_[count_], binding)) {
+    if (!frame::bind_frame(configuration.frame, registry, telemetry, modifier_readers,
+                           condition_contexts_[count_], caption_contexts_[count_], binding)) {
       count_ = 0;
       return false;
     }
@@ -63,8 +58,7 @@ bool Binder::bind(const std::span<const Config> configurations,
 }
 
 bool Collection::build(State& state, const Layout& layout, const Config& config,
-                       const frame::ValueBinding& binding,
-                       const fonts::Registry& fonts,
+                       const frame::ValueBinding& binding, const fonts::Registry& fonts,
                        const images::Registry& images) {
   const images::Sheet* const sheet = images.resolve(config.image);
   if (sheet == nullptr) {
@@ -73,16 +67,14 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
     return false;
   }
   if (config.sprite_frame >= sheet->frame_count) {
-    log::error(kTag, "Image '%s' has no frame %u",
-               image_assets::image_id_view(config.image).data(),
+    log::error(kTag, "Image '%s' has no frame %u", image_assets::image_id_view(config.image).data(),
                static_cast<unsigned>(config.sprite_frame));
     return false;
   }
   lv_obj_t* parent{};
   Rect bounds{};
   frame::Box box{};
-  if (!frame::build(layout, config.frame, kTag, 0, 0, false, fonts, parent,
-                    bounds, box)) {
+  if (!frame::build(layout, config.frame, kTag, 0, 0, false, fonts, parent, bounds, box)) {
     return false;
   }
   state.container = box.container;
@@ -96,8 +88,7 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   state.frame_stride = sheet->frame_stride;
   state.frame_count = sheet->frame_count;
   state.frame_read = config.sprite_frame_source_present ? binding.read : nullptr;
-  state.frame_context =
-      config.sprite_frame_source_present ? binding.read_context : nullptr;
+  state.frame_context = config.sprite_frame_source_present ? binding.read_context : nullptr;
   state.rendered_frame = config.sprite_frame;
   state.rendered_revision = 0;
   state.initialized = false;
@@ -106,20 +97,15 @@ bool Collection::build(State& state, const Layout& layout, const Config& config,
   const bool recolored = config.recolor != configuration::kTransparentColor;
   const bool alpha_only = state.descriptor.header.cf == LV_COLOR_FORMAT_A8;
   state.authored_color =
-      recolored ? config.recolor
-                : (alpha_only ? kAlphaOnlyColor : config.frame.border.color);
+      recolored ? config.recolor : (alpha_only ? kAlphaOnlyColor : config.frame.border.color);
   constexpr auto kOpaqueCover = static_cast<std::uint8_t>(LV_OPA_COVER);
   state.authored_opa =
-      alpha_only ? kOpaqueCover
-                 : static_cast<std::uint8_t>(recolored ? config.recolor_opa : 0);
+      alpha_only ? kOpaqueCover : static_cast<std::uint8_t>(recolored ? config.recolor_opa : 0);
   state.rule_opa = alpha_only ? kOpaqueCover : config.recolor_opa;
-  lv_obj_set_style_image_recolor(
-      state.image, lv_color_hex(state.authored_color), LV_PART_MAIN);
-  lv_obj_set_style_image_recolor_opa(state.image, state.authored_opa,
-                                     LV_PART_MAIN);
+  lv_obj_set_style_image_recolor(state.image, lv_color_hex(state.authored_color), LV_PART_MAIN);
+  lv_obj_set_style_image_recolor_opa(state.image, state.authored_opa, LV_PART_MAIN);
 
-  state.painter.configure(config.frame, box, state.authored_color,
-                          &apply_recolor, &state);
+  state.painter.configure(config.frame, box, state.authored_color, &apply_recolor, &state);
   state.painter.bind(binding.condition_read, binding.condition_context);
   state.painter.bind_caption(binding.caption_read, binding.caption_context);
   return true;
@@ -144,9 +130,7 @@ void Collection::render_state(State& state) {
   }
   const double rounded = std::round(*numeric);
   const std::size_t frame =
-      rounded <= 0.0 ? 0
-                     : std::min(static_cast<std::size_t>(rounded),
-                                state.frame_count - 1);
+      rounded <= 0.0 ? 0 : std::min(static_cast<std::size_t>(rounded), state.frame_count - 1);
   if (frame == state.rendered_frame && !first_render) {
     return;
   }
@@ -155,26 +139,20 @@ void Collection::render_state(State& state) {
   lv_obj_invalidate(state.image);
 }
 
-bool Collection::create(const Layout& layout,
-                        const std::span<const Config> configurations,
+bool Collection::create(const Layout& layout, const std::span<const Config> configurations,
                         const std::span<const frame::ValueBinding> bindings,
-                        const fonts::Registry& fonts,
-                        const images::Registry& images) {
+                        const fonts::Registry& fonts, const images::Registry& images) {
   if (layout.display == nullptr || bindings.size() != configurations.size()) {
     return false;
   }
-  return build_all(configurations.size(),
-                   [&](State& state, const std::size_t index) {
-                     return build(state, layout, configurations[index],
-                                  bindings[index], fonts, images);
-                   });
+  return build_all(configurations.size(), [&](State& state, const std::size_t index) {
+    return build(state, layout, configurations[index], bindings[index], fonts, images);
+  });
 }
 
 bool Collection::recreate(const std::size_t index, const Layout& layout,
-                          const Config& configuration,
-                          const frame::ValueBinding& binding,
-                          const fonts::Registry& fonts,
-                          const images::Registry& images) {
+                          const Config& configuration, const frame::ValueBinding& binding,
+                          const fonts::Registry& fonts, const images::Registry& images) {
   return rebuild_one(index, [&](State& state) {
     return build(state, layout, configuration, binding, fonts, images);
   });

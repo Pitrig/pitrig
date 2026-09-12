@@ -58,8 +58,8 @@ Fragments appended to `SDKCONFIG_DEFAULTS` select what a build trades; the figur
 Flash and monitor use the same `-B` build directory: `idf.py -B build-t-display -p <port> flash monitor`.
 Switching boards switches `IDF_TARGET`; `esp32p4` uses `dependencies.lock.esp32p4`. A clean checkout
 runs `reconfigure` **twice** before `build`, because the vendored `esp_lvgl_port` is patched during
-configure, after ESP-IDF has collected requirements. The DevKitC-1 has no display and only its
-status lamp.
+configure, after ESP-IDF has collected requirements. The DevKitC-1 has no display and drives four
+LED outputs like every other board.
 
 `configurator/package.json` versions the desktop application and names the release tag;
 `firmware/version.txt` is the board's own, read into `PROJECT_VER` and reported by `@PR:INFO` and

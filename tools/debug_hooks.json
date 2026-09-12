@@ -1,6 +1,6 @@
 {
  "hooks": {
-  "firmware/components/display/src/display.cpp": 4,
+  "firmware/components/display/src/display.cpp": 2,
   "firmware/core/src/pitrig.cpp": 2,
   "firmware/drivers/transport/transport_common/include/transport_instrumentation.hpp": 2,
   "firmware/drivers/transport/transport_common/src/transport_instrumentation.cpp": 3,
@@ -11,9 +11,8 @@
   "firmware/interfaces/transport/include/transport.hpp": 2,
   "firmware/platform/dashboard/layout/include/dashboard_layout_internal.hpp": 1,
   "firmware/platform/dashboard/layout/src/dashboard_layout.cpp": 2,
-  "firmware/platform/dashboard/widgets/text/src/text_widget.cpp": 4,
-  "firmware/platform/dashboard_composition/src/dashboard_composition.cpp": 3,
-  "firmware/platform/dashboard_composition/src/dashboard_screens.cpp": 1,
+  "firmware/platform/dashboard/widgets/text/src/text_widget.cpp": 3,
+  "firmware/platform/dashboard_composition/src/dashboard_composition.cpp": 2,
   "firmware/platform/dashboard_composition/src/dashboard_state.hpp": 2,
   "firmware/services/asset_control/include/asset_control.hpp": 2,
   "firmware/services/asset_control/src/asset_control.cpp": 2,

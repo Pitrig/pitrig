@@ -20,18 +20,15 @@ struct ArcSlices {
 [[nodiscard]] Ring resolve_ring(const Config& config, std::int32_t inner_width,
                                 std::int32_t inner_height);
 
-[[nodiscard]] ArcSlices resolve_arc(const Config& config, float radius,
-                                    std::int32_t count);
+[[nodiscard]] ArcSlices resolve_arc(const Config& config, float radius, std::int32_t count);
 
 [[nodiscard]] std::size_t slot_of(const State& state, std::size_t index);
 
-[[nodiscard]] std::int32_t lamp_start_deg(const State& state,
-                                          std::size_t index);
+[[nodiscard]] std::int32_t lamp_start_deg(const State& state, std::size_t index);
 
 [[nodiscard]] std::uint16_t outer_radius(const State& state);
 
-[[nodiscard]] lv_area_t lamp_area(const State& state, std::size_t index,
-                                  const lv_area_t& content);
+[[nodiscard]] lv_area_t lamp_area(const State& state, std::size_t index, const lv_area_t& content);
 
 [[nodiscard]] lv_area_t lamp_arc_area(const State& state, std::size_t index,
                                       const lv_area_t& content);

@@ -1,5 +1,11 @@
 #include "usb_descriptors.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+
+#include "esp_mac.h"
+
 namespace pitrig::transport::usb_descriptors {
 namespace {
 
@@ -22,8 +28,7 @@ constexpr std::uint16_t kUsbConfigurationLength =
     TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN;
 #else
 constexpr std::uint8_t kUsbInterfaceCount = 2;
-constexpr std::uint16_t kUsbConfigurationLength =
-    TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN;
+constexpr std::uint16_t kUsbConfigurationLength = TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN;
 #endif
 
 }
@@ -53,13 +58,11 @@ const tusb_desc_device_t kDevice{
 const std::uint8_t kFullSpeedConfiguration[] = {
     TUD_CONFIG_DESCRIPTOR(1, kUsbInterfaceCount, 0, kUsbConfigurationLength,
                           TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    TUD_CDC_DESCRIPTOR(kUsbCdcInterface, kUsbCdcStringIndex,
-                       kUsbCdcNotificationEndpoint, 8,
+    TUD_CDC_DESCRIPTOR(kUsbCdcInterface, kUsbCdcStringIndex, kUsbCdcNotificationEndpoint, 8,
                        kUsbCdcOutputEndpoint, kUsbCdcInputEndpoint, 64),
 #if CFG_TUD_HID
-    TUD_HID_DESCRIPTOR(kUsbGamepadInterface, kUsbGamepadStringIndex,
-                       HID_ITF_PROTOCOL_NONE, sizeof(kGamepadReport),
-                       kUsbGamepadInputEndpoint, kUsbGamepadEndpointSize,
+    TUD_HID_DESCRIPTOR(kUsbGamepadInterface, kUsbGamepadStringIndex, HID_ITF_PROTOCOL_NONE,
+                       sizeof(kGamepadReport), kUsbGamepadInputEndpoint, kUsbGamepadEndpointSize,
                        kUsbGamepadPollIntervalMs),
 #endif
 };
@@ -83,13 +86,11 @@ const tusb_desc_device_qualifier_t kQualifier{
 const std::uint8_t kHighSpeedConfiguration[] = {
     TUD_CONFIG_DESCRIPTOR(1, kUsbInterfaceCount, 0, kUsbConfigurationLength,
                           TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    TUD_CDC_DESCRIPTOR(kUsbCdcInterface, kUsbCdcStringIndex,
-                       kUsbCdcNotificationEndpoint, 8,
+    TUD_CDC_DESCRIPTOR(kUsbCdcInterface, kUsbCdcStringIndex, kUsbCdcNotificationEndpoint, 8,
                        kUsbCdcOutputEndpoint, kUsbCdcInputEndpoint, 512),
 #if CFG_TUD_HID
-    TUD_HID_DESCRIPTOR(kUsbGamepadInterface, kUsbGamepadStringIndex,
-                       HID_ITF_PROTOCOL_NONE, sizeof(kGamepadReport),
-                       kUsbGamepadInputEndpoint, kUsbGamepadEndpointSize,
+    TUD_HID_DESCRIPTOR(kUsbGamepadInterface, kUsbGamepadStringIndex, HID_ITF_PROTOCOL_NONE,
+                       sizeof(kGamepadReport), kUsbGamepadInputEndpoint, kUsbGamepadEndpointSize,
                        kUsbGamepadPollIntervalMs),
 #endif
 };
@@ -99,17 +100,35 @@ static_assert(sizeof(kHighSpeedConfiguration) == kUsbConfigurationLength,
 #endif
 
 constexpr char kUsbLanguageEnglish[] = {'\x09', '\x04'};
+
+namespace {
+
+constexpr std::size_t kMacBytes = 6;
+constexpr std::size_t kSerialDigits = kMacBytes * 2;
+
+char serial_number[kSerialDigits + 1] = CONFIG_TINYUSB_DESC_SERIAL_STRING;
+
+}
+
+void initialize_serial_number() {
+  std::uint8_t mac[kMacBytes] = {};
+  if (esp_read_mac(mac, ESP_MAC_BASE) != ESP_OK) {
+    return;
+  }
+  (void)std::snprintf(serial_number, sizeof(serial_number), "%02X%02X%02X%02X%02X%02X", mac[0],
+                      mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
 const char* kStrings[] = {
     kUsbLanguageEnglish,
     CONFIG_TINYUSB_DESC_MANUFACTURER_STRING,
     CONFIG_TINYUSB_DESC_PRODUCT_STRING,
-    CONFIG_TINYUSB_DESC_SERIAL_STRING,
+    serial_number,
     CONFIG_TINYUSB_DESC_CDC_STRING,
 #if CFG_TUD_HID
     "Pitrig Gamepad",
 #endif
 };
-const int kStringCount =
-    static_cast<int>(sizeof(kStrings) / sizeof(kStrings[0]));
+const int kStringCount = static_cast<int>(sizeof(kStrings) / sizeof(kStrings[0]));
 
 }

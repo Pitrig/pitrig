@@ -7,6 +7,7 @@
 
 #include "esp_timer.h"
 #include "telemetry_events.hpp"
+#include "telemetry_seqlock.hpp"
 #include "value_conditions.hpp"
 
 namespace pitrig::value_smoothing {
@@ -17,32 +18,43 @@ constexpr std::int64_t kMaximumPeriodUs = 250'000;
 constexpr std::int64_t kShorterPeriodDivisor = 2;
 constexpr std::int64_t kLongerPeriodDivisor = 8;
 
-[[nodiscard]] std::uint32_t blend_period(const std::uint32_t period_us,
-                                         const std::int64_t gap_us) {
+[[nodiscard]] std::uint32_t blend_period(const std::uint32_t period_us, const std::int64_t gap_us) {
   const std::int64_t gap = std::max(gap_us, kMinimumPeriodUs);
   if (period_us == 0) {
     return static_cast<std::uint32_t>(gap);
   }
   const auto period = static_cast<std::int64_t>(period_us);
-  const std::int64_t divisor =
-      gap < period ? kShorterPeriodDivisor : kLongerPeriodDivisor;
+  const std::int64_t divisor = gap < period ? kShorterPeriodDivisor : kLongerPeriodDivisor;
   return static_cast<std::uint32_t>(period + (gap - period) / divisor);
 }
 
+void clear_motion(Follower& follower) {
+  const std::uint32_t sequence = follower.sequence.load(std::memory_order_relaxed);
+  follower.sequence.store(sequence + 1, std::memory_order_relaxed);
+  std::atomic_thread_fence(std::memory_order_seq_cst);
+  follower.from = 0.0F;
+  follower.to = 0.0F;
+  follower.velocity_per_us = 0.0F;
+  follower.segment_start_us = 0;
+  follower.last_sample_us = 0;
+  follower.revision = 0;
+  follower.period_us = 0;
+  follower.available = false;
+  follower.sampled = false;
+  std::atomic_thread_fence(std::memory_order_seq_cst);
+  follower.sequence.store(sequence + 2, std::memory_order_release);
 }
 
-Service::Service(const telemetry::ITelemetryReader& telemetry,
-                 events::EventBus& event_bus)
+}
+
+Service::Service(const telemetry::ITelemetryReader& telemetry, events::EventBus& event_bus)
     : telemetry_(telemetry), event_bus_(event_bus) {}
 
-Service::~Service() {
-  stop();
-}
+Service::~Service() { stop(); }
 
 bool Service::attach(const std::span<std::uint8_t> storage) {
   const auto address = reinterpret_cast<std::uintptr_t>(storage.data());
-  const std::uintptr_t aligned =
-      (address + alignof(Follower) - 1) & ~(alignof(Follower) - 1);
+  const std::uintptr_t aligned = (address + alignof(Follower) - 1) & ~(alignof(Follower) - 1);
   const std::size_t needed =
       sizeof(Follower) * telemetry::catalog::kFieldCount + (aligned - address);
   if (!followers_.empty() || storage.size() < needed) {
@@ -70,8 +82,8 @@ bool Service::start(const configuration::ValueSmoothing policy) {
   if (followers_.empty()) {
     return false;
   }
-  subscription_ = event_bus_.subscribe(telemetry::kTelemetryUpdatedEvent,
-                                       &Service::on_telemetry_updated, this);
+  subscription_ =
+      event_bus_.subscribe(telemetry::kTelemetryUpdatedEvent, &Service::on_telemetry_updated, this);
   return subscription_.valid;
 }
 
@@ -92,19 +104,15 @@ Follower* Service::follow(const telemetry::Handle handle) {
     return nullptr;
   }
   Follower& follower = followers_[handle.index];
+  follower.armed.store(false, std::memory_order_release);
+  clear_motion(follower);
   follower.armed.store(true, std::memory_order_release);
   return &follower;
 }
 
 Service::Motion Service::snapshot(const Follower& follower) {
-  Motion motion{};
-  for (;;) {
-    const std::uint32_t before =
-        follower.sequence.load(std::memory_order_acquire);
-    if ((before & 1U) != 0U) {
-      continue;
-    }
-    motion = {
+  return telemetry::seqlock_read(follower.sequence, [&follower] {
+    return Motion{
         .from = follower.from,
         .to = follower.to,
         .velocity_per_us = follower.velocity_per_us,
@@ -114,11 +122,7 @@ Service::Motion Service::snapshot(const Follower& follower) {
         .available = follower.available,
         .sampled = follower.sampled,
     };
-    std::atomic_thread_fence(std::memory_order_acquire);
-    if (follower.sequence.load(std::memory_order_relaxed) == before) {
-      return motion;
-    }
-  }
+  });
 }
 
 float Service::shown(const Motion& motion, const std::int64_t now_us) const {
@@ -130,18 +134,15 @@ float Service::shown(const Motion& motion, const std::int64_t now_us) const {
       std::clamp<std::int64_t>(now_us - motion.segment_start_us, 0, period);
   const float progress = static_cast<float>(elapsed) / static_cast<float>(period);
   float target = motion.to;
-  if (policy_.load(std::memory_order_relaxed) ==
-      configuration::ValueSmoothing::predict) {
+  if (policy_.load(std::memory_order_relaxed) == configuration::ValueSmoothing::predict) {
     target += motion.velocity_per_us * static_cast<float>(elapsed);
   }
   return motion.from + (target - motion.from) * progress;
 }
 
 void Service::sample(Follower& follower, const std::optional<double> numeric,
-                     const std::uint64_t revision,
-                     const std::int64_t now_us) const {
-  const std::uint32_t sequence =
-      follower.sequence.load(std::memory_order_relaxed);
+                     const std::uint64_t revision, const std::int64_t now_us) const {
+  const std::uint32_t sequence = follower.sequence.load(std::memory_order_relaxed);
   follower.sequence.store(sequence + 1, std::memory_order_relaxed);
   std::atomic_thread_fence(std::memory_order_seq_cst);
   if (!numeric.has_value()) {
@@ -152,8 +153,8 @@ void Service::sample(Follower& follower, const std::optional<double> numeric,
   } else {
     const auto value = static_cast<float>(*numeric);
     const std::int64_t gap_us = now_us - follower.last_sample_us;
-    const bool continuous = follower.sampled && follower.available &&
-                            gap_us > 0 && gap_us <= kMaximumPeriodUs;
+    const bool continuous =
+        follower.sampled && follower.available && gap_us > 0 && gap_us <= kMaximumPeriodUs;
     if (continuous) {
       follower.from = shown(
           {
@@ -165,8 +166,7 @@ void Service::sample(Follower& follower, const std::optional<double> numeric,
           },
           now_us);
       follower.period_us = blend_period(follower.period_us, gap_us);
-      follower.velocity_per_us =
-          (value - follower.to) / static_cast<float>(gap_us);
+      follower.velocity_per_us = (value - follower.to) / static_cast<float>(gap_us);
     } else {
       follower.from = value;
       follower.period_us = 0;
@@ -183,15 +183,12 @@ void Service::sample(Follower& follower, const std::optional<double> numeric,
   follower.sequence.store(sequence + 2, std::memory_order_release);
 }
 
-void Service::on_telemetry_updated(const events::Event& event,
-                                   void* const context) {
+void Service::on_telemetry_updated(const events::Event& event, void* const context) {
   auto& service = *static_cast<Service*>(context);
-  if (event.payload == nullptr ||
-      event.payload_size != sizeof(telemetry::TelemetryUpdated)) {
+  if (event.payload == nullptr || event.payload_size != sizeof(telemetry::TelemetryUpdated)) {
     return;
   }
-  const auto& update =
-      *static_cast<const telemetry::TelemetryUpdated*>(event.payload);
+  const auto& update = *static_cast<const telemetry::TelemetryUpdated*>(event.payload);
   if (update.handle.index >= service.followers_.size()) {
     return;
   }
@@ -199,8 +196,7 @@ void Service::on_telemetry_updated(const events::Event& event,
   if (!follower.armed.load(std::memory_order_acquire)) {
     return;
   }
-  const telemetry::TelemetryRead value =
-      service.telemetry_.read(follower.handle);
+  const telemetry::TelemetryRead value = service.telemetry_.read(follower.handle);
   service.sample(follower, conditions::condition_value(value), value.revision,
                  esp_timer_get_time());
 }
@@ -215,13 +211,11 @@ telemetry::TelemetryRead Service::read(void* const context) {
     return follower.owner->telemetry_.read(follower.handle);
   }
   telemetry::TelemetryRead result{
-      .handle = {.index = follower.handle.index,
-                 .type = telemetry::ValueType::float32},
+      .handle = {.index = follower.handle.index, .type = telemetry::ValueType::float32},
       .revision = motion.revision,
       .available = motion.available,
   };
-  result.value.typed.float32_value =
-      follower.owner->shown(motion, esp_timer_get_time());
+  result.value.typed.float32_value = follower.owner->shown(motion, esp_timer_get_time());
   return result;
 }
 

@@ -5,14 +5,11 @@
 
 namespace pitrig::led {
 
+inline constexpr std::size_t kOffPanel = static_cast<std::size_t>(-1);
+
 enum class Order : std::uint8_t { progressive, serpentine };
 
-enum class Origin : std::uint8_t {
-  top_left,
-  top_right,
-  bottom_left,
-  bottom_right
-};
+enum class Origin : std::uint8_t { top_left, top_right, bottom_left, bottom_right };
 
 struct Matrix {
   std::uint16_t width{};

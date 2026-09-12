@@ -4,6 +4,7 @@
 
 #include "lvgl.h"
 #include "value_conditions.hpp"
+#include "widget_collection.hpp"
 
 namespace pitrig::dashboard::slots {
 namespace {
@@ -14,8 +15,7 @@ constexpr std::uint32_t kEvaluationPeriodMs = LV_DEF_REFR_PERIOD;
 
 Controller::~Controller() { clear(); }
 
-bool Controller::add(lv_obj_t* const container,
-                     const std::span<lv_obj_t* const> pages,
+bool Controller::add(lv_obj_t* const container, const std::span<lv_obj_t* const> pages,
                      const configuration::SlotWidgetConfiguration& config,
                      const telemetry::ITelemetryRegistry& registry,
                      const telemetry::ITelemetryReader& telemetry,
@@ -45,20 +45,18 @@ bool Controller::add(lv_obj_t* const container,
     page.trigger = source.trigger;
     page.duration_ms = source.duration_ms;
     page.condition_count = static_cast<std::uint8_t>(
-        source.condition_count > source.conditions.size()
-            ? source.conditions.size()
-            : source.condition_count);
+        source.condition_count > source.conditions.size() ? source.conditions.size()
+                                                          : source.condition_count);
     for (std::size_t rule = 0; rule < page.condition_count; ++rule) {
       page.conditions[rule] = source.conditions[rule];
     }
 
     if (page.trigger != configuration::SlotTrigger::none) {
       bool fast_updates{};
-      if (!frame::bind_source(
-              configuration::value_binding_view(source.source.binding),
-              source.source.modifier_count, source.source.modifiers, registry,
-              telemetry, modifier_readers, nullptr, page.source, page.read,
-              page.read_context, fast_updates)) {
+      if (!frame::bind_source(configuration::value_binding_view(source.source.binding),
+                              source.source.modifier_count, source.source.modifiers, registry,
+                              telemetry, modifier_readers, nullptr, page.source, page.read,
+                              page.read_context, fast_updates)) {
         page = {};
         return false;
       }
@@ -81,13 +79,12 @@ bool Controller::start() {
   bool watches_telemetry = false;
   for (std::size_t index = 0; index < count_; ++index) {
     lv_obj_add_flag(slots_[index].container, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(slots_[index].container, on_click, LV_EVENT_CLICKED,
-                        this);
+    lv_obj_add_event_cb(slots_[index].container, on_click, LV_EVENT_CLICKED, this);
   }
   for (std::size_t index = 0; index < page_count_; ++index) {
     watches_telemetry = watches_telemetry || pages_[index].read != nullptr;
   }
-  refresh();
+  refresh(false);
   if (!watches_telemetry) {
     return true;
   }
@@ -114,11 +111,12 @@ void Controller::clear() {
   pages_ = {};
 }
 
+void Controller::wake() { refresh(false); }
+
 void Controller::evaluate(lv_timer_t* const timer) {
-  auto* const controller =
-      static_cast<Controller*>(lv_timer_get_user_data(timer));
+  auto* const controller = static_cast<Controller*>(lv_timer_get_user_data(timer));
   if (controller != nullptr) {
-    controller->refresh();
+    controller->refresh(true);
   }
 }
 
@@ -127,8 +125,7 @@ void Controller::on_click(lv_event_t* const event) {
   if (indev != nullptr && lv_indev_get_gesture_dir(indev) != LV_DIR_NONE) {
     return;
   }
-  auto* const controller =
-      static_cast<Controller*>(lv_event_get_user_data(event));
+  auto* const controller = static_cast<Controller*>(lv_event_get_user_data(event));
   const lv_obj_t* const target = lv_event_get_current_target_obj(event);
   if (controller == nullptr || target == nullptr) {
     return;
@@ -136,7 +133,7 @@ void Controller::on_click(lv_event_t* const event) {
   for (std::size_t index = 0; index < controller->count_; ++index) {
     if (controller->slots_[index].container == target) {
       controller->advance(index);
-      controller->refresh();
+      controller->refresh(false);
       return;
     }
   }
@@ -149,11 +146,9 @@ void Controller::advance(const std::size_t index) {
       return;
     }
   }
-  const std::uint8_t current =
-      static_cast<std::uint8_t>(slot.loop_page - slot.first_page);
+  const std::uint8_t current = static_cast<std::uint8_t>(slot.loop_page - slot.first_page);
   for (std::uint8_t step = 1; step <= slot.page_count; ++step) {
-    const auto offset =
-        static_cast<std::uint8_t>((current + step) % slot.page_count);
+    const auto offset = static_cast<std::uint8_t>((current + step) % slot.page_count);
     if (pages_[slot.first_page + offset].in_loop) {
       slot.loop_page = static_cast<std::uint8_t>(slot.first_page + offset);
       return;
@@ -162,12 +157,10 @@ void Controller::advance(const std::size_t index) {
 }
 
 bool Controller::raised(Page& page) {
-  if (page.read == nullptr ||
-      page.trigger == configuration::SlotTrigger::none) {
+  if (page.read == nullptr || page.trigger == configuration::SlotTrigger::none) {
     return false;
   }
-  const std::optional<double> value =
-      conditions::condition_value(page.read(page.read_context));
+  const std::optional<double> value = conditions::condition_value(page.read(page.read_context));
 
   bool fires = false;
   if (value.has_value()) {
@@ -214,9 +207,12 @@ std::uint8_t Controller::selection(const Slot& slot) {
   return event != kNoPage ? event : slot.loop_page;
 }
 
-void Controller::refresh() {
+void Controller::refresh(const bool shown_only) {
   for (std::size_t index = 0; index < count_; ++index) {
     const Slot& slot = slots_[index];
+    if (shown_only && !frame::on_shown_screen(slot.container)) {
+      continue;
+    }
     const std::uint8_t showing = selection(slot);
     for (std::uint8_t offset = 0; offset < slot.page_count; ++offset) {
       const std::uint8_t page = static_cast<std::uint8_t>(slot.first_page + offset);

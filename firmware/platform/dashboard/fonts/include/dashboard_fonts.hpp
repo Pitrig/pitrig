@@ -14,8 +14,7 @@ namespace pitrig::dashboard::fonts {
 
 [[nodiscard]] constexpr std::size_t maximum_font_requests() {
   std::size_t total = configuration::kMaximumTextWidgets;
-  for (const configuration::WidgetTypeTraits& traits :
-       configuration::kWidgetTypeTraits) {
+  for (const configuration::WidgetTypeTraits& traits : configuration::kWidgetTypeTraits) {
     total += traits.capacity;
   }
   return total;
@@ -70,8 +69,7 @@ class Registry final {
     lv_font_t* lv_font{};
   };
 
-  [[nodiscard]] const Family* find_family(
-      const font_assets::FamilyId& family) const;
+  [[nodiscard]] const Family* find_family(const font_assets::FamilyId& family) const;
   static void destroy(lv_font_t* font);
 
   std::array<Family, font_assets::kMaximumFamilies> families_{};

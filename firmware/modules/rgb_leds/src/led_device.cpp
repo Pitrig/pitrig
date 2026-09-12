@@ -4,9 +4,8 @@ namespace pitrig::rgb_leds {
 namespace {
 
 [[nodiscard]] led::Order order_of(const configuration::MatrixOrder order) {
-  return order == configuration::MatrixOrder::progressive
-             ? led::Order::progressive
-             : led::Order::serpentine;
+  return order == configuration::MatrixOrder::progressive ? led::Order::progressive
+                                                          : led::Order::serpentine;
 }
 
 [[nodiscard]] led::Origin origin_of(const configuration::MatrixOrigin origin) {
@@ -25,13 +24,11 @@ namespace {
 }
 
 led::driver::Chip chip_of(const configuration::LedChip chip) {
-  return chip == configuration::LedChip::sk6812_rgbw
-             ? led::driver::Chip::sk6812_rgbw
-             : led::driver::Chip::ws2812b;
+  return chip == configuration::LedChip::sk6812_rgbw ? led::driver::Chip::sk6812_rgbw
+                                                     : led::driver::Chip::ws2812b;
 }
 
-led::Matrix geometry_of(
-    const configuration::HardwareDeviceConfiguration& device) {
+led::Matrix geometry_of(const configuration::HardwareDeviceConfiguration& device) {
   if (device.type == configuration::HardwareDeviceType::rgb_strip) {
     return {.width = device.count,
             .height = 1,

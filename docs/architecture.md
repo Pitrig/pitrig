@@ -90,9 +90,11 @@ Public headers are stored directly under an implementation's `include/` director
 What each directory holds:
 
 - `core/` — `application.hpp` (what the root owns), `apply_configuration.cpp`
-  (the replacement transaction of ADR 0016), `pitrig.cpp` (the startup phases)
-  and `module_manager` (compile-time descriptors with function pointers and
-  explicit contexts; no allocation, no name lookup). It reaches no LVGL header:
+  (the replacement transaction of ADR 0016), `pitrig.cpp` (the startup phases),
+  `pitrig_boot.cpp` (the configuration-memory reservation, the stored-document
+  load and its report, and opening the asset storages) and `module_manager`
+  (compile-time descriptors with function pointers and explicit contexts; no
+  allocation, no name lookup). It reaches no LVGL header:
   the dashboard is opaque to it through `dashboard_composition::instance()`.
 - `interfaces/` — `display` and `input` in one component, `transport` in its own.
 - `components/` — `display`, `input`, `led`. They depend on interfaces, never on
@@ -119,10 +121,7 @@ What each directory holds:
   `navigation`, `slots`, `value_text`, `memory` — the allocator that puts every
   LVGL allocation in external RAM — `utilities` and the embedded boot-splash
   `assets`), `dashboard_composition`, `module_composition`, `nvs_config_storage`,
-  `partition_asset_storage`, `status_light` (the single board-declared lamp: it
-  needs no configuration, so it runs on the recovery surface and reports
-  booting, safe mode, telemetry silence and upload progress),
-  `telemetry_transport`, `external_memory`.
+  `partition_asset_storage`, `telemetry_transport`, `external_memory`.
 - `utils/` — `binary`, `pitrig_config` (the Kconfig surface and the `PITRIG_*`
   feature aliases, here because every layer reads it), `transformers/number_transform`,
   `transformers/text_writer`, `transformers/time_transform`.
@@ -136,11 +135,11 @@ The dependency direction is:
 main
   |
   v
-core ----> core/module_manager
-  |----> components
+core ----> components
   |----> services
   `----> platform composition
 
+platform composition ----> core/module_manager
 platform composition ----> modules
 platform composition ----> components
 platform composition ----> services
@@ -155,13 +154,14 @@ services -----------------> interfaces (transport-facing control services)
 Dependencies must not point from interfaces or components to a concrete hardware driver.
 
 The last two edges are narrow and deliberate. The display component and the
-transport drivers depend on the performance service so they can report frame and
-transport instrumentation; that service lives in `firmware/debug/` and registers
-with no sources and no include directories unless `CONFIG_PITRIG_DEBUG`, so the
-dependency compiles away entirely (ADR 0028). The control services that answer over the serial
-link — configuration control, the shared asset upload engine, and the font and
-image asset controls over it — depend on the `transport` interface because they
-answer over it; they depend on no concrete driver. The debug-only performance
+transport drivers depend on `debug/instrumentation` so they can report frame and
+transport instrumentation; that component lives in `firmware/debug/` and
+registers with no sources and no include directories unless
+`CONFIG_PITRIG_DEBUG`, so the dependency compiles away entirely (ADR 0028). The
+control services that answer over the serial link — configuration control, the
+shared asset upload engine, and the font and image asset controls over it —
+depend on the `transport` interface because they answer over it; they depend on
+no concrete driver. The debug-only performance
 overlay reads transport counters and so gives the dashboard the same interface
 edge.
 
@@ -217,15 +217,19 @@ The phases run in this order, and the order is the decision
 
 ```text
 boot guard → configuration → link + control protocol → display → assets →
-modules + dashboard → composed → complete
+composition → complete
 ```
 
-The serial link comes up before the display and before anything is composed,
-so everything a board can be repaired with sits ahead of everything a board can
-be broken by; only the configuration stays ahead of it, because the `protocol`
-document chooses the port, the pins and the baud rate. Starting a link waits for
-no host. A crashed task is a panic that resets the chip, so a fault is contained
-on the boot after it: `boot_guard` counts crashes and watchdog resets in RTC
+The names are the `boot_guard::Phase` enum, and are what `INFO` reports as
+`last_phase`. The serial link comes up before the display and before anything
+is composed, so everything a board can be repaired with sits ahead of everything
+a board can be broken by; only the configuration stays ahead of it, because the
+`protocol` document chooses the port, the pins and the baud rate. Starting a link
+waits for no host. A link that will not start is retried once with the board's
+own `protocol` document, and a board that still has none aborts, so `boot_guard`
+counts the attempt and safe mode eventually takes over; safe mode itself neither
+retries nor aborts. A crashed task is a panic that resets the chip, so a fault
+is contained on the boot after it: `boot_guard` counts crashes and watchdog resets in RTC
 memory, and three in a row put the next boot on the recovery surface — the
 transport, the `@PR:` control protocol and firmware upload, nothing else — until
 a host writes or erases a document. The task watchdog resets rather than prints
@@ -274,9 +278,10 @@ Modules provide user-visible functionality. Two exist. `lap_timer` owns
 lap-time extrapolation, correction and stale-telemetry handling behind a
 value-pipeline callback. `rgb_leds` owns the addressable LED outputs: it turns
 the `hardware` section into chains, binds each layer's telemetry once, and
-repaints every output on its own task at sixty frames a second, because the
-event-bus handler runs on the transport read task and blocking it would stall
-telemetry for the dashboard too.
+repaints every output on its own task at sixty frames a second, so none of its
+work runs on a transport read task. It subscribes to no event: the
+`telemetry_idle` gate reads the arrival timestamp the telemetry state service
+keeps.
 
 Modules communicate through platform services rather than directly with each other whenever possible.
 
@@ -577,10 +582,14 @@ a widget timer period. The dashboard composition subscribes to telemetry update
 events; the handler signals a small render-trigger task, which takes the LVGL
 lock, marks the widget render timers ready, releases the lock, and wakes the
 LVGL task. The next LVGL pass therefore reads the changed values and refreshes
-immediately. The periodic widget timers remain as the fallback and as the clock
-for free-running module sources; the trigger adds no polling and makes no LVGL
-call outside the LVGL lock, and the task that committed the telemetry never
-waits on the UI.
+immediately. The periodic widget timers run at `LV_DEF_REFR_PERIOD` (4 ms) and
+are the clock for everything a telemetry burst does not drive — free-running
+module sources, blinking, a held styling rule; the trigger adds no polling and
+makes no LVGL call outside the LVGL lock, and the task that committed the
+telemetry never waits on the UI. Those timers and the slot controller skip
+instances whose screen is neither the active one nor the one animating out, and
+are woken once when a screen is shown so it catches up on the next pass; graph
+widgets are exempt, because the render is what drains their sampler's ring.
 
 While a refresh is already drawing, the handler skips the trigger. A driver
 that waits for the display before reusing a frame buffer keeps the LVGL lock
@@ -627,6 +636,11 @@ The following rules should always be respected.
 - Public interfaces should remain stable.
 - Prefer composition over inheritance.
 - Prefer explicit dependencies.
-- Avoid global mutable state.
+- Avoid global mutable state. What remains is deliberate and enumerated: the
+  dashboard instance `g_dashboard` with the render trigger's task storage, the
+  graph sampler's one task and mutex, the guard that installs LVGL's glyph
+  allocator once, TinyUSB's `active_transport` (its callbacks carry no context),
+  the ws2812 RMT channel table, and `boot_guard`'s RTC record, which has to
+  outlive the reset it counts.
 - Keep components small and focused.
 - Avoid introducing new abstractions unless they solve a demonstrated problem.

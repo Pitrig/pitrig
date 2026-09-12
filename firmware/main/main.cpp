@@ -1,5 +1,3 @@
 #include "pitrig.hpp"
 
-extern "C" void app_main() {
-  pitrig::run();
-}
+extern "C" void app_main() { pitrig::run(); }

@@ -9,8 +9,7 @@
 namespace pitrig::transport {
 
 inline constexpr std::uint32_t kWatchdogFeedIntervalMs = 1'000;
-inline constexpr TickType_t kWatchdogFeedTicks =
-    pdMS_TO_TICKS(kWatchdogFeedIntervalMs);
+inline constexpr TickType_t kWatchdogFeedTicks = pdMS_TO_TICKS(kWatchdogFeedIntervalMs);
 
 inline void watch_current_task() { (void)esp_task_wdt_add(nullptr); }
 

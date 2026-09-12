@@ -2,27 +2,24 @@
 
 #include <algorithm>
 #include <cmath>
-#include <string_view>
 
 #include "number_transform.hpp"
 
 namespace pitrig::conditions {
 
-std::uint32_t blend_color(const std::uint32_t from, const std::uint32_t to,
-                          const double ratio) {
+std::uint32_t blend_color(const std::uint32_t from, const std::uint32_t to, const double ratio) {
   std::uint32_t blended{};
   for (int shift = 16; shift >= 0; shift -= 8) {
     const auto start = static_cast<double>((from >> shift) & 0xFFU);
     const auto end = static_cast<double>((to >> shift) & 0xFFU);
-    const auto channel =
-        static_cast<std::uint32_t>(start + (end - start) * ratio + 0.5);
+    const auto channel = static_cast<std::uint32_t>(start + (end - start) * ratio + 0.5);
     blended |= (channel & 0xFFU) << shift;
   }
   return blended;
 }
 
-bool condition_holds(const configuration::ConditionOperator op,
-                     const double value, const double threshold) {
+bool condition_holds(const configuration::ConditionOperator op, const double value,
+                     const double threshold) {
   switch (op) {
     case configuration::ConditionOperator::above:
       return value > threshold;
@@ -40,10 +37,8 @@ bool condition_holds(const configuration::ConditionOperator op,
   return false;
 }
 
-float range_fraction(const double value,
-                     const configuration::ValueRange& range) {
-  const double span =
-      static_cast<double>(range.maximum) - static_cast<double>(range.minimum);
+float range_fraction(const double value, const configuration::ValueRange& range) {
+  const double span = static_cast<double>(range.maximum) - static_cast<double>(range.minimum);
   if (!(span > 0.0)) {
     return 0.0F;
   }
@@ -67,14 +62,9 @@ std::optional<double> condition_value(const telemetry::TelemetryRead& value) {
     case telemetry::ValueType::boolean:
       return value.value.typed.boolean_value ? 1.0 : 0.0;
     case telemetry::ValueType::text: {
-      const auto terminator = std::find(value.value.source_text.begin(),
-                                        value.value.source_text.end(), '\0');
-      const std::string_view text{
-          value.value.source_text.data(),
-          static_cast<std::size_t>(
-              terminator - value.value.source_text.begin())};
       float parsed{};
-      if (!transformers::number_transform::parse(text, parsed)) {
+      if (!transformers::number_transform::parse(configuration::text_view(value.value.source_text),
+                                                 parsed)) {
         return std::nullopt;
       }
       return static_cast<double>(parsed);
@@ -84,8 +74,7 @@ std::optional<double> condition_value(const telemetry::TelemetryRead& value) {
 }
 
 Resolution resolve(const std::span<const configuration::WidgetCondition> rules,
-                   const std::optional<double> value,
-                   const ResolvedStyle& fallback) {
+                   const std::optional<double> value, const ResolvedStyle& fallback) {
   if (!value.has_value()) {
     return {.style = fallback};
   }
@@ -110,9 +99,8 @@ Resolution resolve(const std::span<const configuration::WidgetCondition> rules,
   return {.style = fallback};
 }
 
-std::optional<std::uint32_t> ramp_color(
-    const std::span<const configuration::ColorStop> stops,
-    const std::optional<double> value) {
+std::optional<std::uint32_t> ramp_color(const std::span<const configuration::ColorStop> stops,
+                                        const std::optional<double> value) {
   if (stops.size() < 2 || !value.has_value()) {
     return std::nullopt;
   }

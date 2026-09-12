@@ -14,13 +14,9 @@ enum class Font : std::uint8_t { regular_4x6, bold_4x6, regular_6x8, bold_6x8 };
   return kFaces[index < kFaces.size() ? index : 0];
 }
 
-[[nodiscard]] constexpr std::uint8_t font_width(const Font font) {
-  return face_of(font).width;
-}
+[[nodiscard]] constexpr std::uint8_t font_width(const Font font) { return face_of(font).width; }
 
-[[nodiscard]] constexpr std::uint8_t font_height(const Font font) {
-  return face_of(font).height;
-}
+[[nodiscard]] constexpr std::uint8_t font_height(const Font font) { return face_of(font).height; }
 
 [[nodiscard]] std::uint16_t glyph_row(Font font, char character, std::uint8_t row);
 

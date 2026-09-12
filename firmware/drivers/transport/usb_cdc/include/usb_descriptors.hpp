@@ -14,6 +14,8 @@ extern const std::uint8_t kHighSpeedConfiguration[];
 #endif
 extern const char* kStrings[];
 extern const int kStringCount;
+
+void initialize_serial_number();
 #if CFG_TUD_HID
 extern const std::uint8_t kGamepadReport[];
 extern const std::uint16_t kGamepadReportLength;

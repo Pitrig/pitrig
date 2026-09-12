@@ -96,10 +96,22 @@ config PITRIG_DISPLAY_COLOR_24BIT
 
 endchoice
 
+choice PITRIG_DISPLAY_FRAME_START
+    prompt "Frame start scheduling"
+    depends on PITRIG_DISPLAY_RENDER_FULL_STRIPS
+    default PITRIG_DISPLAY_FRAME_START_ON_CHANGE
+    help
+        When the LVGL pass that draws a frame is started. Both experiments
+        live in the vendored display port's full-strips path and share the
+        per-frame state it keeps there, so at most one of them can be
+        selected. The default starts a frame as soon as telemetry changed
+        something.
+
+config PITRIG_DISPLAY_FRAME_START_ON_CHANGE
+    bool "Start a frame as soon as telemetry changes something"
+
 config PITRIG_DISPLAY_VSYNC_LOCK
     bool "Schedule each frame from the telemetry burst (experiment)"
-    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
-    default n
     help
         Today a frame starts the moment telemetry arrives, and since the
         finished frame is held until the panel latches it and LVGL waits
@@ -119,8 +131,6 @@ config PITRIG_DISPLAY_VSYNC_LOCK
 
 config PITRIG_DISPLAY_JIT
     bool "Start each frame as late as it can still meet the panel (experiment)"
-    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
-    default n
     help
         Instead of drawing a frame as soon as something changed and then
         holding it until the panel is ready, sleep first and start drawing
@@ -131,9 +141,11 @@ config PITRIG_DISPLAY_JIT
         adapts: a frame that misses its latch widens it, frames that hit
         narrow it back.
 
+endchoice
+
 config PITRIG_DISPLAY_UNCAPPED
     bool "Render without waiting for the panel (experiment)"
-    depends on PITRIG_FACTORY_BOARD_GUITION_JC1060P470C
+    depends on PITRIG_DISPLAY_RENDER_FULL_STRIPS
     default n
     help
         Drops the pacing wait that holds a finished frame until the panel is
@@ -172,31 +184,12 @@ config PITRIG_FACTORY_BOARD_ESP32S3_DEVKIT
     bool "Espressif ESP32-S3-DevKitC-1 (no display)"
     depends on IDF_TARGET_ESP32S3
     help
-        Needs a module with octal PSRAM (N8R8, N16R8V): the build inherits
-        the target-wide CONFIG_SPIRAM_MODE_OCT and the configuration
-        buffers live in external RAM, so a module without it (N8, N8R2)
-        panics before the serial link comes up and never reaches the
-        recovery surface.
-
-endchoice
-
-choice PITRIG_STATUS_LED_PIN
-    prompt "On-board status LED pin"
-    depends on PITRIG_FACTORY_BOARD_ESP32S3_DEVKIT
-    default PITRIG_STATUS_LED_GPIO38
-    help
-        Which pin the DevKitC-1's addressable status LED is wired to. The
-        board moved it between revisions — v1.0 drives it from GPIO 48 and
-        v1.1 from GPIO 38 — and nothing on the board reports which one it
-        is, so it is asked rather than guessed. On a board with no display
-        this lamp is the only thing that can report safe mode, so getting
-        it wrong costs the one diagnostic the board has.
-
-config PITRIG_STATUS_LED_GPIO38
-    bool "GPIO 38 (DevKitC-1 v1.1)"
-
-config PITRIG_STATUS_LED_GPIO48
-    bool "GPIO 48 (DevKitC-1 v1.0)"
+        Needs a 16 MB module with octal PSRAM (N16R8, N16R8V): the flash
+        layout and partitions.csv reach 0x1000000, and the configuration
+        buffers live in external RAM under the target-wide
+        CONFIG_SPIRAM_MODE_OCT, so a module with less flash refuses to
+        flash and one without octal PSRAM never reaches the recovery
+        surface.
 
 endchoice
 

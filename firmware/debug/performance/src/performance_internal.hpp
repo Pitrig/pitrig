@@ -29,8 +29,7 @@ struct Measurements {
 extern portMUX_TYPE state_lock;
 extern PerformanceStats stats;
 extern Measurements measurements;
-extern std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)>
-    monitored_tasks;
+extern std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)> monitored_tasks;
 
 }
 

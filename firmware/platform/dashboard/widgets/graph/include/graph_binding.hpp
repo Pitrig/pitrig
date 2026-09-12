@@ -40,25 +40,21 @@ class Binder final {
   [[nodiscard]] std::span<const WidgetBinding> bindings() const;
 
  private:
-  [[nodiscard]] bool bind_one(
-      const configuration::ValueSourceConfiguration& source,
-      const telemetry::ITelemetryRegistry& registry,
-      const telemetry::ITelemetryReader& telemetry,
-      const ModifierReaders& modifier_readers,
-      value_smoothing::Service* smoothing, std::size_t context_index,
-      frame::BoundSource& bound);
+  [[nodiscard]] bool bind_one(const configuration::ValueSourceConfiguration& source,
+                              const telemetry::ITelemetryRegistry& registry,
+                              const telemetry::ITelemetryReader& telemetry,
+                              const ModifierReaders& modifier_readers,
+                              value_smoothing::Service* smoothing, std::size_t context_index,
+                              frame::BoundSource& bound);
 
-  [[nodiscard]] bool bind_sources(const Config& configuration,
-                                  std::size_t instance,
+  [[nodiscard]] bool bind_sources(const Config& configuration, std::size_t instance,
                                   const telemetry::ITelemetryRegistry& registry,
                                   const telemetry::ITelemetryReader& telemetry,
                                   const ModifierReaders& modifier_readers,
-                                  value_smoothing::Service* smoothing,
-                                  WidgetBinding& binding);
+                                  value_smoothing::Service* smoothing, WidgetBinding& binding);
 
   std::array<WidgetBinding, kMaximumInstances> bindings_{};
-  std::array<frame::SourceContext, kMaximumInstances * kContextsPerInstance>
-      source_contexts_{};
+  std::array<frame::SourceContext, kMaximumInstances * kContextsPerInstance> source_contexts_{};
   std::size_t count_{};
 };
 

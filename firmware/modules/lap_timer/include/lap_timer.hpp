@@ -4,15 +4,8 @@
 #include <mutex>
 
 #include "event_bus.hpp"
+#include "telemetry_state.hpp"
 #include "telemetry_types.hpp"
-
-namespace pitrig::events {
-class EventBus;
-}
-
-namespace pitrig::telemetry {
-class ITelemetryReader;
-}
 
 namespace pitrig::lap_timer {
 
@@ -31,10 +24,9 @@ class LapTimer {
   LapTimer(LapTimer&&) = delete;
   LapTimer& operator=(LapTimer&&) = delete;
 
-  [[nodiscard]] bool start(
-      events::EventBus& event_bus,
-      const telemetry::ITelemetryReader& telemetry_reader,
-      telemetry::Handle telemetry_handle);
+  [[nodiscard]] bool start(events::EventBus& event_bus,
+                           const telemetry::ITelemetryReader& telemetry_reader,
+                           telemetry::Handle telemetry_handle);
   void stop();
 
   [[nodiscard]] Snapshot snapshot();
@@ -53,6 +45,7 @@ class LapTimer {
   static void on_telemetry_updated(const events::Event& event, void* context);
 
   void advance_to(std::int64_t now_us);
+  void invalidate();
   void synchronize(std::uint32_t lap_time_ms, std::int64_t now_us);
   void update(std::uint32_t lap_time_ms);
 

@@ -5,11 +5,9 @@
 
 namespace pitrig::dashboard::text_widget::drawing {
 
-[[nodiscard]] std::int32_t text_width_of(const lv_font_t* font,
-                                         const char* text);
+[[nodiscard]] std::int32_t text_width_of(const lv_font_t* font, const char* text);
 
-[[nodiscard]] lv_area_t value_area(const State& state,
-                                   const lv_area_t& content);
+[[nodiscard]] lv_area_t value_area(const State& state, const lv_area_t& content);
 
 void invalidate_value(const State& state, const lv_area_t* previous);
 

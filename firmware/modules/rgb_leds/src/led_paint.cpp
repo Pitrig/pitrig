@@ -24,25 +24,22 @@ void paint_solid(const Surface& surface, const led::Color color) {
   }
 }
 
-void paint_gradient(const Surface& surface, const LedEffect& effect,
-                    const led::Color fallback) {
+void paint_gradient(const Surface& surface, const LedEffect& effect, const led::Color fallback) {
   const std::size_t lamps = surface.size();
   for (std::size_t index = 0; index < lamps; ++index) {
-    const float position =
-        lamps <= 1 ? 0.0F : static_cast<float>(index) / (lamps - 1);
+    const float position = lamps <= 1 ? 0.0F : static_cast<float>(index) / (lamps - 1);
     surface.set(index, ramp_at(effect, position, fallback));
   }
 }
 
-void paint_steps(const Surface& surface, const LedEffect& effect,
-                 const float fraction) {
+void paint_steps(const Surface& surface, const LedEffect& effect, const float fraction) {
   const std::size_t lamps = surface.size();
   if (effect.step_count == 0 || lamps == 0) {
     return;
   }
   for (std::size_t index = 0; index < lamps; ++index) {
-    const std::size_t step = std::min<std::size_t>(
-        index * effect.step_count / lamps, effect.step_count - 1U);
+    const std::size_t step =
+        std::min<std::size_t>(index * effect.step_count / lamps, effect.step_count - 1U);
     if (fraction + 1e-6F < effect.steps[step].threshold) {
       continue;
     }
@@ -50,14 +47,11 @@ void paint_steps(const Surface& surface, const LedEffect& effect,
   }
 }
 
-void paint_gauge(const Surface& surface, const LedEffect& effect,
-                 const led::Color fallback, const float fraction,
-                 const float value) {
-  const led::Color color =
-      effect.stop_count >= 2 ? ramp_at(effect, value, fallback) : fallback;
+void paint_gauge(const Surface& surface, const LedEffect& effect, const led::Color fallback,
+                 const float fraction, const float value) {
+  const led::Color color = effect.stop_count >= 2 ? ramp_at(effect, value, fallback) : fallback;
   const std::size_t lamps = surface.size();
-  const auto lit =
-      static_cast<std::size_t>(std::lround(fraction * lamps));
+  const auto lit = static_cast<std::size_t>(std::lround(fraction * lamps));
   for (std::size_t index = 0; index < lit && index < lamps; ++index) {
     surface.set(index, color);
   }
@@ -84,16 +78,15 @@ void paint_gauge(const Surface& surface, const LedEffect& effect,
   }
 }
 
-void paint_animation(const Surface& surface, const LedEffect& effect,
-                     const led::Color color, const float phase) {
+void paint_animation(const Surface& surface, const LedEffect& effect, const led::Color color,
+                     const float phase) {
   const std::size_t lamps = surface.size();
   if (lamps == 0) {
     return;
   }
   const float head = phase * lamps;
   const float sweep = 1.0F - std::abs(2.0F * phase - 1.0F);
-  const float breath =
-      0.5F - 0.5F * std::cos(phase * 2.0F * std::numbers::pi_v<float>);
+  const float breath = 0.5F - 0.5F * std::cos(phase * 2.0F * std::numbers::pi_v<float>);
   for (std::size_t index = 0; index < lamps; ++index) {
     const float position = static_cast<float>(index) / lamps;
     switch (effect.animation) {
@@ -114,8 +107,7 @@ void paint_animation(const Surface& surface, const LedEffect& effect,
         }
         break;
       case configuration::LedAnimationKind::scan: {
-        const float distance =
-            std::abs(static_cast<float>(index) - sweep * (lamps - 1));
+        const float distance = std::abs(static_cast<float>(index) - sweep * (lamps - 1));
         surface.set(index, color.faded(1.0F - distance));
         break;
       }
@@ -123,8 +115,7 @@ void paint_animation(const Surface& surface, const LedEffect& effect,
   }
 }
 
-[[nodiscard]] int matching_rule(const LedEffect& effect,
-                               const std::optional<double> watched) {
+[[nodiscard]] int matching_rule(const LedEffect& effect, const std::optional<double> watched) {
   if (!watched.has_value()) {
     return -1;
   }
@@ -137,15 +128,12 @@ void paint_animation(const Surface& surface, const LedEffect& effect,
   return -1;
 }
 
-[[nodiscard]] int applied_rule(const LedEffect& effect,
-                               const std::optional<double> watched,
-                               ColorRuleState& state,
-                               const std::uint64_t now_us) {
+[[nodiscard]] int applied_rule(const LedEffect& effect, const std::optional<double> watched,
+                               ColorRuleState& state, const std::uint64_t now_us) {
   int applied = matching_rule(effect, watched);
   if (applied >= 0) {
     state.hold_until_us =
-        now_us +
-        static_cast<std::uint64_t>(effect.color_rules[applied].hold_ms) * 1000;
+        now_us + static_cast<std::uint64_t>(effect.color_rules[applied].hold_ms) * 1000;
   } else if (state.applied >= 0 && state.applied < effect.color_rule_count &&
              now_us < state.hold_until_us) {
     applied = state.applied;
@@ -159,8 +147,13 @@ void paint_animation(const Surface& surface, const LedEffect& effect,
 
 }
 
-LayerColors colors_of(const configuration::LedEffect& effect,
-                      const std::optional<double> watched,
+std::uint64_t effect_period_us(const configuration::LedEffect& effect) {
+  constexpr std::uint16_t kDefaultSpeedMs = 1000;
+  const std::uint16_t speed_ms = effect.speed_ms == 0 ? kDefaultSpeedMs : effect.speed_ms;
+  return static_cast<std::uint64_t>(speed_ms) * 1000;
+}
+
+LayerColors colors_of(const configuration::LedEffect& effect, const std::optional<double> watched,
                       ColorRuleState& state, const std::uint64_t now_us) {
   LayerColors colors{.ink = led::Color::from_rgb(effect.color)};
   if (effect.background_color != configuration::kTransparentColor) {
@@ -183,18 +176,12 @@ LayerColors colors_of(const configuration::LedEffect& effect,
   return colors;
 }
 
-void paint(const Surface& surface, const configuration::LedEffect& effect,
-           const led::Color color, const std::optional<double> value,
-           const std::uint64_t elapsed_us) {
+void paint(const Surface& surface, const configuration::LedEffect& effect, const led::Color color,
+           const std::optional<double> value, const std::uint64_t elapsed_us) {
   const float fraction =
-      value.has_value() ? conditions::range_fraction(*value, effect.range)
-                        : 0.0F;
-  const std::uint64_t period_us =
-      static_cast<std::uint64_t>(effect.speed_ms == 0 ? 1000
-                                                      : effect.speed_ms) *
-      1000;
-  const float phase = static_cast<float>(elapsed_us % period_us) /
-                      static_cast<float>(period_us);
+      value.has_value() ? conditions::range_fraction(*value, effect.range) : 0.0F;
+  const std::uint64_t period_us = effect_period_us(effect);
+  const float phase = static_cast<float>(elapsed_us % period_us) / static_cast<float>(period_us);
 
   switch (effect.type) {
     case configuration::LedEffectType::solid:
@@ -207,8 +194,7 @@ void paint(const Surface& surface, const configuration::LedEffect& effect,
       paint_steps(surface, effect, fraction);
       break;
     case configuration::LedEffectType::gauge:
-      paint_gauge(surface, effect, color, fraction,
-                  static_cast<float>(value.value_or(0.0)));
+      paint_gauge(surface, effect, color, fraction, static_cast<float>(value.value_or(0.0)));
       break;
     case configuration::LedEffectType::animation:
       paint_animation(surface, effect, color, phase);

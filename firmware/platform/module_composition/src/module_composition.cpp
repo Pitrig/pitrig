@@ -13,12 +13,11 @@ constexpr char kTag[] = "modules";
 
 bool start_lap_timer(void* const context) {
   auto& binding = *static_cast<Modules::LapTimerBinding*>(context);
-  if (binding.module == nullptr || binding.event_bus == nullptr ||
-      binding.telemetry == nullptr || binding.started == nullptr) {
+  if (binding.module == nullptr || binding.event_bus == nullptr || binding.telemetry == nullptr ||
+      binding.started == nullptr) {
     return false;
   }
-  *binding.started = binding.module->start(
-      *binding.event_bus, *binding.telemetry, binding.handle);
+  *binding.started = binding.module->start(*binding.event_bus, *binding.telemetry, binding.handle);
   if (!*binding.started) {
     log::error(kTag, "Failed to subscribe Lap Timer to telemetry");
   }
@@ -37,16 +36,14 @@ void stop_lap_timer(void* const context) {
 
 bool start_rgb_leds(void* const context) {
   auto& binding = *static_cast<Modules::RgbLedsBinding*>(context);
-  if (binding.module == nullptr || binding.event_bus == nullptr ||
-      binding.registry == nullptr || binding.telemetry == nullptr ||
-      binding.driver == nullptr || binding.configuration == nullptr ||
-      binding.started == nullptr) {
+  if (binding.module == nullptr || binding.event_bus == nullptr || binding.registry == nullptr ||
+      binding.telemetry == nullptr || binding.driver == nullptr ||
+      binding.configuration == nullptr || binding.started == nullptr) {
     return false;
   }
   *binding.started =
-      binding.module->start(*binding.event_bus, *binding.registry,
-                            *binding.telemetry, *binding.driver,
-                            *binding.configuration);
+      binding.module->start(*binding.event_bus, *binding.registry, *binding.telemetry,
+                            *binding.driver, *binding.configuration);
   if (!*binding.started) {
     log::error(kTag, "No addressable LED output came up");
   }
@@ -63,16 +60,14 @@ void stop_rgb_leds(void* const context) {
   }
 }
 
-[[nodiscard]] bool has_rgb_output(
-    const configuration::ApplicationConfiguration& configuration) {
+[[nodiscard]] bool has_rgb_output(const configuration::ApplicationConfiguration& configuration) {
   return configuration.device_count > 0;
 }
 
 template <typename Source>
 [[nodiscard]] bool uses_lap_timer(const Source& source) {
   for (std::size_t index = 0; index < source.modifier_count; ++index) {
-    if (source.modifiers[index].type ==
-        configuration::ValueModifierType::lap_timer) {
+    if (source.modifiers[index].type == configuration::ValueModifierType::lap_timer) {
       return true;
     }
   }
@@ -81,14 +76,12 @@ template <typename Source>
 
 }
 
-bool lap_timer_used(
-    const configuration::ApplicationConfiguration& configuration) {
+bool lap_timer_used(const configuration::ApplicationConfiguration& configuration) {
   const auto& dashboard = configuration.dashboard;
 
-  if (configuration::any_widget_frame(
-          dashboard, [](const configuration::WidgetFrame& frame) {
-            return uses_lap_timer(frame.condition_source);
-          })) {
+  if (configuration::any_widget_frame(dashboard, [](const configuration::WidgetFrame& frame) {
+        return uses_lap_timer(frame.condition_source);
+      })) {
     return true;
   }
 
@@ -139,6 +132,8 @@ bool start(Modules& modules, events::EventBus& event_bus,
            const telemetry::ITelemetryReader& telemetry,
            const led::driver::Driver* const led_driver,
            const configuration::ApplicationConfiguration& configuration) {
+  static_assert(static_cast<std::size_t>(Module::lap_timer) == 0);
+  static_assert(static_cast<std::size_t>(Module::rgb_leds) == 1);
   modules.manager.clear();
   modules.lap_timer_started = false;
   modules.rgb_leds_started = false;
@@ -176,6 +171,21 @@ bool start(Modules& modules, events::EventBus& event_bus,
     return false;
   }
   return modules.manager.start_all();
+}
+
+bool restart(Modules& modules, const Module module,
+             const configuration::ApplicationConfiguration& configuration) {
+  bool enabled = false;
+  switch (module) {
+    case Module::lap_timer:
+      enabled = lap_timer_used(configuration);
+      break;
+    case Module::rgb_leds:
+      modules.rgb_leds_binding.configuration = &configuration;
+      enabled = modules.rgb_leds_binding.driver != nullptr && has_rgb_output(configuration);
+      break;
+  }
+  return modules.manager.restart_at(static_cast<std::size_t>(module), enabled);
 }
 
 }

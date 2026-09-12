@@ -61,21 +61,22 @@ no longer have one is a way to display a screen the author is not editing. An
 incremental apply (ADR 0016) keeps the screen objects and so keeps the screen
 being shown, which is what a live preview of an edit on that screen wants.
 
-Widgets on screens that are not loaded are not drawn, and nothing in the
-dashboard has to arrange that. LVGL drops an invalidation whose object belongs to
-a screen that is neither loaded nor animating out, so a widget on a hidden screen
-still reads its sources and still formats its value on its type's shared timer,
-but produces no dirty area and no draw. What extra screens cost is therefore
-value computation, not per-frame rendering, and the widget state, bindings, and
-LVGL objects all persist so a screen returns showing current values rather than
-being rebuilt.
+Widgets on screens that are not loaded are neither drawn nor computed. LVGL
+already drops an invalidation whose object belongs to a screen that is neither
+loaded nor animating out, so nothing hidden reaches the panel; on top of that,
+the shared widget timers and the slot controller skip every instance whose
+screen is neither active nor animating out, so a hidden widget does not read its
+sources or format its value either. The gate this ADR once declared deliberately
+unbuilt is built: it lives in the shared collection rather than in each widget
+type, which is what made it cheap enough to be worth having.
 
-A gate that skips the computation as well was considered and deliberately not
-built. It would have to reach into every widget type, because a type's timer
-wakes all of its instances at once regardless of where they are, and the work it
-would save is string formatting rather than pixels. If four screens ever show up
-in a profile, that is the change to make, and it is confined to the widget
-types.
+Showing a screen wakes the timers and the slot controller once, so the screen
+catches up on the pass that follows rather than on its next period. Graph widgets
+are exempt from the gate: their sampler runs on a task of its own and the ring
+it fills is drained by the render, so a graph that stopped rendering would
+overflow the ring and come back with a hole in its history.
+The widget state, bindings and LVGL objects all persist, so a screen returns
+showing current values rather than being rebuilt.
 
 A board without a digitizer has no way to reach a second screen. That is stated
 here rather than solved: it is the direct consequence of ADR 0019, and it is
@@ -117,7 +118,8 @@ already does, and it is the behaviour an author would expect from a button
 drawn inside an area.
 
 Bindings live in the navigation controller, which already owns the screens and
-the active index, and are bounded at sixteen for the whole dashboard. They are
+the active index, and are bounded at `kMaximumActions`, 32 for the whole
+dashboard. They are
 re-established after any rebuild: applying a configuration replaces a widget's
 LVGL object, and the replacement carries neither the clickable flag nor the
 callback.
@@ -169,16 +171,18 @@ what lets the configurator's live preview show the change without a rebuild.
   without touching what either screen holds.
 - An empty transparent shape is an invisible rectangle that takes a tap, which
   is how "this corner goes back" is expressed without a widget to press.
-- A tap target costs a binding and makes one object clickable; sixteen of them
-  is the dashboard-wide bound.
+- A tap target costs a binding and makes one object clickable; 32 of them is the
+  dashboard-wide bound, and going past it is rejected as `invalid_widget` at
+  `action`.
 - On the T-Display-S3 a document with more than one screen validates, applies,
   and shows only its first screen. Nothing warns about this on the device; the
   configurator is the place to say it.
 - The single function ADR 0014 named is still the only place that decides what an
   LVGL screen is, and screen zero still behaves exactly as it did.
-- Hidden screens cost memory and their widgets' value computation, but no draw
-  time. A widget that has been off-screen shows the current value on return
-  rather than a stale one.
+- Hidden screens cost memory and nothing else — no draw time and no value
+  computation — except for graphs, which keep sampling so their history stays
+  continuous. A widget that has been off-screen shows the current value on
+  return rather than a stale one, one refresh after the screen appears.
 - Applying a configuration that needs a full recomposition is visible as a jump
   back to the first screen; an incremental apply stays on the current one.
 - Transitions are LVGL's stock animations, and the choice between them is one

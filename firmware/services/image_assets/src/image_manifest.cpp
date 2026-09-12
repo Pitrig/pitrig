@@ -1,10 +1,9 @@
-#include "image_asset_service.hpp"
-
 #include <algorithm>
 #include <cstdint>
 
 #include "binary_codec.hpp"
 #include "crc32.hpp"
+#include "image_asset_service.hpp"
 
 namespace pitrig::image_assets {
 namespace {
@@ -35,8 +34,7 @@ constexpr std::size_t kEntryReservedTailOffset = 60;
   }
 }
 
-[[nodiscard]] bool known_compression(const std::uint8_t value,
-                                     const std::uint16_t format_version,
+[[nodiscard]] bool known_compression(const std::uint8_t value, const std::uint16_t format_version,
                                      Compression& compression) {
   if (format_version < 2) {
     compression = Compression::none;
@@ -54,10 +52,9 @@ constexpr std::size_t kEntryReservedTailOffset = 60;
 
 }
 
-bool Service::validate_package(
-    const std::span<const std::uint8_t> storage_bytes,
-    const std::span<const std::uint8_t> header_override,
-    ParsedPackage& parsed) const {
+bool Service::validate_package(const std::span<const std::uint8_t> storage_bytes,
+                               const std::span<const std::uint8_t> header_override,
+                               ParsedPackage& parsed) const {
   parsed = {};
   constexpr asset_package::Format kFormat{
       .magic = 0x4149'4353U,
@@ -69,8 +66,7 @@ bool Service::validate_package(
       .storage_size = kStorageSize,
   };
   asset_package::Header header{};
-  if (!asset_package::validate_header(kFormat, storage_bytes, header_override,
-                                      header)) {
+  if (!asset_package::validate_header(kFormat, storage_bytes, header_override, header)) {
     return false;
   }
   const std::uint16_t entry_count = header.entry_count;
@@ -80,8 +76,7 @@ bool Service::validate_package(
   parsed.format_version = header.format_version;
   parsed.package_size = payload_size;
   for (std::size_t index = 0; index < entry_count; ++index) {
-    const auto entry =
-        manifest.subspan(index * kManifestEntrySize, kManifestEntrySize);
+    const auto entry = manifest.subspan(index * kManifestEntrySize, kManifestEntrySize);
     ImageAsset& asset = parsed.images[index];
     std::copy_n(entry.begin() + kEntryIdOffset, asset.id.size(), asset.id.begin());
     asset.width = binary::read_u16_le(entry, kEntryWidthOffset);
@@ -94,21 +89,17 @@ bool Service::validate_package(
     if (!valid_image_id(asset.id) || !known_format(entry[kEntryFormatOffset], asset.format) ||
         !known_compression(entry[kEntryCompressionOffset], header.format_version,
                            asset.compression) ||
-        binary::read_u32_le(entry, kEntryReservedTailOffset) != 0 ||
-        asset.width == 0 || asset.height == 0 ||
-        asset.width > kMaximumImageDimension ||
-        asset.height > kMaximumImageDimension ||
-        asset.frame_count > kMaximumSpriteFrames ||
-        (header.format_version < 2 && frames != 0) ||
-        offset < kAssetDataOffset || offset > payload_size ||
-        (offset & (kImageAlignment - 1)) != 0 || length == 0 ||
+        binary::read_u32_le(entry, kEntryReservedTailOffset) != 0 || asset.width == 0 ||
+        asset.height == 0 || asset.width > kMaximumImageDimension ||
+        asset.height > kMaximumImageDimension || asset.frame_count > kMaximumSpriteFrames ||
+        (header.format_version < 2 && frames != 0) || offset < kAssetDataOffset ||
+        offset > payload_size || (offset & (kImageAlignment - 1)) != 0 || length == 0 ||
         length > payload_size - offset) {
       return false;
     }
     const std::size_t decoded = asset.decoded_bytes();
     if (asset.stride != color_stride(asset.format, asset.width) || decoded == 0 ||
-        (asset.compression == Compression::none ? length != decoded
-                                                : length > decoded) ||
+        (asset.compression == Compression::none ? length != decoded : length > decoded) ||
         binary::read_u16_le(entry, kEntryPaletteCountOffset) != 0 ||
         binary::read_u32_le(entry, kEntryPaletteOffset) != 0) {
       return false;

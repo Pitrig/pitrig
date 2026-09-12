@@ -216,7 +216,7 @@ One peripheral beyond the display, on its own data pin. A strip is a line of lam
 | `port` | integer | `0` |
 | `tx_pin` | integer | `43` |
 | `rx_pin` | integer | `44` |
-| `baud_rate` | integer, 0 or greater | `921600` |
+| `baud_rate` | integer, 9600..2000000 | `921600` |
 | `silence_esp_logs` | boolean | `true` |
 
 ### TelemetryTransportConfiguration

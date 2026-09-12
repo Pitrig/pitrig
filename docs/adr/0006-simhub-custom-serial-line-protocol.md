@@ -30,6 +30,13 @@ field. An empty value invalidates that handle. Additionally decode values as
 unsigned integer, signed integer, float, or boolean according to registry
 metadata. Reject a non-empty typed line when its value is invalid.
 
+A float is decimal only: an optional sign, digits with an optional `.` and
+fraction, at least one digit between the two, and an optional `e`/`E` exponent
+with its own optional sign and at least one digit. The whole value must be
+consumed and the result finite, and it is at most 31 characters. `0x` forms,
+`inf` and `nan` are rejected — the grammar is checked before the conversion, so
+whatever the C library would otherwise accept does not reach the slot.
+
 Generate both an importable complete `Pitrig-telemetry.shsds` Custom Serial
 Device profile and configurator profile data from the canonical catalog and a
 separate generic SimHub mapping manifest. The checked-in profile enables every

@@ -61,12 +61,10 @@ struct Tenths {
     return {0U, 0U};
   }
   const auto scaled = static_cast<std::uint32_t>(value * 10.0F + 0.5F);
-  return {static_cast<unsigned>(scaled / 10U),
-          static_cast<unsigned>(scaled % 10U)};
+  return {static_cast<unsigned>(scaled / 10U), static_cast<unsigned>(scaled % 10U)};
 }
 
-[[nodiscard]] int append(char* const out, const std::size_t size,
-                         const int written) {
+[[nodiscard]] int append(char* const out, const std::size_t size, const int written) {
   if (written <= 0) {
     return 0;
   }
@@ -80,21 +78,20 @@ int write(char* const out, const std::size_t size) {
   constexpr std::uint32_t kExternal = MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT;
   const performance::PerformanceStats stats = performance::get_stats();
 
-  int written = append(
-      out, size,
-      std::snprintf(
-          out, size,
-          "@PR:OK:DIAG:internal_total=%u,internal_free=%u,internal_min=%u,"
-          "internal_largest=%u,psram_total=%u,psram_free=%u,psram_min=%u,"
-          "psram_largest=%u",
-          static_cast<unsigned>(heap_caps_get_total_size(kInternal)),
-          static_cast<unsigned>(heap_caps_get_free_size(kInternal)),
-          static_cast<unsigned>(heap_caps_get_minimum_free_size(kInternal)),
-          static_cast<unsigned>(stats.largest_heap_block),
-          static_cast<unsigned>(heap_caps_get_total_size(kExternal)),
-          static_cast<unsigned>(heap_caps_get_free_size(kExternal)),
-          static_cast<unsigned>(heap_caps_get_minimum_free_size(kExternal)),
-          static_cast<unsigned>(stats.largest_psram_block)));
+  int written =
+      append(out, size,
+             std::snprintf(out, size,
+                           "@PR:OK:DIAG:internal_total=%u,internal_free=%u,internal_min=%u,"
+                           "internal_largest=%u,psram_total=%u,psram_free=%u,psram_min=%u,"
+                           "psram_largest=%u",
+                           static_cast<unsigned>(heap_caps_get_total_size(kInternal)),
+                           static_cast<unsigned>(heap_caps_get_free_size(kInternal)),
+                           static_cast<unsigned>(heap_caps_get_minimum_free_size(kInternal)),
+                           static_cast<unsigned>(stats.largest_heap_block),
+                           static_cast<unsigned>(heap_caps_get_total_size(kExternal)),
+                           static_cast<unsigned>(heap_caps_get_free_size(kExternal)),
+                           static_cast<unsigned>(heap_caps_get_minimum_free_size(kExternal)),
+                           static_cast<unsigned>(stats.largest_psram_block)));
 
   if (written > 0) {
     const Tenths fps = tenths(stats.fps);
@@ -107,16 +104,11 @@ int write(char* const out, const std::size_t size) {
         "inval_px=%u,inval_areas=%u,drawn_areas=%u,"
         "lat_us=%u,lat_max_us=%u,lat_n=%u",
         fps.whole, fps.tenth, cpu0.whole, cpu0.tenth, cpu1.whole, cpu1.tenth,
-        static_cast<unsigned>(stats.render_time_us),
-        static_cast<unsigned>(stats.flush_time_us),
-        static_cast<unsigned>(stats.sync_time_us),
-        static_cast<unsigned>(stats.longest_frame_us),
-        static_cast<unsigned>(stats.longest_work_us),
-        static_cast<unsigned>(stats.longest_gap_us),
-        static_cast<unsigned>(stats.invalidated_px),
-        static_cast<unsigned>(stats.invalidated_areas),
-        static_cast<unsigned>(stats.drawn_areas),
-        static_cast<unsigned>(stats.value_latency_us),
+        static_cast<unsigned>(stats.render_time_us), static_cast<unsigned>(stats.flush_time_us),
+        static_cast<unsigned>(stats.sync_time_us), static_cast<unsigned>(stats.longest_frame_us),
+        static_cast<unsigned>(stats.longest_work_us), static_cast<unsigned>(stats.longest_gap_us),
+        static_cast<unsigned>(stats.invalidated_px), static_cast<unsigned>(stats.invalidated_areas),
+        static_cast<unsigned>(stats.drawn_areas), static_cast<unsigned>(stats.value_latency_us),
         static_cast<unsigned>(stats.value_latency_max_us),
         static_cast<unsigned>(stats.value_latency_samples));
     written = append(out, size, field > 0 ? written + field : 0);
@@ -133,43 +125,34 @@ int write(char* const out, const std::size_t size) {
         "pkt_period=%u,sched_tracked=%u,sched_untracked=%u,sched_burst_armed=%u,"
         "sched_blocked=%u,pkt_lines=%u,acc_start_burst=%u,acc_miss_all=%u,sched_fired=%u,"
         "feed_jitter=%u,wake_nothing=%u",
-        static_cast<unsigned>(lvgl_port_jit_margin_us),
-        static_cast<unsigned>(lvgl_port_jit_hits),
-        static_cast<unsigned>(lvgl_port_jit_misses),
-        static_cast<unsigned>(lvgl_port_jit_period_us),
-        static_cast<unsigned>(lvgl_port_jit_skipped),
-        static_cast<unsigned>(lvgl_port_sched_timed),
+        static_cast<unsigned>(lvgl_port_jit_margin_us), static_cast<unsigned>(lvgl_port_jit_hits),
+        static_cast<unsigned>(lvgl_port_jit_misses), static_cast<unsigned>(lvgl_port_jit_period_us),
+        static_cast<unsigned>(lvgl_port_jit_skipped), static_cast<unsigned>(lvgl_port_sched_timed),
         static_cast<unsigned>(lvgl_port_sched_fallback),
-        static_cast<unsigned>(lvgl_port_sched_empty),
-        static_cast<unsigned>(lvgl_port_sched_late),
+        static_cast<unsigned>(lvgl_port_sched_empty), static_cast<unsigned>(lvgl_port_sched_late),
         static_cast<unsigned>(lvgl_port_sched_fb_unsettled),
         static_cast<unsigned>(lvgl_port_sched_fb_cost),
         static_cast<unsigned>(lvgl_port_sched_fb_late),
         static_cast<unsigned>(lvgl_port_sched_peak_us),
-        static_cast<unsigned>(lvgl_port_sched_ema_us),
-        static_cast<unsigned>(lvgl_port_sched_best),
+        static_cast<unsigned>(lvgl_port_sched_ema_us), static_cast<unsigned>(lvgl_port_sched_best),
         static_cast<unsigned>(lvgl_port_sched_settled),
         static_cast<unsigned>(lvgl_port_cost_span_us),
         static_cast<unsigned>(lvgl_port_cost_wait_us),
         static_cast<unsigned>(lvgl_port_sched_deferred),
-        static_cast<unsigned>(lvgl_port_acc_vsyncs),
-        static_cast<unsigned>(lvgl_port_acc_swaps),
+        static_cast<unsigned>(lvgl_port_acc_vsyncs), static_cast<unsigned>(lvgl_port_acc_swaps),
         static_cast<unsigned>(lvgl_port_acc_start_timer),
         static_cast<unsigned>(lvgl_port_acc_start_late),
         static_cast<unsigned>(lvgl_port_acc_start_fallback),
         static_cast<unsigned>(lvgl_port_acc_start_other),
-        static_cast<unsigned>(lvgl_port_acc_empty),
-        static_cast<unsigned>(lvgl_port_pkt_bursts),
+        static_cast<unsigned>(lvgl_port_acc_empty), static_cast<unsigned>(lvgl_port_pkt_bursts),
         static_cast<unsigned>(lvgl_port_pkt_allow_us),
         static_cast<unsigned>(lvgl_port_pkt_period_us),
         static_cast<unsigned>(lvgl_port_sched_tracked),
         static_cast<unsigned>(lvgl_port_sched_untracked),
         static_cast<unsigned>(lvgl_port_sched_burst_armed),
-        static_cast<unsigned>(lvgl_port_sched_blocked),
-        static_cast<unsigned>(lvgl_port_pkt_lines),
+        static_cast<unsigned>(lvgl_port_sched_blocked), static_cast<unsigned>(lvgl_port_pkt_lines),
         static_cast<unsigned>(lvgl_port_acc_start_burst),
-        static_cast<unsigned>(lvgl_port_acc_miss_all),
-        static_cast<unsigned>(lvgl_port_sched_fired),
+        static_cast<unsigned>(lvgl_port_acc_miss_all), static_cast<unsigned>(lvgl_port_sched_fired),
         static_cast<unsigned>(lvgl_port_feed_jitter_us),
         static_cast<unsigned>(lvgl_port_acc_wake_nothing));
     written = append(out, size, field > 0 ? written + field : 0);
@@ -177,16 +160,16 @@ int write(char* const out, const std::size_t size) {
 
   if (written > 0) {
     const performance::TaskStackStats& stacks = stats.task_stacks;
-    const int field = std::snprintf(
-        out + written, size - static_cast<std::size_t>(written),
-        ",stack_lvgl=%u,stack_transport=%u,stack_control=%u,stack_upload=%u,"
-        "stack_sampler=%u,uptime_ms=%llu",
-        static_cast<unsigned>(stacks.lvgl_free_bytes),
-        static_cast<unsigned>(stacks.transport_free_bytes),
-        static_cast<unsigned>(stacks.configuration_free_bytes),
-        static_cast<unsigned>(stacks.asset_upload_free_bytes),
-        static_cast<unsigned>(stacks.sampler_free_bytes),
-        static_cast<unsigned long long>(stats.uptime_ms));
+    const int field =
+        std::snprintf(out + written, size - static_cast<std::size_t>(written),
+                      ",stack_lvgl=%u,stack_transport=%u,stack_control=%u,stack_upload=%u,"
+                      "stack_sampler=%u,uptime_ms=%llu",
+                      static_cast<unsigned>(stacks.lvgl_free_bytes),
+                      static_cast<unsigned>(stacks.transport_free_bytes),
+                      static_cast<unsigned>(stacks.configuration_free_bytes),
+                      static_cast<unsigned>(stacks.asset_upload_free_bytes),
+                      static_cast<unsigned>(stacks.sampler_free_bytes),
+                      static_cast<unsigned long long>(stats.uptime_ms));
     written = append(out, size, field > 0 ? written + field : 0);
   }
 

@@ -15,8 +15,7 @@ namespace internal {
 portMUX_TYPE state_lock = portMUX_INITIALIZER_UNLOCKED;
 PerformanceStats stats{};
 Measurements measurements{};
-std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)>
-    monitored_tasks{};
+std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)> monitored_tasks{};
 
 }
 
@@ -34,9 +33,9 @@ std::int64_t flush_wait_started_at_us;
 std::uint64_t render_blocked_us;
 bool frame_in_progress;
 std::int64_t pending_value_commit_us;
+std::int64_t staged_value_commit_us;
 
-void account_flush_interval(std::int64_t& started_at_us,
-                            const std::int64_t now_us) {
+void account_flush_interval(std::int64_t& started_at_us, const std::int64_t now_us) {
   if (started_at_us == 0) {
     return;
   }
@@ -52,14 +51,11 @@ void account_flush_interval(std::int64_t& started_at_us,
 
 void register_task(const TaskMetric metric, void* const task_handle) {
   taskENTER_CRITICAL(&state_lock);
-  monitored_tasks[static_cast<std::size_t>(metric)] =
-      static_cast<TaskHandle_t>(task_handle);
+  monitored_tasks[static_cast<std::size_t>(metric)] = static_cast<TaskHandle_t>(task_handle);
   taskEXIT_CRITICAL(&state_lock);
 }
 
-void unregister_task(const TaskMetric metric) {
-  register_task(metric, nullptr);
-}
+void unregister_task(const TaskMetric metric) { register_task(metric, nullptr); }
 
 void frame_started() {
   const std::int64_t now_us = esp_timer_get_time();
@@ -84,14 +80,25 @@ void area_invalidated(const std::uint32_t pixels) {
   taskEXIT_CRITICAL(&state_lock);
 }
 
-void value_rendered(const std::int64_t committed_at_us) {
-  if (committed_at_us == 0) {
-    return;
-  }
+void value_source_read(const std::size_t index, const bool revised,
+                       const std::int64_t committed_at_us) {
   taskENTER_CRITICAL(&state_lock);
-  if (pending_value_commit_us == 0 ||
-      committed_at_us < pending_value_commit_us) {
-    pending_value_commit_us = committed_at_us;
+  if (index == 0) {
+    staged_value_commit_us = 0;
+  }
+  if (revised && committed_at_us != 0 &&
+      (staged_value_commit_us == 0 || committed_at_us < staged_value_commit_us)) {
+    staged_value_commit_us = committed_at_us;
+  }
+  taskEXIT_CRITICAL(&state_lock);
+}
+
+void value_rendered() {
+  taskENTER_CRITICAL(&state_lock);
+  const std::int64_t staged = staged_value_commit_us;
+  staged_value_commit_us = 0;
+  if (staged != 0 && (pending_value_commit_us == 0 || staged < pending_value_commit_us)) {
+    pending_value_commit_us = staged;
   }
   taskEXIT_CRITICAL(&state_lock);
 }
@@ -104,8 +111,7 @@ void frame_finished() {
     frame_in_progress = false;
     frame_finished_at_us = now_us;
     if (pending_value_commit_us != 0) {
-      const auto latency_us =
-          static_cast<std::uint32_t>(now_us - pending_value_commit_us);
+      const auto latency_us = static_cast<std::uint32_t>(now_us - pending_value_commit_us);
       measurements.value_latency_total_us += latency_us;
       ++measurements.value_latency_samples;
       if (latency_us > measurements.value_latency_max_us) {
@@ -113,8 +119,7 @@ void frame_finished() {
       }
       pending_value_commit_us = 0;
     }
-    const auto elapsed_us =
-        static_cast<std::uint32_t>(now_us - frame_started_at_us);
+    const auto elapsed_us = static_cast<std::uint32_t>(now_us - frame_started_at_us);
     if (elapsed_us > measurements.longest_frame_us) {
       measurements.longest_frame_us = elapsed_us;
     }
@@ -144,8 +149,7 @@ void render_finished() {
   const std::int64_t now_us = esp_timer_get_time();
   taskENTER_CRITICAL(&state_lock);
   if (render_started_at_us != 0) {
-    const auto elapsed_us =
-        static_cast<std::uint64_t>(now_us - render_started_at_us);
+    const auto elapsed_us = static_cast<std::uint64_t>(now_us - render_started_at_us);
     const std::uint64_t drawing_us =
         elapsed_us > render_blocked_us ? elapsed_us - render_blocked_us : 0;
     measurements.render_time_us += drawing_us;

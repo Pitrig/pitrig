@@ -29,18 +29,14 @@ class TextWriter final {
   }
 
   template <typename Integer>
-  [[nodiscard]] bool append_integer(const Integer value,
-                                    const int minimum_width) {
+  [[nodiscard]] bool append_integer(const Integer value, const int minimum_width) {
     std::array<char, 24> digits{};
-    const auto result = std::to_chars(
-        digits.data(), digits.data() + digits.size(), value);
+    const auto result = std::to_chars(digits.data(), digits.data() + digits.size(), value);
     if (result.ec != std::errc{}) {
       return false;
     }
-    const std::size_t digit_count =
-        static_cast<std::size_t>(result.ptr - digits.data());
-    for (int padding = minimum_width - static_cast<int>(digit_count);
-         padding > 0; --padding) {
+    const std::size_t digit_count = static_cast<std::size_t>(result.ptr - digits.data());
+    for (int padding = minimum_width - static_cast<int>(digit_count); padding > 0; --padding) {
       if (!append("0")) {
         return false;
       }
@@ -54,8 +50,7 @@ class TextWriter final {
 };
 
 template <std::size_t Size>
-[[nodiscard]] inline std::string_view text_view(
-    const std::array<char, Size>& text) {
+[[nodiscard]] inline std::string_view text_view(const std::array<char, Size>& text) {
   const auto end = std::find(text.begin(), text.end(), '\0');
   return {text.data(), static_cast<std::size_t>(end - text.begin())};
 }

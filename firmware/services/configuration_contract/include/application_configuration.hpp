@@ -10,8 +10,7 @@
 namespace pitrig::configuration {
 
 template <std::size_t Capacity>
-[[nodiscard]] constexpr std::string_view text_view(
-    const std::array<char, Capacity>& text) {
+[[nodiscard]] constexpr std::string_view text_view(const std::array<char, Capacity>& text) {
   std::size_t length{};
   while (length < text.size() && text[length] != '\0') {
     ++length;
@@ -37,8 +36,7 @@ template <std::size_t Capacity>
   return -1;
 }
 
-[[nodiscard]] constexpr std::size_t led_device_lamps(
-    const HardwareDeviceConfiguration& device) {
+[[nodiscard]] constexpr std::size_t led_device_lamps(const HardwareDeviceConfiguration& device) {
   return device.type == HardwareDeviceType::rgb_strip
              ? device.count
              : static_cast<std::size_t>(device.width) * device.height;
@@ -54,8 +52,7 @@ template <std::size_t Capacity>
 }
 
 template <typename Predicate>
-[[nodiscard]] bool any_widget_frame(const DashboardConfiguration& dashboard,
-                                    Predicate&& matches) {
+[[nodiscard]] bool any_widget_frame(const DashboardConfiguration& dashboard, Predicate&& matches) {
   for (const WidgetTypeTraits& traits : kWidgetTypeTraits) {
     const std::uint8_t count = traits.count(dashboard);
     for (std::uint8_t index = 0; index < count; ++index) {
@@ -69,8 +66,7 @@ template <typename Predicate>
 }
 
 template <typename Visitor>
-void for_each_widget_frame(const DashboardConfiguration& dashboard,
-                           Visitor&& visit) {
+void for_each_widget_frame(const DashboardConfiguration& dashboard, Visitor&& visit) {
   (void)any_widget_frame(dashboard, [&visit](const WidgetFrame& frame) {
     visit(frame);
     return false;
@@ -108,6 +104,7 @@ struct ValidationContext {
   LedValidationProfile led{};
   int uart_tx_pin{};
   int uart_rx_pin{};
+  std::uint8_t uart_port_count{3};
   bool uart_supported{};
   bool native_usb_cdc_supported{};
 };

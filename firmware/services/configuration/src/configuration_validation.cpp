@@ -12,7 +12,6 @@
 
 namespace pitrig::configuration {
 
-using validation::reject;
 using validation::terminated;
 using validation::valid_color;
 using validation::Validator;
@@ -28,8 +27,7 @@ namespace {
   return true;
 }
 
-[[nodiscard]] bool widget_counts_within_capacity(
-    const DashboardConfiguration& dashboard) {
+[[nodiscard]] bool widget_counts_within_capacity(const DashboardConfiguration& dashboard) {
   for (const WidgetTypeTraits& traits : kWidgetTypeTraits) {
     if (traits.count(dashboard) > traits.capacity) {
       return false;
@@ -38,8 +36,7 @@ namespace {
   return true;
 }
 
-[[nodiscard]] std::size_t total_widget_count(
-    const DashboardConfiguration& dashboard) {
+[[nodiscard]] std::size_t total_widget_count(const DashboardConfiguration& dashboard) {
   std::size_t total{};
   for (const WidgetTypeTraits& traits : kWidgetTypeTraits) {
     total += traits.count(dashboard);
@@ -49,13 +46,11 @@ namespace {
 
 }
 
-ValidationFailure validate_configuration(
-    const ApplicationConfiguration& configuration,
-    const ValidationContext& profile) {
+ValidationFailure validate_configuration(const ApplicationConfiguration& configuration,
+                                         const ValidationContext& profile) {
   ValidationFailure failure{};
 
-  if (static_cast<std::size_t>(configuration.board.id) >=
-      kBoardIdNames.size()) {
+  if (static_cast<std::size_t>(configuration.board.id) >= kBoardIdNames.size()) {
     (void)reject(failure, ValidationError::invalid_board, "board");
     return failure;
   }
@@ -73,8 +68,7 @@ ValidationFailure validate_configuration(
   if (!validation::validate_transport(configuration, profile, failure)) {
     return failure;
   }
-  const bool has_display =
-      profile.display.width > 0 && profile.display.height > 0;
+  const bool has_display = profile.display.width > 0 && profile.display.height > 0;
   if (!has_display) {
     if (configuration.dashboard.screen_count != 0) {
       (void)reject(failure, ValidationError::invalid_dashboard, "dashboard");
@@ -103,8 +97,7 @@ ValidationFailure validate_configuration(
   std::size_t referenced_widgets{};
   std::size_t action_count{};
 
-  for (std::size_t screen_index = 0; screen_index < dashboard.screen_count;
-       ++screen_index) {
+  for (std::size_t screen_index = 0; screen_index < dashboard.screen_count; ++screen_index) {
     const ScreenConfiguration& screen = dashboard.screens[screen_index];
     if (!valid_color(screen.background_color) || !terminated(screen.id)) {
       (void)reject(failure, ValidationError::invalid_screen, "background_color");
@@ -119,16 +112,16 @@ ValidationFailure validate_configuration(
     referenced_widgets += screen.widget_count;
     validator.set_parent_origin(0, 0);
     if (!validation::validate_references(dashboard, screen.widgets, screen.widget_count,
-                             screen_index, WidgetParentKind::screen, 0,
-                             validator, action_count, failure)) {
+                                         screen_index, WidgetParentKind::screen, 0, validator,
+                                         action_count, failure)) {
       failure.screen_index = static_cast<std::int16_t>(screen_index);
       return failure;
     }
   }
 
   constexpr std::size_t kPageTableSize = kMaximumSlotWidgets * kMaximumSlotPages;
-  std::array<std::int32_t, kPageTableSize> page_origin_x{};
-  std::array<std::int32_t, kPageTableSize> page_origin_y{};
+  std::array<std::int64_t, kPageTableSize> page_origin_x{};
+  std::array<std::int64_t, kPageTableSize> page_origin_y{};
   for (std::size_t index = 0; index < dashboard.slot_widget_count; ++index) {
     const SlotWidgetConfiguration& slot = dashboard.slot_widgets[index];
     for (std::size_t page = 0; page < slot.page_count; ++page) {
@@ -138,29 +131,22 @@ ValidationFailure validate_configuration(
     }
   }
 
-  std::array<std::int32_t, kMaximumShapeWidgets> origin_x{};
-  std::array<std::int32_t, kMaximumShapeWidgets> origin_y{};
-  std::array<std::uint8_t, kMaximumShapeWidgets> depth{};
+  std::array<std::int64_t, kMaximumShapeWidgets> origin_x{};
+  std::array<std::int64_t, kMaximumShapeWidgets> origin_y{};
   for (std::size_t index = 0; index < dashboard.shape_widget_count; ++index) {
     const WidgetFrame& frame = dashboard.shape_widgets[index].frame;
     switch (frame.parent_kind) {
       case WidgetParentKind::screen:
-        origin_x[index] = 0;
-        origin_y[index] = 0;
-        depth[index] = 0;
         continue;
       case WidgetParentKind::shape:
         if (frame.parent_index >= index) {
           (void)reject(failure, ValidationError::invalid_widget, "widgets");
           return failure;
         }
-        origin_x[index] =
-            origin_x[frame.parent_index] +
-            dashboard.shape_widgets[frame.parent_index].frame.placement.x;
-        origin_y[index] =
-            origin_y[frame.parent_index] +
-            dashboard.shape_widgets[frame.parent_index].frame.placement.y;
-        depth[index] = static_cast<std::uint8_t>(depth[frame.parent_index] + 1);
+        origin_x[index] = origin_x[frame.parent_index] +
+                          dashboard.shape_widgets[frame.parent_index].frame.placement.x;
+        origin_y[index] = origin_y[frame.parent_index] +
+                          dashboard.shape_widgets[frame.parent_index].frame.placement.y;
         break;
       case WidgetParentKind::slot_page:
         if (frame.parent_index >= kPageTableSize) {
@@ -169,12 +155,7 @@ ValidationFailure validate_configuration(
         }
         origin_x[index] = page_origin_x[frame.parent_index];
         origin_y[index] = page_origin_y[frame.parent_index];
-        depth[index] = 1;
         break;
-    }
-    if (depth[index] >= kMaximumNestingDepth) {
-      (void)reject(failure, ValidationError::invalid_widget, "widgets");
-      return failure;
     }
   }
 
@@ -187,11 +168,10 @@ ValidationFailure validate_configuration(
     validator.set_parent_origin(origin_x[index] + shape.frame.placement.x,
                                 origin_y[index] + shape.frame.placement.y);
     if (!validation::validate_references(dashboard, shape.widgets, shape.widget_count,
-                             shape.frame.screen_index, WidgetParentKind::shape,
-                             static_cast<std::uint8_t>(index), validator,
-                             action_count, failure)) {
-      failure.screen_index =
-          static_cast<std::int16_t>(shape.frame.screen_index);
+                                         shape.frame.screen_index, WidgetParentKind::shape,
+                                         static_cast<std::uint8_t>(index), validator, action_count,
+                                         failure)) {
+      failure.screen_index = static_cast<std::int16_t>(shape.frame.screen_index);
       return failure;
     }
   }
@@ -207,12 +187,10 @@ ValidationFailure validate_configuration(
       referenced_widgets += config.widget_count;
       validator.set_parent_origin(page_origin_x[flat], page_origin_y[flat]);
       if (!validation::validate_references(dashboard, config.widgets, config.widget_count,
-                               slot.frame.screen_index,
-                               WidgetParentKind::slot_page,
-                               static_cast<std::uint8_t>(flat), validator,
-                               action_count, failure)) {
-        failure.screen_index =
-            static_cast<std::int16_t>(slot.frame.screen_index);
+                                           slot.frame.screen_index, WidgetParentKind::slot_page,
+                                           static_cast<std::uint8_t>(flat), validator, action_count,
+                                           failure)) {
+        failure.screen_index = static_cast<std::int16_t>(slot.frame.screen_index);
         return failure;
       }
     }
@@ -223,8 +201,7 @@ ValidationFailure validate_configuration(
     const TextWidgetConfiguration& widget = dashboard.text_widgets[index];
     for (std::size_t source = 0; source < widget.source_count; ++source) {
       const TextSourceConfiguration& value = widget.sources[source];
-      for (std::size_t modifier = 0; modifier < value.modifier_count;
-           ++modifier) {
+      for (std::size_t modifier = 0; modifier < value.modifier_count; ++modifier) {
         if (value.modifiers[modifier].type == ValueModifierType::lap_timer) {
           ++lap_timer_modifier_count;
         }

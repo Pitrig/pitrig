@@ -48,8 +48,8 @@ enum class Compression : std::uint8_t {
   }
   for (const char character : view) {
     const bool allowed = (character >= 'a' && character <= 'z') ||
-                         (character >= '0' && character <= '9') ||
-                         character == '-' || character == '_';
+                         (character >= '0' && character <= '9') || character == '-' ||
+                         character == '_';
     if (!allowed) {
       return false;
     }
@@ -71,8 +71,7 @@ enum class Compression : std::uint8_t {
   return 0;
 }
 
-[[nodiscard]] constexpr std::size_t frame_bytes(const ColorFormat format,
-                                                const std::uint16_t width,
+[[nodiscard]] constexpr std::size_t frame_bytes(const ColorFormat format, const std::uint16_t width,
                                                 const std::uint16_t height) {
   const std::size_t rows = height;
   const std::size_t colour = color_stride(format, width) * rows;
@@ -81,8 +80,7 @@ enum class Compression : std::uint8_t {
   return colour + alpha;
 }
 
-[[nodiscard]] constexpr std::size_t image_bytes(const ColorFormat format,
-                                                const std::uint16_t width,
+[[nodiscard]] constexpr std::size_t image_bytes(const ColorFormat format, const std::uint16_t width,
                                                 const std::uint16_t height,
                                                 const std::uint16_t frames) {
   return frame_bytes(format, width, height) * frames;

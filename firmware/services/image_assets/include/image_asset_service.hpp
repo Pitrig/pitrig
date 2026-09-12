@@ -29,9 +29,7 @@ struct ImageAsset {
   std::uint16_t stride{};
   std::uint16_t frame_count{1};
   std::span<const std::uint8_t> bytes{};
-  [[nodiscard]] std::size_t frame_stride() const {
-    return frame_bytes(format, width, height);
-  }
+  [[nodiscard]] std::size_t frame_stride() const { return frame_bytes(format, width, height); }
   [[nodiscard]] std::size_t decoded_bytes() const {
     return image_bytes(format, width, height, frame_count);
   }
@@ -48,28 +46,39 @@ struct ImageInfo {
 using Status = asset_package::Status;
 using UpdateError = asset_package::UpdateError;
 
-
 class Service final {
  public:
-  Service() = default;
-  ~Service();
+  Service();
   Service(const Service&) = delete;
   Service& operator=(const Service&) = delete;
 
-  [[nodiscard]] bool initialize(IStorage& storage);
-  [[nodiscard]] const Status& status() const { return status_; }
+  class Guard final {
+   public:
+    explicit Guard(const Service& service) : guard_(service.slot_) {}
+
+   private:
+    asset_package::Slot::Guard guard_;
+  };
+
+  [[nodiscard]] bool initialize(IStorage& storage) { return slot_.open(storage); }
+  [[nodiscard]] const Status& status() const { return slot_.status(); }
+  [[nodiscard]] bool package_readable() const { return slot_.package_readable(); }
   [[nodiscard]] std::span<const ImageAsset> images() const {
     return {package_.images.data(), package_.image_count};
   }
   [[nodiscard]] std::span<const ImageInfo> image_catalog() const {
-    return {image_catalog_.data(), status_.entry_count};
+    return {image_catalog_.data(), slot_.status().entry_count};
   }
-  [[nodiscard]] bool package_readable() const { return !package_mapping_.empty(); }
-  [[nodiscard]] UpdateError begin_update(std::size_t package_size);
-  [[nodiscard]] UpdateError write_update(std::span<const std::uint8_t> bytes);
-  [[nodiscard]] UpdateError commit_update();
-  [[nodiscard]] UpdateError clear();
-  void cancel_update();
+
+  [[nodiscard]] UpdateError begin_update(const std::size_t package_size) {
+    return slot_.begin_update(package_size);
+  }
+  [[nodiscard]] UpdateError write_update(const std::span<const std::uint8_t> bytes) {
+    return slot_.write_update(bytes);
+  }
+  [[nodiscard]] UpdateError commit_update() { return slot_.commit_update(); }
+  [[nodiscard]] UpdateError clear() { return slot_.clear(); }
+  void cancel_update() { slot_.cancel_update(); }
 
  private:
   struct ParsedPackage {
@@ -79,22 +88,19 @@ class Service final {
     std::array<ImageAsset, kMaximumImages> images{};
   };
 
-  [[nodiscard]] bool validate_package(
-      std::span<const std::uint8_t> storage_bytes,
-      std::span<const std::uint8_t> header_override, ParsedPackage& parsed) const;
-  void clear_package_status();
-  void reset_update();
+  [[nodiscard]] bool validate_package(std::span<const std::uint8_t> storage_bytes,
+                                      std::span<const std::uint8_t> header_override,
+                                      ParsedPackage& parsed) const;
 
-  IStorage* storage_{};
-  Status status_{};
-  std::span<const std::uint8_t> package_mapping_{};
+  static bool validate_entry(void* kind, std::span<const std::uint8_t> storage_bytes,
+                             std::span<const std::uint8_t> header_override);
+  static void publish_entry(void* kind, Status& status);
+  static void discard_entry(void* kind);
+  static void forget_entry(void* kind);
+
+  asset_package::Slot slot_;
   ParsedPackage package_{};
   std::array<ImageInfo, kMaximumImages> image_catalog_{};
-
-  bool update_in_progress_{};
-  std::size_t update_size_{};
-  std::size_t update_received_{};
-  std::array<std::uint8_t, kHeaderSize> update_header_{};
 };
 
 using asset_package::update_error_name;

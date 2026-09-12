@@ -17,10 +17,13 @@ class Controller final {
   Controller(const Controller&) = delete;
   Controller& operator=(const Controller&) = delete;
 
+  using ScreenShown = void (*)(void* context);
+
   void attach(std::span<lv_obj_t* const> screens);
 
-  [[nodiscard]] bool add_action(lv_obj_t* object,
-                                configuration::WidgetActionType type,
+  void set_screen_shown(ScreenShown callback, void* context);
+
+  [[nodiscard]] bool add_action(lv_obj_t* object, configuration::WidgetActionType type,
                                 std::uint8_t target);
 
   void set_transition(configuration::ScreenTransition transition);
@@ -55,10 +58,11 @@ class Controller final {
 
   std::span<lv_obj_t* const> screens_{};
   std::size_t active_{};
+  ScreenShown screen_shown_{};
+  void* screen_shown_context_{};
   lv_display_t* display_{};
   SyncPhase sync_phase_{SyncPhase::idle};
-  configuration::ScreenTransition transition_{
-      configuration::ScreenTransition::slide};
+  configuration::ScreenTransition transition_{configuration::ScreenTransition::slide};
   std::array<Binding, configuration::kMaximumActions> actions_{};
   std::size_t action_count_{};
 };

@@ -239,9 +239,15 @@ version of this ADR excluded, is now in.
   resolves it, and both are destroyed last so children delete their own objects
   before the parent that would otherwise take them down with it. That order is
   only sufficient because a slot cannot sit inside a shape.
-- A container is excluded from incremental update: rebuilding it deletes its LVGL
-  object and the descendants with it, so any edit forces full recomposition. A
-  slot is always a container; leaf shapes — most shapes — keep the fast path.
+- A container takes the incremental path like any other widget: it is restyled
+  in place, which touches neither its LVGL object nor its descendants. When its
+  padding, border width or size changes, the children inside it are re-laid as
+  well, because their placement is relative to its content box. Only a restyle
+  that fails falls back to a rebuild, and that is refused while the container
+  still holds widgets — then the apply declines and a full recomposition follows.
+- A container's overflow is measured after `lv_obj_update_layout`, so what the
+  extra draw size reports is where the children actually landed rather than
+  where they were asked to go.
 - A widget on a page that is not the visible one is not rendered at all, so its
   own conditional rules cannot show it.
 - The source of every slot page must be sent to SimHub like a widget's, or its

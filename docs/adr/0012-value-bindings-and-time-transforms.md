@@ -44,6 +44,8 @@ root module declaration.
 A text widget may select an optional transform. The `time` transform supports:
 
 - `duration_ms` renders an unsigned millisecond value as `MM:SS.mmm`;
+- `clock_ms` renders an unsigned millisecond value as `HH:MM:SS`, which is what
+  a session or stint clock wants;
 - `signed_duration_ms` renders a signed millisecond value as `+S.mmm` or
   `-S.mmm`.
 

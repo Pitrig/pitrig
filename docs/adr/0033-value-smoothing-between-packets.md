@@ -52,7 +52,7 @@ effects read the raw state, and joining them is a separate decision.
 - A followed widget redraws every frame while its value moves, so smoothing
   spends the frame budget of `runtime-performance.md` on the followed widgets
   whether the feed is 20 Hz or 60.
-- The 227 followers cost about 14 KB, placed in external RAM by the core the
+- The 228 followers cost about 14 KB, placed in external RAM by the core the
   way font faces and images are, because on the ESP32-P4 that much internal RAM
   is the difference between the LVGL render strips fitting and the display not
   coming up. Nothing runs while the option is off.

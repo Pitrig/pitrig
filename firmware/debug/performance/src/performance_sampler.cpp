@@ -1,5 +1,3 @@
-#include "performance.hpp"
-
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -9,6 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "freertos/task.h"
+#include "performance.hpp"
 #include "performance_internal.hpp"
 
 namespace pitrig::performance {
@@ -50,8 +49,7 @@ PerformanceStats last_published;
 std::uint32_t stack_free_bytes(const TaskHandle_t task) {
   return task == nullptr
              ? 0
-             : static_cast<std::uint32_t>(
-                   uxTaskGetStackHighWaterMark(task) * sizeof(StackType_t));
+             : static_cast<std::uint32_t>(uxTaskGetStackHighWaterMark(task) * sizeof(StackType_t));
 }
 
 std::uint32_t average(std::uint64_t total, std::uint32_t count) {
@@ -61,8 +59,7 @@ std::uint32_t average(std::uint64_t total, std::uint32_t count) {
   return static_cast<std::uint32_t>(total / count);
 }
 
-float cpu_usage(configRUN_TIME_COUNTER_TYPE idle_delta,
-                configRUN_TIME_COUNTER_TYPE runtime_delta) {
+float cpu_usage(configRUN_TIME_COUNTER_TYPE idle_delta, configRUN_TIME_COUNTER_TYPE runtime_delta) {
   if (runtime_delta == 0) {
     return 0.0F;
   }
@@ -83,13 +80,10 @@ void accumulate(Measurements& total, const Measurements& sample) {
   total.drawn_areas += sample.drawn_areas;
   total.value_latency_total_us += sample.value_latency_total_us;
   total.value_latency_samples += sample.value_latency_samples;
-  total.longest_frame_us =
-      std::max(total.longest_frame_us, sample.longest_frame_us);
-  total.longest_work_us =
-      std::max(total.longest_work_us, sample.longest_work_us);
+  total.longest_frame_us = std::max(total.longest_frame_us, sample.longest_frame_us);
+  total.longest_work_us = std::max(total.longest_work_us, sample.longest_work_us);
   total.longest_gap_us = std::max(total.longest_gap_us, sample.longest_gap_us);
-  total.value_latency_max_us =
-      std::max(total.value_latency_max_us, sample.value_latency_max_us);
+  total.value_latency_max_us = std::max(total.value_latency_max_us, sample.value_latency_max_us);
 }
 
 void collect(Sample& into) {
@@ -126,8 +120,7 @@ void collect(Sample& into) {
 }
 
 void refresh_heap_and_stacks(PerformanceStats& into) {
-  std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)>
-      task_handles{};
+  std::array<TaskHandle_t, static_cast<std::size_t>(TaskMetric::count)> task_handles{};
   taskENTER_CRITICAL(&state_lock);
   task_handles = monitored_tasks;
   taskEXIT_CRITICAL(&state_lock);
@@ -136,29 +129,24 @@ void refresh_heap_and_stacks(PerformanceStats& into) {
   into.free_heap = heap_caps_get_free_size(kInternalHeapCapabilities);
   into.free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
   into.task_stacks = {
-      .lvgl_free_bytes =
-          stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::lvgl)]),
-      .transport_free_bytes = stack_free_bytes(
-          task_handles[static_cast<std::size_t>(TaskMetric::transport)]),
-      .configuration_free_bytes =
-          stack_free_bytes(task_handles[static_cast<std::size_t>(
-              TaskMetric::configuration_control)]),
+      .lvgl_free_bytes = stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::lvgl)]),
+      .transport_free_bytes =
+          stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::transport)]),
+      .configuration_free_bytes = stack_free_bytes(
+          task_handles[static_cast<std::size_t>(TaskMetric::configuration_control)]),
       .asset_upload_free_bytes = std::min(
-          {stack_free_bytes(
-               task_handles[static_cast<std::size_t>(TaskMetric::font_asset_control)]),
+          {stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::font_asset_control)]),
            stack_free_bytes(
                task_handles[static_cast<std::size_t>(TaskMetric::image_asset_control)]),
-           stack_free_bytes(
-               task_handles[static_cast<std::size_t>(TaskMetric::firmware_update)])}),
-      .sampler_free_bytes = stack_free_bytes(
-          task_handles[static_cast<std::size_t>(TaskMetric::sampler)]),
+           stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::firmware_update)])}),
+      .sampler_free_bytes =
+          stack_free_bytes(task_handles[static_cast<std::size_t>(TaskMetric::sampler)]),
   };
 }
 
 void refresh_fragmentation(PerformanceStats& into) {
   constexpr std::uint32_t kInternalHeapCapabilities = MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL;
-  into.largest_heap_block =
-      heap_caps_get_largest_free_block(kInternalHeapCapabilities);
+  into.largest_heap_block = heap_caps_get_largest_free_block(kInternalHeapCapabilities);
   into.largest_psram_block = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
 }
 
@@ -188,9 +176,8 @@ void begin() {
   last_idle_core1 = ulTaskGetIdleRunTimeCounterForCore(1);
 
   const TaskHandle_t task =
-      xTaskCreateStaticPinnedToCore(sampler_task, "performance", kTaskStackDepth,
-                                    nullptr, kTaskPriority, task_stack, &task_buffer,
-                                    kTaskCore);
+      xTaskCreateStaticPinnedToCore(sampler_task, "performance", kTaskStackDepth, nullptr,
+                                    kTaskPriority, task_stack, &task_buffer, kTaskCore);
   configASSERT(task != nullptr);
   register_task(TaskMetric::sampler, task);
 }
@@ -201,31 +188,25 @@ void update() {
 
   const Sample total = window_total();
   PerformanceStats next = last_published;
-  next.fps = total.elapsed_us > 0
-                 ? static_cast<float>(total.measurements.frames) * 1'000'000.0F /
-                       static_cast<float>(total.elapsed_us)
-                 : 0.0F;
+  next.fps = total.elapsed_us > 0 ? static_cast<float>(total.measurements.frames) * 1'000'000.0F /
+                                        static_cast<float>(total.elapsed_us)
+                                  : 0.0F;
   next.cpu_core0 = cpu_usage(total.idle_core0, total.runtime);
   next.cpu_core1 = cpu_usage(total.idle_core1, total.runtime);
   next.render_time_us =
       average(total.measurements.render_time_us, total.measurements.render_samples);
-  next.flush_time_us =
-      average(total.measurements.flush_time_us, total.measurements.render_samples);
-  next.sync_time_us =
-      average(total.measurements.sync_time_us, total.measurements.render_samples);
+  next.flush_time_us = average(total.measurements.flush_time_us, total.measurements.render_samples);
+  next.sync_time_us = average(total.measurements.sync_time_us, total.measurements.render_samples);
   next.longest_frame_us = total.measurements.longest_frame_us;
   next.longest_work_us = total.measurements.longest_work_us;
   next.longest_gap_us = total.measurements.longest_gap_us;
-  next.value_latency_us = average(total.measurements.value_latency_total_us,
-                                  total.measurements.value_latency_samples);
+  next.value_latency_us =
+      average(total.measurements.value_latency_total_us, total.measurements.value_latency_samples);
   next.value_latency_max_us = total.measurements.value_latency_max_us;
   next.value_latency_samples = total.measurements.value_latency_samples;
-  next.invalidated_px =
-      average(total.measurements.invalidated_px, total.measurements.frames);
-  next.invalidated_areas =
-      average(total.measurements.invalidated_areas, total.measurements.frames);
-  next.drawn_areas =
-      average(total.measurements.drawn_areas, total.measurements.frames);
+  next.invalidated_px = average(total.measurements.invalidated_px, total.measurements.frames);
+  next.invalidated_areas = average(total.measurements.invalidated_areas, total.measurements.frames);
+  next.drawn_areas = average(total.measurements.drawn_areas, total.measurements.frames);
   next.uptime_ms = static_cast<std::uint64_t>(last_sample_us / 1'000);
   if (heap_refresh_countdown == 0) {
     refresh_heap_and_stacks(next);

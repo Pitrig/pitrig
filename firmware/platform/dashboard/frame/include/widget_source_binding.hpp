@@ -26,12 +26,10 @@ struct ModifierReader {
   void* context{};
 };
 
-using ModifierReaders =
-    std::array<ModifierReader, configuration::kValueModifierTypeNames.size()>;
+using ModifierReaders = std::array<ModifierReader, configuration::kValueModifierTypeNames.size()>;
 
-[[nodiscard]] inline ModifierReader modifier_reader(
-    const ModifierReaders& readers,
-    const configuration::ValueModifierType type) {
+[[nodiscard]] inline ModifierReader modifier_reader(const ModifierReaders& readers,
+                                                    const configuration::ValueModifierType type) {
   const auto index = static_cast<std::size_t>(type);
   return index < readers.size() ? readers[index] : ModifierReader{};
 }
@@ -45,19 +43,17 @@ struct SourceContext {
   return frame.condition_count > 0 || frame.color_ramp.stop_count >= 2;
 }
 
-[[nodiscard]] inline bool binds_caption(
-    const configuration::WidgetFrame& frame) {
+[[nodiscard]] inline bool binds_caption(const configuration::WidgetFrame& frame) {
   return !configuration::value_binding_view(frame.title.source.binding).empty();
 }
 
-[[nodiscard]] bool bind_source(
-    std::string_view name, std::uint8_t modifier_count,
-    std::span<const configuration::ValueModifier> modifiers,
-    const telemetry::ITelemetryRegistry& registry,
-    const telemetry::ITelemetryReader& telemetry,
-    const ModifierReaders& modifier_readers,
-    value_smoothing::Service* smoothing, SourceContext& context,
-    ValueReadCallback& read, void*& read_context, bool& fast_updates);
+[[nodiscard]] bool bind_source(std::string_view name, std::uint8_t modifier_count,
+                               std::span<const configuration::ValueModifier> modifiers,
+                               const telemetry::ITelemetryRegistry& registry,
+                               const telemetry::ITelemetryReader& telemetry,
+                               const ModifierReaders& modifier_readers,
+                               value_smoothing::Service* smoothing, SourceContext& context,
+                               ValueReadCallback& read, void*& read_context, bool& fast_updates);
 
 struct BoundSource {
   ValueReadCallback read{};
@@ -79,8 +75,7 @@ struct ValueBinding {
                               const telemetry::ITelemetryRegistry& registry,
                               const telemetry::ITelemetryReader& telemetry,
                               const ModifierReaders& modifier_readers,
-                              SourceContext& condition_context,
-                              SourceContext& caption_context,
+                              SourceContext& condition_context, SourceContext& caption_context,
                               ValueBinding& binding);
 
 template <typename WidgetConfig, std::size_t Capacity>
@@ -97,18 +92,15 @@ class ValueBinder final {
     }
     for (const WidgetConfig& configuration : configurations) {
       ValueBinding binding{};
-      if (!bind_source(
-              configuration::value_binding_view(configuration.source.binding),
-              configuration.source.modifier_count,
-              configuration.source.modifiers, registry, telemetry,
-              modifier_readers, smoothing, value_contexts_[count_],
-              binding.read, binding.read_context, binding.fast_updates)) {
+      if (!bind_source(configuration::value_binding_view(configuration.source.binding),
+                       configuration.source.modifier_count, configuration.source.modifiers,
+                       registry, telemetry, modifier_readers, smoothing, value_contexts_[count_],
+                       binding.read, binding.read_context, binding.fast_updates)) {
         count_ = 0;
         return false;
       }
-      if (!bind_frame(configuration.frame, registry, telemetry,
-                      modifier_readers, condition_contexts_[count_],
-                      caption_contexts_[count_], binding)) {
+      if (!bind_frame(configuration.frame, registry, telemetry, modifier_readers,
+                      condition_contexts_[count_], caption_contexts_[count_], binding)) {
         count_ = 0;
         return false;
       }
@@ -143,9 +135,8 @@ class ConditionBinder final {
     }
     for (const WidgetConfig& configuration : configurations) {
       ValueBinding binding{};
-      if (!bind_frame(configuration.frame, registry, telemetry,
-                      modifier_readers, condition_contexts_[count_],
-                      caption_contexts_[count_], binding)) {
+      if (!bind_frame(configuration.frame, registry, telemetry, modifier_readers,
+                      condition_contexts_[count_], caption_contexts_[count_], binding)) {
         count_ = 0;
         return false;
       }

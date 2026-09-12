@@ -140,6 +140,11 @@ still meets the frame long before it meets a cap. The pools decide what an
 author may build; the frame decides what renders at 60 fps, and the two are
 deliberately not the same number.
 
+**`LV_OBJ_STYLE_CACHE` is on for the ESP32-P4 only.** It was rejected on an
+ESP32-S3 reading — 1,854 → 2,016 µs, worse — and that still holds for the S3
+boards, which do not set it. `sdkconfig.defaults.esp32p4` enables it; the ADR
+records the current setting rather than the older blanket rejection.
+
 ## Alternatives measured and rejected
 
 - **Two software draw units** (`LV_DRAW_SW_DRAW_UNIT_CNT=2`, which needs
@@ -153,7 +158,6 @@ deliberately not the same number.
 - **`LV_ATTRIBUTE_FAST_MEM_USE_IRAM`**: LVGL 9.5 does not build with it
   (`section '.iram1.8' conflicts with previous '.iram1.4'`), hence the linker
   fragment.
-- **`LV_OBJ_STYLE_CACHE`**: 1,854 → 2,016 µs. Worse.
 - **Screen slides animated from snapshots** rather than from the screens
   themselves, so that the ESP32-P4's image accelerator would carry the moving
   frames: 36.1 ms a frame against LVGL's own 30.7. Two full-screen pictures are

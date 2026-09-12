@@ -15,8 +15,7 @@ constexpr std::uint8_t kGestureMinimumDistancePx = 20;
 
 namespace pitrig::input {
 
-lv_indev_t* initialize(const driver::Driver& selected_driver,
-                       lv_display_t* const display) {
+lv_indev_t* initialize(const driver::Driver& selected_driver, lv_display_t* const display) {
   if (selected_driver.initialize == nullptr) {
     return nullptr;
   }
@@ -30,9 +29,10 @@ lv_indev_t* initialize(const driver::Driver& selected_driver,
   touch_configuration.handle = hardware.touch;
 
   lv_indev_t* const pointer = lvgl_port_add_touch(&touch_configuration);
-  if (pointer != nullptr) {
+  if (pointer != nullptr && lvgl_port_lock(0)) {
     lv_indev_set_gesture_min_velocity(pointer, kGestureMinimumVelocityPx);
     lv_indev_set_gesture_min_distance(pointer, kGestureMinimumDistancePx);
+    lvgl_port_unlock();
   }
   return pointer;
 }

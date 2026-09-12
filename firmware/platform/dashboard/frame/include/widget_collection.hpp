@@ -12,6 +12,8 @@ namespace pitrig::dashboard::frame {
 [[nodiscard]] bool lock_lvgl();
 void unlock_lvgl();
 
+[[nodiscard]] bool on_shown_screen(const lv_obj_t* object);
+
 inline constexpr std::uint32_t kRenderPeriodMs = LV_DEF_REFR_PERIOD;
 
 template <typename Derived, typename State, std::size_t Capacity>
@@ -42,9 +44,8 @@ class Collection {
     }
     created_ = true;
     count_ = count;
-    const bool timed =
-        count_ == 0 || timer_ != nullptr ||
-        (timer_ = lv_timer_create(&update, kRenderPeriodMs, this)) != nullptr;
+    const bool timed = count_ == 0 || timer_ != nullptr ||
+                       (timer_ = lv_timer_create(&update, kRenderPeriodMs, this)) != nullptr;
     unlock_lvgl();
     return timed;
   }
@@ -83,6 +84,8 @@ class Collection {
     }
   }
 
+  void set_renders_when_hidden(const bool renders) { renders_when_hidden_ = renders; }
+
  protected:
   template <typename BuildOne>
   [[nodiscard]] bool build_all(const std::size_t count, BuildOne&& build_one) {
@@ -114,8 +117,7 @@ class Collection {
   }
 
   template <typename BuildOne>
-  [[nodiscard]] bool rebuild_one(const std::size_t index,
-                                 BuildOne&& build_one) {
+  [[nodiscard]] bool rebuild_one(const std::size_t index, BuildOne&& build_one) {
     if (!created_ || index >= count_ || !lock_lvgl()) {
       return false;
     }
@@ -145,15 +147,17 @@ class Collection {
     return applied;
   }
 
-  void render() {
+  void render(const bool shown_only = false) {
     if (!created_) {
       return;
     }
+    const bool gated = shown_only && !renders_when_hidden_;
     for (std::size_t index = 0; index < count_; ++index) {
-      if (states_[index].container == nullptr) {
+      State& state = states_[index];
+      if (state.container == nullptr || (gated && !on_shown_screen(state.container))) {
         continue;
       }
-      derived().render_state(states_[index]);
+      derived().render_state(state);
     }
   }
 
@@ -187,15 +191,15 @@ class Collection {
   std::size_t count_{};
   lv_timer_t* timer_{};
   bool created_{};
+  bool renders_when_hidden_{};
 
  private:
   [[nodiscard]] Derived& derived() { return static_cast<Derived&>(*this); }
 
   static void update(lv_timer_t* const timer) {
-    auto* const collection =
-        static_cast<Collection*>(lv_timer_get_user_data(timer));
+    auto* const collection = static_cast<Collection*>(lv_timer_get_user_data(timer));
     if (collection != nullptr) {
-      collection->render();
+      collection->render(true);
     }
   }
 };

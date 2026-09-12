@@ -13,8 +13,7 @@ namespace {
 constexpr char kTag[] = "dashboard_fonts";
 constexpr std::size_t kGlyphCacheEntries = 128;
 
-constexpr std::string_view kBaseWarmCharacters =
-    "0123456789.:+- ,;/%()'\"";
+constexpr std::string_view kBaseWarmCharacters = "0123456789.:+- ,;/%()'\"";
 
 constexpr char kFirstPrintable = 0x20;
 constexpr char kLastPrintable = 0x7E;
@@ -68,18 +67,15 @@ struct WarmResult {
   std::uint32_t failed{};
 };
 
-[[nodiscard]] WarmResult warm_glyphs(const lv_font_t* const font,
-                                     const CharacterSet& characters) {
+[[nodiscard]] WarmResult warm_glyphs(const lv_font_t* const font, const CharacterSet& characters) {
   WarmResult result{};
   characters.for_each([font, &result](const char character) {
     lv_font_glyph_dsc_t glyph{};
-    if (!lv_font_get_glyph_dsc(font, &glyph,
-                               static_cast<std::uint32_t>(character), 0)) {
+    if (!lv_font_get_glyph_dsc(font, &glyph, static_cast<std::uint32_t>(character), 0)) {
       ++result.missing;
       return;
     }
-    if (glyph.format == LV_FONT_GLYPH_FORMAT_NONE || glyph.box_w == 0 ||
-        glyph.box_h == 0) {
+    if (glyph.format == LV_FONT_GLYPH_FORMAT_NONE || glyph.box_w == 0 || glyph.box_h == 0) {
       return;
     }
     if (lv_font_get_glyph_bitmap(&glyph, nullptr) == nullptr) {
@@ -100,9 +96,7 @@ Registry::~Registry() {
   }
 }
 
-void Registry::destroy(lv_font_t* const font) {
-  lv_tiny_ttf_destroy(font);
-}
+void Registry::destroy(lv_font_t* const font) { lv_tiny_ttf_destroy(font); }
 
 bool Registry::load(const std::span<const font_assets::FamilyAsset> families,
                     const std::span<std::uint8_t> storage) {
@@ -111,8 +105,7 @@ bool Registry::load(const std::span<const font_assets::FamilyAsset> families,
   family_count_ = 0;
   std::span<std::uint8_t> remaining = storage;
   for (const font_assets::FamilyAsset& asset : families) {
-    if (family_count_ == families_.size() ||
-        asset.bytes.size() > remaining.size()) {
+    if (family_count_ == families_.size() || asset.bytes.size() > remaining.size()) {
       log::error(kTag, "Font face storage is too small for the package");
       return false;
     }
@@ -123,12 +116,10 @@ bool Registry::load(const std::span<const font_assets::FamilyAsset> families,
     };
     ++family_count_;
     const std::size_t consumed =
-        (asset.bytes.size() + font_assets::kFaceAlignment - 1) &
-        ~(font_assets::kFaceAlignment - 1);
+        (asset.bytes.size() + font_assets::kFaceAlignment - 1) & ~(font_assets::kFaceAlignment - 1);
     remaining = remaining.subspan(std::min(consumed, remaining.size()));
   }
-  log::info(kTag, "Loaded %u font families",
-           static_cast<unsigned>(family_count_));
+  log::info(kTag, "Loaded %u font families", static_cast<unsigned>(family_count_));
   return true;
 }
 
@@ -136,8 +127,7 @@ bool Registry::has_family(const font_assets::FamilyId& family) const {
   return find_family(family) != nullptr;
 }
 
-const Registry::Family* Registry::find_family(
-    const font_assets::FamilyId& family) const {
+const Registry::Family* Registry::find_family(const font_assets::FamilyId& family) const {
   for (std::size_t index = 0; index < family_count_; ++index) {
     if (families_[index].id == family) {
       return &families_[index];
@@ -167,10 +157,9 @@ bool Registry::acquire(const FontSpec& spec) {
     fallback = resolve(spare);
   }
 
-  lv_font_t* const font = lv_tiny_ttf_create_data_ex(
-      family->bytes.data(), family->bytes.size(),
-      static_cast<std::int32_t>(spec.size_px), LV_FONT_KERNING_NONE,
-      kGlyphCacheEntries);
+  lv_font_t* const font = lv_tiny_ttf_create_data_ex(family->bytes.data(), family->bytes.size(),
+                                                     static_cast<std::int32_t>(spec.size_px),
+                                                     LV_FONT_KERNING_NONE, kGlyphCacheEntries);
   if (font == nullptr) {
     log::error(kTag, "Failed to create font %s %upx",
                font_assets::family_id_view(spec.family).data(),
@@ -185,28 +174,21 @@ bool Registry::acquire(const FontSpec& spec) {
   characters.add(kBaseWarmCharacters);
   const std::int64_t started_at_us = esp_timer_get_time();
   const WarmResult result = warm_glyphs(font, characters);
-  const auto elapsed_us =
-      static_cast<std::uint32_t>(esp_timer_get_time() - started_at_us);
+  const auto elapsed_us = static_cast<std::uint32_t>(esp_timer_get_time() - started_at_us);
   if (result.missing != 0 || result.failed != 0) {
     log::warn(kTag, "Font %s %upx warmed %u, missing %u, failed %u in %uus",
-              font_assets::family_id_view(spec.family).data(),
-              static_cast<unsigned>(spec.size_px),
-              static_cast<unsigned>(result.warmed),
-              static_cast<unsigned>(result.missing),
-              static_cast<unsigned>(result.failed),
-              static_cast<unsigned>(elapsed_us));
+              font_assets::family_id_view(spec.family).data(), static_cast<unsigned>(spec.size_px),
+              static_cast<unsigned>(result.warmed), static_cast<unsigned>(result.missing),
+              static_cast<unsigned>(result.failed), static_cast<unsigned>(elapsed_us));
   } else {
     log::info(kTag, "Font %s %upx warmed %u glyphs in %uus",
-              font_assets::family_id_view(spec.family).data(),
-              static_cast<unsigned>(spec.size_px),
-              static_cast<unsigned>(result.warmed),
-              static_cast<unsigned>(elapsed_us));
+              font_assets::family_id_view(spec.family).data(), static_cast<unsigned>(spec.size_px),
+              static_cast<unsigned>(result.warmed), static_cast<unsigned>(elapsed_us));
   }
   return true;
 }
 
-void Registry::warm(const FontSpec& spec,
-                    const std::span<const char> characters) {
+void Registry::warm(const FontSpec& spec, const std::span<const char> characters) {
   const lv_font_t* const font = resolve(spec);
   if (font == nullptr || characters.empty()) {
     return;
@@ -219,8 +201,7 @@ void Registry::warm(const FontSpec& spec,
   const WarmResult result = warm_glyphs(font, set);
   if (result.missing != 0 || result.failed != 0) {
     log::warn(kTag, "Font %s %upx cannot render %u of its configured characters",
-              font_assets::family_id_view(spec.family).data(),
-              static_cast<unsigned>(spec.size_px),
+              font_assets::family_id_view(spec.family).data(), static_cast<unsigned>(spec.size_px),
               static_cast<unsigned>(result.missing + result.failed));
   }
 }

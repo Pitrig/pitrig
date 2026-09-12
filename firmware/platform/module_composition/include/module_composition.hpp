@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstddef>
+
 #include "lap_timer.hpp"
 #include "led_driver.hpp"
 #include "module_manager.hpp"
@@ -17,6 +19,11 @@ class ITelemetryRegistry;
 }
 
 namespace pitrig::module_composition {
+
+enum class Module : std::size_t {
+  lap_timer,
+  rgb_leds,
+};
 
 struct Modules {
   struct LapTimerBinding {
@@ -44,14 +51,15 @@ struct Modules {
   modules::Manager manager;
 };
 
-[[nodiscard]] bool start(
-    Modules& modules, events::EventBus& event_bus,
-    const telemetry::ITelemetryRegistry& telemetry_registry,
-    const telemetry::ITelemetryReader& telemetry,
-    const led::driver::Driver* led_driver,
-    const configuration::ApplicationConfiguration& configuration);
+[[nodiscard]] bool start(Modules& modules, events::EventBus& event_bus,
+                         const telemetry::ITelemetryRegistry& telemetry_registry,
+                         const telemetry::ITelemetryReader& telemetry,
+                         const led::driver::Driver* led_driver,
+                         const configuration::ApplicationConfiguration& configuration);
 
-[[nodiscard]] bool lap_timer_used(
-    const configuration::ApplicationConfiguration& configuration);
+[[nodiscard]] bool restart(Modules& modules, Module module,
+                           const configuration::ApplicationConfiguration& configuration);
+
+[[nodiscard]] bool lap_timer_used(const configuration::ApplicationConfiguration& configuration);
 
 }

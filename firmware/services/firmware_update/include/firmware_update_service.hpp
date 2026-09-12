@@ -51,8 +51,7 @@ class Service final {
   void cancel_update();
 
  private:
-  [[nodiscard]] UpdateError consume_header(
-      std::span<const std::uint8_t>& bytes);
+  [[nodiscard]] UpdateError consume_header(std::span<const std::uint8_t>& bytes);
   [[nodiscard]] UpdateError open_target();
   void reset_update();
 

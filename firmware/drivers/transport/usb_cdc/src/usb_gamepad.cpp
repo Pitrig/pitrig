@@ -24,9 +24,8 @@ bool send(const Report& report) {
   if (!tud_hid_n_ready(kInstance)) {
     return false;
   }
-  return tud_hid_n_gamepad_report(kInstance, kReportId, report.x, report.y,
-                                  report.z, report.rz, report.rx, report.ry,
-                                  report.hat, report.buttons);
+  return tud_hid_n_gamepad_report(kInstance, kReportId, report.x, report.y, report.z, report.rz,
+                                  report.rx, report.ry, report.hat, report.buttons);
 }
 
 #else
@@ -49,10 +48,8 @@ const std::uint8_t* tud_hid_descriptor_report_cb(const std::uint8_t instance) {
   return pitrig::transport::usb_descriptors::kGamepadReport;
 }
 
-std::uint16_t tud_hid_get_report_cb(const std::uint8_t instance,
-                                    const std::uint8_t report_id,
-                                    const hid_report_type_t report_type,
-                                    std::uint8_t* const buffer,
+std::uint16_t tud_hid_get_report_cb(const std::uint8_t instance, const std::uint8_t report_id,
+                                    const hid_report_type_t report_type, std::uint8_t* const buffer,
                                     const std::uint16_t length) {
   (void)instance;
   (void)report_id;
@@ -62,10 +59,8 @@ std::uint16_t tud_hid_get_report_cb(const std::uint8_t instance,
   return 0;
 }
 
-void tud_hid_set_report_cb(const std::uint8_t instance,
-                           const std::uint8_t report_id,
-                           const hid_report_type_t report_type,
-                           const std::uint8_t* const buffer,
+void tud_hid_set_report_cb(const std::uint8_t instance, const std::uint8_t report_id,
+                           const hid_report_type_t report_type, const std::uint8_t* const buffer,
                            const std::uint16_t length) {
   (void)instance;
   (void)report_id;
@@ -73,6 +68,5 @@ void tud_hid_set_report_cb(const std::uint8_t instance,
   (void)buffer;
   (void)length;
 }
-
 }
 #endif

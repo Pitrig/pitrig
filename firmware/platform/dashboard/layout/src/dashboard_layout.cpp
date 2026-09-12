@@ -1,5 +1,4 @@
 #include "dashboard_layout_internal.hpp"
-
 #include "esp_lvgl_port.h"
 
 namespace pitrig::dashboard {
@@ -20,16 +19,12 @@ void apply_outline(lv_obj_t* const object, const std::uint32_t color_rgb) {
 
 }
 
-bool resolve_widget_bounds(const Layout& layout,
-                           const configuration::WidgetFrame& frame,
-                           const Placement& placement,
-                           const std::int32_t intrinsic_width,
-                           const std::int32_t intrinsic_height,
-                           const bool fill_available_width, lv_obj_t*& parent,
-                           Rect& bounds) {
+bool resolve_widget_bounds(const Layout& layout, const configuration::WidgetFrame& frame,
+                           const Placement& placement, const std::int32_t intrinsic_width,
+                           const std::int32_t intrinsic_height, const bool fill_available_width,
+                           lv_obj_t*& parent, Rect& bounds) {
   lv_obj_t* const owner = layout.parent(frame);
-  const bool contained =
-      frame.parent_kind != configuration::WidgetParentKind::screen;
+  const bool contained = frame.parent_kind != configuration::WidgetParentKind::screen;
   if (layout.display == nullptr || owner == nullptr || intrinsic_width < 0 ||
       intrinsic_height < 0 || placement.width < 0 || placement.height < 0) {
     return false;
@@ -38,19 +33,14 @@ bool resolve_widget_bounds(const Layout& layout,
   parent = owner;
   const std::int32_t content_left =
       contained ? lv_obj_get_style_space_left(owner, LV_PART_MAIN) : 0;
-  const std::int32_t content_top =
-      contained ? lv_obj_get_style_space_top(owner, LV_PART_MAIN) : 0;
+  const std::int32_t content_top = contained ? lv_obj_get_style_space_top(owner, LV_PART_MAIN) : 0;
   const std::int32_t parent_width =
-      contained ? lv_obj_get_width(owner)
-                : lv_display_get_horizontal_resolution(layout.display);
+      contained ? lv_obj_get_width(owner) : lv_display_get_horizontal_resolution(layout.display);
 
   const std::int32_t requested_width =
-      placement.width > 0
-          ? placement.width
-          : (fill_available_width ? parent_width - placement.x
-                                  : intrinsic_width);
-  const std::int32_t requested_height =
-      placement.height > 0 ? placement.height : intrinsic_height;
+      placement.width > 0 ? placement.width
+                          : (fill_available_width ? parent_width - placement.x : intrinsic_width);
+  const std::int32_t requested_height = placement.height > 0 ? placement.height : intrinsic_height;
   bounds = {.x = placement.x - content_left,
             .y = placement.y - content_top,
             .width = requested_width,
@@ -59,6 +49,7 @@ bool resolve_widget_bounds(const Layout& layout,
     return false;
   }
   lv_area_t parent_box{};
+  lv_obj_update_layout(owner);
   lv_obj_get_coords(owner, &parent_box);
   const std::int32_t left = parent_box.x1 + content_left + bounds.x;
   const std::int32_t top = parent_box.y1 + content_top + bounds.y;

@@ -1,5 +1,3 @@
-#include "widget_validator.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -8,6 +6,7 @@
 
 #include "image_asset_types.hpp"
 #include "value_rules.hpp"
+#include "widget_validator.hpp"
 
 namespace pitrig::configuration::validation {
 namespace {
@@ -20,8 +19,7 @@ bool ring_fits(const std::uint16_t thickness_px, const std::uint16_t radius_px,
   return 2 * thickness_px <= std::min(placement.width, placement.height);
 }
 
-bool valid_gradient_middle(const std::uint32_t mid_color,
-                           const std::uint32_t grad_color) {
+bool valid_gradient_middle(const std::uint32_t mid_color, const std::uint32_t grad_color) {
   return valid_optional_color(mid_color) &&
          (mid_color == kTransparentColor || grad_color != kTransparentColor);
 }
@@ -31,8 +29,7 @@ bool gradient_ring_fits(const ArcWidgetConfiguration& config,
   if (config.fill_grad_color == kTransparentColor || config.radius_px == 0) {
     return true;
   }
-  return 2 * config.radius_px + config.thickness_px <=
-         std::max(display.width, display.height);
+  return 2 * config.radius_px + config.thickness_px <= std::max(display.width, display.height);
 }
 
 }
@@ -42,12 +39,10 @@ bool Validator::slot_page(const SlotPageConfiguration& config) {
       config.widget_count > config.widgets.size()) {
     return reject(failure_, ValidationError::invalid_slot_page, "conditions");
   }
-  if (const std::string_view out_of_range = schema::range_error(config);
-      !out_of_range.empty()) {
+  if (const std::string_view out_of_range = schema::range_error(config); !out_of_range.empty()) {
     return reject(failure_, ValidationError::invalid_slot_page, out_of_range);
   }
-  const bool bound =
-      registry_.resolve(value_binding_view(config.source.binding)).valid();
+  const bool bound = registry_.resolve(value_binding_view(config.source.binding)).valid();
   switch (config.trigger) {
     case SlotTrigger::none:
       if (bound || config.condition_count != 0 || config.duration_ms != 0) {
@@ -56,44 +51,36 @@ bool Validator::slot_page(const SlotPageConfiguration& config) {
       return true;
     case SlotTrigger::value_changed:
       if (config.duration_ms == 0 || config.condition_count != 0) {
-        return reject(failure_, ValidationError::invalid_slot_page,
-                      "duration_ms");
+        return reject(failure_, ValidationError::invalid_slot_page, "duration_ms");
       }
       break;
     case SlotTrigger::conditions:
       if (config.condition_count == 0) {
-        return reject(failure_, ValidationError::invalid_slot_page,
-                      "conditions");
+        return reject(failure_, ValidationError::invalid_slot_page, "conditions");
       }
       for (std::size_t index = 0; index < config.condition_count; ++index) {
         const ValueCondition& rule = config.conditions[index];
         if (!std::isfinite(rule.value) || rule.op < ConditionOperator::above ||
             rule.op > ConditionOperator::not_equal) {
-          return reject(failure_, ValidationError::invalid_slot_page,
-                        "conditions");
+          return reject(failure_, ValidationError::invalid_slot_page, "conditions");
         }
       }
       break;
     default:
       return reject(failure_, ValidationError::invalid_slot_page, "trigger");
   }
-  if (!bound || config.source.modifier_count > config.source.modifiers.size()) {
-    return reject(failure_, ValidationError::invalid_slot_page, "source");
-  }
-  return true;
+  return value_source(config.source, "source", ValidationError::invalid_slot_page);
 }
 
 bool Validator::slot_widget(const SlotWidgetConfiguration& config) {
   const WidgetFrame& box = config.frame;
-  if (box.background_color != kTransparentColor ||
-      box.background_grad_color != kTransparentColor) {
+  if (box.background_color != kTransparentColor || box.background_grad_color != kTransparentColor) {
     return reject(failure_, ValidationError::invalid_slot, "background_color");
   }
   if (box.border.width_px != 0 || box.border.radius_px != 0) {
     return reject(failure_, ValidationError::invalid_slot, "border");
   }
-  if (box.title.text.front() != '\0' ||
-      !value_binding_view(box.title.source.binding).empty()) {
+  if (box.title.text.front() != '\0' || !value_binding_view(box.title.source.binding).empty()) {
     return reject(failure_, ValidationError::invalid_slot, "title");
   }
   if (box.condition_count != 0 || box.color_ramp.stop_count != 0 ||
@@ -119,7 +106,6 @@ bool Validator::slot_widget(const SlotWidgetConfiguration& config) {
   return frame(config.frame);
 }
 
-
 bool Validator::bar_widget(const BarWidgetConfiguration& config) {
   if (config.orientation < BarOrientation::horizontal ||
       config.orientation > BarOrientation::vertical) {
@@ -131,25 +117,20 @@ bool Validator::bar_widget(const BarWidgetConfiguration& config) {
   if (!valid_optional_color(config.fill_grad_color)) {
     return reject(failure_, ValidationError::invalid_widget, "fill_grad_color");
   }
-  if (!valid_gradient_middle(config.fill_grad_mid_color,
-                             config.fill_grad_color)) {
-    return reject(failure_, ValidationError::invalid_widget,
-                  "fill_grad_mid_color");
+  if (!valid_gradient_middle(config.fill_grad_mid_color, config.fill_grad_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "fill_grad_mid_color");
   }
   if (config.origin_present && !std::isfinite(config.origin)) {
     return reject(failure_, ValidationError::invalid_widget, "origin");
   }
-  return value_source(config.source) && value_range(config.range) &&
-         frame(config.frame);
+  return value_source(config.source, "source") && value_range(config.range) && frame(config.frame);
 }
 
 bool Validator::arc_widget(const ArcWidgetConfiguration& config) {
-  if (const std::string_view out_of_range = schema::range_error(config);
-      !out_of_range.empty()) {
+  if (const std::string_view out_of_range = schema::range_error(config); !out_of_range.empty()) {
     return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
-  if (!ring_fits(config.thickness_px, config.radius_px,
-                 config.frame.placement)) {
+  if (!ring_fits(config.thickness_px, config.radius_px, config.frame.placement)) {
     return reject(failure_, ValidationError::invalid_widget, "thickness_px");
   }
   if (!valid_color(config.fill_color) || !valid_optional_color(config.track_color)) {
@@ -159,35 +140,28 @@ bool Validator::arc_widget(const ArcWidgetConfiguration& config) {
       !gradient_ring_fits(config, profile_.display)) {
     return reject(failure_, ValidationError::invalid_widget, "fill_grad_color");
   }
-  if (!valid_gradient_middle(config.fill_grad_mid_color,
-                             config.fill_grad_color)) {
-    return reject(failure_, ValidationError::invalid_widget,
-                  "fill_grad_mid_color");
+  if (!valid_gradient_middle(config.fill_grad_mid_color, config.fill_grad_color)) {
+    return reject(failure_, ValidationError::invalid_widget, "fill_grad_mid_color");
   }
   if (config.mark < ArcMark::ring || config.mark > ArcMark::needle) {
     return reject(failure_, ValidationError::invalid_widget, "mark");
   }
-  return value_source(config.source) && value_range(config.range) &&
-         frame(config.frame);
+  return value_source(config.source, "source") && value_range(config.range) && frame(config.frame);
 }
-
 
 bool Validator::indicator_widget(const IndicatorWidgetConfiguration& config) {
   if (config.orientation < BarOrientation::horizontal ||
       config.orientation > BarOrientation::vertical) {
     return reject(failure_, ValidationError::invalid_widget, "orientation");
   }
-  if (config.shape < IndicatorShape::strip ||
-      config.shape > IndicatorShape::arc) {
+  if (config.shape < IndicatorShape::strip || config.shape > IndicatorShape::arc) {
     return reject(failure_, ValidationError::invalid_widget, "shape");
   }
   if (config.shape == IndicatorShape::arc &&
-      !ring_fits(config.thickness_px, config.radius_px,
-                 config.frame.placement)) {
+      !ring_fits(config.thickness_px, config.radius_px, config.frame.placement)) {
     return reject(failure_, ValidationError::invalid_widget, "thickness_px");
   }
-  if (config.segment_count == 0 ||
-      config.segment_count > config.segments.size()) {
+  if (config.segment_count == 0 || config.segment_count > config.segments.size()) {
     return reject(failure_, ValidationError::invalid_widget, "segments");
   }
   float previous = -std::numeric_limits<float>::infinity();
@@ -202,21 +176,17 @@ bool Validator::indicator_widget(const IndicatorWidgetConfiguration& config) {
   if (!std::isfinite(config.blink_threshold)) {
     return reject(failure_, ValidationError::invalid_widget, "blink_threshold");
   }
-  if (const std::string_view out_of_range = schema::range_error(config);
-      !out_of_range.empty()) {
+  if (const std::string_view out_of_range = schema::range_error(config); !out_of_range.empty()) {
     return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
   if (!valid_optional_color(config.off_color)) {
     return reject(failure_, ValidationError::invalid_widget, "off_color");
   }
-  return value_source(config.source) && value_range(config.range) &&
-         frame(config.frame);
+  return value_source(config.source, "source") && value_range(config.range) && frame(config.frame);
 }
 
-
 bool Validator::graph_widget(const GraphWidgetConfiguration& config) {
-  if (const std::string_view out_of_range = schema::range_error(config);
-      !out_of_range.empty()) {
+  if (const std::string_view out_of_range = schema::range_error(config); !out_of_range.empty()) {
     return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
   if (!valid_color(config.line_color)) {
@@ -230,39 +200,29 @@ bool Validator::graph_widget(const GraphWidgetConfiguration& config) {
     if (!valid_color(trace.line_color)) {
       return reject(failure_, ValidationError::invalid_widget, "traces");
     }
-    if (!value_source(trace.source) || !value_range(trace.range)) {
+    if (!value_source(trace.source, "source") || !value_range(trace.range)) {
       return false;
     }
   }
-  return value_source(config.source) && value_range(config.range) &&
-         frame(config.frame);
+  return value_source(config.source, "source") && value_range(config.range) && frame(config.frame);
 }
 
-
 bool Validator::image_widget(const ImageWidgetConfiguration& config) {
-  if (!terminated(config.image) ||
-      !image_assets::valid_image_id(config.image)) {
+  if (!terminated(config.image) || !image_assets::valid_image_id(config.image)) {
     return reject(failure_, ValidationError::invalid_widget, "image");
   }
   if (!valid_optional_color(config.recolor)) {
     return reject(failure_, ValidationError::invalid_widget, "recolor");
   }
-  if (config.sprite_frame_source_present) {
-    if (!registry_
-             .resolve(value_binding_view(config.sprite_frame_source.binding))
-             .valid()) {
-      return reject(failure_, ValidationError::invalid_widget,
-                    "sprite_frame_source");
-    }
-    if (config.sprite_frame_source.modifier_count >
-        config.sprite_frame_source.modifiers.size()) {
-      return reject(failure_, ValidationError::invalid_widget,
-                    "sprite_frame_source");
-    }
+  if (const std::string_view out_of_range = schema::range_error(config); !out_of_range.empty()) {
+    return reject(failure_, ValidationError::invalid_widget, out_of_range);
+  }
+  if (config.sprite_frame_source_present &&
+      !value_source(config.sprite_frame_source, "sprite_frame_source")) {
+    return false;
   }
   return frame(config.frame);
 }
-
 
 bool Validator::shape_widget(const ShapeWidgetConfiguration& config) {
   if (config.kind < ShapeKind::rectangle || config.kind > ShapeKind::ellipse) {
@@ -274,10 +234,8 @@ bool Validator::shape_widget(const ShapeWidgetConfiguration& config) {
   return frame(config.frame);
 }
 
-
 bool Validator::text_widget(const TextWidgetConfiguration& config) {
-  if (config.source_count == 0 ||
-      config.source_count > config.sources.size()) {
+  if (config.source_count == 0 || config.source_count > config.sources.size()) {
     return reject(failure_, ValidationError::invalid_widget, "sources");
   }
   for (std::size_t index = 0; index < config.source_count; ++index) {

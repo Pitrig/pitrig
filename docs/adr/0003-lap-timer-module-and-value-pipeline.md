@@ -25,7 +25,15 @@ Use a fixed one-second stale-telemetry timeout. Activate the module when a
 configuration section or a dedicated Lap Timer widget.
 
 When telemetry resumes after the timeout, synchronize from the received value
-without adding the stale interval to the displayed lap time.
+without adding the stale interval to the displayed lap time. The bound value
+going unavailable invalidates the module: it reports no time until a value
+arrives again, rather than extrapolating from the last one it saw.
+
+Correct by size rather than always. A received time more than 250 ms from the
+extrapolated one, or lower than the previous one — a new lap — is taken
+outright. A smaller error is folded in gradually instead, at no more than a
+quarter of the elapsed time per step, so the displayed clock never stops and
+never jumps backwards over ordinary jitter.
 
 Keep LVGL labels, fonts, colors, and render timers in the reusable Text widget.
 Keep stateless millisecond formatting in the shared time-transform utility

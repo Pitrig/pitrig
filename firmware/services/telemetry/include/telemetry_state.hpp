@@ -15,6 +15,7 @@ class ITelemetryReader {
   virtual ~ITelemetryReader() = default;
   [[nodiscard]] virtual TelemetryRead read(Handle handle) const = 0;
   [[nodiscard]] virtual bool started() const = 0;
+  [[nodiscard]] virtual std::int64_t last_arrival_us() const = 0;
 };
 
 class TelemetryStateService final : public ITelemetryReader {
@@ -24,6 +25,7 @@ class TelemetryStateService final : public ITelemetryReader {
   [[nodiscard]] CommitResult apply(const TelemetryUpdate& update);
   [[nodiscard]] TelemetryRead read(Handle handle) const override;
   [[nodiscard]] bool started() const override;
+  [[nodiscard]] std::int64_t last_arrival_us() const override;
 
  private:
   struct Slot {
@@ -40,6 +42,7 @@ class TelemetryStateService final : public ITelemetryReader {
   std::mutex mutex_;
   std::array<Slot, catalog::kFieldCount> slots_{};
   std::uint64_t revision_{};
+  std::atomic<std::int64_t> last_arrival_us_{0};
   std::atomic<bool> started_{false};
 };
 

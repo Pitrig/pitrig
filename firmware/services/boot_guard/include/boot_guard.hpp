@@ -36,7 +36,7 @@ struct Status {
 
 void begin();
 
-[[nodiscard]] const Status& status();
+[[nodiscard]] Status status();
 [[nodiscard]] bool safe_mode();
 
 void reached(Phase phase);

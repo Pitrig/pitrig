@@ -34,22 +34,18 @@ void log_bus(i2c_master_bus_handle_t bus, const Pins& pins) {
     input_configuration.pull_down_en = GPIO_PULLDOWN_DISABLE;
     input_configuration.intr_type = GPIO_INTR_DISABLE;
     if (gpio_config(&input_configuration) == ESP_OK) {
-      ESP_LOGW(kTag, "Idle levels: reset(%d)=%d interrupt(%d)=%d",
-               static_cast<int>(pins.reset),
+      ESP_LOGW(kTag, "Idle levels: reset(%d)=%d interrupt(%d)=%d", static_cast<int>(pins.reset),
                pins.reset == GPIO_NUM_NC ? -1 : gpio_get_level(pins.reset),
                static_cast<int>(pins.interrupt),
-               pins.interrupt == GPIO_NUM_NC ? -1
-                                             : gpio_get_level(pins.interrupt));
+               pins.interrupt == GPIO_NUM_NC ? -1 : gpio_get_level(pins.interrupt));
     }
   }
 
   ESP_LOGW(kTag, "Scanning I2C bus on sda=%d scl=%d (GT911 answers at 0x%02X or 0x%02X)",
            static_cast<int>(pins.sda), static_cast<int>(pins.scl),
-           ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS,
-           ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP);
+           ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS, ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP);
   int found = 0;
-  for (std::uint16_t address = kFirstScannedAddress;
-       address <= kLastScannedAddress; ++address) {
+  for (std::uint16_t address = kFirstScannedAddress; address <= kLastScannedAddress; ++address) {
     if (i2c_master_probe(bus, address, kProbeTimeoutMs) == ESP_OK) {
       ESP_LOGW(kTag, "  device answered at 0x%02X", address);
       ++found;
@@ -71,8 +67,8 @@ driver::Configuration create(const Panel& panel) {
 
   i2c_master_bus_handle_t bus = nullptr;
   if (i2c_new_master_bus(&bus_configuration, &bus) != ESP_OK) {
-    ESP_LOGE(kTag, "I2C bus on sda=%d scl=%d is unavailable",
-             static_cast<int>(panel.pins.sda), static_cast<int>(panel.pins.scl));
+    ESP_LOGE(kTag, "I2C bus on sda=%d scl=%d is unavailable", static_cast<int>(panel.pins.sda),
+             static_cast<int>(panel.pins.scl));
     return {.touch = nullptr};
   }
 
@@ -90,8 +86,7 @@ driver::Configuration create(const Panel& panel) {
   for (esp_lcd_touch_io_gt911_config_t& candidate : kAddressCandidates) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
-    esp_lcd_panel_io_i2c_config_t io_configuration =
-        ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
+    esp_lcd_panel_io_i2c_config_t io_configuration = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
 #pragma GCC diagnostic pop
     io_configuration.scl_speed_hz = panel.clock_hz;
     io_configuration.dev_addr = candidate.dev_addr;
@@ -103,8 +98,7 @@ driver::Configuration create(const Panel& panel) {
 
     touch_configuration.driver_data = &candidate;
     esp_lcd_touch_handle_t touch = nullptr;
-    if (esp_lcd_touch_new_i2c_gt911(io, &touch_configuration, &touch) ==
-        ESP_OK) {
+    if (esp_lcd_touch_new_i2c_gt911(io, &touch_configuration, &touch) == ESP_OK) {
       ESP_LOGI(kTag, "GT911 ready at 0x%02X", candidate.dev_addr);
       return {.touch = touch};
     }

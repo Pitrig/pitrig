@@ -11,18 +11,14 @@ namespace {
 
 bool installed;
 
-void* allocate_glyph_buffer(const std::size_t size,
-                            const lv_color_format_t color_format) {
+void* allocate_glyph_buffer(const std::size_t size, const lv_color_format_t color_format) {
   (void)color_format;
   const std::size_t padded = size + LV_DRAW_BUF_ALIGN - 1;
-  void* const external =
-      heap_caps_malloc(padded, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  void* const external = heap_caps_malloc(padded, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
   return external != nullptr ? external : lv_malloc(padded);
 }
 
-void free_glyph_buffer(void* const buffer) {
-  heap_caps_free(buffer);
-}
+void free_glyph_buffer(void* const buffer) { heap_caps_free(buffer); }
 
 }
 

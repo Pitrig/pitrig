@@ -29,8 +29,7 @@ struct Color {
 
   [[nodiscard]] constexpr Color faded(const float level) const {
     const float clamped = level < 0.0F ? 0.0F : (level > 1.0F ? 1.0F : level);
-    return {static_cast<std::uint8_t>(red * clamped),
-            static_cast<std::uint8_t>(green * clamped),
+    return {static_cast<std::uint8_t>(red * clamped), static_cast<std::uint8_t>(green * clamped),
             static_cast<std::uint8_t>(blue * clamped)};
   }
 
@@ -50,10 +49,8 @@ class Output final {
   Output(const Output&) = delete;
   Output& operator=(const Output&) = delete;
 
-  [[nodiscard]] bool open(const driver::Driver& driver,
-                          const driver::Configuration& configuration,
-                          std::span<std::uint8_t> working,
-                          std::span<std::uint8_t> wire,
+  [[nodiscard]] bool open(const driver::Driver& driver, const driver::Configuration& configuration,
+                          std::span<std::uint8_t> working, std::span<std::uint8_t> wire,
                           std::span<std::uint8_t> shadow = {});
   void close();
 
@@ -73,8 +70,7 @@ class Output final {
  private:
   void darken();
 
-  [[nodiscard]] std::uint8_t scale(std::uint8_t channel,
-                                   std::uint8_t brightness, bool gamma) const;
+  [[nodiscard]] std::uint8_t scale(std::uint8_t channel, std::uint8_t brightness, bool gamma) const;
 
   const driver::Driver* driver_{};
   driver::Handle handle_{};

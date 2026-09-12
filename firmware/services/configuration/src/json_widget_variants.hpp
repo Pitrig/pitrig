@@ -9,8 +9,8 @@
 
 namespace pitrig::configuration::json {
 
-using WidgetParser = bool (*)(const cJSON*, DashboardConfiguration&,
-                              std::uint8_t index, ValidationFailure&);
+using WidgetParser = bool (*)(const cJSON*, DashboardConfiguration&, std::uint8_t index,
+                              ValidationFailure&);
 
 extern const std::array<WidgetParser, kWidgetTypeTraits.size()> kWidgetParsers;
 

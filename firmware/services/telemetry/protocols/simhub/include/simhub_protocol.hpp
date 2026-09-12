@@ -17,13 +17,11 @@ class SimHubProtocol final : public telemetry::IProtocol {
 
   [[nodiscard]] bool initialized() const;
 
-  void consume_line(std::span<const std::uint8_t> line,
-                    telemetry::UpdateHandler handler,
+  void consume_line(std::span<const std::uint8_t> line, telemetry::UpdateHandler handler,
                     void* context) override;
 
  private:
-  [[nodiscard]] telemetry::Handle resolve_identifier(
-      std::span<const char> identifier) const;
+  [[nodiscard]] telemetry::Handle resolve_identifier(std::span<const char> identifier) const;
 
   std::array<telemetry::Handle, simhub_catalog::kBindings.size()> handles_{};
   bool initialized_{};

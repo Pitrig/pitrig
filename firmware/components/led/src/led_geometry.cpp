@@ -3,8 +3,6 @@
 namespace pitrig::led {
 namespace {
 
-constexpr std::size_t kOffPanel = static_cast<std::size_t>(-1);
-
 void unrotate(const Matrix& matrix, int& x, int& y) {
   const int width = matrix.width;
   const int height = matrix.height;
@@ -60,14 +58,13 @@ std::uint16_t Matrix::drawn_height() const {
 }
 
 std::size_t matrix_lamp(const Matrix& matrix, int x, int y) {
-  if (matrix.width == 0 || matrix.height == 0 || x < 0 || y < 0 ||
-      x >= matrix.drawn_width() || y >= matrix.drawn_height()) {
+  if (matrix.width == 0 || matrix.height == 0 || x < 0 || y < 0 || x >= matrix.drawn_width() ||
+      y >= matrix.drawn_height()) {
     return kOffPanel;
   }
   unrotate(matrix, x, y);
   to_origin(matrix, x, y);
-  const bool reversed =
-      matrix.order == Order::serpentine && (y % 2 == 1);
+  const bool reversed = matrix.order == Order::serpentine && (y % 2 == 1);
   const int column = reversed ? matrix.width - 1 - x : x;
   return static_cast<std::size_t>(y) * matrix.width + column;
 }

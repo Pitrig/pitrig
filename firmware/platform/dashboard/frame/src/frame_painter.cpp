@@ -1,8 +1,7 @@
-#include "widget_frame.hpp"
-
 #include "lvgl.h"
-#include "value_text.hpp"
 #include "value_conditions.hpp"
+#include "value_text.hpp"
+#include "widget_frame.hpp"
 
 namespace pitrig::dashboard::frame {
 namespace {
@@ -18,10 +17,8 @@ void draw_caption_mask(lv_event_t* const event) {
 
 }
 
-void Painter::configure(const Config& config, const Box& box,
-                        const std::uint32_t content_color,
-                        const ApplyContentColor apply_color,
-                        void* const color_context) {
+void Painter::configure(const Config& config, const Box& box, const std::uint32_t content_color,
+                        const ApplyContentColor apply_color, void* const color_context) {
   box_ = box;
   attachment_count_ = 0;
   if (box.caption != nullptr && attachment_count_ < attachments_.size()) {
@@ -31,22 +28,19 @@ void Painter::configure(const Config& config, const Box& box,
   caption_mask_rgb_ = box.caption_mask.rgb;
   caption_layout_ = box.caption_layout;
   value_text::copy_text(caption_fallback_, config.title.text);
-  const bool masks = caption_mask_.present ||
-                     (box.caption != nullptr && caption_layout_.border_gap &&
-                      caption_layout_.border_width > 0);
+  const bool masks =
+      caption_mask_.present ||
+      (box.caption != nullptr && caption_layout_.border_gap && caption_layout_.border_width > 0);
   if (masks && box.container != nullptr) {
-    lv_obj_add_event_cb(box.container, &draw_caption_mask,
-                        LV_EVENT_DRAW_POST_END, this);
+    lv_obj_add_event_cb(box.container, &draw_caption_mask, LV_EVENT_DRAW_POST_END, this);
   }
   apply_color_ = apply_color;
   color_context_ = color_context;
-  condition_count_ =
-      std::min<std::size_t>(config.condition_count, conditions_.size());
+  condition_count_ = std::min<std::size_t>(config.condition_count, conditions_.size());
   for (std::size_t index = 0; index < condition_count_; ++index) {
     conditions_[index] = config.conditions[index];
   }
-  ramp_stop_count_ =
-      std::min<std::size_t>(config.color_ramp.stop_count, ramp_stops_.size());
+  ramp_stop_count_ = std::min<std::size_t>(config.color_ramp.stop_count, ramp_stops_.size());
   ramp_target_ = config.color_ramp.target;
   for (std::size_t index = 0; index < ramp_stop_count_; ++index) {
     ramp_stops_[index] = config.color_ramp.stops[index];
@@ -94,8 +88,7 @@ void Painter::paint_caption_mask(lv_layer_t* const layer) const {
   lv_draw_rect_dsc_init(&dsc);
   dsc.bg_color = lv_color_hex(caption_mask_.rgb);
   dsc.bg_opa = LV_OPA_COVER;
-  const lv_area_t area = {coords.x1 + caption_mask_.x,
-                          coords.y1 + caption_mask_.y,
+  const lv_area_t area = {coords.x1 + caption_mask_.x, coords.y1 + caption_mask_.y,
                           coords.x1 + caption_mask_.x + caption_mask_.width - 1,
                           coords.y1 + caption_mask_.y + caption_mask_.height - 1};
   lv_draw_rect(layer, &dsc, &area);
@@ -107,16 +100,15 @@ void Painter::render() {
       read_ != nullptr ? read_(read_context_) : telemetry::TelemetryRead{};
   bool changed = false;
   if (read_ != nullptr) {
-    changed = value.revision != rendered_revision_ ||
-              value.available != rendered_available_;
+    changed = value.revision != rendered_revision_ || value.available != rendered_available_;
     rendered_revision_ = value.revision;
     rendered_available_ = value.available;
   }
   if ((condition_count_ > 0 || ramp_stop_count_ >= 2) &&
       (changed || holding_ || applied_style_.blink_ms != 0)) {
     const std::optional<double> numeric = conditions::condition_value(value);
-    conditions::Resolution resolution = conditions::resolve(
-        {conditions_.data(), condition_count_}, numeric, ramped(numeric));
+    conditions::Resolution resolution =
+        conditions::resolve({conditions_.data(), condition_count_}, numeric, ramped(numeric));
     if (resolution.matched) {
       held_style_ = resolution.style;
       hold_ms_ = resolution.hold_ms;
@@ -132,8 +124,7 @@ void Painter::render() {
   apply_blink();
 }
 
-conditions::ResolvedStyle Painter::ramped(
-    const std::optional<double> value) const {
+conditions::ResolvedStyle Painter::ramped(const std::optional<double> value) const {
   conditions::ResolvedStyle style = static_style_;
   const std::optional<std::uint32_t> color =
       conditions::ramp_color({ramp_stops_.data(), ramp_stop_count_}, value);
@@ -162,25 +153,19 @@ void Painter::apply_style(const conditions::ResolvedStyle& style) {
     apply_color_(color_context_, style.color);
   }
   if (style.background_color != applied_style_.background_color) {
-    const bool painted =
-        style.background_color != configuration::kTransparentColor;
-    lv_obj_t* const filled = box_.background_fill != nullptr
-                                 ? box_.background_fill
-                                 : box_.container;
+    const bool painted = style.background_color != configuration::kTransparentColor;
+    lv_obj_t* const filled =
+        box_.background_fill != nullptr ? box_.background_fill : box_.container;
     if (painted) {
-      lv_obj_set_style_bg_color(filled, lv_color_hex(style.background_color),
-                                LV_PART_MAIN);
+      lv_obj_set_style_bg_color(filled, lv_color_hex(style.background_color), LV_PART_MAIN);
     }
-    lv_obj_set_style_bg_opa(filled, painted ? LV_OPA_COVER : LV_OPA_TRANSP,
-                            LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(filled, painted ? LV_OPA_COVER : LV_OPA_TRANSP, LV_PART_MAIN);
     if (caption_mask_.present && box_.background_fill == nullptr) {
-      caption_mask_.rgb =
-          painted ? style.background_color : caption_mask_rgb_;
+      caption_mask_.rgb = painted ? style.background_color : caption_mask_rgb_;
     }
   }
   if (style.border_color != applied_style_.border_color) {
-    lv_obj_set_style_border_color(
-        box_.container, lv_color_hex(style.border_color), LV_PART_MAIN);
+    lv_obj_set_style_border_color(box_.container, lv_color_hex(style.border_color), LV_PART_MAIN);
   }
   if (style.blink_ms != applied_style_.blink_ms) {
     blink_started_ = lv_tick_get();
@@ -198,8 +183,7 @@ void Painter::apply_style(const conditions::ResolvedStyle& style) {
 
 void Painter::apply_blink() {
   const std::uint32_t period = applied_style_.blink_ms;
-  const bool phase =
-      period == 0 || (lv_tick_elaps(blink_started_) % period) < period / 2U;
+  const bool phase = period == 0 || (lv_tick_elaps(blink_started_) % period) < period / 2U;
   if (phase == blink_visible_) {
     return;
   }

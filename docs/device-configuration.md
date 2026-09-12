@@ -365,12 +365,21 @@ writing the protocol document cannot disturb a dashboard.
 
 The smallest valid document of any kind is `{ "board": "t_display_s3" }`.
 
-In memory the three are one bounded structure, which is what lets a rule that
-spans them stay one check — a UART pin the board does not have, a font budget
-over every widget, the single `lap_timer` modifier. A replacement is parsed over
-the sections it owns and the whole result is validated, so a protocol document
-that contradicts the dashboard already in place is rejected on arrival rather
-than at composition.
+In memory the three are one bounded structure. A replacement is parsed over the
+sections it owns and the **whole** result is validated, so writing one document
+re-checks the other two as they currently stand rather than trusting that they
+passed once. No rule spans two documents today: what is checked is each section
+against the board — the board identifier itself, an LED pin the board does not
+leave free and the four-output ceiling, the transport and its UART pins and baud
+rate — and then, within the dashboard, the screen and widget bounds, every
+widget reference and its parent, at most 32 tap targets, at most one `lap_timer`
+modifier, and the font-family budget over every widget.
+
+On a board whose profile declares no display — `esp32s3_devkit` — a `dashboard`
+document naming any screen is rejected outright with `invalid_dashboard` at
+`dashboard`; a dashboard with no screens is accepted, and no dashboard rule is
+checked at all. The board and hardware rules still apply, so such a board
+configures its LED outputs and its link normally.
 
 Property names are snake case, placement is `x`, `y`, `width` and `height`,
 and the complete property table is generated into
@@ -451,8 +460,8 @@ what the document must satisfy:
 - A strip and a matrix are **separate devices, not segments of one chain**,
   each on a data pin the board declares free, and two devices may not name the
   same pin. A board drives four, because both chips have four RMT transmit
-  channels — the DevKitC-1 drives three, its status lamp holding one. Lamp
-  numbering is per device and starts at zero.
+  channels — the DevKitC-1 included. Lamp numbering is per device and starts at
+  zero.
 - An `rgb_strip` is a pin and a `count`; its optional `segments` describe the
   mounting as straight runs in wire order, whose counts must sum to the strip's
   own, and a matrix carrying any is rejected. An `rgb_matrix` is a pin and a

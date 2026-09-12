@@ -8,11 +8,10 @@
 
 namespace pitrig::configuration::validation {
 
-[[nodiscard]] bool validate_led_effects(
-    const HardwareDeviceConfiguration& device, ValidationFailure& failure);
+[[nodiscard]] bool validate_led_effects(const HardwareDeviceConfiguration& device,
+                                        ValidationFailure& failure);
 
-[[nodiscard]] bool validate_hardware(
-    const ApplicationConfiguration& configuration,
-    const ValidationContext& profile, ValidationFailure& failure);
+[[nodiscard]] bool validate_hardware(const ApplicationConfiguration& configuration,
+                                     const ValidationContext& profile, ValidationFailure& failure);
 
 }

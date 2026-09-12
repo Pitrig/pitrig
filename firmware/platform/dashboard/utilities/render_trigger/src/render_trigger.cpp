@@ -12,8 +12,7 @@ constexpr std::uint32_t kLockTimeoutMs = 2'000;
 
 }
 
-bool Trigger::start(const WakeHandler handler, void* const context,
-                    TaskStorage& task_storage) {
+bool Trigger::start(const WakeHandler handler, void* const context, TaskStorage& task_storage) {
   if (task_ != nullptr || handler == nullptr) {
     return false;
   }
@@ -21,9 +20,8 @@ bool Trigger::start(const WakeHandler handler, void* const context,
   context_ = context;
   pending_.store(false, std::memory_order_relaxed);
   task_ = xTaskCreateStaticPinnedToCore(
-      &Trigger::task_entry, "render_trigger", task_storage.stack.size(), this,
-      kTaskPriority, task_storage.stack.data(), &task_storage.state,
-      PITRIG_COMMUNICATION_CORE);
+      &Trigger::task_entry, "render_trigger", task_storage.stack.size(), this, kTaskPriority,
+      task_storage.stack.data(), &task_storage.state, PITRIG_COMMUNICATION_CORE);
   if (task_ == nullptr) {
     handler_ = nullptr;
     context_ = nullptr;
@@ -38,9 +36,7 @@ void Trigger::request() {
   }
 }
 
-void Trigger::task_entry(void* const context) {
-  static_cast<Trigger*>(context)->process();
-}
+void Trigger::task_entry(void* const context) { static_cast<Trigger*>(context)->process(); }
 
 void Trigger::process() {
   (void)esp_task_wdt_add(nullptr);

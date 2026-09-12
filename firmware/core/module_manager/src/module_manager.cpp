@@ -2,13 +2,11 @@
 
 namespace pitrig::modules {
 
-Manager::~Manager() {
-  stop_all();
-}
+Manager::~Manager() { stop_all(); }
 
 bool Manager::add(const Descriptor& descriptor) {
-  if (count_ == entries_.size() || descriptor.start == nullptr ||
-      descriptor.stop == nullptr || descriptor.context == nullptr) {
+  if (count_ == entries_.size() || descriptor.start == nullptr || descriptor.stop == nullptr ||
+      descriptor.context == nullptr) {
     return false;
   }
   entries_[count_++].descriptor = descriptor;
@@ -26,6 +24,23 @@ bool Manager::start_all() {
     successful = entry.started && successful;
   }
   return successful;
+}
+
+bool Manager::restart_at(const std::size_t index, const bool enabled) {
+  if (index >= count_) {
+    return false;
+  }
+  Entry& entry = entries_[index];
+  if (entry.started) {
+    entry.descriptor.stop(entry.descriptor.context);
+    entry.started = false;
+  }
+  entry.descriptor.enabled = enabled;
+  if (!enabled) {
+    return true;
+  }
+  entry.started = entry.descriptor.start(entry.descriptor.context);
+  return entry.started;
 }
 
 void Manager::stop_all() {

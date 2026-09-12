@@ -25,7 +25,6 @@ list(APPEND EXTRA_COMPONENT_DIRS
      "${CMAKE_CURRENT_LIST_DIR}/platform/module_composition"
      "${CMAKE_CURRENT_LIST_DIR}/platform/nvs_config_storage"
      "${CMAKE_CURRENT_LIST_DIR}/platform/partition_asset_storage"
-     "${CMAKE_CURRENT_LIST_DIR}/platform/status_light"
      "${CMAKE_CURRENT_LIST_DIR}/platform/telemetry_transport"
      "${CMAKE_CURRENT_LIST_DIR}/services/asset_control"
      "${CMAKE_CURRENT_LIST_DIR}/services/asset_package"

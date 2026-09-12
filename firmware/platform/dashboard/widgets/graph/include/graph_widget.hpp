@@ -16,11 +16,9 @@
 
 namespace pitrig::dashboard::graph_widget {
 
-inline constexpr std::size_t kMaximumInstances =
-    configuration::kMaximumGraphWidgets;
+inline constexpr std::size_t kMaximumInstances = configuration::kMaximumGraphWidgets;
 inline constexpr std::size_t kMaximumPoints = configuration::kMaximumGraphPoints;
-inline constexpr std::size_t kMaximumSources =
-    configuration::kMaximumGraphSources;
+inline constexpr std::size_t kMaximumSources = configuration::kMaximumGraphSources;
 
 static_assert(kMaximumSources == configuration::kMaximumGraphTraces + 1);
 
@@ -57,40 +55,40 @@ struct State {
   float step_px{};
   float step_carry{};
   bool initialized{};
-  std::array<std::array<std::int16_t, kMaximumSources>, kPendingSamples>
-      pending{};
+  std::array<std::array<std::int16_t, kMaximumSources>, kPendingSamples> pending{};
   std::atomic<std::uint8_t> pending_write{};
   std::atomic<std::uint8_t> pending_read{};
 };
 
-class Collection final
-    : public frame::Collection<Collection, State, kMaximumInstances> {
+class Collection final : public frame::Collection<Collection, State, kMaximumInstances> {
  public:
-  [[nodiscard]] bool create(const Layout& layout,
-                            std::span<const Config> configurations,
-                            std::span<const WidgetBinding> bindings,
-                            const fonts::Registry& fonts);
-  [[nodiscard]] bool recreate(std::size_t index, const Layout& layout,
-                              const Config& configuration,
-                              const WidgetBinding& binding,
-                              const fonts::Registry& fonts);
+  using Base = frame::Collection<Collection, State, kMaximumInstances>;
+
+  ~Collection();
+
+  [[nodiscard]] bool create(const Layout& layout, std::span<const Config> configurations,
+                            std::span<const WidgetBinding> bindings, const fonts::Registry& fonts);
+  [[nodiscard]] bool recreate(std::size_t index, const Layout& layout, const Config& configuration,
+                              const WidgetBinding& binding, const fonts::Registry& fonts);
+  [[nodiscard]] bool extend_to(std::size_t count);
+  [[nodiscard]] bool shrink_to(std::size_t count);
+  void destroy();
   void sample_all();
   static void sample_task(void* context);
 
  private:
-  friend frame::Collection<Collection, State, kMaximumInstances>;
+  friend Base;
 
   void render_state(State& state);
   void on_released(std::size_t index);
   void start_sampling();
-  static void stop_sampling();
+  void stop_sampling();
   static void sample_state(State& state);
-  static void draw_sample(State& state, lv_layer_t& layer,
-                          std::span<const std::int16_t> sample);
-  [[nodiscard]] bool build(State& state, const Layout& layout,
-                           const Config& configuration,
-                           const WidgetBinding& binding,
-                           const fonts::Registry& fonts);
+  static void draw_sample(State& state, lv_layer_t& layer, std::span<const std::int16_t> sample);
+  [[nodiscard]] bool build(State& state, const Layout& layout, const Config& configuration,
+                           const WidgetBinding& binding, const fonts::Registry& fonts);
+
+  std::atomic<std::uint32_t> sampler_period_ms_{};
 };
 
 }

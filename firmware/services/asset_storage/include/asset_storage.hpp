@@ -15,8 +15,7 @@ class IStorage {
   virtual void unmap() = 0;
   [[nodiscard]] virtual bool erase() = 0;
   [[nodiscard]] virtual bool erase(std::size_t bytes) = 0;
-  [[nodiscard]] virtual bool write(std::size_t offset,
-                                   std::span<const std::uint8_t> bytes) = 0;
+  [[nodiscard]] virtual bool write(std::size_t offset, std::span<const std::uint8_t> bytes) = 0;
 };
 
 }

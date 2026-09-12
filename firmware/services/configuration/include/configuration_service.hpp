@@ -22,15 +22,17 @@ enum class DocumentOutcome : std::uint8_t {
 };
 
 inline constexpr std::array<std::string_view, 6> kDocumentOutcomeNames{{
-    "absent",           "malformed_record", "unsupported_schema",
-    "corrupt_payload",  "rejected",         "valid",
+    "absent",
+    "malformed_record",
+    "unsupported_schema",
+    "corrupt_payload",
+    "rejected",
+    "valid",
 }};
 
-[[nodiscard]] inline std::string_view document_outcome_name(
-    const DocumentOutcome outcome) {
+[[nodiscard]] inline std::string_view document_outcome_name(const DocumentOutcome outcome) {
   const auto index = static_cast<std::size_t>(outcome);
-  return index < kDocumentOutcomeNames.size() ? kDocumentOutcomeNames[index]
-                                              : std::string_view{};
+  return index < kDocumentOutcomeNames.size() ? kDocumentOutcomeNames[index] : std::string_view{};
 }
 
 struct DocumentStatus {
@@ -43,8 +45,7 @@ struct ConfigurationStatus {
   bool storage_available{};
   std::array<DocumentStatus, kConfigurationDocumentCount> documents{};
 
-  [[nodiscard]] const DocumentStatus& of(
-      const ConfigurationDocument document) const {
+  [[nodiscard]] const DocumentStatus& of(const ConfigurationDocument document) const {
     return documents[static_cast<std::size_t>(document)];
   }
 };
@@ -60,15 +61,11 @@ struct ConfigurationStatus {
 class ConfigurationService {
  public:
   static constexpr std::size_t kRecordHeaderSize = 20;
-  static constexpr std::size_t kRecordBufferSize =
-      kRecordHeaderSize + kMaximumPayloadSize;
-  static constexpr std::size_t kPayloadBufferSize =
-      total_document_payload_size();
-  static constexpr std::size_t kConfigurationBufferSize =
-      2 * sizeof(ApplicationConfiguration);
+  static constexpr std::size_t kRecordBufferSize = kRecordHeaderSize + kMaximumPayloadSize;
+  static constexpr std::size_t kPayloadBufferSize = total_document_payload_size();
+  static constexpr std::size_t kConfigurationBufferSize = 2 * sizeof(ApplicationConfiguration);
 
-  using FactoryPayloads =
-      std::array<std::span<const std::uint8_t>, kConfigurationDocumentCount>;
+  using FactoryPayloads = std::array<std::span<const std::uint8_t>, kConfigurationDocumentCount>;
 
   using StoredDocuments = std::array<bool, kConfigurationDocumentCount>;
   [[nodiscard]] static constexpr StoredDocuments all_stored_documents() {
@@ -77,45 +74,33 @@ class ConfigurationService {
     return documents;
   }
 
-  bool initialize(IConfigurationStorage& storage,
-                  const ValidationContext& validation_profile,
-                  const FactoryPayloads& factory_payloads,
-                  std::span<std::uint8_t> record_buffer,
+  bool initialize(IConfigurationStorage& storage, const ValidationContext& validation_profile,
+                  const FactoryPayloads& factory_payloads, std::span<std::uint8_t> record_buffer,
                   std::span<std::uint8_t> payload_buffer,
                   std::span<std::uint8_t> configuration_buffer,
                   const StoredDocuments& apply_stored);
 
-  [[nodiscard]] const ApplicationConfiguration& current() const {
-    return *active_;
-  }
+  [[nodiscard]] const ApplicationConfiguration& current() const { return *active_; }
   [[nodiscard]] ConfigurationStatus status() const { return status_; }
-  [[nodiscard]] BoardId hardware_board() const {
-    return validation_profile_.board;
-  }
+  [[nodiscard]] BoardId hardware_board() const { return validation_profile_.board; }
 
-  [[nodiscard]] std::span<const std::uint8_t> current_payload(
-      ConfigurationDocument document) const;
-  [[nodiscard]] ValidationFailure validate_payload(
-      ConfigurationDocument document,
-      std::span<const std::uint8_t> payload) const;
+  [[nodiscard]] std::span<const std::uint8_t> current_payload(ConfigurationDocument document) const;
+  [[nodiscard]] ValidationFailure validate_payload(ConfigurationDocument document,
+                                                   std::span<const std::uint8_t> payload);
   struct SaveOutcome {
     ValidationFailure failure{};
     bool storage_failed{};
 
-    [[nodiscard]] bool ok() const {
-      return failure.ok() && !storage_failed;
-    }
+    [[nodiscard]] bool ok() const { return failure.ok() && !storage_failed; }
   };
   [[nodiscard]] SaveOutcome save(ConfigurationDocument document,
                                  std::span<const std::uint8_t> payload);
   [[nodiscard]] bool erase(ConfigurationDocument document);
   [[nodiscard]] bool reset();
 
-  [[nodiscard]] ValidationFailure stage(
-      ConfigurationDocument document, std::span<const std::uint8_t> payload);
-  [[nodiscard]] const ApplicationConfiguration& staged() const {
-    return *scratch_;
-  }
+  [[nodiscard]] ValidationFailure stage(ConfigurationDocument document,
+                                        std::span<const std::uint8_t> payload);
+  [[nodiscard]] const ApplicationConfiguration& staged() const { return *scratch_; }
   void promote();
   void revert();
 
@@ -130,22 +115,18 @@ class ConfigurationService {
     DocumentStatus status{};
   };
 
-  [[nodiscard]] static std::size_t index_of(
-      const ConfigurationDocument document) {
+  [[nodiscard]] static std::size_t index_of(const ConfigurationDocument document) {
     return static_cast<std::size_t>(document);
   }
 
-  [[nodiscard]] LoadedRecord load_document(
-      ConfigurationDocument document, ApplicationConfiguration& configuration);
-  [[nodiscard]] bool build_record(std::span<const std::uint8_t> payload,
-                                  std::uint32_t generation,
-                                  std::span<std::uint8_t> output,
-                                  std::size_t& size) const;
-  void remember_payload(ConfigurationDocument document,
-                        std::span<const std::uint8_t> payload);
+  [[nodiscard]] LoadedRecord load_document(ConfigurationDocument document,
+                                           ApplicationConfiguration& configuration);
+  [[nodiscard]] bool build_record(std::span<const std::uint8_t> payload, std::uint32_t generation,
+                                  std::span<std::uint8_t> output, std::size_t& size) const;
+  void remember_payload(ConfigurationDocument document, std::span<const std::uint8_t> payload);
 
   void promote_scratch();
-  void copy_active_to_scratch() const;
+  void copy_active_to_scratch();
 
   IConfigurationStorage* storage_{};
   FactoryPayloads factory_payloads_{};
@@ -154,8 +135,7 @@ class ConfigurationService {
   ApplicationConfiguration* scratch_{};
   ConfigurationStatus status_{};
   std::span<std::uint8_t> record_buffer_{};
-  std::array<std::span<std::uint8_t>, kConfigurationDocumentCount>
-      payloads_{};
+  std::array<std::span<std::uint8_t>, kConfigurationDocumentCount> payloads_{};
   std::array<std::size_t, kConfigurationDocumentCount> payload_sizes_{};
 };
 
