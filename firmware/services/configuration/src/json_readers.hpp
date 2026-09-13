@@ -70,8 +70,11 @@ template <typename Element, std::size_t Capacity, typename ReadElement>
   if (array == nullptr) {
     return true;
   }
-  const int size = cJSON_IsArray(array) ? cJSON_GetArraySize(array) : -1;
-  if (size < 0 || size > static_cast<int>(destination.size())) {
+  if (!cJSON_IsArray(array)) {
+    return reject(failure, ValidationError::malformed, name, rejected_key);
+  }
+  const int size = cJSON_GetArraySize(array);
+  if (size > static_cast<int>(destination.size())) {
     return reject(failure, error, name, rejected_key);
   }
   for (int index = 0; index < size; ++index) {
@@ -91,10 +94,12 @@ template <typename Integer>
     return true;
   }
   if (!cJSON_IsNumber(value) || !std::isfinite(value->valuedouble) ||
-      std::trunc(value->valuedouble) != value->valuedouble ||
-      value->valuedouble < static_cast<double>(std::numeric_limits<Integer>::lowest()) ||
-      value->valuedouble > static_cast<double>(std::numeric_limits<Integer>::max())) {
+      std::trunc(value->valuedouble) != value->valuedouble) {
     return reject(failure, ValidationError::malformed, name, key);
+  }
+  if (value->valuedouble < static_cast<double>(std::numeric_limits<Integer>::lowest()) ||
+      value->valuedouble > static_cast<double>(std::numeric_limits<Integer>::max())) {
+    return reject(failure, ValidationError::out_of_range, name, key);
   }
   output = static_cast<Integer>(value->valuedouble);
   return true;
@@ -122,6 +127,12 @@ template <std::size_t Size>
   if (value == nullptr) {
     return true;
   }
+  if (!cJSON_IsString(value) || value->valuestring == nullptr) {
+    return reject(failure, ValidationError::malformed, name, key);
+  }
+  if (std::strlen(value->valuestring) >= output.size()) {
+    return reject(failure, ValidationError::out_of_range, name, key);
+  }
   return copy_text(value, output) ? true : reject(failure, ValidationError::malformed, name, key);
 }
 
@@ -133,9 +144,11 @@ template <typename Enum, typename FromName>
   if (value == nullptr) {
     return true;
   }
-  if (!cJSON_IsString(value) || value->valuestring == nullptr ||
-      !from_name(std::string_view{value->valuestring}, output)) {
+  if (!cJSON_IsString(value) || value->valuestring == nullptr) {
     return reject(failure, ValidationError::malformed, name, key);
+  }
+  if (!from_name(std::string_view{value->valuestring}, output)) {
+    return reject(failure, ValidationError::unknown_value, name, key);
   }
   return true;
 }

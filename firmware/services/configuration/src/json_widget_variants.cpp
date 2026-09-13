@@ -39,7 +39,7 @@ namespace {
   }
 
   return read_array(object, "conditions", config.conditions, config.condition_count, kName,
-                    ValidationError::invalid_slot_page, failure,
+                    ValidationError::out_of_range, failure,
                     [&](const cJSON* const rule, ValueCondition& parsed) {
                       return read_value_condition(rule, parsed, kName, failure);
                     });
@@ -64,7 +64,7 @@ namespace {
     return false;
   }
   return read_array(
-      object, "pages", config.pages, config.page_count, kName, ValidationError::invalid_slot,
+      object, "pages", config.pages, config.page_count, kName, ValidationError::out_of_range,
       failure,
       [&](const cJSON* const page, SlotPageConfiguration& parsed) {
         return parse_slot_page(page, parsed, failure);

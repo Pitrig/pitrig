@@ -43,7 +43,7 @@ namespace pitrig::configuration::validation {
 [[nodiscard]] bool on_display(const std::int64_t origin_x, const std::int64_t origin_y,
                               const WidgetPlacement& placement, const std::int32_t display_width,
                               const std::int32_t display_height) {
-  if (placement.width < 0 || placement.height < 0) {
+  if (placement.width <= 0 || placement.height <= 0) {
     return false;
   }
   const std::int64_t left = origin_x + placement.x;

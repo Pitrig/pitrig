@@ -8,7 +8,8 @@ namespace {
 
 using configuration::kControlPrefix;
 
-constexpr std::string_view kOverlongReply = "@PR:ERR:unknown_command\n";
+constexpr std::string_view kOverlongReply =
+    "@PR:ERR:malformed:screen=-1,widget=-1,path=configuration\n";
 
 [[nodiscard]] bool starts_with(const std::span<const std::uint8_t> line,
                                const std::string_view prefix) {

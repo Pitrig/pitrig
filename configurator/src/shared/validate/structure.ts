@@ -36,6 +36,16 @@ function boardDisplay(
   return board ? BOARD_PROFILES[board]?.display : undefined
 }
 
+function firstDuplicate(ids: readonly (string | undefined)[]): string | undefined {
+  const seen = new Set<string>()
+  for (const id of ids) {
+    if (typeof id !== 'string' || id === '') continue
+    if (seen.has(id)) return id
+    seen.add(id)
+  }
+  return undefined
+}
+
 function findDashboardError(dashboard: DashboardConfiguration | undefined): string | undefined {
   const label = t('documents.label.dashboard')
   return (
@@ -71,9 +81,14 @@ export function findScreenError(configuration: ApplicationConfiguration): string
     return t('validation.structure.thisBoardHasNoDisplay')
   }
   const screenIds = screens.map((screen) => screen?.id)
+  const duplicateScreen = firstDuplicate(screenIds)
+  if (duplicateScreen !== undefined) {
+    return t('validation.structure.twoScreensShareTheId', { id: JSON.stringify(duplicateScreen) })
+  }
   const display = boardDisplay(configuration)
   let actions = 0
   const pool = new Map<WidgetConfiguration['type'], number>()
+  const widgetIds: (string | undefined)[] = []
   let lapTimers = 0
 
   const walk = (
@@ -103,6 +118,7 @@ export function findScreenError(configuration: ApplicationConfiguration): string
       if (valueError) return valueError
       const geometryError = findWidgetGeometryError(widget, label, display)
       if (geometryError) return geometryError
+      widgetIds.push(widget.id)
       lapTimers += countLapTimers(widget)
       const error = findActionError(widget.action, screenIds, label)
       if (error) return error
@@ -158,6 +174,11 @@ export function findScreenError(configuration: ApplicationConfiguration): string
   for (const [screenIndex, screen] of screens.entries()) {
     const error = walk(screen, screenIndex, 0, 0, 0)
     if (error) return error
+  }
+
+  const duplicateWidget = firstDuplicate(widgetIds)
+  if (duplicateWidget !== undefined) {
+    return t('validation.structure.twoWidgetsShareTheId', { id: JSON.stringify(duplicateWidget) })
   }
 
   for (const [type, count] of pool) {

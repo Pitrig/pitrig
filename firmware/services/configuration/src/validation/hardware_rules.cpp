@@ -17,6 +17,16 @@ namespace {
   return false;
 }
 
+[[nodiscard]] bool duplicate_id(const ApplicationConfiguration& configuration,
+                                const std::size_t upto, const std::string_view id) {
+  for (std::size_t index = 0; index < upto; ++index) {
+    if (text_view(configuration.hardware[index].id) == id) {
+      return true;
+    }
+  }
+  return false;
+}
+
 [[nodiscard]] bool validate_sprite(const HardwareDeviceConfiguration& device,
                                    const std::uint8_t index, ValidationFailure& failure) {
   const LedSpriteConfiguration& sprite = device.sprites[index];
@@ -52,6 +62,10 @@ namespace {
   const HardwareDeviceConfiguration& device = configuration.hardware[index];
   if (!profile.led.offers(device.pin) || duplicate_pin(configuration, index, device.pin)) {
     return reject(failure, ValidationError::invalid_led_pin, "hardware.pin");
+  }
+  if (const std::string_view id = text_view(device.id);
+      !id.empty() && duplicate_id(configuration, index, id)) {
+    return reject(failure, ValidationError::invalid_hardware, "hardware.id");
   }
   if (const std::string_view out_of_range = schema::range_error(device); !out_of_range.empty()) {
     return reject(failure, ValidationError::invalid_hardware, out_of_range);

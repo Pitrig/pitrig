@@ -30,9 +30,11 @@ enum class ValidationError : std::uint8_t {
   invalid_slot_page,
   unknown_property,
   duplicate_property,
+  out_of_range,
+  unknown_value,
 };
 
-inline constexpr std::array<std::string_view, 18> kValidationErrorNames{{
+inline constexpr std::array<std::string_view, 20> kValidationErrorNames{{
     "none",
     "malformed",
     "unsupported_schema",
@@ -51,6 +53,8 @@ inline constexpr std::array<std::string_view, 18> kValidationErrorNames{{
     "invalid_slot_page",
     "unknown_property",
     "duplicate_property",
+    "out_of_range",
+    "unknown_value",
 }};
 
 [[nodiscard]] inline std::string_view validation_error_name(const ValidationError error) {

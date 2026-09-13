@@ -102,6 +102,7 @@ void draw_value(lv_event_t* const event) {
   dsc.font = state->font;
   dsc.color = lv_color_hex(state->color);
   dsc.align = state->full_width ? lv_text_alignment(state->alignment) : LV_TEXT_ALIGN_LEFT;
+  dsc.flag = LV_TEXT_FLAG_EXPAND;
   const lv_area_t area = value_area(*state, content);
   lv_draw_label(layer, &dsc, &area);
 }

@@ -35,6 +35,42 @@ namespace pitrig::configuration::validation {
   });
 }
 
+[[nodiscard]] bool unique_identifiers(const DashboardConfiguration& dashboard,
+                                      ValidationFailure& failure) {
+  for (std::size_t index = 0; index < dashboard.screen_count; ++index) {
+    const std::string_view id = text_view(dashboard.screens[index].id);
+    if (id.empty()) {
+      continue;
+    }
+    for (std::size_t other = index + 1; other < dashboard.screen_count; ++other) {
+      if (text_view(dashboard.screens[other].id) == id) {
+        (void)reject(failure, ValidationError::invalid_screen, "screen", "id");
+        failure.screen_index = static_cast<std::int16_t>(other);
+        return false;
+      }
+    }
+  }
+
+  const bool duplicated = any_widget_frame(dashboard, [&dashboard](const WidgetFrame& widget) {
+    const std::string_view id = text_view(widget.id);
+    if (id.empty()) {
+      return false;
+    }
+    bool after = false;
+    return any_widget_frame(dashboard, [&](const WidgetFrame& other) {
+      if (&other == &widget) {
+        after = true;
+        return false;
+      }
+      return after && text_view(other.id) == id;
+    });
+  });
+  if (duplicated) {
+    return reject(failure, ValidationError::invalid_widget, "id");
+  }
+  return true;
+}
+
 [[nodiscard]] bool validate_transport(const ApplicationConfiguration& configuration,
                                       const ValidationContext& profile,
                                       ValidationFailure& failure) {

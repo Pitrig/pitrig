@@ -131,7 +131,12 @@ export function registerAssetHandlers(
     if (result.ok) await previewAssetCache.clearImages().catch(() => undefined)
     return result
   })
-  ipcMain.handle(PREVIEW_ASSETS_READ_CHANNEL, () => previewAssetCache.read())
+  ipcMain.handle(PREVIEW_ASSETS_READ_CHANNEL, () => {
+    const assets = deviceService.getState().session?.imageAssets
+    return previewAssetCache.read(
+      assets ? new Set(assets.images.map(({ name }) => name)) : undefined
+    )
+  })
   ipcMain.handle(IMAGE_UPLOAD_CHANNEL, (_event, request: unknown) => {
     if (!isImageUploadRequest(request)) {
       const result: AssetResult<void> = {

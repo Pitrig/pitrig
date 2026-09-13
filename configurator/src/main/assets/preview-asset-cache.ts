@@ -45,9 +45,10 @@ export class PreviewAssetCache {
     await rm(this.imageDirectory, { recursive: true, force: true })
   }
 
-  async read(): Promise<PreviewAssets> {
+  async read(installed?: ReadonlySet<string>): Promise<PreviewAssets> {
     try {
-      return { images: await this.readImages() }
+      const images = await this.readImages()
+      return { images: installed ? images.filter(({ name }) => installed.has(name)) : images }
     } catch {
       return NO_PREVIEW_ASSETS
     }

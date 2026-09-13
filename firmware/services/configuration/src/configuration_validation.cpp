@@ -223,6 +223,9 @@ ValidationFailure validate_configuration(const ApplicationConfiguration& configu
     (void)reject(failure, ValidationError::invalid_widget, "modifiers");
     return failure;
   }
+  if (!validation::unique_identifiers(dashboard, failure)) {
+    return failure;
+  }
   if (!validation::within_family_budget(configuration)) {
     (void)reject(failure, ValidationError::invalid_widget, "font");
     return failure;

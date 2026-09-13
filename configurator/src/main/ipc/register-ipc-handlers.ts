@@ -93,7 +93,7 @@ export function registerIpcHandlers({
     }
     return deviceService.saveConfiguration(request.json, request.documents)
   })
-  ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.reboot())
+  ipcMain.handle(DEVICE_REBOOT_CHANNEL, () => deviceService.rebootAndReconnect())
   ipcMain.handle(SAVE_TO_BOARD_CHANNEL, (_event, request: unknown) => {
     if (!isJsonDocumentRequest(request)) {
       const result: SaveToBoardResult = {

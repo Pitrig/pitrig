@@ -60,7 +60,7 @@ namespace pitrig::configuration::json::variants {
                                             ValidationFailure& failure) {
   constexpr std::string_view kName = "widget.indicator.segments";
   return read_array(object, "segments", config.segments, config.segment_count, kName,
-                    ValidationError::malformed, failure,
+                    ValidationError::out_of_range, failure,
                     [&](const cJSON* const segment, IndicatorSegment& parsed) {
                       return read_indicator_segment(segment, parsed, kName, failure);
                     });
@@ -99,7 +99,7 @@ namespace pitrig::configuration::json::variants {
                                       ValidationFailure& failure) {
   constexpr std::string_view kName = "widget.graph.traces";
   return read_array(
-      object, "traces", config.traces, config.trace_count, kName, ValidationError::malformed,
+      object, "traces", config.traces, config.trace_count, kName, ValidationError::out_of_range,
       failure, [&](const cJSON* const trace, GraphTraceConfiguration& parsed) {
         return valid_object(trace, schema::kGraphTraceConfigurationKeys, kName, failure) &&
                parse_value_source(trace, "source", parsed.source, kName, failure) &&

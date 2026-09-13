@@ -12,6 +12,7 @@
 #include "json_readers.hpp"
 #include "json_value_pipeline.hpp"
 #include "json_widgets.hpp"
+#include "sdkconfig.h"
 
 namespace pitrig::configuration {
 using namespace json;  // NOLINT(google-build-using-namespace)
@@ -60,11 +61,13 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
   if (widgets == nullptr) {
     return true;
   }
-  if (!cJSON_IsArray(widgets) ||
-      cJSON_GetArraySize(widgets) > static_cast<int>(screen.widgets.size())) {
-    return reject(failure, ValidationError::invalid_screen, kName, "widgets");
+  if (!cJSON_IsArray(widgets)) {
+    return reject(failure, ValidationError::malformed, kName, "widgets");
   }
   const int count = cJSON_GetArraySize(widgets);
+  if (count > static_cast<int>(screen.widgets.size())) {
+    return reject(failure, ValidationError::out_of_range, kName, "widgets");
+  }
   for (int index = 0; index < count; ++index) {
     if (!parse_widget(cJSON_GetArrayItem(widgets, index), dashboard,
                       ReferenceTable{screen.widgets, &screen.widget_count}, screen_index,
@@ -159,6 +162,12 @@ using Json = std::unique_ptr<cJSON, decltype(&cJSON_Delete)>;
                                               const std::size_t limit, const KeyList keys,
                                               const ValidationContext& profile,
                                               ApplicationConfiguration& configuration) {
+  static_assert(CONFIG_CJSON_NESTING_LIMIT >= 32,
+                "cJSON would refuse a legal dashboard before any rule sees it. The deepest "
+                "document the contract allows nests about twenty objects, and cJSON_Parse "
+                "returns null past its limit, which reports as malformed:path=configuration. "
+                "Raise CONFIG_CJSON_NESTING_LIMIT in sdkconfig.defaults, then delete the "
+                "board's sdkconfig.generated.* and reconfigure: ESP-IDF keeps the existing one.");
   ValidationFailure failure{};
   if (input.empty() || input.size() > limit || contains_null_escape(input)) {
     (void)reject(failure, ValidationError::malformed, "configuration");

@@ -12,6 +12,9 @@ namespace pitrig::configuration::validation {
 
 [[nodiscard]] bool within_family_budget(const ApplicationConfiguration& configuration);
 
+[[nodiscard]] bool unique_identifiers(const DashboardConfiguration& dashboard,
+                                      ValidationFailure& failure);
+
 [[nodiscard]] bool validate_transport(const ApplicationConfiguration& configuration,
                                       const ValidationContext& profile, ValidationFailure& failure);
 

@@ -132,10 +132,14 @@ function findSegmentError(widget: WidgetConfiguration, label: string): string | 
   }
   let previous = Number.NEGATIVE_INFINITY
   for (const [index, segment] of segments.entries()) {
-    if (!realFits(segment?.threshold) || deviceFloat(segment?.threshold ?? 0) < previous) {
+    const threshold = deviceFloat(segment?.threshold ?? 0)
+    if (!realFits(segment?.threshold) || threshold < previous) {
       return t('validation.widgetValues.labelHasSegmentNumberBelow', { label, number: index + 1 })
     }
-    previous = deviceFloat(segment?.threshold ?? 0)
+    if (threshold < 0 || threshold > 1) {
+      return t('validation.widgetValues.labelHasSegmentNumberOutside', { label, number: index + 1 })
+    }
+    previous = threshold
   }
   return undefined
 }

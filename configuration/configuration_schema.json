@@ -542,6 +542,7 @@
     },
 
     "WidgetInsets": {
+      "doc": "Space held clear inside the widget's box, outside whatever it draws. The padding and the border together must leave an interior, so the effective bound is the placement rather than each property's own maximum.",
       "fields": [
         { "name": "left", "kind": "uint16", "default": 0 },
         { "name": "top", "kind": "uint16", "default": 0 },
@@ -553,7 +554,7 @@
     "WidgetBorder": {
       "fields": [
         { "name": "color", "kind": "color", "default": "0xAEAEAE" },
-        { "name": "width_px", "kind": "uint16", "default": 0, "maximum": 240 },
+        { "name": "width_px", "kind": "uint16", "default": 0, "maximum": 240, "doc": "Border thickness. The border and the background inset together must leave an interior, so the effective bound is half the shorter side of the placement rather than this maximum." },
         { "name": "radius_px", "kind": "uint16", "default": 0, "maximum": 480 }
       ]
     },
@@ -678,7 +679,7 @@
     "WidgetFrame": {
       "doc": "What every widget type owns regardless of what it draws: where it sits, how it is boxed, and the rules that restyle it. Flattened into each widget, so these are plain widget properties on the wire.",
       "fields": [
-        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "" },
+        { "name": "id", "kind": "text", "capacity": "kWidgetIdCapacity", "default": "", "doc": "Name for this widget, unique across the dashboard: one pool holds every widget whatever screen or container it was authored in. Empty is allowed and leaves the widget unnamed." },
         { "name": "placement", "kind": "struct", "struct": "WidgetPlacement" },
         { "name": "z_index", "kind": "int16", "default": 0 },
         { "name": "padding", "kind": "struct", "struct": "WidgetInsets" },
@@ -980,12 +981,14 @@
     { "name": "invalid_transport", "doc": "Unknown transport or one the board does not support." },
     { "name": "invalid_uart", "doc": "UART pins do not match the board or baud rate is out of range." },
     { "name": "invalid_module", "doc": "Peripheral segment or effect is out of range, names a segment its chain does not have, or carries a property its kind has none of." },
-    { "name": "invalid_screen", "doc": "Screen section is malformed or the screen count is out of range." },
+    { "name": "invalid_screen", "doc": "Screen section is malformed, the screen count is out of range, or two screens share an id." },
     { "name": "invalid_dashboard", "doc": "Dashboard section is malformed or references an absent module." },
-    { "name": "invalid_widget", "doc": "Widget property is malformed, out of range, entirely off the display, or nested deeper than kMaximumNestingDepth." },
+    { "name": "invalid_widget", "doc": "Widget property is malformed, out of range, entirely off the display, nested deeper than kMaximumNestingDepth, or names an id another widget already holds." },
     { "name": "invalid_slot", "doc": "Slot widget carries an appearance it has none of, was authored somewhere other than a screen, or holds no page the tap can reach." },
     { "name": "invalid_slot_page", "doc": "Slot page is malformed, or its trigger and its source, rules and duration do not agree." },
     { "name": "unknown_property", "doc": "Property name is not part of this schema version." },
-    { "name": "duplicate_property", "doc": "Property appears more than once in the same object." }
+    { "name": "duplicate_property", "doc": "Property appears more than once in the same object." },
+    { "name": "out_of_range", "doc": "Value is well formed but outside the range, longer than the text, or holds more entries than the property can hold." },
+    { "name": "unknown_value", "doc": "Text is well formed but names none of the values the property accepts." }
   ]
 }

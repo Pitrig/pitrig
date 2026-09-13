@@ -83,9 +83,11 @@ constexpr double kMaximumRealMagnitude = 1.0e9;
   if (value == nullptr) {
     return true;
   }
-  if (!cJSON_IsNumber(value) || !std::isfinite(value->valuedouble) ||
-      std::abs(value->valuedouble) > kMaximumRealMagnitude) {
+  if (!cJSON_IsNumber(value) || !std::isfinite(value->valuedouble)) {
     return reject(failure, ValidationError::malformed, name, key);
+  }
+  if (std::abs(value->valuedouble) > kMaximumRealMagnitude) {
+    return reject(failure, ValidationError::out_of_range, name, key);
   }
   output = static_cast<float>(value->valuedouble);
   return true;

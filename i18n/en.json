@@ -198,13 +198,15 @@
         "invalid_transport": "This board does not support the selected telemetry transport.",
         "invalid_uart": "The UART pins or baud rate are not valid for this board.",
         "invalid_module": "An LED segment or effect is out of range, names a segment its chain does not have, or carries a property its kind has none of.",
-        "invalid_screen": "A screen is malformed, or the configuration has more screens than the device allows.",
+        "invalid_screen": "A screen is malformed, the configuration has more screens than the device allows, or two screens share an id.",
         "invalid_dashboard": "The dashboard is malformed, or it uses a module that is not enabled.",
-        "invalid_widget": "A widget property is malformed, out of range, sits entirely off the display, or is nested too deeply.",
+        "invalid_widget": "A widget property is malformed, out of range, sits entirely off the display, is nested too deeply, or names an id another widget already holds.",
         "invalid_slot": "A slot carries an appearance it has none of, was authored inside a container instead of on a screen, or holds no page the tap can reach.",
         "invalid_slot_page": "A slot page is malformed, or its trigger disagrees with the telemetry, rules and duration it carries.",
         "unknown_property": "The configuration contains a property this firmware version does not know.",
-        "duplicate_property": "The same property appears twice within one object."
+        "duplicate_property": "The same property appears twice within one object.",
+        "out_of_range": "A value in the configuration is outside the range, longer than the text, or holds more entries than the property can hold.",
+        "unknown_value": "A value in the configuration names none of the options the property accepts."
       },
       "request": {
         "storage": "The device could not write to its configuration storage.",
@@ -2100,7 +2102,9 @@
       "thisDashboardHasLaptimersSources": "This dashboard has {lapTimers} sources using the lap timer; the device runs one.",
       "aContainer": "A container",
       "containersAreNestedDepthDeep": "Containers are nested {depth} deep; the device nests {maximum}.",
-      "widgetIdSitsEntirelyOff": "Widget \"{id}\" sits entirely off the display."
+      "widgetIdSitsEntirelyOff": "Widget \"{id}\" sits entirely off the display.",
+      "twoWidgetsShareTheId": "Two widgets share the id {id}; one dashboard holds one of each id.",
+      "twoScreensShareTheId": "Two screens share the id {id}; a tap target names a screen by its id."
     },
     "transforms": {
       "whatOfLabelIsA": "{what} of {label} is a time transform with no format; the device needs \"duration_ms\", \"clock_ms\" or \"signed_duration_ms\".",
@@ -2122,6 +2126,7 @@
       "labelPadsFurtherThanThe2": "{label} pads further than the display is tall.",
       "labelHasNoSizeThe": "{label} has no size; the device needs a width and a height above zero.",
       "labelSpendsClaimedPixelsOn": "{label} spends {claimed} pixels on its border and inset, which its {width}×{height} box has no room for.",
+      "labelPadsPaddedPixelsOn": "{label} pads {padded} pixels of its {width}×{height} box, counting its border, which leaves nothing to draw in.",
       "labelIsThicknessPixelsThick": "{label} is {thickness} pixels thick, which does not fit twice across its {width}×{height} box. Give it a radius of its own, or make the box bigger.",
       "labelIsThicknessPixelsThick2": "{label} is {thickness} pixels thick, which is more than its {radius}-pixel radius can carry.",
       "labelIsThicknessPixelsThick3": "{label} is {thickness} pixels thick, which does not fit twice across its {width}×{height} box. Give it a length of its own, or make the box bigger.",
@@ -2172,7 +2177,8 @@
       "theTransformOnSourceNumber": "The transform on source {number}",
       "labelDrawsLengthSourcesThe": "{label} draws {length} sources; the device draws {maximum}.",
       "theWindowOfTraceNumber": "The window of trace {number}",
-      "labelHasSegmentNumberBelow": "{label} has segment {number} below the one before it; thresholds climb."
+      "labelHasSegmentNumberBelow": "{label} has segment {number} below the one before it; thresholds climb.",
+      "labelHasSegmentNumberOutside": "{label} has segment {number} outside 0 to 1; a threshold is a fraction of the range, not a raw value."
     },
     "configuration": {
       "theConfigurationCouldNotBe": "The configuration could not be read{detail}.",

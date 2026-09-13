@@ -97,9 +97,18 @@ bool Validator::frame(const WidgetFrame& config) {
   if (const std::string_view out_of_range = schema::range_error(config); !out_of_range.empty()) {
     return reject(failure_, ValidationError::invalid_widget, out_of_range);
   }
-  if (2 * config.background_inset_px + 2 * config.border.width_px >= config.placement.width ||
-      2 * config.background_inset_px + 2 * config.border.width_px >= config.placement.height) {
-    return reject(failure_, ValidationError::invalid_widget, "background_inset_px");
+  const int border_inset = 2 * config.border.width_px;
+  const int frame_inset = 2 * config.background_inset_px + border_inset;
+  if (frame_inset >= config.placement.width || frame_inset >= config.placement.height) {
+    const bool border_alone =
+        border_inset >= config.placement.width || border_inset >= config.placement.height;
+    return reject(failure_, ValidationError::invalid_widget,
+                  border_alone ? "border.width_px" : "background_inset_px");
+  }
+  const int padded_width = config.padding.left + config.padding.right + border_inset;
+  const int padded_height = config.padding.top + config.padding.bottom + border_inset;
+  if (padded_width >= config.placement.width || padded_height >= config.placement.height) {
+    return reject(failure_, ValidationError::invalid_widget, "padding");
   }
   if (!valid_optional_color(config.background_grad_color) ||
       config.background_grad_dir < GradientDirection::horizontal ||

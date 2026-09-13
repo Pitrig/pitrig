@@ -171,6 +171,9 @@ bool Validator::indicator_widget(const IndicatorWidgetConfiguration& config) {
         !valid_color(segment.color)) {
       return reject(failure_, ValidationError::invalid_widget, "segments");
     }
+    if (segment.threshold < 0.0F || segment.threshold > 1.0F) {
+      return reject(failure_, ValidationError::invalid_widget, "segments.threshold");
+    }
     previous = segment.threshold;
   }
   if (!std::isfinite(config.blink_threshold)) {

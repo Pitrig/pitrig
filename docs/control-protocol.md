@@ -161,8 +161,11 @@ factory value is an ordinary state, which is why there is no single source token
 
 Validation errors use `@PR:ERR:<reason>:screen=<n>,widget=<n>,path=<property>`.
 The reason token keeps its position, so a host that only reads the reason is
-unaffected. `screen` and `widget` are `-1` when the failure is not inside a
-widget, and `path` names the property that caused it. `widget` is the position
+unaffected. A payload over the document's `max_payload` answers `malformed`
+with `path=configuration`, whichever document it names and whether the line was
+buffered whole or refused as it overran the control-line bound. `screen` and
+`widget` are `-1` when the failure is not inside a widget, and `path` names the
+property that caused it. `widget` is the position
 in the list of the **innermost container that holds it** — a screen's own
 `widgets`, a shape's `widgets`, or a slot page's `widgets` — not an index into
 the document's widget pools. The whole-dashboard rules report no position at
@@ -177,7 +180,7 @@ location suffix:
 
 | Response | When |
 | --- | --- |
-| `@PR:ERR:unknown_command` | The line starts with `@PR:` but names no command above. A host probes for a capability this way. A `@PR:` line longer than the control-line bound is answered the same way rather than being discarded in silence. |
+| `@PR:ERR:unknown_command` | The line starts with `@PR:` but names no command above. A host probes for a capability this way. |
 | `@PR:ERR:unsupported` | `APPLY` on a firmware that has no live-apply handler, or on a board in safe mode, which registers none: it composed nothing to apply to and holds no fonts or images to validate against. Also `DIAG` on a product build, which carries no sampler to answer it with. |
 | `@PR:ERR:busy` | `SET`, `APPLY` or `RESET` arrived before startup finished composing and it did not finish within ten seconds. The link answers well before the dashboard exists, so a write waits for something to write to; reads never do. Also any `@PR:` command that arrives while another is still being handled — one command is in flight at a time, and only `REBOOT` is answered rather than refused in that window. An asset or firmware `BEGIN`, `INFO` or `CLEAR` in the startup window is answered `busy` under the owning kind's namespace rather than waiting, because startup is still reading the partitions it would erase. |
 | `@PR:ERR:unknown_document` | The command named no document, or named one this firmware does not have. |

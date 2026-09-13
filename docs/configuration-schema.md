@@ -239,6 +239,8 @@ Absolute geometry in logical screen pixels.
 
 ### WidgetInsets
 
+Space held clear inside the widget's box, outside whatever it draws. The padding and the border together must leave an interior, so the effective bound is the placement rather than each property's own maximum.
+
 | Property | Type | Default |
 | --- | --- | --- |
 | `left` | integer, 0..65535 | `0` |
@@ -614,10 +616,12 @@ Also carries the properties of [`BoardConfiguration`](#boardconfiguration), flat
 | `invalid_transport` | Unknown transport or one the board does not support. |
 | `invalid_uart` | UART pins do not match the board or baud rate is out of range. |
 | `invalid_module` | Peripheral segment or effect is out of range, names a segment its chain does not have, or carries a property its kind has none of. |
-| `invalid_screen` | Screen section is malformed or the screen count is out of range. |
+| `invalid_screen` | Screen section is malformed, the screen count is out of range, or two screens share an id. |
 | `invalid_dashboard` | Dashboard section is malformed or references an absent module. |
-| `invalid_widget` | Widget property is malformed, out of range, entirely off the display, or nested deeper than kMaximumNestingDepth. |
+| `invalid_widget` | Widget property is malformed, out of range, entirely off the display, nested deeper than kMaximumNestingDepth, or names an id another widget already holds. |
 | `invalid_slot` | Slot widget carries an appearance it has none of, was authored somewhere other than a screen, or holds no page the tap can reach. |
 | `invalid_slot_page` | Slot page is malformed, or its trigger and its source, rules and duration do not agree. |
 | `unknown_property` | Property name is not part of this schema version. |
 | `duplicate_property` | Property appears more than once in the same object. |
+| `out_of_range` | Value is well formed but outside the range, longer than the text, or holds more entries than the property can hold. |
+| `unknown_value` | Text is well formed but names none of the values the property accepts. |

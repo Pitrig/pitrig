@@ -16,7 +16,7 @@ namespace {
     return false;
   }
   return read_array(ramp, "stops", config.color_ramp.stops, config.color_ramp.stop_count, kName,
-                    ValidationError::malformed, failure,
+                    ValidationError::out_of_range, failure,
                     [&](const cJSON* const stop, ColorStop& parsed) {
                       return read_color_stop(stop, parsed, kName, failure);
                     });
@@ -36,7 +36,8 @@ namespace {
 
   return read_array(
       object, "conditions", config.conditions, config.condition_count, kName,
-      ValidationError::malformed, failure, [&](const cJSON* const rule, WidgetCondition& parsed) {
+      ValidationError::out_of_range, failure,
+      [&](const cJSON* const rule, WidgetCondition& parsed) {
         return valid_object(rule, schema::kWidgetConditionKeys, kName, failure) &&
                read_enum(rule, "op", parsed.op, condition_operator_from_name, kName, failure) &&
                read_float(rule, "value", parsed.value, kName, failure) &&
@@ -80,7 +81,7 @@ namespace {
   } else if (value == "signed_duration_ms") {
     transform.time.format = transformers::time_transform::Format::signed_duration_ms;
   } else {
-    return reject(failure, ValidationError::malformed, kName, "format");
+    return reject(failure, ValidationError::unknown_value, kName, "format");
   }
   return true;
 }
@@ -92,8 +93,14 @@ namespace {
   if (sources == nullptr) {
     return reject(failure, ValidationError::malformed, kName);
   }
-  const int count = cJSON_IsArray(sources) ? cJSON_GetArraySize(sources) : -1;
-  if (count <= 0 || count > static_cast<int>(config.sources.size())) {
+  if (!cJSON_IsArray(sources)) {
+    return reject(failure, ValidationError::malformed, kName);
+  }
+  const int count = cJSON_GetArraySize(sources);
+  if (count > static_cast<int>(config.sources.size())) {
+    return reject(failure, ValidationError::out_of_range, kName);
+  }
+  if (count == 0) {
     return reject(failure, ValidationError::malformed, kName);
   }
   for (int index = 0; index < count; ++index) {

@@ -432,7 +432,9 @@ export type UiStringKey =
   | 'device.error.validation.invalid_widget'
   | 'device.error.validation.malformed'
   | 'device.error.validation.none'
+  | 'device.error.validation.out_of_range'
   | 'device.error.validation.unknown_property'
+  | 'device.error.validation.unknown_value'
   | 'device.error.validation.unsupported_schema'
   | 'device.error.validationDetail'
   | 'device.health.cause.brownout'
@@ -1610,6 +1612,8 @@ export type UiStringKey =
   | 'validation.structure.thisDashboardHasActionsTap'
   | 'validation.structure.thisDashboardHasLaptimersSources'
   | 'validation.structure.thisDashboardUsesCountType'
+  | 'validation.structure.twoScreensShareTheId'
+  | 'validation.structure.twoWidgetsShareTheId'
   | 'validation.structure.whereHoldsLengthWidgetsThe'
   | 'validation.structure.widgetIdSitsEntirelyOff'
   | 'validation.transforms.aSigned'
@@ -1630,6 +1634,7 @@ export type UiStringKey =
   | 'validation.widgetGeometry.labelIsThicknessPixelsThick4'
   | 'validation.widgetGeometry.labelPadsFurtherThanThe'
   | 'validation.widgetGeometry.labelPadsFurtherThanThe2'
+  | 'validation.widgetGeometry.labelPadsPaddedPixelsOn'
   | 'validation.widgetGeometry.labelPaintsItsGradientFrom'
   | 'validation.widgetGeometry.labelSpendsClaimedPixelsOn'
   | 'validation.widgetRules.labelHasLengthPagesThe'
@@ -1660,6 +1665,7 @@ export type UiStringKey =
   | 'validation.widgetValues.labelHasNoSegmentsSo'
   | 'validation.widgetValues.labelHasNoSourceSo'
   | 'validation.widgetValues.labelHasSegmentNumberBelow'
+  | 'validation.widgetValues.labelHasSegmentNumberOutside'
   | 'validation.widgetValues.labelNamesTheImageImage'
   | 'validation.widgetValues.labelSetsAMiddleGradient'
   | 'validation.widgetValues.ruleOfLabelComparesAgainst'
@@ -2066,6 +2072,8 @@ export interface UiStringParameters {
   'validation.structure.thisDashboardHasActionsTap': { actions: string | number, mAXIMUM_ACTIONS: string | number }
   'validation.structure.thisDashboardHasLaptimersSources': { lapTimers: string | number }
   'validation.structure.thisDashboardUsesCountType': { cap: string | number, count: number, type: string | number }
+  'validation.structure.twoScreensShareTheId': { id: string | number }
+  'validation.structure.twoWidgetsShareTheId': { id: string | number }
   'validation.structure.whereHoldsLengthWidgetsThe': { cap: string | number, length: string | number, where: string | number }
   'validation.structure.widgetIdSitsEntirelyOff': { id: string | number }
   'validation.transforms.whatOfLabelAsksFor': { decimals: string | number, label: string | number, mAXIMUM_TRANSFORM_DECIMALS: string | number, what: string | number }
@@ -2082,6 +2090,7 @@ export interface UiStringParameters {
   'validation.widgetGeometry.labelIsThicknessPixelsThick4': { label: string | number, radius: string | number, thickness: string | number }
   'validation.widgetGeometry.labelPadsFurtherThanThe': { label: string | number }
   'validation.widgetGeometry.labelPadsFurtherThanThe2': { label: string | number }
+  'validation.widgetGeometry.labelPadsPaddedPixelsOn': { height: string | number, label: string | number, padded: string | number, width: string | number }
   'validation.widgetGeometry.labelPaintsItsGradientFrom': { label: string | number, side: string | number }
   'validation.widgetGeometry.labelSpendsClaimedPixelsOn': { claimed: string | number, height: string | number, label: string | number, width: string | number }
   'validation.widgetRules.labelHasLengthPagesThe': { label: string | number, length: string | number, mAXIMUM_SLOT_PAGES: string | number }
@@ -2112,6 +2121,7 @@ export interface UiStringParameters {
   'validation.widgetValues.labelHasNoSegmentsSo': { label: string | number }
   'validation.widgetValues.labelHasNoSourceSo': { label: string | number }
   'validation.widgetValues.labelHasSegmentNumberBelow': { label: string | number, number: string | number }
+  'validation.widgetValues.labelHasSegmentNumberOutside': { label: string | number, number: string | number }
   'validation.widgetValues.labelNamesTheImageImage': { image: string | number, label: string | number }
   'validation.widgetValues.labelSetsAMiddleGradient': { label: string | number }
   'validation.widgetValues.ruleOfLabelComparesAgainst': { label: string | number, number: string | number }

@@ -21,12 +21,19 @@ export function findWidgetGeometryError(
     }
   }
 
-  const claimed = 2 * ((widget.background_inset_px ?? 0) + (widget.border?.width_px ?? 0))
+  const border = 2 * (widget.border?.width_px ?? 0)
+  const claimed = 2 * (widget.background_inset_px ?? 0) + border
   if (width <= 0 || height <= 0) {
     return t('validation.widgetGeometry.labelHasNoSizeThe', { label: label })
   }
   if (claimed >= width || claimed >= height) {
     return t('validation.widgetGeometry.labelSpendsClaimedPixelsOn', { label: label, claimed: claimed, width: width, height: height })
+  }
+  const padded = widget.padding
+  const paddedWidth = (padded?.left ?? 0) + (padded?.right ?? 0) + border
+  const paddedHeight = (padded?.top ?? 0) + (padded?.bottom ?? 0) + border
+  if (paddedWidth >= width || paddedHeight >= height) {
+    return t('validation.widgetGeometry.labelPadsPaddedPixelsOn', { label: label, padded: Math.max(paddedWidth, paddedHeight), width: width, height: height })
   }
 
   const ringed = widget.type === 'arc'

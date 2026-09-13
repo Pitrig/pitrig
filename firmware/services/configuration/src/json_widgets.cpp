@@ -15,14 +15,16 @@ namespace {
 [[nodiscard]] bool parse_children(const cJSON* const children, DashboardConfiguration& dashboard,
                                   const ReferenceTable& owner, const std::uint8_t screen_index,
                                   const ParentRef& parent, const std::uint8_t depth,
-                                  const ValidationError error, const std::string_view name,
-                                  ValidationFailure& failure) {
+                                  const std::string_view name, ValidationFailure& failure) {
   if (children == nullptr) {
     return true;
   }
-  const int count = cJSON_IsArray(children) ? cJSON_GetArraySize(children) : -1;
-  if (count < 0 || count > static_cast<int>(owner.entries.size())) {
-    return reject(failure, error, name, "widgets");
+  if (!cJSON_IsArray(children)) {
+    return reject(failure, ValidationError::malformed, name, "widgets");
+  }
+  const int count = cJSON_GetArraySize(children);
+  if (count > static_cast<int>(owner.entries.size())) {
+    return reject(failure, ValidationError::out_of_range, name, "widgets");
   }
   for (int index = 0; index < count; ++index) {
     if (!parse_widget(cJSON_GetArrayItem(children, index), dashboard, owner, screen_index, parent,
@@ -97,7 +99,7 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
       return parse_children(member(object, "widgets"), dashboard,
                             ReferenceTable{container.widgets, &container.widget_count},
                             screen_index, ParentRef{WidgetParentKind::shape, storage_index}, depth,
-                            ValidationError::invalid_widget, "widget.shape", failure);
+                            "widget.shape", failure);
     }
     case WidgetType::slot: {
       SlotWidgetConfiguration& slot = dashboard.slot_widgets[storage_index];
@@ -109,7 +111,7 @@ bool parse_widget(const cJSON* const object, DashboardConfiguration& dashboard,
                 member(cJSON_GetArrayItem(pages, page), "widgets"), dashboard,
                 ReferenceTable{config.widgets, &config.widget_count}, screen_index,
                 ParentRef{WidgetParentKind::slot_page, static_cast<std::uint8_t>(base + page)},
-                depth, ValidationError::invalid_slot_page, "widget.slot.pages", failure)) {
+                depth, "widget.slot.pages", failure)) {
           return false;
         }
       }

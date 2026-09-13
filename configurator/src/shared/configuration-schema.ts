@@ -165,8 +165,8 @@ export const FIELD_RANGES: Record<string, readonly FieldRange[]> = {
   HardwareDeviceConfiguration: [{ key: 'brightness', minimum: 0, maximum: 255 }, { key: 'current_limit_ma', minimum: 100, maximum: 20000, zeroMeansOff: true }, { key: 'count', minimum: 1, maximum: 512 }, { key: 'width', minimum: 1, maximum: 16 }, { key: 'height', minimum: 1, maximum: 16 }, { key: 'rotation_deg', minimum: 0, maximum: 270 }],
 }
 
-export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_led_pin' | 'invalid_led_sprite' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'invalid_slot' | 'invalid_slot_page' | 'unknown_property' | 'duplicate_property'
-export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_led_pin', 'invalid_led_sprite', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_dashboard', 'invalid_widget', 'invalid_slot', 'invalid_slot_page', 'unknown_property', 'duplicate_property']
+export type ValidationErrorToken = 'none' | 'malformed' | 'unsupported_schema' | 'invalid_board' | 'board_mismatch' | 'invalid_hardware' | 'invalid_led_pin' | 'invalid_led_sprite' | 'invalid_transport' | 'invalid_uart' | 'invalid_module' | 'invalid_screen' | 'invalid_dashboard' | 'invalid_widget' | 'invalid_slot' | 'invalid_slot_page' | 'unknown_property' | 'duplicate_property' | 'out_of_range' | 'unknown_value'
+export const VALIDATION_ERROR_TOKENS: readonly ValidationErrorToken[] = ['none', 'malformed', 'unsupported_schema', 'invalid_board', 'board_mismatch', 'invalid_hardware', 'invalid_led_pin', 'invalid_led_sprite', 'invalid_transport', 'invalid_uart', 'invalid_module', 'invalid_screen', 'invalid_dashboard', 'invalid_widget', 'invalid_slot', 'invalid_slot_page', 'unknown_property', 'duplicate_property', 'out_of_range', 'unknown_value']
 
 export interface FontSpec {
   family?: string
