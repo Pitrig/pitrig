@@ -46,7 +46,7 @@ python3 -m tools.codegen.telemetry_catalog
 It carries every field's wire identifier, the SimHub property behind it, the
 conversion, the format and the rate, from the same
 `telemetry/simhub_generic_mappings.json` the Custom Serial profile is built
-from. Twenty fields have no single property and are computed in `Computed.cs`;
+from. Twenty-one fields have no single property and are computed in `Computed.cs`;
 each names its native twin through the mapping's `computed` key, so a change to
 one side is a visible change to the other.
 

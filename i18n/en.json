@@ -1406,41 +1406,6 @@
       "notPermanentBefore": "Nothing here is permanent: ",
       "notPermanentAfter": " at the top of the window walks the speeds a Pitrig board answers on, and a board that cannot be reached at all can still be flashed over USB."
     },
-    "bridgeSection": {
-      "title": "Live telemetry",
-      "description": "Telemetry from the SimHub plugin, forwarded to the board and decoded on the way, so the dashboard, the lamps and the catalog below show it as it arrives.",
-      "pluginTitle": "SimHub plugin",
-      "pluginHint": "Install the Pitrig plugin in SimHub and name the machine it runs on. The configurator asks that machine for the stream and forwards what arrives to the board unchanged.",
-      "listenPort": "Listen on port",
-      "simhubHost": "SimHub machine",
-      "simhubPort": "Plugin port",
-      "simhubHostHint": "A loopback address keeps everything on this machine. Any other address reaches a plugin over the local network, and telemetry from anywhere else is ignored. The plugin panel shows the addresses of the machine SimHub runs on.",
-      "simhubAddress": "Asking",
-      "source": "Sending",
-      "start": "Start",
-      "stop": "Stop",
-      "starting": "Starting…",
-      "running": "Running",
-      "stopped": "Stopped",
-      "waiting": "Waiting for the plugin",
-      "receiving": "Receiving",
-      "relaying": "Forwarding to the board",
-      "previewOnly": "No board connected — preview only",
-      "suspended": "Held back while the board is busy",
-      "measured": "Measured",
-      "addedLatency": "Added by the bridge",
-      "drainLatency": "Through to the board",
-      "lines": "Lines",
-      "fields": "Fields",
-      "bytes": "Bytes",
-      "packets": "Packets",
-      "lostPackets": "Lost packets",
-      "dropped": "Dropped",
-      "writeErrors": "Write errors",
-      "perSecond": "/s",
-      "quantiles": "p50 {p50} · p95 {p95} · p99 {p99} · max {max} ms",
-      "noSamples": "Nothing measured yet."
-    },
     "simHubProfile": {
       "simHubProfileBaudRateMust": "SimHub profile baud rate must be an integer from 9600 to 2000000.",
       "unknownSimHubTelemetryFields": "Unknown SimHub telemetry fields: {fields}"
@@ -2209,19 +2174,6 @@
     "chooseFile": {
       "fontTitle": "Select a font face",
       "fontFilter": "Fonts"
-    }
-  },
-  "telemetry": {
-    "bridgeService": {
-      "alreadyRunning": "The telemetry link is already running.",
-      "portInUse": "Port {port} is already taken. Choose another one here and in the plugin.",
-      "sourceClosed": "The telemetry link closed."
-    },
-    "registerTelemetryBridge": {
-      "invalidRequest": "Invalid telemetry bridge request."
-    },
-    "bridgeStore": {
-      "thisBuildDoesNotInclude": "This build does not include the telemetry bridge."
     }
   }
 }

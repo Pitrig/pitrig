@@ -11,6 +11,7 @@ namespace Pitrig.SimHub
         private const double MinimumSlipSpeed = 3;
         private const double DegreesPerRadian = 180 / Math.PI;
         private const double MaximumLapGain = 0.2;
+        private const int LeaderPosition = 1;
         private const string LiveDelta = "PersistantTrackerPlugin.SessionBestLiveDeltaSeconds";
         private const string FuelPerLap = "DataCorePlugin.Computed.Fuel_LitersPerLap";
         private const string FuelLaps = "DataCorePlugin.Computed.Fuel_RemainingLaps";
@@ -41,6 +42,8 @@ namespace Pitrig.SimHub
                     return NeighbourGap(status, -1);
                 case FieldComputation.GapBehind:
                     return NeighbourGap(status, 1);
+                case FieldComputation.GapLeader:
+                    return LeaderGap(status);
                 case FieldComputation.FuelTimeRemaining:
                     return Number(pluginManager.GetPropertyValue(FuelLaps)) * BestLapSeconds(pluginManager) * 1000;
                 case FieldComputation.FuelRequired:
@@ -101,10 +104,26 @@ namespace Pitrig.SimHub
 
         private static double? NeighbourGap(StatusDataBase status, int offset)
         {
-            var opponents = status?.Opponents;
-            var player = opponents?.FirstOrDefault(opponent => opponent.IsPlayer);
-            if (player == null) return null;
-            var gap = opponents.FirstOrDefault(opponent => opponent.Position == player.Position + offset)?.GaptoPlayer;
+            var position = PlayerPosition(status);
+            return position == null ? (double?)null : PositionGap(status, position + offset);
+        }
+
+        private static double? LeaderGap(StatusDataBase status)
+        {
+            var position = PlayerPosition(status);
+            if (position == null) return null;
+            return position == LeaderPosition ? (double?)0 : PositionGap(status, LeaderPosition);
+        }
+
+        private static int? PlayerPosition(StatusDataBase status)
+        {
+            return status?.Opponents?.FirstOrDefault(opponent => opponent.IsPlayer)?.Position;
+        }
+
+        private static double? PositionGap(StatusDataBase status, int? position)
+        {
+            var gap = status.Opponents
+                .FirstOrDefault(opponent => opponent.Position == position)?.GaptoPlayer;
             return gap == null ? (double?)null : Math.Abs(gap.Value);
         }
 

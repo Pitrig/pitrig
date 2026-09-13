@@ -104,7 +104,7 @@ Editor gaps against SimHub are in
 
 # Phase 7 — Telemetry
 
-- [*] SimHub plugin
+- [ ] SimHub plugin
 - [ ] Telemetry slots in external RAM
 - [ ] User-defined slots
 - [ ] Relative — cars ahead and behind
@@ -123,16 +123,13 @@ Editor gaps against SimHub are in
 - [ ] Sharing a dashboard as a file
 - [ ] In-app gallery
 - [ ] CI on pull requests
-- [ ] Compatibility policy and changelog
-- [ ] Issue templates and support channel
+- [*] Compatibility policy and changelog
+- [*] Issue templates and support channel
 - [ ] Troubleshooting reference
 - [ ] Signed packages and self-update
 
 # Not planned
 
-- Analog inputs
-- Animation curves
-- Stateful values on the device
 - Runtime repeater
 - Wireless
 - Secure boot and image signing

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question, or anything that is not a bug or a request
+    url: mailto:contact.pitrig@gmail.com
+    about: Ask by email. Questions before starting work are welcome and cheap.
+  - name: What is planned already
+    url: https://github.com/Pitrig/pitrig/blob/main/docs/roadmap.md
+    about: The roadmap says what is done, what is accepted for work and what is deliberately not planned.

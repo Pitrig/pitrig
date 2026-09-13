@@ -9,7 +9,6 @@ import {
   type TelemetrySnapshot
 } from '@shared/telemetry-bridge'
 import type { DeviceError, DeviceResult } from '@shared/device'
-import { t } from '@shared/ui-text'
 import { failure, success, toDeviceError } from '../device/device-errors'
 import type { DeviceService } from '../device/device-service'
 import { BridgeMetrics } from './bridge-metrics'
@@ -59,7 +58,7 @@ export class TelemetryBridgeService {
 
   async start(request: TelemetryBridgeStartRequest): Promise<DeviceResult<TelemetryBridgeStatus>> {
     if (this.listener) {
-      return failure({ code: 'busy', message: t('telemetry.bridgeService.alreadyRunning') })
+      return failure({ code: 'busy', message: 'The telemetry link is already running.' })
     }
     try {
       this.listener = await openPluginListener({
@@ -137,7 +136,7 @@ export class TelemetryBridgeService {
 
   private readonly closed = (error?: Error): void => {
     if (!this.listener) return
-    this.error = error ? toDeviceError(error).message : t('telemetry.bridgeService.sourceClosed')
+    this.error = error ? toDeviceError(error).message : 'The telemetry link closed.'
     void this.stop()
   }
 
@@ -158,6 +157,6 @@ function listenFailure(error: unknown, port: number): DeviceError {
   if ((error as NodeJS.ErrnoException | undefined)?.code !== 'EADDRINUSE') return failed
   return {
     code: 'busy',
-    message: t('telemetry.bridgeService.portInUse', { port: String(port) })
+    message: `Port ${port} is already taken. Choose another one here and in the plugin.`
   }
 }

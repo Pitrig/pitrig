@@ -504,7 +504,7 @@
     },
     {
       "Message": {
-        "Expression": "if('' + isnull(isnull([DataCorePlugin.GameData.NewData.GapToLeader], [DataCorePlugin.GameData.GapToLeader]), '') = '', '1n;\\n', '1n;' + replace(replace('' + isnull([DataCorePlugin.GameData.NewData.GapToLeader], [DataCorePlugin.GameData.GapToLeader]), '\\r', ' '), '\\n', ' ') + '\\n')"
+        "Expression": "if('' + isnull([DataCorePlugin.GameData.GapToLeader], '') = '', '1n;\\n', '1n;' + format([DataCorePlugin.GameData.GapToLeader], '0.000') + '\\n')"
       },
       "IsEnabled": true,
       "MaximumFrequency": 20

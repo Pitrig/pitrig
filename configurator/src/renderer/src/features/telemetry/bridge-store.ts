@@ -9,7 +9,6 @@ import {
   type TelemetryBridgeStartRequest,
   type TelemetryBridgeStatus
 } from '@shared/telemetry-bridge'
-import { t } from '@shared/ui-text'
 
 interface BridgeState {
   status: TelemetryBridgeStatus
@@ -33,7 +32,7 @@ export function setBridgeRequest(change: Partial<TelemetryBridgeStartRequest>): 
 
 export function telemetryBridge(): TelemetryBridgeApi {
   const bridge = window.pitrig.telemetryBridge
-  if (!bridge) throw new Error(t('telemetry.bridgeStore.thisBuildDoesNotInclude'))
+  if (!bridge) throw new Error('This build does not include the telemetry bridge.')
   return bridge
 }
 

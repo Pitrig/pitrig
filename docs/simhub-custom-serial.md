@@ -133,6 +133,8 @@ field is not exposed by every simulation.
 `session.gap_ahead` and `session.gap_behind` are SimHub's own on-track gaps in
 unsigned seconds, so they stay empty until SimHub sees the other cars; Assetto
 Corsa shares them only through the CrewChief app enabled in the game.
+`session.gap_leader` has no generic property behind it and stays empty here; the
+plugin fills it from the opponent list.
 
 Configuration control frames begin with `@PR:` and share the same serial
 connection. The configuration router consumes those frames before telemetry,

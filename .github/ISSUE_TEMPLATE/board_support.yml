@@ -1,0 +1,57 @@
+name: Board support request
+description: A board Pitrig should run on.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        New hardware is meant to be a new driver rather than a change to the modules around it, so most of this is about which controllers the board carries. An ESP32-S3 or ESP32-P4 board with a supported display controller is a small change; anything else is a larger one.
+
+  - type: input
+    id: board
+    attributes:
+      label: Board, and where it is sold
+      placeholder: Waveshare ESP32-S3-Touch-LCD-4.3 — link to the product page
+    validations:
+      required: true
+
+  - type: dropdown
+    id: chip
+    attributes:
+      label: Chip
+      options:
+        - ESP32-S3
+        - ESP32-P4
+        - Another ESP32
+        - Something else
+    validations:
+      required: true
+
+  - type: input
+    id: display
+    attributes:
+      label: Display controller, resolution and interface
+      placeholder: ST7701S, 480x480, RGB parallel
+    validations:
+      required: true
+
+  - type: input
+    id: touch
+    attributes:
+      label: Touch controller
+      placeholder: GT911, or none
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Datasheet, schematic and any vendor example
+      description: A working vendor example that lights the panel is worth more than a datasheet, because it pins the timings down.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: testing
+    attributes:
+      label: Testing
+      options:
+        - label: I have this board and can flash a build and report back.

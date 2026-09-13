@@ -1316,39 +1316,6 @@ export type UiStringKey =
   | 'modules.spritePalette.inks'
   | 'modules.spritePalette.removeInkNumber'
   | 'modules.spritePalette.thisPictureNamesAllSixteen'
-  | 'protocol.bridgeSection.addedLatency'
-  | 'protocol.bridgeSection.bytes'
-  | 'protocol.bridgeSection.description'
-  | 'protocol.bridgeSection.drainLatency'
-  | 'protocol.bridgeSection.dropped'
-  | 'protocol.bridgeSection.fields'
-  | 'protocol.bridgeSection.lines'
-  | 'protocol.bridgeSection.listenPort'
-  | 'protocol.bridgeSection.lostPackets'
-  | 'protocol.bridgeSection.measured'
-  | 'protocol.bridgeSection.noSamples'
-  | 'protocol.bridgeSection.packets'
-  | 'protocol.bridgeSection.perSecond'
-  | 'protocol.bridgeSection.pluginHint'
-  | 'protocol.bridgeSection.pluginTitle'
-  | 'protocol.bridgeSection.previewOnly'
-  | 'protocol.bridgeSection.quantiles'
-  | 'protocol.bridgeSection.receiving'
-  | 'protocol.bridgeSection.relaying'
-  | 'protocol.bridgeSection.running'
-  | 'protocol.bridgeSection.simhubAddress'
-  | 'protocol.bridgeSection.simhubHost'
-  | 'protocol.bridgeSection.simhubHostHint'
-  | 'protocol.bridgeSection.simhubPort'
-  | 'protocol.bridgeSection.source'
-  | 'protocol.bridgeSection.start'
-  | 'protocol.bridgeSection.starting'
-  | 'protocol.bridgeSection.stop'
-  | 'protocol.bridgeSection.stopped'
-  | 'protocol.bridgeSection.suspended'
-  | 'protocol.bridgeSection.title'
-  | 'protocol.bridgeSection.waiting'
-  | 'protocol.bridgeSection.writeErrors'
   | 'protocol.catalogSection.field'
   | 'protocol.catalogSection.fuelRpmLap'
   | 'protocol.catalogSection.lengthOfLength2FieldsA'
@@ -1439,11 +1406,6 @@ export type UiStringKey =
   | 'shortcuts.doubleClick'
   | 'shortcuts.dragToRestackOrOntoTheMiddleOfAContainerToMoveItInside'
   | 'shortcuts.shiftCmdCtrlG'
-  | 'telemetry.bridgeService.alreadyRunning'
-  | 'telemetry.bridgeService.portInUse'
-  | 'telemetry.bridgeService.sourceClosed'
-  | 'telemetry.bridgeStore.thisBuildDoesNotInclude'
-  | 'telemetry.registerTelemetryBridge.invalidRequest'
   | 'templates.dashboardListControls.allSizesLength'
   | 'templates.dashboardListControls.orderDashboards'
   | 'templates.dashboardListControls.screenSize'
@@ -1969,7 +1931,6 @@ export interface UiStringParameters {
   'modules.spritePalette.inkNumber': { number: string | number }
   'modules.spritePalette.inkNumberColour': { color: string | number, number: string | number }
   'modules.spritePalette.removeInkNumber': { number: string | number }
-  'protocol.bridgeSection.quantiles': { max: string | number, p50: string | number, p95: string | number, p99: string | number }
   'protocol.catalogSection.lengthOfLength2FieldsA': { length: string | number, length2: string | number }
   'protocol.simHubProfile.unknownSimHubTelemetryFields': { fields: string | number }
   'protocol.simHubProfileSection.baudRateBaud': { baudRate: string | number }
@@ -1977,7 +1938,6 @@ export interface UiStringParameters {
   'protocol.simHubProfileSection.lengthFields': { length: string | number }
   'protocol.simHubProfileSection.unknownBindingsBindings': { bindings: string | number }
   'save.saveToBoardService.savingTheAndConfiguration': { and: string | number }
-  'telemetry.bridgeService.portInUse': { port: string | number }
   'templates.dashboardListControls.allSizesLength': { length: string | number }
   'templates.dashboardSection.nameIsNowTheLocal': { name: string | number }
   'templates.dashboardSection.nameWouldNotBeAccepted': { error: string | number, name: string | number }

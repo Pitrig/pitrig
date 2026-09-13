@@ -22,7 +22,9 @@ SimHub. No compiler, no soldering, no code.
 Boards start at around $15. Everything here is open source.
 
 Status: early development. The four boards below work end to end; buttons and
-encoders are not implemented yet.
+encoders are not implemented yet. What changed between versions, and what an
+update costs a board that already holds a configuration, is in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## Quick start
 

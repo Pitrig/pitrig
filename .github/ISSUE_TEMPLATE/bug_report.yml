@@ -1,0 +1,75 @@
+name: Bug report
+description: Something behaves differently from what the documentation says.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If documentation and code disagree, the documentation wins and the code is the bug — say which document you read.
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where it happens
+      options:
+        - On the board
+        - In the configurator
+        - Between the two, over the cable
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: board
+    attributes:
+      label: Board
+      options:
+        - LilyGO T-Display-S3
+        - Guition ESP32-4848S040
+        - Guition JC1060P470C
+        - Espressif ESP32-S3-DevKitC-1
+        - Not board specific
+    validations:
+      required: true
+
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: The configurator's is under its title bar. The board's comes from `@PR:INFO`, which the debug application's serial console can send.
+      placeholder: configurator 0.1.0, firmware 0.1.0, schema 26
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      description: Number the steps. Attach the dashboard JSON if the bug needs one — `@PR:GET:dashboard` returns exactly what the board was given.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Serial output or console log
+      description: Paste `idf.py monitor` output for a board problem, or the configurator's developer console for an application one. Optional, and usually decisive.
+      render: text

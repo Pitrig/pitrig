@@ -1,0 +1,36 @@
+name: Feature request
+description: Something Pitrig should be able to do and cannot.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [the roadmap](https://github.com/Pitrig/pitrig/blob/main/docs/roadmap.md) first — it lists what is already accepted for work, and a short "Not planned" section with things that were considered and refused.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the problem rather than the solution. What are you driving, and what do you need to see?
+    validations:
+      required: true
+
+  - type: textarea
+    id: shape
+    attributes:
+      label: How would you expect it to work?
+      description: Optional. A rough shape is fine.
+
+  - type: dropdown
+    id: reach
+    attributes:
+      label: Does this need a new widget, telemetry field, or protocol command?
+      description: Anything touching the configuration contract, the control protocol or the module layering gets discussed before it gets written — see CONTRIBUTING.md.
+      options:
+        - "No: it is an editor or usability change"
+        - "Yes: a new widget or a new way to draw one"
+        - "Yes: a telemetry field the catalog does not carry"
+        - "Yes: something the board and the configurator both have to learn"
+        - Not sure
+    validations:
+      required: true

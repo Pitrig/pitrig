@@ -83,7 +83,7 @@
     "session.starting_grid_position": { "property": "DataCorePlugin.GameData.NewData.StartingPosition", "format": "0" },
     "session.gap_ahead": { "computed": "GapAhead", "expression": "if('' + isnull([PersistantTrackerPlugin.DriverAhead_00_GapToPlayer], '') = '', '', if([PersistantTrackerPlugin.DriverAhead_00_GapToPlayer] < 0, 0 - [PersistantTrackerPlugin.DriverAhead_00_GapToPlayer], [PersistantTrackerPlugin.DriverAhead_00_GapToPlayer]))", "format": "0.000" },
     "session.gap_behind": { "computed": "GapBehind", "expression": "if('' + isnull([PersistantTrackerPlugin.DriverBehind_00_GapToPlayer], '') = '', '', if([PersistantTrackerPlugin.DriverBehind_00_GapToPlayer] < 0, 0 - [PersistantTrackerPlugin.DriverBehind_00_GapToPlayer], [PersistantTrackerPlugin.DriverBehind_00_GapToPlayer]))", "format": "0.000" },
-    "session.gap_leader": { "property": "DataCorePlugin.GameData.NewData.GapToLeader", "conversion": "text" },
+    "session.gap_leader": { "computed": "GapLeader", "expression": "[DataCorePlugin.GameData.GapToLeader]", "format": "0.000" },
     "vehicle.fuel.level": { "property": "DataCorePlugin.GameData.NewData.Fuel", "format": "0.0" },
     "vehicle.fuel.percent": { "property": "DataCorePlugin.GameData.NewData.FuelPercent", "format": "0.###" },
     "vehicle.fuel.capacity": { "property": "DataCorePlugin.GameData.NewData.MaxFuel", "format": "0.###", "unavailable_when": { "op": "at_or_below", "value": 0 } },

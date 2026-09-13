@@ -111,12 +111,17 @@ jobs:
               exit 1
             fi
           done
-          for marker in telemetry-bridge: TelemetryBridgeService; do
+          while IFS= read -r marker; do
             if grep -qa "$marker" "$asar"; then
               echo "The production package contains the telemetry bridge: $marker" >&2
               exit 1
             fi
-          done
+          done <<'MARKERS'
+          telemetry-bridge:
+          TelemetryBridgeService
+          SimHub plugin
+          Install the Pitrig plugin
+          MARKERS
           echo "$asar carries no debug code and no telemetry bridge"
 
       - uses: actions/upload-artifact@v7

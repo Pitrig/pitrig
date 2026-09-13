@@ -13,7 +13,6 @@ import {
   TELEMETRY_BRIDGE_STOP_CHANNEL,
   type TelemetryBridgeStatus
 } from '../../shared/telemetry-bridge'
-import { t } from '@shared/ui-text'
 
 export function registerTelemetryBridge(deviceService: DeviceService): TelemetryBridgeService {
   const service = new TelemetryBridgeService(
@@ -29,7 +28,7 @@ export function registerTelemetryBridge(deviceService: DeviceService): Telemetry
         ok: false,
         error: {
           code: 'invalid_request',
-          message: t('telemetry.registerTelemetryBridge.invalidRequest')
+          message: 'Invalid telemetry bridge request.'
         }
       }
       return result
