@@ -24,7 +24,7 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
-## 0.1.0 — unreleased
+## 0.1.0 — 2026-09-14
 
 First release. Configuration schema 26.
 

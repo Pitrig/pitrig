@@ -82,7 +82,7 @@ The Pitrig name and logo are not covered by any of this: see [TRADEMARK.md](TRAD
 
 Keep commits focused and avoid unrelated refactoring. Describe what the change does and why, name
 the boards you tested, and mention any ADR you added or updated. Anything a user would notice gets a
-line under the unreleased heading in [CHANGELOG.md](CHANGELOG.md); say so explicitly if the change
-raises the configuration schema version or moves the partition table, because both cost the boards
-already in use. Questions before that:
+line at the top of [CHANGELOG.md](CHANGELOG.md), under an `Unreleased` heading you add if the entry
+above is already dated; say so explicitly if the change raises the configuration schema version or
+moves the partition table, because both cost the boards already in use. Questions before that:
 [contact.pitrig@gmail.com](mailto:contact.pitrig@gmail.com).

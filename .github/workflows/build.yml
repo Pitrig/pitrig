@@ -220,19 +220,65 @@ jobs:
           done
           ls -l release
 
+      - name: Write the release notes
+        run: |
+          version=$(node -p "require('./configurator/package.json').version")
+          firmware=$(cat firmware/version.txt)
+          base="${{ github.server_url }}/${{ github.repository }}/releases/download/v$version"
+          link() {
+            if [ -f "release/$1" ]; then printf '[%s](%s/%s)' "$1" "$base" "$1"; else printf 'not built'; fi
+          }
+          {
+            echo "## Configurator $version"
+            echo
+            echo "| Platform | Download |"
+            echo "| --- | --- |"
+            echo "| macOS, Apple silicon | $(link "Pitrig-$version-arm64.dmg") |"
+            echo "| macOS, Intel | $(link "Pitrig-$version.dmg") |"
+            echo "| Windows | $(link "Pitrig.Setup.$version.exe") |"
+            echo "| Linux, AppImage | $(link "Pitrig-$version.AppImage") |"
+            echo "| Linux, Debian and Ubuntu | $(link "pitrig_${version}_amd64.deb") |"
+            echo
+            echo "Nothing here is signed. On macOS run \`xattr -dr com.apple.quarantine /Applications/Pitrig.app\` once after installing."
+            echo
+            echo "## Firmware $firmware"
+            echo
+            echo "The easiest route is the [web flasher](https://www.pitrig.com/flash). A board already running Pitrig updates itself over the USB cable from the configurator's Firmware panel, which takes the \`.bin\`."
+            echo
+            echo "| Board | Update over serial | First flash by cable |"
+            echo "| --- | --- | --- |"
+            for entry in \
+              "t-display-s3:LilyGO T-Display-S3" \
+              "guition-4848s040:Guition ESP32-4848S040" \
+              "jc1060p470c:Guition JC1060P470C" \
+              "esp32s3-devkit:Espressif ESP32-S3-DevKitC-1"; do
+              id="${entry%%:*}"
+              label="${entry#*:}"
+              echo "| $label | $(link "pitrig-$id.bin") | $(link "firmware-$id.tar.gz") |"
+            done
+            echo
+            echo "Each archive also carries the bootloader, the partition table and the flasher arguments: a first flash by cable needs them, an update over serial does not. Flash the image that matches the board in front of you — each one carries a single board identity."
+            echo
+            echo "## Changes"
+            echo
+            awk -v v="$version" '$0 ~ "^## " v { found = 1; next } found && /^## / { exit } found' CHANGELOG.md \
+              | sed '/./,$!d'
+          } > notes.md
+          cat notes.md
+
       - name: Draft the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=$(node -p "require('./configurator/package.json').version")
-          firmware=$(cat firmware/version.txt)
           tag="v$version"
           if gh release view "$tag" > /dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber
+            gh release edit "$tag" --notes-file notes.md
           else
             gh release create "$tag" release/* \
               --draft \
               --target "$GITHUB_SHA" \
               --title "Pitrig $tag" \
-              --notes "Configurator $version for macOS, Windows and Linux, and firmware $firmware for the four boards. Each firmware archive holds the OTA image (\`pitrig-<board>.bin\`), the bootloader, the partition table and the flasher arguments."
+              --notes-file notes.md
           fi
