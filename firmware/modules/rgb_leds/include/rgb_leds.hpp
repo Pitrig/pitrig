@@ -56,7 +56,7 @@ class RgbLeds final {
   std::array<const configuration::HardwareDeviceConfiguration*, kMaximumOutputs> devices_{};
   std::array<led::Matrix, kMaximumOutputs> geometry_{};
   std::array<led::Output, kMaximumOutputs> outputs_{};
-  std::array<bool, kMaximumOutputs> pushed_{};
+  std::array<std::uint8_t, kMaximumOutputs> quiet_frames_{};
   std::array<bool, kMaximumOutputs> in_flight_{};
   configuration::HardwareDeviceConfiguration* device_store_{};
   EffectBinding* bindings_{};
@@ -64,6 +64,7 @@ class RgbLeds final {
   std::uint8_t output_count_{};
   std::uint8_t* working_{};
   std::uint8_t* shadow_{};
+  std::uint8_t* residual_{};
   std::uint8_t* wire_{};
   std::size_t working_bytes_{};
   std::size_t wire_bytes_{};

@@ -29,8 +29,9 @@ struct Color {
 
   [[nodiscard]] constexpr Color faded(const float level) const {
     const float clamped = level < 0.0F ? 0.0F : (level > 1.0F ? 1.0F : level);
-    return {static_cast<std::uint8_t>(red * clamped), static_cast<std::uint8_t>(green * clamped),
-            static_cast<std::uint8_t>(blue * clamped)};
+    return {static_cast<std::uint8_t>(red * clamped + 0.5F),
+            static_cast<std::uint8_t>(green * clamped + 0.5F),
+            static_cast<std::uint8_t>(blue * clamped + 0.5F)};
   }
 
   [[nodiscard]] bool operator==(const Color&) const = default;
@@ -40,6 +41,7 @@ struct Trim {
   std::uint8_t brightness{255};
   bool gamma{true};
   std::uint16_t current_limit_ma{};
+  bool dither{};
 };
 
 class Output final {
@@ -51,7 +53,8 @@ class Output final {
 
   [[nodiscard]] bool open(const driver::Driver& driver, const driver::Configuration& configuration,
                           std::span<std::uint8_t> working, std::span<std::uint8_t> wire,
-                          std::span<std::uint8_t> shadow = {});
+                          std::span<std::uint8_t> shadow = {},
+                          std::span<std::uint8_t> residual = {});
   void close();
 
   [[nodiscard]] bool ready() const { return handle_.valid(); }
@@ -70,13 +73,14 @@ class Output final {
  private:
   void darken();
 
-  [[nodiscard]] std::uint8_t scale(std::uint8_t channel, std::uint8_t brightness, bool gamma) const;
+  [[nodiscard]] std::uint8_t quantize(std::size_t channel, std::uint16_t level, bool dither);
 
   const driver::Driver* driver_{};
   driver::Handle handle_{};
   driver::Chip chip_{driver::Chip::ws2812b};
   std::span<std::uint8_t> working_{};
   std::span<std::uint8_t> shadow_{};
+  std::span<std::uint8_t> residual_{};
   std::span<std::uint8_t> wire_{};
   std::size_t lamps_{};
 };

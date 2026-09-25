@@ -119,16 +119,19 @@ bool RgbLeds::paint_output(const std::size_t output, const std::uint64_t now_us)
     const Surface surface = surface_of(outputs_[output], geometry_[output], binding.area, effect);
     paint(surface, effect, colors.ink, value, now_us - state.started_us);
   }
-  if (pushed_[output] && !outputs_[output].changed()) {
+  if (outputs_[output].changed()) {
+    quiet_frames_[output] = 0;
+  } else if (quiet_frames_[output] > kDitherTailFrames) {
     return false;
   }
   if (!outputs_[output].flush({.brightness = device.brightness,
                                .gamma = device.gamma,
-                               .current_limit_ma = device.current_limit_ma})) {
+                               .current_limit_ma = device.current_limit_ma,
+                               .dither = quiet_frames_[output] < kDitherTailFrames})) {
     return false;
   }
   outputs_[output].settle();
-  pushed_[output] = true;
+  ++quiet_frames_[output];
   return true;
 }
 
