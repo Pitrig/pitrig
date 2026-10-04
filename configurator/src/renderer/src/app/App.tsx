@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import wordmark from '@/assets/pitrig-wordmark.svg'
+import { ConfirmDialogHost } from '@/components/ui/confirm-dialog'
 import { WorkspaceRail } from './workspace/WorkspaceRail'
 import { useWorkspaceStore } from './workspace/workspace-store'
 import { ConfigsPage } from '@/features/configuration/ConfigsPage'
@@ -88,6 +89,7 @@ export function App(): React.JSX.Element {
 
       <UnresolvedFontsGate />
       <BoardSyncDialog />
+      <ConfirmDialogHost />
 
       <footer className="flex min-w-0 items-center justify-between gap-4 border-t px-5 text-xs text-muted-foreground">
         <span className="min-w-0 truncate">{deviceStatusText ?? t('app.app.applicationReady')}</span>

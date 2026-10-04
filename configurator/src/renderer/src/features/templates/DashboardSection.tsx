@@ -31,6 +31,7 @@ import { TemplateCard } from './TemplateCard'
 import { useInsertScreenStore } from './insert-screen-store'
 import { NO_TEMPLATES, useTemplatesStore } from './templates-store'
 import { t } from '@shared/ui-text'
+import { confirmAction } from '@/components/ui/confirm-store'
 
 export function DashboardSection({
   busy,
@@ -78,9 +79,9 @@ export function DashboardSection({
   const use = async (summary: DashboardTemplateSummary): Promise<void> => {
     if (
       hasLocalDraft &&
-      !window.confirm(
+      !(await confirmAction(
         t('templates.dashboardSection.replaceEverythingYouHaveOpen2', { name: summary.name })
-      )
+      ))
     ) {
       return
     }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
+import { Select, type SelectOption } from '@/components/ui/select'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useEditorPanelStore } from '@/features/configuration/editor/panel-store'
 import { boardLabel, boardName, displaySize } from '@/features/configuration/board-labels'
@@ -9,6 +10,13 @@ import { transferReportLines } from '@/features/configuration/transfer-report'
 import { PITRIG_BOARD_IDS, type PitrigBoardId } from '@shared/device'
 import type { LayoutTransferResult } from '@shared/layout-transfer'
 import { t } from '@shared/ui-text'
+
+function boardOptions(): SelectOption<PitrigBoardId | ''>[] {
+  return [
+    { value: '', label: t('canvas.boardPicker.selectABoard') },
+    ...PITRIG_BOARD_IDS.map((id) => ({ value: id, label: boardLabel(id) }))
+  ]
+}
 
 export function BoardPicker(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -39,7 +47,7 @@ export function BoardPicker(): React.JSX.Element {
     )
   }
 
-  const choose = (next: PitrigBoardId | ''): void => {
+  const choose = async (next: PitrigBoardId | ''): Promise<void> => {
     setError(undefined)
     setReport(undefined)
     if (!next) {
@@ -51,7 +59,7 @@ export function BoardPicker(): React.JSX.Element {
       return
     }
     if (draft.board === next) return
-    const result = convertDraftToBoard(next, fit)
+    const result = await convertDraftToBoard(next, fit)
     if (result.report) setReport(result.report)
     if (result.feedback?.kind === 'error') setError(result.feedback.message)
     if (result.feedback?.kind === 'success') setOfflineBoard(next)
@@ -59,20 +67,14 @@ export function BoardPicker(): React.JSX.Element {
 
   return (
     <div className="flex items-center gap-1.5">
-      <select
+      <Select<PitrigBoardId | ''>
         aria-label={t('device.infoPage.board')}
-        className="h-6 max-w-52 rounded-md border bg-transparent px-1 text-xs text-foreground"
+        className="h-6 max-w-52 bg-transparent px-1.5"
         title={t('canvas.boardPicker.whichBoardThisDashboardIs')}
         value={board}
-        onChange={(event) => choose(event.target.value as PitrigBoardId | '')}
-      >
-        <option value="">{t('canvas.boardPicker.selectABoard')}</option>
-        {PITRIG_BOARD_IDS.map((id) => (
-          <option key={id} value={id}>
-            {boardLabel(id)}
-          </option>
-        ))}
-      </select>
+        options={boardOptions()}
+        onChange={(next) => void choose(next)}
+      />
 
       {draft ? (
         <div className="flex items-center rounded-md border" role="group" aria-label={t('canvas.boardPicker.fit')}>
@@ -126,18 +128,12 @@ export function BoardChoice({
   return (
     <label className="flex w-64 flex-col gap-1 text-left text-[11px] text-muted-foreground">
       <span>{t('device.infoPage.board')}</span>
-      <select
-        className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
+      <Select<PitrigBoardId | ''>
+        className="w-full"
         value={value}
-        onChange={(event) => onChange(event.target.value as PitrigBoardId | '')}
-      >
-        <option value="">{t('canvas.boardPicker.selectABoard')}</option>
-        {PITRIG_BOARD_IDS.map((id) => (
-          <option key={id} value={id}>
-            {boardLabel(id)}
-          </option>
-        ))}
-      </select>
+        options={boardOptions()}
+        onChange={onChange}
+      />
       {value ? (
         <span>{t('canvas.boardPicker.theCanvasDrawsAtValue', { value: displaySize(value) ?? '' })}</span>
       ) : (

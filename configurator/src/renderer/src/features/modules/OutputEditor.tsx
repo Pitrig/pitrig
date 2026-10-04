@@ -18,11 +18,12 @@ import {
   NumberInput,
   SelectField,
   SelectInput,
+  SliderField,
   TextField
 } from '@/features/configuration/inspector/fields'
 import { t } from '@shared/ui-text'
 import { carryGeometry, drawnOf, freePins, mutateDevice } from './modules-document'
-import { wholeValue } from './field-values'
+import { fromPercent, percentValue, wholeValue } from './field-values'
 import type { DeviceConfiguration } from '@shared/device'
 
 const MILLIAMPS_PER_LAMP = 60
@@ -181,15 +182,17 @@ export function OutputEditor({
         modified={authored(device.chip, 'ws2812b')}
         onChange={(chip) => mutateDevice(index, (next) => { next.chip = chip })}
       />
-      <NumberField
+      <SliderField
         label={t('modules.outputEditor.brightness')}
         hint={t('modules.hints.output.brightness')}
-        value={device.brightness ?? 128}
-        {...fieldBounds('HardwareDeviceConfiguration', 'brightness')}
+        suffix="%"
+        value={percentValue(DEVICE_FIELDS, 'brightness', device.brightness ?? 128)}
+        min={0}
+        max={100}
         modified={authored(device.brightness, 128)}
-        onChange={(brightness) =>
+        onChange={(percent) =>
           mutateDevice(index, (next) => {
-            next.brightness = wholeValue(DEVICE_FIELDS, 'brightness', brightness)
+            next.brightness = fromPercent(DEVICE_FIELDS, 'brightness', percent)
           })
         }
       />

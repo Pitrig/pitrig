@@ -7,7 +7,7 @@ import { searchIcons, useIconCatalogStore } from '@/features/font-library/icon-c
 import type { IconName } from '@/features/font-library/icon-ligatures'
 import { TextInput } from './fields'
 import { PropertyRow, type PropertyMeta } from './PropertyRow'
-import { usePopoverAnchor } from './popover-anchor'
+import { usePopoverAnchor } from '@/components/ui/popover-anchor'
 import { t } from '@shared/ui-text'
 
 const GRID_WIDTH_PX = 240

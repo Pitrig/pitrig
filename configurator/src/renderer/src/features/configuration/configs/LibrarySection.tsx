@@ -15,6 +15,7 @@ import { BOARD_NAMES } from '../board-labels'
 import type { PitrigBoardId } from '@shared/device'
 import { MAXIMUM_CONFIGURATION_NAME, configurationIdFor } from '@shared/config-library'
 import { t } from '@shared/ui-text'
+import { confirmAction } from '@/components/ui/confirm-store'
 
 export function LibrarySection({
   working,
@@ -40,7 +41,7 @@ export function LibrarySection({
     }
     if (
       library?.saved.some((entry) => entry.id === id) &&
-      !window.confirm(t('configs.librarySection.replaceTheSavedConfigurationId', { id: id }))
+      !(await confirmAction(t('configs.librarySection.replaceTheSavedConfigurationId', { id: id })))
     ) {
       return
     }
@@ -65,7 +66,7 @@ export function LibrarySection({
   }
 
   const remove = async (id: string): Promise<void> => {
-    if (!window.confirm(t('configs.librarySection.deleteTheSavedConfigurationId', { id: id }))) return
+    if (!(await confirmAction(t('configs.librarySection.deleteTheSavedConfigurationId', { id: id }), { danger: true }))) return
     setBusy(true)
     try {
       const result = await window.pitrig.deleteSavedConfiguration({ id })

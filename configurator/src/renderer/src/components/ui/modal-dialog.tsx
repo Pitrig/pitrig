@@ -32,7 +32,9 @@ export function ModalDialog({
 
   useEffect(() => {
     const restore = document.activeElement
-    focusablesOf(panel.current)[0]?.focus()
+    const initial =
+      panel.current?.querySelector<HTMLElement>('[data-autofocus]') ?? focusablesOf(panel.current)[0]
+    initial?.focus()
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {
         if (!behaviour.current.dismissible) return

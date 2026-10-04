@@ -3,6 +3,7 @@ import { t } from '@shared/ui-text'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { PageSection, PageShell } from '@/app/workspace/PageShell'
 import { useDeviceStore } from '@/features/device/device-store'
 import { useDraftState } from '@/features/device/draft-state'
@@ -64,10 +65,10 @@ export function ConfigsPage(): React.JSX.Element {
       ? targetBoard
       : undefined
 
-  const convert = (target: PitrigBoardId): void => {
+  const convert = async (target: PitrigBoardId): Promise<void> => {
     setFeedback(undefined)
     setReport(undefined)
-    const result = convertDraftToBoard(target, fit, session?.info.display)
+    const result = await convertDraftToBoard(target, fit, session?.info.display)
     if (result.report) setReport(result.report)
     if (result.feedback) setFeedback(result.feedback)
   }
@@ -101,21 +102,16 @@ export function ConfigsPage(): React.JSX.Element {
         <div className="space-y-3">
           <label className="block space-y-1 text-[11px] text-muted-foreground">
             <span>{t('device.infoPage.board')}</span>
-            <select
-              className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
+            <Select<PitrigBoardId | ''>
+              className="w-full"
               disabled={working || connected}
-              value={targetBoard}
-              onChange={(event) =>
-                setOfflineBoard((event.target.value as PitrigBoardId | '') || undefined)
-              }
-            >
-              <option value="">{t('dashboard.configsPage.selectBoard')}</option>
-              {PITRIG_BOARD_IDS.map((id) => (
-                <option key={id} value={id}>
-                  {boardLabel(id)}
-                </option>
-              ))}
-            </select>
+              value={targetBoard ?? ''}
+              options={[
+                { value: '', label: t('dashboard.configsPage.selectBoard') },
+                ...PITRIG_BOARD_IDS.map((id) => ({ value: id, label: boardLabel(id) }))
+              ]}
+              onChange={(next) => setOfflineBoard(next || undefined)}
+            />
             {connected ? (
               <span className="block">{t('dashboard.configsPage.theConnectedBoardDecidesThis')}</span>
             ) : null}
@@ -125,7 +121,7 @@ export function ConfigsPage(): React.JSX.Element {
             <Button
               variant="outline"
               disabled={working || !targetBoard}
-              onClick={() => setFeedback(createConfiguration(targetBoard as PitrigBoardId))}
+              onClick={() => void createConfiguration(targetBoard as PitrigBoardId).then(setFeedback)}
             >
               {t('dashboard.configsPage.new')}</Button>
             <Button variant="outline" disabled={working} onClick={() => void act(openConfigurationFile)}>
@@ -163,15 +159,16 @@ export function ConfigsPage(): React.JSX.Element {
             <div className="space-y-2 rounded-md border border-dashed p-2">
               <label className="block space-y-1 text-[11px] text-muted-foreground">
                 <span>{t('dashboard.configsPage.fitToTheNewDisplay')}</span>
-                <select
-                  className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground"
+                <Select<LayoutFit>
+                  className="w-full"
                   disabled={working}
                   value={fit}
-                  onChange={(event) => setFit(event.target.value as LayoutFit)}
-                >
-                  <option value="contain">{t('dashboard.configsPage.keepProportionsCentre')}</option>
-                  <option value="stretch">{t('dashboard.configsPage.stretchToFillTheDisplay')}</option>
-                </select>
+                  options={[
+                    { value: 'contain', label: t('dashboard.configsPage.keepProportionsCentre') },
+                    { value: 'stretch', label: t('dashboard.configsPage.stretchToFillTheDisplay') }
+                  ]}
+                  onChange={setFit}
+                />
               </label>
               <p className="text-[11px] text-muted-foreground">
                 {parsed.ok
@@ -187,7 +184,7 @@ export function ConfigsPage(): React.JSX.Element {
                 className="w-full"
                 variant="outline"
                 disabled={working}
-                onClick={() => convert(convertTarget)}
+                onClick={() => void convert(convertTarget)}
               >
                 {t('dashboard.configsPage.convertDraftToConverttarget', { convertTarget: BOARD_NAMES[convertTarget] })}
               </Button>

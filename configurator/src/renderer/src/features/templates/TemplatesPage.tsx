@@ -9,6 +9,7 @@ import { useTemplatesStore } from './templates-store'
 import { DashboardSection } from './DashboardSection'
 import { WidgetSection } from './WidgetSection'
 import { t } from '@shared/ui-text'
+import { confirmAction } from '@/components/ui/confirm-store'
 
 export function TemplatesPage(): React.JSX.Element {
   const library = useTemplatesStore((state) => state.library)
@@ -45,7 +46,7 @@ export function TemplatesPage(): React.JSX.Element {
   const remove = async (
     entry: DashboardTemplateSummary | WidgetTemplateSummary
   ): Promise<void> => {
-    if (!window.confirm(t('templates.templatesPage.deleteTheSavedKindName', { kind: entry.kind, name: entry.name }))) return
+    if (!(await confirmAction(t('templates.templatesPage.deleteTheSavedKindName', { kind: entry.kind, name: entry.name }), { danger: true }))) return
     setBusy(true)
     setError(undefined)
     setNotice(undefined)

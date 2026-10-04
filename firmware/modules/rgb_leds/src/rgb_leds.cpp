@@ -57,10 +57,11 @@ bool RgbLeds::reserve_frames(const configuration::ApplicationConfiguration& conf
       allocate(configuration.device_count * sizeof(configuration::HardwareDeviceConfiguration)));
   working_ = static_cast<std::uint8_t*>(allocate(working_bytes_));
   shadow_ = static_cast<std::uint8_t*>(allocate(working_bytes_));
+  residual_ = static_cast<std::uint8_t*>(allocate(working_bytes_));
   wire_ = static_cast<std::uint8_t*>(
       heap_caps_calloc(wire_bytes_, 1, MALLOC_CAP_INTERNAL | MALLOC_CAP_DMA));
-  if (working_ == nullptr || shadow_ == nullptr || wire_ == nullptr || bindings_ == nullptr ||
-      states_ == nullptr || device_store_ == nullptr) {
+  if (working_ == nullptr || shadow_ == nullptr || residual_ == nullptr || wire_ == nullptr ||
+      bindings_ == nullptr || states_ == nullptr || device_store_ == nullptr) {
     log::error(kLedTag, "No memory for %u lamp frames", static_cast<unsigned>(wire_bytes_));
     release_frames();
     return false;
@@ -71,12 +72,14 @@ bool RgbLeds::reserve_frames(const configuration::ApplicationConfiguration& conf
 void RgbLeds::release_frames() {
   heap_caps_free(working_);
   heap_caps_free(shadow_);
+  heap_caps_free(residual_);
   heap_caps_free(wire_);
   heap_caps_free(bindings_);
   heap_caps_free(states_);
   heap_caps_free(device_store_);
   working_ = nullptr;
   shadow_ = nullptr;
+  residual_ = nullptr;
   wire_ = nullptr;
   bindings_ = nullptr;
   states_ = nullptr;
@@ -120,8 +123,8 @@ bool RgbLeds::start(events::EventBus&, const telemetry::ITelemetryRegistry& regi
     if (lamps == 0 || working_used + working_size > working_bytes_ ||
         wire_used + wire_size > wire_bytes_ ||
         !outputs_[slot].open(driver, config, {working_ + working_used, working_size},
-                             {wire_ + wire_used, wire_size},
-                             {shadow_ + working_used, working_size})) {
+                             {wire_ + wire_used, wire_size}, {shadow_ + working_used, working_size},
+                             {residual_ + working_used, working_size})) {
       log::error(kLedTag, "Output on pin %d did not come up", device.pin);
       for (std::size_t opened = 0; opened < output_count_; ++opened) {
         outputs_[opened].close();
@@ -134,7 +137,7 @@ bool RgbLeds::start(events::EventBus&, const telemetry::ITelemetryRegistry& regi
     wire_used += wire_size;
     devices_[slot] = &device;
     geometry_[slot] = geometry;
-    pushed_[slot] = false;
+    quiet_frames_[slot] = 0;
     in_flight_[slot] = false;
     for (std::uint8_t effect = 0; effect < device.effect_count; ++effect) {
       const configuration::LedEffect& layer = device.effects[effect];

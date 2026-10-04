@@ -5,6 +5,7 @@ import { parseHex } from './color-math'
 import { PropertyRow, type PropertyMeta } from './PropertyRow'
 import { useDeviceStore } from '@/features/device/device-store'
 import { t } from '@shared/ui-text'
+import { Select } from '@/components/ui/select'
 
 export const CONTROL = 'h-7 w-full min-w-0 rounded-md border bg-background px-2 text-foreground'
 
@@ -43,10 +44,16 @@ export function SliderField({ label, value, min, max, softMin, softMax, step, su
 
 export function SelectInput<T extends string>({ id, value, options, disabledOptions, onChange }: { id?: string; value: string; options: readonly T[]; disabledOptions?: readonly string[]; onChange: (value: T) => void }): React.JSX.Element {
   return (
-    <select id={id} className={CONTROL} value={value} onChange={(event) => onChange(event.target.value as T)}>
-      {value === '' ? <option value="">{t('inspector.fields.notSet')}</option> : null}
-      {options.map((option) => <option key={option} value={option} disabled={disabledOptions?.includes(option)}>{option}</option>)}
-    </select>
+    <Select
+      id={id}
+      className={CONTROL}
+      value={value as T}
+      options={[
+        ...(value === '' ? [{ value: '' as T, label: t('inspector.fields.notSet') }] : []),
+        ...options.map((option) => ({ value: option, label: option, disabled: disabledOptions?.includes(option) }))
+      ]}
+      onChange={onChange}
+    />
   )
 }
 
