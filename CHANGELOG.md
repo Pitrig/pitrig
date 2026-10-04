@@ -24,6 +24,28 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
+## 0.1.1 — 2026-10-04
+
+Configuration schema 26, unchanged, and the partition table is the same: the
+firmware installs over serial from the Firmware page and every stored document,
+font and image survives.
+
+**Changed**
+
+- The configurator draws its own confirmation dialogs and drop-down lists
+  instead of the operating system's, and styles checkboxes, radio buttons,
+  sliders, number fields and scrollbars to match. Destructive confirmations —
+  delete, erase, reset — show a red button and focus Cancel.
+- LED fades are smoother.
+- The Windows installer is named `Pitrig-Setup-<version>.exe`.
+
+**Fixed**
+
+- On Windows, every drop-down list stopped opening after a confirmation dialog,
+  for example after applying a dashboard template with a draft open.
+- Dependencies updated, including the transitive `fast-uri` 3.1.8 for a
+  published vulnerability.
+
 ## 0.1.0 — 2026-09-14
 
 First release. Configuration schema 26.
