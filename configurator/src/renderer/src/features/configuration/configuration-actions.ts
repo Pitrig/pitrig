@@ -1,5 +1,6 @@
 import { writeEventLog } from '@/lib/event-log'
 import { t } from '@shared/ui-text'
+import { confirmAction } from '@/components/ui/confirm-store'
 import { bridgeErrorMessage, operationErrorMessage } from '@/features/device/bridge-errors'
 import { useDashboardEditorStore } from '@/features/configuration/dashboard-editor'
 import { formatConfiguration, useDeviceStore } from '@/features/device/device-store'
@@ -32,11 +33,11 @@ function adoptNewDocument(configuration: DeviceConfiguration, fileName?: string)
   useDashboardEditorStore.getState().resetEditorState()
 }
 
-export function createConfiguration(board: PitrigBoardId): ActionFeedback {
+export async function createConfiguration(board: PitrigBoardId): Promise<ActionFeedback> {
   const { hasLocalDraft } = useDeviceStore.getState()
   if (
     hasLocalDraft &&
-    !window.confirm(t('dashboard.configurationActions.discardTheCurrentLocalDraft'))
+    !(await confirmAction(t('dashboard.configurationActions.discardTheCurrentLocalDraft')))
   ) {
     return { kind: 'error', message: t('dashboard.configurationActions.keptTheCurrentDraft') }
   }
@@ -46,7 +47,7 @@ export function createConfiguration(board: PitrigBoardId): ActionFeedback {
 
 export async function openConfigurationFile(): Promise<ActionFeedback | undefined> {
   const { hasLocalDraft } = useDeviceStore.getState()
-  if (hasLocalDraft && !window.confirm(t('dashboard.configurationActions.discardTheCurrentLocalDraft2'))) {
+  if (hasLocalDraft && !(await confirmAction(t('dashboard.configurationActions.discardTheCurrentLocalDraft2')))) {
     return undefined
   }
   try {
@@ -80,7 +81,7 @@ export async function saveConfigurationFile(): Promise<ActionFeedback | undefine
 
 export async function openSavedConfiguration(id: string): Promise<ActionFeedback> {
   const { hasLocalDraft } = useDeviceStore.getState()
-  if (hasLocalDraft && !window.confirm(t('dashboard.configurationActions.discardTheCurrentLocalDraft3', { id: id }))) {
+  if (hasLocalDraft && !(await confirmAction(t('dashboard.configurationActions.discardTheCurrentLocalDraft3', { id: id })))) {
     return { kind: 'error', message: t('dashboard.configurationActions.keptTheCurrentDraft') }
   }
   const result = await window.pitrig.readSavedConfiguration({ id })
@@ -91,7 +92,7 @@ export async function openSavedConfiguration(id: string): Promise<ActionFeedback
 
 export async function openRecentConfiguration(path: string): Promise<ActionFeedback> {
   const { hasLocalDraft } = useDeviceStore.getState()
-  if (hasLocalDraft && !window.confirm(t('dashboard.configurationActions.discardTheCurrentLocalDraft4'))) {
+  if (hasLocalDraft && !(await confirmAction(t('dashboard.configurationActions.discardTheCurrentLocalDraft4')))) {
     return { kind: 'error', message: t('dashboard.configurationActions.keptTheCurrentDraft') }
   }
   const result = await window.pitrig.readRecentConfiguration({ path })
@@ -100,11 +101,11 @@ export async function openRecentConfiguration(path: string): Promise<ActionFeedb
   return { kind: 'success', message: t('dashboard.configurationActions.fileNameOpened', { fileName: result.value.fileName }) }
 }
 
-export function convertDraftToBoard(
+export async function convertDraftToBoard(
   target: PitrigBoardId,
   fit: LayoutFit,
   display?: { width: number; height: number }
-): { feedback?: ActionFeedback; report?: LayoutTransferResult } {
+): Promise<{ feedback?: ActionFeedback; report?: LayoutTransferResult }> {
   const { draft, setDraft } = useDeviceStore.getState()
   if (!draft) return { feedback: { kind: 'error', message: t('dashboard.configurationActions.thereIsNoDraftTo') } }
   const profile = BOARD_PROFILES[draft.board]
@@ -114,13 +115,13 @@ export function convertDraftToBoard(
   const from = profile.display ?? NO_DISPLAY
   const to = display ?? BOARD_PROFILES[target].display ?? NO_DISPLAY
   if (
-    !window.confirm(
+    !(await confirmAction(
       t('dashboard.configurationActions.convertTheDraftFromFrom', {
         from: sizeLabel(from),
         to: sizeLabel(to),
         outcome: fitOutcome(from, to, fit)
       })
-    )
+    ))
   ) {
     return {}
   }
@@ -163,7 +164,7 @@ export async function readConfigurationFromBoard(): Promise<ActionFeedback> {
 }
 
 export async function resetBoardConfiguration(): Promise<ActionFeedback | undefined> {
-  if (!window.confirm(t('dashboard.configurationActions.resetTheSavedConfigurationTo'))) {
+  if (!(await confirmAction(t('dashboard.configurationActions.resetTheSavedConfigurationTo'), { danger: true }))) {
     return undefined
   }
   return run('reset', () => window.pitrig.resetDeviceConfiguration(), (result) => {
@@ -176,7 +177,7 @@ export async function resetBoardDocument(
   document: ConfigurationDocumentId
 ): Promise<ActionFeedback | undefined> {
   const label = t(`documents.labelLower.${document}`)
-  if (!window.confirm(t('dashboard.configurationActions.eraseTheSavedLabelConfiguration', { label: label }))) {
+  if (!(await confirmAction(t('dashboard.configurationActions.eraseTheSavedLabelConfiguration', { label: label }), { danger: true }))) {
     return undefined
   }
   return run(
@@ -216,7 +217,7 @@ export function loadDocumentFromBoard(
 }
 
 export async function restartBoard(): Promise<ActionFeedback | undefined> {
-  if (!window.confirm(t('dashboard.configurationActions.restartTheConnectedPitrigBoard'))) return undefined
+  if (!(await confirmAction(t('dashboard.configurationActions.restartTheConnectedPitrigBoard')))) return undefined
   return run('reboot', () => window.pitrig.rebootDevice(), () => 'Board is restarting.')
 }
 

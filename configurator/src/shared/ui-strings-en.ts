@@ -135,6 +135,7 @@ export const EN_UI_STRINGS: Readonly<Record<string, string>> = {
   'common.listAndMore': '{shown} and {rest} more',
   'common.load': 'Load',
   'common.none': 'None',
+  'common.ok': 'OK',
   'common.open': 'Open',
   'common.pageNumber': 'Page {number}',
   'common.reset': 'Reset',

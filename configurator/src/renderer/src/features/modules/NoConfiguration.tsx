@@ -52,7 +52,7 @@ export function NoConfiguration(): React.JSX.Element {
             <Button
               disabled={!board}
               title={board ? undefined : t('canvas.displayPreview.chooseABoardFirst')}
-              onClick={() => setMessage(createConfiguration(board as PitrigBoardId).message)}
+              onClick={() => void createConfiguration(board as PitrigBoardId).then((feedback) => setMessage(feedback.message))}
             >
               {t('modules.noConfiguration.newConfiguration')}</Button>
             <Button

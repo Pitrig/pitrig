@@ -20,6 +20,7 @@ import { ScreenGallery } from './ScreenGallery'
 import { useTemplatesStore } from './templates-store'
 import { WidgetThumbnail } from './WidgetThumbnail'
 import { t } from '@shared/ui-text'
+import { confirmAction } from '@/components/ui/confirm-store'
 
 export function SaveToTemplatesButton(): React.JSX.Element {
   const [open, setOpen] = useState(false)
@@ -61,7 +62,7 @@ function SaveToTemplatesDialog({ onClose }: { onClose: () => void }): React.JSX.
       kind === 'dashboard'
         ? library?.dashboards.some((entry) => entry.origin === 'user' && entry.id === id)
         : library?.widgets.some((entry) => entry.id === id)
-    if (existing && !window.confirm(t('templates.saveToTemplates.replaceTheSavedKindId', { kind: kind, id: id }))) return
+    if (existing && !(await confirmAction(t('templates.saveToTemplates.replaceTheSavedKindId', { kind: kind, id: id })))) return
 
     setBusy(true)
     setError(undefined)

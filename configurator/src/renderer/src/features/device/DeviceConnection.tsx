@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { writeEventLog } from '@/lib/event-log'
 import { useDeviceStore } from '@/features/device/device-store'
 import { t } from '@shared/ui-text'
@@ -144,36 +145,28 @@ export function DeviceConnection({
     <div className="flex items-center gap-2">
       <div className="w-28 flex-none">
         {selectedPortId !== AUTO_PORT_ID ? (
-          <select
+          <Select
             aria-label={t('device.connection.baudRateLabel')}
-            className="h-8 w-full rounded-md border bg-background px-2 text-xs"
+            className="w-full"
             value={selectedBaudRate}
             disabled={isWorking || status === 'connected'}
-            onChange={(event) => setSelectedBaudRate(event.target.value)}
-          >
-            {SUPPORTED_BAUD_RATES.map((rate) => (
-              <option key={rate} value={rate}>
-                {rate}
-              </option>
-            ))}
-          </select>
+            options={SUPPORTED_BAUD_RATES.map((rate) => ({ value: String(rate), label: String(rate) }))}
+            onChange={setSelectedBaudRate}
+          />
         ) : null}
       </div>
 
-      <select
+      <Select
         aria-label={t('device.connection.portLabel')}
-        className="h-8 w-64 flex-none rounded-md border bg-background px-2 text-xs"
+        className="w-64 flex-none"
         value={selectedPortId}
         disabled={isWorking || status === 'connected'}
-        onChange={(event) => setSelectedPortId(event.target.value)}
-      >
-        <option value={AUTO_PORT_ID}>{t('device.connection.autoPort')}</option>
-        {ports.map((port) => (
-          <option key={port.id} value={port.id}>
-            {port.displayName}
-          </option>
-        ))}
-      </select>
+        options={[
+          { value: AUTO_PORT_ID, label: t('device.connection.autoPort') },
+          ...ports.map((port) => ({ value: port.id, label: port.displayName }))
+        ]}
+        onChange={setSelectedPortId}
+      />
 
       <Button
         className="w-20 flex-none"

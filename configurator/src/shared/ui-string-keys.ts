@@ -135,6 +135,7 @@ export type UiStringKey =
   | 'common.listAndMore'
   | 'common.load'
   | 'common.none'
+  | 'common.ok'
   | 'common.open'
   | 'common.pageNumber'
   | 'common.reset'

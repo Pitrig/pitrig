@@ -9,7 +9,12 @@ export interface PopoverAnchor {
   maxHeight: number
 }
 
-export function usePopoverAnchor(open: boolean, width: number, dismiss: () => void): {
+export function usePopoverAnchor(
+  open: boolean,
+  width: number,
+  dismiss: () => void,
+  height?: number
+): {
   trigger: React.RefObject<HTMLButtonElement | null>
   popover: React.RefObject<HTMLDivElement | null>
   anchor: PopoverAnchor | undefined
@@ -25,7 +30,7 @@ export function usePopoverAnchor(open: boolean, width: number, dismiss: () => vo
       if (!rect) return
       const below = window.innerHeight - rect.bottom - MARGIN * 2
       const above = rect.top - MARGIN * 2
-      const upward = above > below
+      const upward = (height === undefined || below < height) && above > below
       setAnchor({
         left: Math.max(MARGIN, Math.min(rect.left, window.innerWidth - width - MARGIN)),
         top: upward ? undefined : rect.bottom + MARGIN,
@@ -54,7 +59,7 @@ export function usePopoverAnchor(open: boolean, width: number, dismiss: () => vo
       window.removeEventListener('pointerdown', away, true)
       window.removeEventListener('keydown', key, true)
     }
-  }, [open, width, dismiss])
+  }, [open, width, dismiss, height])
 
   return { trigger, popover, anchor }
 }

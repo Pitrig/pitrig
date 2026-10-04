@@ -16,6 +16,7 @@ import { useImageAssetsStore, useImageUploadStore } from './image-assets-store'
 import { StagedImageCard } from './StagedImageCard'
 import { StorageBar, Thumbnail } from './image-page-parts'
 import { t } from '@shared/ui-text'
+import { confirmAction } from '@/components/ui/confirm-store'
 
 export function ImagesPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -105,7 +106,7 @@ export function ImagesPage(): React.JSX.Element {
   }
 
   const clearBoard = async (): Promise<void> => {
-    if (!window.confirm(t('images.imagesPage.eraseEveryImageInstalledOn'))) return
+    if (!(await confirmAction(t('images.imagesPage.eraseEveryImageInstalledOn'), { danger: true }))) return
     setBusy(true)
     setMessage(undefined)
     const result = await window.pitrig.clearImageAssets().catch(() => undefined)

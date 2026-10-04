@@ -6,8 +6,9 @@ import {
 import type { DashboardTemplateSummary } from '@shared/templates'
 import { EVERY_BOARD, boardsPresent, effectiveBoard } from './dashboard-listing'
 import { t } from '@shared/ui-text'
+import { Select } from '@/components/ui/select'
 
-const CONTROL = 'h-6 rounded-md border bg-transparent px-1 text-xs text-foreground'
+const CONTROL = 'h-6 bg-transparent px-1.5'
 
 export function DashboardListControls({
   entries
@@ -23,31 +24,32 @@ export function DashboardListControls({
   return (
     <>
       {boards.length > 1 ? (
-        <select
+        <Select
           aria-label={t('templates.dashboardListControls.showDashboardsFor')}
           className={CONTROL}
           title={t('templates.dashboardListControls.showOnlyTheDashboardsDrawn')}
           value={effectiveBoard(entries, board)}
-          onChange={(event) => setBoard(event.target.value)}
-        >
-          <option value={EVERY_BOARD}>{t('templates.dashboardListControls.allSizesLength', { length: entries.length })}</option>
-          {boards.map((id) => (
-            <option key={id} value={id}>
-              {`${displaySize(id) ?? id} (${entries.filter((entry) => entry.board === id).length})`}
-            </option>
-          ))}
-        </select>
+          options={[
+            { value: EVERY_BOARD, label: t('templates.dashboardListControls.allSizesLength', { length: entries.length }) },
+            ...boards.map((id) => ({
+              value: id,
+              label: `${displaySize(id) ?? id} (${entries.filter((entry) => entry.board === id).length})`
+            }))
+          ]}
+          onChange={setBoard}
+        />
       ) : null}
-      <select
+      <Select<TemplateSort>
         aria-label={t('templates.dashboardListControls.orderDashboards')}
         className={CONTROL}
         title={t('templates.dashboardListControls.smallestDisplayFirstOrBy')}
         value={sort}
-        onChange={(event) => setSort(event.target.value as TemplateSort)}
-      >
-        <option value="size">{t('templates.dashboardListControls.screenSize')}</option>
-        <option value="name">{t('device.infoPage.name')}</option>
-      </select>
+        options={[
+          { value: 'size', label: t('templates.dashboardListControls.screenSize') },
+          { value: 'name', label: t('device.infoPage.name') }
+        ]}
+        onChange={setSort}
+      />
     </>
   )
 }

@@ -2,6 +2,7 @@ import { Play, RotateCcw, Square, Wand2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import { useDeviceStore } from '@/features/device/device-store'
 import {
   BENCH_PATTERN_IDS,
@@ -48,21 +49,14 @@ export function BenchControls(): React.JSX.Element {
 
   return (
     <div className="flex min-w-0 flex-none items-center gap-2 overflow-x-auto rounded-lg border bg-card px-2.5 py-2">
-      <select
+      <Select<BenchPatternId>
         aria-label="Test pattern"
-        className="h-8 w-40 flex-none rounded-md border bg-background px-2 text-xs"
+        className="w-40 flex-none"
         value={pattern}
         disabled={status.patternBusy}
-        onChange={(event) =>
-          useBenchStore.getState().setPattern(event.target.value as BenchPatternId)
-        }
-      >
-        {BENCH_PATTERN_IDS.map((id) => (
-          <option key={id} value={id}>
-            {BENCH_PATTERN_LABELS[id]}
-          </option>
-        ))}
-      </select>
+        options={BENCH_PATTERN_IDS.map((id) => ({ value: id, label: BENCH_PATTERN_LABELS[id] }))}
+        onChange={(next) => useBenchStore.getState().setPattern(next)}
+      />
       <Button
         className="w-40 flex-none"
         disabled={!connected || status.patternBusy}
@@ -117,18 +111,13 @@ export function BenchControls(): React.JSX.Element {
         {running ? 'Stop' : 'Start'}
       </Button>
 
-      <select
+      <Select<number>
         aria-label="Diagnostics interval"
-        className="h-8 w-28 flex-none rounded-md border bg-background px-2 text-xs"
+        className="w-28 flex-none"
         value={pollIntervalMs}
-        onChange={(event) => changePoll(Number(event.target.value))}
-      >
-        {POLL_INTERVALS_MS.map((interval) => (
-          <option key={interval} value={interval}>
-            Poll {interval} ms
-          </option>
-        ))}
-      </select>
+        options={POLL_INTERVALS_MS.map((interval) => ({ value: interval, label: `Poll ${interval} ms` }))}
+        onChange={changePoll}
+      />
     </div>
   )
 }

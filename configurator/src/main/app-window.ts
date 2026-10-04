@@ -39,6 +39,10 @@ export function createAppWindow(options: AppWindowOptions): BrowserWindow {
   })
 
   window.once('ready-to-show', () => window.show())
+  window.on('focus', () => {
+    window.blurWebView()
+    window.focusOnWebView()
+  })
   denyForeignContent(window, home)
 
   window.webContents.on('render-process-gone', (_event, details) => {

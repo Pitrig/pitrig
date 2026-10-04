@@ -31,6 +31,7 @@ import {
   spritesOf,
   trimToBytes
 } from './sprite-document'
+import { Select } from '@/components/ui/select'
 
 const SPEEDS: readonly number[] = [60, 90, 120, 180, 250, 400, 700, 1000]
 const DEFAULT_SPEED = 120
@@ -159,18 +160,15 @@ export function SpriteEditor({
           />
           {t('modules.spriteEditor.ghostPreviousFrame')}</label>
         <label className="flex items-center gap-1 rounded border px-1.5 py-1 text-[10px]">
-          {t('modules.effectEditor.frameHolds')}<select
-            className="rounded bg-background px-1 py-0.5"
+          {t('modules.effectEditor.frameHolds')}<Select
+            className="h-5 border-0 px-1 text-[10px]"
             value={speed}
-            onChange={(event) => {
-              setSpeed(Number(event.target.value))
-              setPreviewSpeed(Number(event.target.value))
+            options={SPEEDS.map((value) => ({ value, label: t('modules.spriteEditor.valueMs', { value: value }) }))}
+            onChange={(next) => {
+              setSpeed(next)
+              setPreviewSpeed(next)
             }}
-          >
-            {SPEEDS.map((value) => (
-              <option key={value} value={value}>{t('modules.spriteEditor.valueMs', { value: value })}</option>
-            ))}
-          </select>
+          />
         </label>
         <button
           type="button"

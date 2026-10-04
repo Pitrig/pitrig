@@ -1265,6 +1265,7 @@
   },
   "common": {
     "cancel": "Cancel",
+    "ok": "OK",
     "close": "Close",
     "load": "Load",
     "save": "Save",

@@ -19,6 +19,7 @@ import {
   useFontLibraryStore
 } from './font-library-store'
 import { t } from '@shared/ui-text'
+import { confirmAction } from '@/components/ui/confirm-store'
 
 export function FontsPage(): React.JSX.Element {
   const session = useDeviceStore((state) => state.session)
@@ -66,7 +67,7 @@ export function FontsPage(): React.JSX.Element {
       setMessage(t('fonts.fontsPage.nameIsUsedByThis', { name: name }))
       return
     }
-    if (!window.confirm(t('fonts.fontsPage.removeNameFromTheLibrary', { name: name }))) return
+    if (!(await confirmAction(t('fonts.fontsPage.removeNameFromTheLibrary', { name: name }), { danger: true }))) return
     setBusy(true)
     setMessage(undefined)
     const result = await window.pitrig.removeFontFace({ id }).catch(() => undefined)
@@ -76,7 +77,7 @@ export function FontsPage(): React.JSX.Element {
   }
 
   const clearBoard = async (): Promise<void> => {
-    if (!window.confirm(t('fonts.fontsPage.eraseTheFontPackageInstalled'))) return
+    if (!(await confirmAction(t('fonts.fontsPage.eraseTheFontPackageInstalled'), { danger: true }))) return
     setBusy(true)
     setMessage(undefined)
     const result = await window.pitrig.clearFontAssets().catch(() => undefined)

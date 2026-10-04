@@ -2,6 +2,7 @@ import { Link2, Trash2, Unlink2 } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
 import {
   MAXIMUM_IMAGE_DIMENSION,
   MAXIMUM_SPRITE_FRAMES,
@@ -110,21 +111,15 @@ export function StagedImageCard({
     </label>
     <label className="grid gap-1">
       <span className="text-muted-foreground">{t('images.stagedImageCard.format')}</span>
-      <select
+      <Select<ImageColorFormat>
         value={entry.format}
-        className="h-7 rounded-md border bg-transparent px-1"
-        onChange={(event) =>
-          store.getState().updateEntry(entry.id, {
-            format: event.target.value as ImageColorFormat
-          })
-        }
-      >
-        {(['rgb565a8', 'rgb565', 'alpha8'] as const).map((format) => (
-          <option key={format} value={format}>
-            {t(`images.format.${format}`)}
-          </option>
-        ))}
-      </select>
+        className="h-7 bg-transparent px-1.5"
+        options={(['rgb565a8', 'rgb565', 'alpha8'] as const).map((format) => ({
+          value: format,
+          label: t(`images.format.${format}`)
+        }))}
+        onChange={(format) => store.getState().updateEntry(entry.id, { format })}
+      />
     </label>
     <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-1.5">
       <DimensionField
