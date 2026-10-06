@@ -227,12 +227,18 @@ jobs:
           version=$(node -p "require('./configurator/package.json').version")
           firmware=$(cat firmware/version.txt)
           tag="v$version"
+          python3 tools/release_notes.py release \
+            --version "$version" \
+            --firmware "$firmware" \
+            --tag "$tag" \
+            --repo "$GITHUB_REPOSITORY" > notes.md
           if gh release view "$tag" > /dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber
+            gh release edit "$tag" --notes-file notes.md
           else
             gh release create "$tag" release/* \
               --draft \
               --target "$GITHUB_SHA" \
               --title "Pitrig $tag" \
-              --notes "Configurator $version for macOS, Windows and Linux, and firmware $firmware for the four boards. Each firmware archive holds the OTA image (\`pitrig-<board>.bin\`), the bootloader, the partition table and the flasher arguments."
+              --notes-file notes.md
           fi

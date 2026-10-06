@@ -69,7 +69,8 @@ the OTA status.
 on demand: `checks` (the five generators with `--check`, `check_debug_isolation.py --check`, the
 configurator's typecheck and lint), `configurator` (electron-builder on macOS, Windows and Linux),
 `firmware` (four boards in `espressif/idf:v6.0.2`), then a **draft** release with the installers and
-four OTA images. Packages are checked for debug traces and for the telemetry bridge, which only
+four OTA images, its notes written by `tools/release_notes.py` from the files actually built and
+the version's `CHANGELOG.md` entry. Packages are checked for debug traces and for the telemetry bridge, which only
 development builds carry (an `app.asar` grep, ADR 0034); nothing is signed, so macOS needs
 `xattr -dr com.apple.quarantine`.
 
