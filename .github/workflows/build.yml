@@ -272,6 +272,11 @@ jobs:
         run: |
           version=$(node -p "require('./configurator/package.json').version")
           tag="v$version"
+          python3 tools/release_notes.py release \
+            --version "$version" \
+            --firmware "$firmware" \
+            --tag "$tag" \
+            --repo "$GITHUB_REPOSITORY" > notes.md
           if gh release view "$tag" > /dev/null 2>&1; then
             gh release upload "$tag" release/* --clobber
             gh release edit "$tag" --notes-file notes.md
