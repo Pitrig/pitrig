@@ -49,7 +49,7 @@ board missed within a second.
 
 **Send what changed, repeat everything once a second.** The plugin evaluates
 each field at its catalog rate, sends a value only when it differs from the one
-it last sent, and re-sends every known value once a second. A lost datagram
+it last sent, and re-sends every value, an empty one included, once a second. A lost datagram
 therefore costs at most one second of a rarely-changing field, and a plugin is
 not bound by the 10 Hz cap SimHub Free puts on Custom Serial.
 
@@ -102,8 +102,9 @@ the packaged configurator's telemetry path is the Custom Serial profile.
   telemetry catalog show live values, and a board can be watched at the same
   time, with nothing to install besides the plugin.
 - The field mapping has one source: `telemetry/simhub_generic_mappings.json`
-  generates the NCalc expressions of the Custom Serial profile and the plugin's
-  own field table, so the two paths cannot drift.
+  generates the formulas of the Custom Serial profile, NCalc and the few
+  JavaScript ones that keep state, and the plugin's own field table, so the two
+  paths cannot drift.
 - The plugin is a .NET Framework assembly built against the SimHub install, so
   it is not part of the repository's CI; only its generated field table is
   checked.

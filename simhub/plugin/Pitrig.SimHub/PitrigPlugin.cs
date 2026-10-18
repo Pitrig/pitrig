@@ -19,6 +19,7 @@ namespace Pitrig.SimHub
 
         private readonly TelemetryLink link = new TelemetryLink();
         private readonly FieldReader reader = new FieldReader();
+        private readonly TelemetryState state = new TelemetryState();
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private readonly double[] due = new double[TelemetryCatalog.Fields.Length];
         private double nextKeyframe;
@@ -64,6 +65,7 @@ namespace Pitrig.SimHub
             Settings = settings;
             this.SaveCommonSettings(SettingsName, settings);
             reader.Reset();
+            state.Reset();
             Array.Clear(due, 0, due.Length);
             nextKeyframe = 0;
             Error = null;
@@ -82,19 +84,20 @@ namespace Pitrig.SimHub
         public void DataUpdate(PluginManager pluginManager, ref GameData data)
         {
             if (!Settings.Enabled) return;
+            var now = clock.Elapsed.TotalMilliseconds;
+            state.Update(pluginManager, data, Settings, now);
             if (link.TakeNewSubscriber()) nextKeyframe = 0;
             if (!link.Ready) return;
-            var now = clock.Elapsed.TotalMilliseconds;
             var keyframe = now >= nextKeyframe;
             if (keyframe) nextKeyframe = now + TelemetryCatalog.LinkKeyframeIntervalMs;
             var fields = TelemetryCatalog.Fields;
-            var status = data?.NewData;
             for (var index = 0; index < fields.Length; index += 1)
             {
-                if (!keyframe && now < due[index]) continue;
+                var scheduled = now >= due[index];
+                if (!keyframe && !scheduled) continue;
                 var field = fields[index];
-                due[index] = now + IntervalOf(field.Rate);
-                var text = reader.Read(pluginManager, status, field);
+                if (scheduled) due[index] = Math.Max(due[index] + IntervalOf(field.Rate), now);
+                var text = reader.Read(state, field);
                 if (reader.Commit(index, text, keyframe)) link.Add(field.WireId, text ?? string.Empty);
             }
             link.Flush();

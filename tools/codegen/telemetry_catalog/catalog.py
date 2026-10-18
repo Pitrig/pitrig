@@ -12,6 +12,7 @@ from .validate import (
     validate_field,
     validate_identifier,
     validate_link,
+    validate_parameters,
     validate_simhub_mapping,
 )
 
@@ -88,6 +89,12 @@ def load_simhub_mappings(
     if not isinstance(profile["baud_rate"], int) or not 9_600 <= profile["baud_rate"] <= 2_000_000:
         fail("SimHub profile baud_rate must be an integer from 9600 to 2000000")
     validate_link(profile["link"])
+    parameters = profile.setdefault("parameters", {})
+    validate_parameters(parameters)
+    prelude = mappings.get("javascript_prelude", "")
+    if not isinstance(prelude, str):
+        fail("SimHub javascript_prelude must be a string")
+    profile["javascript_prelude"] = prelude
 
     expanded = {name: dict(mapping) for name, mapping in mappings["fields"].items()}
     suffixes = mappings["wheel_suffixes"]
@@ -97,14 +104,11 @@ def load_simhub_mappings(
         for wheel in document["wheels"]:
             expanded_name = family_name.format(wheel=wheel)
             expanded_mapping = dict(mapping)
-            if "property" in expanded_mapping:
-                expanded_mapping["property"] = expanded_mapping["property"].format(
-                    suffix=suffixes[wheel]
-                )
-            if "expression" in expanded_mapping:
-                expanded_mapping["expression"] = expanded_mapping["expression"].format(
-                    suffix=suffixes[wheel]
-                )
+            for key in ("property", "expression", "javascript", "computed"):
+                if key in expanded_mapping:
+                    expanded_mapping[key] = expanded_mapping[key].replace(
+                        "{suffix}", suffixes[wheel]
+                    )
             expanded[expanded_name] = expanded_mapping
 
     field_names = {field["name"] for field in fields}
@@ -112,7 +116,7 @@ def load_simhub_mappings(
         report_key_mismatch("expanded SimHub mappings", field_names, set(expanded))
     for field in fields:
         mapping = expanded[field["name"]]
-        validate_simhub_mapping(field, mapping)
+        validate_simhub_mapping(field, mapping, parameters)
         if field["type"] == "uint32":
             mapping.setdefault("unavailable_when", dict(UNSIGNED_UNAVAILABLE))
     return profile, expanded

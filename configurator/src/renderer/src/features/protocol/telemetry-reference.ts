@@ -5,15 +5,13 @@ export interface TelemetryReferenceEntry extends TelemetryCatalogEntry {
   simHubProperty?: string
 }
 
-const PROPERTY_PATTERN = /\[([^\]]+)\]/
-
-const EXPRESSIONS = new Map<string, string>(
-  SIMHUB_PROFILE_ENTRIES.map((entry) => [entry.name, entry.expression])
+const PROPERTIES = new Map<string, string | undefined>(
+  SIMHUB_PROFILE_ENTRIES.map((entry) => [entry.name, 'property' in entry ? entry.property : undefined])
 )
 
 const TELEMETRY_REFERENCE: TelemetryReferenceEntry[] = TELEMETRY_CATALOG.map(
   (entry: TelemetryCatalogEntry) => {
-    const property = PROPERTY_PATTERN.exec(EXPRESSIONS.get(entry.name) ?? '')?.[1]
+    const property = PROPERTIES.get(entry.name)
     return property ? { ...entry, simHubProperty: property } : entry
   }
 )

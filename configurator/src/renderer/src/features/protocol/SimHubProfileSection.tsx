@@ -5,21 +5,44 @@ import { PageSection } from '@/app/workspace/PageShell'
 import { bridgeErrorMessage } from '@/features/device/bridge-errors'
 import { writeEventLog } from '@/lib/event-log'
 import { useDeviceStore } from '@/features/device/device-store'
+import { NumberField } from '@/features/configuration/inspector/fields'
 import {
   allTelemetryFieldNames,
   collectRequiredTelemetry,
+  defaultSimHubParameters,
   effectiveSimHubBaudRate,
-  type SimHubProfileMode
+  SIMHUB_PROFILE_PARAMETER_NAMES,
+  type SimHubProfileMode,
+  type SimHubProfileParameterName,
+  type SimHubProfileParameters
 } from '@shared/simhub-profile'
+import { SIMHUB_PROFILE_PARAMETERS } from '@shared/simhub-profile-data'
 import { t } from '@shared/ui-text'
 
 type Feedback = { kind: 'success' | 'error'; message: string }
+
+const PARAMETER_FIELDS: Record<
+  SimHubProfileParameterName,
+  { label: string; hint: string; step: number | 'any' }
+> = {
+  fuel_reserve_laps: {
+    label: t('protocol.simHubProfileSection.fuelReserve'),
+    hint: t('protocol.simHubProfileSection.fuelReserveHint'),
+    step: 'any'
+  },
+  average_laps: {
+    label: t('protocol.simHubProfileSection.averagesOver'),
+    hint: t('protocol.simHubProfileSection.averagesOverHint'),
+    step: 1
+  }
+}
 
 export function SimHubProfileSection(): React.JSX.Element {
   const draft = useDeviceStore((state) => state.draft)
   const [mode, setMode] = useState<SimHubProfileMode>('dashboard')
   const [exporting, setExporting] = useState(false)
   const [feedback, setFeedback] = useState<Feedback>()
+  const [parameters, setParameters] = useState<SimHubProfileParameters>(defaultSimHubParameters)
 
   const selection = useMemo(() => {
     if (!draft) return undefined
@@ -42,11 +65,12 @@ export function SimHubProfileSection(): React.JSX.Element {
     if (!selection || baudRate === undefined || blockedReason) return
     setExporting(true)
     setFeedback(undefined)
-    const request = { fieldNames: selection.fieldNames, baudRate }
+    const request = { fieldNames: selection.fieldNames, baudRate, parameters }
     writeEventLog('SimHub profile export requested', {
       mode,
       fieldCount: selection.fieldNames.length,
-      baudRate
+      baudRate,
+      parameters
     })
     try {
       const result = await window.pitrig.exportSimHubProfile(request)
@@ -109,6 +133,32 @@ export function SimHubProfileSection(): React.JSX.Element {
             setFeedback(undefined)
           }}
         />
+      </fieldset>
+
+      <fieldset className="mt-3 space-y-1" disabled={exporting}>
+        {SIMHUB_PROFILE_PARAMETER_NAMES.map((name) => {
+          const bounds = SIMHUB_PROFILE_PARAMETERS[name]
+          return (
+            <NumberField
+              key={name}
+              label={PARAMETER_FIELDS[name].label}
+              hint={PARAMETER_FIELDS[name].hint}
+              value={parameters[name]}
+              min={bounds.minimum}
+              max={bounds.maximum}
+              step={PARAMETER_FIELDS[name].step}
+              suffix={t('protocol.simHubProfileSection.laps')}
+              modified={parameters[name] !== bounds.default}
+              onReset={() => setParameters((current) => ({ ...current, [name]: bounds.default }))}
+              onChange={(value) =>
+                setParameters((current) => ({
+                  ...current,
+                  [name]: Math.min(Math.max(value, bounds.minimum), bounds.maximum)
+                }))
+              }
+            />
+          )
+        })}
       </fieldset>
 
       <div className="mt-3 flex items-center justify-between rounded-md border bg-muted/20 px-2 py-1.5 text-[11px]">

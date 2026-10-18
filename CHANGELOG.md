@@ -24,6 +24,68 @@ A change to the **partition table** cannot travel over serial. It needs a cable
 and a full erase, and it takes the stored configuration, the font package and
 the image package with it.
 
+## 0.2.0 — 2026-10-18
+
+Configuration schema 26, unchanged, and the partition table is the same: the
+firmware installs over serial from the Firmware page and every stored document,
+font and image survives. The telemetry catalog grows from 228 to 251 fields
+without moving an identifier, so an older board ignores the new fields and reads
+every other one as before. Export the SimHub profile again and import it into
+SimHub to get the new fields and the fixes below.
+
+**Added**
+
+- Shift lights per gear: `engine.shift_percent` is the revs against the current
+  gear's shift point from SimHub's car settings, and `engine.redline_reached`
+  says the shift point is reached.
+- Pace statuses for the current lap, the last lap and the three sectors —
+  1 slower than the personal best, 2 personal best, 3 best in class this
+  session, 4 invalid lap — so a dashboard colours yellow, green and purple with
+  plain rules. `session.lap.delta_session_best` is the estimated lap against the
+  fastest lap in the class, and the all-time best lap and its live delta are
+  fields of their own.
+- `vehicle.fuel.at_finish`, the fuel left at the flag or missing for it, and
+  `vehicle.fuel.pit_now`, raised on the last lap the car can still pit to reach
+  the finish.
+- Tyre pressure, tyre temperature and brake temperature averaged over the last
+  laps on track, restarted on leaving the pits and in a new session.
+- The SimHub profile export takes the fuel reserve in laps and the laps the
+  averages cover.
+
+**Changed**
+
+- The shift-lights LED preset follows the current gear's shift point instead of
+  the maximum revs, and the gear text colours by it.
+- `session.lap.last_delta_best` compares the last lap with the best that stood
+  before it, so a new best reads negative; the first lap of a session reads
+  empty.
+- The gaps ahead, behind and to the leader, the class position and the starting
+  position come from SimHub's leaderboard; the class position now works in a
+  multi-class session.
+- The profile's sector delta is the live time gained or lost in the current
+  sector, as the plugin already sent.
+- `vehicle.fuel.to_add` keeps the reserve and never asks for more than the tank
+  holds; fuel and laps estimates fall back to the last lap before a best lap
+  exists.
+- Computed fields send nothing while no game runs. Several of their formulas
+  failed in SimHub then and were suspended for 30 seconds.
+- Fields with no generic SimHub source are labelled `game_specific`.
+
+**Fixed**
+
+- The black-and-orange mechanical flag never reached the board: its mapping
+  named a SimHub property that does not exist. It reads `Flag_Orange`, which
+  ACC, AC, AC EVO and AC Rally set.
+- Eleven more fields named properties SimHub does not have and never carried a
+  value: fuel used this lap, energy level and percentage, in the pit box,
+  session best lap, current sector time, sector three, timed session, the
+  chequered flag shown, starting position and, in the profile, the gap to the
+  leader.
+- Zero sector and best times read as missing instead of `00:00.000`.
+- The plugin ran its 60 Hz fields on about every other tick, folded the
+  start-finish reset into the sector delta, and repeated an empty value only
+  once, so a lost datagram could leave a stale value on the board.
+
 ## 0.1.1 — 2026-10-04
 
 Configuration schema 26, unchanged, and the partition table is the same: the

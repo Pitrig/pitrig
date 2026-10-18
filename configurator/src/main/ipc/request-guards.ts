@@ -29,7 +29,11 @@ import type {
   DeviceResult
 } from '@shared/device'
 import type { ConfigurationFileSaveRequest } from '@shared/configuration-files'
-import type { SimHubProfileExportRequest } from '@shared/simhub-profile'
+import {
+  isValidSimHubParameter,
+  SIMHUB_PROFILE_PARAMETER_NAMES,
+  type SimHubProfileExportRequest
+} from '@shared/simhub-profile'
 import {
   BUNDLED_TEMPLATE_PREFIX,
   MAXIMUM_TEMPLATE_DESCRIPTION,
@@ -226,7 +230,12 @@ export function isSimHubProfileExportRequest(value: unknown): value is SimHubPro
     typeof request.baudRate === 'number' &&
     Number.isInteger(request.baudRate) &&
     request.baudRate >= 9_600 &&
-    request.baudRate <= 2_000_000
+    request.baudRate <= 2_000_000 &&
+    typeof request.parameters === 'object' &&
+    request.parameters !== null &&
+    SIMHUB_PROFILE_PARAMETER_NAMES.every((name) =>
+      isValidSimHubParameter(name, request.parameters?.[name])
+    )
   )
 }
 

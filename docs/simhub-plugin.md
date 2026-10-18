@@ -46,9 +46,12 @@ python3 -m tools.codegen.telemetry_catalog
 It carries every field's wire identifier, the SimHub property behind it, the
 conversion, the format and the rate, from the same
 `telemetry/simhub_generic_mappings.json` the Custom Serial profile is built
-from. Twenty-one fields have no single property and are computed in `Computed.cs`;
-each names its native twin through the mapping's `computed` key, so a change to
-one side is a visible change to the other.
+from. The profile is what feeds a product board; the plugin mirrors it. A field
+with no single property is a formula in the profile and is computed in
+`Computed.cs` and the classes beside it, each naming its native twin through the
+mapping's `computed` key, so a change to one side is a visible change to the
+other. The panel's fuel reserve and averages take the defaults the profile
+export offers.
 
 A mapping's `unavailable_when` names the values a game uses to mean nothing — an
 `EngineMap` of −1, a water temperature of 0 — and both sides send them empty, so
@@ -57,11 +60,9 @@ negative value the same way, because the board cannot parse one. The live delta
 itself is sent as the game reports it, and is empty only when the game reports
 nothing; the fifth-of-a-lap bound survives where a delta feeds a computed time —
 the estimated lap time and the sector delta — because a replay or a switched car
-would otherwise produce a nonsensical clock. The sector delta keeps the live
-delta at the last sector boundary and the gaps read the opponent list, neither
-of which an expression can hold, so the Custom Serial profile sends the last
-completed sector against the best lap and PersistantTracker's gap to the
-neighbouring driver instead.
+would otherwise produce a nonsensical clock. Both paths read the same SimHub
+data: the gaps and the class position come from its leaderboard, and the sector
+delta keeps the live delta at the last sector boundary.
 
 ## The wire
 
@@ -88,6 +89,6 @@ drops the datagram.
 
 Each field is evaluated at its catalog rate — 60, 20 or 5 Hz, or 10 Hz for the
 `changes` rate — and is sent only when its formatted value differs from the one
-last sent. Every known value is repeated once a second, which is what a lost
-datagram costs at worst. An unavailable field sends an empty value once, which
-invalidates it on the board and in the preview.
+last sent. Every value is repeated once a second, an empty one included, which
+is what a lost datagram costs at worst; an empty value invalidates the field on
+the board and in the preview.
